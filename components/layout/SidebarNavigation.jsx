@@ -1,145 +1,140 @@
-import React, { useMemo, useState } from "react";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Folder, FolderOpen, LayoutDashboard, Calculator, Briefcase, Users, Wrench, Building2, BarChart3 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
-const NAV_GROUPS = [
+const navGroups = [
   {
-    group_id: "core_inputs",
-    group_label: "Core Inputs",
+    label: "Core Inputs",
     items: [
-      { href: "/labour", label: "Labour", icon: Users },
-      { href: "/employee-overheads", label: "Employee Overheads", icon: Briefcase },
-      { href: "/assets", label: "Assets", icon: Wrench },
-      { href: "/general-overheads", label: "General Overheads", icon: Building2 },
-      { href: "/cost-allocation", label: "Cost Allocation", icon: Calculator },
+      { href: "/labour", label: "Labour" },
+      { href: "/employee-overheads", label: "Employee Overheads" },
+      { href: "/assets", label: "Assets" },
+      { href: "/general-overheads", label: "General Overheads" },
+      { href: "/cost-allocation", label: "Cost Allocation" },
     ],
   },
   {
-    group_id: "commercial_engine",
-    group_label: "Commercial Engine",
+    label: "Commercial Engine",
     items: [
-      { href: "/cost-summary", label: "Cost Summary", icon: LayoutDashboard },
+      { href: "/cost-summary", label: "Cost Summary" },
     ],
   },
 ];
 
-const STANDALONE_ITEMS = [
-  { href: "/budget", label: "Budget", icon: BarChart3 },
+const standaloneItems = [
+  { href: "/budget", label: "Budget" },
 ];
-
-function NavGroup({ group, pathname, defaultOpen = true }) {
-  const [is_open, setIsOpen] = useState(defaultOpen);
-
-  const has_active_child = useMemo(
-    () => group.items.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)),
-    [group.items, pathname]
-  );
-
-  const folderIcon = is_open || has_active_child ? FolderOpen : Folder;
-  const FolderIcon = folderIcon;
-
-  return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={() => setIsOpen((current) => !current)}
-        className={cn(
-          "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left transition",
-          has_active_child ? "bg-muted font-medium" : "hover:bg-muted/70"
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <FolderIcon className="h-4 w-4" />
-          <span className="text-sm">{group.group_label}</span>
-        </div>
-        <ChevronDown className={cn("h-4 w-4 transition-transform", is_open ? "rotate-180" : "rotate-0")} />
-      </button>
-
-      {is_open ? (
-        <div className="ml-3 space-y-1 border-l pl-3">
-          {group.items.map((item) => {
-            const Icon = item.icon;
-            const is_active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition",
-                  is_active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function StandaloneLink({ item, pathname }) {
-  const Icon = item.icon;
-  const is_active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-  return (
-    <Link
-      href={item.href}
-      className={cn(
-        "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition",
-        is_active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      <span>{item.label}</span>
-    </Link>
-  );
-}
 
 export default function SidebarNavigation() {
   const pathname = usePathname();
+  const [openGroups, setOpenGroups] = useState({
+    "Core Inputs": true,
+    "Commercial Engine": true,
+  });
+
+  function toggleGroup(groupLabel) {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupLabel]: !prev[groupLabel],
+    }));
+  }
+
+  function isActive(href) {
+    return pathname === href || pathname.startsWith(href + "/");
+  }
 
   return (
-    <Card className="sticky top-4 rounded-3xl border shadow-sm">
-      <div className="space-y-6 p-4">
-        <div className="px-2">
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">QS Tools</div>
-          <div className="mt-1 text-lg font-semibold">Navigation</div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Core modules are grouped like folders. Budget stays separate as the forecast page.
-          </p>
+    <aside
+      style={{
+        width: "100%",
+        padding: "16px",
+        borderRight: "1px solid #e5e5e5",
+        minHeight: "100vh",
+        background: "#fff",
+      }}
+    >
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase" }}>
+          QS Tools
         </div>
-
-        <div className="space-y-3">
-          {NAV_GROUPS.map((group) => (
-            <NavGroup key={group.group_id} group={group} pathname={pathname} />
-          ))}
-        </div>
-
-        <div className="space-y-2 border-t pt-4">
-          <div className="px-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">Standalone</div>
-          <div className="space-y-1">
-            {STANDALONE_ITEMS.map((item) => (
-              <StandaloneLink key={item.href} item={item} pathname={pathname} />
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border p-3 text-sm text-muted-foreground">
-          Suggested flow: Inputs → Cost Summary → Budget.
-        </div>
+        <div style={{ fontSize: "20px", fontWeight: 600 }}>Navigation</div>
       </div>
-    </Card>
+
+      {navGroups.map((group) => (
+        <div key={group.label} style={{ marginBottom: "20px" }}>
+          <button
+            type="button"
+            onClick={() => toggleGroup(group.label)}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: "10px 12px",
+              border: "1px solid #ddd",
+              borderRadius: "8px",
+              background: "#f7f7f7",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {openGroups[group.label] ? "▾" : "▸"} {group.label}
+          </button>
+
+          {openGroups[group.label] && (
+            <div style={{ marginTop: "8px", paddingLeft: "12px" }}>
+              {group.items.map((item) => (
+                <div key={item.href} style={{ marginBottom: "6px" }}>
+                  <Link
+                    href={item.href}
+                    style={{
+                      display: "block",
+                      padding: "8px 10px",
+                      borderRadius: "6px",
+                      textDecoration: "none",
+                      background: isActive(item.href) ? "#111" : "transparent",
+                      color: isActive(item.href) ? "#fff" : "#222",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div style={{ marginTop: "28px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
+        <div
+          style={{
+            fontSize: "12px",
+            color: "#666",
+            textTransform: "uppercase",
+            marginBottom: "10px",
+          }}
+        >
+          Standalone
+        </div>
+
+        {standaloneItems.map((item) => (
+          <div key={item.href} style={{ marginBottom: "6px" }}>
+            <Link
+              href={item.href}
+              style={{
+                display: "block",
+                padding: "8px 10px",
+                borderRadius: "6px",
+                textDecoration: "none",
+                background: isActive(item.href) ? "#111" : "transparent",
+                color: isActive(item.href) ? "#fff" : "#222",
+              }}
+            >
+              {item.label}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 }
