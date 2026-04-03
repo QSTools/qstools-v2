@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import calculateScenarioLabour from "@/lib/calculations/labourScenarioCalculations";
+import calculateScenarioLabour, {
+    DRIVER_META,
+} from "@/lib/calculations/labourScenarioCalculations";
 
 function formatCurrency(value) {
     return new Intl.NumberFormat("en-NZ", {
@@ -13,8 +15,8 @@ function formatCurrency(value) {
 
 function formatDelta(value) {
     const safe = Number.isFinite(value) ? value : 0;
-    const prefix = safe > 0 ? "+" : "";
-    return `${prefix}${formatCurrency(safe)}`;
+    const prefix = safe > 0 ? "+" : safe < 0 ? "-" : "";
+    return `${prefix}${formatCurrency(Math.abs(safe))}`;
 }
 
 function fieldStyle() {
@@ -94,8 +96,10 @@ function Metric({ label, value, color, subvalue }) {
     );
 }
 
-function DeltaRow({ label, liveValue, scenarioValue }) {
-    const delta = scenarioValue - liveValue;
+function DeltaRow({ label, liveValue, scenarioValue, isHighlighted = false }) {
+    const live = Number.isFinite(liveValue) ? liveValue : 0;
+    const scenario = Number.isFinite(scenarioValue) ? scenarioValue : 0;
+    const delta = scenario - live;
 
     return (
         <div
@@ -103,9 +107,12 @@ function DeltaRow({ label, liveValue, scenarioValue }) {
                 display: "grid",
                 gridTemplateColumns: "1.2fr 1fr 1fr 1fr",
                 gap: "12px",
-                padding: "10px 0",
+                padding: "10px 12px",
                 borderBottom: "1px solid #1f1f1f",
                 alignItems: "center",
+                borderRadius: "10px",
+                background: isHighlighted ? "rgba(255,255,255,0.06)" : "transparent",
+                border: isHighlighted ? "1px solid rgba(255,255,255,0.14)" : "1px solid transparent",
             }}
         >
             <div style={{ color: "#fff", fontSize: "13px", fontWeight: 600 }}>
@@ -113,11 +120,11 @@ function DeltaRow({ label, liveValue, scenarioValue }) {
             </div>
 
             <div style={{ color: "#a3a3a3", fontSize: "13px" }}>
-                {formatCurrency(liveValue)}
+                {formatCurrency(live)}
             </div>
 
             <div style={{ color: "#fff", fontSize: "13px" }}>
-                {formatCurrency(scenarioValue)}
+                {formatCurrency(scenario)}
             </div>
 
             <div
@@ -131,6 +138,11 @@ function DeltaRow({ label, liveValue, scenarioValue }) {
             </div>
         </div>
     );
+}
+
+function getDriverMessage(biggestDriver) {
+    if (!biggestDriver) return "Biggest impact: No change";
+    return `Biggest impact: ${biggestDriver.shortLabel} (${formatDelta(biggestDriver.delta)}/hr)`;
 }
 
 export default function ScenarioModelCard({
@@ -181,20 +193,21 @@ export default function ScenarioModelCard({
     }
 
     const scenario = useMemo(() => {
-        return calculateScenarioLabour({
-            labour_state: labourState,
-            labour_outputs: outputs,
-            scenario_overrides: scenarioInputs,
-        });
-    }, [labourState, outputs, scenarioInputs]);
+        return calculateScenarioLabour(labourState, scenarioInputs);
+    }, [labourState, scenarioInputs]);
 
-    const liveProfitPerHour =
-        Number(outputs.charge_out_rate ?? labourState.charge_out_rate ?? 0) -
-        Number(outputs.productive_labour_cost_rate ?? 0);
+    const liveOutputs = scenario.live_outputs ?? outputs ?? {};
+    const scenarioOutputs = scenario.scenario_outputs ?? {};
+    const biggestDriver = scenario.driver_analysis?.biggest_driver ?? null;
+    const highlightedKey = biggestDriver?.key ?? null;
 
-    const liveAboveRecovery =
-        Number(outputs.charge_out_rate ?? labourState.charge_out_rate ?? 0) -
-        Number(outputs.minimum_charge_out_rate ?? 0);
+    const liveProfitPerHour = Number(
+        liveOutputs.profit_per_hour ?? 0
+    );
+
+    const liveAboveRecovery = Number(
+        liveOutputs.above_recovery ?? 0
+    );
 
     return (
         <div style={panelStyle()}>
@@ -311,32 +324,41 @@ export default function ScenarioModelCard({
                     <div style={{ display: "grid", gap: "12px" }}>
                         <Metric
                             label="Profit per Hour"
-                            value={formatCurrency(scenario.profit_per_hour)}
+                            value={formatCurrency(Number(scenarioOutputs.profit_per_hour ?? 0))}
                             subvalue={`Live: ${formatCurrency(liveProfitPerHour)}`}
                             color="#22c55e"
                         />
 
                         <Metric
                             label="Above Recovery"
-                            value={formatCurrency(scenario.above_recovery)}
+                            value={formatCurrency(Number(scenarioOutputs.above_recovery ?? 0))}
                             subvalue={`Live: ${formatCurrency(liveAboveRecovery)}`}
                             color="#14b8a6"
                         />
 
                         <Metric
                             label="Productive Labour Cost Rate"
-                            value={formatCurrency(scenario.productive_labour_cost_rate)}
-                            subvalue={`Live: ${formatCurrency(Number(outputs.productive_labour_cost_rate ?? 0))}`}
+                            value={formatCurrency(Number(scenarioOutputs.productive_labour_cost_rate ?? 0))}
+                            subvalue={`Live: ${formatCurrency(Number(liveOutputs.productive_labour_cost_rate ?? 0))}`}
                             color="#fff"
                         />
 
                         <Metric
                             label="Minimum Charge-Out Rate"
-                            value={formatCurrency(scenario.minimum_charge_out_rate)}
-                            subvalue={`Live: ${formatCurrency(Number(outputs.minimum_charge_out_rate ?? 0))}`}
+                            value={formatCurrency(Number(scenarioOutputs.minimum_charge_out_rate ?? 0))}
+                            subvalue={`Live: ${formatCurrency(Number(liveOutputs.minimum_charge_out_rate ?? 0))}`}
                             color="#fff"
                         />
                     </div>
+                </div>
+            </div>
+
+            <div style={{ ...panelStyle(), marginTop: "20px", background: "#0b0b0b" }}>
+                <div style={{ color: "#fff", fontWeight: 700, marginBottom: "6px" }}>
+                    {getDriverMessage(biggestDriver)}
+                </div>
+                <div style={{ fontSize: "12px", color: "#888" }}>
+                    Based on the single largest change in Scenario outputs
                 </div>
             </div>
 
@@ -352,7 +374,7 @@ export default function ScenarioModelCard({
                         gap: "12px",
                         paddingBottom: "10px",
                         borderBottom: "1px solid #2a2a2a",
-                        marginBottom: "2px",
+                        marginBottom: "8px",
                     }}
                 >
                     <div style={{ color: "#888", fontSize: "12px", fontWeight: 700 }}>
@@ -370,27 +392,31 @@ export default function ScenarioModelCard({
                 </div>
 
                 <DeltaRow
-                    label="Productive Labour Cost Rate"
-                    liveValue={Number(outputs.productive_labour_cost_rate ?? 0)}
-                    scenarioValue={Number(scenario.productive_labour_cost_rate ?? 0)}
+                    label={DRIVER_META.productive_labour_cost_rate.label}
+                    liveValue={Number(liveOutputs.productive_labour_cost_rate ?? 0)}
+                    scenarioValue={Number(scenarioOutputs.productive_labour_cost_rate ?? 0)}
+                    isHighlighted={highlightedKey === "productive_labour_cost_rate"}
                 />
 
                 <DeltaRow
-                    label="Minimum Charge-Out Rate"
-                    liveValue={Number(outputs.minimum_charge_out_rate ?? 0)}
-                    scenarioValue={Number(scenario.minimum_charge_out_rate ?? 0)}
+                    label={DRIVER_META.minimum_charge_out_rate.label}
+                    liveValue={Number(liveOutputs.minimum_charge_out_rate ?? 0)}
+                    scenarioValue={Number(scenarioOutputs.minimum_charge_out_rate ?? 0)}
+                    isHighlighted={highlightedKey === "minimum_charge_out_rate"}
                 />
 
                 <DeltaRow
-                    label="Profit per Hour"
+                    label={DRIVER_META.profit_per_hour.label}
                     liveValue={liveProfitPerHour}
-                    scenarioValue={Number(scenario.profit_per_hour ?? 0)}
+                    scenarioValue={Number(scenarioOutputs.profit_per_hour ?? 0)}
+                    isHighlighted={highlightedKey === "profit_per_hour"}
                 />
 
                 <DeltaRow
-                    label="Above Recovery"
+                    label={DRIVER_META.above_recovery.label}
                     liveValue={liveAboveRecovery}
-                    scenarioValue={Number(scenario.above_recovery ?? 0)}
+                    scenarioValue={Number(scenarioOutputs.above_recovery ?? 0)}
+                    isHighlighted={highlightedKey === "above_recovery"}
                 />
             </div>
         </div>
