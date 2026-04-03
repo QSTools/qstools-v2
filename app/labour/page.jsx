@@ -15,6 +15,7 @@ import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
 import LabourHelpPanel from "@/components/labour/LabourHelpPanel";
 import LabourInsightsRow from "@/components/labour/LabourInsightsRow";
 
+
 export default function LabourPage() {
     const labour = useLabour();
 
