@@ -112,7 +112,9 @@ function DeltaRow({ label, liveValue, scenarioValue, isHighlighted = false }) {
                 alignItems: "center",
                 borderRadius: "10px",
                 background: isHighlighted ? "rgba(255,255,255,0.06)" : "transparent",
-                border: isHighlighted ? "1px solid rgba(255,255,255,0.14)" : "1px solid transparent",
+                border: isHighlighted
+                    ? "1px solid rgba(255,255,255,0.14)"
+                    : "1px solid transparent",
             }}
         >
             <div style={{ color: "#fff", fontSize: "13px", fontWeight: 600 }}>
@@ -201,13 +203,8 @@ export default function ScenarioModelCard({
     const biggestDriver = scenario.driver_analysis?.biggest_driver ?? null;
     const highlightedKey = biggestDriver?.key ?? null;
 
-    const liveProfitPerHour = Number(
-        liveOutputs.profit_per_hour ?? 0
-    );
-
-    const liveAboveRecovery = Number(
-        liveOutputs.above_recovery ?? 0
-    );
+    const liveProfitPerHour = Number(liveOutputs.profit_per_hour ?? 0);
+    const liveAboveRecovery = Number(liveOutputs.above_recovery ?? 0);
 
     return (
         <div style={panelStyle()}>
@@ -256,7 +253,13 @@ export default function ScenarioModelCard({
             </div>
 
             {showHelp ? (
-                <div style={{ ...panelStyle(), marginBottom: "16px", background: "#0b0b0b" }}>
+                <div
+                    style={{
+                        ...panelStyle(),
+                        marginBottom: "16px",
+                        background: "#0b0b0b",
+                    }}
+                >
                     <div style={{ color: "#fff", fontWeight: 700, marginBottom: "8px" }}>
                         What this does
                     </div>
@@ -338,27 +341,64 @@ export default function ScenarioModelCard({
 
                         <Metric
                             label="Productive Labour Cost Rate"
-                            value={formatCurrency(Number(scenarioOutputs.productive_labour_cost_rate ?? 0))}
-                            subvalue={`Live: ${formatCurrency(Number(liveOutputs.productive_labour_cost_rate ?? 0))}`}
+                            value={formatCurrency(
+                                Number(scenarioOutputs.productive_labour_cost_rate ?? 0)
+                            )}
+                            subvalue={`Live: ${formatCurrency(
+                                Number(liveOutputs.productive_labour_cost_rate ?? 0)
+                            )}`}
                             color="#fff"
                         />
 
                         <Metric
                             label="Minimum Charge-Out Rate"
-                            value={formatCurrency(Number(scenarioOutputs.minimum_charge_out_rate ?? 0))}
-                            subvalue={`Live: ${formatCurrency(Number(liveOutputs.minimum_charge_out_rate ?? 0))}`}
+                            value={formatCurrency(
+                                Number(scenarioOutputs.minimum_charge_out_rate ?? 0)
+                            )}
+                            subvalue={`Live: ${formatCurrency(
+                                Number(liveOutputs.minimum_charge_out_rate ?? 0)
+                            )}`}
                             color="#fff"
                         />
                     </div>
                 </div>
             </div>
 
-            <div style={{ ...panelStyle(), marginTop: "20px", background: "#0b0b0b" }}>
+            <div
+                style={{
+                    ...panelStyle(),
+                    marginTop: "20px",
+                    background: "#0b0b0b",
+                }}
+            >
                 <div style={{ color: "#fff", fontWeight: 700, marginBottom: "6px" }}>
                     {getDriverMessage(biggestDriver)}
                 </div>
                 <div style={{ fontSize: "12px", color: "#888" }}>
                     Based on the single largest change in Scenario outputs
+                </div>
+            </div>
+
+            <div
+                style={{
+                    ...panelStyle(),
+                    marginTop: "20px",
+                    background: "#0b0b0b",
+                }}
+            >
+                <div style={{ color: "#fff", fontWeight: 700, marginBottom: "6px" }}>
+                    {scenario.explanation?.title ?? "Scenario explanation"}
+                </div>
+
+                <div style={{ fontSize: "13px", color: "#a3a3a3", lineHeight: 1.6 }}>
+                    {scenario.explanation?.body ??
+                        "This panel explains the biggest commercial movement in the current scenario."}
+
+                    {scenario.explanation?.insight && (
+                        <div style={{ marginTop: "8px", fontSize: "12px", color: "#888" }}>
+                            {scenario.explanation.insight}
+                        </div>
+                    )}
                 </div>
             </div>
 
