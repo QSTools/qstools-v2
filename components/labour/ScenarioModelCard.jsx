@@ -1,288 +1,249 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { calculateLabourOutputs } from "@/lib/calculations/labourCalculations";
+import React, { useEffect, useMemo, useState } from "react";
 
-export default function ScenarioModelCard({ state, has_profile }) {
-  const [scenario_state, setScenarioState] = useState(null);
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    maximumFractionDigits: 2,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function fieldStyle() {
+  return {
+    width: "100%",
+    padding: "10px",
+    border: "1px solid #2a2a2a",
+    borderRadius: "10px",
+    background: "#050505",
+    color: "#fff",
+  };
+}
+
+function panelStyle() {
+  return {
+    border: "1px solid #2a2a2a",
+    borderRadius: "14px",
+    padding: "16px",
+    background: "#111",
+  };
+}
+
+function LabelledField({ label, value, onChange }) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          fontSize: "12px",
+          fontWeight: 600,
+          color: "#a3a3a3",
+          marginBottom: "6px",
+        }}
+      >
+        {label}
+      </label>
+
+      <input
+        type="number"
+        value={value ?? ""}
+        onChange={onChange}
+        style={fieldStyle()}
+      />
+    </div>
+  );
+}
+
+function Metric({ label, value, color }) {
+  return (
+    <div style={{ ...panelStyle(), background: "#0b0b0b" }}>
+      <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "24px", fontWeight: 700, color }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+export default function ScenarioModelCard({
+  labourState = {},
+  outputs = {},
+}) {
+  const [scenarioInputs, setScenarioInputs] = useState({
+    labour_rate: labourState.labour_rate,
+    charge_out_rate: labourState.charge_out_rate,
+    productivity_percent: labourState.productivity_percent,
+    margin_target_percent: labourState.margin_target_percent,
+  });
 
   useEffect(() => {
-    if (!has_profile) {
-      setScenarioState(null);
-      return;
-    }
-
-    setScenarioState({
-      hours_per_week: state.hours_per_week,
-      labour_rate: state.labour_rate,
-      charge_out_rate: state.charge_out_rate,
-      productivity_percent: state.productivity_percent,
-      margin_target_percent: state.margin_target_percent,
-      annual_leave_weeks: state.annual_leave_weeks,
-      public_holiday_days: state.public_holiday_days,
-      sick_days: state.sick_days,
-      bereavement_days: state.bereavement_days,
-      family_violence_days: state.family_violence_days,
-      employee_kiwisaver_enabled: state.employee_kiwisaver_enabled,
+    setScenarioInputs({
+      labour_rate: labourState.labour_rate,
+      charge_out_rate: labourState.charge_out_rate,
+      productivity_percent: labourState.productivity_percent,
+      margin_target_percent: labourState.margin_target_percent,
     });
-  }, [has_profile, state]);
+  }, [
+    labourState.labour_rate,
+    labourState.charge_out_rate,
+    labourState.productivity_percent,
+    labourState.margin_target_percent,
+  ]);
 
-  const current_outputs = useMemo(() => {
-    if (!has_profile) return null;
-    return calculateLabourOutputs(state);
-  }, [has_profile, state]);
-
-  const scenario_outputs = useMemo(() => {
-    if (!scenario_state) return null;
-    return calculateLabourOutputs(scenario_state);
-  }, [scenario_state]);
-
-  if (!has_profile) {
-    return (
-      <section className="rounded-2xl border border-sky-800 bg-sky-950/20 p-5">
-        <h2 className="text-lg font-semibold">Scenario Modeller</h2>
-        <p className="mt-1 mb-5 text-sm text-neutral-300">
-          Test changes without affecting your core labour inputs.
-        </p>
-
-        <div className="rounded-xl border border-dashed border-sky-800 bg-neutral-950 px-4 py-6 text-sm text-sky-100">
-          Create or load a labour profile first to unlock scenario modelling.
-        </div>
-      </section>
-    );
+  function update(field) {
+    return (e) => {
+      const value = e.target.value;
+      setScenarioInputs((prev) => ({
+        ...prev,
+        [field]: value === "" ? "" : Number(value),
+      }));
+    };
   }
 
-  if (!scenario_state || !scenario_outputs || !current_outputs) return null;
-
-  function update_field(field, value) {
-    setScenarioState((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  }
-
-  function reset_scenario() {
-    setScenarioState({
-      hours_per_week: state.hours_per_week,
-      labour_rate: state.labour_rate,
-      charge_out_rate: state.charge_out_rate,
-      productivity_percent: state.productivity_percent,
-      margin_target_percent: state.margin_target_percent,
-      annual_leave_weeks: state.annual_leave_weeks,
-      public_holiday_days: state.public_holiday_days,
-      sick_days: state.sick_days,
-      bereavement_days: state.bereavement_days,
-      family_violence_days: state.family_violence_days,
-      employee_kiwisaver_enabled: state.employee_kiwisaver_enabled,
+  function reset() {
+    setScenarioInputs({
+      labour_rate: labourState.labour_rate,
+      charge_out_rate: labourState.charge_out_rate,
+      productivity_percent: labourState.productivity_percent,
+      margin_target_percent: labourState.margin_target_percent,
     });
   }
+
+  const matchesLive =
+    toNumber(scenarioInputs.labour_rate) === toNumber(labourState.labour_rate) &&
+    toNumber(scenarioInputs.charge_out_rate) === toNumber(labourState.charge_out_rate) &&
+    toNumber(scenarioInputs.productivity_percent) === toNumber(labourState.productivity_percent) &&
+    toNumber(scenarioInputs.margin_target_percent) === toNumber(labourState.margin_target_percent);
+
+  const live_cost_per_hour = toNumber(outputs.productive_labour_cost_rate);
+  const live_min_charge_out = toNumber(outputs.minimum_charge_out_rate);
+
+  const fallback_cost_per_hour =
+    clamp(toNumber(scenarioInputs.productivity_percent), 0, 100) > 0
+      ? toNumber(scenarioInputs.labour_rate) /
+        (clamp(toNumber(scenarioInputs.productivity_percent), 0, 100) / 100)
+      : 0;
+
+  const fallback_min_charge_out =
+    clamp(toNumber(scenarioInputs.margin_target_percent), 0, 100) < 100
+      ? fallback_cost_per_hour /
+        (1 - clamp(toNumber(scenarioInputs.margin_target_percent), 0, 100) / 100)
+      : 0;
+
+  const cost_per_hour = matchesLive ? live_cost_per_hour : fallback_cost_per_hour;
+  const min_charge_out = matchesLive ? live_min_charge_out : fallback_min_charge_out;
+
+  const charge_out_rate = toNumber(scenarioInputs.charge_out_rate);
+  const profit_per_hour = charge_out_rate - cost_per_hour;
+  const above_recovery = charge_out_rate - min_charge_out;
 
   return (
-    <section className="rounded-2xl border border-sky-800 bg-sky-950/20 p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold">Scenario Modeller</h2>
-          <p className="mt-1 text-sm text-neutral-300">
-            Test changes without affecting your core labour inputs.
-          </p>
-        </div>
+    <div style={{ ...panelStyle(), marginTop: "24px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "16px",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <h2 style={{ margin: 0, color: "#fff" }}>Scenario Modeller</h2>
 
         <button
-          type="button"
-          onClick={reset_scenario}
-          className="rounded-xl border border-sky-700 bg-sky-950 px-4 py-2 text-sm text-sky-200"
+          onClick={reset}
+          style={{
+            padding: "6px 10px",
+            border: "1px solid #2a2a2a",
+            borderRadius: "8px",
+            background: "#050505",
+            color: "#fff",
+            cursor: "pointer",
+          }}
         >
-          Reset Scenario
+          Reset
         </button>
       </div>
 
-      <div className="mt-5 rounded-xl border border-sky-900 bg-neutral-950 px-4 py-3 text-sm text-sky-100">
-        Core inputs remain unchanged. This modeller works from a copy of your current labour settings.
-      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "20px",
+        }}
+      >
+        <div style={panelStyle()}>
+          <h3 style={{ color: "#fff", marginTop: 0 }}>Inputs</h3>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Hours per Week">
-          <input
-            type="number"
-            step="0.01"
-            value={scenario_state.hours_per_week ?? ""}
-            onChange={(e) => update_field("hours_per_week", e.target.value)}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          />
-        </Field>
+          <div style={{ display: "grid", gap: "12px" }}>
+            <LabelledField
+              label="Labour Rate"
+              value={scenarioInputs.labour_rate}
+              onChange={update("labour_rate")}
+            />
 
-        <Field label="Labour Rate">
-          <input
-            type="number"
-            step="0.01"
-            value={scenario_state.labour_rate ?? ""}
-            onChange={(e) => update_field("labour_rate", e.target.value)}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          />
-        </Field>
+            <LabelledField
+              label="Charge-Out Rate"
+              value={scenarioInputs.charge_out_rate}
+              onChange={update("charge_out_rate")}
+            />
 
-        <Field label="Charge Out Rate">
-          <input
-            type="number"
-            step="0.01"
-            value={scenario_state.charge_out_rate ?? ""}
-            onChange={(e) => update_field("charge_out_rate", e.target.value)}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          />
-        </Field>
+            <LabelledField
+              label="Productivity %"
+              value={scenarioInputs.productivity_percent}
+              onChange={update("productivity_percent")}
+            />
 
-        <Field label="Productivity Percent">
-          <input
-            type="number"
-            step="0.01"
-            value={scenario_state.productivity_percent ?? ""}
-            onChange={(e) => update_field("productivity_percent", e.target.value)}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          />
-        </Field>
+            <LabelledField
+              label="Margin Target %"
+              value={scenarioInputs.margin_target_percent}
+              onChange={update("margin_target_percent")}
+            />
+          </div>
+        </div>
 
-        <Field label="Margin Target Percent">
-          <input
-            type="number"
-            step="0.01"
-            value={scenario_state.margin_target_percent ?? ""}
-            onChange={(e) => update_field("margin_target_percent", e.target.value)}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          />
-        </Field>
+        <div style={panelStyle()}>
+          <h3 style={{ color: "#fff", marginTop: 0 }}>Dollar Outputs</h3>
 
-        <Field label="Employee KiwiSaver Enabled">
-          <select
-            value={scenario_state.employee_kiwisaver_enabled ? "true" : "false"}
-            onChange={(e) =>
-              update_field("employee_kiwisaver_enabled", e.target.value === "true")
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </Field>
-      </div>
+          <div style={{ display: "grid", gap: "12px" }}>
+            <Metric
+              label="Profit per Hour"
+              value={formatCurrency(profit_per_hour)}
+              color="#22c55e"
+            />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <CompareCard
-          title="Current"
-          minimum_charge_out_rate={current_outputs.minimum_charge_out_rate}
-          productive_hours={current_outputs.productive_hours}
-          total_labour_cost_annual={current_outputs.total_labour_cost_annual}
-        />
+            <Metric
+              label="Above Recovery"
+              value={formatCurrency(above_recovery)}
+              color="#14b8a6"
+            />
 
-        <CompareCard
-          title="Scenario"
-          minimum_charge_out_rate={scenario_outputs.minimum_charge_out_rate}
-          productive_hours={scenario_outputs.productive_hours}
-          total_labour_cost_annual={scenario_outputs.total_labour_cost_annual}
-        />
-      </div>
+            <Metric
+              label="Cost per Hour"
+              value={formatCurrency(cost_per_hour)}
+              color="#fff"
+            />
 
-      <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-        <div className="mb-3 text-sm font-medium text-neutral-300">Scenario Difference</div>
-        <div className="space-y-2 text-sm">
-          <DiffRow
-            label="Minimum Charge-Out Rate"
-            value={scenario_outputs.minimum_charge_out_rate - current_outputs.minimum_charge_out_rate}
-          />
-          <DiffRow
-            label="Productive Hours"
-            value={scenario_outputs.productive_hours - current_outputs.productive_hours}
-            currency={false}
-          />
-          <DiffRow
-            label="True Labour Cost (Annual)"
-            value={scenario_outputs.total_labour_cost_annual - current_outputs.total_labour_cost_annual}
-          />
+            <Metric
+              label="Min Charge-Out"
+              value={formatCurrency(min_charge_out)}
+              color="#fff"
+            />
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
-      {children}
-    </label>
-  );
-}
-
-function CompareCard({
-  title,
-  minimum_charge_out_rate,
-  productive_hours,
-  total_labour_cost_annual,
-}) {
-  return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-      <div className="mb-3 text-sm font-medium text-neutral-300">{title}</div>
-      <div className="space-y-2 text-sm text-neutral-300">
-        <Row label="Productive Hours" value={fmt(productive_hours)} />
-        <Row label="True Labour Cost" value={fmtCur(total_labour_cost_annual)} />
-        <Row label="Minimum Charge-Out" value={fmtCur(minimum_charge_out_rate)} />
-      </div>
     </div>
   );
-}
-
-function DiffRow({ label, value, currency = true }) {
-  const positive = Number(value || 0) > 0;
-  const neutral = Number(value || 0) === 0;
-
-  const tone = neutral
-    ? "text-neutral-300"
-    : positive
-    ? "text-rose-300"
-    : "text-emerald-300";
-
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-neutral-300">{label}</span>
-      <span className={tone}>
-        {currency ? fmtSignedCur(value) : fmtSigned(value)}
-      </span>
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span>{label}</span>
-      <span className="font-medium text-white">{value}</span>
-    </div>
-  );
-}
-
-function fmt(value) {
-  return Number(value || 0).toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  });
-}
-
-function fmtCur(value) {
-  return Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function fmtSigned(value) {
-  const number = Number(value || 0);
-  return `${number > 0 ? "+" : ""}${number.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function fmtSignedCur(value) {
-  const number = Number(value || 0);
-  return `${number > 0 ? "+" : ""}${number.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
 }
