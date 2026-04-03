@@ -131,20 +131,22 @@ export default function LabourPage() {
               has_profile={labour.has_profile}
             />
 
-            <CollapsibleSection
-              title="Scenario Modeller"
-              summary="What-if pricing and productivity testing"
-              defaultOpen={false}
-            >
-              <ScenarioModelCard
-                labourState={labour.state}
-                outputs={labour.outputs}
-                has_profile={labour.has_profile}
-              />
-            </CollapsibleSection>
-
             <LabourHelpPanel />
           </div>
+        </div>
+
+        <div className="border-t border-neutral-800 pt-6">
+          <CollapsibleSection
+            title="Scenario Modeller"
+            summary="What-if pricing and productivity testing"
+            defaultOpen={false}
+          >
+            <ScenarioModelCard
+              labourState={labour.state}
+              outputs={labour.outputs}
+              has_profile={labour.has_profile}
+            />
+          </CollapsibleSection>
         </div>
       </div>
     </main>
