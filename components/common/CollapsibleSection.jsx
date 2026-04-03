@@ -1,52 +1,33 @@
 "use client";
 
-export default function CollapsibleCard({
+import { useState } from "react";
+
+export default function CollapsibleSection({
   title,
   summary,
-  isOpen,
-  onToggle,
+  defaultOpen = true,
   children,
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
-    <div
-      style={{
-        border: "1px solid #2a2a2a",
-        borderRadius: "14px",
-        padding: "16px",
-        background: "#111",
-      }}
+    <details
+      open={isOpen}
+      onToggle={(e) => setIsOpen(e.currentTarget.open)}
+      className="rounded-2xl border border-neutral-800 bg-neutral-900"
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          color: "#fff",
-          textAlign: "left",
-        }}
-      >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
         <div>
-          <div style={{ fontSize: "18px", fontWeight: 700 }}>{title}</div>
-          {!isOpen && summary ? (
-            <div style={{ fontSize: "12px", color: "#a3a3a3", marginTop: "4px" }}>
-              {summary}
-            </div>
-          ) : null}
+          <div className="text-sm font-semibold text-white">{title}</div>
+          <div className="mt-1 text-xs text-neutral-400">{summary}</div>
         </div>
 
-        <div style={{ fontSize: "16px", color: "#a3a3a3" }}>
-          {isOpen ? "▼" : "▶"}
-        </div>
-      </button>
+        <span className="text-sm text-neutral-400">
+          {isOpen ? "Hide" : "Show"}
+        </span>
+      </summary>
 
-      {isOpen ? <div style={{ marginTop: "16px" }}>{children}</div> : null}
-    </div>
+      <div className="px-4 pb-4">{children}</div>
+    </details>
   );
 }

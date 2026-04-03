@@ -207,7 +207,9 @@ export default function ScenarioModelCard({
                     flexWrap: "wrap",
                 }}
             >
-                <h2 style={{ margin: 0, color: "#fff" }}>Scenario Modeller</h2>
+                <h2 className="text-2xl font-semibold text-white m-0">
+                    Scenario Modeller
+                </h2>
 
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
