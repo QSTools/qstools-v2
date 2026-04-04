@@ -1,0 +1,627 @@
+Absolutely — here is the **final build brief** for the Cost Summary wiring step, tightened to reflect the exact rule we just clarified:
+
+* **yes, Cost Summary can count stored Labour profiles**
+* **that count is derived inside Cost Summary selectors**
+* **no rewrite of Labour**
+* **no logic in `page.jsx`**
+* **no shaping in UI**
+
+This brief is now aligned to the reset wiring brief, the Master architecture, the Labour module contract, the Cost Summary module contract, and the Cost Summary page contract.    
+
+---
+
+# QS Tools — Cost Summary Final Build Brief (Wiring Phase)
+
+## STATUS
+
+**FINAL IMPLEMENTATION BRIEF — BUILD READY**
+
+This is the locked brief for the next implementation step.
+
+---
+
+## OBJECTIVE
+
+Build the Cost Summary wiring layer so the Cost Summary page can consume live upstream module data and convert it into the locked Cost Summary page structure.
+
+This phase is specifically about:
+
+* wiring live module hook outputs into Cost Summary
+* shaping upstream data inside Cost Summary selectors
+* calculating Cost Summary outputs using locked formulas
+* surfacing structural warnings and counts
+* keeping `page.jsx` orchestration-only
+
+This phase is **not** about rebuilding Labour or changing upstream module contracts.
+
+---
+
+## CORE DECISION
+
+Cost Summary must act as an:
+
+**adapter + aggregation layer**
+
+That means:
+
+* upstream modules remain clean
+* Cost Summary reads existing hook outputs
+* Cost Summary selectors reshape those outputs into Cost Summary-ready structures
+* Cost Summary derives counts, warnings, and display-ready grouped outputs locally
+
+This includes:
+
+* counting how many Labour profiles are stored
+* counting how many active Labour profiles exist
+* identifying which active staff records should flow into Cost Summary calculations
+
+These counts are **derived inside Cost Summary**, not stored as new upstream fields. 
+
+---
+
+## HARD RULES
+
+### Do not do these
+
+* do not rewrite `useLabour.js`
+* do not add Cost Summary-specific shaping to Labour
+* do not put counting logic in `page.jsx`
+* do not put calculations in components
+* do not duplicate Labour formulas
+* do not rename locked variables
+* do not consume Scenario outputs
+* do not mix Budget logic into Cost Summary
+
+### Must do these
+
+* pass full upstream hook results into `useCostSummary()`
+* shape data inside Cost Summary selectors
+* calculate totals inside Cost Summary calculations
+* build warnings/status inside Cost Summary layer
+* keep page orchestration-only
+* keep components UI-only
+
+This follows the master architecture and the reset brief.
+
+---
+
+## LOCKED FILE TARGETS
+
+### Build / update
+
+* `app/cost-summary/page.jsx`
+* `hooks/useCostSummary.js`
+* `lib/selectors/costSummarySelectors.js`
+* `lib/calculations/costSummaryCalculations.js`
+
+### Do not modify in this phase
+
+* `hooks/useLabour.js`
+* `hooks/useEmployeeOverheads.js`
+* `hooks/useAssets.js`
+* `hooks/useGeneralOverheads.js`
+* `hooks/useCostAllocation.js`
+
+Unless a real contract gap is proven later. 
+
+---
+
+## PAGE RESPONSIBILITY
+
+`app/cost-summary/page.jsx` must remain thin.
+
+It may only do:
+
+* imports
+* hook calls
+* pass upstream hook objects into `useCostSummary()`
+* render Cost Summary components
+
+It must not:
+
+* count profiles
+* filter active records
+* reshape Labour data
+* calculate totals
+* build warnings
+
+That work belongs in the Cost Summary hook + selector layer.
+
+---
+
+## REQUIRED PAGE PATTERN
+
+```jsx
+"use client";
+
+import useLabour from "@/hooks/useLabour";
+import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
+import useAssets from "@/hooks/useAssets";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import useCostAllocation from "@/hooks/useCostAllocation";
+import useCostSummary from "@/hooks/useCostSummary";
+
+import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
+import CostSummaryCard from "@/components/cost-summary/CostSummaryCard";
+import CostSummaryHelpPanel from "@/components/cost-summary/CostSummaryHelpPanel";
+
+export default function CostSummaryPage() {
+  const labour = useLabour();
+  const employeeOverheads = useEmployeeOverheads();
+  const assets = useAssets();
+  const generalOverheads = useGeneralOverheads();
+  const costAllocation = useCostAllocation();
+
+  const { status, card } = useCostSummary({
+    labour,
+    employee_overheads: employeeOverheads,
+    assets,
+    general_overheads: generalOverheads,
+    cost_allocation: costAllocation,
+  });
+
+  return (
+    <main className="space-y-6">
+      <CostSummaryStatusStrip status={status} />
+      <CostSummaryCard card={card} />
+      <CostSummaryHelpPanel />
+    </main>
+  );
+}
+```
+
+This is the correct page pattern for this phase. 
+
+---
+
+## HOOK RESPONSIBILITY
+
+`hooks/useCostSummary.js` is the integration brain.
+
+It must:
+
+* receive full upstream hook objects
+* call selectors to normalise each module into Cost Summary-ready data
+* call calculations to produce locked Cost Summary outputs
+* build `status`
+* build `card`
+
+### It owns orchestration only inside Cost Summary
+
+Suggested structure:
+
+```js
+export default function useCostSummary(inputs) {
+  const labour_data = selectCostSummaryLabour(inputs.labour);
+  const overhead_data = selectCostSummaryEmployeeOverheads(inputs.employee_overheads);
+  const asset_data = selectCostSummaryAssets(inputs.assets);
+  const general_overhead_data = selectCostSummaryGeneralOverheads(inputs.general_overheads);
+  const allocation_data = selectCostSummaryAllocation(inputs.cost_allocation);
+
+  const calculations = calculateCostSummary({
+    labour_data,
+    overhead_data,
+    asset_data,
+    general_overhead_data,
+    allocation_data,
+  });
+
+  const status = buildCostSummaryStatus({
+    labour_data,
+    overhead_data,
+    asset_data,
+    general_overhead_data,
+    allocation_data,
+    calculations,
+  });
+
+  const card = buildCostSummaryCard({
+    labour_data,
+    overhead_data,
+    asset_data,
+    general_overhead_data,
+    allocation_data,
+    calculations,
+  });
+
+  return { status, card };
+}
+```
+
+---
+
+## SELECTOR RESPONSIBILITY
+
+`lib/selectors/costSummarySelectors.js` is where all shaping happens.
+
+Selectors must adapt upstream hook outputs into clean Cost Summary structures.
+
+### Required selectors
+
+* `selectCostSummaryLabour(labour)`
+* `selectCostSummaryEmployeeOverheads(employee_overheads)`
+* `selectCostSummaryAssets(assets)`
+* `selectCostSummaryGeneralOverheads(general_overheads)`
+* `selectCostSummaryAllocation(cost_allocation)`
+* `buildCostSummaryStatus(...)`
+* `buildCostSummaryCard(...)`
+
+This matches the rule that selectors own data shaping. 
+
+---
+
+## CRITICAL LABOUR RULE
+
+Labour is the identity owner and labour cost engine.
+
+Cost Summary must consume Labour outputs only and must not redesign Labour. Labour owns `staff_id`, profile storage, and labour outputs. 
+
+So Cost Summary must:
+
+* inspect the Labour hook output
+* find stored Labour profiles
+* identify active Labour profiles
+* derive counts locally
+* extract active staff rows for calculations
+
+It must not:
+
+* modify Labour storage structure
+* introduce Cost Summary fields into Labour
+* require Labour to precompute Cost Summary summary fields
+
+---
+
+## LABOUR COUNTING RULE
+
+Cost Summary is allowed to count Labour profiles after the page is complete.
+
+This count is derived from Labour data inside the selector layer.
+
+### Required Labour-derived counts
+
+* `saved_profile_count`
+* `active_profile_count`
+
+### Meanings
+
+#### `saved_profile_count`
+
+How many Labour profiles are stored in the Labour module data currently exposed to Cost Summary.
+
+#### `active_profile_count`
+
+How many of those stored Labour profiles are currently active and valid for Cost Summary use.
+
+### Important distinction
+
+* saved profiles = everything stored
+* active profiles = records Cost Summary can actually use
+
+Cost Summary calculations must use active Labour records only.
+
+Status may use both saved and active counts.
+
+---
+
+## REQUIRED LABOUR SELECTOR OUTPUT
+
+`selectCostSummaryLabour(labour)` should return something shaped like this:
+
+```js
+{
+  saved_profile_count: 0,
+  active_profile_count: 0,
+  active_staff: [
+    {
+      staff_id,
+      staff_name,
+      staff_role,
+      labour_class,
+      productive_hours,
+      labour_cost_rate,
+      charge_out_rate,
+      is_active,
+    }
+  ]
+}
+```
+
+### Notes
+
+* `staff_id` remains the true key
+* `staff_name`, `staff_role`, `labour_class` are display/support fields
+* `productive_hours` and `labour_cost_rate` are used for Cost Summary calculations
+* `charge_out_rate` may support display/inspection but must not alter locked Cost Summary formulas
+* counts are derived from stored Labour profile data
+
+This aligns with the reset brief and Labour contract.
+
+---
+
+## EMPLOYEE OVERHEADS SELECTOR RULE
+
+Cost Summary consumes Employee Overheads as a linked burden layer on top of Labour. Employee Overheads links by `staff_id` only. 
+
+`selectCostSummaryEmployeeOverheads(employee_overheads)` must produce a structure that supports:
+
+* staff-linked overhead burden
+* `overhead_per_productive_hour`
+* safe fallback to 0 when no active linked overhead exists
+
+Target shape:
+
+```js
+{
+  by_staff_id: {
+    [staff_id]: {
+      overhead_per_productive_hour,
+      total_annual_overheads,
+      is_active,
+    }
+  }
+}
+```
+
+---
+
+## ASSETS SELECTOR RULE
+
+Assets is a standalone capital data module and Cost Summary consumes active asset-level outputs directly in V1. 
+
+`selectCostSummaryAssets(assets)` must return:
+
+* active asset rows
+* total asset annual cost values
+* linked display names if available
+
+Target shape:
+
+```js
+{
+  active_assets: [
+    {
+      asset_id,
+      asset_name,
+      total_asset_cost_annual,
+      is_active,
+    }
+  ],
+  total_asset_cost_annual: 0
+}
+```
+
+---
+
+## GENERAL OVERHEADS SELECTOR RULE
+
+General Overheads provides one total business overhead burden. Cost Summary consumes `total_general_overheads`. 
+
+`selectCostSummaryGeneralOverheads(general_overheads)` must return:
+
+```js
+{
+  total_general_overheads: 0
+}
+```
+
+---
+
+## COST ALLOCATION SELECTOR RULE
+
+Cost Allocation provides structure only. It must not calculate costs. Cost Summary consumes:
+
+* `active_revenue_model`
+* `active_asset_labour_links[]`
+* `linked_staff_count`
+* `linked_asset_count`
+* `unlinked_active_staff_count`
+* duplicate link warnings where available. 
+
+`selectCostSummaryAllocation(cost_allocation)` should return those fields in a stable structure.
+
+This data feeds:
+
+* recovery model block
+* status warnings
+* linked/unlinked structure checks
+
+---
+
+## CALCULATION RESPONSIBILITY
+
+`lib/calculations/costSummaryCalculations.js` owns all Cost Summary maths.
+
+It must use the locked formulas from the Cost Summary module and page contracts.
+
+### Locked formulas
+
+#### Labour cost per productive hour
+
+`labour_cost_per_productive_hour = labour_cost_rate + overhead_per_productive_hour`
+
+#### Total labour cost annual
+
+`total_labour_cost_annual = sum(labour_cost_per_productive_hour × productive_hours)`
+
+#### Total productive output
+
+`total_productive_output = sum(productive_hours)`
+
+#### Total asset cost annual
+
+`total_asset_cost_annual = sum(total_asset_cost_annual)`
+
+#### Total business overheads
+
+`total_business_overheads = total_general_overheads`
+
+#### Total cost burden
+
+`total_cost_burden = total_labour_cost_annual + total_asset_cost_annual + total_business_overheads`
+
+#### Required revenue
+
+`required_revenue = total_cost_burden`
+
+#### Required recovery rate
+
+`required_recovery_rate = required_revenue / total_productive_output`
+
+### Rules
+
+* no UI logic
+* no approximation
+* no scenario values
+* no materials
+* no subcontract logic
+* no profit logic
+* no budget logic
+
+---
+
+## STATUS STRIP REQUIREMENTS
+
+`CostSummaryStatusStrip` must surface structural state and prevent silent errors, as required by the page brief. 
+
+### Status must support
+
+* active recovery model
+* missing modules
+* no saved Labour profiles
+* no active Labour profiles
+* no overheads applied
+* no asset links where structure expects them
+* labour-only assumption warnings where appropriate
+* unlinked active staff counts
+* duplicate link warnings if supplied by Cost Allocation
+
+### Example status shape
+
+```js
+{
+  active_revenue_model: "labour_only",
+  saved_profile_count: 3,
+  active_profile_count: 1,
+  linked_staff_count: 1,
+  linked_asset_count: 0,
+  unlinked_active_staff_count: 0,
+  warnings: [],
+  missing_modules: []
+}
+```
+
+---
+
+## MAIN CARD REQUIREMENTS
+
+`CostSummaryCard` must preserve the locked page structure. 
+
+### A. Recovery Model Block
+
+Display:
+
+* active recovery model
+* linked staff
+* linked assets
+* warnings
+
+### B. People Cost Section
+
+Aggregated:
+
+* Labour
+* Employee Overheads
+* Total People Cost
+
+Drilldown:
+
+* staff rows
+* sorted highest total cost first
+
+### C. Business Cost Section
+
+Aggregated:
+
+* Assets
+* General Overheads
+* Total Business Cost
+
+Optional drilldown:
+
+* asset rows
+* general overhead rows if available
+
+### D. Total Cost & Recovery Section
+
+Display exactly:
+
+* `total_cost_burden`
+* `required_revenue`
+* `required_recovery_rate`
+
+### E. Highlight Insight
+
+Optional light insight only, for example:
+
+* Labour represents X% of total cost
+* General overheads are high relative to productive output
+
+No complex driver engine.
+
+---
+
+## ACTIVE SYSTEM ALIGNMENT
+
+This build must remain aligned with the active briefs list. 
+
+Current aligned versions:
+
+* Master → v1.10
+* Labour Module → v1.8
+* Labour Page → v2.3
+* Labour Scenario → v2.1
+* Employee Overheads → v1.5
+* Assets → v2.3
+* General Overheads → v2.1
+* Cost Allocation → v1.3
+* Cost Summary Module → v1.2
+* Cost Summary Page → v1.3
+* Budget → v1.1
+
+Scenario must remain isolated and must not feed Cost Summary. 
+Budget must consume Cost Summary outputs only. 
+
+---
+
+## DEFINITION OF DONE
+
+This phase is complete when:
+
+* Cost Summary page renders from live upstream hook data
+* `page.jsx` remains orchestration-only
+* Cost Summary selectors adapt upstream data locally
+* Labour profile counts are derived correctly inside Cost Summary
+* active Labour records flow into calculations correctly
+* totals use locked Cost Summary formulas
+* warnings surface correctly
+* recovery model block displays correctly
+* People Cost and Business Cost sections aggregate correctly
+* Total Cost & Recovery section matches calculations exactly
+* no upstream hook rewrite was required
+
+---
+
+## FINAL DIRECTION
+
+This is a **Cost Summary-side build**, not a Labour rebuild.
+
+The implementation sequence is:
+
+1. wire `app/cost-summary/page.jsx`
+2. build `hooks/useCostSummary.js`
+3. build `lib/selectors/costSummarySelectors.js`
+4. build `lib/calculations/costSummaryCalculations.js`
+5. connect `status` and `card` into the existing Cost Summary components
+
+This is now the final aligned build brief for the Cost Summary wiring step.

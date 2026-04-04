@@ -1,54 +1,31 @@
-"use client";
-
-import { useMemo } from "react";
 import {
-  selectCostSummaryStatus,
-  selectCostSummaryCard,
+  selectCostSummaryLabour,
+  buildCostSummaryStatus,
+  buildCostSummaryCard,
 } from "@/lib/selectors/costSummarySelectors";
 
-export function useCostSummary({
-  labour_profiles = [],
-  employee_overheads = [],
-  assets = [],
-  general_overheads = null,
-  cost_allocation = null,
-}) {
-  const status = useMemo(() => {
-    return selectCostSummaryStatus({
-      labour_profiles,
-      employee_overheads,
-      assets,
-      general_overheads,
-      cost_allocation,
-    });
-  }, [
-    labour_profiles,
-    employee_overheads,
-    assets,
-    general_overheads,
-    cost_allocation,
-  ]);
+import { calculateCostSummary } from "@/lib/calculations/costSummaryCalculations";
 
-  const card = useMemo(() => {
-    return selectCostSummaryCard({
-      labour_profiles,
-      employee_overheads,
-      assets,
-      general_overheads,
-      cost_allocation,
-    });
-  }, [
-    labour_profiles,
-    employee_overheads,
-    assets,
-    general_overheads,
-    cost_allocation,
-  ]);
+export default function useCostSummary(inputs = {}) {
+  const labour_data = selectCostSummaryLabour(inputs.labour);
+
+  const calculations = calculateCostSummary({
+    labour_data,
+  });
+
+  const status = buildCostSummaryStatus({
+    labour_data,
+    calculations,
+  });
+
+  const card = buildCostSummaryCard({
+    labour_data,
+    calculations,
+  });
 
   return {
     status,
     card,
+    calculations,
   };
 }
-
-export default useCostSummary;

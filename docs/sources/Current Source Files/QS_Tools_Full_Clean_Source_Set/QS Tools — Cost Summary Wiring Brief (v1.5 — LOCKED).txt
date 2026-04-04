@@ -1,0 +1,204 @@
+# QS Tools — Cost Summary Wiring Brief (v1.5 — LOCKED)
+
+## STATUS
+
+IMPLEMENTATION LOCKED — BUILD READY
+
+This is the locked brief for the Cost Summary wiring phase.
+
+---
+
+## OBJECTIVE
+
+Build the Cost Summary wiring layer so the Cost Summary page can consume live upstream module data and convert it into the locked Cost Summary page structure.
+
+This phase is specifically about:
+
+* wiring live upstream hook outputs into Cost Summary
+* shaping upstream data inside Cost Summary selectors
+* calculating Cost Summary outputs using locked formulas
+* surfacing structural warnings and counts
+* keeping page.jsx orchestration-only
+
+This phase is NOT about rebuilding Labour or changing upstream module contracts.
+
+---
+
+## CORE DECISION
+
+Cost Summary acts as a:
+
+ADAPTER + AGGREGATION LAYER
+
+That means:
+
+* upstream modules remain unchanged
+* Cost Summary reads existing hook outputs
+* selectors reshape outputs into Cost Summary-ready structures
+* Cost Summary derives counts, warnings, and grouped outputs locally
+
+---
+
+## CRITICAL RULE — LABOUR IS LOCKED
+
+Labour Module (v1.8) MUST NOT BE MODIFIED.
+
+No changes allowed to:
+
+* useLabour.js
+* labourCalculations.js
+* labourSelectors.js
+* labourStorage.js
+* labour page or components
+
+Cost Summary must adapt to Labour — NOT the other way around.
+
+---
+
+## HARD RULES
+
+### DO NOT
+
+* do not rewrite Labour logic
+* do not duplicate Labour formulas
+* do not rename variables
+* do not use Scenario outputs
+* do not place logic in UI components
+* do not place logic in page.jsx
+
+### MUST
+
+* pass full upstream hook outputs into useCostSummary()
+* shape data inside Cost Summary selectors
+* calculate totals inside Cost Summary calculations
+* build warnings/status inside Cost Summary layer
+* keep page orchestration-only
+
+---
+
+## FILE TARGETS
+
+### BUILD / UPDATE
+
+* app/cost-summary/page.jsx
+* hooks/useCostSummary.js
+* lib/selectors/costSummarySelectors.js
+* lib/calculations/costSummaryCalculations.js
+
+### DO NOT MODIFY
+
+* hooks/useLabour.js
+* hooks/useEmployeeOverheads.js
+* hooks/useAssets.js
+* hooks/useGeneralOverheads.js
+* hooks/useCostAllocation.js
+
+---
+
+## PAGE RULE
+
+page.jsx is orchestration only.
+
+Allowed:
+
+* imports
+* hook calls
+* passing data into useCostSummary
+* rendering components
+
+Not allowed:
+
+* counting
+* filtering
+* calculations
+* reshaping data
+
+---
+
+## LABOUR SELECTOR REQUIREMENTS
+
+Cost Summary must derive locally:
+
+* saved_profile_count
+* active_profile_count
+* active_staff[]
+
+Example shape:
+
+{
+saved_profile_count: number,
+active_profile_count: number,
+active_staff: [
+{
+staff_id,
+staff_name,
+productive_hours,
+labour_cost_rate,
+charge_out_rate,
+is_active
+}
+]
+}
+
+---
+
+## CALCULATION RULES
+
+All calculations must use locked formulas:
+
+labour_cost_per_productive_hour = labour_cost_rate + overhead_per_productive_hour
+
+total_labour_cost_annual = sum(labour_cost_per_productive_hour × productive_hours)
+
+total_productive_output = sum(productive_hours)
+
+total_cost_burden = total_labour_cost_annual + total_asset_cost_annual + total_general_overheads
+
+required_revenue = total_cost_burden
+
+required_recovery_rate = required_revenue / total_productive_output
+
+---
+
+## STATUS OUTPUT
+
+Must include:
+
+* active_revenue_model
+* saved_profile_count
+* active_profile_count
+* linked_staff_count
+* linked_asset_count
+* unlinked_active_staff_count
+* warnings[]
+
+---
+
+## FINAL RULE
+
+This is a Cost Summary-side build only.
+
+Labour remains the single source of truth.
+
+No upstream module changes are permitted in this phase.
+
+---
+
+## BUILD ORDER
+
+1. page.jsx
+2. useCostSummary
+3. selectors
+4. calculations
+5. connect UI
+
+---
+
+## DEFINITION OF DONE
+
+* page renders from live upstream data
+* Labour unchanged
+* selectors handle all shaping
+* calculations match locked formulas
+* warnings surface correctly
+* UI reflects Cost Summary structure
