@@ -13,7 +13,7 @@ import LabourFlowCard from "@/components/labour/LabourFlowCard";
 import ScenarioModelCard from "@/components/labour/ScenarioModelCard";
 import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
 import LabourHelpPanel from "@/components/labour/LabourHelpPanel";
-import LabourInsightsRow from "@/components/labour/LabourInsightsRow";
+import TopDriverCard from "@/components/labour/TopDriverCard";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 export default function LabourPage() {
@@ -48,7 +48,7 @@ export default function LabourPage() {
             staff_name={labour.state.staff_name}
           />
 
-          <LabourInsightsRow
+          <TopDriverCard
             state={labour.state}
             outputs={labour.outputs}
             has_profile={labour.has_profile}

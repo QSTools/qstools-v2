@@ -1,0 +1,388 @@
+# Labour Page — Rebuild Brief (v1.7 — IMPLEMENTATION LOCKED)
+
+---
+
+## 🎯 PURPOSE
+
+The Labour Page is the **foundation module** of QS Tools.
+
+It is responsible for:
+
+* creating and owning `staff_id`
+* defining working time structure
+* calculating full employer labour cost
+* producing commercial labour outputs
+
+This is the **entry point of the system**.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+identity owner + labour cost engine
+
+Labour must:
+
+* generate and own `staff_id`
+* calculate full employer cost
+* produce clean outputs for downstream modules
+
+Labour must NOT:
+
+* include overhead costs
+* include asset costs
+* include allocation logic
+
+---
+
+## 🧱 ARCHITECTURE
+
+Page
+`app/labour/page.jsx`
+
+Hook
+`hooks/useLabour.js`
+
+Calculations
+`lib/calculations/labourCalculations.js`
+
+Selectors
+`lib/selectors/labourSelectors.js`
+
+Storage
+`lib/storage/labourStorage.js`
+`lib/storage/labourProfileStorage.js`
+
+Identity
+`lib/identity/staffIdentity.js`
+
+Components
+`components/labour/`
+
+---
+
+## 🧠 DATA FLOW
+
+UI → Hook → Calculations → Selectors → Storage
+
+---
+
+## 🧩 PAGE STRUCTURE
+
+### 1. LabourProfileCard
+
+Purpose:
+
+* create/select labour profile
+* generate `staff_id`
+
+Fields:
+
+* staff_name
+* staff_role
+* labour_class
+
+Rules:
+
+* `staff_id` hidden
+* must be system-generated
+* profile required before inputs enabled
+
+---
+
+### 2. WorkingPatternCard
+
+Fields:
+
+* hours_per_week
+* days_per_week
+
+Outputs (display only):
+
+* paid_hours_per_year
+
+---
+
+### 3. PayCard
+
+Fields:
+
+* labour_rate
+* charge_out_rate
+
+---
+
+### 4. CommercialCard
+
+Fields:
+
+* productivity_percent
+* margin_target_percent
+
+---
+
+### 5. EntitlementsCard (NZ DEFAULT MODEL)
+
+Fields:
+
+* annual_leave_weeks (default 4)
+* public_holiday_days (default 12)
+* sick_days (default 10)
+* bereavement_days (default 1)
+* family_violence_days (0–10)
+
+Outputs:
+
+* non_productive_paid_hours
+
+---
+
+### 6. EmployerContributionsCard
+
+Fields:
+
+* employee_kiwisaver_enabled
+* employer_kiwisaver_rate (default 3%)
+* esct_rate
+
+Outputs:
+
+* total_employer_contribution_cost
+
+---
+
+### 7. LabourSummaryCard
+
+Display ONLY:
+
+* paid_hours_per_year
+* non_productive_paid_hours
+* productive_hours
+* loaded_labour_cost_rate
+* productive_labour_cost_rate
+* minimum_charge_out_rate
+* actual_margin_percent
+* margin_gap
+
+---
+
+### 8. LabourStatusStrip
+
+Display:
+
+* profile active state
+* margin health indicator
+* missing input warnings
+
+---
+
+### 9. LabourHelpPanel
+
+* explains:
+
+  * productive hours logic
+  * entitlements
+  * employer cost
+  * margin meaning
+
+Collapsed by default
+
+---
+
+## 📊 CALCULATION FLOW (LOCKED)
+
+### Time Model
+
+paid_hours_per_year =
+hours_per_week × 52
+
+---
+
+daily_hours =
+hours_per_week / days_per_week
+
+---
+
+non_productive_paid_hours =
+annual_leave_weeks × hours_per_week
+
+* public_holiday_days × daily_hours
+* sick_days × daily_hours
+* bereavement_days × daily_hours
+* family_violence_days × daily_hours
+
+---
+
+productive_hours =
+(paid_hours_per_year - non_productive_paid_hours)
+× (productivity_percent / 100)
+
+---
+
+## 💰 Employer Contributions
+
+IF employee_kiwisaver_enabled:
+
+employer_kiwisaver_gross =
+labour_rate × employer_kiwisaver_rate × paid_hours_per_year
+
+esct_amount =
+employer_kiwisaver_gross × esct_rate
+
+total_employer_contribution_cost =
+employer_kiwisaver_gross + esct_amount
+
+ELSE:
+= 0
+
+---
+
+## 💰 Labour Cost Model
+
+base_labour_cost_annual =
+labour_rate × paid_hours_per_year
+
+---
+
+total_labour_cost_annual =
+base_labour_cost_annual + total_employer_contribution_cost
+
+---
+
+loaded_labour_cost_rate =
+total_labour_cost_annual / paid_hours_per_year
+
+---
+
+productive_labour_cost_rate =
+total_labour_cost_annual / productive_hours
+
+---
+
+labour_cost_rate =
+productive_labour_cost_rate
+
+---
+
+## 💼 Commercial Outputs
+
+minimum_charge_out_rate =
+productive_labour_cost_rate / (1 - margin_target_percent)
+
+---
+
+actual_margin_percent =
+(charge_out_rate - productive_labour_cost_rate) / charge_out_rate
+
+---
+
+margin_gap =
+charge_out_rate - minimum_charge_out_rate
+
+---
+
+## 📤 OUTPUT CONTRACT (LOCKED)
+
+* staff_id
+* productive_hours
+* labour_cost_rate
+* charge_out_rate
+* loaded_labour_cost_rate
+* productive_labour_cost_rate
+* minimum_charge_out_rate
+* actual_margin_percent
+* margin_gap
+
+---
+
+## 💾 STORAGE MODEL
+
+Each profile stores:
+
+* staff_id
+* all input fields
+* all calculated outputs
+* profile_version
+* effective_from
+* is_active
+* created_at
+* updated_at
+
+---
+
+## 🔁 VERSION RULES
+
+* editing creates new version
+* only one active profile per staff_id
+* history preserved
+* downstream modules use active version only
+
+---
+
+## ⚠️ CORE RULES
+
+* `staff_id` must be system-generated
+* `staff_name` must never be used as key
+* no overhead inputs allowed
+* no asset inputs allowed
+* no allocation logic allowed
+* variable names must not change
+* all outputs must match contract exactly
+
+---
+
+## 🖥 UI RULES
+
+* no inputs allowed until profile created
+* show real-time calculation updates
+* highlight invalid or missing inputs
+* keep layout clean and structured
+* do not expose internal IDs
+
+---
+
+## 🔗 INTEGRATION
+
+### Employee Overheads
+
+* links via `staff_id`
+
+### Cost Summary
+
+* consumes labour outputs
+
+### Budget
+
+* consumes Cost Summary outputs
+
+---
+
+## 🚫 NOT ALLOWED
+
+* manual staff_id entry
+* using names as keys
+* merging overhead logic
+* renaming variables
+* skipping versioning
+* mixing modules
+
+---
+
+## 🔮 FUTURE READY
+
+* payroll integration
+* regional tax engines
+* time tracking linkage
+* job costing
+
+---
+
+## ✅ FINAL DEFINITION
+
+The Labour Page is a structured identity-driven cost engine that converts working patterns, entitlements, and employer obligations into accurate productive labour cost and commercial recovery outputs.
+
+---
+
+## ✅ DONE
+
+LABOUR PAGE → v1.7 (IMPLEMENTATION LOCKED)

@@ -1,0 +1,434 @@
+# QS Tools — Master Project Brief (v1.10 FINAL — LOCKED)
+
+---
+
+## CORE OBJECTIVE
+
+QS Tools is a **Commercial Decision Engine** designed to:
+
+* determine true cost structures
+* calculate required recovery
+* compare actual vs required performance
+* support safe, margin-driven commercial decisions
+
+The system must prioritise **clarity, accuracy, and scalability** over speed or shortcuts.
+
+---
+
+## CORE PHILOSOPHY
+
+* Break-even = risk
+* Profit requires buffer (default target ≥ 20%)
+* All outputs must be **derived from structured inputs**
+* No manual “assumed” results
+* Data must always be:
+
+  * consistent
+  * comparable
+  * traceable
+
+---
+
+## 🔒 SYSTEM IDENTITY MODEL (CRITICAL)
+
+QS Tools must use a **system-owned identity structure**.
+
+### Identity Layers
+
+* CompanyID (future — not implemented in V1)
+* StaffID (mandatory — system generated)
+
+### Structure
+
+CompanyID
+└── StaffID
+  ├── Labour Profiles
+  ├── Overhead Profiles
+  ├── Time Logs (future)
+  └── Cost Allocations (future)
+
+---
+
+## ⚠️ Identity Rules
+
+* StaffID must be:
+
+  * generated automatically (UUID or equivalent)
+  * immutable
+  * hidden from UI
+
+* Staff Name must:
+
+  * never be used as a key
+  * only be used for display
+
+* All modules must link using **StaffID only**
+
+---
+
+## 🔒 VARIABLE NAMING & DATA CONTRACT (CRITICAL)
+
+All variable names form part of a **system-wide data contract**.
+
+### Rules
+
+* Variable names must be:
+
+  * consistent
+  * stable
+  * globally reusable
+
+* Once a variable is introduced and used:
+
+  * it must **never be renamed**
+  * it must **never be repurposed**
+
+* All modules must use the same naming convention
+
+---
+
+### ⚠️ Breaking Rule
+
+Changing a variable name is considered a:
+
+👉 **breaking system change**
+
+This requires:
+
+* migration logic
+* version control
+* backward compatibility
+
+---
+
+### Naming Standard
+
+* snake_case for all internal variables
+* no spaces
+* no abbreviations unless standardised
+* names must reflect meaning, not UI labels
+
+---
+
+### Examples
+
+Correct:
+
+* staff_id
+* base_rate
+* total_cost_rate
+* productive_hours
+
+Incorrect:
+
+* staffId
+* costRate
+* rate1
+* temp_value
+
+---
+
+### Scope
+
+This applies to:
+
+* calculations
+* selectors
+* storage
+* exports (SQLite)
+* integrations
+* APIs
+* reporting (Power BI)
+
+---
+
+### Key Principle
+
+👉 Variable names are part of the **system architecture**, not just code
+
+---
+
+## 🧱 SYSTEM ARCHITECTURE
+
+page = layout only
+hooks = state + orchestration
+calculations = business logic
+selectors = data shaping
+storage = persistence
+components = UI only
+identity = system IDs + relationships
+integrations = external adapters
+
+---
+
+## 🗂 SYSTEM STRUCTURE (HIGH LEVEL)
+
+app/ → pages (routing only)
+
+components/ → UI components only
+
+hooks/ → state + orchestration
+
+lib/
+
+* calculations/ → business logic
+* selectors/ → data shaping
+* storage/ → persistence
+* identity/ → ID + relationships
+* integrations/ → external adapters
+
+---
+
+## 🔗 INTEGRATION FOUNDATION (MANDATORY)
+
+The system must be built **integration-ready from day one**.
+
+### Supported Future Integrations
+
+* Accounting systems (e.g. Xero, MYOB, QuickBooks)
+* Payroll systems
+* Regional compliance systems (ACC, etc.)
+
+---
+
+## 🔁 NORMALISATION LAYER (CRITICAL)
+
+All external data must follow:
+
+external system
+→ adapter
+→ normaliser
+→ internal model
+
+⚠ External schemas must NEVER be used directly
+
+---
+
+## 📊 ACCOUNTING DATA MODEL (FUTURE INPUT)
+
+### Profit & Loss
+
+Used for:
+
+* overhead extraction
+* cost classification
+* trend analysis
+
+Fields:
+
+* revenue
+* cost_of_sales
+* operating_expenses
+* admin_costs
+* utilities
+* subcontractor_costs
+
+---
+
+### Balance Sheet
+
+Used for:
+
+* asset decisions
+* capital structure
+* financing analysis
+
+Fields:
+
+* plant_equipment
+* vehicles
+* liabilities
+* equity
+
+---
+
+### Cashflow
+
+Used for:
+
+* survival modelling
+* asset purchase decisions
+* stress testing
+
+Fields:
+
+* cash_in
+* cash_out
+* operating_cashflow
+* financing_cashflow
+* investing_cashflow
+
+---
+
+## 👷 LABOUR RULE (CRITICAL)
+
+Labour cost must always be:
+
+👉 **FULL EMPLOYER COST**
+
+Never:
+
+* base wage only
+
+Labour must calculate:
+
+* cost
+* recovery
+* commercial output
+
+---
+
+## 💰 OVERHEAD RULE
+
+Overheads must:
+
+* sit on top of labour
+* never be merged into labour inputs
+* remain modular
+
+---
+
+## 🌍 GLOBAL TAX STRUCTURE
+
+System must support:
+
+* NZ — ACC
+* AU — Workers Compensation
+* UK — Employer NI
+* US — Workers Comp + Payroll Tax
+
+---
+
+## ⚠️ TAX RULE
+
+* tax must be region-based
+* must not be hardcoded
+* must be configurable
+
+---
+
+## 🧱 CORE DATA MODELS
+
+### Labour Model
+
+* base_rate
+* on_costs
+* recovery_hours
+* total_cost_rate
+
+---
+
+### Overhead Model
+
+* annual_costs
+* hourly_burden
+
+---
+
+### Asset Model
+
+* purchase_price
+* finance_terms
+* fixed_costs
+* utilisation
+
+---
+
+### Business Model
+
+* charge_out_rate
+* utilisation
+* recovery
+
+---
+
+### Accounting Model
+
+* overheads[]
+* assets[]
+* liabilities[]
+* cashflow[]
+
+---
+
+## 🧩 MODULE STRUCTURE
+
+### Core Modules
+
+* Labour (identity + cost engine)
+* Employee Overheads (burden layer)
+* Assets (capital recovery)
+* General Overheads (business-level costs)
+* Cost Allocation (structural linking layer)
+* Cost Summary (internal cost + recovery engine)
+* Budget (forecast vs actual)
+---
+
+## 📊 SYSTEM FLOW
+
+INPUT LAYER
+(manual + future integrations)
+
+↓
+
+NORMALISED DATA LAYER
+
+↓
+
+CALCULATION ENGINE
+
+↓
+
+DECISION ENGINE
+
+↓
+
+UI OUTPUT
+
+---
+
+## 🎨 DESIGN SYSTEM
+
+* minimal
+* black / white / grey
+* single accent colour
+* dark mode native (not browser-dependent)
+* consistent component styling (no native select reliance)
+
+---
+
+## ⚠️ HARD RULES
+
+* No API-specific fields in UI
+* No external naming inside logic
+* No hardcoded tax systems
+* No mixing regional rules
+* No identity based on names
+* No duplication of identity across modules
+* No variable renaming without migration
+
+---
+
+## 🚫 NOT INCLUDED IN V1
+
+* API connections
+* OAuth
+* live syncing
+* background jobs
+
+---
+
+## 🔮 FUTURE ROADMAP
+
+* Company login system (CompanyID binding)
+* Xero + accounting integrations
+* Payroll sync
+* Time tracking module
+* Job costing engine
+* Power BI integration
+
+---
+
+## FINAL DEFINITION
+
+QS Tools is a **modular, identity-driven commercial system** that converts business inputs into accurate, consistent, and decision-ready outputs — independent of external platforms.

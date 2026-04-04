@@ -1,0 +1,141 @@
+QS Tools — Cost Summary — Source of Truth (v1.2 — LOCKED)
+
+Purpose
+
+The Cost Summary Module is the internal cost and recovery engine of QS Tools.
+
+It is responsible for:
+
+- aggregating all internal business cost components
+- calculating total cost burden
+- determining required revenue
+- calculating required recovery rate
+
+It provides the commercial baseline for the business.
+
+SYSTEM ROLE (CRITICAL)
+
+The Cost Summary Module is a:
+
+decision + output layer for internal cost structure
+
+Position in system:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+MATERIALS / P&L (future)
+↓
+TOTAL BUSINESS SUMMARY (future)
+↓
+BUDGET
+
+CORE PRINCIPLE
+
+Cost Summary represents:
+
+what the business MUST recover to break even
+
+It does NOT represent:
+
+- actual business performance
+- material margin
+- subcontract margin
+- full P&L view
+
+Architecture
+
+Page
+app/cost-summary/page.jsx
+
+Hook
+hooks/useCostSummary.js
+
+Calculations
+lib/calculations/costSummaryCalculations.js
+
+Selectors
+lib/selectors/costSummarySelectors.js
+
+Storage
+lib/storage/costSummaryStorage.js
+lib/storage/costSummaryProfileStorage.js
+
+Components
+components/cost-summary/
+
+- CostSummaryCard.jsx
+- CostSummaryStatusStrip.jsx
+- CostSummaryHelpPanel.jsx
+
+Inputs (Consumed Only)
+
+Labour
+- productive_hours
+- labour_cost_rate
+- charge_out_rate
+
+Employee Overheads
+- overhead_per_productive_hour
+
+Assets
+- total_asset_cost_annual
+
+General Overheads
+- total_general_overheads
+
+Cost Allocation
+- active_revenue_model
+- active_asset_labour_links[]
+
+Core Calculations
+
+labour_cost_per_productive_hour =
+labour_cost_rate + overhead_per_productive_hour
+
+total_labour_cost_annual =
+sum(labour_cost_per_productive_hour × productive_hours)
+
+total_productive_output =
+sum(productive_hours)
+
+total_asset_cost_annual =
+sum(total_asset_cost_annual)
+
+total_business_overheads =
+total_general_overheads
+
+total_cost_burden =
+total_labour_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+Outputs
+
+- total_labour_cost_annual
+- total_productive_output
+- total_asset_cost_annual
+- total_business_overheads
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- active_revenue_model
+- active_asset_labour_links[]
+
+Rules
+
+- MUST use upstream outputs only
+- MUST NOT include materials or subcontract logic
+- MUST NOT duplicate upstream calculations
+- MUST NOT rename variables
+
+Definition
+
+The Cost Summary Module is a structured aggregation layer that calculates the total internal cost burden of the business and determines the required revenue and recovery rate needed to sustain operations.

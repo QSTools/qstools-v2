@@ -1,0 +1,423 @@
+# Labour Scenario Layer — Source of Truth (v2.1 — LOCKED)
+
+---
+
+## Purpose
+
+The Labour Scenario Layer is the commercial testing layer of QS Tools for the Labour Module.
+
+It allows users to test temporary changes to selected labour-commercial inputs without changing live Labour data.
+
+It is a simulation layer only.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The Labour Scenario Layer is a:
+
+labour-only commercial testing layer
+
+It must:
+
+* reuse the Labour engine
+* apply temporary override inputs only
+* compare scenario outputs against live Labour outputs
+* surface commercial impact clearly
+
+It must NOT:
+
+* overwrite Labour state
+* persist scenario data in V1
+* change source Labour outputs
+* feed Cost Summary
+* feed Budget
+* become a second Labour engine
+* simulate full business performance
+
+Scenario is NOT a full business simulator.
+
+It is a controlled Labour testing layer only.
+
+---
+
+## 🧱 Architecture
+
+Page Context
+`app/labour/page.jsx`
+
+Scenario UI Component
+`components/labour/ScenarioModelCard.jsx`
+
+Scenario Calculations
+`lib/calculations/labourScenarioCalculations.js`
+
+Core Labour Engine Reused
+`lib/calculations/labourCalculations.js`
+
+---
+
+## 🧠 Dependency Rule (MANDATORY)
+
+The Labour Scenario Layer depends on the Labour Module.
+
+It must always:
+
+* call the Labour calculation engine
+* use Labour-compatible inputs
+* reuse Labour outputs directly
+
+It must never:
+
+* recreate Labour formulas independently
+* create alternative variable names
+* approximate Labour outputs in UI code
+
+This preserves single source of truth.
+
+---
+
+## ⚠️ VARIABLE NAMING RULE
+
+All scenario outputs must use the locked Labour contract names where applicable.
+
+Required output variables:
+
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `profit_per_hour`
+* `above_recovery`
+
+Rules:
+
+* snake_case only
+* no alias drift in downstream scenario logic
+* no renaming without migration
+* React labels may differ, but internal names must remain unchanged
+
+---
+
+## 📥 Scenario Inputs (Override Inputs Only)
+
+The Scenario Layer may override only the following Labour-linked inputs:
+
+* `labour_rate`
+* `charge_out_rate`
+* `productivity_percent`
+* `margin_target_percent`
+
+Rules:
+
+* these are temporary scenario values only
+* live Labour state remains unchanged
+* scenario inputs must start from current live Labour values
+* unmodified values must flow through from the live Labour profile
+
+---
+
+## 📥 Live Inputs Consumed From Labour
+
+The Scenario Layer must inherit all required non-overridden inputs from the active Labour state, including where needed:
+
+* `hours_per_week`
+* `days_per_week`
+* entitlement settings
+* employer contribution settings
+* ESCT settings
+* all other Labour inputs required by the Labour engine
+
+This ensures scenario outputs remain aligned with live Labour assumptions unless explicitly overridden.
+
+---
+
+## 📊 Core Scenario Calculation Flow
+
+### Step 1 — Start From Live Labour State
+
+Take the current active Labour input state.
+
+---
+
+### Step 2 — Apply Temporary Overrides
+
+Replace only the allowed scenario override fields.
+
+---
+
+### Step 3 — Re-run Labour Engine
+
+Run the Labour engine using the scenario-adjusted input set.
+
+---
+
+### Step 4 — Return Locked Scenario Outputs
+
+Return Labour-compatible scenario outputs including:
+
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `profit_per_hour`
+* `above_recovery`
+
+---
+
+### Step 5 — Compare Scenario vs Live
+
+Compare scenario outputs against live Labour outputs.
+
+This comparison powers:
+
+* driver detection
+* visual highlight
+* explanation text
+
+---
+
+## 📊 Driver Detection Rule (LOCKED)
+
+Primary scenario driver must be determined from the largest meaningful scenario delta using THESE ONLY:
+
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `profit_per_hour`
+* `above_recovery`
+
+Rules:
+
+* driver detection must not use UI-only values
+* driver detection must not use raw input field differences as the main driver
+* driver detection must explain commercial outcome, not merely input change
+
+---
+
+## 🎯 Scenario Behaviour Interpretation
+
+### Wage Increase
+
+A higher `labour_rate` should generally:
+
+* increase `productive_labour_cost_rate`
+* increase `minimum_charge_out_rate`
+* reduce `profit_per_hour` if charge-out is unchanged
+* reduce `above_recovery` if charge-out is unchanged
+
+---
+
+### Charge-Out Increase
+
+A higher `charge_out_rate` should generally:
+
+* improve `profit_per_hour`
+* improve `above_recovery`
+* not change `productive_labour_cost_rate`
+
+---
+
+### Productivity Increase
+
+A higher `productivity_percent` should generally:
+
+* increase productive hours efficiency
+* reduce `productive_labour_cost_rate`
+* reduce `minimum_charge_out_rate`
+* improve `profit_per_hour`
+* improve `above_recovery`
+
+---
+
+### Margin Increase
+
+A higher `margin_target_percent` should generally:
+
+* increase `minimum_charge_out_rate`
+* not change true underlying labour cost
+* not directly change live cost inputs
+
+---
+
+## 📤 Scenario Outputs
+
+The Labour Scenario Layer must output:
+
+### Core Scenario Outputs
+
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `profit_per_hour`
+* `above_recovery`
+
+### Comparison Outputs
+
+* live values for the same four fields
+* scenario values for the same four fields
+* deltas between live and scenario values
+
+### Explanation Outputs
+
+* `primary_driver_key`
+* `primary_driver_title`
+* `primary_driver_body`
+* `primary_driver_insight` (optional)
+
+---
+
+## 💬 Explanation Layer Rule
+
+The Scenario Layer must provide human-readable explanation text that converts system deltas into commercial meaning.
+
+Explanation must:
+
+* explain what changed
+* explain why it matters commercially
+* reflect scenario-vs-live comparison
+* remain based on locked scenario outputs
+
+Explanation must NOT:
+
+* invent values
+* introduce independent formulas
+* describe the page as a full business simulation
+
+---
+
+## 🖥 UI Behaviour Rules
+
+### ScenarioModelCard
+
+The UI component must:
+
+* remain display and interaction only
+* send overrides to scenario calculations
+* render scenario outputs
+* render comparison state
+* render explanation state
+
+The UI component must NOT:
+
+* calculate business logic
+* derive fallback outputs
+* duplicate Labour formulas
+
+---
+
+### Layout Rule
+
+The Scenario Layer must appear as:
+
+* a full-width bottom-page analysis tool
+* visually separated from live Labour inputs
+* collapsible for usability
+
+This keeps the testing layer distinct from source Labour entry.
+
+---
+
+## 🚫 Persistence Rules (V1)
+
+In V1 the Scenario Layer must:
+
+* NOT save scenarios
+* NOT create scenario IDs
+* NOT attach stored scenarios to `staff_id`
+* NOT update profile history
+* NOT write scenario data into Labour storage
+
+Scenario values are session-state only unless a later locked version introduces Scenario Profiles.
+
+---
+
+## 🔗 Integration Rules
+
+### Labour Module
+
+* required upstream source
+* owns identity
+* owns cost engine
+* remains single source of truth
+
+### Cost Summary Module
+
+* must NOT consume scenario outputs
+* must consume live Labour outputs only
+
+### Budget Module
+
+* must NOT consume scenario outputs in V1
+* must consume Cost Summary outputs only
+
+### Future Scenario Profiles
+
+May later support:
+
+* save/load scenario sets
+* scenario identity
+* scenario history
+* `staff_id` linkage
+
+This is NOT part of v2.1.
+
+---
+
+## 🧱 Design Principles
+
+* Labour remains the source engine
+* Scenario remains temporary and isolated
+* no logic in UI
+* no contract drift
+* no persistence in V1
+* commercial explanation must be clear
+* testing must remain safe
+
+---
+
+## 🚫 Not Allowed
+
+* duplicating Labour maths in React
+* writing scenario outputs back into Labour state
+* using scenario outputs in Cost Summary
+* using scenario outputs in Budget
+* renaming locked Labour variables
+* treating scenario as full business simulation
+* saving scenarios in this version
+
+---
+
+## 🔮 Future Scope
+
+Possible future extensions:
+
+* Scenario Profiles
+* save/load scenario sets
+* scenario comparison history
+* linked scenarios by `staff_id`
+* scenario export
+* controlled downstream sandbox modelling
+
+These are future items only and are not included in v2.1.
+
+---
+
+## ✅ Definition
+
+The Labour Scenario Layer is a Labour-only commercial testing layer that reuses the locked Labour engine, applies temporary override inputs, and returns scenario-vs-live commercial comparisons without affecting live system data.
+
+---
+
+## ACTIVE VERSION STATUS
+
+Aligned with:
+
+* MASTER PROJECT BRIEF → v1.10
+* LABOUR MODULE → v1.7
+* EMPLOYEE OVERHEADS → v1.5
+* ASSETS MODULE → v2.3
+* GENERAL OVERHEADS → v2.1
+* COST SUMMARY MODULE → v1.2
+* BUDGET MODULE → v1.1
+* COST ALLOCATION → v1.3
+
+---
+
+## ✅ DONE
+
+LABOUR SCENARIO LAYER → v2.1
