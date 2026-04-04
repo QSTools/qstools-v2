@@ -1,0 +1,362 @@
+# Employee Overheads — Source of Truth (v1.5)
+
+## Purpose
+
+The Employee Overheads Module captures all non-wage staff overhead costs and converts them into an hourly burden linked to an existing Labour profile.
+
+This module sits on top of Labour.
+
+It does not create staff identity.
+It does not calculate base labour cost.
+It only applies staff-specific overhead burden to a staff member already created in the Labour Module.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The Employee Overheads Module is a:
+
+linked burden layer
+
+It must always attach to a valid Labour profile using:
+
+* `staff_id` (hidden, system-linked)
+
+Identity is owned by the Labour Module.
+
+Employee Overheads must never own, create, or control staff identity.
+
+---
+
+## 🧱 Architecture
+
+### Page
+
+`app/employee-overheads/page.jsx`
+
+### Hook
+
+`hooks/useEmployeeOverheads.js`
+
+### Calculations
+
+`lib/calculations/employeeOverheadCalculations.js`
+
+### Selectors
+
+`lib/selectors/employeeOverheadSelectors.js`
+
+### Storage
+
+`lib/storage/employeeOverheadStorage.js`
+`lib/storage/employeeOverheadProfileStorage.js`
+
+### Linking
+
+`lib/selectors/labourProfileSelectors.js`
+`lib/identity/staffIdentity.js`
+
+### Components
+
+`components/employee-overheads/`
+
+* `EmployeeOverheadForm.jsx`
+* `EmployeeOverheadProfilesCard.jsx`
+* `EmployeeOverheadSummaryCard.jsx`
+* `EmployeeOverheadStatusStrip.jsx`
+* `EmployeeOverheadHelpPanel.jsx`
+* `EmployeeOverheadLinkedStaffCard.jsx`
+
+---
+
+## 🧠 Data Model
+
+### Staff Link (from Labour — SYSTEM LINKED)
+
+* `staff_id` (hidden, required)
+* `staff_name` (display only)
+* `staff_role` (display only)
+* `labour_class` (display only)
+
+### Labour Inputs Consumed
+
+* `paid_hours_per_year`
+* `productive_hours`
+* `labour_cost_rate`
+
+### Overhead Inputs (Annual)
+
+* `phone_cost`
+* `laptop_tablet_cost`
+* `ppe_uniform_cost`
+* `training_tickets_cost`
+* `small_tools_cost`
+* `insurance_allocation`
+* `admin_allocation`
+* `other_overhead_cost`
+
+### Metadata
+
+* `profile_version`
+* `effective_from`
+* `is_active`
+* `created_at`
+* `updated_at`
+
+---
+
+## ⚠️ IDENTITY RULES
+
+* `staff_id` is required for every overhead profile
+* `staff_id` must be hidden from the UI
+* `staff_name` is display only
+* `staff_name` must never be used as a key
+* Employee Overheads must not allow manual creation of staff identity
+* Employee Overheads must not edit Labour-owned identity fields
+
+This follows the system identity model where Labour owns StaffID and all linked modules use that identity only.
+
+---
+
+## ⚠️ VARIABLE NAMING RULE
+
+All internal variables in this module form part of the system-wide data contract.
+
+Rules:
+
+* use `snake_case` only
+* variable names must remain stable
+* variables must never be renamed without migration
+* variables must reflect meaning, not UI wording
+* variables must remain reusable across selectors, storage, exports, integrations, and reporting
+
+This module must follow the locked naming rules defined by the master brief.
+
+---
+
+## 📊 Outputs
+
+### `total_annual_overheads`
+
+Sum of all annual overhead input fields
+
+### `overhead_per_paid_hour`
+
+`total_annual_overheads / paid_hours_per_year`
+
+### `overhead_per_productive_hour`
+
+`total_annual_overheads / productive_hours`
+
+### `labour_cost_per_productive_hour`
+
+`labour_cost_rate + overhead_per_productive_hour`
+
+---
+
+## 🔗 Labour Dependency (MANDATORY)
+
+This module depends on Labour for:
+
+* `staff_id`
+* `staff_name`
+* `staff_role`
+* `labour_class`
+* `paid_hours_per_year`
+* `productive_hours`
+* `labour_cost_rate`
+
+Employee Overheads must not duplicate Labour calculations.
+
+It must only:
+
+* consume Labour outputs
+* apply staff-specific overhead burden on top
+* produce linked commercial recovery outputs
+
+This aligns with the rule that overheads sit on top of labour and remain modular.
+
+---
+
+## 🧩 Component Responsibilities
+
+### `EmployeeOverheadLinkedStaffCard`
+
+* select existing Labour profile
+* display linked staff details
+* show active Labour profile reference
+* no editing of identity fields
+
+### `EmployeeOverheadForm`
+
+* input annual overhead values only
+* no staff identity fields
+* no wage or labour rate fields
+
+### `EmployeeOverheadProfilesCard`
+
+* save and load overhead profiles
+* show version history
+* manage active profile state
+* remain separate from main cost entry form
+
+### `EmployeeOverheadSummaryCard`
+
+* show total annual overheads
+* show hourly burden outputs
+* show combined labour + overhead result
+
+### `EmployeeOverheadStatusStrip`
+
+* show linked/unlinked state
+* show active profile state
+* show quick cost impact indicator
+
+### `EmployeeOverheadHelpPanel`
+
+* explain what overheads are included
+* explain how outputs are calculated
+* collapsed by default
+
+---
+
+## 💾 Profile System
+
+Each Employee Overhead profile must store:
+
+* `staff_id`
+* annual overhead inputs
+* calculated outputs
+* `effective_from`
+* `profile_version`
+* `is_active`
+* `created_at`
+* `updated_at`
+
+---
+
+## 🔁 Versioning Rules
+
+Each staff member must support:
+
+* one active overhead profile
+* historical overhead profile versions
+
+Rules:
+
+* editing creates a new version
+* only one active version may exist per `staff_id`
+* historical versions must remain unchanged
+* summary logic must use the active version only
+
+---
+
+## 🔗 Integration Rules
+
+### Labour Module
+
+* required source module
+* owns identity
+* owns labour cost logic
+* owns paid and productive hour logic
+
+### Cost Summary Module
+
+* consumes active labour result plus active overhead result
+* must link by `staff_id` only
+
+### Budget Module
+
+* may use overhead burden for forecasting and future planning
+
+### Future Accounting Integration
+
+* may suggest or prefill categories from external accounting systems
+* all imported values must still be normalised into internal variable names before use or storage
+
+---
+
+## 🧱 Design Principles
+
+* Labour owns identity
+* Employee Overheads owns burden only
+* annual inputs must stay simple
+* outputs must be fully derived
+* no duplication of Labour logic
+* no visible internal IDs
+* linked staff workflow must be clear and controlled
+
+---
+
+## 🖥 UI Behaviour Rules
+
+* user must select or load an existing Labour profile first
+* if no Labour profile is linked, overhead entry must be blocked or clearly marked incomplete
+* linked staff details are display only
+* `staff_id` must never be shown
+* help panel is collapsed by default
+* version controls are separate from cost entry form
+
+---
+
+## 🔗 Integration Readiness
+
+This module must support future:
+
+* accounting imports
+* payroll-linked allowances
+* regional employer burden extensions
+* shared overhead allocation logic
+* company-level identity binding
+
+---
+
+## 🚫 Not Allowed
+
+* manual staff creation inside Employee Overheads
+* editable staff identity fields
+* using `staff_name` as a key
+* duplicated Labour calculations
+* variable renaming without migration
+* merging overhead logic into Labour inputs
+* vehicle overhead inputs in this module
+* fuel overhead inputs in this module
+
+---
+
+## 🔮 Future Scope
+
+* shared overhead pools
+* allocation across teams
+* accounting integration
+* automatic category suggestion from imported financial data
+* company-level access control through `CompanyID`
+* future linkage to time tracking and job costing
+
+---
+
+## ✅ Definition
+
+Employee Overheads is a linked annual burden module that attaches staff-specific overhead costs to an existing Labour profile using hidden `staff_id`, then converts those annual costs into hourly burden for commercial recovery.
+
+---
+
+## ACTIVE VERSION STATUS
+
+ACTIVE VERSION STATUS (UPDATED)
+
+Aligned with:
+
+- MASTER PROJECT BRIEF → v1.10
+- LABOUR MODULE → v1.8
+- EMPLOYEE OVERHEADS → v1.5
+- ASSETS MODULE → v2.3
+- GENERAL OVERHEADS → v2.1
+- COST SUMMARY MODULE → v1.2
+- BUDGET MODULE → v1.1
+- COST ALLOCATION → v1.3
+---
+
+## ✅ DONE
+
+EMPLOYEE OVERHEADS → v1.5

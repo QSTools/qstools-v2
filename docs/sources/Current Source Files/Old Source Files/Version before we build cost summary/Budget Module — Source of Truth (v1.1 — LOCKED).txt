@@ -1,0 +1,214 @@
+# Budget Module — Source of Truth (v1.1 — LOCKED)
+
+---
+
+## Purpose
+
+The Budget Module is the forecast layer of QS Tools.
+
+It is responsible for:
+
+* projecting revenue from planned productive output
+* comparing forecast revenue against required recovery
+* showing forecast commercial outcome using upstream system outputs
+
+It is a forward-looking planning layer only.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The Budget Module is a:
+
+forecast layer
+
+Position in system:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+BUDGET
+
+It must:
+
+* use Cost Summary outputs only
+* support forecast planning
+* remain separate from source cost engines
+
+It must NOT:
+
+* calculate Labour logic
+* calculate Asset logic
+* calculate Overhead logic
+* consume Scenario outputs in V1
+* behave like a full P&L engine
+
+---
+
+## 🧱 Architecture
+
+Page
+`app/budget/page.jsx`
+
+Hook
+`hooks/useBudget.js`
+
+Calculations
+`lib/calculations/budgetCalculations.js`
+
+Selectors
+`lib/selectors/budgetSelectors.js`
+
+Storage
+`lib/storage/budgetStorage.js`
+`lib/storage/budgetProfileStorage.js`
+
+Components
+`components/budget/`
+
+* BudgetForm.jsx
+* BudgetSummaryCard.jsx
+* BudgetStatusStrip.jsx
+* BudgetHelpPanel.jsx
+
+---
+
+## 🧠 Data Flow
+
+Cost Summary outputs → Budget calculations → forecast outputs → UI display
+
+No logic in UI.
+
+---
+
+## 📥 Inputs (Consumed Only)
+
+### From Cost Summary
+
+* total_cost_burden
+* required_revenue
+* required_recovery_rate
+* total_productive_output
+* total_labour_cost_annual
+* total_asset_cost_annual
+* total_business_overheads
+
+### Local Forecast Inputs
+
+* projected_hours
+* projected_revenue
+
+Rules:
+
+* `projected_revenue` is optional
+* if not provided, Budget must derive revenue using `projected_hours × required_recovery_rate`
+
+---
+
+## 📊 Core Calculations
+
+### Revenue Model
+
+If `projected_revenue` exists:
+
+`projected_revenue`
+
+Else:
+
+`projected_revenue = projected_hours × required_recovery_rate`
+
+---
+
+### Forecast Profit
+
+`forecast_profit = projected_revenue - total_cost_burden`
+
+---
+
+### Forecast Margin
+
+`forecast_margin = forecast_profit / projected_revenue`
+
+---
+
+## 📤 Outputs
+
+* projected_revenue
+* forecast_profit
+* forecast_margin
+
+---
+
+## ⚠️ CORE RULES
+
+* MUST use Cost Summary outputs only
+* MUST NOT duplicate upstream logic
+* MUST NOT consume Labour Scenario outputs in V1
+* MUST NOT own identity
+* MUST NOT rename variables
+* MUST keep forecast logic separate from actual performance reporting
+
+---
+
+## 🧱 UI RULES
+
+* page is forecast-focused only
+* no upstream editing on the Budget page
+* no duplicated recovery maths in components
+* help panel should explain forecast assumptions
+* display units clearly
+
+---
+
+## 🔗 Integration Rules
+
+### Cost Summary Module
+
+* required upstream source
+* provides all required recovery and cost baseline outputs
+
+### Labour Scenario Layer
+
+* must NOT feed Budget in V1
+
+---
+
+## 🚫 Not Allowed
+
+* direct Labour calculations
+* direct Asset calculations
+* direct Overhead calculations
+* P&L reporting logic
+* actual-vs-budget reporting engine in this version
+* scenario-driven forecast logic in this version
+
+---
+
+## ✅ Definition
+
+The Budget Module is a forecast-only downstream planning layer that uses Cost Summary outputs to estimate projected revenue, forecast profit, and forecast margin without duplicating upstream commercial logic.
+
+---
+
+## ACTIVE VERSION STATUS
+
+Aligned with:
+
+* MASTER PROJECT BRIEF → v1.10
+* LABOUR MODULE → v1.8
+* LABOUR PAGE → v2.3
+* LABOUR SCENARIO LAYER → v2.1
+* EMPLOYEE OVERHEADS → v1.5
+* ASSETS MODULE → v2.3
+* GENERAL OVERHEADS → v2.1
+* COST SUMMARY MODULE → v1.2
+* COST SUMMARY PAGE → v1.3
+* BUDGET MODULE → v1.1
+* COST ALLOCATION → v1.3
+
+---
+
+## ✅ DONE
+
+BUDGET MODULE → v1.1 (LOCKED)

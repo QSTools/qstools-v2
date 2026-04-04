@@ -1,0 +1,320 @@
+# Cost Summary Page — Implementation Brief (v1.3 — LOCKED)
+
+---
+
+## 🎯 OBJECTIVE
+
+Build the Cost Summary page as the internal cost + recovery decision engine of QS Tools.
+
+It must:
+
+- aggregate all internal cost components
+- present structured, traceable cost breakdowns
+- reflect the active recovery model
+- calculate required recovery outputs
+- provide decision-ready clarity
+
+It must NOT:
+
+- behave like a P&L
+- show actual performance
+- duplicate upstream calculations
+
+---
+
+## 🔒 SYSTEM ROLE
+
+Cost Summary is the:
+
+aggregation + recovery layer
+
+Position:
+
+Labour / Overheads / Assets / Allocation
+                ↓
+          COST SUMMARY
+                ↓
+             Budget
+
+---
+
+## 🧱 ARCHITECTURE
+
+Page
+`app/cost-summary/page.jsx`
+
+Hook
+`hooks/useCostSummary.js`
+
+Calculations
+`lib/calculations/costSummaryCalculations.js`
+
+Selectors
+`lib/selectors/costSummarySelectors.js`
+
+Components
+`components/cost-summary/`
+
+---
+
+## 🧠 DATA FLOW
+
+Upstream modules → Cost Summary calculations → structured outputs → UI display
+
+No logic in UI.
+
+---
+
+## 🧩 PAGE STRUCTURE (LOCKED)
+
+### 1. CostSummaryStatusStrip
+
+Purpose:
+Surface system state and prevent silent errors.
+
+Displays:
+- active recovery model
+- missing modules
+- incomplete structure
+- warnings
+
+Examples:
+- “No active staff profiles”
+- “No overheads applied”
+- “No asset links (labour_only assumed)”
+- “1 staff not linked to asset”
+
+Inputs:
+- active_revenue_model
+- linked_staff_count
+- unlinked_active_staff_count
+- upstream presence checks
+
+---
+
+### 2. CostSummaryCard (MAIN)
+
+Structure inside card:
+
+#### A. Recovery Model Block
+
+Display ONLY (no editing):
+
+- Recovery Model: Labour Only / Asset Driven
+- Linked Staff: X
+- Linked Assets: X
+- Warnings (if any)
+
+Source:
+- Cost Allocation module
+
+---
+
+#### B. People Cost Section
+
+Definition:
+Labour + Employee Overheads
+
+##### Level 1 (Aggregated)
+
+People Cost                     $XXX,XXX / year
+
+##### Level 2 (Expanded)
+
+Labour                          $XXX,XXX
+Employee Overheads              $XX,XXX
+----------------------------------------
+Total People Cost               $XXX,XXX
+
+##### Level 3 (Drilldown — Staff)
+
+Paul (Foreman)                  $XX,XXX
+John (Labourer)                 $XX,XXX
+
+Sorting:
+- highest total cost first
+
+Rules:
+- MUST use aggregated upstream outputs
+- MUST NOT recalc Labour logic
+- MUST respect staff_id structure
+
+---
+
+#### C. Business Cost Section
+
+Definition:
+Assets + General Overheads
+
+##### Level 1 (Aggregated)
+
+Business Cost                   $XXX,XXX / year
+
+##### Level 2 (Expanded)
+
+Assets                          $XX,XXX
+General Overheads               $XX,XXX
+----------------------------------------
+Total Business Cost             $XXX,XXX
+
+##### Level 3 (Optional Drilldown)
+
+Assets:
+Excavator                       $XX,XXX
+Hilux                           $XX,XXX
+
+Overheads:
+Office / Insurance / Software   $XX,XXX
+
+Sorting:
+- highest cost first
+
+---
+
+#### D. Total Cost & Recovery Section
+
+Total Cost Burden               $XXX,XXX / year
+Required Revenue                $XXX,XXX / year
+Required Recovery Rate          $XX.XX / hr
+
+Rules:
+- must match calculation outputs exactly
+- no derived UI logic
+- units must be clearly labelled
+
+---
+
+#### E. Highlight Insight (LIGHT)
+
+Optional single insight:
+
+Examples:
+- “Labour represents 68% of total cost”
+- “General overheads are high relative to productive output”
+
+Rules:
+- max 1–2 insights
+- no complex driver engine
+
+---
+
+### 3. CostSummaryHelpPanel
+
+Purpose:
+Explain:
+- what Cost Summary is
+- what it is NOT
+- how recovery works
+
+Must include:
+- “This is not a P&L”
+- “This represents required recovery, not actual performance”
+
+Collapsed by default
+
+---
+
+## 🔗 INPUT CONTRACT (LOCKED)
+
+### Labour
+- productive_hours
+- labour_cost_rate
+- charge_out_rate
+
+### Employee Overheads
+- overhead_per_productive_hour
+
+### Assets
+- total_asset_cost_annual
+
+### General Overheads
+- total_general_overheads
+
+### Cost Allocation
+- active_revenue_model
+- active_asset_labour_links[]
+- linked_staff_count
+- unlinked_active_staff_count
+
+---
+
+## 📊 CALCULATION RULES (LOCKED)
+
+Must reuse:
+
+labour_cost_per_productive_hour =
+labour_cost_rate + overhead_per_productive_hour
+
+total_labour_cost_annual =
+sum(labour_cost_per_productive_hour × productive_hours)
+
+total_productive_output =
+sum(productive_hours)
+
+total_cost_burden =
+total_labour_cost_annual
++ total_asset_cost_annual
++ total_general_overheads
+
+required_recovery_rate =
+total_cost_burden / total_productive_output
+
+All logic lives in calculation files only.
+
+---
+
+## ⚠️ CORE RULES
+
+- MUST use upstream outputs only
+- MUST NOT duplicate Labour logic
+- MUST NOT include materials or subcontract logic
+- MUST NOT become a P&L
+- MUST NOT allow editing of recovery model
+- MUST NOT rename variables
+- MUST show warnings for incomplete data
+- MUST keep identity-driven aggregation intact
+
+---
+
+## 🧱 UI RULES
+
+- aggregated + drilldown structure REQUIRED
+- expandable sections REQUIRED
+- units must be clear (annual vs hourly)
+- sorting must highlight largest contributors
+- no cluttered multi-card layout
+- no hidden assumptions
+
+---
+
+## 🚫 NOT ALLOWED
+
+- performance metrics
+- profit calculations
+- forecast outputs
+- margin vs actual
+- editing Cost Allocation settings
+- mixing scenario logic
+- deep audit tables
+
+---
+
+## 🔮 FUTURE READY
+
+- material cost integration
+- subcontract integration
+- P&L layer
+- job costing
+- Power BI export
+
+---
+
+## ✅ FINAL DEFINITION
+
+The Cost Summary page is a structured aggregation and recovery layer that converts all internal cost inputs into a clear, traceable total cost burden and defines the required revenue and recovery rate needed to sustain the business.
+
+---
+
+## ✅ DONE
+
+COST SUMMARY PAGE → v1.3 (IMPLEMENTATION LOCKED)
