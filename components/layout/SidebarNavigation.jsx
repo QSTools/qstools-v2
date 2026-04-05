@@ -17,15 +17,11 @@ const navGroups = [
   },
   {
     label: "Commercial Engine",
-    items: [
-      { href: "/cost-summary", label: "Cost Summary" },
-    ],
+    items: [{ href: "/cost-summary", label: "Cost Summary" }],
   },
 ];
 
-const standaloneItems = [
-  { href: "/budget", label: "Budget" },
-];
+const standaloneItems = [{ href: "/budget", label: "Budget" }];
 
 export default function SidebarNavigation() {
   const pathname = usePathname();
@@ -46,94 +42,76 @@ export default function SidebarNavigation() {
   }
 
   return (
-    <aside
-      style={{
-        width: "100%",
-        padding: "16px",
-        borderRight: "1px solid #e5e5e5",
-        minHeight: "100vh",
-        background: "#fff",
-      }}
-    >
-      <div style={{ marginBottom: "24px" }}>
-        <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase" }}>
+    <aside className="min-h-screen w-full border-r border-[var(--border-primary)] bg-[var(--bg-card)] p-4 text-[var(--text-primary)]">
+      <div className="mb-6">
+        <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
           QS Tools
         </div>
-        <div style={{ fontSize: "20px", fontWeight: 600 }}>Navigation</div>
+        <div className="text-2xl font-semibold text-[var(--text-primary)]">
+          Navigation
+        </div>
       </div>
 
       {navGroups.map((group) => (
-        <div key={group.label} style={{ marginBottom: "20px" }}>
+        <div key={group.label} className="mb-5">
           <button
             type="button"
             onClick={() => toggleGroup(group.label)}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              background: "#f7f7f7",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
+            className="w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-3 py-2 text-left font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
           >
             {openGroups[group.label] ? "▾" : "▸"} {group.label}
           </button>
 
           {openGroups[group.label] && (
-            <div style={{ marginTop: "8px", paddingLeft: "12px" }}>
-              {group.items.map((item) => (
-                <div key={item.href} style={{ marginBottom: "6px" }}>
-                  <Link
-                    href={item.href}
-                    style={{
-                      display: "block",
-                      padding: "8px 10px",
-                      borderRadius: "6px",
-                      textDecoration: "none",
-                      background: isActive(item.href) ? "#111" : "transparent",
-                      color: isActive(item.href) ? "#fff" : "#222",
-                    }}
-                  >
-                    {item.label}
-                  </Link>
-                </div>
-              ))}
+            <div className="mt-2 pl-3">
+              {group.items.map((item) => {
+                const active = isActive(item.href);
+
+                return (
+                  <div key={item.href} className="mb-1.5">
+                    <Link
+                      href={item.href}
+                      className={[
+                        "block rounded-md px-3 py-2 no-underline transition-colors",
+                        active
+                          ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
+                          : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
+                      ].join(" ")}
+                    >
+                      {item.label}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       ))}
 
-      <div style={{ marginTop: "28px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
-        <div
-          style={{
-            fontSize: "12px",
-            color: "#666",
-            textTransform: "uppercase",
-            marginBottom: "10px",
-          }}
-        >
+      <div className="mt-7 border-t border-[var(--border-primary)] pt-4">
+        <div className="mb-2.5 text-xs uppercase tracking-wide text-[var(--text-muted)]">
           Standalone
         </div>
 
-        {standaloneItems.map((item) => (
-          <div key={item.href} style={{ marginBottom: "6px" }}>
-            <Link
-              href={item.href}
-              style={{
-                display: "block",
-                padding: "8px 10px",
-                borderRadius: "6px",
-                textDecoration: "none",
-                background: isActive(item.href) ? "#111" : "transparent",
-                color: isActive(item.href) ? "#fff" : "#222",
-              }}
-            >
-              {item.label}
-            </Link>
-          </div>
-        ))}
+        {standaloneItems.map((item) => {
+          const active = isActive(item.href);
+
+          return (
+            <div key={item.href} className="mb-1.5">
+              <Link
+                href={item.href}
+                className={[
+                  "block rounded-md px-3 py-2 no-underline transition-colors",
+                  active
+                    ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
+                    : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
+                ].join(" ")}
+              >
+                {item.label}
+              </Link>
+            </div>
+          );
+        })}
       </div>
     </aside>
   );
