@@ -131,7 +131,7 @@ export default function EmployeeOverheadLibraryCard({
                         item.custom_overhead_template_id
                       )
                     }
-                    className="rounded-xl border border-red-800/50 bg-red-950/30 px-3 py-2 text-sm text-red-200"
+                    className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-3 py-2 text-sm text-[var(--danger)]"
                   >
                     Deactivate
                   </button>

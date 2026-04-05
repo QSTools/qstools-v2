@@ -53,7 +53,7 @@ export default function CostSummaryCard({
               <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
                 Recovery Model
               </div>
-              <div className="mt-2 text-lg font-semibold text-emerald-400">
+              <div className="mt-2 text-lg font-semibold text-[var(--success)]">
                 {recovery_model_label}
               </div>
             </div>
@@ -85,12 +85,12 @@ export default function CostSummaryCard({
           <div className="mt-4 space-y-2 text-sm">
             {recovery_warnings.length > 0 ? (
               recovery_warnings.map((warning) => (
-                <div key={warning} className="text-amber-400">
+                <div key={warning} className="text-[var(--warning)]">
                   {warning}
                 </div>
               ))
             ) : (
-              <div className="text-emerald-400">No active warnings</div>
+              <div className="text-[var(--success)]">No active warnings</div>
             )}
           </div>
         </div>
@@ -302,7 +302,7 @@ export default function CostSummaryCard({
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 text-sm text-emerald-400">
+        <div className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 text-sm text-[var(--success)]">
           {highlight_insight}
         </div>
       </div>

@@ -39,9 +39,9 @@ export default function LabourStatusStrip({
 
 function Badge({ tone, text }) {
   const classes = {
-    good: "border-emerald-700 bg-emerald-950 text-emerald-300",
-    warn: "border-amber-700 bg-amber-950 text-amber-300",
-    bad: "border-rose-700 bg-rose-950 text-rose-300",
+    good: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
+    warn: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
+    bad: "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
     neutral: "border-[var(--border-strong)] bg-[var(--bg-input)] text-[var(--text-secondary)]",
   };
 

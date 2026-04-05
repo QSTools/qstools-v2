@@ -37,11 +37,11 @@ export default function CostSummaryHelpPanel() {
 
       {isOpen ? (
         <div className="mt-5 space-y-4">
-          <div className="rounded-2xl border border-sky-900 bg-sky-950/30 p-4">
-            <div className="text-sm font-semibold text-sky-300">
+          <div className="rounded-2xl border border-[var(--info)] bg-[var(--info-soft)]/30 p-4">
+            <div className="text-sm font-semibold text-[var(--info)]">
               What Cost Summary is
             </div>
-            <p className="mt-2 text-sm leading-6 text-sky-100/90">
+            <p className="mt-2 text-sm leading-6 text-[var(--info)]/90">
               Cost Summary is the internal cost and recovery view of the business.
               It combines Labour, Employee Overheads, Assets, and General
               Overheads into one recovery baseline so you can see what the
@@ -49,11 +49,11 @@ export default function CostSummaryHelpPanel() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-900 bg-amber-950/30 p-4">
-            <div className="text-sm font-semibold text-amber-300">
+          <div className="rounded-2xl border border-[var(--warning)] bg-[var(--warning-soft)]/30 p-4">
+            <div className="text-sm font-semibold text-[var(--warning)]">
               What Cost Summary is not
             </div>
-            <div className="mt-2 space-y-2 text-sm leading-6 text-amber-100/90">
+            <div className="mt-2 space-y-2 text-sm leading-6 text-[var(--warning)]/90">
               <p>This is not a P&amp;L.</p>
               <p>This does not show actual business performance.</p>
               <p>This shows required recovery, not actual performance.</p>

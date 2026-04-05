@@ -36,9 +36,9 @@ export default function EmployeeOverheadStatusStrip({
       </div>
 
       {warnings.length > 0 && (
-        <div className="mt-4 rounded-xl border border-amber-700/40 bg-amber-950/30 p-3">
-          <div className="text-sm font-medium text-amber-300">Warnings</div>
-          <ul className="mt-2 space-y-1 text-sm text-amber-100">
+        <div className="mt-4 rounded-xl border border-[var(--warning)]/40 bg-[var(--warning-soft)]/30 p-3">
+          <div className="text-sm font-medium text-[var(--warning)]">Warnings</div>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--warning)]">
             {warnings.map((warning) => (
               <li key={warning}>• {warning}</li>
             ))}

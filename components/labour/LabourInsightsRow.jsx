@@ -96,9 +96,9 @@ function Row({ label, value }) {
 
 function StatusBadge({ status, gap }) {
   const styles = {
-    good: "text-emerald-400",
-    neutral: "text-amber-400",
-    bad: "text-rose-400",
+    good: "text-[var(--success)]",
+    neutral: "text-[var(--warning)]",
+    bad: "text-[var(--danger)]",
   };
 
   const text =
@@ -117,9 +117,9 @@ function StatusBadge({ status, gap }) {
 
 function StatusBanner({ status, gap }) {
   const styles = {
-    good: "border-emerald-700 bg-emerald-950 text-emerald-300",
-    neutral: "border-amber-700 bg-amber-950 text-amber-300",
-    bad: "border-rose-700 bg-rose-950 text-rose-300",
+    good: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
+    neutral: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
+    bad: "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
   };
 
   const text =

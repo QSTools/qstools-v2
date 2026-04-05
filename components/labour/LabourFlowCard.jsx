@@ -102,8 +102,8 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
               value={fmtCur(outputs.minimum_charge_out_rate)}
             />
 
-            <div className="mt-3 rounded-xl border border-emerald-700 bg-emerald-950 px-4 py-3">
-              <div className="text-xs text-emerald-300">Recommended Charge-Out</div>
+            <div className="mt-3 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3">
+              <div className="text-xs text-[var(--success)]">Recommended Charge-Out</div>
               <div className="text-xl font-semibold text-white">
                 {fmtCur(outputs.minimum_charge_out_rate)}
               </div>
@@ -119,9 +119,9 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
 
 function MarginIndicator({ status, gap }) {
   const styles = {
-    good: "border-emerald-700 bg-emerald-950 text-emerald-300",
-    neutral: "border-amber-700 bg-amber-950 text-amber-300",
-    bad: "border-rose-700 bg-rose-950 text-rose-300",
+    good: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
+    neutral: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
+    bad: "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
   };
 
   const text =

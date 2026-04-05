@@ -63,7 +63,7 @@ export default function EmployeeOverheadForm({
         />
       </div>
 
-      <div className="mt-4 rounded-xl border border-blue-900/40 bg-blue-950/20 p-3 text-sm text-blue-100">
+      <div className="mt-4 rounded-xl border border-[var(--info)]/40 bg-[var(--info-soft)]/20 p-3 text-sm text-[var(--info)]">
         Staff Transport Allowance includes personal vehicle support such as car
         allowance, mileage reimbursement, or fuel support for non-business-owned
         vehicles. Business-owned vehicles belong in Assets.

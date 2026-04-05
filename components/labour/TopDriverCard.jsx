@@ -88,16 +88,16 @@ export default function TopDriverCard({ outputs, state, has_profile }) {
   const driver = buildTopDriver(outputs, state, has_profile);
 
   const toneStyles = {
-    good: "border-emerald-800 bg-emerald-950/40",
-    warn: "border-amber-800 bg-amber-950/40",
-    bad: "border-rose-800 bg-rose-950/40",
+    good: "border-[var(--success)] bg-[var(--success-soft)]/40",
+    warn: "border-[var(--warning)] bg-[var(--warning-soft)]/40",
+    bad: "border-[var(--danger)] bg-[var(--danger-soft)]/40",
     neutral: "border-[var(--border-primary)] bg-[var(--bg-card)]",
   };
 
   const badgeStyles = {
-    good: "bg-emerald-900 text-emerald-300 border border-emerald-700",
-    warn: "bg-amber-900 text-amber-300 border border-amber-700",
-    bad: "bg-rose-900 text-rose-300 border border-rose-700",
+    good: "bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success)]",
+    warn: "bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning)]",
+    bad: "bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger)]",
     neutral: "bg-[var(--bg-card-muted)] text-[var(--text-secondary)] border border-[var(--border-strong)]",
   };
 

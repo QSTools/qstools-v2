@@ -3,10 +3,10 @@
 function Pill({ children, tone = "neutral" }) {
   const toneClasses = {
     neutral: "border-[var(--border-strong)] bg-[var(--bg-card-muted)]/80 text-[var(--text-primary)]",
-    ok: "border-emerald-800 bg-emerald-950/60 text-emerald-300",
-    warn: "border-amber-800 bg-amber-950/60 text-amber-300",
-    danger: "border-red-800 bg-red-950/60 text-red-300",
-    info: "border-sky-800 bg-sky-950/60 text-sky-300",
+    ok: "border-[var(--success)] bg-[var(--success-soft)]/60 text-[var(--success)]",
+    warn: "border-[var(--warning)] bg-[var(--warning-soft)]/60 text-[var(--warning)]",
+    danger: "border-[var(--danger)] bg-[var(--danger-soft)]/60 text-[var(--danger)]",
+    info: "border-[var(--info)] bg-[var(--info-soft)]/60 text-[var(--info)]",
   };
 
   return (
@@ -27,13 +27,13 @@ function StatusItem({ label, value, tone = "neutral" }) {
       <div
         className={`mt-2 text-sm font-semibold ${
           tone === "danger"
-            ? "text-red-300"
+            ? "text-[var(--danger)]"
             : tone === "warn"
-              ? "text-amber-300"
+              ? "text-[var(--warning)]"
               : tone === "ok"
-                ? "text-emerald-300"
+                ? "text-[var(--success)]"
                 : tone === "info"
-                  ? "text-sky-300"
+                  ? "text-[var(--info)]"
                   : "text-[var(--text-primary)]"
         }`}
       >
@@ -117,12 +117,12 @@ export default function CostSummaryStatusStrip({
 
       {(hasMissingModules || hasWarnings) && (
         <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-2">
-          <div className="rounded-2xl border border-red-900/80 bg-red-950/40 p-4">
-            <div className="text-sm font-semibold text-red-300">
+          <div className="rounded-2xl border border-[var(--danger)]/80 bg-[var(--danger-soft)]/40 p-4">
+            <div className="text-sm font-semibold text-[var(--danger)]">
               Missing Modules / Inputs
             </div>
             {hasMissingModules ? (
-              <ul className="mt-3 space-y-2 text-sm text-red-200">
+              <ul className="mt-3 space-y-2 text-sm text-[var(--danger)]">
                 {missing_modules.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
@@ -132,10 +132,10 @@ export default function CostSummaryStatusStrip({
             )}
           </div>
 
-          <div className="rounded-2xl border border-amber-900/80 bg-amber-950/40 p-4">
-            <div className="text-sm font-semibold text-amber-300">Warnings</div>
+          <div className="rounded-2xl border border-[var(--warning)]/80 bg-[var(--warning-soft)]/40 p-4">
+            <div className="text-sm font-semibold text-[var(--warning)]">Warnings</div>
             {hasWarnings ? (
-              <ul className="mt-3 space-y-2 text-sm text-amber-200">
+              <ul className="mt-3 space-y-2 text-sm text-[var(--warning)]">
                 {warnings.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}

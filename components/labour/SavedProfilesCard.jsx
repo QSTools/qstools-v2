@@ -109,7 +109,7 @@ export default function SavedProfilesCard({
 
                     <div className="flex flex-col items-end gap-2">
                       {is_active && (
-                        <div className="rounded-full border border-emerald-700 bg-emerald-950 px-3 py-1 text-xs text-emerald-300">
+                        <div className="rounded-full border border-[var(--success)] bg-[var(--success-soft)] px-3 py-1 text-xs text-[var(--success)]">
                           Active
                         </div>
                       )}
@@ -128,7 +128,7 @@ export default function SavedProfilesCard({
                           onClick={() =>
                             handle_delete(profile.profile_id, profile_name)
                           }
-                          className="rounded-xl border border-rose-700 bg-rose-950 px-3 py-2 text-sm text-rose-200"
+                          className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger)]"
                         >
                           Delete
                         </button>
