@@ -32,7 +32,7 @@ export default function CostSummaryPage() {
         linked_asset_count={card.recovery_model_block.linked_asset_count}
         recovery_warnings={card.recovery_model_block.warnings}
         people_cost_total={card.people_cost_total}
-        labour_cost_total={card.labour_cost_total}
+        gross_wages_total={card.gross_wages_total}
         entitlements_total={card.entitlements_total}
         esct_total={card.esct_total}
         employee_overheads_total={card.employee_overheads_total}

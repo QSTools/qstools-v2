@@ -14,10 +14,10 @@ export default function CostSummaryCard({
   recovery_warnings = [],
 
   people_cost_total,
-  labour_cost_total,
+  gross_wages_total = 0,
   entitlements_total = 0,
   esct_total = 0,
-  employee_overheads_total,
+  employee_overheads_total = 0,
   people_rows = [],
 
   business_cost_total,
@@ -98,7 +98,7 @@ export default function CostSummaryCard({
           <div>
             <h3 className="text-lg font-semibold text-white">People Cost</h3>
             <p className="mt-1 text-sm text-neutral-400">
-              Labour + Employee Overheads
+              Gross Wages + Entitlements + ESCT + Employee Overheads
             </p>
           </div>
 
@@ -113,8 +113,8 @@ export default function CostSummaryCard({
         <div className="mt-5 rounded-2xl border border-neutral-800 bg-black p-4">
           <div className="space-y-4 text-base">
             <div className="flex items-center justify-between text-white">
-              <span>Labour</span>
-              <span>{formatMoney(labour_cost_total)}</span>
+              <span>Gross Wages</span>
+              <span>{formatMoney(gross_wages_total)}</span>
             </div>
 
             <div className="flex items-center justify-between text-white">
@@ -163,11 +163,11 @@ export default function CostSummaryCard({
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-2 text-sm md:grid-cols-4">
+                    <div className="mt-4 grid grid-cols-1 gap-2 text-sm md:grid-cols-5">
                       <div className="rounded-lg border border-neutral-800 bg-black p-3">
-                        <div className="text-neutral-500">Labour</div>
+                        <div className="text-neutral-500">Gross Wages</div>
                         <div className="mt-1 text-white">
-                          {formatMoney(row.labour_cost_total)}
+                          {formatMoney(row.gross_wages_total)}
                         </div>
                       </div>
 
@@ -186,6 +186,13 @@ export default function CostSummaryCard({
                       </div>
 
                       <div className="rounded-lg border border-neutral-800 bg-black p-3">
+                        <div className="text-neutral-500">Employee Overheads</div>
+                        <div className="mt-1 text-white">
+                          {formatMoney(row.employee_overheads_total)}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-neutral-800 bg-black p-3">
                         <div className="text-neutral-500">Productive Hours</div>
                         <div className="mt-1 text-white">
                           {Number(row.productive_hours || 0).toLocaleString()}
@@ -196,7 +203,7 @@ export default function CostSummaryCard({
                 ))
               ) : (
                 <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-neutral-500">
-                  No active staff cost records available
+                  No staff cost records available
                 </div>
               )}
             </div>
