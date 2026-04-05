@@ -21,7 +21,10 @@ const navGroups = [
   },
 ];
 
-const standaloneItems = [{ href: "/budget", label: "Budget" }];
+const standaloneItems = [
+  { href: "/budget", label: "Budget" },
+  { href: "/settings", label: "Settings" },
+];
 
 export default function SidebarNavigation() {
   const pathname = usePathname();

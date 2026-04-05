@@ -20,19 +20,19 @@ export default function LabourPage() {
   const labour = useLabour();
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white px-4 py-6 md:px-6">
+    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] px-4 py-6 md:px-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             Labour Charge-Out Builder
           </h1>
 
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--text-muted)]">
             Enter your actual business numbers here to build your real labour
             charge-out rate.
           </p>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300">
+          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-secondary)]">
             These are your core labour inputs. Use the Scenario Modeller
             separately to test changes without altering your live business
             inputs.
@@ -55,7 +55,7 @@ export default function LabourPage() {
           />
         </div>
 
-        <div className="border-t border-neutral-800" />
+        <div className="border-t border-[var(--border-primary)]" />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
@@ -135,7 +135,7 @@ export default function LabourPage() {
           </div>
         </div>
 
-        <div className="border-t border-neutral-800 pt-6">
+        <div className="border-t border-[var(--border-primary)] pt-6">
           <CollapsibleSection
             title="Scenario Modeller"
             summary="What-if pricing and productivity testing"
