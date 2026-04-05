@@ -2,7 +2,7 @@
 
 function Pill({ children, tone = "neutral" }) {
   const toneClasses = {
-    neutral: "border-neutral-700 bg-neutral-800/80 text-neutral-200",
+    neutral: "border-[var(--border-strong)] bg-[var(--bg-card-muted)]/80 text-[var(--text-primary)]",
     ok: "border-emerald-800 bg-emerald-950/60 text-emerald-300",
     warn: "border-amber-800 bg-amber-950/60 text-amber-300",
     danger: "border-red-800 bg-red-950/60 text-red-300",
@@ -20,8 +20,8 @@ function Pill({ children, tone = "neutral" }) {
 
 function StatusItem({ label, value, tone = "neutral" }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500">
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)]/70 p-4">
+      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
         {label}
       </div>
       <div
@@ -34,7 +34,7 @@ function StatusItem({ label, value, tone = "neutral" }) {
                 ? "text-emerald-300"
                 : tone === "info"
                   ? "text-sky-300"
-                  : "text-neutral-100"
+                  : "text-[var(--text-primary)]"
         }`}
       >
         {value}
@@ -69,13 +69,13 @@ export default function CostSummaryStatusStrip({
         : "warn";
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Cost Summary Status
           </h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Live recovery structure and upstream readiness.
           </p>
         </div>
@@ -128,7 +128,7 @@ export default function CostSummaryStatusStrip({
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-neutral-400">None</p>
+              <p className="mt-3 text-sm text-[var(--text-muted)]">None</p>
             )}
           </div>
 
@@ -141,7 +141,7 @@ export default function CostSummaryStatusStrip({
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-neutral-400">None</p>
+              <p className="mt-3 text-sm text-[var(--text-muted)]">None</p>
             )}
           </div>
         </div>

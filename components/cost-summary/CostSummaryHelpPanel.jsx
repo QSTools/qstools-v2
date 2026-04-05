@@ -4,9 +4,9 @@ import { useState } from "react";
 
 function HelpRow({ title, body }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4">
-      <div className="text-sm font-semibold text-white">{title}</div>
-      <p className="mt-2 text-sm leading-6 text-neutral-400">{body}</p>
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)]/40 p-4">
+      <div className="text-sm font-semibold text-[var(--text-primary)]">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{body}</p>
     </div>
   );
 }
@@ -15,22 +15,22 @@ export default function CostSummaryHelpPanel() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex w-full items-start justify-between gap-4 text-left"
       >
         <div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Cost Summary Help
           </h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             What this page shows and how to read it.
           </p>
         </div>
 
-        <div className="rounded-full border border-neutral-700 bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-300">
+        <div className="rounded-full border border-[var(--border-strong)] bg-[var(--bg-card-muted)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]">
           {isOpen ? "Hide" : "Show"}
         </div>
       </button>
