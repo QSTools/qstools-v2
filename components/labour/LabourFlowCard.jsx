@@ -7,11 +7,11 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
 
   if (!has_profile) {
     return (
-      <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+      <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">Charge-Out Build</h2>
-            <p className="mt-1 mb-5 text-sm text-neutral-400">
+            <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
               Build your charge-out rate from true annual labour cost and productive hours
             </p>
           </div>
@@ -19,14 +19,14 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
           <button
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800"
+            className="rounded-lg border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]"
           >
             {isOpen ? "Hide" : "Show"}
           </button>
         </div>
 
         {isOpen ? (
-          <div className="rounded-xl border border-dashed border-neutral-700 bg-neutral-950 px-4 py-6 text-sm text-neutral-400">
+          <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-6 text-sm text-[var(--text-muted)]">
             Create or load a labour profile to see the charge-out build flow.
           </div>
         ) : null}
@@ -42,11 +42,11 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
       : "bad";
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Charge-Out Build</h2>
-          <p className="mt-1 mb-5 text-sm text-neutral-400">
+          <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
             Build your charge-out rate from true annual labour cost and productive hours
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800"
+          className="rounded-lg border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]"
         >
           {isOpen ? "Hide" : "Show"}
         </button>
@@ -140,8 +140,8 @@ function MarginIndicator({ status, gap }) {
 
 function Block({ title, children }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-      <div className="mb-3 text-sm font-medium text-neutral-400">{title}</div>
+    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+      <div className="mb-3 text-sm font-medium text-[var(--text-muted)]">{title}</div>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -149,7 +149,7 @@ function Block({ title, children }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between text-sm text-neutral-300">
+    <div className="flex justify-between text-sm text-[var(--text-secondary)]">
       <span>{label}</span>
       <span>{value}</span>
     </div>
@@ -158,7 +158,7 @@ function Row({ label, value }) {
 
 function Result({ label, value }) {
   return (
-    <div className="flex justify-between border-t border-neutral-800 pt-2 text-sm font-semibold text-white">
+    <div className="flex justify-between border-t border-[var(--border-primary)] pt-2 text-sm font-semibold text-white">
       <span>{label}</span>
       <span>{value}</span>
     </div>

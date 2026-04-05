@@ -91,25 +91,25 @@ export default function TopDriverCard({ outputs, state, has_profile }) {
     good: "border-emerald-800 bg-emerald-950/40",
     warn: "border-amber-800 bg-amber-950/40",
     bad: "border-rose-800 bg-rose-950/40",
-    neutral: "border-neutral-800 bg-neutral-900",
+    neutral: "border-[var(--border-primary)] bg-[var(--bg-card)]",
   };
 
   const badgeStyles = {
     good: "bg-emerald-900 text-emerald-300 border border-emerald-700",
     warn: "bg-amber-900 text-amber-300 border border-amber-700",
     bad: "bg-rose-900 text-rose-300 border border-rose-700",
-    neutral: "bg-neutral-800 text-neutral-300 border border-neutral-700",
+    neutral: "bg-[var(--bg-card-muted)] text-[var(--text-secondary)] border border-[var(--border-strong)]",
   };
 
   return (
     <section className={`rounded-2xl border p-5 ${toneStyles[driver.tone]}`}>
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="max-w-3xl">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
             Top Driver
           </div>
           <h2 className="text-xl font-semibold text-white">{driver.title}</h2>
-          <p className="mt-2 text-sm leading-6 text-neutral-300">
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             {driver.body}
           </p>
         </div>

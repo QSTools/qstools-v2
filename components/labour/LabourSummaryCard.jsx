@@ -13,23 +13,23 @@ export default function LabourSummaryCard({ state, outputs, has_profile }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <h2 className="text-lg font-semibold">Labour Summary</h2>
-      <p className="mt-1 mb-5 text-sm text-neutral-400">
+      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
         Live commercial outputs from the active labour profile
       </p>
 
       {!has_profile ? (
-        <div className="rounded-xl border border-dashed border-neutral-700 bg-neutral-950 px-4 py-6 text-sm text-neutral-400">
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-6 text-sm text-[var(--text-muted)]">
           Create a labour profile to unlock live outputs.
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-neutral-500">
+          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3">
+            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
               Active Profile
             </div>
-            <div className="mt-1 text-sm text-neutral-200">
+            <div className="mt-1 text-sm text-[var(--text-primary)]">
               {state.staff_name || "Unnamed"} · {state.staff_role || "No role"}
             </div>
           </div>
@@ -37,9 +37,9 @@ export default function LabourSummaryCard({ state, outputs, has_profile }) {
           {rows.map(([label, value]) => (
             <div
               key={label}
-              className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3"
+              className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3"
             >
-              <span className="text-sm text-neutral-300">{label}</span>
+              <span className="text-sm text-[var(--text-secondary)]">{label}</span>
               <span className="text-sm font-medium text-white">{value}</span>
             </div>
           ))}

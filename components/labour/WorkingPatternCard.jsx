@@ -7,9 +7,9 @@ export default function WorkingPatternCard({
   update_field,
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <h2 className="text-lg font-semibold">Working Pattern</h2>
-      <p className="mt-1 mb-5 text-sm text-neutral-400">
+      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
         Weekly hours structure
       </p>
 
@@ -21,7 +21,7 @@ export default function WorkingPatternCard({
             value={state.hours_per_week ?? ""}
             onChange={(e) => update_field("hours_per_week", e.target.value)}
             disabled={!has_profile}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
           />
         </Field>
 
@@ -37,7 +37,7 @@ export default function WorkingPatternCard({
 function Field({ label, children }) {
   return (
     <label className="block">
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
+      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
       {children}
     </label>
   );
@@ -46,8 +46,8 @@ function Field({ label, children }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div>
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200">
+      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
+      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]">
         {value}
       </div>
     </div>

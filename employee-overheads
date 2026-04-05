@@ -1,0 +1,283 @@
+[1mdiff --git a/components/employee-overheads/EmployeeOverheadCustomList.jsx b/components/employee-overheads/EmployeeOverheadCustomList.jsx[m
+[1mindex 4b68a2d..ab1a702 100644[m
+[1m--- a/components/employee-overheads/EmployeeOverheadCustomList.jsx[m
+[1m+++ b/components/employee-overheads/EmployeeOverheadCustomList.jsx[m
+[36m@@ -21,18 +21,18 @@[m [mexport default function EmployeeOverheadCustomList({[m
+   const active_library_items = library_items.filter((item) => item.is_active);[m
+ [m
+   return ([m
+[31m-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">[m
+[32m+[m[32m    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">[m
+       <h2 className="text-lg font-semibold">Staff Custom Overheads</h2>[m
+[31m-      <p className="mt-1 text-sm text-neutral-400">[m
+[32m+[m[32m      <p className="mt-1 text-sm text-[var(--text-muted)]">[m
+         Assign company library items to the selected staff member and override[m
+         annual values if needed.[m
+       </p>[m
+ [m
+       <div className="mt-4">[m
+[31m-        <div className="mb-2 text-sm text-neutral-300">Add From Library</div>[m
+[32m+[m[32m        <div className="mb-2 text-sm text-[var(--text-secondary)]">Add From Library</div>[m
+         <div className="flex flex-wrap gap-2">[m
+           {active_library_items.length === 0 && ([m
+[31m-            <div className="text-sm text-neutral-500">[m
+[32m+[m[32m            <div className="text-sm text-[var(--text-muted)]">[m
+               No active library items available.[m
+             </div>[m
+           )}[m
+[36m@@ -45,7 +45,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+                 addCustomAssignmentFromTemplate(item.custom_overhead_template_id)[m
+               }[m
+               disabled={disabled}[m
+[31m-              className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+             >[m
+               Add {item.custom_overhead_name} ({format_currency(item.default_amount_annual)})[m
+             </button>[m
+[36m@@ -55,7 +55,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+ [m
+       <div className="mt-5 space-y-3">[m
+         {custom_assignment_rows.length === 0 && ([m
+[31m-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-500">[m
+[32m+[m[32m          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-3 text-sm text-[var(--text-muted)]">[m
+             No custom overheads assigned yet.[m
+           </div>[m
+         )}[m
+[36m@@ -63,7 +63,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+         {custom_assignment_rows.map((row) => ([m
+           <div[m
+             key={row.staff_overhead_item_id}[m
+[31m-            className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"[m
+[32m+[m[32m            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4"[m
+           >[m
+             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_120px]">[m
+               <input[m
+[36m@@ -75,7 +75,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+                   })[m
+                 }[m
+                 disabled={disabled}[m
+[31m-                className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"[m
+[32m+[m[32m                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"[m
+               />[m
+ [m
+               <input[m
+[36m@@ -89,7 +89,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+                   })[m
+                 }[m
+                 disabled={disabled}[m
+[31m-                className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"[m
+[32m+[m[32m                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"[m
+               />[m
+ [m
+               <button[m
+[36m@@ -104,7 +104,7 @@[m [mexport default function EmployeeOverheadCustomList({[m
+               </button>[m
+             </div>[m
+ [m
+[31m-            <div className="mt-2 text-xs text-neutral-500">[m
+[32m+[m[32m            <div className="mt-2 text-xs text-[var(--text-muted)]">[m
+               {row.is_active ? "Active" : "Inactive"}[m
+             </div>[m
+           </div>[m
+[1mdiff --git a/components/employee-overheads/EmployeeOverheadForm.jsx b/components/employee-overheads/EmployeeOverheadForm.jsx[m
+[1mindex ce58816..554c20d 100644[m
+[1m--- a/components/employee-overheads/EmployeeOverheadForm.jsx[m
+[1m+++ b/components/employee-overheads/EmployeeOverheadForm.jsx[m
+[36m@@ -3,7 +3,7 @@[m
+ function CurrencyField({ label, value, onChange, disabled = false }) {[m
+   return ([m
+     <label className="block">[m
+[31m-      <span className="mb-2 block text-sm text-neutral-300">{label}</span>[m
+[32m+[m[32m      <span className="mb-2 block text-sm text-[var(--text-secondary)]">{label}</span>[m
+       <input[m
+         type="number"[m
+         step="0.01"[m
+[36m@@ -11,7 +11,7 @@[m [mfunction CurrencyField({ label, value, onChange, disabled = false }) {[m
+         value={value ?? ""}[m
+         onChange={(e) => onChange(e.target.value)}[m
+         disabled={disabled}[m
+[31m-        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m        className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+       />[m
+     </label>[m
+   );[m
+[36m@@ -23,9 +23,9 @@[m [mexport default function EmployeeOverheadForm({[m
+   disabled = false,[m
+ }) {[m
+   return ([m
+[31m-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">[m
+[32m+[m[32m    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">[m
+       <h2 className="text-lg font-semibold">Generic Annual Overheads</h2>[m
+[31m-      <p className="mt-1 text-sm text-neutral-400">[m
+[32m+[m[32m      <p className="mt-1 text-sm text-[var(--text-muted)]">[m
+         Annual staff-linked non-wage costs only.[m
+       </p>[m
+ [m
+[1mdiff --git a/components/employee-overheads/EmployeeOverheadHelpPanel.jsx b/components/employee-overheads/EmployeeOverheadHelpPanel.jsx[m
+[1mindex c90bff3..34b15d9 100644[m
+[1m--- a/components/employee-overheads/EmployeeOverheadHelpPanel.jsx[m
+[1m+++ b/components/employee-overheads/EmployeeOverheadHelpPanel.jsx[m
+[36m@@ -6,11 +6,11 @@[m [mexport default function EmployeeOverheadHelpPanel() {[m
+   const [is_open, setIsOpen] = useState(false);[m
+ [m
+   return ([m
+[31m-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">[m
+[32m+[m[32m    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">[m
+       <div className="flex items-center justify-between gap-4">[m
+         <div>[m
+           <h2 className="text-lg font-semibold">Help</h2>[m
+[31m-          <p className="mt-1 text-sm text-neutral-400">[m
+[32m+[m[32m          <p className="mt-1 text-sm text-[var(--text-muted)]">[m
+             Module scope and boundary definitions.[m
+           </p>[m
+         </div>[m
+[36m@@ -18,14 +18,14 @@[m [mexport default function EmployeeOverheadHelpPanel() {[m
+         <button[m
+           type="button"[m
+           onClick={() => setIsOpen((current) => !current)}[m
+[31m-          className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+         >[m
+           {is_open ? "Collapse" : "Expand"}[m
+         </button>[m
+       </div>[m
+ [m
+       {is_open && ([m
+[31m-        <div className="mt-4 space-y-3 text-sm text-neutral-300">[m
+[32m+[m[32m        <div className="mt-4 space-y-3 text-sm text-[var(--text-secondary)]">[m
+           <p>[m
+             Employee Overheads captures annual non-wage staff burden linked to[m
+             Labour staff identities by staff_id.[m
+[1mdiff --git a/components/employee-overheads/EmployeeOverheadLibraryCard.jsx b/components/employee-overheads/EmployeeOverheadLibraryCard.jsx[m
+[1mindex ccc3a87..9ad2df3 100644[m
+[1m--- a/components/employee-overheads/EmployeeOverheadLibraryCard.jsx[m
+[1m+++ b/components/employee-overheads/EmployeeOverheadLibraryCard.jsx[m
+[36m@@ -36,11 +36,11 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+   }[m
+ [m
+   return ([m
+[31m-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">[m
+[32m+[m[32m    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">[m
+       <div className="flex items-center justify-between gap-4">[m
+         <div>[m
+           <h2 className="text-lg font-semibold">Company Custom Overhead Library</h2>[m
+[31m-          <p className="mt-1 text-sm text-neutral-400">[m
+[32m+[m[32m          <p className="mt-1 text-sm text-[var(--text-muted)]">[m
+             Company-level reusable templates only. Templates do not auto-apply[m
+             to staff.[m
+           </p>[m
+[36m@@ -49,7 +49,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+         <button[m
+           type="button"[m
+           onClick={() => setIsOpen((current) => !current)}[m
+[31m-          className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+         >[m
+           {is_open ? "Collapse" : "Expand"}[m
+         </button>[m
+[36m@@ -63,7 +63,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+               value={custom_overhead_name}[m
+               onChange={(e) => setCustomOverheadName(e.target.value)}[m
+               placeholder="Custom overhead name"[m
+[31m-              className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+             />[m
+ [m
+             <input[m
+[36m@@ -73,13 +73,13 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+               value={default_amount_annual}[m
+               onChange={(e) => setDefaultAmountAnnual(e.target.value)}[m
+               placeholder="Default annual amount"[m
+[31m-              className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+             />[m
+ [m
+             <button[m
+               type="button"[m
+               onClick={submitNewTemplate}[m
+[31m-              className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+             >[m
+               Add Template[m
+             </button>[m
+[36m@@ -87,7 +87,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+ [m
+           <div className="mt-5 space-y-3">[m
+             {library_items.length === 0 && ([m
+[31m-              <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-500">[m
+[32m+[m[32m              <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-3 text-sm text-[var(--text-muted)]">[m
+                 No custom templates saved yet.[m
+               </div>[m
+             )}[m
+[36m@@ -95,7 +95,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+             {library_items.map((item) => ([m
+               <div[m
+                 key={item.custom_overhead_template_id}[m
+[31m-                className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"[m
+[32m+[m[32m                className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4"[m
+               >[m
+                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_140px]">[m
+                   <input[m
+[36m@@ -107,7 +107,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+                         custom_overhead_name: e.target.value,[m
+                       })[m
+                     }[m
+[31m-                    className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"[m
+[32m+[m[32m                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"[m
+                   />[m
+ [m
+                   <input[m
+[36m@@ -121,7 +121,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+                         default_amount_annual: e.target.value,[m
+                       })[m
+                     }[m
+[31m-                    className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"[m
+[32m+[m[32m                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"[m
+                   />[m
+ [m
+                   <button[m
+[36m@@ -137,7 +137,7 @@[m [mexport default function EmployeeOverheadLibraryCard({[m
+                   </button>[m
+                 </div>[m
+ [m
+[31m-                <div className="mt-2 text-xs text-neutral-500">[m
+[32m+[m[32m                <div className="mt-2 text-xs text-[var(--text-muted)]">[m
+                   {item.is_active ? "Active" : "Inactive"} • Default{" "}[m
+                   {format_currency(item.default_amount_annual)}[m
+                 </div>[m
+[1mdiff --git a/components/employee-overheads/EmployeeOverheadStaffCard.jsx b/components/employee-overheads/EmployeeOverheadStaffCard.jsx[m
+[1mindex 465a2d7..1da8c8e 100644[m
+[1m--- a/components/employee-overheads/EmployeeOverheadStaffCard.jsx[m
+[1m+++ b/components/employee-overheads/EmployeeOverheadStaffCard.jsx[m
+[36m@@ -7,19 +7,19 @@[m [mexport default function EmployeeOverheadStaffCard({[m
+   selected_staff = null,[m
+ }) {[m
+   return ([m
+[31m-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">[m
+[32m+[m[32m    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">[m
+       <h2 className="text-lg font-semibold">Staff Selection</h2>[m
+[31m-      <p className="mt-1 text-sm text-neutral-400">[m
+[32m+[m[32m      <p className="mt-1 text-sm text-[var(--text-muted)]">[m
+         Select an active Labour staff member. Employee Overheads does not create[m
+         staff identities.[m
+       </p>[m
+ [m
+       <div className="mt-4">[m
+[31m-        <label className="mb-2 block text-sm text-neutral-300">Staff Member</label>[m
+[32m+[m[32m        <label className="mb-2 block text-sm text-[var(--text-secondary)]">Staff Member</label>[m
+         <select[m
+           value={selected_staff_id}[m
+           onChange={(e) => setSelectedStaffId(e.target.value)}[m
+[31m-          className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"[m
+[32m+[m[32m          className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"[m
+         >[m
+           <option value="">Select staff</option>[m
+           {staff_options.map((staff) => ([m
+[36m@@ -32,12 +32,12 @@[m [mexport default function EmployeeOverheadStaffCard({[m
+       </div>[m
+ [m
+       {selected_staff && ([m
+[31m-        <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">[m
+[31m-          <div className="text-sm text-neutral-400">Selected Staff</div>[m
+[32m+[m[32m        <div className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">[m
+[32m+[m[32m         

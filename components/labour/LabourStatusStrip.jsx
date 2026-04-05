@@ -8,7 +8,7 @@ export default function LabourStatusStrip({
   staff_name,
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
       <div className="flex flex-wrap gap-3">
         <Badge
           tone={has_profile ? "good" : "neutral"}
@@ -42,7 +42,7 @@ function Badge({ tone, text }) {
     good: "border-emerald-700 bg-emerald-950 text-emerald-300",
     warn: "border-amber-700 bg-amber-950 text-amber-300",
     bad: "border-rose-700 bg-rose-950 text-rose-300",
-    neutral: "border-neutral-700 bg-neutral-950 text-neutral-300",
+    neutral: "border-[var(--border-strong)] bg-[var(--bg-input)] text-[var(--text-secondary)]",
   };
 
   return (

@@ -6,9 +6,9 @@ export default function CommercialCard({
   update_field,
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <h2 className="text-lg font-semibold">Commercial</h2>
-      <p className="mt-1 mb-5 text-sm text-neutral-400">
+      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
         Productivity and margin settings
       </p>
 
@@ -20,7 +20,7 @@ export default function CommercialCard({
             value={state.productivity_percent ?? ""}
             onChange={(e) => update_field("productivity_percent", e.target.value)}
             disabled={!has_profile}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
           />
         </Field>
 
@@ -31,7 +31,7 @@ export default function CommercialCard({
             value={state.margin_target_percent ?? ""}
             onChange={(e) => update_field("margin_target_percent", e.target.value)}
             disabled={!has_profile}
-            className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
           />
         </Field>
       </div>
@@ -42,7 +42,7 @@ export default function CommercialCard({
 function Field({ label, children }) {
   return (
     <label className="block">
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
+      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
       {children}
     </label>
   );

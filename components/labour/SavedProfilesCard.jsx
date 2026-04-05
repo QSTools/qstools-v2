@@ -32,11 +32,11 @@ export default function SavedProfilesCard({
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Saved Profiles</h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Load, edit, save, or delete your labour profiles.
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function SavedProfilesCard({
         <button
           type="button"
           onClick={() => setIsOpen((previous) => !previous)}
-          className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-2 text-sm text-neutral-200"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-2 text-sm text-[var(--text-primary)]"
         >
           {is_open ? "Hide Profiles" : "Show Profiles"}
         </button>
@@ -63,14 +63,14 @@ export default function SavedProfilesCard({
         <button
           type="button"
           onClick={start_new_profile}
-          className="rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-2 text-sm text-neutral-200"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-2 text-sm text-[var(--text-primary)]"
         >
           Start New Profile
         </button>
       </div>
 
       {active_profile_id && (
-        <div className="mt-3 text-sm text-neutral-400">
+        <div className="mt-3 text-sm text-[var(--text-muted)]">
           Active profile loaded. Use{" "}
           <span className="text-white">Save Active Profile</span> to update it.
         </div>
@@ -79,7 +79,7 @@ export default function SavedProfilesCard({
       {is_open && (
         <div className="mt-5 space-y-3">
           {sorted_profiles.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-neutral-700 bg-neutral-950 px-4 py-4 text-sm text-neutral-400">
+            <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-4 text-sm text-[var(--text-muted)]">
               No saved profiles yet.
             </div>
           ) : (
@@ -90,18 +90,18 @@ export default function SavedProfilesCard({
               return (
                 <div
                   key={profile.profile_id}
-                  className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+                  className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-medium text-white">
                         {profile_name}
                       </div>
-                      <div className="mt-1 text-sm text-neutral-400">
+                      <div className="mt-1 text-sm text-[var(--text-muted)]">
                         {profile.data?.staff_role || "No role"} ·{" "}
                         {profile.data?.labour_class || "No class"}
                       </div>
-                      <div className="mt-2 text-xs text-neutral-500">
+                      <div className="mt-2 text-xs text-[var(--text-muted)]">
                         Updated:{" "}
                         {format_date(profile.updated_at || profile.created_at)}
                       </div>
@@ -118,7 +118,7 @@ export default function SavedProfilesCard({
                         <button
                           type="button"
                           onClick={() => load_profile(profile.profile_id)}
-                          className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-200"
+                          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)]"
                         >
                           Load
                         </button>

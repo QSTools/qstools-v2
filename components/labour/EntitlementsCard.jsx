@@ -11,7 +11,7 @@ export default function EntitlementsCard({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -19,12 +19,12 @@ export default function EntitlementsCard({
       >
         <div>
           <h2 className="text-lg font-semibold">Entitlements</h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             NZ default leave and entitlement model
           </p>
         </div>
 
-        <span className="text-sm text-neutral-400">
+        <span className="text-sm text-[var(--text-muted)]">
           {isOpen ? "Hide" : "Show"}
         </span>
       </button>
@@ -38,7 +38,7 @@ export default function EntitlementsCard({
               value={state.annual_leave_weeks ?? ""}
               onChange={(e) => update_field("annual_leave_weeks", e.target.value)}
               disabled={!has_profile}
-              className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             />
           </Field>
 
@@ -49,7 +49,7 @@ export default function EntitlementsCard({
               value={state.public_holiday_days ?? ""}
               onChange={(e) => update_field("public_holiday_days", e.target.value)}
               disabled={!has_profile}
-              className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             />
           </Field>
 
@@ -60,7 +60,7 @@ export default function EntitlementsCard({
               value={state.sick_days ?? ""}
               onChange={(e) => update_field("sick_days", e.target.value)}
               disabled={!has_profile}
-              className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             />
           </Field>
 
@@ -71,7 +71,7 @@ export default function EntitlementsCard({
               value={state.bereavement_days ?? ""}
               onChange={(e) => update_field("bereavement_days", e.target.value)}
               disabled={!has_profile}
-              className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             />
           </Field>
 
@@ -82,7 +82,7 @@ export default function EntitlementsCard({
               value={state.family_violence_days ?? ""}
               onChange={(e) => update_field("family_violence_days", e.target.value)}
               disabled={!has_profile}
-              className="number-input w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="number-input w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             />
           </Field>
 
@@ -99,7 +99,7 @@ export default function EntitlementsCard({
 function Field({ label, children }) {
   return (
     <label className="block">
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
+      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
       {children}
     </label>
   );
@@ -108,8 +108,8 @@ function Field({ label, children }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div>
-      <div className="mb-2 text-sm text-neutral-300">{label}</div>
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-200">
+      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
+      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]">
         {value}
       </div>
     </div>

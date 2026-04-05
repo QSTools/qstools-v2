@@ -25,7 +25,7 @@ export default function LabourInsightsRow({ state, outputs, has_profile }) {
         <Row label="Target Rate" value={fmtCur(target)} />
         <Row label="Your Rate" value={fmtCur(actual)} />
 
-        <div className="mt-3 border-t border-neutral-800 pt-3">
+        <div className="mt-3 border-t border-[var(--border-primary)] pt-3">
           <StatusBadge status={margin_status} gap={outputs.margin_gap} />
         </div>
       </Card>
@@ -39,7 +39,7 @@ export default function LabourInsightsRow({ state, outputs, has_profile }) {
 
       {/* 3. COST DRIVERS */}
       <Card title="What’s Driving Your Cost">
-        <div className="space-y-2 text-sm text-neutral-300">
+        <div className="space-y-2 text-sm text-[var(--text-secondary)]">
           {drivers.map((d, i) => (
             <div key={i}>• {d}</div>
           ))}
@@ -78,8 +78,8 @@ function get_cost_drivers(state, outputs) {
 
 function Card({ title, children }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-      <div className="mb-3 text-sm font-medium text-neutral-400">{title}</div>
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+      <div className="mb-3 text-sm font-medium text-[var(--text-muted)]">{title}</div>
       {children}
     </div>
   );
@@ -87,7 +87,7 @@ function Card({ title, children }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between text-sm text-neutral-300">
+    <div className="flex justify-between text-sm text-[var(--text-secondary)]">
       <span>{label}</span>
       <span className="font-medium text-white">{value}</span>
     </div>

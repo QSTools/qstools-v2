@@ -204,10 +204,10 @@ export default function LabourProfileCard({
     LABOUR_CLASS_OPTIONS.find((option) => option.value === state?.labour_class)?.label || "—";
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-white">Labour Profile</h2>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
           Create the staff profile first. Core labour inputs stay locked until the
           profile is created.
         </p>
@@ -215,7 +215,7 @@ export default function LabourProfileCard({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-neutral-300">
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
             Staff Name
           </label>
           <input
@@ -224,19 +224,19 @@ export default function LabourProfileCard({
             onChange={(e) => update_field("staff_name", e.target.value)}
             disabled={has_profile}
             placeholder="Enter staff name"
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-white outline-none focus:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-white outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-neutral-300">
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
             Role Category
           </label>
           <select
             value={state?.role_category ?? ""}
             onChange={(e) => handleCategoryChange(e.target.value)}
             disabled={has_profile}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-white outline-none focus:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-white outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="">Select role category</option>
             {ROLE_CATEGORIES.map((category) => (
@@ -248,14 +248,14 @@ export default function LabourProfileCard({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-neutral-300">
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
             Staff Role
           </label>
           <select
             value={state?.staff_role ?? ""}
             onChange={(e) => handleStaffRoleChange(e.target.value)}
             disabled={has_profile || !selectedRoleCategory}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-white outline-none focus:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-white outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="">
               {selectedRoleCategory ? "Select staff role" : "Select role category first"}
@@ -269,14 +269,14 @@ export default function LabourProfileCard({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-neutral-300">
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
             Labour Class
           </label>
           <select
             value={state?.labour_class ?? ""}
             onChange={(e) => handleLabourClassChange(e.target.value)}
             disabled={has_profile}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-white outline-none focus:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-white outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <option value="">Select labour class</option>
             {LABOUR_CLASS_OPTIONS.map((option) => (
@@ -285,7 +285,7 @@ export default function LabourProfileCard({
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
             Standard roles auto-fill this. Custom roles must define it before save.
           </p>
         </div>
@@ -295,7 +295,7 @@ export default function LabourProfileCard({
             type="button"
             onClick={() => setShowCustomRoleForm((previous) => !previous)}
             disabled={has_profile}
-            className="rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--bg-card-muted)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {showCustomRoleForm ? "Hide Custom Role" : "Add Custom Role"}
           </button>
@@ -303,12 +303,12 @@ export default function LabourProfileCard({
       </div>
 
       {showCustomRoleForm && !has_profile ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-neutral-700 bg-neutral-950 p-4">
+        <div className="mt-5 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] p-4">
           <h3 className="mb-3 text-sm font-semibold text-white">Create Custom Role</h3>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-300">
+              <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
                 Custom Role Name
               </label>
               <input
@@ -318,12 +318,12 @@ export default function LabourProfileCard({
                   handleCustomDraftChange("custom_role_name", e.target.value)
                 }
                 placeholder="e.g. Concrete Coordinator"
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-neutral-500"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-white outline-none focus:border-[var(--accent)]"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-300">
+              <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
                 Role Category
               </label>
               <select
@@ -331,7 +331,7 @@ export default function LabourProfileCard({
                 onChange={(e) =>
                   handleCustomDraftChange("role_category", e.target.value)
                 }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-neutral-500"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-white outline-none focus:border-[var(--accent)]"
               >
                 {ROLE_CATEGORIES.filter((category) => category.value !== "custom_roles").map(
                   (category) => (
@@ -344,7 +344,7 @@ export default function LabourProfileCard({
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-neutral-300">
+              <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
                 Labour Class
               </label>
               <select
@@ -352,7 +352,7 @@ export default function LabourProfileCard({
                 onChange={(e) =>
                   handleCustomDraftChange("labour_class", e.target.value)
                 }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none focus:border-neutral-500"
+                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-white outline-none focus:border-[var(--accent)]"
               >
                 <option value="">Select labour class</option>
                 {LABOUR_CLASS_OPTIONS.map((option) => (
@@ -383,26 +383,26 @@ export default function LabourProfileCard({
                 });
                 setShowCustomRoleForm(false);
               }}
-              className="rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+              className="rounded-xl border border-[var(--border-strong)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--bg-card-muted)]"
             >
               Cancel
             </button>
           </div>
 
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
             For now, custom roles are stored locally in this browser only.
           </p>
         </div>
       ) : null}
 
-      <div className="mt-5 rounded-2xl bg-neutral-950 p-4">
+      <div className="mt-5 rounded-2xl bg-[var(--bg-input)] p-4">
         <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
           <div>
-            <span className="font-medium text-neutral-300">Selected Role:</span>{" "}
+            <span className="font-medium text-[var(--text-secondary)]">Selected Role:</span>{" "}
             <span className="text-white">{state?.staff_role || "—"}</span>
           </div>
           <div>
-            <span className="font-medium text-neutral-300">Labour Class:</span>{" "}
+            <span className="font-medium text-[var(--text-secondary)]">Labour Class:</span>{" "}
             <span className="text-white">{labourClassLabel}</span>
           </div>
         </div>
@@ -419,7 +419,7 @@ export default function LabourProfileCard({
         </button>
 
         {has_profile ? (
-          <div className="text-sm text-neutral-400">
+          <div className="text-sm text-[var(--text-muted)]">
             Profile created. Identity fields are now locked.
           </div>
         ) : null}
