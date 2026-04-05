@@ -27,33 +27,25 @@ export default function CostSummaryPage() {
       />
 
       <CostSummaryCard
-        recovery_model_label={card.recovery_model_label}
+        recovery_model_label={card.recovery_model_block.recovery_model_label}
         linked_staff_count={card.recovery_model_block.linked_staff_count}
         linked_asset_count={card.recovery_model_block.linked_asset_count}
-        warnings={card.recovery_model_block.warnings}
-        people_cost_total={card.people_cost.total_people_cost}
-        labour_cost_total={card.people_cost.labour}
-        employee_overheads_total={card.people_cost.employee_overheads}
-        people_drilldown={card.people_cost.rows.map((row) => ({
-          key: row.staff_id,
-          label: row.staff_name || "Unnamed",
-          meta: row.staff_role || row.labour_class || "",
-          value: row.total_people_cost_annual,
-        }))}
-        business_cost_total={card.business_cost.total_business_cost}
-        asset_cost_total={card.business_cost.assets}
-        general_overheads_total={card.business_cost.general_overheads}
-        asset_drilldown={card.business_cost.asset_rows.map((row) => ({
-          key: row.asset_id,
-          label: row.asset_name || "Unnamed asset",
-          meta: "",
-          value: row.total_asset_cost_annual || 0,
-        }))}
-        overhead_drilldown={[]}
-        total_cost_burden={card.totals.total_cost_burden}
-        required_revenue={card.totals.required_revenue}
-        required_recovery_rate={card.totals.required_recovery_rate}
-        insight_text={card.insight.message}
+        recovery_warnings={card.recovery_model_block.warnings}
+        people_cost_total={card.people_cost_total}
+        labour_cost_total={card.labour_cost_total}
+        entitlements_total={card.entitlements_total}
+        esct_total={card.esct_total}
+        employee_overheads_total={card.employee_overheads_total}
+        people_rows={card.people_rows}
+        business_cost_total={card.business_cost_total}
+        asset_cost_total={card.asset_cost_total}
+        general_overheads_total={card.general_overheads_total}
+        asset_rows={card.asset_rows}
+        general_overhead_rows={card.general_overhead_rows}
+        total_cost_burden={card.total_cost_burden}
+        required_revenue={card.required_revenue}
+        required_recovery_rate={card.required_recovery_rate}
+        highlight_insight={card.highlight_insight}
       />
 
       <CostSummaryHelpPanel />
