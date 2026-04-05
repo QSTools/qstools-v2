@@ -1,0 +1,46 @@
+QS Tools — Implementation Brief
+Employee Overheads → Cost Summary Wiring (v1.0 — NEXT)
+
+OBJECTIVE
+Add Employee Overheads into Cost Summary without changing Labour logic and without duplicating overhead calculations.
+
+UPSTREAM OWNER
+Employee Overheads owns:
+- staff_id
+- employee_overheads_total_annual
+- total_employee_overheads_annual
+
+COST SUMMARY MUST DO
+- join Employee Overheads to Labour by staff_id
+- consume employee_overheads_total_annual per linked staff
+- surface employee_overheads_annual as a separate People Cost line
+- add employee_overheads_annual into total_people_cost_annual
+- aggregate total_employee_overheads_annual correctly
+
+COST SUMMARY MUST NOT DO
+- rebuild overhead values from raw categories
+- use display names as join keys
+- merge overheads silently into another labour line
+
+REQUIRED OUTPUTS AFTER WIRING
+Per staff:
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_annual
+- esct_annual
+- employee_overheads_annual
+- total_people_cost_annual
+
+Aggregate:
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+
+TEST CHECKS
+- staff with linked overheads must show overhead value in drilldown
+- staff without linked overheads must default to 0 without breaking totals
+- total People Cost must increase by total_employee_overheads_annual exactly
+- Labour outputs must remain unchanged
