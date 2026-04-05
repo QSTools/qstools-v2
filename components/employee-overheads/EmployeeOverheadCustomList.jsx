@@ -21,18 +21,18 @@ export default function EmployeeOverheadCustomList({
   const active_library_items = library_items.filter((item) => item.is_active);
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <h2 className="text-lg font-semibold">Staff Custom Overheads</h2>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-[var(--text-muted)]">
         Assign company library items to the selected staff member and override
         annual values if needed.
       </p>
 
       <div className="mt-4">
-        <div className="mb-2 text-sm text-neutral-300">Add From Library</div>
+        <div className="mb-2 text-sm text-[var(--text-secondary)]">Add From Library</div>
         <div className="flex flex-wrap gap-2">
           {active_library_items.length === 0 && (
-            <div className="text-sm text-neutral-500">
+            <div className="text-sm text-[var(--text-muted)]">
               No active library items available.
             </div>
           )}
@@ -45,7 +45,7 @@ export default function EmployeeOverheadCustomList({
                 addCustomAssignmentFromTemplate(item.custom_overhead_template_id)
               }
               disabled={disabled}
-              className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
             >
               Add {item.custom_overhead_name} ({format_currency(item.default_amount_annual)})
             </button>
@@ -55,7 +55,7 @@ export default function EmployeeOverheadCustomList({
 
       <div className="mt-5 space-y-3">
         {custom_assignment_rows.length === 0 && (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-500">
+          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-3 text-sm text-[var(--text-muted)]">
             No custom overheads assigned yet.
           </div>
         )}
@@ -63,7 +63,7 @@ export default function EmployeeOverheadCustomList({
         {custom_assignment_rows.map((row) => (
           <div
             key={row.staff_overhead_item_id}
-            className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4"
           >
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_120px]">
               <input
@@ -75,7 +75,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
               />
 
               <input
@@ -89,7 +89,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
               />
 
               <button
@@ -104,7 +104,7 @@ export default function EmployeeOverheadCustomList({
               </button>
             </div>
 
-            <div className="mt-2 text-xs text-neutral-500">
+            <div className="mt-2 text-xs text-[var(--text-muted)]">
               {row.is_active ? "Active" : "Inactive"}
             </div>
           </div>

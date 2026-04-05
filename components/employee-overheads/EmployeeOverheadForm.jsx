@@ -3,7 +3,7 @@
 function CurrencyField({ label, value, onChange, disabled = false }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm text-neutral-300">{label}</span>
+      <span className="mb-2 block text-sm text-[var(--text-secondary)]">{label}</span>
       <input
         type="number"
         step="0.01"
@@ -11,7 +11,7 @@ function CurrencyField({ label, value, onChange, disabled = false }) {
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+        className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
       />
     </label>
   );
@@ -23,9 +23,9 @@ export default function EmployeeOverheadForm({
   disabled = false,
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <h2 className="text-lg font-semibold">Generic Annual Overheads</h2>
-      <p className="mt-1 text-sm text-neutral-400">
+      <p className="mt-1 text-sm text-[var(--text-muted)]">
         Annual staff-linked non-wage costs only.
       </p>
 

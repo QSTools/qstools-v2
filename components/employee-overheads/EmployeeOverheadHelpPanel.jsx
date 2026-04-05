@@ -6,11 +6,11 @@ export default function EmployeeOverheadHelpPanel() {
   const [is_open, setIsOpen] = useState(false);
 
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Help</h2>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Module scope and boundary definitions.
           </p>
         </div>
@@ -18,14 +18,14 @@ export default function EmployeeOverheadHelpPanel() {
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
         >
           {is_open ? "Collapse" : "Expand"}
         </button>
       </div>
 
       {is_open && (
-        <div className="mt-4 space-y-3 text-sm text-neutral-300">
+        <div className="mt-4 space-y-3 text-sm text-[var(--text-secondary)]">
           <p>
             Employee Overheads captures annual non-wage staff burden linked to
             Labour staff identities by staff_id.

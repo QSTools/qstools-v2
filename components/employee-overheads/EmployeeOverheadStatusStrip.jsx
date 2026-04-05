@@ -7,17 +7,17 @@ export default function EmployeeOverheadStatusStrip({
   warnings = [],
 }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <div className="text-xs uppercase tracking-wide text-neutral-400">
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
             Active Labour Staff
           </div>
           <div className="text-xl font-semibold">{active_staff_available}</div>
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-neutral-400">
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
             Selected Staff
           </div>
           <div className="text-xl font-semibold">
@@ -26,7 +26,7 @@ export default function EmployeeOverheadStatusStrip({
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-neutral-400">
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
             Overhead Profile
           </div>
           <div className="text-xl font-semibold">
