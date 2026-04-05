@@ -1,0 +1,245 @@
+# QS Tools — Employee Overheads Module (v1.6 — LOCKED)
+
+STATUS: IMPLEMENTATION LOCKED (WITH DOWNSTREAM OUTPUT CONTRACT)
+
+## OBJECTIVE
+
+Build a module that:
+
+- captures staff-linked overhead costs
+- converts them into annual and hourly staff overhead burden
+- exposes clean locked downstream outputs
+- integrates directly into Cost Summary without reinterpretation
+
+---
+
+## CORE PRINCIPLE
+
+Employee Overheads is a:
+
+staff-linked burden layer
+
+It is NOT:
+
+- a business overhead module
+- a pricing tool
+- a recovery calculator
+- a summary aggregation layer
+
+---
+
+## ARCHITECTURE (MANDATORY)
+
+EmployeeOverheadsPage (UI only)
+        ↓
+useEmployeeOverheads.js (state + storage)
+        ↓
+employeeOverheadsCalculations.js (ALL logic)
+        ↓
+OUTPUT CONTRACT → Cost Summary
+
+---
+
+## NON-NEGOTIABLE RULES
+
+### 1. No Calculation Logic in UI
+
+- No maths in components
+- No derived values in React
+
+### 2. Single Source of Truth
+
+All overhead calculations must occur in:
+
+`employeeOverheadsCalculations.js`
+
+### 3. Staff Linking is Mandatory
+
+Every overhead profile must include:
+
+`staff_id`
+
+This must align exactly with Labour, which remains the identity owner.
+
+### 4. Stored Profiles Only
+
+Cost Summary must only use:
+
+- saved overhead profiles
+
+It must NOT use:
+
+- live form state
+- unsaved UI values
+
+### 5. Downstream Contract Rule
+
+Employee Overheads must define the exact outputs that downstream modules consume.
+
+Cost Summary may aggregate these outputs, but it must not reinterpret or rebuild the Employee Overheads maths.
+
+---
+
+## OVERHEAD CATEGORIES (BASE STRUCTURE)
+
+Each staff profile may include annual values for:
+
+- `phone_cost`
+- `laptop_tablet_cost`
+- `ppe_uniform_cost`
+- `training_tickets_cost`
+- `small_tools_cost`
+- `insurance_allocation`
+- `admin_allocation`
+- `other_overhead_cost`
+
+All values must be annualised.
+
+---
+
+## REQUIRED CALCULATED OUTPUTS (PER STAFF)
+
+Employee Overheads must calculate:
+
+- `employee_overheads_total_annual`
+- `overhead_per_paid_hour`
+- `overhead_per_productive_hour`
+- `labour_cost_per_productive_hour`
+
+Optional:
+
+- `overhead_breakdown[]`
+
+---
+
+## LOCKED DOWNSTREAM OUTPUT CONTRACT
+
+### Per Staff Output Contract
+
+For each active stored profile:
+
+```json
+{
+  "staff_id": "string",
+  "employee_overheads_total_annual": 0,
+  "overhead_per_paid_hour": 0,
+  "overhead_per_productive_hour": 0,
+  "labour_cost_per_productive_hour": 0,
+  "overhead_breakdown": [
+    {
+      "type": "string",
+      "amount": 0
+    }
+  ]
+}
+```
+
+### Aggregate Output Contract
+
+```json
+{
+  "total_employee_overheads_annual": 0
+}
+```
+
+Where:
+
+`total_employee_overheads_annual = sum(employee_overheads_total_annual for all active staff)`
+
+---
+
+## CRITICAL DOWNSTREAM RULES
+
+### 1. `staff_id` is the only join key
+
+Allowed:
+
+- Labour → Employee Overheads → Cost Summary using `staff_id`
+
+Not allowed:
+
+- name matching
+- index matching
+- UI-order matching
+
+### 2. One active profile per `staff_id`
+
+Only one active Employee Overheads profile per `staff_id` may flow downstream.
+
+### 3. Cost Summary must consume outputs only
+
+Cost Summary may consume:
+
+- `employee_overheads_total_annual`
+- `total_employee_overheads_annual`
+
+It must NOT:
+
+- recalculate category totals
+- derive totals from form inputs
+- modify or reinterpret Employee Overheads values
+
+### 4. Local module outputs remain valid
+
+`overhead_per_paid_hour`, `overhead_per_productive_hour`, and `labour_cost_per_productive_hour` remain valid module outputs for local display and analysis.
+
+They are still part of the Employee Overheads contract, but Cost Summary consumes the annual burden outputs as its staff-overhead source.
+
+---
+
+## COST SUMMARY INTEGRATION (DEFINED)
+
+Cost Summary must use:
+
+- `employee_overheads_total_annual`
+
+to populate:
+
+- Staff Drilldown → Employee Overheads
+- People Cost → Employee Overheads total
+
+---
+
+## PEOPLE COST BUILD (FINAL FORM)
+
+Per staff:
+
+- Gross Wages
+- Entitlements
+- ESCT
+- Employee Overheads
+- Total People Cost
+
+Aggregate:
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+
+---
+
+## DATA FLOW (LOCKED)
+
+Labour (`staff_id`)
+        ↓
+Employee Overheads (`staff_id`)
+        ↓
+Cost Summary (aggregation only)
+
+---
+
+## FAILURE CONDITIONS (MUST NOT OCCUR)
+
+- Cost Summary guessing the overhead structure
+- multiple active overhead profiles per `staff_id`
+- missing `staff_id` linkage
+- recalculation outside Employee Overheads
+- UI logic replacing calculation logic
+
+---
+
+## DEFINITION
+
+Employee Overheads is a staff-linked annual burden module that owns staff overhead calculations and exposes locked downstream outputs for Cost Summary aggregation without downstream reinterpretation.

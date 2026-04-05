@@ -1,0 +1,271 @@
+# Assets Module — Source of Truth (v2.3 — ACTIVE)
+
+## Purpose
+
+The Assets Module is the capital cost register and cost engine of QS Tools.
+
+It is responsible for:
+
+- capturing asset financial structure
+- calculating real cash ownership cost
+- maintaining full historical records
+- preparing asset data for downstream modules
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The Assets Module is a:
+
+standalone capital data module
+
+It must:
+
+- NOT create or use staff_id
+- NOT assign assets to staff
+- NOT perform pricing or recovery calculations
+- NOT create asset packages inside this module
+
+It only captures and structures asset cost data.
+
+---
+
+## 🧱 Architecture
+
+Page
+app/assets/page.jsx
+
+Hook
+hooks/useAssets.js
+
+Calculations
+lib/calculations/assetCalculations.js
+
+Selectors
+lib/selectors/assetSelectors.js
+
+Storage
+lib/storage/assetStorage.js
+lib/storage/assetProfileStorage.js
+
+Components
+components/assets/
+
+- AssetForm.jsx
+- AssetProfilesCard.jsx
+- AssetSummaryCard.jsx
+- AssetStatusStrip.jsx
+- AssetHelpPanel.jsx
+
+---
+
+## 🧠 Data Model
+
+### Identity
+
+- asset_id (UUID — hidden, immutable)
+- owner_scope_id (represents current user/company context)
+
+Rules:
+
+- IDs must be system-generated
+- IDs must never be editable
+- names must never be used as keys
+
+---
+
+## ⚠️ Variable Naming
+
+- snake_case only
+- no renaming without migration
+- consistent across all modules
+
+---
+
+## 📥 Inputs
+
+### Finance
+
+- purchase_price
+- interest_rate
+- finance_term_years
+
+---
+
+### Running Costs (Monthly)
+
+- maintenance_cost_monthly
+- fuel_cost_monthly
+- registration_cost_monthly
+- other_running_cost_monthly
+
+---
+
+### Metadata
+
+- profile_version
+- effective_from
+- is_active
+- is_retired
+- created_at
+- updated_at
+
+---
+
+## 📊 Calculations
+
+finance_cost_annual = 0 if no finance
+
+running_cost_annual = (maintenance_cost_monthly + fuel_cost_monthly + registration_cost_monthly + other_running_cost_monthly) × 12
+
+total_asset_cost_annual = finance_cost_annual + running_cost_annual
+
+---
+
+## ⚠️ CASHFLOW RULE
+
+Depreciation is NOT included
+
+Reason:
+
+- non-cash
+- not relevant for recovery
+- not used for pricing
+
+Tooltip:
+
+"Depreciation is excluded as this model is based on real cash cost recovery."
+
+---
+
+## 📊 Outputs
+
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+---
+
+## 🔁 Profile System
+
+Each asset:
+
+- supports multiple versions
+- must have ONE active version
+
+---
+
+## 🔁 Version Rules
+
+- editing creates new version
+- history must remain unchanged
+- only one active version allowed
+- calculations use active version only
+
+---
+
+## 📚 Historical Tracking
+
+Track:
+
+- cost changes
+- major repairs
+- adjustments
+
+---
+
+## 🔧 Adjustment Handling
+
+Unexpected costs must:
+
+- be logged
+- not overwrite history
+- update future assumptions
+
+---
+
+## 🔄 Lifecycle
+
+Active → used in calculations
+
+Retired → stored only, excluded
+
+---
+
+## 🖥 UI Behaviour
+
+AssetForm → inputs only
+
+AssetProfilesCard → version control
+
+AssetSummaryCard → show costs
+
+AssetStatusStrip → show state
+
+AssetHelpPanel → explanation (collapsed)
+
+---
+
+## ⚠️ Defaults
+
+All values default to 0
+
+System must handle safely
+
+---
+
+## 🔗 Integration Rules
+
+### V1 Active Downstream Use
+
+Used directly by:
+
+- Cost Summary
+- Budget
+
+Rules:
+
+- Cost Summary in V1 must consume active asset-level outputs directly
+- no Asset Packages layer is required for V1 operation
+
+### Future Asset Packages Layer
+
+Used later by:
+
+- Asset Packages
+- Cost Allocation
+- Job Costing
+
+Rules:
+
+- Asset Packages is a future downstream module, not part of Assets v2.3
+- Assets must prepare clean asset-level records for future packaging
+- Cost Allocation must not require asset_package_id until Asset Packages is formally implemented and locked
+
+---
+
+## 🚫 Not Allowed
+
+- staff assignment
+- use of staff_id
+- depreciation
+- mixing with overheads
+- skipping versioning
+- using names as keys
+- creating package logic inside Assets
+
+---
+
+## 🔮 Future
+
+- Asset Packages
+- utilisation
+- cost per hour
+- allocation layer
+- balance sheet
+
+---
+
+## ✅ Definition
+
+The Assets Module is a version-controlled capital cost register that captures real cash-based asset costs and provides asset-level outputs for V1 Cost Summary, while preparing structured data for future Asset Packages and downstream commercial calculations.

@@ -1,0 +1,575 @@
+# Labour Module — Source of Truth (v1.8 — LOCKED)
+
+---
+
+## 🎯 PURPOSE
+
+The Labour Module is the foundation module of QS Tools.
+
+It is responsible for:
+
+- creating and owning `staff_id`
+- defining working time structure
+- calculating full employer labour cost
+- producing commercial labour outputs
+
+This is the entry point of the system.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+identity owner + labour cost engine
+
+Labour must:
+
+- generate and own `staff_id`
+- calculate full employer cost
+- produce clean outputs for downstream modules
+
+Labour must NOT:
+
+- include employee overhead costs
+- include asset costs
+- include allocation logic
+- include business overhead logic
+- include scenario persistence logic
+
+---
+
+## 🧱 ARCHITECTURE
+
+Page  
+`app/labour/page.jsx`
+
+Hook  
+`hooks/useLabour.js`
+
+Calculations  
+`lib/calculations/labourCalculations.js`
+
+Selectors  
+`lib/selectors/labourSelectors.js`
+
+Storage  
+`lib/storage/labourStorage.js`  
+`lib/storage/labourProfileStorage.js`
+
+Identity  
+`lib/identity/staffIdentity.js`
+
+Components  
+`components/labour/`
+
+Scenario Layer (separate module, not core Labour)  
+`lib/calculations/labourScenarioCalculations.js`
+
+---
+
+## 🧠 DATA FLOW
+
+UI → Hook → Calculations → Selectors → Storage
+
+Scenario flow remains separate:
+
+Labour Outputs → Scenario Overrides → Scenario Calculations → Scenario Outputs
+
+---
+
+## 🧩 PAGE STRUCTURE
+
+### 1. LabourProfileCard
+
+Purpose:
+
+- create/select labour profile
+- generate `staff_id`
+
+Fields:
+
+- `staff_name`
+- `staff_role`
+- `labour_class`
+
+Rules:
+
+- `staff_id` hidden
+- must be system-generated
+- profile required before inputs enabled
+
+---
+
+### 2. SavedProfilesCard
+
+Purpose:
+
+- load saved Labour profiles
+- update active profile
+- delete saved profile with confirmation
+- show current active profile state
+
+Rules:
+
+- profile management must remain separate from cost entry
+- profile deletion must require explicit confirmation
+- profile loading must restore the active Labour state
+
+---
+
+### 3. WorkingPatternCard
+
+Fields:
+
+- `hours_per_week`
+- `days_per_week`
+
+Outputs (display only):
+
+- `paid_hours_per_year`
+
+---
+
+### 4. PayCard
+
+Fields:
+
+- `labour_rate`
+- `charge_out_rate`
+
+---
+
+### 5. CommercialCard
+
+Fields:
+
+- `productivity_percent`
+- `margin_target_percent`
+
+---
+
+### 6. EntitlementsCard (NZ DEFAULT MODEL)
+
+Fields:
+
+- `annual_leave_weeks` (default 4)
+- `public_holiday_days` (default 12)
+- `sick_days` (default 10)
+- `bereavement_days` (default 1)
+- `family_violence_days` (0–10)
+
+Outputs:
+
+- `non_productive_paid_hours`
+
+Rules:
+
+- display NZ default entitlement structure clearly
+- card may be collapsible in UI
+- values remain part of core Labour input state
+
+---
+
+### 7. EmployerContributionsCard
+
+Fields:
+
+- `employee_kiwisaver_enabled`
+- `employer_kiwisaver_rate`
+- `esct_rate` (derived outcome / contract field only where required)
+
+Outputs:
+
+- `employer_kiwisaver_gross`
+- `esct_amount`
+- `total_employer_contribution_cost`
+
+Rules:
+
+- employer contributions must reflect real employer cost
+- KiwiSaver may be disabled where not applicable
+- ESCT must not be treated as a simple fixed-rate assumption across all users
+- card may be collapsible in UI
+
+---
+
+### 8. ChargeOutBuildCard
+
+Purpose:
+
+- explain cost → charge-out flow
+
+Sections:
+
+1. Available Hours
+2. Annual Cost
+3. Productive Labour Cost
+4. Required Charge-Out
+
+Rules:
+
+- display only
+- no formulas in component
+- may be collapsible in UI
+
+---
+
+### 9. LabourSummaryCard
+
+Display ONLY:
+
+- `paid_hours_per_year`
+- `non_productive_paid_hours`
+- `productive_hours`
+- `loaded_labour_cost_rate`
+- `productive_labour_cost_rate`
+- `minimum_charge_out_rate`
+- `actual_margin_percent`
+- `margin_gap`
+- `profit_per_hour`
+- `above_recovery`
+
+---
+
+### 10. LabourStatusStrip
+
+Display:
+
+- profile active state
+- margin health indicator
+- missing input warnings
+
+---
+
+### 11. TopDriverCard
+
+Purpose:
+
+- identify the primary current cost/recovery pressure in the live Labour state
+
+Example driver themes:
+
+- low productivity
+- entitlement pressure
+- employer cost share
+- margin shortfall
+- healthy state
+
+Rules:
+
+- display only
+- no duplicated Labour logic
+- must use Labour outputs only
+
+---
+
+### 12. LabourHelpPanel
+
+Explains:
+
+- productive hours logic
+- entitlements
+- employer cost
+- margin meaning
+- charge-out interpretation
+
+Collapsed by default
+
+---
+
+## 📊 CALCULATION FLOW (LOCKED)
+
+### Time Model
+
+`paid_hours_per_year` =
+`hours_per_week × 52`
+
+---
+
+`daily_hours` =
+`hours_per_week / days_per_week`
+
+---
+
+`non_productive_paid_hours` =
+(`annual_leave_weeks × hours_per_week`)
++ (`public_holiday_days × daily_hours`)
++ (`sick_days × daily_hours`)
++ (`bereavement_days × daily_hours`)
++ (`family_violence_days × daily_hours`)
+
+---
+
+`productive_hours` =
+(`paid_hours_per_year - non_productive_paid_hours`)
+× (`productivity_percent / 100`)
+
+---
+
+## 💰 Employer Contributions (UPDATED)
+
+Employer contributions must reflect actual employer-funded super cost.
+
+### Employer KiwiSaver Gross
+
+If `employee_kiwisaver_enabled`:
+
+`employer_kiwisaver_gross` =
+`labour_rate × paid_hours_per_year × employer_kiwisaver_rate`
+
+Else:
+
+`employer_kiwisaver_gross = 0`
+
+---
+
+## 🧮 ESCT CALCULATION (UPDATED AND LOCKED)
+
+ESCT is not a universal fixed percentage assumption.
+
+ESCT must be determined from the employee’s earnings position using a graded threshold approach aligned to NZ payroll treatment.
+
+### ESCT determination rule
+
+ESCT must be derived from:
+
+- wage earnings over the relevant annualised period
+- employer KiwiSaver contribution amount
+- the matching ESCT threshold band
+
+### Required behaviour
+
+Process:
+
+1. calculate wage earnings from Labour inputs
+2. calculate `employer_kiwisaver_gross`
+3. determine the applicable annualised earnings basis
+4. determine the matching ESCT threshold band
+5. apply that ESCT band to the employer KiwiSaver contribution
+6. produce `esct_amount`
+
+### Rule
+
+`esct_amount` must be a derived outcome.
+
+It must NOT be modelled as:
+
+`employer_kiwisaver_gross × one fixed default percentage for all cases`
+
+### Contract stability rule
+
+The module may still expose:
+
+- `esct_rate`
+- `esct_amount`
+
+but `esct_rate` must represent the derived band result, not a hardcoded universal assumption.
+
+---
+
+### Total Employer Contribution Cost
+
+`total_employer_contribution_cost` =
+`employer_kiwisaver_gross + esct_amount`
+
+---
+
+## 💰 Labour Cost Model
+
+`base_labour_cost_annual` =
+`labour_rate × paid_hours_per_year`
+
+---
+
+`total_labour_cost_annual` =
+`base_labour_cost_annual + total_employer_contribution_cost`
+
+---
+
+`loaded_labour_cost_rate` =
+`total_labour_cost_annual / paid_hours_per_year`
+
+---
+
+`productive_labour_cost_rate` =
+`total_labour_cost_annual / productive_hours`
+
+---
+
+`labour_cost_rate` =
+`productive_labour_cost_rate`
+
+---
+
+## 💼 Commercial Outputs
+
+`minimum_charge_out_rate` =
+`productive_labour_cost_rate / (1 - margin_target_percent)`
+
+---
+
+`actual_margin_percent` =
+(`charge_out_rate - productive_labour_cost_rate`) / `charge_out_rate`
+
+---
+
+`margin_gap` =
+`charge_out_rate - minimum_charge_out_rate`
+
+---
+
+`profit_per_hour` =
+`charge_out_rate - productive_labour_cost_rate`
+
+---
+
+`above_recovery` =
+`charge_out_rate - minimum_charge_out_rate`
+
+---
+
+## 📤 OUTPUT CONTRACT (LOCKED)
+
+- `staff_id`
+- `paid_hours_per_year`
+- `non_productive_paid_hours`
+- `productive_hours`
+- `labour_cost_rate`
+- `charge_out_rate`
+- `loaded_labour_cost_rate`
+- `productive_labour_cost_rate`
+- `minimum_charge_out_rate`
+- `actual_margin_percent`
+- `margin_gap`
+- `profit_per_hour`
+- `above_recovery`
+- `employer_kiwisaver_gross`
+- `esct_rate`
+- `esct_amount`
+- `total_employer_contribution_cost`
+
+---
+
+## 💾 STORAGE MODEL
+
+Each profile stores:
+
+- `staff_id`
+- all input fields
+- all calculated outputs
+- `profile_version`
+- `effective_from`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+---
+
+## 🔁 VERSION RULES
+
+- editing creates new version
+- only one active profile per `staff_id`
+- history preserved
+- downstream modules use active version only
+
+---
+
+## ⚠️ CORE RULES
+
+- `staff_id` must be system-generated
+- `staff_name` must never be used as key
+- no employee overhead inputs allowed
+- no asset inputs allowed
+- no allocation logic allowed
+- no general overhead logic allowed
+- variable names must not change
+- all outputs must match contract exactly
+- all calculations must live in calculation files, not UI components
+
+---
+
+## 🖥 UI RULES
+
+- no inputs allowed until profile created
+- show real-time calculation updates
+- highlight invalid or missing inputs
+- keep layout clean and structured
+- do not expose internal IDs
+- collapsible cards are allowed for long explanatory sections
+- profile controls must remain distinct from core input cards
+
+---
+
+## 🔗 INTEGRATION
+
+### Employee Overheads
+
+- links via `staff_id`
+
+### Cost Summary
+
+- consumes Labour outputs
+
+### Budget
+
+- consumes Cost Summary outputs, not Labour scenario outputs directly
+
+### Labour Scenario Layer
+
+- may reuse Labour outputs and Labour calculation engine
+- must remain isolated from core Labour persistence
+- must not overwrite live Labour state
+
+---
+
+## 🚫 NOT ALLOWED
+
+- manual `staff_id` entry
+- using names as keys
+- merging employee overhead logic into Labour
+- merging asset logic into Labour
+- renaming variables
+- skipping versioning
+- mixing Scenario persistence into the Labour core
+- duplicating Labour formulas inside React components
+
+---
+
+## 🔮 FUTURE READY
+
+- payroll integration
+- regional tax engines
+- time tracking linkage
+- job costing
+- scenario profile linkage through separate scenario records
+- future region-based employer contribution models
+
+---
+
+## ✅ FINAL DEFINITION
+
+The Labour Module is a structured identity-driven cost engine that converts working patterns, entitlements, wage inputs, and employer obligations into accurate productive labour cost and commercial recovery outputs.
+
+It remains the single source of truth for Labour cost in QS Tools.
+
+---
+
+## ACTIVE VERSION STATUS
+
+Aligned with:
+
+- MASTER PROJECT BRIEF → v1.10
+- LABOUR MODULE → v1.8
+- LABOUR SCENARIO LAYER → v2.1
+- EMPLOYEE OVERHEADS → v1.6
+- ASSETS MODULE → v2.3
+- GENERAL OVERHEADS → v2.1
+- COST SUMMARY MODULE → v1.4
+- COST SUMMARY PAGE → v1.4
+- BUDGET MODULE → v1.2
+- COST ALLOCATION → v1.3
+
+---
+
+## ✅ DONE
+
+LABOUR MODULE → v1.8 (FULL REWRITE LOCKED)

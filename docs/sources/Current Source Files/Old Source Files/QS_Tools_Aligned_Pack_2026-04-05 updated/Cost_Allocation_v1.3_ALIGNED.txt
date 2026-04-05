@@ -1,0 +1,470 @@
+# Cost Allocation — Source of Truth (v1.3 — LOCKED)
+
+---
+
+## Purpose
+
+The Cost Allocation Module defines the structural relationship between Labour and Assets so the Cost Summary Module can determine how the business is expected to recover cost.
+
+It is a structural linking layer only.
+
+It does NOT:
+
+* calculate labour cost
+* calculate asset cost
+* calculate overheads
+* store financial outputs
+* duplicate Cost Summary logic
+
+It defines:
+
+* how labour and assets are structurally connected
+* whether recovery is expected from labour only or from asset-linked delivery
+* which active links are valid for downstream commercial logic
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The Cost Allocation Module is a:
+
+structural linking layer
+
+Position:
+
+INPUT MODULES
+↓
+COST ALLOCATION
+↓
+COST SUMMARY
+↓
+BUDGET
+
+It must:
+
+* define the active revenue model
+* provide structural context to Cost Summary
+* support V1 without requiring Asset Packages
+* support future migration to Asset Packages when that module is implemented
+
+It must NOT:
+
+* become a cost engine
+* become a pricing engine
+* become a summary screen
+* own upstream identities
+
+---
+
+## 🧱 Architecture
+
+Page
+app/cost-allocation/page.jsx
+
+Hook
+hooks/useCostAllocation.js
+
+Calculations
+lib/calculations/costAllocationRules.js
+
+Selectors
+lib/selectors/costAllocationSelectors.js
+
+Storage
+lib/storage/costAllocationStorage.js
+lib/storage/costAllocationProfileStorage.js
+
+Components
+components/cost-allocation/
+
+* CostAllocationForm.jsx
+* CostAllocationLinkTable.jsx
+* CostAllocationProfilesCard.jsx
+* CostAllocationStatusStrip.jsx
+* CostAllocationHelpPanel.jsx
+
+---
+
+## 🧠 Data Model
+
+### Revenue Model
+
+* revenue_model
+
+Allowed values:
+
+* asset_driven
+* labour_only
+
+Rules:
+
+* one active revenue_model per active allocation profile
+* value must be explicit
+* no inferred fallback inside UI
+
+---
+
+### Structural Link Record (V1 Active)
+
+* asset_labour_link_id (UUID — hidden, immutable)
+* asset_id
+* staff_id
+* is_active
+* created_at
+* updated_at
+
+Rules:
+
+* link record represents one active structural relationship
+* V1 links to asset_id because Asset Packages is not yet implemented
+* IDs must be system-generated where owned locally
+* IDs must never be editable
+* names must never be used as keys
+
+---
+
+### Structural Link Record (Future Migration Path)
+
+* asset_labour_link_id
+* asset_package_id
+* staff_id
+* is_active
+* created_at
+* updated_at
+
+Rules:
+
+* asset_package_id may only be used once Asset Packages is formally implemented and locked
+* migration from asset_id links to asset_package_id links must be explicit and versioned
+
+---
+
+### Allocation Profile
+
+* allocation_profile_id (UUID — hidden, immutable)
+* allocation_profile_name
+* profile_version
+* effective_from
+* is_active
+* created_at
+* updated_at
+
+Rules:
+
+* one active allocation profile allowed
+* editing creates new version
+* history must be preserved
+
+---
+
+## ⚠️ IDENTITY RULES
+
+Cost Allocation does NOT own:
+
+* staff_id
+* asset_id
+* asset_package_id
+
+Cost Allocation may only consume:
+
+* staff_id from Labour
+* asset_id from Assets in V1
+* asset_package_id from Asset Packages in the future
+
+Rules:
+
+* Labour remains identity owner for staff_id
+* Assets remains identity owner for asset-side identity in V1
+* Asset Packages may become the package-side identity owner later
+* Cost Allocation must never create replacement IDs for upstream records
+* display names are display only and must never be used as keys
+
+---
+
+## ⚠️ VARIABLE NAMING RULE
+
+All internal variables form part of the system-wide data contract.
+
+Rules:
+
+* snake_case only
+* no renaming without migration
+* no UI-based naming
+* variables must remain stable across selectors, storage, exports, integrations, and reporting
+
+---
+
+## 📥 Inputs (Consumed Only)
+
+### From Labour
+
+* staff_id
+* staff_name (display only)
+* labour_class (display only)
+* is_active
+
+### From Assets (V1 active)
+
+* asset_id
+* asset_name (display only)
+* is_active
+
+### From Asset Packages (Future)
+
+* asset_package_id
+* asset_package_name (display only)
+* is_active
+
+### Local Inputs
+
+* revenue_model
+* allocation_profile_name
+* effective_from
+
+---
+
+## 📊 Structural Rules
+
+### asset_driven
+
+Meaning:
+
+* revenue is primarily generated through asset-linked delivery
+* labour is structurally attached to an asset in V1
+* labour may later be attached to an asset package once Asset Packages exists
+* Cost Summary decides recovery logic using these active links
+
+Rules:
+
+* active link records are allowed
+* duplicate active links with the exact same asset_id + staff_id are not allowed in V1
+* duplicate active links with the exact same asset_package_id + staff_id are not allowed after migration
+
+---
+
+### labour_only
+
+Meaning:
+
+* revenue is primarily generated through labour
+* asset linkage is not required for recovery logic
+* Cost Summary uses labour pathway without requiring asset-linked structure
+
+Rules:
+
+* asset links may be empty
+* existing link history must be preserved
+* Cost Summary consumes revenue_model even if no active links exist
+
+---
+
+## 📊 Outputs
+
+The Cost Allocation Module produces structural outputs only:
+
+* active_revenue_model
+* active_allocation_profile_id
+* active_asset_labour_links[]
+* linked_staff_count
+* linked_asset_count
+* unlinked_active_staff_count
+* duplicate_link_warnings[]
+
+Rules:
+
+* in V1, active_asset_labour_links[] contains asset_id-based records
+* after Asset Packages is implemented, active_asset_labour_links[] may contain asset_package_id-based records under a new locked brief version
+
+---
+
+## ⚠️ CORE RULES
+
+* Cost Allocation must use ACTIVE upstream records only
+* Cost Allocation must not calculate costs
+* Cost Allocation must not calculate recovery rates
+* Cost Allocation must not store overhead values
+* Cost Allocation must not duplicate Cost Summary outputs
+* Cost Allocation must preserve historical versions
+* exact duplicate active link pairs are not allowed
+* Cost Allocation must not require Asset Packages in V1
+
+---
+
+## 🔁 Profile System
+
+Each allocation profile must store:
+
+* allocation_profile_id
+* allocation_profile_name
+* revenue_model
+* all active structural links
+* profile_version
+* effective_from
+* is_active
+* created_at
+* updated_at
+
+---
+
+## 🔁 Version Rules
+
+* editing creates a new version
+* only one active allocation profile allowed
+* historical profiles must remain unchanged
+* Cost Summary and Budget must use the active allocation profile only
+
+---
+
+## 📚 Historical Tracking
+
+System must retain:
+
+* previous revenue_model states
+* previous link structures
+* previous active/inactive link history
+* effective date changes over time
+
+---
+
+## 🖥 UI Behaviour
+
+### CostAllocationForm
+
+* select revenue_model
+* create structural links only
+* no cost fields
+* no overhead fields
+* no manual ID entry
+
+### CostAllocationLinkTable
+
+* show active and historical links
+* prevent duplicate active pairs
+* show linked / unlinked state clearly
+* show asset_id-based links in V1
+
+### CostAllocationProfilesCard
+
+* save/load profiles
+* manage versions
+* control active profile
+
+### CostAllocationStatusStrip
+
+* show active profile status
+* show invalid link warnings
+* show missing structure warnings
+
+### CostAllocationHelpPanel
+
+* explain what this module does
+* explain what this module does not do
+* explain that V1 uses asset_id until Asset Packages exists
+* collapsed by default
+
+---
+
+## 🔗 Integration Rules
+
+### Labour Module
+
+* provides staff_id
+* remains the only owner of staff identity
+
+### Employee Overheads Module
+
+* no direct ownership relationship
+* not used for linking
+* consumed later by Cost Summary only
+
+### Assets Module
+
+* provides asset_id in V1
+* remains the owner of asset-side identity in V1
+
+### Asset Packages (Future)
+
+* may replace asset_id as the structural asset-side unit after formal implementation
+
+### Cost Summary Module (CRITICAL)
+
+* consumes active_revenue_model
+* consumes active_asset_labour_links[]
+* determines recovery logic
+* determines commercial outputs
+
+### Budget Module
+
+* consumes Cost Summary outputs, not Cost Allocation directly unless later required for scenario display
+
+### Quote Engine (Future)
+
+* may consume asset_labour_link_id where operational assignment is needed
+* must not repurpose cost allocation records into pricing logic
+
+---
+
+## 🧱 Design Principles
+
+* structure only
+* no cost ownership
+* no identity ownership
+* no commercial output duplication
+* active-profile-only downstream use
+* auditable linking history
+* explicit V1-to-future migration path
+
+---
+
+## 🚫 Not Allowed
+
+* no labour cost inputs
+* no asset cost inputs
+* no overhead inputs
+* no pricing calculations
+* no recovery calculations
+* no manual staff creation
+* no manual asset creation
+* no using names as keys
+* no variable renaming
+* no duplicate active link pairs
+* no forced dependency on Asset Packages in V1
+
+---
+
+## 🔮 Future Scope
+
+* richer allocation validation rules
+* utilisation-linked structural assignment
+* operational crew / package grouping
+* job-costing linkage
+* quote-engine assignment support
+* company-level multi-tenant allocation control
+* future migration from asset_id links to asset_package_id links
+
+---
+
+## ✅ Definition
+
+Cost Allocation is a version-controlled structural linking module that defines the active revenue model and valid Labour-to-Asset relationships for V1 using asset_id, while preserving a controlled migration path to future Asset Packages without duplicating cost calculations.
+
+---
+
+## ACTIVE VERSION STATUS
+
+Aligned with:
+
+- MASTER PROJECT BRIEF → v1.10
+- LABOUR MODULE → v1.8
+- EMPLOYEE OVERHEADS → v1.6
+- ASSETS MODULE → v2.3
+- GENERAL OVERHEADS → v2.1
+- COST SUMMARY MODULE → v1.4
+- BUDGET MODULE → v1.2
+- COST ALLOCATION → v1.3
+
+---
+
+## ✅ DONE
+
+COST ALLOCATION → v1.3

@@ -1,0 +1,485 @@
+# QS Tools — Cost Summary Page — Source of Truth (v1.4 — LOCKED)
+
+STATUS: PAGE CONTRACT LOCKED (ALIGNED TO DOWNSTREAM OUTPUT MODEL)
+
+---
+
+## PURPOSE
+
+The Cost Summary Page is the page-level presentation contract for the Cost Summary Module.
+
+It is responsible for:
+
+- rendering the locked Cost Summary structure
+- displaying aggregated upstream cost outputs clearly
+- surfacing structural warnings and missing-link conditions
+- providing macro-to-drilldown visibility without duplicating calculation logic
+
+It is NOT responsible for:
+
+- recalculating upstream module outputs
+- reshaping business data inside UI components
+- acting as a second calculation layer
+- consuming Scenario outputs
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The Cost Summary Page is a:
+
+page-level display and interaction layer for Cost Summary outputs
+
+Position in system:
+
+INPUT MODULES
+↓
+COST SUMMARY MODULE
+↓
+COST SUMMARY PAGE
+↓
+BUDGET
+
+The page must:
+
+- consume Cost Summary hook outputs only
+- preserve locked page structure
+- keep UI components display-only
+- keep page.jsx orchestration-only
+
+The page must NOT:
+
+- calculate cost logic
+- rebuild upstream totals
+- reshape module contracts inside components
+- use unsaved upstream form state
+
+---
+
+## ARCHITECTURE
+
+Page
+`app/cost-summary/page.jsx`
+
+Hook
+`hooks/useCostSummary.js`
+
+Calculations
+`lib/calculations/costSummaryCalculations.js`
+
+Selectors
+`lib/selectors/costSummarySelectors.js`
+
+Components
+`components/cost-summary/`
+
+- `CostSummaryStatusStrip.jsx`
+- `CostSummaryCard.jsx`
+- `CostSummaryHelpPanel.jsx`
+
+---
+
+## PAGE PRINCIPLE
+
+Cost Summary page follows the same architecture rule as the Labour page:
+
+- page = layout + orchestration only
+- hook = integration/orchestration
+- selectors = shaping
+- calculations = business logic
+- components = UI only
+
+No business maths may live in `page.jsx` or inside components.
+
+---
+
+## PAGE STRUCTURE (LOCKED)
+
+The Cost Summary Page must render in this order:
+
+### 1. CostSummaryStatusStrip
+
+Purpose:
+
+- surface structural completeness
+- show active recovery model
+- show linked/unlinked state
+- show missing module or missing data warnings
+
+### 2. CostSummaryCard
+
+This is the main page body and contains the locked summary sections below.
+
+### 3. CostSummaryHelpPanel
+
+Purpose:
+
+- explain what Cost Summary includes
+- explain what Cost Summary does not include
+- explain recovery meaning
+- explain structural assumptions
+
+Rules:
+
+- collapsed by default
+
+---
+
+## COSTSUMMARYCARD STRUCTURE (LOCKED)
+
+The main card must contain these sections in this order:
+
+### A. Recovery Model Block
+
+Purpose:
+
+- show the active structural recovery model
+- confirm structural readiness
+- surface high-level linking state
+
+Display:
+
+- `active_revenue_model`
+- `linked_staff_count`
+- `linked_asset_count`
+- `unlinked_active_staff_count`
+- warnings relevant to structure
+
+Rules:
+
+- may be collapsible
+- shown near the top of the card
+- display only
+
+---
+
+### B. People Cost Section
+
+Purpose:
+
+- show the total annual people-cost burden
+- provide drilldown by component and by staff
+
+Display (aggregate):
+
+- `total_gross_wages_annual`
+- `total_entitlements_annual`
+- `total_employer_kiwisaver_annual`
+- `total_esct_annual`
+- `total_employee_overheads_annual`
+- `total_people_cost_annual`
+
+Display (drilldown by staff):
+
+For each active staff record:
+
+- `staff_name` (display only)
+- `staff_role` (display only where available)
+- `gross_wages_annual`
+- `entitlements_annual`
+- `employer_kiwisaver_annual`
+- `esct_annual`
+- `employee_overheads_annual`
+- `total_people_cost_annual`
+
+Rules:
+
+- section must be collapsible
+- staff drilldown must sit inside the People Cost section
+- staff rows sorted highest total people cost first
+- `staff_id` used internally only and never displayed
+- Cost Summary consumes module outputs; it must not derive overhead totals from raw overhead categories
+
+---
+
+### C. Business Cost Section
+
+Purpose:
+
+- show non-people annual business burden included in Cost Summary
+
+Display (aggregate):
+
+- `total_asset_cost_annual`
+- `total_business_overheads`
+- `total_business_cost_annual`
+
+Optional drilldown:
+
+- asset rows where available
+- general overhead row/summary where available
+
+Rules:
+
+- section may be collapsible
+- display only
+- no allocation logic in UI
+
+Where:
+
+`total_business_cost_annual = total_asset_cost_annual + total_business_overheads`
+
+---
+
+### D. Total Cost & Recovery Section
+
+Purpose:
+
+- show the final annual burden and required recovery outputs
+
+Display:
+
+- `total_cost_burden`
+- `required_revenue`
+- `required_recovery_rate`
+- `total_productive_output`
+
+Rules:
+
+- always visible
+- high emphasis display
+- this is the commercial baseline of the page
+
+---
+
+### E. Highlight Insight (Optional)
+
+Purpose:
+
+- provide a light summary insight from existing Cost Summary outputs
+
+Allowed examples:
+
+- People Cost represents X% of total burden
+- General overhead burden is high relative to productive output
+- Asset burden is low under labour-only structure
+
+Rules:
+
+- no new driver engine
+- no invented formulas outside Cost Summary calculations
+- concise only
+
+---
+
+## STATUS STRIP CONTRACT (LOCKED)
+
+`CostSummaryStatusStrip` must support the following page-visible states:
+
+- active recovery model
+- saved Labour profile count
+- active Labour profile count
+- linked staff count
+- linked asset count
+- unlinked active staff count
+- missing modules
+- warnings
+- structure-complete / incomplete state
+
+Examples of warnings:
+
+- No saved Labour profiles
+- No active Labour profiles
+- No employee overheads linked
+- No asset links (labour_only assumed)
+- Duplicate active structural links detected
+- Missing upstream module data
+
+Rules:
+
+- status exists to prevent silent bad outputs
+- warnings must come from hook/selector/calculation layer, not component logic
+
+---
+
+## PAGE DATA RULES
+
+### page.jsx
+
+Allowed:
+
+- imports
+- upstream hook calls
+- `useCostSummary()` call
+- passing `status` and `card` into components
+
+Not allowed:
+
+- counting profiles
+- filtering active rows
+- deriving totals
+- building warnings
+- reshaping upstream module data
+
+### Components
+
+Allowed:
+
+- rendering provided values
+- rendering collapsed/expanded state
+- rendering labels, formatting, and emphasis
+
+Not allowed:
+
+- formulas
+- fallback shaping
+- hidden business logic
+- selector-like transformations
+
+---
+
+## PAGE INPUT SOURCE RULE
+
+The Cost Summary Page must consume Cost Summary hook outputs only.
+
+It must never directly interpret raw upstream module form state.
+
+That means:
+
+- Labour owns labour outputs and identity
+- Employee Overheads owns staff-overhead outputs
+- Assets owns asset outputs
+- General Overheads owns general overhead outputs
+- Cost Allocation owns structure outputs
+- Cost Summary page consumes the Cost Summary hook result only
+
+This preserves module boundaries.
+
+---
+
+## COLLAPSIBLE BEHAVIOUR RULES
+
+The page must support clean top-down usability.
+
+Required behaviour:
+
+- Recovery Model Block may collapse
+- People Cost section must collapse
+- staff drilldown must collapse inside People Cost
+- Business Cost section may collapse
+- Help Panel must collapse by default
+
+Rules:
+
+- collapsed sections must preserve headline totals
+- drilldown state must never affect calculations
+- collapse state is UI state only
+
+---
+
+## PEOPLE COST DISPLAY RULE (CRITICAL)
+
+The page must display People Cost in a way that remains aligned with the Labour contract and the Employee Overheads downstream contract.
+
+Therefore People Cost must treat the following as separate visible components:
+
+- Gross Wages
+- Entitlements
+- Employer KiwiSaver
+- ESCT
+- Employee Overheads
+
+It must NOT:
+
+- hide Employer KiwiSaver inside ESCT
+- merge Employee Overheads into Labour silently
+- recalculate raw overhead categories inside Cost Summary
+
+This preserves alignment with Labour employer contribution outputs and prevents silent omission of people-cost components.
+
+---
+
+## INTEGRATION RULES
+
+### Labour Module
+
+Provides:
+
+- `staff_id`
+- labour annual/hour outputs
+- employer contribution outputs
+- productive output values
+
+### Employee Overheads Module
+
+Provides:
+
+- `staff_id`
+- `employee_overheads_total_annual`
+- `total_employee_overheads_annual`
+
+### Assets Module
+
+Provides:
+
+- `total_asset_cost_annual`
+
+### General Overheads Module
+
+Provides:
+
+- `total_general_overheads`
+
+### Cost Allocation Module
+
+Provides:
+
+- recovery model and structural link outputs
+
+### Budget Module
+
+Consumes Cost Summary outputs only and does not change page rules.
+
+---
+
+## UI DESIGN INTENT
+
+The Cost Summary Page should feel:
+
+- macro first
+- drilldown available
+- structurally clear
+- commercially readable
+- low clutter
+
+The page should quickly answer:
+
+- what does the business cost to carry?
+- how much of that is people?
+- how much is business burden?
+- what must be recovered per productive hour?
+
+---
+
+## NOT ALLOWED
+
+- no business logic in components
+- no logic in `page.jsx`
+- no Scenario outputs on this page
+- no materials or subcontract totals
+- no raw module input interpretation inside UI
+- no using display names as join keys
+- no variable renaming
+- no upstream contract guessing
+
+---
+
+## DEFINITION OF DONE
+
+The Cost Summary Page is complete when:
+
+- it renders from live Cost Summary hook data
+- `page.jsx` is orchestration-only
+- `CostSummaryStatusStrip` surfaces structural state clearly
+- `CostSummaryCard` displays the locked section order
+- People Cost is collapsible with nested staff drilldown
+- Business Cost displays aggregate annual burden
+- Total Cost & Recovery shows final commercial baseline outputs
+- Help Panel explains scope and assumptions
+- no UI component contains business maths
+
+---
+
+## FINAL DEFINITION
+
+The Cost Summary Page is the locked page contract for presenting QS Tools internal cost burden and required recovery outputs. It consumes Cost Summary hook outputs only, preserves module boundaries, shows macro totals with controlled drilldowns, and must never duplicate business logic.

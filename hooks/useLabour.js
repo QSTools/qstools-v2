@@ -73,6 +73,27 @@ export function useLabour() {
     return calculateLabourOutputs(state);
   }, [state]);
 
+  const active_staff = useMemo(() => {
+    return profiles.map((profile) => {
+      const data = {
+        ...get_default_state(),
+        ...(profile?.data ?? {}),
+      };
+
+      const calculated = calculateLabourOutputs(data);
+
+      return {
+        profile_id: profile?.profile_id ?? data.staff_id ?? "",
+        staff_id: data.staff_id ?? "",
+        staff_name: data.staff_name ?? "",
+        staff_role: data.staff_role ?? "",
+        labour_class: data.labour_class ?? "",
+        is_active: true,
+        ...calculated,
+      };
+    });
+  }, [profiles]);
+
   const has_profile = Boolean(state.staff_id);
   const inputs_enabled = has_profile;
 
@@ -189,6 +210,7 @@ export function useLabour() {
     profiles,
     active_profile_id,
     outputs,
+    active_staff,
     has_profile,
     inputs_enabled,
     missing_fields,
@@ -201,3 +223,5 @@ export function useLabour() {
     delete_profile,
   };
 }
+
+export default useLabour;

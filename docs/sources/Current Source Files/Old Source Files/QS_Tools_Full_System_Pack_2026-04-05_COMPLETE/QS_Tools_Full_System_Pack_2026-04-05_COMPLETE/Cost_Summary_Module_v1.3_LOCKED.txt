@@ -1,0 +1,239 @@
+# QS Tools — Cost Summary Module (v1.3 — LOCKED)
+
+STATUS: IMPLEMENTATION LOCKED (DOWNSTREAM CONTRACT MODEL)
+
+This updates the current Cost Summary module so it consumes locked upstream module outputs exactly as provided, rather than inferring or rebuilding module internals.
+
+## PURPOSE
+
+The Cost Summary Module is the internal cost and recovery engine of QS Tools.
+
+It is responsible for:
+
+- aggregating all internal business cost components
+- consuming locked upstream output contracts
+- calculating total cost burden
+- determining required revenue
+- calculating required recovery rate
+
+It provides the commercial baseline for the business.
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Cost Summary is a:
+
+downstream aggregation + recovery layer
+
+It must:
+
+- consume locked upstream outputs only
+- aggregate those outputs into business cost structure
+- calculate total burden and recovery metrics
+- provide decision-ready internal cost visibility
+
+It must NOT:
+
+- rebuild upstream module maths
+- reinterpret upstream raw input categories
+- invent missing module outputs
+- use live UI form state from upstream pages
+
+---
+
+## ARCHITECTURE
+
+Page  
+`app/cost-summary/page.jsx`
+
+Hook  
+`hooks/useCostSummary.js`
+
+Calculations  
+`lib/calculations/costSummaryCalculations.js`
+
+Selectors  
+`lib/selectors/costSummarySelectors.js`
+
+Storage  
+`lib/storage/costSummaryStorage.js`  
+`lib/storage/costSummaryProfileStorage.js`
+
+Components  
+`components/cost-summary/`
+
+- `CostSummaryCard.jsx`
+- `CostSummaryStatusStrip.jsx`
+- `CostSummaryHelpPanel.jsx`
+
+---
+
+## UNIVERSAL DOWNSTREAM CONTRACT RULE
+
+Every upstream module must expose explicit outputs for downstream consumption.
+
+Cost Summary must:
+
+- consume those outputs unchanged
+- aggregate them
+- display them
+- use them in locked Cost Summary formulas where required
+
+Cost Summary must NOT:
+
+- derive upstream results from source categories
+- guess selector shapes
+- rebuild module totals from raw fields
+- substitute alternative variable names
+
+This principle applies to all successive modules.
+
+---
+
+## INPUTS (CONSUMED ONLY)
+
+### From Labour
+
+Per active staff:
+
+- `staff_id`
+- `paid_hours_per_year`
+- `non_productive_paid_hours`
+- `productive_hours`
+- `labour_cost_rate`
+- `employer_kiwisaver_gross`
+- `esct_amount`
+
+Labour remains the owner of labour identity and labour cost logic.
+
+### From Employee Overheads
+
+Per active linked staff:
+
+- `staff_id`
+- `employee_overheads_total_annual`
+
+Aggregate:
+
+- `total_employee_overheads_annual`
+
+This is the staff-overhead contract consumed by Cost Summary.
+
+### From Assets
+
+- `total_asset_cost_annual`
+
+### From General Overheads
+
+- `total_general_overheads`
+
+### From Cost Allocation
+
+- `active_revenue_model`
+- `active_asset_labour_links[]`
+- `linked_staff_count`
+- `linked_asset_count`
+- `unlinked_active_staff_count`
+- `duplicate_link_warnings[]`
+
+---
+
+## PEOPLE COST BUILD (LOCKED)
+
+### Per Staff People Cost
+
+For each active staff record:
+
+`gross_wages_annual = labour_rate × paid_hours_per_year`
+
+`entitlements_annual = labour_rate × non_productive_paid_hours`
+
+`esct_annual = esct_amount`
+
+`employee_overheads_annual = employee_overheads_total_annual`
+
+`total_people_cost_annual = gross_wages_annual + entitlements_annual + esct_annual + employee_overheads_annual`
+
+### Aggregate People Cost
+
+- `total_gross_wages_annual`
+- `total_entitlements_annual`
+- `total_esct_annual`
+- `total_employee_overheads_annual`
+- `total_people_cost_annual`
+
+---
+
+## BUSINESS COST BUILD (LOCKED)
+
+- `total_asset_cost_annual`
+- `total_business_overheads`
+
+Where:
+
+`total_business_overheads = total_general_overheads`
+
+---
+
+## TOTAL COST BURDEN BUILD
+
+`total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads`
+
+`required_revenue = total_cost_burden`
+
+`required_recovery_rate = required_revenue / total_productive_output`
+
+Where:
+
+`total_productive_output = sum(productive_hours for all active staff)`
+
+---
+
+## OUTPUTS
+
+- `total_gross_wages_annual`
+- `total_entitlements_annual`
+- `total_esct_annual`
+- `total_employee_overheads_annual`
+- `total_people_cost_annual`
+- `total_productive_output`
+- `total_asset_cost_annual`
+- `total_business_overheads`
+- `total_cost_burden`
+- `required_revenue`
+- `required_recovery_rate`
+- `active_revenue_model`
+- `active_asset_labour_links[]`
+
+---
+
+## CORE RULES
+
+- MUST use upstream outputs only
+- MUST aggregate, not reinterpret
+- MUST NOT duplicate Labour maths
+- MUST NOT duplicate Employee Overheads maths
+- MUST NOT duplicate Asset maths
+- MUST NOT duplicate General Overheads maths
+- MUST NOT rename locked variables
+- MUST NOT consume Scenario outputs
+- MUST NOT include materials or subcontract logic
+
+---
+
+## MODULE INTEGRATION PRINCIPLE (SUCCESSIVE MODULE RULE)
+
+The same downstream rule must apply to every later QS Tools module:
+
+- upstream module owns inputs
+- upstream module owns calculations
+- upstream module owns output contract
+- Cost Summary consumes that output contract only
+- Budget consumes Cost Summary outputs only
+
+---
+
+## DEFINITION
+
+The Cost Summary Module is a downstream aggregation and recovery layer that consumes locked upstream module outputs exactly as contracted, aggregates them into People Cost, Business Cost, and total recovery structure, and must never reinterpret upstream module maths.
