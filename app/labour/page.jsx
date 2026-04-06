@@ -20,8 +20,10 @@ export default function LabourPage() {
   const labour = useLabour();
 
   return (
-    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] px-4 py-6">
+      <div className="mx-auto max-w-4xl space-y-6">
+        
+        {/* HEADER */}
         <header className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             Labour Charge-Out Builder
@@ -39,6 +41,7 @@ export default function LabourPage() {
           </div>
         </header>
 
+        {/* STATUS */}
         <div className="space-y-4">
           <LabourStatusStrip
             has_profile={labour.has_profile}
@@ -57,84 +60,84 @@ export default function LabourPage() {
 
         <div className="border-t border-[var(--border-primary)]" />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="space-y-6 xl:col-span-2">
-            <LabourProfileCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-              create_profile={labour.create_profile}
-            />
+        {/* MAIN CONTENT — now vertical */}
+        <div className="space-y-6">
+          
+          <LabourProfileCard
+            state={labour.state}
+            has_profile={labour.has_profile}
+            update_field={labour.update_field}
+            create_profile={labour.create_profile}
+          />
 
-            <SavedProfilesCard
-              profiles={labour.profiles}
-              active_profile_id={labour.active_profile_id}
-              load_profile={labour.load_profile}
-              save_profile={labour.save_profile}
-              start_new_profile={labour.start_new_profile}
-              delete_profile={labour.delete_profile}
-              has_profile={labour.has_profile}
-            />
+          <SavedProfilesCard
+            profiles={labour.profiles}
+            active_profile_id={labour.active_profile_id}
+            load_profile={labour.load_profile}
+            save_profile={labour.save_profile}
+            start_new_profile={labour.start_new_profile}
+            delete_profile={labour.delete_profile}
+            has_profile={labour.has_profile}
+          />
 
-            <ProfileLockNotice has_profile={labour.has_profile} />
+          <ProfileLockNotice has_profile={labour.has_profile} />
 
-            <WorkingPatternCard
+          <WorkingPatternCard
+            state={labour.state}
+            outputs={labour.outputs}
+            has_profile={labour.has_profile}
+            update_field={labour.update_field}
+          />
+
+          <PayCard
+            state={labour.state}
+            has_profile={labour.has_profile}
+            update_field={labour.update_field}
+          />
+
+          <CommercialCard
+            state={labour.state}
+            has_profile={labour.has_profile}
+            update_field={labour.update_field}
+          />
+
+          <CollapsibleSection
+            title="Entitlements"
+            summary="Leave, holidays, sick leave, bereavement"
+            defaultOpen={true}
+          >
+            <EntitlementsCard
               state={labour.state}
               outputs={labour.outputs}
               has_profile={labour.has_profile}
               update_field={labour.update_field}
             />
+          </CollapsibleSection>
 
-            <PayCard
+          <CollapsibleSection
+            title="Employer Contributions"
+            summary="KiwiSaver and ESCT"
+            defaultOpen={true}
+          >
+            <EmployerContributionsCard
               state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <CommercialCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <CollapsibleSection
-              title="Entitlements"
-              summary="Leave, holidays, sick leave, bereavement"
-              defaultOpen={true}
-            >
-              <EntitlementsCard
-                state={labour.state}
-                outputs={labour.outputs}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-              />
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Employer Contributions"
-              summary="KiwiSaver and ESCT"
-              defaultOpen={true}
-            >
-              <EmployerContributionsCard
-                state={labour.state}
-                outputs={labour.outputs}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-              />
-            </CollapsibleSection>
-          </div>
-
-          <div className="space-y-6">
-            <LabourFlowCard
               outputs={labour.outputs}
-              state={labour.state}
               has_profile={labour.has_profile}
+              update_field={labour.update_field}
             />
+          </CollapsibleSection>
 
-            <LabourHelpPanel />
-          </div>
+          {/* RIGHT COLUMN CONTENT — now inline */}
+          <LabourFlowCard
+            outputs={labour.outputs}
+            state={labour.state}
+            has_profile={labour.has_profile}
+          />
+
+          <LabourHelpPanel />
         </div>
 
+        {/* SCENARIO */}
         <div className="border-t border-[var(--border-primary)] pt-6">
           <CollapsibleSection
             title="Scenario Modeller"

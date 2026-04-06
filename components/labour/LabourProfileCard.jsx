@@ -101,7 +101,7 @@ function SectionToggle({ title, summary, isOpen, onToggle }) {
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
+      className="flex min-h-[44px] w-full flex-col gap-3 text-left"
     >
       <div>
         <div className="text-base font-semibold text-[var(--text-primary)]">
@@ -110,9 +110,7 @@ function SectionToggle({ title, summary, isOpen, onToggle }) {
         <div className="ui-help">{summary}</div>
       </div>
 
-      <span className="text-sm text-[var(--text-muted)]">
-        {isOpen ? "Hide" : "Show"}
-      </span>
+      <span className="ui-pill">{isOpen ? "Hide" : "Show"}</span>
     </button>
   );
 }

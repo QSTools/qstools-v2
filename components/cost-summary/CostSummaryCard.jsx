@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function formatMoney(value) {
   const n = Number(value || 0);
@@ -9,38 +9,153 @@ function formatMoney(value) {
   })}`;
 }
 
-function SummaryRow({ label, value, isTotal = false }) {
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function SectionToggle({ title, summary, isOpen, onToggle, value }) {
   return (
-    <div
-      className={[
-        "flex items-center justify-between gap-4",
-        isTotal
-          ? "border-t border-[var(--border-primary)] pt-4 font-semibold text-[var(--text-primary)]"
-          : "text-[var(--text-primary)]",
-      ].join(" ")}
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex min-h-[44px] w-full flex-col gap-3 text-left"
     >
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-function MetricCard({ label, value, toneClass = "text-[var(--text-primary)]" }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-      <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-        {label}
+      <div>
+        <div className="text-base font-semibold text-[var(--text-primary)]">
+          {title}
+        </div>
+        {summary ? <div className="ui-help">{summary}</div> : null}
       </div>
-      <div className={`mt-2 text-2xl font-bold ${toneClass}`}>{value}</div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {value ? (
+          <div className="text-base font-semibold text-[var(--text-primary)]">
+            {value}
+          </div>
+        ) : null}
+        <div className="ui-pill">{isOpen ? "Hide" : "Show"}</div>
+      </div>
+    </button>
+  );
+}
+
+function SummaryMetric({ label, value, tone = "default" }) {
+  const valueClass =
+    tone === "success"
+      ? "text-[var(--success)]"
+      : tone === "warning"
+        ? "text-[var(--warning)]"
+        : tone === "danger"
+          ? "text-[var(--danger)]"
+          : "text-[var(--text-primary)]";
+
+  return (
+    <div className="ui-panel">
+      <div className="ui-kicker">{label}</div>
+      <div className={`mt-2 text-lg font-semibold ${valueClass}`}>{value}</div>
     </div>
   );
 }
 
-function DrilldownMetric({ label, value }) {
+function BreakdownRow({ label, value, tone = "default" }) {
+  const valueClass =
+    tone === "success"
+      ? "text-[var(--success)]"
+      : tone === "warning"
+        ? "text-[var(--warning)]"
+        : tone === "danger"
+          ? "text-[var(--danger)]"
+          : "text-[var(--text-primary)]";
+
   return (
-    <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-      <div className="text-[var(--text-muted)]">{label}</div>
-      <div className="mt-1 text-[var(--text-primary)]">{value}</div>
+    <div className="ui-panel">
+      <div className="text-sm text-[var(--text-secondary)]">{label}</div>
+      <div className={`mt-1 text-base font-semibold ${valueClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function WarningList({ warnings = [] }) {
+  if (!warnings.length) {
+    return (
+      <div className="ui-panel">
+        <div className="ui-kicker">Current Warnings</div>
+        <div className="mt-2 text-sm text-[var(--text-secondary)]">None</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ui-panel">
+      <div className="ui-kicker">Current Warnings</div>
+      <div className="mt-3 space-y-2">
+        {warnings.map((warning) => (
+          <div key={warning} className="text-sm text-[var(--warning)]">
+            {warning}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StaffCostCard({ row }) {
+  const gross_wages_annual = Number(
+    row?.gross_wages_annual ?? row?.gross_wages_total ?? 0
+  );
+  const entitlements_annual = Number(
+    row?.entitlements_annual ?? row?.entitlements_total ?? 0
+  );
+  const employer_kiwisaver_annual = Number(
+    row?.employer_kiwisaver_annual ??
+      row?.employer_kiwisaver_gross ??
+      row?.employer_kiwisaver_total ??
+      0
+  );
+  const esct_annual = Number(row?.esct_annual ?? row?.esct_total ?? 0);
+  const employee_overheads_annual = Number(
+    row?.employee_overheads_annual ?? row?.employee_overheads_total ?? 0
+  );
+
+  const total_people_cost_annual = Number(row?.total_people_cost_annual ?? 0);
+
+  const staffLabel =
+    row?.staff_name || row?.staff_label || row?.staff_role || "Unnamed Staff";
+
+  const roleLabel = [row?.staff_role, row?.labour_class].filter(Boolean).join(" • ");
+
+  return (
+    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+      <div className="flex flex-col gap-2">
+        <div className="text-base font-semibold text-[var(--text-primary)]">
+          {staffLabel}
+        </div>
+        {roleLabel ? (
+          <div className="text-sm text-[var(--text-muted)]">{roleLabel}</div>
+        ) : null}
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <BreakdownRow label="Gross Wages" value={formatMoney(gross_wages_annual)} />
+        <BreakdownRow
+          label="Entitlements"
+          value={formatMoney(entitlements_annual)}
+        />
+        <BreakdownRow
+          label="Employer KiwiSaver"
+          value={formatMoney(employer_kiwisaver_annual)}
+        />
+        <BreakdownRow label="ESCT" value={formatMoney(esct_annual)} />
+        <BreakdownRow
+          label="Employee Overheads"
+          value={formatMoney(employee_overheads_annual)}
+        />
+        <BreakdownRow
+          label="Total People Cost"
+          value={formatMoney(total_people_cost_annual)}
+          tone="success"
+        />
+      </div>
     </div>
   );
 }
@@ -49,266 +164,235 @@ export default function CostSummaryCard({
   recovery_model_label,
   linked_staff_count,
   linked_asset_count,
+  unlinked_active_staff_count = 0,
   recovery_warnings = [],
 
   people_cost_total,
   gross_wages_total = 0,
   entitlements_total = 0,
+  employer_kiwisaver_total = 0,
   esct_total = 0,
   employee_overheads_total = 0,
   people_rows = [],
 
   business_cost_total,
-  asset_cost_total,
-  general_overheads_total,
+  asset_cost_total = 0,
+  general_overheads_total = 0,
 
   total_cost_burden,
   required_revenue,
   required_recovery_rate,
+  total_productive_output = 0,
   highlight_insight,
 }) {
+  const [recoveryBlockOpen, setRecoveryBlockOpen] = useState(true);
   const [peopleCostOpen, setPeopleCostOpen] = useState(true);
   const [staffDrilldownOpen, setStaffDrilldownOpen] = useState(false);
+  const [businessCostOpen, setBusinessCostOpen] = useState(true);
+
+  const safePeopleRows = useMemo(() => {
+    return [...(people_rows || [])].sort((a, b) => {
+      const aTotal = Number(a?.total_people_cost_annual ?? 0);
+      const bTotal = Number(b?.total_people_cost_annual ?? 0);
+      return bTotal - aTotal;
+    });
+  }, [people_rows]);
+
+  const total_people_cost_annual = Number(people_cost_total || 0);
+  const total_gross_wages_annual = Number(gross_wages_total || 0);
+  const total_entitlements_annual = Number(entitlements_total || 0);
+  const total_employer_kiwisaver_annual = Number(employer_kiwisaver_total || 0);
+  const total_esct_annual = Number(esct_total || 0);
+  const total_employee_overheads_annual = Number(employee_overheads_total || 0);
+  const total_business_cost_annual = Number(business_cost_total || 0);
+  const total_asset_cost_annual = Number(asset_cost_total || 0);
+  const total_business_overheads = Number(general_overheads_total || 0);
+
+  const employerContributionTotal =
+    total_employer_kiwisaver_annual + total_esct_annual;
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-5">
-      <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-        Cost Summary
-      </h2>
-      <p className="ui-help">
-        Internal cost burden and required recovery view.
-      </p>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[2.2fr_1fr]">
-        <div className="ui-panel">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Recovery Model Block
-          </h3>
-          <p className="ui-help">
-            Active structural recovery settings from Cost Allocation.
-          </p>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-              <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                Recovery Model
-              </div>
-              <div className="mt-2 text-lg font-semibold text-[var(--success)]">
-                {recovery_model_label}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-              <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                Linked Staff
-              </div>
-              <div className="mt-2 text-lg font-semibold text-[var(--text-primary)]">
-                {linked_staff_count}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-              <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-                Linked Assets
-              </div>
-              <div className="mt-2 text-lg font-semibold text-[var(--text-primary)]">
-                {linked_asset_count}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="ui-section-muted">
-          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-            Current Warnings
-          </div>
-          <div className="mt-4 space-y-2 text-sm">
-            {recovery_warnings.length > 0 ? (
-              recovery_warnings.map((warning) => (
-                <div key={warning} className="text-[var(--warning)]">
-                  {warning}
-                </div>
-              ))
-            ) : (
-              <div className="text-[var(--success)]">No active warnings</div>
-            )}
-          </div>
-        </div>
+    <section className="ui-section">
+      <div>
+        <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+          Cost Summary
+        </h2>
+        <p className="ui-help">
+          Internal cost burden and required recovery view.
+        </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-        <button
-          type="button"
-          onClick={() => setPeopleCostOpen((prev) => !prev)}
-          className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
-        >
-          <div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-              People Cost
-            </h3>
-            <p className="ui-help">
-              Gross Wages + Entitlements + ESCT + Employee Overheads
-            </p>
-          </div>
+      <div className="mt-6 space-y-4">
+        <div className="ui-panel">
+          <SectionToggle
+            title="Recovery Model Block"
+            summary="Active structural recovery settings from Cost Allocation."
+            isOpen={recoveryBlockOpen}
+            onToggle={() => setRecoveryBlockOpen((prev) => !prev)}
+            value={recovery_model_label}
+          />
 
-          <div className="flex items-center justify-between gap-4 sm:text-right">
-            <div className="text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
-              {formatMoney(people_cost_total)}
-              <span className="ml-1 text-base font-normal text-[var(--text-muted)]">
-                / year
-              </span>
+          {recoveryBlockOpen ? (
+            <div className="mt-4 ui-stack">
+              <SummaryMetric
+                label="Recovery Model"
+                value={recovery_model_label}
+                tone="success"
+              />
+              <SummaryMetric
+                label="Linked Staff"
+                value={formatNumber(linked_staff_count)}
+              />
+              <SummaryMetric
+                label="Linked Assets"
+                value={formatNumber(linked_asset_count)}
+              />
+              <SummaryMetric
+                label="Unlinked Active Staff"
+                value={formatNumber(unlinked_active_staff_count)}
+                tone={Number(unlinked_active_staff_count) > 0 ? "warning" : "default"}
+              />
+
+              <WarningList warnings={recovery_warnings} />
             </div>
-            <span className="text-[var(--text-muted)]">
-              {peopleCostOpen ? "−" : "+"}
-            </span>
-          </div>
-        </button>
+          ) : null}
+        </div>
 
-        {peopleCostOpen && (
-          <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-            <div className="space-y-4 text-base">
-              <SummaryRow label="Gross Wages" value={formatMoney(gross_wages_total)} />
-              <SummaryRow label="Entitlements" value={formatMoney(entitlements_total)} />
-              <SummaryRow label="ESCT" value={formatMoney(esct_total)} />
-              <SummaryRow
+        <div className="ui-panel">
+          <SectionToggle
+            title="People Cost"
+            summary="Annual people burden with staff drilldown."
+            isOpen={peopleCostOpen}
+            onToggle={() => setPeopleCostOpen((prev) => !prev)}
+            value={formatMoney(total_people_cost_annual)}
+          />
+
+          {peopleCostOpen ? (
+            <div className="mt-4 space-y-3">
+              <BreakdownRow
+                label="Gross Wages"
+                value={formatMoney(total_gross_wages_annual)}
+              />
+              <BreakdownRow
+                label="Entitlements"
+                value={formatMoney(total_entitlements_annual)}
+              />
+              <BreakdownRow
+                label="Employer KiwiSaver"
+                value={formatMoney(total_employer_kiwisaver_annual)}
+              />
+              <BreakdownRow label="ESCT" value={formatMoney(total_esct_annual)} />
+              <BreakdownRow
+                label="Employer Contribution Total"
+                value={formatMoney(employerContributionTotal)}
+              />
+              <BreakdownRow
                 label="Employee Overheads"
-                value={formatMoney(employee_overheads_total)}
+                value={formatMoney(total_employee_overheads_annual)}
               />
-              <SummaryRow
+              <BreakdownRow
                 label="Total People Cost"
-                value={formatMoney(people_cost_total)}
-                isTotal
+                value={formatMoney(total_people_cost_annual)}
+                tone="success"
               />
-            </div>
 
-            <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-              <button
-                type="button"
-                onClick={() => setStaffDrilldownOpen((prev) => !prev)}
-                className="flex w-full items-center justify-between gap-4 text-left"
-              >
-                <div>
-                  <div className="text-sm font-medium text-[var(--text-secondary)]">
-                    Staff Drilldown
-                  </div>
-                  <div className="ui-help">
-                    View staff-level people cost build-up
-                  </div>
-                </div>
+              <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
+                <SectionToggle
+                  title="Staff Drilldown"
+                  summary="People cost by active staff, highest total first."
+                  isOpen={staffDrilldownOpen}
+                  onToggle={() => setStaffDrilldownOpen((prev) => !prev)}
+                  value={formatNumber(safePeopleRows.length)}
+                />
 
-                <span className="text-[var(--text-muted)]">
-                  {staffDrilldownOpen ? "−" : "+"}
-                </span>
-              </button>
-
-              {staffDrilldownOpen && (
-                <div className="mt-4 space-y-3">
-                  {people_rows.length > 0 ? (
-                    people_rows.map((row) => (
-                      <div
-                        key={row.staff_id ?? row.staff_name}
-                        className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <div className="font-semibold text-[var(--text-primary)]">
-                              {row.staff_name}
-                            </div>
-                            <div className="text-sm text-[var(--text-muted)]">
-                              {[row.staff_role, row.labour_class]
-                                .filter(Boolean)
-                                .join(" • ")}
-                            </div>
-                          </div>
-
-                          <div className="text-left sm:text-right">
-                            <div className="font-semibold text-[var(--text-primary)]">
-                              {formatMoney(row.total_people_cost)}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                          <DrilldownMetric
-                            label="Gross Wages"
-                            value={formatMoney(row.gross_wages_total)}
-                          />
-                          <DrilldownMetric
-                            label="Entitlements"
-                            value={formatMoney(row.entitlement_cost_total)}
-                          />
-                          <DrilldownMetric
-                            label="ESCT"
-                            value={formatMoney(row.esct_total)}
-                          />
-                          <DrilldownMetric
-                            label="Employee Overheads"
-                            value={formatMoney(row.employee_overheads_total)}
-                          />
-                          <DrilldownMetric
-                            label="Productive Hours"
-                            value={Number(row.productive_hours || 0).toLocaleString()}
-                          />
+                {staffDrilldownOpen ? (
+                  <div className="mt-4 space-y-3">
+                    {safePeopleRows.length > 0 ? (
+                      safePeopleRows.map((row, index) => (
+                        <StaffCostCard
+                          key={row?.staff_id || row?.id || `${row?.staff_name || "staff"}-${index}`}
+                          row={row}
+                        />
+                      ))
+                    ) : (
+                      <div className="ui-panel">
+                        <div className="text-sm text-[var(--text-secondary)]">
+                          No active staff drilldown available.
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 text-[var(--text-muted)]">
-                      No staff cost records available
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="ui-panel">
+          <SectionToggle
+            title="Business Cost"
+            summary="Non-people annual business burden included in Cost Summary."
+            isOpen={businessCostOpen}
+            onToggle={() => setBusinessCostOpen((prev) => !prev)}
+            value={formatMoney(total_business_cost_annual)}
+          />
+
+          {businessCostOpen ? (
+            <div className="mt-4 space-y-3">
+              <BreakdownRow
+                label="Asset Cost"
+                value={formatMoney(total_asset_cost_annual)}
+              />
+              <BreakdownRow
+                label="General Overheads"
+                value={formatMoney(total_business_overheads)}
+              />
+              <BreakdownRow
+                label="Total Business Cost"
+                value={formatMoney(total_business_cost_annual)}
+                tone="success"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="ui-panel">
+          <div className="text-base font-semibold text-[var(--text-primary)]">
+            Total Cost & Recovery
+          </div>
+          <div className="ui-help">
+            Final annual burden and required recovery outputs.
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <BreakdownRow
+              label="Total Cost Burden"
+              value={formatMoney(total_cost_burden)}
+              tone="success"
+            />
+            <BreakdownRow
+              label="Required Revenue"
+              value={formatMoney(required_revenue)}
+            />
+            <BreakdownRow
+              label="Required Recovery Rate"
+              value={formatMoney(required_recovery_rate)}
+            />
+            <BreakdownRow
+              label="Total Productive Output"
+              value={formatNumber(total_productive_output)}
+            />
+          </div>
+        </div>
+
+        {highlight_insight ? (
+          <div className="ui-panel">
+            <div className="ui-kicker">Highlight Insight</div>
+            <div className="mt-2 text-sm text-[var(--text-primary)]">
+              {highlight_insight}
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-          Business Cost
-        </h3>
-        <p className="ui-help">
-          Assets + General Overheads
-        </p>
-
-        <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 space-y-4">
-          <SummaryRow label="Assets" value={formatMoney(asset_cost_total)} />
-          <SummaryRow
-            label="General Overheads"
-            value={formatMoney(general_overheads_total)}
-          />
-          <SummaryRow
-            label="Total Business Cost"
-            value={formatMoney(business_cost_total)}
-            isTotal
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-          Total Cost & Recovery
-        </h3>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <MetricCard
-            label="Total Cost Burden"
-            value={formatMoney(total_cost_burden)}
-          />
-          <MetricCard
-            label="Required Revenue"
-            value={formatMoney(required_revenue)}
-          />
-          <MetricCard
-            label="Required Recovery Rate"
-            value={formatMoney(required_recovery_rate)}
-          />
-        </div>
-
-        <div className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 text-sm text-[var(--success)]">
-          {highlight_insight}
-        </div>
+        ) : null}
       </div>
     </section>
   );

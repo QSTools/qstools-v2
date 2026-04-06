@@ -1,0 +1,317 @@
+QS Tools — Source Files Guardrail Brief (v1.0 — LOCKED)
+PURPOSE
+
+This brief defines the non-negotiable implementation rules for all future source files, scripts, hooks, selectors, calculations, pages, and UI components in QS Tools.
+
+Its purpose is to prevent:
+
+contract drift
+duplicated calculations
+module boundary violations
+UI styling drift
+downstream logic leakage
+unsafe future rewrites
+
+This brief must be treated as a guardrail brief, not a feature brief.
+
+It applies to all future work unless a later locked brief explicitly replaces it.
+
+ACTIVE SYSTEM BASELINE
+
+Current locked baseline:
+
+MASTER / Active System Briefs → v1.15 updated
+Labour Module → v1.9 implemented
+Labour Scenario Layer → v2.1 locked
+Employee Overheads → v1.6
+Assets → v2.3
+General Overheads → v2.1
+Cost Allocation → v1.3
+Cost Summary Module → v1.5 implemented
+Cost Summary Page → v1.5
+Budget → v1.2
+
+The current next build target remains:
+
+Employee Overheads → Cost Summary wiring
+
+This is the active system state that future scripts must respect.
+
+SYSTEM ARCHITECTURE RULE
+
+QS Tools must continue to follow this structure:
+
+Input Modules
+→ Cost Allocation
+→ Cost Summary
+→ Budget
+
+Upstream modules own their own identities, inputs, calculations, and output contracts. Downstream modules consume those output contracts only. Cost Allocation remains a structural linking layer only and must not become a cost engine. Cost Summary remains a downstream aggregation and recovery layer only. Budget must consume Cost Summary outputs only.
+
+UNIVERSAL DOWNSTREAM CONTRACT RULE
+
+All future scripts must follow this rule:
+
+upstream module owns inputs
+upstream module owns calculations
+upstream module owns output contract
+downstream module consumes that output contract unchanged
+downstream module must aggregate, display, or route
+downstream module must not rebuild upstream maths
+
+Future scripts must not:
+
+infer upstream totals from raw fields
+guess selector shapes
+recreate upstream formulas
+rename locked variables
+read live UI form state in downstream logic
+
+This rule is already locked in Cost Summary and must become the rule for all future modules as well.
+
+MODULE OWNERSHIP RULES
+Labour
+
+Labour is the identity owner and labour cost engine. It owns staff_id, labour cost logic, productive-hour logic, and wage-basis People Cost outputs. Future scripts must not move overhead, asset, allocation, or business-overhead logic into Labour.
+
+Employee Overheads
+
+Employee Overheads owns staff-linked overhead outputs and must remain separate from Labour. Cost Summary must consume those outputs by staff_id and must not rebuild overhead totals from raw categories.
+
+Assets
+
+Assets is a standalone capital cost module. It must not use staff_id, must not assign assets to staff, and must only provide asset-level outputs for downstream consumption in V1.
+
+General Overheads
+
+General Overheads is a fixed annual business overhead layer only. It must not perform allocation, recovery, or linking logic. It provides total_general_overheads only.
+
+Cost Allocation
+
+Cost Allocation is a structural linking layer only. It defines revenue_model and valid Labour-to-Asset links. It must not calculate labour cost, asset cost, overheads, pricing, or recovery.
+
+Cost Summary
+
+Cost Summary is the downstream aggregation and recovery layer. It must consume locked upstream outputs only and must never rebuild Labour, Employee Overheads, Assets, or General Overheads logic.
+
+Budget
+
+Budget must consume Cost Summary outputs only. It must not bypass Cost Summary and read raw upstream modules directly unless a later locked brief explicitly changes that rule.
+
+SCENARIO ISOLATION RULE
+
+The Labour Scenario Layer is a labour-only commercial testing layer.
+
+It must:
+
+reuse the Labour engine
+apply temporary override inputs only
+compare scenario outputs to live Labour outputs
+remain isolated from live Labour persistence
+
+It must not:
+
+overwrite Labour state
+save scenarios in this version
+feed Cost Summary
+feed Budget
+become a second Labour engine
+become a full business simulator
+
+Future scripts must preserve this isolation rule exactly.
+
+VARIABLE NAMING RULE
+
+All internal contract variables must remain stable.
+
+Rules:
+
+snake_case only
+no alias drift
+no UI-based naming
+no renaming without migration
+display labels may change
+internal variable names may not change casually
+
+This applies across calculations, selectors, storage, exports, hook outputs, and downstream joins. Cost Allocation, Labour, Scenario, and Cost Summary all depend on this stability.
+
+IDENTITY RULE
+
+Future scripts must respect identity ownership.
+
+Rules:
+
+staff_id is owned by Labour
+asset_id is owned by Assets in V1
+Cost Allocation may consume upstream IDs only
+display names must never be used as join keys
+future joins must use IDs, not labels
+
+This is mandatory for Labour, Employee Overheads, Assets, Cost Allocation, and Cost Summary wiring.
+
+COST SUMMARY PEOPLE COST RULE
+
+Future scripts that touch Cost Summary must preserve the locked People Cost structure:
+
+Per staff:
+
+Gross Wages
+Entitlements
+Employer KiwiSaver
+ESCT
+Employee Overheads
+Total People Cost
+
+Aggregate:
+
+total_gross_wages_annual
+total_entitlements_annual
+total_employer_kiwisaver_annual
+total_esct_annual
+total_employee_overheads_annual
+total_people_cost_annual
+
+Cost Summary must not derive Gross Wages or Entitlements from labour_rate, and must not silently merge Employee Overheads into another line.
+
+UI SYSTEM RULE
+
+The UI system is now token-based and must remain so.
+
+Future scripts must not reintroduce:
+
+inline styles
+hardcoded colours
+text-white
+bg-neutral-*
+ad hoc component styling
+inconsistent input/button sizing
+
+Future UI work must use:
+
+CSS tokens
+semantic colour tokens
+standard UI classes
+min-height touch targets
+the locked theme system
+
+The UI brief already locks:
+
+light / medium / dark modes
+semantic tokens
+no hardcoded colours
+no inline styles
+no custom one-off component styling
+mobile-first follow-up work via audit + codemod approach
+PAGE / HOOK / CALCULATION SEPARATION RULE
+
+All future files must preserve this separation:
+
+page = layout + orchestration only
+hook = integration / orchestration
+selectors = shaping
+calculations = business logic
+components = UI only
+
+Business maths must not appear in:
+
+page.jsx
+component render logic
+ad hoc utility code inside UI files
+
+This is already locked for Labour and Cost Summary and must continue everywhere.
+
+MOBILE / LAYOUT RULE
+
+Phase 3 mobile conversion rules must also be preserved in future work.
+
+Future UI scripts must aim for:
+
+mobile-first vertical flow
+collapsible non-critical sections
+macro → breakdown → drilldown structure
+no md:grid-cols-* / xl:grid-cols-* driven clutter
+no fixed-width layout dependence
+no small touch targets
+
+When changing layout, future scripts must not touch:
+
+calculations
+hooks
+data contracts
+styling tokens
+semantic system rules
+
+They may only improve:
+
+layout flow
+collapsibility
+mobile usability
+
+This is already locked in the UI system brief.
+
+IMPLEMENTATION ORDER RULE
+
+Future work should follow the currently locked order unless a new brief supersedes it:
+
+Wire Employee Overheads into Cost Summary
+Verify People Cost totals and drilldown
+Wire Assets into Business Cost
+Wire General Overheads into Business Cost
+Confirm Total Cost Burden and Required Recovery
+Re-lock briefs before Budget expansion
+
+This order exists to prevent downstream drift.
+
+NOT ALLOWED
+
+Future scripts must not:
+
+duplicate Labour maths downstream
+duplicate Employee Overheads maths downstream
+duplicate Asset maths downstream
+duplicate General Overheads maths downstream
+consume Scenario outputs in Cost Summary or Budget
+use display names as keys
+rename locked variables casually
+move cost logic into Cost Allocation
+move identity logic into downstream modules
+add inline dark/light styling back into components
+bypass the theme token system
+rebuild locked totals in UI components
+
+These prohibitions are already enforced across the current locked briefs and must remain system-wide.
+
+REQUIRED CHECK BEFORE ANY FUTURE SCRIPT CHANGE
+
+Before any future implementation, the build must confirm:
+
+Which module owns the input?
+Which file owns the calculation?
+Which output contract is downstream consuming?
+Is the work changing structure, logic, UI, or storage?
+Does the work violate the downstream contract rule?
+Does the work violate the theme / UI token rule?
+Does the work violate scenario isolation?
+Does the work introduce variable or identity drift?
+
+If any answer is unclear, the brief must be updated before coding continues.
+
+DEFINITION OF DONE
+
+A future script change is only aligned if it:
+
+respects the active version baseline
+preserves module ownership
+keeps calculations in calculation files
+keeps pages orchestration-only
+keeps components display-only
+consumes upstream contracts unchanged
+uses IDs instead of names
+follows the theme + semantic token system
+does not reintroduce styling drift
+does not break the mobile-first direction
+FINAL DEFINITION
+
+This guardrail brief is the source-files control layer for QS Tools. All future scripts must preserve module ownership, downstream contract integrity, scenario isolation, identity discipline, and the token-based UI system. No future implementation may bypass these rules without a newer locked brief.
+
+If you want, I can turn this into a clean .txt source-file version with filename and header exactly matching your pack style.

@@ -12,28 +12,24 @@ export default function EntitlementsCard({
 
   return (
     <section className="ui-section">
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
-      >
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            Entitlements
-          </h2>
-          <p className="ui-help">
-            NZ default leave and entitlement model
-          </p>
-        </div>
+      <div className="ui-panel">
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="flex min-h-[44px] w-full flex-col gap-3 text-left"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Entitlements
+            </h2>
+            <p className="ui-help">NZ default leave and entitlement model</p>
+          </div>
 
-        <span className="text-sm text-[var(--text-muted)]">
-          {isOpen ? "Hide" : "Show"}
-        </span>
-      </button>
+          <span className="ui-pill">{isOpen ? "Hide" : "Show"}</span>
+        </button>
 
-      {isOpen ? (
-        <div className="mt-5 space-y-5">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {isOpen ? (
+          <div className="mt-5 ui-stack">
             <Field label="Annual Leave Weeks">
               <input
                 type="number"
@@ -88,18 +84,18 @@ export default function EntitlementsCard({
                 className="ui-input number-input"
               />
             </Field>
-          </div>
 
-          <div className="ui-panel">
-            <div className="mb-2 text-sm font-medium text-[var(--text-secondary)]">
-              Non-Productive Paid Hours
-            </div>
-            <div className="ui-readonly">
-              {formatNumber(outputs.non_productive_paid_hours)}
+            <div className="ui-panel">
+              <div className="mb-2 text-sm font-medium text-[var(--text-secondary)]">
+                Non-Productive Paid Hours
+              </div>
+              <div className="ui-readonly">
+                {formatNumber(outputs.non_productive_paid_hours)}
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }

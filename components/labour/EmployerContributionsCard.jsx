@@ -12,31 +12,35 @@ export default function EmployerContributionsCard({
 
   return (
     <section className="ui-section">
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-start justify-between gap-4 text-left"
-      >
-        <div>
-          <h2 className="text-lg font-semibold">Employer Contributions</h2>
-          <p className="ui-help">
-            NZ KiwiSaver and ESCT are calculated automatically from annual gross wages
-          </p>
-        </div>
+      <div className="ui-panel">
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="flex min-h-[44px] w-full flex-col gap-3 text-left"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Employer Contributions
+            </h2>
+            <p className="ui-help">
+              NZ KiwiSaver and ESCT are calculated automatically from annual gross
+              wages
+            </p>
+          </div>
 
-        <span className="text-sm text-[var(--text-muted)]">
-          {isOpen ? "Hide" : "Show"}
-        </span>
-      </button>
+          <span className="ui-pill">{isOpen ? "Hide" : "Show"}</span>
+        </button>
 
-      {isOpen ? (
-        <>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {isOpen ? (
+          <div className="mt-5 ui-stack">
             <Field label="Employee KiwiSaver Enabled">
               <select
                 value={state.employee_kiwisaver_enabled ? "true" : "false"}
                 onChange={(e) =>
-                  update_field("employee_kiwisaver_enabled", e.target.value === "true")
+                  update_field(
+                    "employee_kiwisaver_enabled",
+                    e.target.value === "true"
+                  )
                 }
                 disabled={!has_profile}
                 className="ui-input"
@@ -55,9 +59,7 @@ export default function EmployerContributionsCard({
               label="ESCT Rate"
               value={format_percent(outputs.esct_rate)}
             />
-          </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
             <ReadOnlyField
               label="Annual Gross Wages"
               value={format_currency(outputs.annual_gross_wages)}
@@ -78,8 +80,8 @@ export default function EmployerContributionsCard({
               value={format_currency(outputs.total_employer_contribution_cost)}
             />
           </div>
-        </>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -97,9 +99,7 @@ function ReadOnlyField({ label, value }) {
   return (
     <div>
       <div className="ui-label">{label}</div>
-      <div className="ui-readonly">
-        {value}
-      </div>
+      <div className="ui-readonly">{value}</div>
     </div>
   );
 }

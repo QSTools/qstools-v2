@@ -1,146 +1,169 @@
 "use client";
 
-function formatMoney(value) {
-  const n = Number(value || 0);
-  return `$${n.toLocaleString(undefined, {
-    maximumFractionDigits: 0,
-  })}`;
-}
-
-function SummaryField({ label, value, tone = "default" }) {
-  const toneClass =
-    tone === "danger"
-      ? "text-[var(--danger)] border-[var(--danger)] bg-[var(--danger-soft)]"
-      : "text-[var(--text-primary)] border-[var(--border-strong)] bg-[var(--bg-card)]";
-
-  return (
-    <div>
-      <div className="ui-label">{label}</div>
-      <div className={`ui-readonly ${toneClass}`}>{value}</div>
-    </div>
-  );
-}
-
-function ActiveBadge() {
-  return (
-    <div className="ui-pill border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]">
-      Active
-    </div>
-  );
-}
+import { useMemo, useState } from "react";
 
 export default function SavedProfilesCard({
-  saved_profiles = [],
-  active_profile_id = "",
-  selected_profile_id = "",
-  set_selected_profile_id,
+  profiles,
+  active_profile_id,
   load_profile,
+  save_profile,
+  start_new_profile,
   delete_profile,
+  has_profile,
 }) {
-  const activeProfile =
-    saved_profiles.find((profile) => profile.id === active_profile_id) || null;
+  const [is_open, setIsOpen] = useState(false);
+
+  const sorted_profiles = useMemo(() => {
+    return [...profiles].sort((a, b) => {
+      const a_time = new Date(a.updated_at || a.created_at || 0).getTime();
+      const b_time = new Date(b.updated_at || b.created_at || 0).getTime();
+      return b_time - a_time;
+    });
+  }, [profiles]);
+
+  function handle_delete(profile_id, profile_name) {
+    const confirmed = window.confirm(
+      `Delete profile "${profile_name || "Unnamed"}"? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    delete_profile(profile_id);
+  }
 
   return (
     <section className="ui-section">
-      <div>
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-          Saved Profiles
-        </h2>
-        <p className="ui-help">
-          Load an existing labour profile or remove one you no longer need.
-        </p>
-      </div>
+      <div className="ui-panel">
+        {/* ✅ FIXED HEADER (no horizontal layout) */}
+        <button
+          type="button"
+          onClick={() => setIsOpen((previous) => !previous)}
+          className="flex min-h-[44px] w-full flex-col gap-3 text-left"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Saved Profiles
+            </h2>
+            <p className="ui-help">
+              Load, edit, save, or delete your labour profiles.
+            </p>
+          </div>
 
-      <div className="mt-5 space-y-5">
-        <div>
-          <label className="ui-label">Select Saved Profile</label>
-          <select
-            value={selected_profile_id || ""}
-            onChange={(e) => set_selected_profile_id?.(e.target.value)}
-            className="ui-input"
-          >
-            <option value="">Choose a saved profile</option>
-            {saved_profiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.staff_name}
-                {profile.staff_role ? ` • ${profile.staff_role}` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
+          <span className="ui-pill">
+            {is_open ? "Hide Profiles" : "Show Profiles"}
+          </span>
+        </button>
 
-        <div className="ui-actions">
+        {/* ✅ ACTIONS (unchanged logic, just stacked) */}
+        <div className="mt-4 ui-actions">
           <button
             type="button"
-            onClick={() => load_profile?.(selected_profile_id)}
-            disabled={!selected_profile_id}
+            onClick={save_profile}
+            disabled={!has_profile || !active_profile_id}
             className="ui-button-primary"
           >
-            Load Profile
+            Save Active Profile
           </button>
 
           <button
             type="button"
-            onClick={() => delete_profile?.(selected_profile_id)}
-            disabled={!selected_profile_id}
-            className="ui-button-danger"
+            onClick={start_new_profile}
+            className="ui-button-secondary"
           >
-            Delete Profile
+            Start New Profile
           </button>
         </div>
 
-        {activeProfile ? (
-          <div className="ui-panel">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="text-sm font-medium text-[var(--text-primary)]">
-                  {activeProfile.staff_name || "Unnamed Profile"}
-                </div>
-
-                <div className="ui-help mt-2">
-                  {[activeProfile.staff_role, activeProfile.labour_class]
-                    .filter(Boolean)
-                    .join(" • ") || "No role details"}
-                </div>
-              </div>
-
-              <ActiveBadge />
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <SummaryField
-                label="Charge-Out Rate"
-                value={formatMoney(activeProfile.charge_out_rate)}
-              />
-
-              <SummaryField
-                label="Labour Rate"
-                value={formatMoney(activeProfile.labour_rate)}
-              />
-
-              <SummaryField
-                label="Productivity %"
-                value={`${Number(activeProfile.productivity_percent || 0).toLocaleString(
-                  undefined,
-                  { maximumFractionDigits: 2 }
-                )}%`}
-              />
-
-              <SummaryField
-                label="Margin Target %"
-                value={`${Number(activeProfile.margin_target_percent || 0).toLocaleString(
-                  undefined,
-                  { maximumFractionDigits: 2 }
-                )}%`}
-              />
-            </div>
+        {active_profile_id && (
+          <div className="mt-3 text-sm text-[var(--text-muted)]">
+            Active profile loaded. Use{" "}
+            <span className="text-[var(--text-primary)]">
+              Save Active Profile
+            </span>{" "}
+            to update it.
           </div>
-        ) : (
-          <div className="ui-panel text-[var(--text-muted)]">
-            No active profile loaded
+        )}
+
+        {/* ✅ PROFILE LIST */}
+        {is_open && (
+          <div className="mt-5 space-y-3">
+            {sorted_profiles.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-4 text-sm text-[var(--text-muted)]">
+                No saved profiles yet.
+              </div>
+            ) : (
+              sorted_profiles.map((profile) => {
+                const is_active = profile.profile_id === active_profile_id;
+                const profile_name = profile.data?.staff_name || "Unnamed";
+
+                return (
+                  <div
+                    key={profile.profile_id}
+                    className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4"
+                  >
+                    {/* ✅ FIXED: vertical layout */}
+                    <div className="flex flex-col gap-4">
+                      <div>
+                        <div className="text-sm font-medium text-[var(--text-primary)]">
+                          {profile_name}
+                        </div>
+
+                        <div className="ui-help">
+                          {profile.data?.staff_role || "No role"} ·{" "}
+                          {profile.data?.labour_class || "No class"}
+                        </div>
+
+                        <div className="mt-2 text-sm text-[var(--text-muted)]">
+                          Updated:{" "}
+                          {format_date(
+                            profile.updated_at || profile.created_at
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        {is_active && (
+                          <div className="ui-pill border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]">
+                            Active
+                          </div>
+                        )}
+
+                        <div className="ui-actions">
+                          <button
+                            type="button"
+                            onClick={() => load_profile(profile.profile_id)}
+                            className="ui-button-secondary"
+                          >
+                            Load
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handle_delete(profile.profile_id, profile_name)
+                            }
+                            className="ui-button-danger"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </div>
     </section>
   );
+}
+
+function format_date(value) {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+
+  return date.toLocaleString();
 }
