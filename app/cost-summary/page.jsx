@@ -1,6 +1,7 @@
 "use client";
 
 import { useLabour } from "@/hooks/useLabour";
+import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
 import useCostSummary from "@/hooks/useCostSummary";
 
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
@@ -9,9 +10,11 @@ import CostSummaryHelpPanel from "@/components/cost-summary/CostSummaryHelpPanel
 
 export default function CostSummaryPage() {
   const labour = useLabour();
+  const employee_overheads = useEmployeeOverheads();
 
   const { status, card } = useCostSummary({
     labour,
+    employee_overheads,
   });
 
   return (
