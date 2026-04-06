@@ -1,0 +1,159 @@
+# General Overheads — Source of Truth (v2.1 — LOCKED)
+
+---
+
+## Purpose
+
+The General Overheads Module captures all annual business-level operating costs that are not directly tied to:
+
+* staff (Labour)
+* staff overheads (Employee Overheads)
+* assets (Assets Module)
+* jobs or revenue generation
+
+It defines the total fixed business overhead burden.
+
+---
+
+## 🔒 SYSTEM ROLE (CRITICAL)
+
+The General Overheads Module is a:
+
+fixed annual input layer
+
+It must:
+
+* capture true annual business costs
+* remain simple and input-driven
+* provide a single total overhead value
+
+It must NOT:
+
+* perform allocation
+* perform recovery calculations
+* link to staff or assets
+* simulate scenarios
+
+---
+
+## 🧱 Architecture
+
+Page
+app/general-overheads/page.jsx
+
+Hook
+hooks/useGeneralOverheads.js
+
+Calculations
+lib/calculations/generalOverheadCalculations.js
+
+Selectors
+lib/selectors/generalOverheadSelectors.js
+
+Storage
+lib/storage/generalOverheadStorage.js
+lib/storage/generalOverheadProfileStorage.js
+
+Components
+components/general-overheads/
+
+* GeneralOverheadForm.jsx
+* GeneralOverheadProfilesCard.jsx
+* GeneralOverheadSummaryCard.jsx
+* GeneralOverheadStatusStrip.jsx
+* GeneralOverheadHelpPanel.jsx
+
+---
+
+## 🧠 Data Model
+
+### Identity
+
+* overhead_profile_id
+* owner_scope_id
+
+---
+
+## 📥 Inputs (Annual Only)
+
+### Fixed Categories
+
+* public_liability_insurance
+* professional_indemnity_insurance
+* accounting_fees
+* legal_fees
+* software_subscriptions
+* office_rent
+* power_cost
+* internet_cost
+* phone_system_cost
+* bank_fees
+* marketing_cost
+* office_supplies_cost
+* general_admin_cost
+* other_general_overhead_cost
+
+---
+
+### Custom Overhead Items
+
+custom_overhead_items[]
+
+* custom_overhead_id
+* custom_overhead_name
+* custom_overhead_amount
+
+---
+
+## 📊 Calculations
+
+### Total Fixed Overheads
+
+total_general_overheads =
+sum(all fixed categories)
+
+* sum(custom_overhead_items)
+
+---
+
+## 📊 Outputs
+
+* total_general_overheads
+
+---
+
+## ⚠️ CORE RULES
+
+* inputs must be annual values only
+* no allocation logic
+* no recovery logic
+* no linking to labour or assets
+
+---
+
+## 🔗 Integration
+
+Cost Summary consumes:
+
+* total_general_overheads
+
+---
+
+## ACTIVE VERSION STATUS
+
+Aligned with:
+
+- MASTER PROJECT BRIEF → v1.10
+- LABOUR MODULE → v1.9
+- EMPLOYEE OVERHEADS → v1.6
+- ASSETS MODULE → v2.3
+- GENERAL OVERHEADS → v2.1
+- COST SUMMARY MODULE → v1.5
+- BUDGET MODULE → v1.2
+- COST ALLOCATION → v1.3
+
+---
+
+## ✅ DONE
+
+GENERAL OVERHEADS → v2.1

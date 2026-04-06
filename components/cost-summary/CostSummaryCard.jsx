@@ -116,7 +116,6 @@ function StaffCostCard({ row }) {
   const employee_overheads_annual = Number(
     row?.employee_overheads_annual ?? row?.employee_overheads_total ?? 0
   );
-
   const total_people_cost_annual = Number(row?.total_people_cost_annual ?? 0);
 
   const staffLabel =
@@ -137,10 +136,7 @@ function StaffCostCard({ row }) {
 
       <div className="mt-4 space-y-3">
         <BreakdownRow label="Gross Wages" value={formatMoney(gross_wages_annual)} />
-        <BreakdownRow
-          label="Entitlements"
-          value={formatMoney(entitlements_annual)}
-        />
+        <BreakdownRow label="Entitlements" value={formatMoney(entitlements_annual)} />
         <BreakdownRow
           label="Employer KiwiSaver"
           value={formatMoney(employer_kiwisaver_annual)}
@@ -183,7 +179,6 @@ export default function CostSummaryCard({
   required_revenue,
   required_recovery_rate,
   total_productive_output = 0,
-  highlight_insight,
 }) {
   const [recoveryBlockOpen, setRecoveryBlockOpen] = useState(true);
   const [peopleCostOpen, setPeopleCostOpen] = useState(true);
@@ -252,7 +247,6 @@ export default function CostSummaryCard({
                 value={formatNumber(unlinked_active_staff_count)}
                 tone={Number(unlinked_active_staff_count) > 0 ? "warning" : "default"}
               />
-
               <WarningList warnings={recovery_warnings} />
             </div>
           ) : null}
@@ -384,15 +378,6 @@ export default function CostSummaryCard({
             />
           </div>
         </div>
-
-        {highlight_insight ? (
-          <div className="ui-panel">
-            <div className="ui-kicker">Highlight Insight</div>
-            <div className="mt-2 text-sm text-[var(--text-primary)]">
-              {highlight_insight}
-            </div>
-          </div>
-        ) : null}
       </div>
     </section>
   );

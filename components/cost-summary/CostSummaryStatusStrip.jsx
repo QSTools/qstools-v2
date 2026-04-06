@@ -11,13 +11,7 @@ function Pill({ children, tone = "neutral" }) {
     info: "border-[var(--info)] bg-[var(--info-soft)] text-[var(--info)]",
   };
 
-  return (
-    <div
-      className={`ui-pill ${toneClasses[tone]}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={`ui-pill ${toneClasses[tone]}`}>{children}</div>;
 }
 
 function StatusItem({ label, value, tone = "neutral" }) {
@@ -120,7 +114,7 @@ export default function CostSummaryStatusStrip({
           <Pill tone={structureTone}>{structureLabel}</Pill>
         </div>
 
-        <div className="space-y-3">
+        <div className="ui-stack">
           <StatusItem
             label="Recovery Model"
             value={recovery_model_label}
