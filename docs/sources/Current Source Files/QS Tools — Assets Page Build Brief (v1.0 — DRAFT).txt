@@ -1,0 +1,494 @@
+# QS Tools — Assets Page Build Brief (v1.0 — DRAFT)
+
+STATUS: NEXT BUILD TARGET
+
+---
+
+## PURPOSE
+
+This brief defines the required page-level build contract for the QS Tools Assets page.
+
+It exists to ensure the Assets page is built:
+
+- as a proper input module page
+- with stable file structure
+- with clean ownership boundaries
+- with locked asset cost outputs
+- with no drift into allocation, pricing, or recovery logic
+
+This page must align to the active QS Tools module system and the locked Assets module contract.
+
+---
+
+## MODULE TYPE
+
+Assets is an:
+
+INPUT MODULE PAGE
+
+Approved input module pages include:
+
+- Labour
+- Employee Overheads
+- Assets
+- General Overheads
+
+Do not invent a new page type.
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The Assets page is the page-level working surface for the Assets module.
+
+The Assets module is a:
+
+standalone capital data module
+
+The page must support:
+
+- capture of asset financial inputs
+- versioned asset profile management
+- display of annual asset cost outputs
+- safe downstream preparation for Cost Summary
+
+The page must NOT:
+
+- create or use staff_id
+- assign assets to staff
+- perform pricing logic
+- perform recovery logic
+- create asset packages
+- duplicate Cost Summary logic
+- duplicate Cost Allocation logic
+
+---
+
+## PAGE OWNERSHIP
+
+The Assets page owns:
+
+- page layout for Assets
+- page-level orchestration only
+- display of Assets module outputs
+- display of version/profile controls
+- display of status/warnings from the hook layer
+
+The Assets page does NOT own:
+
+- asset calculation logic
+- downstream business-cost logic
+- labour linkage logic
+- revenue model logic
+- recovery logic
+
+---
+
+## REQUIRED FILE STRUCTURE
+
+app/assets/page.jsx
+
+hooks/useAssets.js
+
+lib/calculations/assetCalculations.js
+lib/selectors/assetSelectors.js
+lib/storage/assetStorage.js
+lib/storage/assetProfileStorage.js
+
+components/assets/
+  AssetStatusStrip.jsx
+  AssetMainCard.jsx
+  AssetHelpPanel.jsx
+  AssetForm.jsx
+  AssetProfilesCard.jsx
+  AssetSummaryCard.jsx
+
+Rules:
+
+- file names must follow QS Tools naming convention
+- components must keep the Asset prefix
+- variables must remain snake_case
+- asset_id must remain the locked identity key
+
+---
+
+## ARCHITECTURE SEPARATION RULE
+
+page.jsx
+- layout only
+- orchestration only
+- imports hook and components only
+- no calculations
+- no shaping logic
+
+hook
+- integration/orchestration
+- gets state
+- gets profiles
+- runs calculations
+- builds status + card props
+
+calculations
+- all asset business logic lives here
+- no UI logic
+- no downstream recovery logic
+
+selectors
+- shape Asset data for display
+- build status state
+- build warnings
+- no contract drift
+
+components
+- UI only
+- no formulas
+- no hidden logic
+- no downstream joins
+
+---
+
+## PAGE STRUCTURE (LOCKED)
+
+The Assets page must render in this order:
+
+1. AssetStatusStrip
+2. AssetMainCard
+3. AssetHelpPanel
+
+Standard page rule:
+
+- status strip first
+- primary working card second
+- help panel last
+
+The page remains:
+
+display + input orchestration only
+
+---
+
+## ASSETMAINCARD STRUCTURE
+
+AssetMainCard should contain these sections in clean vertical order:
+
+### A. AssetProfilesCard
+
+Purpose:
+
+- save/load/delete asset profiles
+- manage active version state
+- preserve historical versions
+
+Rules:
+
+- editing must create new version
+- one active version per asset
+- profile controls remain separate from core entry
+
+---
+
+### B. AssetForm
+
+Purpose:
+
+- capture the current active asset financial inputs
+
+Inputs:
+
+#### Finance
+- purchase_price
+- interest_rate
+- finance_term_years
+
+#### Running Costs (Monthly)
+- maintenance_cost_monthly
+- fuel_cost_monthly
+- registration_cost_monthly
+- other_running_cost_monthly
+
+#### Metadata / state where required
+- effective_from
+- is_active
+- is_retired
+
+Rules:
+
+- all defaults must be safe
+- inputs remain asset-only
+- no staff linkage
+- no package logic
+- no pricing fields
+- no recovery fields
+
+---
+
+### C. AssetSummaryCard
+
+Purpose:
+
+- display locked annual asset outputs clearly
+
+Display:
+
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+Optional display:
+
+- active / retired state
+- version/effective date
+- cash-cost explanation note
+
+Rules:
+
+- display only
+- no formulas inside component
+- show totals using hook/selector outputs only
+
+---
+
+## ASSETSTATUSSTRIP CONTRACT
+
+AssetStatusStrip should surface:
+
+- active profile state
+- active / retired asset state
+- missing-input warnings
+- profile/version readiness
+- safe-state confirmation
+
+Example warning themes:
+
+- no active asset profile
+- finance fields incomplete
+- running cost fields incomplete
+- retired asset excluded from active use
+
+Rules:
+
+- warnings must come from hook/selectors
+- no business logic in component
+- no hidden calculations in render
+
+---
+
+## ASSETHELPPANEL CONTRACT
+
+AssetHelpPanel must explain:
+
+- what the Assets module includes
+- what the Assets module does not include
+- that Assets is a standalone capital data module
+- that depreciation is excluded
+- that V1 outputs are asset-level outputs for downstream Cost Summary use
+
+Rules:
+
+- collapsed by default
+- explanation only
+- no calculation logic inside UI component
+
+---
+
+## DATA MODEL RULES
+
+Identity:
+
+- asset_id is hidden, immutable, system-generated
+- names must never be used as keys
+- owner_scope_id remains contextual identity where applicable
+
+Variable naming:
+
+- snake_case only
+- no casual renaming
+- no UI aliases in contracts
+
+Lifecycle:
+
+- active assets are used in calculations
+- retired assets remain stored but excluded from active use
+
+Versioning:
+
+- editing creates a new version
+- history must remain unchanged
+- one active version only
+
+---
+
+## LOCKED CALCULATIONS
+
+All business logic must live in:
+
+lib/calculations/assetCalculations.js
+
+Required calculations:
+
+finance_cost_annual = 0 if no finance
+
+running_cost_annual =
+(maintenance_cost_monthly
++ fuel_cost_monthly
++ registration_cost_monthly
++ other_running_cost_monthly) × 12
+
+total_asset_cost_annual =
+finance_cost_annual + running_cost_annual
+
+Rules:
+
+- do not add pricing logic
+- do not add recovery logic
+- do not add labour allocation logic
+- do not add depreciation into annual recovery outputs
+
+---
+
+## CASHFLOW RULE (CRITICAL)
+
+Depreciation is NOT included.
+
+Reason:
+
+- non-cash
+- not relevant for recovery
+- not used for pricing
+
+Recommended help text:
+
+"Depreciation is excluded as this model is based on real cash cost recovery."
+
+This rule must remain visible in the Assets page help/explanation layer.
+
+---
+
+## OUTPUT CONTRACT
+
+The Assets page must surface the locked module outputs only:
+
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+It must not invent alternative output names.
+
+It must not reshape these into unofficial contract variables.
+
+---
+
+## DOWNSTREAM INTEGRATION RULE
+
+In V1, Assets provides asset-level outputs directly for downstream use by:
+
+- Cost Summary
+- Budget later
+
+Rules:
+
+- Cost Summary must consume active asset-level outputs directly
+- Assets page must not perform Cost Summary logic
+- Assets page must not aggregate business burden itself
+- Assets page must prepare clean output_contract data only
+
+Current next-step pattern:
+
+Assets hook → output_contract → Cost Summary
+
+No rebuilding downstream.
+
+---
+
+## NOT ALLOWED
+
+- no staff assignment
+- no use of staff_id
+- no asset-to-labour linking inside Assets
+- no revenue model logic
+- no allocation logic
+- no pricing logic
+- no recovery logic
+- no depreciation in recovery outputs
+- no use of names as keys
+- no variable renaming drift
+- no formulas in components
+- no business maths in page.jsx
+- no inline styles
+- no hardcoded colours
+- no UI drift outside token system
+
+---
+
+## UI / LAYOUT RULES
+
+The page must follow the locked QS Tools UI system:
+
+- use UI classes only
+- use CSS tokens only
+- no inline styles
+- no hardcoded colours
+- mobile-first vertical flow
+- keep layout clean and predictable
+- no random md:grid-cols-* drift
+- use collapsible help where appropriate
+
+The page should feel like:
+
+a clean mobile-first input module
+
+Not:
+
+a spreadsheet clone or a mixed summary page
+
+---
+
+## PRE-BUILD CHECK
+
+Before building confirm:
+
+1. Assets brief is the active contract
+2. page type = input module
+3. file tree matches naming rules
+4. asset_id remains owned by Assets
+5. calculations live only in assetCalculations.js
+6. page.jsx remains orchestration-only
+7. components remain UI-only
+8. downstream logic is excluded
+9. depreciation is excluded
+10. outputs remain locked
+
+---
+
+## DEFINITION OF DONE
+
+The Assets page is complete when:
+
+- the full file structure exists
+- page.jsx is orchestration-only
+- useAssets() returns stable status + card outputs
+- AssetStatusStrip surfaces readiness clearly
+- AssetMainCard contains profile, form, and summary structure
+- AssetSummaryCard displays locked annual outputs only
+- AssetHelpPanel explains scope and exclusions
+- version/history behaviour is preserved
+- no staff/allocation/recovery logic appears in Assets
+- module is ready for downstream Cost Summary wiring
+
+---
+
+## NEXT STEP AFTER PAGE BUILD
+
+After Assets page alignment is complete:
+
+1. wire total_asset_cost_annual into Cost Summary Business Cost
+2. verify Business Cost totals
+3. then wire General Overheads
+4. then confirm total cost burden and required recovery
+5. then re-lock briefs before Budget expansion
+
+---
+
+## FINAL DEFINITION
+
+The Assets page is the input-module working surface for the QS Tools Assets module. It captures and manages versioned asset financial inputs, displays locked annual cash-based asset outputs, preserves clean module boundaries, and prepares stable asset-level outputs for downstream Cost Summary use without performing pricing, allocation, or recovery logic.
