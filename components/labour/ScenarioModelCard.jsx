@@ -19,52 +19,21 @@ function formatDelta(value) {
   return `${prefix}${formatCurrency(Math.abs(safe))}`;
 }
 
-function fieldStyle() {
-  return {
-    width: "100%",
-    padding: "10px",
-    border: "1px solid var(--border-primary)",
-    borderRadius: "10px",
-    background: "var(--bg-input)",
-    color: "var(--text-primary)",
-  };
+function getDeltaTone(value) {
+  if (value > 0) return "text-[var(--success)]";
+  if (value < 0) return "text-[var(--danger)]";
+  return "text-[var(--text-secondary)]";
 }
 
-function panelStyle() {
-  return {
-    border: "1px solid var(--border-primary)",
-    borderRadius: "14px",
-    padding: "16px",
-    background: "var(--bg-card)",
-  };
-}
-
-function mutedTextStyle() {
-  return {
-    fontSize: "12px",
-    lineHeight: 1.5,
-    color: "var(--text-secondary)",
-  };
-}
-
-function getDeltaColor(value) {
-  if (value > 0) return "var(--success)";
-  if (value < 0) return "var(--danger)";
-  return "var(--text-secondary)";
+function getDriverMessage(biggestDriver) {
+  if (!biggestDriver) return "Biggest impact: No change";
+  return `Biggest impact: ${biggestDriver.shortLabel} (${formatDelta(biggestDriver.delta)}/hr)`;
 }
 
 function LabelledField({ label, value, onChange }) {
   return (
     <div>
-      <label
-        style={{
-          display: "block",
-          fontSize: "12px",
-          fontWeight: 600,
-          color: "var(--text-secondary)",
-          marginBottom: "6px",
-        }}
-      >
+      <label className="mb-1.5 block text-sm font-semibold text-[var(--text-secondary)]">
         {label}
       </label>
 
@@ -72,35 +41,20 @@ function LabelledField({ label, value, onChange }) {
         type="number"
         value={value ?? ""}
         onChange={onChange}
-        style={fieldStyle()}
+        className="number-input w-full rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
       />
     </div>
   );
 }
 
-function Metric({ label, value, color, subvalue }) {
+function Metric({ label, value, colorClass = "text-[var(--text-primary)]", subvalue }) {
   return (
-    <div style={{ ...panelStyle(), background: "var(--bg-input)" }}>
-      <div
-        style={{
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          marginBottom: "6px",
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: "24px", fontWeight: 700, color }}>{value}</div>
+    <div className="ui-panel">
+      <div className="mb-1.5 text-sm text-[var(--text-muted)]">{label}</div>
+      <div className={`text-2xl font-bold ${colorClass}`}>{value}</div>
+
       {subvalue ? (
-        <div
-          style={{
-            fontSize: "12px",
-            color: "var(--text-muted)",
-            marginTop: "6px",
-          }}
-        >
-          {subvalue}
-        </div>
+        <div className="mt-1.5 text-sm text-[var(--text-muted)]">{subvalue}</div>
       ) : null}
     </div>
   );
@@ -113,54 +67,46 @@ function DeltaRow({ label, liveValue, scenarioValue, isHighlighted = false }) {
 
   return (
     <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1.2fr 1fr 1fr 1fr",
-        gap: "12px",
-        padding: "10px 12px",
-        borderBottom: "1px solid var(--border-soft)",
-        alignItems: "center",
-        borderRadius: "10px",
-        background: isHighlighted ? "var(--bg-hover)" : "transparent",
-        border: isHighlighted
-          ? "1px solid var(--border-primary)"
-          : "1px solid transparent",
-      }}
+      className={[
+        "rounded-xl border p-4",
+        isHighlighted
+          ? "border-[var(--border-primary)] bg-[var(--bg-hover)]"
+          : "border-[var(--border-soft)] bg-transparent",
+      ].join(" ")}
     >
-      <div
-        style={{
-          color: "var(--text-primary)",
-          fontSize: "13px",
-          fontWeight: 600,
-        }}
-      >
-        {label}
-      </div>
+      <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-4">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
+            Metric
+          </div>
+          <div className="font-semibold text-[var(--text-primary)]">{label}</div>
+        </div>
 
-      <div style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
-        {formatCurrency(live)}
-      </div>
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
+            Live
+          </div>
+          <div className="text-[var(--text-secondary)]">{formatCurrency(live)}</div>
+        </div>
 
-      <div style={{ color: "var(--text-primary)", fontSize: "13px" }}>
-        {formatCurrency(scenario)}
-      </div>
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
+            Scenario
+          </div>
+          <div className="text-[var(--text-primary)]">
+            {formatCurrency(scenario)}
+          </div>
+        </div>
 
-      <div
-        style={{
-          color: getDeltaColor(delta),
-          fontSize: "13px",
-          fontWeight: 700,
-        }}
-      >
-        {formatDelta(delta)}
+        <div>
+          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
+            Delta
+          </div>
+          <div className={`font-bold ${getDeltaTone(delta)}`}>{formatDelta(delta)}</div>
+        </div>
       </div>
     </div>
   );
-}
-
-function getDriverMessage(biggestDriver) {
-  if (!biggestDriver) return "Biggest impact: No change";
-  return `Biggest impact: ${biggestDriver.shortLabel} (${formatDelta(biggestDriver.delta)}/hr)`;
 }
 
 export default function ScenarioModelCard({
@@ -223,45 +169,30 @@ export default function ScenarioModelCard({
   const liveAboveRecovery = Number(liveOutputs.above_recovery ?? 0);
 
   return (
-    <div style={panelStyle()}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "16px",
-          gap: "12px",
-          flexWrap: "wrap",
-        }}
-      >
-        <h2 className="m-0 text-2xl font-semibold text-[var(--text-primary)]">
-          Scenario Modeller
-        </h2>
+    <section className="ui-section">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+            Scenario Modeller
+          </h2>
+          <p className="ui-help">
+            Test “what happens if…” without changing your live labour profile.
+          </p>
+        </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={() => setShowHelp((prev) => !prev)}
-            style={{
-              padding: "6px 10px",
-              border: "1px solid var(--border-primary)",
-              borderRadius: "8px",
-              background: "var(--bg-card-muted)",
-              color: "var(--text-primary)",
-              cursor: "pointer",
-            }}
+            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-4 py-3 text-sm min-h-[44px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
           >
             {showHelp ? "Hide Explanation" : "Show Explanation"}
           </button>
 
           <button
+            type="button"
             onClick={reset}
-            style={{
-              padding: "6px 10px",
-              border: "1px solid var(--border-primary)",
-              borderRadius: "8px",
-              background: "var(--bg-card-muted)",
-              color: "var(--text-primary)",
-              cursor: "pointer",
-            }}
+            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-4 py-3 text-sm min-h-[44px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
           >
             Reset
           </button>
@@ -269,29 +200,16 @@ export default function ScenarioModelCard({
       </div>
 
       {showHelp ? (
-        <div
-          style={{
-            ...panelStyle(),
-            marginBottom: "16px",
-            background: "var(--bg-input)",
-          }}
-        >
-          <div
-            style={{
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              marginBottom: "8px",
-            }}
-          >
+        <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+          <div className="mb-2 font-semibold text-[var(--text-primary)]">
             What this does
           </div>
 
-          <div style={mutedTextStyle()}>
-            Use this to test “what happens if…” without changing your live
-            numbers.
+          <div className="text-sm leading-6 text-[var(--text-secondary)]">
+            Use this to test “what happens if…” without changing your live numbers.
           </div>
 
-          <div style={{ ...mutedTextStyle(), marginTop: "10px" }}>
+          <div className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             <b>Labour Rate ↑</b> → Cost goes up → Profit drops
             <br />
             <b>Charge-Out ↑</b> → Profit goes up
@@ -301,23 +219,17 @@ export default function ScenarioModelCard({
             <b>Margin Target ↑</b> → Required charge-out increases
           </div>
 
-          <div style={{ ...mutedTextStyle(), marginTop: "10px" }}>
+          <div className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             Green = better. Red = worse.
           </div>
         </div>
       ) : null}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "20px",
-        }}
-      >
-        <div style={panelStyle()}>
-          <h3 style={{ color: "var(--text-primary)", marginTop: 0 }}>Inputs</h3>
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Inputs</h3>
 
-          <div style={{ display: "grid", gap: "12px" }}>
+          <div className="mt-4 grid grid-cols-1 gap-4">
             <LabelledField
               label="Labour Rate"
               value={scenarioInputs.labour_rate}
@@ -344,28 +256,24 @@ export default function ScenarioModelCard({
           </div>
         </div>
 
-        <div style={panelStyle()}>
-          <h3 style={{ color: "var(--text-primary)", marginTop: 0 }}>
+        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             Scenario Outputs
           </h3>
 
-          <div style={{ display: "grid", gap: "12px" }}>
+          <div className="mt-4 grid grid-cols-1 gap-4">
             <Metric
               label="Profit per Hour"
-              value={formatCurrency(
-                Number(scenarioOutputs.profit_per_hour ?? 0)
-              )}
+              value={formatCurrency(Number(scenarioOutputs.profit_per_hour ?? 0))}
               subvalue={`Live: ${formatCurrency(liveProfitPerHour)}`}
-              color="var(--success)"
+              colorClass="text-[var(--success)]"
             />
 
             <Metric
               label="Above Recovery"
-              value={formatCurrency(
-                Number(scenarioOutputs.above_recovery ?? 0)
-              )}
+              value={formatCurrency(Number(scenarioOutputs.above_recovery ?? 0))}
               subvalue={`Live: ${formatCurrency(liveAboveRecovery)}`}
-              color="var(--info)"
+              colorClass="text-[var(--info)]"
             />
 
             <Metric
@@ -376,7 +284,6 @@ export default function ScenarioModelCard({
               subvalue={`Live: ${formatCurrency(
                 Number(liveOutputs.productive_labour_cost_rate ?? 0)
               )}`}
-              color="var(--text-primary)"
             />
 
             <Metric
@@ -387,161 +294,79 @@ export default function ScenarioModelCard({
               subvalue={`Live: ${formatCurrency(
                 Number(liveOutputs.minimum_charge_out_rate ?? 0)
               )}`}
-              color="var(--text-primary)"
             />
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          ...panelStyle(),
-          marginTop: "20px",
-          background: "var(--bg-input)",
-        }}
-      >
-        <div
-          style={{
-            color: "var(--text-primary)",
-            fontWeight: 700,
-            marginBottom: "6px",
-          }}
-        >
+      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+        <div className="mb-1.5 font-semibold text-[var(--text-primary)]">
           {getDriverMessage(biggestDriver)}
         </div>
-        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+        <div className="text-sm text-[var(--text-muted)]">
           Based on the single largest change in Scenario outputs
         </div>
       </div>
 
-      <div
-        style={{
-          ...panelStyle(),
-          marginTop: "20px",
-          background: "var(--bg-input)",
-        }}
-      >
-        <div
-          style={{
-            color: "var(--text-primary)",
-            fontWeight: 700,
-            marginBottom: "6px",
-          }}
-        >
+      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+        <div className="mb-1.5 font-semibold text-[var(--text-primary)]">
           {scenario.explanation?.title ?? "Scenario explanation"}
         </div>
 
-        <div
-          style={{
-            fontSize: "13px",
-            color: "var(--text-secondary)",
-            lineHeight: 1.6,
-          }}
-        >
+        <div className="text-sm leading-6 text-[var(--text-secondary)]">
           {scenario.explanation?.body ??
             "This panel explains the biggest commercial movement in the current scenario."}
-
-          {scenario.explanation?.insight && (
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "12px",
-                color: "var(--text-muted)",
-              }}
-            >
-              {scenario.explanation.insight}
-            </div>
-          )}
         </div>
+
+        {scenario.explanation?.insight ? (
+          <div className="mt-2 text-sm text-[var(--text-muted)]">
+            {scenario.explanation.insight}
+          </div>
+        ) : null}
       </div>
 
-      <div style={{ ...panelStyle(), marginTop: "20px" }}>
-        <h3
-          style={{
-            color: "var(--text-primary)",
-            marginTop: 0,
-            marginBottom: "12px",
-          }}
-        >
+      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
           Live vs Scenario
         </h3>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.2fr 1fr 1fr 1fr",
-            gap: "12px",
-            paddingBottom: "10px",
-            borderBottom: "1px solid var(--border-primary)",
-            marginBottom: "8px",
-          }}
-        >
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "12px",
-              fontWeight: 700,
-            }}
-          >
-            Metric
-          </div>
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "12px",
-              fontWeight: 700,
-            }}
-          >
-            Live
-          </div>
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "12px",
-              fontWeight: 700,
-            }}
-          >
-            Scenario
-          </div>
-          <div
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "12px",
-              fontWeight: 700,
-            }}
-          >
-            Delta
-          </div>
+        <div className="mt-4 hidden border-b border-[var(--border-primary)] pb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] md:grid md:grid-cols-4 md:gap-3">
+          <div>Metric</div>
+          <div>Live</div>
+          <div>Scenario</div>
+          <div>Delta</div>
         </div>
 
-        <DeltaRow
-          label={DRIVER_META.productive_labour_cost_rate.label}
-          liveValue={Number(liveOutputs.productive_labour_cost_rate ?? 0)}
-          scenarioValue={Number(scenarioOutputs.productive_labour_cost_rate ?? 0)}
-          isHighlighted={highlightedKey === "productive_labour_cost_rate"}
-        />
+        <div className="mt-4 space-y-3">
+          <DeltaRow
+            label={DRIVER_META.productive_labour_cost_rate.label}
+            liveValue={Number(liveOutputs.productive_labour_cost_rate ?? 0)}
+            scenarioValue={Number(scenarioOutputs.productive_labour_cost_rate ?? 0)}
+            isHighlighted={highlightedKey === "productive_labour_cost_rate"}
+          />
 
-        <DeltaRow
-          label={DRIVER_META.minimum_charge_out_rate.label}
-          liveValue={Number(liveOutputs.minimum_charge_out_rate ?? 0)}
-          scenarioValue={Number(scenarioOutputs.minimum_charge_out_rate ?? 0)}
-          isHighlighted={highlightedKey === "minimum_charge_out_rate"}
-        />
+          <DeltaRow
+            label={DRIVER_META.minimum_charge_out_rate.label}
+            liveValue={Number(liveOutputs.minimum_charge_out_rate ?? 0)}
+            scenarioValue={Number(scenarioOutputs.minimum_charge_out_rate ?? 0)}
+            isHighlighted={highlightedKey === "minimum_charge_out_rate"}
+          />
 
-        <DeltaRow
-          label={DRIVER_META.profit_per_hour.label}
-          liveValue={liveProfitPerHour}
-          scenarioValue={Number(scenarioOutputs.profit_per_hour ?? 0)}
-          isHighlighted={highlightedKey === "profit_per_hour"}
-        />
+          <DeltaRow
+            label={DRIVER_META.profit_per_hour.label}
+            liveValue={liveProfitPerHour}
+            scenarioValue={Number(scenarioOutputs.profit_per_hour ?? 0)}
+            isHighlighted={highlightedKey === "profit_per_hour"}
+          />
 
-        <DeltaRow
-          label={DRIVER_META.above_recovery.label}
-          liveValue={liveAboveRecovery}
-          scenarioValue={Number(scenarioOutputs.above_recovery ?? 0)}
-          isHighlighted={highlightedKey === "above_recovery"}
-        />
+          <DeltaRow
+            label={DRIVER_META.above_recovery.label}
+            liveValue={liveAboveRecovery}
+            scenarioValue={Number(scenarioOutputs.above_recovery ?? 0)}
+            isHighlighted={highlightedKey === "above_recovery"}
+          />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

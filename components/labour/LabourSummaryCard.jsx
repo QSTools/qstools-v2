@@ -13,7 +13,7 @@ export default function LabourSummaryCard({ state, outputs, has_profile }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <h2 className="text-lg font-semibold">Labour Summary</h2>
       <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
         Live commercial outputs from the active labour profile

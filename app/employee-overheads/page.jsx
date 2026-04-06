@@ -75,7 +75,7 @@ export default function EmployeeOverheadsPage() {
           type="button"
           onClick={saveDraftProfile}
           disabled={!has_selected_staff}
-          className="rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-medium"
+          className="rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm min-h-[44px] font-medium"
         >
           Save Employee Overheads Profile
         </button>

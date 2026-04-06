@@ -11,7 +11,7 @@ export default function EmployerContributionsCard({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -19,7 +19,7 @@ export default function EmployerContributionsCard({
       >
         <div>
           <h2 className="text-lg font-semibold">Employer Contributions</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <p className="ui-help">
             NZ KiwiSaver and ESCT are calculated automatically from annual gross wages
           </p>
         </div>
@@ -39,7 +39,7 @@ export default function EmployerContributionsCard({
                   update_field("employee_kiwisaver_enabled", e.target.value === "true")
                 }
                 disabled={!has_profile}
-                className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+                className="ui-input"
               >
                 <option value="true">Yes</option>
                 <option value="false">No</option>
@@ -87,7 +87,7 @@ export default function EmployerContributionsCard({
 function Field({ label, children }) {
   return (
     <label className="block">
-      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
+      <div className="ui-label">{label}</div>
       {children}
     </label>
   );
@@ -96,8 +96,8 @@ function Field({ label, children }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div>
-      <div className="mb-2 text-sm text-[var(--text-secondary)]">{label}</div>
-      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]">
+      <div className="ui-label">{label}</div>
+      <div className="ui-readonly">
         {value}
       </div>
     </div>

@@ -36,11 +36,11 @@ export default function EmployeeOverheadLibraryCard({
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Company Custom Overhead Library</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <p className="ui-help">
             Company-level reusable templates only. Templates do not auto-apply
             to staff.
           </p>
@@ -49,7 +49,7 @@ export default function EmployeeOverheadLibraryCard({
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
         >
           {is_open ? "Collapse" : "Expand"}
         </button>
@@ -63,7 +63,7 @@ export default function EmployeeOverheadLibraryCard({
               value={custom_overhead_name}
               onChange={(e) => setCustomOverheadName(e.target.value)}
               placeholder="Custom overhead name"
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             />
 
             <input
@@ -73,13 +73,13 @@ export default function EmployeeOverheadLibraryCard({
               value={default_amount_annual}
               onChange={(e) => setDefaultAmountAnnual(e.target.value)}
               placeholder="Default annual amount"
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             />
 
             <button
               type="button"
               onClick={submitNewTemplate}
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             >
               Add Template
             </button>
@@ -107,7 +107,7 @@ export default function EmployeeOverheadLibraryCard({
                         custom_overhead_name: e.target.value,
                       })
                     }
-                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
                   />
 
                   <input
@@ -121,7 +121,7 @@ export default function EmployeeOverheadLibraryCard({
                         default_amount_annual: e.target.value,
                       })
                     }
-                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
                   />
 
                   <button
@@ -131,13 +131,13 @@ export default function EmployeeOverheadLibraryCard({
                         item.custom_overhead_template_id
                       )
                     }
-                    className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-3 py-2 text-sm text-[var(--danger)]"
+                    className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-4 py-3 text-sm min-h-[44px] text-[var(--danger)]"
                   >
                     Deactivate
                   </button>
                 </div>
 
-                <div className="mt-2 text-xs text-[var(--text-muted)]">
+                <div className="mt-2 text-sm text-[var(--text-muted)]">
                   {item.is_active ? "Active" : "Inactive"} • Default{" "}
                   {format_currency(item.default_amount_annual)}
                 </div>

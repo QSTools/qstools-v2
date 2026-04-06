@@ -2,16 +2,18 @@
 
 function Pill({ children, tone = "neutral" }) {
   const toneClasses = {
-    neutral: "border-[var(--border-strong)] bg-[var(--bg-card-muted)]/80 text-[var(--text-primary)]",
+    neutral:
+      "border-[var(--border-strong)] bg-[var(--bg-card-muted)]/80 text-[var(--text-primary)]",
     ok: "border-[var(--success)] bg-[var(--success-soft)]/60 text-[var(--success)]",
     warn: "border-[var(--warning)] bg-[var(--warning-soft)]/60 text-[var(--warning)]",
-    danger: "border-[var(--danger)] bg-[var(--danger-soft)]/60 text-[var(--danger)]",
+    danger:
+      "border-[var(--danger)] bg-[var(--danger-soft)]/60 text-[var(--danger)]",
     info: "border-[var(--info)] bg-[var(--info-soft)]/60 text-[var(--info)]",
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${toneClasses[tone]}`}
+      className={`inline-flex items-center rounded-full border px-3 py-2 text-xs min-h-[40px] font-medium ${toneClasses[tone]}`}
     >
       {children}
     </span>
@@ -19,26 +21,23 @@ function Pill({ children, tone = "neutral" }) {
 }
 
 function StatusItem({ label, value, tone = "neutral" }) {
+  const valueToneClass =
+    tone === "danger"
+      ? "text-[var(--danger)]"
+      : tone === "warn"
+        ? "text-[var(--warning)]"
+        : tone === "ok"
+          ? "text-[var(--success)]"
+          : tone === "info"
+            ? "text-[var(--info)]"
+            : "text-[var(--text-primary)]";
+
   return (
     <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)]/70 p-4">
       <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
         {label}
       </div>
-      <div
-        className={`mt-2 text-sm font-semibold ${
-          tone === "danger"
-            ? "text-[var(--danger)]"
-            : tone === "warn"
-              ? "text-[var(--warning)]"
-              : tone === "ok"
-                ? "text-[var(--success)]"
-                : tone === "info"
-                  ? "text-[var(--info)]"
-                  : "text-[var(--text-primary)]"
-        }`}
-      >
-        {value}
-      </div>
+      <div className={`mt-2 text-sm font-semibold ${valueToneClass}`}>{value}</div>
     </div>
   );
 }
@@ -69,13 +68,13 @@ export default function CostSummaryStatusStrip({
         : "warn";
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Cost Summary Status
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <p className="ui-help">
             Live recovery structure and upstream readiness.
           </p>
         </div>
@@ -133,7 +132,9 @@ export default function CostSummaryStatusStrip({
           </div>
 
           <div className="rounded-2xl border border-[var(--warning)]/80 bg-[var(--warning-soft)]/40 p-4">
-            <div className="text-sm font-semibold text-[var(--warning)]">Warnings</div>
+            <div className="text-sm font-semibold text-[var(--warning)]">
+              Warnings
+            </div>
             {hasWarnings ? (
               <ul className="mt-3 space-y-2 text-sm text-[var(--warning)]">
                 {warnings.map((item) => (

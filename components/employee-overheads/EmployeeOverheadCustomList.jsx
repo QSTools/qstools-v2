@@ -21,15 +21,15 @@ export default function EmployeeOverheadCustomList({
   const active_library_items = library_items.filter((item) => item.is_active);
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <h2 className="text-lg font-semibold">Staff Custom Overheads</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <p className="ui-help">
         Assign company library items to the selected staff member and override
         annual values if needed.
       </p>
 
       <div className="mt-4">
-        <div className="mb-2 text-sm text-[var(--text-secondary)]">Add From Library</div>
+        <div className="ui-label">Add From Library</div>
         <div className="flex flex-wrap gap-2">
           {active_library_items.length === 0 && (
             <div className="text-sm text-[var(--text-muted)]">
@@ -45,7 +45,7 @@ export default function EmployeeOverheadCustomList({
                 addCustomAssignmentFromTemplate(item.custom_overhead_template_id)
               }
               disabled={disabled}
-              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             >
               Add {item.custom_overhead_name} ({format_currency(item.default_amount_annual)})
             </button>
@@ -75,7 +75,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
               />
 
               <input
@@ -89,7 +89,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
               />
 
               <button
@@ -98,13 +98,13 @@ export default function EmployeeOverheadCustomList({
                   deactivateCustomAssignmentRow(row.staff_overhead_item_id)
                 }
                 disabled={disabled}
-                className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-3 py-2 text-sm text-[var(--danger)]"
+                className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-4 py-3 text-sm min-h-[44px] text-[var(--danger)]"
               >
                 Remove
               </button>
             </div>
 
-            <div className="mt-2 text-xs text-[var(--text-muted)]">
+            <div className="mt-2 text-sm text-[var(--text-muted)]">
               {row.is_active ? "Active" : "Inactive"}
             </div>
           </div>

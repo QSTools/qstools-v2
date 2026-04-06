@@ -46,7 +46,7 @@ function Badge({ tone, text }) {
   };
 
   return (
-    <div className={`rounded-full border px-3 py-1 text-xs ${classes[tone]}`}>
+    <div className={`rounded-full border px-3 py-2 text-xs min-h-[40px] ${classes[tone]}`}>
       {text}
     </div>
   );

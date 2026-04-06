@@ -2,7 +2,7 @@
 
 export default function LabourHelpPanel() {
   return (
-    <details className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <details className="ui-section">
       <summary className="cursor-pointer list-none text-lg font-semibold">
         Labour Help
       </summary>

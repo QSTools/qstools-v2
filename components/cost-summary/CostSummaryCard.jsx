@@ -9,6 +9,42 @@ function formatMoney(value) {
   })}`;
 }
 
+function SummaryRow({ label, value, isTotal = false }) {
+  return (
+    <div
+      className={[
+        "flex items-center justify-between gap-4",
+        isTotal
+          ? "border-t border-[var(--border-primary)] pt-4 font-semibold text-[var(--text-primary)]"
+          : "text-[var(--text-primary)]",
+      ].join(" ")}
+    >
+      <span>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, toneClass = "text-[var(--text-primary)]" }) {
+  return (
+    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
+      <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+        {label}
+      </div>
+      <div className={`mt-2 text-2xl font-bold ${toneClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function DrilldownMetric({ label, value }) {
+  return (
+    <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
+      <div className="text-[var(--text-muted)]">{label}</div>
+      <div className="mt-1 text-[var(--text-primary)]">{value}</div>
+    </div>
+  );
+}
+
 export default function CostSummaryCard({
   recovery_model_label,
   linked_staff_count,
@@ -36,15 +72,19 @@ export default function CostSummaryCard({
 
   return (
     <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-5">
-      <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Cost Summary</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+        Cost Summary
+      </h2>
+      <p className="ui-help">
         Internal cost burden and required recovery view.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[2.2fr_1fr]">
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Recovery Model Block</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+        <div className="ui-panel">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Recovery Model Block
+          </h3>
+          <p className="ui-help">
             Active structural recovery settings from Cost Allocation.
           </p>
 
@@ -78,7 +118,7 @@ export default function CostSummaryCard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
+        <div className="ui-section-muted">
           <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
             Current Warnings
           </div>
@@ -100,21 +140,25 @@ export default function CostSummaryCard({
         <button
           type="button"
           onClick={() => setPeopleCostOpen((prev) => !prev)}
-          className="flex w-full items-start justify-between gap-4 text-left"
+          className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
         >
           <div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">People Cost</h3>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+              People Cost
+            </h3>
+            <p className="ui-help">
               Gross Wages + Entitlements + ESCT + Employee Overheads
             </p>
           </div>
 
-          <div className="flex items-center gap-4 text-right">
-            <div className="text-3xl font-bold text-[var(--text-primary)]">
+          <div className="flex items-center justify-between gap-4 sm:text-right">
+            <div className="text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
               {formatMoney(people_cost_total)}
-              <span className="ml-1 text-base font-normal text-[var(--text-muted)]">/ year</span>
+              <span className="ml-1 text-base font-normal text-[var(--text-muted)]">
+                / year
+              </span>
             </div>
-            <span className="pt-1 text-[var(--text-muted)]">
+            <span className="text-[var(--text-muted)]">
               {peopleCostOpen ? "−" : "+"}
             </span>
           </div>
@@ -123,30 +167,18 @@ export default function CostSummaryCard({
         {peopleCostOpen && (
           <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
             <div className="space-y-4 text-base">
-              <div className="flex items-center justify-between text-[var(--text-primary)]">
-                <span>Gross Wages</span>
-                <span>{formatMoney(gross_wages_total)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[var(--text-primary)]">
-                <span>Entitlements</span>
-                <span>{formatMoney(entitlements_total)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[var(--text-primary)]">
-                <span>ESCT</span>
-                <span>{formatMoney(esct_total)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-[var(--text-primary)]">
-                <span>Employee Overheads</span>
-                <span>{formatMoney(employee_overheads_total)}</span>
-              </div>
-
-              <div className="border-t border-[var(--border-primary)] pt-4 flex items-center justify-between font-semibold text-[var(--text-primary)]">
-                <span>Total People Cost</span>
-                <span>{formatMoney(people_cost_total)}</span>
-              </div>
+              <SummaryRow label="Gross Wages" value={formatMoney(gross_wages_total)} />
+              <SummaryRow label="Entitlements" value={formatMoney(entitlements_total)} />
+              <SummaryRow label="ESCT" value={formatMoney(esct_total)} />
+              <SummaryRow
+                label="Employee Overheads"
+                value={formatMoney(employee_overheads_total)}
+              />
+              <SummaryRow
+                label="Total People Cost"
+                value={formatMoney(people_cost_total)}
+                isTotal
+              />
             </div>
 
             <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
@@ -159,7 +191,7 @@ export default function CostSummaryCard({
                   <div className="text-sm font-medium text-[var(--text-secondary)]">
                     Staff Drilldown
                   </div>
-                  <div className="mt-1 text-xs text-[var(--text-muted)]">
+                  <div className="ui-help">
                     View staff-level people cost build-up
                   </div>
                 </div>
@@ -177,7 +209,7 @@ export default function CostSummaryCard({
                         key={row.staff_id ?? row.staff_name}
                         className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4"
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <div className="font-semibold text-[var(--text-primary)]">
                               {row.staff_name}
@@ -189,48 +221,34 @@ export default function CostSummaryCard({
                             </div>
                           </div>
 
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             <div className="font-semibold text-[var(--text-primary)]">
                               {formatMoney(row.total_people_cost)}
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-1 gap-2 text-sm md:grid-cols-5">
-                          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-                            <div className="text-[var(--text-muted)]">Gross Wages</div>
-                            <div className="mt-1 text-[var(--text-primary)]">
-                              {formatMoney(row.gross_wages_total)}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-                            <div className="text-[var(--text-muted)]">Entitlements</div>
-                            <div className="mt-1 text-[var(--text-primary)]">
-                              {formatMoney(row.entitlement_cost_total)}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-                            <div className="text-[var(--text-muted)]">ESCT</div>
-                            <div className="mt-1 text-[var(--text-primary)]">
-                              {formatMoney(row.esct_total)}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-                            <div className="text-[var(--text-muted)]">Employee Overheads</div>
-                            <div className="mt-1 text-[var(--text-primary)]">
-                              {formatMoney(row.employee_overheads_total)}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-input)] p-3">
-                            <div className="text-[var(--text-muted)]">Productive Hours</div>
-                            <div className="mt-1 text-[var(--text-primary)]">
-                              {Number(row.productive_hours || 0).toLocaleString()}
-                            </div>
-                          </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                          <DrilldownMetric
+                            label="Gross Wages"
+                            value={formatMoney(row.gross_wages_total)}
+                          />
+                          <DrilldownMetric
+                            label="Entitlements"
+                            value={formatMoney(row.entitlement_cost_total)}
+                          />
+                          <DrilldownMetric
+                            label="ESCT"
+                            value={formatMoney(row.esct_total)}
+                          />
+                          <DrilldownMetric
+                            label="Employee Overheads"
+                            value={formatMoney(row.employee_overheads_total)}
+                          />
+                          <DrilldownMetric
+                            label="Productive Hours"
+                            value={Number(row.productive_hours || 0).toLocaleString()}
+                          />
                         </div>
                       </div>
                     ))
@@ -247,59 +265,45 @@ export default function CostSummaryCard({
       </div>
 
       <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Business Cost</h3>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          Business Cost
+        </h3>
+        <p className="ui-help">
           Assets + General Overheads
         </p>
 
         <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 space-y-4">
-          <div className="flex items-center justify-between text-[var(--text-primary)]">
-            <span>Assets</span>
-            <span>{formatMoney(asset_cost_total)}</span>
-          </div>
-
-          <div className="flex items-center justify-between text-[var(--text-primary)]">
-            <span>General Overheads</span>
-            <span>{formatMoney(general_overheads_total)}</span>
-          </div>
-
-          <div className="border-t border-[var(--border-primary)] pt-4 flex items-center justify-between font-semibold text-[var(--text-primary)]">
-            <span>Total Business Cost</span>
-            <span>{formatMoney(business_cost_total)}</span>
-          </div>
+          <SummaryRow label="Assets" value={formatMoney(asset_cost_total)} />
+          <SummaryRow
+            label="General Overheads"
+            value={formatMoney(general_overheads_total)}
+          />
+          <SummaryRow
+            label="Total Business Cost"
+            value={formatMoney(business_cost_total)}
+            isTotal
+          />
         </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Total Cost & Recovery</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          Total Cost & Recovery
+        </h3>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-              Total Cost Burden
-            </div>
-            <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">
-              {formatMoney(total_cost_burden)}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-              Required Revenue
-            </div>
-            <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">
-              {formatMoney(required_revenue)}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-              Required Recovery Rate
-            </div>
-            <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">
-              {formatMoney(required_recovery_rate)}
-            </div>
-          </div>
+          <MetricCard
+            label="Total Cost Burden"
+            value={formatMoney(total_cost_burden)}
+          />
+          <MetricCard
+            label="Required Revenue"
+            value={formatMoney(required_revenue)}
+          />
+          <MetricCard
+            label="Required Recovery Rate"
+            value={formatMoney(required_recovery_rate)}
+          />
         </div>
 
         <div className="mt-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4 text-sm text-[var(--success)]">

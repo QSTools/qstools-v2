@@ -7,9 +7,9 @@ export default function EmployeeOverheadStaffCard({
   selected_staff = null,
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <h2 className="text-lg font-semibold">Staff Selection</h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <p className="ui-help">
         Select an active Labour staff member. Employee Overheads does not create
         staff identities.
       </p>
@@ -19,7 +19,7 @@ export default function EmployeeOverheadStaffCard({
         <select
           value={selected_staff_id}
           onChange={(e) => setSelectedStaffId(e.target.value)}
-          className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+          className="ui-input"
         >
           <option value="">Select staff</option>
           {staff_options.map((staff) => (

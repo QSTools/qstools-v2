@@ -7,7 +7,7 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
 
   if (!has_profile) {
     return (
-      <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+      <section className="ui-section">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">Charge-Out Build</h2>
@@ -42,7 +42,7 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
       : "bad";
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Charge-Out Build</h2>
@@ -103,7 +103,7 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
             />
 
             <div className="mt-3 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3">
-              <div className="text-xs text-[var(--success)]">Recommended Charge-Out</div>
+              <div className="text-sm text-[var(--success)]">Recommended Charge-Out</div>
               <div className="text-xl font-semibold text-white">
                 {fmtCur(outputs.minimum_charge_out_rate)}
               </div>
@@ -132,7 +132,7 @@ function MarginIndicator({ status, gap }) {
       : "Below target margin";
 
   return (
-    <div className={`mt-3 rounded-xl border px-4 py-2 text-sm ${styles[status]}`}>
+    <div className={`mt-3 rounded-xl border px-4 py-3 text-sm min-h-[44px] ${styles[status]}`}>
       {text} ({fmtCur(gap)})
     </div>
   );

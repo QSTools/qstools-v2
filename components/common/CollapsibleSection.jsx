@@ -14,15 +14,19 @@ export default function CollapsibleSection({
     <details
       open={isOpen}
       onToggle={(e) => setIsOpen(e.currentTarget.open)}
-      className="rounded-2xl border border-neutral-800 bg-neutral-900"
+      className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]"
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
         <div>
-          <div className="text-sm font-semibold text-white">{title}</div>
-          <div className="mt-1 text-xs text-neutral-400">{summary}</div>
+          <div className="text-sm font-semibold text-[var(--text-primary)]">
+            {title}
+          </div>
+          <div className="ui-help">
+            {summary}
+          </div>
         </div>
 
-        <span className="text-sm text-neutral-400">
+        <span className="text-sm text-[var(--text-muted)]">
           {isOpen ? "Hide" : "Show"}
         </span>
       </summary>

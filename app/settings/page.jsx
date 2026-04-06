@@ -12,7 +12,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
           Settings
         </h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
+        <p className="ui-help">
           Manage app-level preferences for QS Tools.
         </p>
       </section>

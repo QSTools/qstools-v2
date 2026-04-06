@@ -32,11 +32,11 @@ export default function SavedProfilesCard({
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Saved Profiles</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <p className="ui-help">
             Load, edit, save, or delete your labour profiles.
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function SavedProfilesCard({
         <button
           type="button"
           onClick={() => setIsOpen((previous) => !previous)}
-          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-2 text-sm text-[var(--text-primary)]"
+          className="ui-readonly"
         >
           {is_open ? "Hide Profiles" : "Show Profiles"}
         </button>
@@ -55,7 +55,7 @@ export default function SavedProfilesCard({
           type="button"
           onClick={save_profile}
           disabled={!has_profile || !active_profile_id}
-          className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-xl bg-white px-4 py-3 text-sm min-h-[44px] font-medium text-black disabled:cursor-not-allowed disabled:opacity-40"
         >
           Save Active Profile
         </button>
@@ -63,7 +63,7 @@ export default function SavedProfilesCard({
         <button
           type="button"
           onClick={start_new_profile}
-          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-2 text-sm text-[var(--text-primary)]"
+          className="ui-readonly"
         >
           Start New Profile
         </button>
@@ -97,11 +97,11 @@ export default function SavedProfilesCard({
                       <div className="text-sm font-medium text-white">
                         {profile_name}
                       </div>
-                      <div className="mt-1 text-sm text-[var(--text-muted)]">
+                      <div className="ui-help">
                         {profile.data?.staff_role || "No role"} ·{" "}
                         {profile.data?.labour_class || "No class"}
                       </div>
-                      <div className="mt-2 text-xs text-[var(--text-muted)]">
+                      <div className="mt-2 text-sm text-[var(--text-muted)]">
                         Updated:{" "}
                         {format_date(profile.updated_at || profile.created_at)}
                       </div>
@@ -109,7 +109,7 @@ export default function SavedProfilesCard({
 
                     <div className="flex flex-col items-end gap-2">
                       {is_active && (
-                        <div className="rounded-full border border-[var(--success)] bg-[var(--success-soft)] px-3 py-1 text-xs text-[var(--success)]">
+                        <div className="rounded-full border border-[var(--success)] bg-[var(--success-soft)] px-3 py-2 text-sm min-h-[40px] text-[var(--success)]">
                           Active
                         </div>
                       )}
@@ -118,7 +118,7 @@ export default function SavedProfilesCard({
                         <button
                           type="button"
                           onClick={() => load_profile(profile.profile_id)}
-                          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px] text-[var(--text-primary)]"
                         >
                           Load
                         </button>
@@ -128,7 +128,7 @@ export default function SavedProfilesCard({
                           onClick={() =>
                             handle_delete(profile.profile_id, profile_name)
                           }
-                          className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger)]"
+                          className="rounded-xl border border-[var(--danger)] bg-[var(--danger-soft)] px-4 py-3 text-sm min-h-[44px] text-[var(--danger)]"
                         >
                           Delete
                         </button>

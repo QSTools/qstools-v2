@@ -12,11 +12,11 @@ export default function ThemeSettingsCard({
   };
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <h2 className="text-xl font-semibold text-[var(--text-primary)]">
         Theme
       </h2>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
+      <p className="ui-help">
         Choose how QS Tools looks across the whole app.
       </p>
 
@@ -37,7 +37,7 @@ export default function ThemeSettingsCard({
               ].join(" ")}
             >
               <div className="text-base font-semibold">{labels[option]}</div>
-              <div className="mt-1 text-sm text-[var(--text-muted)]">
+              <div className="ui-help">
                 {option === "light" && "Bright workspace with light surfaces."}
                 {option === "medium" &&
                   "Balanced darker interface with softer contrast."}

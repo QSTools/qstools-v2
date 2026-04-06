@@ -6,11 +6,11 @@ export default function EmployeeOverheadHelpPanel() {
   const [is_open, setIsOpen] = useState(false);
 
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-5">
+    <section className="ui-section">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Help</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
+          <p className="ui-help">
             Module scope and boundary definitions.
           </p>
         </div>
@@ -18,7 +18,7 @@ export default function EmployeeOverheadHelpPanel() {
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-3 py-2 text-sm"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
         >
           {is_open ? "Collapse" : "Expand"}
         </button>
