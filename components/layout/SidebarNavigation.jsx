@@ -45,76 +45,74 @@ export default function SidebarNavigation() {
   }
 
   return (
-    <aside className="min-h-screen w-full border-r border-[var(--border-primary)] bg-[var(--bg-card)] p-4 text-[var(--text-primary)]">
+    <aside className="min-h-screen border-r border-[var(--border-primary)] bg-[var(--bg-card)] p-4 text-[var(--text-primary)]">
       <div className="mb-6">
-        <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-          QS Tools
-        </div>
+        <div className="ui-kicker">QS Tools</div>
         <div className="text-2xl font-semibold text-[var(--text-primary)]">
           Navigation
         </div>
       </div>
 
-      {navGroups.map((group) => (
-        <div key={group.label} className="mb-5">
-          <button
-            type="button"
-            onClick={() => toggleGroup(group.label)}
-            className="w-full rounded-lg border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-3 py-2 text-left font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
-          >
-            {openGroups[group.label] ? "▾" : "▸"} {group.label}
-          </button>
+      <div className="ui-stack">
+        {navGroups.map((group) => (
+          <div key={group.label} className="ui-stack">
+            <button
+              type="button"
+              onClick={() => toggleGroup(group.label)}
+              className="ui-button-secondary w-full justify-start text-left"
+            >
+              {openGroups[group.label] ? "▾" : "▸"} {group.label}
+            </button>
 
-          {openGroups[group.label] && (
-            <div className="mt-2 pl-3">
-              {group.items.map((item) => {
-                const active = isActive(item.href);
+            {openGroups[group.label] ? (
+              <div className="ui-stack pl-3">
+                {group.items.map((item) => {
+                  const active = isActive(item.href);
 
-                return (
-                  <div key={item.href} className="mb-1.5">
+                  return (
                     <Link
+                      key={item.href}
                       href={item.href}
                       className={[
-                        "block rounded-md px-4 py-3 no-underline transition-colors",
+                        "block rounded-xl px-4 py-3 no-underline transition-colors",
                         active
-                          ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
+                          ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)] font-semibold"
                           : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
                       ].join(" ")}
                     >
                       {item.label}
                     </Link>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ))}
+
+        <div className="mt-4 border-t border-[var(--border-primary)] pt-4">
+          <div className="ui-kicker mb-3">Standalone</div>
+
+          <div className="ui-stack">
+            {standaloneItems.map((item) => {
+              const active = isActive(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={[
+                    "block rounded-xl px-4 py-3 no-underline transition-colors",
+                    active
+                      ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)] font-semibold"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      ))}
-
-      <div className="mt-7 border-t border-[var(--border-primary)] pt-4">
-        <div className="mb-2.5 text-xs uppercase tracking-wide text-[var(--text-muted)]">
-          Standalone
-        </div>
-
-        {standaloneItems.map((item) => {
-          const active = isActive(item.href);
-
-          return (
-            <div key={item.href} className="mb-1.5">
-              <Link
-                href={item.href}
-                className={[
-                  "block rounded-md px-4 py-3 no-underline transition-colors",
-                  active
-                    ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
-                    : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
-                ].join(" ")}
-              >
-                {item.label}
-              </Link>
-            </div>
-          );
-        })}
       </div>
     </aside>
   );

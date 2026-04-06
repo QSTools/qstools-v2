@@ -11,6 +11,7 @@ import CommercialCard from "@/components/labour/CommercialCard";
 import EntitlementsCard from "@/components/labour/EntitlementsCard";
 import EmployerContributionsCard from "@/components/labour/EmployerContributionsCard";
 
+import LabourSummaryCard from "@/components/labour/LabourSummaryCard";
 import LabourFlowCard from "@/components/labour/LabourFlowCard";
 import ScenarioModelCard from "@/components/labour/ScenarioModelCard";
 import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
@@ -25,8 +26,6 @@ export default function LabourPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
-
-        {/* HEADER */}
         <header className="ui-section">
           <div className="ui-stack">
             <h1 className="text-2xl font-semibold">
@@ -43,13 +42,9 @@ export default function LabourPage() {
           </div>
         </header>
 
-        {/* PHASE 4 LAYOUT */}
         <section className="labour-layout">
-
-          {/* LEFT — INPUTS */}
           <div className="labour-layout__left">
             <div className="labour-layout__left-stack">
-
               <LabourProfileCard
                 state={labour.state}
                 has_profile={labour.has_profile}
@@ -113,14 +108,11 @@ export default function LabourPage() {
                   update_field={labour.update_field}
                 />
               </CollapsibleSection>
-
             </div>
           </div>
 
-          {/* RIGHT — OUTPUTS */}
           <aside className="labour-layout__right">
             <div className="labour-layout__right-stack">
-
               <LabourStatusStrip
                 has_profile={labour.has_profile}
                 inputs_enabled={labour.inputs_enabled}
@@ -129,9 +121,15 @@ export default function LabourPage() {
                 staff_name={labour.state.staff_name}
               />
 
-              <TopDriverCard
+              <LabourSummaryCard
                 state={labour.state}
                 outputs={labour.outputs}
+                has_profile={labour.has_profile}
+              />
+
+              <TopDriverCard
+                outputs={labour.outputs}
+                state={labour.state}
                 has_profile={labour.has_profile}
               />
 
@@ -140,14 +138,11 @@ export default function LabourPage() {
                 state={labour.state}
                 has_profile={labour.has_profile}
               />
-
             </div>
           </aside>
 
-          {/* BOTTOM — FULL WIDTH */}
           <div className="labour-layout__bottom">
             <div className="labour-layout__bottom-stack">
-
               <CollapsibleSection
                 title="Scenario Modeller"
                 summary="What-if pricing and productivity testing"
@@ -161,10 +156,8 @@ export default function LabourPage() {
               </CollapsibleSection>
 
               <LabourHelpPanel />
-
             </div>
           </div>
-
         </section>
       </div>
     </main>

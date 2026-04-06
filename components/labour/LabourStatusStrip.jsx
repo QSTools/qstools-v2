@@ -8,8 +8,8 @@ export default function LabourStatusStrip({
   staff_name,
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
-      <div className="flex flex-wrap gap-3">
+    <section className="ui-section">
+      <div className="ui-actions">
         <Badge
           tone={has_profile ? "good" : "neutral"}
           text={has_profile ? `Profile: ${staff_name || "Active"}` : "No profile"}
@@ -27,8 +27,8 @@ export default function LabourStatusStrip({
             margin_health === "healthy"
               ? "good"
               : margin_health === "at-risk"
-              ? "warn"
-              : "bad"
+                ? "warn"
+                : "bad"
           }
           text={`Margin: ${margin_health}`}
         />
@@ -42,12 +42,9 @@ function Badge({ tone, text }) {
     good: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
     warn: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
     bad: "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
-    neutral: "border-[var(--border-strong)] bg-[var(--bg-input)] text-[var(--text-secondary)]",
+    neutral:
+      "border-[var(--border-strong)] bg-[var(--bg-input)] text-[var(--text-secondary)]",
   };
 
-  return (
-    <div className={`rounded-full border px-3 py-2 text-xs min-h-[40px] ${classes[tone]}`}>
-      {text}
-    </div>
-  );
+  return <div className={`ui-pill ${classes[tone]}`}>{text}</div>;
 }

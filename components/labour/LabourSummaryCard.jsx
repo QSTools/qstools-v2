@@ -14,37 +14,41 @@ export default function LabourSummaryCard({ state, outputs, has_profile }) {
 
   return (
     <section className="ui-section">
-      <h2 className="text-lg font-semibold">Labour Summary</h2>
-      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
-        Live commercial outputs from the active labour profile
-      </p>
-
-      {!has_profile ? (
-        <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-6 text-sm text-[var(--text-muted)]">
-          Create a labour profile to unlock live outputs.
+      <div className="ui-stack">
+        <div>
+          <h2 className="text-lg font-semibold">Labour Summary</h2>
+          <p className="ui-help">
+            Live commercial outputs from the active labour profile
+          </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-              Active Profile
-            </div>
-            <div className="mt-1 text-sm text-[var(--text-primary)]">
-              {state.staff_name || "Unnamed"} · {state.staff_role || "No role"}
-            </div>
+
+        {!has_profile ? (
+          <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-6 text-sm text-[var(--text-muted)]">
+            Create a labour profile to unlock live outputs.
           </div>
-
-          {rows.map(([label, value]) => (
-            <div
-              key={label}
-              className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3"
-            >
-              <span className="text-sm text-[var(--text-secondary)]">{label}</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{value}</span>
+        ) : (
+          <div className="ui-stack">
+            <div className="ui-panel">
+              <div className="ui-kicker">Active Profile</div>
+              <div className="mt-1 text-sm text-[var(--text-primary)]">
+                {state.staff_name || "Unnamed"} · {state.staff_role || "No role"}
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            {rows.map(([label, value]) => (
+              <div
+                key={label}
+                className="ui-panel"
+              >
+                <div className="text-sm text-[var(--text-secondary)]">{label}</div>
+                <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

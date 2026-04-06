@@ -13,39 +13,52 @@ export default function ThemeSettingsCard({
 
   return (
     <section className="ui-section">
-      <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-        Theme
-      </h2>
-      <p className="ui-help">
-        Choose how QS Tools looks across the whole app.
-      </p>
+      <div className="ui-stack">
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {availableThemes.map((option) => {
-          const active = theme === option;
+        <div>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+            Theme
+          </h2>
+          <p className="ui-help">
+            Choose how QS Tools looks across the whole app.
+          </p>
+        </div>
 
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setTheme(option)}
-              className={[
-                "rounded-2xl border p-4 text-left transition-colors",
-                active
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--text-primary)]"
-                  : "border-[var(--border-primary)] bg-[var(--bg-card-muted)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]",
-              ].join(" ")}
-            >
-              <div className="text-base font-semibold">{labels[option]}</div>
-              <div className="ui-help">
-                {option === "light" && "Bright workspace with light surfaces."}
-                {option === "medium" &&
-                  "Balanced darker interface with softer contrast."}
-                {option === "dark" && "Deep dark mode for lower glare."}
-              </div>
-            </button>
-          );
-        })}
+        <div className="ui-stack">
+          {availableThemes.map((option) => {
+            const active = theme === option;
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setTheme(option)}
+                className={[
+                  "ui-panel text-left transition-colors",
+                  active
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                    : "hover:bg-[var(--bg-card-muted)]",
+                ].join(" ")}
+              >
+                <div className="ui-stack">
+                  <div className="text-base font-semibold text-[var(--text-primary)]">
+                    {labels[option]}
+                  </div>
+
+                  <div className="ui-help">
+                    {option === "light" &&
+                      "Bright workspace with light surfaces."}
+                    {option === "medium" &&
+                      "Balanced darker interface with softer contrast."}
+                    {option === "dark" &&
+                      "Deep dark mode for lower glare."}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
       </div>
     </section>
   );

@@ -11,15 +11,13 @@ export default function LabourInsightsRow({ state, outputs, has_profile }) {
     outputs.margin_gap > 0
       ? "good"
       : outputs.margin_gap === 0
-      ? "neutral"
-      : "bad";
+        ? "neutral"
+        : "bad";
 
   const drivers = get_cost_drivers(state, outputs);
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-      {/* 1. RATE COMPARISON */}
+    <div className="ui-stack">
       <Card title="Charge-Out Position">
         <Row label="Break-even" value={fmtCur(break_even)} />
         <Row label="Target Rate" value={fmtCur(target)} />
@@ -30,14 +28,12 @@ export default function LabourInsightsRow({ state, outputs, has_profile }) {
         </div>
       </Card>
 
-      {/* 2. WARNING STATE */}
       <Card title="Margin Status">
         <div className="space-y-2 text-sm">
           <StatusBanner status={margin_status} gap={outputs.margin_gap} />
         </div>
       </Card>
 
-      {/* 3. COST DRIVERS */}
       <Card title="What’s Driving Your Cost">
         <div className="space-y-2 text-sm text-[var(--text-secondary)]">
           {drivers.map((d, i) => (
@@ -45,7 +41,6 @@ export default function LabourInsightsRow({ state, outputs, has_profile }) {
           ))}
         </div>
       </Card>
-
     </div>
   );
 }
@@ -105,8 +100,8 @@ function StatusBadge({ status, gap }) {
     status === "good"
       ? "Above Target"
       : status === "neutral"
-      ? "At Target"
-      : "Below Target";
+        ? "At Target"
+        : "Below Target";
 
   return (
     <div className={`text-sm font-medium ${styles[status]}`}>
@@ -126,11 +121,11 @@ function StatusBanner({ status, gap }) {
     status === "good"
       ? "You are charging above your target margin"
       : status === "neutral"
-      ? "You are exactly at your target margin"
-      : "Your charge-out is below your required margin";
+        ? "You are exactly at your target margin"
+        : "Your charge-out is below your required margin";
 
   return (
-    <div className={`rounded-xl border px-3 py-2 ${styles[status]}`}>
+    <div className={`rounded-xl border p-3 text-sm ${styles[status]}`}>
       {text} ({fmtCur(gap)})
     </div>
   );

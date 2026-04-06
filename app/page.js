@@ -1,131 +1,144 @@
 "use client";
 
-import { useLabour } from "@/hooks/useLabour";
-import LabourProfileCard from "@/components/labour/LabourProfileCard";
-import SavedProfilesCard from "@/components/labour/SavedProfilesCard";
-import ProfileLockNotice from "@/components/labour/ProfileLockNotice";
-import WorkingPatternCard from "@/components/labour/WorkingPatternCard";
-import PayCard from "@/components/labour/PayCard";
-import CommercialCard from "@/components/labour/CommercialCard";
-import EntitlementsCard from "@/components/labour/EntitlementsCard";
-import EmployerContributionsCard from "@/components/labour/EmployerContributionsCard";
-import LabourFlowCard from "@/components/labour/LabourFlowCard";
-import ScenarioModelCard from "@/components/labour/ScenarioModelCard";
-import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
-import LabourHelpPanel from "@/components/labour/LabourHelpPanel";
-import LabourInsightsRow from "@/components/labour/LabourInsightsRow";
+import Link from "next/link";
 
-export default function LabourPage() {
-  const labour = useLabour();
+const coreInputs = [
+  {
+    href: "/labour",
+    title: "Labour",
+    body: "Build live labour cost, productive hours, and minimum charge-out rate.",
+  },
+  {
+    href: "/employee-overheads",
+    title: "Employee Overheads",
+    body: "Capture annual staff-linked non-wage overheads and link them to active staff.",
+  },
+  {
+    href: "/assets",
+    title: "Assets",
+    body: "Manage business-owned asset cost burden for recovery modelling.",
+  },
+  {
+    href: "/general-overheads",
+    title: "General Overheads",
+    body: "Track broader business cost burden outside direct staff and assets.",
+  },
+  {
+    href: "/cost-allocation",
+    title: "Cost Allocation",
+    body: "Control recovery structure and determine how upstream cost is allocated.",
+  },
+];
 
+const commercialEngine = [
+  {
+    href: "/cost-summary",
+    title: "Cost Summary",
+    body: "View the combined recovery baseline across labour, staff overheads, assets, and business overheads.",
+  },
+  {
+    href: "/budget",
+    title: "Budget",
+    body: "Review planned commercial outputs and downstream business targets.",
+  },
+];
+
+const systemPages = [
+  {
+    href: "/settings",
+    title: "Settings",
+    body: "Manage UI theme and system preferences.",
+  },
+];
+
+function NavCard({ href, title, body }) {
   return (
-    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Labour Charge-Out Builder
-          </h1>
+    <Link
+      href={href}
+      className="ui-panel block rounded-2xl no-underline transition-colors hover:bg-[var(--bg-card-muted)]"
+    >
+      <div className="ui-stack">
+        <div>
+          <div className="text-lg font-semibold text-[var(--text-primary)]">
+            {title}
+          </div>
+          <p className="ui-help mt-2">{body}</p>
+        </div>
 
-          <p className="text-sm text-[var(--text-muted)]">
-            Enter your actual business numbers here to build your real labour
-            charge-out rate.
-          </p>
+        <div className="ui-kicker">Open module</div>
+      </div>
+    </Link>
+  );
+}
 
-          <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-            These are your core labour inputs. Use the Scenario Modeller
-            separately to test changes without altering your live business
-            inputs.
+function SectionBlock({ title, body, items }) {
+  return (
+    <section className="ui-section">
+      <div className="ui-stack">
+        <div>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+            {title}
+          </h2>
+          <p className="ui-help">{body}</p>
+        </div>
+
+        <div className="ui-stack">
+          {items.map((item) => (
+            <NavCard
+              key={item.href}
+              href={item.href}
+              title={item.title}
+              body={item.body}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <main className="ui-page">
+      <div className="ui-page-stack">
+        <header className="ui-section">
+          <div className="ui-stack">
+            <div>
+              <div className="ui-kicker">QS Tools</div>
+              <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
+                Business Recovery Model
+              </h1>
+            </div>
+
+            <p className="ui-help">
+              Use the modules below to build upstream cost inputs, define recovery
+              structure, and review the combined commercial baseline.
+            </p>
+
+            <div className="ui-panel">
+              Start with the core input modules, then move into Cost Allocation and
+              Cost Summary once the upstream layers are populated.
+            </div>
           </div>
         </header>
 
-        <div className="space-y-4">
-          <LabourStatusStrip
-            has_profile={labour.has_profile}
-            inputs_enabled={labour.inputs_enabled}
-            missing_fields={labour.missing_fields}
-            margin_health={labour.margin_health}
-            staff_name={labour.state.staff_name}
-          />
+        <SectionBlock
+          title="Core Inputs"
+          body="These modules create the upstream cost base used by the commercial engine."
+          items={coreInputs}
+        />
 
-          <LabourInsightsRow
-            state={labour.state}
-            outputs={labour.outputs}
-            has_profile={labour.has_profile}
-          />
-        </div>
+        <SectionBlock
+          title="Commercial Engine"
+          body="These modules turn upstream cost into a recovery and decision view."
+          items={commercialEngine}
+        />
 
-        <div className="border-t border-[var(--border-primary)]" />
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="space-y-6 xl:col-span-2">
-            <LabourProfileCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-              create_profile={labour.create_profile}
-            />
-
-            <SavedProfilesCard
-              profiles={labour.profiles}
-              active_profile_id={labour.active_profile_id}
-              load_profile={labour.load_profile}
-              save_profile={labour.save_profile}
-              start_new_profile={labour.start_new_profile}
-              delete_profile={labour.delete_profile}
-              has_profile={labour.has_profile}
-            />
-
-            <ProfileLockNotice has_profile={labour.has_profile} />
-
-            <WorkingPatternCard
-              state={labour.state}
-              outputs={labour.outputs}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <PayCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <CommercialCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <EntitlementsCard
-              state={labour.state}
-              outputs={labour.outputs}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-
-            <EmployerContributionsCard
-              state={labour.state}
-              outputs={labour.outputs}
-              has_profile={labour.has_profile}
-              update_field={labour.update_field}
-            />
-          </div>
-
-          <div className="space-y-6">
-            <LabourFlowCard
-              outputs={labour.outputs}
-              state={labour.state}
-              has_profile={labour.has_profile}
-            />
-
-            <ScenarioModelCard
-              state={labour.state}
-              has_profile={labour.has_profile}
-            />
-
-            <LabourHelpPanel />
-          </div>
-        </div>
+        <SectionBlock
+          title="System"
+          body="Supporting configuration and platform controls."
+          items={systemPages}
+        />
       </div>
     </main>
   );

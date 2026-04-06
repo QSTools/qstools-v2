@@ -13,29 +13,31 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString();
 }
 
-function SectionToggle({ title, summary, isOpen, onToggle, value }) {
+function SectionHeader({ title, summary, isOpen, onToggle, value }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex min-h-[44px] w-full flex-col gap-3 text-left"
-    >
+    <div className="ui-split">
       <div>
         <div className="text-base font-semibold text-[var(--text-primary)]">
           {title}
         </div>
         {summary ? <div className="ui-help">{summary}</div> : null}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
         {value ? (
-          <div className="text-base font-semibold text-[var(--text-primary)]">
+          <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">
             {value}
           </div>
         ) : null}
-        <div className="ui-pill">{isOpen ? "Hide" : "Show"}</div>
       </div>
-    </button>
+
+      <div className="ui-actions">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="ui-button-secondary"
+        >
+          {isOpen ? "Hide" : "Show"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -125,7 +127,7 @@ function StaffCostCard({ row }) {
 
   return (
     <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-      <div className="flex flex-col gap-2">
+      <div className="ui-stack">
         <div className="text-base font-semibold text-[var(--text-primary)]">
           {staffLabel}
         </div>
@@ -219,7 +221,7 @@ export default function CostSummaryCard({
 
       <div className="mt-6 space-y-4">
         <div className="ui-panel">
-          <SectionToggle
+          <SectionHeader
             title="Recovery Model Block"
             summary="Active structural recovery settings from Cost Allocation."
             isOpen={recoveryBlockOpen}
@@ -253,7 +255,7 @@ export default function CostSummaryCard({
         </div>
 
         <div className="ui-panel">
-          <SectionToggle
+          <SectionHeader
             title="People Cost"
             summary="Annual people burden with staff drilldown."
             isOpen={peopleCostOpen}
@@ -291,7 +293,7 @@ export default function CostSummaryCard({
               />
 
               <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-                <SectionToggle
+                <SectionHeader
                   title="Staff Drilldown"
                   summary="People cost by active staff, highest total first."
                   isOpen={staffDrilldownOpen}
@@ -304,7 +306,11 @@ export default function CostSummaryCard({
                     {safePeopleRows.length > 0 ? (
                       safePeopleRows.map((row, index) => (
                         <StaffCostCard
-                          key={row?.staff_id || row?.id || `${row?.staff_name || "staff"}-${index}`}
+                          key={
+                            row?.staff_id ||
+                            row?.id ||
+                            `${row?.staff_name || "staff"}-${index}`
+                          }
                           row={row}
                         />
                       ))
@@ -323,7 +329,7 @@ export default function CostSummaryCard({
         </div>
 
         <div className="ui-panel">
-          <SectionToggle
+          <SectionHeader
             title="Business Cost"
             summary="Non-people annual business burden included in Cost Summary."
             isOpen={businessCostOpen}

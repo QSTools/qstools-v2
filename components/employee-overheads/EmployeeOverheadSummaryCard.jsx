@@ -16,22 +16,31 @@ export default function EmployeeOverheadSummaryCard({
 }) {
   return (
     <section className="ui-section">
-      <h2 className="text-lg font-semibold">Employee Overheads Summary</h2>
+      <div className="ui-stack">
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <h2 className="text-lg font-semibold">
+            Employee Overheads Summary
+          </h2>
+          <p className="ui-help">
+            Total annual overhead burden linked to active staff.
+          </p>
+        </div>
+
         <div className="ui-panel">
-          <div className="text-sm text-[var(--text-muted)]">Selected Staff Total</div>
-          <div className="mt-2 text-2xl font-semibold">
+          <div className="ui-kicker">Selected Staff Total</div>
+          <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">
             {format_currency(selected_staff_total_annual)}
           </div>
         </div>
 
         <div className="ui-panel">
-          <div className="text-sm text-[var(--text-muted)]">Module Aggregate Total</div>
-          <div className="mt-2 text-2xl font-semibold">
+          <div className="ui-kicker">Module Aggregate Total</div>
+          <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">
             {format_currency(total_employee_overheads_annual)}
           </div>
         </div>
+
       </div>
     </section>
   );

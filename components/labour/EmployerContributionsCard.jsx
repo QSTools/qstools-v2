@@ -13,74 +13,80 @@ export default function EmployerContributionsCard({
   return (
     <section className="ui-section">
       <div className="ui-panel">
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          className="flex min-h-[44px] w-full flex-col gap-3 text-left"
-        >
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              Employer Contributions
-            </h2>
-            <p className="ui-help">
-              NZ KiwiSaver and ESCT are calculated automatically from annual gross
-              wages
-            </p>
-          </div>
+        <div className="ui-stack">
+          <div className="ui-split">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Employer Contributions
+              </h2>
+              <p className="ui-help">
+                NZ KiwiSaver and ESCT are calculated automatically from annual gross
+                wages
+              </p>
+            </div>
 
-          <span className="ui-pill">{isOpen ? "Hide" : "Show"}</span>
-        </button>
-
-        {isOpen ? (
-          <div className="mt-5 ui-stack">
-            <Field label="Employee KiwiSaver Enabled">
-              <select
-                value={state.employee_kiwisaver_enabled ? "true" : "false"}
-                onChange={(e) =>
-                  update_field(
-                    "employee_kiwisaver_enabled",
-                    e.target.value === "true"
-                  )
-                }
-                disabled={!has_profile}
-                className="ui-input"
+            <div className="ui-actions">
+              <button
+                type="button"
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="ui-button-secondary"
               >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </Field>
-
-            <ReadOnlyField
-              label="Employer KiwiSaver Rate"
-              value={format_percent(outputs.employer_kiwisaver_rate)}
-            />
-
-            <ReadOnlyField
-              label="ESCT Rate"
-              value={format_percent(outputs.esct_rate)}
-            />
-
-            <ReadOnlyField
-              label="Annual Gross Wages"
-              value={format_currency(outputs.annual_gross_wages)}
-            />
-
-            <ReadOnlyField
-              label="Employer KiwiSaver Gross"
-              value={format_currency(outputs.employer_kiwisaver_gross)}
-            />
-
-            <ReadOnlyField
-              label="ESCT Amount"
-              value={format_currency(outputs.esct_amount)}
-            />
-
-            <ReadOnlyField
-              label="Total Employer Contribution Cost"
-              value={format_currency(outputs.total_employer_contribution_cost)}
-            />
+                {isOpen ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
-        ) : null}
+
+          {isOpen ? (
+            <div className="ui-stack">
+              <Field label="Employee KiwiSaver Enabled">
+                <select
+                  value={state.employee_kiwisaver_enabled ? "true" : "false"}
+                  onChange={(e) =>
+                    update_field(
+                      "employee_kiwisaver_enabled",
+                      e.target.value === "true"
+                    )
+                  }
+                  disabled={!has_profile}
+                  className="ui-input"
+                >
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </Field>
+
+              <ReadOnlyField
+                label="Employer KiwiSaver Rate"
+                value={format_percent(outputs.employer_kiwisaver_rate)}
+              />
+
+              <ReadOnlyField
+                label="ESCT Rate"
+                value={format_percent(outputs.esct_rate)}
+              />
+
+              <ReadOnlyField
+                label="Annual Gross Wages"
+                value={format_currency(outputs.annual_gross_wages)}
+              />
+
+              <ReadOnlyField
+                label="Employer KiwiSaver Gross"
+                value={format_currency(outputs.employer_kiwisaver_gross)}
+              />
+
+              <ReadOnlyField
+                label="ESCT Amount"
+                value={format_currency(outputs.esct_amount)}
+              />
+
+              <ReadOnlyField
+                label="Total Employer Contribution Cost"
+                value={format_currency(outputs.total_employer_contribution_cost)}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
   );

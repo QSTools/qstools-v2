@@ -3,33 +3,35 @@
 export default function PayCard({ state, has_profile, update_field }) {
   return (
     <section className="ui-section">
-      <h2 className="text-lg font-semibold">Pay</h2>
-      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
-        Base labour rate and charge-out rate
-      </p>
+      <div className="ui-stack">
+        <div>
+          <h2 className="text-lg font-semibold">Pay</h2>
+          <p className="ui-help">Base labour rate and charge-out rate</p>
+        </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Labour Rate">
-          <input
-            type="number"
-            step="0.01"
-            value={state.labour_rate ?? ""}
-            onChange={(e) => update_field("labour_rate", e.target.value)}
-            disabled={!has_profile}
-            className="ui-input number-input"
-          />
-        </Field>
+        <div className="ui-stack">
+          <Field label="Labour Rate">
+            <input
+              type="number"
+              step="0.01"
+              value={state.labour_rate ?? ""}
+              onChange={(e) => update_field("labour_rate", e.target.value)}
+              disabled={!has_profile}
+              className="ui-input number-input"
+            />
+          </Field>
 
-        <Field label="Charge Out Rate">
-          <input
-            type="number"
-            step="0.01"
-            value={state.charge_out_rate ?? ""}
-            onChange={(e) => update_field("charge_out_rate", e.target.value)}
-            disabled={!has_profile}
-            className="ui-input number-input"
-          />
-        </Field>
+          <Field label="Charge Out Rate">
+            <input
+              type="number"
+              step="0.01"
+              value={state.charge_out_rate ?? ""}
+              onChange={(e) => update_field("charge_out_rate", e.target.value)}
+              disabled={!has_profile}
+              className="ui-input number-input"
+            />
+          </Field>
+        </div>
       </div>
     </section>
   );

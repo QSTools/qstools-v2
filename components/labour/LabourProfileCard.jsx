@@ -96,25 +96,6 @@ const inputCardClassName = "ui-input";
 const secondaryButtonClassName = "ui-button-secondary";
 const primaryButtonClassName = "ui-button-primary";
 
-function SectionToggle({ title, summary, isOpen, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex min-h-[44px] w-full flex-col gap-3 text-left"
-    >
-      <div>
-        <div className="text-base font-semibold text-[var(--text-primary)]">
-          {title}
-        </div>
-        <div className="ui-help">{summary}</div>
-      </div>
-
-      <span className="ui-pill">{isOpen ? "Hide" : "Show"}</span>
-    </button>
-  );
-}
-
 function Field({ label, help, children }) {
   return (
     <div>
@@ -262,27 +243,41 @@ export default function LabourProfileCard({
 
   return (
     <section className="ui-section">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-          Labour Profile
-        </h2>
-        <p className="ui-help">
-          Create the staff profile first. Core labour inputs stay locked until
-          the profile is created.
-        </p>
-      </div>
+      <div className="ui-stack">
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            Labour Profile
+          </h2>
+          <p className="ui-help">
+            Create the staff profile first. Core labour inputs stay locked until
+            the profile is created.
+          </p>
+        </div>
 
-      <div className="space-y-4">
         <div className="ui-panel">
-          <SectionToggle
-            title="Profile Identity"
-            summary="Staff name, role category, role selection, and labour class"
-            isOpen={identityOpen}
-            onToggle={() => setIdentityOpen((prev) => !prev)}
-          />
+          <div className="ui-split">
+            <div>
+              <div className="text-base font-semibold text-[var(--text-primary)]">
+                Profile Identity
+              </div>
+              <div className="ui-help">
+                Staff name, role category, role selection, and labour class
+              </div>
+            </div>
+
+            <div className="ui-actions">
+              <button
+                type="button"
+                onClick={() => setIdentityOpen((prev) => !prev)}
+                className="ui-button-secondary"
+              >
+                {identityOpen ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
 
           {identityOpen ? (
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 ui-stack">
               <Field label="Staff Name">
                 <input
                   type="text"
@@ -368,15 +363,30 @@ export default function LabourProfileCard({
 
         {showCustomRoleForm && !has_profile ? (
           <div className="ui-panel border-dashed border-[var(--border-strong)]">
-            <SectionToggle
-              title="Create Custom Role"
-              summary="Add a browser-local custom role and auto-select it into the profile"
-              isOpen={customOpen}
-              onToggle={() => setCustomOpen((prev) => !prev)}
-            />
+            <div className="ui-split">
+              <div>
+                <div className="text-base font-semibold text-[var(--text-primary)]">
+                  Create Custom Role
+                </div>
+                <div className="ui-help">
+                  Add a browser-local custom role and auto-select it into the
+                  profile
+                </div>
+              </div>
+
+              <div className="ui-actions">
+                <button
+                  type="button"
+                  onClick={() => setCustomOpen((prev) => !prev)}
+                  className="ui-button-secondary"
+                >
+                  {customOpen ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
 
             {customOpen ? (
-              <div className="mt-4 space-y-4">
+              <div className="mt-4 ui-stack">
                 <Field label="Custom Role Name">
                   <input
                     type="text"

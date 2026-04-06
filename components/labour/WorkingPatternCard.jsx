@@ -8,27 +8,29 @@ export default function WorkingPatternCard({
 }) {
   return (
     <section className="ui-section">
-      <h2 className="text-lg font-semibold">Working Pattern</h2>
-      <p className="mt-1 mb-5 text-sm text-[var(--text-muted)]">
-        Weekly hours structure
-      </p>
+      <div className="ui-stack">
+        <div>
+          <h2 className="text-lg font-semibold">Working Pattern</h2>
+          <p className="ui-help">Weekly hours structure</p>
+        </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Hours per Week">
-          <input
-            type="number"
-            step="0.01"
-            value={state.hours_per_week ?? ""}
-            onChange={(e) => update_field("hours_per_week", e.target.value)}
-            disabled={!has_profile}
-            className="ui-input number-input"
+        <div className="ui-stack">
+          <Field label="Hours per Week">
+            <input
+              type="number"
+              step="0.01"
+              value={state.hours_per_week ?? ""}
+              onChange={(e) => update_field("hours_per_week", e.target.value)}
+              disabled={!has_profile}
+              className="ui-input number-input"
+            />
+          </Field>
+
+          <ReadOnlyField
+            label="Paid Hours per Year"
+            value={format_number(outputs.paid_hours_per_year)}
           />
-        </Field>
-
-        <ReadOnlyField
-          label="Paid Hours per Year"
-          value={format_number(outputs.paid_hours_per_year)}
-        />
+        </div>
       </div>
     </section>
   );
@@ -47,9 +49,7 @@ function ReadOnlyField({ label, value }) {
   return (
     <div>
       <div className="ui-label">{label}</div>
-      <div className="ui-readonly">
-        {value}
-      </div>
+      <div className="ui-readonly">{value}</div>
     </div>
   );
 }

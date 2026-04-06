@@ -98,26 +98,25 @@ export default function TopDriverCard({ outputs, state, has_profile }) {
     good: "bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success)]",
     warn: "bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning)]",
     bad: "bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger)]",
-    neutral: "bg-[var(--bg-card-muted)] text-[var(--text-secondary)] border border-[var(--border-strong)]",
+    neutral:
+      "bg-[var(--bg-card-muted)] text-[var(--text-secondary)] border border-[var(--border-strong)]",
   };
 
   return (
     <section className={`rounded-2xl border p-5 ${toneStyles[driver.tone]}`}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-3xl">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-            Top Driver
-          </div>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)]">{driver.title}</h2>
+      <div className="ui-stack">
+        <div>
+          <div className="ui-kicker">Top Driver</div>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+            {driver.title}
+          </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             {driver.body}
           </p>
         </div>
 
-        <div className={`rounded-xl px-4 py-3 text-right ${badgeStyles[driver.tone]}`}>
-          <div className="text-xs uppercase tracking-wide opacity-80">
-            {driver.metric_label}
-          </div>
+        <div className={`rounded-xl px-4 py-3 ${badgeStyles[driver.tone]}`}>
+          <div className="ui-kicker opacity-80">{driver.metric_label}</div>
           <div className="mt-1 text-xl font-semibold">
             {driver.metric_value}
           </div>
