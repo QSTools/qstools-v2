@@ -30,7 +30,7 @@ export default function CostSummaryHelpPanel() {
           </p>
         </div>
 
-        <div className="ui-pill text-[var(--text-secondary)]">
+        <div className="rounded-full border border-[var(--border-strong)] bg-[var(--bg-card-muted)] px-3 py-2 text-sm min-h-[40px] font-medium text-[var(--text-secondary)]">
           {isOpen ? "Hide" : "Show"}
         </div>
       </button>

@@ -45,7 +45,7 @@ export default function EmployeeOverheadCustomList({
                 addCustomAssignmentFromTemplate(item.custom_overhead_template_id)
               }
               disabled={disabled}
-              className="ui-input"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             >
               Add {item.custom_overhead_name} ({format_currency(item.default_amount_annual)})
             </button>
@@ -75,7 +75,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="ui-readonly"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
               />
 
               <input
@@ -89,7 +89,7 @@ export default function EmployeeOverheadCustomList({
                   })
                 }
                 disabled={disabled}
-                className="ui-readonly"
+                className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
               />
 
               <button
@@ -98,7 +98,7 @@ export default function EmployeeOverheadCustomList({
                   deactivateCustomAssignmentRow(row.staff_overhead_item_id)
                 }
                 disabled={disabled}
-                className="ui-readonly border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 text-[var(--danger)]"
+                className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-4 py-3 text-sm min-h-[44px] text-[var(--danger)]"
               >
                 Remove
               </button>

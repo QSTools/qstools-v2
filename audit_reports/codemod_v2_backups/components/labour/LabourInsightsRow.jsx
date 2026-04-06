@@ -89,7 +89,7 @@ function Row({ label, value }) {
   return (
     <div className="flex justify-between text-sm text-[var(--text-secondary)]">
       <span>{label}</span>
-      <span className="font-medium text-[var(--text-primary)]">{value}</span>
+      <span className="font-medium text-white">{value}</span>
     </div>
   );
 }

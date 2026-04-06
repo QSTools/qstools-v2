@@ -49,7 +49,7 @@ export default function EmployeeOverheadLibraryCard({
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="ui-input"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
         >
           {is_open ? "Collapse" : "Expand"}
         </button>
@@ -63,7 +63,7 @@ export default function EmployeeOverheadLibraryCard({
               value={custom_overhead_name}
               onChange={(e) => setCustomOverheadName(e.target.value)}
               placeholder="Custom overhead name"
-              className="ui-input"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             />
 
             <input
@@ -73,13 +73,13 @@ export default function EmployeeOverheadLibraryCard({
               value={default_amount_annual}
               onChange={(e) => setDefaultAmountAnnual(e.target.value)}
               placeholder="Default annual amount"
-              className="ui-input"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             />
 
             <button
               type="button"
               onClick={submitNewTemplate}
-              className="ui-input"
+              className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
             >
               Add Template
             </button>
@@ -107,7 +107,7 @@ export default function EmployeeOverheadLibraryCard({
                         custom_overhead_name: e.target.value,
                       })
                     }
-                    className="ui-readonly"
+                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
                   />
 
                   <input
@@ -121,7 +121,7 @@ export default function EmployeeOverheadLibraryCard({
                         default_amount_annual: e.target.value,
                       })
                     }
-                    className="ui-readonly"
+                    className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px]"
                   />
 
                   <button
@@ -131,7 +131,7 @@ export default function EmployeeOverheadLibraryCard({
                         item.custom_overhead_template_id
                       )
                     }
-                    className="ui-readonly border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 text-[var(--danger)]"
+                    className="rounded-xl border border-[var(--danger)]/50 bg-[var(--danger-soft)]/30 px-4 py-3 text-sm min-h-[44px] text-[var(--danger)]"
                   >
                     Deactivate
                   </button>

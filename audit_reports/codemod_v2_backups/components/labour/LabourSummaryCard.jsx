@@ -40,7 +40,7 @@ export default function LabourSummaryCard({ state, outputs, has_profile }) {
               className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3"
             >
               <span className="text-sm text-[var(--text-secondary)]">{label}</span>
-              <span className="text-sm font-medium text-[var(--text-primary)]">{value}</span>
+              <span className="text-sm font-medium text-white">{value}</span>
             </div>
           ))}
         </div>

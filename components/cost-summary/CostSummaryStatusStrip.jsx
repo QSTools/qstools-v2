@@ -3,20 +3,20 @@
 function Pill({ children, tone = "neutral" }) {
   const toneClasses = {
     neutral:
-      "border-[var(--border-strong)] bg-[var(--bg-card-muted)]/80 text-[var(--text-primary)]",
-    ok: "border-[var(--success)] bg-[var(--success-soft)]/60 text-[var(--success)]",
-    warn: "border-[var(--warning)] bg-[var(--warning-soft)]/60 text-[var(--warning)]",
+      "border-[var(--border-strong)] bg-[var(--bg-card-muted)] text-[var(--text-primary)]",
+    ok: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
+    warn: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
     danger:
-      "border-[var(--danger)] bg-[var(--danger-soft)]/60 text-[var(--danger)]",
-    info: "border-[var(--info)] bg-[var(--info-soft)]/60 text-[var(--info)]",
+      "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
+    info: "border-[var(--info)] bg-[var(--info-soft)] text-[var(--info)]",
   };
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-3 py-2 text-xs min-h-[40px] font-medium ${toneClasses[tone]}`}
+    <div
+      className={`ui-pill ${toneClasses[tone]}`}
     >
       {children}
-    </span>
+    </div>
   );
 }
 
@@ -33,11 +33,38 @@ function StatusItem({ label, value, tone = "neutral" }) {
             : "text-[var(--text-primary)]";
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)]/70 p-4">
-      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
-        {label}
+    <div className="ui-panel">
+      <div className="ui-kicker">{label}</div>
+      <div className={`mt-2 text-base font-semibold ${valueToneClass}`}>
+        {value}
       </div>
-      <div className={`mt-2 text-sm font-semibold ${valueToneClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function MessagePanel({ title, tone = "neutral", items = [] }) {
+  const toneClasses = {
+    neutral:
+      "border-[var(--border-primary)] bg-[var(--bg-card-muted)] text-[var(--text-primary)]",
+    danger:
+      "border-[var(--danger)]/80 bg-[var(--danger-soft)]/40 text-[var(--danger)]",
+    warn:
+      "border-[var(--warning)]/80 bg-[var(--warning-soft)]/40 text-[var(--warning)]",
+  };
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClasses[tone]}`}>
+      <div className="text-sm font-semibold">{title}</div>
+
+      {items.length > 0 ? (
+        <div className="mt-3 space-y-2 text-sm">
+          {items.map((item) => (
+            <div key={item}>• {item}</div>
+          ))}
+        </div>
+      ) : (
+        <p className="ui-help mt-3">None</p>
+      )}
     </div>
   );
 }
@@ -67,9 +94,15 @@ export default function CostSummaryStatusStrip({
         ? "ok"
         : "warn";
 
+  const structureLabel = hasMissingModules
+    ? "Missing Upstream Inputs"
+    : hasWarnings || !is_structure_complete
+      ? "Warnings Present"
+      : "Structure Complete";
+
   return (
     <section className="ui-section">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Cost Summary Status
@@ -79,74 +112,56 @@ export default function CostSummaryStatusStrip({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Pill tone={recoveryTone}>Recovery Model: {recovery_model_label}</Pill>
-          <Pill tone={structureTone}>
-            {hasMissingModules
-              ? "Missing Upstream Inputs"
-              : hasWarnings || !is_structure_complete
-                ? "Warnings Present"
-                : "Structure Complete"}
+        <div className="ui-actions">
+          <Pill tone={recoveryTone}>
+            Recovery Model: {recovery_model_label}
           </Pill>
+
+          <Pill tone={structureTone}>{structureLabel}</Pill>
         </div>
-      </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <StatusItem
-          label="Recovery Model"
-          value={recovery_model_label}
-          tone={recoveryTone}
-        />
-        <StatusItem
-          label="Linked Staff"
-          value={linked_staff_count}
-          tone={linked_staff_count > 0 ? "ok" : "warn"}
-        />
-        <StatusItem
-          label="Linked Assets"
-          value={linked_asset_count}
-          tone={linked_asset_count > 0 ? "ok" : "warn"}
-        />
-        <StatusItem
-          label="Unlinked Staff"
-          value={unlinked_active_staff_count}
-          tone={unlinked_active_staff_count > 0 ? "warn" : "ok"}
-        />
-      </div>
+        <div className="space-y-3">
+          <StatusItem
+            label="Recovery Model"
+            value={recovery_model_label}
+            tone={recoveryTone}
+          />
 
-      {(hasMissingModules || hasWarnings) && (
-        <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--danger)]/80 bg-[var(--danger-soft)]/40 p-4">
-            <div className="text-sm font-semibold text-[var(--danger)]">
-              Missing Modules / Inputs
-            </div>
-            {hasMissingModules ? (
-              <ul className="mt-3 space-y-2 text-sm text-[var(--danger)]">
-                {missing_modules.map((item) => (
-                  <li key={item}>• {item}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-[var(--text-muted)]">None</p>
-            )}
-          </div>
+          <StatusItem
+            label="Linked Staff"
+            value={linked_staff_count}
+            tone={linked_staff_count > 0 ? "ok" : "warn"}
+          />
 
-          <div className="rounded-2xl border border-[var(--warning)]/80 bg-[var(--warning-soft)]/40 p-4">
-            <div className="text-sm font-semibold text-[var(--warning)]">
-              Warnings
-            </div>
-            {hasWarnings ? (
-              <ul className="mt-3 space-y-2 text-sm text-[var(--warning)]">
-                {warnings.map((item) => (
-                  <li key={item}>• {item}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-[var(--text-muted)]">None</p>
-            )}
-          </div>
+          <StatusItem
+            label="Linked Assets"
+            value={linked_asset_count}
+            tone={linked_asset_count > 0 ? "ok" : "warn"}
+          />
+
+          <StatusItem
+            label="Unlinked Staff"
+            value={unlinked_active_staff_count}
+            tone={unlinked_active_staff_count > 0 ? "warn" : "ok"}
+          />
         </div>
-      )}
+
+        {(hasMissingModules || hasWarnings) && (
+          <div className="space-y-3">
+            <MessagePanel
+              title="Missing Modules / Inputs"
+              tone="danger"
+              items={missing_modules}
+            />
+
+            <MessagePanel
+              title="Warnings"
+              tone="warn"
+              items={warnings}
+            />
+          </div>
+        )}
+      </div>
     </section>
   );
 }

@@ -108,7 +108,7 @@ export default function TopDriverCard({ outputs, state, has_profile }) {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
             Top Driver
           </div>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)]">{driver.title}</h2>
+          <h2 className="text-xl font-semibold text-white">{driver.title}</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             {driver.body}
           </p>

@@ -18,7 +18,7 @@ export default function EmployeeOverheadHelpPanel() {
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="ui-input"
+          className="rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px]"
         >
           {is_open ? "Collapse" : "Expand"}
         </button>

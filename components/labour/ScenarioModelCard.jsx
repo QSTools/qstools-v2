@@ -19,7 +19,7 @@ function formatDelta(value) {
   return `${prefix}${formatCurrency(Math.abs(safe))}`;
 }
 
-function getDeltaTone(value) {
+function getDeltaToneClass(value) {
   if (value > 0) return "text-[var(--success)]";
   if (value < 0) return "text-[var(--danger)]";
   return "text-[var(--text-secondary)]";
@@ -33,15 +33,12 @@ function getDriverMessage(biggestDriver) {
 function LabelledField({ label, value, onChange }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-[var(--text-secondary)]">
-        {label}
-      </label>
-
+      <label className="ui-label">{label}</label>
       <input
         type="number"
         value={value ?? ""}
         onChange={onChange}
-        className="number-input w-full rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4 py-3 text-sm min-h-[44px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+        className="ui-input number-input"
       />
     </div>
   );
@@ -50,12 +47,9 @@ function LabelledField({ label, value, onChange }) {
 function Metric({ label, value, colorClass = "text-[var(--text-primary)]", subvalue }) {
   return (
     <div className="ui-panel">
-      <div className="mb-1.5 text-sm text-[var(--text-muted)]">{label}</div>
-      <div className={`text-2xl font-bold ${colorClass}`}>{value}</div>
-
-      {subvalue ? (
-        <div className="mt-1.5 text-sm text-[var(--text-muted)]">{subvalue}</div>
-      ) : null}
+      <div className="ui-kicker">{label}</div>
+      <div className={`mt-2 text-2xl font-bold ${colorClass}`}>{value}</div>
+      {subvalue ? <div className="ui-help mt-1.5">{subvalue}</div> : null}
     </div>
   );
 }
@@ -74,35 +68,27 @@ function DeltaRow({ label, liveValue, scenarioValue, isHighlighted = false }) {
           : "border-[var(--border-soft)] bg-transparent",
       ].join(" ")}
     >
-      <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 text-sm lg:grid-cols-4">
         <div>
-          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
-            Metric
-          </div>
+          <div className="ui-kicker lg:hidden">Metric</div>
           <div className="font-semibold text-[var(--text-primary)]">{label}</div>
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
-            Live
-          </div>
+          <div className="ui-kicker lg:hidden">Live</div>
           <div className="text-[var(--text-secondary)]">{formatCurrency(live)}</div>
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
-            Scenario
-          </div>
-          <div className="text-[var(--text-primary)]">
-            {formatCurrency(scenario)}
-          </div>
+          <div className="ui-kicker lg:hidden">Scenario</div>
+          <div className="text-[var(--text-primary)]">{formatCurrency(scenario)}</div>
         </div>
 
         <div>
-          <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] md:hidden">
-            Delta
+          <div className="ui-kicker lg:hidden">Delta</div>
+          <div className={`font-bold ${getDeltaToneClass(delta)}`}>
+            {formatDelta(delta)}
           </div>
-          <div className={`font-bold ${getDeltaTone(delta)}`}>{formatDelta(delta)}</div>
         </div>
       </div>
     </div>
@@ -170,7 +156,7 @@ export default function ScenarioModelCard({
 
   return (
     <section className="ui-section">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
             Scenario Modeller
@@ -180,11 +166,11 @@ export default function ScenarioModelCard({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="ui-actions">
           <button
             type="button"
             onClick={() => setShowHelp((prev) => !prev)}
-            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-4 py-3 text-sm min-h-[44px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+            className="ui-button-secondary"
           >
             {showHelp ? "Hide Explanation" : "Show Explanation"}
           </button>
@@ -192,7 +178,7 @@ export default function ScenarioModelCard({
           <button
             type="button"
             onClick={reset}
-            className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] px-4 py-3 text-sm min-h-[44px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+            className="ui-button-primary"
           >
             Reset
           </button>
@@ -200,33 +186,33 @@ export default function ScenarioModelCard({
       </div>
 
       {showHelp ? (
-        <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-          <div className="mb-2 font-semibold text-[var(--text-primary)]">
+        <div className="ui-panel mt-5">
+          <div className="text-base font-semibold text-[var(--text-primary)]">
             What this does
           </div>
 
-          <div className="text-sm leading-6 text-[var(--text-secondary)]">
+          <div className="ui-help mt-2 leading-6">
             Use this to test “what happens if…” without changing your live numbers.
           </div>
 
-          <div className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-            <b>Labour Rate ↑</b> → Cost goes up → Profit drops
+          <div className="ui-help mt-3 leading-6">
+            <strong>Labour Rate ↑</strong> → Cost goes up → Profit drops
             <br />
-            <b>Charge-Out ↑</b> → Profit goes up
+            <strong>Charge-Out ↑</strong> → Profit goes up
             <br />
-            <b>Productivity ↑</b> → Cost per hour drops → Profit improves
+            <strong>Productivity ↑</strong> → Cost per hour drops → Profit improves
             <br />
-            <b>Margin Target ↑</b> → Required charge-out increases
+            <strong>Margin Target ↑</strong> → Required charge-out increases
           </div>
 
-          <div className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+          <div className="ui-help mt-3 leading-6">
             Green = better. Red = worse.
           </div>
         </div>
       ) : null}
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+        <div className="ui-panel">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">Inputs</h3>
 
           <div className="mt-4 grid grid-cols-1 gap-4">
@@ -256,12 +242,12 @@ export default function ScenarioModelCard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+        <div className="ui-panel">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             Scenario Outputs
           </h3>
 
-          <div className="mt-4 grid grid-cols-1 gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Metric
               label="Profit per Hour"
               value={formatCurrency(Number(scenarioOutputs.profit_per_hour ?? 0))}
@@ -299,16 +285,16 @@ export default function ScenarioModelCard({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+      <div className="ui-panel mt-5">
         <div className="mb-1.5 font-semibold text-[var(--text-primary)]">
           {getDriverMessage(biggestDriver)}
         </div>
-        <div className="text-sm text-[var(--text-muted)]">
+        <div className="ui-help">
           Based on the single largest change in Scenario outputs
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
+      <div className="ui-panel mt-5">
         <div className="mb-1.5 font-semibold text-[var(--text-primary)]">
           {scenario.explanation?.title ?? "Scenario explanation"}
         </div>
@@ -319,22 +305,20 @@ export default function ScenarioModelCard({
         </div>
 
         {scenario.explanation?.insight ? (
-          <div className="mt-2 text-sm text-[var(--text-muted)]">
-            {scenario.explanation.insight}
-          </div>
+          <div className="ui-help mt-2">{scenario.explanation.insight}</div>
         ) : null}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)] p-4">
+      <div className="ui-panel mt-5">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">
           Live vs Scenario
         </h3>
 
-        <div className="mt-4 hidden border-b border-[var(--border-primary)] pb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] md:grid md:grid-cols-4 md:gap-3">
-          <div>Metric</div>
-          <div>Live</div>
-          <div>Scenario</div>
-          <div>Delta</div>
+        <div className="mt-4 hidden border-b border-[var(--border-primary)] pb-3 lg:grid lg:grid-cols-4 lg:gap-3">
+          <div className="ui-kicker">Metric</div>
+          <div className="ui-kicker">Live</div>
+          <div className="ui-kicker">Scenario</div>
+          <div className="ui-kicker">Delta</div>
         </div>
 
         <div className="mt-4 space-y-3">

@@ -32,17 +32,26 @@ const SYSTEM_ROLE_MAP = {
     { role_name: "Estimator", labour_class: "indirect_overhead" },
     { role_name: "Quantity Surveyor", labour_class: "indirect_overhead" },
     { role_name: "Sales Manager", labour_class: "indirect_overhead" },
-    { role_name: "Sales / Business Development", labour_class: "indirect_overhead" },
+    {
+      role_name: "Sales / Business Development",
+      labour_class: "indirect_overhead",
+    },
     { role_name: "Accounts Manager", labour_class: "indirect_overhead" },
     { role_name: "Accounts / Bookkeeper", labour_class: "indirect_overhead" },
     { role_name: "Office Manager", labour_class: "indirect_overhead" },
     { role_name: "Administrator", labour_class: "indirect_overhead" },
-    { role_name: "Reception / Admin Support", labour_class: "indirect_overhead" },
+    {
+      role_name: "Reception / Admin Support",
+      labour_class: "indirect_overhead",
+    },
   ],
   delivery_production: [
     { role_name: "Leading Hand", labour_class: "direct_production" },
     { role_name: "Site Labourer", labour_class: "direct_production" },
-    { role_name: "Skilled Labourer / Tradesperson", labour_class: "direct_production" },
+    {
+      role_name: "Skilled Labourer / Tradesperson",
+      labour_class: "direct_production",
+    },
     { role_name: "Driver", labour_class: "direct_production" },
     { role_name: "Plant Operator", labour_class: "direct_production" },
     { role_name: "Machine Operator", labour_class: "direct_production" },
@@ -50,7 +59,10 @@ const SYSTEM_ROLE_MAP = {
     { role_name: "Workshop Technician", labour_class: "direct_support" },
   ],
   technical_support: [
-    { role_name: "Health & Safety Coordinator", labour_class: "direct_support" },
+    {
+      role_name: "Health & Safety Coordinator",
+      labour_class: "direct_support",
+    },
     { role_name: "Procurement / Purchasing", labour_class: "direct_support" },
     { role_name: "Scheduler / Planner", labour_class: "direct_support" },
   ],
@@ -79,17 +91,41 @@ function createCustomRoleId() {
   return `custom_role_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-const inputClassName =
-  "ui-input";
+const inputClassName = "ui-input";
+const inputCardClassName = "ui-input";
+const secondaryButtonClassName = "ui-button-secondary";
+const primaryButtonClassName = "ui-button-primary";
 
-const inputCardClassName =
-  "ui-input";
+function SectionToggle({ title, summary, isOpen, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
+    >
+      <div>
+        <div className="text-base font-semibold text-[var(--text-primary)]">
+          {title}
+        </div>
+        <div className="ui-help">{summary}</div>
+      </div>
 
-const secondaryButtonClassName =
-  "ui-button-secondary";
+      <span className="text-sm text-[var(--text-muted)]">
+        {isOpen ? "Hide" : "Show"}
+      </span>
+    </button>
+  );
+}
 
-const primaryButtonClassName =
-  "ui-button-primary";
+function Field({ label, help, children }) {
+  return (
+    <div>
+      <label className="ui-label">{label}</label>
+      {children}
+      {help ? <p className="ui-help">{help}</p> : null}
+    </div>
+  );
+}
 
 export default function LabourProfileCard({
   state,
@@ -98,9 +134,9 @@ export default function LabourProfileCard({
   create_profile,
 }) {
   const [customRoles, setCustomRoles] = useState([]);
-  const [showCustomRoleForm, setShowCustomRoleForm] = useState(false);
   const [identityOpen, setIdentityOpen] = useState(true);
   const [customOpen, setCustomOpen] = useState(false);
+  const [showCustomRoleForm, setShowCustomRoleForm] = useState(false);
 
   const [customRoleDraft, setCustomRoleDraft] = useState({
     custom_role_name: "",
@@ -152,7 +188,9 @@ export default function LabourProfileCard({
     const ok = create_profile?.();
 
     if (!ok) {
-      alert("Please complete staff name, role category, staff role, and labour class.");
+      alert(
+        "Please complete staff name, role category, staff role, and labour class."
+      );
     }
   }
 
@@ -164,7 +202,9 @@ export default function LabourProfileCard({
   }
 
   function handleSaveCustomRole() {
-    const custom_role_name = String(customRoleDraft.custom_role_name || "").trim();
+    const custom_role_name = String(
+      customRoleDraft.custom_role_name || ""
+    ).trim();
     const role_category = String(customRoleDraft.role_category || "").trim();
     const labour_class = String(customRoleDraft.labour_class || "").trim();
 
@@ -175,7 +215,9 @@ export default function LabourProfileCard({
 
     const exists = customRoles.some(
       (role) =>
-        String(role.custom_role_name || "").trim().toLowerCase() === custom_role_name.toLowerCase() &&
+        String(role.custom_role_name || "")
+          .trim()
+          .toLowerCase() === custom_role_name.toLowerCase() &&
         role.role_category === role_category
     );
 
@@ -217,7 +259,8 @@ export default function LabourProfileCard({
   }
 
   const labourClassLabel =
-    LABOUR_CLASS_OPTIONS.find((option) => option.value === state?.labour_class)?.label || "—";
+    LABOUR_CLASS_OPTIONS.find((option) => option.value === state?.labour_class)
+      ?.label || "—";
 
   return (
     <section className="ui-section">
@@ -226,38 +269,23 @@ export default function LabourProfileCard({
           Labour Profile
         </h2>
         <p className="ui-help">
-          Create the staff profile first. Core labour inputs stay locked until the
-          profile is created.
+          Create the staff profile first. Core labour inputs stay locked until
+          the profile is created.
         </p>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="ui-panel">
-          <button
-            type="button"
-            onClick={() => setIdentityOpen((prev) => !prev)}
-            className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
-          >
-            <div>
-              <div className="text-base font-semibold text-[var(--text-primary)]">
-                Profile Identity
-              </div>
-              <div className="ui-help">
-                Staff name, role category, role selection, and labour class
-              </div>
-            </div>
-
-            <span className="text-sm text-[var(--text-muted)]">
-              {identityOpen ? "Hide" : "Show"}
-            </span>
-          </button>
+          <SectionToggle
+            title="Profile Identity"
+            summary="Staff name, role category, role selection, and labour class"
+            isOpen={identityOpen}
+            onToggle={() => setIdentityOpen((prev) => !prev)}
+          />
 
           {identityOpen ? (
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div className="lg:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                  Staff Name
-                </label>
+            <div className="mt-4 space-y-4">
+              <Field label="Staff Name">
                 <input
                   type="text"
                   value={state?.staff_name ?? ""}
@@ -266,12 +294,9 @@ export default function LabourProfileCard({
                   placeholder="Enter staff name"
                   className={inputClassName}
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                  Role Category
-                </label>
+              <Field label="Role Category">
                 <select
                   value={state?.role_category ?? ""}
                   onChange={(e) => handleCategoryChange(e.target.value)}
@@ -285,12 +310,9 @@ export default function LabourProfileCard({
                     </option>
                   ))}
                 </select>
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                  Staff Role
-                </label>
+              <Field label="Staff Role">
                 <select
                   value={state?.staff_role ?? ""}
                   onChange={(e) => handleStaffRoleChange(e.target.value)}
@@ -308,12 +330,12 @@ export default function LabourProfileCard({
                     </option>
                   ))}
                 </select>
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                  Labour Class
-                </label>
+              <Field
+                label="Labour Class"
+                help="Standard roles auto-fill this. Custom roles must define it before save."
+              >
                 <select
                   value={state?.labour_class ?? ""}
                   onChange={(e) => handleLabourClassChange(e.target.value)}
@@ -327,12 +349,9 @@ export default function LabourProfileCard({
                     </option>
                   ))}
                 </select>
-                <p className="ui-help">
-                  Standard roles auto-fill this. Custom roles must define it before save.
-                </p>
-              </div>
+              </Field>
 
-              <div className="flex items-end">
+              <div className="ui-actions">
                 <button
                   type="button"
                   onClick={() => {
@@ -350,87 +369,67 @@ export default function LabourProfileCard({
         </div>
 
         {showCustomRoleForm && !has_profile ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] p-4">
-            <button
-              type="button"
-              onClick={() => setCustomOpen((prev) => !prev)}
-              className="flex w-full flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between"
-            >
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                  Create Custom Role
-                </h3>
-                <p className="ui-help">
-                  Add a browser-local custom role and auto-select it into the profile
-                </p>
-              </div>
-
-              <span className="text-sm text-[var(--text-muted)]">
-                {customOpen ? "Hide" : "Show"}
-              </span>
-            </button>
+          <div className="ui-panel border-dashed border-[var(--border-strong)]">
+            <SectionToggle
+              title="Create Custom Role"
+              summary="Add a browser-local custom role and auto-select it into the profile"
+              isOpen={customOpen}
+              onToggle={() => setCustomOpen((prev) => !prev)}
+            />
 
             {customOpen ? (
-              <div className="mt-5 space-y-5">
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <div className="lg:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                      Custom Role Name
-                    </label>
-                    <input
-                      type="text"
-                      value={customRoleDraft.custom_role_name}
-                      onChange={(e) =>
-                        handleCustomDraftChange("custom_role_name", e.target.value)
-                      }
-                      placeholder="e.g. Concrete Coordinator"
-                      className={inputCardClassName}
-                    />
-                  </div>
+              <div className="mt-4 space-y-4">
+                <Field label="Custom Role Name">
+                  <input
+                    type="text"
+                    value={customRoleDraft.custom_role_name}
+                    onChange={(e) =>
+                      handleCustomDraftChange(
+                        "custom_role_name",
+                        e.target.value
+                      )
+                    }
+                    placeholder="e.g. Concrete Coordinator"
+                    className={inputCardClassName}
+                  />
+                </Field>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                      Role Category
-                    </label>
-                    <select
-                      value={customRoleDraft.role_category}
-                      onChange={(e) =>
-                        handleCustomDraftChange("role_category", e.target.value)
-                      }
-                      className={inputCardClassName}
-                    >
-                      {ROLE_CATEGORIES.filter(
-                        (category) => category.value !== "custom_roles"
-                      ).map((category) => (
-                        <option key={category.value} value={category.value}>
-                          {category.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <Field label="Role Category">
+                  <select
+                    value={customRoleDraft.role_category}
+                    onChange={(e) =>
+                      handleCustomDraftChange("role_category", e.target.value)
+                    }
+                    className={inputCardClassName}
+                  >
+                    {ROLE_CATEGORIES.filter(
+                      (category) => category.value !== "custom_roles"
+                    ).map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
-                      Labour Class
-                    </label>
-                    <select
-                      value={customRoleDraft.labour_class}
-                      onChange={(e) =>
-                        handleCustomDraftChange("labour_class", e.target.value)
-                      }
-                      className={inputCardClassName}
-                    >
-                      <option value="">Select labour class</option>
-                      {LABOUR_CLASS_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <Field label="Labour Class">
+                  <select
+                    value={customRoleDraft.labour_class}
+                    onChange={(e) =>
+                      handleCustomDraftChange("labour_class", e.target.value)
+                    }
+                    className={inputCardClassName}
+                  >
+                    <option value="">Select labour class</option>
+                    {LABOUR_CLASS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="ui-actions">
                   <button
                     type="button"
                     onClick={handleSaveCustomRole}
@@ -456,7 +455,7 @@ export default function LabourProfileCard({
                   </button>
                 </div>
 
-                <p className="text-sm text-[var(--text-muted)]">
+                <p className="ui-help">
                   For now, custom roles are stored locally in this browser only.
                 </p>
               </div>
@@ -464,8 +463,8 @@ export default function LabourProfileCard({
           </div>
         ) : null}
 
-        <div className="rounded-2xl bg-[var(--bg-input)] p-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="ui-panel">
+          <div className="space-y-2 text-sm">
             <div>
               <span className="font-medium text-[var(--text-secondary)]">
                 Selected Role:
@@ -474,6 +473,7 @@ export default function LabourProfileCard({
                 {state?.staff_role || "—"}
               </span>
             </div>
+
             <div>
               <span className="font-medium text-[var(--text-secondary)]">
                 Labour Class:
@@ -485,7 +485,7 @@ export default function LabourProfileCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="ui-actions">
           <button
             type="button"
             onClick={handleCreateProfile}
@@ -496,7 +496,7 @@ export default function LabourProfileCard({
           </button>
 
           {has_profile ? (
-            <div className="text-sm text-[var(--text-muted)]">
+            <div className="ui-help">
               Profile created. Identity fields are now locked.
             </div>
           ) : null}

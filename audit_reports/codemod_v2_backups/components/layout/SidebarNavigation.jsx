@@ -75,7 +75,7 @@ export default function SidebarNavigation() {
                     <Link
                       href={item.href}
                       className={[
-                        "block rounded-md px-4 py-3 no-underline transition-colors",
+                        "block rounded-md px-3 py-2 no-underline transition-colors",
                         active
                           ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
                           : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
@@ -104,7 +104,7 @@ export default function SidebarNavigation() {
               <Link
                 href={item.href}
                 className={[
-                  "block rounded-md px-4 py-3 no-underline transition-colors",
+                  "block rounded-md px-3 py-2 no-underline transition-colors",
                   active
                     ? "bg-[var(--bg-card-muted)] text-[var(--text-primary)]"
                     : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",

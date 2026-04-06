@@ -94,7 +94,7 @@ export default function EntitlementsCard({
             <div className="mb-2 text-sm font-medium text-[var(--text-secondary)]">
               Non-Productive Paid Hours
             </div>
-            <div className="ui-readonly">
+            <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-3 text-sm min-h-[44px] text-[var(--text-primary)]">
               {formatNumber(outputs.non_productive_paid_hours)}
             </div>
           </div>

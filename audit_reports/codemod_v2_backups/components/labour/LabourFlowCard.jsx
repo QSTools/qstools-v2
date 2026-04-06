@@ -104,7 +104,7 @@ export default function LabourFlowCard({ outputs, state, has_profile }) {
 
             <div className="mt-3 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3">
               <div className="text-sm text-[var(--success)]">Recommended Charge-Out</div>
-              <div className="text-xl font-semibold text-[var(--text-primary)]">
+              <div className="text-xl font-semibold text-white">
                 {fmtCur(outputs.minimum_charge_out_rate)}
               </div>
             </div>
@@ -158,7 +158,7 @@ function Row({ label, value }) {
 
 function Result({ label, value }) {
   return (
-    <div className="flex justify-between border-t border-[var(--border-primary)] pt-2 text-sm font-semibold text-[var(--text-primary)]">
+    <div className="flex justify-between border-t border-[var(--border-primary)] pt-2 text-sm font-semibold text-white">
       <span>{label}</span>
       <span>{value}</span>
     </div>
