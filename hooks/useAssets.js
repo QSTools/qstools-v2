@@ -78,8 +78,30 @@ export default function useAssets() {
     reset_asset_state,
   ]);
 
+  const output_contract = useMemo(() => {
+    const active_assets = Array.isArray(saved_assets)
+      ? saved_assets.filter((asset) => !asset.is_retired)
+      : [];
+
+    return {
+      finance_cost_annual: active_assets.reduce(
+        (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),
+        0
+      ),
+      running_cost_annual: active_assets.reduce(
+        (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
+        0
+      ),
+      total_asset_cost_annual: active_assets.reduce(
+        (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+        0
+      ),
+    };
+  }, [saved_assets]);
+
   return {
     status,
     card,
+    output_contract,
   };
 }
