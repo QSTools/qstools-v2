@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 
 import { calculateCostSummary } from "@/lib/calculations/costSummaryCalculations";
+import { calculateRecoveryAnalysis } from "@/lib/calculations/recoveryAnalysisCalculations";
 import {
   selectCostSummaryLabour,
   buildCostSummaryStatus,
   buildCostSummaryCard,
 } from "@/lib/selectors/costSummarySelectors";
+import { buildRecoveryAnalysisCard } from "@/lib/selectors/recoveryAnalysisSelectors";
 
 export default function useCostSummary(inputs = {}) {
   return useMemo(() => {
@@ -39,6 +41,11 @@ export default function useCostSummary(inputs = {}) {
       general_overhead_data,
     });
 
+    const recovery_analysis = calculateRecoveryAnalysis({
+      labour_data,
+      cost_summary_calculations: calculations,
+    });
+
     const status = buildCostSummaryStatus({
       labour_data,
       employee_overhead_data,
@@ -55,7 +62,15 @@ export default function useCostSummary(inputs = {}) {
       calculations,
     });
 
-    return { status, card };
+    const recovery_analysis_card = buildRecoveryAnalysisCard({
+      recovery_analysis,
+    });
+
+    return {
+      status,
+      card,
+      recovery_analysis: recovery_analysis_card,
+    };
   }, [
     inputs.labour,
     inputs.employee_overheads,

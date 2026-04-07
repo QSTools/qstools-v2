@@ -8,6 +8,7 @@ import useCostSummary from "@/hooks/useCostSummary";
 
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
 import CostSummaryCard from "@/components/cost-summary/CostSummaryCard";
+import RecoveryAnalysisCard from "@/components/cost-summary/RecoveryAnalysisCard";
 import CostSummaryHelpPanel from "@/components/cost-summary/CostSummaryHelpPanel";
 
 export default function CostSummaryPage() {
@@ -16,7 +17,7 @@ export default function CostSummaryPage() {
   const assets = useAssets();
   const general_overheads = useGeneralOverheads();
 
-  const { status, card } = useCostSummary({
+  const { status, card, recovery_analysis } = useCostSummary({
     labour,
     employee_overheads,
     assets,
@@ -52,6 +53,8 @@ export default function CostSummaryPage() {
               total_productive_output={card.total_productive_output}
               highlight_insight={card.highlight_insight}
             />
+
+            <RecoveryAnalysisCard {...recovery_analysis} />
           </div>
 
           <aside className="cost-summary-layout__rail">

@@ -24,9 +24,6 @@ const SYSTEM_ROLE_MAP = {
     { role_name: "General Manager", labour_class: "indirect_overhead" },
     { role_name: "Operations Manager", labour_class: "direct_support" },
     { role_name: "Construction Manager", labour_class: "direct_support" },
-    { role_name: "Project Manager", labour_class: "direct_support" },
-    { role_name: "Site Manager", labour_class: "direct_support" },
-    { role_name: "Foreman / Supervisor", labour_class: "direct_production" },
   ],
   commercial_office: [
     { role_name: "Estimator", labour_class: "indirect_overhead" },
@@ -46,6 +43,9 @@ const SYSTEM_ROLE_MAP = {
     },
   ],
   delivery_production: [
+    { role_name: "Project Manager", labour_class: "direct_production" },
+    { role_name: "Site Manager", labour_class: "direct_production" },
+    { role_name: "Foreman / Supervisor", labour_class: "direct_production" },
     { role_name: "Leading Hand", labour_class: "direct_production" },
     { role_name: "Site Labourer", labour_class: "direct_production" },
     {
@@ -116,6 +116,8 @@ export default function LabourProfileCard({
   const [identityOpen, setIdentityOpen] = useState(true);
   const [customOpen, setCustomOpen] = useState(false);
   const [showCustomRoleForm, setShowCustomRoleForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState(null);
 
   const [customRoleDraft, setCustomRoleDraft] = useState({
     custom_role_name: "",
@@ -128,6 +130,7 @@ export default function LabourProfileCard({
   }, []);
 
   const selectedRoleCategory = state?.role_category || "";
+  const fieldsLocked = has_profile && !isEditing;
 
   const filteredRoles = useMemo(() => {
     if (!selectedRoleCategory) return [];
@@ -171,6 +174,34 @@ export default function LabourProfileCard({
         "Please complete staff name, role category, staff role, and labour class."
       );
     }
+  }
+
+  function handleStartEditing() {
+    setEditSnapshot({
+      staff_name: state?.staff_name ?? "",
+      role_category: state?.role_category ?? "",
+      staff_role: state?.staff_role ?? "",
+      labour_class: state?.labour_class ?? "",
+    });
+    setIsEditing(true);
+    setIdentityOpen(true);
+  }
+
+  function handleSaveEditing() {
+    setIsEditing(false);
+    setEditSnapshot(null);
+  }
+
+  function handleCancelEditing() {
+    if (editSnapshot) {
+      update_field("staff_name", editSnapshot.staff_name);
+      update_field("role_category", editSnapshot.role_category);
+      update_field("staff_role", editSnapshot.staff_role);
+      update_field("labour_class", editSnapshot.labour_class);
+    }
+
+    setIsEditing(false);
+    setEditSnapshot(null);
   }
 
   function handleCustomDraftChange(field, value) {
@@ -249,8 +280,8 @@ export default function LabourProfileCard({
             Labour Profile
           </h2>
           <p className="ui-help">
-            Create the staff profile first. Core labour inputs stay locked until
-            the profile is created.
+            Create the staff profile first. Identity stays locked by default, but
+            you can unlock it to edit later.
           </p>
         </div>
 
@@ -266,6 +297,35 @@ export default function LabourProfileCard({
             </div>
 
             <div className="ui-actions">
+              {has_profile ? (
+                !isEditing ? (
+                  <button
+                    type="button"
+                    onClick={handleStartEditing}
+                    className="ui-button-secondary"
+                  >
+                    Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSaveEditing}
+                      className="ui-button-primary"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditing}
+                      className="ui-button-secondary"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )
+              ) : null}
+
               <button
                 type="button"
                 onClick={() => setIdentityOpen((prev) => !prev)}
@@ -283,7 +343,7 @@ export default function LabourProfileCard({
                   type="text"
                   value={state?.staff_name ?? ""}
                   onChange={(e) => update_field("staff_name", e.target.value)}
-                  disabled={has_profile}
+                  disabled={fieldsLocked}
                   placeholder="Enter staff name"
                   className={inputClassName}
                 />
@@ -293,7 +353,7 @@ export default function LabourProfileCard({
                 <select
                   value={state?.role_category ?? ""}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  disabled={has_profile}
+                  disabled={fieldsLocked}
                   className={inputClassName}
                 >
                   <option value="">Select role category</option>
@@ -309,7 +369,7 @@ export default function LabourProfileCard({
                 <select
                   value={state?.staff_role ?? ""}
                   onChange={(e) => handleStaffRoleChange(e.target.value)}
-                  disabled={has_profile || !selectedRoleCategory}
+                  disabled={fieldsLocked || !selectedRoleCategory}
                   className={inputClassName}
                 >
                   <option value="">
@@ -332,7 +392,7 @@ export default function LabourProfileCard({
                 <select
                   value={state?.labour_class ?? ""}
                   onChange={(e) => handleLabourClassChange(e.target.value)}
-                  disabled={has_profile}
+                  disabled={fieldsLocked}
                   className={inputClassName}
                 >
                   <option value="">Select labour class</option>
@@ -351,7 +411,7 @@ export default function LabourProfileCard({
                     setShowCustomRoleForm((previous) => !previous);
                     setCustomOpen(true);
                   }}
-                  disabled={has_profile}
+                  disabled={fieldsLocked}
                   className={secondaryButtonClassName}
                 >
                   {showCustomRoleForm ? "Hide Custom Role" : "Add Custom Role"}
@@ -361,7 +421,7 @@ export default function LabourProfileCard({
           ) : null}
         </div>
 
-        {showCustomRoleForm && !has_profile ? (
+        {showCustomRoleForm && !fieldsLocked ? (
           <div className="ui-panel border-dashed border-[var(--border-strong)]">
             <div className="ui-split">
               <div>
@@ -490,23 +550,26 @@ export default function LabourProfileCard({
                 {labourClassLabel}
               </span>
             </div>
+
+            {has_profile ? (
+              <div className="ui-help">
+                {isEditing
+                  ? "Profile is unlocked for editing."
+                  : "Profile created. Identity fields are locked until you click Edit Profile."}
+              </div>
+            ) : null}
           </div>
         </div>
 
         <div className="ui-actions">
-          <button
-            type="button"
-            onClick={handleCreateProfile}
-            disabled={has_profile}
-            className={primaryButtonClassName}
-          >
-            Create Profile
-          </button>
-
-          {has_profile ? (
-            <div className="ui-help">
-              Profile created. Identity fields are now locked.
-            </div>
+          {!has_profile ? (
+            <button
+              type="button"
+              onClick={handleCreateProfile}
+              className={primaryButtonClassName}
+            >
+              Create Profile
+            </button>
           ) : null}
         </div>
       </div>
