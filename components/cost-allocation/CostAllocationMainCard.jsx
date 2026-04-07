@@ -1,19 +1,26 @@
 "use client";
 
+import CostAllocationProfilesCard from "@/components/cost-allocation/CostAllocationProfilesCard";
 import CostAllocationLinkTable from "@/components/cost-allocation/CostAllocationLinkTable";
 import CostAllocationGroupsCard from "@/components/cost-allocation/CostAllocationGroupsCard";
 
 export default function CostAllocationMainCard({
+  profile,
   recovery_context,
   structural_readiness,
   links,
   groups,
   problems,
+  set_field,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
   update_operational_group,
   remove_operational_group,
+  save_profile,
+  load_profile,
+  delete_profile,
+  new_profile,
 }) {
   return (
     <section className="ui-section">
@@ -28,6 +35,18 @@ export default function CostAllocationMainCard({
               maths. No pricing packages.
             </p>
           </div>
+
+          <CostAllocationProfilesCard
+            allocation_profile_name={profile?.allocation_profile_name}
+            effective_from={profile?.effective_from}
+            set_field={set_field}
+            on_save_profile={save_profile}
+            on_new_profile={new_profile}
+            profiles={profile?.profiles}
+            active_profile_id={profile?.active_profile_id}
+            on_load_profile={load_profile}
+            on_delete_profile={delete_profile}
+          />
 
           <div className="ui-stack">
             <section className="ui-panel">

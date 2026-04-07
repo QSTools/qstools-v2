@@ -1,6 +1,8 @@
 "use client";
 
 import useCostAllocation from "@/hooks/useCostAllocation";
+
+import CostAllocationNoticeBanner from "@/components/cost-allocation/CostAllocationNoticeBanner"; // 👈 add this
 import CostAllocationStatusStrip from "@/components/cost-allocation/CostAllocationStatusStrip";
 import CostAllocationMainCard from "@/components/cost-allocation/CostAllocationMainCard";
 import CostAllocationHelpPanel from "@/components/cost-allocation/CostAllocationHelpPanel";
@@ -15,6 +17,8 @@ export default function CostAllocationPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        <CostAllocationNoticeBanner /> {/* 👈 FIRST */}
+
         <CostAllocationStatusStrip {...status} />
         <CostAllocationMainCard {...card} {...actions} />
         <CostAllocationHelpPanel />

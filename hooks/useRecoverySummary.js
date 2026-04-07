@@ -64,8 +64,30 @@ export default function useRecoverySummary(inputs = {}) {
     set_recovery_state,
   ]);
 
+  const output_contract = useMemo(() => {
+    return {
+      active_recovery_model: calculated.active_recovery_model,
+      labour_share_percent: calculated.labour_share_percent,
+      asset_share_percent: calculated.asset_share_percent,
+      overhead_share_percent: calculated.overhead_share_percent,
+      labour_recovery_cost: calculated.labour_recovery_cost,
+      asset_recovery_cost: calculated.asset_recovery_cost,
+      overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+      required_labour_recovery_rate: calculated.required_labour_recovery_rate,
+      required_asset_recovery: calculated.required_asset_recovery,
+      total_cost_burden: calculated.total_cost_burden,
+      total_productive_output: calculated.total_productive_output,
+      warnings: calculated.warnings,
+      share_not_balanced: calculated.share_not_balanced,
+      no_productive_output: calculated.no_productive_output,
+      asset_recovery_without_assets: calculated.asset_recovery_without_assets,
+      labour_recovery_without_labour: calculated.labour_recovery_without_labour,
+    };
+  }, [calculated]);
+
   return {
     status,
     card,
+    output_contract,
   };
 }
