@@ -26,16 +26,24 @@ export default function useCostSummary(inputs = {}) {
         total_asset_cost_annual: 0,
       };
 
+    const general_overhead_data =
+      inputs.general_overheads?.output_contract ?? {
+        total_general_overheads: 0,
+        overhead_rows: [],
+      };
+
     const calculations = calculateCostSummary({
       labour_data,
       employee_overhead_data,
       asset_data,
+      general_overhead_data,
     });
 
     const status = buildCostSummaryStatus({
       labour_data,
       employee_overhead_data,
       asset_data,
+      general_overhead_data,
       calculations,
     });
 
@@ -43,9 +51,15 @@ export default function useCostSummary(inputs = {}) {
       labour_data,
       employee_overhead_data,
       asset_data,
+      general_overhead_data,
       calculations,
     });
 
     return { status, card };
-  }, [inputs.labour, inputs.employee_overheads, inputs.assets]);
+  }, [
+    inputs.labour,
+    inputs.employee_overheads,
+    inputs.assets,
+    inputs.general_overheads,
+  ]);
 }

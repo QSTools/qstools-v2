@@ -176,16 +176,21 @@ export default function CostSummaryCard({
   business_cost_total,
   asset_cost_total = 0,
   general_overheads_total = 0,
+  general_overhead_rows = [],
+  asset_rows = [],
 
   total_cost_burden,
   required_revenue,
   required_recovery_rate,
   total_productive_output = 0,
+
+  highlight_insight = "",
 }) {
   const [recoveryBlockOpen, setRecoveryBlockOpen] = useState(true);
   const [peopleCostOpen, setPeopleCostOpen] = useState(true);
   const [staffDrilldownOpen, setStaffDrilldownOpen] = useState(false);
   const [businessCostOpen, setBusinessCostOpen] = useState(true);
+  const [businessDrilldownOpen, setBusinessDrilldownOpen] = useState(false);
 
   const safePeopleRows = useMemo(() => {
     return [...(people_rows || [])].sort((a, b) => {
@@ -195,18 +200,30 @@ export default function CostSummaryCard({
     });
   }, [people_rows]);
 
+  const safeGeneralOverheadRows = useMemo(() => {
+    return [...(general_overhead_rows || [])];
+  }, [general_overhead_rows]);
+
+  const safeAssetRows = useMemo(() => {
+    return [...(asset_rows || [])];
+  }, [asset_rows]);
+
   const total_people_cost_annual = Number(people_cost_total || 0);
   const total_gross_wages_annual = Number(gross_wages_total || 0);
   const total_entitlements_annual = Number(entitlements_total || 0);
   const total_employer_kiwisaver_annual = Number(employer_kiwisaver_total || 0);
   const total_esct_annual = Number(esct_total || 0);
   const total_employee_overheads_annual = Number(employee_overheads_total || 0);
+
   const total_business_cost_annual = Number(business_cost_total || 0);
   const total_asset_cost_annual = Number(asset_cost_total || 0);
   const total_business_overheads = Number(general_overheads_total || 0);
 
   const employerContributionTotal =
     total_employer_kiwisaver_annual + total_esct_annual;
+
+  const hasBusinessDrilldown =
+    safeAssetRows.length > 0 || safeGeneralOverheadRows.length > 0;
 
   return (
     <section className="ui-section">
@@ -218,6 +235,15 @@ export default function CostSummaryCard({
           Internal cost burden and required recovery view.
         </p>
       </div>
+
+      {highlight_insight ? (
+        <div className="mt-4 ui-panel">
+          <div className="ui-kicker">Insight</div>
+          <div className="mt-2 text-sm text-[var(--text-primary)]">
+            {highlight_insight}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 space-y-4">
         <div className="ui-panel">
@@ -352,6 +378,59 @@ export default function CostSummaryCard({
                 value={formatMoney(total_business_cost_annual)}
                 tone="success"
               />
+
+              {hasBusinessDrilldown ? (
+                <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
+                  <SectionHeader
+                    title="Business Cost Drilldown"
+                    summary="Supporting rows from linked assets and general overheads."
+                    isOpen={businessDrilldownOpen}
+                    onToggle={() => setBusinessDrilldownOpen((prev) => !prev)}
+                    value={formatNumber(
+                      safeAssetRows.length + safeGeneralOverheadRows.length
+                    )}
+                  />
+
+                  {businessDrilldownOpen ? (
+                    <div className="mt-4 space-y-4">
+                      {safeAssetRows.length > 0 ? (
+                        <div className="ui-stack">
+                          <div className="text-sm font-medium text-[var(--text-primary)]">
+                            Asset Rows
+                          </div>
+                          {safeAssetRows.map((row, index) => (
+                            <BreakdownRow
+                              key={row?.asset_id || row?.key || `asset-${index}`}
+                              label={row?.label || row?.asset_name || "Asset"}
+                              value={formatMoney(
+                                row?.amount ??
+                                  row?.total_asset_cost_annual ??
+                                  row?.value ??
+                                  0
+                              )}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {safeGeneralOverheadRows.length > 0 ? (
+                        <div className="ui-stack">
+                          <div className="text-sm font-medium text-[var(--text-primary)]">
+                            General Overhead Rows
+                          </div>
+                          {safeGeneralOverheadRows.map((row, index) => (
+                            <BreakdownRow
+                              key={row?.key || `overhead-${index}`}
+                              label={row?.label || "General Overhead"}
+                              value={formatMoney(row?.amount ?? row?.value ?? 0)}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

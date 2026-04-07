@@ -3,6 +3,7 @@
 import { useLabour } from "@/hooks/useLabour";
 import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
 import useAssets from "@/hooks/useAssets";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import useCostSummary from "@/hooks/useCostSummary";
 
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
@@ -13,11 +14,13 @@ export default function CostSummaryPage() {
   const labour = useLabour();
   const employee_overheads = useEmployeeOverheads();
   const assets = useAssets();
+  const general_overheads = useGeneralOverheads();
 
   const { status, card } = useCostSummary({
     labour,
     employee_overheads,
     assets,
+    general_overheads,
   });
 
   return (
@@ -47,6 +50,7 @@ export default function CostSummaryPage() {
               required_revenue={card.required_revenue}
               required_recovery_rate={card.required_recovery_rate}
               total_productive_output={card.total_productive_output}
+              highlight_insight={card.highlight_insight}
             />
           </div>
 
