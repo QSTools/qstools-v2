@@ -84,13 +84,9 @@ function get_active_labour_profiles(labour) {
 export default function useEmployeeOverheads() {
   const labour = useLabour();
 
-  console.log("LABOUR HOOK OUTPUT 👉", labour);
-
   const labour_profiles = useMemo(() => {
     return get_active_labour_profiles(labour);
   }, [labour]);
-
-  console.log("ACTIVE LABOUR PROFILES USED 👉", labour_profiles);
 
   const [selected_staff_id, setSelectedStaffId] = useState("");
   const [stored_profiles, setStoredProfiles] = useState([]);
@@ -132,21 +128,24 @@ export default function useEmployeeOverheads() {
       return;
     }
 
-    const active_profile = getActiveEmployeeOverheadProfileByStaffId(
-      selected_staff_id
-    );
+    setDraft((current) => {
+      if (current && current.staff_id === selected_staff_id) {
+        return current;
+      }
 
-    if (active_profile) {
-      setDraft(active_profile);
-      return;
-    }
+      const active_profile = getActiveEmployeeOverheadProfileByStaffId(
+        selected_staff_id
+      );
 
-    setDraft(
-      createBlankEmployeeOverheadProfile({
+      if (active_profile) {
+        return active_profile;
+      }
+
+      return createBlankEmployeeOverheadProfile({
         staff_id: selected_staff_id,
         profile_version: 1,
-      })
-    );
+      });
+    });
   }, [selected_staff_id, stored_profiles]);
 
   function updateDraftField(field, value) {
@@ -251,6 +250,8 @@ export default function useEmployeeOverheads() {
 
     const next_profiles = upsertActiveEmployeeOverheadProfile(next_profile);
     setStoredProfiles(next_profiles);
+
+    setDraft(next_profile);
   }
 
   const card = useMemo(() => {
