@@ -1,0 +1,164 @@
+# QS Tools — Cost Summary Wiring (v1.7 — LOCKED)
+
+STATUS: FULL COST SUMMARY INPUT WIRING BASELINE
+
+PURPOSE
+This brief defines the completed upstream wiring contract for Cost Summary.
+
+Cost Summary must consume locked upstream outputs from:
+- Labour
+- Employee Overheads
+- Assets
+- General Overheads
+
+It must aggregate these outputs into:
+- People Cost
+- Business Cost
+- Total Cost Burden
+- Required Recovery baseline
+
+---
+
+## UPSTREAM INPUT CONTRACTS
+
+### From Labour
+- staff_id
+- productive_hours
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+- total_employer_contribution_cost
+
+### From Employee Overheads
+- staff_id
+- employee_overheads_total_annual
+- total_employee_overheads_annual
+
+### From Assets
+- total_asset_cost_annual
+
+### From General Overheads
+- total_general_overheads
+
+---
+
+## PEOPLE COST BUILD (LOCKED)
+
+Per staff:
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_annual = employer_kiwisaver_gross
+- esct_annual = esct_amount
+- employee_overheads_annual = employee_overheads_total_annual
+- total_people_cost_annual =
+  gross_wages_annual
+  + entitlements_annual
+  + employer_kiwisaver_annual
+  + esct_annual
+  + employee_overheads_annual
+
+Aggregate:
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+
+Rules:
+- Employee Overheads must join to Labour by staff_id only
+- staff without linked overheads default to 0
+- display names must never be used as keys
+
+---
+
+## BUSINESS COST BUILD (LOCKED)
+
+- total_asset_cost_annual
+- total_business_overheads = total_general_overheads
+- total_business_cost_annual =
+  total_asset_cost_annual + total_business_overheads
+
+Rules:
+- Assets remain separate from General Overheads
+- no raw upstream category rebuilds allowed
+
+---
+
+## TOTAL COST BURDEN BUILD (LOCKED)
+
+- total_productive_output =
+  sum(productive_hours for all active staff)
+
+- total_cost_burden =
+  total_people_cost_annual + total_asset_cost_annual + total_business_overheads
+
+- required_revenue =
+  total_cost_burden
+
+- required_recovery_rate =
+  required_revenue / total_productive_output
+
+If total_productive_output = 0:
+- required_recovery_rate = 0
+- warning required
+
+---
+
+## REQUIRED COST SUMMARY OUTPUTS
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+- total_productive_output
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+
+---
+
+## PAGE DISPLAY REQUIREMENT
+
+People Cost must visibly show:
+- Gross Wages
+- Entitlements
+- Employer KiwiSaver
+- ESCT
+- Employee Overheads
+- Total People Cost
+
+Business Cost must visibly show:
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+
+Total Cost & Recovery must visibly show:
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+
+---
+
+## CORE RULES
+
+- MUST consume upstream outputs only
+- MUST NOT rebuild Labour maths
+- MUST NOT rebuild Employee Overheads maths
+- MUST NOT rebuild Asset maths
+- MUST NOT rebuild General Overheads maths
+- MUST NOT use display names as keys
+- MUST NOT consume Scenario outputs
+
+---
+
+## DEFINITION
+
+Cost Summary Wiring v1.7 is the locked integration contract that completes Cost Summary as the downstream aggregation layer for People Cost, Business Cost, and total annual recovery baseline.

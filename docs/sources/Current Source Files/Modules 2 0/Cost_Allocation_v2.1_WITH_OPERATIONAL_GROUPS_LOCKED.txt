@@ -1,0 +1,276 @@
+# QS Tools — Cost Allocation (v2.1 — LOCKED)
+
+STATUS: STRUCTURAL + OPERATIONAL VALIDATION LAYER
+
+---
+
+## PURPOSE
+
+The Cost Allocation Module validates whether the business structure can support the selected recovery strategy.
+
+It defines:
+
+- labour-to-asset relationships (capability)
+- operational groups (delivery units)
+- structural readiness for recovery
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Cost Allocation is a:
+
+structural + operational validation layer
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+
+---
+
+## CORE PRINCIPLE
+
+Recovery Summary defines WHAT must be recovered  
+Cost Allocation defines WHETHER it can be delivered  
+
+---
+
+## ARCHITECTURE
+
+Page  
+app/cost-allocation/page.jsx
+
+Hook  
+hooks/useCostAllocation.js
+
+Calculations  
+lib/calculations/costAllocationRules.js
+
+Selectors  
+lib/selectors/costAllocationSelectors.js
+
+Storage  
+lib/storage/costAllocationStorage.js  
+lib/storage/costAllocationProfileStorage.js
+
+Components  
+components/cost-allocation/
+
+- CostAllocationStatusStrip.jsx
+- CostAllocationMainCard.jsx
+- CostAllocationHelpPanel.jsx
+- CostAllocationLinkTable.jsx
+- CostAllocationGroupsCard.jsx
+
+---
+
+## INPUTS
+
+### From Recovery Summary
+
+- active_recovery_model
+- labour_share_percent
+- asset_share_percent
+
+---
+
+### From Labour
+
+- staff_id
+- staff_name (display only)
+- is_active
+
+---
+
+### From Assets
+
+- asset_id
+- asset_name (display only)
+- is_active
+
+---
+
+## DATA MODEL
+
+### Structural Links
+
+- asset_labour_link_id
+- asset_id
+- staff_id
+- is_active
+
+---
+
+### Operational Groups
+
+- group_id
+- group_name
+- required_asset_ids[]
+- required_staff_count
+- is_active
+
+---
+
+## LAYER STRUCTURE
+
+### Layer 1 — Capability Links
+
+Defines:
+
+what CAN work together
+
+---
+
+### Layer 2 — Operational Groups
+
+Defines:
+
+what MUST work together
+
+Examples:
+
+- Pump Unit = pump + ute + 1 driver  
+- Drill Setup = digger + auger + 1 operator  
+
+---
+
+### Layer 3 — Validation
+
+Checks:
+
+- missing links
+- orphan staff/assets
+- incomplete groups
+- structural coverage
+
+---
+
+## STRUCTURAL RULES
+
+### labour_only
+
+- links optional
+- groups optional
+
+---
+
+### asset_driven
+
+- links required
+- groups required
+
+---
+
+### hybrid
+
+- partial linking allowed
+- warnings required
+
+---
+
+## VALIDATION RULES
+
+### Duplicate Links
+
+Not allowed:
+
+same asset_id + staff_id active pair
+
+---
+
+### Orphan Detection
+
+- staff not linked
+- assets not linked
+- assets not in groups
+
+---
+
+### Group Validity
+
+Group is valid only if:
+
+- all required assets exist
+- required staff count is met
+
+---
+
+## OUTPUTS
+
+- active_asset_labour_links[]
+- active_operational_groups[]
+- linked_staff_count
+- unlinked_staff_count
+- linked_asset_count
+- unlinked_asset_count
+- total_operational_groups
+- valid_operational_groups
+- invalid_operational_groups
+- structure_valid
+- staff_coverage_percent
+- asset_coverage_percent
+- group_coverage_percent
+- duplicate_link_warnings[]
+- orphan_warnings[]
+- group_validation_warnings[]
+
+---
+
+## PAGE STRUCTURE
+
+1. CostAllocationStatusStrip
+2. CostAllocationMainCard
+3. CostAllocationHelpPanel
+
+---
+
+## MAIN CARD SECTIONS
+
+A. Recovery Context (read-only)
+
+B. Structural Coverage  
+- staff coverage  
+- asset coverage  
+- group coverage  
+
+C. Link Table  
+- create/remove links  
+- show linked/unlinked  
+
+D. Operational Groups  
+- create/edit groups  
+- show valid/invalid  
+
+E. Problem Highlight  
+- missing links  
+- incomplete groups  
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+- links vs groups
+- structure vs pricing
+- why recovery may fail without structure
+
+---
+
+## CORE RULES
+
+- MUST NOT calculate costs
+- MUST NOT calculate recovery
+- MUST NOT own staff_id or asset_id
+- MUST NOT duplicate Cost Summary outputs
+- MUST consume Recovery Summary outputs only
+
+---
+
+## DEFINITION
+
+Cost Allocation is a structural and operational validation layer that ensures the business has the correct resource structure to support its recovery strategy without performing any cost or pricing calculations.

@@ -7,6 +7,7 @@ import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import useCostSummary from "@/hooks/useCostSummary";
 
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
+import CostSummaryNoticeBanner from "@/components/cost-summary/CostSummaryNoticeBanner";
 import CostSummaryCard from "@/components/cost-summary/CostSummaryCard";
 import RecoveryAnalysisCard from "@/components/cost-summary/RecoveryAnalysisCard";
 import CostSummaryHelpPanel from "@/components/cost-summary/CostSummaryHelpPanel";
@@ -27,6 +28,8 @@ export default function CostSummaryPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        <CostSummaryNoticeBanner />
+
         <section className="cost-summary-layout">
           <div className="cost-summary-layout__main">
             <CostSummaryCard

@@ -1,0 +1,77 @@
+# Labour Module (v2.0 — MASTER)
+
+MODULE TYPE
+Input module
+
+PURPOSE
+Labour is the identity owner and labour cost engine of QS Tools.
+
+SYSTEM ROLE (CRITICAL)
+- owns staff_id
+- calculates full employer labour cost
+- produces all labour-based People Cost outputs
+- provides productive output baseline for downstream modules
+
+DOES NOT
+- include employee overheads
+- include asset costs
+- include business overheads
+- include allocation logic
+- include recovery logic
+
+INPUTS (OWNED)
+- hours_per_week
+- days_per_week
+- labour_rate
+- charge_out_rate
+- productivity_percent
+- margin_target_percent
+- entitlement settings
+- employer contribution settings
+
+OUTPUT CONTRACT (LOCKED)
+
+Identity:
+- staff_id
+
+Time:
+- paid_hours_per_year
+- non_productive_paid_hours
+- productive_hours
+
+People Cost (core):
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+- total_employer_contribution_cost
+
+Rates:
+- loaded_labour_cost_rate
+- productive_labour_cost_rate
+- labour_cost_rate
+
+Commercial:
+- minimum_charge_out_rate
+- actual_margin_percent
+- margin_gap
+- profit_per_hour
+- above_recovery
+
+CORE RULES
+- Labour is the ONLY owner of wage-based People Cost
+- ESCT must be derived (not fixed %)
+- downstream modules must NOT rebuild Labour maths
+- variable names are locked (no renaming)
+- staff_id must be system-generated and used for all joins
+
+INTEGRATION
+Feeds:
+- Employee Overheads (via staff_id)
+- Cost Summary
+
+Consumed by:
+- Scenario Layer (read-only reuse)
+
+STATUS
+v2.0 — stable and fully implemented

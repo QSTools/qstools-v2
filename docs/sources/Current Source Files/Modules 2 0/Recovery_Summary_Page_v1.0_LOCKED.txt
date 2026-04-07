@@ -1,0 +1,238 @@
+# QS Tools — Recovery Summary Page (v1.0 — LOCKED)
+
+STATUS: NEW LAYER (COMMERCIAL DISTRIBUTION)
+
+---
+
+## PURPOSE
+
+The Recovery Summary Page defines how the total business cost burden is recovered.
+
+It sits downstream of Cost Summary and converts total cost into a recovery strategy.
+
+It answers:
+
+- how much cost must be recovered
+- how recovery is distributed (labour / assets / overhead)
+- what minimum recovery pressure exists
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Recovery Summary is a:
+
+commercial distribution layer
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+BUDGET (future)
+
+---
+
+## CORE PRINCIPLE
+
+Cost Summary = WHAT the business costs  
+Recovery Summary = HOW the business recovers it  
+
+Recovery Summary must NOT:
+
+- recalculate upstream costs
+- consume raw module inputs
+- become a pricing engine
+
+It must:
+
+- consume Cost Summary outputs only
+- apply recovery strategy inputs
+- produce recovery outputs for downstream use
+
+---
+
+## ARCHITECTURE
+
+Page  
+app/recovery-summary/page.jsx
+
+Hook  
+hooks/useRecoverySummary.js
+
+Calculations  
+lib/calculations/recoverySummaryCalculations.js
+
+Selectors  
+lib/selectors/recoverySummarySelectors.js
+
+Storage  
+lib/storage/recoverySummaryStorage.js  
+lib/storage/recoverySummaryProfileStorage.js
+
+Components  
+components/recovery-summary/
+
+- RecoverySummaryStatusStrip.jsx
+- RecoverySummaryMainCard.jsx
+- RecoverySummaryHelpPanel.jsx
+
+---
+
+## INPUTS
+
+### From Cost Summary
+
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+
+---
+
+### Local Inputs
+
+- recovery_model
+
+Allowed values:
+
+- labour_only
+- asset_driven
+- hybrid
+
+- labour_share_percent
+- asset_share_percent
+- overhead_share_percent
+
+---
+
+## DEFAULT BEHAVIOUR
+
+If no inputs:
+
+recovery_model = labour_only  
+labour_share_percent = 100  
+asset_share_percent = 0  
+overhead_share_percent = 0  
+
+---
+
+## CALCULATIONS
+
+### Share Balance Rule
+
+labour_share_percent + asset_share_percent + overhead_share_percent = 100
+
+---
+
+### Recovery Distribution
+
+labour_recovery_cost =
+total_cost_burden × labour_share_percent / 100
+
+asset_recovery_cost =
+total_cost_burden × asset_share_percent / 100
+
+overhead_absorbed_cost =
+total_cost_burden × overhead_share_percent / 100
+
+---
+
+### Labour Recovery Rate
+
+required_labour_recovery_rate =
+labour_recovery_cost / total_productive_output
+
+---
+
+### Asset Recovery Requirement
+
+required_asset_recovery =
+asset_recovery_cost
+
+---
+
+## OUTPUTS
+
+- active_recovery_model
+- labour_share_percent
+- asset_share_percent
+- overhead_share_percent
+- labour_recovery_cost
+- asset_recovery_cost
+- overhead_absorbed_cost
+- required_labour_recovery_rate
+- required_asset_recovery
+
+---
+
+## STATUS / WARNINGS
+
+- share_not_balanced
+- no_productive_output
+- asset_recovery_without_assets
+- labour_recovery_without_labour
+
+---
+
+## PAGE STRUCTURE
+
+1. RecoverySummaryStatusStrip
+2. RecoverySummaryMainCard
+3. RecoverySummaryHelpPanel
+
+---
+
+## MAIN CARD SECTIONS
+
+A. Cost Baseline  
+- total_cost_burden  
+- required_recovery_rate  
+- total_productive_output  
+
+B. Recovery Model Selector  
+
+C. Recovery Share Inputs  
+
+D. Recovery Distribution  
+- labour_recovery_cost  
+- asset_recovery_cost  
+- overhead_absorbed_cost  
+
+E. Recovery Pressure  
+- required_labour_recovery_rate  
+- required_asset_recovery  
+
+F. Insight (light only)
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+- difference between cost and recovery
+- labour-only vs asset-driven businesses
+- material margin is NOT recovery
+- this is NOT pricing
+
+---
+
+## CORE RULES
+
+- MUST consume Cost Summary outputs only
+- MUST NOT rebuild upstream logic
+- MUST NOT rename contract variables
+- MUST remain simple and explicit
+
+---
+
+## DEFINITION
+
+Recovery Summary is the commercial layer that converts total business cost into a clear recovery strategy and required recovery pressure without altering upstream cost structure.

@@ -1,0 +1,487 @@
+Perfect — this is exactly the right move. You’re at a natural breakpoint and need a **clean, reusable system brief**.
+
+Below is your **complete Phase 2 → Phase 3 master brief**.
+You can drop this straight into your `/sources` folder.
+
+---
+
+# 📄 QS Tools — UI System & Mobile Conversion Brief (v1.0 — LOCKED)
+
+---
+
+# 🎯 PURPOSE
+
+This brief defines:
+
+1. **What has been completed (Phase 2 — UI System Standardisation)**
+2. **What remains (Phase 3 — Mobile Layout Engine)**
+3. **The exact tooling (Python audit + codemod scripts)**
+4. **The rules to prevent drift going forward**
+
+This becomes the **source of truth** for UI structure.
+
+---
+
+# 🧱 PHASE 2 — COMPLETED (LOCKED)
+
+## ✅ Objective Achieved
+
+You have successfully:
+
+👉 Standardised the entire UI system
+👉 Removed styling drift
+👉 Created a theme-driven architecture
+
+---
+
+## ✅ What was built
+
+### 1. Global Theme System (`globals.css`)
+
+* Light / Medium / Dark modes
+* Full token system:
+
+```css
+--bg-page
+--bg-card
+--bg-input
+--text-primary
+--border-primary
+--accent
+--success / warning / danger / info
+```
+
+👉 **No hardcoded colours allowed anywhere**
+
+---
+
+### 2. UI Component System (CSS-based)
+
+All UI must now use:
+
+```
+ui-section
+ui-panel
+ui-input
+ui-readonly
+ui-button-primary
+ui-button-secondary
+ui-button-danger
+ui-pill
+ui-label
+ui-help
+ui-kicker
+ui-stack
+ui-actions
+ui-split
+```
+
+---
+
+### 3. Codemod System (Python)
+
+You built:
+
+#### ✅ Codemod v1 + v2
+
+* Removes:
+
+  * inline styles
+  * hardcoded colours
+  * inconsistent inputs/buttons
+* Replaces with:
+
+  * UI system classes
+
+---
+
+### 4. Mobile Touch Standardisation
+
+All inputs/buttons now:
+
+```
+min-height: 44px
+```
+
+---
+
+### 5. Audit System (Python)
+
+You created a full audit engine to detect:
+
+* small touch targets
+* grid misuse
+* fixed widths
+* inline styles
+* collapse candidates
+
+---
+
+## 🔒 Phase 2 Rules (NON-NEGOTIABLE)
+
+❌ No inline styles
+❌ No `text-white`, `bg-neutral-*`
+❌ No manual px/py for inputs/buttons
+❌ No custom component styling
+
+✅ Everything must use UI classes + CSS tokens
+
+---
+
+# 📊 CURRENT SYSTEM STATE (FROM AUDIT)
+
+## Remaining Issues
+
+```
+grid_cols_2plus: 22   ← biggest problem
+collapse_candidate: 12
+fixed_width: 9
+fixed_height: 4
+small_touch_target: 3
+tiny_text: 3
+```
+
+👉 Styling is DONE
+👉 Remaining = **layout + UX**
+
+---
+
+# 🚀 PHASE 3 — MOBILE LAYOUT ENGINE (ACTIVE)
+
+---
+
+## 🎯 Objective
+
+Convert system from:
+
+👉 Desktop-first layout
+➡️ Mobile-first UX system
+
+---
+
+## 🔥 Core Problem
+
+Current pattern:
+
+```jsx
+grid grid-cols-1 md:grid-cols-3
+```
+
+👉 This breaks mobile:
+
+* cramped UI
+* inconsistent stacking
+* unpredictable layouts
+
+---
+
+## ✅ Phase 3 Strategy
+
+### RULE 1 — Remove Responsive Grid Columns
+
+❌ REMOVE:
+
+```jsx
+md:grid-cols-2
+md:grid-cols-3
+xl:grid-cols-*
+```
+
+✅ REPLACE WITH:
+
+```jsx
+grid grid-cols-1 gap-4
+```
+
+OR:
+
+```jsx
+ui-split
+```
+
+---
+
+### RULE 2 — Vertical Flow First
+
+All pages must follow:
+
+```
+Section
+  → Panel
+    → Content
+```
+
+👉 No side-by-side logic blocks on mobile
+
+---
+
+### RULE 3 — Collapse Everything Non-Critical
+
+From audit:
+
+```
+collapse_candidate: 12
+```
+
+These MUST become:
+
+```jsx
+<CollapsibleSection />
+```
+
+---
+
+## 🧱 Standard Collapse Pattern
+
+```jsx
+<CollapsibleSection
+  title="People Cost"
+  summary="Annual people burden"
+>
+  {content}
+</CollapsibleSection>
+```
+
+---
+
+### RULE 4 — Macro → Drilldown
+
+Always structure:
+
+```
+Top Level (visible)
+↓
+Breakdown (visible)
+↓
+Drilldown (collapsed)
+```
+
+---
+
+### RULE 5 — No Fixed Width Layouts
+
+❌ REMOVE:
+
+```
+max-w-7xl
+flex justify-between
+w-[xxx]
+```
+
+---
+
+# 🧠 TARGET UX MODEL
+
+Each page should feel like:
+
+👉 **Mobile-first decision tool**
+
+NOT:
+
+👉 Desktop spreadsheet UI
+
+---
+
+# 🔥 PRIORITY FILES (FROM AUDIT)
+
+Fix in this exact order:
+
+### 1. CostSummaryCard.jsx 🔴
+
+### 2. ScenarioModelCard.jsx 🔴
+
+### 3. EntitlementsCard.jsx
+
+### 4. LabourProfileCard.jsx
+
+### 5. SavedProfilesCard.jsx
+
+---
+
+# 🐍 PYTHON TOOLING (LOCKED)
+
+---
+
+## 1. Audit Script (Phase 3)
+
+### `mobile_ui_audit.py`
+
+```python
+import os
+import re
+import json
+
+ROOT = r"D:\QSTools\qstools-web"
+
+patterns = {
+    "grid_cols_2plus": r"grid-cols-[2-9]",
+    "fixed_width": r"max-w-|w-\[",
+    "fixed_height": r"h-\[|min-h-\[",
+    "small_touch_target": r"py-2|h-8|h-9",
+    "tiny_text": r"text-xs",
+}
+
+results = []
+
+for root, _, files in os.walk(ROOT):
+    for file in files:
+        if file.endswith((".jsx", ".js", ".tsx")):
+            path = os.path.join(root, file)
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            file_findings = []
+
+            for name, pattern in patterns.items():
+                matches = re.findall(pattern, content)
+                if matches:
+                    file_findings.append((name, len(matches)))
+
+            if file_findings:
+                results.append({
+                    "file": path,
+                    "issues": file_findings
+                })
+
+with open("audit_phase3.json", "w") as f:
+    json.dump(results, f, indent=2)
+
+print("Audit complete")
+```
+
+---
+
+## 2. Layout Codemod (Phase 3 Starter)
+
+### `ui_layout_codemod_v3.py`
+
+```python
+import os
+import re
+
+ROOT = r"D:\QSTools\qstools-web"
+
+def fix_grids(content):
+    content = re.sub(r"md:grid-cols-\d+", "", content)
+    content = re.sub(r"xl:grid-cols-\d+", "", content)
+    return content
+
+def fix_text(content):
+    content = content.replace("text-xs", "text-sm")
+    return content
+
+def process_file(path):
+    with open(path, "r", encoding="utf-8") as f:
+        original = f.read()
+
+    updated = original
+    updated = fix_grids(updated)
+    updated = fix_text(updated)
+
+    if updated != original:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(updated)
+        return True
+
+    return False
+
+for root, _, files in os.walk(ROOT):
+    for file in files:
+        if file.endswith((".jsx", ".js", ".tsx")):
+            path = os.path.join(root, file)
+            changed = process_file(path)
+            if changed:
+                print(f"Updated: {path}")
+
+print("Codemod complete")
+```
+
+---
+
+# 🔒 PHASE 3 RULES (CRITICAL)
+
+❌ Do NOT touch:
+
+* calculations
+* hooks
+* data contracts
+
+❌ Do NOT:
+
+* reintroduce colours
+* add inline styles
+* rebuild logic
+
+✅ ONLY:
+
+* restructure layout
+* apply collapsible sections
+* enforce vertical flow
+
+---
+
+# 🚀 COMPLETION CRITERIA
+
+Phase 3 is complete when:
+
+* `grid_cols_2plus` = 0
+* `fixed_width` = 0
+* `collapse_candidate` = 0
+* all pages usable on phone
+
+---
+
+# 📦 WHAT TO DO NEXT
+
+### Step 1
+
+Push current state ✅ (DONE)
+
+### Step 2
+
+Fix manually:
+
+* CostSummaryCard
+* ScenarioModelCard
+
+### Step 3
+
+Run audit again
+
+### Step 4
+
+Run codemod v3
+
+### Step 5
+
+Refine UX
+
+---
+
+# 🔜 FUTURE (Phase 4 — OPTIONAL)
+
+* Tablet optimisation
+* Desktop enhancement layer
+* advanced navigation UX
+
+---
+
+# 🧠 FINAL NOTE
+
+You have now:
+
+👉 Built a **real UI system**
+👉 Not just a styled app
+
+Phase 3 is where it becomes:
+
+👉 **usable in the real world (mobile-first)**
+
+---
+
+If you want next:
+
+👉 I can create **ScenarioModelCard Phase 3 rewrite** (this is the hardest one)
+
+Just say:
+**“fix ScenarioModelCard”** 🚀

@@ -1,0 +1,50 @@
+# QS Tools — Implementation Brief
+Assets → Cost Summary Wiring (v1.0 — NEXT)
+
+OBJECTIVE
+Add Assets into Cost Summary Business Cost without changing Asset logic and without duplicating asset calculations.
+
+UPSTREAM OWNER
+Assets owns:
+- asset_id
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+COST SUMMARY MUST DO
+- consume total_asset_cost_annual from Assets
+- surface total_asset_cost_annual in Business Cost
+- include total_asset_cost_annual in total_business_cost_annual
+- include total_asset_cost_annual in total_cost_burden
+
+COST SUMMARY MUST NOT DO
+- rebuild asset values from purchase_price, fuel_cost_monthly, maintenance_cost_monthly, or other raw asset inputs
+- assign assets to staff
+- create package logic
+- use display names as keys
+
+REQUIRED OUTPUTS AFTER WIRING
+- total_asset_cost_annual
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+
+LOCKED FORMULAS
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual + total_asset_cost_annual + total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+TEST CHECKS
+- Cost Summary must show total_asset_cost_annual as a separate Business Cost line
+- total_business_cost_annual must increase by total_asset_cost_annual exactly
+- total_cost_burden must increase by total_asset_cost_annual exactly
+- Asset outputs must remain unchanged

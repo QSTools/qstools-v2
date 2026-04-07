@@ -1,0 +1,256 @@
+# QS Tools — Cost Summary Module (v1.6 — LOCKED)
+
+STATUS: UPDATED FOR RECOVERY LAYER ARCHITECTURE
+
+---
+
+## PURPOSE
+
+The Cost Summary Module is the internal cost aggregation engine of QS Tools.
+
+It is responsible for:
+
+- aggregating all internal business cost components
+- consuming locked upstream output contracts
+- calculating total cost burden
+- determining required revenue
+- calculating required recovery baseline
+
+It defines:
+
+WHAT the business costs
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Cost Summary is a:
+
+downstream aggregation layer
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+BUDGET
+
+---
+
+## CORE PRINCIPLE
+
+Cost Summary = WHAT it costs  
+Recovery Summary = HOW it is recovered  
+
+---
+
+## ARCHITECTURE
+
+Page  
+app/cost-summary/page.jsx
+
+Hook  
+hooks/useCostSummary.js
+
+Calculations  
+lib/calculations/costSummaryCalculations.js
+
+Selectors  
+lib/selectors/costSummarySelectors.js
+
+Storage  
+lib/storage/costSummaryStorage.js  
+lib/storage/costSummaryProfileStorage.js
+
+Components  
+components/cost-summary/
+
+- CostSummaryCard.jsx
+- CostSummaryStatusStrip.jsx
+- CostSummaryHelpPanel.jsx
+
+---
+
+## UNIVERSAL DOWNSTREAM CONTRACT RULE
+
+Cost Summary must:
+
+- consume upstream outputs unchanged
+- aggregate them
+- calculate totals
+
+Cost Summary must NOT:
+
+- rebuild upstream module maths
+- consume raw form state
+- derive upstream outputs from categories
+- rename contract variables
+
+---
+
+## INPUTS (CONSUMED ONLY)
+
+### From Labour
+
+- staff_id
+- productive_hours
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+- total_employer_contribution_cost
+
+---
+
+### From Employee Overheads
+
+- staff_id
+- employee_overheads_total_annual
+- total_employee_overheads_annual
+
+---
+
+### From Assets
+
+- total_asset_cost_annual
+
+---
+
+### From General Overheads
+
+- total_general_overheads
+
+---
+
+## ❌ REMOVED (CRITICAL CHANGE)
+
+Cost Summary NO LONGER consumes:
+
+- active_revenue_model
+- active_asset_labour_links[]
+- ANY Cost Allocation outputs
+
+Recovery and structure are now downstream responsibilities.
+
+---
+
+## PEOPLE COST BUILD (LOCKED)
+
+Per staff:
+
+gross_wages_annual  
+entitlements_annual  
+employer_kiwisaver_annual = employer_kiwisaver_gross  
+esct_annual = esct_amount  
+employee_overheads_annual = employee_overheads_total_annual  
+
+total_people_cost_annual =
+gross_wages_annual  
++ entitlements_annual  
++ employer_kiwisaver_annual  
++ esct_annual  
++ employee_overheads_annual  
+
+---
+
+## PEOPLE COST AGGREGATES
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+
+---
+
+## BUSINESS COST BUILD (LOCKED)
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+---
+
+## TOTAL COST BURDEN BUILD (LOCKED)
+
+total_productive_output =
+sum(productive_hours for all active staff)
+
+total_cost_burden =
+total_people_cost_annual  
++ total_asset_cost_annual  
++ total_business_overheads  
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0  
+warning required  
+
+---
+
+## OUTPUTS (LOCKED)
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employee_overheads_annual
+- total_people_cost_annual
+- total_productive_output
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+
+---
+
+## CORE RULES
+
+- MUST use upstream outputs only
+- MUST NOT rebuild Labour maths
+- MUST NOT rebuild Employee Overheads maths
+- MUST NOT rebuild Asset maths
+- MUST NOT rebuild General Overheads maths
+- MUST NOT consume Scenario outputs
+- MUST NOT consume Recovery Summary outputs
+- MUST NOT consume Cost Allocation outputs
+
+---
+
+## MODULE INTEGRATION PRINCIPLE
+
+- Labour owns labour cost
+- Employee Overheads owns staff overheads
+- Assets owns asset cost
+- General Overheads owns business overheads
+
+Cost Summary:
+
+- aggregates all upstream cost
+- produces total cost burden only
+
+Recovery Summary:
+
+- uses Cost Summary outputs to define recovery
+
+---
+
+## DEFINITION
+
+Cost Summary is a pure aggregation layer that defines the full cost of the business and produces the baseline recovery requirement without incorporating recovery strategy or structural logic.

@@ -1,0 +1,299 @@
+Cost Allocation Page — Build Brief v2.1
+Purpose
+
+The Cost Allocation page is the new micro structural and operational page.
+
+It consumes:
+
+Recovery Summary outputs for strategy
+Labour active records for staff identity
+Asset active records for asset identity
+
+It answers:
+
+does the current business structure support the selected recovery strategy
+which staff and assets are linked
+which assets/staff are unlinked
+which minimum operational groups are valid or incomplete
+Module type
+
+Structural Module. This follows the existing Cost Allocation pattern, but aligned to the new Recovery layer and expanded with Operational Groups.
+
+System role
+
+Cost Allocation is a structural + operational validation layer.
+
+It must:
+
+consume Recovery Summary outputs
+consume active Labour and Asset identities
+define capability links
+define operational groups
+validate structural readiness
+
+It must not:
+
+calculate costs
+calculate recovery rates
+define pricing packages
+own staff_id
+own asset_id
+
+That identity rule matches the Labour and Assets contracts.
+
+File structure
+app/cost-allocation/page.jsx
+
+hooks/useCostAllocation.js
+
+lib/calculations/costAllocationRules.js
+lib/selectors/costAllocationSelectors.js
+
+lib/storage/costAllocationStorage.js
+lib/storage/costAllocationProfileStorage.js
+
+components/cost-allocation/
+  CostAllocationStatusStrip.jsx
+  CostAllocationMainCard.jsx
+  CostAllocationHelpPanel.jsx
+  CostAllocationLinkTable.jsx
+  CostAllocationGroupsCard.jsx
+
+costAllocationRules.js stays as-is by naming exception.
+
+Inputs
+From Recovery Summary
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+From Labour
+staff_id
+staff_name (display only)
+labour_class (display only)
+is_active
+
+Labour remains owner of staff_id.
+
+From Assets
+asset_id
+asset_name (display only)
+is_active
+
+Assets remains owner of asset_id.
+
+Local Cost Allocation inputs
+allocation_profile_name
+effective_from
+asset_labour_links[]
+operational_groups[]
+Data model
+Revenue/cost structure context
+
+No local revenue model input anymore.
+Cost Allocation must consume the active recovery model from Recovery Summary.
+
+This is the most important alignment change from the old Cost Allocation v1.3 brief. The old version defined revenue_model locally. The new version must not.
+
+Asset labour link
+asset_labour_link_id
+asset_id
+staff_id
+is_active
+created_at
+updated_at
+Operational group
+group_id
+group_name
+required_asset_ids[]
+required_staff_count
+is_active
+created_at
+updated_at
+
+Operational group means minimum viable working unit, not sellable package.
+
+Example:
+
+Pump Unit = pump + ute + 1 driver
+Core structural rules
+labour_only
+asset links optional
+operational groups optional
+staff may remain unlinked without invalidating the page
+structure_valid can still be true without links
+asset_driven
+asset links required
+operational groups required where applicable
+missing links/groups should trigger incomplete structure warnings
+hybrid
+mixed structure allowed
+partial linking allowed
+warnings shown where coverage is low
+Operational validation rules
+Link validation
+no duplicate active asset_id + staff_id pairs
+active records only
+display names never used as keys
+Group completeness
+
+A group is valid only when:
+
+all required_asset_ids exist and are active
+available linked/active staff count meets required_staff_count
+Orphan detection
+unlinked active staff
+unlinked active assets
+assets not included in any active group
+Coverage
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+Outputs
+active_recovery_model
+active_allocation_profile_id
+active_asset_labour_links[]
+active_operational_groups[]
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+total_operational_groups
+valid_operational_groups
+invalid_operational_groups
+duplicate_link_warnings[]
+orphan_warnings[]
+group_validation_warnings[]
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+Wiring
+
+Cost Allocation must wire from:
+
+Recovery Summary hook outputs
+Labour active profile outputs
+Assets active profile outputs
+
+It must not wire from Cost Summary totals for detail-level linking, because Cost Summary is aggregate and does not own individual asset/staff records. That follows the current module ownership rules.
+
+Page structure
+1. CostAllocationStatusStrip
+2. CostAllocationMainCard
+3. CostAllocationHelpPanel
+CostAllocationStatusStrip
+
+Shows:
+
+active_recovery_model
+structure_valid
+linked_staff_count
+linked_asset_count
+total_operational_groups
+warnings count
+CostAllocationMainCard
+
+Sections in order:
+
+A. Recovery context block
+
+Read-only:
+
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+B. Structural readiness block
+linked_staff_count / total active staff
+linked_asset_count / total active assets
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+C. Link management block
+
+Uses CostAllocationLinkTable
+
+create/remove active links
+prevent duplicates
+show linked/unlinked state
+D. Operational groups block
+
+Uses CostAllocationGroupsCard
+
+create/edit groups
+assign required assets
+assign required staff count
+show valid/invalid groups
+E. Problem highlight block
+
+Examples:
+
+4 staff not linked to any asset
+3 assets not included in any group
+Pump Unit invalid: missing ute
+Asset-driven recovery active but structure incomplete
+Help panel
+
+Must explain:
+
+links = what can work together
+operational groups = what must work together
+packages/pricing are not handled here
+this page validates structure only
+Wiring between the two pages
+Recovery Summary pulls from
+Cost Summary only
+Cost Allocation pulls from
+Recovery Summary
+Labour
+Assets
+Sequence
+Cost Summary calculates the business cost burden and required baseline recovery.
+Recovery Summary decides how that burden should be recovered.
+Cost Allocation checks whether the actual operational structure can support that strategy.
+
+That sequencing is cleaner than the current older baseline and avoids mixing macro recovery with micro resource structure. The current older Cost Allocation brief should be superseded by this aligned version.
+
+Variables to keep simple
+Recovery Summary
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+Cost Allocation
+asset_labour_link_id
+asset_id
+staff_id
+group_id
+group_name
+required_asset_ids
+required_staff_count
+linked_staff_count
+linked_asset_count
+unlinked_staff_count
+unlinked_asset_count
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+
+These follow the naming stability rules.
+
+What needs updating in your source pack
+
+To prevent drift, the following source files should be replaced or added next:
+
+Recovery_Summary_Page_v1.0_LOCKED.txt
+Cost_Allocation_v2.1_WITH_OPERATIONAL_GROUPS_LOCKED.txt
+ACTIVE_SYSTEM_BRIEFS_v1.16_UPDATED.txt
+Implementation_Order_2026-04-08_UPDATED.txt
+QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+
+Reason:
+the current active briefs still show the older architecture with Cost Allocation before Cost Summary and the old Cost Allocation v1.3 contract.

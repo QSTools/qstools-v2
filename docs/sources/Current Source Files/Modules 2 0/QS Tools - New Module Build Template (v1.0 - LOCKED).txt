@@ -1,0 +1,133 @@
+QS Tools — New Module Build Template (v1.0 — LOCKED)
+
+STATUS: GLOBAL BUILD TEMPLATE
+
+PURPOSE
+This brief defines the required build structure for all new QS Tools modules.
+
+It exists to ensure new pages and modules are built with:
+- stable architecture
+- consistent file structure
+- consistent naming
+- clean module boundaries
+- correct downstream contract discipline
+- UI/layout consistency
+- minimal drift as source files increase
+
+UNIVERSAL BUILD RULE
+A new module must always begin from:
+1. module contract brief
+2. standard file structure
+3. standard naming convention
+4. standard page shell
+5. standard build checklist
+
+REQUIRED MODULE FILE STRUCTURE
+app/<module>/page.jsx
+hooks/use<Module>.js
+lib/calculations/<module>Calculations.js
+lib/selectors/<module>Selectors.js
+lib/storage/<module>Storage.js
+lib/storage/<module>ProfileStorage.js
+components/<module>/
+  <Module>StatusStrip.jsx
+  <Module>MainCard.jsx
+  <Module>HelpPanel.jsx
+
+Optional:
+components/<module>/
+  <Module>SummaryCard.jsx
+  <Module>ProfilesCard.jsx
+  <Module>Form.jsx
+  <Module>LinkTable.jsx
+  <Module>InsightCard.jsx
+
+ARCHITECTURE SEPARATION RULE
+- page = layout + orchestration only
+- hook = integration / orchestration
+- selectors = shaping
+- calculations = business logic
+- components = UI only
+
+PAGE SHELL TEMPLATE
+"use client";
+
+import useModuleName from "@/hooks/useModuleName";
+import ModuleNameStatusStrip from "@/components/module-name/ModuleNameStatusStrip";
+import ModuleNameMainCard from "@/components/module-name/ModuleNameMainCard";
+import ModuleNameHelpPanel from "@/components/module-name/ModuleNameHelpPanel";
+
+export default function ModuleNamePage() {
+  const { status, card } = useModuleName();
+
+  return (
+    <main className="ui-page">
+      <div className="ui-page-stack">
+        <ModuleNameStatusStrip {...status} />
+        <ModuleNameMainCard {...card} />
+        <ModuleNameHelpPanel />
+      </div>
+    </main>
+  );
+}
+
+STANDARD PAGE ORDER RULE
+1. Status strip
+2. Primary working card / main module body
+3. Secondary summary or drilldown card where needed
+4. Help panel
+
+APPROVED MODULE PAGE TYPES
+A. Input Module Page
+- Labour
+- Employee Overheads
+- Assets
+- General Overheads
+
+B. Summary / Aggregation Page
+- Cost Summary
+- Budget later
+
+C. Structural Linking Page
+- Cost Allocation
+
+MODULE OWNERSHIP CHECK
+Before building, answer:
+1. Which module owns the identity?
+2. Which module owns the inputs?
+3. Which file owns the calculations?
+4. Which outputs are exposed downstream?
+5. Does the new module consume raw upstream state or locked output contract?
+6. Does this introduce identity drift?
+7. Does this introduce variable drift?
+
+REQUIRED PRE-PUSH CHECKLIST
+- module brief exists and is aligned
+- file names follow convention
+- page.jsx is orchestration-only
+- calculations live in calculation file
+- selectors live in selector file
+- components are UI-only
+- no inline styles
+- no hardcoded colours
+- no raw upstream contract bypass
+- no display-name joins
+- no variable renaming drift
+- responsive layout follows current phase rules
+- help panel exists where required
+- status strip exists where required
+
+NOT ALLOWED
+- copy whole old pages and edit blindly
+- place business maths in page.jsx
+- place calculations inside components
+- use display names as IDs
+- rebuild upstream totals from raw form fields
+- bypass the token system
+- bypass the hook layer
+- create vague file names
+- create vague component names
+- break scenario isolation
+- consume Scenario in Cost Summary or Budget
+- rename locked variables casually
+- violate module ownership

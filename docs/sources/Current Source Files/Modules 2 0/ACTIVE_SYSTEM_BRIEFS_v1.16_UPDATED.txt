@@ -1,0 +1,177 @@
+# QS Tools — Active System Briefs (v1.16 — UPDATED)
+
+MASTER → v1.10
+
+LABOUR MODULE → v1.9 (IMPLEMENTED)
+LABOUR PAGE → v2.3
+LABOUR SCENARIO → v2.1
+
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+
+COST SUMMARY MODULE → v1.5 (IMPLEMENTED)
+COST SUMMARY PAGE → v1.5
+COST SUMMARY WIRING → v1.6
+
+RECOVERY SUMMARY → v1.0 (NEW)
+
+COST ALLOCATION → v2.1 (UPDATED — STRUCTURAL + OPERATIONAL)
+
+BUDGET → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (UPDATED — LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+BUDGET
+
+---
+
+## SYSTEM ROLE CLARITY (CRITICAL)
+
+### Cost Summary
+- Aggregates all business costs
+- Produces total_cost_burden
+- Produces required_recovery_rate
+- Defines WHAT the business costs
+
+---
+
+### Recovery Summary (NEW LAYER)
+- Consumes Cost Summary outputs only
+- Defines recovery strategy
+- Distributes cost across:
+  - labour
+  - assets
+  - overhead absorption
+- Produces recovery targets
+- Defines HOW the business recovers cost
+
+---
+
+### Cost Allocation (UPDATED ROLE)
+- Consumes Recovery Summary outputs
+- Consumes Labour + Asset identities
+- Defines:
+  - asset ↔ labour capability links
+  - operational groups (delivery units)
+- Validates:
+  - structural readiness
+  - operational completeness
+- Does NOT define recovery strategy
+- Does NOT calculate cost or recovery
+
+---
+
+## CORE SYSTEM PRINCIPLE (UPDATED)
+
+Cost Summary = WHAT it costs  
+Recovery Summary = HOW it is recovered  
+Cost Allocation = CAN it be delivered  
+
+---
+
+## CURRENT IMPLEMENTATION STATE
+
+- Labour People Cost contract is implemented
+- Cost Summary consumes Labour outputs correctly
+- KiwiSaver and ESCT remain visible separately
+- Employer Contribution Total may be shown as subtotal
+- Employee Overheads not yet wired into Cost Summary
+- Assets not yet wired into Cost Summary
+- General Overheads not yet wired into Cost Summary
+
+---
+
+## NEXT BUILD TARGET (UPDATED)
+
+1. Lock updated source briefs (this file + Recovery + Cost Allocation v2.1)
+2. Build Recovery Summary module
+3. Wire Recovery Summary to Cost Summary outputs
+4. Validate recovery calculations
+5. Build Cost Allocation v2.1 (updated structure)
+6. Wire Cost Allocation to:
+   - Recovery Summary
+   - Labour
+   - Assets
+
+---
+
+## IMPORTANT SYSTEM CHANGE (LOCKED)
+
+Previous system:
+
+INPUT MODULES
+↓
+COST ALLOCATION
+↓
+COST SUMMARY
+↓
+BUDGET
+
+This is now deprecated.
+
+---
+
+## NEW SYSTEM (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+BUDGET
+
+---
+
+## RULE ENFORCEMENT
+
+- Recovery model is NO LONGER owned by Cost Allocation
+- Recovery model is now owned by Recovery Summary
+- Cost Allocation is now a structural + operational validation layer only
+
+---
+
+## DOWNSTREAM CONTRACT RULE (UNCHANGED)
+
+- Upstream modules own inputs and calculations
+- Downstream modules consume outputs only
+- No module may rebuild upstream maths
+- No module may rename contract variables
+
+---
+
+## IDENTITY RULE (UNCHANGED)
+
+- staff_id owned by Labour
+- asset_id owned by Assets
+- Cost Allocation consumes IDs only
+- No module may create duplicate identities
+
+---
+
+## UI / ARCHITECTURE RULES (UNCHANGED)
+
+- page = orchestration only
+- hook = integration
+- calculations = business logic
+- selectors = shaping
+- components = UI only
+
+---
+
+## DEFINITION
+
+This version updates QS Tools to introduce a dedicated Recovery layer, separating cost aggregation, recovery strategy, and structural validation into distinct modules to improve clarity, scalability, and commercial accuracy.

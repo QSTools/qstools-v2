@@ -1,0 +1,437 @@
+Perfect — this is the **critical bridge module**, so we’re going to lock it clean and make sure it plugs into everything you’ve just built without breaking your system.
+
+Below is your **clean, aligned Cost Allocation Page Brief (v1.4 — READY)**
+
+---
+
+# 📄 QS Tools — Cost Allocation Page (v1.4 — LOCKED)
+
+---
+
+## STATUS
+
+✅ Updated to align with:
+
+* Cost Summary v1.6 (interpretation layer)
+* Assets v2.3
+* Labour v1.9
+* Employee Overheads v1.6
+
+👉 This version ensures **clean structural handoff into Cost Summary**
+
+---
+
+# 🎯 PURPOSE
+
+The Cost Allocation Page defines:
+
+👉 **How the business is structured to recover cost**
+
+It is responsible for:
+
+* selecting the active revenue model
+* defining Labour ↔ Asset relationships
+* preparing structural data for Cost Summary interpretation
+
+---
+
+# 🔒 SYSTEM ROLE (CRITICAL)
+
+Cost Allocation is a:
+
+👉 **Structural Module (NOT a cost module)**
+
+Position:
+
+```
+Input Modules
+↓
+Cost Allocation  ← (THIS)
+↓
+Cost Summary
+↓
+Budget
+```
+
+It must:
+
+* define structure only
+* feed structure into Cost Summary
+* remain calculation-free
+
+It must NOT:
+
+* calculate cost
+* calculate recovery
+* calculate pricing
+
+
+
+---
+
+# ⚠️ CORE PRINCIPLE
+
+Cost Allocation answers:
+
+> “How is the business expected to recover cost?”
+
+NOT:
+
+> “What does the business cost?”
+> NOT:
+> “How profitable is the business?”
+
+---
+
+# 🧱 ARCHITECTURE (LOCKED)
+
+Page
+`app/cost-allocation/page.jsx`
+
+Hook
+`hooks/useCostAllocation.js`
+
+Calculations
+`lib/calculations/costAllocationRules.js`
+
+Selectors
+`lib/selectors/costAllocationSelectors.js`
+
+Storage
+`lib/storage/costAllocationStorage.js`
+`lib/storage/costAllocationProfileStorage.js`
+
+Components
+`components/cost-allocation/`
+
+* `CostAllocationStatusStrip.jsx`
+* `CostAllocationMainCard.jsx`
+* `CostAllocationHelpPanel.jsx`
+* `CostAllocationForm.jsx`
+* `CostAllocationLinkTable.jsx`
+* `CostAllocationProfilesCard.jsx`
+
+---
+
+# 📐 PAGE STRUCTURE (LOCKED)
+
+### 1. CostAllocationStatusStrip
+
+### 2. CostAllocationMainCard
+
+### 3. CostAllocationHelpPanel (collapsed)
+
+Standard order must be preserved.
+
+---
+
+# 🧩 COST ALLOCATION MAIN CARD
+
+---
+
+## A. AllocationProfilesCard
+
+Purpose:
+
+* save/load allocation structures
+* version control
+* manage active profile
+
+Rules:
+
+* one active profile only
+* editing creates new version
+* history must be preserved
+
+---
+
+## B. CostAllocationForm
+
+Purpose:
+
+👉 Define the **revenue model**
+
+---
+
+### Input
+
+```id="revenue_model"
+revenue_model
+```
+
+Allowed values:
+
+* `labour_only`
+* `asset_driven`
+
+---
+
+### Behaviour
+
+#### labour_only
+
+* no asset links required
+* labour assumed primary recovery pathway
+
+#### asset_driven
+
+* asset links required
+* labour operates through asset-linked structure
+
+---
+
+## C. CostAllocationLinkTable
+
+Purpose:
+
+👉 Define structural relationships between:
+
+* staff_id (from Labour)
+* asset_id (from Assets)
+
+---
+
+### Link Record
+
+```id="link_record"
+asset_labour_link_id
+asset_id
+staff_id
+is_active
+```
+
+---
+
+### Rules
+
+* must use IDs only (never names)
+* duplicate active pairs not allowed
+* links must be explicit (no inference)
+* only active records used downstream
+
+---
+
+### Behaviour
+
+#### labour_only
+
+* links optional
+* empty state allowed
+
+#### asset_driven
+
+* links required
+* missing links = warning
+
+---
+
+# 📊 OUTPUT CONTRACT (CRITICAL)
+
+Cost Allocation outputs:
+
+```id="allocation_outputs"
+active_revenue_model
+active_asset_labour_links[]
+linked_staff_count
+linked_asset_count
+unlinked_active_staff_count
+duplicate_link_warnings[]
+```
+
+These are consumed by:
+
+👉 Cost Summary (interpretation layer)
+
+---
+
+# 🔗 INTEGRATION WITH COST SUMMARY (CRITICAL)
+
+Cost Summary must consume:
+
+```id="cs_input"
+active_revenue_model
+active_asset_labour_links[]
+```
+
+---
+
+## 🔥 STRUCTURAL HANDOFF RULE
+
+Cost Allocation controls:
+
+👉 **how Cost Summary interprets recovery**
+
+---
+
+### If:
+
+```id="labour_only_case"
+active_revenue_model = labour_only
+```
+
+Cost Summary:
+
+* assumes labour-based recovery
+* uses current Recovery Analysis logic
+
+---
+
+### If:
+
+```id="asset_driven_case"
+active_revenue_model = asset_driven
+```
+
+Cost Summary:
+
+* MUST NOT assume labour-only recovery
+* MUST adjust interpretation messaging
+* MUST still use same cost totals
+
+---
+
+## ⚠️ CRITICAL BOUNDARY
+
+Cost Allocation:
+
+* defines structure
+
+Cost Summary:
+
+* calculates cost
+* interprets recovery
+
+👉 **No overlap allowed**
+
+---
+
+# ⚠️ IDENTITY RULES
+
+Cost Allocation must:
+
+* use `staff_id` from Labour
+* use `asset_id` from Assets
+
+It must NOT:
+
+* create new IDs for these
+* use display names as keys
+
+---
+
+# ⚠️ VARIABLE RULES
+
+* snake_case only
+* no renaming of contract variables
+* stable across modules
+
+---
+
+# 🖥 UI RULES
+
+* UI only — no calculations
+* no inline styles
+* mobile-first layout
+* collapsible where appropriate
+
+---
+
+# 🚨 STATUS STRIP REQUIREMENTS
+
+Must show:
+
+* active revenue model
+* linked staff count
+* linked asset count
+* unlinked staff count
+* duplicate warnings
+* missing structure warnings
+
+---
+
+# 💬 HELP PANEL (MANDATORY)
+
+Must explain:
+
+* what Cost Allocation does
+
+* what it does NOT do
+
+* difference between:
+
+  * labour_only
+  * asset_driven
+
+* how it affects Cost Summary
+
+---
+
+# 🧠 DESIGN INTENT
+
+The page must answer:
+
+* How does this business recover cost?
+* Is labour carrying everything?
+* Are assets properly structured?
+* Is the system structurally valid?
+
+---
+
+# 🚫 NOT ALLOWED
+
+* no cost calculations
+* no recovery calculations
+* no pricing logic
+* no overhead inputs
+* no labour inputs
+* no asset inputs (beyond linking)
+* no use of names as keys
+* no contract drift
+
+---
+
+# 🔮 FUTURE (NOT IN THIS VERSION)
+
+* Asset Packages
+* Utilisation modelling
+* Crew grouping
+* Job-cost linkage
+
+---
+
+# ✅ DEFINITION OF DONE
+
+The Cost Allocation Page is complete when:
+
+* revenue model is selectable
+* links can be created and validated
+* profiles are versioned correctly
+* status strip shows structural readiness
+* outputs flow cleanly into Cost Summary
+* no cost logic exists in this module
+
+---
+
+# 🧾 FINAL DEFINITION
+
+The Cost Allocation Page is the structural control layer of QS Tools that defines how the business is expected to recover cost by setting the active revenue model and valid Labour-to-Asset relationships. It produces structural outputs only and feeds Cost Summary without performing any cost, recovery, or pricing calculations.
+
+---
+
+# 🔥 What you’ve just done (important)
+
+You now have:
+
+* **Labour → cost engine**
+* **Employee Overheads → people burden**
+* **Assets → capital cost**
+* **Cost Allocation → structure**
+* **Cost Summary → truth + interpretation**
+
+👉 That’s a *proper system architecture*
+
+---
+
+If you want next, I can:
+
+👉 map **exactly what needs to change in Cost Summary UI to respond to asset_driven vs labour_only** (super small but critical tweak)

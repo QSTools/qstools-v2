@@ -1,0 +1,195 @@
+Recovery Summary Page — Build Brief v1.0
+Purpose
+
+The Recovery Summary page is the new macro recovery strategy page.
+
+It takes the already-aggregated business cost outputs from Cost Summary and answers:
+
+what total cost must be recovered
+how that recovery is expected to happen
+how much must be recovered through labour
+how much must be recovered through assets
+how much remains absorbed overhead
+
+It does not calculate upstream cost. Cost Summary already owns the total cost burden and required recovery baseline.
+
+Module type
+
+Summary Module. This follows the same summary-page pattern as Cost Summary.
+
+System role
+
+Recovery Summary is a commercial distribution layer.
+
+It must:
+
+consume Cost Summary outputs only
+apply recovery strategy inputs
+calculate recovery distribution outputs
+expose clean recovery outputs downstream for Cost Allocation
+
+It must not:
+
+rebuild Labour maths
+rebuild Asset maths
+rebuild General Overheads maths
+read raw upstream form state directly
+become a pricing page
+
+That downstream-contract behaviour matches the system guardrail.
+
+File structure
+app/recovery-summary/page.jsx
+
+hooks/useRecoverySummary.js
+
+lib/calculations/recoverySummaryCalculations.js
+lib/selectors/recoverySummarySelectors.js
+
+lib/storage/recoverySummaryStorage.js
+lib/storage/recoverySummaryProfileStorage.js
+
+components/recovery-summary/
+  RecoverySummaryStatusStrip.jsx
+  RecoverySummaryMainCard.jsx
+  RecoverySummaryHelpPanel.jsx
+
+This matches the locked starter/template pattern.
+
+Inputs
+From Cost Summary only
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_cost_burden
+required_revenue
+required_recovery_rate
+total_productive_output
+
+These are already owned and exposed by Cost Summary.
+
+Local Recovery inputs
+recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+Allowed recovery_model values
+labour_only
+asset_driven
+hybrid
+Default behaviour
+
+If no recovery settings exist yet:
+
+recovery_model = labour_only
+labour_share_percent = 100
+asset_share_percent = 0
+overhead_share_percent = 0
+
+That default is important because in many builder/labour-only businesses the output may be effectively the same as Cost Summary, but Recovery Summary still provides the strategy explanation layer.
+
+Core calculations
+Share balance rule
+labour_share_percent + asset_share_percent + overhead_share_percent = 100
+Recovery cost allocation
+labour_recovery_cost = total_cost_burden × labour_share_percent / 100
+asset_recovery_cost = total_cost_burden × asset_share_percent / 100
+overhead_absorbed_cost = total_cost_burden × overhead_share_percent / 100
+Labour recovery rate
+required_labour_recovery_rate = labour_recovery_cost / total_productive_output
+
+If total_productive_output = 0:
+
+required_labour_recovery_rate = 0
+warning must be raised
+Asset recovery requirement
+required_asset_recovery = asset_recovery_cost
+
+V1 keeps this annual and simple. No per-asset utilisation logic yet.
+
+Outputs
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+total_cost_burden
+total_productive_output
+Selectors/status outputs
+is_balanced
+warnings[]
+recovery_ready
+no_productive_output_warning
+no_assets_for_asset_recovery_warning
+no_labour_for_labour_recovery_warning
+Wiring
+
+Recovery Summary must wire from:
+
+Cost Summary hook outputs only
+
+It must not pull raw data from Labour, Assets, or General Overheads directly. That is exactly the downstream contract rule used in Cost Summary and reinforced by the guardrail brief.
+
+Page structure
+1. RecoverySummaryStatusStrip
+2. RecoverySummaryMainCard
+3. RecoverySummaryHelpPanel
+RecoverySummaryStatusStrip
+
+Shows:
+
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+recovery_ready / incomplete
+warnings count
+RecoverySummaryMainCard
+
+Sections in order:
+
+A. Cost baseline block
+
+Display only:
+
+total_cost_burden
+total_productive_output
+required_recovery_rate
+B. Recovery model selector
+labour_only
+asset_driven
+hybrid
+C. Recovery share controls
+
+Editable only where allowed:
+
+labour_only: locked 100/0/0
+asset_driven: editable
+hybrid: editable
+D. Recovery distribution block
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+E. Recovery pressure block
+required_labour_recovery_rate
+required_asset_recovery
+F. Light insight block
+
+Examples:
+
+Labour is carrying 100% of cost recovery
+Asset recovery is active but no asset structure exists yet
+Overhead absorption is reducing labour recovery pressure
+Help panel
+
+Must explain:
+
+Cost Summary = what the business costs
+Recovery Summary = how the business intends to recover it
+This page is not pricing
+In labour-only businesses, outputs may look very similar to Cost Summary, but this page locks the recovery strategy explicitly

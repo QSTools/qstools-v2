@@ -1,0 +1,51 @@
+# QS Tools — Implementation Brief
+General Overheads → Cost Summary Wiring (v1.0 — NEXT)
+
+OBJECTIVE
+Add General Overheads into Cost Summary Business Cost without changing overhead logic and without duplicating overhead calculations.
+
+UPSTREAM OWNER
+General Overheads owns:
+- total_general_overheads
+
+COST SUMMARY MUST DO
+- consume total_general_overheads from General Overheads
+- map total_general_overheads into total_business_overheads
+- surface total_business_overheads in Business Cost
+- include total_business_overheads in total_business_cost_annual
+- include total_business_overheads in total_cost_burden
+
+COST SUMMARY MUST NOT DO
+- rebuild overhead totals from raw categories
+- move overhead logic into Cost Summary
+- mix general overheads into People Cost
+- mix general overheads into Assets
+
+REQUIRED OUTPUTS AFTER WIRING
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+
+LOCKED FORMULAS
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual + total_asset_cost_annual + total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+TEST CHECKS
+- Cost Summary must show total_business_overheads as a separate Business Cost line
+- total_business_cost_annual must increase by total_business_overheads exactly
+- total_cost_burden must increase by total_business_overheads exactly
+- General Overheads outputs must remain unchanged

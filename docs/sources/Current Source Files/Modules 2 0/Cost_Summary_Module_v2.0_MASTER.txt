@@ -1,0 +1,86 @@
+# Cost Summary Module (v2.0 — MASTER)
+
+MODULE TYPE
+Summary module
+
+PURPOSE
+Represents the total cost of running the business.
+
+SYSTEM ROLE (CRITICAL)
+- downstream aggregation layer
+- cost-of-business only (NO recovery logic)
+
+DOES
+- aggregate upstream cost outputs
+- calculate total cost burden
+- express cost per productive output
+
+DOES NOT
+- perform pricing
+- interpret recovery
+- assume revenue model
+
+INPUT CONTRACTS
+
+Labour:
+- productive_hours
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+
+Employee Overheads:
+- employee_overheads_total_annual
+- total_employee_overheads_annual
+
+Assets:
+- total_asset_cost_annual
+
+General Overheads:
+- total_general_overheads
+
+Cost Allocation (display only):
+- active_revenue_model
+- linked counts
+
+LOCKED CALCULATIONS
+
+People Cost:
+total_people_cost_annual =
+gross_wages_annual
++ entitlements_annual
++ employer_kiwisaver_gross
++ esct_amount
++ employee_overheads_total_annual
+
+Business Cost:
+total_business_cost_annual =
+total_asset_cost_annual
++ total_general_overheads
+
+Total Burden:
+total_cost_burden =
+total_people_cost_annual
++ total_business_cost_annual
+
+OUTPUT CONTRACT (LOCKED)
+- total_people_cost_annual
+- total_business_cost_annual
+- total_cost_burden
+- total_productive_output
+- required_revenue
+- required_recovery_rate
+
+CORE RULES
+- must consume upstream outputs only
+- must not rebuild upstream maths
+- must not consume Scenario
+- outputs are mechanical only
+
+INTEGRATION
+Feeds:
+- Recovery Layer
+- Budget
+
+STATUS
+v2.0 — partially wired (assets + overheads next)
