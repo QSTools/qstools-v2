@@ -1,0 +1,106 @@
+📄 Assets_Module_v2.4_FULL_SOURCE_OF_TRUTH.txt
+
+QS Tools — Assets Module (v2.4 — FULL SOURCE OF TRUTH — LOCKED)
+
+STATUS
+UPGRADED — PRODUCTIVE RESOURCE MODEL
+
+PURPOSE
+Defines asset cost and productive capacity.
+
+CORE ROLE
+Assets:
+
+owns asset cost
+defines asset productive capacity
+produces cost per productive hour
+
+Does NOT:
+
+calculate recovery shares
+assign staff
+participate in allocation or decisions
+
+INPUT STRUCTURE
+
+{
+asset_id,
+asset_name,
+asset_type, // "productive" | "support"
+
+finance_cost_annual,
+running_cost_annual,
+
+available_hours_per_year,
+utilisation_percent
+}
+
+DERIVED
+
+total_asset_cost_annual =
+finance_cost_annual + running_cost_annual
+
+productive_asset_hours =
+available_hours_per_year * (utilisation_percent / 100)
+
+true_asset_cost_per_hour =
+total_asset_cost_annual / productive_asset_hours
+
+SAFETY RULE
+
+IF productive_asset_hours = 0
+→ true_asset_cost_per_hour = 0
+→ warning required
+
+ASSET CLASSIFICATION
+
+Productive assets:
+
+generate revenue directly
+used in recovery units
+used in recovery share derivation
+
+Support assets:
+
+included in cost only
+NOT used in recovery units
+NOT used in recovery share derivation
+
+OUTPUT CONTRACT
+
+{
+assets: [
+{
+asset_id,
+asset_name,
+asset_type,
+total_asset_cost_annual,
+productive_asset_hours,
+true_asset_cost_per_hour
+}
+],
+total_asset_cost_annual
+}
+
+COST SUMMARY RULE
+
+Cost Summary must ONLY consume:
+total_asset_cost_annual
+
+DO NOT:
+
+derive annual cost from hourly values
+pass productive hours into Cost Summary
+introduce recovery logic into Assets
+
+FINAL RULE
+
+Assets must behave as:
+Production resource
+
+NOT:
+Cost bucket only
+
+STATUS
+
+LOCKED — READY FOR BUILD

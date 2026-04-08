@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import useLabour from "@/hooks/useLabour";
 import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
 import useAssets from "@/hooks/useAssets";
@@ -12,6 +14,12 @@ import RecoverySummaryMainCard from "@/components/recovery-summary/RecoverySumma
 import RecoverySummaryHelpPanel from "@/components/recovery-summary/RecoverySummaryHelpPanel";
 
 export default function RecoverySummaryPage() {
+  const [is_mounted, set_is_mounted] = useState(false);
+
+  useEffect(() => {
+    set_is_mounted(true);
+  }, []);
+
   const labour = useLabour();
   const employee_overheads = useEmployeeOverheads();
   const assets = useAssets();
@@ -27,6 +35,10 @@ export default function RecoverySummaryPage() {
   const { status, card } = useRecoverySummary({
     cost_summary: cost_summary.output_contract ?? {},
   });
+
+  if (!is_mounted) {
+    return null;
+  }
 
   return (
     <main className="ui-page">

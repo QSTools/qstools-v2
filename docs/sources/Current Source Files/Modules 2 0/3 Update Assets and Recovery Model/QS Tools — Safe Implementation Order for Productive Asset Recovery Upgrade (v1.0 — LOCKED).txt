@@ -1,0 +1,297 @@
+QS Tools — Safe Implementation Order for Productive Asset Recovery Upgrade (v1.0 — LOCKED)
+
+STATUS
+IMPLEMENTATION SEQUENCE — LOW RISK BUILD ORDER
+
+PURPOSE
+This file defines the safest order to implement the new productive asset recovery model without breaking Cost Summary.
+
+This order must be followed exactly.
+
+Cost Summary must remain a pure aggregation layer and must not be altered by recovery, allocation, or decision logic changes.
+
+PHASE 0 — LOCK SOURCE FILES FIRST
+
+Before touching code, update source files:
+
+Assets_Module_v2.4_FULL_SOURCE_OF_TRUTH.txt
+Recovery_Summary_v1.1_LOCKED.txt
+Cost_Allocation_v2.2_WITH_RECOVERY_UNITS_LOCKED.txt
+ACTIVE_SYSTEM_BRIEFS_v1.18_UPDATED.txt
+
+Do not start implementation before the briefs are aligned.
+
+This matches the system rule that module brief, ownership, inputs, outputs, and file structure must be clear before building.
+
+PHASE 1 — ASSETS MODULE ONLY
+
+Build the Assets upgrade first.
+
+Goal
+
+Add productive capacity and hourly asset outputs without changing Cost Summary inputs.
+
+Files to touch
+hooks/useAssets.js
+lib/calculations/assetCalculations.js
+lib/selectors/assetSelectors.js
+lib/storage/assetStorage.js
+components/assets/AssetForm.jsx
+components/assets/AssetSummaryCard.jsx
+components/assets/AssetStatusStrip.jsx
+app/assets/page.jsx
+Add fields
+asset_type
+available_hours_per_year
+utilisation_percent
+Add derived outputs
+productive_asset_hours
+true_asset_cost_per_hour
+minimum_asset_recovery_rate
+Must preserve
+total_asset_cost_annual
+finance_cost_annual
+running_cost_annual
+
+Assets must remain the owner of asset cost logic and must not assign staff or perform recovery logic. Future utilisation/cost-per-hour is already anticipated in Assets scope, but Cost Summary still consumes only total_asset_cost_annual.
+
+Hard rule
+
+Do not change the existing Cost Summary interface during this phase.
+
+Only useAssets() output contract is expanded. Cost Summary must still only read total_asset_cost_annual.
+
+PHASE 1A — COST SUMMARY NO-BREAK TEST
+
+Immediately after Assets changes, test Cost Summary.
+
+Must confirm
+total_asset_cost_annual is unchanged for same inputs
+total_business_cost_annual is unchanged
+total_cost_burden is unchanged
+required_revenue is unchanged
+required_recovery_rate is unchanged
+Must also confirm page still displays
+Asset Cost
+General Overheads
+Total Business Cost
+Total Cost Burden
+Required Revenue
+Required Recovery Rate
+Total Productive Output
+
+These formulas and page sections are locked and must remain stable.
+
+If any of those change unexpectedly, stop and roll back before proceeding.
+
+PHASE 2 — RECOVERY SUMMARY UPDATE
+
+Only move here after Phase 1A passes.
+
+Goal
+
+Replace manual labour/asset recovery share inputs with derived shares.
+
+Files to touch
+hooks/useRecoverySummary.js
+lib/calculations/recoverySummaryCalculations.js
+lib/selectors/recoverySummarySelectors.js
+lib/storage/recoverySummaryStorage.js
+components/recovery-summary/RecoverySummaryMainCard.jsx
+components/recovery-summary/RecoverySummaryStatusStrip.jsx
+app/recovery-summary/page.jsx
+Remove as editable controls
+labour_share_percent
+asset_share_percent
+Derive from
+productive labour cost base
+productive asset cost base
+Keep
+required_revenue
+required_recovery_rate
+required_labour_recovery_rate
+required_asset_recovery
+overhead_absorbed_cost if still needed
+
+Recovery Summary must consume Cost Summary outputs only and must not rebuild upstream maths. The current locked brief still uses manual shares, so this phase is the formal replacement of that behaviour.
+
+UI rule
+
+Show derived shares as read-only. Do not keep free manual override in this version.
+
+PHASE 2A — COST SUMMARY NO-BREAK TEST AGAIN
+
+After Recovery Summary update, verify Cost Summary again.
+
+Must confirm
+no Cost Summary imports changed
+no Cost Summary hook changed
+no Cost Summary formulas changed
+totals remain identical to pre-Recovery update
+
+Cost Summary must not consume Recovery Summary outputs.
+
+If Cost Summary changes here, stop.
+
+PHASE 3 — COST ALLOCATION UPGRADE
+
+Only move here after Phase 2A passes.
+
+Goal
+
+Convert operational groups from generic structural groups into real recovery units.
+
+Files to touch
+hooks/useCostAllocation.js
+lib/calculations/costAllocationRules.js
+lib/selectors/costAllocationSelectors.js
+lib/storage/costAllocationStorage.js
+lib/storage/costAllocationProfileStorage.js
+components/cost-allocation/CostAllocationGroupsCard.jsx
+components/cost-allocation/CostAllocationMainCard.jsx
+components/cost-allocation/CostAllocationStatusStrip.jsx
+app/cost-allocation/page.jsx
+Update group model
+
+Replace:
+
+required_staff_count
+
+With:
+
+required_staff_ids[]
+Keep
+required_asset_ids[]
+group_id
+group_name
+is_active
+Validation rules
+only productive assets count toward recovery units
+only assigned production staff count toward recovery units
+support assets are excluded from unit recovery logic
+structure valid requires real assigned assets + staff + groups
+
+Cost Allocation must stay structural and operational only. It must consume Recovery Summary, Labour, and Assets, but must not calculate cost or recovery itself.
+
+Important
+
+Do not implement cost maths in Cost Allocation components.
+If you add any unit summary, it must come from calculations/selectors only.
+
+PHASE 3A — PROFILE SAVE/LOAD TEST
+
+After Cost Allocation changes, test:
+
+Must confirm
+named staff assignment persists
+required_asset_ids persist
+groups load correctly
+profiles save/load correctly
+no hydration mismatch introduced
+structure_valid behaves correctly
+
+This is especially important because the old model only guaranteed required_staff_count, so persistence is now part of the contract change.
+
+PHASE 4 — RECOVERY OUTCOME VALIDATION
+
+Only move here after Phase 3A passes.
+
+Goal
+
+Keep Recovery Outcome as decision-only, but validate it against the new derived Recovery Summary and updated Cost Allocation outputs.
+
+Files to touch
+
+Only if needed:
+
+hooks/useRecoveryOutcome.js
+lib/calculations/recoveryOutcomeCalculations.js
+lib/selectors/recoveryOutcomeSelectors.js
+components/recovery-outcome/*
+Must preserve
+decision-only role
+no cost calculations
+no share calculations
+no structural recalculation
+
+Recovery Outcome consumes Recovery Summary outputs and Cost Allocation outputs only, and its role must remain pure aggregation + decision.
+
+Test states
+viable
+marginal
+not_viable
+Test scenarios
+labour-only business
+asset-driven business
+hybrid business
+
+This matches the locked implementation order for system validation.
+
+PHASE 5 — OPTIONAL UNIT INTERPRETATION BLOCK
+
+Do this only after all earlier phases pass.
+
+Goal
+
+Show a commercially meaningful unit interpretation in Recovery Outcome, without changing its ownership.
+
+Example:
+
+required recovery rate
+unit cost per hour
+viability statement
+Rule
+
+This is presentation/interpretation only.
+Do not move unit cost ownership into Recovery Outcome.
+
+GLOBAL DO-NOT-TOUCH LIST
+
+During this whole upgrade, do not change:
+
+Cost Summary formulas
+Cost Summary output names
+Cost Summary page role
+Labour formulas
+Scenario isolation
+token/UI system rules
+snake_case contract variable names
+
+These are protected by the module contracts, naming rules, and guardrail brief.
+
+REQUIRED CHECKPOINTS BEFORE EACH PUSH
+
+Before every commit:
+
+page loads without errors
+no hydration mismatch
+no duplicate logic in components
+no Cost Summary drift
+no renamed contract variables
+no display-name joins
+no downstream raw state bypass
+no inline styles or layout hacks
+
+This matches the locked checklist and template rules.
+
+FINAL IMPLEMENTATION ORDER
+
+Use this exact sequence:
+
+lock briefs
+upgrade Assets
+run Cost Summary no-break test
+upgrade Recovery Summary
+run Cost Summary no-break test again
+upgrade Cost Allocation
+test profile persistence + structure logic
+validate Recovery Outcome
+add interpretation layer later if needed
+FINAL RULE
+
+If at any stage Cost Summary changes unexpectedly, stop immediately.
+
+Cost Summary is the protected baseline.
+Everything else must build around it, not through it. Cost Summary remains the WHAT-it-costs layer and must stay separate from recovery, structure, and decision logic.
+
+If you want, I can next give you the Phase 1 Assets patch checklist in copy-paste-ready format so you can start building immediately.
