@@ -83,8 +83,15 @@ export default function useAssets() {
       ? saved_assets
           .filter((asset) => !asset.is_retired)
           .map((asset) => ({
-            asset_id: asset.asset_id ?? asset.profile_id ?? "",
-            asset_name: asset.asset_name ?? asset.name ?? "Unnamed Asset",
+            asset_id: asset.asset_id ?? "",
+            asset_name: asset.asset_name ?? "Unnamed Asset",
+            asset_type:
+              asset.asset_type === "support" ? "support" : "productive",
+            total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+            productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
+            true_asset_cost_per_hour: Number(
+              asset.true_asset_cost_per_hour ?? 0
+            ),
             is_active: !asset.is_retired,
           }))
       : [];
@@ -96,6 +103,18 @@ export default function useAssets() {
       : [];
 
     return {
+      assets: live_assets.map((asset) => ({
+        asset_id: asset.asset_id ?? "",
+        asset_name: asset.asset_name ?? "Unnamed Asset",
+        asset_type:
+          asset.asset_type === "support" ? "support" : "productive",
+        total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+        productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
+        true_asset_cost_per_hour: Number(
+          asset.true_asset_cost_per_hour ?? 0
+        ),
+      })),
+
       finance_cost_annual: live_assets.reduce(
         (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),
         0

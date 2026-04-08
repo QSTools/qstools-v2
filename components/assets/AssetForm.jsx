@@ -8,6 +8,11 @@ const number_fields = [
   ["other_running_cost_monthly", "Other Running Cost Monthly"],
 ];
 
+const productive_fields = [
+  ["available_hours_per_year", "Available Hours per Year"],
+  ["utilisation_percent", "Utilisation (%)"],
+];
+
 export default function AssetForm({
   values,
   on_change,
@@ -15,6 +20,9 @@ export default function AssetForm({
   on_new_asset,
   on_save_asset,
 }) {
+  const asset_type =
+    values.asset_type === "support" ? "support" : "productive";
+
   return (
     <section className="ui-section">
       <div className="ui-panel">
@@ -24,7 +32,7 @@ export default function AssetForm({
               <p className="ui-kicker">Input</p>
               <h2 className="text-xl font-semibold">Asset Form</h2>
               <p className="ui-help">
-                Set up the asset and its annual cash-cost inputs only.
+                Set up the asset, its annual cash-cost inputs, and productive capacity.
               </p>
             </div>
 
@@ -56,6 +64,18 @@ export default function AssetForm({
             />
           </label>
 
+          <label className="ui-stack">
+            <span className="ui-label">Asset Type</span>
+            <select
+              className="ui-input"
+              value={asset_type}
+              onChange={(event) => on_change("asset_type", event.target.value)}
+            >
+              <option value="productive">Productive</option>
+              <option value="support">Support</option>
+            </select>
+          </label>
+
           {number_fields.map(([field_name, label]) => (
             <label key={field_name} className="ui-stack">
               <span className="ui-label">{label}</span>
@@ -67,6 +87,23 @@ export default function AssetForm({
               />
             </label>
           ))}
+
+          {productive_fields.map(([field_name, label]) => (
+            <label key={field_name} className="ui-stack">
+              <span className="ui-label">{label}</span>
+              <input
+                className="ui-input"
+                type="number"
+                value={values[field_name] ?? 0}
+                onChange={(event) => on_change(field_name, event.target.value)}
+              />
+            </label>
+          ))}
+
+          <p className="ui-help">
+            Productive assets generate revenue directly and are used in recovery units.
+            Support assets remain part of cost only and are excluded from recovery-unit logic.
+          </p>
 
           <label className="ui-stack">
             <span className="ui-label">Effective From</span>
