@@ -23,6 +23,7 @@ const navGroups = [
     items: [
       { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/cost-allocation", label: "Cost Allocation" },
+      { href: "/recovery-outcome", label: "Recovery Outcome" },
     ],
   },
 ];

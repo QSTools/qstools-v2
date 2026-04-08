@@ -1,0 +1,428 @@
+Good — this is exactly the right time to lock it.
+
+And yes — we **should reference what we just built**, but only at the integration level (not rewriting anything).
+
+---
+
+# 🔒 Recovery Outcome — LOCKED BUILD BRIEF (v1.0)
+
+---
+
+## SYSTEM POSITION
+
+This module sits **after Cost Allocation**.
+
+```
+Cost Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Recovery Outcome  ✅ (THIS BUILD)
+```
+
+This is the **first true decision/output layer**.
+
+---
+
+## PURPOSE (NON-NEGOTIABLE)
+
+Recovery Outcome converts:
+
+* recovery strategy (Recovery Summary)
+* structural capability (Cost Allocation)
+
+into:
+
+👉 **a clear business decision**
+
+---
+
+## WHAT THIS PAGE DOES
+
+It answers:
+
+* Does this model work?
+* What is the main problem?
+* What should change next?
+
+---
+
+## WHAT THIS PAGE DOES NOT DO
+
+* No cost calculations
+* No recovery share calculations
+* No structural validation logic
+* No pricing logic
+* No duplication of upstream modules
+
+It is **pure aggregation + decision logic only**
+
+---
+
+## INPUT CONTRACTS (LOCKED)
+
+### From Recovery Summary (already built)
+
+Use:
+
+* `active_recovery_model`
+* `labour_share_percent`
+* `asset_share_percent`
+* `overhead_share_percent`
+* `required_revenue`
+* `required_recovery_rate`
+* `required_labour_recovery_rate`
+* `required_asset_recovery`
+* `total_cost_burden`
+* `total_productive_output`
+* `warnings`
+* `share_not_balanced`
+* `no_productive_output`
+* `asset_recovery_without_assets`
+* `labour_recovery_without_labour`
+
+---
+
+### From Cost Allocation (JUST BUILT ✅)
+
+Use:
+
+* `active_allocation_profile_id`
+* `structure_valid`
+* `staff_coverage_percent`
+* `asset_coverage_percent`
+* `group_coverage_percent`
+* `linked_staff_count`
+* `unlinked_staff_count`
+* `linked_asset_count`
+* `unlinked_asset_count`
+* `valid_operational_groups`
+* `invalid_operational_groups`
+* `duplicate_link_warnings`
+* `orphan_warnings`
+* `group_validation_warnings`
+
+---
+
+## 🔥 IMPORTANT (NEW BUILD CONTEXT)
+
+You **must assume**:
+
+* Cost Allocation is now working
+* Profiles exist
+* One active profile is selected
+* Structure validation is already computed
+
+👉 **DO NOT rebuild any of that logic**
+
+You are only **reading its output**
+
+---
+
+## CORE DECISION ENGINE
+
+---
+
+### STEP 1 — HARD FAIL: INVALID SHARE MODEL
+
+```
+IF share_not_balanced = true
+→ outcome = not_viable
+→ constraint = share_model_invalid
+```
+
+---
+
+### STEP 2 — HARD FAIL: NO LABOUR BASE
+
+```
+IF no_productive_output = true
+OR labour_recovery_without_labour = true
+→ outcome = not_viable
+→ constraint = no_recoverable_base
+```
+
+---
+
+### STEP 3 — HARD FAIL: STRUCTURE REQUIRED BUT INVALID
+
+```
+IF active_recovery_model = asset_driven OR hybrid
+AND structure_valid = false
+→ outcome = not_viable
+→ constraint = structure_incomplete
+```
+
+---
+
+### STEP 4 — ASSET STRATEGY WITHOUT ASSETS
+
+```
+IF asset_share_percent > 0
+AND asset_recovery_without_assets = true
+→ outcome = not_viable OR marginal
+→ constraint = asset_strategy_without_assets
+```
+
+---
+
+### STEP 5 — STRUCTURE WEAK (NOT FAILING)
+
+```
+IF structure_valid = true
+BUT coverage is weak (< thresholds)
+→ outcome = marginal
+→ constraint = weak_structure
+```
+
+Threshold guideline:
+
+* staff_coverage < 70%
+* asset_coverage < 70%
+* group_coverage < 70%
+
+---
+
+### STEP 6 — HEALTHY
+
+```
+IF no blocking issues
+→ outcome = viable
+→ constraint = healthy
+```
+
+---
+
+## OUTPUT CONTRACT (LOCKED)
+
+Return:
+
+```js
+{
+  outcome_status,
+  outcome_title,
+  outcome_message,
+
+  primary_constraint_key,
+  primary_constraint_title,
+  primary_constraint_message,
+
+  recommended_action,
+
+  active_recovery_model,
+  active_allocation_profile_id,
+
+  structure_valid,
+
+  staff_coverage_percent,
+  asset_coverage_percent,
+  group_coverage_percent,
+
+  linked_staff_count,
+  unlinked_staff_count,
+  linked_asset_count,
+  unlinked_asset_count,
+
+  valid_operational_groups,
+  invalid_operational_groups,
+
+  decision_warnings: []
+}
+```
+
+---
+
+## OUTCOME STATES (STRICT)
+
+* `"viable"`
+* `"marginal"`
+* `"not_viable"`
+
+---
+
+## PRIMARY CONSTRAINTS (STRICT SET)
+
+* `share_model_invalid`
+* `no_recoverable_base`
+* `structure_incomplete`
+* `asset_strategy_without_assets`
+* `weak_structure`
+* `healthy`
+
+---
+
+## RECOMMENDED ACTION RULES
+
+Must be:
+
+* short
+* direct
+* actionable
+
+Examples:
+
+* “Fix recovery shares to total 100%.”
+* “Add productive labour capacity before relying on labour recovery.”
+* “Complete asset ↔ staff links and operational groups.”
+* “Reduce asset recovery share or introduce assets.”
+* “Strengthen structural coverage before scaling.”
+* “Current model is structurally and strategically viable.”
+
+---
+
+## PAGE STRUCTURE (LOCKED)
+
+```
+RecoveryOutcomeStatusStrip
+RecoveryOutcomeMainCard
+RecoveryOutcomeHelpPanel
+```
+
+---
+
+## MAIN CARD STRUCTURE
+
+### A — Outcome banner (PRIMARY)
+
+* status
+* message
+* action
+
+---
+
+### B — Recovery context (READ ONLY)
+
+* recovery model
+* shares
+* required recovery rate
+
+---
+
+### C — Structure summary (READ ONLY)
+
+* structure_valid
+* coverage %
+* linked/unlinked counts
+* group validity
+
+---
+
+### D — Constraint block
+
+* title
+* explanation
+
+---
+
+### E — Recommended action
+
+* single clear action
+
+---
+
+### F — Warnings
+
+* combined warnings from:
+
+  * Recovery Summary
+  * Cost Allocation
+
+---
+
+## STATUS STRIP
+
+Show only:
+
+* outcome_status
+* primary_constraint_title
+* recovery model
+* structure_valid
+* warning count
+
+---
+
+## HELP PANEL
+
+Must explain:
+
+* this page combines strategy + structure
+* it produces a decision
+* it does not calculate costs or pricing
+
+---
+
+## HOOK STRUCTURE (MANDATORY)
+
+`useRecoveryOutcome` must:
+
+* call Recovery Summary hook
+* call Cost Allocation hook
+* pass outputs into calculation
+* pass results into selectors
+* return:
+
+```js
+{
+  status,
+  card,
+  output_contract
+}
+```
+
+---
+
+## FILE LIST (LOCKED)
+
+Build:
+
+* `app/recovery-outcome/page.jsx`
+* `hooks/useRecoveryOutcome.js`
+* `lib/calculations/recoveryOutcomeCalculations.js`
+* `lib/selectors/recoveryOutcomeSelectors.js`
+* `components/recovery-outcome/RecoveryOutcomeStatusStrip.jsx`
+* `components/recovery-outcome/RecoveryOutcomeMainCard.jsx`
+* `components/recovery-outcome/RecoveryOutcomeHelpPanel.jsx`
+
+Storage files optional (light only)
+
+---
+
+## UI RULES
+
+* conclusion-first
+* low clutter
+* plain English
+* no technical noise
+* no duplicated logic
+* no inline styles
+
+---
+
+## FINAL NOTE (IMPORTANT)
+
+This module is the **first place the system actually tells the user what to do**
+
+Everything before this builds toward it.
+
+👉 Do not overcomplicate it
+👉 Do not add extra maths
+👉 Do not drift from the architecture
+
+---
+
+## Answer to your question
+
+> should we be adding anything about the build we have just done?
+
+✅ Yes — and we’ve done it correctly:
+
+* We explicitly **consume Cost Allocation outputs**
+* We **do not rebuild them**
+* We treat it as a **completed upstream module**
+
+That is exactly how the system should evolve.
+
+---
+
+If you want next step:
+
+👉 I can generate the **full starter code (same level as Cost Allocation build)** so you can spin this up immediately in a new chat.

@@ -1,0 +1,124 @@
+# QS Tools — Active System Briefs (v1.17 — UPDATED)
+
+MASTER → v1.10
+
+LABOUR MODULE → v1.9 (IMPLEMENTED)
+LABOUR PAGE → v2.3
+LABOUR SCENARIO → v2.1
+
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+
+COST SUMMARY MODULE → v1.6
+COST SUMMARY PAGE → v1.5
+COST SUMMARY WIRING → v1.7
+
+RECOVERY SUMMARY → v1.0
+COST ALLOCATION → v2.1 (STRUCTURAL + OPERATIONAL)
+RECOVERY OUTCOME → v1.0 (NEW)
+
+BUDGET → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (UPDATED — LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## SYSTEM ROLE CLARITY (LOCKED)
+
+### Cost Summary
+
+* Aggregates all business costs
+* Produces total_cost_burden
+* Produces required_recovery_rate
+* Defines WHAT the business costs
+
+### Recovery Summary
+
+* Consumes Cost Summary outputs only
+* Defines recovery strategy
+* Distributes recovery across labour, assets, and overhead absorption
+* Defines HOW the business recovers cost
+
+### Cost Allocation
+
+* Consumes Recovery Summary outputs
+* Consumes Labour + Asset identities
+* Defines capability links and operational groups
+* Validates structural readiness
+* Defines CAN it be delivered
+
+### Recovery Outcome
+
+* Consumes Recovery Summary outputs
+* Consumes Cost Allocation outputs
+* Produces a business decision
+* Defines SHOULD you run it
+
+---
+
+## CORE SYSTEM PRINCIPLE (UPDATED)
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## CURRENT IMPLEMENTATION STATE
+
+* Labour People Cost contract is implemented
+* Cost Summary architecture is aligned to the Recovery layer
+* Recovery Summary brief is locked
+* Cost Allocation v2.1 brief is locked
+* Recovery Outcome brief is now part of the active architecture
+* Recovery Outcome is the next decision-layer build target
+
+---
+
+## NEXT BUILD TARGET (UPDATED)
+
+1. Lock Recovery Outcome source files
+2. Build Recovery Outcome module
+3. Wire Recovery Outcome to:
+
+   * Recovery Summary
+   * Cost Allocation
+4. Validate decision states:
+
+   * viable
+   * marginal
+   * not_viable
+5. Confirm full flow:
+   Cost Summary → Recovery Summary → Cost Allocation → Recovery Outcome
+
+---
+
+## RULE ENFORCEMENT
+
+* Recovery model is owned by Recovery Summary only
+* Structure validation is owned by Cost Allocation only
+* Decision logic is owned by Recovery Outcome only
+* No downstream module may rebuild upstream maths
+* No module may rename contract variables
+
+---
+
+## DEFINITION
+
+This version updates QS Tools to include a dedicated Recovery Outcome layer so cost, recovery, structure, and decision are separated into distinct modules for clarity, scalability, and commercial control.

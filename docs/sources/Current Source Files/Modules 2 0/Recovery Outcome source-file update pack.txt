@@ -1,0 +1,875 @@
+# Recovery Outcome source-file update pack
+
+## 1) ACTIVE_SYSTEM_BRIEFS_v1.17_UPDATED.txt
+
+```txt
+# QS Tools — Active System Briefs (v1.17 — UPDATED)
+
+MASTER → v1.10
+
+LABOUR MODULE → v1.9 (IMPLEMENTED)
+LABOUR PAGE → v2.3
+LABOUR SCENARIO → v2.1
+
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+
+COST SUMMARY MODULE → v1.6
+COST SUMMARY PAGE → v1.5
+COST SUMMARY WIRING → v1.7
+
+RECOVERY SUMMARY → v1.0
+COST ALLOCATION → v2.1 (STRUCTURAL + OPERATIONAL)
+RECOVERY OUTCOME → v1.0 (NEW)
+
+BUDGET → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (UPDATED — LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## SYSTEM ROLE CLARITY (LOCKED)
+
+### Cost Summary
+- Aggregates all business costs
+- Produces total_cost_burden
+- Produces required_recovery_rate
+- Defines WHAT the business costs
+
+### Recovery Summary
+- Consumes Cost Summary outputs only
+- Defines recovery strategy
+- Distributes recovery across labour, assets, and overhead absorption
+- Defines HOW the business recovers cost
+
+### Cost Allocation
+- Consumes Recovery Summary outputs
+- Consumes Labour + Asset identities
+- Defines capability links and operational groups
+- Validates structural readiness
+- Defines CAN it be delivered
+
+### Recovery Outcome
+- Consumes Recovery Summary outputs
+- Consumes Cost Allocation outputs
+- Produces a business decision
+- Defines SHOULD you run it
+
+---
+
+## CORE SYSTEM PRINCIPLE (UPDATED)
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## CURRENT IMPLEMENTATION STATE
+
+- Labour People Cost contract is implemented
+- Cost Summary architecture is aligned to the Recovery layer
+- Recovery Summary brief is locked
+- Cost Allocation v2.1 brief is locked
+- Recovery Outcome brief is now part of the active architecture
+- Recovery Outcome is the next decision-layer build target
+
+---
+
+## NEXT BUILD TARGET (UPDATED)
+
+1. Lock Recovery Outcome source files
+2. Build Recovery Outcome module
+3. Wire Recovery Outcome to:
+   - Recovery Summary
+   - Cost Allocation
+4. Validate decision states:
+   - viable
+   - marginal
+   - not_viable
+5. Confirm full flow:
+   Cost Summary → Recovery Summary → Cost Allocation → Recovery Outcome
+
+---
+
+## RULE ENFORCEMENT
+
+- Recovery model is owned by Recovery Summary only
+- Structure validation is owned by Cost Allocation only
+- Decision logic is owned by Recovery Outcome only
+- No downstream module may rebuild upstream maths
+- No module may rename contract variables
+
+---
+
+## DEFINITION
+
+This version updates QS Tools to include a dedicated Recovery Outcome layer so cost, recovery, structure, and decision are separated into distinct modules for clarity, scalability, and commercial control.
+```
+
+---
+
+## 2) Recovery_Outcome_Page_v1.0_LOCKED.txt
+
+```txt
+# QS Tools — Recovery Outcome Page (v1.0 — LOCKED)
+
+STATUS: DECISION LAYER
+
+---
+
+## PURPOSE
+
+Recovery Outcome combines recovery strategy and structural readiness into a clear business decision.
+
+It answers:
+
+- does this model work
+- what is the main constraint
+- what should change next
+
+Recovery Outcome does NOT:
+
+- calculate costs
+- calculate recovery shares
+- perform structural validation
+- calculate pricing
+
+It is a pure decision and interpretation layer.
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Recovery Outcome is a:
+
+decision layer
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST_ALLOCATION
+↓
+RECOVERY_OUTCOME
+↓
+BUDGET
+
+---
+
+## CORE PRINCIPLE
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## ARCHITECTURE
+
+Page
+app/recovery-outcome/page.jsx
+
+Hook
+hooks/useRecoveryOutcome.js
+
+Calculations
+lib/calculations/recoveryOutcomeCalculations.js
+
+Selectors
+lib/selectors/recoveryOutcomeSelectors.js
+
+Components
+components/recovery-outcome/
+
+- RecoveryOutcomeStatusStrip.jsx
+- RecoveryOutcomeMainCard.jsx
+- RecoveryOutcomeHelpPanel.jsx
+
+Storage files are optional in v1.
+
+---
+
+## INPUTS
+
+### From Recovery Summary
+
+- active_recovery_model
+- labour_share_percent
+- asset_share_percent
+- overhead_share_percent
+- required_revenue
+- required_recovery_rate
+- required_labour_recovery_rate
+- required_asset_recovery
+- total_cost_burden
+- total_productive_output
+- warnings[]
+- share_not_balanced
+- no_productive_output
+- asset_recovery_without_assets
+- labour_recovery_without_labour
+
+### From Cost Allocation
+
+- active_allocation_profile_id
+- structure_valid
+- staff_coverage_percent
+- asset_coverage_percent
+- group_coverage_percent
+- linked_staff_count
+- unlinked_staff_count
+- linked_asset_count
+- unlinked_asset_count
+- valid_operational_groups
+- invalid_operational_groups
+- duplicate_link_warnings[]
+- orphan_warnings[]
+- group_validation_warnings[]
+
+---
+
+## CORE DECISION FLOW (LOCKED)
+
+### 1. Invalid share model
+
+If:
+- share_not_balanced = true
+
+Then:
+- outcome_status = not_viable
+- primary_constraint_key = share_model_invalid
+
+### 2. No recoverable labour base
+
+If:
+- no_productive_output = true
+OR
+- labour_recovery_without_labour = true
+
+Then:
+- outcome_status = not_viable
+- primary_constraint_key = no_recoverable_base
+
+### 3. Recovery strategy requires structure but structure fails
+
+If:
+- active_recovery_model = asset_driven OR hybrid
+AND
+- structure_valid = false
+
+Then:
+- outcome_status = not_viable
+- primary_constraint_key = structure_incomplete
+
+### 4. Asset strategy without assets
+
+If:
+- asset_share_percent > 0
+AND
+- asset_recovery_without_assets = true
+
+Then:
+- outcome_status = not_viable or marginal
+- primary_constraint_key = asset_strategy_without_assets
+
+### 5. Weak structure
+
+If:
+- structure_valid = true
+BUT
+- staff_coverage_percent < 70
+OR
+- asset_coverage_percent < 70
+OR
+- group_coverage_percent < 70
+
+Then:
+- outcome_status = marginal
+- primary_constraint_key = weak_structure
+
+### 6. Healthy state
+
+If none of the above blocking conditions apply:
+- outcome_status = viable
+- primary_constraint_key = healthy
+
+---
+
+## OUTCOME STATES (STRICT)
+
+- viable
+- marginal
+- not_viable
+
+---
+
+## PRIMARY CONSTRAINT KEYS (STRICT)
+
+- share_model_invalid
+- no_recoverable_base
+- structure_incomplete
+- asset_strategy_without_assets
+- weak_structure
+- healthy
+
+---
+
+## OUTPUT CONTRACT (LOCKED)
+
+- outcome_status
+- outcome_title
+- outcome_message
+- primary_constraint_key
+- primary_constraint_title
+- primary_constraint_message
+- recommended_action
+- active_recovery_model
+- active_allocation_profile_id
+- structure_valid
+- staff_coverage_percent
+- asset_coverage_percent
+- group_coverage_percent
+- linked_staff_count
+- unlinked_staff_count
+- linked_asset_count
+- unlinked_asset_count
+- valid_operational_groups
+- invalid_operational_groups
+- decision_warnings[]
+
+---
+
+## RECOMMENDED ACTION RULE
+
+Recommended action must be:
+- short
+- direct
+- actionable
+
+Examples:
+- Fix recovery shares to total 100%.
+- Add productive labour capacity before relying on labour recovery.
+- Complete asset ↔ staff links and operational groups.
+- Reduce asset recovery share or introduce assets.
+- Strengthen structural coverage before scaling.
+- Current model is structurally and strategically viable.
+
+---
+
+## PAGE STRUCTURE (LOCKED)
+
+1. RecoveryOutcomeStatusStrip
+2. RecoveryOutcomeMainCard
+3. RecoveryOutcomeHelpPanel
+
+---
+
+## MAIN CARD STRUCTURE
+
+### A. Outcome Banner
+- outcome_status
+- outcome_message
+- recommended_action
+
+### B. Recovery Context
+- active_recovery_model
+- labour_share_percent
+- asset_share_percent
+- overhead_share_percent
+- required_recovery_rate
+
+### C. Structure Summary
+- structure_valid
+- staff_coverage_percent
+- asset_coverage_percent
+- group_coverage_percent
+- linked/unlinked counts
+- valid/invalid groups
+
+### D. Constraint Block
+- primary_constraint_title
+- primary_constraint_message
+
+### E. Recommended Action
+- single clear action
+
+### F. Warnings
+- combined warnings from Recovery Summary and Cost Allocation
+
+---
+
+## STATUS STRIP
+
+Show:
+- outcome_status
+- primary_constraint_title
+- active_recovery_model
+- structure_valid
+- warning_count
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+- this page combines strategy and structure
+- this page produces a decision
+- this page does not calculate cost, recovery, or pricing
+- this page tells the user what should change next
+
+---
+
+## CORE RULES
+
+- MUST consume Recovery Summary outputs only for strategy context
+- MUST consume Cost Allocation outputs only for structure context
+- MUST NOT rebuild upstream logic
+- MUST NOT rename contract variables
+- MUST remain conclusion-first and low clutter
+
+---
+
+## DEFINITION
+
+Recovery Outcome is the decision layer that converts recovery strategy and structural readiness into a clear viability outcome, constraint summary, and recommended next action without recalculating upstream cost, recovery, or structural logic.
+```
+
+---
+
+## 3) Implementation_Order_2026-04-08_RECOVERY_OUTCOME_UPDATED.txt
+
+```txt
+# QS Tools — Recommended Implementation Order (UPDATED)
+
+PHASE 1 — FINALISE COST SUMMARY INPUTS
+1. Wire Employee Overheads into Cost Summary
+2. Verify People Cost totals and drilldown
+3. Wire Assets into Cost Summary
+4. Wire General Overheads into Cost Summary
+5. Confirm Total Cost Burden and Required Recovery
+
+---
+
+PHASE 2 — RECOVERY LAYER
+6. Build Recovery Summary module
+7. Wire Recovery Summary to Cost Summary outputs
+8. Validate recovery distribution calculations
+9. Confirm labour-only default behaviour
+
+---
+
+PHASE 3 — STRUCTURAL VALIDATION
+10. Build Cost Allocation v2.1
+11. Wire Cost Allocation to:
+    - Recovery Summary
+    - Labour
+    - Assets
+12. Validate:
+    - structural links
+    - operational groups
+    - coverage metrics
+
+---
+
+PHASE 4 — DECISION LAYER
+13. Build Recovery Outcome module
+14. Wire Recovery Outcome to:
+    - Recovery Summary
+    - Cost Allocation
+15. Validate decision states:
+    - viable
+    - marginal
+    - not_viable
+16. Confirm full flow:
+    Cost Summary → Recovery Summary → Cost Allocation → Recovery Outcome
+
+---
+
+PHASE 5 — BUDGET (FUTURE)
+17. Wire Budget to Cost Summary outputs
+18. Extend Budget using Recovery + Allocation + Outcome context later if explicitly locked
+
+---
+
+## RULE
+
+Each phase must be locked before moving forward.
+
+Do NOT:
+- build Cost Allocation before Recovery Summary
+- build Recovery Outcome before Cost Allocation is validated
+- build Budget before Recovery Outcome is validated
+```
+
+---
+
+## 4) QS Tools — Full Aligned Source Pack (v1.17 — UPDATED).txt
+
+```txt
+# QS Tools — Full Aligned Source Pack (v1.17 — UPDATED)
+
+Date: 2026-04-08
+
+PURPOSE
+
+This pack is the fully aligned source-of-truth for QS Tools after introducing the Recovery Outcome layer above recovery strategy and structure validation.
+
+---
+
+## ALIGNMENT BASELINE
+
+- Labour Module → v1.9
+- Labour Scenario → v2.1
+- Employee Overheads → v1.6
+- Assets → v2.3
+- General Overheads → v2.1
+- Cost Summary Module → v1.6
+- Cost Summary Wiring → v1.7
+- Recovery Summary → v1.0
+- Cost Allocation → v2.1
+- Recovery Outcome → v1.0
+- Budget → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## CURRENT AUTHORITY FILES
+
+1. ACTIVE_SYSTEM_BRIEFS_v1.17_UPDATED.txt
+2. Labour_Module_v1.9_FULL_SOURCE_OF_TRUTH_ALIGNED_2026-04-07.txt
+3. Cost_Summary_Module_v1.6_FULL_SOURCE_OF_TRUTH.txt
+4. Cost_Summary_Wiring_v1.7_LOCKED.txt
+5. Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+6. Recovery_Summary_Page_v1.0_LOCKED.txt
+7. Cost_Allocation_v2.1_WITH_OPERATIONAL_GROUPS_LOCKED.txt
+8. Recovery_Outcome_Page_v1.0_LOCKED.txt
+9. QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED).txt
+10. QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+11. QS Tools — New Module Build Template (v1.0 — LOCKED).txt
+12. QS Tools — New Page Build Checklist (v1.0 — LOCKED).txt
+13. QS Tools — Recommended Implementation Order (UPDATED).txt
+14. Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+15. Implementation_Brief_Assets_to_Cost_Summary_v1.0.txt
+16. Implementation_Brief_General_Overheads_to_Cost_Summary_v1.0.txt
+
+---
+
+## DEPRECATED FILES (DO NOT USE)
+
+- ACTIVE_SYSTEM_BRIEFS_v1.16_UPDATED.txt
+- Cost_Allocation_v1.3_ALIGNED.txt
+- Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+- QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+- README_ALIGNED_PACK_2026-04-07.txt
+- README_NEXT_BUILD_PACK_2026-04-05.txt
+
+These belong to older architecture states and must not be used for new builds.
+
+---
+
+## CURRENT BUILD POSITION
+
+Phase 1 — Cost Summary inputs must be completed first:
+1. Employee Overheads → Cost Summary
+2. Assets → Cost Summary
+3. General Overheads → Cost Summary
+4. Confirm Total Cost Burden and Required Recovery
+
+Phase 2:
+5. Build Recovery Summary
+6. Wire Recovery Summary to Cost Summary outputs
+
+Phase 3:
+7. Build Cost Allocation v2.1
+8. Wire Cost Allocation to:
+   - Recovery Summary
+   - Labour
+   - Assets
+
+Phase 4:
+9. Build Recovery Outcome
+10. Wire Recovery Outcome to:
+    - Recovery Summary
+    - Cost Allocation
+11. Validate decision states and recommendation logic
+
+---
+
+## IMPORTANT COST SUMMARY RULE
+
+Cost Summary remains a pure cost layer.
+
+This means Cost Summary:
+- consumes Labour outputs
+- consumes Employee Overheads outputs
+- consumes Assets outputs
+- consumes General Overheads outputs
+- does NOT consume Recovery Summary outputs
+- does NOT consume Cost Allocation outputs
+- does NOT consume Recovery Outcome outputs
+
+---
+
+## IMPORTANT RECOVERY OUTCOME RULE
+
+Recovery Outcome:
+- consumes Recovery Summary outputs
+- consumes Cost Allocation outputs
+- does NOT rebuild cost logic
+- does NOT rebuild recovery logic
+- does NOT rebuild structural validation
+
+Recovery Outcome is the decision layer only.
+
+---
+
+## DEFINITION
+
+This pack represents the fully aligned QS Tools source baseline with a separated:
+
+cost layer → recovery layer → structure layer → decision layer
+
+so each module has a clear role, stable contract, and protected ownership boundary.
+```
+
+---
+
+## 5) QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED).txt
+
+```txt
+# QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED)
+
+PURPOSE
+
+This brief defines the non-negotiable implementation rules for all future QS Tools development.
+
+It exists to prevent:
+- contract drift
+- duplicated calculations
+- module boundary violations
+- incorrect recovery logic placement
+- incorrect decision logic placement
+- UI system drift
+- architectural regression
+
+This is a guardrail brief, not a feature brief.
+
+---
+
+## ACTIVE SYSTEM BASELINE (UPDATED)
+
+MASTER → v1.10
+LABOUR MODULE → v1.9
+LABOUR SCENARIO → v2.1
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+COST SUMMARY MODULE → v1.6
+RECOVERY SUMMARY → v1.0
+COST ALLOCATION → v2.1
+RECOVERY OUTCOME → v1.0
+BUDGET → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## CORE SYSTEM SEPARATION
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## UNIVERSAL DOWNSTREAM CONTRACT RULE
+
+- Upstream modules own inputs and calculations
+- Downstream modules consume outputs only
+- No module may rebuild upstream maths
+- No module may rename contract variables
+
+---
+
+## MODULE OWNERSHIP
+
+Labour
+- owns staff_id
+- owns labour cost engine
+
+Employee Overheads
+- owns staff-linked overheads
+
+Assets
+- owns asset_id
+- owns asset cost engine
+
+General Overheads
+- owns business overhead totals
+
+Cost Summary
+- aggregates all upstream costs
+- produces total_cost_burden and required_recovery_rate
+
+Recovery Summary
+- defines recovery strategy
+- distributes cost across labour, assets, and overhead absorption
+
+Cost Allocation
+- validates structure and operational readiness
+- does NOT define recovery strategy
+
+Recovery Outcome
+- produces the business decision
+- combines recovery strategy and structural readiness
+- does NOT calculate cost
+- does NOT calculate recovery shares
+- does NOT perform structural validation
+
+Budget
+- remains downstream and future-facing
+- must not bypass the locked module order
+
+---
+
+## RECOVERY OWNERSHIP RULE
+
+- Recovery model is owned by Recovery Summary only
+- Cost Allocation must NOT define revenue_model
+- Recovery Outcome must consume active_recovery_model only
+
+---
+
+## STRUCTURE OWNERSHIP RULE
+
+- structure_valid
+- coverage metrics
+- group validity
+- link warnings
+
+are owned by Cost Allocation only.
+
+Recovery Outcome may read these outputs.
+Recovery Outcome must NOT recalculate them.
+
+---
+
+## DECISION OWNERSHIP RULE (NEW)
+
+- Recovery Outcome is the only layer that may produce:
+  - outcome_status
+  - primary_constraint_key
+  - recommended_action
+
+No upstream module may absorb this role.
+
+---
+
+## IDENTITY RULE
+
+- staff_id owned by Labour
+- asset_id owned by Assets
+- downstream modules must not recreate identities
+- display names must never be used as keys
+
+---
+
+## PAGE / HOOK / CALCULATION SEPARATION
+
+- page = orchestration only
+- hook = integration
+- calculations = business logic
+- selectors = shaping
+- components = UI only
+
+No business logic allowed in UI components.
+
+---
+
+## SCENARIO ISOLATION RULE
+
+- Scenario is labour-only
+- must not feed Cost Summary
+- must not feed Recovery Summary
+- must not feed Cost Allocation
+- must not feed Recovery Outcome
+- must not persist in V1
+
+---
+
+## UI SYSTEM RULE
+
+- must use token-based UI system
+- no inline styles
+- no hardcoded colours
+- must follow mobile-first layout rules
+
+---
+
+## NOT ALLOWED
+
+- rebuilding upstream calculations
+- defining recovery logic in Cost Allocation
+- defining decision logic in Cost Allocation
+- using display names as keys
+- renaming contract variables
+- placing business logic in UI
+- mixing module responsibilities
+
+---
+
+## DEFINITION
+
+This brief enforces the separation between cost, recovery, structure, and decision layers so QS Tools remains scalable, auditable, and commercially accurate.
+```

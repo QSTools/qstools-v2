@@ -1,0 +1,345 @@
+# QS Tools — Recovery Outcome Page (v1.0 — LOCKED)
+
+STATUS: DECISION LAYER
+
+---
+
+## PURPOSE
+
+Recovery Outcome combines recovery strategy and structural readiness into a clear business decision.
+
+It answers:
+
+* does this model work
+* what is the main constraint
+* what should change next
+
+Recovery Outcome does NOT:
+
+* calculate costs
+* calculate recovery shares
+* perform structural validation
+* calculate pricing
+
+It is a pure decision and interpretation layer.
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Recovery Outcome is a:
+
+decision layer
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## CORE PRINCIPLE
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## ARCHITECTURE
+
+Page
+app/recovery-outcome/page.jsx
+
+Hook
+hooks/useRecoveryOutcome.js
+
+Calculations
+lib/calculations/recoveryOutcomeCalculations.js
+
+Selectors
+lib/selectors/recoveryOutcomeSelectors.js
+
+Components
+components/recovery-outcome/
+
+* RecoveryOutcomeStatusStrip.jsx
+* RecoveryOutcomeMainCard.jsx
+* RecoveryOutcomeHelpPanel.jsx
+
+Storage files are optional in v1.
+
+---
+
+## INPUTS
+
+### From Recovery Summary
+
+* active_recovery_model
+* labour_share_percent
+* asset_share_percent
+* overhead_share_percent
+* required_revenue
+* required_recovery_rate
+* required_labour_recovery_rate
+* required_asset_recovery
+* total_cost_burden
+* total_productive_output
+* warnings[]
+* share_not_balanced
+* no_productive_output
+* asset_recovery_without_assets
+* labour_recovery_without_labour
+
+### From Cost Allocation
+
+* active_allocation_profile_id
+* structure_valid
+* staff_coverage_percent
+* asset_coverage_percent
+* group_coverage_percent
+* linked_staff_count
+* unlinked_staff_count
+* linked_asset_count
+* unlinked_asset_count
+* valid_operational_groups
+* invalid_operational_groups
+* duplicate_link_warnings[]
+* orphan_warnings[]
+* group_validation_warnings[]
+
+---
+
+## CORE DECISION FLOW (LOCKED)
+
+### 1. Invalid share model
+
+If:
+
+* share_not_balanced = true
+
+Then:
+
+* outcome_status = not_viable
+* primary_constraint_key = share_model_invalid
+
+### 2. No recoverable labour base
+
+If:
+
+* no_productive_output = true
+  OR
+* labour_recovery_without_labour = true
+
+Then:
+
+* outcome_status = not_viable
+* primary_constraint_key = no_recoverable_base
+
+### 3. Recovery strategy requires structure but structure fails
+
+If:
+
+* active_recovery_model = asset_driven OR hybrid
+  AND
+* structure_valid = false
+
+Then:
+
+* outcome_status = not_viable
+* primary_constraint_key = structure_incomplete
+
+### 4. Asset strategy without assets
+
+If:
+
+* asset_share_percent > 0
+  AND
+* asset_recovery_without_assets = true
+
+Then:
+
+* outcome_status = not_viable or marginal
+* primary_constraint_key = asset_strategy_without_assets
+
+### 5. Weak structure
+
+If:
+
+* structure_valid = true
+  BUT
+* staff_coverage_percent < 70
+  OR
+* asset_coverage_percent < 70
+  OR
+* group_coverage_percent < 70
+
+Then:
+
+* outcome_status = marginal
+* primary_constraint_key = weak_structure
+
+### 6. Healthy state
+
+If none of the above blocking conditions apply:
+
+* outcome_status = viable
+* primary_constraint_key = healthy
+
+---
+
+## OUTCOME STATES (STRICT)
+
+* viable
+* marginal
+* not_viable
+
+---
+
+## PRIMARY CONSTRAINT KEYS (STRICT)
+
+* share_model_invalid
+* no_recoverable_base
+* structure_incomplete
+* asset_strategy_without_assets
+* weak_structure
+* healthy
+
+---
+
+## OUTPUT CONTRACT (LOCKED)
+
+* outcome_status
+* outcome_title
+* outcome_message
+* primary_constraint_key
+* primary_constraint_title
+* primary_constraint_message
+* recommended_action
+* active_recovery_model
+* active_allocation_profile_id
+* structure_valid
+* staff_coverage_percent
+* asset_coverage_percent
+* group_coverage_percent
+* linked_staff_count
+* unlinked_staff_count
+* linked_asset_count
+* unlinked_asset_count
+* valid_operational_groups
+* invalid_operational_groups
+* decision_warnings[]
+
+---
+
+## RECOMMENDED ACTION RULE
+
+Recommended action must be:
+
+* short
+* direct
+* actionable
+
+Examples:
+
+* Fix recovery shares to total 100%.
+* Add productive labour capacity before relying on labour recovery.
+* Complete asset ↔ staff links and operational groups.
+* Reduce asset recovery share or introduce assets.
+* Strengthen structural coverage before scaling.
+* Current model is structurally and strategically viable.
+
+---
+
+## PAGE STRUCTURE (LOCKED)
+
+1. RecoveryOutcomeStatusStrip
+2. RecoveryOutcomeMainCard
+3. RecoveryOutcomeHelpPanel
+
+---
+
+## MAIN CARD STRUCTURE
+
+### A. Outcome Banner
+
+* outcome_status
+* outcome_message
+* recommended_action
+
+### B. Recovery Context
+
+* active_recovery_model
+* labour_share_percent
+* asset_share_percent
+* overhead_share_percent
+* required_recovery_rate
+
+### C. Structure Summary
+
+* structure_valid
+* staff_coverage_percent
+* asset_coverage_percent
+* group_coverage_percent
+* linked/unlinked counts
+* valid/invalid groups
+
+### D. Constraint Block
+
+* primary_constraint_title
+* primary_constraint_message
+
+### E. Recommended Action
+
+* single clear action
+
+### F. Warnings
+
+* combined warnings from Recovery Summary and Cost Allocation
+
+---
+
+## STATUS STRIP
+
+Show:
+
+* outcome_status
+* primary_constraint_title
+* active_recovery_model
+* structure_valid
+* warning_count
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+* this page combines strategy and structure
+* this page produces a decision
+* this page does not calculate cost, recovery, or pricing
+* this page tells the user what should change next
+
+---
+
+## CORE RULES
+
+* MUST consume Recovery Summary outputs only for strategy context
+* MUST consume Cost Allocation outputs only for structure context
+* MUST NOT rebuild upstream logic
+* MUST NOT rename contract variables
+* MUST remain conclusion-first and low clutter
+
+---
+
+## DEFINITION
+
+Recovery Outcome is the decision layer that converts recovery strategy and structural readiness into a clear viability outcome, constraint summary, and recommended next action without recalculating upstream cost, recovery, or structural logic.

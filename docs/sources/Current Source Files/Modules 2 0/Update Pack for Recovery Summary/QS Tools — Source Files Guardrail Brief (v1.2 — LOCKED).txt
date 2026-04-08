@@ -1,0 +1,210 @@
+# QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED)
+
+PURPOSE
+
+This brief defines the non-negotiable implementation rules for all future QS Tools development.
+
+It exists to prevent:
+
+* contract drift
+* duplicated calculations
+* module boundary violations
+* incorrect recovery logic placement
+* incorrect decision logic placement
+* UI system drift
+* architectural regression
+
+This is a guardrail brief, not a feature brief.
+
+---
+
+## ACTIVE SYSTEM BASELINE (UPDATED)
+
+MASTER → v1.10
+LABOUR MODULE → v1.9
+LABOUR SCENARIO → v2.1
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+COST SUMMARY MODULE → v1.6
+RECOVERY SUMMARY → v1.0
+COST ALLOCATION → v2.1
+RECOVERY OUTCOME → v1.0
+BUDGET → v1.2
+
+---
+
+## SYSTEM ARCHITECTURE (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+---
+
+## CORE SYSTEM SEPARATION
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+---
+
+## UNIVERSAL DOWNSTREAM CONTRACT RULE
+
+* Upstream modules own inputs and calculations
+* Downstream modules consume outputs only
+* No module may rebuild upstream maths
+* No module may rename contract variables
+
+---
+
+## MODULE OWNERSHIP
+
+Labour
+
+* owns staff_id
+* owns labour cost engine
+
+Employee Overheads
+
+* owns staff-linked overheads
+
+Assets
+
+* owns asset_id
+* owns asset cost engine
+
+General Overheads
+
+* owns business overhead totals
+
+Cost Summary
+
+* aggregates all upstream costs
+* produces total_cost_burden and required_recovery_rate
+
+Recovery Summary
+
+* defines recovery strategy
+* distributes cost across labour, assets, and overhead absorption
+
+Cost Allocation
+
+* validates structure and operational readiness
+* does NOT define recovery strategy
+
+Recovery Outcome
+
+* produces the business decision
+* combines recovery strategy and structural readiness
+* does NOT calculate cost
+* does NOT calculate recovery shares
+* does NOT perform structural validation
+
+Budget
+
+* remains downstream and future-facing
+* must not bypass the locked module order
+
+---
+
+## RECOVERY OWNERSHIP RULE
+
+* Recovery model is owned by Recovery Summary only
+* Cost Allocation must NOT define revenue_model
+* Recovery Outcome must consume active_recovery_model only
+
+---
+
+## STRUCTURE OWNERSHIP RULE
+
+* structure_valid
+* coverage metrics
+* group validity
+* link warnings
+
+are owned by Cost Allocation only.
+
+Recovery Outcome may read these outputs.
+Recovery Outcome must NOT recalculate them.
+
+---
+
+## DECISION OWNERSHIP RULE (NEW)
+
+* Recovery Outcome is the only layer that may produce:
+
+  * outcome_status
+  * primary_constraint_key
+  * recommended_action
+
+No upstream module may absorb this role.
+
+---
+
+## IDENTITY RULE
+
+* staff_id owned by Labour
+* asset_id owned by Assets
+* downstream modules must not recreate identities
+* display names must never be used as keys
+
+---
+
+## PAGE / HOOK / CALCULATION SEPARATION
+
+* page = orchestration only
+* hook = integration
+* calculations = business logic
+* selectors = shaping
+* components = UI only
+
+No business logic allowed in UI components.
+
+---
+
+## SCENARIO ISOLATION RULE
+
+* Scenario is labour-only
+* must not feed Cost Summary
+* must not feed Recovery Summary
+* must not feed Cost Allocation
+* must not feed Recovery Outcome
+* must not persist in V1
+
+---
+
+## UI SYSTEM RULE
+
+* must use token-based UI system
+* no inline styles
+* no hardcoded colours
+* must follow mobile-first layout rules
+
+---
+
+## NOT ALLOWED
+
+* rebuilding upstream calculations
+* defining recovery logic in Cost Allocation
+* defining decision logic in Cost Allocation
+* using display names as keys
+* renaming contract variables
+* placing business logic in UI
+* mixing module responsibilities
+
+---
+
+## DEFINITION
+
+This brief enforces the separation between cost, recovery, structure, and decision layers so QS Tools remains scalable, auditable, and commercially accurate.

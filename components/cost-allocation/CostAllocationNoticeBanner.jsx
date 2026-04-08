@@ -1,6 +1,8 @@
 "use client";
 
-export default function CostAllocationNoticeBanner() {
+export default function CostAllocationNoticeBanner({
+  active_profile_name = "",
+}) {
   return (
     <section className="ui-section">
       <div className="ui-panel">
@@ -19,22 +21,29 @@ export default function CostAllocationNoticeBanner() {
             </p>
 
             <p className="text-sm text-[var(--text-secondary)]">
-              You can create multiple allocation profiles (different structural
-              setups), but only one profile is active at a time. The active
-              profile is what the system uses for validation.
+              You can create multiple allocation profiles, but only one profile is
+              active at a time. The active profile is what the system uses for
+              structural validation.
             </p>
+
+            <div className="ui-readonly">
+              <span className="ui-label">Active allocation profile</span>
+              <div className="mt-1 text-sm text-[var(--text-primary)]">
+                {active_profile_name || "No active profile selected"}
+              </div>
+            </div>
 
             <div className="ui-stack">
               <p className="text-sm font-medium text-[var(--text-primary)]">
                 Recommended workflow
               </p>
 
-              <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-                <li>1. Confirm your recovery model above (read-only)</li>
-                <li>2. Create asset ↔ staff capability links</li>
-                <li>3. Build operational groups (real delivery units)</li>
-                <li>4. Review structure validity and warnings</li>
-                <li>5. Save the setup as a profile if needed</li>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--text-secondary)]">
+                <li>Confirm recovery model above</li>
+                <li>Create asset ↔ staff capability links</li>
+                <li>Build operational groups</li>
+                <li>Review structure validity and warnings</li>
+                <li>Save the setup as a profile if needed</li>
               </ul>
             </div>
 
@@ -43,16 +52,10 @@ export default function CostAllocationNoticeBanner() {
                 Key concepts
               </p>
 
-              <ul className="list-disc pl-5 text-sm text-[var(--text-secondary)] space-y-1">
-                <li>
-                  <strong>Links</strong> = what <em>can</em> work together
-                </li>
-                <li>
-                  <strong>Groups</strong> = what <em>must</em> work together
-                </li>
-                <li>
-                  <strong>Profiles</strong> = saved structural setups (only one active at a time)
-                </li>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--text-secondary)]">
+                <li>Links = what can work together</li>
+                <li>Groups = what must work together</li>
+                <li>Profiles = saved structural setups (one active at a time)</li>
               </ul>
             </div>
           </div>

@@ -82,16 +82,20 @@ export default function CostAllocationProfilesCard({
               return (
                 <div
                   key={profile?.active_allocation_profile_id}
-                  className="ui-readonly"
+                  className={[
+                    "ui-readonly",
+                    is_active ? "border-[var(--accent)]" : "",
+                  ].join(" ")}
                 >
                   <div className="ui-actions">
                     <div>
                       <div className="text-sm text-[var(--text-primary)]">
                         {profile?.allocation_profile_name || "Unnamed Profile"}
                       </div>
+
                       <div className="text-sm text-[var(--text-secondary)]">
                         {profile?.effective_from || "No date"}
-                        {is_active ? " · Active" : ""}
+                        {is_active ? " · Active profile" : ""}
                       </div>
                     </div>
 
