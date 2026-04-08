@@ -25,7 +25,7 @@ export default function RecoverySummaryPage() {
   });
 
   const { status, card } = useRecoverySummary({
-    cost_summary: cost_summary.card,
+    cost_summary: cost_summary.output_contract ?? {},
   });
 
   return (
