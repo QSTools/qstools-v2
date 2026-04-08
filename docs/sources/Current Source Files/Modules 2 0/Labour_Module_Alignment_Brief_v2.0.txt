@@ -1,0 +1,75 @@
+QS Tools — Labour Module Architecture Alignment Brief (v2.0 — PATCH)
+
+STATUS
+PATCH BRIEF — DOES NOT CHANGE CORE LOGIC
+Extends: Labour Module v1.9 (LOCKED)
+
+PURPOSE
+This brief aligns the Labour Module to the standard QS Tools architecture pattern without altering:
+- calculations
+- output contract
+- identity ownership
+
+NON-NEGOTIABLE RULE
+Must NOT:
+- change formulas
+- change variable names
+- change output contract
+- change staff_id ownership
+
+WHY THIS IS REQUIRED
+Labour is the identity owner + cost engine.
+All downstream modules depend on it.
+
+OBJECTIVE
+Refactor Labour to:
+page → hook → calculations → selectors → storage → components
+
+TARGET ARCHITECTURE
+
+Page: app/labour/page.jsx
+Hook: hooks/useLabour.js
+Calculations: lib/calculations/labourCalculations.js (NO CHANGE)
+Selectors: lib/selectors/labourSelectors.js (NEW)
+Storage: lib/storage/labourStorage.js, labourProfileStorage.js
+Components: components/labour/
+
+DATA FLOW
+UI → Hook → Calculations → Selectors → Hook return → Components
+
+OUTPUT CONTRACT (UNCHANGED)
+- productive_hours
+- productive_labour_cost_rate
+- minimum_charge_out_rate
+- profit_per_hour
+- above_recovery
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+
+REQUIRED CHANGES
+1. Move UI shaping out of hook
+2. Add labourSelectors.js
+3. Hook returns:
+   { status, summary, drivers, raw_outputs }
+4. Remove logic from components
+5. Enforce naming rules (snake_case)
+
+WHAT MUST NOT CHANGE
+- Labour calculations
+- Scenario layer
+- staff_id ownership
+
+VALIDATION CHECKS
+- Outputs identical pre/post refactor
+- Cost Summary unchanged
+- Scenario unchanged
+- No logic in components
+
+DEFINITION OF DONE
+- Hook = orchestration only
+- Selectors = shaping only
+- Calculations unchanged
+- Components = display only
+- Output contract unchanged

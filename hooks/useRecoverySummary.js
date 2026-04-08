@@ -1,10 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  DEFAULT_RECOVERY_SUMMARY_STATE,
-  useRecoverySummaryStorage,
-} from "@/lib/storage/recoverySummaryStorage";
 import { calculateRecoverySummary } from "@/lib/calculations/recoverySummaryCalculations";
 import {
   buildRecoverySummaryCard,
@@ -12,13 +8,6 @@ import {
 } from "@/lib/selectors/recoverySummarySelectors";
 
 export default function useRecoverySummary(inputs = {}) {
-  const {
-    recovery_state,
-    set_recovery_state,
-    update_recovery_field,
-    reset_recovery_state,
-  } = useRecoverySummaryStorage();
-
   const cost_summary_outputs = useMemo(() => {
     const cost_summary = inputs.cost_summary ?? {};
 
@@ -33,36 +22,56 @@ export default function useRecoverySummary(inputs = {}) {
     };
   }, [inputs.cost_summary]);
 
+  const recovery_inputs = useMemo(() => {
+    const labour = inputs.labour ?? {};
+    const assets = inputs.assets ?? {};
+
+    const productive_labour_cost_rate = Number(
+      labour.output_contract?.productive_labour_cost_rate ?? 0
+    );
+
+    const productive_assets = Array.isArray(assets.output_contract?.assets)
+      ? assets.output_contract.assets.filter(
+          (asset) => asset.asset_type === "productive"
+        )
+      : [];
+
+    const asset_base = productive_assets.reduce(
+      (sum, asset) => sum + Number(asset.true_asset_cost_per_hour ?? 0),
+      0
+    );
+
+    return {
+      active_recovery_model:
+        asset_base > 0 && productive_labour_cost_rate > 0
+          ? "hybrid"
+          : asset_base > 0
+          ? "asset_driven"
+          : "labour_only",
+
+      labour_base: productive_labour_cost_rate,
+      asset_base,
+    };
+  }, [inputs.labour, inputs.assets]);
+
   const calculated = useMemo(() => {
     return calculateRecoverySummary({
       ...cost_summary_outputs,
-      ...recovery_state,
+      ...recovery_inputs,
     });
-  }, [cost_summary_outputs, recovery_state]);
+  }, [cost_summary_outputs, recovery_inputs]);
 
   const status = useMemo(() => {
     return buildRecoverySummaryStatus({
       calculated,
-      recovery_state,
     });
-  }, [calculated, recovery_state]);
+  }, [calculated]);
 
   const card = useMemo(() => {
     return buildRecoverySummaryCard({
       calculated,
-      recovery_state,
-      update_recovery_field,
-      reset_recovery_state,
-      default_recovery_state: DEFAULT_RECOVERY_SUMMARY_STATE,
-      set_recovery_state,
     });
-  }, [
-    calculated,
-    recovery_state,
-    update_recovery_field,
-    reset_recovery_state,
-    set_recovery_state,
-  ]);
+  }, [calculated]);
 
   const output_contract = useMemo(() => {
     return {

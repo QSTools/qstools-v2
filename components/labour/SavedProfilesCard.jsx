@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export default function SavedProfilesCard({
-  profiles,
+  profile_rows = [],
   active_profile_id,
   load_profile,
   save_profile,
@@ -12,14 +12,6 @@ export default function SavedProfilesCard({
   has_profile,
 }) {
   const [is_open, setIsOpen] = useState(false);
-
-  const sorted_profiles = useMemo(() => {
-    return [...profiles].sort((a, b) => {
-      const a_time = new Date(a.updated_at || a.created_at || 0).getTime();
-      const b_time = new Date(b.updated_at || b.created_at || 0).getTime();
-      return b_time - a_time;
-    });
-  }, [profiles]);
 
   function handle_delete(profile_id, profile_name) {
     const confirmed = window.confirm(
@@ -87,36 +79,30 @@ export default function SavedProfilesCard({
 
           {is_open ? (
             <div className="ui-stack">
-              {sorted_profiles.length === 0 ? (
+              {profile_rows.length === 0 ? (
                 <div className="ui-panel border-dashed border-[var(--border-strong)]">
                   <div className="text-sm text-[var(--text-muted)]">
                     No saved profiles yet.
                   </div>
                 </div>
               ) : (
-                sorted_profiles.map((profile) => {
-                  const is_active = profile.profile_id === active_profile_id;
-                  const profile_name = profile.data?.staff_name || "Unnamed";
+                profile_rows.map((profile) => {
+                  const is_active = profile.is_current;
 
                   return (
-                    <div
-                      key={profile.profile_id}
-                      className="ui-panel"
-                    >
+                    <div key={profile.profile_id} className="ui-panel">
                       <div className="ui-stack">
                         <div>
                           <div className="text-sm font-medium text-[var(--text-primary)]">
-                            {profile_name}
+                            {profile.staff_name}
                           </div>
 
                           <div className="ui-help">
-                            {profile.data?.staff_role || "No role"} ·{" "}
-                            {profile.data?.labour_class || "No class"}
+                            {profile.staff_role} · {profile.labour_class}
                           </div>
 
                           <div className="mt-2 text-sm text-[var(--text-muted)]">
-                            Updated:{" "}
-                            {format_date(profile.updated_at || profile.created_at)}
+                            Updated: {format_date(profile.updated_at_label)}
                           </div>
                         </div>
 
@@ -138,7 +124,7 @@ export default function SavedProfilesCard({
                           <button
                             type="button"
                             onClick={() =>
-                              handle_delete(profile.profile_id, profile_name)
+                              handle_delete(profile.profile_id, profile.staff_name)
                             }
                             className="ui-button-danger"
                           >

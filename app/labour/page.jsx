@@ -53,7 +53,7 @@ export default function LabourPage() {
               />
 
               <SavedProfilesCard
-                profiles={labour.profiles}
+                profile_rows={labour.profile_rows}
                 active_profile_id={labour.active_profile_id}
                 load_profile={labour.load_profile}
                 save_profile={labour.save_profile}
@@ -113,25 +113,12 @@ export default function LabourPage() {
 
           <aside className="labour-layout__right">
             <div className="labour-layout__right-stack">
-              <LabourStatusStrip
-                has_profile={labour.has_profile}
-                inputs_enabled={labour.inputs_enabled}
-                missing_fields={labour.missing_fields}
-                margin_health={labour.margin_health}
-                staff_name={labour.state.staff_name}
-              />
 
-              <LabourSummaryCard
-                state={labour.state}
-                outputs={labour.outputs}
-                has_profile={labour.has_profile}
-              />
+              <LabourStatusStrip {...labour.status} />
 
-              <TopDriverCard
-                outputs={labour.outputs}
-                state={labour.state}
-                has_profile={labour.has_profile}
-              />
+              <LabourSummaryCard {...labour.summary} />
+
+              <TopDriverCard {...labour.drivers} />
 
               <LabourFlowCard
                 outputs={labour.outputs}

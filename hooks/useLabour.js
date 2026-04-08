@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { calculateLabourOutputs } from "@/lib/calculations/labourCalculations";
 import { deleteEmployeeOverheadProfilesByStaffId } from "@/lib/storage/employeeOverheadProfileStorage";
+import {
+  buildLabourStatus,
+  buildLabourSummary,
+  buildLabourDrivers,
+  buildLabourProfileRows,
+  buildLabourOutputContract,
+} from "@/lib/selectors/labourSelectors";
 
 const STORAGE_KEY = "qs_tools_labour_profiles_v1";
 
@@ -10,6 +17,7 @@ function generate_staff_id() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
+
   return `staff_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
@@ -21,6 +29,7 @@ function get_default_state() {
     labour_class: "",
 
     hours_per_week: 40,
+    days_per_week: 5,
 
     labour_rate: 0,
     charge_out_rate: 0,
@@ -203,17 +212,48 @@ export function useLabour() {
 
     return true;
   }
+  
+  const profile_rows = useMemo(() => {
+    return buildLabourProfileRows({
+      profiles,
+      active_profile_id,
+    });
+  }, [profiles, active_profile_id]);
 
-  const missing_fields = [];
-  if (!state.staff_name) missing_fields.push("staff_name");
-  if (!state.staff_role) missing_fields.push("staff_role");
-  if (!state.labour_class) missing_fields.push("labour_class");
+  const status = useMemo(() => {
+    return buildLabourStatus({
+      state,
+      outputs,
+      profiles,
+      active_profile_id,
+      inputs_enabled,
+    });
+  }, [state, outputs, profiles, active_profile_id, inputs_enabled]);
 
-  let margin_health = "under";
-  if (outputs.margin_gap > 0) margin_health = "healthy";
-  if (outputs.margin_gap === 0) margin_health = "at-risk";
+  const summary = useMemo(() => {
+    return buildLabourSummary({
+      state,
+      outputs,
+    });
+  }, [state, outputs]);
+
+  const drivers = useMemo(() => {
+    return buildLabourDrivers({
+      state,
+      outputs,
+    });
+  }, [state, outputs]);
+
+  const output_contract = useMemo(() => {
+    return buildLabourOutputContract({
+      active_staff,
+      outputs,
+      state,
+    });
+  }, [active_staff, outputs, state]);
 
   return {
+    // existing contract kept for current UI safety
     state,
     profiles,
     active_profile_id,
@@ -221,14 +261,21 @@ export function useLabour() {
     active_staff,
     has_profile,
     inputs_enabled,
-    missing_fields,
-    margin_health,
+    
+    // actions
     update_field,
     create_profile,
     save_profile,
     load_profile,
     start_new_profile,
     delete_profile,
+
+    // new aligned layer
+    status,
+    summary,
+    drivers,
+    profile_rows,
+    output_contract,
   };
 }
 
