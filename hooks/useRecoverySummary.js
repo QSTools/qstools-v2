@@ -73,6 +73,8 @@ export default function useRecoverySummary(inputs = {}) {
       labour_recovery_cost: calculated.labour_recovery_cost,
       asset_recovery_cost: calculated.asset_recovery_cost,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+      required_revenue: calculated.required_revenue,
+      required_recovery_rate: calculated.required_recovery_rate,
       required_labour_recovery_rate: calculated.required_labour_recovery_rate,
       required_asset_recovery: calculated.required_asset_recovery,
       total_cost_burden: calculated.total_cost_burden,

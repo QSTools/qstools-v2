@@ -2,6 +2,11 @@
 
 import { useMemo } from "react";
 
+import { useLabour } from "@/hooks/useLabour";
+import useAssets from "@/hooks/useAssets";
+import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import useCostSummary from "@/hooks/useCostSummary";
 import useRecoverySummary from "@/hooks/useRecoverySummary";
 import useCostAllocation from "@/hooks/useCostAllocation";
 
@@ -12,22 +17,42 @@ import {
 } from "@/lib/selectors/recoveryOutcomeSelectors";
 
 export default function useRecoveryOutcome() {
-  const recovery_summary = useRecoverySummary();
+  const labour = useLabour();
+  const employee_overheads = useEmployeeOverheads();
+  const assets = useAssets();
+  const general_overheads = useGeneralOverheads();
+
+  const cost_summary = useCostSummary({
+    labour,
+    employee_overheads,
+    assets,
+    general_overheads,
+  });
+
+  const recovery_summary = useRecoverySummary({
+    cost_summary: cost_summary?.output_contract ?? {},
+  });
+
   const cost_allocation = useCostAllocation();
 
-  return useMemo(() => {
-    const recovery = recovery_summary?.output_contract ?? recovery_summary ?? {};
-    const allocation = cost_allocation?.output_contract ?? cost_allocation ?? {};
-
-    const output_contract = calculateRecoveryOutcome({
-      recovery_summary: recovery,
-      cost_allocation: allocation,
+  const output_contract = useMemo(() => {
+    return calculateRecoveryOutcome({
+      recovery_summary: recovery_summary?.output_contract ?? {},
+      cost_allocation: cost_allocation?.output_contract ?? {},
     });
-
-    return {
-      status: buildRecoveryOutcomeStatus(output_contract),
-      card: buildRecoveryOutcomeCard(output_contract),
-      output_contract,
-    };
   }, [recovery_summary, cost_allocation]);
+
+  const status = useMemo(() => {
+    return buildRecoveryOutcomeStatus(output_contract);
+  }, [output_contract]);
+
+  const card = useMemo(() => {
+    return buildRecoveryOutcomeCard(output_contract);
+  }, [output_contract]);
+
+  return {
+    status,
+    card,
+    output_contract,
+  };
 }
