@@ -35,7 +35,7 @@ export default function CostSummaryPage() {
               recovery_model_label={card.recovery_model_block.recovery_model_label}
               linked_staff_count={card.recovery_model_block.linked_staff_count}
               linked_asset_count={card.recovery_model_block.linked_asset_count}
-              unlinked_active_staff_count={status.unlinked_active_staff_count}
+              unlinked_active_staff_count={0}
               recovery_warnings={card.recovery_model_block.warnings}
               people_cost_total={card.people_cost_total}
               gross_wages_total={card.gross_wages_total}
@@ -60,13 +60,14 @@ export default function CostSummaryPage() {
           <aside className="cost-summary-layout__rail">
             <div className="cost-summary-layout__rail-stack">
               <CostSummaryStatusStrip
-                recovery_model_label={status.recovery_model_label}
-                linked_staff_count={status.linked_staff_count}
-                linked_asset_count={status.linked_asset_count}
-                unlinked_active_staff_count={status.unlinked_active_staff_count}
+                labour_profiles_label={status.labour_profiles_label}
+                employee_overheads_label={status.employee_overheads_label}
+                asset_costs_label={status.asset_costs_label}
+                general_overheads_label={status.general_overheads_label}
+                productive_output_label={status.productive_output_label}
                 missing_modules={status.missing_modules}
                 warnings={status.warnings}
-                is_structure_complete={status.is_structure_complete}
+                is_ready={status.is_ready}
               />
 
               {card.highlight_insight ? (

@@ -1,0 +1,107 @@
+QS Tools — Volume Rate Page (v1.0 — LOCKED)
+PURPOSE
+
+The Volume Rate Page models rate-based businesses that sell work by:
+
+tonne
+cubic metre
+load
+other bulk production unit
+
+Examples:
+
+earthworks
+cartage
+hardfill supply and install
+excavation and removal
+production-machine output businesses
+SYSTEM ROLE (CRITICAL)
+
+This page is a:
+
+volume-based production rate model page
+
+It must:
+
+support tonne and m3 pricing
+support minimum charges
+support small-job uplift
+support expected annual volume
+expose expected revenue / recovery contribution
+
+It must NOT:
+
+rebuild asset cost logic
+rebuild labour cost logic
+rebuild materials cost logic
+become a dispatch/job management tool
+ARCHITECTURE
+
+Page
+app/rates/volume/page.jsx
+
+Hook
+hooks/useVolumeRate.js
+
+Calculations
+lib/calculations/volumeRateCalculations.js
+
+Selectors
+lib/selectors/volumeRateSelectors.js
+
+Storage
+lib/storage/volumeRateStorage.js
+lib/storage/volumeRateProfileStorage.js
+
+Components
+components/rates/volume/
+
+VolumeRateStatusStrip.jsx
+VolumeRateMainCard.jsx
+VolumeRateHelpPanel.jsx
+INPUTS
+unit_type
+
+Allowed values:
+
+tonne
+cubic_metre
+load
+base_unit_rate
+minimum_charge
+small_job_threshold_units
+expected_annual_units
+average_job_size_units
+small_job_uplift_percent
+large_job_discount_percent
+
+Optional descriptors:
+
+included_asset_basis
+included_labour_basis
+included_material_basis
+CALCULATIONS
+
+expected_revenue_annual =
+base_unit_rate × expected_annual_units
+
+expected_recovery_contribution =
+expected_revenue_annual
+
+OUTPUTS
+rate_model_type = volume
+unit_label
+base_rate
+minimum_charge
+expected_annual_volume
+expected_revenue_annual
+expected_recovery_contribution
+warnings[]
+CORE RULES
+must allow tonne and m3 mode
+must clearly explain that small jobs often require materially higher effective rates
+must remain simple in v1.0
+must focus on annual recovery modelling, not quoting detail
+DEFINITION
+
+The Volume Rate Page models businesses that recover cost through tonne-, m3-, or load-based pricing and tests whether expected production volume and unit rates create enough annual recovery contribution.

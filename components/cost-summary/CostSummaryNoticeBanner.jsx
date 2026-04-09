@@ -14,32 +14,27 @@ export default function CostSummaryNoticeBanner() {
             </h2>
           </div>
 
-          {/* Core definition (NEW — TOP PRIORITY) */}
+          {/* Core definition */}
           <div className="ui-stack">
             <p className="text-sm text-[var(--text-primary)]">
-              This page represents the complete cost picture of the business.
+              This page shows what your business costs per productive labour hour.
             </p>
 
             <p className="ui-help">
-              It shows the total annual cost to operate and the minimum revenue
-              required to recover those costs.
-            </p>
-
-            <p className="ui-help">
-              It does not define how revenue is generated.
+              It combines all annual business costs and spreads them across your
+              available productive labour hours.
             </p>
           </div>
 
-          {/* Supporting explanation (UPDATED) */}
+          {/* Clarification */}
           <div className="ui-stack">
             <p className="text-sm text-[var(--text-secondary)]">
-              Recovery may come from labour, asset-based delivery, product sales,
-              or material margin depending on your business model.
+              It does not define how revenue is generated, how costs are recovered,
+              or what you should charge.
             </p>
 
             <p className="text-sm text-[var(--text-secondary)]">
-              This page isolates the cost side of the business so you can clearly
-              understand what must be recovered.
+              It simply establishes the cost baseline of the business per productive hour.
             </p>
           </div>
         </div>

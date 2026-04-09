@@ -1,0 +1,133 @@
+QS Tools — Materials Module (v1.0 — LOCKED)
+
+STATUS: NEW RECOVERY STREAM MODULE
+
+PURPOSE
+
+The Materials Module is the material margin layer of QS Tools.
+
+It is responsible for:
+
+capturing annual material cost
+capturing annual material revenue
+calculating annual material margin
+exposing material recovery contribution downstream
+
+This module exists because many businesses recover a significant portion of their total cost through material margin.
+
+SYSTEM ROLE (CRITICAL)
+
+Materials is a:
+
+revenue stream module
+
+Position:
+
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+MATERIALS
+↓
+RATE MODELS
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+
+CORE PRINCIPLE
+
+Materials = WHAT material margin contributes
+
+ARCHITECTURE
+
+Page
+app/materials/page.jsx
+
+Hook
+hooks/useMaterials.js
+
+Calculations
+lib/calculations/materialsCalculations.js
+
+Selectors
+lib/selectors/materialsSelectors.js
+
+Storage
+lib/storage/materialsStorage.js
+lib/storage/materialsProfileStorage.js
+
+Components
+components/materials/
+
+MaterialsStatusStrip.jsx
+MaterialsMainCard.jsx
+MaterialsHelpPanel.jsx
+MaterialsSummaryCard.jsx
+INPUTS (LOCKED)
+Required annual inputs
+annual_material_cost
+annual_material_revenue
+Optional structured inputs (future-safe)
+supplied_material_cost
+supplied_material_revenue
+resale_material_cost
+resale_material_revenue
+subcontract_pass_through_cost
+subcontract_pass_through_revenue
+Metadata
+profile_version
+effective_from
+is_active
+created_at
+updated_at
+CALCULATIONS (LOCKED)
+
+material_margin_annual =
+annual_material_revenue - annual_material_cost
+
+material_margin_percent =
+material_margin_annual / annual_material_revenue
+
+If annual_material_revenue = 0:
+
+material_margin_percent = 0
+OUTPUTS (LOCKED)
+annual_material_cost
+annual_material_revenue
+material_margin_annual
+material_margin_percent
+CORE RULES
+MUST remain annual and simple in v1.0
+MUST NOT calculate labour cost
+MUST NOT calculate asset cost
+MUST NOT calculate overhead cost
+MUST NOT become a quoting engine
+MUST NOT become an inventory system
+MUST NOT rebuild Cost Summary outputs
+DOWNSTREAM CONTRACT
+
+Materials must expose:
+
+material_margin_annual
+material_margin_percent
+
+These are consumed by:
+
+Recovery Outcome
+PAGE DISPLAY REQUIREMENT
+
+Must clearly show:
+
+total material cost
+total material revenue
+total material margin
+margin percentage
+
+Must clearly explain:
+
+material margin is a recovery stream
+material margin contributes to covering total business cost
+DEFINITION
+
+The Materials Module is the annual material margin layer of QS Tools. It defines how much value is bought, how much is sold, and how much margin contributes to recovering total business cost.

@@ -41,24 +41,6 @@ function SectionHeader({ title, summary, isOpen, onToggle, value }) {
   );
 }
 
-function SummaryMetric({ label, value, tone = "default" }) {
-  const valueClass =
-    tone === "success"
-      ? "text-[var(--success)]"
-      : tone === "warning"
-        ? "text-[var(--warning)]"
-        : tone === "danger"
-          ? "text-[var(--danger)]"
-          : "text-[var(--text-primary)]";
-
-  return (
-    <div className="ui-panel">
-      <div className="ui-kicker">{label}</div>
-      <div className={`mt-2 text-lg font-semibold ${valueClass}`}>{value}</div>
-    </div>
-  );
-}
-
 function BreakdownRow({ label, value, tone = "default" }) {
   const valueClass =
     tone === "success"
@@ -73,30 +55,6 @@ function BreakdownRow({ label, value, tone = "default" }) {
     <div className="ui-panel">
       <div className="text-sm text-[var(--text-secondary)]">{label}</div>
       <div className={`mt-1 text-base font-semibold ${valueClass}`}>{value}</div>
-    </div>
-  );
-}
-
-function WarningList({ warnings = [] }) {
-  if (!warnings.length) {
-    return (
-      <div className="ui-panel">
-        <div className="ui-kicker">Current Warnings</div>
-        <div className="mt-2 text-sm text-[var(--text-secondary)]">None</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="ui-panel">
-      <div className="ui-kicker">Current Warnings</div>
-      <div className="mt-3 space-y-2">
-        {warnings.map((warning) => (
-          <div key={warning} className="text-sm text-[var(--warning)]">
-            {warning}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -123,7 +81,9 @@ function StaffCostCard({ row }) {
   const staffLabel =
     row?.staff_name || row?.staff_label || row?.staff_role || "Unnamed Staff";
 
-  const roleLabel = [row?.staff_role, row?.labour_class].filter(Boolean).join(" • ");
+  const roleLabel = [row?.staff_role, row?.labour_class]
+    .filter(Boolean)
+    .join(" • ");
 
   return (
     <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
@@ -159,12 +119,6 @@ function StaffCostCard({ row }) {
 }
 
 export default function CostSummaryCard({
-  recovery_model_label,
-  linked_staff_count,
-  linked_asset_count,
-  unlinked_active_staff_count = 0,
-  recovery_warnings = [],
-
   people_cost_total,
   gross_wages_total = 0,
   entitlements_total = 0,
@@ -186,7 +140,6 @@ export default function CostSummaryCard({
 
   highlight_insight = "",
 }) {
-  const [recoveryBlockOpen, setRecoveryBlockOpen] = useState(true);
   const [peopleCostOpen, setPeopleCostOpen] = useState(true);
   const [staffDrilldownOpen, setStaffDrilldownOpen] = useState(false);
   const [businessCostOpen, setBusinessCostOpen] = useState(true);
@@ -246,40 +199,6 @@ export default function CostSummaryCard({
       ) : null}
 
       <div className="mt-6 space-y-4">
-        <div className="ui-panel">
-          <SectionHeader
-            title="Recovery Model Block"
-            summary="Active structural recovery settings from Cost Allocation."
-            isOpen={recoveryBlockOpen}
-            onToggle={() => setRecoveryBlockOpen((prev) => !prev)}
-            value={recovery_model_label}
-          />
-
-          {recoveryBlockOpen ? (
-            <div className="mt-4 ui-stack">
-              <SummaryMetric
-                label="Recovery Model"
-                value={recovery_model_label}
-                tone="success"
-              />
-              <SummaryMetric
-                label="Linked Staff"
-                value={formatNumber(linked_staff_count)}
-              />
-              <SummaryMetric
-                label="Linked Assets"
-                value={formatNumber(linked_asset_count)}
-              />
-              <SummaryMetric
-                label="Unlinked Active Staff"
-                value={formatNumber(unlinked_active_staff_count)}
-                tone={Number(unlinked_active_staff_count) > 0 ? "warning" : "default"}
-              />
-              <WarningList warnings={recovery_warnings} />
-            </div>
-          ) : null}
-        </div>
-
         <div className="ui-panel">
           <SectionHeader
             title="People Cost"
@@ -461,6 +380,38 @@ export default function CostSummaryCard({
               label="Total Productive Output"
               value={formatNumber(total_productive_output)}
             />
+          </div>
+
+          <div className="mt-4 ui-panel">
+            <div className="ui-kicker">Recovery baseline</div>
+
+            <div className="mt-3 space-y-2 text-sm text-[var(--text-primary)]">
+              <p>
+                <strong>Total Productive Output</strong> is the total number of
+                revenue-generating hours available across your team.
+              </p>
+
+              <p>
+                <strong>Required Recovery Rate</strong> is the minimum amount you
+                need to recover per productive hour to cover the total cost of
+                your business.
+              </p>
+
+              <p className="text-[var(--text-secondary)]">
+                This is calculated as total annual business cost divided by total
+                productive labour hours.
+              </p>
+
+              <p className="text-[var(--text-secondary)]">
+                It is not your selling price or profit margin — it is your
+                break-even recovery baseline.
+              </p>
+
+              <p className="text-[var(--text-secondary)]">
+                If your actual recovery is below this number, the business is
+                losing money.
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,135 @@
+ACTIVE_SYSTEM_BRIEFS_v1.18_UPDATED.txt
+QS Tools — Active System Briefs (v1.18 — UPDATED)
+
+MASTER → v1.10
+
+LABOUR MODULE → v1.9 (IMPLEMENTED)
+LABOUR PAGE → v2.3
+LABOUR SCENARIO → v2.1
+
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+
+COST SUMMARY MODULE → v1.6
+COST SUMMARY PAGE → v1.5
+COST SUMMARY WIRING → v1.7
+
+RECOVERY SUMMARY → v1.0
+MATERIALS MODULE → v1.0 (NEW)
+RATE MODELS MODULE → v1.0 (NEW)
+SQUARE METRE RATE PAGE → v1.0 (NEW)
+VOLUME RATE PAGE → v1.0 (NEW)
+
+COST ALLOCATION → v2.2 (UPDATED — MICRO UNIT HEALTH)
+RECOVERY OUTCOME → v1.1 (UPDATED — MACRO RECOVERY RECONCILIATION)
+
+BUDGET → v1.2
+
+SYSTEM ARCHITECTURE (UPDATED — LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+MATERIALS
+↓
+RATE MODELS
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+SYSTEM ROLE CLARITY (UPDATED)
+Cost Summary
+aggregates all business costs
+produces total_cost_burden
+produces required_revenue
+produces required_recovery_rate baseline
+defines WHAT the business costs
+Recovery Summary
+consumes Cost Summary outputs only
+defines recovery strategy
+distributes intended recovery across labour, assets, and overhead absorption
+defines HOW cost is intended to be recovered
+Materials
+captures annual material cost
+captures annual material revenue
+calculates annual material margin
+defines material margin contribution to business recovery
+Rate Models
+define what the business physically sells
+define sellable units such as:
+square metres
+tonnes
+cubic metres
+loads
+define minimum-charge and volume-based rate logic
+define expected production-based recovery contribution
+Cost Allocation
+consumes Recovery Summary outputs
+consumes Labour + Asset identities and outputs
+defines capability links and operational groups
+shows micro operating-unit health
+defines CAN it be delivered as configured
+Recovery Outcome
+consumes Recovery Summary outputs
+consumes Materials outputs
+consumes Rate Model outputs
+consumes Cost Allocation outputs
+produces the macro business verdict
+defines DOES the whole business model actually work
+CORE SYSTEM PRINCIPLE (UPDATED)
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is intended to be recovered
+Materials = WHAT material margin contributes
+Rate Models = WHAT is physically sold / produced
+Cost Allocation = CAN it be delivered
+Recovery Outcome = DOES it actually work
+
+IMPORTANT SYSTEM CHANGE
+
+QS Tools is no longer only a cost-and-recovery tool.
+
+It is now a production-based recovery system.
+
+It must answer:
+
+what the business costs
+how recovery is intended
+what actually generates revenue
+whether the operating structure can deliver that model
+whether the full business model is commercially viable
+CURRENT IMPLEMENTATION STATE
+Labour People Cost contract is implemented
+Cost Summary architecture is aligned to the recovery-layer model
+Recovery Summary brief is locked as the recovery-strategy layer
+Cost Allocation is now updated to a micro operating-unit role beyond the earlier structural-only version
+Recovery Outcome is now updated to a macro reconciliation role beyond the earlier decision-only baseline
+Materials and Rate Models are now formally introduced as the missing revenue-stream layers
+NEXT BUILD TARGET (UPDATED)
+Lock the new revenue/recovery source files
+Build Materials module
+Build Square Metre Rate page
+Build Volume Rate page
+Build Cost Allocation v2.2
+Build Recovery Outcome v1.1
+Validate full system flow:
+Cost Summary → Recovery Summary → Materials → Rate Models → Cost Allocation → Recovery Outcome
+RULE ENFORCEMENT
+Cost Summary must remain a pure cost layer
+Recovery strategy is owned by Recovery Summary only
+Materials own material margin only
+Rate Models own production-based revenue assumptions only
+Cost Allocation must not become the macro business verdict page
+Recovery Outcome must not become a detailed rate-authoring page
+No downstream module may rebuild upstream maths
+No module may rename contract variables casually
+DEFINITION
+
+This version updates QS Tools into a production-based recovery system by formally adding Materials and Rate Models so the platform can model how the business actually generates revenue, not just what it costs.

@@ -1,0 +1,336 @@
+QS Tools — Full Aligned Source Pack (v1.18 — UPDATED)
+
+Date: 2026-04-09
+
+PURPOSE
+
+This pack is the fully aligned source-of-truth for QS Tools after introducing the new recovery/revenue build layer.
+
+It reflects the shift from a cost-only interpretation toward a production-based recovery system.
+
+ALIGNMENT BASELINE
+Labour Module → v1.9
+Labour Scenario → v2.1
+Employee Overheads → v1.6
+Assets → v2.3
+General Overheads → v2.1
+Cost Summary Module → v1.6
+Cost Summary Wiring → v1.7
+Recovery Summary → v1.0
+Materials Module → v1.0
+Rate Models Module → v1.0
+Square Metre Rate Page → v1.0
+Volume Rate Page → v1.0
+Cost Allocation → v2.2
+Recovery Outcome → v1.1
+Budget → v1.2
+
+This continues the locked cost → recovery → structure → decision architecture already established in the active briefs, while adding the missing materials and rate-model layers you identified
+
+SYSTEM ARCHITECTURE (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+MATERIALS
+↓
+RATE MODELS
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+CURRENT AUTHORITY FILES
+ACTIVE_SYSTEM_BRIEFS_v1.18_UPDATED.txt
+Labour_Module_v1.9_FULL_SOURCE_OF_TRUTH_ALIGNED_2026-04-07.txt
+Cost_Summary_Module_v1.6_FULL_SOURCE_OF_TRUTH.txt
+Cost_Summary_Wiring_v1.7_LOCKED.txt
+Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Recovery_Summary_Page_v1.0_LOCKED.txt
+Materials_Module_v1.0_LOCKED.txt
+Rate_Models_Module_v1.0_LOCKED.txt
+Square_Metre_Rate_Page_v1.0_LOCKED.txt
+Volume_Rate_Page_v1.0_LOCKED.txt
+Cost_Allocation_v2.2_LOCKED.txt
+Recovery_Outcome_v1.1_LOCKED.txt
+QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED).txt
+QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+QS Tools — New Module Build Template (v1.0 — LOCKED).txt
+QS Tools — New Page Build Checklist (v1.0 — LOCKED).txt
+Implementation_Order_2026-04-09_UPDATED.txt
+WHAT THIS PACK NOW REPRESENTS
+
+This pack now fully separates the business model into five layers:
+
+1. Cost
+
+Owned by:
+
+Labour
+Employee Overheads
+Assets
+General Overheads
+Cost Summary
+
+Question answered:
+
+What does the business cost?
+2. Recovery Strategy
+
+Owned by:
+
+Recovery Summary
+
+Question answered:
+
+How is the business intended to recover cost?
+3. Revenue Streams
+
+Owned by:
+
+Materials
+Rate Models
+
+Question answered:
+
+What actually creates revenue?
+4. Delivery Structure
+
+Owned by:
+
+Cost Allocation
+
+Question answered:
+
+Can the business physically deliver the chosen model?
+5. Business Verdict
+
+Owned by:
+
+Recovery Outcome
+
+Question answered:
+
+Does the whole business model actually work?
+IMPORTANT COST SUMMARY RULE
+
+Cost Summary remains a pure cost layer.
+
+It:
+
+consumes upstream cost outputs
+produces total_cost_burden
+produces required_revenue
+produces required_recovery_rate baseline
+
+It does NOT:
+
+define recovery strategy
+define materials margin
+define square metre / tonne / m3 rate logic
+consume Cost Allocation outputs
+consume Recovery Outcome outputs
+
+This remains locked by the updated Cost Summary authority files
+
+IMPORTANT RECOVERY RULE
+
+Recovery Summary remains the owner of:
+
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+
+It defines recovery intent only.
+
+It does not define:
+
+materials margin
+rate model production assumptions
+operating-unit configuration
+final macro business verdict
+
+This remains aligned to the current recovery architecture
+
+IMPORTANT NEW MATERIALS RULE
+
+Materials exists because many businesses recover a large share of cost through material margin rather than labour charge-out alone.
+
+Materials v1.0 is therefore now a required source file in the aligned pack.
+
+It defines:
+
+annual_material_cost
+annual_material_revenue
+material_margin_annual
+material_margin_percent
+
+It does not become:
+
+inventory control
+quote pricing
+purchasing workflow
+IMPORTANT NEW RATE MODELS RULE
+
+Rate Models exist because many businesses do not recover cost only through hourly labour or machine hire.
+
+They instead recover through:
+
+square metre rates
+tonne rates
+cubic metre rates
+small-job minimums
+volume-sensitive pricing
+
+Rate Models therefore become the source-of-truth for:
+
+what is physically sold
+what the annual production assumption is
+what expected annual recovery contribution is generated
+IMPORTANT COST ALLOCATION RULE
+
+Cost Allocation v2.2 is not a full cost engine and not a macro business reconciliation page.
+
+It is the:
+
+structural
+operational
+micro unit health page
+
+It may now show:
+
+labour basis labels
+unit health
+delivery groups
+warnings about weak or incomplete units
+
+But it must not:
+
+own materials
+own rate models
+own the macro business decision
+
+This remains consistent with the locked architecture where Cost Allocation is downstream of Recovery Summary and upstream of the final decision layer
+
+IMPORTANT RECOVERY OUTCOME RULE
+
+Recovery Outcome v1.1 is the macro reconciliation page.
+
+It combines:
+
+cost baseline
+recovery strategy
+material margin contribution
+production-based rate contribution
+structural readiness
+
+It is the page that tells the user whether the business model actually works.
+
+It must now be understood as:
+
+the macro reality check
+the business verdict page
+the place where recovery streams are reconciled
+
+Not:
+
+a structural setup page
+a materials input page
+a detailed quoting page
+CURRENT BUILD POSITION
+Phase 1 — Lock new revenue/recovery pack
+Save the new authority files
+Confirm active files in the new folder
+Stop using superseded assumptions from the older recovery-only architecture
+Phase 2 — Build new revenue streams
+Build Materials module
+Validate annual material margin outputs
+Build Square Metre Rate page
+Build Volume Rate page
+Validate expected annual recovery contribution outputs
+Phase 3 — Build micro structure page
+Build Cost Allocation v2.2
+Wire Cost Allocation to:
+Recovery Summary
+Labour
+Assets
+Validate:
+labour basis visibility
+unit health states
+structural coverage
+Phase 4 — Build macro reconciliation page
+Build Recovery Outcome v1.1
+Wire Recovery Outcome to:
+Recovery Summary
+Cost Allocation
+Materials
+Rate Models
+Validate:
+total_recovery_actual
+recovery_gap
+dominant_recovery_stream
+viable / marginal / not_viable states
+Phase 5 — Full flow check
+Confirm complete flow:
+Cost Summary → Recovery Summary → Materials → Rate Models → Cost Allocation → Recovery Outcome
+Test:
+labour-only business
+material-margin business
+asset-driven business
+hybrid business
+
+This build order extends the previously locked implementation flow by adding the missing revenue layers before final macro reconciliation
+
+DEPRECATED FILES (DO NOT USE FOR NEW BUILDS)
+ACTIVE_SYSTEM_BRIEFS_v1.15_UPDATED.txt
+ACTIVE_SYSTEM_BRIEFS_v1.16_UPDATED.txt
+ACTIVE_SYSTEM_BRIEFS_v1.17_UPDATED.txt
+Cost_Allocation_v1.3_ALIGNED.txt
+Cost_Allocation_v2.1_WITH_OPERATIONAL_GROUPS_LOCKED.txt
+Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+QS Tools — Source Files Guardrail Brief (v1.0 — LOCKED).txt
+QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+README_ALIGNED_PACK_2026-04-07.txt
+README_NEXT_BUILD_PACK_2026-04-05.txt
+
+These files belong to earlier architectural stages and should not be used as the live baseline for the new recovery/revenue build direction.
+
+WHY THIS PACK CHANGED
+
+The previous aligned pack correctly separated:
+
+cost
+recovery
+structure
+decision
+
+But it still lacked formal ownership for the actual revenue-generation streams the business uses in real life.
+
+This updated v1.18 pack fixes that by introducing:
+
+Materials
+Rate Models
+
+so QS Tools can now model:
+
+what the business costs
+how recovery is intended
+what actually generates revenue
+how work is physically delivered
+whether the model is viable overall
+FINAL DEFINITION
+
+This pack is the fully aligned source baseline for the next QS Tools build phase.
+
+It updates the platform from a pure cost-and-recovery architecture into a production-based recovery system by formally adding:
+
+Materials as a material margin layer
+Rate Models as the production/output revenue layer
+Cost Allocation as the micro operating-unit health layer
+Recovery Outcome as the macro business reconciliation and verdict layer

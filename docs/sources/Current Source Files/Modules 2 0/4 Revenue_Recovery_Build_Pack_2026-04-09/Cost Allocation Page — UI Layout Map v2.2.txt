@@ -1,0 +1,145 @@
+Cost Allocation Page — UI Layout Map v2.2
+Page purpose
+
+Micro operating-unit page.
+
+File structure
+
+components/cost-allocation/
+
+CostAllocationStatusStrip.jsx
+CostAllocationMainCard.jsx
+CostAllocationLinkTable.jsx
+CostAllocationGroupsCard.jsx
+CostAllocationUnitHealthCard.jsx
+CostAllocationHelpPanel.jsx
+Page order
+CostAllocationStatusStrip
+CostAllocationMainCard
+CostAllocationHelpPanel
+1. CostAllocationStatusStrip
+
+Show:
+
+active_recovery_model
+structure_valid
+linked_staff_count
+linked_asset_count
+total_operational_groups
+warnings count
+Status intent
+
+Quick “is the structure there or not?”
+
+2. CostAllocationMainCard
+Section A — Recovery context block
+
+Read-only:
+
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+required_labour_recovery_rate
+required_asset_recovery
+
+This reminds the user what strategy the structure is supporting.
+
+Section B — Structural readiness block
+
+Show:
+
+linked staff / total active staff
+linked assets / total active assets
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+
+This is the structural completeness panel.
+
+Section C — Link management block
+
+Uses:
+
+CostAllocationLinkTable
+
+Show:
+
+asset name
+staff name
+labour class
+active/inactive state
+add/remove link actions
+
+Rules:
+
+prevent duplicate active pairs
+show linked/unlinked clearly
+Section D — Operational groups block
+
+Uses:
+
+CostAllocationGroupsCard
+
+Each group shows:
+
+group_name
+required_asset_ids
+required_staff_count
+active state
+valid / invalid state
+
+This is where units like:
+
+Pump Unit
+Digger Unit
+Trucking Unit
+are defined.
+Section E — Unit health block
+
+Uses:
+
+CostAllocationUnitHealthCard
+
+One card per unit.
+
+Each card shows:
+
+unit_name
+labour_basis_label
+asset list
+structure_valid
+unit_health_status
+unit_health_message
+warnings
+Health colours / states
+bad
+ok
+good
+Intent
+
+This is the page’s key new value:
+micro “does this unit look workable?”
+
+Section F — Problem highlight block
+
+Simple summary list of the biggest issues.
+
+Examples:
+
+3 staff not linked to any asset
+2 assets not included in any group
+Pump Unit invalid: missing operator
+Digger Unit uses representative labour basis only
+Asset-driven strategy active but unit coverage is weak
+3. CostAllocationHelpPanel
+
+Collapsed by default.
+
+Explain:
+
+links = what can work together
+groups = what must work together
+labour basis comes from Labour
+this page is micro structure + unit health
+this page is not the final business verdict

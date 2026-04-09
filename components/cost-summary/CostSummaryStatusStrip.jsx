@@ -8,7 +8,6 @@ function Pill({ children, tone = "neutral" }) {
     warn: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
     danger:
       "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
-    info: "border-[var(--info)] bg-[var(--info-soft)] text-[var(--info)]",
   };
 
   return <div className={`ui-pill ${toneClasses[tone]}`}>{children}</div>;
@@ -22,9 +21,7 @@ function StatusItem({ label, value, tone = "neutral" }) {
         ? "text-[var(--warning)]"
         : tone === "ok"
           ? "text-[var(--success)]"
-          : tone === "info"
-            ? "text-[var(--info)]"
-            : "text-[var(--text-primary)]";
+          : "text-[var(--text-primary)]";
 
   return (
     <div className="ui-panel">
@@ -64,35 +61,29 @@ function MessagePanel({ title, tone = "neutral", items = [] }) {
 }
 
 export default function CostSummaryStatusStrip({
-  recovery_model_label = "Not set",
-  linked_staff_count = 0,
-  linked_asset_count = 0,
-  unlinked_active_staff_count = 0,
+  labour_profiles_label = "0 active",
+  employee_overheads_label = "Missing",
+  asset_costs_label = "Missing",
+  general_overheads_label = "Missing",
+  productive_output_label = "0",
   missing_modules = [],
   warnings = [],
-  is_structure_complete = false,
+  is_ready = false,
 }) {
   const hasMissingModules = missing_modules.length > 0;
   const hasWarnings = warnings.length > 0;
 
-  const structureTone = hasMissingModules
+  const readinessTone = hasMissingModules
     ? "danger"
-    : hasWarnings || !is_structure_complete
+    : hasWarnings || !is_ready
       ? "warn"
       : "ok";
 
-  const recoveryTone =
-    recovery_model_label === "Asset Driven"
-      ? "info"
-      : recovery_model_label === "Labour Only"
-        ? "ok"
-        : "warn";
-
-  const structureLabel = hasMissingModules
+  const readinessLabel = hasMissingModules
     ? "Missing Upstream Inputs"
-    : hasWarnings || !is_structure_complete
+    : hasWarnings || !is_ready
       ? "Warnings Present"
-      : "Structure Complete";
+      : "Ready";
 
   return (
     <section className="ui-section">
@@ -102,41 +93,43 @@ export default function CostSummaryStatusStrip({
             Cost Summary Status
           </h2>
           <p className="ui-help">
-            Live recovery structure and upstream readiness.
+            Live cost-input readiness for Cost Summary aggregation.
           </p>
         </div>
 
         <div className="ui-actions">
-          <Pill tone={recoveryTone}>
-            Recovery Model: {recovery_model_label}
-          </Pill>
-
-          <Pill tone={structureTone}>{structureLabel}</Pill>
+          <Pill tone={readinessTone}>{readinessLabel}</Pill>
         </div>
 
         <div className="ui-stack">
           <StatusItem
-            label="Recovery Model"
-            value={recovery_model_label}
-            tone={recoveryTone}
+            label="Labour Profiles"
+            value={labour_profiles_label}
+            tone={labour_profiles_label !== "0 active" ? "ok" : "warn"}
           />
 
           <StatusItem
-            label="Linked Staff"
-            value={linked_staff_count}
-            tone={linked_staff_count > 0 ? "ok" : "warn"}
+            label="Employee Overheads"
+            value={employee_overheads_label}
+            tone={employee_overheads_label === "Connected" ? "ok" : "warn"}
           />
 
           <StatusItem
-            label="Linked Assets"
-            value={linked_asset_count}
-            tone={linked_asset_count > 0 ? "ok" : "warn"}
+            label="Asset Costs"
+            value={asset_costs_label}
+            tone={asset_costs_label === "Connected" ? "ok" : "warn"}
           />
 
           <StatusItem
-            label="Unlinked Staff"
-            value={unlinked_active_staff_count}
-            tone={unlinked_active_staff_count > 0 ? "warn" : "ok"}
+            label="General Overheads"
+            value={general_overheads_label}
+            tone={general_overheads_label === "Connected" ? "ok" : "warn"}
+          />
+
+          <StatusItem
+            label="Productive Output"
+            value={productive_output_label}
+            tone={productive_output_label !== "0" ? "ok" : "warn"}
           />
         </div>
 

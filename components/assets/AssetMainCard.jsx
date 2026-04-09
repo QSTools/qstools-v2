@@ -6,8 +6,8 @@ export default function AssetMainCard({ form, summary, list }) {
   return (
     <section className="ui-section">
       <div className="ui-page-stack">
-        <AssetForm {...form} />
         <AssetSummaryCard {...summary} />
+        <AssetForm {...form} />
         <AssetListCard {...list} />
       </div>
     </section>

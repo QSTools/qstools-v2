@@ -6,6 +6,13 @@ import { usePathname } from "next/navigation";
 
 const navGroups = [
   {
+    label: "Business Baseline",
+    items: [
+      { href: "/revenue-summary", label: "Revenue Summary" },
+      { href: "/cost-summary", label: "Cost Summary" },
+    ],
+  },
+  {
     label: "Core Inputs",
     items: [
       { href: "/labour", label: "Labour" },
@@ -15,11 +22,15 @@ const navGroups = [
     ],
   },
   {
-    label: "Commercial Engine",
-    items: [{ href: "/cost-summary", label: "Cost Summary" }],
+    label: "Revenue Streams",
+    items: [
+      { href: "/materials", label: "Materials" },
+      { href: "/rates/square-metre", label: "Square Metre Rate" },
+      { href: "/rates/volume", label: "Volume Rate" },
+    ],
   },
   {
-    label: "Recovery",
+    label: "Pricing & Outcome",
     items: [
       { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/cost-allocation", label: "Cost Allocation" },
@@ -35,10 +46,12 @@ const standaloneItems = [
 
 export default function SidebarNavigation() {
   const pathname = usePathname();
+
   const [openGroups, setOpenGroups] = useState({
     "Core Inputs": true,
-    "Commercial Engine": true,
-    Recovery: true,
+    "Business Baseline": true,
+    "Revenue Streams": true,
+    "Pricing & Outcome": true,
   });
 
   function toggleGroup(group_label) {

@@ -1,0 +1,421 @@
+QS Tools — Source Files Guardrail Brief (v1.2 — LOCKED)
+
+PURPOSE
+
+This brief defines the non-negotiable implementation rules for all future QS Tools development.
+
+It exists to prevent:
+
+contract drift
+duplicated calculations
+module boundary violations
+incorrect revenue/recovery logic placement
+UI system drift
+architectural regression
+
+This is a guardrail brief, not a feature brief.
+
+ACTIVE SYSTEM BASELINE (UPDATED)
+
+MASTER → v1.10
+LABOUR MODULE → v1.9
+LABOUR SCENARIO → v2.1
+EMPLOYEE OVERHEADS → v1.6
+ASSETS → v2.3
+GENERAL OVERHEADS → v2.1
+COST SUMMARY MODULE → v1.6
+COST SUMMARY PAGE → v1.5
+COST SUMMARY WIRING → v1.7
+RECOVERY SUMMARY → v1.0
+MATERIALS MODULE → v1.0
+RATE MODELS MODULE → v1.0
+SQUARE METRE RATE PAGE → v1.0
+VOLUME RATE PAGE → v1.0
+COST ALLOCATION → v2.2
+RECOVERY OUTCOME → v1.1
+BUDGET → v1.2
+
+SYSTEM ARCHITECTURE (LOCKED)
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+MATERIALS
+↓
+RATE MODELS
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+
+CORE SYSTEM SEPARATION
+
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is intended to be recovered
+Materials = WHAT material margin contributes
+Rate Models = WHAT is physically sold / produced
+Cost Allocation = CAN it be delivered as operating units
+Recovery Outcome = DOES the whole business model work
+
+UNIVERSAL DOWNSTREAM CONTRACT RULE
+Upstream modules own inputs and calculations
+Downstream modules consume outputs only
+No module may rebuild upstream maths
+No module may rename contract variables
+No module may silently absorb another module’s responsibility
+
+This rule remains unchanged from the existing locked architecture and still applies across all future work
+
+MODULE OWNERSHIP (UPDATED)
+Labour
+owns staff_id
+owns labour cost engine
+owns productive-hour logic
+owns labour commercial outputs
+Employee Overheads
+owns staff-linked overhead outputs
+must remain separate from Labour
+joins downstream by staff_id only
+Assets
+owns asset_id
+owns asset cost engine
+must not assign staff inside Assets
+General Overheads
+owns total business overhead totals
+remains a fixed annual overhead layer only
+Cost Summary
+aggregates all business cost
+produces total_cost_burden
+produces required_revenue
+produces required_recovery_rate baseline
+defines WHAT the business costs
+Recovery Summary
+owns recovery_model
+owns labour / asset / overhead recovery shares
+defines HOW cost is intended to be recovered
+Materials
+owns annual material cost / revenue / margin
+defines the annual material margin contribution
+does not own labour, assets, or pricing structure
+Rate Models
+own production-based recovery assumptions
+define sellable units such as:
+square metres
+tonnes
+cubic metres
+loads
+define minimum charge and volume-sensitive rate logic
+Cost Allocation
+owns structural and operational grouping logic
+consumes Recovery Summary context
+consumes Labour and Asset identities
+must show micro unit health visibility only
+must not become the macro business verdict page
+must not become a full pricing engine
+Recovery Outcome
+owns macro reconciliation and business verdict logic
+consumes:
+Recovery Summary outputs
+Materials outputs
+Rate Model outputs
+Cost Allocation outputs
+defines whether the full business model works
+Budget
+remains future and downstream
+must not bypass the cost/recovery architecture without a later locked brief
+RECOVERY OWNERSHIP RULE
+Recovery strategy is owned by Recovery Summary only
+Material margin contribution is owned by Materials only
+Production-based revenue assumptions are owned by Rate Models only
+Cost Allocation must not define recovery strategy
+Recovery Outcome must not redefine upstream recovery shares
+COST OWNERSHIP RULE
+Labour owns labour cost
+Employee Overheads own employee overhead cost
+Assets own asset cost
+General Overheads own business overhead cost
+Cost Summary aggregates total business cost only
+
+No downstream module may recalculate those costs from raw inputs.
+
+REVENUE / PRODUCTION OWNERSHIP RULE (NEW)
+
+This is the major new guardrail.
+
+QS Tools now distinguishes between:
+
+cost
+recovery strategy
+revenue generation
+structure
+decision
+
+Therefore:
+
+Materials owns:
+annual material cost
+annual material revenue
+annual material margin
+Rate Models own:
+unit-based rate assumptions
+expected annual production volume
+expected annual recovery contribution
+minimum charge logic
+small-job uplift logic
+large-volume pricing behaviour
+Cost Allocation must NOT own:
+square metre rates
+tonne rates
+cubic metre rates
+material sell rates
+final macro reconciliation
+Recovery Outcome may consume these outputs,
+
+but must not become the place where those source models are authored.
+
+MICRO VS MACRO RULE
+Cost Allocation = MICRO
+
+Cost Allocation may show:
+
+asset ↔ labour unit combinations
+operating groups
+labour basis labels
+simple unit health signals
+structural warnings
+productive-basis mismatch warnings
+
+Cost Allocation must not:
+
+decide the overall health of the business
+reconcile all business recovery streams
+replace Recovery Outcome
+Recovery Outcome = MACRO
+
+Recovery Outcome must show:
+
+the total business picture
+combined recovery streams
+recovery gap
+dominant recovery stream
+overall viability state
+
+Recovery Outcome must not:
+
+become a detailed configuration page
+become a quoting page
+rebuild operating-unit logic
+IDENTITY RULE
+staff_id owned by Labour
+asset_id owned by Assets
+overhead identities owned by their source modules where applicable
+downstream modules must not recreate identities
+display names must never be used as keys
+joins must use IDs, not labels
+
+This remains mandatory and unchanged from the locked architecture
+
+VARIABLE NAMING RULE
+snake_case only
+no alias drift
+no UI-based naming
+no renaming without migration
+display labels may change
+internal variable names may not change casually
+
+This applies across:
+
+calculations
+selectors
+storage
+hook outputs
+downstream joins
+exports
+reporting
+PAGE / HOOK / CALCULATION SEPARATION
+page = orchestration only
+hook = integration
+calculations = business logic
+selectors = shaping
+components = UI only
+
+No business logic allowed in UI components.
+
+This remains locked across the existing source pack and must continue unchanged
+
+SCENARIO ISOLATION RULE
+Scenario remains labour-only
+Scenario must not feed Cost Summary
+Scenario must not feed Materials
+Scenario must not feed Rate Models
+Scenario must not feed Recovery Outcome
+Scenario must not persist in V1
+
+The existing labour scenario isolation remains unchanged
+
+UI SYSTEM RULE
+must use token-based UI system
+no inline styles
+no hardcoded colours
+must follow mobile-first layout rules
+components remain display-only
+
+This remains enforced by the current UI and source-file guardrails and does not change with the new revenue layers
+
+COST SUMMARY RULE
+
+Cost Summary remains a pure cost aggregation layer.
+
+It must:
+
+consume Labour outputs
+consume Employee Overheads outputs
+consume Asset outputs
+consume General Overheads outputs
+calculate total_cost_burden
+calculate required_revenue
+calculate required_recovery_rate baseline
+
+It must not:
+
+define recovery strategy
+define material margin
+define production rates
+consume Cost Allocation outputs
+consume Recovery Outcome outputs
+
+This remains aligned to the updated Cost Summary authority files
+
+MATERIALS RULE (NEW)
+
+Materials must:
+
+remain annual and simple in v1.0
+calculate material margin only
+provide clean downstream material recovery contribution
+
+Materials must not:
+
+become inventory control
+become purchasing workflow
+become quote pricing
+absorb labour/asset/business overhead logic
+RATE MODELS RULE (NEW)
+
+Rate Models must:
+
+define what the business physically sells
+support unit-based revenue logic
+support minimum charges
+support small-job uplift logic
+support annual expected production assumptions
+
+Rate Models must not:
+
+replace Cost Summary
+replace Materials
+replace Cost Allocation
+replace Recovery Outcome
+become a job estimating engine in v1.0
+COST ALLOCATION RULE (UPDATED)
+
+Cost Allocation may:
+
+show what resources work together
+show operating groups
+show labour basis labels
+show unit health states:
+bad
+ok
+good
+show micro structural/commercial warnings
+
+Cost Allocation must not:
+
+calculate total business cost
+calculate total business recovery
+own square metre / tonne / m3 pricing logic
+own material margin logic
+own the final business verdict
+
+This keeps Cost Allocation aligned to its structural/operational role while allowing the added micro visibility you clarified.
+
+RECOVERY OUTCOME RULE (UPDATED)
+
+Recovery Outcome must:
+
+reconcile total_cost_burden against combined recovery streams
+show total_recovery_actual
+show recovery_gap
+show dominant_recovery_stream
+show viable / marginal / not_viable
+
+Recovery Outcome must not:
+
+author upstream rate models
+author materials logic
+author cost structure
+rebuild Cost Allocation validation
+become a detailed quoting page
+NOT ALLOWED
+
+Future scripts must not:
+
+rebuild Labour maths downstream
+rebuild Employee Overheads maths downstream
+rebuild Asset maths downstream
+rebuild General Overheads maths downstream
+define recovery logic in Cost Allocation
+define materials logic in Recovery Outcome
+define rate models inside Cost Allocation
+use display names as keys
+rename locked variables casually
+place business logic in UI
+bypass the token system
+merge micro and macro page responsibilities
+turn Recovery Outcome into a job-estimating page
+REQUIRED CHECK BEFORE ANY FUTURE SCRIPT CHANGE
+
+Before any implementation, confirm:
+
+Which module owns the input?
+Which file owns the calculation?
+Which output contract is downstream consuming?
+Is this work changing cost, recovery, revenue, structure, or decision?
+Does this violate the downstream contract rule?
+Does this move responsibility into the wrong layer?
+Does this violate scenario isolation?
+Does this introduce variable or identity drift?
+
+If any answer is unclear, the brief must be updated before coding continues.
+
+DEFINITION OF DONE
+
+A future script change is aligned only if it:
+
+respects the active version baseline
+preserves module ownership
+keeps calculations in calculation files
+keeps pages orchestration-only
+keeps components display-only
+consumes upstream contracts unchanged
+uses IDs instead of names
+keeps cost, recovery, revenue, structure, and decision separated
+does not reintroduce styling drift
+does not break mobile-first direction
+FINAL DEFINITION
+
+This guardrail brief enforces the separation between:
+
+cost
+recovery strategy
+revenue generation
+operating structure
+business decision
+
+so QS Tools can remain scalable, auditable, and commercially accurate as it expands into materials and production-based rate models.

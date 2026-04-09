@@ -9,7 +9,7 @@ export default function AssetSummaryCard({ rows = [], meta = {} }) {
             <p className="ui-kicker">Summary</p>
             <h2 className="text-xl font-semibold">Asset Outputs</h2>
             <p className="ui-help">
-              Annual cash-cost outputs plus productive capacity metrics.
+              Annual cash-cost outputs for the selected asset.             
             </p>
           </div>
 
@@ -33,13 +33,15 @@ export default function AssetSummaryCard({ rows = [], meta = {} }) {
 
           <div className="ui-panel">
             <p className="ui-help">
-              Cost Summary continues to consume total annual asset cost only.
+              This is what the asset costs you each year to own and run.
             </p>
+
             <p className="ui-help">
-              Depreciation is excluded as this model is based on real cash cost recovery.
+              It includes finance repayments and all running costs.
             </p>
+
             <p className="ui-help">
-              Productive assets contribute recovery capacity. Support assets remain part of cost only.
+              Based on real cash costs — not accounting values.
             </p>
           </div>
         </div>

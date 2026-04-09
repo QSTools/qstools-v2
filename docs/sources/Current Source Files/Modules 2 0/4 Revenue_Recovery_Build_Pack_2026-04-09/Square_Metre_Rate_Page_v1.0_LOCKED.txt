@@ -1,0 +1,98 @@
+QS Tools — Square Metre Rate Page (v1.0 — LOCKED)
+PURPOSE
+
+The Square Metre Rate Page is for labour-led or supply-and-install businesses that recover revenue through m²-based pricing.
+
+Examples:
+
+concrete placing
+plasterboard fixing
+stopping
+slab work
+surface preparation trades
+SYSTEM ROLE (CRITICAL)
+
+This page is a:
+
+production rate model page
+
+It must:
+
+model m²-based revenue
+support minimum charge logic
+support small-job uplift logic
+support expected annual volume
+calculate expected annual recovery contribution
+
+It must NOT:
+
+rebuild Labour cost logic
+rebuild Materials cost logic
+rebuild Cost Summary totals
+ARCHITECTURE
+
+Page
+app/rates/square-metre/page.jsx
+
+Hook
+hooks/useSquareMetreRate.js
+
+Calculations
+lib/calculations/squareMetreRateCalculations.js
+
+Selectors
+lib/selectors/squareMetreRateSelectors.js
+
+Storage
+lib/storage/squareMetreRateStorage.js
+lib/storage/squareMetreRateProfileStorage.js
+
+Components
+components/rates/square-metre/
+
+SquareMetreRateStatusStrip.jsx
+SquareMetreRateMainCard.jsx
+SquareMetreRateHelpPanel.jsx
+INPUTS
+base_square_metre_rate
+minimum_charge
+small_job_threshold_m2
+expected_annual_square_metres
+average_job_size_m2
+small_job_uplift_percent
+large_job_discount_percent
+
+Optional:
+
+included_labour_basis_label
+included_material_basis_label
+CALCULATIONS
+
+expected_revenue_annual =
+base_square_metre_rate × expected_annual_square_metres
+
+minimum_charge_triggered_jobs may be estimated in later versions
+
+v1.0 keeps the revenue model simple and annualised.
+
+OUTPUTS
+rate_model_type = square_metre
+unit_label = m2
+base_rate
+minimum_charge
+expected_annual_volume
+expected_revenue_annual
+expected_recovery_contribution
+warnings[]
+
+Where:
+expected_recovery_contribution = expected_revenue_annual
+
+CORE RULES
+must support minimum charge visibility
+must explain that small jobs often require higher effective rates
+must remain production/revenue focused
+must not become a detailed quote builder in v1.0
+DEFINITION
+
+The Square Metre Rate Page models trades that recover business cost through m²-based pricing and helps test whether expected production volume and rate structure are sufficient to support the business.

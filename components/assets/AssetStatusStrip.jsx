@@ -4,8 +4,6 @@ export default function AssetStatusStrip({
   asset_type_label,
   effective_from_label,
   total_asset_cost_label,
-  productive_hours_label,
-  cost_per_hour_label,
   saved_asset_count_label,
   active_asset_count_label,
   warning_count,
@@ -21,7 +19,7 @@ export default function AssetStatusStrip({
               <p className="ui-kicker">Assets</p>
               <h1 className="text-xl font-semibold">Asset Setup</h1>
               <p className="ui-help">
-                Create and maintain asset cost and productive capacity inputs.
+                Create and maintain asset cost inputs.
               </p>
             </div>
 
@@ -38,8 +36,6 @@ export default function AssetStatusStrip({
             <div className="ui-readonly">{lifecycle_label}</div>
             <div className="ui-readonly">{effective_from_label}</div>
             <div className="ui-readonly">{total_asset_cost_label}</div>
-            <div className="ui-readonly">{productive_hours_label}</div>
-            <div className="ui-readonly">{cost_per_hour_label}</div>
             <div className="ui-readonly">{saved_asset_count_label}</div>
             <div className="ui-readonly">{active_asset_count_label}</div>
           </div>

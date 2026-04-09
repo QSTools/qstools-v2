@@ -1,0 +1,176 @@
+QS Tools — Implementation Note — Cost Summary Baseline Clarification (v1.0)
+
+STATUS: SOURCE PACK IMPLEMENTATION NOTE
+
+PURPOSE
+
+This note records the latest implementation alignment after the Cost Summary and Assets cleanup work.
+
+It exists to make clear what changed in implementation, what did NOT change in downstream contracts, and what the Recovery layer must continue to consume.
+
+---
+
+## IMPLEMENTATION CLARIFICATION
+
+### Cost Summary
+
+Cost Summary is now confirmed in implementation as:
+
+cost baseline only
+
+It answers:
+
+What does the business cost per productive labour hour?
+
+This means the page and its wording are now aligned to the existing system separation:
+
+- Cost Summary = WHAT it costs
+- Recovery Summary = HOW it is recovered
+
+Cost Summary does NOT:
+
+- define recovery strategy
+- define pricing
+- define charge-out
+- define asset/labour recovery shares
+
+Those remain downstream responsibilities.
+
+---
+
+## COST SUMMARY OUTPUT MEANING
+
+The following Cost Summary outputs are now especially important in implementation:
+
+- total_cost_burden
+- required_revenue
+- total_productive_output
+- required_recovery_rate
+
+Interpretation:
+
+- total_productive_output = total productive labour hours across active staff
+- required_recovery_rate = total annual business cost divided by total productive labour hours
+
+This is a cost baseline only.
+
+It is NOT:
+
+- selling price
+- margin target
+- recovery model
+- commercial decision output
+
+---
+
+## PRODUCTIVE OUTPUT CONFIRMATION
+
+Cost Summary now correctly consumes productive_hours from the Labour output contract and aggregates productive output from active staff.
+
+This confirms that Recovery Summary can safely continue to consume:
+
+- total_productive_output
+- required_recovery_rate
+
+without pulling raw Labour state directly.
+
+---
+
+## ASSETS IMPLEMENTATION CLARIFICATION
+
+Assets remains a cost-only module.
+
+Live UI and live outputs now remain focused on:
+
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+The previous future-scope fields around:
+
+- available hours
+- utilisation
+- productive asset hours
+- true asset cost per hour
+
+have been removed from the live Assets page and live contract flow for this phase.
+
+These do NOT belong in the current Assets cost layer.
+
+If required later, they belong in a downstream recovery layer or future asset recovery logic.
+
+---
+
+## ASSET FINANCE CALCULATION UPDATE
+
+Asset finance cost is now implemented using a standard amortized repayment model based on:
+
+- principal
+- annual interest rate
+- finance term
+
+This improves the realism of annual asset cash cost.
+
+However, this does NOT change the downstream Assets contract.
+
+Recovery Summary and other downstream layers must still consume only:
+
+- total_asset_cost_annual
+
+and must not consume raw finance inputs directly.
+
+---
+
+## DOWNSTREAM RULE (UNCHANGED)
+
+Recovery Summary must continue to consume Cost Summary outputs only.
+
+Recovery Summary must NOT:
+
+- read raw Labour state
+- read raw Asset state
+- read raw General Overhead state
+- rebuild upstream maths
+
+The existing downstream contract rule remains unchanged.
+
+---
+
+## RECOVERY LAYER IMPLICATION
+
+No change is required to the locked Recovery Summary input contract.
+
+Recovery Summary should continue to consume:
+
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+
+The latest implementation work strengthens those baseline inputs but does not expand them.
+
+---
+
+## PRACTICAL SYSTEM READING
+
+The system sequence remains:
+
+Cost Summary
+→ defines cost of business per productive labour hour
+
+Recovery Summary
+→ defines how that cost is intended to be recovered
+
+Cost Allocation
+→ defines whether the structure can support that recovery
+
+This note confirms that the separation is now cleaner in implementation than before.
+
+---
+
+## DEFINITION
+
+This implementation note confirms that Cost Summary is now aligned in both logic and wording as a pure cost-baseline layer, that Assets remains a cost-only module with improved finance realism, and that the Recovery layer contract remains unchanged and should continue to consume Cost Summary outputs only.
