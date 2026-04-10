@@ -1,0 +1,217 @@
+STATUS
+NEW — RECOVERY PERFORMANCE INSIGHT LAYER
+
+PURPOSE
+
+This addendum introduces derived performance metrics that compare
+actual business recovery against available productive capacity.
+
+It exists to expose:
+
+- how much labour capacity was actually recovered
+- how much capacity was unused
+- why a business may appear viable in some periods but not over time
+
+This addendum does NOT change:
+
+- Cost Summary logic
+- Recovery Summary logic
+- Cost Allocation structure
+- Materials or Rate Models ownership
+
+It adds derived insight only at the Recovery Outcome layer.
+
+---
+
+CORE CONCEPT
+
+QS Tools already defines:
+
+- total cost (Cost Summary)
+- productive capacity (Labour + Assets)
+- intended recovery (Recovery Summary)
+- actual recovery streams (Recovery Outcome)
+
+This addendum introduces:
+
+ACTUAL RECOVERY PERFORMANCE
+
+---
+
+DEFINITIONS (LOCKED)
+
+Recovered Hours
+
+Recovered hours represent the number of labour hours that
+actually generated revenue.
+
+Formula:
+
+recovered_hours =
+labour_revenue / average_charge_out_rate
+
+Where:
+
+labour_revenue =
+annual labour-derived revenue (from P&L or derived revenue inputs)
+
+average_charge_out_rate =
+representative realised labour rate
+
+---
+
+Actual Productivity Percent
+
+Actual productivity represents the proportion of available
+productive labour capacity that was successfully recovered.
+
+Formula:
+
+actual_productivity_percent =
+recovered_hours / total_productive_output
+
+Where:
+
+total_productive_output =
+sum of productive_hours from Labour module
+(as already consumed by Cost Summary)
+
+---
+
+Productivity Gap
+
+Productivity gap represents unused labour recovery capacity.
+
+Formula:
+
+productivity_gap_hours =
+total_productive_output - recovered_hours
+
+---
+
+INTERPRETATION RULES
+
+The system must interpret these values as:
+
+- recovered_hours = actual labour recovery achieved
+- total_productive_output = theoretical recoverable labour capacity
+- productivity_gap_hours = lost recovery opportunity
+
+---
+
+SYSTEM ROLE
+
+These metrics are:
+
+derived
+read-only
+non-input
+
+They must NOT:
+
+be manually entered
+override Recovery Summary logic
+feed back into Cost Summary
+be used to redefine recovery shares upstream
+
+---
+
+MODULE OWNERSHIP (STRICT)
+
+These calculations belong ONLY in:
+
+Recovery Outcome
+
+They must NOT be implemented in:
+
+Labour
+Cost Summary
+Recovery Summary
+Cost Allocation
+Materials
+Rate Models
+
+---
+
+UI REQUIREMENT (RECOVERY OUTCOME)
+
+Recovery Outcome must display:
+
+- recovered_hours
+- total_productive_output
+- actual_productivity_percent
+- productivity_gap_hours
+
+---
+
+RECOMMENDED DISPLAY LANGUAGE
+
+Examples:
+
+"Labour recovery is operating at 62% of available capacity."
+
+"1,200 hours of labour capacity were not recovered."
+
+"Labour recovery is underperforming relative to cost base."
+
+---
+
+OPTIONAL DRIVER INSIGHT (ALLOWED)
+
+Recovery Outcome may use these metrics to inform:
+
+primary_constraint_title
+primary_constraint_message
+
+Examples:
+
+"Labour under-recovery is the primary constraint."
+
+"Material margin is compensating for weak labour recovery."
+
+---
+
+STRICT RULES
+
+Do NOT:
+
+rebuild labour revenue calculations inside Recovery Outcome
+derive rate models from these values
+treat these as target inputs
+duplicate logic across modules
+introduce new contract variables upstream
+
+---
+
+RELATION TO EXISTING SYSTEM
+
+This addendum extends:
+
+Recovery Outcome v1.1
+
+It does NOT alter:
+
+Cost → Capacity → Units → Decision architecture
+
+It enhances the "Decision" layer only.
+
+---
+
+FINAL DEFINITION
+
+Recovery Performance Metrics expose the difference between
+available labour capacity and actual recovered labour output.
+
+They provide the missing explanation for:
+
+inconsistent profitability
+gap-driven losses
+under-recovery in low-volume periods
+
+They complete the system’s ability to answer not only:
+
+"Does the business model work?"
+
+but also:
+
+"Why does it fail when it does not?"

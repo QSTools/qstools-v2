@@ -4,6 +4,11 @@ import Link from "next/link";
 
 const coreInputs = [
   {
+    href: "/p-and-l",
+    title: "P&L",
+    body: "Start with your annual business picture from the last financial year.",
+  },
+  {
     href: "/labour",
     title: "Labour",
     body: "Build live labour cost, productive hours, and minimum charge-out rate.",
@@ -16,7 +21,7 @@ const coreInputs = [
   {
     href: "/assets",
     title: "Assets",
-    body: "Manage business-owned asset cost burden for recovery modelling.",
+    body: "Manage business-owned asset cost burden and productive asset capacity.",
   },
   {
     href: "/general-overheads",
@@ -24,9 +29,9 @@ const coreInputs = [
     body: "Track broader business cost burden outside direct staff and assets.",
   },
   {
-    href: "/cost-allocation",
-    title: "Cost Allocation",
-    body: "Control recovery structure and determine how upstream cost is allocated.",
+    href: "/materials",
+    title: "Materials",
+    body: "Capture annual material revenue, cost, and margin contribution.",
   },
 ];
 
@@ -34,7 +39,32 @@ const commercialEngine = [
   {
     href: "/cost-summary",
     title: "Cost Summary",
-    body: "View the combined recovery baseline across labour, staff overheads, assets, and business overheads.",
+    body: "View the combined business cost baseline across labour, overheads, assets, and business costs.",
+  },
+  {
+    href: "/recovery-summary",
+    title: "Recovery Summary",
+    body: "See how the business is intended to recover cost from its productive base.",
+  },
+  {
+    href: "/rates/square-metre",
+    title: "Square Metre Rate",
+    body: "Model annual recovery from m²-based pricing.",
+  },
+  {
+    href: "/rates/volume",
+    title: "Volume Rate",
+    body: "Model annual recovery from tonne-, m³-, or load-based pricing.",
+  },
+  {
+    href: "/cost-allocation",
+    title: "Cost Allocation",
+    body: "Define recovery units and check whether the structure can deliver the model.",
+  },
+  {
+    href: "/recovery-outcome",
+    title: "Recovery Outcome",
+    body: "Test whether the full business model works and why it may be failing.",
   },
   {
     href: "/budget",
@@ -106,31 +136,68 @@ export default function HomePage() {
             <div>
               <div className="ui-kicker">QS Tools</div>
               <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-                Business Recovery Model
+                QS Tools helps you analyse your business so you can set the
+                right prices and build a profitable model.
               </h1>
             </div>
 
             <p className="ui-help">
-              Use the modules below to build upstream cost inputs, define recovery
-              structure, and review the combined commercial baseline.
+              It’s a reality check — breaking down how your business actually
+              makes money, showing you what’s working, what isn’t, and where
+              your profit is really coming from. It then guides you on how and
+              where to adjust so you can hit your targets consistently, not just
+              when things are busy.
             </p>
 
             <div className="ui-panel">
-              Start with the core input modules, then move into Cost Allocation and
-              Cost Summary once the upstream layers are populated.
+              <div className="ui-stack-sm">
+                <p>
+                  With QS Tools, you’ll gain a clear understanding of exactly
+                  where your business stands — what it costs, what it earns, and
+                  what needs to shift. You’ll move from guessing to knowing
+                  exactly what to charge to meet your profit goals.
+                </p>
+
+                <p>
+                  Most businesses price their work based on labour and materials
+                  alone, but that doesn’t show the full picture. QS Tools helps
+                  you understand how your costs, labour, and material margins
+                  all work together — so you can see whether your model truly
+                  works over the year, not just on a good job.
+                </p>
+
+                <p>
+                  All you need to do is bring in your key numbers — QS Tools
+                  will break it down step by step, giving you a clear picture of
+                  your business and what you need to charge to make it work.
+                </p>
+
+                <p>
+                  To get started, you’ll just need your P&amp;L from the last
+                  financial year — or your current labour rates if that’s where
+                  you’re starting from.
+                </p>
+              </div>
+            </div>
+
+            <div className="ui-panel">
+              <strong>
+                Know where your profit actually comes from — and whether your
+                business works when things slow down.
+              </strong>
             </div>
           </div>
         </header>
 
         <SectionBlock
           title="Core Inputs"
-          body="These modules create the upstream cost base used by the commercial engine."
+          body="Start with the annual business picture, then build the upstream cost and margin layers."
           items={coreInputs}
         />
 
         <SectionBlock
           title="Commercial Engine"
-          body="These modules turn upstream cost into a recovery and decision view."
+          body="These modules turn cost, recovery, revenue streams, and structure into a business decision."
           items={commercialEngine}
         />
 

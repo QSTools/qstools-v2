@@ -1,10 +1,7 @@
 "use client";
 
 function format_currency(value) {
-  return `$${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `$${Math.round(Number(value || 0)).toLocaleString()}`;
 }
 
 function format_percent(value) {
@@ -24,6 +21,9 @@ function Field({ label, value, onChange, help_text }) {
     <div className="ui-stack">
       <label className="ui-stack">
         <span className="ui-label">{label}</span>
+        {help_text ? (
+          <p className="text-sm text-[var(--text-secondary)]">{help_text}</p>
+        ) : null}
         <input
           className="ui-input"
           type="number"
@@ -31,7 +31,6 @@ function Field({ label, value, onChange, help_text }) {
           onChange={(event) => onChange(event.target.value)}
         />
       </label>
-      <FieldHelp>{help_text}</FieldHelp>
     </div>
   );
 }

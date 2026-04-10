@@ -1,10 +1,7 @@
 "use client";
 
 function format_currency(value) {
-  return `$${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `$${Math.round(Number(value || 0)).toLocaleString()}`;
 }
 
 function format_percent(value) {
