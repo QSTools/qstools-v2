@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation";
 
 const navGroups = [
   {
+    label: "Quick Start",
+    items: [{ href: "/quick-start", label: "Quick Start" }],
+  },
+  {
     label: "Business Truth",
     items: [{ href: "/p-and-l", label: "P&L" }],
   },
@@ -51,6 +55,7 @@ export default function SidebarNavigation() {
   const pathname = usePathname();
 
   const [openGroups, setOpenGroups] = useState({
+    "Quick Start": true,
     "Business Truth": false,
     "Core Inputs": false,
     "Cost & Recovery": false,
