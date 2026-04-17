@@ -49,12 +49,12 @@ const commercialEngine = [
   {
     href: "/rates/square-metre",
     title: "Square Metre Rate",
-    body: "Model annual recovery from m²-based pricing.",
+    body: "Model annual recovery from m2-based pricing.",
   },
   {
     href: "/rates/volume",
     title: "Volume Rate",
-    body: "Model annual recovery from tonne-, m³-, or load-based pricing.",
+    body: "Model annual recovery from tonne-, m3-, or load-based pricing.",
   },
   {
     href: "/cost-allocation",
@@ -81,6 +81,28 @@ const systemPages = [
   },
 ];
 
+const whatThisToolDoes = [
+  {
+    title: "Understand your real cost base",
+    body: "Build your business using your actual numbers so you can see what it truly costs to operate.",
+  },
+  {
+    title: "See how your business recovers those costs",
+    body: "Understand how your business turns work into revenue and how each part contributes to your overall performance.",
+  },
+  {
+    title: "Check your work against your own model",
+    body: "Compare real jobs or quotes against your business baseline to see whether they are working.",
+  },
+];
+
+const howItWorks = [
+  "Enter your business costs and structure",
+  "We mirror your business back to you so you can see how it is performing",
+  "Define how your business needs to earn and operate",
+  "Use that model to check your real work and decisions",
+];
+
 function NavCard({ href, title, body }) {
   return (
     <Link
@@ -98,6 +120,32 @@ function NavCard({ href, title, body }) {
         <div className="ui-kicker">Open module</div>
       </div>
     </Link>
+  );
+}
+
+function InfoCard({ title, body }) {
+  return (
+    <div className="ui-panel rounded-2xl">
+      <div className="ui-stack-sm">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          {title}
+        </h3>
+        <p className="ui-help">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function StepCard({ index, body }) {
+  return (
+    <div className="ui-panel rounded-2xl">
+      <div className="ui-stack-sm">
+        <div className="ui-kicker">Step {index}</div>
+        <p className="text-base font-medium text-[var(--text-primary)]">
+          {body}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -131,63 +179,114 @@ export default function HomePage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
-        <header className="ui-section">
+        <section className="ui-section">
           <div className="ui-stack">
-            <div>
+            <div className="ui-stack-sm">
               <div className="ui-kicker">QS Tools</div>
-              <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-                QS Tools helps you analyse your business so you can set the
-                right prices and build a profitable model.
+              <h1 className="text-3xl font-semibold text-[var(--text-primary)]">
+                Understand if your business is actually working.
               </h1>
+              <p className="ui-lead">
+                QS Tools helps you see how your business really operates by
+                connecting your costs, your output, and the way you price your
+                work.
+              </p>
             </div>
 
-            <p className="ui-help">
-              It’s a reality check — breaking down how your business actually
-              makes money, showing you what’s working, what isn’t, and where
-              your profit is really coming from. It then guides you on how and
-              where to adjust so you can hit your targets consistently, not just
-              when things are busy.
-            </p>
-
-            <div className="ui-panel">
+            <div className="ui-panel rounded-2xl">
               <div className="ui-stack-sm">
-                <p>
-                  With QS Tools, you’ll gain a clear understanding of exactly
-                  where your business stands — what it costs, what it earns, and
-                  what needs to shift. You’ll move from guessing to knowing
-                  exactly what to charge to meet your profit goals.
+                <p className="text-base text-[var(--text-primary)]">
+                  Every business runs differently.
                 </p>
-
-                <p>
-                  Most businesses price their work based on labour and materials
-                  alone, but that doesn’t show the full picture. QS Tools helps
-                  you understand how your costs, labour, and material margins
-                  all work together — so you can see whether your model truly
-                  works over the year, not just on a good job.
+                <p className="ui-help">
+                  What matters is whether your current structure is actually
+                  recovering what it costs to operate — and whether your pricing
+                  reflects that reality.
                 </p>
-
-                <p>
-                  All you need to do is bring in your key numbers — QS Tools
-                  will break it down step by step, giving you a clear picture of
-                  your business and what you need to charge to make it work.
-                </p>
-
-                <p>
-                  To get started, you’ll just need your P&amp;L from the last
-                  financial year — or your current labour rates if that’s where
-                  you’re starting from.
+                <p className="text-base font-medium text-[var(--text-primary)]">
+                  We mirror your business back to you so you can clearly see
+                  what’s happening underneath your numbers.
                 </p>
               </div>
             </div>
 
-            <div className="ui-panel">
-              <strong>
-                Know where your profit actually comes from — and whether your
-                business works when things slow down.
+            <div className="ui-panel rounded-2xl">
+              <strong className="text-base text-[var(--text-primary)]">
+                Build your model. See your reality. Then decide how you move
+                forward.
               </strong>
             </div>
           </div>
-        </header>
+        </section>
+
+        <section className="ui-section">
+          <div className="ui-stack">
+            <div>
+              <div className="ui-kicker">What QS Tools does</div>
+              <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+                A clear view of how your business performs
+              </h2>
+              <p className="ui-help">
+                This is not just a pricing tool. It is a system that connects
+                your costs, your structure, and your output so you can see
+                whether your business is actually working.
+              </p>
+            </div>
+
+            <div className="ui-stack">
+              {whatThisToolDoes.map((item) => (
+                <InfoCard
+                  key={item.title}
+                  title={item.title}
+                  body={item.body}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="ui-section">
+          <div className="ui-stack">
+            <div>
+              <div className="ui-kicker">How it works</div>
+              <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+                Build your business model, then use it
+              </h2>
+            </div>
+
+            <div className="ui-stack">
+              {howItWorks.map((step, index) => (
+                <StepCard key={step} index={index + 1} body={step} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="ui-section">
+          <div className="ui-panel rounded-2xl">
+            <div className="ui-stack">
+              <div>
+                <div className="ui-kicker">Get started</div>
+                <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+                  Start simple, then build deeper when you are ready
+                </h2>
+                <p className="ui-help">
+                  You can begin with a quick check, or go straight into building
+                  your full business model.
+                </p>
+              </div>
+
+              <div className="ui-actions">
+                <Link href="/quick-start" className="ui-button-primary">
+                  Open Quick Start
+                </Link>
+                <Link href="/p-and-l" className="ui-button-secondary">
+                  Model Your Business
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <SectionBlock
           title="Core Inputs"

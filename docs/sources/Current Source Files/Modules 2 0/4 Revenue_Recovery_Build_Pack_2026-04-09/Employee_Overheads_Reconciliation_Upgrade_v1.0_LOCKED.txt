@@ -1,0 +1,86 @@
+# QS Tools — Employee Overheads Reconciliation Upgrade (v1.0 — LOCKED)
+
+STATUS: OPTIONAL EMPLOYEE OVERHEAD BENCHMARK CHECK LAYER
+
+---
+
+## PURPOSE
+
+This brief upgrades the Employee Overheads page to include a reconciliation strip where a separate employee-overheads benchmark exists in the P&L mapping structure.
+
+It exists to:
+
+- compare assigned employee-overheads benchmark against module total
+- support benchmark-based trust checking where applicable
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Employee Overheads remains the staff-overhead module of QS Tools.
+
+The reconciliation strip is:
+
+an optional benchmark visibility + readiness layer
+
+---
+
+## FILES TO UPDATE
+
+- hooks/useEmployeeOverheads.js
+- lib/selectors/employeeOverheadsSelectors.js
+- components/employee-overheads/EmployeeOverheadsStatusStrip.jsx
+- components/employee-overheads/EmployeeOverheadsHelpPanel.jsx
+
+Reusable inputs come from:
+- reconciliationCalculations.js
+- ReconciliationStrip.jsx
+
+---
+
+## NEW INPUT
+
+Optional from P&L grouped outputs:
+
+- employee_overheads_benchmark_total
+
+---
+
+## RULE
+
+If benchmark exists:
+- show strip
+- calculate readiness
+
+If benchmark does not exist:
+- strip may remain hidden
+- module readiness must handle benchmark_optional state explicitly
+
+---
+
+## THRESHOLDS
+
+### Green
+variance_percent <= 0.5
+
+### Amber
+variance_percent > 0.5 and <= 1.0
+
+### Red
+variance_percent > 1.0
+
+---
+
+## HELP PANEL UPDATE
+
+EmployeeOverheadsHelpPanel must explain:
+
+- a separate benchmark may or may not exist depending on P&L structure
+- where available, benchmark is used for reconciliation
+- downstream totals still use module outputs only
+
+---
+
+## DEFINITION
+
+This upgrade adds an optional employee-overheads reconciliation layer where benchmark mapping exists, allowing staff-overhead modelling to be checked against accounting structure without changing downstream ownership.

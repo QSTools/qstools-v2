@@ -1,0 +1,150 @@
+# QS Tools — Model Readiness Layer (v1.0 — LOCKED)
+
+STATUS: TRUST GATE FOR DOWNSTREAM MODELLING
+
+---
+
+## PURPOSE
+
+The Model Readiness Layer prevents QS Tools from being used as a trusted business model until the cost picture is complete and reconciled.
+
+It exists to ensure:
+
+- all P&L costs are assigned
+- required modules reconcile to their benchmark totals
+- Cost Summary is not treated as trustworthy until upstream truth checks are complete
+- downstream pages do not operate on incomplete or distorted cost structure
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The Model Readiness Layer is a:
+
+system-wide trust gate
+
+Position:
+
+P&L MAPPING PAGE
+↓
+MODULE RECONCILIATION
+↓
+MODEL READINESS
+↓
+COST SUMMARY TRUSTED STATE
+↓
+RECOVERY / DOWNSTREAM LAYERS
+
+The layer must:
+
+- consume readiness outputs from P&L and modules
+- determine whether the cost model is trustworthy
+- expose blocked modules and readiness messages
+- block downstream modelling when readiness is false
+
+The layer must NOT:
+
+- change module totals
+- replace reconciliation logic
+- calculate cost structure itself
+
+---
+
+## ARCHITECTURE
+
+Calculations
+lib/calculations/modelReadinessCalculations.js
+
+Selectors
+lib/selectors/modelReadinessSelectors.js
+
+Consumed by:
+- useCostSummary
+- later downstream pages
+
+---
+
+## INPUTS
+
+- pnl_ready
+- labour_ready
+- employee_overheads_ready
+- assets_ready
+- general_overheads_ready
+
+Optional:
+- labour_explained_variance_ok
+
+---
+
+## CALCULATIONS
+
+### Model Ready
+
+model_ready =
+pnl_ready
+and labour_ready
+and employee_overheads_ready
+and assets_ready
+and general_overheads_ready
+
+---
+
+### Blocking Modules
+
+blocking_modules[] =
+list of modules where readiness = false
+
+---
+
+### Warning Modules
+
+warning_modules[] =
+list of modules with amber / explained-but-watch states where applicable
+
+---
+
+## OUTPUTS
+
+- model_ready
+- blocking_modules[]
+- warning_modules[]
+- readiness_message
+
+---
+
+## READINESS MESSAGES
+
+### Ready
+
+Your cost model reconciles to the P&L benchmarks and is ready for trusted modelling.
+
+### Not Ready
+
+Your cost model is not ready. One or more benchmark assignments or module reconciliations are incomplete.
+
+---
+
+## BLOCKING RULE
+
+If model_ready = false:
+
+- Cost Summary may still display totals
+- Cost Summary must clearly show model not ready
+- downstream modelling must not be treated as trusted
+- Recovery and later pages must remain blocked or disabled
+
+---
+
+## CORE RULES
+
+- P&L assignment completeness is mandatory
+- module reconciliation completeness is mandatory
+- modelling trust is a system state, not a visual guess
+- upstream truth checks must be completed before downstream reliance
+
+---
+
+## DEFINITION
+
+The Model Readiness Layer is the trust gate of QS Tools. It determines whether the P&L assignment and module reconciliation process is sufficiently complete for the cost model to be treated as trustworthy and for downstream modelling to proceed.

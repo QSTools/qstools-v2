@@ -1,0 +1,139 @@
+# QS Tools — Labour Reconciliation Upgrade (v1.0 — LOCKED)
+
+STATUS: LABOUR BENCHMARK CHECK LAYER
+
+---
+
+## PURPOSE
+
+This brief upgrades the Labour page to include a top reconciliation strip comparing the assigned P&L labour benchmark against the QS Tools labour model total.
+
+It exists to:
+
+- make payroll benchmark variance visible
+- help users understand whether the labour model reflects actual payroll
+- preserve labour as the downstream model source
+- treat labour variance as diagnostic only
+
+This upgrade does NOT:
+
+- replace labour calculations
+- feed payroll variance into Cost Summary
+- use P&L labour as the downstream source of truth
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Labour remains the structured labour cost engine of QS Tools.
+
+The reconciliation strip is:
+
+a benchmark visibility + readiness layer only
+
+Labour must continue to own:
+
+- labour identity
+- labour cost engine
+- labour outputs used downstream
+
+The P&L labour benchmark must remain:
+
+- reference only
+- diagnostic only
+- non-downstream
+
+---
+
+## FILES TO UPDATE
+
+- hooks/useLabour.js
+- lib/selectors/labourSelectors.js
+- components/labour/LabourStatusStrip.jsx
+- components/labour/LabourHelpPanel.jsx
+
+Reusable inputs come from:
+- reconciliationCalculations.js
+- ReconciliationStrip.jsx
+
+---
+
+## NEW INPUT
+
+From P&L grouped outputs:
+
+- labour_benchmark_total
+
+---
+
+## NEW CALCULATION INPUTS
+
+- pnl_benchmark_total = labour_benchmark_total
+- module_total = total_people_cost_annual or locked labour model total selected for benchmark comparison
+- explanation_provided (optional, amber labour case)
+
+Benchmark mapping must be explicit.
+
+---
+
+## LABOUR THRESHOLDS
+
+### Green
+variance_percent <= 1.0
+
+### Amber
+variance_percent > 1.0 and <= 5.0
+
+### Red
+variance_percent > 5.0
+
+---
+
+## READINESS RULE
+
+Green = ready
+
+Amber = allowed only if explanation provided
+
+Red = blocked
+
+---
+
+## UI BEHAVIOUR
+
+The Labour page must show the Reconciliation Strip at the top of the page above or alongside the existing status strip.
+
+It must show:
+
+- P&L Benchmark
+- QS Labour Total
+- Variance ($)
+- Variance (%)
+- Status
+
+---
+
+## HELP PANEL UPDATE
+
+LabourHelpPanel must explain:
+
+- benchmark comes from assigned payroll lines on the P&L page
+- labour model is structured and forward-looking
+- payroll may differ because of overtime or non-standard hours
+- variance is diagnostic only
+- downstream cost model still uses the labour module outputs only
+
+---
+
+## CORE RULES
+
+- labour benchmark must not replace labour model totals
+- labour variance must not flow into Cost Summary calculations
+- amber labour variance requires explanation
+- red labour variance blocks trusted modelling
+
+---
+
+## DEFINITION
+
+This upgrade adds a labour-specific reconciliation layer to the Labour page so the structured labour model can be checked against assigned payroll reality without allowing payroll noise to replace the model itself.

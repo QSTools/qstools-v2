@@ -1,0 +1,97 @@
+# QS Tools — General Overheads Reconciliation Upgrade (v1.0 — LOCKED)
+
+STATUS: OVERHEAD BENCHMARK CHECK LAYER
+
+---
+
+## PURPOSE
+
+This brief upgrades the General Overheads page to include a reconciliation strip comparing the assigned P&L general overhead benchmark against the QS Tools general overhead model total.
+
+It exists to:
+
+- confirm the overhead model explains the assigned benchmark
+- surface missing overhead categories
+- confirm readiness for trusted modelling
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+General Overheads remains the fixed annual input layer of QS Tools.
+
+The reconciliation strip is:
+
+a benchmark visibility + readiness layer only
+
+The General Overheads module must continue to own:
+
+- overhead inputs
+- overhead calculations
+- total_general_overheads output
+
+---
+
+## FILES TO UPDATE
+
+- hooks/useGeneralOverheads.js
+- lib/selectors/generalOverheadSelectors.js
+- components/general-overheads/GeneralOverheadStatusStrip.jsx
+- components/general-overheads/GeneralOverheadHelpPanel.jsx
+
+Reusable inputs come from:
+- reconciliationCalculations.js
+- ReconciliationStrip.jsx
+
+---
+
+## NEW INPUT
+
+From P&L grouped outputs:
+
+- general_overheads_benchmark_total
+
+---
+
+## THRESHOLDS
+
+### Green
+variance_percent <= 0.5
+
+### Amber
+variance_percent > 0.5 and <= 1.0
+
+### Red
+variance_percent > 1.0
+
+---
+
+## READINESS RULE
+
+Green = ready
+Amber = not fully ready
+Red = blocked
+
+---
+
+## HELP PANEL UPDATE
+
+GeneralOverheadHelpPanel must explain:
+
+- benchmark comes from assigned general overhead P&L lines
+- model total comes from QS overhead entries
+- variance should normally remain low if the cost picture is complete
+
+---
+
+## CORE RULES
+
+- benchmark is reference only
+- module total remains downstream source
+- variance does not flow into Cost Summary formulas
+
+---
+
+## DEFINITION
+
+This upgrade adds a general-overhead reconciliation layer to the General Overheads page so the overhead model can be checked against the assigned accounting benchmark before trusted downstream modelling proceeds.

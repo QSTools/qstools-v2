@@ -1,0 +1,246 @@
+# QS Tools — Reconciliation Strip (v1.0 — LOCKED)
+
+STATUS: GLOBAL MODULE BENCHMARK CHECK LAYER
+
+---
+
+## PURPOSE
+
+The Reconciliation Strip compares each module’s assigned P&L benchmark total against its QS Tools model total.
+
+It exists to:
+
+- show whether the module model explains the assigned accounting benchmark
+- surface variance clearly
+- produce a reconciliation status
+- determine whether the module is ready for trusted modelling
+
+It does NOT:
+
+- replace module calculations
+- feed variance into Cost Summary formulas
+- override module totals with P&L values
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The Reconciliation Strip is a:
+
+module-level benchmark vs model check layer
+
+Position:
+
+P&L MAPPING PAGE
+↓
+MODULE BENCHMARK TOTAL
+↓
+RECONCILIATION STRIP
+↓
+MODULE READINESS
+↓
+COST SUMMARY READINESS
+
+The strip must:
+
+- consume one benchmark total
+- consume one module total
+- calculate variance
+- calculate variance percent
+- assign status
+- expose readiness
+
+The strip must NOT:
+
+- change module totals
+- write back into module calculations
+- feed variance downstream into Cost Summary
+
+---
+
+## ARCHITECTURE
+
+Reusable calculation
+lib/calculations/reconciliationCalculations.js
+
+Reusable selector
+lib/selectors/reconciliationSelectors.js
+
+Reusable UI component
+components/shared/ReconciliationStrip.jsx
+
+Consumed by:
+- Labour
+- Employee Overheads
+- Assets
+- General Overheads
+
+---
+
+## INPUTS
+
+- pnl_benchmark_total
+- module_total
+- module_key
+- explanation_provided (optional, labour only)
+
+---
+
+## CALCULATIONS
+
+### Variance Amount
+
+variance_amount =
+module_total - pnl_benchmark_total
+
+---
+
+### Variance Percent
+
+If pnl_benchmark_total = 0:
+
+variance_percent = 0
+
+Else:
+
+variance_percent =
+abs(variance_amount) / pnl_benchmark_total × 100
+
+---
+
+## STANDARD MODULE THRESHOLDS
+
+Applies to:
+
+- Employee Overheads
+- Assets
+- General Overheads
+
+### Green
+variance_percent <= 0.5
+
+### Amber
+variance_percent > 0.5 and <= 1.0
+
+### Red
+variance_percent > 1.0
+
+---
+
+## LABOUR EXCEPTION
+
+Labour uses the same variance math, but different interpretation thresholds.
+
+### Green
+variance_percent <= 1.0
+
+### Amber
+variance_percent > 1.0 and <= 5.0
+
+### Red
+variance_percent > 5.0
+
+Reason:
+
+- labour model is structured
+- actual payroll may include overtime or non-standard hours
+- variance may be explainable without breaking the model
+
+---
+
+## STATUS OUTPUTS
+
+Required contract:
+
+- variance_amount
+- variance_percent
+- status
+- status_title
+- status_message
+- is_reconciled_for_modelling
+
+Allowed status values:
+
+- green
+- amber
+- red
+
+---
+
+## READINESS RULES
+
+### Standard Modules
+
+green = ready
+amber = not fully ready
+red = blocked
+
+---
+
+### Labour
+
+green = ready
+amber = allowed only if explanation_provided = true
+red = blocked
+
+---
+
+## UI DISPLAY
+
+The strip must show:
+
+- P&L Benchmark
+- QS Total
+- Variance ($)
+- Variance (%)
+- Status
+
+Rules:
+
+- colour must reflect status
+- percentage is the primary trust signal
+- dollar variance is supporting context only
+
+---
+
+## STATUS MESSAGES
+
+### Standard Modules
+
+Green:
+Aligned — model reflects assigned benchmark
+
+Amber:
+Close — review before trusted modelling
+
+Red:
+Not aligned — model does not reflect assigned benchmark
+
+---
+
+### Labour
+
+Green:
+Aligned — labour model reflects assigned payroll benchmark
+
+Amber:
+Explained variance — likely overtime or non-standard hours
+
+Red:
+Not aligned — labour model does not reflect payroll structure
+
+---
+
+## CORE RULES
+
+- benchmark values are reference only
+- module totals remain the source totals used downstream
+- variance is diagnostic only
+- Cost Summary must not consume variance in formulas
+- readiness is derived from the strip output
+
+---
+
+## DEFINITION
+
+The Reconciliation Strip is the global benchmark-check layer for QS Tools. It compares assigned P&L benchmark totals against module model totals, calculates variance and variance percent, and determines whether each module is trustworthy enough for downstream modelling.

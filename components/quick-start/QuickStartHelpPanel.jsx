@@ -10,18 +10,20 @@ export default function QuickStartHelpPanel() {
           </p>
 
           <p className="ui-help">
-            The m² Labour Rate mode builds a labour rate per square metre from
-            gang output, crew structure, and hourly recovery.
+            It reflects a quote or rate back to you in simple terms so you can
+            quickly see what your time is earning, how the work is structured,
+            and where the value is coming from.
           </p>
 
           <p className="ui-help">
-            It is designed to help you see what labour needs to charge per m²
-            before you layer in materials, broader overheads, and full install pricing.
+            The Labour Reality Check mode shows what a contractor rate is
+            actually worth after standard NZ unpaid time assumptions.
           </p>
 
           <p className="ui-help">
             It is not a full business model. It does not include overheads,
-            entitlements, or your full cost structure.
+            entitlements beyond the simplified assumption set, or your full cost
+            structure.
           </p>
 
           <p className="ui-help">

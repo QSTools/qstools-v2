@@ -1,0 +1,109 @@
+# QS Tools — Cost Summary Readiness Upgrade (v1.0 — LOCKED)
+
+STATUS: TRUST PANEL UPGRADE ONLY
+
+---
+
+## PURPOSE
+
+This brief upgrades Cost Summary to display model readiness clearly without changing its core aggregation logic.
+
+Cost Summary must continue to:
+
+- consume module totals only
+- aggregate People Cost
+- aggregate Business Cost
+- calculate total cost burden
+- calculate required revenue baseline
+
+This upgrade adds:
+
+- readiness visibility
+- blocked module list
+- trusted / not-trusted model state
+
+It does NOT add:
+
+- benchmark totals to calculations
+- variance to calculations
+- raw P&L consumption
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Cost Summary remains:
+
+the cost aggregation layer
+
+This upgrade adds:
+
+a readiness visibility layer only
+
+---
+
+## FILES TO UPDATE
+
+- hooks/useCostSummary.js
+- lib/selectors/costSummarySelectors.js
+- components/cost-summary/CostSummaryStatusStrip.jsx
+- components/cost-summary/CostSummaryCard.jsx
+- components/cost-summary/CostSummaryHelpPanel.jsx
+
+Additional shared inputs:
+- modelReadinessCalculations.js
+- modelReadinessSelectors.js
+
+---
+
+## NEW INPUTS
+
+- pnl_ready
+- labour_ready
+- employee_overheads_ready
+- assets_ready
+- general_overheads_ready
+- model_ready
+- blocking_modules[]
+- warning_modules[]
+- readiness_message
+
+---
+
+## NEW UI BEHAVIOUR
+
+Cost Summary must show:
+
+- model ready / not ready
+- blocked module list where relevant
+- readiness message
+
+Rules:
+
+- totals may still display
+- but downstream trust must be clearly separated from display
+- Recovery and later pages must remain blocked when model_ready = false
+
+---
+
+## HELP PANEL UPDATE
+
+CostSummaryHelpPanel must explain:
+
+- Cost Summary uses module totals only
+- benchmark variance is resolved upstream on module pages
+- Cost Summary is only trusted when readiness is complete
+
+---
+
+## CORE RULES
+
+- no benchmark totals in Cost Summary calculations
+- no variance in Cost Summary calculations
+- readiness is a trust state, not a replacement formula layer
+
+---
+
+## DEFINITION
+
+This upgrade adds a trust and readiness visibility layer to Cost Summary so the user can see whether the upstream benchmark and module reconciliation process is complete before relying on the cost model downstream.

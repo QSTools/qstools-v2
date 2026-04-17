@@ -1,0 +1,158 @@
+# QS Tools — Business Performance Page (v1.0 — LOCKED)
+
+STATUS: REALITY VS TRUSTED MODEL PAGE
+
+---
+
+## PURPOSE
+
+The Business Performance Page compares actual business performance against the trusted cost model.
+
+It exists to answer:
+
+- are you recovering your business cost?
+- how does actual revenue compare to required revenue?
+- how much real-world gap exists between the business and the trusted model?
+
+This page does NOT:
+
+- assign P&L line items
+- reconcile modules
+- build cost structure
+- perform pricing logic
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The Business Performance Page is a:
+
+summary comparison layer
+
+Position:
+
+P&L MAPPING PAGE
+↓
+MODULE RECONCILIATION
+↓
+COST SUMMARY
+↓
+BUSINESS PERFORMANCE PAGE
+
+The page must:
+
+- consume actual revenue-side inputs
+- consume trusted Cost Summary outputs
+- compare real-world performance to required business baseline
+
+---
+
+## ARCHITECTURE
+
+Page
+app/business-performance/page.jsx
+
+Hook
+hooks/useBusinessPerformance.js
+
+Calculations
+lib/calculations/businessPerformanceCalculations.js
+
+Selectors
+lib/selectors/businessPerformanceSelectors.js
+
+Components
+components/business-performance/
+
+- BusinessPerformanceStatusStrip.jsx
+- BusinessPerformanceMainCard.jsx
+- BusinessPerformanceHelpPanel.jsx
+
+---
+
+## INPUTS
+
+### From P&L
+
+- total_revenue
+- materials_cost
+- subcontract_cost
+
+### From Cost Summary
+
+- required_revenue
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+
+---
+
+## CALCULATIONS
+
+gross_profit =
+total_revenue - materials_cost - subcontract_cost
+
+recovery_gap =
+total_revenue - required_revenue
+
+recovery_ratio =
+total_revenue / required_revenue
+
+actual_recovery_rate =
+total_revenue / total_productive_output
+
+---
+
+## OUTPUTS
+
+- gross_profit
+- recovery_gap
+- recovery_ratio
+- actual_recovery_rate
+
+---
+
+## PAGE STRUCTURE
+
+1. BusinessPerformanceStatusStrip
+2. BusinessPerformanceMainCard
+3. BusinessPerformanceHelpPanel
+
+---
+
+## MAIN CARD STRUCTURE
+
+### A. Revenue Reality
+- total_revenue
+- materials_cost
+- subcontract_cost
+- gross_profit
+
+### B. Cost Baseline
+- required_revenue
+- total_cost_burden
+- required_recovery_rate
+
+### C. Recovery Comparison
+- recovery_gap
+- recovery_ratio
+- actual_recovery_rate
+
+### D. Insight
+- are you recovering your cost base?
+- are you ahead, close, or behind?
+
+---
+
+## CORE RULES
+
+- page is read-only
+- page compares reality against trusted model
+- page does not change module logic
+- page does not replace downstream modelling layers
+
+---
+
+## DEFINITION
+
+The Business Performance Page is the reality-versus-model page of QS Tools. It compares actual revenue-side performance against the trusted cost model so the user can see whether the business is truly recovering its required cost base.

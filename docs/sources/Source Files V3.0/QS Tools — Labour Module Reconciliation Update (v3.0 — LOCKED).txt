@@ -1,0 +1,94 @@
+# QS Tools — Labour Module Reconciliation Update (v3.0 — LOCKED)
+
+STATUS: LABOUR COST ENGINE + BENCHMARK CHECK
+
+---
+
+## PURPOSE
+
+Upgrade the Labour module to:
+
+* remain the labour cost engine
+* add benchmark visibility
+* expose readiness for modelling
+
+---
+
+## SYSTEM ROLE
+
+Labour owns:
+
+* staff identity
+* wage cost
+* productive hour logic
+
+The reconciliation strip is:
+
+* diagnostic only
+* not part of downstream calculations
+
+---
+
+## NEW INPUT
+
+From P&L:
+
+* labour_benchmark_total
+
+---
+
+## CALCULATION INPUTS
+
+* pnl_benchmark_total = labour_benchmark_total
+* module_total = total_labour_cost_annual
+
+---
+
+## THRESHOLDS
+
+Green:
+variance_percent <= 1.0
+
+Amber:
+variance_percent > 1.0 and <= 5.0
+
+Red:
+variance_percent > 5.0
+
+---
+
+## READINESS RULE
+
+Green = ready
+Amber = allowed only if explanation provided
+Red = blocked
+
+---
+
+## REQUIRED OUTPUTS
+
+* labour_ready
+* labour_variance_amount
+* labour_variance_percent
+* labour_status
+
+---
+
+## UI
+
+* show Reconciliation Strip at top of page
+
+---
+
+## CORE RULES
+
+* benchmark is reference only
+* labour totals remain source of truth
+* no variance flows downstream
+* labour excludes COGS
+
+---
+
+## DEFINITION
+
+This update adds a reconciliation and readiness layer to Labour without changing its ownership of labour cost logic.

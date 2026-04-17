@@ -1,0 +1,297 @@
+# QS Tools — P&L Page (v3.0 — LOCKED)
+
+STATUS: INPUT + CLASSIFICATION + BENCHMARK LAYER
+
+---
+
+## PURPOSE
+
+The P&L Page captures the real financial position of the business and correctly separates:
+
+* Revenue
+* Cost of Goods (COGS)
+* Business Costs
+
+It exists to:
+
+* reflect the actual P&L structure
+* assign business costs to QS modules
+* prevent duplication and missing allocation
+* provide benchmark totals for reconciliation
+* confirm all business costs are assigned
+
+---
+
+## CORE PRINCIPLE
+
+> COGS is delivery cost — not business cost
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The P&L Page is:
+
+input + classification + benchmark layer
+
+Position:
+
+P&L INPUT
+↓
+P&L CLASSIFICATION
+↓
+MODULE BENCHMARK TOTALS
+↓
+MODULE RECONCILIATION
+↓
+COST SUMMARY
+
+---
+
+## STRUCTURE
+
+### 1. REVENUE
+
+* total_revenue
+
+---
+
+### 2. COST OF GOODS (COGS)
+
+These are job-level delivery costs:
+
+* materials_cost
+* subcontract_cost
+* hired_equipment_cost (optional)
+
+---
+
+### 3. BUSINESS COSTS (ASSIGNED)
+
+These must be assigned to modules:
+
+* labour
+* employee_overheads
+* assets
+* general_overheads
+
+---
+
+## DATA MODEL
+
+Each P&L line:
+
+* pnl_line_id
+* line_name
+* amount
+* category
+
+---
+
+## CATEGORY TYPES
+
+* revenue
+* cogs_materials
+* cogs_subcontract
+* cogs_hire
+* labour
+* employee_overheads
+* assets
+* general_overheads
+* unassigned
+
+---
+
+## RULES
+
+* each line entered once
+* each line assigned once
+* no line split across categories
+* unassigned allowed only during setup
+
+---
+
+## CALCULATIONS
+
+### Total Revenue
+
+total_revenue =
+sum(all revenue lines)
+
+---
+
+### Total COGS
+
+total_cogs =
+materials_cost
+
+* subcontract_cost
+* hired_equipment_cost
+
+---
+
+### Gross Profit
+
+gross_profit =
+total_revenue - total_cogs
+
+---
+
+### Module Benchmark Totals
+
+labour_benchmark_total =
+sum(lines where category = labour)
+
+employee_overheads_benchmark_total =
+sum(category = employee_overheads)
+
+assets_benchmark_total =
+sum(category = assets)
+
+general_overheads_benchmark_total =
+sum(category = general_overheads)
+
+---
+
+### Total Business Costs
+
+total_business_costs =
+sum(all assigned business cost categories)
+
+---
+
+### Unassigned Balance
+
+unassigned_balance =
+total_business_costs
+
+* sum(all assigned module totals)
+
+---
+
+## OUTPUTS
+
+* total_revenue
+
+* total_cogs
+
+* gross_profit
+
+* labour_benchmark_total
+
+* employee_overheads_benchmark_total
+
+* assets_benchmark_total
+
+* general_overheads_benchmark_total
+
+* total_business_costs
+
+* unassigned_balance
+
+* pnl_ready
+
+---
+
+## READINESS RULE
+
+pnl_ready =
+(unassigned_balance = 0)
+
+---
+
+## DOWNSTREAM FLOW
+
+### To Cost Summary
+
+* ONLY business cost module totals
+
+---
+
+### To Reconciliation
+
+* benchmark totals per module
+
+---
+
+### NEVER FLOW
+
+* revenue
+* COGS
+* gross profit
+
+---
+
+## UI STRUCTURE
+
+1. PnLStatusStrip
+2. PnLMainCard
+3. PnLHelpPanel
+
+---
+
+## PNLMAINCARD
+
+### A. Input Table
+
+Columns:
+
+* line name
+* amount
+* category
+
+---
+
+### B. Summary Panels
+
+* Revenue
+* COGS
+* Gross Profit
+* Business Cost Totals
+
+---
+
+### C. Assignment Check
+
+* total business costs
+* total assigned
+* unassigned balance
+
+---
+
+## STATUS STRIP
+
+Must show:
+
+* total_revenue
+* total_cogs
+* gross_profit
+* total_business_costs
+* unassigned_balance
+* pnl_ready
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+* revenue is what the business earns
+* COGS is job delivery cost
+* business costs are what must be recovered
+* only business costs flow into Cost Summary
+* all business costs must be assigned
+
+---
+
+## CORE RULES
+
+* no duplication of cost
+* no mixing COGS into business cost
+* no direct feed of P&L into Cost Summary
+* modules own calculations
+* P&L provides benchmarks only
+
+---
+
+## DEFINITION
+
+The P&L Page v3.0 is the financial classification layer of QS Tools. It separates revenue, delivery cost, and business cost, assigns all business costs to modules, and produces benchmark totals for reconciliation without interfering with downstream calculations.

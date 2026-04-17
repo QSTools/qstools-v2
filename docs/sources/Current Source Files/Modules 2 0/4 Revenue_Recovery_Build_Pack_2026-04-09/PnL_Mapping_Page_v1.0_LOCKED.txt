@@ -1,0 +1,306 @@
+# QS Tools — P&L Mapping Page (v1.0 — LOCKED)
+
+STATUS: BENCHMARK ASSIGNMENT LAYER
+
+---
+
+## PURPOSE
+
+The P&L Mapping Page captures accounting line items and assigns them into the correct QS Tools module benchmark buckets.
+
+It exists to:
+
+- capture the real accounting picture from the P&L
+- assign each P&L cost line to one module only
+- produce grouped benchmark totals for module reconciliation
+- prevent duplication and missing cost allocation
+- confirm that all entered P&L costs have been assigned
+
+This page does NOT:
+
+- model labour
+- model assets
+- model overhead structure
+- reconcile module outputs back to the P&L
+- feed Cost Summary with raw P&L lines
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+The P&L Mapping Page is a:
+
+input + classification layer
+
+Position:
+
+P&L INPUTS
+↓
+P&L MAPPING PAGE
+↓
+MODULE BENCHMARK TOTALS
+↓
+MODULE RECONCILIATION STRIPS
+↓
+COST SUMMARY
+
+The page must:
+
+- accept P&L line items
+- assign each line item to one module bucket
+- group those assigned amounts into benchmark totals
+- expose grouped benchmark totals downstream to module pages only
+
+The page must NOT:
+
+- calculate module business logic
+- compare benchmark totals against module totals
+- drive Cost Summary calculations directly
+- duplicate module logic
+- split a single P&L line across multiple modules
+
+---
+
+## ARCHITECTURE
+
+Page
+app/pnl/page.jsx
+
+Hook
+hooks/usePnL.js
+
+Calculations
+lib/calculations/pnlCalculations.js
+
+Selectors
+lib/selectors/pnlSelectors.js
+
+Storage
+lib/storage/pnlStorage.js
+lib/storage/pnlProfileStorage.js
+
+Components
+components/pnl/
+
+- PnLStatusStrip.jsx
+- PnLMainCard.jsx
+- PnLHelpPanel.jsx
+
+---
+
+## DATA MODEL
+
+### P&L Line Item
+
+- pnl_line_id
+- line_name
+- amount
+- assigned_module
+
+Rules:
+
+- pnl_line_id must be system-generated
+- line_name is display only
+- amount is annual value
+- assigned_module must be one allowed value only
+- no line may be assigned more than once
+
+---
+
+## ALLOWED ASSIGNED MODULE VALUES
+
+- labour
+- employee_overheads
+- assets
+- general_overheads
+- materials
+- subcontract
+- unassigned
+
+Rules:
+
+- every P&L cost line must resolve to one of the above
+- unassigned is allowed during setup only
+- modelling readiness requires unassigned balance = 0
+
+---
+
+## INPUTS
+
+### Local Inputs
+
+P&L line items entered by user:
+
+- line_name
+- amount
+- assigned_module
+
+---
+
+## CALCULATIONS
+
+### Total P&L Costs
+
+total_pnl_costs =
+sum(all entered P&L line item amounts)
+
+---
+
+### Grouped Module Benchmark Totals
+
+labour_benchmark_total =
+sum(amount where assigned_module = labour)
+
+employee_overheads_benchmark_total =
+sum(amount where assigned_module = employee_overheads)
+
+assets_benchmark_total =
+sum(amount where assigned_module = assets)
+
+general_overheads_benchmark_total =
+sum(amount where assigned_module = general_overheads)
+
+materials_benchmark_total =
+sum(amount where assigned_module = materials)
+
+subcontract_benchmark_total =
+sum(amount where assigned_module = subcontract)
+
+---
+
+### Total Assigned
+
+total_assigned =
+labour_benchmark_total
++ employee_overheads_benchmark_total
++ assets_benchmark_total
++ general_overheads_benchmark_total
++ materials_benchmark_total
++ subcontract_benchmark_total
+
+---
+
+### Unassigned Balance
+
+unassigned_balance =
+total_pnl_costs - total_assigned
+
+---
+
+## OUTPUTS
+
+- labour_benchmark_total
+- employee_overheads_benchmark_total
+- assets_benchmark_total
+- general_overheads_benchmark_total
+- materials_benchmark_total
+- subcontract_benchmark_total
+- total_pnl_costs
+- total_assigned
+- unassigned_balance
+- pnl_ready
+
+Where:
+
+pnl_ready =
+(unassigned_balance = 0)
+
+---
+
+## PAGE STRUCTURE
+
+1. PnLStatusStrip
+2. PnLMainCard
+3. PnLHelpPanel
+
+---
+
+## PNLMAINCARD STRUCTURE
+
+### A. P&L Input Table
+
+Columns:
+
+- line name
+- amount
+- assigned module
+
+Purpose:
+
+- capture accounting line items
+- assign each line into the correct module bucket
+
+---
+
+### B. Module Assignment Summary
+
+Display grouped totals for:
+
+- Labour
+- Employee Overheads
+- Assets
+- General Overheads
+- Materials
+- Subcontract
+
+Purpose:
+
+- show which benchmark total each module will consume
+
+---
+
+### C. Control Check
+
+Display:
+
+- total_pnl_costs
+- total_assigned
+- unassigned_balance
+
+Purpose:
+
+- confirm no cost is left outside the system
+
+---
+
+## STATUS STRIP RULE
+
+PnLStatusStrip must show:
+
+- total_pnl_costs
+- total_assigned
+- unassigned_balance
+- pnl_ready
+
+Rules:
+
+- page is ready only when unassigned_balance = 0
+- this is a benchmark assignment readiness state only
+- this is not module reconciliation
+
+---
+
+## HELP PANEL MUST EXPLAIN
+
+- this page assigns P&L lines into module benchmark buckets
+- each line may be assigned once only
+- module pages compare benchmark vs model
+- Cost Summary uses model totals only
+- if unassigned balance remains, the cost picture is incomplete
+
+---
+
+## CORE RULES
+
+- P&L lines are entered once only
+- each line is assigned once only
+- grouped benchmark totals feed modules only
+- module pages own benchmark reconciliation
+- Cost Summary must not consume raw P&L lines
+- unassigned balance must be zero before trusted modelling
+
+---
+
+## DEFINITION
+
+The P&L Mapping Page is the accounting classification layer of QS Tools. It converts raw P&L cost lines into grouped module benchmark totals, confirms all costs are assigned, and provides the benchmark inputs used by module reconciliation without duplicating module logic.

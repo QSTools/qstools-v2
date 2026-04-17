@@ -1,0 +1,385 @@
+Perfect — this is the right moment to lock this as a proper build brief. I’ll keep it aligned to your system rules and your thinking.
+
+---
+
+# 📄 QS Tools — **Business Snapshot + Modelling Page (v1.0 — LOCKED)**
+
+---
+
+## 🎯 PURPOSE
+
+This page combines:
+
+* **Revenue (actual trading)**
+* **Cost Summary (true cost structure)**
+
+to produce:
+
+👉 **a complete, real-world business snapshot**
+👉 and provide the **foundation for modelling future performance**
+
+---
+
+## 🧠 SYSTEM ROLE (CRITICAL)
+
+This page is a:
+
+👉 **Reality + Modelling Bridge Layer**
+
+It sits **after Cost Summary** and before any execution logic.
+
+---
+
+## 📍 SYSTEM POSITION
+
+```
+P&L (assignment)
+↓
+Revenue (trading reality)
+↓
+Cost Summary (true cost)
+↓
+Business Snapshot + Modelling  ✅ (THIS PAGE)
+↓
+Revenue Engine (future)
+```
+
+---
+
+## 🔒 CORE PRINCIPLE
+
+> Reality is locked.
+> The model is an overlay.
+> The outcome is derived.
+
+---
+
+## 🧩 WHAT THIS PAGE DOES
+
+It answers:
+
+1. **What did your business actually do?**
+2. **What does your business actually cost?**
+3. **Did it work?**
+4. **What do you need to change?**
+
+---
+
+## 🚫 WHAT THIS PAGE MUST NOT DO
+
+* ❌ No upstream calculation rebuilds
+* ❌ No direct P&L editing
+* ❌ No Cost Summary logic duplication
+* ❌ No execution modelling (capacity, jobs, etc.)
+* ❌ No scenario persistence (v1)
+
+---
+
+## 📥 INPUT CONTRACTS (LOCKED)
+
+### From Revenue (P&L-derived)
+
+* `total_revenue`
+* `materials_cost`
+* `subcontract_cost`
+* `gross_profit`
+
+---
+
+### From Cost Summary
+
+* `total_people_cost_annual`
+* `total_asset_cost_annual`
+* `total_business_overheads`
+* `total_cost_burden`
+* `required_revenue`
+* `required_recovery_rate`
+* `total_productive_output`
+
+These must be consumed exactly as exposed.
+No recalculation allowed.
+
+---
+
+## 🧮 CALCULATIONS (LOCKED)
+
+### Reality Layer
+
+```
+actual_net_position =
+total_revenue - total_cost_burden
+```
+
+```
+recovery_gap =
+total_revenue - required_revenue
+```
+
+---
+
+### Modelling Layer (User Controlled)
+
+Inputs:
+
+* `target_profit`
+* optional: `target_profit_percent`
+
+---
+
+### Derived Outputs
+
+```
+target_revenue =
+total_cost_burden + target_profit
+```
+
+```
+target_recovery_rate =
+target_revenue / total_productive_output
+```
+
+```
+revenue_gap_to_target =
+target_revenue - total_revenue
+```
+
+---
+
+## 🧱 PAGE STRUCTURE (LOCKED)
+
+### 1. BusinessSnapshotStatusStrip
+
+Shows:
+
+* actual_net_position
+* recovery_gap
+* target_gap
+* high-level state (loss / break-even / profit)
+
+---
+
+### 2. BusinessSnapshotMainCard
+
+---
+
+## 🔹 SECTION A — Trading (Actual Only)
+
+| Metric       | Actual |
+| ------------ | ------ |
+| Revenue      |        |
+| Materials    |        |
+| Subcontract  |        |
+| Gross Profit |        |
+
+👉 Read-only
+👉 Pure P&L-derived view
+
+---
+
+## 🔹 SECTION B — Business Cost (Actual Only)
+
+| Metric            | Actual |
+| ----------------- | ------ |
+| People Cost       |        |
+| Asset Cost        |        |
+| Overheads         |        |
+| Total Cost Burden |        |
+
+👉 Read-only
+👉 Cost Summary view
+
+---
+
+## 🔹 SECTION C — Outcome (Reality)
+
+| Metric           | Actual |
+| ---------------- | ------ |
+| Net Position     |        |
+| Required Revenue |        |
+| Recovery Gap     |        |
+
+👉 This is the **truth layer**
+
+---
+
+## 🔹 SECTION D — Model Inputs
+
+Inputs:
+
+* `target_profit`
+* (optional) toggle for % vs $ input
+
+👉 This is the ONLY editable section
+
+---
+
+## 🔹 SECTION E — Model Outcome
+
+| Metric                | Target |
+| --------------------- | ------ |
+| Target Revenue        |        |
+| Target Recovery Rate  |        |
+| Revenue Gap to Target |        |
+
+👉 Derived only
+👉 No manual editing
+
+---
+
+## 🔹 SECTION F — Insight Block (LIGHT)
+
+Examples:
+
+* “Current business is not covering full cost burden”
+* “Target requires +$X revenue increase”
+* “Recovery rate must increase from X → Y”
+
+---
+
+### 3. BusinessSnapshotHelpPanel
+
+Must explain:
+
+* difference between trading and true cost
+* why profit may differ from P&L
+* what “required revenue” means
+* how target modelling works
+* this page does not model execution (jobs/capacity)
+
+---
+
+## 🧠 UX RULES (CRITICAL)
+
+* Reality must be visually distinct (locked styling)
+* Model inputs must be clearly editable
+* Outputs must clearly respond to inputs
+* No mixing of editable and non-editable fields
+* No spreadsheet clutter — structured cards only
+* Mobile-first layout preserved
+
+---
+
+## 🧱 FILE STRUCTURE (LOCKED)
+
+### Page
+
+```
+app/business-snapshot/page.jsx
+```
+
+---
+
+### Hook
+
+```
+hooks/useBusinessSnapshot.js
+```
+
+Returns:
+
+```js
+{
+  status,
+  card,
+  output_contract
+}
+```
+
+---
+
+### Calculations
+
+```
+lib/calculations/businessSnapshotCalculations.js
+```
+
+---
+
+### Selectors
+
+```
+lib/selectors/businessSnapshotSelectors.js
+```
+
+---
+
+### Storage
+
+```
+lib/storage/businessSnapshotStorage.js
+```
+
+Stores:
+
+* target_profit
+* modelling inputs only
+
+---
+
+### Components
+
+```
+components/business-snapshot/
+  BusinessSnapshotStatusStrip.jsx
+  BusinessSnapshotMainCard.jsx
+  BusinessSnapshotHelpPanel.jsx
+```
+
+---
+
+## 📤 OUTPUT CONTRACT (LOCKED)
+
+```js
+{
+  actual_net_position,
+  recovery_gap,
+  target_profit,
+  target_revenue,
+  target_recovery_rate,
+  revenue_gap_to_target
+}
+```
+
+---
+
+## 🔥 FINAL DEFINITION
+
+This page is the first point where:
+
+👉 **real business performance is fully exposed**
+👉 **and future performance is defined**
+
+without:
+
+* altering upstream truth
+* or modelling execution prematurely
+
+---
+
+## 🧾 ONE-LINE PRODUCT RULE
+
+> This page shows whether your business worked — and what it must become.
+
+---
+
+## 🚀 NEXT STEP (ALREADY ALIGNED)
+
+After this page:
+
+👉 Build **Revenue Engine**
+
+* capacity
+* utilisation
+* pricing
+* output
+
+to achieve:
+
+👉 `target_revenue`
+
+---
+
+If you want next, I’ll:
+
+👉 convert this into **full starter code (same level as your other modules)**
+so you can drop it straight into your repo without thinking
