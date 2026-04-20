@@ -1,35 +1,49 @@
 "use client";
 
-export default function ProfitAndLossStatusStrip({ items = [], warnings = [] }) {
+function tone_class(tone) {
+  switch (tone) {
+    case "good":
+      return "ui-pill ui-pill-success";
+    case "bad":
+      return "ui-pill ui-pill-danger";
+    case "warn":
+      return "ui-pill ui-pill-warning";
+    default:
+      return "ui-pill";
+  }
+}
+
+export default function ProfitAndLossStatusStrip({
+  items = [],
+  warnings = [],
+}) {
   return (
     <section className="ui-section">
-      <div className="ui-panel ui-stack">
-        <div>
-          <div className="ui-kicker">P&amp;L</div>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-            P&amp;L Business Picture
-          </h2>
+      <div className="ui-panel ui-stack-sm">
+        <div className="ui-stack-sm">
+          <span className="ui-kicker">Status</span>
+          <h2 className="ui-section-title">Profit &amp; Loss Snapshot</h2>
         </div>
 
-        <div className="ui-stack">
+        <div className="ui-actions">
           {items.map((item) => (
-            <div key={item.label} className="ui-panel">
-              <div className="ui-kicker">{item.label}</div>
-              <div className="text-lg font-semibold text-[var(--text-primary)]">
-                {item.value}
-              </div>
+            <div key={item.label} className={tone_class(item.tone)}>
+              <span className="font-medium">{item.label}:</span>{" "}
+              <span>{item.value}</span>
             </div>
           ))}
         </div>
 
         {warnings.length > 0 ? (
           <div className="ui-panel ui-stack-sm">
-            <div className="ui-kicker">Warnings</div>
-            {warnings.map((warning) => (
-              <p key={warning} className="ui-help">
-                {warning}
-              </p>
-            ))}
+            <span className="ui-label">Warnings</span>
+            <div className="ui-stack-sm">
+              {warnings.map((warning) => (
+                <p key={warning} className="ui-help">
+                  {warning}
+                </p>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
