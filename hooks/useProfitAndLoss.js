@@ -73,7 +73,7 @@ export default function useProfitAndLoss() {
       ? `${get_month_name(period_month)} FY${financial_year}`
       : `FY ${financial_year}`;
 
-    save_profile({
+    const saved_profile = save_profile({
       label,
       financial_year,
       month: period_month,
@@ -81,7 +81,9 @@ export default function useProfitAndLoss() {
       state: profit_and_loss_state,
     });
 
-    set_save_message(`Snapshot saved: ${label}`);
+    set_save_message(
+      saved_profile?.was_updated ? `Saved changes: ${label}` : `Saved: ${label}`,
+    );
     set_show_saved_snapshots(true);
   }
 
@@ -90,8 +92,13 @@ export default function useProfitAndLoss() {
     if (!profile) return;
 
     set_profit_and_loss_state(profile.state);
-    set_save_message(`Loaded snapshot: ${profile.label}`);
+    set_save_message(`Loaded: ${profile.label}`);
     set_show_saved_snapshots(false);
+  }
+
+  function handle_reset() {
+    reset_profit_and_loss_state();
+    set_save_message("");
   }
 
   function toggle_saved_snapshots() {
@@ -116,7 +123,7 @@ export default function useProfitAndLoss() {
       add_pnl_line,
       update_pnl_line,
       remove_pnl_line,
-      reset_profit_and_loss_state,
+      reset_profit_and_loss_state: handle_reset,
       on_save: handle_save,
       on_load: handle_load,
       on_delete: delete_profile,
@@ -132,7 +139,6 @@ export default function useProfitAndLoss() {
     add_pnl_line,
     update_pnl_line,
     remove_pnl_line,
-    reset_profit_and_loss_state,
     delete_profile,
   ]);
 
