@@ -1,189 +1,182 @@
 "use client";
 
-import { useState } from "react";
+function format_currency(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
 
-export default function LabourFlowCard({ outputs, state, has_profile }) {
-  const [isOpen, setIsOpen] = useState(true);
+function format_hours(value) {
+  return `${new Intl.NumberFormat("en-NZ", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))} hrs`;
+}
 
+function format_percent(value) {
+  return `${new Intl.NumberFormat("en-NZ", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(Number(value || 0))}%`;
+}
+
+export default function LabourFlowCard({
+  outputs = {},
+  state = {},
+  has_profile = false,
+}) {
   if (!has_profile) {
     return (
       <section className="ui-section">
-        <div className="ui-stack">
-          <div className="ui-split">
-            <div>
-              <h2 className="text-lg font-semibold">Charge-Out Build</h2>
-              <p className="ui-help">
-                Build your charge-out rate from true annual labour cost and productive hours
-              </p>
-            </div>
-
-            <div className="ui-actions">
-              <button
-                type="button"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="ui-button-secondary"
-              >
-                {isOpen ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-
-          {isOpen ? (
-            <div className="rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-input)] px-4 py-6 text-sm text-[var(--text-muted)]">
-              Create or load a labour profile to see the charge-out build flow.
-            </div>
-          ) : null}
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Charge-out build</div>
+          <h2 className="ui-card-title">Cost to charge-out flow</h2>
+          <p className="ui-help">
+            Create or load a Labour profile first to see how paid hours turn
+            into productive hours, cost, and required charge-out.
+          </p>
         </div>
       </section>
     );
   }
 
-  const margin_status =
-    outputs.margin_gap > 0
-      ? "good"
-      : outputs.margin_gap === 0
-        ? "neutral"
-        : "bad";
-
   return (
     <section className="ui-section">
       <div className="ui-stack">
-        <div className="ui-split">
-          <div>
-            <h2 className="text-lg font-semibold">Charge-Out Build</h2>
-            <p className="ui-help">
-              Build your charge-out rate from true annual labour cost and productive hours
-            </p>
-          </div>
-
-          <div className="ui-actions">
-            <button
-              type="button"
-              onClick={() => setIsOpen((prev) => !prev)}
-              className="ui-button-secondary"
-            >
-              {isOpen ? "Hide" : "Show"}
-            </button>
-          </div>
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Charge-out build</div>
+          <h2 className="ui-card-title">Cost to charge-out flow</h2>
+          <p className="ui-help">
+            This shows how paid time, entitlements, employer cost, and
+            productivity combine to create the Labour-only minimum charge-out
+            requirement.
+          </p>
         </div>
 
-        {isOpen ? (
-          <div className="ui-stack">
-            <Block title="1. Available Hours">
-              <Row label="Paid Hours" value={fmt(outputs.paid_hours_per_year)} />
-              <Row label="Entitlements" value={fmt(outputs.non_productive_paid_hours)} />
-              <Row
-                label="After Entitlements"
-                value={fmt(outputs.paid_hours_per_year - outputs.non_productive_paid_hours)}
-              />
-              <Row label="Productivity %" value={fmtPct(state.productivity_percent)} />
-              <Result label="Productive Hours" value={fmt(outputs.productive_hours)} />
-            </Block>
+        <div className="ui-split-2">
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">1. Available hours</div>
 
-            <Block title="2. Annual Cost">
-              <Row label="Base Wages" value={fmtCur(outputs.base_labour_cost_annual)} />
-              <Row
-                label="Employer Costs"
-                value={fmtCur(outputs.total_employer_contribution_cost)}
-              />
-              <Result label="True Labour Cost" value={fmtCur(outputs.total_labour_cost_annual)} />
-            </Block>
+              <div>
+                <div className="ui-label">Paid hours per year</div>
+                <div>{format_hours(outputs.paid_hours_per_year)}</div>
+              </div>
 
-            <Block title="3. Cost per Productive Hour">
-              <Row label="Total Cost" value={fmtCur(outputs.total_labour_cost_annual)} />
-              <Row label="Productive Hours" value={fmt(outputs.productive_hours)} />
-              <Result
-                label="True Cost per Hour"
-                value={fmtCur(outputs.productive_labour_cost_rate)}
-              />
-            </Block>
+              <div>
+                <div className="ui-label">Non-productive paid hours</div>
+                <div>{format_hours(outputs.non_productive_paid_hours)}</div>
+              </div>
 
-            <Block title="4. Required Charge-Out Rate">
-              <Row
-                label="True Cost per Hour"
-                value={fmtCur(outputs.productive_labour_cost_rate)}
-              />
-              <Row label="Target Margin" value={fmtPct(state.margin_target_percent)} />
-              <Result
-                label="Minimum Charge-Out Rate"
-                value={fmtCur(outputs.minimum_charge_out_rate)}
-              />
-
-              <div className="mt-3 rounded-xl border border-[var(--success)] bg-[var(--success-soft)] px-4 py-3">
-                <div className="text-sm text-[var(--success)]">Recommended Charge-Out</div>
-                <div className="text-xl font-semibold text-[var(--text-primary)]">
-                  {fmtCur(outputs.minimum_charge_out_rate)}
+              <div>
+                <div className="ui-label">Productive hours</div>
+                <div className="ui-card-title-sm">
+                  {format_hours(outputs.productive_hours)}
                 </div>
               </div>
 
-              <MarginIndicator status={margin_status} gap={outputs.margin_gap} />
-            </Block>
+              <div>
+                <div className="ui-label">Productivity target</div>
+                <div>{format_percent(state.productivity_percent)}</div>
+              </div>
+            </div>
           </div>
-        ) : null}
+
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">2. Annual cost</div>
+
+              <div>
+                <div className="ui-label">Base labour cost annual</div>
+                <div>{format_currency(outputs.base_labour_cost_annual)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">Employer contribution total</div>
+                <div>
+                  {format_currency(outputs.total_employer_contribution_cost)}
+                </div>
+              </div>
+
+              <div>
+                <div className="ui-label">Total labour cost annual</div>
+                <div className="ui-card-title-sm">
+                  {format_currency(outputs.total_labour_cost_annual)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-split-2">
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">3. Productive labour cost</div>
+
+              <div>
+                <div className="ui-label">Loaded labour cost rate</div>
+                <div>{format_currency(outputs.loaded_labour_cost_rate)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">Productive labour cost rate</div>
+                <div className="ui-card-title-sm">
+                  {format_currency(outputs.productive_labour_cost_rate)}
+                </div>
+              </div>
+
+              <p className="ui-help">
+                This is the real Labour cost per productive hour after paid
+                non-productive time and employer contributions are taken into
+                account.
+              </p>
+            </div>
+          </div>
+
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">4. Required charge-out</div>
+
+              <div>
+                <div className="ui-label">Margin target</div>
+                <div>{format_percent(state.margin_target_percent)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">Minimum charge-out rate</div>
+                <div className="ui-card-title-sm">
+                  {format_currency(outputs.minimum_charge_out_rate)}
+                </div>
+              </div>
+
+              <div>
+                <div className="ui-label">Current charge-out rate</div>
+                <div>{format_currency(state.charge_out_rate)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">Above recovery</div>
+                <div>{format_currency(outputs.above_recovery)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Interpretation</div>
+            <p className="ui-help">
+              Labour only shows the staff cost and Labour-only recovery
+              pressure. It does not include employee overheads, assets, or
+              wider business overhead. Those layers are introduced later in the
+              system.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );
-}
-
-function MarginIndicator({ status, gap }) {
-  const styles = {
-    good: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
-    neutral: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
-    bad: "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
-  };
-
-  const text =
-    status === "good"
-      ? "Above target margin"
-      : status === "neutral"
-        ? "At target margin"
-        : "Below target margin";
-
-  return (
-    <div className={`mt-3 rounded-xl border px-4 py-3 text-sm ${styles[status]}`}>
-      {text} ({fmtCur(gap)})
-    </div>
-  );
-}
-
-function Block({ title, children }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-      <div className="mb-3 text-sm font-medium text-[var(--text-muted)]">{title}</div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex justify-between text-sm text-[var(--text-secondary)]">
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-function Result({ label, value }) {
-  return (
-    <div className="flex justify-between border-t border-[var(--border-primary)] pt-2 text-sm font-semibold text-[var(--text-primary)]">
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-function fmt(v) {
-  return Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
-
-function fmtCur(v) {
-  return Number(v || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function fmtPct(v) {
-  return `${Number(v || 0).toFixed(2)}%`;
 }

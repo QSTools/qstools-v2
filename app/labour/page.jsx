@@ -1,22 +1,20 @@
 "use client";
 
-import { useLabour } from "@/hooks/useLabour";
+import useLabour from "@/hooks/useLabour";
 
 import LabourProfileCard from "@/components/labour/LabourProfileCard";
 import SavedProfilesCard from "@/components/labour/SavedProfilesCard";
-import ProfileLockNotice from "@/components/labour/ProfileLockNotice";
-import WorkingPatternCard from "@/components/labour/WorkingPatternCard";
 import PayCard from "@/components/labour/PayCard";
 import CommercialCard from "@/components/labour/CommercialCard";
 import EntitlementsCard from "@/components/labour/EntitlementsCard";
 import EmployerContributionsCard from "@/components/labour/EmployerContributionsCard";
 
+import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
 import LabourSummaryCard from "@/components/labour/LabourSummaryCard";
+import TopDriverCard from "@/components/labour/TopDriverCard";
 import LabourFlowCard from "@/components/labour/LabourFlowCard";
 import ScenarioModelCard from "@/components/labour/ScenarioModelCard";
-import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
 import LabourHelpPanel from "@/components/labour/LabourHelpPanel";
-import TopDriverCard from "@/components/labour/TopDriverCard";
 
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 
@@ -27,17 +25,18 @@ export default function LabourPage() {
     <main className="ui-page">
       <div className="ui-page-stack">
         <header className="ui-section">
-          <div className="ui-stack">
-            <h1 className="text-2xl font-semibold">
-              Labour Charge-Out Builder
-            </h1>
-
-            <p className="ui-help">
-              Enter your actual business numbers here to build your real labour charge-out rate.
-            </p>
-
-            <div className="ui-panel">
-              These are your core labour inputs. Use the Scenario Modeller separately to test changes without altering your live business inputs.
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Labour</div>
+              <h1 className="ui-display">Labour charge-out builder</h1>
+              <p className="ui-lead">
+                Build your live labour cost position from working hours, wages,
+                entitlements, employer contributions, and commercial settings.
+              </p>
+              <p className="ui-help">
+                Use the Scenario Modeller separately to test changes without
+                altering your live Labour inputs.
+              </p>
             </div>
           </div>
         </header>
@@ -45,48 +44,49 @@ export default function LabourPage() {
         <section className="labour-layout">
           <div className="labour-layout__left">
             <div className="labour-layout__left-stack">
-              <LabourProfileCard
-                state={labour.state}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-                create_profile={labour.create_profile}
-              />
+              <CollapsibleSection
+                title="Labour Profile"
+                summary="Create and manage staff identity"
+                defaultOpen={false}
+              >
+                <LabourProfileCard
+                  state={labour.state}
+                  has_profile={labour.has_profile}
+                  update_field={labour.update_field}
+                  create_profile={labour.create_profile}
+                />
+              </CollapsibleSection>
 
-              <SavedProfilesCard
-                profile_rows={labour.profile_rows}
-                active_profile_id={labour.active_profile_id}
-                load_profile={labour.load_profile}
-                save_profile={labour.save_profile}
-                start_new_profile={labour.start_new_profile}
-                delete_profile={labour.delete_profile}
-                has_profile={labour.has_profile}
-              />
+              <CollapsibleSection
+                title="Pay"
+                summary="Hours, wage and charge-out"
+                defaultOpen={false}
+              >
+                <PayCard
+                  state={labour.state}
+                  outputs={labour.outputs}
+                  has_profile={labour.has_profile}
+                  update_field={labour.update_field}
+                />
+              </CollapsibleSection>
 
-              <ProfileLockNotice has_profile={labour.has_profile} />
-
-              <WorkingPatternCard
-                state={labour.state}
-                outputs={labour.outputs}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-              />
-
-              <PayCard
-                state={labour.state}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-              />
-
-              <CommercialCard
-                state={labour.state}
-                has_profile={labour.has_profile}
-                update_field={labour.update_field}
-              />
+              <CollapsibleSection
+                title="Commercial"
+                summary="Productivity and margin settings"
+                defaultOpen={false}
+              >
+                <CommercialCard
+                  state={labour.state}
+                  outputs={labour.outputs}
+                  has_profile={labour.has_profile}
+                  update_field={labour.update_field}
+                />
+              </CollapsibleSection>
 
               <CollapsibleSection
                 title="Entitlements"
                 summary="Leave, holidays, sick leave, bereavement"
-                defaultOpen={true}
+                defaultOpen={false}
               >
                 <EntitlementsCard
                   state={labour.state}
@@ -99,7 +99,7 @@ export default function LabourPage() {
               <CollapsibleSection
                 title="Employer Contributions"
                 summary="KiwiSaver and ESCT"
-                defaultOpen={true}
+                defaultOpen={false}
               >
                 <EmployerContributionsCard
                   state={labour.state}
@@ -108,23 +108,62 @@ export default function LabourPage() {
                   update_field={labour.update_field}
                 />
               </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Labour Summary"
+                summary="Current labour position"
+                defaultOpen={false}
+              >
+                <LabourSummaryCard {...labour.summary} />
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Top Driver"
+                summary="Main live labour pressure"
+                defaultOpen={false}
+              >
+                <TopDriverCard {...labour.drivers} />
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Saved Profiles"
+                summary="Load, save, delete"
+                defaultOpen={false}
+              >
+                <SavedProfilesCard
+                  profile_rows={labour.profile_rows}
+                  active_profile_id={labour.active_profile_id}
+                  load_profile={labour.load_profile}
+                  save_profile={labour.save_profile}
+                  start_new_profile={labour.start_new_profile}
+                  delete_profile={labour.delete_profile}
+                  has_profile={labour.has_profile}
+                />
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Labour Status"
+                summary="Readiness, reconciliation, warnings"
+                defaultOpen={false}
+              >
+                <LabourStatusStrip {...labour.status} />
+              </CollapsibleSection>
             </div>
           </div>
 
           <aside className="labour-layout__right">
             <div className="labour-layout__right-stack">
-
-              <LabourStatusStrip {...labour.status} />
-
-              <LabourSummaryCard {...labour.summary} />
-
-              <TopDriverCard {...labour.drivers} />
-
-              <LabourFlowCard
-                outputs={labour.outputs}
-                state={labour.state}
-                has_profile={labour.has_profile}
-              />
+              <CollapsibleSection
+                title="Charge-Out Build"
+                summary="Cost to charge-out flow"
+                defaultOpen={true}
+              >
+                <LabourFlowCard
+                  outputs={labour.outputs}
+                  state={labour.state}
+                  has_profile={labour.has_profile}
+                />
+              </CollapsibleSection>
             </div>
           </aside>
 
@@ -137,12 +176,17 @@ export default function LabourPage() {
               >
                 <ScenarioModelCard
                   labourState={labour.state}
-                  outputs={labour.outputs}
                   has_profile={labour.has_profile}
                 />
               </CollapsibleSection>
 
-              <LabourHelpPanel />
+              <CollapsibleSection
+                title="Help"
+                summary="How Labour works"
+                defaultOpen={false}
+              >
+                <LabourHelpPanel />
+              </CollapsibleSection>
             </div>
           </div>
         </section>

@@ -4,6 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { calculateLabourOutputs } from "@/lib/calculations/labourCalculations";
 import { deleteEmployeeOverheadProfilesByStaffId } from "@/lib/storage/employeeOverheadProfileStorage";
 import {
+  getDefaultLabourState,
+  buildLabourState,
+} from "@/lib/storage/labourStorage";
+import {
+  getStoredLabourProfiles,
+  setStoredLabourProfiles,
+  createLabourProfileRecord,
+  updateLabourProfileRecord,
+  deleteLabourProfileRecord,
+  findLabourProfileById,
+} from "@/lib/storage/labourProfileStorage";
+import {
   buildLabourStatus,
   buildLabourSummary,
   buildLabourDrivers,
@@ -11,86 +23,33 @@ import {
   buildLabourOutputContract,
 } from "@/lib/selectors/labourSelectors";
 
-const STORAGE_KEY = "qs_tools_labour_profiles_v1";
-
-function generate_staff_id() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
-  return `staff_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function get_default_state() {
-  return {
-    staff_id: "",
-    staff_name: "",
-    staff_role: "",
-    labour_class: "",
-
-    hours_per_week: 40,
-    days_per_week: 5,
-
-    labour_rate: 0,
-    charge_out_rate: 0,
-
-    productivity_percent: 85,
-    margin_target_percent: 20,
-
-    annual_leave_weeks: 4,
-    public_holiday_days: 12,
-    sick_days: 10,
-    bereavement_days: 1,
-    family_violence_days: 0,
-
-    employee_kiwisaver_enabled: true,
-  };
-}
-
-function get_storage_profiles() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function set_storage_profiles(profiles) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-}
-
 export function useLabour() {
-  const [state, setState] = useState(get_default_state);
+  const [state, setState] = useState(getDefaultLabourState);
   const [profiles, setProfiles] = useState([]);
   const [active_profile_id, setActiveProfileId] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = get_storage_profiles();
-    setProfiles(stored);
+    const stored_profiles = getStoredLabourProfiles();
+    setProfiles(stored_profiles);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    set_storage_profiles(profiles);
+    setStoredLabourProfiles(profiles);
   }, [profiles, hydrated]);
 
   const outputs = useMemo(() => {
     return calculateLabourOutputs(state);
   }, [state]);
 
+  const has_profile = Boolean(state.staff_id);
+  const inputs_enabled = has_profile;
+
   const active_staff = useMemo(() => {
     return profiles.map((profile) => {
-      const data = {
-        ...get_default_state(),
-        ...(profile?.data ?? {}),
-      };
-
+      const data = buildLabourState(profile?.data ?? {});
       const calculated = calculateLabourOutputs(data);
 
       return {
@@ -104,9 +63,6 @@ export function useLabour() {
       };
     });
   }, [profiles]);
-
-  const has_profile = Boolean(state.staff_id);
-  const inputs_enabled = has_profile;
 
   function update_field(field, value) {
     setState((previous) => ({
@@ -124,29 +80,16 @@ export function useLabour() {
       return false;
     }
 
-    const staff_id = generate_staff_id();
-
-    const next_state = {
+    const profile_record = createLabourProfileRecord({
       ...state,
-      staff_id,
       staff_name,
       staff_role,
       labour_class,
-    };
+    });
 
-    const now = new Date().toISOString();
-
-    const new_profile = {
-      profile_id: staff_id,
-      staff_id,
-      created_at: now,
-      updated_at: now,
-      data: next_state,
-    };
-
-    setState(next_state);
-    setProfiles((previous) => [new_profile, ...previous]);
-    setActiveProfileId(new_profile.profile_id);
+    setState(buildLabourState(profile_record.data));
+    setProfiles((previous) => [profile_record, ...previous]);
+    setActiveProfileId(profile_record.profile_id);
 
     return true;
   }
@@ -154,18 +97,10 @@ export function useLabour() {
   function save_profile() {
     if (!state.staff_id || !active_profile_id) return false;
 
-    const now = new Date().toISOString();
-
     setProfiles((previous) =>
       previous.map((profile) =>
         profile.profile_id === active_profile_id
-          ? {
-              ...profile,
-              updated_at: now,
-              data: {
-                ...state,
-              },
-            }
+          ? updateLabourProfileRecord(profile, state)
           : profile
       )
     );
@@ -174,45 +109,40 @@ export function useLabour() {
   }
 
   function load_profile(profile_id) {
-    const profile = profiles.find((item) => item.profile_id === profile_id);
+    const profile = findLabourProfileById(profiles, profile_id);
     if (!profile) return false;
 
-    setState({
-      ...get_default_state(),
-      ...profile.data,
-    });
-
+    setState(buildLabourState(profile.data));
     setActiveProfileId(profile.profile_id);
+
     return true;
   }
 
   function start_new_profile() {
-    setState(get_default_state());
+    setState(getDefaultLabourState());
     setActiveProfileId("");
   }
 
   function delete_profile(profile_id) {
-    const profile = profiles.find((item) => item.profile_id === profile_id);
+    const profile = findLabourProfileById(profiles, profile_id);
     if (!profile) return false;
 
     const staff_id = profile.staff_id || profile?.data?.staff_id || "";
 
-    setProfiles((previous) =>
-      previous.filter((item) => item.profile_id !== profile_id)
-    );
+    setProfiles((previous) => deleteLabourProfileRecord(previous, profile_id));
 
     if (staff_id) {
       deleteEmployeeOverheadProfilesByStaffId(staff_id);
     }
 
     if (active_profile_id === profile_id) {
-      setState(get_default_state());
+      setState(getDefaultLabourState());
       setActiveProfileId("");
     }
 
     return true;
   }
-  
+
   const profile_rows = useMemo(() => {
     return buildLabourProfileRows({
       profiles,
@@ -227,6 +157,7 @@ export function useLabour() {
       profiles,
       active_profile_id,
       inputs_enabled,
+      pnl_benchmark_total: 0,
     });
   }, [state, outputs, profiles, active_profile_id, inputs_enabled]);
 
@@ -241,8 +172,9 @@ export function useLabour() {
     return buildLabourDrivers({
       state,
       outputs,
+      has_profile,
     });
-  }, [state, outputs]);
+  }, [state, outputs, has_profile]);
 
   const output_contract = useMemo(() => {
     return buildLabourOutputContract({
@@ -253,7 +185,6 @@ export function useLabour() {
   }, [active_staff, outputs, state]);
 
   return {
-    // existing contract kept for current UI safety
     state,
     profiles,
     active_profile_id,
@@ -261,8 +192,7 @@ export function useLabour() {
     active_staff,
     has_profile,
     inputs_enabled,
-    
-    // actions
+
     update_field,
     create_profile,
     save_profile,
@@ -270,7 +200,6 @@ export function useLabour() {
     start_new_profile,
     delete_profile,
 
-    // new aligned layer
     status,
     summary,
     drivers,
