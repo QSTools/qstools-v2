@@ -1,0 +1,157 @@
+QS Tools — Profit & Loss Page (v1.0 — IMPLEMENTED STATUS) — UPDATED
+
+STATUS: COMPLETE — STABLE BASELINE
+
+PURPOSE
+
+The Profit & Loss page is the input classification layer for QS Tools.
+
+It allows the user to:
+
+enter their real-world P&L
+classify each line into QS benchmark categories
+produce structured benchmark outputs for downstream modules
+SYSTEM ROLE
+
+P&L Page = INPUT CLASSIFICATION + BENCHMARK LAYER
+
+Flow:
+
+INPUT → (P&L CLASSIFICATION) → MODULE SETUP → COST SUMMARY → RECOVERY → COST ALLOCATION
+
+IMPORTANT CLARIFICATION
+
+P&L outputs are:
+
+benchmark values
+classification guidance
+
+They do NOT:
+
+replace downstream module calculations
+directly drive Cost Summary maths
+IMPLEMENTATION SUMMARY
+
+The P&L page has been fully refactored and stabilised.
+
+Key outcomes:
+MainCard split into modular components
+UI fully separated from logic
+Hook owns all behavior and state orchestration
+Components are UI-only
+Save logic simplified and corrected
+Removed premature multi-profile workflow
+FILE STRUCTURE (FINAL)
+
+components/p-and-l/
+
+ProfitAndLossHeaderPanel.jsx
+ProfitAndLossPeriodPanel.jsx
+ProfitAndLossAwarenessPanel.jsx
+ProfitAndLossReconciliationPanel.jsx
+ProfitAndLossSectionBlock.jsx
+ProfitAndLossMainCard.jsx
+
+hooks/
+
+useProfitAndLoss.js
+
+lib/storage/
+
+profitAndLossStorage.js
+profitAndLossProfileStorage.js
+MAIN CARD (FINAL STATE)
+
+ProfitAndLossMainCard.jsx is now:
+
+assembly layer only
+no heavy logic
+no inline UI blocks
+all sections delegated to child components
+UI STRUCTURE
+
+Top actions:
+
+Reset
+Save
+
+Removed:
+
+Load Saved
+Snapshot / Profile UI
+SAVE MODEL (SIMPLIFIED)
+
+Current system supports:
+
+ONE active P&L working model
+Save overwrites current period
+
+Rules:
+
+Same financial year + month → update
+Different period → stored internally but not exposed yet
+
+This is a working-state save, not a profile system.
+
+USER MODEL
+
+User interacts with:
+
+a single working P&L
+simple Save behavior
+no profile management
+EDITING CONTEXT
+
+Header now displays:
+
+Editing: FY XXXX
+Editing: Mon FY XXXX
+
+This ensures clarity of current working period
+
+REMOVED COMPLEXITY
+
+The following have been intentionally removed:
+
+multi-profile management
+snapshot system UX
+load switching workflow
+
+These will return in a later phase when:
+
+multi-period comparison
+historical tracking
+multi-entity workflows
+
+are introduced
+
+ARCHITECTURE COMPLIANCE
+
+This module now fully complies with:
+
+page = orchestration
+hook = integration
+calculations = business logic
+components = UI only
+
+No business logic exists in UI components.
+
+STABILITY
+
+This page is now considered:
+
+stable
+production-ready (for current scope)
+safe to integrate into downstream modules
+NEXT STEP
+
+Build Employee Overheads module next.
+
+P&L remains:
+
+a benchmark layer
+a reconciliation reference (later stage)
+DEFINITION
+
+Profit & Loss v1.0 is a clean, stable input layer that converts real-world accounting data into structured QS benchmark data ready for downstream cost modelling.
+:::

@@ -1,122 +1,104 @@
 "use client";
 
-import { useState } from "react";
+function format_currency(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
+function format_percent_decimal(value) {
+  return `${(Number(value || 0) * 100).toFixed(1)}%`;
+}
 
 export default function EmployerContributionsCard({
-  state,
-  outputs,
-  has_profile,
+  state = {},
+  outputs = {},
+  has_profile = false,
   update_field,
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const disabled = !has_profile;
 
   return (
     <section className="ui-section">
-      <div className="ui-panel">
-        <div className="ui-stack">
-          <div className="ui-split">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                Employer Contributions
-              </h2>
-              <p className="ui-help">
-                NZ KiwiSaver and ESCT are calculated automatically from annual gross
-                wages
-              </p>
-            </div>
-
-            <div className="ui-actions">
-              <button
-                type="button"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="ui-button-secondary"
-              >
-                {isOpen ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-
-          {isOpen ? (
-            <div className="ui-stack">
-              <Field label="Employee KiwiSaver Enabled">
-                <select
-                  value={state.employee_kiwisaver_enabled ? "true" : "false"}
-                  onChange={(e) =>
-                    update_field(
-                      "employee_kiwisaver_enabled",
-                      e.target.value === "true"
-                    )
-                  }
-                  disabled={!has_profile}
-                  className="ui-input"
-                >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </Field>
-
-              <ReadOnlyField
-                label="Employer KiwiSaver Rate"
-                value={format_percent(outputs.employer_kiwisaver_rate)}
-              />
-
-              <ReadOnlyField
-                label="ESCT Rate"
-                value={format_percent(outputs.esct_rate)}
-              />
-
-              <ReadOnlyField
-                label="Annual Gross Wages"
-                value={format_currency(outputs.annual_gross_wages)}
-              />
-
-              <ReadOnlyField
-                label="Employer KiwiSaver Gross"
-                value={format_currency(outputs.employer_kiwisaver_gross)}
-              />
-
-              <ReadOnlyField
-                label="ESCT Amount"
-                value={format_currency(outputs.esct_amount)}
-              />
-
-              <ReadOnlyField
-                label="Total Employer Contribution Cost"
-                value={format_currency(outputs.total_employer_contribution_cost)}
-              />
-            </div>
-          ) : null}
+      <div className="ui-stack">
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Employer contributions</div>
+          <h2 className="ui-card-title">KiwiSaver and ESCT</h2>
+          <p className="ui-help">
+            These are real employer-funded labour costs and must stay visible as
+            part of the Labour model.
+          </p>
         </div>
+
+        <div className="ui-stack-sm">
+          <label className="ui-stack-sm">
+            <span className="ui-label">Employee KiwiSaver enabled</span>
+            <select
+              className="ui-select"
+              value={state.employee_kiwisaver_enabled ? "yes" : "no"}
+              onChange={(event) =>
+                update_field?.(
+                  "employee_kiwisaver_enabled",
+                  event.target.value === "yes"
+                )
+              }
+              disabled={disabled}
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Contribution outputs</div>
+
+            <div className="ui-split-2">
+              <div>
+                <div className="ui-label">Employer KiwiSaver</div>
+                <div>{format_currency(outputs.employer_kiwisaver_gross)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">ESCT rate</div>
+                <div>{format_percent_decimal(outputs.esct_rate)}</div>
+              </div>
+            </div>
+
+            <div className="ui-split-2">
+              <div>
+                <div className="ui-label">ESCT amount</div>
+                <div>{format_currency(outputs.esct_amount)}</div>
+              </div>
+
+              <div>
+                <div className="ui-label">Employer contribution total</div>
+                <div className="ui-card-title-sm">
+                  {format_currency(outputs.total_employer_contribution_cost)}
+                </div>
+              </div>
+            </div>
+
+            <p className="ui-help">
+              Employer KiwiSaver and ESCT remain separate visible components.
+              They should not be silently absorbed into another labour line.
+            </p>
+          </div>
+        </div>
+
+        {!has_profile ? (
+          <div className="ui-panel">
+            <p className="ui-help">
+              Create a Labour profile first to unlock employer contribution
+              settings.
+            </p>
+          </div>
+        ) : null}
       </div>
     </section>
   );
-}
-
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <div className="ui-label">{label}</div>
-      {children}
-    </label>
-  );
-}
-
-function ReadOnlyField({ label, value }) {
-  return (
-    <div>
-      <div className="ui-label">{label}</div>
-      <div className="ui-readonly">{value}</div>
-    </div>
-  );
-}
-
-function format_currency(value) {
-  return Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function format_percent(value) {
-  return `${(Number(value || 0) * 100).toFixed(2)}%`;
 }

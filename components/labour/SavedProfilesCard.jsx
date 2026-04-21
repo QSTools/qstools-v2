@@ -1,153 +1,139 @@
 "use client";
 
-import { useState } from "react";
-
 export default function SavedProfilesCard({
   profile_rows = [],
-  active_profile_id,
+  active_profile_id = "",
   load_profile,
   save_profile,
   start_new_profile,
   delete_profile,
-  has_profile,
+  has_profile = false,
 }) {
-  const [is_open, setIsOpen] = useState(false);
+  function handle_load(profile_id) {
+    if (typeof load_profile === "function") {
+      load_profile(profile_id);
+    }
+  }
 
-  function handle_delete(profile_id, profile_name) {
+  function handle_save() {
+    if (typeof save_profile === "function") {
+      save_profile();
+    }
+  }
+
+  function handle_new() {
+    if (typeof start_new_profile === "function") {
+      start_new_profile();
+    }
+  }
+
+  function handle_delete(profile_id, staff_name) {
     const confirmed = window.confirm(
-      `Delete profile "${profile_name || "Unnamed"}"? This cannot be undone.`
+      `Delete Labour profile "${staff_name}"? This will also remove linked employee overhead profiles for that staff record.`
     );
 
     if (!confirmed) return;
 
-    delete_profile(profile_id);
+    if (typeof delete_profile === "function") {
+      delete_profile(profile_id);
+    }
   }
 
   return (
     <section className="ui-section">
-      <div className="ui-panel">
-        <div className="ui-stack">
-          <div className="ui-split">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                Saved Profiles
-              </h2>
-              <p className="ui-help">
-                Load, edit, save, or delete your labour profiles.
-              </p>
-            </div>
-
-            <div className="ui-actions">
-              <button
-                type="button"
-                onClick={() => setIsOpen((previous) => !previous)}
-                className="ui-button-secondary"
-              >
-                {is_open ? "Hide Profiles" : "Show Profiles"}
-              </button>
-            </div>
+      <div className="ui-stack">
+        <div className="ui-split">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Profiles</div>
+            <h2 className="ui-card-title">Saved Labour profiles</h2>
+            <p className="ui-help">
+              Load, save, start fresh, or remove Labour profiles. The active
+              profile controls the live Labour state.
+            </p>
           </div>
 
           <div className="ui-actions">
             <button
               type="button"
-              onClick={save_profile}
-              disabled={!has_profile || !active_profile_id}
               className="ui-button-primary"
+              onClick={handle_save}
+              disabled={!has_profile}
             >
-              Save Active Profile
+              Save profile
             </button>
 
             <button
               type="button"
-              onClick={start_new_profile}
               className="ui-button-secondary"
+              onClick={handle_new}
             >
-              Start New Profile
+              New profile
             </button>
           </div>
+        </div>
 
-          {active_profile_id ? (
-            <div className="ui-help">
-              Active profile loaded. Use{" "}
-              <span className="text-[var(--text-primary)]">
-                Save Active Profile
-              </span>{" "}
-              to update it.
-            </div>
-          ) : null}
+        {profile_rows.length === 0 ? (
+          <div className="ui-panel">
+            <p className="ui-help">
+              No saved Labour profiles yet. Create your first Labour profile to
+              begin.
+            </p>
+          </div>
+        ) : (
+          <div className="ui-stack-sm">
+            {profile_rows.map((profile) => {
+              const is_active =
+                profile.is_current || profile.profile_id === active_profile_id;
 
-          {is_open ? (
-            <div className="ui-stack">
-              {profile_rows.length === 0 ? (
-                <div className="ui-panel border-dashed border-[var(--border-strong)]">
-                  <div className="text-sm text-[var(--text-muted)]">
-                    No saved profiles yet.
-                  </div>
-                </div>
-              ) : (
-                profile_rows.map((profile) => {
-                  const is_active = profile.is_current;
-
-                  return (
-                    <div key={profile.profile_id} className="ui-panel">
-                      <div className="ui-stack">
-                        <div>
-                          <div className="text-sm font-medium text-[var(--text-primary)]">
-                            {profile.staff_name}
-                          </div>
-
-                          <div className="ui-help">
-                            {profile.staff_role} · {profile.labour_class}
-                          </div>
-
-                          <div className="mt-2 text-sm text-[var(--text-muted)]">
-                            Updated: {format_date(profile.updated_at_label)}
-                          </div>
+              return (
+                <div key={profile.profile_id} className="ui-panel">
+                  <div className="ui-stack-sm">
+                    <div className="ui-split">
+                      <div className="ui-stack-sm">
+                        <div className="ui-label">{profile.staff_name}</div>
+                        <div className="ui-help">
+                          {profile.staff_role} · {profile.labour_class}
                         </div>
-
-                        {is_active ? (
-                          <div className="ui-pill border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]">
-                            Active
+                        {profile.updated_at_label ? (
+                          <div className="ui-help">
+                            Updated: {profile.updated_at_label}
                           </div>
                         ) : null}
+                      </div>
 
-                        <div className="ui-actions">
-                          <button
-                            type="button"
-                            onClick={() => load_profile(profile.profile_id)}
-                            className="ui-button-secondary"
-                          >
-                            Load
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handle_delete(profile.profile_id, profile.staff_name)
-                            }
-                            className="ui-button-danger"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                      <div className="ui-actions">
+                        <span className="ui-pill">
+                          {is_active ? "Active" : "Saved"}
+                        </span>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          ) : null}
-        </div>
+
+                    <div className="ui-actions">
+                      <button
+                        type="button"
+                        className="ui-button-secondary"
+                        onClick={() => handle_load(profile.profile_id)}
+                      >
+                        Load
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ui-button-danger"
+                        onClick={() =>
+                          handle_delete(profile.profile_id, profile.staff_name)
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
-}
-
-function format_date(value) {
-  if (!value) return "Unknown";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-
-  return date.toLocaleString();
 }
