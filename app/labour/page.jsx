@@ -108,11 +108,31 @@ export default function LabourPage() {
                   update_field={labour.update_field}
                 />
               </CollapsibleSection>
+            </div>
+          </div>
 
+          <aside className="labour-layout__right">
+            <div className="labour-layout__right-stack">
+              <CollapsibleSection
+                title="Charge-Out Build"
+                summary="Cost to charge-out flow"
+                defaultOpen={true}
+              >
+                <LabourFlowCard
+                  outputs={labour.outputs}
+                  state={labour.state}
+                  has_profile={labour.has_profile}
+                />
+              </CollapsibleSection>
+            </div>
+          </aside>
+
+          <div className="labour-layout__bottom">
+            <div className="labour-layout__bottom-stack">
               <CollapsibleSection
                 title="Labour Summary"
                 summary="Current labour position"
-                defaultOpen={false}
+                defaultOpen={true}
               >
                 <LabourSummaryCard {...labour.summary} />
               </CollapsibleSection>
@@ -148,27 +168,7 @@ export default function LabourPage() {
               >
                 <LabourStatusStrip {...labour.status} />
               </CollapsibleSection>
-            </div>
-          </div>
 
-          <aside className="labour-layout__right">
-            <div className="labour-layout__right-stack">
-              <CollapsibleSection
-                title="Charge-Out Build"
-                summary="Cost to charge-out flow"
-                defaultOpen={true}
-              >
-                <LabourFlowCard
-                  outputs={labour.outputs}
-                  state={labour.state}
-                  has_profile={labour.has_profile}
-                />
-              </CollapsibleSection>
-            </div>
-          </aside>
-
-          <div className="labour-layout__bottom">
-            <div className="labour-layout__bottom-stack">
               <CollapsibleSection
                 title="Scenario Modeller"
                 summary="What-if pricing and productivity testing"
