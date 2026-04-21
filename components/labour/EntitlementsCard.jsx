@@ -1,15 +1,7 @@
 "use client";
 
-function format_hours(value) {
-  return `${new Intl.NumberFormat("en-NZ", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0))} hrs`;
-}
-
 export default function EntitlementsCard({
   state = {},
-  outputs = {},
   has_profile = false,
   update_field,
 }) {
@@ -23,7 +15,8 @@ export default function EntitlementsCard({
           <h2 className="ui-card-title">Paid non-productive time</h2>
           <p className="ui-help">
             These settings define paid time that reduces recoverable hours.
-            Labour uses them to convert paid hours into real productive hours.
+            Labour uses them downstream to convert paid hours into real
+            productive hours.
           </p>
         </div>
 
@@ -97,36 +90,6 @@ export default function EntitlementsCard({
               disabled={disabled}
             />
           </label>
-        </div>
-
-        <div className="ui-panel">
-          <div className="ui-stack-sm">
-            <div className="ui-kicker">Derived impact</div>
-
-            <div className="ui-split-2">
-              <div>
-                <div className="ui-label">Paid hours per year</div>
-                <div>{format_hours(outputs.paid_hours_per_year)}</div>
-              </div>
-
-              <div>
-                <div className="ui-label">Non-productive paid hours</div>
-                <div>{format_hours(outputs.non_productive_paid_hours)}</div>
-              </div>
-            </div>
-
-            <div>
-              <div className="ui-label">Productive hours remaining</div>
-              <div className="ui-card-title-sm">
-                {format_hours(outputs.productive_hours)}
-              </div>
-            </div>
-
-            <p className="ui-help">
-              These settings affect Labour only. Employee overheads, assets, and
-              wider business overhead are handled elsewhere in the system.
-            </p>
-          </div>
         </div>
 
         {!has_profile ? (
