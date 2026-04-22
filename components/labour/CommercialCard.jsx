@@ -1,21 +1,7 @@
 "use client";
 
-function format_currency(value) {
-  return new Intl.NumberFormat("en-NZ", {
-    style: "currency",
-    currency: "NZD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-}
-
-function format_percent(value) {
-  return `${Number(value || 0).toFixed(1)}%`;
-}
-
 export default function CommercialCard({
   state = {},
-  outputs = {},
   has_profile = false,
   update_field,
 }) {
@@ -26,12 +12,10 @@ export default function CommercialCard({
       <div className="ui-stack">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Commercial</div>
-          <h2 className="ui-card-title">Recovery and margin settings</h2>
+          <h2 className="ui-card-title">Recovery assumptions</h2>
           <p className="ui-help">
-            These settings shape the commercial pressure on the Labour
-            profile. Productivity affects how much paid time becomes truly
-            recoverable, and margin target affects the minimum charge-out
-            required.
+            Set the productivity and target margin assumptions used to convert
+            Labour cost into the live rate position shown elsewhere on the page.
           </p>
         </div>
 
@@ -63,55 +47,6 @@ export default function CommercialCard({
               disabled={disabled}
             />
           </label>
-        </div>
-
-        <div className="ui-panel">
-          <div className="ui-stack-sm">
-            <div className="ui-kicker">Commercial outputs</div>
-
-            <div className="ui-split-2">
-              <div>
-                <div className="ui-label">Productivity target</div>
-                <div>{format_percent(state.productivity_percent)}</div>
-              </div>
-
-              <div>
-                <div className="ui-label">Margin target</div>
-                <div>{format_percent(state.margin_target_percent)}</div>
-              </div>
-            </div>
-
-            <div className="ui-split-2">
-              <div>
-                <div className="ui-label">Productive labour cost rate</div>
-                <div>{format_currency(outputs.productive_labour_cost_rate)}</div>
-              </div>
-
-              <div>
-                <div className="ui-label">Minimum charge-out rate</div>
-                <div>{format_currency(outputs.minimum_charge_out_rate)}</div>
-              </div>
-            </div>
-
-            <div className="ui-split-2">
-              <div>
-                <div className="ui-label">Actual margin</div>
-                <div>{format_percent(outputs.actual_margin_percent)}</div>
-              </div>
-
-              <div>
-                <div className="ui-label">Margin gap</div>
-                <div>{format_currency(outputs.margin_gap)}</div>
-              </div>
-            </div>
-
-            <div>
-              <div className="ui-label">Above recovery</div>
-              <div className="ui-card-title-sm">
-                {format_currency(outputs.above_recovery)}
-              </div>
-            </div>
-          </div>
         </div>
 
         {!has_profile ? (

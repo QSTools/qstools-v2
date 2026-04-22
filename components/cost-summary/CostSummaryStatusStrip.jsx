@@ -1,153 +1,79 @@
 "use client";
 
-function Pill({ children, tone = "neutral" }) {
-  const toneClasses = {
-    neutral:
-      "border-[var(--border-strong)] bg-[var(--bg-card-muted)] text-[var(--text-primary)]",
-    ok: "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]",
-    warn: "border-[var(--warning)] bg-[var(--warning-soft)] text-[var(--warning)]",
-    danger:
-      "border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--danger)]",
-  };
+function formatCurrency(value) {
+  const number = Number(value) || 0;
 
-  return <div className={`ui-pill ${toneClasses[tone]}`}>{children}</div>;
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    maximumFractionDigits: 0,
+  }).format(number);
 }
 
-function StatusItem({ label, value, tone = "neutral" }) {
-  const valueToneClass =
-    tone === "danger"
-      ? "text-[var(--danger)]"
-      : tone === "warn"
-        ? "text-[var(--warning)]"
-        : tone === "ok"
-          ? "text-[var(--success)]"
-          : "text-[var(--text-primary)]";
+function formatHours(value) {
+  const number = Number(value) || 0;
 
-  return (
-    <div className="ui-panel">
-      <div className="ui-kicker">{label}</div>
-      <div className={`mt-2 text-base font-semibold ${valueToneClass}`}>
-        {value}
-      </div>
-    </div>
-  );
+  return new Intl.NumberFormat("en-NZ", {
+    maximumFractionDigits: 0,
+  }).format(number);
 }
 
-function MessagePanel({ title, tone = "neutral", items = [] }) {
-  const toneClasses = {
-    neutral:
-      "border-[var(--border-primary)] bg-[var(--bg-card-muted)] text-[var(--text-primary)]",
-    danger:
-      "border-[var(--danger)]/80 bg-[var(--danger-soft)]/40 text-[var(--danger)]",
-    warn:
-      "border-[var(--warning)]/80 bg-[var(--warning-soft)]/40 text-[var(--warning)]",
-  };
+function getLargestCostDriver({
+  total_people_cost_annual = 0,
+  total_asset_cost_annual = 0,
+  total_business_overheads = 0,
+}) {
+  const values = [
+    { label: "Labour", value: Number(total_people_cost_annual) || 0 },
+    { label: "Assets", value: Number(total_asset_cost_annual) || 0 },
+    { label: "General Overheads", value: Number(total_business_overheads) || 0 },
+  ];
 
-  return (
-    <div className={`rounded-2xl border p-4 ${toneClasses[tone]}`}>
-      <div className="text-sm font-semibold">{title}</div>
+  values.sort((a, b) => b.value - a.value);
 
-      {items.length > 0 ? (
-        <div className="mt-3 space-y-2 text-sm">
-          {items.map((item) => (
-            <div key={item}>• {item}</div>
-          ))}
-        </div>
-      ) : (
-        <p className="ui-help mt-3">None</p>
-      )}
-    </div>
-  );
+  if ((values[0]?.value ?? 0) <= 0) {
+    return "";
+  }
+
+  return `Largest cost driver: ${values[0].label}.`;
 }
 
 export default function CostSummaryStatusStrip({
-  labour_profiles_label = "0 active",
-  employee_overheads_label = "Missing",
-  asset_costs_label = "Missing",
-  general_overheads_label = "Missing",
-  productive_output_label = "0",
-  missing_modules = [],
-  warnings = [],
   is_ready = false,
+  required_recovery_rate = 0,
+  total_productive_output = 0,
+  total_people_cost_annual = 0,
+  total_asset_cost_annual = 0,
+  total_business_overheads = 0,
 }) {
-  const hasMissingModules = missing_modules.length > 0;
-  const hasWarnings = warnings.length > 0;
-
-  const readinessTone = hasMissingModules
-    ? "danger"
-    : hasWarnings || !is_ready
-      ? "warn"
-      : "ok";
-
-  const readinessLabel = hasMissingModules
-    ? "Missing Upstream Inputs"
-    : hasWarnings || !is_ready
-      ? "Warnings Present"
-      : "Ready";
+  const pressure_value = formatCurrency(required_recovery_rate);
+  const output_value = formatHours(total_productive_output);
+  const insight = getLargestCostDriver({
+    total_people_cost_annual,
+    total_asset_cost_annual,
+    total_business_overheads,
+  });
 
   return (
     <section className="ui-section">
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            Cost Summary Status
-          </h2>
+      <div className="ui-panel ui-stack-sm">
+        <div className="ui-kicker">Recovery Pressure</div>
+
+        <div className="ui-card-title-sm">
+          {pressure_value} / hr
+        </div>
+
+        <p className="ui-help">
+          Based on {output_value} productive hours.
+        </p>
+
+        {!is_ready ? (
           <p className="ui-help">
-            Live cost-input readiness for Cost Summary aggregation.
+            Check upstream inputs if this number does not look right.
           </p>
-        </div>
+        ) : null}
 
-        <div className="ui-actions">
-          <Pill tone={readinessTone}>{readinessLabel}</Pill>
-        </div>
-
-        <div className="ui-stack">
-          <StatusItem
-            label="Labour Profiles"
-            value={labour_profiles_label}
-            tone={labour_profiles_label !== "0 active" ? "ok" : "warn"}
-          />
-
-          <StatusItem
-            label="Employee Overheads"
-            value={employee_overheads_label}
-            tone={employee_overheads_label === "Connected" ? "ok" : "warn"}
-          />
-
-          <StatusItem
-            label="Asset Costs"
-            value={asset_costs_label}
-            tone={asset_costs_label === "Connected" ? "ok" : "warn"}
-          />
-
-          <StatusItem
-            label="General Overheads"
-            value={general_overheads_label}
-            tone={general_overheads_label === "Connected" ? "ok" : "warn"}
-          />
-
-          <StatusItem
-            label="Productive Output"
-            value={productive_output_label}
-            tone={productive_output_label !== "0" ? "ok" : "warn"}
-          />
-        </div>
-
-        {(hasMissingModules || hasWarnings) && (
-          <div className="space-y-3">
-            <MessagePanel
-              title="Missing Modules / Inputs"
-              tone="danger"
-              items={missing_modules}
-            />
-
-            <MessagePanel
-              title="Warnings"
-              tone="warn"
-              items={warnings}
-            />
-          </div>
-        )}
+        {insight ? <p className="ui-help">{insight}</p> : null}
       </div>
     </section>
   );

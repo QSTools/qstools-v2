@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 
 function formatMoney(value) {
-  const n = Number(value || 0);
-  return `$${n.toLocaleString(undefined, {
+  const number = Number(value || 0);
+  return `$${number.toLocaleString(undefined, {
     maximumFractionDigits: 0,
   })}`;
 }
@@ -13,48 +13,61 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString();
 }
 
-function SectionHeader({ title, summary, isOpen, onToggle, value }) {
-  return (
-    <div className="ui-split">
-      <div>
-        <div className="text-base font-semibold text-[var(--text-primary)]">
-          {title}
-        </div>
-        {summary ? <div className="ui-help">{summary}</div> : null}
-        {value ? (
-          <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">
-            {value}
-          </div>
-        ) : null}
-      </div>
+function formatPercent(value) {
+  const number = Number(value || 0);
+  return `${Math.round(number)}%`;
+}
 
-      <div className="ui-actions">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="ui-button-secondary"
-        >
-          {isOpen ? "Hide" : "Show"}
-        </button>
+function calculateShare(part, total) {
+  const safePart = Number(part || 0);
+  const safeTotal = Number(total || 0);
+
+  if (safeTotal <= 0) return 0;
+  return (safePart / safeTotal) * 100;
+}
+
+function SectionHeader({ kicker, title, summary, isOpen, onToggle }) {
+  return (
+    <div className="ui-stack-sm">
+      <div className="ui-split">
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">{kicker}</div>
+          <div className="ui-card-title-sm">{title}</div>
+          {summary ? <div className="ui-help">{summary}</div> : null}
+        </div>
+
+        <div className="ui-actions">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="ui-button-secondary"
+          >
+            {isOpen ? "Hide" : "Show"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function BreakdownRow({ label, value, tone = "default" }) {
-  const valueClass =
-    tone === "success"
-      ? "text-[var(--success)]"
-      : tone === "warning"
-        ? "text-[var(--warning)]"
-        : tone === "danger"
-          ? "text-[var(--danger)]"
-          : "text-[var(--text-primary)]";
-
+function TableRow({ label, value, total = false }) {
   return (
-    <div className="ui-panel">
-      <div className="text-sm text-[var(--text-secondary)]">{label}</div>
-      <div className={`mt-1 text-base font-semibold ${valueClass}`}>{value}</div>
+    <div className={`labour-summary-table-row${total ? " total" : ""}`}>
+      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-value">{value}</div>
+    </div>
+  );
+}
+
+function CompositionRow({ label, amount, share, total = false }) {
+  return (
+    <div className={`labour-summary-table-row${total ? " total" : ""}`}>
+      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-value">
+        {share !== null
+          ? `${formatMoney(amount)} · ${formatPercent(share)}`
+          : formatMoney(amount)}
+      </div>
     </div>
   );
 }
@@ -86,32 +99,30 @@ function StaffCostCard({ row }) {
     .join(" • ");
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-input)] p-4">
-      <div className="ui-stack">
+    <div className="ui-panel ui-stack-sm">
+      <div className="ui-stack-sm">
         <div className="text-base font-semibold text-[var(--text-primary)]">
           {staffLabel}
         </div>
-        {roleLabel ? (
-          <div className="text-sm text-[var(--text-muted)]">{roleLabel}</div>
-        ) : null}
+        {roleLabel ? <div className="ui-help">{roleLabel}</div> : null}
       </div>
 
-      <div className="mt-4 space-y-3">
-        <BreakdownRow label="Gross Wages" value={formatMoney(gross_wages_annual)} />
-        <BreakdownRow label="Entitlements" value={formatMoney(entitlements_annual)} />
-        <BreakdownRow
+      <div className="labour-summary-table">
+        <TableRow label="Gross Wages" value={formatMoney(gross_wages_annual)} />
+        <TableRow label="Entitlements" value={formatMoney(entitlements_annual)} />
+        <TableRow
           label="Employer KiwiSaver"
           value={formatMoney(employer_kiwisaver_annual)}
         />
-        <BreakdownRow label="ESCT" value={formatMoney(esct_annual)} />
-        <BreakdownRow
+        <TableRow label="ESCT" value={formatMoney(esct_annual)} />
+        <TableRow
           label="Employee Overheads"
           value={formatMoney(employee_overheads_annual)}
         />
-        <BreakdownRow
+        <TableRow
           label="Total People Cost"
           value={formatMoney(total_people_cost_annual)}
-          tone="success"
+          total
         />
       </div>
     </div>
@@ -172,82 +183,160 @@ export default function CostSummaryCard({
   const total_asset_cost_annual = Number(asset_cost_total || 0);
   const total_business_overheads = Number(general_overheads_total || 0);
 
-  const employerContributionTotal =
-    total_employer_kiwisaver_annual + total_esct_annual;
+  const total_cost_burden_annual = Number(total_cost_burden || 0);
+  const required_revenue_annual = Number(required_revenue || 0);
+  const required_recovery_rate_hourly = Number(required_recovery_rate || 0);
+  const productive_output_total = Number(total_productive_output || 0);
+
+  const people_share = calculateShare(
+    total_people_cost_annual,
+    total_cost_burden_annual
+  );
+  const asset_share = calculateShare(
+    total_asset_cost_annual,
+    total_cost_burden_annual
+  );
+  const overhead_share = calculateShare(
+    total_business_overheads,
+    total_cost_burden_annual
+  );
+
+  const insight =
+    highlight_insight ||
+    (people_share > asset_share && people_share > overhead_share
+      ? "Labour is the dominant cost driver."
+      : asset_share > overhead_share
+        ? "Assets are a major cost driver."
+        : "General overheads are a significant cost driver.");
 
   const hasBusinessDrilldown =
     safeAssetRows.length > 0 || safeGeneralOverheadRows.length > 0;
 
+  const employerContributionTotal =
+    total_employer_kiwisaver_annual + total_esct_annual;
+
   return (
     <section className="ui-section">
-      <div>
-        <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Cost Summary
-        </h2>
-        <p className="ui-help">
-          Internal cost burden and required recovery view.
-        </p>
-      </div>
+      <div className="ui-stack">
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Cost Baseline</div>
+          <div className="ui-card-title">Cost Summary</div>
+          <p className="ui-help">
+            {insight || "Defines the current cost burden and required recovery rate."}
+          </p>
+        </div>
 
-      {highlight_insight ? (
-        <div className="mt-4 ui-panel">
-          <div className="ui-kicker">Insight</div>
-          <div className="mt-2 text-sm text-[var(--text-primary)]">
-            {highlight_insight}
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Total Cost Composition</div>
+          <div className="ui-card-title-sm">Core cost split</div>
+          <div className="ui-help">
+            How the annual cost burden is split across the three core cost buckets.
+          </div>
+
+          <div className="ui-panel ui-stack">
+            <div className="labour-summary-table">
+              <CompositionRow
+                label="Labour / People Cost"
+                amount={total_people_cost_annual}
+                share={people_share}
+              />
+              <CompositionRow
+                label="Assets"
+                amount={total_asset_cost_annual}
+                share={asset_share}
+              />
+              <CompositionRow
+                label="General Overheads"
+                amount={total_business_overheads}
+                share={overhead_share}
+              />
+              <CompositionRow
+                label="Total Cost Burden"
+                amount={total_cost_burden_annual}
+                share={null}
+                total
+              />
+            </div>
+
+            <div className="ui-panel ui-stack-sm">
+              <div className="ui-kicker">Revenue per productive hour</div>
+              <div className="ui-card-title">
+                {formatMoney(required_recovery_rate_hourly)} / hr
+              </div>
+              <div className="ui-help">
+                Based on {formatNumber(productive_output_total)} productive hours
+              </div>
+            </div>
           </div>
         </div>
-      ) : null}
 
-      <div className="mt-6 space-y-4">
-        <div className="ui-panel">
+        <div className="ui-panel ui-stack-sm">
           <SectionHeader
-            title="People Cost"
-            summary="Annual people burden with staff drilldown."
+            kicker="People Cost"
+            title="Annual people burden"
+            summary="Active staff flowing into the current baseline."
             isOpen={peopleCostOpen}
             onToggle={() => setPeopleCostOpen((prev) => !prev)}
-            value={formatMoney(total_people_cost_annual)}
           />
 
           {peopleCostOpen ? (
-            <div className="mt-4 space-y-3">
-              <BreakdownRow
-                label="Gross Wages"
-                value={formatMoney(total_gross_wages_annual)}
-              />
-              <BreakdownRow
-                label="Entitlements"
-                value={formatMoney(total_entitlements_annual)}
-              />
-              <BreakdownRow
-                label="Employer KiwiSaver"
-                value={formatMoney(total_employer_kiwisaver_annual)}
-              />
-              <BreakdownRow label="ESCT" value={formatMoney(total_esct_annual)} />
-              <BreakdownRow
-                label="Employer Contribution Total"
-                value={formatMoney(employerContributionTotal)}
-              />
-              <BreakdownRow
-                label="Employee Overheads"
-                value={formatMoney(total_employee_overheads_annual)}
-              />
-              <BreakdownRow
-                label="Total People Cost"
-                value={formatMoney(total_people_cost_annual)}
-                tone="success"
-              />
+            <div className="ui-stack-sm">
+              <div className="ui-panel">
+                <div className="labour-summary-table">
+                  <TableRow
+                    label="Total People Cost"
+                    value={formatMoney(total_people_cost_annual)}
+                    total
+                  />
+                  <TableRow
+                    label="Gross Wages"
+                    value={formatMoney(total_gross_wages_annual)}
+                  />
+                  <TableRow
+                    label="Entitlements"
+                    value={formatMoney(total_entitlements_annual)}
+                  />
+                  <TableRow
+                    label="Employer KiwiSaver"
+                    value={formatMoney(total_employer_kiwisaver_annual)}
+                  />
+                  <TableRow
+                    label="ESCT"
+                    value={formatMoney(total_esct_annual)}
+                  />
+                  <TableRow
+                    label="Employer Contribution Total"
+                    value={formatMoney(employerContributionTotal)}
+                  />
+                  <TableRow
+                    label="Employee Overheads"
+                    value={formatMoney(total_employee_overheads_annual)}
+                  />
+                </div>
+              </div>
 
-              <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-                <SectionHeader
-                  title="Staff Drilldown"
-                  summary="People cost by active staff, highest total first."
-                  isOpen={staffDrilldownOpen}
-                  onToggle={() => setStaffDrilldownOpen((prev) => !prev)}
-                  value={formatNumber(safePeopleRows.length)}
-                />
+              <div className="ui-panel ui-stack-sm">
+                <div className="ui-split">
+                  <div className="ui-stack-sm">
+                    <div className="ui-kicker">Staff Drilldown</div>
+                    <div className="ui-help">
+                      People cost by active staff, highest total first.
+                    </div>
+                  </div>
+
+                  <div className="ui-actions">
+                    <button
+                      type="button"
+                      onClick={() => setStaffDrilldownOpen((prev) => !prev)}
+                      className="ui-button-secondary"
+                    >
+                      {staffDrilldownOpen ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
 
                 {staffDrilldownOpen ? (
-                  <div className="mt-4 space-y-3">
+                  <div className="ui-stack-sm">
                     {safePeopleRows.length > 0 ? (
                       safePeopleRows.map((row, index) => (
                         <StaffCostCard
@@ -261,7 +350,7 @@ export default function CostSummaryCard({
                       ))
                     ) : (
                       <div className="ui-panel">
-                        <div className="text-sm text-[var(--text-secondary)]">
+                        <div className="ui-help">
                           No active staff drilldown available.
                         </div>
                       </div>
@@ -273,77 +362,108 @@ export default function CostSummaryCard({
           ) : null}
         </div>
 
-        <div className="ui-panel">
+        <div className="ui-panel ui-stack-sm">
           <SectionHeader
-            title="Business Cost"
-            summary="Non-people annual business burden included in Cost Summary."
+            kicker="Business Cost"
+            title="Non-people cost burden"
+            summary="Assets and General Overheads included in Cost Summary."
             isOpen={businessCostOpen}
             onToggle={() => setBusinessCostOpen((prev) => !prev)}
-            value={formatMoney(total_business_cost_annual)}
           />
 
           {businessCostOpen ? (
-            <div className="mt-4 space-y-3">
-              <BreakdownRow
-                label="Asset Cost"
-                value={formatMoney(total_asset_cost_annual)}
-              />
-              <BreakdownRow
-                label="General Overheads"
-                value={formatMoney(total_business_overheads)}
-              />
-              <BreakdownRow
-                label="Total Business Cost"
-                value={formatMoney(total_business_cost_annual)}
-                tone="success"
-              />
+            <div className="ui-stack-sm">
+              <div className="ui-panel">
+                <div className="labour-summary-table">
+                  <TableRow
+                    label="Total Business Cost"
+                    value={formatMoney(total_business_cost_annual)}
+                    total
+                  />
+                  <TableRow
+                    label="Asset Cost"
+                    value={formatMoney(total_asset_cost_annual)}
+                  />
+                  <TableRow
+                    label="General Overheads"
+                    value={formatMoney(total_business_overheads)}
+                  />
+                </div>
+              </div>
 
               {hasBusinessDrilldown ? (
-                <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card-muted)] p-4">
-                  <SectionHeader
-                    title="Business Cost Drilldown"
-                    summary="Supporting rows from linked assets and general overheads."
-                    isOpen={businessDrilldownOpen}
-                    onToggle={() => setBusinessDrilldownOpen((prev) => !prev)}
-                    value={formatNumber(
-                      safeAssetRows.length + safeGeneralOverheadRows.length
-                    )}
-                  />
+                <div className="ui-panel ui-stack-sm">
+                  <div className="ui-split">
+                    <div className="ui-stack-sm">
+                      <div className="ui-kicker">Business Drilldown</div>
+                      <div className="ui-help">
+                        Asset and overhead rows where available.
+                      </div>
+                    </div>
+
+                    <div className="ui-actions">
+                      <button
+                        type="button"
+                        onClick={() => setBusinessDrilldownOpen((prev) => !prev)}
+                        className="ui-button-secondary"
+                      >
+                        {businessDrilldownOpen ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                  </div>
 
                   {businessDrilldownOpen ? (
-                    <div className="mt-4 space-y-4">
+                    <div className="ui-stack-sm">
                       {safeAssetRows.length > 0 ? (
-                        <div className="ui-stack">
-                          <div className="text-sm font-medium text-[var(--text-primary)]">
-                            Asset Rows
-                          </div>
-                          {safeAssetRows.map((row, index) => (
-                            <BreakdownRow
-                              key={row?.asset_id || row?.key || `asset-${index}`}
-                              label={row?.label || row?.asset_name || "Asset"}
-                              value={formatMoney(
-                                row?.amount ??
+                        <div className="ui-panel ui-stack-sm">
+                          <div className="ui-kicker">Assets</div>
+                          <div className="labour-summary-table">
+                            {safeAssetRows.map((row, index) => (
+                              <TableRow
+                                key={
+                                  row?.asset_id ||
+                                  row?.asset_name ||
+                                  `asset-${index}`
+                                }
+                                label={row?.asset_name || `Asset ${index + 1}`}
+                                value={formatMoney(
                                   row?.total_asset_cost_annual ??
-                                  row?.value ??
-                                  0
-                              )}
-                            />
-                          ))}
+                                    row?.running_cost_annual ??
+                                    row?.finance_cost_annual ??
+                                    0
+                                )}
+                              />
+                            ))}
+                          </div>
                         </div>
                       ) : null}
 
                       {safeGeneralOverheadRows.length > 0 ? (
-                        <div className="ui-stack">
-                          <div className="text-sm font-medium text-[var(--text-primary)]">
-                            General Overhead Rows
+                        <div className="ui-panel ui-stack-sm">
+                          <div className="ui-kicker">General Overheads</div>
+                          <div className="labour-summary-table">
+                            {safeGeneralOverheadRows.map((row, index) => (
+                              <TableRow
+                                key={
+                                  row?.overhead_id ||
+                                  row?.label ||
+                                  row?.name ||
+                                  `overhead-${index}`
+                                }
+                                label={
+                                  row?.label ||
+                                  row?.name ||
+                                  `Overhead ${index + 1}`
+                                }
+                                value={formatMoney(
+                                  row?.amount ??
+                                    row?.annual_amount ??
+                                    row?.value ??
+                                    0
+                                )}
+                              />
+                            ))}
                           </div>
-                          {safeGeneralOverheadRows.map((row, index) => (
-                            <BreakdownRow
-                              key={row?.key || `overhead-${index}`}
-                              label={row?.label || "General Overhead"}
-                              value={formatMoney(row?.amount ?? row?.value ?? 0)}
-                            />
-                          ))}
                         </div>
                       ) : null}
                     </div>
@@ -354,65 +474,35 @@ export default function CostSummaryCard({
           ) : null}
         </div>
 
-        <div className="ui-panel">
-          <div className="text-base font-semibold text-[var(--text-primary)]">
-            Total Cost & Recovery
-          </div>
-          <div className="ui-help">
-            Final annual burden and required recovery outputs.
-          </div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Total Cost & Recovery</div>
+          <div className="ui-card-title-sm">Commercial baseline</div>
 
-          <div className="mt-4 space-y-3">
-            <BreakdownRow
-              label="Total Cost Burden"
-              value={formatMoney(total_cost_burden)}
-              tone="success"
-            />
-            <BreakdownRow
-              label="Required Revenue"
-              value={formatMoney(required_revenue)}
-            />
-            <BreakdownRow
-              label="Required Recovery Rate"
-              value={formatMoney(required_recovery_rate)}
-            />
-            <BreakdownRow
-              label="Total Productive Output"
-              value={formatNumber(total_productive_output)}
-            />
-          </div>
-
-          <div className="mt-4 ui-panel">
-            <div className="ui-kicker">Recovery baseline</div>
-
-            <div className="mt-3 space-y-2 text-sm text-[var(--text-primary)]">
-              <p>
-                <strong>Total Productive Output</strong> is the total number of
-                revenue-generating hours available across your team.
-              </p>
-
-              <p>
-                <strong>Required Recovery Rate</strong> is the minimum amount you
-                need to recover per productive hour to cover the total cost of
-                your business.
-              </p>
-
-              <p className="text-[var(--text-secondary)]">
-                This is calculated as total annual business cost divided by total
-                productive labour hours.
-              </p>
-
-              <p className="text-[var(--text-secondary)]">
-                It is not your selling price or profit margin — it is your
-                break-even recovery baseline.
-              </p>
-
-              <p className="text-[var(--text-secondary)]">
-                If your actual recovery is below this number, the business is
-                losing money.
-              </p>
+          <div className="ui-panel">
+            <div className="labour-summary-table">
+              <TableRow
+                label="Total Cost Burden"
+                value={formatMoney(total_cost_burden_annual)}
+              />
+              <TableRow
+                label="Break-even Revenue"
+                value={formatMoney(required_revenue_annual)}
+              />
+              <TableRow
+                label="Required Recovery Rate"
+                value={formatMoney(required_recovery_rate_hourly)}
+              />
+              <TableRow
+                label="Total Productive Output"
+                value={`${formatNumber(productive_output_total)} hrs`}
+              />
             </div>
           </div>
+
+          <p className="ui-help">
+            This page defines what the business currently costs to carry. It does
+            not define the downstream recovery strategy.
+          </p>
         </div>
       </div>
     </section>

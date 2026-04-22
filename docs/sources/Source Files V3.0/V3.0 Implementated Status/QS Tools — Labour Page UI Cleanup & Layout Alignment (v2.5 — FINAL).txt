@@ -1,0 +1,267 @@
+QS Tools — Labour Page UI Cleanup & Layout Alignment (v2.5 — FINAL)
+
+STATUS
+IMPLEMENTED
+LOCKED BASELINE
+
+OBJECTIVE
+Refactor the Labour page to:
+- remove duplicated calculation displays from input cards
+- simplify the right-side output card to live rate outputs only
+- improve readability and flow of the page
+- align layout with the Phase 4 responsive layout contract
+- reinforce system architecture separation (inputs → outputs → explanation → decision)
+
+CORE INTENT
+The Labour page must follow this fixed structure:
+- Input cards → data entry only
+- Rate Builder (right panel) → live Labour answer
+- Labour Summary → explanation layer
+- Top Driver → decision layer
+
+The same value must not appear in multiple places.
+
+NON-GOALS (LOCKED)
+This phase does not:
+- include employee overheads in Labour
+- include asset costs
+- include general overhead allocation
+- represent full business recovery
+- replace Cost Summary or Recovery Summary layers
+
+Labour remains a Labour-only model layer.
+
+LABOUR LIMITATION (CRITICAL)
+The Labour module produces a Labour-only recovery position.
+
+It does not include:
+- employee overhead allocation
+- business overhead recovery
+- asset utilisation recovery
+
+Therefore:
+The charge-out rate shown is not the final required business rate.
+
+It is the Labour component of recovery only.
+Full recovery is completed in downstream modules.
+
+USER MENTAL MODEL (LOCKED)
+1. Enter inputs
+2. Observe live Labour rate (right panel)
+3. Understand how it is built (summary)
+4. Identify main pressure (top driver)
+5. Adjust inputs
+
+This flow must be preserved in all future updates.
+
+INPUT CARD CLEANUP (CRITICAL)
+Rule:
+Input cards are input-only and must not display derived outputs.
+
+Cards updated:
+
+WorkingPatternCard
+- keep: hours_per_week, days_per_week
+- remove: paid hour outputs
+
+PayCard
+- keep: labour_rate, charge_out_rate
+- remove: all calculated outputs
+
+CommercialCard
+- keep:
+  - productivity_percent
+  - margin_target_percent
+- remove: all rate/cost outputs
+
+EntitlementsCard
+- keep: entitlement inputs
+- remove: non-productive hour outputs
+
+EmployerContributionsCard
+- keep: KiwiSaver inputs
+- remove:
+  - employer contribution outputs
+  - ESCT outputs
+
+Result:
+- eliminates duplication
+- improves clarity
+- enforces structure
+
+RATE BUILDER (RIGHT PANEL)
+
+Component:
+LabourFlowCard.jsx
+
+Displays:
+- Loaded Cost Rate
+- Productive Cost Rate
+- Minimum Charge-Out
+- Current Charge-Out
+- Profit per Hour
+- Above Recovery
+
+Required notice:
+Labour-only build. Staff overheads and wider business overheads are added later.
+
+Role:
+Answer layer (not explanation layer)
+
+LABOUR SUMMARY (EXPLANATION LAYER)
+
+Structure (LOCKED):
+1. Time
+2. Cost build
+3. Hourly position
+4. Commercial / recovery
+
+A. Profile Context
+- staff_name
+- staff_role
+- labour_class
+
+B. Time
+- Paid Hours per Year
+- Non-Productive Paid Hours
+- Productive Hours
+
+C. Cost build
+- Gross Wages Annual
+- Entitlements Annual
+- Employer KiwiSaver
+- ESCT
+- Employer Contribution Total
+- Total Labour Cost Annual
+
+D. Hourly position
+- Loaded Labour Cost Rate
+- Productive Labour Cost Rate
+
+E. Commercial / recovery
+- Minimum Charge-Out Rate
+- Actual Margin
+- Margin Gap
+- Profit per Hour
+- Above Recovery
+
+Behaviour:
+- grouped (not flat)
+- structured top → bottom flow
+- default open
+
+TOP DRIVER (DECISION LAYER)
+
+Role:
+- identify one dominant pressure only
+- display one key metric only
+- provide one clear implication
+
+Structure:
+1. Title
+2. Why this matters
+3. Key metric
+4. What this means
+
+Must NOT:
+- summarise full model
+- show multiple drivers
+- repeat summary values
+- become verbose
+
+Purpose:
+Decision trigger, not explanation
+
+PAGE LAYOUT STRUCTURE
+
+TOP SECTION
+
+Left (Inputs):
+- Labour Profile
+- Saved Profiles
+- Pay
+- Commercial
+- Entitlements
+- Employer Contributions
+
+Right (Output):
+- Rate Builder
+
+FULL-WIDTH SECTION:
+- Labour Summary (default open)
+- Top Driver (default open)
+- Saved Profiles
+- Labour Status
+- Scenario Modeller
+- Help
+
+Page Flow:
+Inputs → Live Rate → Explanation → Insight → Tools
+
+DUPLICATION REMOVAL
+
+Layer responsibilities:
+
+Input Cards → Data entry
+Rate Builder → Live output
+Summary → Explanation
+Top Driver → Decision
+
+SELECTOR RESPONSIBILITY
+
+Selectors must:
+- shape data only
+- not calculate
+- not duplicate logic
+
+All outputs originate from:
+calculateLabourOutputs()
+
+ARCHITECTURE COMPLIANCE
+
+- page = orchestration only
+- components = UI only
+- calculations unchanged
+- selectors unchanged
+- no logic moved into UI
+
+UX OUTCOME
+
+Before:
+- cluttered
+- duplicated values
+- unclear hierarchy
+
+After:
+- clean input flow
+- clear live output
+- structured explanation
+- clear decision layer
+
+DEFINITION OF DONE
+
+- input cards contain no derived outputs
+- rate builder shows live rates only
+- summary is structured and grouped
+- top driver is concise and single-focus
+- layout follows split + full-width pattern
+- no duplicated values remain
+- no calculation logic changed
+
+NEXT STEP
+
+1. Employee Overheads → Cost Summary
+2. Cost Summary → People Cost structure
+3. Recovery Summary layer
+
+WHY THIS MATTERS
+
+This converts the Labour page into a decision system by:
+- separating inputs from outputs
+- making cost drivers visible
+- removing duplication
+- guiding user decisions
+
+FINAL DEFINITION
+
+The Labour page is now a structured decision interface with clear separation between input, output, explanation, and insight layers, while maintaining strict alignment with QS Tools architecture.
