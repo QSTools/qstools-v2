@@ -6,34 +6,55 @@ export default function AssetListCard({
   return (
     <section className="ui-section">
       <div className="ui-panel">
-        <div className="ui-stack">
-          <div>
-            <p className="ui-kicker">Registry</p>
-            <h2 className="text-xl font-semibold">Saved Assets</h2>
-            <p className="ui-help">
-              Saved asset records for setup and later downstream use.
-            </p>
+        <div className="ui-stack-sm">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Saved Assets</div>
+            <div className="ui-card-title-sm">Asset register</div>
+            <div className="ui-help">
+              Saved asset records available for loading and editing.
+            </div>
           </div>
 
           {asset_rows.length === 0 ? (
-            <p className="ui-help">No assets saved yet.</p>
+            <div className="ui-panel">
+              <div className="ui-help">No assets saved yet.</div>
+            </div>
           ) : (
-            <div className="ui-stack">
+            <div className="ui-stack-sm">
               {asset_rows.map((asset) => (
                 <div key={asset.asset_id} className="ui-panel">
-                  <div className="ui-split">
-                    <div>
-                      <p className="ui-label">{asset.asset_name}</p>
-                      <p className="ui-help">
-                        Effective From: {asset.effective_from}
-                      </p>
-                      <p className="ui-help">Lifecycle: {asset.lifecycle}</p>
-                      <p className="ui-help">
-                        Total Annual Cost: {asset.total_asset_cost_annual}
-                      </p>
+                  <div className="ui-stack-sm">
+                    <div className="ui-split">
+                      <div className="ui-stack-sm">
+                        <div className="ui-label">{asset.asset_name}</div>
+                        <div className="ui-help">
+                          {asset.asset_type} · {asset.lifecycle}
+                        </div>
+                      </div>
+
                       {asset.is_current && (
-                        <p className="ui-help">Currently loaded in form</p>
+                        <div className="ui-pill">Loaded</div>
                       )}
+                    </div>
+
+                    <div className="labour-summary-table">
+                      <div className="labour-summary-row">
+                        <span className="labour-summary-label">
+                          Effective From
+                        </span>
+                        <span className="labour-summary-value">
+                          {asset.effective_from}
+                        </span>
+                      </div>
+
+                      <div className="labour-summary-row">
+                        <span className="labour-summary-label">
+                          Total Annual Cost
+                        </span>
+                        <span className="labour-summary-value labour-summary-value-strong">
+                          {asset.total_asset_cost_annual}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="ui-actions">

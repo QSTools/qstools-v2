@@ -1,12 +1,30 @@
-const number_fields = [
-  ["purchase_price", "Purchase Price"],
-  ["interest_rate", "Interest Rate (%)"],
-  ["finance_term_years", "Finance Term (Years)"],
-  ["maintenance_cost_monthly", "Maintenance Cost Monthly"],
-  ["fuel_cost_monthly", "Fuel Cost Monthly"],
-  ["registration_cost_monthly", "Registration Cost Monthly"],
-  ["other_running_cost_monthly", "Other Running Cost Monthly"],
+const setup_fields = [["asset_name", "Asset Name", "text"]];
+
+const finance_fields = [
+  ["purchase_price", "Purchase Price", "number"],
+  ["interest_rate", "Interest Rate (%)", "number"],
+  ["finance_term_years", "Finance Term (Years)", "number"],
 ];
+
+function render_input({
+  field_name,
+  label,
+  type = "number",
+  value,
+  on_change,
+}) {
+  return (
+    <label key={field_name} className="ui-stack-sm">
+      <span className="ui-label">{label}</span>
+      <input
+        className="ui-input"
+        type={type}
+        value={value ?? (type === "number" ? 0 : "")}
+        onChange={(event) => on_change(field_name, event.target.value)}
+      />
+    </label>
+  );
+}
 
 export default function AssetForm({
   values,
@@ -21,14 +39,14 @@ export default function AssetForm({
   return (
     <section className="ui-section">
       <div className="ui-panel">
-        <div className="ui-stack">
+        <div className="ui-stack-sm">
           <div className="ui-split">
-            <div>
-              <p className="ui-kicker">Input</p>
-              <h2 className="text-xl font-semibold">Asset Form</h2>
-              <p className="ui-help">
-                Set up the asset and its annual cash-cost inputs.
-              </p>
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Input</div>
+              <div className="ui-card-title-sm">Asset Form</div>
+              <div className="ui-help">
+                List what you own and what it costs you to own it.
+              </div>
             </div>
 
             <div className="ui-actions">
@@ -49,72 +67,81 @@ export default function AssetForm({
             </div>
           </div>
 
-          <label className="ui-stack">
-            <span className="ui-label">Asset Name</span>
-            <input
-              className="ui-input"
-              type="text"
-              value={values.asset_name || ""}
-              onChange={(event) => on_change("asset_name", event.target.value)}
-            />
-          </label>
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Asset Setup</div>
 
-          <label className="ui-stack">
-            <span className="ui-label">Asset Type</span>
-            <select
-              className="ui-input"
-              value={asset_type}
-              onChange={(event) => on_change("asset_type", event.target.value)}
-            >
-              <option value="productive">Productive</option>
-              <option value="support">Support</option>
-            </select>
-          </label>
+            {setup_fields.map(([field_name, label, type]) =>
+              render_input({
+                field_name,
+                label,
+                type,
+                value: values[field_name],
+                on_change,
+              })
+            )}
 
-          {number_fields.map(([field_name, label]) => (
-            <label key={field_name} className="ui-stack">
-              <span className="ui-label">{label}</span>
+            <label className="ui-stack-sm">
+              <span className="ui-label">Asset Type</span>
+              <select
+                className="ui-input"
+                value={asset_type}
+                onChange={(event) => on_change("asset_type", event.target.value)}
+              >
+                <option value="productive">Productive</option>
+                <option value="support">Support</option>
+              </select>
+            </label>
+
+            <label className="ui-stack-sm">
+              <span className="ui-label">Effective From</span>
               <input
                 className="ui-input"
-                type="number"
-                value={values[field_name] ?? 0}
-                onChange={(event) => on_change(field_name, event.target.value)}
+                type="date"
+                value={values.effective_from || ""}
+                onChange={(event) =>
+                  on_change("effective_from", event.target.value)
+                }
               />
             </label>
-          ))}
 
-          <p className="ui-help">
-            Productive and support assets are both included here as asset cost records.
-            Recovery and utilisation logic are handled in downstream layers, not in Assets.
-          </p>
+            <div className="ui-split">
+              <label className="ui-stack-sm">
+                <span className="ui-label">Active</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(values.is_active)}
+                  onChange={(event) =>
+                    on_change("is_active", event.target.checked)
+                  }
+                />
+              </label>
 
-          <label className="ui-stack">
-            <span className="ui-label">Effective From</span>
-            <input
-              className="ui-input"
-              type="date"
-              value={values.effective_from || ""}
-              onChange={(event) => on_change("effective_from", event.target.value)}
-            />
-          </label>
+              <label className="ui-stack-sm">
+                <span className="ui-label">Retired</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(values.is_retired)}
+                  onChange={(event) =>
+                    on_change("is_retired", event.target.checked)
+                  }
+                />
+              </label>
+            </div>
+          </div>
 
-          <label className="ui-stack">
-            <span className="ui-label">Active</span>
-            <input
-              type="checkbox"
-              checked={Boolean(values.is_active)}
-              onChange={(event) => on_change("is_active", event.target.checked)}
-            />
-          </label>
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Finance</div>
 
-          <label className="ui-stack">
-            <span className="ui-label">Retired</span>
-            <input
-              type="checkbox"
-              checked={Boolean(values.is_retired)}
-              onChange={(event) => on_change("is_retired", event.target.checked)}
-            />
-          </label>
+            {finance_fields.map(([field_name, label, type]) =>
+              render_input({
+                field_name,
+                label,
+                type,
+                value: values[field_name],
+                on_change,
+              })
+            )}
+          </div>
 
           <div className="ui-actions">
             <button

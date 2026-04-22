@@ -26,8 +26,8 @@ export default function useAssets() {
   } = useAssetStorage();
 
   const calculations = useMemo(() => {
-    return calculateAssetOutputs(asset_state);
-  }, [asset_state]);
+    return calculateAssetOutputs(asset_state, saved_assets);
+  }, [asset_state, saved_assets]);
 
   function handle_new_asset() {
     replace_asset_state(createEmptyAssetState());

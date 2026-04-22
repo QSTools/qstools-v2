@@ -5,9 +5,9 @@ import AssetListCard from "@/components/assets/AssetListCard";
 export default function AssetMainCard({ form, summary, list }) {
   return (
     <section className="ui-section">
-      <div className="ui-page-stack">
-        <AssetSummaryCard {...summary} />
+      <div className="ui-stack">
         <AssetForm {...form} />
+        <AssetSummaryCard {...summary} />
         <AssetListCard {...list} />
       </div>
     </section>

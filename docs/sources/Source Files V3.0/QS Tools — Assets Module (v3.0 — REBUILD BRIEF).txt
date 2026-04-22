@@ -1,0 +1,377 @@
+Updated version below with the naming/wiring rule corrected.
+
+---
+
+# QS Tools — Assets Module (v3.0 — REBUILD BRIEF)
+
+STATUS: REBUILD REQUIRED (ALIGN TO SIMPLIFIED MODEL + RECONCILIATION LAYER)
+
+---
+
+## PURPOSE
+
+The Assets Module defines the annual cost of owned business assets.
+
+It is responsible for:
+
+* capturing per-asset cost inputs
+* calculating annual asset cost
+* producing clean asset cost outputs for downstream consumption
+* validating asset cost completeness against a P&L benchmark
+
+It defines:
+
+**WHAT assets cost the business annually**
+
+---
+
+## SYSTEM ROLE (CRITICAL)
+
+Assets is an:
+
+**input module (asset cost engine)**
+
+Position:
+
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+
+Assets owns asset cost only. It must remain separate from recovery and structural logic.
+
+---
+
+## CORE PRINCIPLE
+
+Assets must:
+
+* calculate per-asset cost only
+* aggregate total asset cost
+* remain simple and input-driven
+* provide clean downstream outputs
+
+Assets must NOT:
+
+* allocate costs across assets
+* distribute pooled costs
+* link assets to staff
+* calculate recovery or pricing
+* simulate utilisation or revenue
+* consume Scenario outputs
+
+This matches the active system ownership rules.
+
+---
+
+## CRITICAL CHANGE (THIS REBUILD)
+
+### REMOVE SHARED COST DISTRIBUTION LOGIC
+
+The Phase 1 amendment removes pooled/shared cost distribution inside Assets.
+
+Do NOT build or preserve logic for:
+
+* fuel split across vehicles
+* shared maintenance allocation
+* pooled servicing distribution
+* fleet-level distribution logic
+
+These are excluded from Assets in Phase 1 and belong outside this module.
+
+---
+
+## IMPORTANT NAMING / WIRING RULE
+
+This rebuild must **not rename locked variables or existing wired field names** unless a full migration is being done across storage, selectors, hook outputs, components, and downstream consumers. Variable stability is a system rule.
+
+### Therefore, KEEP existing output names:
+
+* `finance_cost_annual`
+* `running_cost_annual`
+* `total_asset_cost_annual`
+
+These are already exposed in the current calculations and hook output contract.
+
+### KEEP existing current field names for now:
+
+* `maintenance_cost_monthly`
+* `fuel_cost_monthly`
+* `registration_cost_monthly`
+* `other_running_cost_monthly`
+
+These may remain in this rebuild **to preserve wiring**, but their use must be controlled by the updated behaviour rule below.
+
+---
+
+## UPDATED BEHAVIOUR RULE
+
+Existing running-cost inputs may remain technically present, but they must now be treated as **direct per-asset costs only**.
+
+That means:
+
+* valid only where the cost is clearly attributable to that single asset
+* not to be used for pooled/shared fleet allocation
+* not to be used for business-wide fleet assumptions
+* not to be distributed across multiple assets inside this module
+
+So the field names stay, but the module behaviour is simplified and corrected. This aligns the rebuild with the simplification amendment without breaking wiring.
+
+---
+
+## ARCHITECTURE
+
+Must continue to follow the standard module pattern:
+
+* `app/assets/page.jsx`
+* `hooks/useAssets.js`
+* `lib/calculations/assetCalculations.js`
+* `lib/selectors/assetSelectors.js`
+* `lib/storage/assetStorage.js`
+* `lib/storage/assetProfileStorage.js`
+* `components/assets/`
+
+This follows the locked build template and checklist.
+
+---
+
+## INPUT MODEL
+
+### Required identity / metadata
+
+* `asset_id`
+* `asset_name`
+* `asset_type`
+* `effective_from`
+* `is_active`
+* `is_retired`
+
+### Finance inputs
+
+* `purchase_price`
+* `interest_rate`
+* `finance_term_years`
+
+### Running-cost inputs
+
+Keep current field names:
+
+* `maintenance_cost_monthly`
+* `fuel_cost_monthly`
+* `registration_cost_monthly`
+* `other_running_cost_monthly`
+
+But use them only for clearly attributable direct costs, not shared cost distribution.
+
+---
+
+## CALCULATIONS
+
+### Finance cost
+
+Keep the current finance-cost approach and function name:
+
+* `calculate_finance_cost_annual(...)`
+* output `finance_cost_annual`
+
+This is already wired and valid for the current module structure. 
+
+### Running cost
+
+Keep the output name:
+
+* `running_cost_annual`
+
+Current formula may remain structurally unchanged in this pass:
+
+* monthly inputs summed
+* multiplied by 12
+
+But the module must no longer treat those inputs as pooled fleet distribution logic. They are now direct attributable costs only.
+
+### Total asset cost
+
+Keep:
+
+* `total_asset_cost_annual = finance_cost_annual + running_cost_annual`
+
+This remains the locked downstream asset-cost total.
+
+---
+
+## OUTPUT CONTRACT (LOCKED)
+
+Per asset:
+
+* `asset_id`
+* `asset_name`
+* `asset_type`
+* `finance_cost_annual`
+* `running_cost_annual`
+* `total_asset_cost_annual`
+
+Aggregate:
+
+* `total_asset_cost_annual`
+
+Current hook output already exposes the aggregate asset totals and must remain stable. 
+
+---
+
+## NEW P&L RECONCILIATION LAYER
+
+This rebuild must add a reconciliation layer using a benchmark reference.
+
+### New input
+
+* `assets_benchmark_total`
+
+### New outputs
+
+* `assets_variance_amount`
+* `assets_variance_percent`
+* `assets_ready`
+
+### Thresholds
+
+* Green: variance percent `<= 0.5`
+* Amber: variance percent `> 0.5 and <= 1.0`
+* Red: variance percent `> 1.0`
+
+### Readiness rule
+
+* Green = ready
+* Amber = not fully ready
+* Red = blocked
+
+This reconciliation update is part of the locked Assets direction.
+
+---
+
+## STATUS STRIP (UPDATED)
+
+Extend the status layer to show:
+
+* current asset state
+* saved / active asset counts
+* reconciliation status
+* variance amount
+* variance percent
+* readiness state
+* warnings
+
+Current status logic already handles base warnings and should be extended, not replaced. 
+
+---
+
+## MAIN CARD STRUCTURE (LOCKED)
+
+### A. Reconciliation Block
+
+Show:
+
+* assets benchmark total
+* module total asset cost
+* variance $
+* variance %
+* readiness state
+
+### B. Asset Input Block
+
+Show:
+
+* asset identity and metadata
+* finance inputs
+* running-cost inputs
+
+### C. Asset Summary Block
+
+Show:
+
+* finance cost annual
+* running cost annual
+* total asset cost annual
+
+### D. Asset List / Saved Assets
+
+Show:
+
+* saved assets
+* active / retired state
+* load / delete controls
+
+This keeps the module macro-first and input-driven.
+
+---
+
+## STORAGE RULE
+
+Keep the current storage structure and saved-state approach unless a full migration is explicitly approved.
+
+Do not rename keys casually.
+Do not break saved asset loading.
+Do not break current hook wiring.
+
+---
+
+## INTEGRATION RULE
+
+Cost Summary must consume:
+
+* `total_asset_cost_annual`
+
+Cost Summary must not rebuild asset totals from raw asset inputs. That is already defined in the implementation wiring brief.
+
+---
+
+## NOT ALLOWED
+
+* pooled fuel distribution
+* shared maintenance allocation
+* staff assignment inside Assets
+* package logic inside Assets
+* pricing logic
+* recovery logic
+* display names as keys
+* casual renaming of contract variables
+* downstream rebuilding of asset maths
+
+These exclusions are part of the active guardrails.
+
+---
+
+## REQUIRED CHANGE RULE FOR THIS PASS
+
+This rebuild is a **behavioural and structural cleanup pass**, not a naming migration.
+
+So in this pass:
+
+* keep field names stable
+* keep output names stable
+* tighten the rules
+* add reconciliation
+* remove shared-cost interpretation
+* preserve existing module wiring
+
+---
+
+## DEFINITION OF DONE
+
+Assets is complete when:
+
+* shared/pooling logic is removed from module behaviour
+* existing wiring remains intact
+* current output names remain unchanged
+* reconciliation block is working
+* variance and readiness are calculated correctly
+* total asset cost remains clean for downstream use
+* Cost Summary can continue consuming `total_asset_cost_annual` without rewiring
+
+---
+
+## FINAL DEFINITION
+
+The Assets Module is a simplified asset cost engine that captures per-asset costs, preserves locked variable names and existing module wiring, excludes shared-cost distribution behaviour, validates totals against a P&L benchmark, and provides a clean total asset cost output for downstream aggregation.

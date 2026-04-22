@@ -6,21 +6,24 @@ export default function AssetHelpPanel() {
 
         <div className="ui-stack mt-4">
           <p className="ui-help">
-            Assets captures capital-cost inputs and produces asset-level annual
-            cash-cost outputs.
+            This page defines the structural cost of your owned assets.
           </p>
 
           <p className="ui-help">
-            This module does not assign assets to staff, perform recovery logic,
-            or create asset packages.
+            These are fixed costs that exist regardless of workload.
           </p>
 
           <p className="ui-help">
-            Depreciation is excluded as this model is based on real cash cost recovery.
+            The difference between this total and your P&amp;L benchmark represents
+            shared fleet costs, pooled expenses, or broader operational cost pressure.
           </p>
 
           <p className="ui-help">
-            In V1, the output contract is prepared for downstream Cost Summary use.
+            Those are resolved later in the recovery structure.
+          </p>
+
+          <p className="ui-help">
+            This page is not a fleet expense tracker or a running-cost model.
           </p>
         </div>
       </details>
