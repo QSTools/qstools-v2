@@ -10,6 +10,7 @@ import {
   buildAssetStatus,
   buildAssetCard,
 } from "@/lib/selectors/assetSelectors";
+import useProfitAndLoss from "@/hooks/useProfitAndLoss";
 
 export default function useAssets() {
   const {
@@ -25,9 +26,19 @@ export default function useAssets() {
     delete_asset,
   } = useAssetStorage();
 
+  const { output_contract: pnl_output_contract } = useProfitAndLoss();
+
+  const assets_benchmark_total = Number(
+    pnl_output_contract?.assets_benchmark_total ?? 0
+  );
+
   const calculations = useMemo(() => {
-    return calculateAssetOutputs(asset_state, saved_assets);
-  }, [asset_state, saved_assets]);
+    return calculateAssetOutputs(
+      asset_state,
+      saved_assets,
+      assets_benchmark_total
+    );
+  }, [asset_state, saved_assets, assets_benchmark_total]);
 
   function handle_new_asset() {
     replace_asset_state(createEmptyAssetState());
