@@ -1,101 +1,102 @@
+function SummaryRow({ label, value, strong = false }) {
+  return (
+    <div
+      className="labour-summary-row"
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "16px",
+      }}
+    >
+      <span className="labour-summary-label">{label}</span>
+      <span
+        className={`labour-summary-value${
+          strong ? " labour-summary-value-strong" : ""
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export default function AssetSummaryCard({
   rows = [],
-  reconciliation_rows = [],
   meta = {},
+  module_total_asset_cost_label = "$0",
+  selected_asset_share_label = "0.00%",
 }) {
+  const finance_cost_row =
+    rows.find((row) => row.label === "Finance Cost Annual") || null;
+
   return (
     <section className="ui-section">
       <div className="ui-panel ui-stack-sm">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Summary</div>
-          <div className="ui-card-title-sm">Selected asset</div>
+          <div className="ui-display">Selected asset</div>
           <div className="ui-help">
-            Structural ownership cost for the currently loaded asset.
+            Structural ownership position for the currently loaded asset.
           </div>
         </div>
 
-        <div className="ui-stack-sm">
-          <div className="ui-label">Asset Details</div>
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Asset Details</div>
 
-          <div className="labour-summary-table">
-            <div className="labour-summary-row">
-              <span className="labour-summary-label">Asset Name</span>
-              <span className="labour-summary-value">
-                {meta.asset_name || "Unnamed asset"}
-              </span>
-            </div>
-
-            <div className="labour-summary-row">
-              <span className="labour-summary-label">Asset Type</span>
-              <span className="labour-summary-value">
-                {meta.asset_type || "Productive"}
-              </span>
-            </div>
-
-            <div className="labour-summary-row">
-              <span className="labour-summary-label">Effective From</span>
-              <span className="labour-summary-value">
-                {meta.effective_from || "—"}
-              </span>
-            </div>
-
-            <div className="labour-summary-row">
-              <span className="labour-summary-label">Lifecycle</span>
-              <span className="labour-summary-value">
-                {meta.lifecycle || "Active"}
-              </span>
+            <div className="labour-summary-table">
+              <SummaryRow
+                label="Asset Name"
+                value={meta.asset_name || "Unnamed asset"}
+              />
+              <SummaryRow
+                label="Asset Type"
+                value={meta.asset_type || "Productive"}
+              />
+              <SummaryRow
+                label="Effective From"
+                value={meta.effective_from || "—"}
+              />
+              <SummaryRow
+                label="Lifecycle"
+                value={meta.lifecycle || "Active"}
+              />
             </div>
           </div>
         </div>
 
-        <div className="ui-stack-sm">
-          <div className="ui-label">Cost Breakdown</div>
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Ownership Cost</div>
 
-          <div className="labour-summary-table">
-            {rows.map((row) => (
-              <div key={row.label} className="labour-summary-row">
-                <span className="labour-summary-label">{row.label}</span>
-                <span
-                  className={`labour-summary-value${
-                    row.emphasis ? " labour-summary-value-strong" : ""
-                  }`}
-                >
-                  {row.value}
-                </span>
-              </div>
-            ))}
+            <div className="labour-summary-table">
+              <SummaryRow
+                label="Finance Cost Annual"
+                value={finance_cost_row?.value || "$0"}
+                strong
+              />
+              <SummaryRow
+                label="Module Total"
+                value={module_total_asset_cost_label}
+              />
+              <SummaryRow
+                label="Share of Module Total"
+                value={selected_asset_share_label}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="ui-stack-sm">
-          <div className="ui-label">Reconciliation</div>
-
-          <div className="labour-summary-table">
-            {reconciliation_rows.map((row) => (
-              <div key={row.label} className="labour-summary-row">
-                <span className="labour-summary-label">{row.label}</span>
-                <span
-                  className={`labour-summary-value${
-                    row.emphasis ? " labour-summary-value-strong" : ""
-                  }`}
-                >
-                  {row.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="ui-stack-sm">
-          <div className="ui-label">What this means</div>
-          <div className="ui-help">
-            This shows what the selected asset costs you to own.
-          </div>
-          <div className="ui-help">
-            It is a structural cost baseline, not a full running-cost model.
-          </div>
-          <div className="ui-help">
-            Any remaining gap to the benchmark is resolved later in the recovery structure.
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">What this means</div>
+            <div className="ui-help">
+              This shows what the selected asset costs you to own.
+            </div>
+            <div className="ui-help">
+              It helps make the asset burden visible as a real part of the business.
+            </div>
           </div>
         </div>
       </div>
