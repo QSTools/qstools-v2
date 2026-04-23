@@ -19,12 +19,179 @@ import {
   build_general_overhead_card,
 } from "@/lib/selectors/generalOverheadSelectors";
 
+import { useProfitAndLossStorage } from "@/lib/storage/profitAndLossStorage";
+import { calculateProfitAndLoss } from "@/lib/calculations/profitAndLossCalculations";
+
 function create_custom_id() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
   return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function to_number(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalise_name(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function matches_keywords(name, keywords = []) {
+  return keywords.some((keyword) => name.includes(keyword));
+}
+
+function is_vehicle_context(name) {
+  return matches_keywords(name, [
+    "vehicle",
+    "motor vehicle",
+    "car",
+    "ute",
+    "truck",
+    "van",
+    "fleet",
+    "diesel",
+    "petrol",
+    "fuel",
+    "rego",
+    "registration",
+    "tyre",
+    "tire",
+    "service",
+    "servicing",
+    "repair",
+  ]);
+}
+
+function build_vehicle_prefill_from_pnl(pnl_output_contract) {
+  const pnl_lines = Array.isArray(pnl_output_contract?.pnl_lines)
+    ? pnl_output_contract.pnl_lines
+    : [];
+
+  const candidate_lines = pnl_lines.filter((line) => {
+    return (
+      line.category === "assets" ||
+      line.category === "general_overheads"
+    );
+  });
+
+  let fuel = 0;
+  let maintenance = 0;
+  let repairs = 0;
+  let registration = 0;
+  let tyres = 0;
+  let consumables = 0;
+
+  for (const line of candidate_lines) {
+    const name = normalise_name(line.line_name);
+    const amount = to_number(line.amount);
+
+    // Fuel
+    if (matches_keywords(name, ["fuel", "diesel", "petrol"])) {
+      fuel += amount;
+      continue;
+    }
+
+    // Tyres
+    if (matches_keywords(name, ["tyre", "tyres", "tire", "tires"])) {
+      tyres += amount;
+      continue;
+    }
+
+    // Vehicle insurance only if explicitly vehicle-related
+    if (
+      matches_keywords(name, ["insurance"]) &&
+      is_vehicle_context(name)
+    ) {
+      registration += amount;
+      continue;
+    }
+
+    // Registration / licensing
+    if (
+      matches_keywords(name, [
+        "rego",
+        "registration",
+        "licence",
+        "licences",
+        "license",
+        "licenses",
+      ])
+    ) {
+      registration += amount;
+      continue;
+    }
+
+    // Repairs
+    if (matches_keywords(name, ["repair", "repairs"])) {
+      repairs += amount;
+      continue;
+    }
+
+    // Maintenance / servicing
+    if (
+      matches_keywords(name, [
+        "maintenance",
+        "service",
+        "services",
+        "servicing",
+      ])
+    ) {
+      maintenance += amount;
+      continue;
+    }
+
+    // Consumables
+    if (
+      matches_keywords(name, [
+        "oil",
+        "fluid",
+        "fluids",
+        "consumable",
+        "consumables",
+        "filter",
+        "filters",
+      ])
+    ) {
+      consumables += amount;
+      continue;
+    }
+
+    // Generic vehicle expense fallback
+    if (
+      matches_keywords(name, [
+        "motor vehicle expenses",
+        "motor vehicle expense",
+        "vehicle expenses",
+        "vehicle expense",
+      ])
+    ) {
+      fuel += amount;
+      continue;
+    }
+  }
+
+  return {
+    fuel_cost_annual: fuel,
+    vehicle_maintenance_cost_annual: maintenance,
+    vehicle_repairs_cost_annual: repairs,
+    vehicle_registration_cost_annual: registration,
+    vehicle_tyres_cost_annual: tyres,
+    vehicle_consumables_cost_annual: consumables,
+  };
+}
+
+function vehicle_fields_are_empty(overhead_state) {
+  return (
+    to_number(overhead_state.fuel_cost_annual) === 0 &&
+    to_number(overhead_state.vehicle_maintenance_cost_annual) === 0 &&
+    to_number(overhead_state.vehicle_repairs_cost_annual) === 0 &&
+    to_number(overhead_state.vehicle_registration_cost_annual) === 0 &&
+    to_number(overhead_state.vehicle_tyres_cost_annual) === 0 &&
+    to_number(overhead_state.vehicle_consumables_cost_annual) === 0
+  );
 }
 
 export default function useGeneralOverheads() {
@@ -35,6 +202,12 @@ export default function useGeneralOverheads() {
   );
 
   const [saved_overheads, set_saved_overheads] = useState([]);
+
+  const { profit_and_loss_state } = useProfitAndLossStorage();
+
+  const pnl_output_contract = useMemo(() => {
+    return calculateProfitAndLoss(profit_and_loss_state);
+  }, [profit_and_loss_state]);
 
   useEffect(() => {
     set_overhead_state(load_general_overhead_state());
@@ -49,6 +222,32 @@ export default function useGeneralOverheads() {
 
     save_general_overhead_state(overhead_state);
   }, [overhead_state, is_hydrated]);
+
+  useEffect(() => {
+    if (!is_hydrated) {
+      return;
+    }
+
+    if (!vehicle_fields_are_empty(overhead_state)) {
+      return;
+    }
+
+    const vehicle_prefill = build_vehicle_prefill_from_pnl(pnl_output_contract);
+
+    const has_vehicle_prefill = Object.values(vehicle_prefill).some(
+      (value) => to_number(value) > 0
+    );
+
+    if (!has_vehicle_prefill) {
+      return;
+    }
+
+    set_overhead_state((current) => ({
+      ...current,
+      ...vehicle_prefill,
+      updated_at: new Date().toISOString(),
+    }));
+  }, [is_hydrated, pnl_output_contract, overhead_state]);
 
   const calculated = useMemo(() => {
     return calculate_general_overheads(overhead_state);
