@@ -49,7 +49,7 @@ export default function AssetListCard({
 
                       <div className="labour-summary-row">
                         <span className="labour-summary-label">
-                          Total Annual Cost
+                          Annual Ownership Cost
                         </span>
                         <span className="labour-summary-value labour-summary-value-strong">
                           {asset.total_asset_cost_annual}

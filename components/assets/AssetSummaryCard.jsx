@@ -95,7 +95,7 @@ export default function AssetSummaryCard({
               This shows what the selected asset costs you to own.
             </div>
             <div className="ui-help">
-              It helps make the asset burden visible as a real part of the business.
+              It makes the asset burden visible as a real part of the business.
             </div>
           </div>
         </div>

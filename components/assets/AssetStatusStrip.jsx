@@ -31,9 +31,9 @@ export default function AssetStatusStrip({
       <div className="ui-panel ui-stack-sm">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Reconciliation</div>
-          <div className="ui-display">Asset Position</div>
+          <div className="ui-display">Asset position</div>
           <div className="ui-help">
-            As you enter assets, the gap to your P&amp;L benchmark should reduce.
+            As you enter assets, your position moves closer to your P&amp;L benchmark.
           </div>
         </div>
 

@@ -10,16 +10,12 @@ export default function AssetHelpPanel() {
           </p>
 
           <p className="ui-help">
-            These are fixed costs that exist regardless of workload.
+            These are fixed costs that exist whether work is busy or quiet.
           </p>
 
           <p className="ui-help">
-            The difference between this total and your P&amp;L benchmark represents
-            shared fleet costs, pooled expenses, or broader operational cost pressure.
-          </p>
-
-          <p className="ui-help">
-            Those are resolved later in the recovery structure.
+            The gap between this total and your P&amp;L benchmark represents broader
+            fleet or operating cost pressure that gets resolved later in recovery.
           </p>
 
           <p className="ui-help">

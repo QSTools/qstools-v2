@@ -60,6 +60,8 @@ export default function HomePage() {
 
             <div className="ui-stack-sm">
               <h1 className="ui-display text-[var(--text-primary)]">
+                Simple in hindsight Invisible before hand
+                We mirror your businness back to you 
                 Understand if your business is actually working.
               </h1>
 
