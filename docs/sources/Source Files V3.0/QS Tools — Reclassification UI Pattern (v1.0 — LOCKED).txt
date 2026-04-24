@@ -1,0 +1,205 @@
+# QS Tools — Reclassification UI Pattern (v1.0 — LOCKED)
+
+STATUS: LOCKED UI PATTERN
+
+## PURPOSE
+
+This brief defines the reusable reclassification UI pattern introduced in the General Overheads page.
+
+It exists to support:
+
+- clear grouped cost review
+- category-based reclassification
+- collapsible sections
+- visible subtotals
+- consistent UI across General Overheads and P&L Operating Expenses
+
+---
+
+## CORE PRINCIPLE
+
+Reclassification is a UI and classification layer only.
+
+It must NOT:
+
+- change calculation ownership
+- rewrite upstream data
+- rename locked category values
+- create new downstream contracts
+- duplicate module calculations
+
+---
+
+## CURRENT IMPLEMENTED PATTERN
+
+The General Overheads page now uses:
+
+- ReclassificationBoard
+- GeneralOverheadReclassificationSection
+- GeneralOverheadReclassificationGroup
+- GeneralOverheadReclassificationRow
+
+This pattern allows costs to be reviewed and grouped without changing the underlying module contract.
+
+---
+
+## REUSABLE STRUCTURE
+
+A reclassification UI should follow this structure:
+
+1. Board
+   - owns the overall grouped display
+
+2. Section
+   - represents a major category area
+
+3. Group
+   - groups related rows
+   - shows subtotal in the header
+   - may be collapsible
+
+4. Row
+   - displays one source line
+   - allows category review or reassignment where allowed
+
+---
+
+## LOCKED GROUP CATEGORIES
+
+The standard operating expense grouping categories are:
+
+- Office / Admin
+- Financial Admin
+- Insurance & Compliance
+- Vehicles (Running)
+- Staff Overheads
+- Facilities / Premises
+- Sales / Growth
+- Other / Unallocated
+
+These categories are presentation and review groupings.
+
+They must not replace locked system category values.
+
+---
+
+## DATA CONTRACT RULE
+
+The underlying source data must remain unchanged unless the user explicitly reclassifies a line.
+
+Existing locked category values must remain valid, including:
+
+- labour
+- employee_overheads
+- assets
+- general_overheads
+- unassigned
+
+The UI may group these categories visually, but must not rename or replace them internally.
+
+---
+
+## P&L OPERATING EXPENSE USE
+
+When applied to the P&L page, this pattern must only be used for Operating Expenses / Business Costs.
+
+It must NOT be applied to:
+
+- trading income
+- other income
+- cost of sales / COGS
+
+P&L operating expenses may be grouped visually using the same categories as General Overheads, but the underlying P&L line structure must remain flat.
+
+Each P&L line must continue to retain:
+
+- pnl_line_id
+- line_name
+- amount
+- section
+- category
+
+---
+
+## SAFE CHANGES
+
+Allowed:
+
+- grouping rows visually
+- adding collapsible sections
+- showing group subtotals
+- improving scan/readability
+- sharing reusable UI components
+- using selector-shaped display data
+
+---
+
+## NOT ALLOWED
+
+Not allowed:
+
+- changing category values
+- adding new required storage fields
+- moving calculations into UI components
+- rebuilding module totals in the component
+- changing Cost Summary wiring
+- changing General Overheads output contract
+- using display labels as system keys
+- splitting locked categories into new downstream categories
+
+---
+
+## CALCULATION RULE
+
+Subtotals shown inside the reclassification UI are display-only.
+
+They may be calculated for visual grouping, but they must not become new source-of-truth outputs unless a later locked brief explicitly defines that.
+
+---
+
+## MODULE BOUNDARY RULE
+
+General Overheads remains the owner of:
+
+- general overhead classification
+- total_general_overheads
+
+P&L remains the owner of:
+
+- P&L line capture
+- P&L classification
+- benchmark totals
+
+Cost Summary must continue to consume locked upstream outputs only.
+
+---
+
+## UI RULES
+
+The reclassification pattern must:
+
+- use QS Tools UI classes
+- use CSS tokens
+- avoid inline styles
+- remain mobile-friendly
+- keep collapsed subtotals visible
+- support clear row-level review
+
+---
+
+## SUCCESS CRITERIA
+
+This pattern is correctly implemented when:
+
+- grouped sections are easy to scan
+- subtotals are visible
+- rows remain editable where appropriate
+- no existing totals change unexpectedly
+- no downstream module wiring is affected
+- no locked variable names are changed
+
+---
+
+## DEFINITION
+
+The Reclassification UI Pattern is a reusable grouped-review interface for QS Tools. It improves readability and classification control while preserving flat source data, locked category contracts, and downstream module wiring.

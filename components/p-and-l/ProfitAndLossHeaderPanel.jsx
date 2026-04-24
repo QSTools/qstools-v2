@@ -4,9 +4,7 @@ export default function ProfitAndLossHeaderPanel({
   title = "Profit & Loss",
   subtitle = "Capture your business P&L in familiar section order.",
   editing_label = "",
-  save_message = "",
   on_reset,
-  on_save_snapshot,
 }) {
   return (
     <section className="ui-section">
@@ -22,12 +20,6 @@ export default function ProfitAndLossHeaderPanel({
                 <strong>Editing:</strong> {editing_label}
               </div>
             ) : null}
-
-            {save_message ? (
-              <div className="ui-help">
-                <strong>{save_message}</strong>
-              </div>
-            ) : null}
           </div>
 
           <div className="ui-actions">
@@ -37,14 +29,6 @@ export default function ProfitAndLossHeaderPanel({
               onClick={on_reset}
             >
               Reset
-            </button>
-
-            <button
-              type="button"
-              className="ui-button-primary"
-              onClick={on_save_snapshot}
-            >
-              Save
             </button>
           </div>
         </div>

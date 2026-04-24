@@ -35,68 +35,143 @@ function getEditingLabel(state) {
   return `FY ${financial_year}`;
 }
 
-function SummaryPanel({ summary }) {
+function SummaryRow({ label, value, total = false }) {
+  return (
+    <div className={`labour-summary-table-row ${total ? "total" : ""}`}>
+      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-value">{value}</div>
+    </div>
+  );
+}
+
+function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
   return (
     <CollapsibleSection
-      title="Summary Panels"
-      summary="Review the benchmark totals built from your classified P&L lines."
-      defaultOpen={true}
+      title="P&L Summary"
+      summary="Review, warnings, and save"
+      defaultOpen={false}
     >
-      <div className="ui-stack">
-        <div className="ui-panel ui-stack-sm">
-          <span className="ui-label">Traditional P&amp;L View</span>
-
-          <div className="ui-help">Trading Income</div>
-          <div>{summary.total_trading_income}</div>
-
-          <div className="ui-help">Cost of Sales</div>
-          <div>{summary.total_cost_of_sales}</div>
-
-          <div className="ui-help">Gross Profit</div>
-          <div>{summary.gross_profit}</div>
-
-          <div className="ui-help">Other Income</div>
-          <div>{summary.total_other_income}</div>
-
-          <div className="ui-help">Operating Expenses</div>
-          <div>{summary.total_operating_expenses}</div>
-
-          <div className="ui-help">Net Profit</div>
-          <div>{summary.net_profit}</div>
+      <div className="ui-panel ui-stack">
+        <div>
+          <div className="ui-kicker">P&amp;L Summary</div>
+          <h2 className="ui-card-title-sm">Current P&amp;L position</h2>
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <span className="ui-label">QS Benchmark View</span>
+          <div className="ui-kicker">Traditional P&amp;L</div>
+          <div className="labour-summary-table">
+            <SummaryRow
+              label="Trading Income"
+              value={summary.total_trading_income}
+            />
+            <SummaryRow
+              label="Cost of Sales"
+              value={summary.total_cost_of_sales}
+            />
+            <SummaryRow
+              label="Gross Profit"
+              value={summary.gross_profit}
+              total
+            />
+            <SummaryRow
+              label="Other Income"
+              value={summary.total_other_income}
+            />
+            <SummaryRow
+              label="Operating Expenses"
+              value={summary.total_operating_expenses}
+            />
+            <SummaryRow
+              label="Net Profit"
+              value={summary.net_profit}
+              total
+            />
+          </div>
+        </div>
 
-          <div className="ui-help">Revenue</div>
-          <div>{summary.total_revenue}</div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">QS Benchmark View</div>
+          <div className="labour-summary-table">
+            <SummaryRow label="Revenue" value={summary.total_revenue} />
+            <SummaryRow
+              label="COGS - Materials"
+              value={summary.materials_cost}
+            />
+            <SummaryRow
+              label="COGS - Subcontract"
+              value={summary.subcontract_cost}
+            />
+            <SummaryRow
+              label="COGS - Hire"
+              value={summary.hired_equipment_cost}
+            />
+            <SummaryRow
+              label="Total COGS"
+              value={summary.total_cogs}
+              total
+            />
+            <SummaryRow
+              label="Labour Benchmark"
+              value={summary.labour_benchmark_total}
+            />
+            <SummaryRow
+              label="Employee Overheads Benchmark"
+              value={summary.employee_overheads_benchmark_total}
+            />
+            <SummaryRow
+              label="Assets Benchmark"
+              value={summary.assets_benchmark_total}
+            />
+            <SummaryRow
+              label="General Overheads Benchmark"
+              value={summary.general_overheads_benchmark_total}
+            />
+            <SummaryRow
+              label="Total Business Costs"
+              value={summary.total_business_costs}
+              total
+            />
+          </div>
+        </div>
 
-          <div className="ui-help">COGS - Materials</div>
-          <div>{summary.materials_cost}</div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Warnings / Checks</div>
 
-          <div className="ui-help">COGS - Subcontract</div>
-          <div>{summary.subcontract_cost}</div>
+          {warnings.length > 0 ? (
+            <div className="ui-stack-sm">
+              {warnings.map((warning) => (
+                <div key={warning} className="ui-help">
+                  {warning}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="ui-help">No current warnings.</p>
+          )}
+        </div>
 
-          <div className="ui-help">COGS - Hire</div>
-          <div>{summary.hired_equipment_cost}</div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Save</div>
+          <p className="ui-help">
+            Save this P&amp;L after checking the totals against your actual
+            accounting P&amp;L.
+          </p>
 
-          <div className="ui-help">Total COGS</div>
-          <div>{summary.total_cogs}</div>
+          {save_message ? (
+            <p className="ui-help">
+              <strong>{save_message}</strong>
+            </p>
+          ) : null}
 
-          <div className="ui-help">Labour Benchmark</div>
-          <div>{summary.labour_benchmark_total}</div>
-
-          <div className="ui-help">Employee Overheads Benchmark</div>
-          <div>{summary.employee_overheads_benchmark_total}</div>
-
-          <div className="ui-help">Assets Benchmark</div>
-          <div>{summary.assets_benchmark_total}</div>
-
-          <div className="ui-help">General Overheads Benchmark</div>
-          <div>{summary.general_overheads_benchmark_total}</div>
-
-          <div className="ui-help">Total Business Costs</div>
-          <div>{summary.total_business_costs}</div>
+          <div className="ui-actions">
+            <button
+              type="button"
+              className="ui-button-primary"
+              onClick={on_save}
+            >
+              Save P&amp;L
+            </button>
+          </div>
         </div>
       </div>
     </CollapsibleSection>
@@ -107,21 +182,33 @@ function AssignmentCheckPanel({ summary }) {
   return (
     <CollapsibleSection
       title="Assignment Check"
-      summary="Confirm all business costs are assigned before trusting downstream pages."
-      defaultOpen={true}
+      summary="P&L readiness"
+      defaultOpen={false}
     >
-      <div className="ui-panel ui-stack-sm">
-        <div className="ui-help">Total Business Costs</div>
-        <div>{summary.total_business_costs}</div>
+      <div className="ui-panel ui-stack">
+        <div>
+          <div className="ui-kicker">Assignment Check</div>
+          <h2 className="ui-card-title-sm">P&amp;L readiness</h2>
+        </div>
 
-        <div className="ui-help">Total Assigned</div>
-        <div>{summary.total_assigned_business_costs}</div>
-
-        <div className="ui-help">Unassigned Balance</div>
-        <div>{summary.unassigned_balance}</div>
-
-        <div className="ui-help">P&amp;L Ready</div>
-        <div>{summary.pnl_ready}</div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="labour-summary-table">
+            <SummaryRow
+              label="Total Business Costs"
+              value={summary.total_business_costs}
+            />
+            <SummaryRow
+              label="Total Assigned"
+              value={summary.total_assigned_business_costs}
+            />
+            <SummaryRow
+              label="Unassigned Balance"
+              value={summary.unassigned_balance}
+              total
+            />
+            <SummaryRow label="P&L Ready" value={summary.pnl_ready} total />
+          </div>
+        </div>
       </div>
     </CollapsibleSection>
   );
@@ -133,6 +220,7 @@ export default function ProfitAndLossMainCard({
   reconciliation,
   summary,
   actions,
+  warnings = [],
   save_message = "",
 }) {
   const editing_label = getEditingLabel(state);
@@ -144,9 +232,7 @@ export default function ProfitAndLossMainCard({
           title="Profit & Loss"
           subtitle="Enter the business P&L in the same section order it appears in your accounts, while classifying each line into the correct QS Tools benchmark bucket."
           editing_label={editing_label}
-          save_message={save_message}
           on_reset={actions.reset_profit_and_loss_state}
-          on_save_snapshot={actions.on_save}
         />
 
         <ProfitAndLossPeriodPanel state={state} actions={actions} />
@@ -187,7 +273,12 @@ export default function ProfitAndLossMainCard({
           summary={summary}
         />
 
-        <SummaryPanel summary={summary} />
+        <SummaryPanel
+          summary={summary}
+          warnings={warnings}
+          save_message={save_message}
+          on_save={actions.on_save}
+        />
 
         <AssignmentCheckPanel summary={summary} />
       </div>
