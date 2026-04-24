@@ -1,5 +1,27 @@
 "use client";
 
+const STAFF_ROLE_OPTIONS = [
+  { value: "", label: "Select staff role" },
+  { value: "owner_director", label: "Owner / Director" },
+  { value: "project_manager", label: "Project Manager" },
+  { value: "site_foreman", label: "Site Foreman" },
+  { value: "leading_hand", label: "Leading Hand" },
+  { value: "qualified_tradesperson", label: "Qualified Tradesperson" },
+  { value: "apprentice", label: "Apprentice" },
+  { value: "labourer", label: "Labourer" },
+  { value: "operator", label: "Operator" },
+  { value: "admin_support", label: "Admin / Support" },
+];
+
+const LABOUR_CLASS_OPTIONS = [
+  { value: "", label: "Select labour class" },
+  { value: "productive_labour", label: "Productive Labour" },
+  { value: "supervision", label: "Supervision" },
+  { value: "management", label: "Management" },
+  { value: "apprentice_labour", label: "Apprentice Labour" },
+  { value: "support_labour", label: "Support Labour" },
+];
+
 export default function LabourProfileCard({
   state = {},
   has_profile = false,
@@ -43,30 +65,38 @@ export default function LabourProfileCard({
 
           <label className="ui-stack-sm">
             <span className="ui-label">Staff role</span>
-            <input
-              className="ui-input"
-              type="text"
+            <select
+              className="ui-select"
               value={state.staff_role ?? ""}
               onChange={(event) =>
                 update_field?.("staff_role", event.target.value)
               }
-              placeholder="Enter staff role"
               disabled={profile_is_locked}
-            />
+            >
+              {STAFF_ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="ui-stack-sm">
             <span className="ui-label">Labour class</span>
-            <input
-              className="ui-input"
-              type="text"
+            <select
+              className="ui-select"
               value={state.labour_class ?? ""}
               onChange={(event) =>
                 update_field?.("labour_class", event.target.value)
               }
-              placeholder="Enter labour class"
               disabled={profile_is_locked}
-            />
+            >
+              {LABOUR_CLASS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 

@@ -88,19 +88,16 @@ function build_vehicle_prefill_from_pnl(pnl_output_contract) {
     const name = normalise_name(line.line_name);
     const amount = to_number(line.amount);
 
-    // Fuel
     if (matches_keywords(name, ["fuel", "diesel", "petrol"])) {
       fuel += amount;
       continue;
     }
 
-    // Tyres
     if (matches_keywords(name, ["tyre", "tyres", "tire", "tires"])) {
       tyres += amount;
       continue;
     }
 
-    // Vehicle insurance only if explicitly vehicle-related
     if (
       matches_keywords(name, ["insurance"]) &&
       is_vehicle_context(name)
@@ -109,7 +106,6 @@ function build_vehicle_prefill_from_pnl(pnl_output_contract) {
       continue;
     }
 
-    // Registration / licensing
     if (
       matches_keywords(name, [
         "rego",
@@ -124,13 +120,11 @@ function build_vehicle_prefill_from_pnl(pnl_output_contract) {
       continue;
     }
 
-    // Repairs
     if (matches_keywords(name, ["repair", "repairs"])) {
       repairs += amount;
       continue;
     }
 
-    // Maintenance / servicing
     if (
       matches_keywords(name, [
         "maintenance",
@@ -143,7 +137,6 @@ function build_vehicle_prefill_from_pnl(pnl_output_contract) {
       continue;
     }
 
-    // Consumables
     if (
       matches_keywords(name, [
         "oil",
@@ -159,7 +152,6 @@ function build_vehicle_prefill_from_pnl(pnl_output_contract) {
       continue;
     }
 
-    // Generic vehicle expense fallback
     if (
       matches_keywords(name, [
         "motor vehicle expenses",
@@ -210,7 +202,14 @@ export default function useGeneralOverheads() {
   }, [profit_and_loss_state]);
 
   useEffect(() => {
-    set_overhead_state(load_general_overhead_state());
+    const loaded_state = load_general_overhead_state();
+
+    set_overhead_state({
+      ...loaded_state,
+      overhead_category_overrides:
+        loaded_state?.overhead_category_overrides ?? {},
+    });
+
     set_saved_overheads(load_saved_overheads());
     set_is_hydrated(true);
   }, []);
@@ -245,6 +244,8 @@ export default function useGeneralOverheads() {
     set_overhead_state((current) => ({
       ...current,
       ...vehicle_prefill,
+      overhead_category_overrides:
+        current.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }, [is_hydrated, pnl_output_contract, overhead_state]);
@@ -264,6 +265,8 @@ export default function useGeneralOverheads() {
     set_overhead_state((current) => ({
       ...current,
       [field]: value,
+      overhead_category_overrides:
+        current.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -279,6 +282,8 @@ export default function useGeneralOverheads() {
             }
           : item
       ),
+      overhead_category_overrides:
+        current.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -294,16 +299,40 @@ export default function useGeneralOverheads() {
           custom_overhead_amount: 0,
         },
       ],
+      overhead_category_overrides:
+        current.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
 
   function remove_custom_item(custom_overhead_id) {
+    set_overhead_state((current) => {
+      const next_custom_items = (current.custom_overhead_items ?? []).filter(
+        (item) => item.custom_overhead_id !== custom_overhead_id
+      );
+
+      const next_overrides = {
+        ...(current.overhead_category_overrides ?? {}),
+      };
+
+      delete next_overrides[custom_overhead_id];
+
+      return {
+        ...current,
+        custom_overhead_items: next_custom_items,
+        overhead_category_overrides: next_overrides,
+        updated_at: new Date().toISOString(),
+      };
+    });
+  }
+
+  function update_category_override(row_key, category_key) {
     set_overhead_state((current) => ({
       ...current,
-      custom_overhead_items: (current.custom_overhead_items ?? []).filter(
-        (item) => item.custom_overhead_id !== custom_overhead_id
-      ),
+      overhead_category_overrides: {
+        ...(current.overhead_category_overrides ?? {}),
+        [row_key]: category_key,
+      },
       updated_at: new Date().toISOString(),
     }));
   }
@@ -311,6 +340,8 @@ export default function useGeneralOverheads() {
   function save_profile() {
     const saved_record = {
       ...overhead_state,
+      overhead_category_overrides:
+        overhead_state.overhead_category_overrides ?? {},
       output_contract,
       total_general_overheads: calculated.total_general_overheads,
       overhead_rows: calculated.overhead_rows,
@@ -330,6 +361,8 @@ export default function useGeneralOverheads() {
 
     set_overhead_state({
       ...loaded,
+      overhead_category_overrides:
+        loaded?.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     });
   }
@@ -341,7 +374,11 @@ export default function useGeneralOverheads() {
 
   function reset_state() {
     const next_state = reset_general_overhead_state();
-    set_overhead_state(next_state);
+
+    set_overhead_state({
+      ...next_state,
+      overhead_category_overrides: {},
+    });
   }
 
   const status = build_general_overhead_status({
@@ -360,6 +397,7 @@ export default function useGeneralOverheads() {
       update_custom_item,
       add_custom_item,
       remove_custom_item,
+      update_category_override,
       save_profile,
       load_profile,
       delete_profile,
