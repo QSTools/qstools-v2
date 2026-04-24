@@ -25,13 +25,19 @@ export default function ProfitAndLossStatusStrip({
           <h2 className="ui-section-title">Profit &amp; Loss Snapshot</h2>
         </div>
 
-        <div className="ui-actions">
-          {items.map((item) => (
-            <div key={item.label} className={tone_class(item.tone)}>
-              <span className="font-medium">{item.label}:</span>{" "}
-              <span>{item.value}</span>
-            </div>
-          ))}
+        <div className="ui-section-muted">
+          <div className="labour-summary-table">
+            {items.map((item) => (
+              <div key={item.label} className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  {item.label}
+                </div>
+                <div className="labour-summary-table-value">
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {warnings.length > 0 ? (

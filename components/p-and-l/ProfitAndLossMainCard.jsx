@@ -4,7 +4,6 @@ import CollapsibleSection from "@/components/common/CollapsibleSection";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
 import ProfitAndLossAwarenessPanel from "@/components/p-and-l/ProfitAndLossAwarenessPanel";
-import ProfitAndLossReconciliationPanel from "@/components/p-and-l/ProfitAndLossReconciliationPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
 
 function getEditingLabel(state) {
@@ -48,7 +47,7 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
   return (
     <CollapsibleSection
       title="P&L Summary"
-      summary="Review, warnings, and save"
+      summary="Review, assignment, warnings, and save"
       defaultOpen={false}
     >
       <div className="ui-panel ui-stack">
@@ -81,16 +80,17 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
               label="Operating Expenses"
               value={summary.total_operating_expenses}
             />
-            <SummaryRow
-              label="Net Profit"
-              value={summary.net_profit}
-              total
-            />
+            <SummaryRow label="Net Profit" value={summary.net_profit} total />
           </div>
         </div>
 
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">QS Benchmark View</div>
+          <p className="ui-help">
+            These are the P&amp;L benchmark totals used to check Labour, Assets,
+            and Overheads later.
+          </p>
+
           <div className="labour-summary-table">
             <SummaryRow label="Revenue" value={summary.total_revenue} />
             <SummaryRow
@@ -105,11 +105,7 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
               label="COGS - Hire"
               value={summary.hired_equipment_cost}
             />
-            <SummaryRow
-              label="Total COGS"
-              value={summary.total_cogs}
-              total
-            />
+            <SummaryRow label="Total COGS" value={summary.total_cogs} total />
             <SummaryRow
               label="Labour Benchmark"
               value={summary.labour_benchmark_total}
@@ -135,18 +131,43 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Warnings / Checks</div>
+          <div className="ui-kicker">Assignment Check</div>
+          <p className="ui-help">
+            This shows whether the business costs from your P&amp;L have been
+            assigned into the QS Tools setup buckets.
+          </p>
+
+          <div className="labour-summary-table">
+            <SummaryRow
+              label="Total Business Costs"
+              value={summary.total_business_costs}
+            />
+            <SummaryRow
+              label="Total Assigned"
+              value={summary.total_assigned_business_costs}
+            />
+            <SummaryRow
+              label="Unassigned Balance"
+              value={summary.unassigned_balance}
+              total
+            />
+            <SummaryRow label="P&L Ready" value={summary.pnl_ready} total />
+          </div>
+        </div>
+
+        <div className="ui-panel ui-stack-sm theme-danger-soft">
+          <div className="ui-kicker theme-danger">Warnings / Checks</div>
 
           {warnings.length > 0 ? (
             <div className="ui-stack-sm">
               {warnings.map((warning) => (
-                <div key={warning} className="ui-help">
+                <div key={warning} className="theme-danger">
                   {warning}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="ui-help">No current warnings.</p>
+            <div className="ui-help">No current warnings.</div>
           )}
         </div>
 
@@ -178,46 +199,9 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
   );
 }
 
-function AssignmentCheckPanel({ summary }) {
-  return (
-    <CollapsibleSection
-      title="Assignment Check"
-      summary="P&L readiness"
-      defaultOpen={false}
-    >
-      <div className="ui-panel ui-stack">
-        <div>
-          <div className="ui-kicker">Assignment Check</div>
-          <h2 className="ui-card-title-sm">P&amp;L readiness</h2>
-        </div>
-
-        <div className="ui-panel ui-stack-sm">
-          <div className="labour-summary-table">
-            <SummaryRow
-              label="Total Business Costs"
-              value={summary.total_business_costs}
-            />
-            <SummaryRow
-              label="Total Assigned"
-              value={summary.total_assigned_business_costs}
-            />
-            <SummaryRow
-              label="Unassigned Balance"
-              value={summary.unassigned_balance}
-              total
-            />
-            <SummaryRow label="P&L Ready" value={summary.pnl_ready} total />
-          </div>
-        </div>
-      </div>
-    </CollapsibleSection>
-  );
-}
-
 export default function ProfitAndLossMainCard({
   state,
   category_options,
-  reconciliation,
   summary,
   actions,
   warnings = [],
@@ -229,8 +213,6 @@ export default function ProfitAndLossMainCard({
     <section className="ui-section">
       <div className="ui-page-stack">
         <ProfitAndLossHeaderPanel
-          title="Profit & Loss"
-          subtitle="Enter the business P&L in the same section order it appears in your accounts, while classifying each line into the correct QS Tools benchmark bucket."
           editing_label={editing_label}
           on_reset={actions.reset_profit_and_loss_state}
         />
@@ -238,8 +220,6 @@ export default function ProfitAndLossMainCard({
         <ProfitAndLossPeriodPanel state={state} actions={actions} />
 
         <ProfitAndLossAwarenessPanel />
-
-        <ProfitAndLossReconciliationPanel reconciliation={reconciliation} />
 
         <ProfitAndLossSectionBlock
           section="trading_income"
@@ -279,8 +259,6 @@ export default function ProfitAndLossMainCard({
           save_message={save_message}
           on_save={actions.on_save}
         />
-
-        <AssignmentCheckPanel summary={summary} />
       </div>
     </section>
   );
