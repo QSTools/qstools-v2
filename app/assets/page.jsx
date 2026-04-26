@@ -1,7 +1,6 @@
 "use client";
 
 import useAssets from "@/hooks/useAssets";
-import AssetStatusStrip from "@/components/assets/AssetStatusStrip";
 import AssetMainCard from "@/components/assets/AssetMainCard";
 import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 
@@ -16,13 +15,13 @@ export default function AssetsPage() {
             <div className="ui-kicker">Assets</div>
             <div className="ui-display">Owned asset cost baseline</div>
             <p className="ui-lead">
-              Break your asset cost out of your P&amp;L and make it real.
+              Break asset costs out of the P&amp;L so finance, running costs,
+              and total annual burden are visible before moving on.
             </p>
           </div>
         </section>
 
-        <AssetStatusStrip {...status} />
-        <AssetMainCard {...card} />
+        <AssetMainCard {...card} status={status} />
         <AssetHelpPanel />
       </div>
     </main>
