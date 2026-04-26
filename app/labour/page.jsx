@@ -134,7 +134,12 @@ export default function LabourPage() {
                 summary="Current labour position"
                 defaultOpen={true}
               >
-                <LabourSummaryCard {...labour.summary} />
+                <LabourSummaryCard
+                  {...labour.summary}
+                  has_profile={labour.has_profile}
+                  save_profile={labour.save_profile}
+                  start_new_profile={labour.start_new_profile}
+                />
               </CollapsibleSection>
 
               <CollapsibleSection

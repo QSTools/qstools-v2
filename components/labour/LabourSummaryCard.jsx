@@ -44,7 +44,13 @@ function SummarySection({ title = "", rows = [] }) {
   );
 }
 
-export default function LabourSummaryCard({ meta = {}, sections = [] }) {
+export default function LabourSummaryCard({
+  meta = {},
+  sections = [],
+  has_profile = false,
+  save_profile,
+  start_new_profile,
+}) {
   const has_sections = Array.isArray(sections) && sections.length > 0;
 
   return (
@@ -104,6 +110,39 @@ export default function LabourSummaryCard({ meta = {}, sections = [] }) {
                   rows={section.rows}
                 />
               ))}
+
+              <div className="ui-panel">
+                <div className="ui-stack-sm">
+                  <div className="ui-kicker">Next step</div>
+                  <p className="ui-help">
+                    Check this labour summary, save the profile, then continue
+                    to the next setup module.
+                  </p>
+
+                  <div className="ui-actions">
+                    <button
+                      type="button"
+                      className="ui-button-primary"
+                      disabled={!has_profile}
+                      onClick={save_profile}
+                    >
+                      Save profile
+                    </button>
+
+                    <button
+                      type="button"
+                      className="ui-button-secondary"
+                      onClick={start_new_profile}
+                    >
+                      Create new profile
+                    </button>
+
+                    <a className="ui-button-secondary" href="/assets">
+                      Next module
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

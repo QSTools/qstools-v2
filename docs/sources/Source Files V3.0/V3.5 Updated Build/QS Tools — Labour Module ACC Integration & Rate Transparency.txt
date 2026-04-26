@@ -1,0 +1,172 @@
+QS Tools — Labour Module ACC Integration & Rate Transparency
+v3.5 — LOCKED BUILD BRIEF
+
+------------------------------------------------------------
+
+1. PURPOSE
+
+This update completes the Labour Module as a first-principles cost engine.
+
+- Uses real ACC rates (no assumptions)
+- Calculates full employer cost
+- Shows exactly how labour rates are built
+
+------------------------------------------------------------
+
+2. ACC INTEGRATION
+
+Source:
+ACC Levy Guidebook 2026–2027
+
+Structure:
+
+acc_cu_rates
+- acc_cu_code
+- levy_risk_group
+- employer_work_levy_rate
+- working_safer_levy_rate
+- total_acc_rate
+
+acc_bic_lookup
+- bic_code
+- bic_description
+- acc_cu_code (FK)
+
+Storage:
+data/acc_rates.db
+
+Logic:
+BIC → CU → ACC Rate
+
+------------------------------------------------------------
+
+3. API
+
+Endpoint:
+/api/acc/search?q=
+
+Purpose:
+Search ACC activity → return correct levy rate
+
+------------------------------------------------------------
+
+4. LABOUR CALCULATION (LOCKED)
+
+Employer Contribution =
+KiwiSaver + ESCT + ACC
+
+ACC Work Levy =
+Gross Wages × (ACC Rate / 100)
+
+Total Labour Cost =
+Gross Wages + Employer Contributions
+
+Recovery:
+Productive Labour Cost Rate =
+Total Labour Cost ÷ Productive Hours
+
+------------------------------------------------------------
+
+5. RATE BUILD (FIRST PRINCIPLES)
+
+Structure:
+
+1. Paid wage base
+2. Entitlement recovery
+3. Productivity recovery
+4. Employer cost recovery
+5. Final recoverable rate
+
+------------------------------------------------------------
+
+Rate Build Output:
+
+Hourly wage rate                         $43.00
+
+Entitlement hours removed                344 hrs
+Available chargeable hours               1,736 hrs
+Wage rate after entitlements             $50.92
+Entitlement uplift                       +$8.42/hr
+
+Productivity hours lost                  260 hrs
+Final productive hours                   1,476 hrs
+Wage rate after productivity             $59.91
+Productivity uplift                      +$8.99/hr
+
+KiwiSaver                                $2.10/hr
+ESCT                                     $0.63/hr
+ACC                                      $0.86/hr
+Employer cost uplift                     +$3.58/hr
+
+Minimum recoverable labour cost rate     $63.49/hr
+
+------------------------------------------------------------
+
+6. CORE RULE
+
+Cost is NOT increased to recover inefficiency  
+Rate is increased by reducing recoverable hours
+
+------------------------------------------------------------
+
+7. UI BEHAVIOUR
+
+- Step-by-step rate build ladder
+- Section spacing for readability
+- Total rows highlighted (label + value)
+- Decimal precision for accuracy
+- ACC visible as a real cost driver
+
+------------------------------------------------------------
+
+8. ARCHITECTURE
+
+Labour Module:
+- Owns all labour cost calculations
+
+Cost Summary:
+- Consumes outputs only
+- No recalculation
+
+ACC:
+- First-principles input
+- Not estimated
+
+------------------------------------------------------------
+
+9. FILES
+
+Core:
+lib/calculations/labourCalculations.js  
+lib/selectors/labourSelectors.js  
+lib/storage/labourStorage.js  
+
+UI:
+components/labour/LabourSummaryCard.jsx  
+components/labour/EmployerContributionsCard.jsx  
+
+API:
+app/api/acc/search/route.js  
+
+Data:
+data/acc_rates.db  
+lib/data/accLevyRates2026_2027.js  
+
+Scripts:
+Py/extract_acc_rates.py  
+Py/check_acc_db.py  
+Py/check_acc_rate_groups.py  
+
+------------------------------------------------------------
+
+10. OUTCOME
+
+- Fully accurate labour cost model
+- Real ACC integration
+- Transparent rate build
+- Clear recovery logic
+- Audit-ready outputs
+
+------------------------------------------------------------
+
+STATUS: LOCKED — v3.5
