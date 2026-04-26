@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SidebarNavigation from "@/components/layout/SidebarNavigation";
+import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,21 +30,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-
         <div className="flex min-h-screen bg-background">
-          
-          {/* Sidebar */}
-          <div className="w-72 border-r p-4">
-            <SidebarNavigation />
-          </div>
+          {!SETUP_NAV_GATING_ENABLED ? (
+            <div className="w-72 border-r p-4">
+              <SidebarNavigation />
+            </div>
+          ) : null}
 
-          {/* Page Content */}
-          <div className="flex-1 p-6 overflow-auto">
-            {children}
-          </div>
-
+          <div className="flex-1 p-6 overflow-auto">{children}</div>
         </div>
-
       </body>
     </html>
   );

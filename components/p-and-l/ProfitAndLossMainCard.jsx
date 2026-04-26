@@ -1,10 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import SetupNextButton from "@/components/common/SetupNextButton";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
 import ProfitAndLossAwarenessPanel from "@/components/p-and-l/ProfitAndLossAwarenessPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
+import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
 function getEditingLabel(state) {
   const financial_year = Number(state?.financial_year) || null;
@@ -43,7 +46,17 @@ function SummaryRow({ label, value, total = false }) {
   );
 }
 
-function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
+function SummaryPanel({
+  summary,
+  warnings = [],
+  save_message = "",
+  on_save,
+  on_continue_to_overheads,
+  gating_enabled = false,
+}) {
+  const can_continue_to_overheads =
+    summary.pnl_ready === "Ready" && warnings.length === 0;
+
   return (
     <CollapsibleSection
       title="P&L Summary"
@@ -58,6 +71,7 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
 
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Traditional P&amp;L</div>
+
           <div className="labour-summary-table">
             <SummaryRow
               label="Trading Income"
@@ -192,6 +206,14 @@ function SummaryPanel({ summary, warnings = [], save_message = "", on_save }) {
             >
               Save P&amp;L
             </button>
+
+            <SetupNextButton
+              label="Next: Overheads →"
+              can_continue={can_continue_to_overheads}
+              gating_enabled={gating_enabled}
+              blocked_message="Resolve warnings before continuing to Overheads."
+              on_click={on_continue_to_overheads}
+            />
           </div>
         </div>
       </div>
@@ -207,7 +229,13 @@ export default function ProfitAndLossMainCard({
   warnings = [],
   save_message = "",
 }) {
+  const router = useRouter();
   const editing_label = getEditingLabel(state);
+
+  function handle_continue_to_overheads() {
+    actions.on_save?.();
+    router.push("/general-overheads");
+  }
 
   return (
     <section className="ui-section">
@@ -258,6 +286,8 @@ export default function ProfitAndLossMainCard({
           warnings={warnings}
           save_message={save_message}
           on_save={actions.on_save}
+          on_continue_to_overheads={handle_continue_to_overheads}
+          gating_enabled={SETUP_NAV_GATING_ENABLED}
         />
       </div>
     </section>

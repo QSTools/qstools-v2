@@ -7,15 +7,28 @@ function SummaryTable({ rows = [] }) {
 
   return (
     <div className="labour-summary-table">
-      {rows.map((row, index) => (
-        <div
-          key={`${row.label}-${index}`}
-          className={`labour-summary-table-row ${row.is_total ? "total" : ""}`}
-        >
-          <div className="labour-summary-table-label">{row.label}</div>
-          <div className="labour-summary-table-value">{row.value}</div>
-        </div>
-      ))}
+      {rows.map((row, index) => {
+        if (row.is_spacer) {
+          return (
+            <div
+              key={`spacer-${index}`}
+              className="labour-summary-table-spacer"
+            />
+          );
+        }
+
+        return (
+          <div
+            key={`${row.label}-${index}`}
+            className={`labour-summary-table-row ${
+              row.is_total ? "total" : ""
+            }`}
+          >
+            <div className="labour-summary-table-label">{row.label}</div>
+            <div className="labour-summary-table-value">{row.value}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -31,10 +44,7 @@ function SummarySection({ title = "", rows = [] }) {
   );
 }
 
-export default function LabourSummaryCard({
-  meta = {},
-  sections = [],
-}) {
+export default function LabourSummaryCard({ meta = {}, sections = [] }) {
   const has_sections = Array.isArray(sections) && sections.length > 0;
 
   return (
@@ -50,7 +60,8 @@ export default function LabourSummaryCard({
             <div className="ui-stack-sm">
               <div className="ui-kicker">No live summary yet</div>
               <p className="ui-help">
-                Create or load a labour profile to unlock the live Labour summary.
+                Create or load a labour profile to unlock the live Labour
+                summary.
               </p>
             </div>
           </div>

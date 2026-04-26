@@ -1,0 +1,281 @@
+# QS Tools — Setup Flow Navigation Pattern (v1.0)
+
+STATUS: LOCKED SETUP FLOW PATTERN
+
+## PURPOSE
+
+This brief defines the reusable setup navigation pattern for QS Tools.
+
+The purpose is to guide users through setup in the correct order while still allowing free navigation during development.
+
+This pattern applies to:
+
+- P&L
+- General Overheads
+- Labour
+- Assets
+- Cost Summary
+- future setup modules
+
+---
+
+## CORE PRINCIPLE
+
+During setup, the user should not freely jump around the system.
+
+The user should move step-by-step using the Next button at the bottom of each setup module.
+
+After setup is complete, free navigation can be enabled.
+
+---
+
+## TWO NAVIGATION MODES
+
+### Build Mode
+
+Used during development.
+
+- Sidebar visible
+- User can move freely
+- Next buttons still exist
+- Gating disabled
+
+### Setup Mode
+
+Used later for user-facing guided setup.
+
+- Sidebar hidden
+- User follows setup flow buttons
+- Future steps are not accessible by sidebar
+- Navigation is controlled by module readiness
+
+---
+
+## CONFIG FLAG
+
+A single config flag controls setup navigation behaviour.
+
+File:
+
+lib/config/setupFlowConfig.js
+
+Current value:
+
+export const SETUP_NAV_GATING_ENABLED = false;
+
+Meaning:
+
+false = build mode / sidebar visible / navigation free
+
+true = setup mode / sidebar hidden / guided button flow
+
+---
+
+## LAYOUT BEHAVIOUR
+
+File:
+
+app/layout.tsx
+
+Sidebar behaviour:
+
+If SETUP_NAV_GATING_ENABLED is false:
+- show SidebarNavigation
+
+If SETUP_NAV_GATING_ENABLED is true:
+- hide SidebarNavigation
+
+This keeps setup mode simple.
+
+The user then moves through setup using Next buttons at the bottom of each module.
+
+---
+
+## REUSABLE BUTTON
+
+File:
+
+components/common/SetupNextButton.jsx
+
+Purpose:
+
+A shared setup-flow button used at the bottom of setup modules.
+
+It handles:
+
+- next module label
+- readiness condition
+- gating enabled / disabled behaviour
+- blocked message
+
+---
+
+## BUTTON CONTRACT
+
+SetupNextButton accepts:
+
+- label
+- can_continue
+- gating_enabled
+- blocked_message
+- on_click
+
+Behaviour:
+
+If gating_enabled is false:
+- button is enabled
+- user can continue during build mode
+
+If gating_enabled is true and can_continue is false:
+- button is disabled
+- blocked_message is shown
+
+If gating_enabled is true and can_continue is true:
+- button is enabled
+- user can continue
+
+---
+
+## P&L IMPLEMENTATION
+
+P&L Summary now uses:
+
+Save P&L
+Next: Overheads
+
+P&L readiness condition:
+
+summary.pnl_ready === "Ready" && warnings.length === 0
+
+Current behaviour:
+
+Because SETUP_NAV_GATING_ENABLED is false, Next: Overheads remains usable during build.
+
+Later behaviour:
+
+When SETUP_NAV_GATING_ENABLED is true, Next: Overheads is blocked until P&L is ready.
+
+---
+
+## MODULE IMPLEMENTATION PATTERN
+
+Each module should use the same pattern:
+
+Summary / Review card contains:
+
+- Save action
+- SetupNextButton
+
+Example labels:
+
+- Next: Overheads
+- Next: Labour
+- Next: Assets
+- Next: Cost Summary
+
+Each module defines its own can_continue rule.
+
+---
+
+## MODULE READINESS EXAMPLES
+
+P&L:
+
+- P&L Ready
+- no warnings
+- no unassigned business costs
+
+General Overheads:
+
+- overhead categories reviewed
+- no unclassified overhead items
+- saved overhead profile exists
+- reconciliation within acceptable range
+
+Labour:
+
+- at least one active staff profile
+- required inputs complete
+- labour baseline calculated
+- reconciliation against P&L Labour Benchmark reviewed
+
+Assets:
+
+- asset profile complete
+- running / finance costs entered where required
+- reconciliation against P&L Asset Benchmark reviewed
+
+Cost Summary:
+
+- upstream inputs available
+- total cost burden calculated
+- required recovery baseline calculated
+
+---
+
+## SIDEBAR POLICY
+
+For now:
+
+- sidebar remains visible because build mode is active
+
+Later:
+
+- sidebar hidden during setup
+- sidebar returns after setup completion
+
+Future setup completion state may look like:
+
+{
+  pnl_complete: true,
+  overheads_complete: true,
+  labour_complete: true,
+  assets_complete: true,
+  cost_summary_complete: true,
+  setup_complete: true
+}
+
+When setup_complete is true:
+- sidebar may be shown again
+- free navigation may be enabled
+
+---
+
+## IMPORTANT RULES
+
+Do not build one-off Next buttons.
+
+Use SetupNextButton everywhere.
+
+Do not hard-code final setup gating in each module.
+
+Use SETUP_NAV_GATING_ENABLED.
+
+Do not block development navigation while build mode is active.
+
+Do not make sidebar link locking complicated yet.
+
+Hide sidebar entirely during setup mode instead.
+
+---
+
+## DESIGN RULE
+
+Setup navigation should feel like:
+
+Complete this step
+Review
+Save
+Continue
+
+Not:
+
+jump anywhere and hope the model still makes sense.
+
+---
+
+## FINAL DEFINITION
+
+The Setup Flow Navigation Pattern turns QS Tools from a collection of pages into a guided setup system.
+
+It lets the user build the business model in the right order while preserving full navigation during development.

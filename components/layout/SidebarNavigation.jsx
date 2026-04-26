@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
 const nav_groups = [
   {
@@ -57,6 +58,22 @@ const standalone_items = [
   { href: "/settings", label: "Settings" },
 ];
 
+const SETUP_FLOW_ORDER = [
+  "/p-and-l",
+  "/general-overheads",
+  "/labour",
+  "/assets",
+  "/cost-summary",
+];
+
+const setup_progress = {
+  "/p-and-l": true,
+  "/general-overheads": false,
+  "/labour": false,
+  "/assets": false,
+  "/cost-summary": false,
+};
+
 function build_initial_open_groups(pathname) {
   return {
     "Quick Start":
@@ -103,11 +120,47 @@ function get_item_classes(active) {
   ].join(" ");
 }
 
+function is_setup_route_locked(href) {
+  const is_in_setup_flow = SETUP_FLOW_ORDER.includes(href);
+
+  if (!SETUP_NAV_GATING_ENABLED) {
+    return false;
+  }
+
+  if (!is_in_setup_flow) {
+    return false;
+  }
+
+  return !setup_progress[href];
+}
+
+function NavigationItem({ item, active }) {
+  const is_locked = is_setup_route_locked(item.href);
+
+  if (is_locked) {
+    return (
+      <div
+        key={item.href}
+        className={`${get_item_classes(false)} cursor-not-allowed opacity-40`}
+        title="Complete the previous setup step before opening this page."
+      >
+        {item.label}
+      </div>
+    );
+  }
+
+  return (
+    <Link key={item.href} href={item.href} className={get_item_classes(active)}>
+      {item.label}
+    </Link>
+  );
+}
+
 export default function SidebarNavigation() {
   const pathname = usePathname();
 
   const [open_groups, set_open_groups] = useState(
-    build_initial_open_groups(pathname)
+    build_initial_open_groups(pathname),
   );
 
   function toggle_group(group_label) {
@@ -149,19 +202,13 @@ export default function SidebarNavigation() {
 
             {open_groups[group.label] ? (
               <div className="ui-stack pl-3">
-                {group.items.map((item) => {
-                  const active = is_active(item.href);
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={get_item_classes(active)}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                {group.items.map((item) => (
+                  <NavigationItem
+                    key={item.href}
+                    item={item}
+                    active={is_active(item.href)}
+                  />
+                ))}
               </div>
             ) : null}
           </div>
@@ -171,19 +218,13 @@ export default function SidebarNavigation() {
           <div className="mb-3 ui-kicker">Standalone</div>
 
           <div className="ui-stack">
-            {standalone_items.map((item) => {
-              const active = is_active(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={get_item_classes(active)}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+            {standalone_items.map((item) => (
+              <NavigationItem
+                key={item.href}
+                item={item}
+                active={is_active(item.href)}
+              />
+            ))}
           </div>
         </div>
       </div>

@@ -1,0 +1,112 @@
+# QS Tools — Assets Module (v3.5 — LOCKED)
+
+STATUS: OWNED ASSET COST ENGINE
+
+---
+
+## PURPOSE
+
+The Assets Module defines the annual cost of owned business assets.
+
+It captures asset cost inputs, calculates annual asset cost, and provides clean asset totals for Cost Summary.
+
+---
+
+## CORE PRINCIPLE
+
+Assets must only contain stable per-unit asset costs.
+
+---
+
+## SYSTEM ROLE
+
+Assets is an input module and asset cost engine.
+
+It owns:
+
+- asset identity
+- direct asset cost
+- active asset totals
+
+---
+
+## ASSETS INCLUDE
+
+- finance / lease cost
+- direct maintenance cost where clearly attributable
+- direct registration cost
+- direct asset running cost
+- other clearly attributable asset costs
+
+---
+
+## ASSETS EXCLUDE
+
+Assets must not include:
+
+- shared fuel pools
+- shared maintenance pools
+- fleet-wide distribution
+- staff assignment
+- labour recovery
+- pricing
+- overhead allocation
+- package logic
+
+Shared fleet costs belong in General Overheads.
+
+---
+
+## OUTPUT CONTRACT
+
+Per asset:
+
+- asset_id
+- asset_name
+- asset_type
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+Aggregate:
+
+- total_asset_cost_annual
+
+---
+
+## RECONCILIATION
+
+Input from P&L:
+
+- assets_benchmark_total
+
+Outputs:
+
+- assets_ready
+- assets_variance_amount
+- assets_variance_percent
+- assets_status
+
+Rules:
+
+- benchmark is reference only
+- module total remains source of truth
+- no variance flows downstream
+- hired equipment does not belong here
+- hired equipment is COGS / delivery cost
+
+---
+
+## COST SUMMARY USE
+
+Cost Summary consumes:
+
+- total_asset_cost_annual
+
+Cost Summary must not rebuild asset totals from raw asset inputs.
+
+---
+
+## FINAL DEFINITION
+
+The Assets Module v3.5 is a clean owned-asset cost engine that excludes shared cost distribution and provides stable asset totals for Cost Summary.

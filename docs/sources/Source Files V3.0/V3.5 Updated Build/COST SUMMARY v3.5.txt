@@ -1,0 +1,216 @@
+# QS Tools — Cost Summary Module (v3.5 — LOCKED)
+
+STATUS: PURE COST AGGREGATION LAYER
+
+---
+
+## PURPOSE
+
+The Cost Summary Module defines what the business costs to run.
+
+It aggregates stable module outputs into:
+
+- People Cost
+- Business Cost
+- Total Cost Burden
+- Required Revenue
+- Required Recovery Rate
+
+---
+
+## CORE PRINCIPLE
+
+Cost Summary = WHAT the business costs.
+
+Recovery Summary = HOW the business recovers it.
+
+---
+
+## SYSTEM ROLE
+
+Cost Summary is the pure aggregation layer.
+
+It consumes upstream module outputs only.
+
+---
+
+## INPUTS
+
+### From Labour
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employer_contribution_annual
+- total_labour_cost_annual
+- total_productive_output
+
+### From Assets
+
+- total_asset_cost_annual
+
+### From General Overheads
+
+- total_general_overheads
+
+### From Model Readiness
+
+- model_ready
+- blocking_modules
+- warning_modules
+
+---
+
+## REMOVED INPUTS
+
+Cost Summary no longer consumes:
+
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_ready
+- active_revenue_model
+- Cost Allocation outputs
+- Recovery Summary outputs
+- Scenario outputs
+
+---
+
+## PEOPLE COST BUILD
+
+People Cost includes Labour only.
+
+total_people_cost_annual =
+total_gross_wages_annual
++ total_entitlements_annual
++ total_employer_kiwisaver_annual
++ total_esct_annual
+
+Employer Contribution Total may be displayed as a subtotal:
+
+total_employer_contribution_annual =
+total_employer_kiwisaver_annual + total_esct_annual
+
+---
+
+## BUSINESS COST BUILD
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+---
+
+## TOTAL COST BURDEN BUILD
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+
+warning required.
+
+---
+
+## OUTPUT CONTRACT
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employer_contribution_annual
+- total_people_cost_annual
+- total_productive_output
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- model_ready
+- blocking_modules
+- warning_modules
+
+---
+
+## PAGE DISPLAY
+
+### People Cost
+
+Show:
+
+- Gross Wages
+- Entitlements
+- Employer KiwiSaver
+- ESCT
+- Employer Contribution Total
+- Total People Cost
+
+Do not show Employee Overheads.
+
+---
+
+### Business Cost
+
+Show:
+
+- Asset Cost
+- General Overheads
+- Total Business Cost
+
+---
+
+### Total Cost & Recovery
+
+Show:
+
+- Total Cost Burden
+- Required Revenue
+- Required Recovery Rate
+- Total Productive Output
+
+---
+
+## READINESS BEHAVIOUR
+
+If model_ready = false:
+
+- totals may display
+- system must be marked as not trusted
+- downstream modelling is blocked
+
+---
+
+## CORE RULES
+
+Cost Summary must NOT:
+
+- rebuild Labour maths
+- rebuild Asset maths
+- rebuild General Overheads maths
+- consume raw P&L lines
+- use benchmark totals in calculations
+- consume Employee Overheads
+- consume Scenario outputs
+- define recovery strategy
+- calculate pricing
+- distribute costs
+
+---
+
+## FINAL DEFINITION
+
+The Cost Summary Module v3.5 is the pure business cost aggregation layer. It combines Labour, Assets, and General Overheads into total_cost_burden and required_revenue without distributing, assigning, or interpreting recovery.

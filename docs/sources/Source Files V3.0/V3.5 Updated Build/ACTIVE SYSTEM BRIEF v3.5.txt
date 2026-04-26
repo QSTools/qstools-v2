@@ -1,0 +1,357 @@
+# QS Tools — Active System Brief (v3.5 — LOCKED)
+
+STATUS: MASTER SYSTEM CONTROL — FULLY ALIGNED BASELINE
+
+---
+
+## PURPOSE
+
+This brief defines the active QS Tools system after the Phase 1 simplification cleanup.
+
+It exists to:
+
+- keep all future builds aligned
+- prevent source drift
+- remove deprecated Employee / Staff Overheads module logic
+- define clear ownership of cost, recovery, pricing, capacity, and validation layers
+
+---
+
+## CORE PRINCIPLE
+
+QS Tools mirrors a business, defines what it must recover, and validates whether real-world work supports that reality.
+
+---
+
+## SYSTEM ARCHITECTURE
+
+P&L
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Cost Summary
+↓
+Recovery Summary
+↓
+Rate Models
+↓
+Production Capacity
+↓
+Recovery Outcome
+↓
+Quote Benchmark
+
+---
+
+## PHASE 1 SIMPLIFICATION RULE
+
+Only assign costs where they are stable.
+
+Shared, pooled, unclear, or staff-related overheads must not be distributed during setup.
+
+They belong in General Overheads.
+
+---
+
+## REMOVED MODULE
+
+Employee Overheads / Staff Overheads module is removed completely.
+
+Do not build, reference, wire, or reconcile:
+
+- Employee Overheads module
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_benchmark_total
+- employee_overheads_ready
+- staff overhead per staff logic
+- employee overhead joins by staff_id
+
+---
+
+## CORE MODULE ROLES
+
+### P&L
+
+Role:
+Input + classification + benchmark layer.
+
+Owns:
+
+- revenue capture
+- COGS classification
+- business cost classification
+- benchmark totals for reconciliation
+
+Does not:
+
+- calculate module totals
+- feed raw values directly into Cost Summary
+- own downstream cost calculations
+
+---
+
+### Labour
+
+Role:
+People cost engine.
+
+Owns:
+
+- staff identity
+- wage cost
+- entitlements
+- employer contributions
+- productive hours
+- labour-only commercial outputs
+
+Labour does NOT include:
+
+- staff overheads
+- admin overheads
+- PPE
+- tools
+- phones
+- vehicles
+- business overhead loading
+- full recovery rate
+
+---
+
+### Assets
+
+Role:
+Owned asset cost engine.
+
+Owns:
+
+- asset identity
+- finance cost
+- direct per-asset running cost
+- total asset cost
+
+Assets does NOT include:
+
+- shared fleet fuel
+- pooled maintenance
+- staff assignment
+- cost distribution
+- pricing
+- recovery
+
+---
+
+### General Overheads
+
+Role:
+Business overhead pool.
+
+Owns:
+
+- fixed business overheads
+- admin staff cost
+- staff overheads
+- office/admin costs
+- phones
+- PPE
+- insurance
+- facilities
+- shared vehicle/fleet costs
+- costs that cannot be cleanly assigned during setup
+
+Rule:
+
+If a cost cannot be cleanly assigned during setup, it belongs in General Overheads.
+
+---
+
+### Cost Summary
+
+Role:
+Pure cost aggregation layer.
+
+Owns:
+
+- People Cost total
+- Business Cost total
+- Total Cost Burden
+- Required Revenue
+- Required Recovery Rate
+
+Cost Summary does NOT:
+
+- rebuild upstream module maths
+- consume raw P&L lines
+- consume benchmark values in calculations
+- consume Employee Overheads
+- distribute costs
+- define recovery strategy
+- define pricing
+
+---
+
+### Recovery Summary
+
+Role:
+Business structure / recovery strategy layer.
+
+Owns:
+
+- how cost recovery is structured
+- labour/material/asset/overhead recovery logic
+- recovery distribution outputs
+
+Does not:
+
+- rebuild upstream costs
+- define final charge rates
+- assess production capacity
+
+---
+
+### Rate Models
+
+Role:
+Pricing layer.
+
+Owns:
+
+- required earning rates
+- practical rate formats
+- pricing model translation
+
+Does not:
+
+- assess delivery capacity
+- validate quotes
+- redefine cost burden
+
+---
+
+### Production Capacity
+
+Role:
+Operational reality layer.
+
+Owns:
+
+- required time
+- available time
+- utilisation
+- intensity / pressure
+
+Does not:
+
+- price work
+- model individual jobs
+- create cost totals
+
+---
+
+### Recovery Outcome
+
+Role:
+Final business reality layer.
+
+Owns:
+
+- financial reality summary
+- pricing reality summary
+- production reality summary
+- overall business status
+
+Does not:
+
+- prescribe decisions
+- calculate new costs
+- change upstream logic
+
+---
+
+### Quote Benchmark
+
+Role:
+Real-world validation layer.
+
+Owns:
+
+- quote comparison
+- quote position
+- pricing impact
+- capacity impact
+- business impact
+
+Does not:
+
+- create quotes
+- decide whether to accept work
+- replace user judgement
+
+---
+
+## COST STRUCTURE
+
+### People Cost
+
+People Cost now includes Labour only:
+
+- gross wages
+- entitlements
+- employer KiwiSaver
+- ESCT
+- employer contribution total
+
+No staff overheads are included in People Cost.
+
+---
+
+### Business Cost
+
+Business Cost includes:
+
+- Assets
+- General Overheads
+
+General Overheads includes staff-related overheads and shared costs.
+
+---
+
+## MODEL READINESS
+
+Model readiness depends on:
+
+- pnl_ready
+- labour_ready
+- assets_ready
+- general_overheads_ready
+
+Employee Overheads readiness is removed.
+
+---
+
+## SYSTEM RULES
+
+- Each cost is entered once
+- Each cost is owned by one module
+- No module rebuilds another module’s calculations
+- No display names are used as keys
+- No contract variable names are casually renamed
+- No business logic belongs in UI components
+- Early modules show stable outputs only
+- Full business pressure appears later in Recovery / Rate / Outcome layers
+
+---
+
+## FINAL DEFINITION
+
+QS Tools v3.5 is the fully aligned baseline where Labour owns people employment cost, Assets own asset cost, General Overheads own all shared and business overheads, Cost Summary aggregates stable module totals, and downstream layers define recovery, pricing, capacity, outcome, and quote validation.
+
+---
+
+## FINAL LINE
+
+If it is unstable during setup, do not allocate it — hold it in General Overheads.

@@ -1,0 +1,185 @@
+# QS Tools — Code Migration / Cleanup Brief (v3.5 — LOCKED)
+
+STATUS: EMPLOYEE OVERHEADS REMOVAL CONTROL
+
+---
+
+## PURPOSE
+
+This brief defines the required code cleanup after removing Employee / Staff Overheads as a standalone module.
+
+It exists to prevent old files, imports, routes, and variables from remaining in the codebase and causing future drift.
+
+---
+
+## CORE RULE
+
+Employee Overheads no longer exists as a module.
+
+Staff Overheads may exist only as a General Overheads category label.
+
+---
+
+## REMOVE ROUTES
+
+Delete or remove access to:
+
+- app/employee-overheads/page.jsx
+- app/staff-overheads/page.jsx
+
+---
+
+## REMOVE COMPONENTS
+
+Delete or archive:
+
+- components/employee-overheads/
+- components/staff-overheads/
+
+Do not reuse these components in General Overheads.
+
+General Overheads must own its own UI.
+
+---
+
+## REMOVE HOOKS
+
+Delete or archive:
+
+- hooks/useEmployeeOverheads.js
+- hooks/useStaffOverheads.js
+
+---
+
+## REMOVE CALCULATIONS
+
+Delete or archive:
+
+- lib/calculations/employeeOverheadCalculations.js
+- lib/calculations/staffOverheadCalculations.js
+
+---
+
+## REMOVE SELECTORS
+
+Delete or archive:
+
+- lib/selectors/employeeOverheadSelectors.js
+- lib/selectors/staffOverheadSelectors.js
+
+---
+
+## REMOVE STORAGE
+
+Delete or archive:
+
+- lib/storage/employeeOverheadStorage.js
+- lib/storage/employeeOverheadProfileStorage.js
+- lib/storage/staffOverheadStorage.js
+- lib/storage/staffOverheadProfileStorage.js
+
+---
+
+## REMOVE SIDEBAR LINKS
+
+Remove any navigation entries for:
+
+- Employee Overheads
+- Staff Overheads
+
+Do not replace with a separate page.
+
+Staff overheads are reviewed inside General Overheads.
+
+---
+
+## REMOVE COST SUMMARY IMPORTS
+
+Cost Summary must not import from:
+
+- useEmployeeOverheads
+- employeeOverheadStorage
+- employeeOverheadSelectors
+- employeeOverheadCalculations
+
+Cost Summary must consume only:
+
+- Labour outputs
+- Assets outputs
+- General Overheads outputs
+- Model Readiness outputs
+
+---
+
+## REMOVE MODEL READINESS IMPORTS
+
+Model Readiness must not import or check:
+
+- employee_overheads_ready
+- employee_overheads_status
+- employee_overheads_variance_percent
+
+---
+
+## REMOVE P&L CATEGORY REFERENCES
+
+Remove category value:
+
+- employee_overheads
+
+Replace any legacy mapping with:
+
+- general_overheads
+
+---
+
+## SEARCH TERMS TO CLEAN
+
+Search the repo for:
+
+- employee_overheads
+- employeeOverheads
+- EmployeeOverheads
+- Employee Overheads
+- staff_overheads
+- staffOverheads
+- StaffOverheads
+- Staff Overheads
+
+Every result must be reviewed.
+
+Allowed remaining use:
+
+- "Staff Overheads" as a General Overheads category label only.
+
+---
+
+## NOT ALLOWED
+
+- keeping hidden Employee Overheads storage
+- keeping old Employee Overheads route disabled but present
+- importing old overhead selectors into General Overheads
+- joining overheads to Labour by staff_id
+- using old employee overhead outputs in Cost Summary
+- leaving sidebar links to removed modules
+
+---
+
+## DEFINITION OF DONE
+
+Cleanup is complete when:
+
+- no Employee Overheads page exists
+- no Employee Overheads hook exists
+- no Employee Overheads storage exists
+- no Cost Summary import references Employee Overheads
+- no Model Readiness check references Employee Overheads
+- P&L has no employee_overheads category
+- General Overheads owns all staff/shared overhead review
+- app builds with no missing imports
+
+---
+
+## FINAL DEFINITION
+
+This cleanup removes Employee Overheads as a standalone module from the codebase and ensures all staff/shared overhead handling is owned by General Overheads under the v3.5 system baseline.

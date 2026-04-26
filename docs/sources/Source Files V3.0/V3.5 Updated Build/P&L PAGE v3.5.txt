@@ -1,0 +1,198 @@
+# QS Tools — P&L Page (v3.5 — LOCKED)
+
+STATUS: INPUT + CLASSIFICATION + BENCHMARK LAYER
+
+---
+
+## PURPOSE
+
+The P&L Page captures the real financial position of the business and separates:
+
+- Revenue
+- Cost of Goods Sold / delivery costs
+- Business costs
+
+It provides benchmark totals for downstream module reconciliation.
+
+---
+
+## CORE PRINCIPLE
+
+COGS is delivery cost — not business cost.
+
+---
+
+## SYSTEM ROLE
+
+P&L is the input classification and benchmark layer.
+
+It does not calculate module totals.
+
+It does not directly drive Cost Summary calculations.
+
+---
+
+## STRUCTURE
+
+### 1. Revenue
+
+- total_revenue
+
+### 2. COGS / Delivery Costs
+
+- materials_cost
+- subcontract_cost
+- hired_equipment_cost
+
+### 3. Business Costs
+
+Business cost categories:
+
+- labour
+- assets
+- general_overheads
+- unassigned
+
+---
+
+## REMOVED CATEGORY
+
+The following category is removed:
+
+- employee_overheads
+
+Any staff overhead, PPE, phones, admin staff, or shared staff cost must be classified as:
+
+- general_overheads
+
+---
+
+## P&L LINE MODEL
+
+Each P&L line includes:
+
+- pnl_line_id
+- line_name
+- amount
+- section
+- category
+
+---
+
+## CATEGORY VALUES
+
+Allowed categories:
+
+- revenue
+- cogs_materials
+- cogs_subcontract
+- cogs_hire
+- labour
+- assets
+- general_overheads
+- unassigned
+
+---
+
+## CALCULATIONS
+
+### Total Revenue
+
+total_revenue =
+sum(all revenue lines)
+
+### Total COGS
+
+total_cogs =
+materials_cost + subcontract_cost + hired_equipment_cost
+
+### Gross Profit
+
+gross_profit =
+total_revenue - total_cogs
+
+### Module Benchmark Totals
+
+labour_benchmark_total =
+sum(lines where category = labour)
+
+assets_benchmark_total =
+sum(lines where category = assets)
+
+general_overheads_benchmark_total =
+sum(lines where category = general_overheads)
+
+### Total Business Costs
+
+total_business_costs =
+labour_benchmark_total
++ assets_benchmark_total
++ general_overheads_benchmark_total
+
+### Unassigned Balance
+
+unassigned_balance =
+sum(lines where category = unassigned)
+
+---
+
+## OUTPUTS
+
+- total_revenue
+- total_cogs
+- gross_profit
+- labour_benchmark_total
+- assets_benchmark_total
+- general_overheads_benchmark_total
+- total_business_costs
+- unassigned_balance
+- pnl_ready
+
+---
+
+## READINESS RULE
+
+pnl_ready =
+unassigned_balance = 0
+
+---
+
+## DOWNSTREAM USE
+
+P&L benchmark totals flow to module reconciliation only.
+
+P&L does not feed Cost Summary calculations directly.
+
+---
+
+## UI STRUCTURE
+
+1. PnLStatusStrip
+2. PnLMainCard
+3. PnLHelpPanel
+
+---
+
+## UI RULES
+
+- grouped sections allowed
+- collapsible sections allowed
+- subtotals visible in collapsed headers
+- operating expenses may use the Reclassification UI Pattern
+- COGS and revenue must remain clearly separate
+
+---
+
+## CORE RULES
+
+- no duplication of cost
+- no Employee Overheads category
+- no COGS in business costs
+- no raw P&L values used directly in Cost Summary
+- modules own their own calculations
+
+---
+
+## FINAL DEFINITION
+
+The P&L Page v3.5 is the financial classification and benchmark layer that separates revenue, delivery costs, and business costs, with all staff overheads and shared costs classified under General Overheads.

@@ -1,0 +1,191 @@
+# QS Tools — Variable Contract Brief (v3.5 — LOCKED)
+
+STATUS: COST CONTRACT CONTROL
+
+---
+
+## PURPOSE
+
+This brief defines the allowed cost variables for the v3.5 QS Tools baseline.
+
+It exists to prevent variable drift after removing Employee Overheads as a standalone module.
+
+---
+
+## CORE RULE
+
+Only locked module outputs may be consumed downstream.
+
+No downstream module may invent, rename, or rebuild upstream outputs.
+
+---
+
+## LABOUR OUTPUTS
+
+Allowed Labour cost outputs:
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_employer_contribution_annual
+- total_labour_cost_annual
+- total_productive_output
+
+Per-staff outputs may include:
+
+- staff_id
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+- total_employer_contribution_cost
+- productive_hours
+
+---
+
+## ASSETS OUTPUTS
+
+Allowed Assets outputs:
+
+- total_asset_cost_annual
+
+Per-asset outputs may include:
+
+- asset_id
+- finance_cost_annual
+- running_cost_annual
+- total_asset_cost_annual
+
+---
+
+## GENERAL OVERHEADS OUTPUTS
+
+Allowed General Overheads outputs:
+
+- total_general_overheads
+- category_totals
+- general_overheads_ready
+- general_overheads_variance_amount
+- general_overheads_variance_percent
+
+---
+
+## P&L BENCHMARK OUTPUTS
+
+Allowed P&L benchmark outputs:
+
+- labour_benchmark_total
+- assets_benchmark_total
+- general_overheads_benchmark_total
+- total_business_costs
+- unassigned_balance
+- pnl_ready
+
+Removed:
+
+- employee_overheads_benchmark_total
+
+---
+
+## MODEL READINESS OUTPUTS
+
+Allowed Model Readiness outputs:
+
+- model_ready
+- blocking_modules
+- warning_modules
+
+Removed:
+
+- employee_overheads_ready
+
+---
+
+## COST SUMMARY OUTPUTS
+
+Allowed Cost Summary outputs:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+
+---
+
+## COST SUMMARY FORMULAS
+
+total_people_cost_annual =
+total_gross_wages_annual
++ total_entitlements_annual
++ total_employer_kiwisaver_annual
++ total_esct_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+---
+
+## BANNED VARIABLES
+
+Do not use:
+
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_benchmark_total
+- employee_overheads_ready
+- employee_overheads_status
+- employee_overheads_variance_amount
+- employee_overheads_variance_percent
+- employee_overheads_annual
+
+---
+
+## NAMING RULES
+
+- snake_case only
+- no camelCase internal contract variables
+- no display labels as keys
+- no renaming locked variables without migration
+- no duplicate names for the same concept
+
+---
+
+## JOIN RULES
+
+Allowed joins:
+
+- Labour profile joins by staff_id where Labour owns the identity
+- Asset joins by asset_id where Assets owns the identity
+
+Not allowed:
+
+- joining staff overheads to Labour by staff_id
+- joining by staff_name
+- joining by asset_name
+- joining by category display labels
+
+---
+
+## FINAL DEFINITION
+
+The v3.5 variable contract defines the only valid cost outputs and removes all Employee Overheads variables from the system-wide downstream contract.
