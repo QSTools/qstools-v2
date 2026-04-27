@@ -23,11 +23,9 @@ const nav_groups = [
   {
     label: "Core Inputs",
     items: [
-      { href: "/labour", label: "Labour" },
-      { href: "/employee-overheads", label: "Employee Overheads" },
-      { href: "/assets", label: "Assets" },
       { href: "/general-overheads", label: "General Overheads" },
-      { href: "/materials", label: "Materials" },
+      { href: "/labour", label: "Labour" },
+      { href: "/assets", label: "Assets" },
     ],
   },
   {
@@ -83,16 +81,12 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/labour-rate-reality-check/"),
     "Business Truth": pathname === "/p-and-l" || pathname.startsWith("/p-and-l/"),
     "Core Inputs":
-      pathname === "/labour" ||
-      pathname.startsWith("/labour/") ||
-      pathname === "/employee-overheads" ||
-      pathname.startsWith("/employee-overheads/") ||
-      pathname === "/assets" ||
-      pathname.startsWith("/assets/") ||
       pathname === "/general-overheads" ||
       pathname.startsWith("/general-overheads/") ||
-      pathname === "/materials" ||
-      pathname.startsWith("/materials/"),
+      pathname === "/labour" ||
+      pathname.startsWith("/labour/") ||
+      pathname === "/assets" ||
+      pathname.startsWith("/assets/"),
     "Cost & Recovery":
       pathname === "/cost-summary" ||
       pathname.startsWith("/cost-summary/") ||

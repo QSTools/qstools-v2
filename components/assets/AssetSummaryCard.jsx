@@ -94,27 +94,6 @@ export default function AssetSummaryCard({
           </div>
         </div>
 
-        <div className="ui-panel">
-          <div className="ui-stack-sm">
-            <div className="ui-kicker">Reconciliation</div>
-
-            <div className="labour-summary-table">
-              <SummaryRow
-                label="Assets Benchmark Total (P&L)"
-                value={status.assets_benchmark_total_label || "$0"}
-              />
-              <SummaryRow
-                label="Calculated Asset Total"
-                value={status.module_total_asset_cost_label || "$0"}
-              />
-              <SummaryRow
-                label="Match Status"
-                value={status.is_ready ? "Aligned" : "Not aligned"}
-              />
-            </div>
-          </div>
-        </div>
-
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Next Step</div>
           <div className="ui-help">
@@ -149,10 +128,14 @@ export default function AssetSummaryCard({
           <div className="ui-stack-sm">
             <div className="ui-kicker">What this means</div>
             <div className="ui-help">
-              This shows the selected asset finance cost as principal and
-              interest so the annual repayment is visible and auditable. Running
-              costs are excluded from this view for now and will be added later
-              as a separate cost layer.
+              This is the true annual cost of owning this asset based on actual
+              finance repayments. It replaces the P&L view, where asset costs are
+              often split or hidden.
+            </div>
+
+            <div className="ui-help">
+              Principal and interest are shown separately so the full repayment is
+              visible and auditable. Running costs will be added as a separate layer.
             </div>
           </div>
         </div>
