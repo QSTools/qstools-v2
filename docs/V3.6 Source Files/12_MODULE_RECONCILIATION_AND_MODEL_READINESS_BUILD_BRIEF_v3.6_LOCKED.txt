@@ -1,6 +1,6 @@
 # QS Tools — Module Reconciliation + Model Readiness Gate Build Brief (v3.6 — LOCKED)
 
-STATUS: READY TO BUILD
+STATUS: READY TO BUILD  
 VERSION: v3.6
 
 ---
@@ -30,18 +30,18 @@ Cost Summary is the first downstream page that consumes the verdict.
 
 ## SYSTEM POSITION
 
-P&L
-↓
-General Overheads
-↓
-Labour
-↓
-Assets
-↓
-Module Reconciliation
-↓
-Model Readiness
-↓
+P&L  
+↓  
+General Overheads  
+↓  
+Labour  
+↓  
+Assets  
+↓  
+Module Reconciliation  
+↓  
+Model Readiness  
+↓  
 Cost Summary
 
 ---
@@ -60,19 +60,25 @@ A temporary developer diagnostics page is allowed during build.
 
 ### Reconciliation Layer
 
+```text
 lib/reconciliation/reconciliationRules.js
 lib/reconciliation/moduleReconciliation.js
 hooks/useModuleReconciliation.js
+```
 
 ### Model Readiness Layer
 
+```text
 lib/calculations/modelReadinessCalculations.js
 hooks/useModelReadiness.js
 components/model-readiness/ModelReadinessStatusStrip.jsx
+```
 
 ### Temporary Diagnostics Page
 
+```text
 app/dev/model-readiness/page.jsx
+```
 
 ---
 
@@ -80,7 +86,9 @@ app/dev/model-readiness/page.jsx
 
 Cost Summary should later import:
 
+```text
 components/model-readiness/ModelReadinessStatusStrip.jsx
+```
 
 Cost Summary should later consume:
 
@@ -133,6 +141,7 @@ The layer must read from existing upstream module outputs.
 - total_asset_cost_annual
 - assets_ready
 - active_assets
+- no_active_assets_confirmed
 
 ---
 
@@ -149,6 +158,7 @@ Module Reconciliation must output:
 
 Each check must use this shape:
 
+```js
 {
   check_id,
   module,
@@ -158,6 +168,7 @@ Each check must use this shape:
   detail,
   recommended_action
 }
+```
 
 Allowed severity values:
 
@@ -188,6 +199,7 @@ Allowed model_readiness_status values:
 
 ## READINESS FORMULA
 
+```text
 model_ready =
 pnl_ready
 AND general_overheads_ready
@@ -195,11 +207,13 @@ AND labour_ready
 AND assets_ready
 AND reconciliation_ready
 AND blocking_checks.length = 0
+```
 
 ---
 
 ## STATUS FORMULA
 
+```text
 If blocking_checks.length > 0:
 
 model_readiness_status = "blocked"
@@ -211,6 +225,7 @@ model_readiness_status = "warning"
 Else:
 
 model_readiness_status = "ready"
+```
 
 ---
 
@@ -223,7 +238,7 @@ Hard checks:
 - P&L data exists
 - pnl_ready is true
 - unassigned_balance equals 0
-- employee_overheads category does not exist
+- employee_overheads category does not exist as an active category
 - total_business_costs is available as a benchmark
 
 Warnings:
@@ -240,7 +255,7 @@ Hard checks:
 - total_general_overheads exists
 - general_overheads_ready is true
 - category_totals exists
-- employee_overheads is not present
+- employee_overheads is not present as an active output
 - staff_overheads_total is not exposed as a downstream output
 - total_general_overheads is the only downstream overhead output
 
@@ -304,9 +319,9 @@ Hard checks:
 
 Warnings:
 
-- no active assets exist
 - total_asset_cost_annual is 0
 - assets benchmark variance exists
+- no active assets exist but no_active_assets_confirmed is true
 
 Ownership checks:
 
@@ -322,6 +337,42 @@ Ownership checks:
 - Assets does not own tyres
 - Assets does not own shared fleet costs
 - Assets does not own labour costs
+
+---
+
+### Assets No-Active-Assets Rule
+
+Assets are optional only when explicitly confirmed by the user.
+
+Do not infer no active assets from:
+
+```text
+empty asset list
+zero asset total
+missing P&L asset benchmark
+zero P&L asset benchmark
+```
+
+Add or support an explicit confirmation state:
+
+```text
+no_active_assets_confirmed
+```
+
+Readiness behaviour:
+
+```text
+active assets exist and pass ownership-only checks = PASS
+
+no active assets exist
+AND no_active_assets_confirmed = true
+AND total_asset_cost_annual = 0 = PASS with info
+
+no active assets exist
+AND no confirmation exists = BLOCKER
+```
+
+This rule exists to avoid hidden assumptions.
 
 ---
 
@@ -352,11 +403,15 @@ Cost Summary may display reconciliation status.
 
 Module Reconciliation owns the comparison between:
 
+```text
 P&L benchmark totals
+```
 
 and
 
-module source-of-truth totals.
+```text
+module source-of-truth totals
+```
 
 ---
 
@@ -364,16 +419,22 @@ module source-of-truth totals.
 
 Module Reconciliation may calculate diagnostic comparison totals:
 
+```text
 module_total_business_costs =
 total_labour_cost_annual
 + total_asset_cost_annual
 + total_general_overheads
+```
 
+```text
 pnl_business_cost_variance =
 module_total_business_costs - total_business_costs
+```
 
+```text
 pnl_business_cost_variance_percent =
 pnl_business_cost_variance / total_business_costs
+```
 
 These are diagnostics only.
 
@@ -408,16 +469,19 @@ If model_ready = true and model_readiness_status = "ready":
 
 Create:
 
+```text
 app/dev/model-readiness/page.jsx
+```
 
 The page should show:
 
 1. Model Readiness Status
 2. Raw Module Inputs
-3. Reconciliation Checks
-4. Blocking Checks
-5. Warning Checks
-6. Final Outputs
+3. Normalised Reconciliation Inputs
+4. Reconciliation Checks
+5. Blocking Checks
+6. Warning Checks
+7. Final Outputs
 
 This page must not be added to main sidebar navigation.
 
@@ -427,7 +491,9 @@ This page must not be added to main sidebar navigation.
 
 Create:
 
+```text
 components/model-readiness/ModelReadinessStatusStrip.jsx
+```
 
 Props:
 
@@ -444,31 +510,43 @@ Display states:
 
 Title:
 
+```text
 Model Ready
+```
 
 Message:
 
+```text
 All setup modules are complete and reconciled.
+```
 
 ### Warning
 
 Title:
 
+```text
 Model Ready With Warnings
+```
 
 Message:
 
+```text
 The model can be used, but review warnings before relying on downstream decisions.
+```
 
 ### Blocked
 
 Title:
 
+```text
 Model Not Ready
+```
 
 Message:
 
+```text
 Fix blocking modules before downstream outputs are trusted.
+```
 
 Show:
 
@@ -503,6 +581,9 @@ Module Reconciliation must not:
 - recalculate General Overheads totals
 - create pricing logic
 - create recovery logic
+- infer no active assets from missing P&L asset benchmark
+- infer no active assets from zero P&L asset benchmark
+- infer no active assets from empty asset list unless no_active_assets_confirmed is true
 
 Model Readiness must not:
 
@@ -516,4 +597,12 @@ Model Readiness must not:
 
 ## FINAL DEFINITION
 
-Module Reconciliation + Model Readiness Gate v3.6 proves the upstream QS Tools model before Cost Summary is trusted. Reconciliation supplies the evidence. Model Readiness supplies the verdict. Cost Summary consumes the verdict but does not perform the checks itself.
+Module Reconciliation + Model Readiness Gate v3.6 proves the upstream QS Tools model before Cost Summary is trusted.
+
+Reconciliation supplies the evidence.
+
+Model Readiness supplies the verdict.
+
+Cost Summary consumes the verdict but does not perform the checks itself.
+
+Assets may only pass readiness with no active assets where explicit no_active_assets_confirmed support exists and is true. Missing data is not confirmation.

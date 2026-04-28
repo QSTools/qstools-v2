@@ -1,6 +1,6 @@
 # QS Tools — Module Reconciliation (v3.6 — LOCKED)
 
-STATUS: EVIDENCE LAYER
+STATUS: EVIDENCE LAYER  
 VERSION: v3.6
 
 ---
@@ -27,18 +27,18 @@ Cost Summary must not be trusted until reconciliation has checked the upstream m
 
 ## POSITION IN SYSTEM
 
-P&L
-↓
-General Overheads
-↓
-Labour
-↓
-Assets
-↓
-Module Reconciliation
-↓
-Model Readiness
-↓
+P&L  
+↓  
+General Overheads  
+↓  
+Labour  
+↓  
+Assets  
+↓  
+Module Reconciliation  
+↓  
+Model Readiness  
+↓  
 Cost Summary
 
 ---
@@ -53,13 +53,17 @@ It may have a temporary developer diagnostics page, but it is not part of normal
 
 ## RECOMMENDED FILE STRUCTURE
 
+```text
 lib/reconciliation/reconciliationRules.js
 lib/reconciliation/moduleReconciliation.js
 hooks/useModuleReconciliation.js
+```
 
 Optional temporary diagnostics:
 
+```text
 app/dev/model-readiness/page.jsx
+```
 
 ---
 
@@ -101,6 +105,7 @@ app/dev/model-readiness/page.jsx
 - total_asset_cost_annual
 - assets_ready
 - active_assets
+- no_active_assets_confirmed
 
 ---
 
@@ -160,6 +165,43 @@ app/dev/model-readiness/page.jsx
 - Assets do not include shared fleet costs
 - Assets do not include labour cost
 
+If no active assets exist, Module Reconciliation must check whether the user has explicitly confirmed that no active assets are required.
+
+Allowed confirmation field:
+
+```text
+no_active_assets_confirmed
+```
+
+Rules:
+
+```text
+If active assets exist:
+  Assets readiness should be based on ownership-only cost completeness and reconciliation.
+
+If no active assets exist and no_active_assets_confirmed = true:
+  Assets may pass readiness with an informational check.
+
+If no active assets exist and no confirmation exists:
+  Assets readiness must fail.
+```
+
+A missing or zero P&L asset benchmark must not be treated as confirmation that no assets are required.
+
+---
+
+### No Active Assets Confirmation Check
+
+If no active assets exist, Module Reconciliation must distinguish between incomplete setup and intentional no-asset setup.
+
+```text
+No active assets + no confirmation = blocker
+No active assets + explicit confirmation = pass with info
+Active assets + valid ownership-only total = pass or warning based on reconciliation
+```
+
+This rule exists to avoid hidden assumptions.
+
 ---
 
 ### Cross-Module Checks
@@ -188,6 +230,8 @@ Examples:
 - running_cost_annual feeding Assets total
 - employee_overheads active category or output detected
 - total_productive_output missing or zero where recovery rate is required
+- no active assets exist and no_active_assets_confirmed is not true
+- module total business cost differs materially from P&L business cost
 
 ---
 
@@ -199,10 +243,10 @@ Examples:
 
 - P&L benchmark variance exists
 - unallocated General Overheads remain
-- no assets entered
-- no Labour profiles entered
 - optional category detail missing
 - unusual cost split detected
+- no active assets exist but no_active_assets_confirmed is true
+- P&L asset benchmark is missing but the user has explicitly confirmed no active assets are required
 
 ---
 
@@ -239,16 +283,22 @@ Allowed severity values:
 
 Module Reconciliation may calculate:
 
+```text
 module_total_business_costs =
 total_labour_cost_annual
 + total_asset_cost_annual
 + total_general_overheads
+```
 
+```text
 pnl_business_cost_variance =
 module_total_business_costs - total_business_costs
+```
 
+```text
 pnl_business_cost_variance_percent =
 pnl_business_cost_variance / total_business_costs
+```
 
 These are diagnostics only.
 
@@ -270,9 +320,13 @@ Module Reconciliation must not:
 - create pricing logic
 - create recovery logic
 - create new source-of-truth totals
+- infer that no assets are required from missing asset data
+- infer that no assets are required from a missing or zero P&L asset benchmark
 
 ---
 
 ## FINAL DEFINITION
 
 Module Reconciliation v3.6 is the evidence layer that checks whether P&L, General Overheads, Labour, and Assets are contract-compliant before Model Readiness issues the final trust verdict.
+
+Assets may only pass without active asset records when the user explicitly confirms that no active assets are required. Missing asset data is not confirmation.

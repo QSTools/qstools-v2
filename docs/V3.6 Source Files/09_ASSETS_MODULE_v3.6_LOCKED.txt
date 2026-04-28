@@ -1,6 +1,6 @@
 # QS Tools — Assets Module Brief (v3.6 — LOCKED)
 
-STATUS: ACTIVE SOURCE BRIEF
+STATUS: ACTIVE SOURCE BRIEF  
 VERSION: v3.6
 
 ---
@@ -17,18 +17,18 @@ It does not calculate running costs.
 
 ## SYSTEM POSITION
 
-P&L
-↓
-General Overheads
-↓
-Labour
-↓
-Assets
-↓
-Module Reconciliation
-↓
-Model Readiness
-↓
+P&L  
+↓  
+General Overheads  
+↓  
+Labour  
+↓  
+Assets  
+↓  
+Module Reconciliation  
+↓  
+Model Readiness  
+↓  
 Cost Summary
 
 ---
@@ -92,6 +92,7 @@ Assets may output:
 
 - total_asset_cost_annual
 - assets_ready
+- no_active_assets_confirmed
 
 Per asset:
 
@@ -121,14 +122,113 @@ If still present in code during migration, it must be treated as legacy only and
 
 ## READINESS RULE
 
-assets_ready = true when:
+assets_ready = true when one of the following is true:
 
-- asset data exists or the user has confirmed no active assets are required
-- total_asset_cost_annual exists
-- ownership-only rules are followed
-- running_cost_annual does not feed total_asset_cost_annual
-- no vehicle running costs are included
-- no labour costs are included
+```text
+1. Active assets exist
+AND total_asset_cost_annual exists
+AND ownership-only rules are followed
+AND running_cost_annual does not feed total_asset_cost_annual
+AND no vehicle running costs are included
+AND no labour costs are included
+```
+
+OR:
+
+```text
+2. no_active_assets_confirmed = true
+AND total_asset_cost_annual = 0
+AND no legacy running costs are feeding Assets
+```
+
+If no active assets exist and no_active_assets_confirmed is not true, Assets must remain not ready.
+
+---
+
+## NO ACTIVE ASSETS CONFIRMATION RULE
+
+Assets are not automatically ready just because the P&L asset benchmark is missing or zero.
+
+A missing P&L asset benchmark must not be treated as proof that the business has no assets.
+
+Assets may be considered ready only when one of the following is true:
+
+```text
+1. Active assets exist and total_asset_cost_annual is calculated using ownership-only costs.
+
+OR
+
+2. The user has explicitly confirmed that no active assets are required for the current business model.
+```
+
+The confirmation must be stored as an explicit state/contract value:
+
+```text
+no_active_assets_confirmed
+```
+
+Do not infer this confirmation from:
+
+```text
+missing P&L asset benchmark
+zero P&L asset benchmark
+zero asset total
+empty asset list
+incomplete setup data
+```
+
+If there are no active assets and no explicit confirmation, Assets must remain not ready.
+
+---
+
+## ASSET READINESS LOGIC
+
+assets_ready = true only when:
+
+```text
+active assets exist
+AND total_asset_cost_annual exists
+AND ownership-only rules are followed
+AND asset totals are reconciled or accepted under the readiness rules
+```
+
+OR:
+
+```text
+no_active_assets_confirmed = true
+AND total_asset_cost_annual = 0
+AND no legacy running costs are feeding Assets
+```
+
+If no_active_assets_confirmed = true, Assets may pass readiness with:
+
+```text
+total_asset_cost_annual = 0
+```
+
+but Module Reconciliation should still show an informational check stating that the user has confirmed no active assets are required.
+
+---
+
+## IMPORTANT FIRST-PRINCIPLES RULE
+
+Do not assume no assets.
+
+The system must distinguish between:
+
+```text
+assets missing because setup is incomplete
+```
+
+and:
+
+```text
+assets intentionally confirmed as not required
+```
+
+Missing data is not confirmation.
+
+Explicit confirmation is required.
 
 ---
 
@@ -147,6 +247,14 @@ Cost Summary must not consume:
 - vehicle running categories
 - active asset-labour links
 
+If no_active_assets_confirmed = true, Cost Summary may consume:
+
+```text
+total_asset_cost_annual = 0
+```
+
+but this must come from the Assets module contract, not from Cost Summary assuming no assets exist.
+
 ---
 
 ## NOT ALLOWED
@@ -160,9 +268,14 @@ Assets must not:
 - consume Labour totals
 - consume General Overheads totals
 - expose running cost as a downstream Cost Summary value
+- assume no assets are required because asset data is missing
+- assume no assets are required because the P&L asset benchmark is zero
+- assume no assets are required because the P&L asset benchmark is missing
 
 ---
 
 ## FINAL DEFINITION
 
 Assets v3.6 is the ownership-only asset cost engine. It produces total_asset_cost_annual and excludes vehicle/fleet running costs, which belong in General Overheads.
+
+Assets may only pass readiness with no active assets when the user explicitly confirms that no active assets are required. Missing data is not confirmation.
