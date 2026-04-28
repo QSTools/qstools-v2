@@ -37,11 +37,10 @@ function get_category_help_text(category) {
     case "labour":
       return "Feeds the Labour module benchmark. Use for wages and direct staff cost.";
     case "employee_overheads":
-      return "Feeds the Employee Overheads benchmark. Use for staff-linked burden such as KiwiSaver, ACC, PPE, uniforms, training, tools, and small equipment.";
-    case "assets":
-      return "Feeds the Assets benchmark. Use for vehicle, plant, finance, running costs, repairs, maintenance, licences, registrations, and ownership costs.";
     case "general_overheads":
       return "Feeds the General Overheads benchmark. Use for business-wide costs such as insurance, phones, internet, office, accounting, and subscriptions.";
+    case "assets":
+      return "Feeds the Assets benchmark. Use for vehicle, plant, finance, running costs, repairs, maintenance, licences, registrations, and ownership costs.";
     case "unassigned":
     default:
       return "Not ready yet. Leave here only if you still need to decide where this line belongs.";
