@@ -1,0 +1,56 @@
+STATUS: IMPLEMENTED — LOCKED
+
+CORE PURPOSE:
+Aggregate all shared / non-asset-specific overhead costs into a single recoverable pool.
+
+INPUT SOURCE:
+- P&L lines where category = general_overheads OR employee_overheads
+
+INCLUDES:
+
+Staff Overheads:
+- PPE, uniforms, training, tools, staff-related support costs
+
+Vehicles (Running):
+- Fuel
+- Repairs
+- Maintenance
+- Registration / licensing
+- Tyres / consumables
+
+Office / Admin:
+- Software, phones, internet, supplies
+
+Financial Admin:
+- Accounting, legal, bank fees
+
+Insurance & Compliance:
+- Public liability, indemnity, general insurance
+
+Facilities:
+- Rent, power, premises
+
+RULES:
+
+1. Shared vs Owned split:
+   - Shared costs → General Overheads
+   - Owned asset costs → Assets module
+
+2. NO double counting:
+   - If cost belongs to Assets → NOT included here
+   - If cost is shared → MUST be included here
+
+3. Sync behaviour:
+   - “Sync from P&L” pulls ONLY valid categories
+   - Keyword mapping ensures vehicle costs land in Vehicles (Running)
+
+OUTPUT CONTRACT (LOCKED):
+- total_general_overheads
+- grouped_overhead_rows
+- category totals (Office, Financial, Vehicles, etc.)
+
+VALIDATION:
+- Must match P&L General Overheads Benchmark (181,000 in current example)
+
+STATUS:
+- Fully reconciled with P&L

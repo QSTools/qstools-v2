@@ -1,0 +1,154 @@
+# QS Tools — P&L Page Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+The P&L page captures business financial reality and provides the first classification layer.
+
+It is the starting point for the QS Tools model.
+
+The P&L page should help the user import, review, classify, and benchmark costs before the specialised modules refine source-of-truth totals.
+
+---
+
+## SYSTEM POSITION
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## CORE PRINCIPLE
+
+P&L is raw financial reality and classification only.
+
+P&L does not decide final module ownership after reconciliation.
+
+P&L does not perform recovery, pricing, allocation, or downstream modelling.
+
+---
+
+## PRIMARY OUTPUTS
+
+P&L may output:
+
+- pnl_ready
+- pnl_lines
+- pnl_categories
+- total_business_costs
+- labour_benchmark_total
+- assets_benchmark_total
+- general_overheads_benchmark_total
+- unassigned_balance
+
+These are benchmark / classification outputs.
+
+---
+
+## DOWNSTREAM HANDOFF
+
+P&L benchmark totals flow to Module Reconciliation only.
+
+P&L values do not feed Cost Summary calculations directly.
+
+Cost Summary must consume the clean module totals from:
+
+- Labour
+- Assets
+- General Overheads
+- Model Readiness
+
+---
+
+## CATEGORY VALUES
+
+Allowed active v3.6 category groups:
+
+- labour
+- assets
+- general_overheads
+- cogs
+- income
+- excluded
+- unassigned
+
+Legacy employee_overheads categories must be migrated to general_overheads.
+
+employee_overheads is not an active v3.6 category.
+
+---
+
+## READINESS RULE
+
+pnl_ready = true only when:
+
+- P&L data exists
+- required lines are classified
+- unassigned_balance = 0
+- no active employee_overheads category remains
+- benchmark totals are available where required
+
+---
+
+## P&L BENCHMARKS
+
+P&L may provide:
+
+- labour benchmark
+- assets benchmark
+- general overheads benchmark
+- total business cost benchmark
+
+These are reference values.
+
+They are used for reconciliation and review.
+
+They do not override specialised module outputs.
+
+---
+
+## CORE RULES
+
+- employer ACC levy belongs to Labour, not General Overheads
+- vehicle running costs belong to General Overheads, not Assets
+- asset ownership costs belong to Assets, not General Overheads
+- staff overheads belong to General Overheads as category only
+- Employee Overheads is removed
+- Staff Overheads is not a module
+
+---
+
+## USER EXPERIENCE
+
+The P&L page should make classification easy.
+
+The user should be able to see:
+
+- category totals
+- unassigned balance
+- imported P&L line items
+- classification status
+- setup progress
+
+The page should not become the place where recovery or pricing decisions are made.
+
+---
+
+## FINAL DEFINITION
+
+P&L v3.6 is the raw financial input and first classification layer. It provides benchmark totals and classification readiness, but the specialised modules remain the source of truth for downstream Cost Summary calculations.

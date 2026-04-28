@@ -1,0 +1,168 @@
+# QS Tools — Assets Module Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+Assets is the ownership-only asset cost engine.
+
+It calculates the annual cost of owning or financing business assets.
+
+It does not calculate running costs.
+
+---
+
+## SYSTEM POSITION
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## CORE ROLE
+
+Assets owns:
+
+- asset finance cost
+- lease cost
+- depreciation cost
+- ownership cost
+- total_asset_cost_annual
+
+---
+
+## INCLUDE
+
+Assets may include:
+
+- finance cost
+- lease cost
+- depreciation cost
+- ownership cost
+- annualised replacement / purchase recovery if explicitly treated as ownership cost
+- other locked ownership-only asset costs
+
+---
+
+## EXCLUDE
+
+Assets must not include:
+
+- fuel
+- servicing
+- repairs
+- maintenance
+- registration
+- licensing
+- tyres
+- consumables
+- shared fleet costs
+- shared maintenance pools
+- vehicle running costs
+- direct running cost
+- staff assignment
+- labour recovery
+- pricing
+- overhead allocation
+- hired equipment / delivery cost
+
+Vehicle running costs belong in General Overheads.
+
+Hired equipment / delivery cost belongs in COGS or delivery cost, not Assets.
+
+---
+
+## OUTPUT CONTRACT
+
+Assets may output:
+
+- total_asset_cost_annual
+- assets_ready
+
+Per asset:
+
+- asset_id
+- asset_name
+- asset_type
+- finance_cost_annual
+- lease_cost_annual
+- depreciation_cost_annual
+- ownership_cost_annual
+- total_asset_cost_annual
+- is_active
+
+---
+
+## DEPRECATED FIELD
+
+The following field is deprecated in v3.6:
+
+- running_cost_annual
+
+It must not feed Cost Summary.
+
+If still present in code during migration, it must be treated as legacy only and excluded from total_asset_cost_annual unless explicitly migrated into General Overheads.
+
+---
+
+## READINESS RULE
+
+assets_ready = true when:
+
+- asset data exists or the user has confirmed no active assets are required
+- total_asset_cost_annual exists
+- ownership-only rules are followed
+- running_cost_annual does not feed total_asset_cost_annual
+- no vehicle running costs are included
+- no labour costs are included
+
+---
+
+## COST SUMMARY HANDOFF
+
+Cost Summary must consume:
+
+- total_asset_cost_annual
+
+Cost Summary must not consume:
+
+- running_cost_annual
+- fuel
+- maintenance
+- repair
+- vehicle running categories
+- active asset-labour links
+
+---
+
+## NOT ALLOWED
+
+Assets must not:
+
+- assign shared costs
+- calculate pricing
+- calculate recovery strategy
+- calculate productive capacity
+- consume Labour totals
+- consume General Overheads totals
+- expose running cost as a downstream Cost Summary value
+
+---
+
+## FINAL DEFINITION
+
+Assets v3.6 is the ownership-only asset cost engine. It produces total_asset_cost_annual and excludes vehicle/fleet running costs, which belong in General Overheads.

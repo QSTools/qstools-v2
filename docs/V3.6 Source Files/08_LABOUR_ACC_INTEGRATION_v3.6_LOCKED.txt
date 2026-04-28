@@ -1,0 +1,95 @@
+# QS Tools — Labour Module ACC Integration & Rate Transparency (v3.6 — LOCKED)
+
+STATUS: ACTIVE LABOUR ADDENDUM
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+This brief locks employer ACC levy into the Labour module as a true employer cost.
+
+ACC must be visible in the Labour rate build and included in downstream Labour totals.
+
+---
+
+## CORE RULE
+
+Employer ACC levy belongs in Labour.
+
+It is not General Overheads.
+
+It is not Insurance & Compliance.
+
+It is not optional if accurate labour cost is required.
+
+---
+
+## LABOUR CALCULATION
+
+Per staff profile:
+
+acc_levy_annual =
+gross_wages_annual * acc_rate_percent
+
+The exact ACC calculation method may be refined based on real ACC rate structure, but the output contract must remain stable.
+
+---
+
+## REQUIRED OUTPUTS
+
+Labour must expose:
+
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- total_labour_cost_annual
+
+---
+
+## EMPLOYER CONTRIBUTION FORMULA
+
+total_employer_contribution_annual =
+total_employer_kiwisaver_annual
++ total_esct_annual
++ total_acc_levy_annual
+
+---
+
+## DOWNSTREAM CONTRACT
+
+Cost Summary must consume Labour outputs only.
+
+Cost Summary must not recalculate ACC.
+
+Module Reconciliation must check that ACC is included before the model is trusted.
+
+---
+
+## DISPLAY REQUIREMENT
+
+Labour summary should show:
+
+- Gross Wages
+- Entitlements
+- Employer KiwiSaver
+- ESCT
+- Employer ACC Levy
+- Employer Contribution Total
+- Total Labour Cost
+- Productive Hours
+
+---
+
+## RATE TRANSPARENCY
+
+Labour-only recovery rates may be displayed inside Labour.
+
+Full business recovery strategy remains downstream and is owned by Recovery Summary.
+
+Cost Summary may display baseline required recovery rate, but must not define recovery strategy or pricing.
+
+---
+
+## FINAL DEFINITION
+
+ACC is a Labour employer cost in QS Tools v3.6. It must be included in total_employer_contribution_annual and total_labour_cost_annual, then consumed downstream as part of Labour's source-of-truth total.

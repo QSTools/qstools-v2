@@ -1,0 +1,201 @@
+# QS Tools — Model Readiness (v3.6 — LOCKED)
+
+STATUS: TRUST GATE
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+Model Readiness determines whether the QS Tools model is complete and reconciled enough to trust downstream cost, recovery, pricing, capacity, outcome, and quote validation outputs.
+
+---
+
+## CORE PRINCIPLE
+
+If the model is not ready, downstream pages are not trusted.
+
+Reconciliation is the evidence layer.
+
+Model Readiness is the verdict layer.
+
+---
+
+## POSITION IN SYSTEM
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## INPUTS
+
+### Direct Module Inputs
+
+- pnl_ready
+- general_overheads_ready
+- labour_ready
+- assets_ready
+
+### From Module Reconciliation
+
+- reconciliation_ready
+- blocking_checks[]
+- warning_checks[]
+- blocking_modules[]
+- warning_modules[]
+
+---
+
+## REMOVED INPUTS
+
+- employee_overheads_ready
+- staff_overheads_ready
+
+---
+
+## CALCULATION
+
+model_ready =
+pnl_ready
+AND general_overheads_ready
+AND labour_ready
+AND assets_ready
+AND reconciliation_ready
+AND blocking_checks.length = 0
+
+---
+
+## OUTPUTS
+
+- model_ready
+- blocking_modules
+- warning_modules
+- blocking_checks
+- warning_checks
+- model_readiness_status
+
+Allowed model_readiness_status values:
+
+- ready
+- warning
+- blocked
+
+---
+
+## STATUS RULES
+
+### ready
+
+Use when:
+
+- model_ready = true
+- no blocking checks exist
+- no major warnings exist
+
+---
+
+### warning
+
+Use when:
+
+- model_ready = true
+- no blocking checks exist
+- warning checks exist
+
+Downstream outputs may be used, but warnings must remain visible.
+
+---
+
+### blocked
+
+Use when:
+
+- model_ready = false
+- one or more blocking checks exist
+
+Downstream outputs may display but must not be treated as final.
+
+---
+
+## BEHAVIOUR
+
+If model_ready = false:
+
+- Cost Summary totals may display
+- Cost Summary must show not trusted state
+- downstream modelling is marked not trusted
+- Recovery Summary is not final
+- Rate Models are not final
+- Production Capacity is not final
+- Recovery Outcome is not final
+- Quote Benchmark is not final
+
+---
+
+## USER DISPLAY
+
+Model Readiness should be exposed through reusable status components, not a main workflow page.
+
+Recommended component:
+
+components/model-readiness/ModelReadinessStatusStrip.jsx
+
+Recommended hook:
+
+hooks/useModelReadiness.js
+
+Recommended calculation file:
+
+lib/calculations/modelReadinessCalculations.js
+
+---
+
+## STATUS STRIP DISPLAY
+
+When ready:
+
+Model Ready
+All setup modules are complete and reconciled.
+
+When warning:
+
+Model Ready With Warnings
+The model can be used, but review warnings before relying on downstream decisions.
+
+When blocked:
+
+Model Not Ready
+The following modules must be fixed before downstream outputs are trusted.
+
+---
+
+## NOT ALLOWED
+
+Model Readiness must not:
+
+- recalculate Labour
+- recalculate Assets
+- recalculate General Overheads
+- reclassify P&L
+- create cost totals
+- create recovery logic
+- create pricing logic
+- create operational capacity logic
+
+---
+
+## FINAL DEFINITION
+
+Model Readiness v3.6 is the trust gate for QS Tools. It consumes module readiness flags and Module Reconciliation results, then decides whether Cost Summary and downstream commercial outputs can be trusted.

@@ -1,0 +1,148 @@
+# QS Tools — Code Migration Cleanup Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE CLEANUP GUIDE
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+This brief defines the code cleanup required to align the live app with the v3.6 source pack.
+
+---
+
+## CLEANUP TARGETS
+
+Remove or migrate all references to:
+
+- Employee Overheads module
+- employee_overheads_ready
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_benchmark_total
+- employee_overheads_status
+- employee_overheads_variance_amount
+- employee_overheads_variance_percent
+- staff_overheads_total as a downstream output
+- staff_overheads_ready
+- running_cost_annual feeding Assets or Cost Summary
+- Cost Summary consuming raw P&L lines
+- Cost Summary consuming category-specific overhead subtotals
+- Cost Summary performing P&L reconciliation directly
+
+---
+
+## REQUIRED NEW SYSTEM LAYERS
+
+Add:
+
+- Module Reconciliation
+- Model Readiness
+
+Add temporary diagnostics route:
+
+app/dev/model-readiness/page.jsx
+
+Do not add Module Reconciliation or Model Readiness to the main user workflow navigation unless explicitly required later.
+
+---
+
+## FILES TO CREATE
+
+### Reconciliation
+
+lib/reconciliation/reconciliationRules.js
+lib/reconciliation/moduleReconciliation.js
+hooks/useModuleReconciliation.js
+
+### Model Readiness
+
+lib/calculations/modelReadinessCalculations.js
+hooks/useModelReadiness.js
+components/model-readiness/ModelReadinessStatusStrip.jsx
+
+### Temporary diagnostics
+
+app/dev/model-readiness/page.jsx
+
+---
+
+## FILES LIKELY TO UPDATE
+
+- hooks/usePnl.js
+- hooks/useGeneralOverheads.js
+- hooks/useLabour.js
+- hooks/useAssets.js
+- hooks/useCostSummary.js
+- app/cost-summary/page.jsx
+- components/cost-summary/*
+- lib/calculations/costSummaryCalculations.js
+- lib/storage/*
+- sidebar/navigation config, if dev link is temporarily required
+
+---
+
+## MIGRATION RULES
+
+### Employee Overheads
+
+Employee Overheads is removed.
+
+Legacy references must be deleted or remapped to General Overheads.
+
+### Staff Overheads
+
+Staff Overheads is category-only inside General Overheads.
+
+Do not expose Staff Overheads as a standalone module, output, readiness flag, or Cost Summary input.
+
+### Assets Running Costs
+
+Remove running costs from Assets.
+
+If running_cost_annual still exists during migration:
+
+- mark legacy
+- do not include in total_asset_cost_annual
+- do not pass to Cost Summary
+- migrate to General Overheads where appropriate
+
+### Cost Summary
+
+Cost Summary must consume only:
+
+- total_labour_cost_annual
+- total_asset_cost_annual
+- total_general_overheads
+- total_productive_output
+- model readiness outputs
+
+Cost Summary must not consume raw P&L lines.
+
+Cost Summary must not own reconciliation.
+
+---
+
+## TESTING CHECKLIST
+
+Before pushing:
+
+- P&L still loads
+- General Overheads still loads
+- Labour still loads
+- Assets still loads
+- Module Reconciliation returns checks
+- Model Readiness returns ready / warning / blocked
+- Dev diagnostics page renders
+- Cost Summary does not break
+- no employee_overheads variables remain in active contracts
+- running_cost_annual does not feed Cost Summary
+- ACC appears in Labour contract
+- ModelReadinessStatusStrip can render all three states
+
+---
+
+## FINAL DEFINITION
+
+The v3.6 migration removes legacy overhead structures, separates reconciliation from Cost Summary, introduces a trust gate, and ensures downstream modules only consume clean, approved source-of-truth variables.

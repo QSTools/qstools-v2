@@ -1,0 +1,277 @@
+# QS Tools — Module Reconciliation (v3.6 — LOCKED)
+
+STATUS: EVIDENCE LAYER
+
+---
+
+## PURPOSE
+
+Module Reconciliation checks whether the upstream model is internally consistent, contract-compliant, and safe to pass into Model Readiness.
+
+It is not a user workflow page.
+
+It is a system layer.
+
+---
+
+## CORE PRINCIPLE
+
+Reconciliation is the evidence layer.
+
+Model Readiness is the verdict layer.
+
+Cost Summary must not be trusted until reconciliation has checked the upstream modules.
+
+---
+
+## POSITION IN SYSTEM
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## MODULE TYPE
+
+System support layer.
+
+It may have a temporary developer diagnostics page, but it is not part of the normal user navigation.
+
+---
+
+## RECOMMENDED FILE STRUCTURE
+
+lib/reconciliation/reconciliationRules.js
+lib/reconciliation/moduleReconciliation.js
+hooks/useModuleReconciliation.js
+
+Optional temporary diagnostics:
+
+app/dev/model-readiness/page.jsx
+
+---
+
+## INPUTS
+
+### From P&L
+
+- pnl_lines
+- pnl_categories
+- pnl_ready
+- total_business_costs, if available as benchmark
+
+### From General Overheads
+
+- total_general_overheads
+- general_overheads_ready
+- category_totals
+- general_overheads_variance_amount
+- general_overheads_variance_percent
+
+### From Labour
+
+- total_labour_cost_annual
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- total_productive_output
+- labour_ready
+
+### From Assets
+
+- total_asset_cost_annual
+- assets_ready
+- active_assets
+
+---
+
+## HARD CHECKS
+
+### P&L Checks
+
+- P&L data exists
+- required P&L categories are valid
+- no active employee_overheads category remains
+- P&L can provide benchmark/reference totals if used
+
+---
+
+### General Overheads Checks
+
+- total_general_overheads exists
+- General Overheads categories exist
+- Staff Overheads is category only
+- Staff Overheads is not a separate module
+- total_general_overheads is the only downstream overhead output
+- vehicle running costs are classified to General Overheads
+- General Overheads does not include Labour employer obligations
+- General Overheads does not include asset ownership costs
+
+---
+
+### Labour Checks
+
+- total_labour_cost_annual exists
+- total_productive_output exists
+- total_productive_output is greater than zero for recovery-rate trust
+- total_employer_contribution_annual exists
+- employer KiwiSaver is included
+- ESCT is included
+- employer ACC levy is included
+- Labour does not include staff overheads
+- Labour does not include asset ownership costs
+- Labour does not include general overheads
+
+---
+
+### Assets Checks
+
+- total_asset_cost_annual exists
+- Assets are ownership-only
+- running_cost_annual does not feed Cost Summary
+- Assets do not include fuel
+- Assets do not include servicing
+- Assets do not include maintenance
+- Assets do not include registration
+- Assets do not include tyres
+- Assets do not include shared fleet costs
+- Assets do not include labour cost
+
+---
+
+### Cross-Module Checks
+
+- no Employee Overheads output exists
+- no Staff Overheads standalone output exists
+- no duplicate cost ownership detected
+- Cost Summary inputs are available
+- banned variables are not present in downstream contracts
+
+---
+
+## BLOCKER VS WARNING RULE
+
+### Blockers
+
+A blocker means Cost Summary can display totals but must not be trusted.
+
+Examples:
+
+- missing total_labour_cost_annual
+- missing total_general_overheads
+- missing total_asset_cost_annual
+- employer ACC levy missing from Labour
+- running_cost_annual feeding Assets total
+- employee_overheads active category or output detected
+- total_productive_output missing or zero where recovery rate is required
+
+---
+
+### Warnings
+
+A warning means the model can display but the user should review the result.
+
+Examples:
+
+- P&L benchmark variance exists
+- unallocated General Overheads remain
+- no assets entered
+- no Labour profiles entered
+- optional category detail missing
+- unusual cost split detected
+
+---
+
+## OUTPUTS
+
+Module Reconciliation must output:
+
+- reconciliation_ready
+- reconciliation_checks[]
+- blocking_checks[]
+- warning_checks[]
+- blocking_modules[]
+- warning_modules[]
+
+Each check should include:
+
+- check_id
+- module
+- severity
+- passed
+- message
+- detail
+- recommended_action
+
+---
+
+## OUTPUT EXAMPLE
+
+blocking_checks[]:
+
+- module: Assets
+- severity: blocker
+- passed: false
+- message: Assets includes running cost
+- recommended_action: Move vehicle running costs to General Overheads
+
+warning_checks[]:
+
+- module: General Overheads
+- severity: warning
+- passed: false
+- message: P&L benchmark variance exists
+- recommended_action: Review classification before relying on Cost Summary
+
+---
+
+## NOT ALLOWED
+
+Module Reconciliation must not:
+
+- recalculate Labour
+- recalculate Assets
+- recalculate General Overheads
+- edit P&L lines
+- move costs automatically
+- create pricing logic
+- create recovery logic
+- create new source-of-truth totals
+
+---
+
+## UI / DIAGNOSTICS
+
+A temporary developer page is allowed:
+
+app/dev/model-readiness/page.jsx
+
+It should show:
+
+1. raw module inputs
+2. reconciliation checks
+3. blocking checks
+4. warning checks
+5. final model readiness result
+
+This page should not be included in main navigation.
+
+---
+
+## FINAL DEFINITION
+
+Module Reconciliation v3.6 is the evidence layer that checks whether P&L, General Overheads, Labour, and Assets are contract-compliant before Model Readiness issues the final trust verdict.

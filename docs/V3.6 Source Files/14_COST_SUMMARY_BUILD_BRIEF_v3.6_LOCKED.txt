@@ -1,0 +1,205 @@
+# QS Tools — Cost Summary Build Brief (v3.6 — NEXT MODULE)
+
+STATUS: READY AFTER MODULE READINESS DIAGNOSTICS PASS
+VERSION: v3.6
+
+---
+
+## CORE PURPOSE
+
+Build the Cost Summary page as a read-only aggregation layer.
+
+Cost Summary defines:
+
+WHAT the business costs.
+
+It does not define:
+
+HOW the business recovers it.
+
+---
+
+## REQUIRED UPSTREAM ORDER
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## BUILD PREREQUISITE
+
+Do not build Cost Summary as final until:
+
+- Module Reconciliation exists
+- Model Readiness exists
+- diagnostics page confirms outputs
+- ModelReadinessStatusStrip exists
+
+---
+
+## INPUTS
+
+### From Labour
+
+- total_labour_cost_annual
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- total_productive_output
+
+### From Assets
+
+- total_asset_cost_annual
+
+### From General Overheads
+
+- total_general_overheads
+
+### From Model Readiness
+
+- model_ready
+- blocking_modules
+- warning_modules
+- blocking_checks
+- warning_checks
+- model_readiness_status
+
+---
+
+## REMOVED INPUTS
+
+Cost Summary must not consume:
+
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_ready
+- staff_overheads_total
+- active_revenue_model
+- Cost Allocation outputs
+- Recovery Summary outputs
+- Scenario outputs
+- raw P&L lines
+- P&L benchmark values as calculation inputs
+- running_cost_annual
+
+---
+
+## CALCULATIONS
+
+total_people_cost_annual =
+total_labour_cost_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+warning required.
+
+---
+
+## DISPLAY STRUCTURE
+
+Cost Summary Card:
+
+1. Model Readiness Status Strip
+2. People Cost
+3. Asset Cost
+4. General Overheads
+5. Total Business Cost
+6. Total Cost Burden
+7. Required Revenue
+8. Required Recovery Rate
+
+---
+
+## SECONDARY VIEW
+
+Cost Composition:
+
+- Labour %
+- Assets %
+- General Overheads %
+
+---
+
+## READINESS BEHAVIOUR
+
+If model_ready = false:
+
+- totals may display
+- page must show not trusted state
+- downstream modelling is blocked
+- blocking_modules must be visible
+- warning_modules must be visible
+
+---
+
+## RECONCILIATION
+
+Cost Summary may display reconciliation status.
+
+Cost Summary must not own reconciliation.
+
+P&L benchmark totals must not drive Cost Summary calculations.
+
+If mismatch exists:
+
+- show warning/error state from Module Reconciliation
+- do not silently ignore
+- do not alter Cost Summary totals
+
+---
+
+## UI REQUIREMENTS
+
+- Clean summary card
+- Strong emphasis on Total Cost Burden
+- No input fields
+- Read-only aggregation layer
+- Readiness warning visible
+- No recovery strategy controls
+- No pricing controls
+- No capacity controls
+
+---
+
+## NEXT STEP AFTER THIS
+
+Recovery Summary / Pricing engine.
+
+---
+
+## FINAL DEFINITION
+
+Cost Summary Build v3.6 creates a read-only aggregation page that consumes trusted upstream module totals and the Model Readiness verdict. It does not perform reconciliation, pricing, allocation, or recovery strategy.

@@ -1,0 +1,247 @@
+# QS Tools — Variable Contract Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE VARIABLE CONTRACT
+
+---
+
+## PURPOSE
+
+This brief defines the allowed cross-module variable names for QS Tools v3.6.
+
+No module may rename contract variables.
+
+No downstream module may rebuild upstream maths.
+
+---
+
+## LABOUR OUTPUTS
+
+Allowed Labour cost outputs:
+
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- total_labour_cost_annual
+- total_productive_output
+- labour_ready
+
+Per-staff outputs may include:
+
+- staff_id
+- staff_name
+- gross_wages_annual
+- entitlements_annual
+- employer_kiwisaver_gross
+- esct_amount
+- acc_cu_code
+- acc_rate_percent
+- acc_levy_annual
+- total_employer_contribution_cost
+- productive_hours
+- is_active
+
+---
+
+## GENERAL OVERHEADS OUTPUTS
+
+Allowed General Overheads outputs:
+
+- total_general_overheads
+- category_totals
+- general_overheads_ready
+- general_overheads_variance_amount
+- general_overheads_variance_percent
+
+General Overheads may display category subtotals, including Staff Overheads and Vehicles Running, but only total_general_overheads may flow to Cost Summary.
+
+---
+
+## ASSETS OUTPUTS
+
+Allowed Assets outputs:
+
+- total_asset_cost_annual
+- assets_ready
+
+Per-asset outputs may include:
+
+- asset_id
+- asset_name
+- finance_cost_annual
+- lease_cost_annual
+- depreciation_cost_annual
+- ownership_cost_annual
+- total_asset_cost_annual
+- is_active
+
+Deprecated:
+
+- running_cost_annual
+
+running_cost_annual must not feed Cost Summary.
+
+---
+
+## MODULE RECONCILIATION OUTPUTS
+
+Allowed Module Reconciliation outputs:
+
+- reconciliation_ready
+- reconciliation_checks
+- blocking_checks
+- warning_checks
+- blocking_modules
+- warning_modules
+
+---
+
+## MODEL READINESS OUTPUTS
+
+Allowed Model Readiness outputs:
+
+- model_ready
+- blocking_modules
+- warning_modules
+- blocking_checks
+- warning_checks
+- model_readiness_status
+
+---
+
+## COST SUMMARY OUTPUTS
+
+Allowed Cost Summary outputs:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+- model_ready
+- blocking_modules
+- warning_modules
+
+---
+
+## COST SUMMARY FORMULAS
+
+total_people_cost_annual =
+total_labour_cost_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+---
+
+## RECOVERY SUMMARY OUTPUTS
+
+Allowed Recovery Summary outputs:
+
+- active_recovery_model
+- labour_share_percent
+- asset_share_percent
+- overhead_share_percent
+- labour_recovery_cost
+- asset_recovery_cost
+- overhead_absorbed_cost
+- required_labour_recovery_rate
+- required_asset_recovery
+- recovery_ready
+
+---
+
+## RATE MODELS OUTPUTS
+
+Allowed Rate Models outputs:
+
+- required_hourly_rate
+- required_m2_rate
+- required_unit_rate
+- required_crew_week_rate
+- revenue_distribution
+- recovery_alignment
+- rate_model_ready
+
+---
+
+## PRODUCTION CAPACITY OUTPUTS
+
+Allowed Production Capacity outputs:
+
+- available_productive_capacity
+- required_productive_capacity
+- capacity_gap
+- utilisation_required
+- capacity_ready
+
+---
+
+## RECOVERY OUTCOME OUTPUTS
+
+Allowed Recovery Outcome outputs:
+
+- recovery_outcome_status
+- viable
+- marginal
+- not_viable
+- outcome_summary
+- outcome_warnings
+
+---
+
+## QUOTE BENCHMARK OUTPUTS
+
+Allowed Quote Benchmark outputs:
+
+- benchmark_quote_value
+- benchmark_recovery_value
+- benchmark_margin_value
+- quote_alignment_status
+- benchmark_warnings
+
+---
+
+## BANNED VARIABLES
+
+Do not use:
+
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_benchmark_total
+- employee_overheads_ready
+- employee_overheads_status
+- employee_overheads_variance_amount
+- employee_overheads_variance_percent
+- employee_overheads_annual
+- staff_overheads_total
+- staff_overheads_ready
+- active_revenue_model inside Cost Summary
+- active_asset_labour_links inside Cost Summary
+- running_cost_annual inside Cost Summary
+
+---
+
+## FINAL DEFINITION
+
+The v3.6 variable contract keeps all module boundaries explicit. Labour owns people cost, General Overheads owns shared/staff/vehicle running overheads, Assets owns ownership-only cost, Module Reconciliation proves the model, Model Readiness gates trust, and Cost Summary aggregates only approved upstream outputs.

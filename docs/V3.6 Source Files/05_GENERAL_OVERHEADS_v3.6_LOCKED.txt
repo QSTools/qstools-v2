@@ -1,0 +1,215 @@
+# QS Tools — General Overheads Module Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+General Overheads is the fixed, shared, unclear, staff-related, and vehicle-running business cost classification engine.
+
+It receives P&L-classified overheads and turns them into a clean business overhead total for downstream modelling.
+
+---
+
+## SYSTEM POSITION
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+
+---
+
+## CORE ROLE
+
+General Overheads is the post-P&L classification engine.
+
+It owns:
+
+- business overhead classification
+- shared operating costs
+- unclear / unallocated business costs
+- staff overhead review categories
+- vehicle running costs
+- fleet running costs
+- total_general_overheads
+
+---
+
+## INCLUDE
+
+General Overheads may include:
+
+- admin staff cost
+- office/admin costs
+- accounting/bookkeeping
+- legal fees
+- software subscriptions
+- phones
+- PPE
+- staff training
+- staff welfare
+- recruitment
+- insurance
+- compliance
+- facilities / premises
+- sales / growth
+- vehicle running costs
+- fleet running costs
+- fuel
+- servicing
+- repairs
+- maintenance
+- registration
+- licensing
+- tyres
+- consumables
+- shared vehicle costs
+- shared fleet costs
+- shared maintenance
+- unallocated business overheads
+
+---
+
+## EXCLUDE
+
+General Overheads must not include:
+
+- gross wages
+- paid entitlements
+- employer KiwiSaver
+- ESCT
+- employer ACC levy
+- PAYE
+- direct Labour module outputs
+- direct asset finance cost
+- direct asset lease cost
+- depreciation cost
+- ownership-only asset cost
+- materials
+- subcontractors
+- hired equipment / delivery cost
+- COGS
+
+---
+
+## STAFF OVERHEADS RULE
+
+Staff Overheads is a General Overheads review category only.
+
+It is not:
+
+- a module
+- a downstream output
+- a Cost Summary input
+- a Model Readiness input
+- a recovery source
+
+Staff Overheads must roll into total_general_overheads.
+
+---
+
+## VEHICLE RUNNING COST RULE
+
+Vehicle running costs belong in General Overheads.
+
+This includes:
+
+- fuel
+- servicing
+- repairs
+- maintenance
+- registration
+- licensing
+- tyres
+- consumables
+- shared fleet costs
+
+These are not Assets module costs.
+
+Assets owns ownership-only cost.
+
+---
+
+## ACC RULE
+
+Employer ACC levy belongs in Labour.
+
+General Overheads must not include employer ACC levy.
+
+Business insurance and compliance costs may remain in General Overheads, but employer ACC levy must not be grouped into Insurance & Compliance.
+
+---
+
+## OUTPUT CONTRACT
+
+General Overheads may output:
+
+- total_general_overheads
+- category_totals
+- general_overheads_ready
+- general_overheads_variance_amount
+- general_overheads_variance_percent
+
+Only total_general_overheads may flow to Cost Summary.
+
+Category subtotals are diagnostic / display values.
+
+---
+
+## READINESS RULE
+
+general_overheads_ready = true when:
+
+- total_general_overheads exists
+- category totals exist
+- no employee_overheads category remains
+- staff overheads are category-only
+- vehicle running costs are included where applicable
+- benchmark variance is visible
+- no banned downstream overhead variables are exposed
+
+---
+
+## RECONCILIATION
+
+General Overheads may compare to P&L benchmark values.
+
+Variance must be visible.
+
+Variance does not flow downstream as a calculation input.
+
+Module Reconciliation owns the final evidence check.
+
+---
+
+## NOT ALLOWED
+
+General Overheads must not:
+
+- calculate recovery rates
+- calculate pricing
+- assign costs to labour profiles
+- assign costs to asset profiles
+- split shared costs during setup
+- output staff_overheads_total as a downstream variable
+- output employee_overheads_total
+- consume Assets ownership cost
+- consume Labour employer obligations
+
+---
+
+## FINAL DEFINITION
+
+General Overheads v3.6 is the post-P&L classification engine for shared, unclear, staff-related, and vehicle-running overheads. It produces one downstream source-of-truth value: total_general_overheads.

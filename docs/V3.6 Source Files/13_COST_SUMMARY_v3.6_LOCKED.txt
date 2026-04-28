@@ -1,0 +1,240 @@
+# QS Tools — Cost Summary Module Brief (v3.6 — LOCKED)
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v3.6
+
+---
+
+## PURPOSE
+
+Cost Summary combines locked upstream cost engines into a single total cost burden.
+
+Cost Summary answers:
+
+WHAT does the business cost?
+
+It does not answer:
+
+HOW should the business recover it?
+
+That belongs to Recovery Summary.
+
+---
+
+## SYSTEM POSITION
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Recovery Summary
+
+---
+
+## CORE ROLE
+
+Cost Summary is a read-only aggregation layer.
+
+It consumes source-of-truth totals from:
+
+- Labour
+- Assets
+- General Overheads
+- Model Readiness
+
+It displays the total cost burden and baseline recovery visibility.
+
+---
+
+## REQUIRED INPUTS
+
+### From Labour
+
+- total_labour_cost_annual
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- total_productive_output
+
+### From Assets
+
+- total_asset_cost_annual
+
+### From General Overheads
+
+- total_general_overheads
+
+### From Model Readiness
+
+- model_ready
+- blocking_modules
+- warning_modules
+- blocking_checks
+- warning_checks
+- model_readiness_status
+
+---
+
+## REMOVED INPUTS
+
+Cost Summary must not consume:
+
+- employee_overheads_total
+- total_employee_overheads_annual
+- employee_overheads_total_annual
+- employee_overheads_ready
+- staff_overheads_total
+- running_cost_annual
+- raw P&L lines
+- P&L benchmark values as calculation inputs
+- Cost Allocation outputs
+- Recovery Summary outputs
+- Scenario outputs
+- active_revenue_model
+- active_asset_labour_links
+
+---
+
+## FORMULAS
+
+total_people_cost_annual =
+total_labour_cost_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+warning required.
+
+---
+
+## PEOPLE COST DISPLAY
+
+Show:
+
+- Gross Wages
+- Entitlements
+- Employer KiwiSaver
+- ESCT
+- Employer ACC Levy
+- Employer Contribution Total
+- Total People Cost
+
+Source of truth:
+
+total_people_cost_annual = total_labour_cost_annual
+
+Cost Summary may display Labour components for transparency but must not rebuild Labour maths.
+
+---
+
+## BUSINESS COST DISPLAY
+
+Show:
+
+- Asset Cost
+- General Overheads
+- Total Business Cost
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+---
+
+## TOTAL COST DISPLAY
+
+Show:
+
+- Total People Cost
+- Total Asset Cost
+- Total General Overheads
+- Total Cost Burden
+- Required Revenue
+- Required Recovery Rate
+
+---
+
+## MODEL READINESS DISPLAY
+
+Cost Summary must show Model Readiness state.
+
+If model_ready = false:
+
+- totals may display
+- totals must be marked not trusted
+- blocking modules must be visible
+- warning modules must be visible
+- downstream outputs must not be treated as final
+
+If model_ready = true and model_readiness_status = warning:
+
+- totals may be used
+- warnings remain visible
+
+If model_ready = true and model_readiness_status = ready:
+
+- totals are trusted
+
+---
+
+## RECONCILIATION RULE
+
+Cost Summary does not own reconciliation.
+
+Cost Summary may display reconciliation status from Module Reconciliation / Model Readiness.
+
+Module Reconciliation owns P&L benchmark comparison.
+
+---
+
+## NOT ALLOWED
+
+Cost Summary must not:
+
+- recalculate Labour
+- recalculate ACC
+- recalculate Assets
+- recalculate General Overheads
+- consume raw P&L lines
+- consume P&L benchmark as calculation input
+- consume Employee Overheads
+- consume Staff Overheads as a separate total
+- consume running_cost_annual
+- define recovery strategy
+- define pricing
+- define capacity
+
+---
+
+## FINAL DEFINITION
+
+Cost Summary v3.6 is a read-only aggregation layer that consumes Labour, Assets, General Overheads, and Model Readiness outputs only. It produces total cost burden and baseline recovery visibility without reclassifying, distributing, or pricing costs.
