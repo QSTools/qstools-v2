@@ -50,26 +50,40 @@ function infer_category_from_line_name(line_name = "") {
     normalized.includes("training") ||
     normalized.includes("ppe") ||
     normalized.includes("tool") ||
-    normalized.includes("equipment")
+    normalized.includes("tools") ||
+    normalized.includes("small equipment")
   ) {
-    return "employee_overheads";
+    return "general_overheads";
   }
 
   if (
+    normalized.includes("fuel") ||
+    normalized.includes("diesel") ||
+    normalized.includes("petrol") ||
     normalized.includes("motor vehicle") ||
     normalized.includes("vehicle") ||
-    normalized.includes("plant") ||
-    normalized.includes("trailer") ||
-    normalized.includes("fuel") ||
     normalized.includes("registration") ||
     normalized.includes("registrations") ||
+    normalized.includes("rego") ||
     normalized.includes("licence") ||
     normalized.includes("licences") ||
     normalized.includes("license") ||
     normalized.includes("licenses") ||
     normalized.includes("repair") ||
     normalized.includes("repairs") ||
-    normalized.includes("maintenance")
+    normalized.includes("maintenance") ||
+    normalized.includes("servicing")
+  ) {
+    return "general_overheads";
+  }
+
+  if (
+    normalized.includes("plant") ||
+    normalized.includes("asset finance") ||
+    normalized.includes("equipment finance") ||
+    normalized.includes("finance lease") ||
+    normalized.includes("lease interest") ||
+    normalized.includes("ownership")
   ) {
     return "assets";
   }
@@ -105,13 +119,11 @@ function get_category_help_text(category) {
     case "cogs_hire":
       return "P&L benchmark only. Use for direct hire cost shown in Cost of Sales.";
     case "labour":
-      return "Feeds the Labour module benchmark. Use for wages and employer labour burden such as KiwiSaver, ESCT, and ACC.";
-    case "employee_overheads":
-      return "Feeds the Employee Overheads benchmark. Use for staff-linked overheads such as PPE, uniforms, training, tools, small equipment, and similar support costs.";
+      return "Feeds the Labour benchmark. Use for wages and direct labour burden.";
     case "assets":
-      return "Feeds the Assets benchmark. Use for vehicle, plant, finance, running costs, repairs, maintenance, licences, registrations, and ownership costs.";
+      return "Feeds the Assets benchmark. Use for owned plant, equipment, asset finance, and ownership-related costs.";
     case "general_overheads":
-      return "Feeds the General Overheads benchmark. Use for business-wide costs such as insurance, phones, internet, office, accounting, and subscriptions.";
+      return "Feeds the General Overheads benchmark. Use for business-wide overheads, staff overheads, shared vehicle running costs, office, admin, insurance, and compliance.";
     case "unassigned":
     default:
       return "Not ready yet. Leave here only if you still need to decide where this line belongs.";
@@ -126,8 +138,6 @@ function get_suggested_category_text(line_name) {
   switch (suggested_category) {
     case "labour":
       return "Suggested: Labour";
-    case "employee_overheads":
-      return "Suggested: Employee Overheads";
     case "assets":
       return "Suggested: Assets";
     case "general_overheads":
@@ -165,7 +175,7 @@ function get_section_help(section) {
     case "other_income":
       return "Enter any non-trading income shown on the P&L.";
     case "operating_expenses":
-  return "Classify costs to drive Labour, Overheads, and Assets setup.";
+      return "Classify costs to drive Labour, Assets, and General Overheads setup.";
     default:
       return "";
   }
@@ -174,13 +184,9 @@ function get_section_help(section) {
 function get_section_default_open(section) {
   switch (section) {
     case "trading_income":
-      return false;
     case "cost_of_sales":
-      return false;
     case "other_income":
-      return false;
     case "operating_expenses":
-      return false;
     default:
       return false;
   }
@@ -217,31 +223,43 @@ function get_operating_expense_group_key(line) {
   }
 
   if (category === "assets") {
-    if (name.includes("tool") || name.includes("equipment")) {
-      return "staff_overheads";
-    }
-
-    if (
-      name.includes("vehicle") ||
-      name.includes("fuel") ||
-      name.includes("registration") ||
-      name.includes("registrations") ||
-      name.includes("licence") ||
-      name.includes("licences") ||
-      name.includes("license") ||
-      name.includes("licenses") ||
-      name.includes("motor") ||
-      name.includes("repair") ||
-      name.includes("repairs") ||
-      name.includes("maintenance")
-    ) {
-      return "vehicles_running";
-    }
-
     return "assets_equipment";
   }
 
   if (category === "general_overheads") {
+    if (
+      name.includes("vehicle") ||
+      name.includes("motor") ||
+      name.includes("fuel") ||
+      name.includes("diesel") ||
+      name.includes("petrol") ||
+      name.includes("registration") ||
+      name.includes("registrations") ||
+      name.includes("rego") ||
+      name.includes("licence") ||
+      name.includes("licences") ||
+      name.includes("license") ||
+      name.includes("licenses") ||
+      name.includes("repair") ||
+      name.includes("repairs") ||
+      name.includes("maintenance") ||
+      name.includes("servicing")
+    ) {
+      return "vehicles_running";
+    }
+
+    if (
+      name.includes("tool") ||
+      name.includes("tools") ||
+      name.includes("ppe") ||
+      name.includes("uniform") ||
+      name.includes("uniforms") ||
+      name.includes("training") ||
+      name.includes("small equipment")
+    ) {
+      return "staff_overheads";
+    }
+
     if (
       name.includes("accounting") ||
       name.includes("legal") ||
@@ -279,24 +297,24 @@ const OPERATING_EXPENSE_GROUPS = [
     key: "labour",
     title: "Labour",
     help: "Wages and employer labour burden that should benchmark against the Labour module, including Salary & Wages, KiwiSaver, and ACC.",
-    defaultOpen: true,
+    defaultOpen: false,
   },
   {
     key: "staff_overheads",
     title: "Staff Overheads",
-    help: "Staff-linked support costs such as PPE, uniforms, training, tools, small equipment, and similar overheads.",
-    defaultOpen: true,
+    help: "Staff-linked and shared people support costs such as PPE, uniforms, training, tools, phones, small equipment, and similar overheads. These feed General Overheads in v3.5.",
+    defaultOpen: false,
   },
   {
     key: "vehicles_running",
     title: "Vehicles (Running)",
-    help: "Vehicle fuel, licences, registrations, repairs, maintenance, and running costs that benchmark against the Assets module.",
-    defaultOpen: true,
+    help: "Shared vehicle fuel, licences, registrations, repairs, servicing, and maintenance. These feed General Overheads unless they are later assigned to a specific asset layer.",
+    defaultOpen: false,
   },
   {
     key: "assets_equipment",
     title: "Assets / Equipment",
-    help: "Plant, asset finance, ownership-related costs, and asset costs that are not vehicle running costs.",
+    help: "Plant, equipment, asset finance, ownership-related costs, and asset costs that are not shared vehicle running costs.",
     defaultOpen: false,
   },
   {
@@ -333,7 +351,7 @@ const OPERATING_EXPENSE_GROUPS = [
     key: "other_unallocated",
     title: "Other / Unallocated",
     help: "Travel, entertainment, penalties, unusual costs, and lines that still need review.",
-    defaultOpen: true,
+    defaultOpen: false,
   },
 ];
 
@@ -500,21 +518,18 @@ export default function ProfitAndLossSectionBlock({
               <strong>Labour</strong>.
             </div>
             <div className="ui-help">
-              PPE, uniforms, training, tools, and small equipment usually belong
-              in <strong>Employee Overheads</strong>.
-            </div>
-            <div className="ui-help">
-              Vehicles, fuel, licences, registrations, repairs, and maintenance
-              usually belong in <strong>Assets</strong>.
-            </div>
-            <div className="ui-help">
-              Insurance, phones, internet, office, accounting, and general
-              business running costs usually belong in{" "}
+              PPE, uniforms, training, tools, staff support costs, phones, and
+              shared staff overheads usually belong in{" "}
               <strong>General Overheads</strong>.
             </div>
             <div className="ui-help">
-              Travel, entertainment, penalties, and unusual one-off costs should
-              usually be reviewed under <strong>Other / Unallocated</strong>.
+              Vehicle fuel, licences, registrations, repairs, and maintenance
+              usually belong in <strong>General Overheads</strong> for the macro
+              setup layer.
+            </div>
+            <div className="ui-help">
+              Owned plant, equipment, asset finance, and asset ownership costs
+              usually belong in <strong>Assets</strong>.
             </div>
             <div className="ui-help">
               If classification is wrong here, the next modules will not line up

@@ -31,6 +31,12 @@ function create_custom_id() {
 }
 
 function to_number(value) {
+  if (typeof value === "string") {
+    const cleaned = value.replace(/,/g, "");
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -43,147 +49,183 @@ function matches_keywords(name, keywords = []) {
   return keywords.some((keyword) => name.includes(keyword));
 }
 
-function is_vehicle_context(name) {
-  return matches_keywords(name, [
-    "vehicle",
-    "motor vehicle",
-    "car",
-    "ute",
-    "truck",
-    "van",
-    "fleet",
-    "diesel",
-    "petrol",
-    "fuel",
-    "rego",
-    "registration",
-    "tyre",
-    "tire",
-    "service",
-    "servicing",
-    "repair",
-  ]);
+function is_general_overhead_category(category) {
+  return category === "general_overheads" || category === "employee_overheads";
 }
 
-function build_vehicle_prefill_from_pnl(pnl_output_contract) {
+function build_general_overheads_from_pnl({
+  pnl_output_contract,
+  current_overhead_state,
+}) {
   const pnl_lines = Array.isArray(pnl_output_contract?.pnl_lines)
     ? pnl_output_contract.pnl_lines
     : [];
 
-  const candidate_lines = pnl_lines.filter((line) => {
-    return (
-      line.category === "assets" ||
-      line.category === "general_overheads"
-    );
-  });
+  const next_state = {
+    ...create_empty_general_overhead_state(),
+    overhead_profile_name:
+      current_overhead_state?.overhead_profile_name ||
+      "General Overheads from P&L",
+    effective_from: current_overhead_state?.effective_from || "",
+    is_active: true,
+    overhead_category_overrides:
+      current_overhead_state?.overhead_category_overrides ?? {},
+  };
 
-  let fuel = 0;
-  let maintenance = 0;
-  let repairs = 0;
-  let registration = 0;
-  let tyres = 0;
-  let consumables = 0;
-
-  for (const line of candidate_lines) {
+  for (const line of pnl_lines) {
     const name = normalise_name(line.line_name);
     const amount = to_number(line.amount);
 
-    if (matches_keywords(name, ["fuel", "diesel", "petrol"])) {
-      fuel += amount;
+    if (amount === 0) {
       continue;
     }
 
-    if (matches_keywords(name, ["tyre", "tyres", "tire", "tires"])) {
-      tyres += amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, ["insurance"]) &&
-      is_vehicle_context(name)
-    ) {
-      registration += amount;
+    if (!is_general_overhead_category(line.category)) {
       continue;
     }
 
     if (
       matches_keywords(name, [
+        "fuel",
+        "diesel",
+        "petrol",
+        "motor vehicle",
+        "vehicle",
         "rego",
         "registration",
         "licence",
         "licences",
         "license",
         "licenses",
-      ])
-    ) {
-      registration += amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["repair", "repairs"])) {
-      repairs += amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
+        "repair",
+        "repairs",
         "maintenance",
         "service",
-        "services",
         "servicing",
       ])
     ) {
-      maintenance += amount;
+      next_state.fuel_cost_annual =
+        to_number(next_state.fuel_cost_annual) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["accounting", "accountant", "bookkeeper"])) {
+      next_state.accounting_fees =
+        to_number(next_state.accounting_fees) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["legal", "lawyer", "solicitor"])) {
+      next_state.legal_fees = to_number(next_state.legal_fees) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["bank"])) {
+      next_state.bank_fees = to_number(next_state.bank_fees) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["public liability", "liability insurance"])) {
+      next_state.public_liability_insurance =
+        to_number(next_state.public_liability_insurance) + amount;
       continue;
     }
 
     if (
       matches_keywords(name, [
-        "oil",
-        "fluid",
-        "fluids",
-        "consumable",
-        "consumables",
-        "filter",
-        "filters",
+        "professional indemnity",
+        "indemnity insurance",
       ])
     ) {
-      consumables += amount;
+      next_state.professional_indemnity_insurance =
+        to_number(next_state.professional_indemnity_insurance) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["insurance"])) {
+      next_state.public_liability_insurance =
+        to_number(next_state.public_liability_insurance) + amount;
       continue;
     }
 
     if (
       matches_keywords(name, [
-        "motor vehicle expenses",
-        "motor vehicle expense",
-        "vehicle expenses",
-        "vehicle expense",
+        "software",
+        "subscription",
+        "subscriptions",
+        "computer",
       ])
     ) {
-      fuel += amount;
+      next_state.software_subscriptions =
+        to_number(next_state.software_subscriptions) + amount;
       continue;
     }
+
+    if (matches_keywords(name, ["telephone", "phone"])) {
+      next_state.phone_system_cost =
+        to_number(next_state.phone_system_cost) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["internet"])) {
+      next_state.internet_cost = to_number(next_state.internet_cost) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["rent", "storage", "premises"])) {
+      next_state.office_rent = to_number(next_state.office_rent) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["power", "electricity"])) {
+      next_state.power_cost = to_number(next_state.power_cost) + amount;
+      continue;
+    }
+
+    if (matches_keywords(name, ["advertising", "marketing"])) {
+      next_state.marketing_cost = to_number(next_state.marketing_cost) + amount;
+      continue;
+    }
+
+    if (
+      matches_keywords(name, [
+        "stationery",
+        "office expenses",
+        "office supplies",
+        "printing",
+      ])
+    ) {
+      next_state.office_supplies_cost =
+        to_number(next_state.office_supplies_cost) + amount;
+      continue;
+    }
+
+    if (
+      matches_keywords(name, [
+        "admin",
+        "administration",
+        "staff",
+        "ppe",
+        "uniform",
+        "uniforms",
+        "training",
+        "tools",
+        "small equipment",
+      ])
+    ) {
+      next_state.general_admin_cost =
+        to_number(next_state.general_admin_cost) + amount;
+      continue;
+    }
+
+    next_state.other_general_overhead_cost =
+      to_number(next_state.other_general_overhead_cost) + amount;
   }
 
   return {
-    fuel_cost_annual: fuel,
-    vehicle_maintenance_cost_annual: maintenance,
-    vehicle_repairs_cost_annual: repairs,
-    vehicle_registration_cost_annual: registration,
-    vehicle_tyres_cost_annual: tyres,
-    vehicle_consumables_cost_annual: consumables,
+    ...next_state,
+    updated_at: new Date().toISOString(),
   };
-}
-
-function vehicle_fields_are_empty(overhead_state) {
-  return (
-    to_number(overhead_state.fuel_cost_annual) === 0 &&
-    to_number(overhead_state.vehicle_maintenance_cost_annual) === 0 &&
-    to_number(overhead_state.vehicle_repairs_cost_annual) === 0 &&
-    to_number(overhead_state.vehicle_registration_cost_annual) === 0 &&
-    to_number(overhead_state.vehicle_tyres_cost_annual) === 0 &&
-    to_number(overhead_state.vehicle_consumables_cost_annual) === 0
-  );
 }
 
 export default function useGeneralOverheads() {
@@ -221,34 +263,6 @@ export default function useGeneralOverheads() {
 
     save_general_overhead_state(overhead_state);
   }, [overhead_state, is_hydrated]);
-
-  useEffect(() => {
-    if (!is_hydrated) {
-      return;
-    }
-
-    if (!vehicle_fields_are_empty(overhead_state)) {
-      return;
-    }
-
-    const vehicle_prefill = build_vehicle_prefill_from_pnl(pnl_output_contract);
-
-    const has_vehicle_prefill = Object.values(vehicle_prefill).some(
-      (value) => to_number(value) > 0
-    );
-
-    if (!has_vehicle_prefill) {
-      return;
-    }
-
-    set_overhead_state((current) => ({
-      ...current,
-      ...vehicle_prefill,
-      overhead_category_overrides:
-        current.overhead_category_overrides ?? {},
-      updated_at: new Date().toISOString(),
-    }));
-  }, [is_hydrated, pnl_output_contract, overhead_state]);
 
   const calculated = useMemo(() => {
     return calculate_general_overheads(overhead_state);
@@ -337,6 +351,15 @@ export default function useGeneralOverheads() {
     }));
   }
 
+  function sync_from_pnl() {
+    const next_state = build_general_overheads_from_pnl({
+      pnl_output_contract,
+      current_overhead_state: overhead_state,
+    });
+
+    set_overhead_state(next_state);
+  }
+
   function save_profile() {
     const saved_record = {
       ...overhead_state,
@@ -398,6 +421,7 @@ export default function useGeneralOverheads() {
       add_custom_item,
       remove_custom_item,
       update_category_override,
+      sync_from_pnl,
       save_profile,
       load_profile,
       delete_profile,

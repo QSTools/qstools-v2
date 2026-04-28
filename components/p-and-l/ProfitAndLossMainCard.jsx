@@ -46,6 +46,77 @@ function SummaryRow({ label, value, total = false }) {
   );
 }
 
+function SavedPnlProfilesPanel({
+  profiles = [],
+  show_saved_snapshots = false,
+  on_toggle_saved_snapshots,
+  on_load,
+  on_delete,
+}) {
+  return (
+    <CollapsibleSection
+      title="Saved P&L Profiles"
+      summary={`${profiles.length} saved`}
+      defaultOpen={show_saved_snapshots}
+    >
+      <div className="ui-panel ui-stack-sm">
+        <p className="ui-help">
+          Load a previously saved P&amp;L before continuing into General
+          Overheads.
+        </p>
+
+        <div className="ui-actions">
+          <button
+            type="button"
+            className="ui-button-secondary"
+            onClick={on_toggle_saved_snapshots}
+          >
+            {show_saved_snapshots ? "Hide Saved" : "Show Saved"}
+          </button>
+        </div>
+
+        {profiles.length > 0 ? (
+          <div className="ui-stack-sm">
+            {profiles.map((profile) => (
+              <div key={profile.id} className="ui-panel ui-row-between">
+                <div className="ui-stack-sm">
+                  <div className="ui-label">
+                    {profile.label || "Untitled P&L"}
+                  </div>
+                  <div className="ui-help">
+                    {profile.type || "annual"} ·{" "}
+                    {profile.updated_at || profile.created_at || "No date"}
+                  </div>
+                </div>
+
+                <div className="ui-actions">
+                  <button
+                    type="button"
+                    className="ui-button-secondary"
+                    onClick={() => on_load(profile.id)}
+                  >
+                    Load
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ui-button-secondary"
+                    onClick={() => on_delete(profile.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="ui-help">No saved P&amp;L profiles yet.</div>
+        )}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
 function SummaryPanel({
   summary,
   warnings = [],
@@ -102,7 +173,7 @@ function SummaryPanel({
           <div className="ui-kicker">QS Benchmark View</div>
           <p className="ui-help">
             These are the P&amp;L benchmark totals used to check Labour, Assets,
-            and Overheads later.
+            and General Overheads later.
           </p>
 
           <div className="labour-summary-table">
@@ -120,17 +191,20 @@ function SummaryPanel({
               value={summary.hired_equipment_cost}
             />
             <SummaryRow label="Total COGS" value={summary.total_cogs} total />
+
+            <div className="labour-summary-table-spacer" />
+
             <SummaryRow
               label="Labour Benchmark"
               value={summary.labour_benchmark_total}
             />
             <SummaryRow
-              label="Employee Overheads Benchmark"
-              value={summary.employee_overheads_benchmark_total}
-            />
-            <SummaryRow
               label="Assets Benchmark"
               value={summary.assets_benchmark_total}
+            />
+            <SummaryRow
+              label="Excluded Asset Finance Interest"
+              value={summary.excluded_asset_finance_interest_total}
             />
             <SummaryRow
               label="General Overheads Benchmark"
@@ -227,6 +301,8 @@ export default function ProfitAndLossMainCard({
   summary,
   actions,
   warnings = [],
+  profiles = [],
+  show_saved_snapshots = false,
   save_message = "",
 }) {
   const router = useRouter();
@@ -246,6 +322,14 @@ export default function ProfitAndLossMainCard({
         />
 
         <ProfitAndLossPeriodPanel state={state} actions={actions} />
+
+        <SavedPnlProfilesPanel
+          profiles={profiles}
+          show_saved_snapshots={show_saved_snapshots}
+          on_toggle_saved_snapshots={actions.on_toggle_saved_snapshots}
+          on_load={actions.on_load}
+          on_delete={actions.on_delete}
+        />
 
         <ProfitAndLossAwarenessPanel />
 

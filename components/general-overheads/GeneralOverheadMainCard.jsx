@@ -10,6 +10,7 @@ function ProfilePanel({
   update_field,
   save_profile,
   reset_state,
+  sync_from_pnl,
 }) {
   return (
     <div className="ui-panel ui-stack-sm">
@@ -66,6 +67,14 @@ function ProfilePanel({
         <button
           type="button"
           className="ui-button-secondary"
+          onClick={sync_from_pnl}
+        >
+          Sync from P&amp;L
+        </button>
+
+        <button
+          type="button"
+          className="ui-button-secondary"
           onClick={reset_state}
         >
           Reset
@@ -75,11 +84,7 @@ function ProfilePanel({
   );
 }
 
-function SavedProfilesPanel({
-  saved_overheads,
-  load_profile,
-  delete_profile,
-}) {
+function SavedProfilesPanel({ saved_overheads, load_profile, delete_profile }) {
   return (
     <div className="ui-panel ui-stack-sm">
       <div className="ui-kicker">Saved Profiles</div>
@@ -90,7 +95,7 @@ function SavedProfilesPanel({
           {saved_overheads.map((profile) => (
             <div
               key={profile.overhead_profile_id}
-              className="ui-row-between ui-panel"
+              className="ui-panel ui-row-between"
             >
               <div className="ui-stack-sm">
                 <div className="ui-label">
@@ -105,9 +110,7 @@ function SavedProfilesPanel({
                 <button
                   type="button"
                   className="ui-button-secondary"
-                  onClick={() =>
-                    load_profile(profile.overhead_profile_id)
-                  }
+                  onClick={() => load_profile(profile.overhead_profile_id)}
                 >
                   Load
                 </button>
@@ -115,9 +118,7 @@ function SavedProfilesPanel({
                 <button
                   type="button"
                   className="ui-button-secondary"
-                  onClick={() =>
-                    delete_profile(profile.overhead_profile_id)
-                  }
+                  onClick={() => delete_profile(profile.overhead_profile_id)}
                 >
                   Delete
                 </button>
@@ -126,9 +127,7 @@ function SavedProfilesPanel({
           ))}
         </div>
       ) : (
-        <div className="ui-help">
-          No saved overhead profiles yet.
-        </div>
+        <div className="ui-help">No saved overhead profiles yet.</div>
       )}
     </div>
   );
@@ -148,21 +147,29 @@ export default function GeneralOverheadMainCard({
           <div className="ui-kicker">Business Overheads</div>
           <div className="ui-card-title">General Overheads</div>
           <p className="ui-help">
-            Review, group, and confirm the annual overhead costs required to run
-            the business outside Labour and Assets.
+            Review saved profiles, confirm the locked total, then reclassify any
+            P&amp;L rows that are sitting in the wrong overhead category.
           </p>
         </div>
 
-        <ProfilePanel {...profile} />
+        <div className="general-overheads-layout">
+          <div className="general-overheads-layout__left">
+            <div className="general-overheads-layout__left-stack">
+              <ProfilePanel {...profile} />
+              <SavedProfilesPanel {...profiles} />
+              <GeneralOverheadReclassificationSection
+                reclassification={reclassification}
+                form={form}
+              />
+            </div>
+          </div>
 
-        <SavedProfilesPanel {...profiles} />
-
-        <GeneralOverheadSummaryCard {...summary} />
-
-        <GeneralOverheadReclassificationSection
-          reclassification={reclassification}
-          form={form}
-        />
+          <div className="general-overheads-layout__right">
+            <div className="general-overheads-layout__right-stack">
+              <GeneralOverheadSummaryCard {...summary} />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
