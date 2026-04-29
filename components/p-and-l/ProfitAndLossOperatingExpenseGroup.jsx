@@ -68,6 +68,22 @@ function build_line_category_options(line, category_options) {
     ];
   }
 
+  const operating_expense_classification = detect_operating_expense_subcategory(
+    line.line_name,
+  );
+
+  if (operating_expense_classification) {
+    const { category, subcategory, label } = operating_expense_classification;
+    return [
+      {
+        value: category,
+        label: `${label} → ${category === "general_overheads" ? "General Overheads" : category === "labour" ? "Labour" : category === "assets" ? "Assets" : category === "excluded" ? "Excluded" : category === "review_required" ? "Review Required" : category}`,
+        review_subcategory: subcategory,
+      },
+      ...category_options,
+    ];
+  }
+
   return category_options;
 }
 
@@ -75,6 +91,178 @@ function is_interest_line(line) {
   return String(line?.line_name || "")
     .toLowerCase()
     .includes("interest");
+}
+
+function detect_operating_expense_subcategory(line_name = "") {
+  const normalized = String(line_name).trim().toLowerCase();
+
+  // Labour-related operating expenses
+  if (
+    normalized.includes("salary") ||
+    normalized.includes("wages") ||
+    normalized.includes("payroll")
+  ) {
+    return { category: "labour", subcategory: "salary_wages", label: "Salary & Wages" };
+  }
+
+  if (
+    normalized.includes("kiwisaver") ||
+    normalized.includes("kiwi saver")
+  ) {
+    return { category: "labour", subcategory: "employer_kiwisaver", label: "KiwiSaver" };
+  }
+
+  if (
+    normalized.includes("acc levy") ||
+    normalized.includes("acc ")
+  ) {
+    return { category: "labour", subcategory: "employer_acc", label: "ACC Levy" };
+  }
+
+  // Staff overheads
+  if (
+    normalized.includes("staff expense") ||
+    normalized.includes("staff expenses") ||
+    normalized.includes("staff welfare") ||
+    normalized.includes("staff amenities") ||
+    normalized.includes("staff support")
+  ) {
+    return { category: "general_overheads", subcategory: "staff_overheads", label: "Staff Overheads" };
+  }
+
+  if (
+    normalized.includes("entertainment")
+  ) {
+    return { category: "general_overheads", subcategory: "staff_overheads", label: "Entertainment" };
+  }
+
+  // Vehicle running costs
+  if (
+    normalized.includes("fuel") ||
+    normalized.includes("diesel") ||
+    normalized.includes("petrol") ||
+    normalized.includes("motor vehicle") ||
+    normalized.includes("vehicle") ||
+    normalized.includes("registration") ||
+    normalized.includes("registrations") ||
+    normalized.includes("rego") ||
+    normalized.includes("licence") ||
+    normalized.includes("licences") ||
+    normalized.includes("license") ||
+    normalized.includes("licenses") ||
+    normalized.includes("repair") ||
+    normalized.includes("repairs") ||
+    normalized.includes("maintenance") ||
+    normalized.includes("servicing")
+  ) {
+    return { category: "general_overheads", subcategory: "vehicle_running_costs", label: "Vehicle Running Costs" };
+  }
+
+  // Office and admin costs
+  if (
+    normalized.includes("computer") ||
+    normalized.includes("printing") ||
+    normalized.includes("stationery") ||
+    normalized.includes("office") ||
+    normalized.includes("supplies") ||
+    normalized.includes("phone") ||
+    normalized.includes("telephone") ||
+    normalized.includes("internet") ||
+    normalized.includes("software") ||
+    normalized.includes("subscription")
+  ) {
+    return { category: "general_overheads", subcategory: "office_admin", label: "Office / Admin" };
+  }
+
+  // Finance and interest
+  if (
+    normalized.includes("asset finance") ||
+    normalized.includes("equipment finance") ||
+    normalized.includes("finance lease")
+  ) {
+    return { category: "assets", subcategory: "asset_finance", label: "Asset Finance" };
+  }
+
+  if (
+    normalized.includes("mixed") ||
+    normalized.includes("mixed finance")
+  ) {
+    return { category: "review_required", subcategory: "mixed_finance", label: "Mixed Finance (Asset + General)" };
+  }
+
+  if (
+    normalized.includes("accounting") ||
+    normalized.includes("bookkeeper")
+  ) {
+    return { category: "general_overheads", subcategory: "finance_admin", label: "Accounting / Admin" };
+  }
+
+  if (
+    normalized.includes("bank fees") ||
+    normalized.includes("loan interest") ||
+    normalized.includes("finance") ||
+    normalized.includes("interest")
+  ) {
+    return { category: "general_overheads", subcategory: "finance_interest", label: "Finance / Interest" };
+  }
+
+  // Insurance and compliance
+  if (
+    normalized.includes("insurance")
+  ) {
+    return { category: "general_overheads", subcategory: "insurance_compliance", label: "Insurance / Compliance" };
+  }
+
+  if (
+    normalized.includes("legal") ||
+    normalized.includes("compliance") ||
+    normalized.includes("audit")
+  ) {
+    return { category: "general_overheads", subcategory: "insurance_compliance", label: "Insurance / Compliance" };
+  }
+
+  // Travel
+  if (
+    normalized.includes("travel")
+  ) {
+    return { category: "general_overheads", subcategory: "travel", label: "Travel" };
+  }
+
+  // Sales and growth
+  if (
+    normalized.includes("advertising") ||
+    normalized.includes("marketing")
+  ) {
+    return { category: "general_overheads", subcategory: "sales_growth", label: "Sales / Growth" };
+  }
+
+  // Excluded items
+  if (
+    normalized.includes("penalt") ||
+    normalized.includes("fee") ||
+    normalized.includes("fine") ||
+    normalized.includes("non-deductible")
+  ) {
+    return { category: "excluded", subcategory: "penalties_non_deductible", label: "Penalties / Non-Deductible" };
+  }
+
+  if (
+    normalized.includes("excluded") ||
+    normalized.includes("non-qs") ||
+    normalized.includes("non qs")
+  ) {
+    return { category: "excluded", subcategory: "excluded_non_qs", label: "Excluded / Non-QS Cost" };
+  }
+
+  // Other / Review Required
+  if (
+    normalized.includes("other") ||
+    normalized.includes("review required")
+  ) {
+    return { category: "review_required", subcategory: "other_review_required", label: "Other / Review Required" };
+  }
+
+  return null;
 }
 
 function get_category_help_text(category) {
@@ -97,6 +285,45 @@ function get_category_help_text(category) {
     case "unassigned":
     default:
       return "Not ready yet. Leave here only if you still need to decide where this line belongs.";
+  }
+}
+
+function get_review_subcategory_help_text(subcategory) {
+  switch (subcategory) {
+    case "salary_wages":
+      return "Gross wages and direct salary costs feed the Labour module benchmark.";
+    case "employer_kiwisaver":
+      return "KiwiSaver employer contributions feed the Labour module benchmark.";
+    case "employer_acc":
+      return "ACC employer levy feeds the Labour module benchmark.";
+    case "staff_overheads":
+      return "Staff welfare, training, uniforms, and support costs feed General Overheads.";
+    case "vehicle_running_costs":
+      return "Vehicle fuel, repairs, maintenance, registration, and running costs feed General Overheads.";
+    case "office_admin":
+      return "Office, admin, supplies, phones, internet, and software feed General Overheads.";
+    case "finance_admin":
+      return "Accounting, bookkeeping, and financial admin costs feed General Overheads.";
+    case "finance_interest":
+      return "General finance interest, bank fees, and non-asset borrowing costs feed General Overheads.";
+    case "insurance_compliance":
+      return "Insurance, legal, compliance, and audit costs feed General Overheads.";
+    case "travel":
+      return "Travel and accommodation costs feed General Overheads.";
+    case "sales_growth":
+      return "Advertising and marketing costs feed General Overheads.";
+    case "asset_finance":
+      return "Asset finance, equipment finance, and asset-related costs feed Assets.";
+    case "mixed_finance":
+      return "This contains both asset and general finance. Review and separate before finalizing.";
+    case "penalties_non_deductible":
+      return "Penalties, fines, and non-deductible costs are excluded from QS recovery.";
+    case "excluded_non_qs":
+      return "These costs are explicitly excluded from the QS cost model.";
+    case "other_review_required":
+      return "This line needs further review to determine correct classification.";
+    default:
+      return "";
   }
 }
 
