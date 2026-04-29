@@ -1,282 +1,522 @@
 # QS Tools — Active System Brief (v3.6 — LOCKED)
 
-STATUS: ACTIVE SYSTEM BASELINE
+STATUS: ACTIVE SYSTEM BRIEF  
 VERSION: v3.6
-USE: Source of truth for system architecture and module ownership.
 
 ---
 
 ## PURPOSE
 
-This brief defines the active QS Tools system architecture, module order, module ownership, and downstream trust flow.
+This brief defines the active QS Tools system architecture, build order, product standard, and commercial logic.
 
-QS Tools is a first-principles commercial decision system.
+It is the central orientation brief for all v3.6 builds.
 
-The system must show:
-
-- what the business actually costs
-- where those costs belong
-- whether the model is complete enough to trust
-- how the cost burden is recovered
-- whether the commercial model is viable
-- whether real quotes align with the model
+All module briefs must align with this file.
 
 ---
 
-## CORE PRINCIPLE
+## ACTIVE SOURCE PACK
 
-Simple in hindsight. Invisible beforehand.
+Use only the v3.6 source briefs.
 
-QS Tools reflects the business back to the user.
-
-The system must remove hidden assumptions wherever feasible.
-
-Where an assumption remains, it must be visible, named, and explainable.
-
-Every cost must belong to exactly one module.
-
-If a cost appears in more than one module, the system is incorrect.
-
----
-
----
-
-## FIRST PRINCIPLES SOURCE
-
-The highest-level system philosophy is defined in:
+The active source pack is stored at:
 
 ```text
-00_FIRST_PRINCIPLES_SYSTEM_BRIEF_v3.6_LOCKED.txt
+docs/V3.6 Source Files
 ```
 
-This brief governs every module, calculation, contract, page, and downstream decision.
+Do not use v3.5 or older files unless the task explicitly says they are deprecated history.
 
-If a module-level rule conflicts with the First Principles brief, the conflict must be reviewed before implementation.
+---
+
+## HIGHEST-LEVEL PRINCIPLE
+
+QS Tools is built on:
+
+```text
+First principles for everything.
+
+Simple in hindsight.
+Invisible beforehand.
+```
+
+The system must reveal what was previously hidden in the business.
+
+Every cost must belong to exactly one owner.
+
+Every important output must be traceable, explainable, and defensible.
+
+---
+
+## PRODUCT STANDARD SOURCE
+
+The product quality and commercial defensibility standard is defined in:
+
+```text
+00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+```
+
+QS Tools must be good enough to defend, not just good enough to work.
+
+The target standard is 10/10 across:
+
+- commercial logic
+- cost ownership
+- traceability
+- reconciliation
+- readiness gating
+- user clarity
+- source data treatment
+- module contracts
+- downstream trust
+- decision usefulness
+
+If a module-level rule conflicts with the Product Standard brief, the conflict must be reviewed before implementation.
 
 ---
 
 ## LOCKED SYSTEM FLOW
+
+The locked v3.6 flow is:
+
+```text
 P&L
-↓
-General Overheads
-↓
-Labour
-↓
-Assets
-↓
-Module Reconciliation
-↓
-Model Readiness
-↓
-Cost Summary
-↓
-Recovery Summary
-↓
-Rate Models
-↓
-Production Capacity
-↓
-Recovery Outcome
-↓
-Quote Benchmark
+→ General Overheads
+→ Labour
+→ Assets
+→ Module Reconciliation
+→ Model Readiness
+→ Cost Summary
+→ Recovery Summary
+→ Rate Models
+→ Production Capacity
+→ Recovery Outcome
+→ Quote Benchmark
+→ Budget
+```
 
 ---
 
-## MODULE ROLE DEFINITIONS
+## CORE SEPARATION
 
-### P&L
-
-Raw financial input and first classification layer.
-
-P&L captures business reality.
-
-P&L may provide benchmark totals for reconciliation.
-
-P&L does not perform recovery, pricing, reconciliation verdicts, cost allocation, or downstream modelling.
-
-P&L benchmark values flow to Module Reconciliation only.
-
-P&L values must not feed Cost Summary calculations directly.
+```text
+P&L = raw financial input and first classification layer
+General Overheads = business overhead category engine
+Labour = labour cost and productive capacity engine
+Assets = ownership-only asset cost engine
+Module Reconciliation = evidence layer
+Model Readiness = trust/verdict layer
+Cost Summary = what it costs
+Recovery Summary = how it is recovered
+Cost Allocation = can it be delivered
+Recovery Outcome = should you run it
+Budget = locked upstream output consumer
+```
 
 ---
 
-### General Overheads
+## MODULE OWNERSHIP SUMMARY
 
-Post-P&L classification engine.
+### P&L owns
 
-General Overheads owns:
+- raw P&L lines
+- P&L classification
+- P&L benchmark totals
+- review-required status
+- excluded status
+- WIP / accounting adjustment visibility
+- reusable P&L mapping over time
 
-- business overhead classification
-- shared operating costs
-- staff overhead review categories
+P&L does not own downstream source-of-truth cost totals.
+
+### General Overheads owns
+
+- staff overheads as a category
 - vehicle running costs
-- fleet running costs
-- unclear / unallocated business costs
+- office/admin costs
+- finance/admin overheads
+- insurance/compliance
+- sales/growth overheads
+- travel overheads
 - total_general_overheads
 
-General Overheads sits immediately after P&L so unclear P&L costs are classified before downstream totals are trusted.
+General Overheads does not own Labour employer obligations.
 
-General Overheads does not perform recovery, pricing, cost allocation, or asset ownership calculations.
+General Overheads does not own asset ownership costs.
 
----
+### Labour owns
 
-### Labour
-
-People cost engine.
-
-Labour owns:
-
-- gross wages
-- paid entitlements
-- productive hours
+- staff_id
+- labour calculations
+- salary/wages
+- entitlement cost
 - employer KiwiSaver
 - ESCT
 - employer ACC levy
 - total_labour_cost_annual
 - total_productive_output
 
-Labour does not own staff overheads, vehicle running costs, assets, or general overheads.
+Labour does not own staff overheads.
 
----
+### Assets owns
 
-### Assets
-
-Ownership-only asset cost engine.
-
-Assets owns:
-
+- asset_id
+- ownership-only asset cost calculations
 - finance cost
 - lease cost
 - depreciation cost
-- ownership cost
+- replacement/ownership recovery if explicitly enabled
 - total_asset_cost_annual
+- no_active_assets_confirmed
 
-Assets does not own:
+Assets does not own vehicle running costs.
 
-- fuel
-- servicing
-- repairs
-- maintenance
-- registration
-- licensing
-- tyres
-- consumables
-- shared running costs
-- shared fleet costs
-- labour cost
+Assets must distinguish active asset from active finance.
 
-Vehicle and fleet running costs belong in General Overheads.
+Paid-off finance must not continue creating current finance cost.
 
----
+### Module Reconciliation owns
 
-### Module Reconciliation
+- evidence checks
+- cross-module consistency
+- benchmark variance visibility
+- blocker/warning generation
+- reconciliation_ready
 
-Evidence layer.
+Module Reconciliation does not recalculate upstream modules.
 
-Module Reconciliation checks whether upstream modules are internally consistent, contract-compliant, and safe to trust.
-
-It does not create costs.
-
-It does not alter upstream values.
-
-It produces reconciliation checks, blockers, warnings, and diagnostics.
-
----
-
-### Model Readiness
-
-Trust gate.
-
-Model Readiness converts reconciliation results into a simple verdict:
+### Model Readiness owns
 
 - model_ready
-- blocking_modules
-- warning_modules
 - model_readiness_status
+- blocking modules
+- warning modules
+- final trust verdict
 
-If the model is not ready, downstream outputs may display but are not trusted.
+Model Readiness does not create cost totals.
 
----
+### Cost Summary owns
 
-### Cost Summary
+- visible cost summary presentation
+- trusted / warning / blocked display
+- consumption of upstream outputs
 
-Cost aggregation layer.
-
-Cost Summary answers:
-
-WHAT does the business cost?
-
-Cost Summary consumes upstream outputs only.
-
-It does not reclassify, distribute, price, or rebuild upstream maths.
+Cost Summary must not rebuild upstream maths.
 
 ---
 
-### Recovery Summary
+## DOWNSTREAM CONTRACT RULE
 
-Commercial recovery strategy layer.
+Upstream modules own inputs and calculations.
 
-Recovery Summary answers:
+Downstream modules consume outputs only.
 
-HOW is the cost recovered?
+Never rebuild upstream maths downstream.
 
-Recovery Summary consumes Cost Summary outputs only.
+Never read raw upstream form state in downstream modules unless the relevant brief explicitly allows it.
 
----
+Never rename locked contract variables without a matching source brief update.
 
-### Rate Models
+Never use display names as join keys.
 
-Practical earning-rate layer.
+Use IDs only for joins.
 
-Rate Models translates the recovery requirement into usable rates.
-
-It does not calculate cost, capacity, or quote validation.
+If a downstream module needs a value, the upstream module must expose it through its output contract.
 
 ---
 
-### Production Capacity
+## COST OWNERSHIP RULE
 
-Operational deliverability layer.
+Every cost must have one owner.
 
-Production Capacity checks whether the required earning / recovery model can be delivered within available productive capacity.
+No duplicate cost ownership is allowed.
 
----
+Examples:
 
-### Recovery Outcome
-
-Commercial decision layer.
-
-Recovery Outcome determines whether the model is viable, marginal, or not viable.
-
----
-
-### Quote Benchmark
-
-Real-world validation layer.
-
-Quote Benchmark compares model outputs against actual quote behaviour.
-
----
-
-## REMOVED MODULES
-
-The following modules are removed from the active architecture:
-
-- Employee Overheads Module
-- Staff Overheads Module
-
-Staff Overheads may exist only as a General Overheads review category.
-
-It is not:
-
-- a module
-- an output
-- a downstream input
-- a readiness source
-- a Cost Summary input
+```text
+Salary & Wages → Labour
+Employer KiwiSaver → Labour
+ESCT → Labour
+Employer ACC Levy → Labour
+Staff Expenses → General Overheads / Staff Overheads
+Entertainment → General Overheads / Staff Overheads
+Vehicle fuel/servicing/repairs/tyres/rego → General Overheads / Vehicle Running Costs
+Vehicle finance / asset finance → Assets
+Paid-off asset finance → $0 current finance cost
+WIP Adjustment → Review Required until explicitly resolved
+Penalties / Non-Deductible → Excluded unless explicitly included
+```
 
 ---
 
-## FINAL DEFINITION
+## P&L CLASSIFICATION RULE
 
-QS Tools v3.6 is a staged commercial decision system where P&L captures reality, General Overheads classifies shared costs, Labour and Assets calculate clean source-of-truth totals, Module Reconciliation proves the model, Model Readiness gates trust, and downstream modules convert cost into recovery, rates, capacity, outcomes, and quote validation.
+P&L is the first classification layer.
+
+P&L must distinguish:
+
+```text
+accounting section
+QS top-level category
+review subcategory
+treatment
+readiness impact
+```
+
+Operating Expenses is an accounting section.
+
+General Overheads is a QS category.
+
+Operating Expenses may contain:
+
+- Labour
+- General Overheads
+- Assets
+- Review Required
+- Excluded
+- Unassigned
+
+The system must not force all Operating Expenses into General Overheads.
+
+---
+
+## WIP / ACCOUNTING ADJUSTMENT RULE
+
+WIP Adjustment must not be automatically assigned to:
+
+- COGS
+- General Overheads
+- Labour
+- Assets
+- Income
+- Excluded
+
+WIP Adjustment must default to:
+
+```text
+category: review_required
+review_subcategory: wip_accounting_adjustment
+```
+
+WIP remains a blocker until explicitly resolved.
+
+Allowed WIP treatments:
+
+```text
+Leave as Review Required
+Exclude from QS Cost Model
+Include as COGS / Direct Job Cost
+Treat as Income / Revenue Timing Adjustment
+```
+
+Do not auto-resolve WIP.
+
+Do not silently exclude WIP.
+
+Do not silently include WIP in COGS.
+
+---
+
+## PRODUCT STANDARD RULE
+
+Every important output must survive challenge.
+
+If someone questions a number, QS Tools must be able to show:
+
+- where the number came from
+- what source line or module produced it
+- what category owns it
+- what assumptions were made
+- whether the user manually resolved it
+- whether it is included or excluded
+- whether it blocks readiness
+- what downstream output it affects
+
+If the system cannot explain a number, the number should not be trusted.
+
+---
+
+## LONG-TERM COMMERCIAL CONTROL LOOP
+
+The current priority is to build the baseline model correctly.
+
+Future monthly P&L import, Xero API integration, accepted quote tracking, and actual-vs-model performance analysis must be built only after the baseline model is commercially defensible.
+
+The long-term QS Tools loop is:
+
+```text
+Baseline setup
+→ trusted cost model
+→ quote benchmark
+→ quote accepted / rejected
+→ monthly P&L import
+→ actual performance vs model
+→ variance analysis
+→ better future pricing decisions
+```
+
+The first P&L setup creates the reusable business mapping layer that future monthly imports and Xero API integration will rely on.
+
+A weak baseline creates weak monthly analysis.
+
+A trusted baseline creates meaningful commercial control.
+
+---
+
+## REUSABLE P&L MAPPING PRINCIPLE
+
+The first P&L setup may take time because QS Tools is making the business’s P&L structure explicit.
+
+This setup effort is intentional.
+
+Once a P&L line has been classified and resolved, QS Tools should be able to reuse that treatment for future P&L periods.
+
+The reusable mapping layer should connect:
+
+```text
+P&L account / Xero account / report line
+→ QS category
+→ review subcategory
+→ treatment
+→ owning module
+→ readiness impact
+```
+
+Future monthly P&L entry or Xero API import should become a controlled update rather than a full setup exercise.
+
+Known mapped lines should map automatically.
+
+New, changed, or unresolved lines should be highlighted for review.
+
+The system must not automate a weak baseline.
+
+---
+
+## FUTURE MONTHLY PERFORMANCE LOOP
+
+Once the baseline model is trusted, QS Tools should eventually compare:
+
+```text
+baseline model
+```
+
+against:
+
+```text
+monthly actual P&L performance
+```
+
+The system should show whether the business is performing in line with the model it set.
+
+Future monthly analysis should answer:
+
+- did actual sales align with the required recovery model?
+- did actual labour cost align with the baseline?
+- did actual general overheads align with the baseline?
+- did actual asset costs align with the baseline?
+- did actual gross margin align with the quote model?
+- did accepted quotes produce the expected recovery?
+- where did actual performance drift from the model?
+
+The user does not need perfect job-level tracking to see whether the business model is working.
+
+Job-level tracking may be useful later, but the first powerful layer is business-level model control.
+
+---
+
+## FUTURE XERO API RULE
+
+Xero API integration should come after the core engine is stable.
+
+The Xero API should be used to import P&L/accounting data into an already-defined QS Tools classification structure.
+
+The API should not define the commercial model.
+
+The commercial model defines how imported Xero lines are treated.
+
+Future Xero flow:
+
+```text
+Xero P&L line
+→ saved QS Tools mapping
+→ category
+→ review subcategory
+→ treatment
+→ readiness state
+```
+
+If a Xero line is new, changed, or unmapped, QS Tools must flag it for review.
+
+The API makes the workflow faster.
+
+It does not replace first-principles classification.
+
+---
+
+## MODEL READINESS RULE
+
+The user must never accidentally trust an incomplete model.
+
+If the model is incomplete, QS Tools must say so clearly.
+
+If a number is preliminary, QS Tools must say so clearly.
+
+If a cost is excluded, QS Tools must keep it visible.
+
+If a material item is unresolved, QS Tools must block readiness.
+
+If a model is ready, the user should have confidence that:
+
+- source data has been classified
+- module ownership is clean
+- reconciliation has been checked
+- downstream outputs are safe to use
+
+---
+
+## CURRENT BUILD PRIORITY
+
+The current build priority is:
+
+```text
+1. Finish P&L classification and review_subcategory mapping.
+2. Align General Overheads category language.
+3. Audit Labour contract.
+4. Fix Assets current-period finance and no-active-assets confirmation.
+5. Recheck Model Readiness.
+6. Wire Cost Summary as trusted / not trusted consumer.
+```
+
+Do not jump to Cost Summary until upstream readiness is clean.
+
+---
+
+## BUILD DISCIPLINE
+
+Every build should follow this sequence:
+
+1. first-principles rule
+2. source brief update
+3. narrow implementation task
+4. build passes
+5. visual / workflow check
+6. commit
+7. move to the next small piece
+
+Do not make broad changes when a narrow change is enough.
+
+Do not hide a conceptual problem with code.
+
+Do not allow convenience to override commercial correctness.
+
+---
+
+## FINAL STANDARD
+
+QS Tools is successful when the user can trust the model because every cost, assumption, treatment, variance, and downstream number can be explained.
+
+The product goal is not to produce a number quickly.
+
+The product goal is to produce a number that can be defended.
+
+The long-term product goal is to connect baseline, quote behaviour, accepted work, and actual monthly P&L performance so the business can see what is happening commercially at any given moment.

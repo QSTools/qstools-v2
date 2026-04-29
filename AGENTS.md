@@ -4,7 +4,7 @@
 
 This repository is QS Tools, a first-principles commercial decision engine for construction/business costing.
 
-The system is based on strict module ownership, downstream contracts, visible assumptions, and controlled source files.
+The system is based on strict module ownership, downstream contracts, visible assumptions, controlled source files, reconciliation, model readiness, and commercially defensible cost recovery.
 
 Core principle:
 
@@ -13,6 +13,8 @@ Core principle:
 Every cost must belong to exactly one module.
 
 If a cost appears in more than one module, the system is incorrect.
+
+QS Tools must be good enough to defend, not just good enough to work.
 
 ---
 
@@ -36,9 +38,21 @@ The First Principles brief is the highest-level system philosophy:
 docs/V3.6 Source Files/00_FIRST_PRINCIPLES_SYSTEM_BRIEF_v3.6_LOCKED.txt
 ```
 
+The Product Standard & Commercial Defensibility brief defines the product quality bar:
+
+```text
+docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+```
+
 If a coding decision conflicts with the First Principles brief, report the conflict before editing.
 
+If a coding decision makes the system less traceable, less explainable, or less commercially defensible, report the conflict before editing.
+
 If existing code conflicts with v3.6, report the conflict before changing broad architecture.
+
+The first P&L setup is expected to take time because it creates a reusable explicit mapping layer for future monthly P&L imports and eventual Xero API integration.
+
+Do not optimise for faster setup if doing so weakens the commercial model.
 
 ---
 
@@ -126,15 +140,94 @@ If the number cannot be explained, it is not valid.
 
 ---
 
-## Current build priority
+## Product Standard & Commercial Defensibility rules
 
-The next implementation unit is:
+QS Tools must be good enough to defend, not just good enough to work.
+
+The Product Standard & Commercial Defensibility brief defines the quality bar:
 
 ```text
-Module Reconciliation + Model Readiness Gate
+docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
 ```
 
-Build this before finalising Cost Summary.
+QS Tools should aim for 10/10 in:
+
+```text
+commercial logic
+cost ownership
+traceability
+reconciliation
+readiness gating
+user clarity
+source data treatment
+module contracts
+downstream trust
+decision usefulness
+```
+
+Every important output must survive challenge.
+
+If someone questions a number, QS Tools must be able to show:
+
+```text
+where the number came from
+what source line or module produced it
+what category owns it
+what assumptions were made
+whether the user manually resolved it
+whether it is included or excluded
+whether it blocks readiness
+what downstream output it affects
+```
+
+If the system cannot explain a number, the number should not be trusted.
+
+A trusted number must be:
+
+```text
+traceable
+explainable
+reconciled
+owned by one module
+free from hidden assumptions
+supported by visible treatment decisions
+safe to use downstream
+```
+
+A 10/10 system means:
+
+```text
+Every cost has one owner.
+Every assumption is visible.
+Every unresolved item blocks trust.
+Every resolved item has a treatment.
+Every downstream number is traceable.
+Every variance has an explanation.
+Every module has a clean contract.
+```
+
+Do not optimise for faster setup if doing so weakens the commercial model.
+
+Do not hide a conceptual problem with code.
+
+Do not allow convenience to override commercial correctness.
+
+---
+
+## Current build priority
+
+The current build priority is:
+
+```text
+1. Finish P&L classification and review_subcategory mapping.
+2. Align General Overheads category language.
+3. Audit Labour contract.
+4. Fix Assets current-period finance and no-active-assets confirmation.
+5. Recheck Model Readiness.
+6. Wire Cost Summary as trusted / not trusted consumer.
+```
+
+Do not jump to Cost Summary until upstream readiness is clean.
 
 Do not treat Cost Summary as trusted/final until:
 
@@ -143,6 +236,7 @@ Module Reconciliation exists
 Model Readiness exists
 diagnostics page confirms outputs
 ModelReadinessStatusStrip exists
+upstream blockers have been resolved or intentionally held as warnings
 ```
 
 ---
@@ -194,6 +288,10 @@ Do not put business logic in React components.
 
 Do not put business logic in `page.jsx`.
 
+Do not put persistence logic in UI components.
+
+Do not put display formatting into calculation functions unless the relevant brief explicitly requires it.
+
 Prefer small focused files over large all-in-one files.
 
 Use adapters/selectors where needed to protect existing modules from unnecessary rewrites.
@@ -213,11 +311,27 @@ labour_benchmark_total
 assets_benchmark_total
 general_overheads_benchmark_total
 unassigned_balance
+review_required_lines
+accounting_adjustment_lines
+```
+
+P&L owns:
+
+```text
+raw P&L lines
+P&L classification
+P&L benchmark totals
+review-required status
+excluded status
+WIP / accounting adjustment visibility
+reusable P&L mapping over time
 ```
 
 P&L benchmark values flow to Module Reconciliation only.
 
 P&L values must not feed Cost Summary calculations directly.
+
+P&L does not own downstream source-of-truth cost totals.
 
 ---
 
@@ -238,10 +352,19 @@ shared operating costs
 staff overhead review categories
 vehicle running costs
 fleet running costs
-unclear / unallocated business costs
+office/admin costs
+finance/admin overheads
+insurance/compliance
+sales/growth overheads
+travel overheads
+unclear / unallocated business costs after review
 ```
 
 Only `total_general_overheads` may flow to Cost Summary.
+
+General Overheads does not own Labour employer obligations.
+
+General Overheads does not own asset ownership costs.
 
 ---
 
@@ -270,6 +393,12 @@ employer ACC levy
 productive hours
 ```
 
+Labour does not own staff overheads.
+
+Labour does not own vehicle running costs.
+
+Labour does not own asset ownership costs.
+
 ---
 
 ### Assets owns
@@ -277,6 +406,7 @@ productive hours
 ```text
 total_asset_cost_annual
 assets_ready
+no_active_assets_confirmed
 ```
 
 Assets owns ownership-only costs:
@@ -286,6 +416,7 @@ finance cost
 lease cost
 depreciation cost
 ownership cost
+replacement / ownership recovery if explicitly enabled
 ```
 
 Assets must not own:
@@ -301,9 +432,22 @@ tyres
 consumables
 shared fleet costs
 labour costs
+vehicle running costs
 ```
 
 Vehicle and fleet running costs belong in General Overheads.
+
+Assets must distinguish:
+
+```text
+active asset
+active finance
+paid-off finance
+retired asset
+sold asset
+```
+
+Paid-off finance must not continue creating current finance cost.
 
 ---
 
@@ -350,6 +494,8 @@ blocked
 
 Model Readiness is the verdict layer.
 
+Model Readiness does not create cost totals.
+
 ---
 
 ### Cost Summary owns
@@ -374,6 +520,72 @@ Cost Summary consumes upstream cost outputs only.
 Cost Summary must not own reconciliation.
 
 Cost Summary must not rebuild Labour, Assets, or General Overheads maths.
+
+---
+
+## P&L reusable mapping rule
+
+The first P&L setup may take time because it creates a reusable explicit mapping layer.
+
+The reusable mapping layer should connect:
+
+```text
+P&L account / Xero account / report line
+→ QS category
+→ review subcategory
+→ treatment
+→ owning module
+→ readiness impact
+```
+
+Future monthly P&L entry or Xero API import should use this mapping.
+
+Known mapped lines should map automatically.
+
+New, changed, or unresolved lines should be highlighted for review.
+
+Do not optimise for faster setup if it weakens the commercial model.
+
+---
+
+## WIP / accounting adjustment rule
+
+WIP Adjustment must not be automatically assigned to:
+
+```text
+COGS
+General Overheads
+Labour
+Assets
+Income
+Excluded
+```
+
+WIP Adjustment must default to:
+
+```text
+category: review_required
+review_subcategory: wip_accounting_adjustment
+```
+
+WIP remains a blocker until explicitly resolved.
+
+Allowed WIP treatments:
+
+```text
+Leave as Review Required
+Exclude from QS Cost Model
+Include as COGS / Direct Job Cost
+Treat as Income / Revenue Timing Adjustment
+```
+
+Do not auto-resolve WIP.
+
+Do not silently exclude WIP.
+
+Do not silently include WIP in COGS.
+
+WIP is an accounting/timing adjustment until the user explicitly resolves it.
 
 ---
 
@@ -451,6 +663,12 @@ If existing React prop names use camelCase, do not rewrite the whole codebase. K
 
 Do not rename existing symbols only for style preference.
 
+Do not rename existing storage keys unless explicitly required by a locked source brief.
+
+Do not rename route paths unless explicitly requested.
+
+Do not rename component props if downstream components already depend on them.
+
 ---
 
 ## UI rules
@@ -470,6 +688,19 @@ one-off styling patterns
 Use existing `ui-*` classes and CSS tokens.
 
 Do not redesign UI unless the task explicitly asks for design changes.
+
+Warnings must be actionable.
+
+Avoid generic warnings where the user cannot see what to fix.
+
+If a model is blocked, show the user:
+
+```text
+what is blocked
+why it is blocked
+where to fix it
+what happens if ignored
+```
 
 ---
 
@@ -629,6 +860,33 @@ Cost Summary must consume Model Readiness outputs and show not-trusted state whe
 
 ---
 
+## Long-term commercial control loop
+
+Future monthly P&L import, Xero API integration, accepted quote tracking, and actual-vs-model performance analysis must come after the baseline model is commercially defensible.
+
+The long-term QS Tools loop is:
+
+```text
+Baseline setup
+→ trusted cost model
+→ quote benchmark
+→ quote accepted / rejected
+→ monthly P&L import
+→ actual performance vs model
+→ variance analysis
+→ better future pricing decisions
+```
+
+The first P&L setup creates the reusable business mapping layer that future monthly imports and Xero API integration will rely on.
+
+A weak baseline creates weak monthly analysis.
+
+A trusted baseline creates meaningful commercial control.
+
+Do not build monthly import or Xero API integration before the baseline engine is stable.
+
+---
+
 ## Before editing
 
 Before making changes:
@@ -664,6 +922,26 @@ anything intentionally not changed
 
 If the build fails, do not keep making unrelated changes. Report the failure and the likely cause.
 
+For inspect-only tasks, do not run `npm run build` unless explicitly requested.
+
+For implementation tasks, run `npm run build` once unless a build error requires one narrow follow-up fix.
+
+---
+
+## Git / checkpoint rules
+
+Prefer small commits.
+
+Commit after a working build.
+
+Do not bundle unrelated changes into one commit.
+
+If a change goes sideways, stop and use Git rather than piling on fixes.
+
+Before risky changes, create a backup branch or patch if needed.
+
+Do not commit failed experiments unless explicitly instructed.
+
 ---
 
 ## Safety rules
@@ -684,4 +962,26 @@ Do not refactor for neatness unless the task requires refactoring.
 
 Do not change styling, routing, storage, or contracts as a side effect of another change.
 
+Do not hide unresolved commercial assumptions with code.
+
+If a task reveals a conflict between current code and v3.6 source briefs, report the conflict and propose the smallest safe fix.
+
 When uncertain, inspect first and report before editing.
+
+---
+
+## Codex work pattern
+
+For each task, follow this order:
+
+1. Read `AGENTS.md`.
+2. Read the relevant v3.6 source brief.
+3. Inspect the relevant files only.
+4. Make the smallest safe change.
+5. Run `npm run build` if implementation changed code.
+6. Report changed files and result.
+7. Stop.
+
+Do not keep expanding scope without explicit instruction.
+
+Do not refactor while fixing a bug unless the refactor is required to fix the bug.
