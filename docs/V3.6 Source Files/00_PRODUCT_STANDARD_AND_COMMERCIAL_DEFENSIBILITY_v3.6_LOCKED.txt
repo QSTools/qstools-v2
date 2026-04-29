@@ -148,6 +148,9 @@ The following are not acceptable for a market-grade QS Tools build:
 - unassigned costs hidden behind summary totals
 - warnings that do not tell the user what to fix
 - trusted outputs produced from unresolved source data
+- gross margin treated as proof of profit
+- labour recovery hidden inside material margin
+- subcontract labour confused with internal productive labour
 
 ---
 
@@ -415,6 +418,290 @@ The value is knowing whether the business is actually behaving the way the model
 
 ---
 
+## LABOUR RECOVERY LEAK RULE
+
+QS Tools must expose labour recovery as early as possible in the model.
+
+In fixed-price / quote-based businesses, labour recovery is often the main hidden leak.
+
+A quote may appear profitable because total margin looks acceptable, while internal labour is actually being under-recovered and subsidised by:
+
+- material margin
+- owner labour
+- unpaid time
+- underestimated productive hours
+- ignored downtime
+- overhead absorption errors
+- asset margin or other non-labour recovery
+
+QS Tools must make this visible.
+
+The system must not wait for job-level tracking or quote-level analysis before showing the labour recovery issue.
+
+Before quote entry exists, the summary layers should still expose baseline labour recovery.
+
+---
+
+## MARGIN POOL RECOVERY RULE
+
+For fixed-price and quote-based businesses, QS Tools must not treat gross margin as proof of profit.
+
+A quote must generate enough margin / recovery pool to recover:
+
+- internal labour cost
+- general overheads
+- asset ownership costs
+- target profit
+
+The core fixed-price test is:
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit
+= recovery surplus / shortfall
+```
+
+If the recovery surplus / shortfall is negative, the quote is commercially loss-making against the model, even if it appears profitable using a simple gross-margin view.
+
+This is one of the main hidden leaks in quote-based businesses.
+
+QS Tools must expose this clearly before and during quote benchmarking.
+
+---
+
+## INTERNAL RECOVERY POOL RULE
+
+For labour recovery analysis, QS Tools must distinguish between:
+
+- revenue
+- external/direct costs
+- subcontract labour
+- internal labour
+- general overhead recovery
+- asset ownership recovery
+- target profit
+
+The defensible baseline concept is:
+
+```text
+Revenue
+- external/direct costs
+= internal recovery pool
+```
+
+External/direct costs may include:
+
+- materials
+- freight
+- plant hire
+- consumables
+- third-party job costs
+- subcontract labour where it is bought-in external labour
+
+Subcontract labour must be handled carefully.
+
+Subcontract labour is not internal labour capacity, but it may represent bought-in labour required to deliver the work.
+
+QS Tools must not automatically treat subcontract labour as internal labour recovery.
+
+Subcontract labour should be visible separately so the user can see whether work is being delivered by internal labour, external labour, or a mix of both.
+
+---
+
+## BASELINE LABOUR RECOVERY FORMULA
+
+The baseline labour recovery view must not simply assume:
+
+```text
+Revenue - COGS = Labour content
+```
+
+That is too broad because the remaining amount may still need to recover:
+
+- internal labour
+- general overheads
+- asset ownership costs
+- target profit
+- other recovery requirements
+
+The more defensible model is:
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required general overhead recovery
+- required asset ownership recovery
+- target profit
+= revenue available for internal labour recovery
+```
+
+Then:
+
+```text
+effective_internal_labour_recovery_rate =
+revenue_available_for_internal_labour_recovery
+/ total_productive_output
+```
+
+This should be compared against:
+
+```text
+required_labour_recovery_rate =
+total_labour_cost_annual
+/ total_productive_output
+```
+
+The exact formula may evolve as Revenue Summary, Recovery Summary, and Quote Benchmark are built, but the product rule is locked:
+
+```text
+QS Tools must show whether internal labour is actually being recovered.
+```
+
+---
+
+## SUBCONTRACT LABOUR RULE
+
+Subcontractor costs must be separated from internal labour recovery.
+
+Subcontractors may appear in COGS, but they should not be confused with internal productive labour hours.
+
+For labour recovery analysis, subcontract labour should be treated as:
+
+```text
+external labour cost
+```
+
+unless the user explicitly chooses another treatment.
+
+The system should eventually show:
+
+- internal labour recovery
+- subcontract labour cost
+- total labour content
+- internal vs external labour mix
+
+This prevents the model from overstating internal labour recovery when work is actually being delivered by subcontractors.
+
+---
+
+## QUOTE-BASED BUSINESS RULE
+
+For quote-based businesses, especially fixed-price work, QS Tools must not rely only on total quote margin.
+
+The system must distinguish between:
+
+```text
+quote appears profitable
+```
+
+and:
+
+```text
+quote recovers the business model correctly
+```
+
+A quote can pass a simple total-margin check while still failing labour recovery, overhead recovery, asset recovery, or target profit recovery.
+
+QS Tools should eventually show:
+
+- revenue
+- external/direct costs
+- margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit requirement
+- recovery surplus / shortfall
+- effective internal labour recovery rate
+- required internal labour recovery rate
+- whether material margin is subsidising labour under-recovery
+
+This is likely one of the main commercial leaks in quote-based businesses.
+
+---
+
+## COMMERCIAL RECOVERY RESULT RULE
+
+QS Tools should eventually produce a clear commercial recovery result for quotes and summary-level analysis.
+
+The system should be able to say:
+
+```text
+This quote is recovering the model.
+```
+
+```text
+This quote is under-recovering by $X.
+```
+
+```text
+This quote is commercially loss-making against your model.
+```
+
+A quote is commercially loss-making against the model when the margin / recovery pool is not large enough to recover:
+
+- internal labour
+- general overheads
+- asset ownership
+- target profit
+
+This does not necessarily mean the job is immediately cash-negative or accounting loss-making.
+
+It means the quote fails the business recovery model the user has set.
+
+This distinction must be clear in the product language.
+
+---
+
+## LABOUR RECOVERY PRODUCT STANDARD
+
+Labour recovery visibility is a core QS Tools product standard.
+
+The user should be able to see:
+
+```text
+This is what labour costs.
+This is the productive labour capacity.
+This is what labour must recover.
+This is what the current model actually recovers.
+This is whether the gap is being hidden by material margin or other recovery.
+```
+
+This insight must eventually connect:
+
+```text
+Labour module
+→ Cost Summary
+→ Recovery Summary
+→ Revenue Summary
+→ Quote Benchmark
+→ Monthly P&L actuals
+```
+
+The quote engine will later provide quote-by-quote proof.
+
+The summary layer must provide the baseline labour recovery warning before that.
+
+---
+
 ## USER TRUST RULE
 
 The user must never accidentally trust an incomplete model.
@@ -494,3 +781,15 @@ The product goal is not to produce a number quickly.
 The product goal is to produce a number that can be defended.
 
 The long-term product goal is to connect baseline, quote behaviour, accepted work, and actual monthly P&L performance so the business can see what is happening commercially at any given moment.
+
+QS Tools must show whether a fixed-price quote actually recovers the business model.
+
+The system must not allow a quote to look commercially healthy merely because gross margin is positive.
+
+The key question is:
+
+```text
+Does the margin / recovery pool recover internal labour, general overheads, asset ownership, and target profit?
+```
+
+If not, QS Tools must make the shortfall visible.

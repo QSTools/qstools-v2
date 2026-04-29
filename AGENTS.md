@@ -44,9 +44,17 @@ The Product Standard & Commercial Defensibility brief defines the product qualit
 docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
 ```
 
+The Labour Recovery & Margin Pool Standard defines the fixed-price recovery test:
+
+```text
+docs/V3.6 Source Files/17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
+```
+
 If a coding decision conflicts with the First Principles brief, report the conflict before editing.
 
 If a coding decision makes the system less traceable, less explainable, or less commercially defensible, report the conflict before editing.
+
+If a coding decision treats gross margin as proof of profit, report the conflict before editing.
 
 If existing code conflicts with v3.6, report the conflict before changing broad architecture.
 
@@ -211,6 +219,61 @@ Do not optimise for faster setup if doing so weakens the commercial model.
 Do not hide a conceptual problem with code.
 
 Do not allow convenience to override commercial correctness.
+
+### Labour recovery and margin pool rules
+
+Labour recovery visibility is a core product standard.
+
+Do not treat total margin as sufficient proof that a quote-based business is recovering labour correctly.
+
+Do not assume:
+
+```text
+Revenue - COGS = Labour content
+```
+
+That is too broad and can hide the labour recovery leak.
+
+For fixed-price and quote-based businesses, distinguish:
+
+```text
+revenue
+external/direct costs
+subcontract labour
+internal labour
+general overhead recovery
+asset ownership recovery
+target profit
+```
+
+The defensible baseline concept is:
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit
+= recovery surplus / shortfall
+```
+
+If the surplus / shortfall is negative, the quote is commercially loss-making against the model even if a simple gross-margin view looks acceptable.
+
+Subcontract labour must be visible separately from internal labour recovery.
+
+Subcontract labour may be part of COGS, but it must not be confused with internal productive labour capacity.
+
+Before quote-level analysis exists, the summary layers should still expose baseline labour recovery using Labour, Cost Summary, Recovery Summary, and Revenue Summary outputs.
+
+Future Quote Benchmark should prove labour recovery quote-by-quote.
 
 ---
 
