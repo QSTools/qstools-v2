@@ -37,6 +37,187 @@ function is_wip_line(line_name = "") {
   );
 }
 
+const OPERATING_EXPENSE_CLASSIFICATION_OPTIONS = [
+  {
+    value: "salary_wages",
+    category: "labour",
+    review_subcategory: "salary_wages",
+    label: "Salary & Wages → Labour",
+  },
+  {
+    value: "employer_kiwisaver",
+    category: "labour",
+    review_subcategory: "employer_kiwisaver",
+    label: "KiwiSaver → Labour",
+  },
+  {
+    value: "employer_acc",
+    category: "labour",
+    review_subcategory: "employer_acc",
+    label: "ACC Levy → Labour",
+  },
+  {
+    value: "staff_overheads",
+    category: "general_overheads",
+    review_subcategory: "staff_overheads",
+    label: "Staff Overheads → General Overheads",
+  },
+  {
+    value: "entertainment",
+    category: "general_overheads",
+    review_subcategory: "staff_overheads",
+    label: "Entertainment → Staff Overheads",
+  },
+  {
+    value: "vehicle_running_costs",
+    category: "general_overheads",
+    review_subcategory: "vehicle_running_costs",
+    label: "Vehicle Running Costs → General Overheads",
+  },
+  {
+    value: "office_admin",
+    category: "general_overheads",
+    review_subcategory: "office_admin",
+    label: "Office / Admin → General Overheads",
+  },
+  {
+    value: "finance_admin",
+    category: "general_overheads",
+    review_subcategory: "finance_admin",
+    label: "Accounting / Admin → General Overheads",
+  },
+  {
+    value: "finance_interest",
+    category: "general_overheads",
+    review_subcategory: "finance_interest",
+    label: "Finance / Interest → General Overheads",
+  },
+  {
+    value: "asset_finance",
+    category: "assets",
+    review_subcategory: "asset_finance",
+    label: "Asset Finance → Assets",
+  },
+  {
+    value: "mixed_finance",
+    category: "review_required",
+    review_subcategory: "mixed_finance",
+    label: "Mixed Finance → Review Required",
+  },
+  {
+    value: "insurance_compliance",
+    category: "general_overheads",
+    review_subcategory: "insurance_compliance",
+    label: "Insurance / Compliance → General Overheads",
+  },
+  {
+    value: "sales_growth",
+    category: "general_overheads",
+    review_subcategory: "sales_growth",
+    label: "Sales / Growth → General Overheads",
+  },
+  {
+    value: "travel",
+    category: "general_overheads",
+    review_subcategory: "travel",
+    label: "Travel → General Overheads",
+  },
+  {
+    value: "penalties_non_deductible",
+    category: "excluded",
+    review_subcategory: "penalties_non_deductible",
+    label: "Penalties / Non-Deductible → Excluded",
+  },
+  {
+    value: "other_review_required",
+    category: "review_required",
+    review_subcategory: "other_review_required",
+    label: "Other / Review Required",
+  },
+  {
+    value: "excluded_non_qs",
+    category: "excluded",
+    review_subcategory: "excluded_non_qs",
+    label: "Excluded / Non-QS Cost",
+  },
+  {
+    value: "labour",
+    category: "labour",
+    review_subcategory: "",
+    label: "Labour",
+  },
+  {
+    value: "general_overheads",
+    category: "general_overheads",
+    review_subcategory: "",
+    label: "General Overheads",
+  },
+  {
+    value: "assets",
+    category: "assets",
+    review_subcategory: "",
+    label: "Assets",
+  },
+  {
+    value: "review_required",
+    category: "review_required",
+    review_subcategory: "",
+    label: "Review Required",
+  },
+  {
+    value: "excluded",
+    category: "excluded",
+    review_subcategory: "",
+    label: "Excluded",
+  },
+  {
+    value: "unassigned",
+    category: "unassigned",
+    review_subcategory: "",
+    label: "Unassigned",
+  },
+];
+
+function get_operating_expense_classification_option_value(line) {
+  const category = line.category || "unassigned";
+  const subcategory = line.review_subcategory || "";
+  const detected_classification = detect_operating_expense_subcategory(
+    line.line_name,
+  );
+
+  if (
+    detected_classification &&
+    detected_classification.category === category &&
+    detected_classification.subcategory === subcategory
+  ) {
+    const detectedOption = OPERATING_EXPENSE_CLASSIFICATION_OPTIONS.find(
+      (option) =>
+        option.category === category &&
+        option.review_subcategory === subcategory &&
+        option.label.startsWith(detected_classification.label),
+    );
+
+    if (detectedOption) {
+      return detectedOption.value;
+    }
+  }
+
+  const matchedOption = OPERATING_EXPENSE_CLASSIFICATION_OPTIONS.find(
+    (option) =>
+      option.category === category && option.review_subcategory === subcategory,
+  );
+
+  if (matchedOption) {
+    return matchedOption.value;
+  }
+
+  const genericOption = OPERATING_EXPENSE_CLASSIFICATION_OPTIONS.find(
+    (option) => option.value === category,
+  );
+
+  return genericOption?.value || "unassigned";
+}
+
 function build_line_category_options(line, category_options) {
   if (is_wip_line(line.line_name)) {
     return [
@@ -73,18 +254,23 @@ function build_line_category_options(line, category_options) {
   );
 
   if (operating_expense_classification) {
-    const { category, subcategory, label } = operating_expense_classification;
-    return [
-      {
-        value: category,
-        label: `${label} → ${category === "general_overheads" ? "General Overheads" : category === "labour" ? "Labour" : category === "assets" ? "Assets" : category === "excluded" ? "Excluded" : category === "review_required" ? "Review Required" : category}`,
-        review_subcategory: subcategory,
-      },
-      ...category_options,
-    ];
+    const { category, subcategory } = operating_expense_classification;
+    const inferredValue = `${category}|${subcategory}`;
+    const inferredOption = OPERATING_EXPENSE_CLASSIFICATION_OPTIONS.find(
+      (option) => option.value === inferredValue,
+    );
+
+    return inferredOption
+      ? [
+          inferredOption,
+          ...OPERATING_EXPENSE_CLASSIFICATION_OPTIONS.filter(
+            (option) => option.value !== inferredValue,
+          ),
+        ]
+      : OPERATING_EXPENSE_CLASSIFICATION_OPTIONS;
   }
 
-  return category_options;
+  return OPERATING_EXPENSE_CLASSIFICATION_OPTIONS;
 }
 
 function is_interest_line(line) {
@@ -409,27 +595,40 @@ export default function ProfitAndLossOperatingExpenseGroup({
                     line,
                     category_options,
                   );
+                  const current_option_value = get_operating_expense_classification_option_value(
+                    line,
+                  );
                   const effective_category =
                     is_wip_line(line.line_name) &&
                     (line.category === "unassigned" || !line.category)
                       ? "review_required"
-                      : line.category;
+                      : line.category || "unassigned";
 
                   return (
                     <>
                       <select
                         className="ui-select"
-                        value={effective_category}
+                        value={current_option_value}
                         onChange={(event) => {
                           const selectedValue = event.target.value;
                           const selectedOption = local_category_options.find(
                             (option) => option.value === selectedValue,
                           );
 
+                          if (!selectedOption) {
+                            return;
+                          }
+
                           actions.update_pnl_line(
                             line.pnl_line_id,
                             "category",
-                            selectedValue,
+                            selectedOption.category || selectedValue,
+                          );
+
+                          actions.update_pnl_line(
+                            line.pnl_line_id,
+                            "review_subcategory",
+                            selectedOption.review_subcategory || "",
                           );
 
                           if (selectedOption?.wip_treatment) {
@@ -443,14 +642,6 @@ export default function ProfitAndLossOperatingExpenseGroup({
                               line.pnl_line_id,
                               "wip_treatment",
                               "unresolved",
-                            );
-                          }
-
-                          if (selectedOption?.review_subcategory) {
-                            actions.update_pnl_line(
-                              line.pnl_line_id,
-                              "review_subcategory",
-                              selectedOption.review_subcategory,
                             );
                           }
                         }}

@@ -573,6 +573,10 @@ function get_operating_expense_group_key(line) {
     return "office_admin";
   }
 
+  if (category === "excluded") {
+    return "excluded_items";
+  }
+
   return "other_unallocated";
 }
 
@@ -632,9 +636,15 @@ const OPERATING_EXPENSE_GROUPS = [
     defaultOpen: false,
   },
   {
+    key: "excluded_items",
+    title: "Excluded Items",
+    help: "Penalties, non-deductible costs, and other items excluded from the QS cost model.",
+    defaultOpen: false,
+  },
+  {
     key: "other_unallocated",
     title: "Other / Unallocated",
-    help: "Travel, entertainment, penalties, unusual costs, and lines that still need review.",
+    help: "Travel, entertainment, unusual costs, and lines that still need review.",
     defaultOpen: false,
   },
 ];
@@ -838,7 +848,12 @@ export default function ProfitAndLossSectionBlock({
       return;
     }
 
-    const suggested_category = infer_category_from_line_name(next_line_name);
+    const specific_classification = detect_operating_expense_subcategory(
+      next_line_name,
+    );
+    const suggested_category =
+      specific_classification?.category ||
+      infer_category_from_line_name(next_line_name);
     if (!suggested_category) return;
 
     const current_category = line.category ?? "unassigned";
@@ -851,6 +866,14 @@ export default function ProfitAndLossSectionBlock({
         "category",
         suggested_category,
       );
+
+      if (specific_classification?.subcategory) {
+        actions.update_pnl_line(
+          line.pnl_line_id,
+          "review_subcategory",
+          specific_classification.subcategory,
+        );
+      }
     }
   }
 
