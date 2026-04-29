@@ -141,36 +141,6 @@ const OPERATING_EXPENSE_CLASSIFICATION_OPTIONS = [
     label: "Excluded / Non-QS Cost",
   },
   {
-    value: "labour",
-    category: "labour",
-    review_subcategory: "",
-    label: "Labour",
-  },
-  {
-    value: "general_overheads",
-    category: "general_overheads",
-    review_subcategory: "",
-    label: "General Overheads",
-  },
-  {
-    value: "assets",
-    category: "assets",
-    review_subcategory: "",
-    label: "Assets",
-  },
-  {
-    value: "review_required",
-    category: "review_required",
-    review_subcategory: "",
-    label: "Review Required",
-  },
-  {
-    value: "excluded",
-    category: "excluded",
-    review_subcategory: "",
-    label: "Excluded",
-  },
-  {
     value: "unassigned",
     category: "unassigned",
     review_subcategory: "",
