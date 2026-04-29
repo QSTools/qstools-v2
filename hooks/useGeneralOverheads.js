@@ -53,6 +53,78 @@ function is_general_overhead_category(category) {
   return category === "general_overheads" || category === "employee_overheads";
 }
 
+function add_overhead_amount(state, key, amount) {
+  state[key] = to_number(state[key]) + amount;
+}
+
+function assign_review_subcategory_cost(next_state, review_subcategory, name, amount) {
+  switch (review_subcategory) {
+    case "staff_overheads":
+      add_overhead_amount(next_state, "staff_overheads_cost", amount);
+      return true;
+    case "office_admin":
+      add_overhead_amount(next_state, "office_admin_cost", amount);
+      return true;
+    case "finance_admin":
+      add_overhead_amount(next_state, "accounting_fees", amount);
+      return true;
+    case "finance_interest":
+      add_overhead_amount(next_state, "finance_interest_cost", amount);
+      return true;
+    case "insurance_compliance":
+      if (
+        matches_keywords(name, ["professional indemnity", "indemnity insurance"])
+      ) {
+        add_overhead_amount(next_state, "professional_indemnity_insurance", amount);
+        return true;
+      }
+      if (matches_keywords(name, ["public liability", "liability insurance"])) {
+        add_overhead_amount(next_state, "public_liability_insurance", amount);
+        return true;
+      }
+      add_overhead_amount(next_state, "insurance_compliance_cost", amount);
+      return true;
+    case "sales_growth":
+      if (matches_keywords(name, ["advertising", "marketing"])) {
+        add_overhead_amount(next_state, "marketing_cost", amount);
+        return true;
+      }
+      add_overhead_amount(next_state, "sales_growth_cost", amount);
+      return true;
+    case "travel":
+      add_overhead_amount(next_state, "travel_cost", amount);
+      return true;
+    case "vehicle_running_costs":
+      if (
+        matches_keywords(name, [
+          "fuel",
+          "diesel",
+          "petrol",
+          "motor vehicle",
+          "vehicle",
+          "rego",
+          "registration",
+          "licence",
+          "licences",
+          "license",
+          "licenses",
+          "repair",
+          "repairs",
+          "maintenance",
+          "service",
+          "servicing",
+        ])
+      ) {
+        add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
+      } else {
+        add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
+      }
+      return true;
+    default:
+      return false;
+  }
+}
+
 function build_general_overheads_from_pnl({
   pnl_output_contract,
   current_overhead_state,
@@ -75,12 +147,31 @@ function build_general_overheads_from_pnl({
   for (const line of pnl_lines) {
     const name = normalise_name(line.line_name);
     const amount = to_number(line.amount);
+    const review_subcategory = normalise_name(line.review_subcategory);
 
     if (amount === 0) {
       continue;
     }
 
     if (!is_general_overhead_category(line.category)) {
+      continue;
+    }
+
+    if (
+      review_subcategory &&
+      [
+        "mixed_finance",
+        "other_review_required",
+        "wip_accounting_adjustment",
+        "wip_accounting_adjustment_excluded",
+        "wip_direct_job_cost",
+        "wip_income_timing_adjustment",
+      ].includes(review_subcategory)
+    ) {
+      continue;
+    }
+
+    if (review_subcategory && assign_review_subcategory_cost(next_state, review_subcategory, name, amount)) {
       continue;
     }
 
