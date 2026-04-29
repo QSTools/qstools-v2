@@ -120,6 +120,7 @@ function SavedPnlProfilesPanel({
 function SummaryPanel({
   summary,
   warnings = [],
+  unassigned_details = {},
   save_message = "",
   on_save,
   on_continue_to_overheads,
@@ -259,6 +260,65 @@ function SummaryPanel({
           )}
         </div>
 
+        {(unassigned_details.accounting_adjustments?.length > 0 ||
+          unassigned_details.unassigned_operating_expenses?.length > 0 ||
+          unassigned_details.other_unassigned_lines?.length > 0) && (
+          <div className="ui-panel ui-stack-sm theme-warn-soft">
+            <div className="ui-kicker theme-warn">Unassigned Costs Requiring Review</div>
+
+            {unassigned_details.accounting_adjustments?.length > 0 && (
+              <div className="ui-stack-sm">
+                <div className="ui-label">Accounting Adjustments Requiring Review</div>
+                <div className="ui-stack-sm">
+                  {unassigned_details.accounting_adjustments.map((line, index) => (
+                    <div key={index} className="ui-panel ui-stack-sm">
+                      <div><strong>Section:</strong> {line.section}</div>
+                      <div><strong>Line Name:</strong> {line.line_name}</div>
+                      <div><strong>Amount:</strong> {line.amount}</div>
+                      <div><strong>Current Category:</strong> {line.current_category}</div>
+                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {unassigned_details.unassigned_operating_expenses?.length > 0 && (
+              <div className="ui-stack-sm">
+                <div className="ui-label">Unassigned Operating Expenses</div>
+                <div className="ui-stack-sm">
+                  {unassigned_details.unassigned_operating_expenses.map((line, index) => (
+                    <div key={index} className="ui-panel ui-stack-sm">
+                      <div><strong>Section:</strong> {line.section}</div>
+                      <div><strong>Line Name:</strong> {line.line_name}</div>
+                      <div><strong>Amount:</strong> {line.amount}</div>
+                      <div><strong>Current Category:</strong> {line.current_category}</div>
+                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {unassigned_details.other_unassigned_lines?.length > 0 && (
+              <div className="ui-stack-sm">
+                <div className="ui-label">Other Unassigned Lines</div>
+                <div className="ui-stack-sm">
+                  {unassigned_details.other_unassigned_lines.map((line, index) => (
+                    <div key={index} className="ui-panel ui-stack-sm">
+                      <div><strong>Section:</strong> {line.section}</div>
+                      <div><strong>Line Name:</strong> {line.line_name}</div>
+                      <div><strong>Amount:</strong> {line.amount}</div>
+                      <div><strong>Current Category:</strong> {line.current_category}</div>
+                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Save</div>
           <p className="ui-help">
@@ -301,6 +361,7 @@ export default function ProfitAndLossMainCard({
   summary,
   actions,
   warnings = [],
+  unassigned_details = {},
   profiles = [],
   show_saved_snapshots = false,
   save_message = "",
@@ -368,6 +429,7 @@ export default function ProfitAndLossMainCard({
         <SummaryPanel
           summary={summary}
           warnings={warnings}
+          unassigned_details={unassigned_details}
           save_message={save_message}
           on_save={actions.on_save}
           on_continue_to_overheads={handle_continue_to_overheads}
