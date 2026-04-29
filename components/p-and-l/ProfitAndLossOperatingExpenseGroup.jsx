@@ -26,6 +26,51 @@ function get_line_amount_total(lines = []) {
   }, 0);
 }
 
+function is_wip_line(line_name = "") {
+  const normalized = String(line_name).trim().toLowerCase();
+  return (
+    normalized.includes("wip") ||
+    normalized.includes("work in progress") ||
+    normalized.includes("opening wip") ||
+    normalized.includes("closing wip") ||
+    normalized.includes("wip adjustment")
+  );
+}
+
+function build_line_category_options(line, category_options) {
+  if (is_wip_line(line.line_name)) {
+    return [
+      {
+        value: "review_required",
+        label: "WIP / Accounting Adjustment",
+        review_subcategory: "wip_accounting_adjustment",
+        wip_treatment: "unresolved",
+      },
+      {
+        value: "excluded",
+        label: "Exclude from QS Cost Model",
+        review_subcategory: "wip_accounting_adjustment_excluded",
+        wip_treatment: "excluded_from_qs_cost_model",
+      },
+      {
+        value: "cogs",
+        label: "Include as COGS / Direct Job Cost",
+        review_subcategory: "wip_direct_job_cost",
+        wip_treatment: "include_as_direct_job_cost",
+      },
+      {
+        value: "income",
+        label: "Income / Revenue Timing Adjustment",
+        review_subcategory: "wip_income_timing_adjustment",
+        wip_treatment: "income_timing_adjustment",
+      },
+      ...category_options,
+    ];
+  }
+
+  return category_options;
+}
+
 function is_interest_line(line) {
   return String(line?.line_name || "")
     .toLowerCase()
@@ -41,6 +86,14 @@ function get_category_help_text(category) {
       return "Feeds the General Overheads benchmark. Use for business-wide costs such as insurance, phones, internet, office, accounting, and subscriptions.";
     case "assets":
       return "Feeds the Assets benchmark. Use for vehicle, plant, finance, running costs, repairs, maintenance, licences, registrations, and ownership costs.";
+    case "review_required":
+      return "Review required. This line has been identified as a WIP accounting adjustment and needs further review before model assignment.";
+    case "excluded":
+      return "Excluded from QS cost model. This WIP cost will not be included in the QS recovery benchmark.";
+    case "cogs":
+      return "Included as COGS / Direct Job Cost for QS benchmark and reconciliation.";
+    case "income":
+      return "Income / Revenue Timing Adjustment. This line is treated as timing-related revenue rather than an operating cost.";
     case "unassigned":
     default:
       return "Not ready yet. Leave here only if you still need to decide where this line belongs.";
@@ -124,25 +177,116 @@ export default function ProfitAndLossOperatingExpenseGroup({
                   <Tooltip text="This decides where the cost flows next inside QS Tools. Choosing the wrong category will affect later setup and reconciliation." />
                 </span>
 
-                <select
-                  className="ui-select"
-                  value={line.category}
-                  onChange={(event) =>
-                    actions.update_pnl_line(
-                      line.pnl_line_id,
-                      "category",
-                      event.target.value,
-                    )
-                  }
-                >
-                  {category_options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                {(() => {
+                  const local_category_options = build_line_category_options(
+                    line,
+                    category_options,
+                  );
+                  const effective_category =
+                    is_wip_line(line.line_name) &&
+                    (line.category === "unassigned" || !line.category)
+                      ? "review_required"
+                      : line.category;
 
-                <p className="ui-help">{get_category_help_text(line.category)}</p>
+                  return (
+                    <>
+                      <select
+                        className="ui-select"
+                        value={effective_category}
+                        onChange={(event) => {
+                          const selectedValue = event.target.value;
+                          const selectedOption = local_category_options.find(
+                            (option) => option.value === selectedValue,
+                          );
+
+                          actions.update_pnl_line(
+                            line.pnl_line_id,
+                            "category",
+                            selectedValue,
+                          );
+
+                          if (selectedOption?.wip_treatment) {
+                            actions.update_pnl_line(
+                              line.pnl_line_id,
+                              "wip_treatment",
+                              selectedOption.wip_treatment,
+                            );
+                          } else if (selectedValue === "review_required") {
+                            actions.update_pnl_line(
+                              line.pnl_line_id,
+                              "wip_treatment",
+                              "unresolved",
+                            );
+                          }
+
+                          if (selectedOption?.review_subcategory) {
+                            actions.update_pnl_line(
+                              line.pnl_line_id,
+                              "review_subcategory",
+                              selectedOption.review_subcategory,
+                            );
+                          }
+                        }}
+                      >
+                        {local_category_options.map((option) => (
+                          <option
+                            key={`${option.value}-${option.label}`}
+                            value={option.value}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <p className="ui-help">
+                        {get_category_help_text(effective_category)}
+                      </p>
+
+                      {is_wip_line(line.line_name) ? (
+                        <div className="ui-panel ui-stack-sm theme-warn-soft">
+                          <span className="ui-label">WIP Decision Guide</span>
+                          <p className="ui-help">
+                            QS Tools cannot classify this WIP line from the P&L
+                            alone. Check the WIP schedule, accountant journal,
+                            or source detail, then choose the treatment below.
+                            If this is only a year-end accounting, tax, or
+                            timing adjustment, exclude it from the QS cost
+                            model. If it represents real direct job costs for
+                            the model period, include it as COGS / Direct Job
+                            Cost. If it relates to revenue timing, treat it as
+                            Income / Revenue Timing Adjustment. If unsure,
+                            leave it as Review Required.
+                          </p>
+                          <ul className="ui-list">
+                            <li>
+                              <strong>Review Required:</strong> blocks
+                              readiness until this WIP is resolved.
+                            </li>
+                            <li>
+                              <strong>Exclude from QS Cost Model:</strong>
+                              removes the line from QS benchmark and recovery.
+                            </li>
+                            <li>
+                              <strong>Include as COGS / Direct Job Cost:</strong>
+                              includes the line in benchmark/reconciliation.
+                            </li>
+                            <li>
+                              <strong>Income / Revenue Timing Adjustment:</strong>
+                              treats the line as timing-related revenue, not
+                              an operating cost.
+                            </li>
+                          </ul>
+                          {Math.abs(Number(line.amount || 0)) > 10000 ? (
+                            <p className="ui-help theme-warn">
+                              This WIP amount is material and should be
+                              reviewed carefully.
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
               </div>
 
               {show_interest_treatment ? (
