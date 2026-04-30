@@ -179,18 +179,13 @@ function SummaryPanel({
 
           <div className="labour-summary-table">
             <SummaryRow label="Revenue" value={summary.total_revenue} />
-            <SummaryRow
-              label="COGS - Materials"
-              value={summary.materials_cost}
-            />
-            <SummaryRow
-              label="COGS - Subcontract"
-              value={summary.subcontract_cost}
-            />
-            <SummaryRow
-              label="COGS - Hire"
-              value={summary.hired_equipment_cost}
-            />
+            {(summary.direct_cost_category_totals ?? []).map((category) => (
+              <SummaryRow
+                key={category.category_id}
+                label={category.category_name}
+                value={category.formatted_total}
+              />
+            ))}
             <SummaryRow label="Total COGS" value={summary.total_cogs} total />
 
             <div className="labour-summary-table-spacer" />

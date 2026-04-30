@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import Tooltip from "@/components/common/Tooltip";
 import ProfitAndLossOperatingExpenseGroup from "@/components/p-and-l/ProfitAndLossOperatingExpenseGroup";
@@ -435,6 +436,22 @@ function get_section_lines(pnl_lines = [], section) {
   return (pnl_lines ?? []).filter((line) => line.section === section);
 }
 
+function make_custom_direct_cost_category_id(name = "") {
+  const slug = String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return `custom_${slug || Date.now()}`;
+}
+
+function get_direct_cost_categories(state = {}) {
+  return Array.isArray(state.direct_cost_categories)
+    ? state.direct_cost_categories.filter((category) => category?.is_active !== false)
+    : [];
+}
+
 function get_section_title(section) {
   switch (section) {
     case "trading_income":
@@ -660,10 +677,13 @@ function group_operating_expense_lines(lines = []) {
 
 function ProfitAndLossLineRow({
   line,
+  state,
   category_options,
   actions,
   handle_line_name_change,
 }) {
+  const [custom_direct_cost_category_name, set_custom_direct_cost_category_name] =
+    useState("");
   const suggested_category_text = get_suggested_category_text(line.line_name);
   const local_category_options = build_line_category_options(line, category_options);
   const effective_category =
@@ -738,6 +758,18 @@ function ProfitAndLossLineRow({
                 selectedOption.review_subcategory,
               );
             }
+
+            if (
+              line.section === "cost_of_sales" &&
+              selectedValue === "cogs" &&
+              !line.direct_cost_category_id
+            ) {
+              actions.update_pnl_line(
+                line.pnl_line_id,
+                "direct_cost_category_id",
+                "other_direct_costs",
+              );
+            }
           }}
         >
           {local_category_options.map((option) => (
@@ -791,6 +823,88 @@ function ProfitAndLossLineRow({
           </div>
         ) : null}
       </div>
+
+      {line.section === "cost_of_sales" ? (
+        <div className="ui-panel ui-stack-sm">
+          <div>
+            <span className="ui-label">Direct Cost Category</span>
+            <p className="ui-help">
+              Group COGS into useful business categories. Start with broad
+              defaults, then add categories specific to your business.
+            </p>
+          </div>
+
+          <select
+            className="ui-select"
+            value={line.direct_cost_category_id || "review_required"}
+            onChange={(event) => {
+              actions.update_pnl_line(line.pnl_line_id, "category", "cogs");
+              actions.update_pnl_line(
+                line.pnl_line_id,
+                "direct_cost_category_id",
+                event.target.value,
+              );
+            }}
+          >
+            {get_direct_cost_categories(state).map((category) => (
+              <option key={category.category_id} value={category.category_id}>
+                {category.category_name}
+              </option>
+            ))}
+          </select>
+
+          <div className="ui-actions">
+            <input
+              className="ui-input"
+              value={custom_direct_cost_category_name}
+              placeholder="Add custom direct cost category"
+              onChange={(event) =>
+                set_custom_direct_cost_category_name(event.target.value)
+              }
+            />
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => {
+                const category_name = custom_direct_cost_category_name.trim();
+                if (!category_name) return;
+
+                const now = new Date().toISOString();
+                const category = {
+                  category_id: make_custom_direct_cost_category_id(
+                    category_name,
+                  ),
+                  category_name,
+                  is_default: false,
+                  is_active: true,
+                  created_at: now,
+                  updated_at: now,
+                };
+
+                actions.update_profit_and_loss_field("direct_cost_categories", [
+                  ...(state.direct_cost_categories ?? []),
+                  category,
+                ]);
+                actions.update_pnl_line(line.pnl_line_id, "category", "cogs");
+                actions.update_pnl_line(
+                  line.pnl_line_id,
+                  "direct_cost_category_id",
+                  category.category_id,
+                );
+                set_custom_direct_cost_category_name("");
+              }}
+            >
+              Add Category
+            </button>
+          </div>
+
+          <p className="ui-help">
+            Examples such as concrete pumping, traffic management, or excavation
+            subcontractors should be added as custom categories only when they
+            are useful for this business.
+          </p>
+        </div>
+      ) : null}
 
       <div className="ui-actions">
         <button
@@ -953,6 +1067,7 @@ export default function ProfitAndLossSectionBlock({
               <ProfitAndLossLineRow
                 key={line.pnl_line_id}
                 line={line}
+                state={state}
                 category_options={category_options}
                 actions={actions}
                 handle_line_name_change={handle_line_name_change}
