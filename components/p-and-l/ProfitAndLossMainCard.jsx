@@ -204,8 +204,8 @@ function SummaryPanel({
               value={summary.assets_benchmark_total}
             />
             <SummaryRow
-              label="P&L Asset Finance Identified"
-              value={summary.excluded_asset_finance_interest_total}
+              label="P&L Interest Marked as Asset Finance"
+              value={summary.pnl_interest_marked_asset_finance_total}
             />
             <SummaryRow
               label="General Overheads Benchmark"

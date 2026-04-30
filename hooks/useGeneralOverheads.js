@@ -53,6 +53,10 @@ function is_general_overhead_category(category) {
   return category === "general_overheads" || category === "employee_overheads";
 }
 
+function is_interest_line(line) {
+  return normalise_name(line?.line_name).includes("interest");
+}
+
 function normalise_interest_treatment(value) {
   switch (value) {
     case "asset_finance_exclude":
@@ -70,12 +74,26 @@ function normalise_interest_treatment(value) {
   }
 }
 
-function is_asset_finance_interest_line(line) {
-  return (
-    normalise_name(line?.line_name).includes("interest") &&
-    normalise_interest_treatment(line?.interest_treatment) ===
-      "contains_asset_finance_interest"
+function create_synced_interest_item(line, amount, index) {
+  const interest_treatment = normalise_interest_treatment(
+    line?.interest_treatment,
   );
+  const source_id = line?.pnl_line_id || `${normalise_name(line?.line_name)}-${index}`;
+
+  return {
+    synced_overhead_id: `pnl-interest-${source_id}`,
+    synced_overhead_name: line?.line_name || "P&L Interest",
+    synced_overhead_amount: amount,
+    source_module: "p_and_l",
+    source_pnl_line_id: line?.pnl_line_id || "",
+    source_line_name: line?.line_name || "",
+    source_review_subcategory: line?.review_subcategory || "",
+    source_category: line?.category || "",
+    overhead_category_key: "finance_interest",
+    interest_treatment,
+    contains_asset_finance_interest:
+      interest_treatment === "contains_asset_finance_interest",
+  };
 }
 
 function add_overhead_amount(state, key, amount) {
@@ -165,11 +183,12 @@ function build_general_overheads_from_pnl({
       "General Overheads from P&L",
     effective_from: current_overhead_state?.effective_from || "",
     is_active: true,
+    synced_pnl_overhead_items: [],
     overhead_category_overrides:
       current_overhead_state?.overhead_category_overrides ?? {},
   };
 
-  for (const line of pnl_lines) {
+  for (const [index, line] of pnl_lines.entries()) {
     const name = normalise_name(line.line_name);
     const amount = to_number(line.amount);
     const review_subcategory = normalise_name(line.review_subcategory);
@@ -178,7 +197,11 @@ function build_general_overheads_from_pnl({
       continue;
     }
 
-    if (is_asset_finance_interest_line(line)) {
+    if (is_interest_line(line)) {
+      next_state.synced_pnl_overhead_items = [
+        ...(next_state.synced_pnl_overhead_items ?? []),
+        create_synced_interest_item(line, amount, index),
+      ];
       continue;
     }
 
@@ -418,6 +441,8 @@ export default function useGeneralOverheads() {
       ),
       overhead_category_overrides:
         current.overhead_category_overrides ?? {},
+      synced_pnl_overhead_items:
+        current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
   }
@@ -435,6 +460,8 @@ export default function useGeneralOverheads() {
       ],
       overhead_category_overrides:
         current.overhead_category_overrides ?? {},
+      synced_pnl_overhead_items:
+        current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
   }

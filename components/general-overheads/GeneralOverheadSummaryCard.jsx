@@ -10,11 +10,34 @@ function format_currency(value) {
   }).format(Number(value) || 0);
 }
 
-function SummaryRow({ label, amount_display }) {
+function get_interest_treatment_label(row) {
+  switch (row?.interest_treatment) {
+    case "contains_asset_finance_interest":
+      return "Contains asset finance interest";
+    case "no_asset_finance_interest":
+      return "Does not contain asset finance interest";
+    case "not_reviewed":
+      return "Interest not reviewed";
+    default:
+      return "";
+  }
+}
+
+function SummaryRow({ row }) {
+  const interest_treatment_label = get_interest_treatment_label(row);
+
   return (
     <div className="labour-summary-table-row">
-      <div className="labour-summary-table-label">{label}</div>
-      <div className="labour-summary-table-value">{amount_display}</div>
+      <div className="labour-summary-table-label">
+        <div>{row.label}</div>
+        {row.is_synced_from_pnl ? (
+          <div className="ui-help">Synced from P&amp;L</div>
+        ) : null}
+        {interest_treatment_label ? (
+          <div className="ui-help">{interest_treatment_label}</div>
+        ) : null}
+      </div>
+      <div className="labour-summary-table-value">{row.amount_display}</div>
     </div>
   );
 }
@@ -56,8 +79,7 @@ export default function GeneralOverheadSummaryCard({
                   {group.rows.map((row) => (
                     <SummaryRow
                       key={row.key}
-                      label={row.label}
-                      amount_display={row.amount_display}
+                      row={row}
                     />
                   ))}
                 </div>

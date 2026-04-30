@@ -22,6 +22,11 @@ export default function GeneralOverheadForm({
   add_custom_item,
   remove_custom_item,
 }) {
+  const synced_pnl_items = overhead_state.synced_pnl_overhead_items ?? [];
+  const manual_custom_items = (overhead_state.custom_overhead_items ?? []).filter(
+    (item) => item.source_module !== "p_and_l",
+  );
+
   return (
     <section className="ui-panel">
       <div className="ui-page-stack">
@@ -50,6 +55,32 @@ export default function GeneralOverheadForm({
           ))}
         </div>
 
+        {synced_pnl_items.length > 0 ? (
+          <div className="ui-panel ui-stack-sm">
+            <div className="ui-label">Synced from P&amp;L</div>
+            <p className="ui-help">
+              These values are wired from the current P&amp;L sync and should be
+              changed in P&amp;L if the source amount is wrong.
+            </p>
+
+            <div className="labour-summary-table">
+              {synced_pnl_items.map((item) => (
+                <div
+                  key={item.synced_overhead_id}
+                  className="labour-summary-table-row"
+                >
+                  <div className="labour-summary-table-label">
+                    {item.synced_overhead_name || "Synced P&L Overhead"}
+                  </div>
+                  <div className="labour-summary-table-value">
+                    {item.synced_overhead_amount ?? 0}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="ui-page-stack">
           <div className="ui-split">
             <div>
@@ -66,7 +97,7 @@ export default function GeneralOverheadForm({
             </button>
           </div>
 
-          {(overhead_state.custom_overhead_items ?? []).map((item) => (
+          {manual_custom_items.map((item) => (
             <div key={item.custom_overhead_id} className="ui-panel">
               <div className="grid grid-cols-1 gap-4">
                 <label className="ui-stack">

@@ -487,7 +487,7 @@ function get_interest_treatment_help_text(interest_treatment) {
   switch (interest_treatment) {
     case "contains_asset_finance_interest":
     case "asset_finance_exclude":
-      return "This line contains asset finance interest. QS Tools handles asset finance through the Assets module to avoid double counting.";
+      return "This line contains asset finance interest. QS Tools keeps the full P&L interest amount and uses this flag for later comparison with Assets finance cost.";
     case "no_asset_finance_interest":
     case "general_overhead_keep":
       return "This line does not contain asset finance interest.";
@@ -708,8 +708,9 @@ export default function ProfitAndLossOperatingExpenseGroup({
                     </p>
 
                     <p className="ui-help">
-                      Asset finance is handled through the Assets module to
-                      avoid double counting.
+                      The Assets module records asset finance cost separately,
+                      so this flag can later be compared with Assets finance
+                      cost.
                     </p>
 
                     <p className="ui-help">
