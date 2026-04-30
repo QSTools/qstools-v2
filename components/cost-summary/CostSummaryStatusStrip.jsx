@@ -39,7 +39,12 @@ function getLargestCostDriver({
 }
 
 export default function CostSummaryStatusStrip({
-  is_ready = false,
+  model_ready = false,
+  model_readiness_status = "blocked",
+  blocking_modules = [],
+  warning_modules = [],
+  blocking_checks = [],
+  warning_checks = [],
   required_recovery_rate = 0,
   total_productive_output = 0,
   total_people_cost_annual = 0,
@@ -53,10 +58,49 @@ export default function CostSummaryStatusStrip({
     total_asset_cost_annual,
     total_business_overheads,
   });
+  const normalized_status = String(model_readiness_status || "").toLowerCase();
+  const status_title = !model_ready
+    ? "Cost Summary Not Trusted"
+    : normalized_status === "warning"
+      ? "Cost Summary Ready With Warnings"
+      : "Cost Summary Trusted";
+  const status_message = !model_ready
+    ? "Model Readiness is blocked. Totals can be viewed, but downstream decisions should not rely on them yet."
+    : normalized_status === "warning"
+      ? "The model is ready, but warnings remain visible for review before relying on downstream decisions."
+      : "The upstream cost setup is ready and this baseline can be used as the internal operating cost burden.";
 
   return (
     <section className="ui-section">
       <div className="ui-panel ui-stack-sm">
+        <div className="ui-kicker">Model Readiness</div>
+
+        <div className="ui-card-title-sm">{status_title}</div>
+
+        <p className="ui-help">{status_message}</p>
+
+        {blocking_modules.length > 0 ? (
+          <p className="ui-help">
+            Blocking modules: {blocking_modules.join(", ")}
+          </p>
+        ) : null}
+
+        {warning_modules.length > 0 ? (
+          <p className="ui-help">
+            Warning modules: {warning_modules.join(", ")}
+          </p>
+        ) : null}
+
+        {blocking_checks.length > 0 ? (
+          <p className="ui-help">
+            Blocking checks: {blocking_checks.length}
+          </p>
+        ) : null}
+
+        {warning_checks.length > 0 ? (
+          <p className="ui-help">Warnings: {warning_checks.length}</p>
+        ) : null}
+
         <div className="ui-kicker">Recovery Pressure</div>
 
         <div className="ui-card-title-sm">
@@ -67,9 +111,9 @@ export default function CostSummaryStatusStrip({
           Based on {output_value} productive hours.
         </p>
 
-        {!is_ready ? (
+        {!model_ready ? (
           <p className="ui-help">
-            Check upstream inputs if this number does not look right.
+            This rate is not trusted until Model Readiness passes.
           </p>
         ) : null}
 

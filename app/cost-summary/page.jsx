@@ -1,9 +1,6 @@
 "use client";
 
-import { useLabour } from "@/hooks/useLabour";
-import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
-import useAssets from "@/hooks/useAssets";
-import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import useModelReadiness from "@/hooks/useModelReadiness";
 import useCostSummary from "@/hooks/useCostSummary";
 
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
@@ -12,22 +9,33 @@ import CostSummaryCard from "@/components/cost-summary/CostSummaryCard";
 import CostSummaryHelpPanel from "@/components/cost-summary/CostSummaryHelpPanel";
 
 export default function CostSummaryPage() {
-  const labour = useLabour();
-  const employee_overheads = useEmployeeOverheads();
-  const assets = useAssets();
-  const general_overheads = useGeneralOverheads();
+  const model_readiness = useModelReadiness();
 
   const { status, card } = useCostSummary({
-    labour,
-    employee_overheads,
-    assets,
-    general_overheads,
+    labour: model_readiness.modules.labour,
+    assets: model_readiness.modules.assets,
+    general_overheads: model_readiness.modules.generalOverheads,
+    model_readiness: model_readiness.status,
   });
 
   return (
     <main className="ui-page">
   <div className="ui-page-stack">
     <CostSummaryNoticeBanner />
+
+    <CostSummaryStatusStrip
+      model_ready={status.model_ready}
+      model_readiness_status={status.model_readiness_status}
+      blocking_modules={status.blocking_modules}
+      warning_modules={status.warning_modules}
+      blocking_checks={status.blocking_checks}
+      warning_checks={status.warning_checks}
+      required_recovery_rate={card.required_recovery_rate}
+      total_productive_output={card.total_productive_output}
+      total_people_cost_annual={card.people_cost_total}
+      total_asset_cost_annual={card.asset_cost_total}
+      total_business_overheads={card.general_overheads_total}
+    />
 
     <CostSummaryCard
       recovery_model_label={card.recovery_model_block.recovery_model_label}
@@ -40,7 +48,8 @@ export default function CostSummaryPage() {
       entitlements_total={card.entitlements_total}
       employer_kiwisaver_total={card.employer_kiwisaver_total}
       esct_total={card.esct_total}
-      employee_overheads_total={card.employee_overheads_total}
+      acc_levy_total={card.acc_levy_total}
+      employer_contribution_total={card.employer_contribution_total}
       people_rows={card.people_rows}
       business_cost_total={card.business_cost_total}
       asset_cost_total={card.asset_cost_total}

@@ -50,8 +50,8 @@ export default function CostSummaryHelpPanel() {
                 </div>
                 <p className="ui-help">
                   Cost Summary is the internal business cost baseline. It
-                  aggregates Labour, Employee Overheads, Assets, and General
-                  Overheads into one annual cost burden so you can see what the
+                  aggregates Labour, Assets, and General Overheads into one
+                  annual cost burden so you can see what the
                   business must recover. 
                 </p>
               </div>
@@ -66,12 +66,17 @@ export default function CostSummaryHelpPanel() {
                   <p className="ui-help">
                     This page defines what the business costs, not how it is recovered.
                   </p>
+                  <p className="ui-help">
+                    It does not include COGS / Direct Costs, revenue, target
+                    profit, or quote margin. Those belong to future Revenue /
+                    Margin Pool, Recovery, and Quote Benchmark layers.
+                  </p>
                 </div>
               </div>
 
               <HelpRow
                 title="People Cost"
-                body="People Cost shows the annual burden created by active staff, including Labour outputs and any linked Employee Overheads."
+                body="People Cost shows the annual Labour burden from active saved Labour profiles."
               />
 
               <HelpRow

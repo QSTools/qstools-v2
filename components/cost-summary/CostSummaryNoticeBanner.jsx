@@ -36,6 +36,12 @@ export default function CostSummaryNoticeBanner() {
             <p className="text-sm text-[var(--text-secondary)]">
               It simply establishes the cost baseline of the business per productive hour.
             </p>
+
+            <p className="ui-help">
+              Not included here: COGS / Direct Costs, revenue, target profit, or
+              quote margin. Those belong to future Revenue / Margin Pool,
+              Recovery, and Quote Benchmark layers.
+            </p>
           </div>
         </div>
       </div>

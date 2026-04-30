@@ -86,8 +86,8 @@ function StaffCostCard({ row }) {
       0
   );
   const esct_annual = Number(row?.esct_annual ?? row?.esct_total ?? 0);
-  const employee_overheads_annual = Number(
-    row?.employee_overheads_annual ?? row?.employee_overheads_total ?? 0
+  const acc_levy_annual = Number(
+    row?.acc_levy_annual ?? row?.acc_work_levy_annual ?? 0
   );
   const total_people_cost_annual = Number(row?.total_people_cost_annual ?? 0);
 
@@ -116,8 +116,8 @@ function StaffCostCard({ row }) {
         />
         <TableRow label="ESCT" value={formatMoney(esct_annual)} />
         <TableRow
-          label="Employee Overheads"
-          value={formatMoney(employee_overheads_annual)}
+          label="Employer ACC Levy"
+          value={formatMoney(acc_levy_annual)}
         />
         <TableRow
           label="Total People Cost"
@@ -135,7 +135,8 @@ export default function CostSummaryCard({
   entitlements_total = 0,
   employer_kiwisaver_total = 0,
   esct_total = 0,
-  employee_overheads_total = 0,
+  acc_levy_total = 0,
+  employer_contribution_total = 0,
   people_rows = [],
 
   business_cost_total,
@@ -177,7 +178,10 @@ export default function CostSummaryCard({
   const total_entitlements_annual = Number(entitlements_total || 0);
   const total_employer_kiwisaver_annual = Number(employer_kiwisaver_total || 0);
   const total_esct_annual = Number(esct_total || 0);
-  const total_employee_overheads_annual = Number(employee_overheads_total || 0);
+  const total_acc_levy_annual = Number(acc_levy_total || 0);
+  const total_employer_contribution_annual = Number(
+    employer_contribution_total || 0
+  );
 
   const total_business_cost_annual = Number(business_cost_total || 0);
   const total_asset_cost_annual = Number(asset_cost_total || 0);
@@ -211,9 +215,6 @@ export default function CostSummaryCard({
 
   const hasBusinessDrilldown =
     safeAssetRows.length > 0 || safeGeneralOverheadRows.length > 0;
-
-  const employerContributionTotal =
-    total_employer_kiwisaver_annual + total_esct_annual;
 
   return (
     <section className="ui-section">
@@ -306,11 +307,11 @@ export default function CostSummaryCard({
                   />
                   <TableRow
                     label="Employer Contribution Total"
-                    value={formatMoney(employerContributionTotal)}
+                    value={formatMoney(total_employer_contribution_annual)}
                   />
                   <TableRow
-                    label="Employee Overheads"
-                    value={formatMoney(total_employee_overheads_annual)}
+                    label="Employer ACC Levy"
+                    value={formatMoney(total_acc_levy_annual)}
                   />
                 </div>
               </div>
@@ -427,10 +428,7 @@ export default function CostSummaryCard({
                                 }
                                 label={row?.asset_name || `Asset ${index + 1}`}
                                 value={formatMoney(
-                                  row?.total_asset_cost_annual ??
-                                    row?.running_cost_annual ??
-                                    row?.finance_cost_annual ??
-                                    0
+                                  row?.total_asset_cost_annual ?? 0
                                 )}
                               />
                             ))}
