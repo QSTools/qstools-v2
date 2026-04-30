@@ -1,7 +1,8 @@
 # QS Tools — Active System Brief (v3.6 — LOCKED)
 
-STATUS: ACTIVE SYSTEM BRIEF  
+STATUS: ACTIVE SYSTEM BRIEF
 VERSION: v3.6
+UPDATED FOR: COST SETUP READINESS MILESTONE
 
 ---
 
@@ -11,7 +12,7 @@ This brief defines the active QS Tools system architecture, build order, product
 
 It is the central orientation brief for all v3.6 builds.
 
-All module briefs must align with this file.
+All module briefs, implementation briefs, AGENTS.md instructions, and future build tasks must align with this file.
 
 ---
 
@@ -21,11 +22,11 @@ Use only the v3.6 source briefs.
 
 The active source pack is stored at:
 
-```text
 docs/V3.6 Source Files
-```
 
 Do not use v3.5 or older files unless the task explicitly says they are deprecated history.
+
+The v3.6 source pack is the active source of truth.
 
 ---
 
@@ -33,12 +34,10 @@ Do not use v3.5 or older files unless the task explicitly says they are deprecat
 
 QS Tools is built on:
 
-```text
 First principles for everything.
 
 Simple in hindsight.
 Invisible beforehand.
-```
 
 The system must reveal what was previously hidden in the business.
 
@@ -46,15 +45,15 @@ Every cost must belong to exactly one owner.
 
 Every important output must be traceable, explainable, and defensible.
 
+If a number cannot be defended, it should not be trusted.
+
 ---
 
 ## PRODUCT STANDARD SOURCE
 
 The product quality and commercial defensibility standard is defined in:
 
-```text
 00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
-```
 
 QS Tools must be good enough to defend, not just good enough to work.
 
@@ -75,11 +74,41 @@ If a module-level rule conflicts with the Product Standard brief, the conflict m
 
 ---
 
+## SUPPORTING LOCKED SOURCE BRIEFS
+
+The First Principles brief is the highest-level system philosophy:
+
+00_FIRST_PRINCIPLES_SYSTEM_BRIEF_v3.6_LOCKED.txt
+
+The Product Standard & Commercial Defensibility brief defines the product quality bar:
+
+00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+
+The Labour Recovery & Margin Pool Standard defines the fixed-price recovery test:
+
+17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
+
+The Cost Setup Readiness milestone is locked here:
+
+18_QS Tools — Cost Setup Readiness Milestone Brief_v3.6_LOCKED.txt
+
+The Cost Setup Readiness milestone records the working baseline for:
+
+- P&L interest treatment
+- General Overheads sync
+- Assets finance lifecycle and readiness
+- Labour active-profile aggregation
+- Module Reconciliation
+- Model Readiness
+
+Use the Cost Setup Readiness milestone before changing Cost Summary or any upstream cost-readiness logic.
+
+---
+
 ## LOCKED SYSTEM FLOW
 
 The locked v3.6 flow is:
 
-```text
 P&L
 → General Overheads
 → Labour
@@ -93,25 +122,36 @@ P&L
 → Recovery Outcome
 → Quote Benchmark
 → Budget
-```
 
 ---
 
 ## CORE SEPARATION
 
-```text
-P&L = raw financial input and first classification layer
-General Overheads = business overhead category engine
-Labour = labour cost and productive capacity engine
-Assets = ownership-only asset cost engine
+P&L = raw financial input and benchmark/classification only
+
+General Overheads = shared / unclear / staff overhead / vehicle running cost classification
+
+Labour = people cost, employer obligations, productive hours
+
+Assets = ownership-only asset costs
+
 Module Reconciliation = evidence layer
-Model Readiness = trust/verdict layer
-Cost Summary = what it costs
-Recovery Summary = how it is recovered
-Cost Allocation = can it be delivered
-Recovery Outcome = should you run it
+
+Model Readiness = trust gate
+
+Cost Summary = WHAT it costs
+
+Recovery Summary = HOW it is recovered
+
+Rate Models = practical earning rates
+
+Production Capacity = CAN it be delivered
+
+Recovery Outcome = SHOULD you run it
+
+Quote Benchmark = does the model align with real quotes
+
 Budget = locked upstream output consumer
-```
 
 ---
 
@@ -129,34 +169,61 @@ Budget = locked upstream output consumer
 
 P&L does not own downstream source-of-truth cost totals.
 
+P&L benchmark values flow to Module Reconciliation only.
+
+P&L values must not feed Cost Summary calculations directly.
+
+---
+
 ### General Overheads owns
 
-- staff overheads as a category
+- staff overhead review categories
 - vehicle running costs
+- fleet running costs
 - office/admin costs
 - finance/admin overheads
 - insurance/compliance
 - sales/growth overheads
 - travel overheads
+- unclear / unallocated business costs after review
 - total_general_overheads
 
 General Overheads does not own Labour employer obligations.
 
 General Overheads does not own asset ownership costs.
 
+Only total_general_overheads flows to Cost Summary.
+
+---
+
 ### Labour owns
 
 - staff_id
-- labour calculations
-- salary/wages
-- entitlement cost
+- gross wages
+- paid entitlements
 - employer KiwiSaver
 - ESCT
 - employer ACC levy
+- productive hours
 - total_labour_cost_annual
 - total_productive_output
+- labour_ready
 
 Labour does not own staff overheads.
+
+Labour does not own vehicle running costs.
+
+Labour does not own asset ownership costs.
+
+Labour output contracts must aggregate all active saved Labour profiles.
+
+Active means:
+
+profile.is_active !== false
+
+Module Reconciliation must consume aggregate Labour contract totals, not only the current Labour form calculation.
+
+---
 
 ### Assets owns
 
@@ -164,16 +231,38 @@ Labour does not own staff overheads.
 - ownership-only asset cost calculations
 - finance cost
 - lease cost
-- depreciation cost
-- replacement/ownership recovery if explicitly enabled
+- ownership cost
+- replacement / ownership recovery if explicitly enabled
 - total_asset_cost_annual
+- total_asset_interest_annual
+- total_asset_principal_annual
+- assets_ready
 - no_active_assets_confirmed
 
 Assets does not own vehicle running costs.
 
-Assets must distinguish active asset from active finance.
+Assets does not own fuel, servicing, repairs, maintenance, registration, licensing, tyres, consumables, shared fleet costs, or labour costs.
 
-Paid-off finance must not continue creating current finance cost.
+Vehicle and fleet running costs belong in General Overheads.
+
+Assets must distinguish:
+
+- active asset
+- active finance
+- paid-off finance
+- term-ended finance
+- retired asset
+- sold asset
+
+Paid-off or term-ended finance must not continue creating current finance cost.
+
+Assets readiness is based on valid ownership records, not P&L benchmark matching.
+
+P&L asset benchmark variance remains diagnostic only.
+
+Depreciation must not be included as a default cash recovery cost unless a locked v3.6 brief explicitly enables it.
+
+---
 
 ### Module Reconciliation owns
 
@@ -182,8 +271,18 @@ Paid-off finance must not continue creating current finance cost.
 - benchmark variance visibility
 - blocker/warning generation
 - reconciliation_ready
+- reconciliation_checks
+- blocking_checks
+- warning_checks
+- module_total_business_costs
+- pnl_business_cost_variance
+- pnl_business_cost_variance_percent
 
 Module Reconciliation does not recalculate upstream modules.
+
+Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
+
+---
 
 ### Model Readiness owns
 
@@ -195,13 +294,34 @@ Module Reconciliation does not recalculate upstream modules.
 
 Model Readiness does not create cost totals.
 
+Allowed model_readiness_status values:
+
+- ready
+- warning
+- blocked
+
+---
+
 ### Cost Summary owns
 
 - visible cost summary presentation
 - trusted / warning / blocked display
 - consumption of upstream outputs
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- total_productive_output
+- model_readiness_status
 
 Cost Summary must not rebuild upstream maths.
+
+Cost Summary must not own reconciliation.
+
+Cost Summary must consume Model Readiness outputs and clearly show whether the model is trusted, warning, or blocked.
 
 ---
 
@@ -233,19 +353,31 @@ No duplicate cost ownership is allowed.
 
 Examples:
 
-```text
 Salary & Wages → Labour
+
 Employer KiwiSaver → Labour
+
 ESCT → Labour
+
 Employer ACC Levy → Labour
-Staff Expenses → General Overheads / Staff Overheads
-Entertainment → General Overheads / Staff Overheads
-Vehicle fuel/servicing/repairs/tyres/rego → General Overheads / Vehicle Running Costs
+
+Staff Expenses → General Overheads / Staff Overheads category
+
+Entertainment → General Overheads / Staff Overheads category
+
+Vehicle fuel / servicing / repairs / tyres / registration → General Overheads / Vehicle Running Costs
+
 Vehicle finance / asset finance → Assets
+
 Paid-off asset finance → $0 current finance cost
+
+P&L interest line → General Overheads full value, with interest treatment metadata if required
+
+Asset finance interest comparison → Cost Summary diagnostic bridge only
+
 WIP Adjustment → Review Required until explicitly resolved
+
 Penalties / Non-Deductible → Excluded unless explicitly included
-```
 
 ---
 
@@ -255,13 +387,11 @@ P&L is the first classification layer.
 
 P&L must distinguish:
 
-```text
-accounting section
-QS top-level category
-review subcategory
-treatment
-readiness impact
-```
+- accounting section
+- QS top-level category
+- review subcategory
+- treatment
+- readiness impact
 
 Operating Expenses is an accounting section.
 
@@ -278,6 +408,52 @@ Operating Expenses may contain:
 
 The system must not force all Operating Expenses into General Overheads.
 
+P&L classification creates benchmark evidence.
+
+P&L does not create downstream source-of-truth module totals.
+
+---
+
+## P&L INTEREST TREATMENT RULE
+
+P&L interest treatment is factual metadata only.
+
+Allowed states:
+
+- not_reviewed
+- contains_asset_finance_interest
+- no_asset_finance_interest
+
+Legacy mappings:
+
+- unknown → not_reviewed
+- asset_finance_exclude → contains_asset_finance_interest
+- general_overhead_keep → no_asset_finance_interest
+
+Selecting contains_asset_finance_interest must not:
+
+- delete the line
+- exclude the line
+- zero the line
+- unwire the line
+- remove the line from General Overheads
+
+The full P&L interest value remains inside the model.
+
+General Overheads must carry the full interest value forward.
+
+Cost Summary may later show a diagnostic finance / interest bridge comparing:
+
+- P&L interest total
+- P&L interest marked as containing asset finance
+- total_asset_interest_annual
+- total_asset_principal_annual
+- total_asset_cost_annual
+
+The bridge is explanatory only.
+
+It must not replace total_asset_cost_annual.
+
 ---
 
 ## WIP / ACCOUNTING ADJUSTMENT RULE
@@ -293,27 +469,25 @@ WIP Adjustment must not be automatically assigned to:
 
 WIP Adjustment must default to:
 
-```text
 category: review_required
 review_subcategory: wip_accounting_adjustment
-```
 
 WIP remains a blocker until explicitly resolved.
 
 Allowed WIP treatments:
 
-```text
-Leave as Review Required
-Exclude from QS Cost Model
-Include as COGS / Direct Job Cost
-Treat as Income / Revenue Timing Adjustment
-```
+- Leave as Review Required
+- Exclude from QS Cost Model
+- Include as COGS / Direct Job Cost
+- Treat as Income / Revenue Timing Adjustment
 
 Do not auto-resolve WIP.
 
 Do not silently exclude WIP.
 
 Do not silently include WIP in COGS.
+
+WIP is an accounting/timing adjustment until the user explicitly resolves it.
 
 ---
 
@@ -334,6 +508,153 @@ If someone questions a number, QS Tools must be able to show:
 
 If the system cannot explain a number, the number should not be trusted.
 
+A trusted number must be:
+
+- traceable
+- explainable
+- reconciled
+- owned by one module
+- free from hidden assumptions
+- supported by visible treatment decisions
+- safe to use downstream
+
+---
+
+## MODEL READINESS RULE
+
+The user must never accidentally trust an incomplete model.
+
+If the model is incomplete, QS Tools must say so clearly.
+
+If a number is preliminary, QS Tools must say so clearly.
+
+If a cost is excluded, QS Tools must keep it visible.
+
+If a material item is unresolved, QS Tools must block readiness.
+
+If a model is ready, the user should have confidence that:
+
+- source data has been classified
+- module ownership is clean
+- reconciliation has been checked
+- downstream outputs are safe to use
+
+Readiness formula:
+
+model_ready =
+pnl_ready
+AND general_overheads_ready
+AND labour_ready
+AND assets_ready
+AND reconciliation_ready
+AND blocking_checks.length = 0
+
+Status formula:
+
+if blocking_checks.length > 0:
+  model_readiness_status = "blocked"
+
+else if warning_checks.length > 0:
+  model_readiness_status = "warning"
+
+else:
+  model_readiness_status = "ready"
+
+Business benchmark variance may create warning status.
+
+Business benchmark variance must not block readiness when all source modules are valid.
+
+---
+
+## COST SETUP READINESS MILESTONE
+
+The Cost Setup Readiness milestone is now complete.
+
+Model Readiness now passes with:
+
+- P&L readiness PASS
+- Labour readiness PASS
+- General Overheads readiness PASS
+- Assets readiness PASS
+- Module Reconciliation PASS
+- Business benchmark variance diagnostic only
+
+The current observed result after the Labour aggregation fix:
+
+- Model Ready: Yes
+- Module Total Business Costs: approximately $421,917
+- P&L Variance: approximately 0.1%
+
+This confirms the upstream cost setup modules are structurally ready for Cost Summary.
+
+---
+
+## CURRENT BUILD PRIORITY
+
+The current build priority is now:
+
+1. Commit and preserve the Cost Setup Readiness milestone.
+2. Wire Cost Summary as a trusted / warning / blocked consumer of Model Readiness.
+3. Ensure Cost Summary consumes upstream output contracts only.
+4. Add Cost Summary visibility for:
+   - total_labour_cost_annual
+   - total_asset_cost_annual
+   - total_general_overheads
+   - total_cost_burden
+   - required_revenue
+   - required_recovery_rate
+   - model_readiness_status
+5. Add the later finance / interest bridge as diagnostic display only, not as a replacement for asset ownership cost.
+
+Do not move to Recovery Summary until Cost Summary consumes the now-ready upstream contracts cleanly.
+
+Do not treat Cost Summary as trusted/final unless:
+
+- Module Reconciliation exists
+- Model Readiness exists
+- diagnostics page confirms outputs
+- ModelReadinessStatusStrip exists
+- upstream blockers have been resolved or intentionally held as warnings
+
+---
+
+## COST SUMMARY RULE
+
+Cost Summary formulas:
+
+total_people_cost_annual =
+total_labour_cost_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+warning required
+
+Cost Summary must consume Model Readiness outputs and show not-trusted state when model_ready = false.
+
+Cost Summary must not consume raw P&L lines directly.
+
+Cost Summary must not rebuild Labour, Assets, or General Overheads calculations.
+
+Cost Summary may show P&L benchmark diagnostics only through prepared reconciliation/readiness outputs.
+
 ---
 
 ## LONG-TERM COMMERCIAL CONTROL LOOP
@@ -344,7 +665,6 @@ Future monthly P&L import, Xero API integration, accepted quote tracking, and ac
 
 The long-term QS Tools loop is:
 
-```text
 Baseline setup
 → trusted cost model
 → quote benchmark
@@ -353,7 +673,6 @@ Baseline setup
 → actual performance vs model
 → variance analysis
 → better future pricing decisions
-```
 
 The first P&L setup creates the reusable business mapping layer that future monthly imports and Xero API integration will rely on.
 
@@ -373,14 +692,12 @@ Once a P&L line has been classified and resolved, QS Tools should be able to reu
 
 The reusable mapping layer should connect:
 
-```text
 P&L account / Xero account / report line
 → QS category
 → review subcategory
 → treatment
 → owning module
 → readiness impact
-```
 
 Future monthly P&L entry or Xero API import should become a controlled update rather than a full setup exercise.
 
@@ -396,15 +713,11 @@ The system must not automate a weak baseline.
 
 Once the baseline model is trusted, QS Tools should eventually compare:
 
-```text
 baseline model
-```
 
 against:
 
-```text
 monthly actual P&L performance
-```
 
 The system should show whether the business is performing in line with the model it set.
 
@@ -444,45 +757,35 @@ The system must distinguish:
 
 The system must not simply assume:
 
-```text
 Revenue - COGS = Labour content
-```
 
 That is too broad and can hide the real labour recovery issue.
 
 The defensible baseline concept is:
 
-```text
 Revenue
 - external/direct costs
 = margin / recovery pool
-```
 
 Then:
 
-```text
 margin / recovery pool
 - required general overhead recovery
 - required asset ownership recovery
 - target profit
 = revenue available for internal labour recovery
-```
 
 Then:
 
-```text
 effective_internal_labour_recovery_rate =
 revenue_available_for_internal_labour_recovery
 / total_productive_output
-```
 
 This should be compared against:
 
-```text
 required_labour_recovery_rate =
 total_labour_cost_annual
 / total_productive_output
-```
 
 Quote Benchmark later proves this quote-by-quote.
 
@@ -501,22 +804,18 @@ A quote must generate enough margin / recovery pool to recover:
 
 The core fixed-price test is:
 
-```text
 Revenue
 - external/direct costs
 = margin / recovery pool
-```
 
 Then:
 
-```text
 margin / recovery pool
 - required internal labour recovery
 - required general overhead recovery
 - required asset ownership recovery
 - target profit
 = recovery surplus / shortfall
-```
 
 If the recovery surplus / shortfall is negative, the quote is commercially loss-making against the model, even if it appears profitable using a simple gross-margin view.
 
@@ -561,58 +860,18 @@ The commercial model defines how imported Xero lines are treated.
 
 Future Xero flow:
 
-```text
 Xero P&L line
 → saved QS Tools mapping
 → category
 → review subcategory
 → treatment
 → readiness state
-```
 
 If a Xero line is new, changed, or unmapped, QS Tools must flag it for review.
 
 The API makes the workflow faster.
 
 It does not replace first-principles classification.
-
----
-
-## MODEL READINESS RULE
-
-The user must never accidentally trust an incomplete model.
-
-If the model is incomplete, QS Tools must say so clearly.
-
-If a number is preliminary, QS Tools must say so clearly.
-
-If a cost is excluded, QS Tools must keep it visible.
-
-If a material item is unresolved, QS Tools must block readiness.
-
-If a model is ready, the user should have confidence that:
-
-- source data has been classified
-- module ownership is clean
-- reconciliation has been checked
-- downstream outputs are safe to use
-
----
-
-## CURRENT BUILD PRIORITY
-
-The current build priority is:
-
-```text
-1. Finish P&L classification and review_subcategory mapping.
-2. Align General Overheads category language.
-3. Audit Labour contract.
-4. Fix Assets current-period finance and no-active-assets confirmation.
-5. Recheck Model Readiness.
-6. Wire Cost Summary as trusted / not trusted consumer.
-```
-
-Do not jump to Cost Summary until upstream readiness is clean.
 
 ---
 
@@ -652,8 +911,6 @@ The system must not allow a quote or model to look commercially healthy merely b
 
 The key question is:
 
-```text
 Does the margin / recovery pool recover internal labour, general overheads, asset ownership, and target profit?
-```
 
 If not, QS Tools must make the shortfall visible.

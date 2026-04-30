@@ -44,11 +44,36 @@ The Product Standard & Commercial Defensibility brief defines the product qualit
 docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
 ```
 
+The Active System Brief defines the current v3.6 architecture and build priority:
+
+```text
+docs/V3.6 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.6_LOCKED.txt
+```
+
 The Labour Recovery & Margin Pool Standard defines the fixed-price recovery test:
 
 ```text
 docs/V3.6 Source Files/17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
 ```
+
+The Cost Setup Readiness milestone is locked here:
+
+```text
+docs/V3.6 Source Files/18_QS Tools — Cost Setup Readiness Milestone Brief_v3.6_LOCKED.txt
+```
+
+This milestone brief records the working baseline for:
+
+```text
+P&L interest treatment
+General Overheads sync
+Assets finance lifecycle and readiness
+Labour active-profile aggregation
+Module Reconciliation
+Model Readiness
+```
+
+Use the Cost Setup Readiness milestone before changing Cost Summary or any upstream cost-readiness logic.
 
 If a coding decision conflicts with the First Principles brief, report the conflict before editing.
 
@@ -81,6 +106,7 @@ P&L
 → Production Capacity
 → Recovery Outcome
 → Quote Benchmark
+→ Budget
 ```
 
 Core separation:
@@ -98,6 +124,7 @@ Rate Models = practical earning rates
 Production Capacity = CAN it be delivered
 Recovery Outcome = SHOULD you run it
 Quote Benchmark = does the model align with real quotes
+Budget = locked upstream output consumer
 ```
 
 ---
@@ -279,18 +306,37 @@ Future Quote Benchmark should prove labour recovery quote-by-quote.
 
 ## Current build priority
 
-The current build priority is:
+The current cost setup readiness milestone is complete.
+
+Model Readiness now passes with:
 
 ```text
-1. Finish P&L classification and review_subcategory mapping.
-2. Align General Overheads category language.
-3. Audit Labour contract.
-4. Fix Assets current-period finance and no-active-assets confirmation.
-5. Recheck Model Readiness.
-6. Wire Cost Summary as trusted / not trusted consumer.
+P&L readiness PASS
+Labour readiness PASS
+General Overheads readiness PASS
+Assets readiness PASS
+Module Reconciliation PASS
+Business benchmark variance diagnostic only
 ```
 
-Do not jump to Cost Summary until upstream readiness is clean.
+The current build priority is now:
+
+```text
+1. Commit and preserve the Cost Setup Readiness milestone.
+2. Wire Cost Summary as a trusted / warning / blocked consumer of Model Readiness.
+3. Ensure Cost Summary consumes upstream output contracts only.
+4. Add Cost Summary visibility for:
+   - total_labour_cost_annual
+   - total_asset_cost_annual
+   - total_general_overheads
+   - total_cost_burden
+   - required_revenue
+   - required_recovery_rate
+   - model_readiness_status
+5. Add the later finance / interest bridge as diagnostic display only, not as a replacement for asset ownership cost.
+```
+
+Do not move to Recovery Summary until Cost Summary consumes the now-ready upstream contracts cleanly.
 
 Do not treat Cost Summary as trusted/final until:
 
@@ -462,12 +508,24 @@ Labour does not own vehicle running costs.
 
 Labour does not own asset ownership costs.
 
+Labour output contracts must aggregate all active saved Labour profiles.
+
+Active means:
+
+```text
+profile.is_active !== false
+```
+
+Module Reconciliation must consume aggregate Labour contract totals, not only the current Labour form calculation.
+
 ---
 
 ### Assets owns
 
 ```text
 total_asset_cost_annual
+total_asset_interest_annual
+total_asset_principal_annual
 assets_ready
 no_active_assets_confirmed
 ```
@@ -477,10 +535,11 @@ Assets owns ownership-only costs:
 ```text
 finance cost
 lease cost
-depreciation cost
 ownership cost
 replacement / ownership recovery if explicitly enabled
 ```
+
+Depreciation must not be included as a default cash recovery cost unless a locked v3.6 brief explicitly enables it.
 
 Assets must not own:
 
@@ -506,11 +565,16 @@ Assets must distinguish:
 active asset
 active finance
 paid-off finance
+term-ended finance
 retired asset
 sold asset
 ```
 
-Paid-off finance must not continue creating current finance cost.
+Paid-off or term-ended finance must not continue creating current finance cost.
+
+Assets readiness is based on valid ownership records, not P&L benchmark matching.
+
+P&L benchmark variance remains diagnostic only.
 
 ---
 
@@ -533,6 +597,8 @@ Module Reconciliation is the evidence layer.
 It checks whether upstream modules are internally consistent, contract-compliant, and safe to trust.
 
 It must not recalculate upstream source-of-truth totals.
+
+Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
 
 ---
 
@@ -583,6 +649,63 @@ Cost Summary consumes upstream cost outputs only.
 Cost Summary must not own reconciliation.
 
 Cost Summary must not rebuild Labour, Assets, or General Overheads maths.
+
+Cost Summary must consume Model Readiness outputs and clearly show whether the model is:
+
+```text
+trusted
+warning
+blocked
+```
+
+---
+## P&L interest treatment rule
+
+P&L interest treatment is factual metadata only.
+
+Allowed states:
+
+```text
+not_reviewed
+contains_asset_finance_interest
+no_asset_finance_interest
+```
+
+Legacy mappings:
+
+```text
+unknown → not_reviewed
+asset_finance_exclude → contains_asset_finance_interest
+general_overhead_keep → no_asset_finance_interest
+```
+
+Selecting `contains_asset_finance_interest` must not:
+
+```text
+delete the line
+exclude the line
+zero the line
+unwire the line
+remove the line from General Overheads
+```
+
+The full P&L interest value remains inside the model.
+
+General Overheads must carry the full interest value forward.
+
+Cost Summary may later show a diagnostic finance / interest bridge comparing:
+
+```text
+P&L interest total
+P&L interest marked as containing asset finance
+total_asset_interest_annual
+total_asset_principal_annual
+total_asset_cost_annual
+```
+
+The bridge is explanatory only.
+
+It must not replace `total_asset_cost_annual`.
 
 ---
 
@@ -920,6 +1043,12 @@ warning required
 ```
 
 Cost Summary must consume Model Readiness outputs and show not-trusted state when `model_ready = false`.
+
+Cost Summary must not consume raw P&L lines directly.
+
+Cost Summary must not rebuild Labour, Assets, or General Overheads calculations.
+
+Cost Summary may show P&L benchmark diagnostics only through prepared reconciliation/readiness outputs.
 
 ---
 

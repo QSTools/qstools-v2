@@ -1,0 +1,580 @@
+# QS Tools — Cost Setup Readiness Milestone Brief
+Version: v3.6 Cost Setup Readiness Lock
+Status: WORKING BASELINE / READY FOR COST SUMMARY
+Date: 2026-04-30
+
+---
+
+## PURPOSE
+
+This brief records the completed cost setup readiness work across:
+
+- P&L interest treatment
+- General Overheads sync
+- Assets readiness and finance lifecycle
+- Labour aggregation
+- Module Reconciliation
+- Model Readiness
+
+It locks the decisions made during the cost setup phase so the next build can proceed into Cost Summary without re-opening solved issues.
+
+---
+
+## CURRENT RESULT
+
+Model Readiness now passes.
+
+Current observed result:
+
+- Model Ready: Yes
+- Module Total Business Costs: approximately $421,917
+- P&L Variance: approximately 0.1%
+
+Readiness checks passing:
+
+- P&L readiness
+- Labour readiness
+- General Overheads readiness
+- Assets readiness
+- Employee overheads detected
+- Legacy asset running costs
+- Business cost benchmark variance
+
+This means the source input modules are now structurally ready for Cost Summary.
+
+---
+
+## ACTIVE COST SETUP FLOW
+
+The active cost setup flow is:
+
+P&L
+→ General Overheads
+→ Labour
+→ Assets
+→ Module Reconciliation
+→ Model Readiness
+→ Cost Summary
+
+Cost Summary should now consume the locked upstream output contracts rather than recalculating source module values.
+
+---
+
+# 1. P&L INTEREST TREATMENT
+
+## Problem Solved
+
+The previous P&L interest logic used outcome-driven wording such as:
+
+- Contains asset finance — exclude from QS cost
+- Pure general finance — keep in QS cost
+
+This was incorrect because it gave the user an apparent permission path to exclude costs from the model.
+
+## Locked Rule
+
+P&L interest treatment is now factual metadata only.
+
+The user classifies whether the P&L interest line contains asset finance interest.
+
+Allowed states:
+
+- not_reviewed
+- contains_asset_finance_interest
+- no_asset_finance_interest
+
+Legacy compatibility:
+
+- unknown → not_reviewed
+- asset_finance_exclude → contains_asset_finance_interest
+- general_overhead_keep → no_asset_finance_interest
+
+## Critical Behaviour
+
+Selecting contains_asset_finance_interest must NOT:
+
+- delete the line
+- exclude the line
+- zero the line
+- unwire the line
+- remove the line from General Overheads
+
+The full P&L interest value remains inside the model.
+
+The treatment flag exists so Cost Summary can later explain the relationship between:
+
+- P&L interest
+- asset finance interest
+- asset ownership cost
+
+---
+
+# 2. GENERAL OVERHEADS SYNC
+
+## Problem Solved
+
+Interest lines marked as containing asset finance were being removed or unwired from General Overheads.
+
+That was incorrect because General Overheads is the next module after P&L and must carry the full P&L value forward.
+
+## Locked Rule
+
+All P&L lines mapped to General Overheads must flow into General Overheads at full P&L value.
+
+This includes interest lines with any interest treatment:
+
+- not_reviewed
+- contains_asset_finance_interest
+- no_asset_finance_interest
+- legacy unknown
+- legacy asset_finance_exclude
+- legacy general_overhead_keep
+
+## Current Behaviour
+
+P&L interest lines now sync into General Overheads as wired P&L values.
+
+Synced rows preserve metadata including:
+
+- interest_treatment
+- contains_asset_finance_interest
+- source_pnl_line_id
+- source_line_name
+- source_category
+- source_review_subcategory
+
+General Overheads now has a Finance / Interest category so interest lines can remain visible and correctly grouped.
+
+---
+
+# 3. ASSETS FINANCE LIFECYCLE
+
+## Problem Solved
+
+Assets previously calculated finance cost without properly accounting for paid-off or term-ended finance.
+
+## Locked Rule
+
+Active asset does not always mean active finance.
+
+The asset may remain active while finance is:
+
+- active
+- paid off
+- term ended
+- not financed
+
+## Finance Fields
+
+The Assets module now supports:
+
+- finance_start_date
+- finance_paid_off
+- finance_end_date
+- finance_active
+- finance_status
+
+Effective From remains profile/version metadata only.
+
+It must NOT be used as the finance start date.
+
+## Calculation Rule
+
+If finance_paid_off is true:
+
+- finance_cost_annual = 0
+- principal_annual = 0
+- interest_annual = 0
+- finance_active = false
+
+If the finance term has ended:
+
+- finance_cost_annual = 0
+- principal_annual = 0
+- interest_annual = 0
+- finance_active = false
+
+If finance is active:
+
+- existing finance repayment calculation remains unchanged
+
+## UI Rule
+
+Assets form now uses dropdown status controls:
+
+- Asset Status: Active / Retired
+- Finance Status: Finance active / Paid off
+
+Checkboxes were removed.
+
+Effective From is not shown in the main user-facing form.
+
+---
+
+# 4. ASSETS READINESS
+
+## Problem Solved
+
+Assets readiness was previously blocked by P&L benchmark reconciliation.
+
+The old logic effectively required:
+
+assets_ready = reconciliation_state === "green"
+
+This was incorrect.
+
+## Locked Rule
+
+Assets readiness is based on ownership record validity, not P&L benchmark matching.
+
+P&L benchmark variance remains diagnostic only.
+
+## Readiness Passes When
+
+Assets readiness passes when either:
+
+### Active Assets Path
+
+- at least one active saved asset exists
+- active asset records have required identity/setup fields
+- asset is active and not retired
+- total_asset_cost_annual is a valid number, including 0
+
+A zero cost is valid where finance is paid off, term-ended, or not financed.
+
+### No Active Assets Path
+
+- no active saved assets exist
+- no_active_assets_confirmed is true
+- total_asset_cost_annual is 0
+
+## Readiness Must Fail When
+
+- no active assets exist and no_active_assets_confirmed is false
+- active asset records are incomplete or invalid
+
+## Benchmark Variance
+
+P&L asset benchmark reconciliation remains visible through:
+
+- reconciliation_state
+- variance amount
+- variance percent
+- diagnostic warning text
+
+It no longer blocks Assets readiness.
+
+---
+
+# 5. ASSET INTEREST / PRINCIPAL BRIDGE OUTPUTS
+
+## Problem Solved
+
+Assets calculated interest_annual per asset but did not preserve or aggregate it.
+
+This was needed for later Cost Summary comparison against P&L interest.
+
+## Locked Rule
+
+Assets must preserve and expose both:
+
+- full asset ownership cost
+- asset interest-only amounts
+
+## Outputs Added
+
+Saved asset records now preserve:
+
+- principal_annual
+- interest_annual
+
+Assets output contract now exposes:
+
+- total_asset_interest_annual
+- total_asset_principal_annual
+
+Active asset records expose:
+
+- principal_annual
+- interest_annual
+- finance_cost_annual
+- finance_active
+- finance_status
+- finance_start_date
+- finance_end_date
+- finance_paid_off
+
+## Important Distinction
+
+total_asset_cost_annual remains the main downstream asset recovery cost.
+
+It means full annual asset ownership cost.
+
+total_asset_interest_annual is for later P&L interest bridge / diagnostic explanation only.
+
+Do not replace total_asset_cost_annual with interest-only values.
+
+---
+
+# 6. BUSINESS COST VARIANCE
+
+## Problem Solved
+
+Business Cost Variance previously blocked Model Readiness when module totals differed from P&L benchmark totals.
+
+This was too strict because P&L benchmark variance is diagnostic evidence, not necessarily module invalidity.
+
+## Locked Rule
+
+Business Cost Variance is diagnostic unless a source module fails readiness.
+
+It must remain visible, but it must not block Model Readiness when all source modules are individually ready.
+
+## Current Behaviour
+
+Business Cost Variance now returns:
+
+- passed: true
+- is_blocking: false
+- severity: warning
+
+Variance values remain exposed:
+
+- module_total_business_costs
+- pnl_business_cost
+- business_cost_variance_amount
+- business_cost_variance_percent
+- setup_module_benchmark_total
+- full_pnl_business_cost_variance
+- full_pnl_business_cost_variance_percent
+
+## Interpretation
+
+Readiness means:
+
+- source modules are complete and usable
+
+Variance means:
+
+- benchmark comparison needs review
+
+Readiness and variance must not be treated as the same thing.
+
+---
+
+# 7. LABOUR AGGREGATION
+
+## Problem Solved
+
+Module Reconciliation was consuming only the current Labour form/profile total.
+
+This caused Model Readiness to understate labour cost and created a false high variance.
+
+## Example Before Fix
+
+Observed Labour profiles:
+
+- Profile 1 total labour cost: approximately $92,422
+- Profile 2 total labour cost: approximately $93,686
+- Profile 3 total labour cost: approximately $108,841
+
+Expected active Labour total:
+
+- approximately $294,949
+
+But Module Reconciliation was using only the current form/profile.
+
+## Locked Rule
+
+Labour output contract must aggregate all active saved Labour profiles.
+
+Active means:
+
+profile.is_active !== false
+
+Inactive profiles must not count.
+
+## Aggregate Labour Outputs Added
+
+Labour output contract now exposes aggregate totals including:
+
+- total_labour_cost_annual
+- total_productive_output
+- total_gross_wages_annual
+- total_entitlements_annual
+- total_employer_kiwisaver_annual
+- total_esct_annual
+- total_acc_levy_annual
+- total_employer_contribution_annual
+- active_staff[]
+- labour_ready
+
+current_staff remains available for current form/UI use.
+
+## Reconciliation Consumption Rule
+
+Module Reconciliation must consume:
+
+labour_output_contract.total_labour_cost_annual
+
+first.
+
+It may fall back to:
+
+labour.outputs.total_labour_cost_annual
+
+only for compatibility.
+
+No individual Labour calculation formulas were changed.
+
+---
+
+# 8. MODEL READINESS RESULT
+
+## Current Correct State
+
+Model Readiness now passes when:
+
+- P&L is ready
+- Labour is ready
+- General Overheads is ready
+- Assets is ready
+- no required interest treatment remains unreviewed
+- no blocking reconciliation checks remain
+
+Business variance can still appear as a warning/diagnostic.
+
+## Current Observed Output
+
+- Model Ready: Yes
+- Module Total Business Costs: approximately $421,917
+- P&L Variance: approximately 0.1%
+
+This confirms the Labour aggregation fix resolved the false 69.9% variance.
+
+---
+
+# 9. FILES TO REMEMBER
+
+Key files touched during this milestone:
+
+## P&L
+
+- components/p-and-l/ProfitAndLossOperatingExpenseGroup.jsx
+- components/p-and-l/ProfitAndLossMainCard.jsx
+- lib/storage/profitAndLossStorage.js
+- lib/storage/profitAndLossProfileStorage.js
+- lib/calculations/profitAndLossCalculations.js
+- lib/selectors/profitAndLossSelectors.js
+
+## General Overheads
+
+- hooks/useGeneralOverheads.js
+- lib/storage/generalOverheadStorage.js
+- lib/calculations/generalOverheadCalculations.js
+- lib/selectors/generalOverheadSelectors.js
+- components/general-overheads/GeneralOverheadForm.jsx
+- components/general-overheads/GeneralOverheadSummaryCard.jsx
+
+## Assets
+
+- hooks/useAssets.js
+- lib/storage/assetStorage.js
+- lib/calculations/assetCalculations.js
+- lib/selectors/assetSelectors.js
+- components/assets/AssetForm.jsx
+- components/assets/AssetSummaryCard.jsx
+
+## Labour
+
+- hooks/useLabour.js
+- lib/selectors/labourSelectors.js
+
+## Reconciliation / Readiness
+
+- lib/reconciliation/reconciliationRules.js
+- lib/reconciliation/moduleReconciliation.js
+
+---
+
+# 10. NEXT BUILD STEP
+
+The next logical build target is Cost Summary.
+
+Cost Summary should consume the now-ready upstream contracts from:
+
+- Labour
+- Assets
+- General Overheads
+- P&L benchmark diagnostics where required
+
+## Cost Summary Must Not
+
+- rebuild Labour maths
+- rebuild Asset maths
+- rebuild General Overheads maths
+- treat P&L interest treatment as an exclusion
+- consume raw P&L form state directly
+- use current Labour form only
+- ignore active saved Labour profiles
+
+## Cost Summary Should Include Later
+
+A finance / interest bridge showing:
+
+- P&L interest total
+- P&L interest marked as containing asset finance
+- total_asset_interest_annual
+- total_asset_principal_annual
+- total_asset_cost_annual
+- explanation of difference between accounting interest and QS ownership cost
+
+This bridge is diagnostic/explanatory.
+
+It must not replace the main asset ownership cost output.
+
+---
+
+# 11. LOCKED PRINCIPLES
+
+## Source of Truth
+
+Each module owns its own inputs, calculations, and output contract.
+
+## P&L Role
+
+P&L provides benchmark classification and diagnostic comparison.
+
+P&L does not own final module source totals.
+
+## General Overheads Role
+
+General Overheads carries full operating overhead values forward from P&L.
+
+## Assets Role
+
+Assets models cash-based asset ownership cost.
+
+## Labour Role
+
+Labour aggregates all active saved staff profiles.
+
+## Reconciliation Role
+
+Module Reconciliation checks readiness and shows variance evidence.
+
+## Model Readiness Role
+
+Model Readiness decides whether the setup modules are structurally ready.
+
+## Cost Summary Role
+
+Cost Summary consumes ready upstream outputs and presents the business cost baseline.
+
+---
+
+# FINAL DEFINITION
+
+The Cost Setup Readiness milestone is complete when QS Tools can pass Model Readiness using active P&L, Labour, General Overheads, and Assets data, while preserving diagnostic variance evidence without allowing P&L benchmark mismatches to incorrectly block source-module readiness.
+
+This milestone is now achieved.
