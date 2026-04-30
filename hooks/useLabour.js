@@ -48,20 +48,22 @@ export function useLabour() {
   const inputs_enabled = has_profile;
 
   const active_staff = useMemo(() => {
-    return profiles.map((profile) => {
-      const data = buildLabourState(profile?.data ?? {});
-      const calculated = calculateLabourOutputs(data);
+    return profiles
+      .filter((profile) => profile?.is_active !== false)
+      .map((profile) => {
+        const data = buildLabourState(profile?.data ?? {});
+        const calculated = calculateLabourOutputs(data);
 
-      return {
-        profile_id: profile?.profile_id ?? data.staff_id ?? "",
-        staff_id: data.staff_id ?? "",
-        staff_name: data.staff_name ?? "",
-        staff_role: data.staff_role ?? "",
-        labour_class: data.labour_class ?? "",
-        is_active: true,
-        ...calculated,
-      };
-    });
+        return {
+          profile_id: profile?.profile_id ?? data.staff_id ?? "",
+          staff_id: data.staff_id ?? "",
+          staff_name: data.staff_name ?? "",
+          staff_role: data.staff_role ?? "",
+          labour_class: data.labour_class ?? "",
+          is_active: true,
+          ...calculated,
+        };
+      });
   }, [profiles]);
 
   function update_field(field, value) {
