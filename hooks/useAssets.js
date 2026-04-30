@@ -99,6 +99,14 @@ export default function useAssets() {
             asset_type:
               asset.asset_type === "support" ? "support" : "productive",
             total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+            principal_annual: Number(asset.principal_annual ?? 0),
+            interest_annual: Number(asset.interest_annual ?? 0),
+            finance_cost_annual: Number(asset.finance_cost_annual ?? 0),
+            finance_active: asset.finance_active === true,
+            finance_status: asset.finance_status ?? "not_financed",
+            finance_start_date: asset.finance_start_date ?? "",
+            finance_end_date: asset.finance_end_date ?? "",
+            finance_paid_off: asset.finance_paid_off === true,
             productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
             true_asset_cost_per_hour: Number(
               asset.true_asset_cost_per_hour ?? 0
@@ -116,6 +124,14 @@ export default function useAssets() {
       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
       0
     );
+    const total_asset_interest_annual = live_assets.reduce(
+      (sum, asset) => sum + Number(asset.interest_annual ?? 0),
+      0
+    );
+    const total_asset_principal_annual = live_assets.reduce(
+      (sum, asset) => sum + Number(asset.principal_annual ?? 0),
+      0
+    );
 
     return {
       assets: live_assets.map((asset) => ({
@@ -124,6 +140,14 @@ export default function useAssets() {
         asset_type:
           asset.asset_type === "support" ? "support" : "productive",
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+        principal_annual: Number(asset.principal_annual ?? 0),
+        interest_annual: Number(asset.interest_annual ?? 0),
+        finance_cost_annual: Number(asset.finance_cost_annual ?? 0),
+        finance_active: asset.finance_active === true,
+        finance_status: asset.finance_status ?? "not_financed",
+        finance_start_date: asset.finance_start_date ?? "",
+        finance_end_date: asset.finance_end_date ?? "",
+        finance_paid_off: asset.finance_paid_off === true,
         productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
         true_asset_cost_per_hour: Number(
           asset.true_asset_cost_per_hour ?? 0
@@ -135,6 +159,14 @@ export default function useAssets() {
         asset_type:
           asset.asset_type === "support" ? "support" : "productive",
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+        principal_annual: Number(asset.principal_annual ?? 0),
+        interest_annual: Number(asset.interest_annual ?? 0),
+        finance_cost_annual: Number(asset.finance_cost_annual ?? 0),
+        finance_active: asset.finance_active === true,
+        finance_status: asset.finance_status ?? "not_financed",
+        finance_start_date: asset.finance_start_date ?? "",
+        finance_end_date: asset.finance_end_date ?? "",
+        finance_paid_off: asset.finance_paid_off === true,
         is_active: !asset.is_retired,
       })),
       assets_ready: Boolean(status.assets_ready),
@@ -149,6 +181,8 @@ export default function useAssets() {
         (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
         0
       ),
+      total_asset_interest_annual,
+      total_asset_principal_annual,
       total_asset_cost_annual,
     };
   }, [asset_state.no_active_assets_confirmed, saved_assets, status.assets_ready]);
