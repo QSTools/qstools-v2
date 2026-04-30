@@ -41,6 +41,20 @@ function render_input({ field_name, label, type = "number", value, on_change }) 
 export default function AssetForm({ values, on_change, on_reset }) {
   const asset_type =
     values.asset_type === "support" ? "support" : "productive";
+  const asset_status = values.is_retired ? "retired" : "active";
+  const finance_status = values.finance_paid_off
+    ? "paid_off"
+    : "finance_active";
+
+  function handle_asset_status_change(next_status) {
+    const is_retired = next_status === "retired";
+    on_change("is_active", !is_retired);
+    on_change("is_retired", is_retired);
+  }
+
+  function handle_finance_status_change(next_status) {
+    on_change("finance_paid_off", next_status === "paid_off");
+  }
 
   return (
     <section className="ui-section">
@@ -78,41 +92,38 @@ export default function AssetForm({ values, on_change, on_reset }) {
             </select>
           </label>
 
+        </div>
+
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Status</div>
+
           <label className="ui-stack-sm">
-            <span className="ui-label">Effective From</span>
-            <input
+            <span className="ui-label">Asset Status</span>
+            <select
               className="ui-input"
-              type="date"
-              value={values.effective_from || ""}
+              value={asset_status}
               onChange={(event) =>
-                on_change("effective_from", event.target.value)
+                handle_asset_status_change(event.target.value)
               }
-            />
+            >
+              <option value="active">Active</option>
+              <option value="retired">Retired</option>
+            </select>
           </label>
 
-          <div className="ui-split">
-            <label className="ui-stack-sm">
-              <span className="ui-label">Active</span>
-              <input
-                type="checkbox"
-                checked={Boolean(values.is_active)}
-                onChange={(event) =>
-                  on_change("is_active", event.target.checked)
-                }
-              />
-            </label>
-
-            <label className="ui-stack-sm">
-              <span className="ui-label">Retired</span>
-              <input
-                type="checkbox"
-                checked={Boolean(values.is_retired)}
-                onChange={(event) =>
-                  on_change("is_retired", event.target.checked)
-                }
-              />
-            </label>
-          </div>
+          <label className="ui-stack-sm">
+            <span className="ui-label">Finance Status</span>
+            <select
+              className="ui-input"
+              value={finance_status}
+              onChange={(event) =>
+                handle_finance_status_change(event.target.value)
+              }
+            >
+              <option value="finance_active">Finance active</option>
+              <option value="paid_off">Paid off</option>
+            </select>
+          </label>
         </div>
 
         <div className="ui-stack-sm">
@@ -127,6 +138,18 @@ export default function AssetForm({ values, on_change, on_reset }) {
               on_change,
             })
           )}
+
+          <label className="ui-stack-sm">
+            <span className="ui-label">Finance Start Date</span>
+            <input
+              className="ui-input"
+              type="date"
+              value={values.finance_start_date || ""}
+              onChange={(event) =>
+                on_change("finance_start_date", event.target.value)
+              }
+            />
+          </label>
         </div>
 
         <div className="ui-actions">

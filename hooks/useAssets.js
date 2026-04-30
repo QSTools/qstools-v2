@@ -112,6 +112,10 @@ export default function useAssets() {
     const live_assets = Array.isArray(saved_assets)
       ? saved_assets.filter((asset) => !asset.is_retired)
       : [];
+    const total_asset_cost_annual = live_assets.reduce(
+      (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+      0
+    );
 
     return {
       assets: live_assets.map((asset) => ({
@@ -125,6 +129,17 @@ export default function useAssets() {
           asset.true_asset_cost_per_hour ?? 0
         ),
       })),
+      active_assets: live_assets.map((asset) => ({
+        asset_id: asset.asset_id ?? "",
+        asset_name: asset.asset_name ?? "Unnamed Asset",
+        asset_type:
+          asset.asset_type === "support" ? "support" : "productive",
+        total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+        is_active: !asset.is_retired,
+      })),
+      assets_ready: Boolean(status.assets_ready),
+      no_active_assets_confirmed:
+        asset_state.no_active_assets_confirmed === true,
 
       finance_cost_annual: live_assets.reduce(
         (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),
@@ -134,12 +149,9 @@ export default function useAssets() {
         (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
         0
       ),
-      total_asset_cost_annual: live_assets.reduce(
-        (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
-        0
-      ),
+      total_asset_cost_annual,
     };
-  }, [saved_assets]);
+  }, [asset_state.no_active_assets_confirmed, saved_assets, status.assets_ready]);
 
   return {
     status,

@@ -60,6 +60,18 @@ export default function AssetSummaryCard({
 
             <div className="labour-summary-table">
               <SummaryRow
+                label="Finance Status"
+                value={find_row_value("Finance Status", "Not financed")}
+              />
+              <SummaryRow
+                label="Finance Start Date"
+                value={find_row_value("Finance Start Date", "-")}
+              />
+              <SummaryRow
+                label="Finance End Date"
+                value={find_row_value("Finance End Date", "-")}
+              />
+              <SummaryRow
                 label="Principal Annual"
                 value={find_row_value("Principal Annual")}
               />
