@@ -204,7 +204,7 @@ function SummaryPanel({
               value={summary.assets_benchmark_total}
             />
             <SummaryRow
-              label="Excluded Asset Finance Interest"
+              label="P&L Asset Finance Identified"
               value={summary.excluded_asset_finance_interest_total}
             />
             <SummaryRow

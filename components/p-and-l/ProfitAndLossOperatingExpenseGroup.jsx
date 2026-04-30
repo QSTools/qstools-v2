@@ -485,13 +485,33 @@ function get_review_subcategory_help_text(subcategory) {
 
 function get_interest_treatment_help_text(interest_treatment) {
   switch (interest_treatment) {
+    case "contains_asset_finance_interest":
     case "asset_finance_exclude":
-      return "This whole interest line will be excluded from QS benchmark costs because it contains asset finance already handled in the Assets module.";
+      return "This line contains asset finance interest. QS Tools handles asset finance through the Assets module to avoid double counting.";
+    case "no_asset_finance_interest":
     case "general_overhead_keep":
-      return "This interest line will stay in QS benchmark costs because it is confirmed as pure general finance with no asset finance included.";
+      return "This line does not contain asset finance interest.";
+    case "not_reviewed":
     case "unknown":
     default:
-      return "Review this line. If it contains any vehicle, plant, or equipment finance interest, exclude the whole line to prevent double counting.";
+      return "Select whether this P&L interest line contains asset finance interest.";
+  }
+}
+
+function normalise_interest_treatment(value) {
+  switch (value) {
+    case "asset_finance_exclude":
+      return "contains_asset_finance_interest";
+    case "general_overhead_keep":
+      return "no_asset_finance_interest";
+    case "unknown":
+    case "not_reviewed":
+    case undefined:
+    case null:
+    case "":
+      return "not_reviewed";
+    default:
+      return value;
   }
 }
 
@@ -683,48 +703,31 @@ export default function ProfitAndLossOperatingExpenseGroup({
                     <span className="ui-label">Why this matters</span>
 
                     <p className="ui-help">
-                      Your P&amp;L usually groups all interest together. This can
-                      include both asset finance and general finance in the same
-                      line.
+                      Interest lines can include bank interest, overdraft
+                      interest, or asset finance interest.
                     </p>
 
                     <p className="ui-help">
-                      Asset finance means vehicle, plant, or equipment finance.
-                      General finance means overdrafts, bank loans, tax
-                      interest, or other non-asset borrowing.
+                      Asset finance is handled through the Assets module to
+                      avoid double counting.
                     </p>
 
                     <p className="ui-help">
-                      In QS Tools, asset finance is already captured in the
-                      Assets module as part of total ownership cost. If it is
-                      also left in this P&amp;L line, it will be counted twice.
-                    </p>
-
-                    <p className="ui-help">
-                      Do not split the number. Treat the whole line one way.
-                    </p>
-
-                    <p className="ui-help">
-                      <strong>If this line contains any asset finance:</strong>
-                      <br />
-                      exclude the whole line and let the Assets module handle it.
-                    </p>
-
-                    <p className="ui-help">
-                      <strong>Only keep it</strong> if you are confident it is
-                      purely general finance with no asset-related interest
-                      included.
+                      Select whether this P&amp;L interest line contains asset
+                      finance interest.
                     </p>
                   </div>
 
                   <span className="ui-label inline-flex items-center gap-2">
-                    Classify Interest (Prevents Double Counting)
-                    <Tooltip text="If this line contains any asset finance interest, exclude the whole line from QS benchmark costs. Only keep it if it is purely general finance." />
+                    Interest Classification
+                    <Tooltip text="Select the factual condition for this interest line. QS Tools decides the treatment." />
                   </span>
 
                   <select
                     className="ui-select"
-                    value={line.interest_treatment || "unknown"}
+                    value={normalise_interest_treatment(
+                      line.interest_treatment,
+                    )}
                     onChange={(event) =>
                       actions.update_pnl_line(
                         line.pnl_line_id,
@@ -733,18 +736,18 @@ export default function ProfitAndLossOperatingExpenseGroup({
                       )
                     }
                   >
-                    <option value="unknown">Review needed</option>
-                    <option value="asset_finance_exclude">
-                      Contains asset finance — exclude from QS cost
+                    <option value="not_reviewed">Not reviewed</option>
+                    <option value="contains_asset_finance_interest">
+                      Contains asset finance interest
                     </option>
-                    <option value="general_overhead_keep">
-                      Pure general finance — keep in QS cost
+                    <option value="no_asset_finance_interest">
+                      Does not contain asset finance interest
                     </option>
                   </select>
 
                   <p className="ui-help">
                     {get_interest_treatment_help_text(
-                      line.interest_treatment || "unknown",
+                      line.interest_treatment || "not_reviewed",
                     )}
                   </p>
                 </div>

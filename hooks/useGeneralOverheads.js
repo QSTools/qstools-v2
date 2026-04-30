@@ -53,6 +53,31 @@ function is_general_overhead_category(category) {
   return category === "general_overheads" || category === "employee_overheads";
 }
 
+function normalise_interest_treatment(value) {
+  switch (value) {
+    case "asset_finance_exclude":
+      return "contains_asset_finance_interest";
+    case "general_overhead_keep":
+      return "no_asset_finance_interest";
+    case "unknown":
+    case "not_reviewed":
+    case undefined:
+    case null:
+    case "":
+      return "not_reviewed";
+    default:
+      return value;
+  }
+}
+
+function is_asset_finance_interest_line(line) {
+  return (
+    normalise_name(line?.line_name).includes("interest") &&
+    normalise_interest_treatment(line?.interest_treatment) ===
+      "contains_asset_finance_interest"
+  );
+}
+
 function add_overhead_amount(state, key, amount) {
   state[key] = to_number(state[key]) + amount;
 }
@@ -150,6 +175,10 @@ function build_general_overheads_from_pnl({
     const review_subcategory = normalise_name(line.review_subcategory);
 
     if (amount === 0) {
+      continue;
+    }
+
+    if (is_asset_finance_interest_line(line)) {
       continue;
     }
 
