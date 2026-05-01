@@ -72,16 +72,24 @@ export default function AssetSummaryCard({
                 value={find_row_value("Finance End Date", "-")}
               />
               <SummaryRow
-                label="Principal Annual"
-                value={find_row_value("Principal Annual")}
+                label="Principal Annual (Cash Flow Later)"
+                value={find_row_value("Principal Annual (Cash Flow Later)")}
               />
               <SummaryRow
-                label="Interest Annual"
-                value={find_row_value("Interest Annual")}
+                label="Asset Interest Annual"
+                value={find_row_value("Asset Interest Annual")}
               />
               <SummaryRow
-                label="Finance Cost Annual"
-                value={find_row_value("Finance Cost Annual")}
+                label="Estimated Remaining Finance Balance"
+                value={find_row_value("Estimated Remaining Finance Balance")}
+              />
+              <SummaryRow
+                label="Finance Progress"
+                value={find_row_value("Finance Progress", "0.00%")}
+              />
+              <SummaryRow
+                label="Operating Asset Cost Annual"
+                value={find_row_value("Operating Asset Cost Annual")}
                 strong
               />
             </div>
@@ -140,14 +148,14 @@ export default function AssetSummaryCard({
           <div className="ui-stack-sm">
             <div className="ui-kicker">What this means</div>
             <div className="ui-help">
-              This is the true annual cost of owning this asset based on actual
-              finance repayments. It replaces the P&L view, where asset costs are
-              often split or hidden.
+              This is the forward-looking annual asset ownership cost. Asset
+              finance interest comes from Assets, not from P&amp;L interest.
             </div>
 
             <div className="ui-help">
-              Principal and interest are shown separately so the full repayment is
-              visible and auditable. Running costs will be added as a separate layer.
+              Principal is shown only as future Cash Flow support. It is not part
+              of operating asset cost, and vehicle running costs belong in General
+              Overheads.
             </div>
           </div>
         </div>

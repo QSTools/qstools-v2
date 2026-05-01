@@ -15,8 +15,8 @@ export default function AssetsPage() {
             <div className="ui-kicker">Assets</div>
             <div className="ui-display">Owned asset cost baseline</div>
             <p className="ui-lead">
-              Break asset costs out of the P&amp;L so finance, running costs,
-              and total annual burden are visible before moving on.
+              Break asset ownership costs out of the P&amp;L so finance interest
+              and total annual operating asset cost are visible before moving on.
             </p>
           </div>
         </section>

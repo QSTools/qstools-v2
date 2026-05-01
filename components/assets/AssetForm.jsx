@@ -124,6 +124,17 @@ export default function AssetForm({ values, on_change, on_reset }) {
               <option value="paid_off">Paid off</option>
             </select>
           </label>
+
+          <label className="ui-stack-sm">
+            <input
+              type="checkbox"
+              checked={values.no_active_assets_confirmed === true}
+              onChange={(event) =>
+                on_change("no_active_assets_confirmed", event.target.checked)
+              }
+            />
+            <span>No active assets to include</span>
+          </label>
         </div>
 
         <div className="ui-stack-sm">
