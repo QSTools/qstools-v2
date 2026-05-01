@@ -13,19 +13,31 @@ export default function useCostSummary(inputs = {}) {
   return useMemo(() => {
     const labour_data = selectCostSummaryLabour(inputs.labour);
 
-    const asset_data =
-      inputs.assets?.output_contract ?? {
-        total_asset_cost_annual: 0,
-        active_assets: [],
-      };
+    const asset_output_contract = inputs.assets?.output_contract ?? {};
+    const asset_data = {
+      total_asset_cost_annual:
+        asset_output_contract.total_asset_cost_annual ?? 0,
+      total_asset_interest_annual:
+        asset_output_contract.total_asset_interest_annual ?? 0,
+    };
 
-    const general_overhead_data =
-      inputs.general_overheads?.output_contract ?? {
-        total_general_overheads: 0,
-        overhead_rows: [],
-      };
+    const general_overheads_output_contract =
+      inputs.general_overheads?.output_contract ?? {};
+    const general_overhead_data = {
+      total_general_overheads:
+        general_overheads_output_contract.total_general_overheads ?? 0,
+    };
 
-    const model_readiness = inputs.model_readiness ?? {};
+    const model_readiness_input = inputs.model_readiness ?? {};
+    const model_readiness = {
+      model_ready: model_readiness_input.model_ready === true,
+      model_readiness_status:
+        model_readiness_input.model_readiness_status ?? "blocked",
+      blocking_modules: model_readiness_input.blocking_modules ?? [],
+      warning_modules: model_readiness_input.warning_modules ?? [],
+      blocking_checks: model_readiness_input.blocking_checks ?? [],
+      warning_checks: model_readiness_input.warning_checks ?? [],
+    };
 
     const calculations = calculateCostSummary({
       labour_data,
@@ -50,17 +62,11 @@ export default function useCostSummary(inputs = {}) {
     });
 
     const output_contract = {
-      total_gross_wages_annual: calculations.total_gross_wages_annual ?? 0,
-      total_entitlements_annual: calculations.total_entitlements_annual ?? 0,
-      total_employer_kiwisaver_annual:
-        calculations.total_employer_kiwisaver_annual ?? 0,
-      total_esct_annual: calculations.total_esct_annual ?? 0,
-      total_acc_levy_annual: calculations.total_acc_levy_annual ?? 0,
-      total_employer_contribution_annual:
-        calculations.total_employer_contribution_annual ?? 0,
       total_people_cost_annual: calculations.total_people_cost_annual ?? 0,
       total_productive_output: calculations.total_productive_output ?? 0,
       total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
+      total_asset_interest_annual:
+        calculations.total_asset_interest_annual ?? 0,
       total_business_overheads: calculations.total_business_overheads ?? 0,
       total_business_cost_annual: calculations.total_business_cost_annual ?? 0,
       total_cost_burden: calculations.total_cost_burden ?? 0,

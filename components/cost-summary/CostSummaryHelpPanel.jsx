@@ -68,15 +68,16 @@ export default function CostSummaryHelpPanel() {
                   </p>
                   <p className="ui-help">
                     It does not include COGS / Direct Costs, revenue, target
-                    profit, or quote margin. Those belong to future Revenue /
-                    Margin Pool, Recovery, and Quote Benchmark layers.
+                    profit, or quote margin. Those belong to Revenue / COGS,
+                    Business Summary, Business Modelling, and Quote Engine
+                    later.
                   </p>
                 </div>
               </div>
 
               <HelpRow
                 title="People Cost"
-                body="People Cost shows the annual Labour burden from active saved Labour profiles."
+                body="People Cost shows the annual Labour burden from the Labour output contract."
               />
 
               <HelpRow

@@ -39,8 +39,8 @@ export default function CostSummaryNoticeBanner() {
 
             <p className="ui-help">
               Not included here: COGS / Direct Costs, revenue, target profit, or
-              quote margin. Those belong to future Revenue / Margin Pool,
-              Recovery, and Quote Benchmark layers.
+              quote margin. Those belong to Revenue / COGS, Business Summary,
+              Business Modelling, and Quote Engine later.
             </p>
           </div>
         </div>
