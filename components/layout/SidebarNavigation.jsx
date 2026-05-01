@@ -17,42 +17,32 @@ const nav_groups = [
     ],
   },
   {
-    label: "Business Truth",
-    items: [{ href: "/p-and-l", label: "P&L" }],
-  },
-  {
-    label: "Core Inputs",
+    label: "Business Inputs",
     items: [
+      { href: "/p-and-l", label: "P&L" },
       { href: "/general-overheads", label: "General Overheads" },
       { href: "/labour", label: "Labour" },
       { href: "/assets", label: "Assets" },
     ],
   },
   {
-    label: "Cost & Recovery",
+    label: "Business Truth",
     items: [
       { href: "/cost-summary", label: "Cost Summary" },
-      { href: "/recovery-summary", label: "Recovery Summary" },
+      { href: "/revenue-cogs", label: "Revenue / COGS" },
+      { href: "/business-summary", label: "Business Summary" },
     ],
   },
   {
-    label: "Rate Models",
+    label: "Business Modelling",
     items: [
-      { href: "/rates/square-metre", label: "Square Metre Rate" },
-      { href: "/rates/volume", label: "Volume Rate" },
-    ],
-  },
-  {
-    label: "Structure & Outcome",
-    items: [
-      { href: "/cost-allocation", label: "Cost Allocation" },
-      { href: "/recovery-outcome", label: "Recovery Outcome" },
+      { href: "/business-modelling", label: "Business Modelling" },
+      { href: "/quote-engine", label: "Quote Engine" },
     ],
   },
 ];
 
 const standalone_items = [
-  { href: "/budget", label: "Budget" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -62,6 +52,10 @@ const SETUP_FLOW_ORDER = [
   "/labour",
   "/assets",
   "/cost-summary",
+  "/revenue-cogs",
+  "/business-summary",
+  "/business-modelling",
+  "/quote-engine",
 ];
 
 const setup_progress = {
@@ -70,6 +64,10 @@ const setup_progress = {
   "/labour": false,
   "/assets": false,
   "/cost-summary": false,
+  "/revenue-cogs": false,
+  "/business-summary": false,
+  "/business-modelling": false,
+  "/quote-engine": false,
 };
 
 function build_initial_open_groups(pathname) {
@@ -79,29 +77,30 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/quick-start/") ||
       pathname === "/labour-rate-reality-check" ||
       pathname.startsWith("/labour-rate-reality-check/"),
-    "Business Truth": pathname === "/p-and-l" || pathname.startsWith("/p-and-l/"),
-    "Core Inputs":
+
+    "Business Inputs":
+      pathname === "/p-and-l" ||
+      pathname.startsWith("/p-and-l/") ||
       pathname === "/general-overheads" ||
       pathname.startsWith("/general-overheads/") ||
       pathname === "/labour" ||
       pathname.startsWith("/labour/") ||
       pathname === "/assets" ||
       pathname.startsWith("/assets/"),
-    "Cost & Recovery":
+
+    "Business Truth":
       pathname === "/cost-summary" ||
       pathname.startsWith("/cost-summary/") ||
-      pathname === "/recovery-summary" ||
-      pathname.startsWith("/recovery-summary/"),
-    "Rate Models":
-      pathname === "/rates/square-metre" ||
-      pathname.startsWith("/rates/square-metre/") ||
-      pathname === "/rates/volume" ||
-      pathname.startsWith("/rates/volume/"),
-    "Structure & Outcome":
-      pathname === "/cost-allocation" ||
-      pathname.startsWith("/cost-allocation/") ||
-      pathname === "/recovery-outcome" ||
-      pathname.startsWith("/recovery-outcome/"),
+      pathname === "/revenue-cogs" ||
+      pathname.startsWith("/revenue-cogs/") ||
+      pathname === "/business-summary" ||
+      pathname.startsWith("/business-summary/"),
+
+    "Business Modelling":
+      pathname === "/business-modelling" ||
+      pathname.startsWith("/business-modelling/") ||
+      pathname === "/quote-engine" ||
+      pathname.startsWith("/quote-engine/"),
   };
 }
 
