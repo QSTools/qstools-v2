@@ -51,8 +51,8 @@ export default function CostSummaryHelpPanel() {
                 <p className="ui-help">
                   Cost Summary is the internal business cost baseline. It
                   aggregates Labour, Assets, and General Overheads into one
-                  annual cost burden so you can see what the
-                  business must recover. 
+                  annual operating cost burden so you can see what the business
+                  must recover before pricing, revenue, or modelling layers.
                 </p>
               </div>
 
@@ -82,7 +82,7 @@ export default function CostSummaryHelpPanel() {
 
               <HelpRow
                 title="Business Cost"
-                body="Business Cost shows the annual non-people burden from Assets and General Overheads."
+                body="Business Cost shows Assets plus General Overheads. Asset finance interest may appear as supporting detail only."
               />
 
               <HelpRow
@@ -92,12 +92,12 @@ export default function CostSummaryHelpPanel() {
 
               <HelpRow
                 title="Required Revenue"
-                body="Required Revenue is the minimum annual revenue needed to recover the current internal cost burden at break-even."
+                body="Required Revenue equals the operating cost burden. Revenue / COGS later tests whether actual trading creates enough margin pool."
               />
 
               <HelpRow
                 title="Required Recovery Rate"
-                body="Required Recovery Rate converts annual cost burden into a per-productive-hour baseline."
+                body="Required Recovery Rate converts annual operating cost into a per-productive-hour baseline using Labour's final productive output."
               />
             </div>
           ) : null}

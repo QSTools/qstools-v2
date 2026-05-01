@@ -72,6 +72,18 @@ function CompositionRow({ label, amount, share, total = false }) {
   );
 }
 
+function HeadlineMetric({ label, value, helper, emphasis = false }) {
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div className="ui-kicker">{label}</div>
+      <div className={emphasis ? "ui-display" : "ui-card-title-sm"}>
+        {value}
+      </div>
+      {helper ? <div className="ui-help">{helper}</div> : null}
+    </div>
+  );
+}
+
 export default function CostSummaryCard({
   people_cost_total,
   business_cost_total,
@@ -124,7 +136,7 @@ export default function CostSummaryCard({
       <div className="ui-stack">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Cost Baseline</div>
-          <div className="ui-card-title">Cost Summary</div>
+          <div className="ui-card-title">Forward operating cost</div>
           <p className="ui-help">
             {insight ||
               "Defines the current cost burden and required recovery rate."}
@@ -132,55 +144,71 @@ export default function CostSummaryCard({
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Total Cost Composition</div>
-          <div className="ui-card-title-sm">Core cost split</div>
+          <div className="ui-kicker">Headline Summary</div>
+          <div className="ui-card-title-sm">What the business costs to run</div>
           <div className="ui-help">
-            How the annual cost burden is split across the three core cost
-            buckets.
+            Result first: annual operating cost, productive hours carrying that
+            cost, and the required recovery rate.
           </div>
 
-          <div className="ui-panel ui-stack">
-            <div className="labour-summary-table">
-              <CompositionRow
-                label="Labour / People Cost"
-                amount={total_people_cost_annual}
-                share={people_share}
+          <div className="ui-stack-sm">
+            <div className="ui-split-2">
+              <HeadlineMetric
+                label="Total Operating Cost"
+                value={formatMoney(total_cost_burden_annual)}
+                helper="Labour, Assets, and General Overheads."
               />
-              <CompositionRow
-                label="Assets"
-                amount={total_asset_cost_annual}
-                share={asset_share}
-              />
-              <CompositionRow
-                label="General Overheads"
-                amount={total_business_overheads}
-                share={overhead_share}
-              />
-              <CompositionRow
-                label="Total Cost Burden"
-                amount={total_cost_burden_annual}
-                share={null}
-                total
+              <HeadlineMetric
+                label="Productive Hours"
+                value={`${formatNumber(productive_output_total)} hrs`}
+                helper="Final Labour productive output."
               />
             </div>
+            <HeadlineMetric
+              label="Required Recovery Rate"
+              value={`${formatMoney(required_recovery_rate_hourly)} / hr`}
+              helper="Operating cost per productive hour."
+              emphasis
+            />
+          </div>
+        </div>
 
-            <div className="ui-panel ui-stack-sm">
-              <div className="ui-kicker">Required recovery rate</div>
-              <div className="ui-card-title">
-                {formatMoney(required_recovery_rate_hourly)} / hr
-              </div>
-              <div className="ui-help">
-                Based on {formatNumber(productive_output_total)} productive
-                hours.
-              </div>
-            </div>
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Cost Composition</div>
+          <div className="ui-card-title-sm">Core cost split</div>
+          <div className="ui-help">
+            Display-only view of the annual cost burden by source module.
+          </div>
+
+          <div className="labour-summary-table">
+            <CompositionRow
+              label="Labour / People Cost"
+              amount={total_people_cost_annual}
+              share={people_share}
+            />
+            <CompositionRow
+              label="Assets"
+              amount={total_asset_cost_annual}
+              share={asset_share}
+            />
+            <CompositionRow
+              label="General Overheads"
+              amount={total_business_overheads}
+              share={overhead_share}
+            />
+            <CompositionRow
+              label="Total Operating Cost"
+              amount={total_cost_burden_annual}
+              share={null}
+              total
+            />
           </div>
         </div>
 
         <div className="ui-panel ui-stack-sm">
           <SectionHeader
             kicker="People Cost"
-            title="Annual people burden"
+            title="Labour output"
             summary="Consumed from Labour's total_labour_cost_annual output."
             isOpen={peopleCostOpen}
             onToggle={() => setPeopleCostOpen((prev) => !prev)}
@@ -202,7 +230,7 @@ export default function CostSummaryCard({
         <div className="ui-panel ui-stack-sm">
           <SectionHeader
             kicker="Business Cost"
-            title="Non-people cost burden"
+            title="Assets and overheads"
             summary="Consumed from Assets and General Overheads output contracts."
             isOpen={businessCostOpen}
             onToggle={() => setBusinessCostOpen((prev) => !prev)}
@@ -229,18 +257,22 @@ export default function CostSummaryCard({
                   value={formatMoney(total_business_overheads)}
                 />
               </div>
+              <p className="ui-help">
+                Asset finance interest is shown as supporting detail only. It is
+                already included inside Asset Cost where applicable.
+              </p>
             </div>
           ) : null}
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Total Cost & Recovery</div>
-          <div className="ui-card-title-sm">Commercial baseline</div>
+          <div className="ui-kicker">Downstream Handoff</div>
+          <div className="ui-card-title-sm">Operating cost baseline</div>
 
           <div className="ui-panel">
             <div className="labour-summary-table">
               <TableRow
-                label="Total Cost Burden"
+                label="Total Operating Cost"
                 value={formatMoney(total_cost_burden_annual)}
               />
               <TableRow
@@ -259,8 +291,8 @@ export default function CostSummaryCard({
           </div>
 
           <p className="ui-help">
-            This page defines what the business currently costs to carry. It does
-            not define the downstream recovery strategy.
+            Next step after a trusted Cost Summary: Revenue / COGS can compare
+            trading revenue and direct costs against this operating cost burden.
           </p>
         </div>
       </div>

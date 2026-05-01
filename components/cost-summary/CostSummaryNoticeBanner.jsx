@@ -5,42 +5,35 @@ export default function CostSummaryNoticeBanner() {
     <section className="ui-section">
       <div className="ui-panel">
         <div className="ui-stack">
-          {/* Header */}
           <div>
-            <p className="ui-kicker">Business Cost Structure</p>
+            <p className="ui-kicker">Boundary</p>
 
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              How to read this page
+              What Cost Summary does not decide
             </h2>
           </div>
 
-          {/* Core definition */}
           <div className="ui-stack">
             <p className="text-sm text-[var(--text-primary)]">
-              This page shows what your business costs per productive labour hour.
+              Cost Summary is the operating cost baseline only.
             </p>
 
             <p className="ui-help">
-              It combines all annual business costs and spreads them across your
-              available productive labour hours.
+              It does not decide pricing, margin, cash flow, or quote strategy.
+              It shows what the business costs to operate before downstream
+              commercial layers use that baseline.
             </p>
           </div>
 
-          {/* Clarification */}
           <div className="ui-stack">
             <p className="text-sm text-[var(--text-secondary)]">
-              It does not define how revenue is generated, how costs are recovered,
-              or what you should charge.
+              Not included here: COGS / Direct Costs, revenue, target profit, or
+              quote margin.
             </p>
 
             <p className="text-sm text-[var(--text-secondary)]">
-              It simply establishes the cost baseline of the business per productive hour.
-            </p>
-
-            <p className="ui-help">
-              Not included here: COGS / Direct Costs, revenue, target profit, or
-              quote margin. Those belong to Revenue / COGS, Business Summary,
-              Business Modelling, and Quote Engine later.
+              Next after a trusted Cost Summary: Revenue / COGS, then Business
+              Summary, then Business Modelling.
             </p>
           </div>
         </div>

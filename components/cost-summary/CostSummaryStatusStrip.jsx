@@ -65,9 +65,9 @@ export default function CostSummaryStatusStrip({
       ? "Cost Summary Ready With Warnings"
       : "Cost Summary Trusted";
   const status_message = !model_ready
-    ? "Model Readiness is blocked. Totals can be viewed, but downstream decisions should not rely on them yet."
+    ? "Model Readiness is blocked. Fix the listed setup modules before treating Cost Summary as a trusted downstream baseline."
     : normalized_status === "warning"
-      ? "The model is ready, but warnings remain visible for review before relying on downstream decisions."
+      ? "The model is usable, but warning checks remain visible for review before downstream decisions."
       : "The upstream cost setup is ready and this baseline can be used as the internal operating cost burden.";
 
   return (
@@ -79,36 +79,47 @@ export default function CostSummaryStatusStrip({
 
         <p className="ui-help">{status_message}</p>
 
-        {blocking_modules.length > 0 ? (
+        {!model_ready && blocking_modules.length > 0 ? (
           <p className="ui-help">
-            Blocking modules: {blocking_modules.join(", ")}
+            What is blocked: {blocking_modules.join(", ")}.
+          </p>
+        ) : null}
+
+        {!model_ready && blocking_checks.length > 0 ? (
+          <p className="ui-help">
+            Where to fix it: return to the blocked setup modules and clear the
+            Model Readiness checks.
+          </p>
+        ) : null}
+
+        {!model_ready ? (
+          <p className="ui-help">
+            If ignored: this rate remains a preview only and should not be used
+            for downstream decisions.
           </p>
         ) : null}
 
         {warning_modules.length > 0 ? (
           <p className="ui-help">
-            Warning modules: {warning_modules.join(", ")}
-          </p>
-        ) : null}
-
-        {blocking_checks.length > 0 ? (
-          <p className="ui-help">
-            Blocking checks: {blocking_checks.length}
+            Warning modules: {warning_modules.join(", ")}.
           </p>
         ) : null}
 
         {warning_checks.length > 0 ? (
-          <p className="ui-help">Warnings: {warning_checks.length}</p>
+          <p className="ui-help">
+            Warning checks: {warning_checks.length}. Review before relying on
+            downstream decisions.
+          </p>
         ) : null}
 
-        <div className="ui-kicker">Recovery Pressure</div>
+        <div className="ui-kicker">Required Recovery Rate</div>
 
         <div className="ui-card-title-sm">
           {pressure_value} / hr
         </div>
 
         <p className="ui-help">
-          Based on {output_value} productive hours.
+          Based on Labour's final {output_value} productive hours.
         </p>
 
         {!model_ready ? (
