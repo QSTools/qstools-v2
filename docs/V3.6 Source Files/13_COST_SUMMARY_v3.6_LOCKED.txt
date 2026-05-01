@@ -7,17 +7,21 @@ VERSION: v3.6
 
 ## PURPOSE
 
-Cost Summary combines locked upstream cost engines into a single total cost burden.
+Cost Summary combines locked upstream cost engines into a single total operating cost burden.
 
 Cost Summary answers:
 
-WHAT does the business cost?
+WHAT does the business cost to run?
 
 It does not answer:
 
-HOW should the business recover it?
+- HOW should the business recover it?
+- WHAT revenue did the business generate?
+- WHAT direct costs / COGS did the business incur?
+- WHAT profit target should be applied?
+- WHAT should a quote be priced at?
 
-That belongs to Recovery Summary.
+Those belong to downstream commercial layers.
 
 ---
 
@@ -37,7 +41,13 @@ Model Readiness
 ↓
 Cost Summary
 ↓
-Recovery Summary
+Revenue / COGS
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine later
 
 ---
 
@@ -52,7 +62,16 @@ It consumes source-of-truth totals from:
 - General Overheads
 - Model Readiness
 
-It displays the total cost burden and baseline recovery visibility.
+It displays:
+
+- total operating cost burden
+- total productive output
+- required recovery rate
+- model readiness / trust state
+
+Cost Summary is macro-first.
+
+It must show the result clearly before any drilldown detail.
 
 ---
 
@@ -72,6 +91,7 @@ It displays the total cost burden and baseline recovery visibility.
 ### From Assets
 
 - total_asset_cost_annual
+- total_asset_interest_annual where available as supporting display detail only
 
 ### From General Overheads
 
@@ -100,11 +120,72 @@ Cost Summary must not consume:
 - running_cost_annual
 - raw P&L lines
 - P&L benchmark values as calculation inputs
+- P&L interest as asset finance authority
+- historical P&L asset interest
+- principal repayments
 - Cost Allocation outputs
 - Recovery Summary outputs
 - Scenario outputs
 - active_revenue_model
 - active_asset_labour_links
+- Revenue / COGS outputs
+- Business Summary outputs
+- Business Modelling outputs
+
+---
+
+## FORWARD-LOOKING COST RULE
+
+Cost Summary is forward-looking.
+
+It is not a historical reconstruction of the P&L.
+
+Cost Summary uses current / forward-looking upstream module outputs to determine what the business needs to recover going forward.
+
+Past P&L values may inform setup and reconciliation, but they must not override locked module outputs.
+
+---
+
+## ASSET COST RULE
+
+Assets is the source of truth for asset ownership cost.
+
+Cost Summary must consume:
+
+- total_asset_cost_annual
+
+Cost Summary may display:
+
+- total_asset_interest_annual
+
+Cost Summary must not recalculate asset interest.
+
+Cost Summary must not use P&L interest as the source of truth for asset finance.
+
+If the P&L interest category includes asset finance, that P&L value is treated as historical context only.
+
+Asset finance interest must come from the Assets module.
+
+---
+
+## CASH FLOW SEPARATION RULE
+
+Principal repayments are real cash pressure but are not operating cost.
+
+Principal must not feed:
+
+- total_asset_cost_annual
+- total_cost_burden
+- required_recovery_rate
+- Cost Summary calculations
+
+Principal belongs in a future Cash Flow layer.
+
+Cost Summary may not include principal repayments as part of operating cost.
+
+Interest belongs in asset cost.
+
+Principal belongs in Cash Flow.
 
 ---
 
@@ -155,11 +236,15 @@ total_people_cost_annual = total_labour_cost_annual
 
 Cost Summary may display Labour components for transparency but must not rebuild Labour maths.
 
+Cost Summary must use Labour’s final productive output after entitlement and productivity logic has already been applied.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours as the recovery denominator.
+
 ---
 
 ## BUSINESS COST DISPLAY
 
-Show:
+Show macro lines:
 
 - Asset Cost
 - General Overheads
@@ -167,6 +252,12 @@ Show:
 
 total_business_cost_annual =
 total_asset_cost_annual + total_business_overheads
+
+Asset interest may appear inside an Assets drilldown only.
+
+Other / non-asset interest may appear inside a General Overheads drilldown only.
+
+The main Cost Summary view must remain simple and macro-first.
 
 ---
 
@@ -178,8 +269,34 @@ Show:
 - Total Asset Cost
 - Total General Overheads
 - Total Cost Burden
+- Total Productive Output
 - Required Revenue
 - Required Recovery Rate
+
+Required Recovery Rate is the key Cost Summary output.
+
+It represents:
+
+total operating cost burden ÷ final productive output
+
+---
+
+## COST SUMMARY UI PRINCIPLE
+
+Cost Summary must use:
+
+Results first.
+Detail on demand.
+
+Top-level display should prioritise:
+
+- Total Operating Cost
+- Total Productive Hours
+- Required Recovery Rate
+
+Supporting detail should be available through drilldown / expandable sections.
+
+Cost Summary must not become a detailed P&L review page.
 
 ---
 
@@ -214,6 +331,39 @@ Cost Summary may display reconciliation status from Module Reconciliation / Mode
 
 Module Reconciliation owns P&L benchmark comparison.
 
+P&L benchmark totals must not drive Cost Summary calculations.
+
+If mismatch exists:
+
+- show warning / error state from Module Reconciliation
+- do not silently ignore
+- do not alter Cost Summary totals
+
+---
+
+## REVENUE / COGS BOUNDARY
+
+Cost Summary must not include:
+
+- Revenue
+- Direct Costs
+- COGS
+- Margin Pool
+- Gross Margin
+- Target Profit
+- Quote Margin
+- Sale price logic
+
+Revenue / COGS owns:
+
+Revenue - Direct Costs = Margin Pool
+
+Business Summary later compares:
+
+Margin Pool - Total Cost Burden = Net Position
+
+Cost Summary only produces the operating burden side of that comparison.
+
 ---
 
 ## NOT ALLOWED
@@ -223,18 +373,51 @@ Cost Summary must not:
 - recalculate Labour
 - recalculate ACC
 - recalculate Assets
+- recalculate asset interest
 - recalculate General Overheads
 - consume raw P&L lines
 - consume P&L benchmark as calculation input
+- use P&L interest as the source of truth for asset finance
 - consume Employee Overheads
 - consume Staff Overheads as a separate total
 - consume running_cost_annual
+- consume principal repayments
 - define recovery strategy
 - define pricing
 - define capacity
+- define cash flow
+- consume Scenario outputs
+- consume Revenue / COGS outputs
+- consume Business Summary outputs
+
+---
+
+## DOWNSTREAM HANDOFF
+
+Cost Summary outputs feed downstream modules.
+
+Required downstream outputs:
+
+- total_cost_burden
+- total_productive_output
+- required_recovery_rate
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_business_cost_annual
+- model_ready
+- model_readiness_status
+
+Downstream modules must consume these outputs unchanged.
+
+Cost Summary must not reshape itself for downstream assumptions.
 
 ---
 
 ## FINAL DEFINITION
 
-Cost Summary v3.6 is a read-only aggregation layer that consumes Labour, Assets, General Overheads, and Model Readiness outputs only. It produces total cost burden and baseline recovery visibility without reclassifying, distributing, or pricing costs.
+Cost Summary v3.6 is a read-only, forward-looking aggregation layer that consumes Labour, Assets, General Overheads, and Model Readiness outputs only.
+
+It produces total operating cost burden, total productive output, and required recovery rate without reclassifying, distributing, pricing, modelling, or reconstructing historical P&L values.
+
+Cost Summary defines the cost of operating the business going forward.

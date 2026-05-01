@@ -2,7 +2,7 @@
 
 STATUS: ACTIVE SYSTEM BRIEF
 VERSION: v3.6
-UPDATED FOR: COST SETUP READINESS MILESTONE
+UPDATED FOR: FORWARD-LOOKING COST SUMMARY + REVENUE / COGS FLOW + QUOTE ENGINE BOUNDARY
 
 ---
 
@@ -46,6 +46,22 @@ Every cost must belong to exactly one owner.
 Every important output must be traceable, explainable, and defensible.
 
 If a number cannot be defended, it should not be trusted.
+
+---
+
+## CORE SYSTEM PHILOSOPHY
+
+QS Tools uses historical accounting data to build a forward-looking commercial model.
+
+The P&L shows what happened.
+
+QS Tools uses that information to classify, reconcile, and model what the business needs to recover going forward.
+
+Past accounting data is input evidence.
+
+Forward-looking commercial cost is the decision basis.
+
+The system must not blindly price from historical P&L values when a specialised module owns a clearer forward-looking cost.
 
 ---
 
@@ -94,20 +110,62 @@ The Cost Setup Readiness milestone is locked here:
 
 The Cost Setup Readiness milestone records the working baseline for:
 
-- P&L interest treatment
+- P&L classification
 - General Overheads sync
-- Assets finance lifecycle and readiness
+- Assets ownership and finance lifecycle
 - Labour active-profile aggregation
 - Module Reconciliation
 - Model Readiness
 
 Use the Cost Setup Readiness milestone before changing Cost Summary or any upstream cost-readiness logic.
 
+The Revenue / COGS brief is locked here:
+
+19_REVENUE_COGS_v3.6_LOCKED.txt
+
+The Revenue / COGS brief defines the trading-side summary layer:
+
+Revenue
+- Direct Costs
+= Margin Pool
+
+The Business Summary brief is locked here:
+
+20_BUSINESS_SUMMARY_v3.6_LOCKED.txt
+
+The Business Summary brief defines the current business mirror:
+
+Margin Pool
+- Operating Cost Burden
+= Net Position
+
+The Business Modelling brief is locked here:
+
+21_BUSINESS_MODELLING_v3.6_LOCKED.txt
+
+The Business Modelling brief defines:
+
+Baseline = locked current business
+
+Scenario = editable copy of baseline
+
+The Quote Engine future boundary brief is locked here:
+
+22_QUOTE_ENGINE_v3.6_LOCKED.txt
+
+The Quote Engine brief defines the future quote-level commercial test layer.
+
+It protects the rule that Quote Engine must test whether an individual quote recovers the selected trusted business model.
+
+Quote Engine is now briefed for future direction only.
+
+It is not ready to build.
+
 ---
 
 ## LOCKED SYSTEM FLOW
 
-The locked v3.6 flow is:
+The locked v3.6 near-term flow is:
 
 P&L
 → General Overheads
@@ -116,12 +174,39 @@ P&L
 → Module Reconciliation
 → Model Readiness
 → Cost Summary
-→ Recovery Summary
-→ Rate Models
+→ Revenue / COGS
+→ Business Summary
+→ Business Modelling
+→ Quote Engine later
+→ Cash Flow later
+
+Quote Engine later is now governed by:
+
+22_QUOTE_ENGINE_v3.6_LOCKED.txt
+
+This brief is locked as a future boundary brief only.
+
+It must not be treated as approval to build Quote Engine before the upstream baseline model is trusted.
+
+---
+
+## FUTURE EXECUTION / CAPACITY FLOW
+
+Production Capacity, delivery modelling, and execution realism belong after the Quote Engine.
+
+They answer:
+
+Can the business actually deliver the priced work?
+
+They must not be built before the baseline commercial engine is trusted.
+
+Future extended flow:
+
+Quote Engine
 → Production Capacity
-→ Recovery Outcome
-→ Quote Benchmark
-→ Budget
+→ Execution / Delivery Model
+→ Quote Benchmark / Actuals Feedback
+→ Monthly Performance Loop
 
 ---
 
@@ -129,29 +214,29 @@ P&L
 
 P&L = raw financial input and benchmark/classification only
 
-General Overheads = shared / unclear / staff overhead / vehicle running cost classification
+General Overheads = shared / unclear / staff overhead / vehicle running / non-asset overhead cost classification
 
 Labour = people cost, employer obligations, productive hours
 
-Assets = ownership-only asset costs
+Assets = ownership-only asset costs and asset finance interest
 
 Module Reconciliation = evidence layer
 
 Model Readiness = trust gate
 
-Cost Summary = WHAT it costs
+Cost Summary = WHAT the business costs to operate going forward
 
-Recovery Summary = HOW it is recovered
+Revenue / COGS = WHAT the business sold and what direct costs were required to create those sales
 
-Rate Models = practical earning rates
+Business Summary = current business mirror: margin pool vs operating cost burden
 
-Production Capacity = CAN it be delivered
+Business Modelling = baseline snapshot and scenario control layer
 
-Recovery Outcome = SHOULD you run it
+Quote Engine = future quote-level commercial test layer that checks whether a quote recovers the selected trusted model
 
-Quote Benchmark = does the model align with real quotes
+Cash Flow = principal repayments, finance payment pressure, and liquidity view later
 
-Budget = locked upstream output consumer
+Production Capacity = can the priced work be delivered later
 
 ---
 
@@ -162,6 +247,8 @@ Budget = locked upstream output consumer
 - raw P&L lines
 - P&L classification
 - P&L benchmark totals
+- income / revenue classification
+- COGS / direct cost classification
 - review-required status
 - excluded status
 - WIP / accounting adjustment visibility
@@ -173,6 +260,8 @@ P&L benchmark values flow to Module Reconciliation only.
 
 P&L values must not feed Cost Summary calculations directly.
 
+P&L may later feed Revenue / COGS through classified income and COGS / direct cost totals.
+
 ---
 
 ### General Overheads owns
@@ -182,6 +271,7 @@ P&L values must not feed Cost Summary calculations directly.
 - fleet running costs
 - office/admin costs
 - finance/admin overheads
+- non-asset interest
 - insurance/compliance
 - sales/growth overheads
 - travel overheads
@@ -191,6 +281,8 @@ P&L values must not feed Cost Summary calculations directly.
 General Overheads does not own Labour employer obligations.
 
 General Overheads does not own asset ownership costs.
+
+General Overheads does not own asset finance interest.
 
 Only total_general_overheads flows to Cost Summary.
 
@@ -205,6 +297,7 @@ Only total_general_overheads flows to Cost Summary.
 - ESCT
 - employer ACC levy
 - productive hours
+- final productive output after entitlement and productivity logic
 - total_labour_cost_annual
 - total_productive_output
 - labour_ready
@@ -223,6 +316,10 @@ profile.is_active !== false
 
 Module Reconciliation must consume aggregate Labour contract totals, not only the current Labour form calculation.
 
+Cost Summary must use Labour’s final total_productive_output as the recovery denominator.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
 ---
 
 ### Assets owns
@@ -230,12 +327,12 @@ Module Reconciliation must consume aggregate Labour contract totals, not only th
 - asset_id
 - ownership-only asset cost calculations
 - finance cost
+- asset finance interest
 - lease cost
 - ownership cost
 - replacement / ownership recovery if explicitly enabled
 - total_asset_cost_annual
 - total_asset_interest_annual
-- total_asset_principal_annual
 - assets_ready
 - no_active_assets_confirmed
 
@@ -260,6 +357,14 @@ Assets readiness is based on valid ownership records, not P&L benchmark matching
 
 P&L asset benchmark variance remains diagnostic only.
 
+Asset finance interest must be calculated from the current / forward-looking asset finance position.
+
+Asset finance interest must not be sourced from historical P&L interest.
+
+Principal repayments are cash-flow pressure, not operating cost.
+
+Principal repayments must not feed total_asset_cost_annual or Cost Summary.
+
 Depreciation must not be included as a default cash recovery cost unless a locked v3.6 brief explicitly enables it.
 
 ---
@@ -277,10 +382,15 @@ Depreciation must not be included as a default cash recovery cost unless a locke
 - module_total_business_costs
 - pnl_business_cost_variance
 - pnl_business_cost_variance_percent
+- informational interest / finance bridge where available
 
 Module Reconciliation does not recalculate upstream modules.
 
 Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
+
+Historical P&L interest vs forward-looking asset interest mismatch is informational only.
+
+Module Reconciliation must not alter Assets, General Overheads, or Cost Summary totals to force a historical accounting match.
 
 ---
 
@@ -322,6 +432,133 @@ Cost Summary must not rebuild upstream maths.
 Cost Summary must not own reconciliation.
 
 Cost Summary must consume Model Readiness outputs and clearly show whether the model is trusted, warning, or blocked.
+
+Cost Summary is forward-looking.
+
+Cost Summary consumes the current / forward operating cost model, not historical P&L values.
+
+---
+
+### Revenue / COGS owns
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- Revenue - Direct Costs = Margin Pool
+
+Revenue / COGS consumes classified P&L income and COGS / direct cost outputs.
+
+Revenue / COGS does not consume Labour, Assets, or General Overheads raw internals.
+
+Revenue / COGS does not calculate Cost Summary.
+
+Revenue / COGS does not define pricing or scenarios.
+
+Micro / activity classifications may be stored for future insight but must not drive v3.6 core calculations unless a later locked brief promotes them.
+
+---
+
+### Business Summary owns
+
+- current business mirror
+- margin_pool vs total_cost_burden comparison
+- net_position
+- required_recovery_rate
+- current margin / recovery per productive hour where available
+- $/hr gap visibility
+
+Business Summary shows the current state of the business.
+
+Business Summary does not suggest fixes.
+
+Business Summary does not model scenarios.
+
+Business Summary does not overwrite Cost Summary or Revenue / COGS outputs.
+
+Business Summary answers:
+
+What is the business currently doing?
+
+---
+
+### Business Modelling owns
+
+- baseline snapshot
+- editable scenario copy
+- upside / improvement scenario
+- downside / pressure scenario
+- live delta against baseline
+- future-facing scenario outputs
+
+Baseline snapshot is locked.
+
+Scenario is editable.
+
+Baseline must not be overwritten automatically.
+
+Business Modelling starts from the current business mirror and allows controlled changes.
+
+Business Modelling does not mutate P&L, Labour, Assets, General Overheads, Cost Summary, Revenue / COGS, or Business Summary.
+
+Minimum recoverable rate is a reference line, not a scenario.
+
+---
+
+### Quote Engine owns later
+
+- applying the trusted baseline or selected scenario to individual quotes
+- quote-level revenue
+- quote-level direct costs
+- quote margin / recovery pool
+- quote recovery check
+- internal labour recovery check
+- general overhead recovery check
+- asset ownership recovery check
+- target profit recovery check later
+- quote recovery surplus / shortfall
+- quote alignment status
+- selected model trust state
+
+Quote Engine is a future quote-level commercial test layer.
+
+Quote Engine answers:
+
+Does this quote recover the selected business model?
+
+Quote Engine must not rely on gross margin alone.
+
+Quote Engine must not confuse subcontract labour with internal labour recovery.
+
+Quote Engine must not include principal repayments as operating cost.
+
+Quote Engine must inherit the trust state of the selected baseline or scenario.
+
+Quote Engine is not ready to build yet.
+
+Do not build Quote Engine before:
+
+- Cost Summary is trusted
+- Revenue / COGS exists
+- Business Summary exists
+- Business Modelling exists
+- 22_QUOTE_ENGINE_v3.6_LOCKED.txt is used as the controlling source brief
+
+---
+
+### Cash Flow owns later
+
+- asset principal repayments
+- full finance payments
+- liquidity pressure
+- cash repayment burden
+- principal + interest payment visibility
+
+Cash Flow is separate from Cost Summary.
+
+Principal repayments are real cash pressure but are not operating cost.
+
+Cash Flow must not be mixed into Cost Summary.
 
 ---
 
@@ -367,13 +604,17 @@ Entertainment → General Overheads / Staff Overheads category
 
 Vehicle fuel / servicing / repairs / tyres / registration → General Overheads / Vehicle Running Costs
 
-Vehicle finance / asset finance → Assets
+Vehicle finance / asset ownership → Assets
+
+Asset finance interest → Assets
 
 Paid-off asset finance → $0 current finance cost
 
-P&L interest line → General Overheads full value, with interest treatment metadata if required
+Non-asset interest / overdraft / working capital interest → General Overheads
 
-Asset finance interest comparison → Cost Summary diagnostic bridge only
+P&L interest line → historical / reported context and reconciliation evidence only where it includes asset finance
+
+Principal repayments → Cash Flow later, not Cost Summary
 
 WIP Adjustment → Review Required until explicitly resolved
 
@@ -414,6 +655,37 @@ P&L does not create downstream source-of-truth module totals.
 
 ---
 
+## P&L MACRO / MICRO CLASSIFICATION RULE
+
+Macro classification drives the v3.6 core engine.
+
+Macro categories include:
+
+- income
+- cogs
+- labour
+- assets
+- general_overheads
+- excluded
+- unassigned
+- review_required where applicable
+
+Micro / activity classification may be captured for future insight.
+
+Micro categories are optional and must not block readiness in v3.6.
+
+Micro categories must not drive Cost Summary.
+
+Micro categories must not drive Revenue / COGS unless a later locked brief promotes them.
+
+Rule:
+
+Macro = active and required.
+
+Micro = optional and stored for later.
+
+---
+
 ## P&L INTEREST TREATMENT RULE
 
 P&L interest treatment is factual metadata only.
@@ -436,23 +708,75 @@ Selecting contains_asset_finance_interest must not:
 - exclude the line
 - zero the line
 - unwire the line
-- remove the line from General Overheads
+- remove the line from classification visibility
 
-The full P&L interest value remains inside the model.
+However, selecting contains_asset_finance_interest also must not make P&L the authority for asset finance interest.
 
-General Overheads must carry the full interest value forward.
+Asset finance interest belongs to Assets.
 
-Cost Summary may later show a diagnostic finance / interest bridge comparing:
+P&L interest is historical / reported context.
+
+The P&L interest value may support reconciliation or classification of non-asset interest, but it must not override the forward-looking asset interest calculated by Assets.
+
+---
+
+## INTEREST / FINANCE BRIDGE RULE
+
+The system may later show a diagnostic finance / interest bridge comparing:
 
 - P&L interest total
 - P&L interest marked as containing asset finance
-- total_asset_interest_annual
-- total_asset_principal_annual
+- total_asset_interest_annual from Assets
+- non-asset interest / other interest from General Overheads where available
 - total_asset_cost_annual
 
 The bridge is explanatory only.
 
 It must not replace total_asset_cost_annual.
+
+It must not replace total_general_overheads.
+
+It must not force reconciliation between historical P&L interest and forward-looking asset interest.
+
+The bridge exists to explain differences, not to alter source-of-truth outputs.
+
+---
+
+## ASSET INTEREST RULE
+
+Assets is the source of truth for asset finance interest.
+
+Cost Summary consumes asset interest only through Assets.
+
+General Overheads must not duplicate asset finance interest.
+
+P&L must not override asset finance interest.
+
+Asset finance interest must be current / forward-looking.
+
+The purpose is to estimate the asset finance interest the business needs to recover going forward, not to reconstruct the exact historical interest charged in the previous P&L period.
+
+---
+
+## CASH FLOW SEPARATION RULE
+
+Principal repayments are real cash pressure.
+
+Principal repayments are not operating cost.
+
+Principal repayments must not feed:
+
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+- required_recovery_rate
+- Cost Summary
+
+Principal belongs in the future Cash Flow layer.
+
+Interest belongs in cost.
+
+Principal belongs in cash flow.
 
 ---
 
@@ -568,24 +892,18 @@ Business benchmark variance must not block readiness when all source modules are
 
 ## COST SETUP READINESS MILESTONE
 
-The Cost Setup Readiness milestone is now complete.
+The Cost Setup Readiness milestone is the upstream readiness checkpoint before Cost Summary.
 
-Model Readiness now passes with:
+Model Readiness should pass only when:
 
-- P&L readiness PASS
-- Labour readiness PASS
-- General Overheads readiness PASS
-- Assets readiness PASS
-- Module Reconciliation PASS
-- Business benchmark variance diagnostic only
+- P&L readiness passes
+- Labour readiness passes
+- General Overheads readiness passes
+- Assets readiness passes
+- Module Reconciliation passes
+- unresolved blockers are removed or intentionally held as warnings
 
-The current observed result after the Labour aggregation fix:
-
-- Model Ready: Yes
-- Module Total Business Costs: approximately $421,917
-- P&L Variance: approximately 0.1%
-
-This confirms the upstream cost setup modules are structurally ready for Cost Summary.
+Business benchmark variance is diagnostic only when all source modules are valid.
 
 ---
 
@@ -593,20 +911,47 @@ This confirms the upstream cost setup modules are structurally ready for Cost Su
 
 The current build priority is now:
 
-1. Commit and preserve the Cost Setup Readiness milestone.
-2. Wire Cost Summary as a trusted / warning / blocked consumer of Model Readiness.
-3. Ensure Cost Summary consumes upstream output contracts only.
-4. Add Cost Summary visibility for:
-   - total_labour_cost_annual
-   - total_asset_cost_annual
-   - total_general_overheads
-   - total_cost_burden
-   - required_revenue
-   - required_recovery_rate
-   - model_readiness_status
-5. Add the later finance / interest bridge as diagnostic display only, not as a replacement for asset ownership cost.
+1. Update and lock the v3.6 briefs for:
+   - Assets
+   - Cost Summary
+   - P&L
+   - General Overheads
+   - Active System
+   - Revenue / COGS
+   - Business Summary
+   - Business Modelling
+   - Quote Engine boundary
+2. Run a narrow Codex pass to inspect and align Assets.
+3. Confirm Assets:
+   - uses ownership-only costs
+   - calculates forward-looking asset finance interest
+   - excludes principal from Cost Summary
+   - does not rely on P&L interest as asset finance authority
+4. Confirm General Overheads:
+   - owns vehicle running costs
+   - owns non-asset interest
+   - excludes asset finance interest
+5. Confirm Labour:
+   - exposes final productive output after productivity
+6. Finalise Cost Summary:
+   - consumes upstream output contracts only
+   - uses total_cost_burden / total_productive_output
+   - displays trusted / warning / blocked state
+7. Build Revenue / COGS.
+8. Build Business Summary.
+9. Build Business Modelling.
+10. Build Quote Engine later.
+11. Build Cash Flow later.
 
-Do not move to Recovery Summary until Cost Summary consumes the now-ready upstream contracts cleanly.
+Do not move to Revenue / COGS until Cost Summary consumes the now-ready upstream contracts cleanly.
+
+Do not build Quote Engine until:
+
+- Cost Summary is trusted
+- Revenue / COGS exists
+- Business Summary exists
+- Business Modelling exists
+- Quote Engine brief 22 is used as the controlling source brief
 
 Do not treat Cost Summary as trusted/final unless:
 
@@ -655,6 +1000,118 @@ Cost Summary must not rebuild Labour, Assets, or General Overheads calculations.
 
 Cost Summary may show P&L benchmark diagnostics only through prepared reconciliation/readiness outputs.
 
+Cost Summary is forward-looking.
+
+Cost Summary uses future-facing operating cost, not historical P&L reconstruction.
+
+---
+
+## REVENUE / COGS RULE
+
+Revenue / COGS calculates:
+
+Revenue - Direct Costs = Margin Pool
+
+It consumes classified P&L income and COGS / direct-cost outputs.
+
+It must not use micro / activity classifications in v3.6 core calculations.
+
+It must not consume Cost Summary as an input to calculate margin pool.
+
+It must not define pricing or scenarios.
+
+It produces the trading side of the business model.
+
+---
+
+## BUSINESS SUMMARY RULE
+
+Business Summary combines:
+
+Margin Pool from Revenue / COGS
+
+with:
+
+Total Cost Burden from Cost Summary
+
+to show:
+
+Net Position
+
+It also shows the operational reality:
+
+Required Recovery Rate
+Current Margin / Recovery per Productive Hour where available
+$/hr gap
+
+Business Summary is a mirror.
+
+It shows what the business currently is.
+
+It does not recommend actions.
+
+It does not model scenarios.
+
+---
+
+## BUSINESS MODELLING RULE
+
+Business Modelling creates a locked baseline snapshot from the current business model.
+
+Baseline = locked current business.
+
+Scenario = editable copy of baseline.
+
+Upside and Downside scenarios may be provided, but must not overwrite the baseline.
+
+Minimum recoverable rate is a reference line, not a scenario.
+
+Business Modelling tests what changes if rates, margins, productivity, or costs move.
+
+Business Modelling must not mutate source modules.
+
+---
+
+## QUOTE ENGINE RULE
+
+Quote Engine is a future quote-level commercial test layer.
+
+Quote Engine is governed by:
+
+22_QUOTE_ENGINE_v3.6_LOCKED.txt
+
+Quote Engine applies the selected trusted baseline or scenario to an individual quote.
+
+At quote level:
+
+Quote Revenue
+- Quote Direct Costs
+= Quote Margin / Recovery Pool
+
+Then:
+
+Quote Margin / Recovery Pool
+- Required Internal Labour Recovery
+- Required General Overhead Recovery
+- Required Asset Ownership Recovery
+- Target Profit Requirement later
+= Quote Recovery Surplus / Shortfall
+
+Quote Engine must not treat gross margin as proof of profit.
+
+Quote Engine must not confuse subcontract labour with internal productive labour.
+
+Quote Engine must not include principal repayments as operating cost.
+
+Quote Engine must inherit the trust state of the selected model.
+
+Quote Engine must not be built before:
+
+- Cost Summary is trusted
+- Revenue / COGS exists
+- Business Summary exists
+- Business Modelling exists
+
 ---
 
 ## LONG-TERM COMMERCIAL CONTROL LOOP
@@ -667,7 +1124,10 @@ The long-term QS Tools loop is:
 
 Baseline setup
 → trusted cost model
-→ quote benchmark
+→ Revenue / COGS
+→ Business Summary
+→ Business Modelling
+→ Quote Engine
 → quote accepted / rejected
 → monthly P&L import
 → actual performance vs model
@@ -892,6 +1352,10 @@ Do not make broad changes when a narrow change is enough.
 Do not hide a conceptual problem with code.
 
 Do not allow convenience to override commercial correctness.
+
+Do not run Codex against unclear behaviour.
+
+If the rule is not written, update the brief before coding.
 
 ---
 

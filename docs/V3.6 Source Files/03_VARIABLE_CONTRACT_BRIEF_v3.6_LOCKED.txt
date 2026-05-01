@@ -2,6 +2,7 @@
 
 STATUS: ACTIVE VARIABLE CONTRACT
 VERSION: v3.6
+UPDATED FOR: FORWARD-LOOKING COST SUMMARY + REVENUE / COGS FLOW + QUOTE ENGINE BOUNDARY
 
 ---
 
@@ -12,6 +13,31 @@ This brief defines allowed cross-module variable names for QS Tools v3.6.
 No module may rename contract variables without updating this brief.
 
 No downstream module may rebuild upstream maths.
+
+No downstream module may consume raw upstream form state unless a locked brief explicitly allows it.
+
+If a downstream module needs a value, the owning upstream module must expose it through its output contract.
+
+---
+
+## CORE CONTRACT RULES
+
+Every cross-module value must have:
+
+- one owner
+- one locked variable name
+- one clear downstream meaning
+- one calculation source
+
+Benchmarks are diagnostic.
+
+Source module outputs are authoritative.
+
+Cost Summary must consume approved upstream outputs only.
+
+Business Summary and Business Modelling must consume locked outputs, not rebuild calculations.
+
+Quote Engine must consume the selected trusted baseline or scenario when eventually built.
 
 ---
 
@@ -26,6 +52,9 @@ Allowed P&L outputs:
 - labour_benchmark_total
 - assets_benchmark_total
 - general_overheads_benchmark_total
+- income_benchmark_total
+- cogs_benchmark_total
+- direct_cost_benchmark_total
 - unassigned_balance
 
 P&L benchmark totals are diagnostic only.
@@ -33,6 +62,33 @@ P&L benchmark totals are diagnostic only.
 They flow to Module Reconciliation.
 
 They must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / Direct Cost outputs may feed Revenue / COGS.
+
+---
+
+## P&L INTEREST METADATA
+
+Allowed P&L interest metadata:
+
+- interest_treatment
+- contains_asset_finance_interest
+
+Allowed interest_treatment values:
+
+- not_reviewed
+- contains_asset_finance_interest
+- no_asset_finance_interest
+
+Legacy mappings:
+
+- unknown → not_reviewed
+- asset_finance_exclude → contains_asset_finance_interest
+- general_overhead_keep → no_asset_finance_interest
+
+P&L interest metadata is classification / reconciliation context only.
+
+It must not make P&L the source of truth for asset finance interest.
 
 ---
 
@@ -45,10 +101,25 @@ Allowed General Overheads outputs:
 - general_overheads_ready
 - general_overheads_variance_amount
 - general_overheads_variance_percent
+- non_asset_interest_annual
 
-General Overheads may display category subtotals, including Staff Overheads and Vehicle Running Costs.
+General Overheads may display category subtotals, including:
 
-Only total_general_overheads may flow to Cost Summary.
+- Staff Overheads
+- Vehicle Running Costs
+- Non-Asset Interest
+- Insurance / Compliance
+- Admin / Office
+- Software / Subscriptions
+- Other Overheads
+
+Only this value may flow to Cost Summary:
+
+- total_general_overheads
+
+Category subtotals are display / diagnostic values.
+
+non_asset_interest_annual is supporting display detail only unless a later locked brief promotes it.
 
 ---
 
@@ -81,6 +152,15 @@ Per-staff outputs may include:
 - productive_hours
 - is_active
 
+Cost Summary must use:
+
+- total_labour_cost_annual
+- total_productive_output
+
+total_productive_output must be Labour’s final productive output after entitlement and productivity logic has already been applied.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
 ---
 
 ## ASSETS OUTPUTS
@@ -88,7 +168,9 @@ Per-staff outputs may include:
 Allowed Assets outputs:
 
 - total_asset_cost_annual
+- total_asset_interest_annual
 - assets_ready
+- no_active_assets_confirmed
 
 Per-asset outputs may include:
 
@@ -96,10 +178,18 @@ Per-asset outputs may include:
 - asset_name
 - asset_type
 - finance_cost_annual
+- asset_interest_annual
+- estimated_remaining_finance_balance
+- finance_progress_percent
 - lease_cost_annual
 - depreciation_cost_annual
 - ownership_cost_annual
 - total_asset_cost_annual
+- finance_active
+- finance_status
+- finance_start_date
+- finance_end_date
+- finance_paid_off
 - is_active
 
 Deprecated:
@@ -109,6 +199,52 @@ Deprecated:
 running_cost_annual must not feed Cost Summary.
 
 running_cost_annual must not be used as an active v3.6 output.
+
+---
+
+## ASSET FINANCE OUTPUT RULE
+
+Assets is the source of truth for asset finance interest.
+
+Asset finance interest must be exposed as:
+
+- total_asset_interest_annual
+- asset_interest_annual
+
+where available.
+
+Cost Summary may display total_asset_interest_annual as supporting detail, but must consume asset cost through:
+
+- total_asset_cost_annual
+
+P&L interest must not override asset finance interest.
+
+General Overheads must not duplicate asset finance interest.
+
+---
+
+## CASH FLOW SUPPORT OUTPUTS — FUTURE ONLY
+
+Assets may later expose separate Cash Flow support outputs such as:
+
+- asset_principal_repayment_annual
+- asset_principal_repayment_monthly
+- asset_total_finance_payment_annual
+- asset_total_finance_payment_monthly
+
+These outputs must not feed:
+
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+- required_recovery_rate
+- Cost Summary
+
+Principal repayments belong to the future Cash Flow layer.
+
+Interest belongs in cost.
+
+Principal belongs in cash flow.
 
 ---
 
@@ -125,8 +261,41 @@ Allowed Module Reconciliation outputs:
 - module_total_business_costs
 - pnl_business_cost_variance
 - pnl_business_cost_variance_percent
+- pnl_business_cost
+- business_cost_variance_amount
+- business_cost_variance_percent
+- setup_module_benchmark_total
+- full_pnl_business_cost_variance
+- full_pnl_business_cost_variance_percent
 
 Diagnostic totals do not replace source-of-truth module totals.
+
+Module Reconciliation must not recalculate upstream module maths.
+
+Module Reconciliation may expose informational finance / interest bridge values where available, but those values must not override source-of-truth outputs.
+
+---
+
+## OPTIONAL FINANCE / INTEREST BRIDGE OUTPUTS — DIAGNOSTIC ONLY
+
+Module Reconciliation may later expose:
+
+- pnl_interest_total
+- pnl_interest_contains_asset_finance_total
+- modelled_asset_interest_annual
+- non_asset_interest_annual
+- interest_variance_amount
+- interest_variance_percent
+
+These are diagnostic / explanatory values only.
+
+They must not feed Cost Summary calculations.
+
+They must not replace:
+
+- total_asset_cost_annual
+- total_asset_interest_annual
+- total_general_overheads
 
 ---
 
@@ -147,6 +316,10 @@ Allowed model_readiness_status values:
 - warning
 - blocked
 
+Model Readiness does not create cost totals.
+
+Model Readiness consumes readiness flags and Module Reconciliation outputs.
+
 ---
 
 ## COST SUMMARY OUTPUTS
@@ -165,6 +338,12 @@ Allowed Cost Summary outputs:
 - blocking_modules
 - warning_modules
 - model_readiness_status
+
+Cost Summary may also expose supporting display values where available:
+
+- total_asset_interest_annual
+
+Supporting display values must not become separate downstream calculation inputs unless a later locked brief explicitly allows it.
 
 ---
 
@@ -197,40 +376,281 @@ warning required.
 
 ---
 
-## RECOVERY SUMMARY OUTPUTS
+## COST SUMMARY INPUT RULE
 
-Allowed Recovery Summary outputs:
+Cost Summary may consume only:
 
-- active_recovery_model
-- labour_share_percent
-- asset_share_percent
-- overhead_share_percent
-- labour_recovery_cost
-- asset_recovery_cost
-- overhead_absorbed_cost
-- required_labour_recovery_rate
-- required_asset_recovery
-- recovery_ready
+From Labour:
+
+- total_labour_cost_annual
+- total_productive_output
+- Labour display components where required
+
+From Assets:
+
+- total_asset_cost_annual
+- total_asset_interest_annual as supporting display detail only
+
+From General Overheads:
+
+- total_general_overheads
+
+From Model Readiness:
+
+- model_ready
+- model_readiness_status
+- blocking_modules
+- warning_modules
+- blocking_checks
+- warning_checks
+
+Cost Summary must not consume:
+
+- raw P&L lines
+- P&L benchmark values as calculation inputs
+- P&L interest as asset finance authority
+- historical P&L asset interest
+- principal repayments
+- running_cost_annual
+- Revenue / COGS outputs
+- Business Summary outputs
+- Business Modelling outputs
 
 ---
 
-## RATE MODELS OUTPUTS
+## REVENUE / COGS OUTPUTS
 
-Allowed Rate Models outputs:
+Allowed Revenue / COGS outputs:
 
-- required_hourly_rate
-- required_m2_rate
-- required_unit_rate
-- required_crew_week_rate
-- revenue_distribution
-- recovery_alignment
-- rate_model_ready
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- revenue_cogs_ready
+- revenue_cogs_warnings
+
+Optional display outputs:
+
+- revenue_category_totals
+- direct_cost_category_totals
+
+Core formula:
+
+margin_pool =
+total_revenue - total_direct_costs
+
+gross_margin_percent =
+margin_pool / total_revenue
+
+If total_revenue = 0:
+
+gross_margin_percent = 0
+warning required.
+
+Revenue / COGS consumes classified P&L income and COGS / direct-cost outputs only.
+
+Revenue / COGS must not consume Labour, Assets, General Overheads, Cost Summary internals, or scenario outputs.
 
 ---
 
-## PRODUCTION CAPACITY OUTPUTS
+## BUSINESS SUMMARY OUTPUTS
 
-Allowed Production Capacity outputs:
+Allowed Business Summary outputs:
+
+- business_summary_ready
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- total_cost_burden
+- net_position
+- total_productive_output
+- required_recovery_rate
+- current_margin_per_productive_hour
+- recovery_gap_per_hour
+- business_summary_status
+- business_summary_warnings
+
+Core formulas:
+
+net_position =
+margin_pool - total_cost_burden
+
+current_margin_per_productive_hour =
+margin_pool / total_productive_output
+
+recovery_gap_per_hour =
+current_margin_per_productive_hour - required_recovery_rate
+
+If total_productive_output = 0:
+
+current_margin_per_productive_hour = 0
+recovery_gap_per_hour = 0
+warning required.
+
+Business Summary consumes:
+
+- Revenue / COGS outputs
+- Cost Summary outputs
+
+Business Summary must not rebuild Revenue / COGS or Cost Summary maths.
+
+Business Summary must not suggest actions or model scenarios.
+
+---
+
+## BUSINESS MODELLING OUTPUTS
+
+Allowed Business Modelling outputs:
+
+- baseline_snapshot
+- active_scenario
+- upside_scenario
+- downside_scenario
+- scenario_delta_annual
+- scenario_delta_per_hour
+- scenario_net_position
+- scenario_required_recovery_rate
+- scenario_margin_per_productive_hour
+- scenario_recovery_gap_per_hour
+- modelling_ready
+- modelling_warnings
+
+Baseline snapshot may include:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- total_cost_burden
+- net_position
+- total_productive_output
+- required_recovery_rate
+- current_margin_per_productive_hour
+- recovery_gap_per_hour
+- created_at
+- source_model_status
+
+Baseline must be read-only.
+
+Scenario must be an editable copy of baseline.
+
+Business Modelling must not mutate source module outputs.
+
+Minimum recoverable rate / required_recovery_rate is a reference line, not a scenario.
+
+---
+
+## QUOTE ENGINE OUTPUTS — LATER
+
+Quote Engine is governed by:
+
+22_QUOTE_ENGINE_v3.6_LOCKED.txt
+
+Quote Engine is later.
+
+Do not build or depend on these outputs until Quote Engine is explicitly approved for implementation.
+
+Allowed future Quote Engine outputs may include:
+
+- quote_id
+- quote_name
+- quote_date
+- quote_revenue
+- quote_direct_costs
+- quote_margin_pool
+- quote_gross_margin_percent
+- quote_required_recovery
+- quote_required_internal_labour_recovery
+- quote_required_general_overhead_recovery
+- quote_required_asset_recovery
+- quote_target_profit_requirement
+- quote_recovery_surplus_shortfall
+- quote_alignment_status
+- quote_warnings
+- quote_model_used
+- quote_model_trust_state
+
+Allowed future quote_alignment_status values may include:
+
+- recovering
+- under_recovering
+- commercially_loss_making_against_model
+- warning
+- blocked
+
+Quote Engine consumes:
+
+- selected trusted baseline or scenario
+- quote-level revenue
+- quote-level direct costs
+- quote-level internal labour assumptions where explicitly provided
+- quote-level subcontract / direct cost assumptions where explicitly provided
+
+Quote Engine must not:
+
+- rebuild Cost Summary
+- rebuild Revenue / COGS
+- rebuild Business Summary
+- mutate Business Modelling
+- rely on gross margin alone
+- confuse subcontract labour with internal labour recovery
+- include principal repayments as operating cost
+
+---
+
+## QUOTE ENGINE FORMULA CONCEPT — LATER
+
+At quote level:
+
+quote_margin_pool =
+quote_revenue - quote_direct_costs
+
+quote_gross_margin_percent =
+quote_margin_pool / quote_revenue
+
+Future quote recovery test:
+
+quote_recovery_surplus_shortfall =
+quote_margin_pool
+- quote_required_internal_labour_recovery
+- quote_required_general_overhead_recovery
+- quote_required_asset_recovery
+- quote_target_profit_requirement
+
+If quote_revenue = 0:
+
+quote_gross_margin_percent = 0
+warning required.
+
+These formulas are conceptual until Quote Engine is approved for build.
+
+---
+
+## CASH FLOW OUTPUTS — LATER
+
+Allowed future Cash Flow outputs may include:
+
+- total_principal_repayment_annual
+- total_principal_repayment_monthly
+- total_finance_payment_annual
+- total_finance_payment_monthly
+- total_cash_pressure_annual
+- total_cash_pressure_monthly
+- cash_flow_status
+- cash_flow_warnings
+
+Cash Flow is later.
+
+Cash Flow must not feed Cost Summary.
+
+Cash Flow must not alter required_recovery_rate.
+
+---
+
+## PRODUCTION CAPACITY OUTPUTS — LATER
+
+Allowed future Production Capacity outputs may include:
 
 - available_productive_capacity
 - required_productive_capacity
@@ -238,30 +658,9 @@ Allowed Production Capacity outputs:
 - utilisation_required
 - capacity_ready
 
----
+Production Capacity belongs after Quote Engine.
 
-## RECOVERY OUTCOME OUTPUTS
-
-Allowed Recovery Outcome outputs:
-
-- recovery_outcome_status
-- viable
-- marginal
-- not_viable
-- outcome_summary
-- outcome_warnings
-
----
-
-## QUOTE BENCHMARK OUTPUTS
-
-Allowed Quote Benchmark outputs:
-
-- benchmark_quote_value
-- benchmark_recovery_value
-- benchmark_margin_value
-- quote_alignment_status
-- benchmark_warnings
+Do not build or depend on these until Quote Engine and capacity briefs are explicitly locked.
 
 ---
 
@@ -283,9 +682,46 @@ Do not use:
 - active_revenue_model inside Cost Summary
 - active_asset_labour_links inside Cost Summary
 - running_cost_annual inside Cost Summary
+- raw P&L lines inside Cost Summary
+- P&L benchmark values as Cost Summary calculation inputs
+- P&L interest as asset finance authority
+- historical P&L asset interest as Cost Summary input
+- principal repayments inside Cost Summary
+- principal repayments inside total_asset_cost_annual
+- principal repayments inside total_general_overheads
+- quote outputs inside Cost Summary
+- quote outputs inside Revenue / COGS
+- quote outputs inside Business Summary unless a later locked brief explicitly allows comparison display
+- cash-flow outputs inside Cost Summary
 
 ---
 
 ## FINAL DEFINITION
 
-The v3.6 variable contract keeps all module boundaries explicit. Labour owns people cost, General Overheads owns shared / staff / vehicle running overheads, Assets owns ownership-only cost, Module Reconciliation proves the model, Model Readiness gates trust, and Cost Summary aggregates only approved upstream outputs.
+The v3.6 variable contract keeps all module boundaries explicit.
+
+P&L owns classification and benchmark context.
+
+Labour owns people cost and productive output.
+
+General Overheads owns shared / staff / vehicle running / non-asset overheads.
+
+Assets owns ownership-only asset cost and asset finance interest.
+
+Module Reconciliation proves the model.
+
+Model Readiness gates trust.
+
+Cost Summary aggregates approved upstream operating cost outputs.
+
+Revenue / COGS produces the margin pool.
+
+Business Summary mirrors the current business.
+
+Business Modelling creates locked-baseline scenarios.
+
+Quote Engine is a future quote-level commercial test layer governed by 22_QUOTE_ENGINE_v3.6_LOCKED.txt.
+
+Cash Flow later owns principal and finance payment pressure.
+
+No downstream module may rebuild upstream maths or consume unapproved variables.

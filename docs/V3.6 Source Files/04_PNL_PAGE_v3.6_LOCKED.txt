@@ -11,7 +11,17 @@ The P&L page captures business financial reality and provides the first classifi
 
 It is the starting point for the QS Tools model.
 
-The P&L page should help the user import, review, classify, and benchmark costs before the specialised modules refine source-of-truth totals.
+The P&L page helps the user import, review, classify, and benchmark financial data before specialised modules refine source-of-truth totals.
+
+The P&L page is not the final source of truth for specialised module calculations.
+
+It provides:
+
+- raw financial input
+- classification structure
+- benchmark totals
+- reconciliation context
+- Revenue / COGS preparation data
 
 ---
 
@@ -30,6 +40,16 @@ Module Reconciliation
 Model Readiness
 ↓
 Cost Summary
+↓
+Revenue / COGS
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine later
+↓
+Cash Flow later
 
 ---
 
@@ -39,7 +59,11 @@ P&L is raw financial reality and classification only.
 
 P&L does not decide final module ownership after reconciliation.
 
-P&L does not perform recovery, pricing, allocation, or downstream modelling.
+P&L does not perform recovery, pricing, allocation, cash-flow modelling, or downstream business modelling.
+
+P&L values are historical / reported values.
+
+Specialised modules may replace or reinterpret P&L values where the module has a clearer ownership model.
 
 ---
 
@@ -54,6 +78,9 @@ P&L may output:
 - labour_benchmark_total
 - assets_benchmark_total
 - general_overheads_benchmark_total
+- income_benchmark_total
+- cogs_benchmark_total
+- direct_cost_benchmark_total
 - unassigned_balance
 
 These are benchmark / classification outputs.
@@ -72,6 +99,15 @@ Cost Summary must consume the clean module totals from:
 - Assets
 - General Overheads
 - Model Readiness
+
+P&L values may later feed Revenue / COGS through classified income and direct-cost outputs.
+
+Revenue / COGS must consume P&L classification outputs only for:
+
+- income / revenue
+- COGS / direct costs
+
+Revenue / COGS must not consume Labour, Assets, or General Overheads raw module internals.
 
 ---
 
@@ -93,15 +129,74 @@ employee_overheads is not an active v3.6 category.
 
 ---
 
+## MACRO CLASSIFICATION RULE
+
+The macro classification is the only classification layer used by the core commercial engine in v3.6.
+
+The required macro groups are:
+
+- income
+- cogs
+- labour
+- assets
+- general_overheads
+- excluded
+- unassigned
+
+Macro classification drives:
+
+- benchmark totals
+- reconciliation
+- Revenue / COGS inputs
+- readiness checks
+
+Micro classification may be captured, but it must not drive core calculations in v3.6.
+
+---
+
+## MICRO / ACTIVITY CLASSIFICATION RULE
+
+The P&L page may capture optional micro classifications such as:
+
+- concrete
+- excavation
+- subcontract type
+- supplier group
+- activity group
+- delivery category
+- other user-defined business categories
+
+These micro categories are optional.
+
+They are captured for future insight, reporting, automation, and rule-based classification.
+
+They must not be required for readiness in v3.6.
+
+They must not drive Cost Summary.
+
+They must not drive Revenue / COGS in v3.6 unless a later locked brief explicitly promotes them into active calculation logic.
+
+Rule:
+
+Macro classification = required and active.
+Micro classification = optional and stored for later.
+
+User-facing wording:
+
+Activity / Detail Category  
+Optional. Capture useful business detail now so it can be used for future reporting, automation, or quote analysis.
+
+---
+
 ## COGS / DIRECT COST CLASSIFICATION RULE
 
 P&L owns the reusable COGS / Direct Cost classification layer.
 
-This layer exists to prepare clean classified COGS totals for the future Revenue / Margin Pool page.
+This layer exists to prepare clean classified COGS totals for the future Revenue / COGS page.
 
-Revenue / Margin Pool will later consume classified COGS totals.
+Revenue / COGS will later consume classified COGS totals.
 
-P&L must not calculate Revenue / Margin Pool outputs in this layer.
+P&L must not calculate Revenue / COGS outputs in this layer.
 
 Direct Cost Categories must use broad defaults and allow user-defined categories.
 
@@ -128,23 +223,112 @@ No threshold logic belongs in this layer.
 
 This layer must not decide whether a business should hire staff, buy equipment, change recovery strategy, or alter pricing.
 
-Those decisions belong later in Recovery, Revenue / Margin Pool, Quote Benchmark, or future scenario layers.
+Those decisions belong later in Business Modelling, Quote Engine, Cash Flow, or future scenario layers.
 
 User-facing wording:
 
 Direct Cost Categories  
 Group COGS into useful business categories. Start with broad defaults, then add categories specific to your business.
 
+---
+
+## REVENUE / COGS PREPARATION RULE
+
+P&L prepares the data for Revenue / COGS.
+
+Revenue / COGS will calculate:
+
+Revenue - Direct Costs = Margin Pool
+
+P&L must only provide classified inputs.
+
+P&L must not calculate:
+
+- margin_pool
+- gross_margin_percent
+- margin_per_productive_hour
+- net_position
+- recovery_gap
+- business outcome
+- modelling outputs
+
+Those belong downstream.
+
+---
+
+## P&L INTEREST RULE
+
+P&L interest values are historical reported accounting values.
+
+P&L interest may include:
+
+- asset finance interest
+- overdraft interest
+- working capital interest
+- accountant journal adjustments
+- miscellaneous finance costs
+
+The P&L page may allow the user to identify whether reported P&L interest includes asset finance.
+
+This setting is used for classification and reconciliation context only.
+
+It does not make the P&L the source of truth for asset finance interest.
+
+---
+
+## ASSET FINANCE INTEREST BOUNDARY
+
+Assets is the source of truth for asset finance interest.
+
+If the P&L interest category includes asset finance:
+
+- P&L interest is treated as historical reported context
+- Assets still calculates asset finance interest from the asset finance model
+- Cost Summary consumes asset finance interest through Assets
+- P&L interest does not override Assets
+
+If the P&L interest category does not include asset finance:
+
+- P&L interest may remain classified as general_overheads / other interest
+- Assets still contributes asset finance interest separately through the Assets module
+
+The system must not force asset finance interest to reconcile exactly to P&L interest.
+
+The system must not rebuild past asset interest from Assets purely to correct historical P&L values.
+
+Any mismatch between P&L reported interest and Assets modelled interest is informational only and belongs to Module Reconciliation / Model Readiness.
+
+---
+
+## CASH FLOW BOUNDARY
+
+P&L does not model cash flow.
+
+Principal repayments do not belong in the P&L page as operating cost.
+
+Principal repayments may be captured or modelled later in a Cash Flow layer.
+
+P&L must not include principal repayments in Cost Summary benchmark totals unless those amounts are explicitly present in the imported accounting data and classified for reconciliation only.
+
+Principal must not feed Cost Summary through P&L.
+
+Cash Flow later may consume asset finance payment information separately.
+
+---
 
 ## READINESS RULE
 
 pnl_ready = true only when:
 
 - P&L data exists
-- required lines are classified
+- required macro lines are classified
 - unassigned_balance = 0
 - no active employee_overheads category remains
 - benchmark totals are available where required
+
+Micro / activity classifications are not required for pnl_ready in v3.6.
+
+Optional micro classifications may be incomplete without blocking P&L readiness.
 
 ---
 
@@ -152,6 +336,8 @@ pnl_ready = true only when:
 
 P&L may provide:
 
+- income benchmark
+- COGS / direct cost benchmark
 - labour benchmark
 - assets benchmark
 - general overheads benchmark
@@ -163,6 +349,60 @@ They are used for reconciliation and review.
 
 They do not override specialised module outputs.
 
+They do not directly feed Cost Summary calculations.
+
+---
+
+## MODULE OWNERSHIP RULES
+
+P&L provides benchmark and classification context only.
+
+Labour owns:
+
+- labour cost
+- employer contributions
+- ACC levy
+- productive output
+- final productive hours
+
+Assets owns:
+
+- asset ownership cost
+- asset finance interest
+- lease cost
+- depreciation / ownership cost
+- total_asset_cost_annual
+
+General Overheads owns:
+
+- general overhead total
+- non-asset running costs
+- vehicle running costs
+- other non-asset interest where applicable
+
+Revenue / COGS owns:
+
+- margin pool calculation
+
+Cost Summary owns:
+
+- total operating cost burden
+- required recovery rate
+
+Business Summary owns:
+
+- current business position / mirror
+
+Business Modelling owns:
+
+- baseline and scenarios
+
+Cash Flow later owns:
+
+- principal repayments
+- finance payment pressure
+- liquidity view
+
 ---
 
 ## CORE RULES
@@ -170,9 +410,13 @@ They do not override specialised module outputs.
 - employer ACC levy belongs to Labour, not General Overheads
 - vehicle running costs belong to General Overheads, not Assets
 - asset ownership costs belong to Assets, not General Overheads
+- asset finance interest belongs to Assets, not P&L authority
+- non-asset interest may remain in General Overheads
 - staff overheads belong to General Overheads as category only
 - Employee Overheads is removed
 - Staff Overheads is not a module
+- COGS / Direct Costs belong to Revenue / COGS later, not Cost Summary
+- principal repayments belong to Cash Flow later, not Cost Summary
 
 ---
 
@@ -183,15 +427,32 @@ The P&L page should make classification easy.
 The user should be able to see:
 
 - category totals
+- income total
+- COGS / direct cost total
 - unassigned balance
 - imported P&L line items
 - classification status
 - setup progress
+- optional activity / micro category where useful
 
-The page should not become the place where recovery or pricing decisions are made.
+The page should not become the place where recovery, pricing, cost summary, or cash-flow decisions are made.
+
+The UI should support:
+
+- simple macro classification first
+- optional activity capture second
+- no requirement to perfect micro classification before continuing
 
 ---
 
 ## FINAL DEFINITION
 
-P&L v3.6 is the raw financial input and first classification layer. It provides benchmark totals and classification readiness, but the specialised modules remain the source of truth for downstream Cost Summary calculations.
+P&L v3.6 is the raw financial input and first classification layer.
+
+It provides benchmark totals, macro classification, optional micro classification, and readiness state.
+
+Specialised modules remain the source of truth for downstream Cost Summary calculations.
+
+P&L supports Revenue / COGS by classifying income and direct costs, but it does not calculate the margin pool itself.
+
+P&L is historical financial context; QS Tools uses specialised modules to build the forward-looking business model.

@@ -4,7 +4,15 @@
 
 This repository is QS Tools, a first-principles commercial decision engine for construction/business costing.
 
-The system is based on strict module ownership, downstream contracts, visible assumptions, controlled source files, reconciliation, model readiness, and commercially defensible cost recovery.
+QS Tools is based on:
+
+- strict module ownership
+- downstream contracts
+- visible assumptions
+- controlled source files
+- reconciliation
+- model readiness
+- commercially defensible cost recovery
 
 Core principle:
 
@@ -22,7 +30,7 @@ QS Tools must be good enough to defend, not just good enough to work.
 
 Use only the v3.6 source briefs.
 
-The v3.6 source pack is stored at:
+The active source pack is stored at:
 
 ```text
 docs/V3.6 Source Files
@@ -32,60 +40,49 @@ Do not use v3.5 or older source files unless the task explicitly says they are d
 
 The v3.6 source pack is the active source of truth.
 
-The First Principles brief is the highest-level system philosophy:
-
-```text
-docs/V3.6 Source Files/00_FIRST_PRINCIPLES_SYSTEM_BRIEF_v3.6_LOCKED.txt
-```
-
-The Product Standard & Commercial Defensibility brief defines the product quality bar:
-
-```text
-docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
-```
-
-The Active System Brief defines the current v3.6 architecture and build priority:
-
-```text
-docs/V3.6 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.6_LOCKED.txt
-```
-
-The Labour Recovery & Margin Pool Standard defines the fixed-price recovery test:
-
-```text
-docs/V3.6 Source Files/17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
-```
-
-The Cost Setup Readiness milestone is locked here:
-
-```text
-docs/V3.6 Source Files/18_QS Tools — Cost Setup Readiness Milestone Brief_v3.6_LOCKED.txt
-```
-
-This milestone brief records the working baseline for:
-
-```text
-P&L interest treatment
-General Overheads sync
-Assets finance lifecycle and readiness
-Labour active-profile aggregation
-Module Reconciliation
-Model Readiness
-```
-
-Use the Cost Setup Readiness milestone before changing Cost Summary or any upstream cost-readiness logic.
-
-If a coding decision conflicts with the First Principles brief, report the conflict before editing.
-
-If a coding decision makes the system less traceable, less explainable, or less commercially defensible, report the conflict before editing.
-
-If a coding decision treats gross margin as proof of profit, report the conflict before editing.
+If a coding decision conflicts with a locked v3.6 source brief, report the conflict before editing.
 
 If existing code conflicts with v3.6, report the conflict before changing broad architecture.
 
-The first P&L setup is expected to take time because it creates a reusable explicit mapping layer for future monthly P&L imports and eventual Xero API integration.
+If a rule is not written, do not invent it. Ask for the brief to be updated first.
 
-Do not optimise for faster setup if doing so weakens the commercial model.
+---
+
+## Required source briefs
+
+Before making changes, read the relevant locked v3.6 source briefs.
+
+Always start with these control briefs:
+
+```text
+docs/V3.6 Source Files/00_FIRST_PRINCIPLES_SYSTEM_BRIEF_v3.6_LOCKED.txt
+docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+docs/V3.6 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.6_LOCKED.txt
+docs/V3.6 Source Files/02_IMPLEMENTATION_ORDER_v3.6_LOCKED.txt
+docs/V3.6 Source Files/03_VARIABLE_CONTRACT_BRIEF_v3.6_LOCKED.txt
+```
+
+For current Assets / Cost Summary work, also read:
+
+```text
+docs/V3.6 Source Files/04_PNL_PAGE_v3.6_LOCKED.txt
+docs/V3.6 Source Files/05_GENERAL_OVERHEADS_v3.6_LOCKED.txt
+docs/V3.6 Source Files/06_GENERAL_OVERHEADS_CATEGORY_MAPPING_v3.6_LOCKED.txt
+docs/V3.6 Source Files/09_ASSETS_MODULE_v3.6_LOCKED.txt
+docs/V3.6 Source Files/11_MODEL_READINESS_v3.6_LOCKED.txt
+docs/V3.6 Source Files/13_COST_SUMMARY_v3.6_LOCKED.txt
+docs/V3.6 Source Files/14_COST_SUMMARY_BUILD_BRIEF_v3.6_LOCKED.txt
+docs/V3.6 Source Files/18_QS Tools — Cost Setup Readiness Milestone Brief_v3.6_LOCKED.txt
+```
+
+For downstream commercial layers, read:
+
+```text
+docs/V3.6 Source Files/19_REVENUE_COGS_v3.6_LOCKED.txt
+docs/V3.6 Source Files/20_BUSINESS_SUMMARY_v3.6_LOCKED.txt
+docs/V3.6 Source Files/21_BUSINESS_MODELLING_v3.6_LOCKED.txt
+docs/V3.6 Source Files/22_QUOTE_ENGINE_v3.6_LOCKED.txt
+```
 
 ---
 
@@ -101,6 +98,48 @@ P&L
 → Module Reconciliation
 → Model Readiness
 → Cost Summary
+→ Revenue / COGS
+→ Business Summary
+→ Business Modelling
+→ Quote Engine later
+→ Cash Flow later
+→ Production Capacity later
+```
+
+Core separation:
+
+```text
+P&L = raw financial input and benchmark/classification only
+
+General Overheads = shared / unclear / staff overhead / vehicle running / non-asset overhead cost classification
+
+Labour = people cost, employer obligations, productive hours
+
+Assets = ownership-only asset costs and asset finance interest
+
+Module Reconciliation = evidence layer
+
+Model Readiness = trust gate
+
+Cost Summary = forward-looking operating cost burden
+
+Revenue / COGS = trading-side margin pool
+
+Business Summary = current business mirror
+
+Business Modelling = locked baseline and editable scenario layer
+
+Quote Engine = future quote-level commercial test layer
+
+Cash Flow = future principal / finance payment pressure layer
+
+Production Capacity = future delivery realism layer
+```
+
+The old active flow is no longer current:
+
+```text
+Cost Summary
 → Recovery Summary
 → Rate Models
 → Production Capacity
@@ -109,27 +148,53 @@ P&L
 → Budget
 ```
 
-Core separation:
-
-```text
-P&L = raw financial input and benchmark/classification only
-General Overheads = shared / unclear / staff overhead / vehicle running cost classification
-Labour = people cost, employer obligations, productive hours
-Assets = ownership-only asset costs
-Module Reconciliation = evidence layer
-Model Readiness = trust gate
-Cost Summary = WHAT it costs
-Recovery Summary = HOW it is recovered
-Rate Models = practical earning rates
-Production Capacity = CAN it be delivered
-Recovery Outcome = SHOULD you run it
-Quote Benchmark = does the model align with real quotes
-Budget = locked upstream output consumer
-```
+Do not rebuild toward that old flow unless a later locked v3.6 brief explicitly reinstates it.
 
 ---
 
-## First Principles rules
+## Current build priority
+
+The current priority is:
+
+```text
+1. Keep v3.6 source briefs aligned.
+2. Run narrow Codex inspection / alignment for Assets.
+3. Confirm Assets:
+   - remains ownership-only
+   - excludes running costs
+   - calculates forward-looking asset finance interest
+   - does not use P&L interest as asset finance authority
+   - excludes principal repayments from total_asset_cost_annual
+   - excludes principal repayments from Cost Summary
+   - exposes total_asset_cost_annual
+   - exposes total_asset_interest_annual where available
+4. Confirm General Overheads:
+   - owns vehicle running costs
+   - owns non-asset interest
+   - excludes asset finance interest
+5. Confirm Labour:
+   - exposes total_labour_cost_annual
+   - exposes final total_productive_output after entitlement and productivity logic
+6. Finalise Cost Summary:
+   - consumes upstream output contracts only
+   - uses total_cost_burden / total_productive_output
+   - displays trusted / warning / blocked state
+7. Build Revenue / COGS.
+8. Build Business Summary.
+9. Build Business Modelling.
+10. Build Quote Engine later.
+11. Build Cash Flow later.
+```
+
+Do not move to Revenue / COGS until Cost Summary consumes the aligned upstream contracts cleanly.
+
+Do not build Quote Engine yet.
+
+`22_QUOTE_ENGINE_v3.6_LOCKED.txt` exists as a future boundary brief only.
+
+---
+
+## First-principles rules
 
 QS Tools must not hide assumptions, invent recovery numbers, or create commercial outputs that cannot be traced back to real business costs and real productive capacity.
 
@@ -159,63 +224,21 @@ separated from actuals
 
 Hidden assumptions are not allowed.
 
-QS Tools must not create a recovery number out of thin air.
+Do not hide a conceptual problem with code.
 
-A recovery number must come from:
-
-```text
-actual cost burden
-productive capacity
-recovery strategy
-rate model
-real-world quote benchmark
-```
-
-If the number cannot be explained, it is not valid.
+Do not allow convenience to override commercial correctness.
 
 ---
 
-## Product Standard & Commercial Defensibility rules
+## Product standard rules
 
-QS Tools must be good enough to defend, not just good enough to work.
-
-The Product Standard & Commercial Defensibility brief defines the quality bar:
+QS Tools must be:
 
 ```text
-docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
-```
-
-QS Tools should aim for 10/10 in:
-
-```text
-commercial logic
-cost ownership
-traceability
-reconciliation
-readiness gating
-user clarity
-source data treatment
-module contracts
-downstream trust
-decision usefulness
+Good enough to defend, not just good enough to work.
 ```
 
 Every important output must survive challenge.
-
-If someone questions a number, QS Tools must be able to show:
-
-```text
-where the number came from
-what source line or module produced it
-what category owns it
-what assumptions were made
-whether the user manually resolved it
-whether it is included or excluded
-whether it blocks readiness
-what downstream output it affects
-```
-
-If the system cannot explain a number, the number should not be trusted.
 
 A trusted number must be:
 
@@ -227,39 +250,18 @@ owned by one module
 free from hidden assumptions
 supported by visible treatment decisions
 safe to use downstream
+clearly marked as historical, current, forward-looking, diagnostic, or scenario-based
 ```
 
-A 10/10 system means:
+Do not treat gross margin as proof of profit.
 
-```text
-Every cost has one owner.
-Every assumption is visible.
-Every unresolved item blocks trust.
-Every resolved item has a treatment.
-Every downstream number is traceable.
-Every variance has an explanation.
-Every module has a clean contract.
-```
-
-Do not optimise for faster setup if doing so weakens the commercial model.
-
-Do not hide a conceptual problem with code.
-
-Do not allow convenience to override commercial correctness.
-
-### Labour recovery and margin pool rules
-
-Labour recovery visibility is a core product standard.
-
-Do not treat total margin as sufficient proof that a quote-based business is recovering labour correctly.
+Do not treat total margin as proof that a quote-based business is recovering labour correctly.
 
 Do not assume:
 
 ```text
 Revenue - COGS = Labour content
 ```
-
-That is too broad and can hide the labour recovery leak.
 
 For fixed-price and quote-based businesses, distinguish:
 
@@ -273,80 +275,86 @@ asset ownership recovery
 target profit
 ```
 
-The defensible baseline concept is:
-
-```text
-Revenue
-- external/direct costs
-= margin / recovery pool
-```
-
-Then:
-
-```text
-margin / recovery pool
-- required internal labour recovery
-- required general overhead recovery
-- required asset ownership recovery
-- target profit
-= recovery surplus / shortfall
-```
-
-If the surplus / shortfall is negative, the quote is commercially loss-making against the model even if a simple gross-margin view looks acceptable.
-
 Subcontract labour must be visible separately from internal labour recovery.
-
-Subcontract labour may be part of COGS, but it must not be confused with internal productive labour capacity.
-
-Before quote-level analysis exists, the summary layers should still expose baseline labour recovery using Labour, Cost Summary, Recovery Summary, and Revenue Summary outputs.
-
-Future Quote Benchmark should prove labour recovery quote-by-quote.
 
 ---
 
-## Current build priority
+## Critical locked rules
 
-The current cost setup readiness milestone is complete.
+### Cost ownership
 
-Model Readiness now passes with:
+Every cost must have one owner.
 
-```text
-P&L readiness PASS
-Labour readiness PASS
-General Overheads readiness PASS
-Assets readiness PASS
-Module Reconciliation PASS
-Business benchmark variance diagnostic only
-```
-
-The current build priority is now:
+Examples:
 
 ```text
-1. Commit and preserve the Cost Setup Readiness milestone.
-2. Wire Cost Summary as a trusted / warning / blocked consumer of Model Readiness.
-3. Ensure Cost Summary consumes upstream output contracts only.
-4. Add Cost Summary visibility for:
-   - total_labour_cost_annual
-   - total_asset_cost_annual
-   - total_general_overheads
-   - total_cost_burden
-   - required_revenue
-   - required_recovery_rate
-   - model_readiness_status
-5. Add the later finance / interest bridge as diagnostic display only, not as a replacement for asset ownership cost.
+Salary & Wages → Labour
+Employer KiwiSaver → Labour
+ESCT → Labour
+Employer ACC Levy → Labour
+
+Staff expenses / PPE / welfare / recruitment → General Overheads
+Vehicle fuel / servicing / repairs / tyres / registration → General Overheads
+
+Asset ownership / lease / finance cost → Assets
+Asset finance interest → Assets
+
+Non-asset interest / overdraft / working capital interest → General Overheads
+
+Revenue and Direct Costs / COGS → Revenue / COGS
+
+Principal repayments → Cash Flow later
 ```
 
-Do not move to Recovery Summary until Cost Summary consumes the now-ready upstream contracts cleanly.
+### Asset finance interest
 
-Do not treat Cost Summary as trusted/final until:
+Assets is the source of truth for asset finance interest.
+
+P&L interest may be historical accounting context.
+
+P&L interest must not override asset finance interest calculated by Assets.
+
+Asset finance interest must be current / forward-looking.
+
+The purpose is to estimate the asset finance interest the business needs to recover going forward, not to reconstruct the exact historical interest charged in the previous P&L period.
+
+### Cash flow separation
+
+Principal repayments are real cash pressure.
+
+Principal repayments are not operating cost.
+
+Principal repayments must not feed:
 
 ```text
-Module Reconciliation exists
-Model Readiness exists
-diagnostics page confirms outputs
-ModelReadinessStatusStrip exists
-upstream blockers have been resolved or intentionally held as warnings
+total_asset_cost_annual
+total_general_overheads
+total_cost_burden
+required_recovery_rate
+Cost Summary
 ```
+
+Principal belongs in the future Cash Flow layer.
+
+Interest belongs in cost.
+
+Principal belongs in cash flow.
+
+### P&L role
+
+P&L is raw financial input and classification context.
+
+P&L benchmark values flow to Module Reconciliation only.
+
+P&L values must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / Direct Cost outputs may feed Revenue / COGS.
+
+### Macro / micro classification
+
+Macro classification drives the v3.6 core engine.
+
+Micro / activity classification may be captured for future insight, but must not drive Cost Summary or Revenue / COGS unless a later locked brief explicitly promotes it.
 
 ---
 
@@ -382,7 +390,7 @@ Keep existing user-facing behaviour unless the v3.6 brief requires a change.
 
 ## File architecture rules
 
-Follow this separation at all times:
+Follow this separation:
 
 ```text
 page.jsx = layout and orchestration only
@@ -407,432 +415,6 @@ Use adapters/selectors where needed to protect existing modules from unnecessary
 
 ---
 
-## Module ownership rules
-
-### P&L owns
-
-```text
-pnl_ready
-pnl_lines
-pnl_categories
-total_business_costs
-labour_benchmark_total
-assets_benchmark_total
-general_overheads_benchmark_total
-unassigned_balance
-review_required_lines
-accounting_adjustment_lines
-```
-
-P&L owns:
-
-```text
-raw P&L lines
-P&L classification
-P&L benchmark totals
-review-required status
-excluded status
-WIP / accounting adjustment visibility
-reusable P&L mapping over time
-```
-
-P&L benchmark values flow to Module Reconciliation only.
-
-P&L values must not feed Cost Summary calculations directly.
-
-P&L does not own downstream source-of-truth cost totals.
-
----
-
-### General Overheads owns
-
-```text
-total_general_overheads
-category_totals
-general_overheads_ready
-general_overheads_variance_amount
-general_overheads_variance_percent
-```
-
-General Overheads owns:
-
-```text
-shared operating costs
-staff overhead review categories
-vehicle running costs
-fleet running costs
-office/admin costs
-finance/admin overheads
-insurance/compliance
-sales/growth overheads
-travel overheads
-unclear / unallocated business costs after review
-```
-
-Only `total_general_overheads` may flow to Cost Summary.
-
-General Overheads does not own Labour employer obligations.
-
-General Overheads does not own asset ownership costs.
-
----
-
-### Labour owns
-
-```text
-total_gross_wages_annual
-total_entitlements_annual
-total_employer_kiwisaver_annual
-total_esct_annual
-total_acc_levy_annual
-total_employer_contribution_annual
-total_labour_cost_annual
-total_productive_output
-labour_ready
-```
-
-Labour owns:
-
-```text
-gross wages
-paid entitlements
-employer KiwiSaver
-ESCT
-employer ACC levy
-productive hours
-```
-
-Labour does not own staff overheads.
-
-Labour does not own vehicle running costs.
-
-Labour does not own asset ownership costs.
-
-Labour output contracts must aggregate all active saved Labour profiles.
-
-Active means:
-
-```text
-profile.is_active !== false
-```
-
-Module Reconciliation must consume aggregate Labour contract totals, not only the current Labour form calculation.
-
----
-
-### Assets owns
-
-```text
-total_asset_cost_annual
-total_asset_interest_annual
-total_asset_principal_annual
-assets_ready
-no_active_assets_confirmed
-```
-
-Assets owns ownership-only costs:
-
-```text
-finance cost
-lease cost
-ownership cost
-replacement / ownership recovery if explicitly enabled
-```
-
-Depreciation must not be included as a default cash recovery cost unless a locked v3.6 brief explicitly enables it.
-
-Assets must not own:
-
-```text
-fuel
-servicing
-repairs
-maintenance
-registration
-licensing
-tyres
-consumables
-shared fleet costs
-labour costs
-vehicle running costs
-```
-
-Vehicle and fleet running costs belong in General Overheads.
-
-Assets must distinguish:
-
-```text
-active asset
-active finance
-paid-off finance
-term-ended finance
-retired asset
-sold asset
-```
-
-Paid-off or term-ended finance must not continue creating current finance cost.
-
-Assets readiness is based on valid ownership records, not P&L benchmark matching.
-
-P&L benchmark variance remains diagnostic only.
-
----
-
-### Module Reconciliation owns
-
-```text
-reconciliation_ready
-reconciliation_checks
-blocking_checks
-warning_checks
-blocking_modules
-warning_modules
-module_total_business_costs
-pnl_business_cost_variance
-pnl_business_cost_variance_percent
-```
-
-Module Reconciliation is the evidence layer.
-
-It checks whether upstream modules are internally consistent, contract-compliant, and safe to trust.
-
-It must not recalculate upstream source-of-truth totals.
-
-Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
-
----
-
-### Model Readiness owns
-
-```text
-model_ready
-blocking_modules
-warning_modules
-blocking_checks
-warning_checks
-model_readiness_status
-```
-
-Allowed `model_readiness_status` values:
-
-```text
-ready
-warning
-blocked
-```
-
-Model Readiness is the verdict layer.
-
-Model Readiness does not create cost totals.
-
----
-
-### Cost Summary owns
-
-```text
-total_people_cost_annual
-total_asset_cost_annual
-total_business_overheads
-total_business_cost_annual
-total_cost_burden
-required_revenue
-required_recovery_rate
-total_productive_output
-model_ready
-blocking_modules
-warning_modules
-model_readiness_status
-```
-
-Cost Summary consumes upstream cost outputs only.
-
-Cost Summary must not own reconciliation.
-
-Cost Summary must not rebuild Labour, Assets, or General Overheads maths.
-
-Cost Summary must consume Model Readiness outputs and clearly show whether the model is:
-
-```text
-trusted
-warning
-blocked
-```
-
----
-## P&L interest treatment rule
-
-P&L interest treatment is factual metadata only.
-
-Allowed states:
-
-```text
-not_reviewed
-contains_asset_finance_interest
-no_asset_finance_interest
-```
-
-Legacy mappings:
-
-```text
-unknown → not_reviewed
-asset_finance_exclude → contains_asset_finance_interest
-general_overhead_keep → no_asset_finance_interest
-```
-
-Selecting `contains_asset_finance_interest` must not:
-
-```text
-delete the line
-exclude the line
-zero the line
-unwire the line
-remove the line from General Overheads
-```
-
-The full P&L interest value remains inside the model.
-
-General Overheads must carry the full interest value forward.
-
-Cost Summary may later show a diagnostic finance / interest bridge comparing:
-
-```text
-P&L interest total
-P&L interest marked as containing asset finance
-total_asset_interest_annual
-total_asset_principal_annual
-total_asset_cost_annual
-```
-
-The bridge is explanatory only.
-
-It must not replace `total_asset_cost_annual`.
-
----
-
-## P&L reusable mapping rule
-
-The first P&L setup may take time because it creates a reusable explicit mapping layer.
-
-The reusable mapping layer should connect:
-
-```text
-P&L account / Xero account / report line
-→ QS category
-→ review subcategory
-→ treatment
-→ owning module
-→ readiness impact
-```
-
-Future monthly P&L entry or Xero API import should use this mapping.
-
-Known mapped lines should map automatically.
-
-New, changed, or unresolved lines should be highlighted for review.
-
-Do not optimise for faster setup if it weakens the commercial model.
-
----
-
-## WIP / accounting adjustment rule
-
-WIP Adjustment must not be automatically assigned to:
-
-```text
-COGS
-General Overheads
-Labour
-Assets
-Income
-Excluded
-```
-
-WIP Adjustment must default to:
-
-```text
-category: review_required
-review_subcategory: wip_accounting_adjustment
-```
-
-WIP remains a blocker until explicitly resolved.
-
-Allowed WIP treatments:
-
-```text
-Leave as Review Required
-Exclude from QS Cost Model
-Include as COGS / Direct Job Cost
-Treat as Income / Revenue Timing Adjustment
-```
-
-Do not auto-resolve WIP.
-
-Do not silently exclude WIP.
-
-Do not silently include WIP in COGS.
-
-WIP is an accounting/timing adjustment until the user explicitly resolves it.
-
----
-
-## Removed / banned concepts
-
-Do not reintroduce:
-
-```text
-Employee Overheads module
-Staff Overheads module
-Employee Overheads as a downstream input
-Staff Overheads as a downstream input
-running costs inside Assets
-raw P&L lines feeding Cost Summary
-Cost Summary owning reconciliation
-Cost Summary rebuilding upstream maths
-Cost Allocation as an active v3.6 module
-Budget as an active v3.6 module
-```
-
-Banned variables include:
-
-```text
-employee_overheads_total
-total_employee_overheads_annual
-employee_overheads_total_annual
-employee_overheads_benchmark_total
-employee_overheads_ready
-employee_overheads_status
-employee_overheads_variance_amount
-employee_overheads_variance_percent
-employee_overheads_annual
-staff_overheads_total
-staff_overheads_ready
-running_cost_annual inside Cost Summary
-active_revenue_model inside Cost Summary
-active_asset_labour_links inside Cost Summary
-```
-
----
-
-## Downstream contract rules
-
-Upstream modules own inputs and calculations.
-
-Downstream modules consume outputs only.
-
-Never rebuild upstream maths downstream.
-
-Never read raw upstream form state in downstream modules.
-
-Never rename locked contract variables.
-
-Never use display names as join keys.
-
-Use IDs only for joins.
-
-If a downstream module needs a value, expose it through a selector, hook, or contract output. Do not reach into raw upstream state.
-
----
-
 ## Naming rules
 
 Internal contract variables use snake_case.
@@ -843,17 +425,11 @@ Component names use PascalCase and module prefixes.
 
 IDs must use `_id` format.
 
-Do not introduce camelCase internal contract variables.
+Do not introduce camelCase internal contract variables for new cross-module contracts.
 
 If existing React prop names use camelCase, do not rewrite the whole codebase. Keep new cross-module contracts snake_case.
 
 Do not rename existing symbols only for style preference.
-
-Do not rename existing storage keys unless explicitly required by a locked source brief.
-
-Do not rename route paths unless explicitly requested.
-
-Do not rename component props if downstream components already depend on them.
 
 ---
 
@@ -877,9 +453,7 @@ Do not redesign UI unless the task explicitly asks for design changes.
 
 Warnings must be actionable.
 
-Avoid generic warnings where the user cannot see what to fix.
-
-If a model is blocked, show the user:
+If a model is blocked, show:
 
 ```text
 what is blocked
@@ -890,59 +464,138 @@ what happens if ignored
 
 ---
 
-## Required files for current build
+## Downstream contract rules
 
-For Module Reconciliation:
+Upstream modules own inputs and calculations.
 
-```text
-lib/reconciliation/reconciliationRules.js
-lib/reconciliation/moduleReconciliation.js
-hooks/useModuleReconciliation.js
-```
+Downstream modules consume outputs only.
 
-For Model Readiness:
+Never rebuild upstream maths downstream.
 
-```text
-lib/calculations/modelReadinessCalculations.js
-hooks/useModelReadiness.js
-components/model-readiness/ModelReadinessStatusStrip.jsx
-```
+Never read raw upstream form state in downstream modules unless a locked brief explicitly allows it.
 
-Temporary diagnostics page:
+Never rename locked contract variables without a matching source brief update.
 
-```text
-app/dev/model-readiness/page.jsx
-```
+Never use display names as join keys.
 
-Do not add the diagnostics page to the main sidebar unless explicitly requested.
+Use IDs only for joins.
+
+If a downstream module needs a value, expose it through a selector, hook, or contract output. Do not reach into raw upstream state.
 
 ---
 
-## Module Reconciliation rules
+## Module-specific guardrails
 
-Each reconciliation check should use this shape:
+### P&L
 
-```js
-{
-  check_id,
-  module,
-  severity,
-  passed,
-  message,
-  detail,
-  recommended_action
-}
-```
-
-Allowed severity values:
+P&L owns:
 
 ```text
-blocker
-warning
-info
+raw P&L lines
+P&L classification
+P&L benchmark totals
+income / revenue classification
+COGS / direct cost classification
+review-required status
+excluded status
+WIP / accounting adjustment visibility
+reusable P&L mapping over time
 ```
 
-Module Reconciliation must output:
+P&L does not own downstream source-of-truth cost totals.
+
+P&L benchmark values must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / direct cost outputs may feed Revenue / COGS.
+
+### General Overheads
+
+General Overheads owns:
+
+```text
+total_general_overheads
+category_totals
+general_overheads_ready
+general_overheads_variance_amount
+general_overheads_variance_percent
+non_asset_interest_annual
+```
+
+Only `total_general_overheads` may flow to Cost Summary.
+
+General Overheads does not own Labour employer obligations.
+
+General Overheads does not own asset ownership costs.
+
+General Overheads does not own asset finance interest.
+
+### Labour
+
+Labour owns:
+
+```text
+total_gross_wages_annual
+total_entitlements_annual
+total_employer_kiwisaver_annual
+total_esct_annual
+total_acc_levy_annual
+total_employer_contribution_annual
+total_labour_cost_annual
+total_productive_output
+labour_ready
+```
+
+Labour output contracts must aggregate all active saved Labour profiles.
+
+Active means:
+
+```text
+profile.is_active !== false
+```
+
+Cost Summary must use Labour’s final `total_productive_output`.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
+### Assets
+
+Assets owns:
+
+```text
+total_asset_cost_annual
+total_asset_interest_annual
+assets_ready
+no_active_assets_confirmed
+```
+
+Assets owns ownership-only asset costs and asset finance interest.
+
+Assets must not own:
+
+```text
+fuel
+servicing
+repairs
+maintenance
+registration
+licensing
+tyres
+consumables
+shared fleet costs
+labour costs
+vehicle running costs
+principal repayments as operating cost
+```
+
+Vehicle and fleet running costs belong in General Overheads.
+
+Principal repayments belong to Cash Flow later.
+
+### Module Reconciliation
+
+Module Reconciliation is the evidence layer.
+
+It owns:
 
 ```text
 reconciliation_ready
@@ -951,153 +604,208 @@ blocking_checks
 warning_checks
 blocking_modules
 warning_modules
+module_total_business_costs
+pnl_business_cost_variance
+pnl_business_cost_variance_percent
 ```
 
-Module Reconciliation must not:
+It must not recalculate upstream source-of-truth totals.
+
+Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
+
+### Model Readiness
+
+Model Readiness is the verdict layer.
+
+It owns:
 
 ```text
-recalculate Labour
-recalculate Assets
-recalculate General Overheads
-edit P&L lines
-move costs automatically
-create pricing logic
-create recovery logic
-create new source-of-truth totals
+model_ready
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+model_readiness_status
 ```
 
----
-
-## Model Readiness rules
-
-Readiness formula:
+Allowed `model_readiness_status` values:
 
 ```text
-model_ready =
-pnl_ready
-AND general_overheads_ready
-AND labour_ready
-AND assets_ready
-AND reconciliation_ready
-AND blocking_checks.length = 0
+ready
+warning
+blocked
 ```
 
-Status formula:
+Model Readiness does not create cost totals.
+
+### Cost Summary
+
+Cost Summary owns:
 
 ```text
-if blocking_checks.length > 0:
-  model_readiness_status = "blocked"
-
-else if warning_checks.length > 0:
-  model_readiness_status = "warning"
-
-else:
-  model_readiness_status = "ready"
-```
-
-Model Readiness must not:
-
-```text
-recalculate Labour
-recalculate Assets
-recalculate General Overheads
-reclassify P&L
-create cost totals
-create recovery logic
-create pricing logic
-```
-
----
-
-## Cost Summary rules
-
-Cost Summary formulas:
-
-```text
-total_people_cost_annual =
-total_labour_cost_annual
-
-total_business_overheads =
-total_general_overheads
-
-total_business_cost_annual =
-total_asset_cost_annual + total_business_overheads
-
-total_cost_burden =
 total_people_cost_annual
-+ total_asset_cost_annual
-+ total_business_overheads
-
-required_revenue =
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
 total_cost_burden
-
-required_recovery_rate =
-required_revenue / total_productive_output
+required_revenue
+required_recovery_rate
+total_productive_output
+model_ready
+blocking_modules
+warning_modules
+model_readiness_status
 ```
 
-If `total_productive_output = 0`:
+Cost Summary consumes upstream cost outputs only.
+
+Cost Summary must not own reconciliation.
+
+Cost Summary must not rebuild Labour, Assets, or General Overheads maths.
+
+### Revenue / COGS
+
+Revenue / COGS owns:
 
 ```text
-required_recovery_rate = 0
-warning required
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+revenue_cogs_ready
+revenue_cogs_warnings
 ```
 
-Cost Summary must consume Model Readiness outputs and show not-trusted state when `model_ready = false`.
+Revenue / COGS calculates:
 
-Cost Summary must not consume raw P&L lines directly.
+```text
+Revenue - Direct Costs = Margin Pool
+```
 
-Cost Summary must not rebuild Labour, Assets, or General Overheads calculations.
+Revenue / COGS must not calculate Cost Summary.
 
-Cost Summary may show P&L benchmark diagnostics only through prepared reconciliation/readiness outputs.
+Revenue / COGS must not define pricing.
+
+### Business Summary
+
+Business Summary owns:
+
+```text
+business_summary_ready
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+net_position
+total_productive_output
+required_recovery_rate
+current_margin_per_productive_hour
+recovery_gap_per_hour
+business_summary_status
+business_summary_warnings
+```
+
+Business Summary is the factual mirror.
+
+It must not suggest fixes or create scenarios.
+
+### Business Modelling
+
+Business Modelling owns:
+
+```text
+baseline_snapshot
+active_scenario
+upside_scenario
+downside_scenario
+scenario_delta_annual
+scenario_delta_per_hour
+scenario_net_position
+scenario_required_recovery_rate
+scenario_margin_per_productive_hour
+scenario_recovery_gap_per_hour
+modelling_ready
+modelling_warnings
+```
+
+Baseline is read-only.
+
+Scenario is editable.
+
+Business Modelling must not mutate source modules.
+
+### Quote Engine later
+
+Quote Engine is governed by:
+
+```text
+docs/V3.6 Source Files/22_QUOTE_ENGINE_v3.6_LOCKED.txt
+```
+
+Quote Engine is not ready to build yet.
+
+Do not build Quote Engine until:
+
+```text
+Cost Summary is trusted
+Revenue / COGS exists
+Business Summary exists
+Business Modelling exists
+selected baseline / scenario trust state exists
+```
 
 ---
 
-## Long-term commercial control loop
+## Removed / banned concepts
 
-Future monthly P&L import, Xero API integration, accepted quote tracking, and actual-vs-model performance analysis must come after the baseline model is commercially defensible.
-
-The long-term QS Tools loop is:
+Do not reintroduce:
 
 ```text
-Baseline setup
-→ trusted cost model
-→ quote benchmark
-→ quote accepted / rejected
-→ monthly P&L import
-→ actual performance vs model
-→ variance analysis
-→ better future pricing decisions
+Employee Overheads module
+Staff Overheads module
+Employee Overheads as a downstream input
+Staff Overheads as a downstream input
+running costs inside Assets
+raw P&L lines feeding Cost Summary
+Cost Summary owning reconciliation
+Cost Summary rebuilding upstream maths
+Cost Allocation as an active v3.6 module
+Budget as an active v3.6 module
+Recovery Summary as the next active v3.6 module
+Rate Models as the next active v3.6 module
+Recovery Outcome as the next active v3.6 module
 ```
 
-The first P&L setup creates the reusable business mapping layer that future monthly imports and Xero API integration will rely on.
-
-A weak baseline creates weak monthly analysis.
-
-A trusted baseline creates meaningful commercial control.
-
-Do not build monthly import or Xero API integration before the baseline engine is stable.
-
----
-
-## Before editing
-
-Before making changes:
+Banned variables include:
 
 ```text
-1. Inspect the existing file structure.
-2. Identify existing hooks, storage, calculation files, selectors, and page/component patterns.
-3. Identify existing storage keys and exported names.
-4. Reuse existing conventions.
-5. Confirm actual variable names currently used in code.
-6. Avoid guessing when existing code already defines the source of truth.
-7. Report conflicts between existing code and v3.6 before broad changes.
+employee_overheads_total
+total_employee_overheads_annual
+employee_overheads_total_annual
+employee_overheads_benchmark_total
+employee_overheads_ready
+employee_overheads_status
+employee_overheads_variance_amount
+employee_overheads_variance_percent
+employee_overheads_annual
+staff_overheads_total
+staff_overheads_ready
+running_cost_annual inside Cost Summary
+active_revenue_model inside Cost Summary
+active_asset_labour_links inside Cost Summary
+principal repayments inside Cost Summary
+principal repayments inside total_asset_cost_annual
+principal repayments inside total_general_overheads
+quote outputs inside Cost Summary
+cash-flow outputs inside Cost Summary
 ```
 
 ---
 
 ## Build rules
 
-After editing, run:
+After implementation changes, run:
 
 ```bash
 npm run build
@@ -1112,7 +820,9 @@ warnings/errors
 anything intentionally not changed
 ```
 
-If the build fails, do not keep making unrelated changes. Report the failure and the likely cause.
+If the build fails, do not keep making unrelated changes.
+
+Report the failure and the likely cause.
 
 For inspect-only tasks, do not run `npm run build` unless explicitly requested.
 
@@ -1136,29 +846,21 @@ Do not commit failed experiments unless explicitly instructed.
 
 ---
 
-## Safety rules
+## Before editing
 
-Do not make broad rewrites unless explicitly requested.
+Before making changes:
 
-Do not change unrelated modules.
-
-Do not delete source files.
-
-Do not change contracts without a matching v3.6 brief.
-
-Do not silently remove working behaviour unless the v3.6 source pack requires it.
-
-Do not make speculative improvements outside the task.
-
-Do not refactor for neatness unless the task requires refactoring.
-
-Do not change styling, routing, storage, or contracts as a side effect of another change.
-
-Do not hide unresolved commercial assumptions with code.
-
-If a task reveals a conflict between current code and v3.6 source briefs, report the conflict and propose the smallest safe fix.
-
-When uncertain, inspect first and report before editing.
+```text
+1. Read AGENTS.md.
+2. Read the relevant v3.6 source brief.
+3. Inspect the existing file structure.
+4. Identify existing hooks, storage, calculation files, selectors, and page/component patterns.
+5. Identify existing storage keys and exported names.
+6. Confirm actual variable names currently used in code.
+7. Reuse existing conventions.
+8. Avoid guessing when existing code already defines the source of truth.
+9. Report conflicts between existing code and v3.6 before broad changes.
+```
 
 ---
 
@@ -1166,14 +868,18 @@ When uncertain, inspect first and report before editing.
 
 For each task, follow this order:
 
-1. Read `AGENTS.md`.
+```text
+1. Read AGENTS.md.
 2. Read the relevant v3.6 source brief.
 3. Inspect the relevant files only.
 4. Make the smallest safe change.
-5. Run `npm run build` if implementation changed code.
+5. Run npm run build if implementation changed code.
 6. Report changed files and result.
 7. Stop.
+```
 
 Do not keep expanding scope without explicit instruction.
 
 Do not refactor while fixing a bug unless the refactor is required to fix the bug.
+
+Do not run broad tasks when a narrow inspection or alignment task is enough.

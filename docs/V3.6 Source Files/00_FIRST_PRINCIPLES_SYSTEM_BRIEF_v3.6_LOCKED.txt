@@ -2,6 +2,7 @@
 
 STATUS: ACTIVE SYSTEM PRINCIPLE
 VERSION: v3.6
+UPDATED FOR: FORWARD-LOOKING COST MODEL + BUSINESS SUMMARY FLOW
 
 ---
 
@@ -11,7 +12,7 @@ This brief defines the first-principles operating philosophy behind QS Tools.
 
 It applies to every module, calculation, contract, page, and downstream decision.
 
-QS Tools must not hide assumptions, invent recovery numbers, or create commercial outputs that cannot be traced back to real business costs and real productive capacity.
+QS Tools must not hide assumptions, invent recovery numbers, duplicate costs, or create commercial outputs that cannot be traced back to real business costs, real productive capacity, and clearly owned source modules.
 
 ---
 
@@ -22,6 +23,12 @@ Simple in hindsight. Invisible beforehand.
 QS Tools reflects the business back to the user.
 
 The system exists to make hidden commercial reality visible.
+
+QS Tools uses historical accounting data to build a forward-looking commercial model.
+
+The P&L shows what happened.
+
+QS Tools uses that information to classify, reconcile, and model what the business needs to recover going forward.
 
 ---
 
@@ -47,6 +54,22 @@ If a cost appears in more than one module, the system is incorrect.
 
 If cost ownership is unclear, it must be classified before being used downstream.
 
+Cost ownership must be explicit.
+
+No duplicate ownership is allowed.
+
+Examples:
+
+- Labour cost belongs to Labour
+- Employer obligations belong to Labour
+- Vehicle running costs belong to General Overheads
+- Staff overheads belong to General Overheads
+- Asset ownership cost belongs to Assets
+- Asset finance interest belongs to Assets
+- Non-asset interest belongs to General Overheads
+- Revenue and Direct Costs belong to Revenue / COGS
+- Principal repayments belong to Cash Flow later
+
 ---
 
 ## ASSUMPTION RULE
@@ -63,6 +86,18 @@ Where an assumption remains, it must be:
 
 Hidden assumptions are not allowed.
 
+The system must not silently infer:
+
+- no active assets
+- clean P&L classification
+- valid recovery strategy
+- asset finance treatment
+- cost ownership
+- productive capacity
+- cash-flow pressure
+
+If a treatment decision is required, the user must resolve it or the system must clearly mark it as unresolved.
+
 ---
 
 ## NO MAGIC NUMBER RULE
@@ -73,11 +108,61 @@ A recovery number must come from:
 
 - actual cost burden
 - productive capacity
+- margin / recovery pool
+- stated target
 - recovery strategy
 - rate model
 - real-world quote benchmark
 
 If the number cannot be explained, it is not valid.
+
+Required Recovery Rate must be traceable to:
+
+total_cost_burden / total_productive_output
+
+The denominator must be Labour’s final productive output after entitlement and productivity logic has already been applied.
+
+---
+
+## FORWARD-LOOKING MODEL RULE
+
+QS Tools is not only a historical reporting layer.
+
+It is a commercial decision system.
+
+Historical P&L values are used as evidence and classification context.
+
+Forward-looking specialised module outputs are used as the decision basis where they are more accurate than historical accounting values.
+
+Examples:
+
+- Assets calculates forward-looking asset finance interest
+- Labour calculates current productive output
+- General Overheads produces current clean overhead burden
+- Cost Summary uses current / forward operating cost
+- Business Modelling starts from current reality and tests future changes
+
+The system must not blindly price from historical P&L values when a specialised module owns a clearer forward-looking cost.
+
+---
+
+## PAST VS FUTURE RULE
+
+Past data is input evidence.
+
+Future-facing cost is the decision basis.
+
+The system must distinguish:
+
+- historical accounting data
+- current operating cost
+- forward-looking recovery requirement
+- scenario model
+- cash-flow pressure
+
+Do not use past accounting values as final decision numbers when the current business structure has changed.
+
+Do not reconstruct the past merely to force the future model to match the P&L.
 
 ---
 
@@ -87,19 +172,19 @@ Each module must answer one clear question.
 
 P&L:
 
-What does the business financial reality currently show?
+What does the business financial reality currently show, and how should it be classified?
 
 General Overheads:
 
-Which shared and unclear costs belong to business overhead?
+Which shared, unclear, staff-related, vehicle-running, and non-asset interest costs belong to business overhead?
 
 Labour:
 
-What does labour truly cost and how much productive time exists?
+What does labour truly cost, and how much productive time exists?
 
 Assets:
 
-What does asset ownership cost?
+What does asset ownership cost, including current / forward-looking asset finance interest?
 
 Module Reconciliation:
 
@@ -111,27 +196,219 @@ Can the downstream model be trusted?
 
 Cost Summary:
 
-What does the business cost?
+What does the business cost to operate going forward?
 
-Recovery Summary:
+Revenue / COGS:
 
-How is the cost recovered?
+What did the business sell, and what direct costs were required to create those sales?
 
-Rate Models:
+Business Summary:
 
-What rates are required?
+What is the current business position when margin pool is compared with operating cost burden?
+
+Business Modelling:
+
+What changes if the user adjusts controlled scenario levers from a locked baseline?
+
+Quote Engine:
+
+How should the trusted model be applied to real quotes later?
+
+Cash Flow:
+
+What principal and finance payment pressure affects liquidity later?
 
 Production Capacity:
 
-Can the required output be delivered?
+Can the priced work be delivered later?
 
-Recovery Outcome:
+---
 
-Is the recovery model commercially viable?
+## COST SUMMARY PRINCIPLE
 
-Quote Benchmark:
+Cost Summary is the forward-looking operating cost layer.
 
-Does the model align with real quotes?
+It must answer:
+
+What does this business cost to operate per productive hour?
+
+Cost Summary must include:
+
+- Labour cost
+- Asset ownership cost
+- Asset finance interest from Assets
+- General Overheads
+
+Cost Summary must exclude:
+
+- Revenue
+- COGS / Direct Costs
+- Margin Pool
+- Gross Margin
+- Target Profit
+- Quote Margin
+- Principal repayments
+- Cash-flow pressure
+- Scenario outputs
+
+Cost Summary must not rebuild upstream maths.
+
+Cost Summary must not consume raw P&L lines directly.
+
+Cost Summary must not use P&L interest as the source of truth for asset finance interest.
+
+---
+
+## REVENUE / COGS PRINCIPLE
+
+Revenue / COGS owns the trading side of the model.
+
+It must answer:
+
+What did the business sell, what did it directly spend to create those sales, and what margin pool remains?
+
+Core formula:
+
+Revenue
+- Direct Costs
+= Margin Pool
+
+Revenue / COGS must not calculate Cost Summary.
+
+Revenue / COGS must not define pricing.
+
+Revenue / COGS must not use optional micro / activity classifications in v3.6 core calculations unless a later locked brief promotes them.
+
+---
+
+## BUSINESS SUMMARY PRINCIPLE
+
+Business Summary is the mirror.
+
+It must show what the business currently is.
+
+It combines:
+
+Margin Pool from Revenue / COGS
+
+with:
+
+Total Cost Burden from Cost Summary
+
+to show:
+
+Net Position
+
+It must also show operational reality:
+
+- Required Recovery Rate
+- Current Margin / Recovery per Productive Hour where available
+- $/hr gap
+
+Business Summary must not suggest fixes.
+
+Business Summary must not model scenarios.
+
+Business Summary must not mutate source modules.
+
+---
+
+## BUSINESS MODELLING PRINCIPLE
+
+Business Modelling is the control layer.
+
+It starts from the current business mirror.
+
+It must create:
+
+- locked baseline snapshot
+- editable scenario copy
+- live delta against baseline
+
+Baseline = reality.
+
+Scenario = control.
+
+The baseline must not be overwritten automatically.
+
+Minimum recoverable rate is a reference line, not a scenario.
+
+Business Modelling must not mutate P&L, Labour, Assets, General Overheads, Cost Summary, Revenue / COGS, or Business Summary.
+
+---
+
+## CASH FLOW PRINCIPLE
+
+Cash Flow is separate from Cost Summary.
+
+Principal repayments are real cash pressure.
+
+Principal repayments are not operating cost.
+
+Principal repayments must not feed:
+
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+- required_recovery_rate
+- Cost Summary
+
+Interest belongs in cost.
+
+Principal belongs in Cash Flow.
+
+Cash Flow later should show liquidity pressure, finance payments, and principal repayment burden without corrupting operating cost logic.
+
+---
+
+## ASSET FINANCE PRINCIPLE
+
+Assets is the source of truth for asset finance interest.
+
+P&L interest may be historical accounting context.
+
+P&L interest must not override asset finance interest calculated by Assets.
+
+If P&L interest includes asset finance, the system must not treat the P&L value as the asset finance authority.
+
+Asset finance interest must be current / forward-looking.
+
+The purpose is to estimate the asset finance interest the business needs to recover going forward, not to reconstruct the exact historical interest charged in the previous P&L period.
+
+Any mismatch between historical P&L interest and forward-looking asset interest is informational only.
+
+---
+
+## MACRO / MICRO CLASSIFICATION PRINCIPLE
+
+Macro classification drives the v3.6 core engine.
+
+Macro classification includes:
+
+- income
+- cogs
+- labour
+- assets
+- general_overheads
+- excluded
+- unassigned
+- review_required where applicable
+
+Micro / activity classification may be captured for future insight.
+
+Micro classification is optional in v3.6.
+
+Micro classification must not block readiness.
+
+Micro classification must not drive Cost Summary.
+
+Micro classification must not drive Revenue / COGS unless a later locked brief explicitly promotes it.
+
+Rule:
+
+Macro = active and required.
+
+Micro = optional and stored for later.
 
 ---
 
@@ -143,6 +420,10 @@ Downstream modules must not rebuild upstream maths.
 
 If an upstream module is incomplete, downstream outputs may display for preview only but must not be treated as trusted.
 
+If model_ready = false, downstream values may be shown only as untrusted / preview values.
+
+A downstream module must not silently turn an upstream warning into a trusted output.
+
 ---
 
 ## USER CLARITY RULE
@@ -151,9 +432,12 @@ The user must be able to understand:
 
 - where the number came from
 - what module owns it
-- whether it is actual, assumed, diagnostic, or calculated
+- whether it is actual, assumed, diagnostic, calculated, or scenario-based
+- whether it is historical or forward-looking
 - whether it is trusted
 - what needs fixing if it is not trusted
+
+The user must not need to inspect code to understand the business logic.
 
 ---
 
@@ -169,6 +453,14 @@ The system must distinguish between:
 
 A diagnostic comparison must not replace a source-of-truth module output.
 
+P&L benchmark variance is evidence.
+
+It is not the calculation source for Cost Summary.
+
+Historical P&L asset interest vs modelled asset interest is an explanatory bridge only.
+
+It must not replace Assets output.
+
 ---
 
 ## COMMERCIAL REALITY RULE
@@ -178,6 +470,50 @@ QS Tools must reflect the business as it is, not as the user hopes it is.
 If the business cannot recover its cost burden through available productive capacity, the system must show that clearly.
 
 If a quote appears profitable but does not recover the required cost burden, the system must show that clearly.
+
+If gross margin exists but internal labour, overheads, asset ownership, or target profit are under-recovered, the system must show that clearly.
+
+---
+
+## LABOUR RECOVERY RULE
+
+QS Tools must expose labour recovery as early as possible.
+
+The system must distinguish:
+
+- internal labour recovery
+- subcontract labour cost
+- external/direct costs
+- general overhead recovery
+- asset ownership recovery
+- target profit
+
+The system must not assume:
+
+Revenue - COGS = Labour content
+
+That hides the real recovery problem.
+
+Internal labour recovery must be compared against Labour’s required recovery burden where relevant.
+
+---
+
+## QUOTE / MODEL RECOVERY RULE
+
+QS Tools must not treat gross margin as proof of profit.
+
+A quote or model must generate enough margin / recovery pool to recover:
+
+- internal labour
+- general overheads
+- asset ownership
+- target profit
+
+If the margin / recovery pool is insufficient, the system must make the shortfall visible.
+
+This does not necessarily mean the job is immediately cash-negative.
+
+It means the quote or model fails the business recovery model.
 
 ---
 
@@ -191,10 +527,37 @@ QS Tools must not:
 - treat benchmarks as source-of-truth totals
 - rebuild upstream maths downstream
 - use raw P&L lines directly in Cost Summary
+- use P&L interest as the authority for asset finance interest
+- include principal repayments in Cost Summary
+- mix cash-flow pressure into operating cost
 - use display names as join keys
 - silently ignore readiness blockers
 - present untrusted outputs as final
+- treat gross margin as proof of profitability
 - reintroduce removed modules without a locked source brief
+- run Codex against unclear behaviour
+
+---
+
+## BUILD DISCIPLINE RULE
+
+Every build must follow this sequence:
+
+1. first-principles rule
+2. source brief update
+3. narrow implementation task
+4. build passes
+5. visual / workflow check
+6. commit
+7. move to the next small piece
+
+Do not make broad changes when a narrow change is enough.
+
+Do not hide a conceptual problem with code.
+
+Do not allow convenience to override commercial correctness.
+
+If the rule is not written, update the brief before coding.
 
 ---
 
@@ -204,6 +567,23 @@ QS Tools v3.6 is a first-principles commercial decision system.
 
 It does not guess what the business should charge.
 
-It shows what the business costs, how those costs are recovered, whether that recovery is operationally possible, and whether real quotes align with the model.
+It shows:
 
-Every number must be traceable, every assumption must be visible, and every cost must belong to exactly one module.
+- what the financial data says
+- which module owns each cost
+- what the business costs to operate going forward
+- what revenue and direct costs produced as a margin pool
+- whether that margin pool covers the operating burden
+- what changes under controlled modelling
+- whether future quotes align with the model
+- what cash-flow pressure exists later without corrupting operating cost logic
+
+Every number must be traceable.
+
+Every assumption must be visible.
+
+Every cost must belong to exactly one module.
+
+Historical data is evidence.
+
+Forward-looking commercial cost is the decision basis.

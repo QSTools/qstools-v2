@@ -1,6 +1,6 @@
 # QS Tools — Assets Module Brief (v3.6 — LOCKED)
 
-STATUS: ACTIVE SOURCE BRIEF  
+STATUS: ACTIVE SOURCE BRIEF
 VERSION: v3.6
 
 ---
@@ -17,18 +17,18 @@ It does not calculate running costs.
 
 ## SYSTEM POSITION
 
-P&L  
-↓  
-General Overheads  
-↓  
-Labour  
-↓  
-Assets  
-↓  
-Module Reconciliation  
-↓  
-Model Readiness  
-↓  
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
 Cost Summary
 
 ---
@@ -38,10 +38,17 @@ Cost Summary
 Assets owns:
 
 - asset finance cost
+- asset finance interest
 - lease cost
 - depreciation cost
 - ownership cost
 - total_asset_cost_annual
+
+Assets is the source of truth for asset-specific ownership cost.
+
+Assets is also the source of truth for asset finance interest.
+
+The P&L may contain historical interest values, but the P&L is not the source of truth for asset finance interest.
 
 ---
 
@@ -50,6 +57,7 @@ Assets owns:
 Assets may include:
 
 - finance cost
+- asset finance interest
 - lease cost
 - depreciation cost
 - ownership cost
@@ -79,10 +87,13 @@ Assets must not include:
 - pricing
 - overhead allocation
 - hired equipment / delivery cost
+- principal repayments as operating cost
 
 Vehicle running costs belong in General Overheads.
 
 Hired equipment / delivery cost belongs in COGS or delivery cost, not Assets.
+
+Principal repayments belong in the future Cash Flow layer, not Cost Summary.
 
 ---
 
@@ -91,6 +102,7 @@ Hired equipment / delivery cost belongs in COGS or delivery cost, not Assets.
 Assets may output:
 
 - total_asset_cost_annual
+- total_asset_interest_annual
 - assets_ready
 - no_active_assets_confirmed
 
@@ -100,6 +112,9 @@ Per asset:
 - asset_name
 - asset_type
 - finance_cost_annual
+- asset_interest_annual
+- estimated_remaining_finance_balance
+- finance_progress_percent
 - lease_cost_annual
 - depreciation_cost_annual
 - ownership_cost_annual
@@ -120,6 +135,116 @@ If still present in code during migration, it must be treated as legacy only and
 
 ---
 
+## ASSET FINANCE INTEREST RULE — FORWARD-LOOKING
+
+Assets is the source of truth for asset finance interest.
+
+Asset interest must be calculated from the Assets module, not from the P&L.
+
+The P&L may contain historical or accountant-journaled interest values, but those values must not be treated as the source of truth for asset finance.
+
+Assets must calculate asset interest using the current asset finance position.
+
+The purpose is to estimate the asset finance interest the business needs to recover going forward, not to reconstruct the exact historical interest charged in the previous P&L period.
+
+---
+
+## ASSET INTEREST CALCULATION BASIS
+
+Each financed asset should support enough finance inputs to estimate current annual asset interest:
+
+- purchase_date
+- finance_term_years
+- interest_rate
+- financed_amount or loan_amount
+
+For each active financed asset:
+
+1. Calculate elapsed time since purchase_date.
+2. Calculate loan progress through the finance term.
+3. Estimate remaining balance.
+4. Calculate current annual interest from the estimated remaining balance.
+
+Simple accepted model:
+
+remaining_term_percent =
+1 - finance_progress_percent
+
+estimated_remaining_finance_balance =
+loan_amount × remaining_term_percent
+
+asset_interest_annual =
+estimated_remaining_finance_balance × interest_rate
+
+This is an approximation only.
+
+The system does not need to build a full amortisation schedule in v3.6.
+
+---
+
+## FORWARD-LOOKING COST RULE
+
+Cost Summary is forward-looking.
+
+Assets must therefore output the current / forward annual asset interest estimate, not the historical P&L interest amount.
+
+The system must not calculate asset interest by looking backwards over the previous 12 months unless a future locked Cash Flow or finance schedule brief explicitly requires that.
+
+Cost Summary should use the asset cost expected to apply going forward.
+
+---
+
+## P&L INTEREST RELATIONSHIP
+
+If the P&L interest category includes asset finance, the P&L value is treated as a historical reported value only.
+
+The Assets module still remains the authority for asset finance interest.
+
+The system must not force Assets to reconcile exactly to the P&L interest value.
+
+The correct interpretation is:
+
+- asset_interest_annual comes from Assets
+- non_asset_interest / other_interest may remain in General Overheads
+- any mismatch between P&L reported interest and modelled asset interest is informational only
+
+Do not silently blend historical P&L asset interest with forward-looking asset interest.
+
+Do not rebuild past asset interest merely to reconcile the P&L.
+
+---
+
+## CASH FLOW SEPARATION RULE
+
+Principal repayments are real cash pressure but are not operating cost.
+
+Principal must not feed total_asset_cost_annual.
+
+Principal must not feed Cost Summary.
+
+Assets may calculate or expose principal repayment information later for a Cash Flow layer, but it must remain separate from Cost Summary.
+
+Interest belongs in asset cost.
+
+Principal belongs in Cash Flow.
+
+---
+
+## OPTIONAL CASH FLOW OUTPUTS — FUTURE ONLY
+
+Assets may later expose separate cash-flow support outputs such as:
+
+- asset_principal_repayment_annual
+- asset_principal_repayment_monthly
+- asset_total_finance_payment_annual
+- asset_total_finance_payment_monthly
+
+These outputs must not feed total_asset_cost_annual unless a later locked brief explicitly changes the model.
+
+They are for Cash Flow visibility only.
+
+---
+
 ## READINESS RULE
 
 assets_ready = true when one of the following is true:
@@ -131,151 +256,4 @@ AND ownership-only rules are followed
 AND running_cost_annual does not feed total_asset_cost_annual
 AND no vehicle running costs are included
 AND no labour costs are included
-```
-
-OR:
-
-```text
-2. no_active_assets_confirmed = true
-AND total_asset_cost_annual = 0
-AND no legacy running costs are feeding Assets
-```
-
-If no active assets exist and no_active_assets_confirmed is not true, Assets must remain not ready.
-
----
-
-## NO ACTIVE ASSETS CONFIRMATION RULE
-
-Assets are not automatically ready just because the P&L asset benchmark is missing or zero.
-
-A missing P&L asset benchmark must not be treated as proof that the business has no assets.
-
-Assets may be considered ready only when one of the following is true:
-
-```text
-1. Active assets exist and total_asset_cost_annual is calculated using ownership-only costs.
-
-OR
-
-2. The user has explicitly confirmed that no active assets are required for the current business model.
-```
-
-The confirmation must be stored as an explicit state/contract value:
-
-```text
-no_active_assets_confirmed
-```
-
-Do not infer this confirmation from:
-
-```text
-missing P&L asset benchmark
-zero P&L asset benchmark
-zero asset total
-empty asset list
-incomplete setup data
-```
-
-If there are no active assets and no explicit confirmation, Assets must remain not ready.
-
----
-
-## ASSET READINESS LOGIC
-
-assets_ready = true only when:
-
-```text
-active assets exist
-AND total_asset_cost_annual exists
-AND ownership-only rules are followed
-AND asset totals are reconciled or accepted under the readiness rules
-```
-
-OR:
-
-```text
-no_active_assets_confirmed = true
-AND total_asset_cost_annual = 0
-AND no legacy running costs are feeding Assets
-```
-
-If no_active_assets_confirmed = true, Assets may pass readiness with:
-
-```text
-total_asset_cost_annual = 0
-```
-
-but Module Reconciliation should still show an informational check stating that the user has confirmed no active assets are required.
-
----
-
-## IMPORTANT FIRST-PRINCIPLES RULE
-
-Do not assume no assets.
-
-The system must distinguish between:
-
-```text
-assets missing because setup is incomplete
-```
-
-and:
-
-```text
-assets intentionally confirmed as not required
-```
-
-Missing data is not confirmation.
-
-Explicit confirmation is required.
-
----
-
-## COST SUMMARY HANDOFF
-
-Cost Summary must consume:
-
-- total_asset_cost_annual
-
-Cost Summary must not consume:
-
-- running_cost_annual
-- fuel
-- maintenance
-- repair
-- vehicle running categories
-- active asset-labour links
-
-If no_active_assets_confirmed = true, Cost Summary may consume:
-
-```text
-total_asset_cost_annual = 0
-```
-
-but this must come from the Assets module contract, not from Cost Summary assuming no assets exist.
-
----
-
-## NOT ALLOWED
-
-Assets must not:
-
-- assign shared costs
-- calculate pricing
-- calculate recovery strategy
-- calculate productive capacity
-- consume Labour totals
-- consume General Overheads totals
-- expose running cost as a downstream Cost Summary value
-- assume no assets are required because asset data is missing
-- assume no assets are required because the P&L asset benchmark is zero
-- assume no assets are required because the P&L asset benchmark is missing
-
----
-
-## FINAL DEFINITION
-
-Assets v3.6 is the ownership-only asset cost engine. It produces total_asset_cost_annual and excludes vehicle/fleet running costs, which belong in General Overheads.
-
-Assets may only pass readiness with no active assets when the user explicitly confirms that no active assets are required. Missing data is not confirmation.
+AND asset finance interest is calculated from Assets when finance applies

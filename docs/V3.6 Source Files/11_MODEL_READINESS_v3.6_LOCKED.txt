@@ -2,12 +2,23 @@
 
 STATUS: TRUST GATE
 VERSION: v3.6
+UPDATED FOR: FORWARD-LOOKING COST SUMMARY + ASSET INTEREST RULES
 
 ---
 
 ## PURPOSE
 
-Model Readiness determines whether the QS Tools model is complete and reconciled enough to trust downstream cost, recovery, pricing, capacity, outcome, and quote validation outputs.
+Model Readiness determines whether the QS Tools model is complete, reconciled, and clean enough to trust downstream outputs.
+
+Model Readiness gates:
+
+- Cost Summary
+- Revenue / COGS
+- Business Summary
+- Business Modelling
+- Quote Engine later
+- Cash Flow later
+- Production Capacity later
 
 ---
 
@@ -18,6 +29,12 @@ If the model is not ready, downstream pages are not trusted.
 Reconciliation is the evidence layer.
 
 Model Readiness is the verdict layer.
+
+Model Readiness does not create cost totals.
+
+Model Readiness does not recalculate modules.
+
+Model Readiness decides whether downstream outputs can be treated as trusted.
 
 ---
 
@@ -36,6 +53,16 @@ Module Reconciliation
 Model Readiness
 ↓
 Cost Summary
+↓
+Revenue / COGS
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine later
+↓
+Cash Flow later
 
 ---
 
@@ -60,8 +87,14 @@ Cost Summary
 
 ## REMOVED INPUTS
 
+Model Readiness must not consume:
+
 - employee_overheads_ready
 - staff_overheads_ready
+
+Employee Overheads is removed.
+
+Staff Overheads is a General Overheads category only.
 
 ---
 
@@ -116,6 +149,8 @@ Use when:
 
 Downstream outputs may be used, but warnings must remain visible.
 
+Warnings do not block Cost Summary if source modules are structurally valid.
+
 ---
 
 ### blocked
@@ -129,18 +164,171 @@ Downstream outputs may display but must not be treated as final.
 
 ---
 
-## BEHAVIOUR
+## MODULE READINESS REQUIREMENTS
+
+Model Readiness requires each source module to pass its own readiness contract.
+
+### P&L readiness must confirm:
+
+- P&L data exists
+- required macro lines are classified
+- unassigned_balance = 0
+- no active employee_overheads category remains
+- benchmark totals are available where required
+- unresolved review-required lines are handled according to P&L rules
+
+Optional micro / activity classifications must not block P&L readiness in v3.6.
+
+---
+
+### General Overheads readiness must confirm:
+
+- total_general_overheads exists
+- category totals exist
+- no employee_overheads category remains
+- staff overheads are category-only
+- vehicle running costs are included where applicable
+- asset ownership costs are excluded
+- asset finance interest is not duplicated
+- employer ACC levy is excluded
+- benchmark variance is visible where applicable
+- no banned downstream overhead variables are exposed
+
+General Overheads readiness must not require exact reconciliation between historical P&L interest and forward-looking asset interest.
+
+---
+
+### Labour readiness must confirm:
+
+- total_labour_cost_annual exists
+- total_productive_output exists
+- total_productive_output is Labour’s final productive output
+- productive output has already had entitlement and productivity logic applied
+- Labour aggregates all active saved Labour profiles
+- inactive Labour profiles are excluded
+- employer ACC levy is included in Labour, not General Overheads
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
+---
+
+### Assets readiness must confirm:
+
+- total_asset_cost_annual exists
+- ownership-only asset rules are followed
+- running_cost_annual does not feed total_asset_cost_annual
+- vehicle running costs are excluded
+- labour costs are excluded
+- asset finance interest is owned by Assets
+- asset finance interest is forward-looking where finance applies
+- paid-off or term-ended finance does not create current finance cost
+- principal repayments do not feed total_asset_cost_annual
+- principal repayments do not feed Cost Summary
+- no_active_assets_confirmed is explicit if no active assets exist
+
+Assets readiness must not depend on P&L asset benchmark matching.
+
+P&L benchmark variance is diagnostic only.
+
+---
+
+## ASSET INTEREST READINESS RULE
+
+Assets is the source of truth for asset finance interest.
+
+If financed assets exist and finance is active, Assets should expose asset finance interest through the Assets contract where available.
+
+Model Readiness must not require P&L interest to match Assets interest.
+
+A mismatch between historical P&L interest and forward-looking asset interest may create a warning, but it must not block readiness if:
+
+- Assets is valid
+- General Overheads is valid
+- Module Reconciliation is valid
+- no unresolved interest treatment blocker exists
+
+The mismatch is informational.
+
+It must not alter source-of-truth outputs.
+
+---
+
+## CASH FLOW SEPARATION READINESS RULE
+
+Principal repayments are cash-flow pressure, not operating cost.
+
+Model Readiness must treat principal as excluded from Cost Summary.
+
+Principal must not block Cost Summary readiness unless it is incorrectly feeding:
+
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+- required_recovery_rate
+
+Future Cash Flow may consume principal outputs later.
+
+That is outside Cost Summary readiness.
+
+---
+
+## RECONCILIATION RELATIONSHIP
+
+Module Reconciliation owns evidence checks.
+
+Model Readiness consumes the reconciliation verdict.
+
+Business benchmark variance may create warning status.
+
+Business benchmark variance must not block readiness when all source modules are valid and there are no blocking checks.
+
+Historical P&L values are benchmark evidence.
+
+They are not source-of-truth calculation inputs for Cost Summary.
+
+---
+
+## READINESS VS VARIANCE RULE
+
+Readiness means:
+
+- source modules are structurally complete
+- source module outputs are valid
+- blocking checks are clear
+
+Variance means:
+
+- benchmark comparison needs review
+
+Readiness and variance must not be treated as the same thing.
+
+A model may be ready with warnings if benchmark variance exists but all source modules are valid.
+
+---
+
+## DOWNSTREAM BEHAVIOUR
 
 If model_ready = false:
 
 - Cost Summary totals may display
 - Cost Summary must show not trusted state
-- downstream modelling is marked not trusted
-- Recovery Summary is not final
-- Rate Models are not final
-- Production Capacity is not final
-- Recovery Outcome is not final
-- Quote Benchmark is not final
+- Revenue / COGS may display only if its own inputs exist, but combined downstream outputs are not trusted
+- Business Summary is not final
+- Business Modelling is not final
+- Quote Engine later is not final
+- Cash Flow later is not final
+- Production Capacity later is not final
+
+If model_ready = true and model_readiness_status = warning:
+
+- Cost Summary may be used
+- downstream outputs may be used with visible warnings
+- warnings must remain visible
+
+If model_ready = true and model_readiness_status = ready:
+
+- Cost Summary outputs are trusted
+- downstream modules may consume trusted upstream contracts
 
 ---
 
@@ -166,18 +354,53 @@ lib/calculations/modelReadinessCalculations.js
 
 When ready:
 
-Model Ready
+Model Ready  
 All setup modules are complete and reconciled.
 
 When warning:
 
-Model Ready With Warnings
+Model Ready With Warnings  
 The model can be used, but review warnings before relying on downstream decisions.
 
 When blocked:
 
-Model Not Ready
+Model Not Ready  
 The following modules must be fixed before downstream outputs are trusted.
+
+---
+
+## WARNING EXAMPLES
+
+Warnings may include:
+
+- P&L benchmark variance exists
+- P&L reported interest does not align with modelled asset interest
+- P&L asset benchmark differs from Assets total
+- optional micro classifications incomplete
+- non-blocking reconciliation variance exists
+
+Warnings must explain what the user should review.
+
+Warnings must not silently alter outputs.
+
+---
+
+## BLOCKING EXAMPLES
+
+Blocking checks may include:
+
+- P&L not ready
+- General Overheads not ready
+- Labour not ready
+- Assets not ready
+- Module Reconciliation not ready
+- unassigned required P&L lines exist
+- unresolved review-required items exist
+- no active assets exist and no_active_assets_confirmed is false
+- Labour productive output missing or invalid
+- asset running costs feeding Assets
+- principal repayments feeding Cost Summary
+- asset finance interest duplicated in General Overheads and Assets
 
 ---
 
@@ -187,15 +410,28 @@ Model Readiness must not:
 
 - recalculate Labour
 - recalculate Assets
+- recalculate asset interest
 - recalculate General Overheads
 - reclassify P&L
 - create cost totals
 - create recovery logic
 - create pricing logic
+- create cash-flow logic
 - create operational capacity logic
+- force P&L interest to reconcile to Assets interest
+- alter source module outputs to remove variance
+- treat diagnostic variance as source-of-truth failure when modules are valid
 
 ---
 
 ## FINAL DEFINITION
 
-Model Readiness v3.6 is the trust gate for QS Tools. It consumes module readiness flags and Module Reconciliation results, then decides whether Cost Summary and downstream commercial outputs can be trusted.
+Model Readiness v3.6 is the trust gate for QS Tools.
+
+It consumes module readiness flags and Module Reconciliation results, then decides whether Cost Summary and downstream commercial outputs can be trusted.
+
+It does not create or alter cost totals.
+
+It does not reconcile by changing module outputs.
+
+It ensures the forward-looking Cost Summary model is trusted only when P&L, General Overheads, Labour, Assets, and Module Reconciliation are structurally ready.
