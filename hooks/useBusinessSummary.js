@@ -39,8 +39,17 @@ export default function useBusinessSummary() {
       required_recovery_rate:
         cost_summary_output_contract.required_recovery_rate ?? 0,
     });
+    const model_trust_state =
+      cost_summary_output_contract.model_readiness_status ??
+      (cost_summary_output_contract.model_ready === true ? "ready" : "blocked");
 
-    const status = buildBusinessSummaryStatus(calculations);
+    const status = buildBusinessSummaryStatus({
+      ...calculations,
+      model_trust_state,
+      revenue_cogs_ready:
+        revenue_cogs_output_contract.revenue_cogs_ready === true,
+      cost_summary_ready: cost_summary_output_contract.model_ready === true,
+    });
     const card = buildBusinessSummaryCard(calculations);
 
     const output_contract = {
@@ -60,6 +69,10 @@ export default function useBusinessSummary() {
       hourly_gap: calculations.hourly_gap,
       business_summary_status: status.business_summary_status,
       business_summary_warnings: status.business_summary_warnings,
+      model_trust_state,
+      revenue_cogs_ready:
+        revenue_cogs_output_contract.revenue_cogs_ready === true,
+      cost_summary_ready: cost_summary_output_contract.model_ready === true,
     };
 
     return {

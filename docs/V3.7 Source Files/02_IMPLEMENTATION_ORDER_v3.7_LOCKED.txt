@@ -1,0 +1,644 @@
+# QS Tools — Recommended Implementation Order
+
+## v3.7 — QUOTE ENGINE AND FEEDBACK LOOP BUILD ORDER UPDATED
+
+**STATUS:** ACTIVE BUILD ORDER
+**VERSION:** v3.7
+**REPLACES:** Recommended Implementation Order v3.6
+**UPDATED FOR:** Quote Engine baseline build, accepted quote snapshots, monthly actuals, and macro feedback loop
+
+---
+
+## PURPOSE
+
+This brief defines the active build sequence for QS Tools v3.7.
+
+It protects the system from building downstream pages before upstream contracts, source ownership, readiness gates, and baseline commercial outputs are stable.
+
+The build order must follow the first-principles rule:
+
+**Brief first. Narrow build second. Verify. Commit. Move on.**
+
+Do not run broad Codex tasks against unclear behaviour.
+
+---
+
+## PHASE 0 — SOURCE PACK ALIGNMENT
+
+1. Update First Principles to v3.7.
+2. Update Product Standard to v3.7.
+3. Update Active System Brief to v3.7.
+4. Update Implementation Order to v3.7.
+5. Update Variable Contract to v3.7.
+6. Confirm all module briefs align with the v3.7 chain.
+7. Confirm Quote Engine and Feedback Loop boundaries are written before coding.
+8. Confirm **18_COST_SETUP_READINESS_MILESTONE_v3.7_LOCKED.txt** exists in the source pack before treating 01 / 02 / 03 as final-final.
+
+Do not code broad features during source pack alignment.
+
+---
+
+## PHASE 1 — CLEAN SOURCE BASELINE
+
+1. Remove Employee Overheads module references.
+2. Remove Staff Overheads as a standalone module reference.
+3. Update P&L categories.
+4. Update General Overheads ownership.
+5. Update Labour ACC / employer-cost contract.
+6. Update Assets ownership-only contract.
+7. Update Cost Summary contract.
+8. Add / preserve Module Reconciliation.
+9. Add / preserve Model Readiness.
+10. Confirm all source briefs are v3.7 aligned.
+
+---
+
+## PHASE 2 — CORE INPUT + CLASSIFICATION MODULES
+
+1. P&L
+2. Revenue / COGS
+3. General Overheads
+4. Labour
+5. Assets
+
+These modules define the source inputs and trading baseline.
+
+They must not be bypassed by downstream modules.
+
+P&L provides classification and future monthly actuals preparation.
+
+Revenue / COGS produces Margin Pool.
+
+General Overheads, Labour, and Assets provide operating cost source totals.
+
+---
+
+## PHASE 3 — MODEL TRUST
+
+1. Module Reconciliation
+2. Model Readiness
+3. Cost Summary
+
+Module Reconciliation is the evidence layer.
+
+Model Readiness is the trust gate.
+
+Cost Summary is the first trusted downstream operating cost summary.
+
+Do not treat Cost Summary as final unless Model Readiness exists and upstream module outputs are stable.
+
+---
+
+## PHASE 4 — ASSETS / COST SUMMARY ALIGNMENT
+
+Before finalising Cost Summary, align Assets to the locked v3.7 rules:
+
+1. Confirm Assets remains ownership-only.
+2. Confirm running costs are excluded from Assets.
+3. Confirm vehicle / fleet running costs belong to General Overheads.
+4. Confirm asset finance interest is calculated by Assets.
+5. Confirm asset finance interest is forward-looking.
+6. Confirm asset finance interest does not rely on historical P&L interest.
+7. Confirm paid-off / term-ended finance produces no current finance cost.
+8. Confirm principal repayments do not feed Assets total_asset_cost_annual.
+9. Confirm principal repayments do not feed Cost Summary.
+10. Confirm principal belongs to Cash Flow later.
+11. Confirm Assets exposes clean outputs for Cost Summary.
+
+Required Assets outputs:
+
+* total_asset_cost_annual
+* total_asset_interest_annual where available for supporting display
+* assets_ready
+* no_active_assets_confirmed
+
+---
+
+## PHASE 5 — COST SUMMARY FINALISATION
+
+Build / finalise Cost Summary after Assets, Labour, General Overheads, Module Reconciliation, and Model Readiness are aligned.
+
+Cost Summary must consume:
+
+* total_labour_cost_annual from Labour
+* total_productive_output from Labour
+* total_asset_cost_annual from Assets
+* total_general_overheads from General Overheads
+* model_ready from Model Readiness
+* model_readiness_status from Model Readiness
+
+Cost Summary must calculate:
+
+* total_people_cost_annual
+* total_business_overheads
+* total_business_cost_annual
+* total_cost_burden
+* required_revenue
+* required_recovery_rate
+
+Cost Summary must clearly explain:
+
+**Required Recovery Rate is not a labour charge-out rate.**
+
+**It is the business break-even pressure per productive hour.**
+
+**All staff cost must be recovered. Only productive staff hours can recover it.**
+
+Cost Summary must not:
+
+* rebuild Labour maths
+* rebuild Asset maths
+* rebuild asset interest
+* rebuild General Overheads maths
+* consume raw P&L lines
+* use P&L benchmark values as calculation inputs
+* use P&L interest as asset finance authority
+* include principal repayments
+* consume Revenue / COGS
+* consume Business Summary
+* consume Business Modelling
+* consume Quote Engine
+* consume monthly actuals
+* define pricing
+* define cash flow
+* perform feedback-loop comparison
+
+---
+
+## PHASE 6 — REVENUE / COGS
+
+Build / patch Revenue / COGS after P&L classification is stable and Cost Summary trust flow is clear.
+
+Revenue / COGS consumes classified P&L income and direct cost / COGS outputs.
+
+It calculates:
+
+```text
+Revenue
+- Direct Costs
+= Margin Pool
+```
+
+Revenue / COGS must produce:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent where useful
+* revenue_cogs_ready
+* revenue_cogs_warnings
+
+Revenue / COGS must not:
+
+* consume Cost Summary to calculate Margin Pool
+* consume Labour internals
+* consume Assets internals
+* consume General Overheads internals
+* use micro / activity classification in v3.7 core calculations unless later promoted by a locked brief
+* calculate Net Position
+* define pricing
+* define recovery strategy
+* define scenarios
+* test quotes
+
+---
+
+## PHASE 7 — BUSINESS SUMMARY
+
+Build / patch Business Summary after Revenue / COGS exists and Cost Summary is trusted or warning-usable.
+
+Business Summary combines:
+
+```text
+Margin Pool from Revenue / COGS
+```
+
+with:
+
+```text
+Total Cost Burden from Cost Summary
+```
+
+It shows:
+
+* Revenue
+* Direct Costs
+* Margin Pool
+* Operating Cost Burden
+* Net Position
+* Required Recovery Rate
+* Current Margin per Productive Hour
+* Recovery Gap per Hour
+* trust state
+* explicit warnings
+
+Business Summary is the mirror layer.
+
+It shows the current state of the business.
+
+Business Summary must not:
+
+* suggest fixes
+* model scenarios
+* mutate source modules
+* calculate Cost Summary
+* calculate Revenue / COGS
+* define quote pricing
+* create repair levers
+* store accepted quote snapshots
+* define cash flow
+
+---
+
+## PHASE 8 — BUSINESS MODELLING
+
+Build / patch Business Modelling after Business Summary.
+
+Business Modelling starts from a locked baseline snapshot.
+
+Baseline = current business reality.
+
+Scenario = editable copy of baseline.
+
+The baseline must not be overwritten automatically.
+
+Business Modelling may include:
+
+* Baseline model
+* Upside / improvement scenario
+* Downside / pressure scenario
+* revenue changes
+* margin changes
+* productivity changes
+* operating cost changes
+* live delta against baseline
+* selected model for Quote Engine later
+
+Business Modelling must not:
+
+* mutate P&L
+* mutate Labour
+* mutate Assets
+* mutate General Overheads
+* mutate Cost Summary
+* mutate Revenue / COGS
+* mutate Business Summary
+* treat required_recovery_rate as a scenario
+* include principal repayments in operating cost
+* price quotes
+* store accepted quote snapshots
+* perform feedback-loop comparison
+
+---
+
+## PHASE 9 — QUOTE ENGINE BASELINE BUILD
+
+Quote Engine is now governed by:
+
+```text
+22_QUOTE_ENGINE_v3.7_LOCKED.txt
+```
+
+Quote Engine may be built after:
+
+* Cost Summary is trusted or warning-usable
+* Revenue / COGS exists
+* Business Summary exists
+* Business Modelling boundary exists
+* selected baseline / scenario trust state exists or baseline-only mode is explicitly used
+* Quote Engine brief 22 is used as the controlling source brief
+
+First build should be baseline-only.
+
+Do not block first build on full Business Modelling scenario comparison.
+
+Quote Engine applies the trusted baseline or selected scenario to real quote pricing.
+
+First build should include:
+
+* quick quote entry
+* quote price
+* material cost / sell
+* labour sell / allowed hours
+* direct cost package pool
+* true labour cost from Labour where available
+* required_recovery_rate from Cost Summary / selected model
+* quote_margin_pool
+* business_recovery_required_total
+* quote_gap
+* hourly_gap
+* max_viable_hours
+* required_price_at_allowed_hours
+* repair levers
+* original quote vs adjusted test quote
+* visible calculation build-up
+* explicit warnings
+
+Baseline quote test:
+
+```text
+quote_price_total
+- direct_cost_total
+= quote_margin_pool
+```
+
+```text
+base_labour_hours_allowed
+× required_recovery_rate
+= business_recovery_required_total
+```
+
+```text
+quote_margin_pool
+- business_recovery_required_total
+= quote_gap
+```
+
+Quote Engine must not:
+
+* rely on gross margin alone
+* confuse subcontract labour with internal productive labour
+* include principal repayments as operating cost
+* mutate Business Modelling
+* mutate Business Summary
+* mutate Cost Summary
+* mutate Revenue / COGS
+* rebuild Labour maths
+* build Production Capacity
+* build Cash Flow
+* perform monthly feedback analysis
+
+---
+
+## PHASE 10 — QUOTE VERSIONING / ACCEPTED SNAPSHOT STRUCTURE
+
+After baseline Quote Engine works, add quote status and snapshot readiness.
+
+Required concepts:
+
+* draft quote
+* issued quote
+* revised quote
+* accepted quote
+* rejected quote
+* quote version
+* accepted quote snapshot
+
+Only accepted quote versions enter the future Feedback Loop.
+
+Accepted snapshots must be immutable.
+
+Accepted snapshot represents:
+
+**What we believed when we priced the job.**
+
+Accepted quote snapshots must preserve:
+
+* quote values
+* model used
+* model trust state
+* accepted date
+* accepted period
+* quote gap
+* hourly gap
+* result status
+
+Do not build monthly actual comparison yet.
+
+---
+
+## PHASE 11 — FEEDBACK LOOP LATER
+
+Feedback Loop is governed by:
+
+```text
+23_BUSINESS_FEEDBACK_LOOP_v3.7.txt
+```
+
+Build only after:
+
+* Quote Engine stores accepted quote snapshots
+* accepted period logic exists
+* monthly actuals storage exists
+* Revenue / COGS can run actuals by period or accept period-based inputs
+* P&L monthly actuals boundary is clear
+
+Feedback Loop compares:
+
+```text
+accepted quote predictions in a month
+```
+
+against:
+
+```text
+monthly P&L actuals
+```
+
+Feedback Loop is macro-level first, not job-level first.
+
+Feedback Loop must not:
+
+* attempt perfect job-level costing in V1
+* overwrite quote predictions
+* overwrite accepted quote snapshots
+* overwrite monthly actuals
+* mutate source modules automatically
+* act like machine learning
+* invent rules
+
+---
+
+## PHASE 12 — CASH FLOW LATER
+
+Build Cash Flow after the core commercial model and Quote Engine are trusted.
+
+Cash Flow owns:
+
+* principal repayments
+* full finance payment pressure
+* liquidity pressure
+* principal + interest visibility
+* cash repayment burden
+
+Cash Flow must remain separate from Cost Summary.
+
+Principal repayments must not feed:
+
+* total_asset_cost_annual
+* total_general_overheads
+* total_cost_burden
+* required_recovery_rate
+* Cost Summary
+
+Cash Flow answers:
+
+**Can the business survive the payment pressure?**
+
+Cost Summary answers:
+
+**What does the business cost to operate per productive hour?**
+
+These must not be mixed.
+
+---
+
+## PHASE 13 — EXECUTION / PRODUCTION CAPACITY LATER
+
+Production Capacity and execution realism belong after the Quote Engine.
+
+They answer:
+
+**Can the business actually deliver the priced work?**
+
+Production Capacity must not be built before:
+
+* baseline model is trusted
+* quote logic exists
+* business modelling exists
+* quote accepted / planning data structure is clear
+
+Future execution layer may include:
+
+* available productive capacity
+* required productive capacity
+* utilisation required
+* capacity gap
+* delivery constraints
+* asset / crew pressure
+* schedule defaults from quote labour allowances later
+
+---
+
+## LOCKED NEAR-TERM FLOW
+
+P&L
+↓
+Revenue / COGS
+↓
+General Overheads / Labour / Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+↓
+Cash Flow later
+↓
+Production Capacity later
+
+---
+
+## CURRENT IMPLEMENTATION UNIT
+
+Current implementation unit:
+
+1. Finish v3.7 source brief alignment.
+2. Confirm upstream source modules still comply.
+3. Confirm Cost Summary wording / warnings / required recovery explanation.
+4. Confirm Revenue / COGS margin pool boundary.
+5. Confirm Business Summary boundary.
+6. Confirm Business Modelling boundary.
+7. Build Quote Engine baseline-only.
+8. Add quote versioning and accepted snapshot structure.
+9. Defer Feedback Loop implementation until Quote Engine snapshots and monthly actuals exist.
+
+Do not run a broad Codex task.
+
+Do not allow Codex to redesign the architecture.
+
+Do not let Codex build Feedback Loop before accepted quote snapshots exist.
+
+Do not let Codex build Cash Flow before the commercial model is trusted.
+
+---
+
+## RULES
+
+Do not build downstream pages before upstream contracts are stable.
+
+Do not reintroduce Employee Overheads.
+
+Do not reintroduce Staff Overheads as a standalone module.
+
+Do not distribute shared costs during setup.
+
+Do not use Cost Summary until Module Reconciliation and Model Readiness are clear.
+
+Do not place vehicle running costs in Assets.
+
+Do not place staff overheads in Labour.
+
+Do not place asset finance interest in General Overheads.
+
+Do not place principal repayments in Cost Summary.
+
+Do not use P&L interest as the authority for asset finance interest.
+
+Do not allow Cost Summary to rebuild upstream maths.
+
+Do not allow downstream modules to bypass Model Readiness.
+
+Do not use micro / activity classification as a core calculation driver in v3.7.
+
+Do not let Revenue / COGS calculate Net Position.
+
+Do not let Business Summary create scenarios.
+
+Do not let Business Modelling mutate source modules.
+
+Do not let Quote Engine rely on gross margin alone.
+
+Do not let Quote Engine rebuild upstream maths.
+
+Do not let accepted quote snapshots be overwritten.
+
+Do not let monthly actuals overwrite accepted quote predictions.
+
+Do not build Feedback Loop before accepted quote snapshots and monthly actuals exist.
+
+Do not build Cash Flow before the core commercial model is trusted.
+
+Do not build Production Capacity before Quote Engine.
+
+---
+
+## BUILD DISCIPLINE
+
+Every build should follow:
+
+1. Update or confirm the source brief.
+2. Define the exact files involved.
+3. Define what must not be touched.
+4. Run the narrowest possible Codex task.
+5. Review output.
+6. Run build / lint where appropriate.
+7. Commit.
+8. Move to the next small piece.
+
+If a rule is not written, update the brief before coding.
+
+---
+
+## FINAL DEFINITION
+
+The v3.7 build order makes P&L the raw classification and monthly actuals preparation layer, Revenue / COGS the Margin Pool layer, General Overheads the shared non-asset overhead engine, Labour the people cost and productive output engine, Assets the ownership and asset finance engine, Module Reconciliation the evidence layer, Model Readiness the trust gate, and Cost Summary the forward-looking operating cost summary.
+
+After Cost Summary is trusted, the build proceeds to Business Summary, Business Modelling, Quote Engine, accepted quote snapshots, Feedback Loop later, Cash Flow later, and Production Capacity later.
+
+Quote Engine is now approved as the next commercial layer only when built baseline-first from the v3.7 Quote Engine brief.
+
+The Feedback Loop remains future architecture until accepted quote snapshots and monthly actuals exist.
+
+The system must not move downstream until upstream source ownership and trust are stable.

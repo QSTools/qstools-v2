@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateLabourOutputs } from "@/lib/calculations/labourCalculations";
-import { deleteEmployeeOverheadProfilesByStaffId } from "@/lib/storage/employeeOverheadProfileStorage";
 import {
   getDefaultLabourState,
   buildLabourState,
@@ -129,13 +128,7 @@ export function useLabour() {
     const profile = findLabourProfileById(profiles, profile_id);
     if (!profile) return false;
 
-    const staff_id = profile.staff_id || profile?.data?.staff_id || "";
-
     setProfiles((previous) => deleteLabourProfileRecord(previous, profile_id));
-
-    if (staff_id) {
-      deleteEmployeeOverheadProfilesByStaffId(staff_id);
-    }
 
     if (active_profile_id === profile_id) {
       setState(getDefaultLabourState());

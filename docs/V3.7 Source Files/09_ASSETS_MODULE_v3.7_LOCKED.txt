@@ -1,0 +1,564 @@
+# QS Tools — Assets Module Brief
+
+## v3.7 — QUOTE ENGINE AND FEEDBACK LOOP BOUNDARY UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 09
+**REPLACES:** Assets Module v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR QUOTE ENGINE AND FEEDBACK LOOP BOUNDARY
+
+---
+
+## PURPOSE
+
+Assets is the ownership-only asset cost engine.
+
+It calculates the annual cost of owning or financing business assets.
+
+It does not calculate running costs.
+
+Assets answers:
+
+**What does it cost the business to own, finance, lease, or hold active assets?**
+
+It does not answer:
+
+* what vehicle running costs are
+* what Labour costs
+* what General Overheads cost
+* what Revenue / COGS produced
+* how the business should recover cost
+* what quote price should be used
+* whether a quote should be accepted
+* whether accepted quotes matched monthly actuals
+* what cash-flow pressure exists
+
+Those belong to other layers.
+
+---
+
+## PRODUCT ROLE
+
+Assets is the ownership-only asset cost source of truth.
+
+It is not a running-cost module.
+
+It is not a pricing module.
+
+It is not Quote Engine.
+
+It is not Cash Flow.
+
+It produces clean asset ownership cost outputs for Cost Summary.
+
+Core idea:
+
+**Assets owns asset ownership cost. General Overheads owns running cost. Cash Flow owns principal pressure later.**
+
+---
+
+## CLEAN ROLE SPLIT
+
+Assets = ownership-only asset cost
+General Overheads = vehicle/fleet running costs and shared operating costs
+Cost Summary = total operating cost burden
+Business Summary = current business mirror
+Business Modelling = scenario benchmark
+Quote Engine = quote-level leak detection
+Cash Flow later = principal repayment and liquidity pressure
+Feedback Loop later = accepted predictions vs monthly actuals
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+P&L
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+↓
+Cash Flow later
+
+Assets remains an upstream source module.
+
+It does not sit inside Quote Engine, Feedback Loop, or Cash Flow.
+
+---
+
+## CORE ROLE
+
+Assets owns:
+
+* asset identity
+* asset finance cost
+* asset finance interest
+* lease cost
+* depreciation cost where included as ownership cost
+* ownership cost
+* total_asset_cost_annual
+
+Assets is the source of truth for asset-specific ownership cost.
+
+Assets is also the source of truth for asset finance interest.
+
+The P&L may contain historical interest values, but the P&L is not the source of truth for asset finance interest.
+
+Assets does not own:
+
+* fuel
+* servicing
+* repairs
+* maintenance
+* registration
+* tyres
+* shared fleet running costs
+* internal labour
+* subcontractors
+* hired equipment / delivery costs
+* quote-level direct cost packages
+* accepted quote snapshots
+* monthly feedback variances
+
+---
+
+## INCLUDE
+
+Assets may include:
+
+* finance cost
+* asset finance interest
+* lease cost
+* depreciation cost
+* ownership cost
+* annualised replacement / purchase recovery if explicitly treated as ownership cost
+* other locked ownership-only asset costs
+
+---
+
+## EXCLUDE
+
+Assets must not include:
+
+* fuel
+* servicing
+* repairs
+* maintenance
+* registration
+* licensing
+* tyres
+* consumables
+* shared fleet costs
+* shared maintenance pools
+* vehicle running costs
+* direct running cost
+* staff assignment
+* labour recovery
+* pricing
+* overhead allocation
+* hired equipment / delivery cost
+* principal repayments as operating cost
+* quote-level plant package costs
+* quote-level hired equipment costs
+* accepted quote snapshots
+* monthly feedback results
+
+Vehicle running costs belong in General Overheads.
+
+Hired equipment / delivery cost belongs in COGS or direct delivery cost, not Assets.
+
+Principal repayments belong in the future Cash Flow layer, not Cost Summary.
+
+---
+
+## OUTPUT CONTRACT
+
+Assets may output:
+
+* total_asset_cost_annual
+* total_asset_interest_annual
+* assets_ready
+* no_active_assets_confirmed
+
+Per asset:
+
+* asset_id
+* asset_name
+* asset_type
+* finance_cost_annual
+* asset_interest_annual
+* estimated_remaining_finance_balance
+* finance_progress_percent
+* lease_cost_annual
+* depreciation_cost_annual
+* ownership_cost_annual
+* total_asset_cost_annual
+* is_active
+
+Future Cash Flow-only outputs may be added later under a locked Cash Flow brief.
+
+---
+
+## DEPRECATED FIELD
+
+The following field is deprecated:
+
+* running_cost_annual
+
+It must not feed Cost Summary.
+
+If still present in code during migration, it must be treated as legacy only and excluded from total_asset_cost_annual unless explicitly migrated into General Overheads.
+
+---
+
+## ASSET FINANCE INTEREST RULE — FORWARD-LOOKING
+
+Assets is the source of truth for asset finance interest.
+
+Asset interest must be calculated from the Assets module, not from the P&L.
+
+The P&L may contain historical or accountant-journaled interest values, but those values must not be treated as the source of truth for asset finance.
+
+Assets must calculate asset interest using the current asset finance position.
+
+The purpose is to estimate the asset finance interest the business needs to recover going forward, not to reconstruct the exact historical interest charged in the previous P&L period.
+
+---
+
+## ASSET INTEREST CALCULATION BASIS
+
+Each financed asset should support enough finance inputs to estimate current annual asset interest:
+
+* purchase_date
+* finance_term_years
+* interest_rate
+* financed_amount or loan_amount
+
+For each active financed asset:
+
+1. Calculate elapsed time since purchase_date.
+2. Calculate loan progress through the finance term.
+3. Estimate remaining balance.
+4. Calculate current annual interest from the estimated remaining balance.
+
+Simple accepted model:
+
+remaining_term_percent =
+1 - finance_progress_percent
+
+estimated_remaining_finance_balance =
+loan_amount × remaining_term_percent
+
+asset_interest_annual =
+estimated_remaining_finance_balance × interest_rate
+
+This is an approximation only.
+
+The system does not need to build a full amortisation schedule in v3.7 unless a later locked finance schedule brief requires it.
+
+---
+
+## FORWARD-LOOKING COST RULE
+
+Cost Summary is forward-looking.
+
+Assets must therefore output the current / forward annual asset interest estimate, not the historical P&L interest amount.
+
+The system must not calculate asset interest by looking backwards over the previous 12 months unless a future locked Cash Flow or finance schedule brief explicitly requires that.
+
+Cost Summary should use the asset cost expected to apply going forward.
+
+---
+
+## P&L INTEREST RELATIONSHIP
+
+If the P&L interest category includes asset finance, the P&L value is treated as a historical reported value only.
+
+The Assets module still remains the authority for asset finance interest.
+
+The system must not force Assets to reconcile exactly to the P&L interest value.
+
+Correct interpretation:
+
+* asset_interest_annual comes from Assets
+* non_asset_interest / other_interest may remain in General Overheads
+* any mismatch between P&L reported interest and modelled asset interest is informational only
+
+Do not silently blend historical P&L asset interest with forward-looking asset interest.
+
+Do not rebuild past asset interest merely to reconcile the P&L.
+
+---
+
+## CASH FLOW SEPARATION RULE
+
+Principal repayments are real cash pressure but are not operating cost.
+
+Principal must not feed total_asset_cost_annual.
+
+Principal must not feed Cost Summary.
+
+Assets may calculate or expose principal repayment information later for a Cash Flow layer, but it must remain separate from Cost Summary.
+
+Interest belongs in asset cost.
+
+Principal belongs in Cash Flow.
+
+---
+
+## OPTIONAL CASH FLOW OUTPUTS — FUTURE ONLY
+
+Assets may later expose separate cash-flow support outputs such as:
+
+* asset_principal_repayment_annual
+* asset_principal_repayment_monthly
+* asset_total_finance_payment_annual
+* asset_total_finance_payment_monthly
+
+These outputs must not feed total_asset_cost_annual unless a later locked brief explicitly changes the model.
+
+They are for Cash Flow visibility only.
+
+---
+
+## READINESS RULE
+
+assets_ready = true when one of the following is true:
+
+1. Active assets exist and:
+
+   * total_asset_cost_annual exists
+   * ownership-only rules are followed
+   * running_cost_annual does not feed total_asset_cost_annual
+   * no vehicle running costs are included
+   * no labour costs are included
+   * asset finance interest is calculated from Assets when finance applies
+
+OR:
+
+2. No active assets exist and:
+
+   * no_active_assets_confirmed = true
+   * total_asset_cost_annual = 0
+
+No active assets without explicit confirmation must block readiness.
+
+Missing asset data is not confirmation.
+
+A zero P&L asset benchmark is not confirmation.
+
+---
+
+## COST SUMMARY HANDOFF
+
+Cost Summary must consume only:
+
+* total_asset_cost_annual
+
+Cost Summary must not consume:
+
+* running_cost_annual
+* raw asset finance inputs
+* asset principal repayments
+* vehicle running costs
+* asset display categories
+* P&L asset benchmark totals as calculation inputs
+
+Cost Summary must not recalculate Assets.
+
+Cost Summary must not recalculate asset interest.
+
+---
+
+## BUSINESS SUMMARY BOUNDARY
+
+Business Summary does not consume Assets directly.
+
+Business Summary consumes Assets only through Cost Summary:
+
+Assets
+→ total_asset_cost_annual
+→ Cost Summary total_cost_burden
+→ Business Summary operating cost burden
+
+Business Summary must not recalculate asset cost.
+
+---
+
+## BUSINESS MODELLING BOUNDARY
+
+Business Modelling must not mutate Assets.
+
+Business Modelling may create scenario-only asset cost or operating burden assumptions, but those changes must not overwrite Assets.
+
+Baseline Assets remains owned by this module.
+
+Scenario asset assumptions remain owned by Business Modelling.
+
+---
+
+## QUOTE ENGINE BOUNDARY
+
+Quote Engine must not consume Assets directly for baseline recovery.
+
+Quote Engine consumes baseline/model recovery outputs from Cost Summary, Business Summary, or Business Modelling.
+
+Quote Engine may later include quote-level direct cost packages such as hired plant or subcontracted equipment.
+
+Those quote-level packages are not Assets module ownership costs.
+
+Quote Engine must not:
+
+* recalculate total_asset_cost_annual
+* use asset ownership costs as quote line items
+* mutate Assets
+* treat principal repayment as quote operating cost
+* use asset category subtotals as repair levers
+
+Assets is business ownership structure, not quote logic.
+
+---
+
+## FEEDBACK LOOP / MONTHLY ACTUALS BOUNDARY
+
+Monthly actuals may later show asset cost drift or finance cost differences.
+
+The Feedback Loop may compare accepted quote predictions and monthly actuals at macro level.
+
+However, Feedback Loop must not overwrite Assets assumptions automatically.
+
+Any update to Assets from actuals must be explicit.
+
+Assets remains the forward-looking asset ownership model.
+
+Monthly actuals remain historical reality.
+
+---
+
+## DISPLAY INTENT
+
+Assets should clearly show:
+
+* active assets
+* ownership-only annual cost
+* finance interest where applicable
+* lease cost where applicable
+* depreciation / ownership cost where included
+* total_asset_cost_annual
+* no_active_assets_confirmed state where no assets exist
+
+The page should make obvious:
+
+**Vehicle running costs are not asset ownership costs.**
+
+And:
+
+**Principal repayments are cash-flow pressure, not operating cost.**
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**Assets captures ownership-only asset cost.**
+
+**Vehicle running costs belong in General Overheads.**
+
+**Principal repayments belong in Cash Flow later, not Cost Summary.**
+
+**Quote Engine does not use asset ownership costs directly. It uses the business baseline created downstream.**
+
+**Monthly actuals may show asset cost drift later, but they do not automatically overwrite Assets assumptions.**
+
+---
+
+## NOT ALLOWED
+
+Assets must not:
+
+* calculate recovery rates
+* calculate pricing
+* calculate productive capacity
+* calculate quote gaps
+* calculate quote repair levers
+* perform feedback-loop analysis
+* assign assets to staff
+* allocate overheads to assets
+* include vehicle running costs
+* include labour costs
+* include hired equipment / delivery costs
+* include principal repayments in total_asset_cost_annual
+* feed Quote Engine directly as baseline recovery
+* overwrite assumptions from monthly actuals automatically
+* force P&L interest to reconcile exactly to asset interest
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only.
+
+### Must update
+
+* Clarify Assets as ownership-only cost source
+* Clarify Business Summary consumes Assets only through Cost Summary
+* Clarify Business Modelling scenario boundary
+* Clarify Quote Engine boundary
+* Clarify Feedback Loop / Monthly Actuals boundary
+* Clarify principal remains Cash Flow only
+
+### Do not update
+
+* No Quote Engine logic
+* No accepted quote snapshot logic
+* No monthly feedback comparison logic
+* No cash-flow logic
+* No General Overheads logic
+* No Cost Summary formula changes
+
+---
+
+## DEFINITION OF DONE
+
+Assets v3.7 is complete when:
+
+* total_asset_cost_annual remains ownership-only
+* running costs remain excluded
+* principal repayments remain excluded
+* asset finance interest remains Assets-owned
+* Quote Engine boundary is clear
+* Feedback Loop boundary is clear
+* Cash Flow boundary is clear
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Assets v3.7 is the ownership-only asset cost engine.
+
+It calculates the annual cost of owning, financing, leasing, or holding active business assets and exposes total_asset_cost_annual to Cost Summary.
+
+Vehicle running costs belong to General Overheads.
+
+Principal repayments belong to the future Cash Flow layer.
+
+Quote Engine, Business Modelling, and Feedback Loop may use downstream baseline/model outputs later, but must not recalculate or overwrite Assets logic.

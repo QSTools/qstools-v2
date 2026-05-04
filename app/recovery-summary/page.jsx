@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import useLabour from "@/hooks/useLabour";
-import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
 import useAssets from "@/hooks/useAssets";
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import useCostSummary from "@/hooks/useCostSummary";
@@ -21,13 +20,11 @@ export default function RecoverySummaryPage() {
   }, []);
 
   const labour = useLabour();
-  const employee_overheads = useEmployeeOverheads();
   const assets = useAssets();
   const general_overheads = useGeneralOverheads();
 
   const cost_summary = useCostSummary({
     labour,
-    employee_overheads,
     assets,
     general_overheads,
   });

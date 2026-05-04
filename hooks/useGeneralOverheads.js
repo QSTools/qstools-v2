@@ -17,6 +17,7 @@ import { calculate_general_overheads } from "@/lib/calculations/generalOverheadC
 import {
   build_general_overhead_status,
   build_general_overhead_card,
+  build_general_overhead_category_totals,
 } from "@/lib/selectors/generalOverheadSelectors";
 
 import { useProfitAndLossStorage } from "@/lib/storage/profitAndLossStorage";
@@ -412,8 +413,23 @@ export default function useGeneralOverheads() {
   }, [overhead_state]);
 
   const output_contract = useMemo(() => {
+    const category_totals = build_general_overhead_category_totals(
+      calculated.overhead_rows
+    );
+    const has_asset_finance_interest_duplication = calculated.overhead_rows.some(
+      (row) =>
+        row.contains_asset_finance_interest === true &&
+        Number(row.active_amount ?? row.amount ?? 0) !== 0
+    );
+
     return {
       total_general_overheads: calculated.total_general_overheads,
+      category_totals,
+      general_overheads_ready:
+        Number.isFinite(Number(calculated.total_general_overheads)) &&
+        category_totals.length > 0 &&
+        !has_asset_finance_interest_duplication,
+      non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
       overhead_rows: calculated.overhead_rows,
     };
   }, [calculated]);

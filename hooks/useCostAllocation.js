@@ -4,7 +4,6 @@ import { useMemo } from "react";
 
 import { useLabour } from "@/hooks/useLabour";
 import useAssets from "@/hooks/useAssets";
-import useEmployeeOverheads from "@/hooks/useEmployeeOverheads";
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import useCostSummary from "@/hooks/useCostSummary";
 import useRecoverySummary from "@/hooks/useRecoverySummary";
@@ -22,13 +21,11 @@ import { useCostAllocationProfileStorage } from "@/lib/storage/costAllocationPro
 
 export default function useCostAllocation() {
     const labour = useLabour();
-    const employee_overheads = useEmployeeOverheads();
     const assets = useAssets();
     const general_overheads = useGeneralOverheads();
 
     const cost_summary = useCostSummary({
         labour,
-        employee_overheads,
         assets,
         general_overheads,
     });

@@ -1,0 +1,662 @@
+# QS Tools — Business Feedback Loop Brief
+
+## v3.7 — MACRO FEEDBACK LOOP DRAFT
+
+**STATUS:** DRAFT SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 23
+**BUILD STATUS:** NOT READY TO BUILD / ARCHITECTURE LOCK ONLY
+
+---
+
+## PURPOSE
+
+The Business Feedback Loop is the future learning layer of QS Tools.
+
+It connects accepted quote predictions to monthly business reality.
+
+It answers:
+
+**Are we consistently pricing work correctly as a business?**
+
+It does not answer:
+
+* did this exact job perform perfectly?
+* which exact trade caused the loss?
+* what did every individual job cost?
+* what invoice belongs to which job line?
+* what should the user change automatically?
+
+Those belong to later job-costing, invoicing, production, or advisory layers.
+
+---
+
+## PRODUCT ROLE
+
+The Business Feedback Loop is not machine learning.
+
+It is not a black box.
+
+It is not the system inventing rules.
+
+It is a structured feedback loop based on first principles.
+
+The user defines the business assumptions.
+
+QS Tools compares those assumptions against reality over time.
+
+Core idea:
+
+**Quotes are predictions. Monthly P&L is reality. The feedback loop compares the two.**
+
+---
+
+## CORE PRODUCT QUESTION
+
+The feedback loop supports the main QS Tools product question:
+
+**Do your assumptions about how your business runs match reality?**
+
+Supporting positioning:
+
+**Simple in hindsight. Invisible beforehand.**
+
+**We mirror your business back to you.**
+
+---
+
+## CORE PRINCIPLE
+
+The feedback loop is macro-level first, not job-level first.
+
+V1 must compare:
+
+Accepted quotes in a month
+vs
+Monthly P&L actuals
+
+It must not try to perfectly job-cost each individual job in V1.
+
+The purpose is to detect whether the business is consistently pricing work correctly, not to prove every job line item.
+
+---
+
+## WHY MACRO FIRST
+
+Job-level costing is valuable later, but it is messy early.
+
+Jobs may:
+
+* span multiple months
+* be invoiced progressively
+* include blended costs
+* have incomplete trade-level breakdowns
+* be priced differently by different businesses
+* include materials, subcontractors, labour, and plant in different ways
+
+Trying to solve perfect job costing first creates too much friction.
+
+The macro loop gives useful signal sooner.
+
+It shows whether pricing assumptions are generally right or wrong across the business.
+
+---
+
+## SIMPLE FLOW
+
+1. User builds business baseline
+2. User creates quote
+3. Quote is revised if needed
+4. Quote is accepted
+5. Accepted quote snapshot is locked
+6. Accepted quote is assigned to an accepted month
+7. Monthly P&L is imported later
+8. System compares accepted quote predictions against monthly actuals
+9. System shows variance
+10. User updates assumptions if needed
+11. Future quotes improve
+
+---
+
+## SYSTEM FLOW
+
+Business baseline
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot
+↓
+Monthly P&L Actuals
+↓
+Macro Comparison
+↓
+Assumption Review
+↓
+Improved Future Quotes
+
+---
+
+## CLEAN ROLE SPLIT
+
+Revenue / COGS = what trading produces
+Cost Summary = what the business costs
+Business Summary = current business mirror
+Business Modelling = scenario benchmark
+Quote Engine = quote-level prediction test
+Accepted Quote Snapshot = locked prediction
+Monthly Actuals = reality
+Business Feedback Loop = prediction vs reality comparison
+
+---
+
+## PREDICTION VS REALITY RULE
+
+The feedback loop must keep prediction and reality separate.
+
+Prediction = accepted quote snapshot
+
+Reality = monthly P&L actuals
+
+The system must never overwrite accepted quote predictions with actual results.
+
+The system must never rewrite history to make past predictions match reality.
+
+The value comes from comparing what was believed at the time with what actually happened later.
+
+---
+
+## ACCEPTED QUOTE SNAPSHOT RULE
+
+Only accepted quote versions enter the feedback loop.
+
+Drafts and revised quote versions are working states only.
+
+When a quote is marked accepted, the system must lock a snapshot.
+
+That snapshot represents:
+
+**What we believed when we priced the job.**
+
+Accepted snapshots must be immutable.
+
+If the quote changes after acceptance, later versions or variations may be created, but the original accepted snapshot remains intact.
+
+---
+
+## QUOTE VERSIONING RULE
+
+A job may have multiple quote versions.
+
+Example:
+
+Job: Smith House Slab
+Version 1: initial estimate
+Version 2: revised after client feedback
+Version 3: submitted quote
+Version 4: accepted quote
+
+Only the accepted version becomes the feedback-loop prediction.
+
+---
+
+## ACCEPTED QUOTE SNAPSHOT VARIABLES
+
+Minimum accepted snapshot fields:
+
+* accepted_quote_snapshot_id
+* quote_id
+* job_id
+* job_name
+* accepted_quote_version
+* accepted_date
+* accepted_period_month
+* accepted_period_year
+* accepted_quote_price_total
+* accepted_base_labour_hours_allowed
+* accepted_material_cost_total
+* accepted_material_sell_total
+* accepted_labour_sell_total
+* accepted_direct_cost_package_allowance_total
+* accepted_direct_cost_package_cost_total
+* accepted_direct_cost_total
+* accepted_quote_margin_pool
+* accepted_required_recovery_rate
+* accepted_business_recovery_required_total
+* accepted_quote_gap
+* accepted_hourly_gap
+* accepted_result_status
+* accepted_model_used
+* accepted_model_trust_state
+* snapshot_locked
+* created_at
+
+---
+
+## MONTHLY ACTUALS RULE
+
+Monthly P&L actuals represent reality.
+
+Monthly actuals should be imported from Xero later.
+
+They should be stored by accounting period.
+
+Monthly actuals must not overwrite:
+
+* accepted quote snapshots
+* quote versions
+* Business Summary baselines
+* Business Modelling scenarios
+
+Monthly actuals are a separate reality layer.
+
+---
+
+## MONTHLY ACTUAL VARIABLES
+
+Future monthly actuals may include:
+
+* actual_period_id
+* actual_period_month
+* actual_period_year
+* actual_total_revenue
+* actual_total_direct_costs
+* actual_margin_pool
+* actual_gross_margin_percent
+* actual_total_cost_burden
+* actual_total_productive_output
+* actual_margin_per_productive_hour
+* actual_required_recovery_rate
+* actual_recovery_gap_per_hour
+* actual_net_position
+* imported_from
+* imported_at
+* source_status
+
+---
+
+## MACRO COMPARISON RULE
+
+The comparison is monthly and aggregate.
+
+For a given month, compare:
+
+Accepted quote predictions for that month
+
+against
+
+Monthly P&L actuals for that month
+
+The system should show variance at business level.
+
+Not job-by-job in V1.
+
+---
+
+## EXPECTED MONTHLY OUTPUTS FROM ACCEPTED QUOTES
+
+Aggregate accepted quote snapshots by period.
+
+Expected monthly values may include:
+
+* expected_accepted_quote_count
+* expected_quote_revenue_total
+* expected_direct_cost_total
+* expected_margin_pool_total
+* expected_required_recovery_total
+* expected_quote_gap_total
+* expected_labour_hours_total
+* expected_margin_per_hour
+* expected_average_required_recovery_rate
+
+---
+
+## ACTUAL MONTHLY OUTPUTS FROM P&L
+
+Monthly actual values may include:
+
+* actual_total_revenue
+* actual_total_direct_costs
+* actual_margin_pool
+* actual_total_cost_burden
+* actual_net_position
+* actual_margin_per_productive_hour
+* actual_recovery_gap_per_hour
+
+---
+
+## VARIANCE OUTPUTS
+
+The feedback loop may output:
+
+* revenue_variance
+* direct_cost_variance
+* margin_pool_variance
+* recovery_variance
+* net_position_variance
+* margin_per_hour_variance
+* recovery_gap_per_hour_variance
+* quote_count
+* accepted_quote_value_total
+* actual_revenue_total
+* feedback_status
+* feedback_warnings
+
+---
+
+## CORE COMPARISON QUESTIONS
+
+The feedback loop should answer:
+
+* Did accepted quotes predict enough margin pool?
+* Did actual P&L produce the expected margin pool?
+* Did the business recover the required operating cost burden?
+* Is the business consistently under-recovering?
+* Are accepted quotes aligned with actual monthly performance?
+* Are assumptions improving or drifting?
+
+---
+
+## USER-FACING INSIGHTS
+
+Use plain wording.
+
+Examples:
+
+**Accepted quotes predicted $X margin pool this month. Actual P&L produced $Y.**
+
+**The business recovered $X/hr against a required $Y/hr.**
+
+**Your accepted quotes are tracking above baseline.**
+
+**Your accepted quotes are not currently producing enough margin pool to carry the business.**
+
+**This is a monthly business signal, not job-level costing.**
+
+---
+
+## WHAT THE FEEDBACK LOOP SHOULD NOT DO IN V1
+
+The feedback loop must not:
+
+* attempt perfect job-level costing
+* allocate every P&L cost line to individual jobs
+* require invoice-by-invoice job allocation
+* rewrite accepted quote predictions
+* automatically change Labour assumptions
+* automatically change Cost Summary
+* automatically change Business Modelling scenarios
+* tell the user what to do as a black-box recommendation
+* treat one month as proof of a permanent pattern
+* treat monthly P&L as exact job-level truth
+
+---
+
+## FUTURE JOB-LEVEL DETAIL
+
+Job-level detail may come later.
+
+Future layers may include:
+
+* job invoicing allocation
+* percentage complete
+* staged revenue
+* job-level actual cost imports
+* trade-level actuals
+* production scheduling
+* job profitability analysis
+
+These are not part of V1.
+
+The macro feedback loop must work without them.
+
+---
+
+## RELATIONSHIP TO REVENUE / COGS
+
+Revenue / COGS provides the trading actuals.
+
+For monthly actuals, Revenue / COGS may be run by accounting period.
+
+It produces:
+
+* actual_total_revenue
+* actual_total_direct_costs
+* actual_margin_pool
+* actual_gross_margin_percent
+
+The feedback loop consumes these outputs.
+
+It must not rebuild Revenue / COGS logic.
+
+---
+
+## RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary provides the current business mirror.
+
+The feedback loop may compare accepted quote predictions and monthly actuals against the business baseline.
+
+Business Summary does not perform feedback analysis.
+
+The feedback loop consumes Business Summary outputs where needed.
+
+It must not mutate Business Summary.
+
+---
+
+## RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling provides baseline, upside, and downside benchmarks.
+
+The feedback loop may later compare actual performance against the selected benchmark.
+
+Business Modelling scenarios must not be overwritten automatically by feedback results.
+
+Any baseline refresh or scenario update must be explicit.
+
+---
+
+## RELATIONSHIP TO QUOTE ENGINE
+
+Quote Engine creates quote predictions.
+
+When a quote is accepted, Quote Engine must preserve a locked accepted quote snapshot.
+
+The feedback loop consumes accepted quote snapshots.
+
+The feedback loop must not recalculate quote logic.
+
+The feedback loop must not edit accepted quote snapshots.
+
+---
+
+## RELATIONSHIP TO XERO / API IMPORTS
+
+Xero API import belongs later.
+
+When implemented, it should provide monthly P&L actuals by accounting period.
+
+The import process should preserve source references, import date, and period identity.
+
+Xero actuals must be stored separately from accepted quote predictions.
+
+---
+
+## STORAGE RULE
+
+The feedback loop should be database-ready.
+
+Separate storage concepts:
+
+1. accepted_quote_snapshots
+2. monthly_actuals
+3. feedback_periods
+4. feedback_results
+
+Do not store feedback results inside editable quote records.
+
+Do not store monthly actuals inside accepted quote snapshots.
+
+---
+
+## READINESS RULE
+
+feedback_ready = true when:
+
+* at least one accepted quote snapshot exists for the period
+* monthly actuals exist for the same period
+* required baseline/model reference exists
+* no blocking data integrity issue exists
+
+If accepted quotes exist but monthly actuals are missing:
+
+* show pending actuals state
+
+If monthly actuals exist but no accepted quotes exist:
+
+* show no accepted quote predictions for this period
+
+---
+
+## WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Minimum warnings:
+
+* no_accepted_quotes_for_period
+* no_monthly_actuals_for_period
+* accepted_quotes_without_locked_snapshot
+* monthly_actuals_not_imported
+* baseline_reference_missing
+* model_trust_warning
+* period_mismatch
+* actuals_import_warning
+
+Warning wording examples:
+
+* No accepted quote snapshots exist for this period.
+* Monthly actuals have not been imported for this period.
+* Some accepted quotes are missing locked snapshots.
+* Actuals period does not match the selected feedback period.
+
+---
+
+## UI PRINCIPLE
+
+The feedback loop UI should be simple and monthly-first.
+
+It should show:
+
+* selected period
+* accepted quote prediction summary
+* monthly actual summary
+* variance summary
+* plain-English signal
+
+It should not become a transaction audit screen.
+
+It should not show dense job-costing tables in V1.
+
+---
+
+## POSSIBLE FUTURE PAGE STRUCTURE
+
+Future page may use:
+
+1. FeedbackLoopStatusStrip
+2. FeedbackPeriodSelector
+3. PredictionSummaryCard
+4. ActualsSummaryCard
+5. VarianceSummaryCard
+6. FeedbackInsightCard
+7. FeedbackLoopHelpPanel
+
+This is future structure only.
+
+Do not build until the implementation order says to build it.
+
+---
+
+## USER EXPERIENCE PRINCIPLE
+
+The user should land on the feedback loop and immediately understand:
+
+* what they expected
+* what actually happened
+* how far apart the two were
+* whether the business is consistently aligned or drifting
+
+The user should not need perfect job-costing data to get value.
+
+---
+
+## NOT ALLOWED
+
+The Business Feedback Loop must not:
+
+* overwrite quote predictions
+* overwrite accepted quote snapshots
+* overwrite monthly actuals
+* mutate Business Summary
+* mutate Business Modelling
+* mutate Revenue / COGS
+* mutate Cost Summary
+* perform job-level costing in V1
+* require exact invoice-to-job matching in V1
+* invent rules automatically
+* act like machine learning
+* hide assumptions
+* hide period mismatch warnings
+* treat one month as conclusive proof
+
+---
+
+## FIRST IMPLEMENTATION ORDER LATER
+
+When ready to build, likely order:
+
+1. Ensure Quote Engine stores accepted quote snapshots
+2. Add quote status and versioning controls
+3. Add period assignment from accepted_date
+4. Add monthly actuals storage
+5. Add manual monthly actuals input or Xero import
+6. Aggregate accepted quote predictions by month
+7. Aggregate actuals by month
+8. Build macro comparison
+9. Display variance and insight
+10. Later extend to job-level detail if required
+
+---
+
+## DEFINITION OF DONE — FUTURE BUILD
+
+The feedback loop is complete when:
+
+* accepted quote snapshots are immutable
+* monthly actuals are stored separately
+* period matching works
+* accepted quote predictions aggregate by month
+* monthly actuals aggregate by month
+* variance outputs are calculated
+* macro signal is clear
+* job-level costing is not required
+* warnings are explicit
+* prediction and reality remain separate
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+The Business Feedback Loop is the macro prediction-vs-reality layer of QS Tools.
+
+It compares accepted quote snapshots against monthly P&L actuals to show whether the business is consistently pricing work correctly.
+
+It is macro-level first, not job-level first.
+
+It does not invent rules.
+
+It does not overwrite history.
+
+It shows whether the assumptions used to price work are matching business reality over time.

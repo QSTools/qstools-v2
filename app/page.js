@@ -60,6 +60,7 @@ export default function HomePage() {
 
             <div className="ui-stack-sm">
               <h1 className="ui-display text-[var(--text-primary)]">
+                Do your assumptions about how your business runs match reality?
                 Simple in hindsight Invisible before hand
                 We mirror your businness back to you 
                 Understand if your business is actually working.
@@ -69,6 +70,10 @@ export default function HomePage() {
                 QS Tools helps you see how your business really operates by
                 connecting your costs, your output, and the way you price your
                 work.
+                QS Tools strips your business back to first principles,
+                then compares your quotes, costs, and monthly reality against the model you thought you were running.
+                Think of it as a leak detection system
+                
               </p>
             </div>
 
@@ -81,7 +86,12 @@ export default function HomePage() {
                 <p className="ui-help">
                   What matters is whether your current structure is actually
                   recovering what it costs to operate — and whether your pricing
-                  reflects that reality.
+                  reflects that reality. We do this by using your existing historical Pnl to 
+                  to build a model of how your business is actually running, 
+                  then comparing that model to your real work and decision. 
+                  You can then enter your quotes and check them against your model. After a while
+                  QS Tools will build a picture of your quoting behaviour and track where improvements and 
+                  adjustments can be made
                 </p>
 
                 <p>

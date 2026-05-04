@@ -1,0 +1,415 @@
+# QS Tools — Labour Recovery & Margin Pool Standard
+
+## v3.7 — QUOTE ENGINE LEAK DETECTION UPDATED
+
+**STATUS:** ACTIVE FUTURE STANDARD
+**VERSION:** v3.7
+**FILE NUMBER:** 17
+**REPLACES:** Labour Recovery & Margin Pool Standard v3.6
+**BUILD STATUS:** ACTIVE STANDARD / UPDATED FOR QUOTE ENGINE BASELINE BUILD
+
+---
+
+## PURPOSE
+
+This brief defines the labour recovery and margin pool standard for QS Tools.
+
+It protects one of the core commercial insights of the product:
+
+```text
+A fixed-price quote can show gross margin and still fail to recover internal labour, overheads, assets, and target profit.
+```
+
+QS Tools must expose this clearly.
+
+In v3.7, this standard is aligned to the Quote Engine leak detection model.
+
+---
+
+## CORE RULE
+
+For fixed-price and quote-based businesses, QS Tools must not treat gross margin as proof of profit.
+
+The quote must generate enough margin / recovery pool to recover:
+
+* internal labour cost
+* general overheads
+* asset ownership costs
+* business operating burden
+* target profit later
+
+If it does not, the quote is under-recovering or commercially leaking against the model.
+
+---
+
+## UPDATED PRODUCT LANGUAGE
+
+Use:
+
+**This quote may not be making the margin you think it is.**
+
+**Gross margin is not proof of profit.**
+
+**Margin Pool is the money left to carry the business.**
+
+**Try changes and watch the gap close.**
+
+Avoid overusing:
+
+* commercially loss-making
+* failure
+* bad quote
+* you should
+
+Use neutral, clear language unless a later UI brief defines stronger wording.
+
+---
+
+## FIXED-PRICE RECOVERY TEST
+
+The core fixed-price test is:
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit later
+= recovery surplus / shortfall
+```
+
+If the recovery surplus / shortfall is negative, the quote is commercially under-recovering against the model.
+
+This may be true even if the quote appears profitable using a simple gross-margin view.
+
+---
+
+## BASELINE QUOTE ENGINE TEST
+
+For the first Quote Engine build, the baseline test may be simplified to:
+
+```text
+quote_price_total
+- direct_cost_total
+= quote_margin_pool
+```
+
+Then:
+
+```text
+base_labour_hours_allowed
+× required_recovery_rate
+= business_recovery_required_total
+```
+
+Then:
+
+```text
+quote_margin_pool
+- business_recovery_required_total
+= quote_gap
+```
+
+If quote_gap is negative, the quote is leaking against the baseline.
+
+---
+
+## EXTERNAL / DIRECT COST RULE
+
+External/direct costs may include:
+
+* materials
+* freight
+* plant hire
+* consumables
+* third-party job costs
+* subcontract labour where it is bought-in external labour
+* direct cost packages
+
+External/direct costs are removed before calculating the margin / recovery pool.
+
+---
+
+## SUBCONTRACT LABOUR RULE
+
+Subcontract labour must be visible separately from internal labour recovery.
+
+Subcontract labour may appear in COGS, direct cost packages, or quote-level external labour cost.
+
+It is not internal productive labour capacity.
+
+For labour recovery analysis, subcontract labour should normally be treated as external labour cost unless explicitly reclassified.
+
+Future analysis should distinguish:
+
+* internal labour recovery
+* subcontract labour cost
+* total labour content
+* internal vs external labour mix
+
+This prevents QS Tools from overstating internal labour recovery when the work is actually being delivered by subcontractors.
+
+---
+
+## INTERNAL LABOUR RECOVERY RULE
+
+Internal labour recovery must be based on the Labour module.
+
+Required internal labour cost rate may be shown as:
+
+```text
+productive_labour_cost_rate =
+total_labour_cost_annual / total_productive_output
+```
+
+Required business recovery rate may be shown as:
+
+```text
+required_recovery_rate =
+total_cost_burden / total_productive_output
+```
+
+Important distinction:
+
+* productive_labour_cost_rate = true labour cost per productive hour
+* required_recovery_rate = whole-business recovery pressure per productive hour
+
+Quote Engine must not confuse these two.
+
+---
+
+## REQUIRED RECOVERY RATE RULE
+
+Required Recovery Rate is not a labour charge-out rate.
+
+It is the business break-even pressure per productive hour.
+
+It includes the wider business burden, not just wages.
+
+Use this principle:
+
+**All staff cost must be recovered. Only productive staff hours can recover it.**
+
+---
+
+## QUOTE ENGINE INTERNAL LABOUR CHECK
+
+Quote Engine may use:
+
+* base_labour_hours_allowed
+* labour_sell_total
+* labour_charge_out_rate
+* productive_labour_cost_rate
+* required_recovery_rate
+
+Quote Engine should not ask the user to enter true labour cost if Labour already knows it.
+
+Quote Engine calculates:
+
+```text
+true_labour_cost_total =
+base_labour_hours_allowed × productive_labour_cost_rate
+```
+
+Then true labour cost becomes part of direct_cost_total.
+
+---
+
+## MARGIN POOL RULE
+
+Margin Pool is not final profit.
+
+Margin Pool is the amount left after direct costs are removed.
+
+At business level:
+
+Revenue / COGS owns Margin Pool.
+
+At quote level:
+
+Quote Engine applies the same concept:
+
+```text
+quote_margin_pool = quote_price_total - direct_cost_total
+```
+
+Business Summary compares business Margin Pool against operating cost burden.
+
+Quote Engine compares quote Margin Pool against required business recovery for the hours allowed.
+
+---
+
+## SUMMARY-LEVEL VISIBILITY RULE
+
+QS Tools must expose baseline labour recovery before quote-level analysis exists.
+
+The summary layers should show:
+
+* total labour cost burden
+* total productive labour hours
+* required labour recovery rate where useful
+* required business recovery rate
+* current margin per productive hour
+* recovery variance / gap
+* recovery status
+
+The summary layer should answer:
+
+```text
+After direct costs, is there enough margin pool to carry the business?
+```
+
+---
+
+## QUOTE BENCHMARK RULE
+
+Quote Engine should show, quote-by-quote:
+
+* quoted revenue / quote price
+* external/direct costs
+* true internal labour cost
+* margin / recovery pool
+* required business recovery
+* quote gap
+* hourly gap
+* max viable hours
+* required price at allowed hours
+* accepted / draft / revised status later
+
+The product should clearly state when:
+
+```text
+This quote is under-recovering by $X.
+```
+
+or:
+
+```text
+This quote is leaking against your baseline by $X.
+```
+
+---
+
+## REPAIR LEVER STANDARD
+
+If a quote is short, the system should not prescribe only one solution.
+
+It should show options.
+
+Examples:
+
+* increase price
+* reduce internal labour hours
+* reduce direct cost package cost
+* improve material margin
+* combine several small changes
+
+User-facing principle:
+
+**Try changes and watch the gap close.**
+
+---
+
+## COMMERCIAL RECOVERY STATUS
+
+Future status language may include:
+
+* works
+* marginal
+* leaking
+* invalid
+
+Definitions:
+
+```text
+works =
+margin / recovery pool covers the selected model requirement
+```
+
+```text
+marginal =
+quote is close to baseline or has warnings requiring review
+```
+
+```text
+leaking =
+margin / recovery pool is positive but insufficient to recover the model requirement
+```
+
+```text
+invalid =
+required inputs or trusted model values are missing
+```
+
+---
+
+## BUSINESS MODELLING CONNECTION
+
+Later, the same quote should be tested against:
+
+* baseline
+* upside
+* downside
+
+The quote should not be duplicated.
+
+The same quote should run against multiple benchmarks.
+
+Baseline shows whether the quote works today.
+
+Upside shows whether the quote supports the target business.
+
+Downside shows whether the quote survives pressure.
+
+---
+
+## FEEDBACK LOOP CONNECTION
+
+Accepted quotes become locked predictions later.
+
+Monthly P&L actuals become reality.
+
+Feedback Loop compares accepted predictions against monthly actuals at macro level.
+
+The feedback loop is macro-level first, not job-level first.
+
+This standard helps define what the quote prediction must preserve.
+
+---
+
+## NOT ALLOWED
+
+QS Tools must not:
+
+* treat gross margin as proof of profit
+* confuse subcontract labour with internal productive labour
+* treat required_recovery_rate as a labour charge-out rate
+* ask for true labour cost when Labour already owns it
+* force every direct cost package into hours
+* claim a specific trade is short unless the user created a trade-level allowance
+* overwrite accepted quote snapshots later
+* perform job-level actual costing in Feedback Loop V1
+
+---
+
+## FINAL STANDARD
+
+QS Tools must show whether a fixed-price quote actually recovers the business model.
+
+The system must not allow a quote to look commercially healthy merely because gross margin is positive.
+
+The key question is:
+
+```text
+Does the margin / recovery pool recover the business baseline for the hours allowed?
+```
+
+If not, QS Tools must make the shortfall visible and show which levers can close the gap.

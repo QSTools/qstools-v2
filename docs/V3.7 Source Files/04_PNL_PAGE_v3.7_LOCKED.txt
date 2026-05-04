@@ -1,0 +1,751 @@
+# QS Tools — P&L Page Brief
+
+## v3.7 — MONTHLY ACTUALS BOUNDARY UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 04
+**REPLACES:** P&L Page v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR MONTHLY ACTUALS AND FEEDBACK LOOP BOUNDARY
+
+---
+
+## PURPOSE
+
+The P&L page captures business financial reality and provides the first classification layer.
+
+It is the starting point for the QS Tools model.
+
+The P&L page helps the user import, review, classify, and benchmark financial data before specialised modules refine source-of-truth totals.
+
+The P&L page is not the final source of truth for specialised module calculations.
+
+It provides:
+
+* raw financial input
+* classification structure
+* benchmark totals
+* reconciliation context
+* Revenue / COGS preparation data
+* future monthly actuals preparation data
+
+P&L v3.6 already defined the page as raw financial reality and classification only, not the final source of truth for specialised module calculations. This v3.7 update preserves that role and clarifies the future monthly actuals and feedback-loop boundary.
+
+---
+
+## PRODUCT ROLE
+
+P&L is historical financial reality.
+
+P&L is not a prediction layer.
+
+P&L is not Quote Engine.
+
+P&L is not Business Summary.
+
+P&L is not the Feedback Loop.
+
+P&L is the source layer for classified accounting reality.
+
+It tells the user:
+
+**This is what the accounting data says happened.**
+
+The page should help answer:
+
+**Has the financial data been classified clearly enough to feed the QS Tools model?**
+
+---
+
+## CLEAN ROLE SPLIT
+
+P&L = historical reality and classification
+Revenue / COGS = trading margin pool
+Labour / Assets / General Overheads = specialised source-of-truth modules
+Cost Summary = operating cost burden
+Business Summary = current business mirror
+Business Modelling = scenario benchmark
+Quote Engine = quote-level prediction test
+Accepted Quote Snapshot = locked prediction
+Monthly Actuals = period-based reality
+Feedback Loop = prediction vs reality comparison
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+P&L
+↓
+Revenue / COGS
+↓
+Labour / Assets / General Overheads
+↓
+Module Reconciliation / Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+Simplified future feedback flow:
+
+P&L monthly actuals
+↓
+Revenue / COGS monthly actuals
+↓
+Business actuals summary
+↓
+Feedback Loop comparison against accepted quote snapshots
+
+---
+
+## CORE PRINCIPLE
+
+P&L is raw financial reality and classification only.
+
+P&L does not decide final module ownership after reconciliation.
+
+P&L does not perform recovery, pricing, allocation, cash-flow modelling, downstream business modelling, quote testing, or feedback-loop comparison.
+
+P&L values are historical / reported values.
+
+Specialised modules may replace or reinterpret P&L values where the module has a clearer ownership model.
+
+---
+
+## WHAT THIS PAGE ANSWERS
+
+The P&L page answers:
+
+* What financial data has been imported or entered?
+* Which P&L lines are income?
+* Which P&L lines are COGS / direct costs?
+* Which P&L lines are labour benchmark items?
+* Which P&L lines are asset benchmark items?
+* Which P&L lines are general overhead benchmark items?
+* What remains unassigned?
+* Is the P&L ready for downstream classification use?
+* Later, which accounting period does this P&L actual data belong to?
+
+---
+
+## WHAT THIS PAGE DOES NOT ANSWER
+
+The P&L page does not answer:
+
+* what does the business truly cost to run?
+* what is the final cost burden?
+* is the business viable?
+* what should the user change?
+* what quote should be accepted?
+* did accepted quotes match reality?
+* did this exact job perform correctly?
+* what cash-flow pressure exists?
+
+Those belong to other layers.
+
+---
+
+## PRIMARY OUTPUTS
+
+P&L may output:
+
+* pnl_ready
+* pnl_lines
+* pnl_categories
+* total_business_costs
+* labour_benchmark_total
+* assets_benchmark_total
+* general_overheads_benchmark_total
+* income_benchmark_total
+* cogs_benchmark_total
+* direct_cost_benchmark_total
+* unassigned_balance
+
+These are benchmark / classification outputs.
+
+Future monthly actual outputs may include:
+
+* pnl_period_id
+* pnl_period_month
+* pnl_period_year
+* pnl_period_start_date
+* pnl_period_end_date
+* pnl_import_source
+* pnl_imported_at
+* pnl_source_status
+
+---
+
+## DOWNSTREAM HANDOFF
+
+P&L benchmark totals flow to Module Reconciliation only.
+
+P&L values do not feed Cost Summary calculations directly.
+
+Cost Summary must consume clean module totals from:
+
+* Labour
+* Assets
+* General Overheads
+* Model Readiness
+
+P&L values may feed Revenue / COGS through classified income and direct-cost outputs.
+
+Revenue / COGS must consume P&L classification outputs only for:
+
+* income / revenue
+* COGS / direct costs
+
+Revenue / COGS must not consume Labour, Assets, or General Overheads raw module internals.
+
+---
+
+## CATEGORY VALUES
+
+Allowed active v3.7 category groups:
+
+* labour
+* assets
+* general_overheads
+* cogs
+* income
+* excluded
+* unassigned
+
+Legacy employee_overheads categories must be migrated to general_overheads.
+
+employee_overheads is not an active v3.7 category.
+
+---
+
+## MACRO CLASSIFICATION RULE
+
+The macro classification is the only classification layer used by the core commercial engine in v3.7.
+
+The required macro groups are:
+
+* income
+* cogs
+* labour
+* assets
+* general_overheads
+* excluded
+* unassigned
+
+Macro classification drives:
+
+* benchmark totals
+* reconciliation
+* Revenue / COGS inputs
+* readiness checks
+* future monthly actuals classification
+
+Micro classification may be captured, but it must not drive core calculations in v3.7.
+
+---
+
+## MICRO / ACTIVITY CLASSIFICATION RULE
+
+The P&L page may capture optional micro classifications such as:
+
+* concrete
+* excavation
+* subcontract type
+* supplier group
+* activity group
+* delivery category
+* other user-defined business categories
+
+These micro categories are optional.
+
+They are captured for future insight, reporting, automation, and rule-based classification.
+
+They must not be required for readiness in v3.7.
+
+They must not drive Cost Summary.
+
+They must not drive Revenue / COGS in v3.7 unless a later locked brief explicitly promotes them into active calculation logic.
+
+Rule:
+
+Macro classification = required and active.
+Micro classification = optional and stored for later.
+
+User-facing wording:
+
+**Activity / Detail Category**
+Optional. Capture useful business detail now so it can be used for future reporting, automation, or quote analysis.
+
+---
+
+## COGS / DIRECT COST CLASSIFICATION RULE
+
+P&L owns the reusable COGS / Direct Cost classification layer.
+
+This layer exists to prepare clean classified COGS totals for the Revenue / COGS page.
+
+Revenue / COGS consumes classified COGS totals.
+
+P&L must not calculate Revenue / COGS outputs in this layer.
+
+Direct Cost Categories must use broad defaults and allow user-defined categories.
+
+Broad default Direct Cost Categories:
+
+* Materials
+* Subcontract labour
+* Hired equipment / plant
+* Freight / cartage
+* Waste / tipping
+* Direct consumables
+* Other direct costs
+* Review required
+
+Business-specific categories must not be hardcoded as defaults.
+
+Examples such as concrete pumping, concrete laying, crane hire, traffic management, excavation subcontractors, or similar trade-specific items may be used as helper examples only.
+
+They must be user-defined categories, not system defaults.
+
+User-defined Direct Cost Categories must be reusable in future P&L mapping.
+
+No threshold logic belongs in this layer.
+
+This layer must not decide whether a business should hire staff, buy equipment, change recovery strategy, or alter pricing.
+
+Those decisions belong later in Business Modelling, Quote Engine, Cash Flow, or future scenario layers.
+
+User-facing wording:
+
+**Direct Cost Categories**
+Group COGS into useful business categories. Start with broad defaults, then add categories specific to your business.
+
+---
+
+## REVENUE / COGS PREPARATION RULE
+
+P&L prepares the data for Revenue / COGS.
+
+Revenue / COGS calculates:
+
+Revenue - Direct Costs = Margin Pool
+
+P&L must only provide classified inputs.
+
+P&L must not calculate:
+
+* margin_pool
+* gross_margin_percent
+* margin_per_productive_hour
+* net_position
+* recovery_gap
+* business outcome
+* modelling outputs
+* quote outputs
+* feedback-loop outputs
+
+Those belong downstream.
+
+---
+
+## MONTHLY ACTUALS PREPARATION RULE
+
+P&L is the future source layer for monthly actuals.
+
+When Xero API import is implemented, P&L should support period-based imports.
+
+Each monthly P&L actual should preserve:
+
+* accounting period
+* source system
+* import timestamp
+* classified line structure
+* source status
+* review state
+
+Monthly actuals are reported reality.
+
+They must remain separate from quote predictions.
+
+---
+
+## MONTHLY ACTUALS BOUNDARY
+
+P&L provides monthly actuals.
+
+The Feedback Loop compares monthly actuals against accepted quote snapshots.
+
+P&L must not:
+
+* compare quotes to actuals
+* rewrite accepted quote snapshots
+* perform job-level actual costing
+* decide whether accepted quotes were right or wrong
+* create feedback-loop insights
+* mutate Quote Engine outputs
+
+P&L is reality input only.
+
+---
+
+## QUOTE ENGINE BOUNDARY
+
+Quote Engine creates predictions.
+
+P&L provides historical reality.
+
+The two must remain separate.
+
+Quote Engine must not overwrite P&L actuals.
+
+P&L must not overwrite quote predictions.
+
+The future Feedback Loop compares them.
+
+Boundary statement:
+
+**Quote Engine records what we believed. P&L records what happened. Feedback Loop compares the two.**
+
+---
+
+## FEEDBACK LOOP BOUNDARY
+
+The Business Feedback Loop belongs later.
+
+P&L supports it by providing period-based actuals.
+
+P&L must not become the feedback loop.
+
+The feedback loop consumes:
+
+* accepted quote snapshots from Quote Engine
+* monthly actuals from P&L / Revenue / COGS
+* baseline/model references from Business Summary / Business Modelling where required
+
+The feedback loop is macro-level first, not job-level first.
+
+P&L must not attempt job-level costing in V1.
+
+---
+
+## P&L INTEREST RULE
+
+P&L interest values are historical reported accounting values.
+
+P&L interest may include:
+
+* asset finance interest
+* overdraft interest
+* working capital interest
+* accountant journal adjustments
+* miscellaneous finance costs
+
+The P&L page may allow the user to identify whether reported P&L interest includes asset finance.
+
+This setting is used for classification and reconciliation context only.
+
+It does not make the P&L the source of truth for asset finance interest.
+
+---
+
+## ASSET FINANCE INTEREST BOUNDARY
+
+Assets is the source of truth for asset finance interest.
+
+If the P&L interest category includes asset finance:
+
+* P&L interest is treated as historical reported context
+* Assets still calculates asset finance interest from the asset finance model
+* Cost Summary consumes asset finance interest through Assets
+* P&L interest does not override Assets
+
+If the P&L interest category does not include asset finance:
+
+* P&L interest may remain classified as general_overheads / other interest
+* Assets still contributes asset finance interest separately through the Assets module
+
+The system must not force asset finance interest to reconcile exactly to P&L interest.
+
+The system must not rebuild past asset interest from Assets purely to correct historical P&L values.
+
+Any mismatch between P&L reported interest and Assets modelled interest is informational only and belongs to Module Reconciliation / Model Readiness.
+
+---
+
+## CASH FLOW BOUNDARY
+
+P&L does not model cash flow.
+
+Principal repayments do not belong in the P&L page as operating cost.
+
+Principal repayments may be captured or modelled later in a Cash Flow layer.
+
+P&L must not include principal repayments in Cost Summary benchmark totals unless those amounts are explicitly present in the imported accounting data and classified for reconciliation only.
+
+Principal must not feed Cost Summary through P&L.
+
+Cash Flow later may consume asset finance payment information separately.
+
+---
+
+## READINESS RULE
+
+pnl_ready = true only when:
+
+* P&L data exists
+* required macro lines are classified
+* unassigned_balance = 0
+* no active employee_overheads category remains
+* benchmark totals are available where required
+
+Micro / activity classifications are not required for pnl_ready in v3.7.
+
+Optional micro classifications may be incomplete without blocking P&L readiness.
+
+For monthly actuals later:
+
+monthly_actual_ready = true only when:
+
+* accounting period exists
+* P&L lines exist for the period
+* required macro lines are classified
+* no blocking unassigned balance remains for that period
+
+---
+
+## P&L BENCHMARKS
+
+P&L may provide:
+
+* income benchmark
+* COGS / direct cost benchmark
+* labour benchmark
+* assets benchmark
+* general overheads benchmark
+* total business cost benchmark
+
+These are reference values.
+
+They are used for reconciliation and review.
+
+They do not override specialised module outputs.
+
+They do not directly feed Cost Summary calculations.
+
+---
+
+## MODULE OWNERSHIP RULES
+
+P&L provides benchmark and classification context only.
+
+Labour owns:
+
+* labour cost
+* employer contributions
+* ACC levy
+* productive output
+* final productive hours
+
+Assets owns:
+
+* asset ownership cost
+* asset finance interest
+* lease cost
+* depreciation / ownership cost
+* total_asset_cost_annual
+
+General Overheads owns:
+
+* general overhead total
+* non-asset running costs
+* vehicle running costs
+* other non-asset interest where applicable
+
+Revenue / COGS owns:
+
+* margin pool calculation
+
+Cost Summary owns:
+
+* total operating cost burden
+* required recovery rate
+
+Business Summary owns:
+
+* current business position / mirror
+
+Business Modelling owns:
+
+* baseline and scenarios
+
+Quote Engine owns:
+
+* quote-level prediction testing
+* quote versions
+* accepted quote snapshots
+
+Feedback Loop later owns:
+
+* prediction vs reality comparison
+
+Cash Flow later owns:
+
+* principal repayments
+* finance payment pressure
+* liquidity view
+
+---
+
+## CORE RULES
+
+* employer ACC levy belongs to Labour, not General Overheads
+* vehicle running costs belong to General Overheads, not Assets
+* asset ownership costs belong to Assets, not General Overheads
+* asset finance interest belongs to Assets, not P&L authority
+* non-asset interest may remain in General Overheads
+* staff overheads belong to General Overheads as category only
+* Employee Overheads is removed
+* Staff Overheads is not a module
+* COGS / Direct Costs belong to Revenue / COGS later, not Cost Summary
+* principal repayments belong to Cash Flow later, not Cost Summary
+* accepted quote snapshots belong to Quote Engine / Feedback Loop, not P&L
+* monthly actuals belong to P&L / Revenue / COGS reality layer, not Quote Engine
+
+---
+
+## USER EXPERIENCE
+
+The P&L page should make classification easy.
+
+The user should be able to see:
+
+* category totals
+* income total
+* COGS / direct cost total
+* unassigned balance
+* imported P&L line items
+* classification status
+* setup progress
+* optional activity / micro category where useful
+* later, accounting period and import source
+
+The page should not become the place where recovery, pricing, cost summary, feedback-loop comparison, or cash-flow decisions are made.
+
+The UI should support:
+
+* simple macro classification first
+* optional activity capture second
+* no requirement to perfect micro classification before continuing
+* future period-based import review
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**P&L is historical financial reality.**
+
+**P&L classifies what happened; it does not decide what should happen next.**
+
+**P&L prepares income and direct costs for Revenue / COGS.**
+
+**Quote Engine records what we believed. P&L records what happened. Feedback Loop compares the two.**
+
+**Monthly actuals are reality inputs, not quote predictions.**
+
+---
+
+## NOT ALLOWED
+
+P&L must not:
+
+* calculate margin_pool
+* calculate gross_margin_percent
+* calculate net_position
+* calculate required_recovery_rate
+* calculate quote_gap
+* calculate accepted quote variance
+* calculate monthly feedback results
+* decide if a quote was right or wrong
+* overwrite accepted quote snapshots
+* mutate Quote Engine records
+* perform job-level costing in V1
+* treat P&L values as final specialised module truth
+* override Labour, Assets, or General Overheads outputs
+* model cash flow
+* include principal repayments in operating cost model
+* become Revenue / COGS
+* become Business Summary
+* become Quote Engine
+* become Feedback Loop
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only unless the existing implementation is missing required period fields.
+
+### Must update
+
+* Clarify P&L as historical reality and classification layer
+* Clarify monthly actuals preparation role
+* Clarify Quote Engine prediction vs P&L reality boundary
+* Clarify Feedback Loop boundary
+* Add future period fields where useful
+* Confirm P&L does not calculate margin_pool or feedback results
+
+### Do not update
+
+* No Revenue / COGS calculation logic
+* No Cost Summary logic
+* No Business Summary logic
+* No Quote Engine logic
+* No accepted quote snapshot storage
+* No feedback-loop comparison logic
+* No job-level actual costing
+* No cash-flow logic
+
+---
+
+## DEFINITION OF DONE
+
+P&L v3.7 is complete when:
+
+* it remains raw financial reality and classification only
+* it prepares Revenue / COGS classified inputs
+* it supports future monthly actuals by period
+* it keeps prediction and reality separate
+* it does not calculate downstream business outcomes
+* it does not contain quote-level logic
+* it does not perform feedback-loop analysis
+* it shows explicit classification readiness
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+P&L v3.7 is the raw financial input, classification, and future monthly actuals preparation layer.
+
+It provides benchmark totals, macro classification, optional micro classification, readiness state, and period-based actuals context.
+
+Specialised modules remain the source of truth for downstream Cost Summary calculations.
+
+Revenue / COGS uses P&L classified income and direct costs to calculate Margin Pool.
+
+Quote Engine records predictions.
+
+P&L records reality.
+
+The future Feedback Loop compares them.

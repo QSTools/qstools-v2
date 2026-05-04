@@ -1,0 +1,667 @@
+# QS Tools — Cost Summary Module Brief
+
+## v3.7 — QUOTE ENGINE AND BUSINESS BASELINE UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 13
+**REPLACES:** Cost Summary v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR BUSINESS SUMMARY, QUOTE ENGINE, AND FEEDBACK LOOP BOUNDARY
+
+---
+
+## PURPOSE
+
+Cost Summary combines locked upstream cost engines into a single total operating cost burden.
+
+Cost Summary answers:
+
+**What does the business cost to run?**
+
+It does not answer:
+
+* how should the business recover it?
+* what revenue did the business generate?
+* what direct costs / COGS did the business incur?
+* what profit target should be applied?
+* what should a quote be priced at?
+* whether a quote should be accepted?
+* whether accepted quotes matched monthly actuals?
+
+Those belong to downstream commercial layers.
+
+---
+
+## PRODUCT ROLE
+
+Cost Summary is the business baseline engine.
+
+It defines the forward-looking operating cost burden that later pages test against.
+
+It is not a P&L page.
+
+It is not Revenue / COGS.
+
+It is not Business Summary.
+
+It is not Business Modelling.
+
+It is not Quote Engine.
+
+It is not Feedback Loop.
+
+Core idea:
+
+**Cost Summary defines the business cost baseline. Quote Engine tests quotes against that baseline.**
+
+---
+
+## CLEAN ROLE SPLIT
+
+P&L = historical financial reality and classification
+Revenue / COGS = what trading produces
+Labour / Assets / General Overheads = source cost engines
+Model Readiness = trust gate
+Cost Summary = what the business costs
+Business Summary = current business mirror
+Business Modelling = scenario benchmark
+Quote Engine = quote-level leak detection
+Feedback Loop later = accepted predictions vs monthly actuals
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+P&L
+↓
+Revenue / COGS
+↓
+General Overheads / Labour / Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+---
+
+## CORE ROLE
+
+Cost Summary is a read-only aggregation layer.
+
+It consumes source-of-truth totals from:
+
+* Labour
+* Assets
+* General Overheads
+* Model Readiness
+
+It displays:
+
+* total operating cost burden
+* total productive output
+* required recovery rate
+* model readiness / trust state
+
+Cost Summary is macro-first.
+
+It must show the result clearly before any drilldown detail.
+
+---
+
+## REQUIRED INPUTS
+
+### From Labour
+
+* total_labour_cost_annual
+* total_gross_wages_annual
+* total_entitlements_annual
+* total_employer_kiwisaver_annual
+* total_esct_annual
+* total_acc_levy_annual
+* total_employer_contribution_annual
+* total_productive_output
+
+### From Assets
+
+* total_asset_cost_annual
+* total_asset_interest_annual where available as supporting display detail only
+
+### From General Overheads
+
+* total_general_overheads
+
+### From Model Readiness
+
+* model_ready
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+* model_readiness_status
+
+---
+
+## REMOVED INPUTS
+
+Cost Summary must not consume:
+
+* employee_overheads_total
+* total_employee_overheads_annual
+* employee_overheads_total_annual
+* employee_overheads_ready
+* staff_overheads_total
+* running_cost_annual
+* raw P&L lines
+* P&L benchmark values as calculation inputs
+* P&L interest as asset finance authority
+* historical P&L asset interest
+* principal repayments
+* Cost Allocation outputs
+* Recovery Summary outputs unless a later architecture brief reinstates that layer
+* Scenario outputs
+* active_revenue_model
+* active_asset_labour_links
+* Revenue / COGS outputs
+* Business Summary outputs
+* Business Modelling outputs
+* Quote Engine outputs
+* accepted quote snapshots
+* monthly actuals
+* feedback-loop outputs
+
+---
+
+## FORWARD-LOOKING COST RULE
+
+Cost Summary is forward-looking.
+
+It is not a historical reconstruction of the P&L.
+
+Cost Summary uses current / forward-looking upstream module outputs to determine what the business needs to recover going forward.
+
+Past P&L values may inform setup and reconciliation, but they must not override locked module outputs.
+
+---
+
+## ASSET COST RULE
+
+Assets is the source of truth for asset ownership cost.
+
+Cost Summary must consume:
+
+* total_asset_cost_annual
+
+Cost Summary may display:
+
+* total_asset_interest_annual
+
+Cost Summary must not recalculate asset interest.
+
+Cost Summary must not use P&L interest as the source of truth for asset finance.
+
+If the P&L interest category includes asset finance, that P&L value is treated as historical context only.
+
+Asset finance interest must come from the Assets module.
+
+---
+
+## CASH FLOW SEPARATION RULE
+
+Principal repayments are real cash pressure but are not operating cost.
+
+Principal must not feed:
+
+* total_asset_cost_annual
+* total_cost_burden
+* required_recovery_rate
+* Cost Summary calculations
+
+Principal belongs in a future Cash Flow layer.
+
+Cost Summary may not include principal repayments as part of operating cost.
+
+Interest belongs in asset cost.
+
+Principal belongs in Cash Flow.
+
+---
+
+## CORE FORMULAS
+
+total_people_cost_annual =
+total_labour_cost_annual
+
+total_business_overheads =
+total_general_overheads
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
+
+* total_asset_cost_annual
+* total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+warning required
+
+---
+
+## PRODUCTIVE OUTPUT RULE
+
+Cost Summary must use Labour’s final productive output.
+
+This must be the post-entitlement, post-productivity output.
+
+Cost Summary must not use:
+
+* paid hours
+* raw working hours
+* pre-productivity hours
+* estimated hours created inside Cost Summary
+* total staff hours including non-productive roles unless Labour has explicitly classified them as productive output
+
+If total_productive_output is missing or zero, Cost Summary must warn and set required_recovery_rate to 0.
+
+---
+
+## REQUIRED RECOVERY RATE WORDING
+
+Required Recovery Rate must be explained clearly.
+
+Use:
+
+**This is not a labour charge-out rate.**
+
+**This is the business break-even pressure per productive hour.**
+
+**It shows what the business must recover across productive hours to carry its operating cost burden.**
+
+Do not imply:
+
+* this is what every staff member should be charged out at
+* this is quote price
+* this is profit
+* this is a recommendation
+
+---
+
+## INTERNAL LABOUR PRINCIPLE
+
+This principle must be visible:
+
+**All staff cost must be recovered. Only productive staff hours can recover it.**
+
+Cost Summary should explain why productive hours are the denominator.
+
+All business cost is real cost.
+
+Only productive output can carry that cost.
+
+---
+
+## PEOPLE COST DISPLAY
+
+Show:
+
+* Gross Wages
+* Entitlements
+* Employer KiwiSaver
+* ESCT
+* Employer ACC Levy
+* Employer Contribution Total
+* Total People Cost
+
+Source of truth:
+
+total_people_cost_annual = total_labour_cost_annual
+
+Cost Summary may display Labour components for transparency but must not rebuild Labour maths.
+
+Cost Summary must use Labour’s final productive output after entitlement and productivity logic has already been applied.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours as the recovery denominator.
+
+---
+
+## BUSINESS COST DISPLAY
+
+Show macro lines:
+
+* Asset Cost
+* General Overheads
+* Total Business Cost
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+Asset interest may appear inside an Assets drilldown only.
+
+Other / non-asset interest may appear inside a General Overheads drilldown only.
+
+The main Cost Summary view must remain simple and macro-first.
+
+---
+
+## TOTAL COST DISPLAY
+
+Show:
+
+* Total People Cost
+* Total Asset Cost
+* Total General Overheads
+* Total Cost Burden
+* Total Productive Output
+* Required Revenue
+* Required Recovery Rate
+
+Required Recovery Rate is the key Cost Summary output.
+
+It represents:
+
+total operating cost burden ÷ final productive output
+
+---
+
+## COST SUMMARY UI PRINCIPLE
+
+Cost Summary must use:
+
+**Results first. Detail on demand.**
+
+Top-level display should prioritise:
+
+* Total Operating Cost
+* Total Productive Hours
+* Required Recovery Rate
+
+Supporting detail should be available through drilldown / expandable sections.
+
+Cost Summary must not become a detailed P&L review page.
+
+---
+
+## MODEL READINESS DISPLAY
+
+Cost Summary must show Model Readiness state.
+
+If model_ready = false:
+
+* totals may display
+* totals must be marked not trusted
+* blocking modules must be visible
+* warning modules must be visible
+* downstream outputs must not be treated as final
+
+If model_ready = true and model_readiness_status = warning:
+
+* totals may be used
+* warnings remain visible
+
+If model_ready = true and model_readiness_status = ready:
+
+* totals are trusted
+
+---
+
+## WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Do not show vague wording like:
+
+“1 warning”
+
+Instead show what the issue is.
+
+Minimum warnings:
+
+* no_total_productive_output
+* no_total_cost_burden
+* no_required_recovery_rate
+* model_not_ready
+* model_ready_with_warnings
+* upstream_labour_not_ready
+* upstream_assets_not_ready
+* upstream_general_overheads_not_ready
+* principal_detected_in_operating_cost
+* running_cost_detected_in_assets
+
+---
+
+## RECONCILIATION RULE
+
+Cost Summary does not own reconciliation.
+
+Cost Summary may display reconciliation status from Module Reconciliation / Model Readiness.
+
+Module Reconciliation owns P&L benchmark comparison.
+
+P&L benchmark totals must not drive Cost Summary calculations.
+
+If mismatch exists:
+
+* show warning / error state from Module Reconciliation
+* do not silently ignore
+* do not alter Cost Summary totals
+
+---
+
+## REVENUE / COGS BOUNDARY
+
+Cost Summary must not include:
+
+* Revenue
+* Direct Costs
+* COGS
+* Margin Pool
+* Gross Margin
+* Target Profit
+* Quote Margin
+* Sale price logic
+
+Revenue / COGS owns:
+
+Revenue - Direct Costs = Margin Pool
+
+Business Summary later compares:
+
+Margin Pool - Total Cost Burden = Net Position
+
+Cost Summary only produces the operating burden side of that comparison.
+
+---
+
+## BUSINESS SUMMARY BOUNDARY
+
+Business Summary consumes Cost Summary outputs.
+
+Cost Summary must not consume Business Summary.
+
+Business Summary answers whether trading Margin Pool carries the operating cost burden.
+
+Cost Summary only defines the operating cost burden.
+
+---
+
+## BUSINESS MODELLING BOUNDARY
+
+Business Modelling may copy Cost Summary outputs into a scenario baseline through Business Summary.
+
+Business Modelling must not mutate Cost Summary.
+
+Scenario adjustments must not overwrite Cost Summary source outputs.
+
+---
+
+## QUOTE ENGINE BOUNDARY
+
+Quote Engine consumes Cost Summary baseline outputs directly or through Business Summary / Business Modelling.
+
+Quote Engine must not:
+
+* recalculate Cost Summary
+* alter required_recovery_rate
+* alter total_cost_burden
+* alter total_productive_output
+* treat required_recovery_rate as a labour charge-out rate
+* use Cost Summary as quote price
+* store accepted quote snapshots inside Cost Summary
+
+Quote Engine uses Cost Summary to test whether a quote supports the business baseline.
+
+---
+
+## FEEDBACK LOOP / MONTHLY ACTUALS BOUNDARY
+
+The Feedback Loop belongs later.
+
+Monthly actuals must not overwrite Cost Summary outputs automatically.
+
+If actuals reveal drift, updates to Cost Summary source modules must be explicit.
+
+Cost Summary remains the forward-looking operating cost baseline.
+
+Monthly actuals remain historical reality.
+
+---
+
+## NOT ALLOWED
+
+Cost Summary must not:
+
+* recalculate Labour
+* recalculate ACC
+* recalculate Assets
+* recalculate asset interest
+* recalculate General Overheads
+* consume raw P&L lines
+* consume P&L benchmark as calculation input
+* use P&L interest as the source of truth for asset finance
+* consume Employee Overheads
+* consume Staff Overheads as a separate total
+* consume running_cost_annual
+* consume principal repayments
+* define recovery strategy
+* define pricing
+* define capacity
+* define cash flow
+* consume Scenario outputs
+* consume Revenue / COGS outputs
+* consume Business Summary outputs
+* consume Quote Engine outputs
+* consume accepted quote snapshots
+* consume monthly actuals
+* perform feedback-loop comparison
+
+---
+
+## DOWNSTREAM HANDOFF
+
+Cost Summary outputs feed downstream modules.
+
+Required downstream outputs:
+
+* total_cost_burden
+* total_productive_output
+* required_recovery_rate
+* total_people_cost_annual
+* total_asset_cost_annual
+* total_business_overheads
+* total_business_cost_annual
+* model_ready
+* model_readiness_status
+
+Downstream modules must consume these outputs unchanged.
+
+Cost Summary must not reshape itself for downstream assumptions.
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**Cost Summary shows what the business costs to run.**
+
+**Required Recovery Rate is not a labour charge-out rate.**
+
+**It is the business break-even pressure per productive hour.**
+
+**All staff cost must be recovered. Only productive staff hours can recover it.**
+
+**Cost Summary defines the baseline. Quote Engine tests quotes against it.**
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only unless the current implementation is missing required display values or explicit warnings.
+
+### Must update
+
+* Clarify required recovery rate wording
+* Clarify all staff cost / productive hours principle
+* Clarify Business Summary boundary
+* Clarify Business Modelling boundary
+* Clarify Quote Engine boundary
+* Clarify Feedback Loop / Monthly Actuals boundary
+* Show explicit warning messages
+
+### Do not update
+
+* No Quote Engine calculations
+* No accepted quote snapshot logic
+* No monthly feedback comparison logic
+* No Revenue / COGS formulas
+* No cash-flow logic
+* No upstream module formula changes
+
+---
+
+## DEFINITION OF DONE
+
+Cost Summary v3.7 is complete when:
+
+* it shows Total Operating Cost, Total Productive Hours, and Required Recovery Rate clearly
+* Required Recovery Rate is explained as business break-even pressure per productive hour
+* all staff cost / productive hours wording is visible
+* warnings are explicit
+* Model Readiness trust state is visible
+* downstream outputs remain unchanged
+* no quote logic exists
+* no feedback-loop logic exists
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Cost Summary v3.7 is a read-only, forward-looking aggregation layer that consumes Labour, Assets, General Overheads, and Model Readiness outputs only.
+
+It produces total operating cost burden, total productive output, and required recovery rate without reclassifying, distributing, pricing, modelling, or reconstructing historical P&L values.
+
+Cost Summary defines the cost of operating the business going forward and provides the baseline that Business Summary, Business Modelling, and Quote Engine test against.

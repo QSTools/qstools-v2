@@ -1,0 +1,838 @@
+# QS Tools — Revenue / COGS Brief
+
+## v3.7 — MARGIN POOL BOUNDARY UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 19
+**REPLACES:** Revenue / COGS v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR BUSINESS SUMMARY AND QUOTE ENGINE BOUNDARY
+
+---
+
+## PURPOSE
+
+Revenue / COGS is the trading-side summary layer.
+
+It calculates the margin pool created by the business before operating cost burden is applied.
+
+Revenue / COGS answers:
+
+**What did the business generate after direct costs?**
+
+It answers:
+
+* what did the business sell?
+* what did the business directly spend to create those sales?
+* what margin pool was left?
+
+It does not answer:
+
+* what does the business cost to run?
+* is the business currently viable?
+* what should the user change?
+* what quote should be accepted?
+* what scenario should be modelled?
+* what cash-flow pressure exists?
+
+Those belong to other layers.
+
+Revenue / COGS v3.6 already defined this page as the trading-side summary layer that calculates Revenue - Direct Costs = Margin Pool. This v3.7 update preserves that role and clarifies that Margin Pool is the core output consumed by Business Summary and later applied at quote level by Quote Engine.
+
+---
+
+## PRODUCT ROLE
+
+Revenue / COGS is not a P&L replacement.
+
+Revenue / COGS is not Cost Summary.
+
+Revenue / COGS is not Business Summary.
+
+Revenue / COGS is not Quote Engine.
+
+Revenue / COGS is the trading margin layer.
+
+It tells the user:
+
+**This is what trading produced before operating cost burden was applied.**
+
+The page should help answer:
+
+**How much margin pool is the business creating from its revenue and direct costs?**
+
+---
+
+## CLEAN ROLE SPLIT
+
+Revenue / COGS = what trading produces
+Cost Summary = what the business costs
+Business Summary = whether trading carries cost
+Business Modelling = what the business could become
+Quote Engine = whether an individual quote creates enough recovery pool
+Monthly Actuals later = whether accepted quote predictions matched reality
+
+Revenue / COGS owns the margin pool concept at business level.
+
+Quote Engine later applies the same concept at quote level.
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+Simplified role chain:
+
+P&L classification = source trading data
+Revenue / COGS = margin pool
+Cost Summary = operating cost burden
+Business Summary = margin pool vs cost burden
+Quote Engine = quote margin pool vs business requirement
+
+---
+
+## CORE ROLE
+
+Revenue / COGS owns the trading-side calculation:
+
+Revenue
+
+* Direct Costs
+  = Margin Pool
+
+It does not own operating cost.
+
+It does not own Cost Summary.
+
+It does not own pricing.
+
+It does not own recovery strategy.
+
+It does not own modelling scenarios.
+
+It must remain simple, macro-first, and classification-driven.
+
+---
+
+## KEY USER-FACING IDEA
+
+Revenue / COGS should make this clear:
+
+**Margin Pool is what remains after direct costs.**
+
+And:
+
+**Margin Pool is not final profit. It is the pool available to carry operating cost burden.**
+
+And:
+
+**Gross margin is not proof that the business is profitable.**
+
+---
+
+## WHY THIS PAGE MATTERS
+
+A P&L shows accounting lines.
+
+Revenue / COGS turns the trading side into a clear commercial structure:
+
+Revenue
+vs
+Direct Costs
+vs
+Margin Pool
+
+This margin pool is then compared against operating cost burden in Business Summary.
+
+The page should make the trading engine obvious without becoming a detailed transaction review tool.
+
+---
+
+## WHAT THIS PAGE ANSWERS
+
+Revenue / COGS answers:
+
+* What revenue did the business generate?
+* What direct costs were required to create that revenue?
+* What margin pool was left?
+* What gross margin percentage was produced?
+* Are trading lines classified well enough to trust the margin pool?
+* Which revenue and direct cost categories are contributing to the result?
+
+---
+
+## WHAT THIS PAGE DOES NOT ANSWER
+
+Revenue / COGS does not answer:
+
+* does the margin pool cover operating cost burden?
+* is the business viable?
+* what should the user change?
+* how should the user price?
+* should a quote be accepted?
+* what scenario should be selected?
+* what cash-flow pressure exists?
+* did a specific job perform correctly?
+
+Those belong elsewhere:
+
+Business Summary = margin pool vs operating cost burden
+Business Modelling = scenario testing
+Quote Engine = individual quote leak detection
+Production Capacity = delivery ability
+Cash Flow = liquidity pressure
+Monthly Actuals / Feedback = prediction vs reality over time
+
+---
+
+## REQUIRED INPUTS
+
+### From P&L
+
+Revenue / COGS consumes classified P&L outputs only:
+
+* income_benchmark_total
+* cogs_benchmark_total
+* direct_cost_benchmark_total where available
+* classified income / revenue lines
+* classified COGS / direct cost lines
+
+P&L remains the source of classified trading data.
+
+Revenue / COGS must not mutate P&L classifications.
+
+---
+
+## OPTIONAL DISPLAY INPUTS
+
+Revenue / COGS may display:
+
+* revenue_category_totals
+* direct_cost_category_totals
+* COGS / Direct Cost category breakdown
+* review-required COGS items
+* excluded trading lines where useful
+* optional activity detail where available
+
+These are for transparency only.
+
+They must not change the core calculation unless a later locked brief explicitly promotes them.
+
+---
+
+## OUTPUT CONTRACT
+
+Revenue / COGS outputs:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* revenue_cogs_ready
+* revenue_cogs_warnings
+
+Optional display outputs:
+
+* revenue_category_totals
+* direct_cost_category_totals
+* revenue_lines
+* direct_cost_lines
+* review_required_lines
+* excluded_trading_lines
+
+---
+
+## CORE FORMULAS
+
+### Margin Pool
+
+margin_pool = total_revenue - total_direct_costs
+
+---
+
+### Gross Margin Percent
+
+gross_margin_percent = margin_pool / total_revenue
+
+If total_revenue = 0:
+
+gross_margin_percent = 0
+
+warning required.
+
+---
+
+## MARGIN POOL DEFINITION
+
+Margin Pool is the amount left after direct costs are removed from revenue.
+
+It is not final profit.
+
+It is not net position.
+
+It is not target profit.
+
+It is not quote margin.
+
+It is not the same as cash flow.
+
+Margin Pool is the pool available to recover:
+
+* Labour cost
+* General Overheads
+* Asset ownership cost
+* business operating burden
+* target profit later
+
+Business Summary later compares Margin Pool against Cost Summary’s operating cost burden.
+
+Quote Engine later applies the same Margin Pool concept to an individual quote.
+
+---
+
+## GROSS MARGIN RULE
+
+Gross margin is not proof of profit.
+
+Revenue / COGS may display gross_margin_percent, but it must not imply that positive gross margin means the business is commercially healthy.
+
+A business can have positive gross margin and still fail to carry operating cost burden.
+
+Business Summary owns the next test.
+
+Quote Engine owns the quote-level test.
+
+---
+
+## DIRECT COST / COGS DEFINITION
+
+Direct Costs / COGS may include:
+
+* materials
+* subcontractors
+* hired equipment / plant for delivery
+* freight / cartage directly related to jobs
+* waste / tipping directly related to jobs
+* direct consumables
+* other direct job costs
+
+Direct Costs / COGS must not include:
+
+* internal Labour module cost unless explicitly represented as direct job labour under a later locked rule
+* General Overheads
+* asset ownership cost
+* asset finance interest
+* vehicle running overheads unless directly classified as job COGS
+* principal repayments
+* cash-flow pressure
+* target profit
+* pricing margin
+
+---
+
+## SUBCONTRACT LABOUR RULE
+
+Subcontract labour may appear in COGS / Direct Costs.
+
+Subcontract labour is external labour cost.
+
+It must not be confused with internal productive labour capacity.
+
+Subcontract labour must not be treated as internal Labour module recovery unless a later locked brief explicitly allows that treatment.
+
+Future quote and recovery analysis should distinguish:
+
+* internal labour recovery
+* subcontract labour cost
+* total labour content
+* internal vs external labour mix
+
+---
+
+## INTERNAL LABOUR BOUNDARY
+
+Revenue / COGS must not rebuild Labour module cost.
+
+Revenue / COGS must not calculate productive labour cost.
+
+Revenue / COGS must not calculate required recovery rate.
+
+Internal Labour remains owned by Labour and Cost Summary.
+
+Revenue / COGS only classifies and summarises the trading side of the P&L.
+
+---
+
+## MACRO CLASSIFICATION RULE
+
+Revenue / COGS uses macro P&L classification only in v3.7.
+
+Active classifications:
+
+* income
+* cogs
+* direct_cost where available
+
+Optional micro / activity categories may be stored for future insight, but they must not drive Revenue / COGS calculations in v3.7.
+
+Rule:
+
+Macro classification = active calculation input.
+
+Micro classification = optional stored detail.
+
+---
+
+## MICRO / ACTIVITY CLASSIFICATION RULE
+
+The P&L may capture optional activity categories such as:
+
+* concrete
+* excavation
+* subcontract type
+* supplier group
+* delivery category
+* user-defined business activity
+
+Revenue / COGS must not rely on those categories in v3.7.
+
+They may be displayed as supporting detail only.
+
+They must not be required for readiness.
+
+They must not block Revenue / COGS.
+
+They must not change the margin_pool calculation unless a later locked brief explicitly promotes them.
+
+---
+
+## READINESS RULE
+
+revenue_cogs_ready = true when:
+
+* total_revenue exists
+* total_direct_costs exists
+* required income lines are classified
+* required COGS / direct cost lines are classified
+* no required trading lines remain unassigned
+* no blocking review-required trading items remain unresolved
+
+Optional micro / activity classification is not required for readiness.
+
+If total_revenue = 0, Revenue / COGS may still display, but must show a warning.
+
+---
+
+## WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Do not show vague wording like:
+
+“1 warning”
+
+Instead show what the issue is.
+
+Minimum warnings:
+
+* no_revenue_data
+* no_direct_cost_data
+* no_margin_pool
+* zero_total_revenue
+* negative_margin_pool
+* unclassified_revenue_lines
+* unclassified_direct_cost_lines
+* review_required_trading_lines
+* revenue_cogs_not_ready
+
+Warning wording examples:
+
+* Revenue / COGS has no revenue data.
+* Revenue / COGS has no direct cost data.
+* Gross margin percent is held at 0 because revenue is 0.
+* Some trading lines still need classification.
+* Margin Pool is negative because direct costs exceed revenue.
+
+---
+
+## RELATIONSHIP TO COST SUMMARY
+
+Revenue / COGS does not consume Cost Summary.
+
+Revenue / COGS does not calculate Cost Summary.
+
+Revenue / COGS produces the trading-side output:
+
+* margin_pool
+
+Cost Summary produces the operating-cost outputs:
+
+* total_cost_burden
+* required_recovery_rate
+* total_productive_output
+
+Business Summary later combines them.
+
+Revenue / COGS must not:
+
+* calculate required_recovery_rate
+* calculate total_cost_burden
+* consume Labour internals
+* consume Assets internals
+* consume General Overheads internals
+
+---
+
+## RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary consumes Revenue / COGS outputs:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent where useful
+* revenue_cogs_ready
+* revenue_cogs_warnings
+
+Business Summary then compares:
+
+Margin Pool
+
+* Total Cost Burden
+  = Net Position
+
+Revenue / COGS must not calculate Net Position.
+
+Boundary statement:
+
+**Revenue / COGS creates Margin Pool. Business Summary tests whether that pool carries operating cost burden.**
+
+---
+
+## RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling may later use Revenue / COGS outputs as part of the baseline snapshot.
+
+Revenue / COGS must not create scenarios.
+
+Revenue / COGS must not mutate scenario values.
+
+Revenue / COGS remains the trading-side source layer.
+
+Business Modelling owns scenario copies and deltas.
+
+---
+
+## RELATIONSHIP TO QUOTE ENGINE
+
+Quote Engine later applies the same margin pool concept at quote level.
+
+Revenue / COGS does not price quotes.
+
+Revenue / COGS does not decide whether work should be accepted.
+
+Revenue / COGS does not calculate quote gaps.
+
+Revenue / COGS does not store accepted quote snapshots.
+
+Revenue / COGS provides the business-level concept of Margin Pool that Quote Engine later applies quote-by-quote.
+
+Boundary statement:
+
+**Revenue / COGS shows the business-level trading margin pool. Quote Engine tests whether an individual quote creates enough recovery pool.**
+
+---
+
+## RELATIONSHIP TO MONTHLY ACTUALS / FEEDBACK LOOP
+
+Monthly Actuals / Feedback belongs later.
+
+Revenue / COGS may later be run month-by-month from imported P&L data.
+
+Monthly Revenue / COGS actuals may feed the macro feedback loop.
+
+Future loop:
+
+accepted quote predictions
+vs
+monthly P&L actuals
+vs
+business baseline
+
+Revenue / COGS provides the trading actuals.
+
+It does not perform feedback analysis in V1.
+
+The feedback loop is macro-level first, not job-level first.
+
+Revenue / COGS must not attempt job-level actual costing in V1.
+
+---
+
+## RELATIONSHIP TO CASH FLOW
+
+Revenue / COGS does not calculate cash flow.
+
+Revenue / COGS must not include principal repayments.
+
+Principal repayments are cash-flow pressure and belong to the future Cash Flow layer.
+
+---
+
+## DISPLAY STRUCTURE
+
+Revenue / COGS should be simple and macro-first.
+
+Recommended structure:
+
+1. RevenueCogsStatusStrip
+2. RevenueCogsCard
+3. RevenueCogsHelpPanel
+
+If more detail is needed:
+
+1. Status Strip
+2. Trading Snapshot
+3. Category Breakdown
+4. Supporting Detail / Drilldown
+5. Help Panel
+
+The page should not be a dashboard.
+
+The page should not become a detailed transaction review page.
+
+---
+
+## STATUS STRIP
+
+The status strip may show:
+
+* Revenue / COGS Ready
+* Ready With Warnings
+* Not Trusted / Blocked
+* Total Revenue
+* Margin Pool
+* Gross Margin Percent
+* Warning count
+
+Status wording must remain neutral.
+
+Avoid emotional or judgmental wording.
+
+---
+
+## TRADING SNAPSHOT CARD
+
+The main card must show:
+
+* Revenue
+* Direct Costs
+* Margin Pool
+* Gross Margin Percent
+
+This should be the main top-level commercial snapshot.
+
+Do not clutter this card with too much drilldown.
+
+---
+
+## SUPPORTING DETAIL
+
+Supporting detail may show:
+
+* revenue category totals
+* direct cost category totals
+* supporting P&L revenue lines
+* supporting P&L direct cost lines
+* review-required trading lines
+* optional activity detail
+
+Supporting detail is drilldown only.
+
+Top-level Revenue / COGS must remain simple.
+
+---
+
+## UI / UX PRINCIPLE
+
+The user should not need to interpret a dashboard.
+
+The page should directly show:
+
+* what came in
+* what went out as direct cost
+* what margin pool remained
+* what gross margin percentage was created
+
+The page should be:
+
+* simple
+* factual
+* macro-first
+* drilldown second
+* neutral in tone
+
+---
+
+## WORDING RULES
+
+Use neutral wording.
+
+Use:
+
+* Revenue
+* Direct Costs
+* Margin Pool
+* Gross Margin Percent
+* Trading Result
+* Supporting Detail
+
+Do not use:
+
+* Profit
+* Loss
+* Failure
+* Fix this
+* You should
+* Recommended action
+* Bad quote
+* Good quote
+
+Margin Pool should not be relabelled as profit.
+
+Gross margin should not be presented as proof the business is healthy.
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**Revenue / COGS shows what trading produced before operating costs.**
+
+**Margin Pool is what remains after direct costs.**
+
+**Margin Pool is not final profit. It is the pool available to carry the business.**
+
+**Gross margin is not proof of profit.**
+
+**Business Summary tests whether Margin Pool is enough to carry operating cost burden.**
+
+**Quote Engine later applies the same Margin Pool concept to individual quotes.**
+
+---
+
+## NOT ALLOWED
+
+Revenue / COGS must not:
+
+* consume Labour internals
+* consume Assets internals
+* consume General Overheads internals
+* consume Cost Summary internals to calculate margin_pool
+* calculate required_recovery_rate
+* calculate total_cost_burden
+* calculate Net Position
+* calculate pricing
+* calculate quote gaps
+* calculate quote repair levers
+* store accepted quote snapshots
+* calculate recovery strategy
+* calculate scenarios
+* calculate cash flow
+* use micro / activity classification as a required calculation input in v3.7
+* treat gross margin as proof of profit
+* confuse subcontract labour with internal productive labour
+* include principal repayments
+* become Business Summary
+* become Quote Engine
+* become Monthly Actuals / Feedback
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only unless the existing implementation is missing required display values.
+
+### Must update
+
+* Clarify Revenue / COGS as trading margin layer
+* Clarify that Revenue / COGS owns Margin Pool
+* Clarify that Margin Pool is not final profit
+* Clarify Business Summary boundary
+* Clarify Quote Engine boundary
+* Show explicit warning messages, not just warning count
+* Confirm margin_pool = total_revenue - total_direct_costs
+* Confirm gross_margin_percent safely handles zero revenue
+* Confirm no operating cost or quote logic exists in Revenue / COGS
+
+### Do not update
+
+* No Cost Summary logic
+* No Business Summary logic
+* No quote logic
+* No accepted quote logic
+* No repair levers
+* No scenario editing
+* No cash-flow logic
+* No production capacity logic
+
+---
+
+## DEFINITION OF DONE
+
+Revenue / COGS v3.7 is complete when:
+
+* it clearly shows Revenue, Direct Costs, Margin Pool, and Gross Margin Percent
+* it clearly explains Margin Pool is not final profit
+* it clearly explains gross margin is not proof of business health
+* it shows explicit upstream/classification warnings
+* it remains neutral and factual
+* it does not contain Cost Summary logic
+* it does not contain Business Summary logic
+* it does not contain quote-level logic
+* it does not contain scenario logic
+* it does not contain cash-flow logic
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Revenue / COGS is the trading-side summary layer.
+
+It consumes classified P&L income and direct cost outputs.
+
+It calculates:
+
+Revenue
+
+* Direct Costs
+  = Margin Pool
+
+It does not calculate operating cost, net position, pricing, recovery strategy, scenario modelling, or cash flow.
+
+Revenue / COGS produces the Margin Pool that Business Summary compares against Cost Summary’s operating cost burden, and that Quote Engine later applies at individual quote level.

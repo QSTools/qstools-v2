@@ -1,0 +1,345 @@
+# QS Tools — Code Migration Cleanup Brief
+
+## v3.7 — QUOTE ENGINE AND FEEDBACK LOOP CLEANUP UPDATE
+
+**STATUS:** ACTIVE CLEANUP GUIDE
+**VERSION:** v3.7
+**FILE NUMBER:** 15
+**REPLACES:** Code Migration Cleanup Brief v3.6
+**BUILD STATUS:** ACTIVE / UPDATED FOR DOWNSTREAM BOUNDARY PROTECTION
+
+---
+
+## PURPOSE
+
+This brief defines the code cleanup required to align the live app with the v3.7 source pack.
+
+It extends the v3.6 cleanup rules by adding protection for:
+
+* Revenue / COGS margin pool boundary
+* Business Summary mirror boundary
+* Business Modelling scenario boundary
+* Quote Engine prediction boundary
+* Accepted Quote Snapshot immutability
+* Feedback Loop prediction-vs-reality separation
+
+---
+
+## CLEANUP TARGETS
+
+Remove or migrate all references to:
+
+* Employee Overheads module
+* employee_overheads_ready
+* employee_overheads_total
+* total_employee_overheads_annual
+* employee_overheads_total_annual
+* employee_overheads_benchmark_total
+* employee_overheads_status
+* employee_overheads_variance_amount
+* employee_overheads_variance_percent
+* staff_overheads_total as a downstream output
+* staff_overheads_ready
+* running_cost_annual feeding Assets or Cost Summary
+* Cost Summary consuming raw P&L lines
+* Cost Summary consuming category-specific overhead subtotals
+* Cost Summary performing P&L reconciliation directly
+* Quote Engine rebuilding Cost Summary calculations
+* Quote Engine rebuilding Labour calculations
+* Quote Engine treating gross margin as proof of profit
+* Business Modelling mutating Business Summary or source modules
+* Feedback Loop overwriting accepted quote snapshots
+* Monthly actuals overwriting source module assumptions automatically
+
+---
+
+## REQUIRED SYSTEM LAYERS
+
+Add / preserve:
+
+* Module Reconciliation
+* Model Readiness
+* Revenue / COGS
+* Business Summary
+* Business Modelling
+* Quote Engine later
+* Feedback Loop later
+
+Add temporary diagnostics route where required:
+
+app/dev/model-readiness/page.jsx
+
+Do not add Module Reconciliation or Model Readiness to the main user workflow navigation unless explicitly required later.
+
+---
+
+## FILES TO CREATE OR PRESERVE
+
+### Reconciliation
+
+lib/reconciliation/reconciliationRules.js
+lib/reconciliation/moduleReconciliation.js
+hooks/useModuleReconciliation.js
+
+### Model Readiness
+
+lib/calculations/modelReadinessCalculations.js
+hooks/useModelReadiness.js
+components/model-readiness/ModelReadinessStatusStrip.jsx
+
+### Temporary diagnostics
+
+app/dev/model-readiness/page.jsx
+
+### Revenue / COGS
+
+app/revenue-cogs/page.jsx
+hooks/useRevenueCogs.js
+lib/calculations/revenueCogsCalculations.js
+lib/selectors/revenueCogsSelectors.js
+components/revenue-cogs/*
+
+### Business Summary
+
+app/business-summary/page.jsx
+hooks/useBusinessSummary.js
+lib/calculations/businessSummaryCalculations.js
+lib/selectors/businessSummarySelectors.js
+components/business-summary/*
+
+### Business Modelling
+
+app/business-modelling/page.jsx
+hooks/useBusinessModelling.js
+lib/calculations/businessModellingCalculations.js
+lib/selectors/businessModellingSelectors.js
+lib/storage/businessModellingStorage.js
+components/business-modelling/*
+
+### Quote Engine later
+
+app/quote-engine/page.jsx
+hooks/useQuoteEngine.js
+lib/calculations/quoteEngineCalculations.js
+lib/selectors/quoteEngineSelectors.js
+lib/storage/quoteEngineStorage.js
+components/quote-engine/*
+
+---
+
+## FILES LIKELY TO UPDATE
+
+* hooks/usePnl.js
+* hooks/useGeneralOverheads.js
+* hooks/useLabour.js
+* hooks/useAssets.js
+* hooks/useCostSummary.js
+* hooks/useRevenueCogs.js
+* hooks/useBusinessSummary.js
+* hooks/useBusinessModelling.js
+* app/cost-summary/page.jsx
+* components/cost-summary/*
+* lib/calculations/costSummaryCalculations.js
+* lib/storage/*
+* sidebar/navigation config, if dev link is temporarily required
+
+---
+
+## MIGRATION RULES
+
+### Employee Overheads
+
+Employee Overheads is removed.
+
+Legacy references must be deleted or remapped to General Overheads.
+
+---
+
+### Staff Overheads
+
+Staff Overheads is category-only inside General Overheads.
+
+Do not expose Staff Overheads as a standalone module, output, readiness flag, Cost Summary input, Quote Engine input, or Feedback Loop input.
+
+---
+
+### Assets Running Costs
+
+Remove running costs from Assets.
+
+If running_cost_annual still exists during migration:
+
+* mark legacy
+* do not include in total_asset_cost_annual
+* do not pass to Cost Summary
+* migrate to General Overheads where appropriate
+
+---
+
+### Cost Summary
+
+Cost Summary must consume only:
+
+* total_labour_cost_annual
+* total_asset_cost_annual
+* total_general_overheads
+* total_productive_output
+* model readiness outputs
+
+Cost Summary must not consume raw P&L lines.
+
+Cost Summary must not own reconciliation.
+
+Cost Summary must not consume quote, accepted snapshot, or monthly actuals data.
+
+---
+
+### Revenue / COGS
+
+Revenue / COGS owns:
+
+Revenue - Direct Costs = Margin Pool
+
+Revenue / COGS must not:
+
+* calculate Cost Summary
+* calculate Net Position
+* calculate quote gaps
+* calculate recovery requirements
+* treat gross margin as final profit
+* consume Labour, Assets, or General Overheads internals
+
+---
+
+### Business Summary
+
+Business Summary owns:
+
+Margin Pool - Operating Cost Burden = Net Position
+
+Business Summary must not:
+
+* test individual quotes
+* create repair levers
+* store accepted quote snapshots
+* mutate Revenue / COGS
+* mutate Cost Summary
+* become Business Modelling
+
+---
+
+### Business Modelling
+
+Business Modelling owns scenario copies.
+
+Business Modelling must not:
+
+* mutate Business Summary
+* mutate Cost Summary
+* mutate Labour
+* mutate Assets
+* mutate General Overheads
+* mutate Revenue / COGS
+* price quotes
+* store accepted quote snapshots
+* perform feedback-loop comparison
+
+---
+
+### Quote Engine
+
+Quote Engine owns quote-level leak detection.
+
+Quote Engine must not:
+
+* rebuild Cost Summary
+* rebuild Labour
+* rebuild Revenue / COGS
+* rebuild Business Summary
+* mutate Business Modelling scenarios
+* treat gross margin as proof of profit
+* overwrite accepted quote snapshots
+* consume monthly actuals
+
+---
+
+### Accepted Quote Snapshots
+
+Accepted quote snapshots must be immutable.
+
+Draft and revised quote versions may change.
+
+Accepted versions must freeze.
+
+Only accepted quote snapshots enter the future Feedback Loop.
+
+---
+
+### Feedback Loop
+
+Feedback Loop owns prediction-vs-reality comparison later.
+
+Feedback Loop must not:
+
+* overwrite accepted quote snapshots
+* overwrite monthly actuals
+* mutate source modules automatically
+* perform job-level costing in V1
+* act like machine learning
+* invent rules
+
+---
+
+## TESTING CHECKLIST
+
+Before pushing:
+
+* P&L still loads
+* General Overheads still loads
+* Labour still loads
+* Assets still loads
+* Module Reconciliation returns checks
+* Model Readiness returns ready / warning / blocked
+* Dev diagnostics page renders
+* Cost Summary does not break
+* Revenue / COGS margin_pool is separate from Cost Summary
+* Business Summary consumes Revenue / COGS and Cost Summary only
+* Business Modelling does not mutate source modules
+* Quote Engine does not rebuild upstream maths
+* no employee_overheads variables remain in active contracts
+* running_cost_annual does not feed Cost Summary
+* ACC appears in Labour contract
+* ModelReadinessStatusStrip can render all three states
+* warnings are explicit, not only counts
+* accepted quote snapshot fields are immutable when implemented
+* monthly actuals are stored separately when implemented
+
+---
+
+## NOT ALLOWED
+
+The codebase must not:
+
+* leave active employee_overheads contracts
+* expose Staff Overheads as standalone downstream output
+* let running_cost_annual feed Assets total or Cost Summary
+* let Cost Summary own reconciliation
+* let Revenue / COGS calculate Net Position
+* let Business Summary price quotes
+* let Business Modelling mutate source modules
+* let Quote Engine rebuild upstream maths
+* let Feedback Loop overwrite accepted quote snapshots
+* let monthly actuals overwrite baseline assumptions automatically
+* hide model readiness trust state
+
+---
+
+## FINAL DEFINITION
+
+The v3.7 migration removes legacy overhead structures, separates reconciliation from Cost Summary, preserves the trust gate, and ensures downstream modules only consume clean, approved source-of-truth variables.
+
+It additionally protects the new commercial chain:
+
+Revenue / COGS → Business Summary → Business Modelling → Quote Engine → Accepted Quote Snapshot → Feedback Loop later
+
+so prediction, baseline, scenario, and monthly reality remain cleanly separated.

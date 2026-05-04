@@ -1,0 +1,1831 @@
+Below is the full cut-and-paste updated Quote Engine brief.
+
+---
+
+# QS Tools — Quote Engine Brief
+
+## v3.7 — LEAK DETECTION UPDATED
+
+**STATUS:** UPDATED SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 22
+**REPLACES:** Quote Engine v3.6
+**BUILD STATUS:** READY FOR BASELINE-ONLY BUILD AFTER UPSTREAM FIELD INSPECTION
+
+---
+
+## PURPOSE
+
+The Quote Engine is the quote-level leak detection and repair layer of QS Tools.
+
+It applies the trusted business baseline to an individual quote and answers:
+
+**Does this quote recover what the business actually needs?**
+
+It does not simply calculate a quote.
+
+It tests whether the quote’s price, direct costs, labour allowance, and margin pool actually support the business model.
+
+The core user-facing idea is:
+
+**This quote may not be making the margin you think it is.**
+
+---
+
+## PRODUCT LOCK
+
+QS Tools is a quote leak detection system based on the business reflection created from first principles.
+
+A normal quote tool says:
+
+**Cost + markup = price**
+
+QS Tools says:
+
+**This is your price — but does it recover your actual business?**
+
+The Quote Engine exists to prevent quotes from appearing commercially healthy simply because gross margin is positive.
+
+Gross margin is not proof of profit.
+
+A quote is only commercially healthy if the margin / recovery pool is enough to recover the selected business baseline or model.
+
+This updates the earlier v3.6 direction, which already defined Quote Engine as a future quote-level commercial test layer that applies the trusted business model to individual quotes and tests whether quote margin/recovery pool is enough to recover the selected model. 
+
+---
+
+## BUILD STATUS
+
+Quote Engine is now ready for a **baseline-only first build**, provided upstream field paths are inspected before implementation.
+
+The first build must not wait for full Business Modelling.
+
+The first version should use:
+
+* Cost Summary baseline
+* true labour cost from Labour
+* quote price
+* material cost / sell
+* labour sell / allowed hours
+* direct cost package pool
+
+Business Modelling, upside scenario, downside scenario, monthly actuals, production capacity, and cash flow remain future layers.
+
+---
+
+## SYSTEM POSITION
+
+Current practical build flow:
+
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Quote Engine
+↓
+Business Modelling / Scenarios later
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+Simplified system role:
+
+Business baseline
+↓
+Quote Engine
+↓
+Accepted quote snapshot
+↓
+Monthly actuals feedback loop later
+
+---
+
+## CORE ROLE
+
+Quote Engine applies the business baseline to a quote and shows whether the quote is leaking against the business recovery requirement.
+
+It should not just say:
+
+* pass
+* fail
+* profitable
+* not profitable
+
+It should show:
+
+* quote gap
+* hourly gap
+* max viable hours
+* required price
+* repair levers
+* original quote vs adjusted test quote
+
+The Quote Engine should make the gap visible and allow the user to test what changes would close that gap.
+
+Core behaviour:
+
+**Try changes and watch the gap close.**
+
+---
+
+## WHAT THIS PAGE ANSWERS
+
+Quote Engine answers:
+
+* Does this quote work against the current business baseline?
+* Is the quote making the margin the user thinks it is?
+* Where is the leak?
+* How far away is the quote from working?
+* What needs to change for the quote to work?
+* What happens if price, labour hours, material margin, or direct cost packages change?
+
+Future versions also answer:
+
+* Does this quote work against the upside model?
+* Does this quote survive against the downside model?
+* Does accepted quote performance match monthly actuals over time?
+
+---
+
+## WHAT THIS PAGE DOES NOT ANSWER
+
+Quote Engine does not answer:
+
+* What does the business currently cost?
+* What is the current business position?
+* What scenario should the user model?
+* Can the business physically deliver the work?
+* What cash-flow pressure exists?
+* Did this exact job perform correctly after completion?
+
+Those belong to other layers.
+
+Quote Engine is not:
+
+* a full estimating system
+* a full takeoff system
+* a job-costing module
+* a production capacity tool
+* a cash-flow tool
+* a monthly actuals tool
+
+---
+
+## FIRST BUILD SCOPE
+
+### Must build now
+
+* Quick quote entry
+* Live side card
+* Baseline leak detection
+* Visible calculation build-up
+* Original vs adjusted quote
+* Repair levers
+* Internal labour reality check
+* Material margin check
+* Direct cost package pool check
+* Max viable hours
+* Required price at allowed hours
+* Quote result status
+* Clear warnings
+
+### Should include if simple
+
+* Internal labour allocation rows
+* Direct cost package rows
+* Unit selector
+* Pricing type selector
+* Collapsed drilldown section
+
+### Do not build yet
+
+* Full estimating system
+* Full subcontractor database
+* Full material quantity validation
+* Job schedule tool
+* Production Capacity
+* Cash Flow
+* Xero sync
+* Monthly Actuals
+* Full scenario comparison
+* Multi-user database
+
+---
+
+## PAGE BEHAVIOUR
+
+Quote Engine should follow this page behaviour:
+
+Quick quote entry
+→ live side card
+→ visible calculation build-up
+→ leak result
+→ repair levers
+→ optional drilldown
+
+The first implementation must show the calculation path clearly.
+
+This is required so we can verify that the module is consuming the correct upstream metrics and not inventing or rebuilding values.
+
+---
+
+## USER-FACING CORE STATEMENTS
+
+Use these statements where appropriate:
+
+**This quote may not be making the margin you think it is.**
+
+**QS Tools compares your quote against your actual business recovery baseline.**
+
+**Try changes and watch the gap close.**
+
+**Internal labour is checked against your true labour model.**
+
+**Direct cost packages are checked against the quote allowance pool unless you create specific package allowances.**
+
+**Materials are checked for margin only. QS Tools does not validate material quantities.**
+
+**The quote gap shows whether the margin pool is enough to carry the business for the hours allowed.**
+
+---
+
+## MODULE FILE STRUCTURE
+
+Create:
+
+app/quote-engine/page.jsx
+hooks/useQuoteEngine.js
+lib/calculations/quoteEngineCalculations.js
+lib/selectors/quoteEngineSelectors.js
+lib/storage/quoteEngineStorage.js
+components/quote-engine/QuoteEngineStatusStrip.jsx
+components/quote-engine/QuoteEngineMainCard.jsx
+components/quote-engine/QuoteEngineSideCard.jsx
+components/quote-engine/QuoteEngineBuildUpCard.jsx
+components/quote-engine/QuoteEngineRepairPanel.jsx
+components/quote-engine/QuoteEngineHelpPanel.jsx
+
+Optional later:
+
+components/quote-engine/QuoteEngineInternalLabourCard.jsx
+components/quote-engine/QuoteEngineDirectCostPackagesCard.jsx
+components/quote-engine/QuoteEngineScenarioComparisonCard.jsx
+
+Storage profile file optional later:
+
+lib/storage/quoteEngineProfileStorage.js
+
+---
+
+## ARCHITECTURE RULES
+
+### page.jsx
+
+Allowed:
+
+* layout only
+* calls hook
+* passes props to components
+
+Not allowed:
+
+* calculations
+* data shaping
+* business logic
+
+---
+
+### hook
+
+Allowed:
+
+* gets quote state
+* gets upstream model outputs
+* runs calculations
+* runs selectors
+* returns status, card, side_card, build_up, repair, output_contract
+
+Not allowed:
+
+* formula duplication from upstream modules
+* direct UI-only shaping inside calculations
+
+---
+
+### calculations
+
+Owns:
+
+* all quote maths
+* leak detection maths
+* repair lever maths
+* baseline comparison maths
+* scenario comparison maths later
+
+---
+
+### selectors
+
+Owns:
+
+* status shaping
+* warning text
+* insight text
+* card shaping
+* labels
+* result status messages
+
+---
+
+### components
+
+Allowed:
+
+* render props
+* handle input callbacks
+* display values
+* display warnings
+* display calculation build-up
+
+Not allowed:
+
+* formulas
+* hidden business logic
+* upstream contract renaming
+* deriving totals inside render logic
+
+---
+
+## UPSTREAM INPUTS CONSUMED
+
+### From Cost Summary / Business Summary baseline
+
+Quote Engine needs:
+
+* required_recovery_rate
+* total_productive_output
+* total_cost_burden
+* total_people_cost_annual
+* total_asset_cost_annual
+* total_business_overheads
+
+### From Labour
+
+Quote Engine needs:
+
+* productive_labour_cost_rate
+* charge_out_rate where available
+* labour role/profile outputs later if explicitly needed
+
+Important distinction:
+
+* productive_labour_cost_rate = true labour cost per productive hour
+* required_recovery_rate = whole-business recovery requirement per productive hour
+
+Quote Engine must not ask the user to enter true labour cost if QS Tools already knows it.
+
+### From future Business Modelling
+
+Later Quote Engine may need:
+
+* selected scenario
+* scenario_id
+* scenario_name
+* scenario_type
+* scenario_required_recovery_rate
+* scenario_labour_cost_rate
+* scenario_labour_charge_out_rate
+* scenario_material_margin_percent
+* scenario_productivity_percent
+
+Suggested scenario_type values:
+
+* baseline
+* upside
+* downside
+
+---
+
+## QUOTE IDENTITY VARIABLES
+
+Minimum:
+
+* quote_id
+* job_id
+* job_name
+* quote_name
+* quote_reference
+* quote_date
+* quote_status
+* quote_version
+* created_at
+* updated_at
+
+Suggested quote_status values:
+
+* draft
+* issued
+* revised
+* accepted
+* rejected
+* expired
+* cancelled
+* archived
+
+---
+
+## QUOTE VERSIONING RULE
+
+A job may have multiple quote versions.
+
+Example:
+
+Job: Smith House Slab
+Version 1: initial estimate
+Version 2: revised after client feedback
+Version 3: final submitted price
+Version 4: accepted quote
+
+Only the accepted version becomes the prediction record for the feedback loop.
+
+Drafts and revisions may change.
+
+Accepted versions must freeze.
+
+---
+
+## ACCEPTED QUOTE SNAPSHOT RULE
+
+When a quote version is marked accepted, the system must preserve a locked snapshot.
+
+The accepted snapshot represents:
+
+**What we believed when we priced the job.**
+
+This accepted snapshot must not be overwritten by later edits.
+
+If changes are required after acceptance, create a new version or variation later.
+
+Accepted quote snapshot fields:
+
+* accepted_quote_snapshot_id
+* quote_id
+* job_id
+* accepted_quote_version
+* accepted_date
+* accepted_period_month
+* accepted_period_year
+* accepted_quote_price_total
+* accepted_base_labour_hours_allowed
+* accepted_material_cost_total
+* accepted_material_sell_total
+* accepted_labour_sell_total
+* accepted_direct_cost_package_allowance_total
+* accepted_direct_cost_package_cost_total
+* accepted_direct_cost_total
+* accepted_quote_margin_pool
+* accepted_required_recovery_rate
+* accepted_business_recovery_required_total
+* accepted_quote_gap
+* accepted_hourly_gap
+* accepted_result_status
+* accepted_model_used
+* accepted_model_trust_state
+* snapshot_locked
+
+Rule:
+
+Accepted quote snapshots are immutable.
+
+---
+
+## QUOTE INPUT VARIABLES
+
+Core first-build inputs:
+
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* material_markup_percent
+* labour_sell_total
+* labour_charge_out_rate
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+
+Rules:
+
+material_sell_total may be entered directly
+OR calculated from material_cost_total + material_markup_percent.
+
+labour_sell_total may be entered directly
+OR calculated from labour_charge_out_rate × base_labour_hours_allowed.
+
+Do not ask the user to enter true labour cost.
+
+QS Tools owns true labour cost through the Labour model.
+
+---
+
+## QUOTE OUTPUT CONTRACT
+
+First build outputs:
+
+* quote_revenue
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* labour_sell_total
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* true_labour_cost_total
+* direct_cost_total
+* quote_margin_pool
+* quote_margin_percent
+* business_recovery_required_total
+* achieved_margin_per_hour
+* required_recovery_rate
+* hourly_gap
+* quote_gap
+* max_viable_hours
+* required_price_at_allowed_hours
+* price_gap
+* quote_result_status
+* quote_warnings
+* quote_model_used
+* quote_model_trust_state
+
+Suggested quote_result_status values:
+
+* works
+* marginal
+* leaking
+* invalid
+
+---
+
+## CORE CALCULATIONS
+
+### Labour sell
+
+If entered directly:
+
+labour_sell_total = user input
+
+If entered as rate:
+
+labour_sell_total = labour_charge_out_rate × base_labour_hours_allowed
+
+---
+
+### True labour cost
+
+true_labour_cost_total = base_labour_hours_allowed × model_true_labour_cost_rate
+
+Where:
+
+model_true_labour_cost_rate = productive_labour_cost_rate from Labour
+
+---
+
+### Direct cost total
+
+direct_cost_total =
+material_cost_total
+
+* true_labour_cost_total
+* direct_cost_package_cost_total
+
+---
+
+### Quote margin pool
+
+quote_margin_pool =
+quote_price_total - direct_cost_total
+
+This is the money left to carry the business.
+
+---
+
+### Business recovery required
+
+business_recovery_required_total =
+base_labour_hours_allowed × required_recovery_rate
+
+---
+
+### Achieved margin per hour
+
+achieved_margin_per_hour =
+quote_margin_pool / base_labour_hours_allowed
+
+If base_labour_hours_allowed = 0:
+
+* achieved_margin_per_hour = 0
+* hourly_gap = 0
+* raise no_labour_hours warning
+
+---
+
+### Hourly gap
+
+hourly_gap =
+achieved_margin_per_hour - required_recovery_rate
+
+---
+
+### Quote gap
+
+quote_gap =
+quote_margin_pool - business_recovery_required_total
+
+If positive:
+
+quote clears the baseline
+
+If negative:
+
+quote is leaking against the baseline
+
+---
+
+### Max viable hours
+
+max_viable_hours =
+quote_margin_pool / required_recovery_rate
+
+If required_recovery_rate = 0:
+
+* max_viable_hours = 0
+* raise no_required_recovery_rate warning
+
+---
+
+### Required price at allowed hours
+
+required_price_at_allowed_hours =
+direct_cost_total + business_recovery_required_total
+
+---
+
+### Price gap
+
+price_gap =
+required_price_at_allowed_hours - quote_price_total
+
+---
+
+## GROSS MARGIN RULE
+
+Gross margin is not proof of profit.
+
+Quote Engine must not treat a positive gross margin as proof that the quote is commercially healthy.
+
+The quote must be tested against the selected business baseline or business model.
+
+Core principle:
+
+A quote is only commercially healthy if the margin / recovery pool is enough to recover the business model requirement.
+
+---
+
+## INTERNAL LABOUR RULE
+
+Internal labour is:
+
+* hours-driven
+* model-validated
+* connected to QS Tools Labour
+
+The user does not enter true labour cost.
+
+The user enters or assigns:
+
+* base labour hours allowed
+* labour sell total or charge-out rate
+* optional role/type allocation later
+
+QS Tools calculates:
+
+* true labour cost
+* labour sell
+* labour margin
+* variance
+
+Internal labour can be reality-checked because QS Tools knows the labour model.
+
+---
+
+## INTERNAL LABOUR PRINCIPLE
+
+This must be explicit in the UI:
+
+**All staff cost must be recovered. Only productive staff hours can recover it.**
+
+This principle explains why the quote is tested against allowed productive hours and required business recovery.
+
+---
+
+## INTERNAL LABOUR ASSIGNMENT VARIABLES
+
+Optional first build, useful later.
+
+Minimum fields:
+
+* quote_internal_labour_line_id
+* quote_id
+* labour_source_type = internal
+* labour_role_id
+* labour_role_name
+* staff_id optional
+* labour_class optional
+* hours_assigned
+
+Calculated fields:
+
+* model_labour_cost_rate
+* model_labour_charge_out_rate
+* line_cost_total
+* line_sell_total
+* line_margin_total
+* line_margin_percent
+* line_variance_to_model
+
+Future schedule fields:
+
+* schedule_group
+* stage_name
+* sequence_order
+* estimated_duration_days
+
+Default numeric values should be 0.
+
+---
+
+## LABOUR ALLOWANCE RECONCILIATION
+
+Quote Engine should support:
+
+base_labour_hours_allowed
+
+As internal labour is assigned, side card may show:
+
+* Base labour allowance
+* Assigned internal labour
+* Assigned hourly subcontract labour if applicable
+* Unassigned labour
+* Overallocated labour
+
+Example:
+
+Base labour allowance: 50 hrs
+Assigned internal labour: 38 hrs
+Hourly subcontract labour: 10 hrs
+Unassigned labour: 2 hrs
+
+If overallocated:
+
+Base labour allowance: 50 hrs
+Assigned labour: 58 hrs
+Overallocated: 8 hrs
+
+Important:
+
+Not all direct cost packages should deduct hours.
+
+Only hour-based labour assignments deduct from labour hours.
+
+---
+
+## DIRECT COST PACKAGE RULE
+
+Direct cost packages are:
+
+* unit-driven
+* value-driven
+* externally priced
+* reconciled against quote allowance
+
+The system should not force every trade into labour hours.
+
+Examples:
+
+* block layer per block
+* concrete crew per m²
+* boxing crew per lineal metre
+* pump hire
+* supply-and-install trade
+* earthworks package
+* fixed subcontract package
+* hired equipment / plant
+* freight / cartage
+* waste / tipping
+* direct consumables
+* other direct job costs
+
+A direct cost package may include:
+
+* labour
+* materials
+* plant
+* margin
+
+The system does not need to split those unless the user chooses to.
+
+---
+
+## DIRECT COST PACKAGE VARIABLES
+
+Minimum fields:
+
+* quote_direct_cost_package_id
+* quote_id
+* package_name
+* package_type
+* subcontractor_id optional
+* pricing_type
+* unit
+* quantity
+* cost_rate
+* sell_rate
+* cost_total
+* sell_total
+* profit_total
+* profit_percent
+
+Suggested package_type values:
+
+* subcontractor
+* trade_package
+* plant_hire
+* supply_install
+* other_direct_cost
+
+Suggested pricing_type values:
+
+* unit_rate
+* hourly
+* day_rate
+* lump_sum
+* open_ended
+
+Suggested unit values:
+
+* hour
+* day
+* m2
+* m3
+* lineal_metre
+* each
+* block
+* tonne
+* lump_sum
+
+Optional allowance fields:
+
+* package_allowance_total
+* package_variance_to_allowance
+
+Only use package-level variance if the user specifically creates a package-level allowance.
+
+---
+
+## DIRECT COST PACKAGE POOL RULE
+
+Many quotes will not split every trade.
+
+Therefore the page needs pool-level fields:
+
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* direct_cost_package_sell_total
+* direct_cost_package_profit_total
+* direct_cost_package_pool_variance
+
+Calculation:
+
+direct_cost_package_pool_variance =
+direct_cost_package_allowance_total - direct_cost_package_cost_total
+
+User-facing wording:
+
+**Your quote allows $X for direct cost packages. You have assigned $Y. Remaining pool / overassigned pool = $Z.**
+
+Do not say a specific trade is short unless the user has created a specific trade allowance.
+
+Correct:
+
+**Direct cost packages have consumed $X of the allowance pool.**
+
+Not allowed unless specifically assigned:
+
+**Concrete layer is short by $900.**
+
+---
+
+## MATERIAL RULE
+
+Materials are checked for margin only.
+
+QS Tools cannot validate material quantities because it does not know the job scope.
+
+User-facing wording:
+
+**Material quantities are user-defined and not validated by QS Tools. QS Tools checks material margin only.**
+
+---
+
+## MATERIAL VARIABLES
+
+Minimum fields:
+
+* quote_material_line_id
+* quote_id
+* material_group_name
+* material_cost_total
+* material_markup_percent
+* material_sell_total
+* material_margin_total
+* material_margin_percent
+
+Optional future fields:
+
+* unit
+* quantity
+* cost_rate
+* sell_rate
+* supplier_id
+
+Do not force material line-level detail in first version.
+
+---
+
+## CALCULATION BUILD-UP DISPLAY
+
+The first build must show a transparent build-up so we can verify the correct metrics are being consumed.
+
+This should be visible during first implementation.
+
+Later it can be collapsed.
+
+Section name:
+
+**How This Quote Is Being Tested**
+
+---
+
+### 1. Quote Inputs
+
+Show:
+
+* Quote price
+* Material cost
+* Material sell / markup
+* Labour sell
+* Base labour hours allowed
+* Direct cost package allowance
+* Direct cost package cost
+
+Purpose:
+
+This is what the user entered.
+
+---
+
+### 2. Model Inputs Consumed
+
+Show:
+
+* True labour cost rate
+* Required recovery rate
+* Total productive output
+
+Later:
+
+* Baseline required recovery rate
+* Upside required recovery rate
+* Downside required recovery rate
+
+Purpose:
+
+This proves the Quote Engine is using the QS Tools business model.
+
+---
+
+### 3. Direct Cost Build-Up
+
+Show:
+
+Material cost
+
+* True labour cost
+* Direct cost package cost
+  = Total direct cost
+
+---
+
+### 4. Margin Pool Build-Up
+
+Show:
+
+Quote price
+
+* Total direct cost
+  = Quote margin pool
+
+Label:
+
+**Margin pool is the money left to carry the business.**
+
+---
+
+### 5. Recovery Requirement Build-Up
+
+Show:
+
+Allowed hours
+× Required recovery rate
+= Required job recovery
+
+---
+
+### 6. Quote Gap Build-Up
+
+Show:
+
+Margin pool
+
+* Required job recovery
+  = Quote gap
+
+Label:
+
+**This is the leak.**
+
+---
+
+### 7. Hourly Reality Build-Up
+
+Show:
+
+Margin pool
+÷ Allowed hours
+= Achieved margin per hour
+
+Then compare:
+
+Achieved margin per hour
+vs
+Required recovery rate
+
+---
+
+### 8. Repair / Constraint Build-Up
+
+Show:
+
+Required price at allowed hours =
+Direct costs + required job recovery
+
+Also show:
+
+Max viable hours =
+Margin pool ÷ Required recovery rate
+
+Purpose:
+
+This shows what must change.
+
+---
+
+## ORIGINAL VS ADJUSTED QUOTE RULE
+
+The Quote Engine must preserve the original quote and allow an adjusted test quote.
+
+The user should always see:
+
+**This is what I priced. This is what would need to change.**
+
+---
+
+## ORIGINAL QUOTE VARIABLES
+
+* original_quote_price_total
+* original_base_labour_hours_allowed
+* original_material_cost_total
+* original_material_sell_total
+* original_labour_sell_total
+* original_direct_cost_package_allowance_total
+* original_direct_cost_package_cost_total
+* original_quote_gap
+* original_hourly_gap
+* original_result_status
+
+---
+
+## ADJUSTED QUOTE VARIABLES
+
+* adjusted_quote_price_total
+* adjusted_base_labour_hours_allowed
+* adjusted_material_sell_total
+* adjusted_labour_sell_total
+* adjusted_direct_cost_package_cost_total
+* adjusted_direct_cost_package_allowance_total
+* adjusted_quote_gap
+* adjusted_hourly_gap
+* adjusted_result_status
+
+---
+
+## REPAIR LEVER VARIABLES
+
+* price_adjustment_amount
+* labour_hours_adjustment
+* material_margin_adjustment_percent
+* direct_cost_package_adjustment_amount
+
+---
+
+## REPAIR OUTPUTS
+
+* original_quote_gap
+* adjusted_quote_gap
+* remaining_quote_gap
+* gap_closed_amount
+* gap_closed_percent
+
+---
+
+## REPAIR LEVER BEHAVIOUR
+
+If quote is leaking, show:
+
+**To close the gap, choose one or combine:**
+
+Examples:
+
+Increase price by $1,600
+
+Reduce internal labour by 10 hrs
+
+Reduce direct cost packages by $800 and increase price by $800
+
+Reduce labour by 5 hrs, reduce trade cost by $400, and increase price by $400
+
+The system should not prescribe one solution.
+
+It should show options.
+
+---
+
+## SCENARIO COMPARISON LATER
+
+Later, the same quote should run against:
+
+* baseline
+* upside
+* downside
+
+The Quote Engine should not duplicate the quote.
+
+It should run the same quote against multiple benchmarks.
+
+For each scenario:
+
+* scenario_id
+* scenario_name
+* scenario_type
+* scenario_required_recovery_rate
+* scenario_quote_gap
+* scenario_hourly_gap
+* scenario_max_viable_hours
+* scenario_required_price_at_allowed_hours
+* scenario_price_gap
+* scenario_result_status
+
+Suggested scenario_result_status values:
+
+* works
+* marginal
+* leaking
+* invalid
+
+Display side by side:
+
+Scenario: Baseline / Upside / Downside
+Gap
+Status
+
+Purpose:
+
+Baseline shows whether the quote works today.
+Upside shows whether the quote supports the target business.
+Downside shows whether the quote survives pressure.
+
+---
+
+## SELECTED MODEL RULE
+
+Quote Engine must always show which model state was used.
+
+Allowed model sources later:
+
+* locked baseline
+* upside scenario
+* downside scenario
+* selected active scenario
+
+Quote Engine must not silently switch models.
+
+Quote Engine must not mutate Business Modelling scenarios.
+
+Quote Engine must not create modelling assumptions silently.
+
+---
+
+## TRUST RULE
+
+Quote Engine must inherit upstream trust state.
+
+If selected model is not trusted:
+
+* Quote Engine may display preview only
+* quote outputs must be marked not trusted
+* quote alignment status should not be final
+
+If selected model has warnings:
+
+* quote may be assessed
+* warnings must remain visible
+
+If selected model is trusted:
+
+* quote assessment may be treated as valid
+
+---
+
+## QUOTE RESULT STATUS
+
+Allowed quote_result_status values:
+
+* works
+* marginal
+* leaking
+* invalid
+
+Suggested interpretation:
+
+works =
+quote margin pool is sufficient to recover the selected model requirement.
+
+marginal =
+quote is close to break-even or has warnings that require review.
+
+leaking =
+quote margin pool is positive but insufficient to recover the selected model requirement.
+
+invalid =
+quote cannot be trusted because required quote inputs or upstream model inputs are missing.
+
+---
+
+## WARNINGS
+
+Minimum warnings:
+
+* no_quote_price
+* no_labour_hours
+* no_required_recovery_rate
+* no_model_labour_cost_rate
+* negative_margin_pool
+* zero_direct_cost
+* direct_cost_package_pool_overassigned
+* overallocated_labour_hours
+* untrusted_model
+* model_warning_present
+
+Warnings must be explicit.
+
+Do not show vague warnings.
+
+---
+
+## SIDE CARD REQUIREMENTS
+
+The side card should update live as the user enters values.
+
+It should show:
+
+* Quote status
+* Quote price
+* Total direct cost
+* Margin pool
+* Required job recovery
+* Quote gap
+* Hourly gap
+* Max viable hours
+* Required price at allowed hours
+* Remaining gap after adjustments
+
+Later, show:
+
+* Baseline gap
+* Upside gap
+* Downside gap
+
+The side card should make the leak visible.
+
+---
+
+## STATUS STRIP REQUIREMENTS
+
+Show:
+
+* quote_result_status
+* quote_gap
+* hourly_gap
+* warning_count
+* required_recovery_rate
+* base_labour_hours_allowed
+
+Warnings should be explicit.
+
+---
+
+## PAGE STRUCTURE
+
+1. QuoteEngineStatusStrip
+2. QuoteEngineMainCard
+3. QuoteEngineSideCard
+4. QuoteEngineBuildUpCard
+5. QuoteEngineRepairPanel
+6. QuoteEngineHelpPanel
+
+---
+
+## MAIN CARD REQUIREMENTS
+
+QuoteEngineMainCard should contain quick quote entry.
+
+Fields:
+
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* material_markup_percent
+* labour_sell_total
+* labour_charge_out_rate
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+
+This card should not become a full estimating system.
+
+---
+
+## SIDE CARD REQUIREMENTS
+
+QuoteEngineSideCard should show the live result.
+
+Display:
+
+* quote_result_status
+* quote_price_total
+* direct_cost_total
+* quote_margin_pool
+* business_recovery_required_total
+* quote_gap
+* achieved_margin_per_hour
+* required_recovery_rate
+* hourly_gap
+* max_viable_hours
+* required_price_at_allowed_hours
+* price_gap
+
+---
+
+## BUILD-UP CARD REQUIREMENTS
+
+QuoteEngineBuildUpCard should show:
+
+* Quote Inputs
+* Model Inputs Consumed
+* Direct Cost Build-Up
+* Margin Pool Build-Up
+* Recovery Requirement Build-Up
+* Quote Gap Build-Up
+* Hourly Reality Build-Up
+* Repair / Constraint Build-Up
+
+Use clear labels:
+
+**How This Quote Is Being Tested**
+
+**This proves the Quote Engine is using the QS Tools business model.**
+
+**Margin pool is the money left to carry the business.**
+
+---
+
+## REPAIR PANEL REQUIREMENTS
+
+QuoteEngineRepairPanel should show original vs adjusted values and repair levers.
+
+For first build, repair levers may be simple inputs:
+
+* price_adjustment_amount
+* labour_hours_adjustment
+* material_margin_adjustment_percent
+* direct_cost_package_adjustment_amount
+
+Show:
+
+* original_quote_gap
+* adjusted_quote_gap
+* remaining_quote_gap
+* gap_closed_amount
+* gap_closed_percent
+
+User-facing line:
+
+**Try changes and watch the gap close.**
+
+---
+
+## HELP PANEL REQUIREMENTS
+
+QuoteEngineHelpPanel must explain:
+
+* This page checks whether a quote supports your business model.
+* Internal labour is checked against your true labour model.
+* Direct cost packages are checked against the quote allowance pool.
+* Materials are checked for margin only.
+* QS Tools does not validate material quantities.
+* The quote gap shows whether the margin pool is enough to carry the business for the hours allowed.
+* Later, the same quote can be tested against baseline, upside, and downside scenarios.
+* Accepted quotes may later feed the monthly feedback loop.
+
+---
+
+## STORAGE RULE
+
+Use local storage pattern consistent with existing modules.
+
+Keep records database-ready.
+
+Minimum stored quote state:
+
+* quote_id
+* job_id
+* job_name
+* quote_name
+* quote_reference
+* quote_date
+* quote_status
+* quote_version
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* material_markup_percent
+* labour_sell_total
+* labour_charge_out_rate
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* created_at
+* updated_at
+
+Accepted snapshots must be stored separately from editable draft quote state.
+
+---
+
+## MONTHLY ACTUALS / FEEDBACK LOOP
+
+Monthly Actuals / Feedback belongs later.
+
+Quote Engine must prepare for it by storing accepted quote snapshots.
+
+Future feedback loop:
+
+quote prepared
+→ quote issued
+→ quote revised
+→ quote accepted
+→ accepted snapshot locked
+→ accepted work grouped by month
+→ monthly P&L imported
+→ actual performance compared against expected quote performance
+→ assumptions updated over time
+
+The feedback loop is macro-level first, not job-level first.
+
+The system should compare:
+
+accepted quotes in a month
+vs
+monthly P&L actuals
+
+It should not try to perfectly job-cost each individual job in V1.
+
+The goal is to answer:
+
+**Are we consistently pricing work correctly as a business?**
+
+Not:
+
+**Did this exact job perform perfectly?**
+
+---
+
+## MACRO FEEDBACK LOOP RULE
+
+Quote Engine must support the future macro feedback loop by preserving accepted quote predictions.
+
+Rules:
+
+* Quotes are predictions.
+* Accepted quotes are locked predictions.
+* Monthly P&L is reality.
+* System compares prediction vs reality at monthly aggregate level.
+* Monthly P&L actuals must not overwrite accepted quote predictions.
+* Accepted quote snapshots must remain historically intact.
+
+---
+
+## RELATIONSHIP TO COST SUMMARY
+
+Cost Summary defines the operating cost burden and required recovery rate.
+
+Quote Engine consumes those values directly or through Business Modelling later.
+
+Quote Engine must not recalculate Cost Summary.
+
+Quote Engine must not rebuild Labour, Assets, or General Overheads maths.
+
+---
+
+## RELATIONSHIP TO REVENUE / COGS
+
+Revenue / COGS defines the margin pool concept at business level.
+
+Quote Engine applies the same concept at quote level.
+
+Quote Engine must not mutate Revenue / COGS.
+
+Quote Engine must not treat historical business gross margin as the quote result.
+
+---
+
+## RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary is the factual current business mirror.
+
+Quote Engine does not change Business Summary.
+
+Business Summary shows what the business currently is.
+
+Quote Engine tests whether a quote aligns with the business baseline or selected model.
+
+---
+
+## RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling later provides the selected baseline or scenario.
+
+Quote Engine may use the selected scenario as the quote benchmark.
+
+Quote Engine must not edit or overwrite Business Modelling scenarios.
+
+Quote Engine must not create modelling assumptions silently.
+
+First Quote Engine build may use baseline only.
+
+---
+
+## RELATIONSHIP TO PRODUCTION CAPACITY
+
+Production Capacity belongs after Quote Engine.
+
+Quote Engine may later output required internal labour hours or production demand for Production Capacity.
+
+Production Capacity answers:
+
+**Can the business actually deliver this work?**
+
+Quote Engine answers:
+
+**Does this quote recover the model?**
+
+These are separate tests.
+
+A quote may recover the model but still fail capacity.
+
+A quote may fit capacity but fail recovery.
+
+---
+
+## RELATIONSHIP TO CASH FLOW
+
+Cash Flow belongs later.
+
+Principal repayments and liquidity pressure are not Quote Engine operating cost inputs.
+
+Cash Flow may later test whether accepted quotes support finance payment pressure.
+
+Quote Engine must not include principal repayments in quote recovery requirement unless a later locked Cash Flow integration brief explicitly defines that treatment.
+
+---
+
+## RELATIONSHIP TO MONTHLY ACTUALS
+
+Monthly Actuals / Feedback belongs later.
+
+Quote Engine must prepare for this by preserving accepted quote snapshots and quote status history.
+
+Monthly Actuals compares:
+
+* accepted quote predictions
+* monthly P&L reality
+
+The first version should not attempt full job-level actual costing.
+
+---
+
+## UI PRINCIPLE
+
+Quote Engine should show the quote test clearly.
+
+The user should see:
+
+* quote price
+* quote direct costs
+* quote margin / recovery pool
+* selected model requirement
+* surplus / shortfall
+* whether the quote recovers the model
+* what changes close the gap
+* warnings / trust state
+
+The page should not become a generic quote builder unless a later locked brief defines that scope.
+
+---
+
+## HOMEPAGE / POSITIONING CONNECTION
+
+Quote Engine supports the core QS Tools positioning:
+
+**Do your assumptions about how your business runs match reality?**
+
+**Simple in hindsight. Invisible beforehand.**
+
+**We mirror your business back to you.**
+
+Quote Engine applies that positioning to a quote.
+
+It shows whether the assumptions inside the quote match the business reality already built inside QS Tools.
+
+---
+
+## NOT ALLOWED
+
+Quote Engine must not:
+
+* recalculate Cost Summary
+* rebuild Labour maths
+* rebuild Assets maths
+* rebuild General Overheads maths
+* mutate Business Modelling scenarios
+* mutate Business Summary
+* mutate Revenue / COGS
+* use gross margin as proof of profit
+* confuse subcontract labour with internal labour recovery
+* force every trade into labour hours
+* include principal repayments as operating cost
+* calculate Cash Flow before Cash Flow is briefed
+* calculate Production Capacity before Production Capacity is briefed
+* hide upstream model warnings
+* produce trusted quote outputs from an untrusted model
+* overwrite accepted quote snapshots
+* treat monthly P&L as job-level truth in V1
+
+---
+
+## FIRST IMPLEMENTATION ORDER
+
+### Step 1 — Inspect upstream contracts
+
+Before building, inspect:
+
+* useCostSummary()
+* useLabour()
+* useBusinessSummary()
+* useRevenueCogs()
+
+Find exact available fields:
+
+* required_recovery_rate
+* total_productive_output
+* productive_labour_cost_rate
+* charge_out_rate
+
+Do not guess field paths.
+
+---
+
+### Step 2 — Build baseline-only Quote Engine
+
+Use:
+
+* required_recovery_rate
+* model_true_labour_cost_rate
+* base_labour_hours_allowed
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* labour_sell_total
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+
+---
+
+### Step 3 — Add visible calculation build-up
+
+Make the build-up visible so the maths and consumed metrics can be verified.
+
+---
+
+### Step 4 — Add repair levers
+
+Allow adjusted test values while preserving original quote.
+
+---
+
+### Step 5 — Add accepted quote/version fields
+
+Add structure now, even if full feedback loop comes later.
+
+---
+
+### Step 6 — Add collapsed drilldown
+
+Add internal labour rows and direct cost package rows if simple.
+
+---
+
+### Step 7 — Later add baseline / upside / downside comparison
+
+Do not block first build on scenario comparison.
+
+---
+
+## DEFINITION OF DONE — FIRST BUILD
+
+The first Quote Engine build is complete when:
+
+* page loads without errors
+* baseline quote inputs work
+* upstream model values are displayed
+* calculation build-up is visible
+* quote gap is shown
+* hourly gap is shown
+* max viable hours is shown
+* required price is shown
+* repair levers adjust the result
+* original vs adjusted quote remains clear
+* warnings are explicit
+* no upstream calculations are rebuilt
+* no component contains business logic
+* accepted quote/version fields exist in storage
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Quote Engine is a quote leak detection and repair layer.
+
+It checks whether a quote’s price, direct costs, labour allowance, and margin pool support the business baseline.
+
+It exposes incorrect assumptions, shows where margin is being consumed, and lets the user test changes until the quote works against baseline, and later against upside and downside scenarios.
+
+It does not build the model.
+
+It does not calculate Cost Summary.
+
+It does not model Cash Flow.
+
+It does not test Production Capacity.
+
+It exists to show whether a quote is leaking money — and what must change to make it work.

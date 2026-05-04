@@ -239,10 +239,12 @@ export default function useAssets() {
         (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),
         0
       ),
-      running_cost_annual: live_assets.reduce(
-        (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
-        0
-      ),
+      legacy_display: {
+        running_cost_annual: live_assets.reduce(
+          (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
+          0
+        ),
+      },
       total_asset_interest_annual,
       cash_flow_support,
       total_asset_cost_annual,

@@ -1,0 +1,767 @@
+# QS Tools — Module Reconciliation + Model Readiness Gate Build Brief
+
+## v3.7 — DOWNSTREAM TRUST GATE BUILD UPDATE
+
+**STATUS:** READY TO BUILD
+**VERSION:** v3.7
+**FILE NUMBER:** 12
+**REPLACES:** Module Reconciliation + Model Readiness Gate Build Brief v3.6
+**BUILD STATUS:** READY TO BUILD / UPDATED FOR QUOTE ENGINE AND FEEDBACK LOOP TRUST BOUNDARY
+
+---
+
+## PURPOSE
+
+Build the system layer that proves whether the upstream QS Tools cost model is complete, internally consistent, and safe to trust before Cost Summary and downstream recovery/pricing pages rely on it.
+
+This build creates:
+
+1. Module Reconciliation
+2. Model Readiness
+3. Temporary diagnostics page
+4. Reusable Model Readiness status strip
+
+This v3.7 update preserves the v3.6 build structure and adds downstream trust requirements for Business Summary, Business Modelling, Quote Engine, and the future Feedback Loop.
+
+---
+
+## CORE PRINCIPLE
+
+Reconciliation is the evidence layer.
+
+Model Readiness is the verdict layer.
+
+Cost Summary is the first downstream page that consumes the verdict.
+
+All later downstream modules must inherit the verdict.
+
+Quote Engine must not bypass Model Readiness.
+
+Feedback Loop must preserve the trust state attached to accepted quote snapshots.
+
+---
+
+## SYSTEM POSITION
+
+P&L
+↓
+General Overheads
+↓
+Labour
+↓
+Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Revenue / COGS
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+---
+
+## IMPORTANT BUILD RULE
+
+Module Reconciliation and Model Readiness are not normal user workflow pages.
+
+They are system support layers.
+
+A temporary developer diagnostics page is allowed during build.
+
+Do not add diagnostics to main navigation.
+
+Do not turn Model Readiness into a user decision page.
+
+---
+
+## REQUIRED FILES TO CREATE
+
+### Reconciliation Layer
+
+```text
+lib/reconciliation/reconciliationRules.js
+lib/reconciliation/moduleReconciliation.js
+hooks/useModuleReconciliation.js
+```
+
+### Model Readiness Layer
+
+```text
+lib/calculations/modelReadinessCalculations.js
+hooks/useModelReadiness.js
+components/model-readiness/ModelReadinessStatusStrip.jsx
+```
+
+### Temporary Diagnostics Page
+
+```text
+app/dev/model-readiness/page.jsx
+```
+
+---
+
+## REQUIRED FILES TO UPDATE LATER
+
+Cost Summary should later import:
+
+```text
+components/model-readiness/ModelReadinessStatusStrip.jsx
+```
+
+Cost Summary should later consume:
+
+* model_ready
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+* model_readiness_status
+
+Business Summary, Business Modelling, and Quote Engine should later inherit this trust state through their upstream hooks/contracts.
+
+Do not wire Cost Summary until the diagnostics page confirms the gate works correctly.
+
+---
+
+## INPUT SOURCES
+
+The layer must read from existing upstream module outputs.
+
+### From P&L
+
+* pnl_ready
+* total_business_costs
+* labour_benchmark_total
+* assets_benchmark_total
+* general_overheads_benchmark_total
+* income_benchmark_total where available
+* cogs_benchmark_total where available
+* direct_cost_benchmark_total where available
+* unassigned_balance
+
+### From General Overheads
+
+* total_general_overheads
+* category_totals
+* general_overheads_ready
+* general_overheads_variance_amount
+* general_overheads_variance_percent
+
+### From Labour
+
+* total_labour_cost_annual
+* total_gross_wages_annual
+* total_entitlements_annual
+* total_employer_kiwisaver_annual
+* total_esct_annual
+* total_acc_levy_annual
+* total_employer_contribution_annual
+* total_productive_output
+* labour_ready
+
+### From Assets
+
+* total_asset_cost_annual
+* assets_ready
+* active_assets
+* no_active_assets_confirmed
+
+---
+
+## MODULE RECONCILIATION OUTPUT CONTRACT
+
+Module Reconciliation must output:
+
+* reconciliation_ready
+* reconciliation_checks
+* blocking_checks
+* warning_checks
+* blocking_modules
+* warning_modules
+
+Each check must use this shape:
+
+```js
+{
+  check_id,
+  module,
+  severity,
+  passed,
+  message,
+  detail,
+  recommended_action
+}
+```
+
+Allowed severity values:
+
+* blocker
+* warning
+* info
+
+---
+
+## MODEL READINESS OUTPUT CONTRACT
+
+Model Readiness must output:
+
+* model_ready
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+* model_readiness_status
+
+Allowed model_readiness_status values:
+
+* ready
+* warning
+* blocked
+
+---
+
+## READINESS FORMULA
+
+```text
+model_ready =
+pnl_ready
+AND general_overheads_ready
+AND labour_ready
+AND assets_ready
+AND reconciliation_ready
+AND blocking_checks.length = 0
+```
+
+---
+
+## STATUS FORMULA
+
+```text
+If blocking_checks.length > 0:
+
+model_readiness_status = "blocked"
+
+Else if warning_checks.length > 0:
+
+model_readiness_status = "warning"
+
+Else:
+
+model_readiness_status = "ready"
+```
+
+---
+
+## RECONCILIATION RULES
+
+### P&L Checks
+
+Hard checks:
+
+* P&L data exists
+* pnl_ready is true
+* unassigned_balance equals 0
+* employee_overheads category does not exist as an active category
+* total_business_costs is available as a benchmark
+* income and COGS / direct cost classifications exist where required for Revenue / COGS preparation
+
+Warnings:
+
+* total_business_costs is 0
+* benchmark totals are unusual or missing but not required for downstream calculation
+* optional micro / activity classification is incomplete
+
+---
+
+### General Overheads Checks
+
+Hard checks:
+
+* total_general_overheads exists
+* general_overheads_ready is true
+* category_totals exists
+* employee_overheads is not present as an active output
+* staff_overheads_total is not exposed as a downstream output
+* total_general_overheads is the only downstream overhead output
+
+Warnings:
+
+* general_overheads_variance_amount is not 0
+* Other / Unallocated category has a balance
+* category_totals is empty
+
+Ownership checks:
+
+* vehicle running costs belong in General Overheads
+* staff overheads belong in General Overheads as category only
+* employer ACC levy does not belong in General Overheads
+* asset ownership cost does not belong in General Overheads
+* quote-level direct cost packages do not belong in General Overheads
+
+---
+
+### Labour Checks
+
+Hard checks:
+
+* total_labour_cost_annual exists
+* total_productive_output exists
+* total_productive_output is greater than 0
+* total_employer_contribution_annual exists
+* total_acc_levy_annual exists
+* labour_ready is true
+* Labour does not expose staff_overheads_total
+* Labour does not expose employee_overheads_total
+
+Warnings:
+
+* no active Labour profile exists
+* total_labour_cost_annual is 0
+* total_acc_levy_annual is 0
+* total_productive_output looks unusually low
+
+Ownership checks:
+
+* Labour owns gross wages
+* Labour owns entitlements
+* Labour owns employer KiwiSaver
+* Labour owns ESCT
+* Labour owns employer ACC levy
+* Labour does not own general overheads
+* Labour does not own asset ownership costs
+* Labour does not own vehicle running costs
+* Labour does not own subcontract labour by default
+
+---
+
+### Assets Checks
+
+Hard checks:
+
+* total_asset_cost_annual exists
+* assets_ready is true
+* running_cost_annual does not feed total_asset_cost_annual
+* running_cost_annual is not exposed to Cost Summary
+* assets do not contain vehicle running costs
+* principal repayments do not feed total_asset_cost_annual
+
+Warnings:
+
+* total_asset_cost_annual is 0
+* assets benchmark variance exists
+* no active assets exist but no_active_assets_confirmed is true
+
+Ownership checks:
+
+* Assets owns finance cost
+* Assets owns lease cost
+* Assets owns depreciation cost where included
+* Assets owns ownership cost
+* Assets does not own fuel
+* Assets does not own servicing
+* Assets does not own repairs
+* Assets does not own maintenance
+* Assets does not own registration
+* Assets does not own tyres
+* Assets does not own shared fleet costs
+* Assets does not own labour costs
+* Assets does not own hired equipment / delivery costs
+* Assets does not own principal repayments as operating cost
+
+---
+
+### Assets No-Active-Assets Rule
+
+Assets are optional only when explicitly confirmed by the user.
+
+Do not infer no active assets from:
+
+```text
+empty asset list
+zero asset total
+missing P&L asset benchmark
+zero P&L asset benchmark
+```
+
+Add or support an explicit confirmation state:
+
+```text
+no_active_assets_confirmed
+```
+
+Readiness behaviour:
+
+```text
+active assets exist and pass ownership-only checks = PASS
+
+no active assets exist
+AND no_active_assets_confirmed = true
+AND total_asset_cost_annual = 0 = PASS with info
+
+no active assets exist
+AND no confirmation exists = BLOCKER
+```
+
+This rule exists to avoid hidden assumptions.
+
+---
+
+### Cross-Module Checks
+
+Hard checks:
+
+* no Employee Overheads module output exists
+* no Staff Overheads standalone module output exists
+* no banned variable appears in downstream contract
+* Cost Summary required inputs are available
+* no duplicate cost ownership is detected
+* no raw P&L lines are consumed by Cost Summary
+* no quote-level accepted snapshot fields are present in source module contracts
+* monthly actuals do not overwrite source module assumptions
+
+Warnings:
+
+* P&L business cost benchmark does not match module total burden
+* required_recovery_rate cannot be calculated because productive output is missing or zero
+* benchmark variance exists but source-of-truth module totals are present
+
+---
+
+## COST SUMMARY RECONCILIATION RULE
+
+Cost Summary must not own reconciliation.
+
+Cost Summary may display reconciliation status.
+
+Module Reconciliation owns the comparison between:
+
+```text
+P&L benchmark totals
+```
+
+and
+
+```text
+module source-of-truth totals
+```
+
+---
+
+## RECONCILIATION TOTALS
+
+Module Reconciliation may calculate diagnostic comparison totals:
+
+```text
+module_total_business_costs =
+total_labour_cost_annual
++ total_asset_cost_annual
++ total_general_overheads
+```
+
+```text
+pnl_business_cost_variance =
+module_total_business_costs - total_business_costs
+```
+
+```text
+pnl_business_cost_variance_percent =
+pnl_business_cost_variance / total_business_costs
+```
+
+These are diagnostics only.
+
+They do not replace module totals.
+
+They do not feed Cost Summary calculations.
+
+They do not feed Quote Engine calculations.
+
+They do not feed Feedback Loop variance calculations.
+
+---
+
+## COST SUMMARY TRUST RULE
+
+If model_ready = false:
+
+* Cost Summary totals may display
+* Cost Summary must show not trusted state
+* blocking modules must be visible
+* warning modules must be visible
+* downstream modules must not treat outputs as final
+
+If model_ready = true and model_readiness_status = "warning":
+
+* Cost Summary may be used
+* warnings must remain visible
+
+If model_ready = true and model_readiness_status = "ready":
+
+* Cost Summary may be treated as trusted
+
+---
+
+## BUSINESS SUMMARY / BUSINESS MODELLING TRUST RULE
+
+Business Summary and Business Modelling must inherit Model Readiness state.
+
+If model_ready = false:
+
+* Business Summary may display preview values only
+* Business Modelling may display preview scenarios only
+* scenarios must not be treated as trusted benchmarks
+
+If model_readiness_status = "warning":
+
+* outputs may be used with visible warnings
+
+If model_readiness_status = "ready":
+
+* outputs may be treated as trusted, subject to their own page-level warnings
+
+---
+
+## QUOTE ENGINE TRUST RULE
+
+Quote Engine must inherit Model Readiness state through Cost Summary, Business Summary, or Business Modelling.
+
+If model_ready = false:
+
+* Quote Engine may display preview only
+* quote outputs must be marked not trusted
+* quote alignment status should not be final
+
+If model_readiness_status = "warning":
+
+* Quote Engine may produce outputs
+* inherited warnings must remain visible
+* accepted quote snapshots should preserve model_trust_state = warning
+
+If model_readiness_status = "ready":
+
+* Quote Engine may use trusted baseline/model values
+
+Quote Engine must not bypass Model Readiness.
+
+---
+
+## FEEDBACK LOOP TRUST RULE
+
+The Feedback Loop belongs later.
+
+When built, it must preserve the trust state of accepted quote snapshots.
+
+If an accepted quote was created from a warning or blocked model state, that trust state must remain attached to the snapshot.
+
+Monthly actuals must not rewrite historical model readiness.
+
+The Feedback Loop compares predictions to reality; it does not rewrite the trust state that existed when the prediction was made.
+
+---
+
+## TEMPORARY DIAGNOSTICS PAGE
+
+Create:
+
+```text
+app/dev/model-readiness/page.jsx
+```
+
+The page should show:
+
+1. Model Readiness Status
+2. Raw Module Inputs
+3. Normalised Reconciliation Inputs
+4. Reconciliation Checks
+5. Blocking Checks
+6. Warning Checks
+7. Final Outputs
+
+This page must not be added to main sidebar navigation.
+
+---
+
+## MODEL READINESS STATUS STRIP
+
+Create:
+
+```text
+components/model-readiness/ModelReadinessStatusStrip.jsx
+```
+
+Props:
+
+* model_ready
+* model_readiness_status
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+
+Display states:
+
+### Ready
+
+Title:
+
+```text
+Model Ready
+```
+
+Message:
+
+```text
+All setup modules are complete and reconciled.
+```
+
+### Warning
+
+Title:
+
+```text
+Model Ready With Warnings
+```
+
+Message:
+
+```text
+The model can be used, but review warnings before relying on downstream decisions.
+```
+
+### Blocked
+
+Title:
+
+```text
+Model Not Ready
+```
+
+Message:
+
+```text
+Fix blocking modules before downstream outputs are trusted.
+```
+
+Show:
+
+* blocking_modules
+* top blocking_checks
+* warning_modules, if present
+
+---
+
+## IMPLEMENTATION ORDER
+
+1. Create reconciliationRules.js
+2. Create moduleReconciliation.js
+3. Create useModuleReconciliation.js
+4. Create modelReadinessCalculations.js
+5. Create useModelReadiness.js
+6. Create temporary diagnostics page
+7. Create ModelReadinessStatusStrip.jsx
+8. Test blocked / warning / ready states
+9. Add strip to Cost Summary only after diagnostics pass
+10. Confirm Business Summary inherits trust state later
+11. Confirm Business Modelling inherits trust state later
+12. Confirm Quote Engine inherits trust state later
+
+---
+
+## NOT ALLOWED
+
+Module Reconciliation must not:
+
+* edit P&L lines
+* move costs automatically
+* recalculate Labour totals
+* recalculate Assets totals
+* recalculate General Overheads totals
+* create pricing logic
+* create recovery logic
+* create quote logic
+* create feedback-loop logic
+* infer no active assets from missing P&L asset benchmark
+* infer no active assets from zero P&L asset benchmark
+* infer no active assets from empty asset list unless no_active_assets_confirmed is true
+* overwrite source assumptions from monthly actuals
+
+Model Readiness must not:
+
+* create cost totals
+* override reconciliation checks
+* bypass blocker checks
+* hide blocking modules
+* allow downstream pages to appear trusted when blocked
+* allow Quote Engine to bypass trust state
+* allow Feedback Loop to rewrite historical trust state
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only, unless implementation has not yet created the trust gate.
+
+### Must update
+
+* Clarify Quote Engine trust inheritance
+* Clarify Business Summary and Business Modelling trust inheritance
+* Clarify Feedback Loop preserves historical trust state
+* Clarify diagnostics remain developer-only
+* Clarify no quote or feedback logic belongs in this build
+
+### Do not update
+
+* No Quote Engine calculations
+* No accepted quote snapshot storage
+* No monthly feedback comparison
+* No Revenue / COGS formulas
+* No Cost Summary formula changes
+* No cash-flow logic
+
+---
+
+## DEFINITION OF DONE
+
+Module Reconciliation + Model Readiness Gate v3.7 is complete when:
+
+* reconciliation checks are generated
+* blocker and warning states work
+* model_readiness_status is correct
+* diagnostics page displays the evidence clearly
+* ModelReadinessStatusStrip is reusable
+* Cost Summary can inherit trust state
+* downstream modules can inherit trust state later
+* Quote Engine trust boundary is clear
+* Feedback Loop historical trust boundary is clear
+* no quote logic exists in this layer
+* no feedback-loop logic exists in this layer
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Module Reconciliation + Model Readiness Gate v3.7 proves the upstream QS Tools model before Cost Summary and later downstream modules are trusted.
+
+Reconciliation supplies the evidence.
+
+Model Readiness supplies the verdict.
+
+Cost Summary consumes the verdict but does not perform the checks itself.
+
+Business Summary, Business Modelling, Quote Engine, and the future Feedback Loop must inherit and preserve this trust state.
+
+Assets may only pass readiness with no active assets where explicit no_active_assets_confirmed support exists and is true.
+
+Missing data is not confirmation.

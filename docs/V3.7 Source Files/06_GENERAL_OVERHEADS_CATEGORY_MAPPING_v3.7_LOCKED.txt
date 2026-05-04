@@ -1,0 +1,368 @@
+# QS Tools — General Overheads Category Mapping Brief
+
+## v3.7 — MONTHLY ACTUALS AND QUOTE ENGINE BOUNDARY UPDATED
+
+**STATUS:** ACTIVE CATEGORY MAPPING
+**VERSION:** v3.7
+**FILE NUMBER:** 06
+**REPLACES:** General Overheads Category Mapping v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR MONTHLY ACTUALS AND QUOTE ENGINE BOUNDARY
+
+---
+
+## PURPOSE
+
+This brief defines how overhead categories should be treated after Employee Overheads and Staff Overheads are removed as standalone modules.
+
+It also defines the boundary between:
+
+* General Overheads
+* Labour
+* Assets
+* COGS / Direct Costs
+* Business Modelling
+* Quote Engine
+* Feedback Loop later
+* Cash Flow later
+
+---
+
+## CORE RULE
+
+Staff Overheads is a General Overheads category only.
+
+Vehicle Running Costs is a General Overheads category only.
+
+Non-asset interest is a General Overheads category only.
+
+All roll into total_general_overheads.
+
+None are standalone downstream modules.
+
+Only total_general_overheads flows downstream to Cost Summary.
+
+Category subtotals may support future review, automation, monthly actuals comparison, and reporting.
+
+Category subtotals must not become Quote Engine inputs.
+
+---
+
+## STAFF OVERHEADS MAY INCLUDE
+
+* staff training
+* staff welfare
+* uniforms
+* PPE
+* recruitment
+* staff amenities
+* general HR overheads
+* non-wage people support costs
+
+---
+
+## STAFF OVERHEADS MUST NOT INCLUDE
+
+* gross wages
+* paid entitlements
+* employer KiwiSaver
+* ESCT
+* employer ACC levy
+* PAYE
+* Labour module employer contribution outputs
+* productive labour cost
+* staff charge-out rates
+* quote-level labour allowances
+* accepted quote labour snapshots
+
+---
+
+## VEHICLE RUNNING COSTS MAY INCLUDE
+
+* fuel
+* servicing
+* repairs
+* maintenance
+* registration
+* licensing
+* tyres
+* consumables
+* shared vehicle costs
+* shared fleet costs
+* fleet running costs
+* shared maintenance pools
+
+---
+
+## VEHICLE RUNNING COSTS MUST NOT INCLUDE
+
+* asset finance cost
+* asset finance interest
+* asset lease cost
+* depreciation cost
+* ownership cost
+* replacement recovery
+* asset principal repayments
+* Labour module costs
+* quote-level plant or hired equipment direct costs
+
+---
+
+## NON-ASSET INTEREST MAY INCLUDE
+
+* overdraft interest
+* working capital interest
+* bank interest
+* miscellaneous finance interest
+* other non-asset borrowing costs
+
+These may remain in General Overheads.
+
+---
+
+## NON-ASSET INTEREST MUST NOT INCLUDE
+
+* asset finance interest
+* vehicle loan interest
+* equipment loan interest
+* asset lease interest where owned by Assets
+* asset principal repayments
+
+Asset finance interest belongs to Assets.
+
+Principal repayments belong to Cash Flow later.
+
+---
+
+## ASSET FINANCE INTEREST RULE
+
+Assets is the source of truth for asset finance interest.
+
+If a P&L interest category includes asset finance, the P&L value is historical context only.
+
+Do not map asset finance interest into General Overheads.
+
+Do not force General Overheads to reconcile exact historical P&L interest to Assets modelled interest.
+
+Any mismatch belongs to Module Reconciliation / Model Readiness as informational context.
+
+---
+
+## ASSET OWNERSHIP COSTS MUST NOT MAP TO GENERAL OVERHEADS
+
+The following must map to Assets, not General Overheads:
+
+* asset finance cost
+* asset finance interest
+* asset lease cost
+* depreciation cost
+* ownership cost
+* replacement recovery
+* ownership-only asset cost
+
+---
+
+## COGS / DIRECT COSTS MUST NOT MAP TO GENERAL OVERHEADS
+
+The following must map to COGS / Direct Costs, not General Overheads:
+
+* materials
+* subcontractors
+* hired equipment / plant for delivery
+* delivery cost
+* freight / cartage directly related to jobs
+* waste / tipping directly related to jobs
+* direct consumables
+* other direct job costs
+* quote-level direct cost packages
+
+---
+
+## ACC CLARITY
+
+ACC employer levy must be classified as Labour.
+
+General business insurance and compliance costs remain General Overheads.
+
+Do not map ACC employer levy into Insurance & Compliance.
+
+---
+
+## CASH FLOW CLARITY
+
+Principal repayments are cash-flow pressure, not operating cost.
+
+Principal repayments must not map to General Overheads.
+
+Principal repayments must not map to Cost Summary.
+
+A future Cash Flow layer may display:
+
+* asset principal repayment
+* total finance payment
+* monthly finance pressure
+* annual cash repayment burden
+
+This is separate from General Overheads.
+
+---
+
+## MONTHLY ACTUALS CLARITY
+
+Monthly P&L actuals may reveal overhead category drift over time.
+
+Examples:
+
+* vehicle running costs rising above baseline
+* staff overheads increasing
+* software subscriptions increasing
+* non-asset interest changing
+* insurance / compliance costs moving materially
+
+These actuals may support review and future automation.
+
+They must not automatically overwrite General Overheads assumptions.
+
+Any update to General Overheads from monthly actuals must be explicit.
+
+---
+
+## FEEDBACK LOOP CLARITY
+
+The Feedback Loop may later use monthly overhead movement as part of the macro business reality signal.
+
+However, category subtotals remain review/detail values.
+
+The Feedback Loop must not treat category subtotals as quote-level truth.
+
+The Feedback Loop must not perform job-level costing from General Overheads categories in V1.
+
+---
+
+## QUOTE ENGINE CLARITY
+
+Quote Engine must not consume General Overheads category subtotals directly.
+
+Quote Engine uses the business baseline created downstream.
+
+The quote test must not ask:
+
+* how much of this quote uses staff overheads?
+* how much of this quote uses vehicle running cost?
+* how much of this quote uses software subscription overhead?
+
+Those are business overhead assumptions, not quote inputs.
+
+Quote Engine tests whether the quote margin pool supports the business baseline.
+
+---
+
+## DOWNSTREAM RULE
+
+General Overheads may show internal category subtotals, but only this value flows downstream:
+
+* total_general_overheads
+
+Do not create downstream calculation variables for:
+
+* staff_overheads_total
+* vehicle_running_total
+* employee_overheads_total
+* non_asset_interest_total
+
+Category subtotals are for display, review, reconciliation, and future automation only.
+
+---
+
+## DISPLAY RULE
+
+General Overheads may display useful category subtotals such as:
+
+* Staff Overheads
+* Vehicle Running Costs
+* Non-Asset Interest
+* Insurance / Compliance
+* Admin / Office
+* Software / Subscriptions
+* Other Overheads
+
+These are supporting detail only.
+
+They must not become separate Cost Summary inputs.
+
+They must not become Quote Engine inputs.
+
+They must not become Feedback Loop job-costing inputs in V1.
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**Overhead categories help review the business cost structure.**
+
+**Only Total General Overheads flows downstream.**
+
+**Category subtotals are not separate quote inputs.**
+
+**Monthly actuals may show overhead drift later, but updates to the overhead model must be explicit.**
+
+---
+
+## NOT ALLOWED
+
+General Overheads category mapping must not:
+
+* create standalone Staff Overheads module logic
+* create standalone Vehicle Running Costs module logic
+* create standalone Non-Asset Interest downstream variables
+* feed category subtotals into Quote Engine
+* feed category subtotals into Cost Summary separately
+* overwrite baseline assumptions from monthly actuals automatically
+* perform job-level costing in V1
+* treat category drift as automatic model update
+* map COGS / Direct Costs to General Overheads
+* map asset ownership costs to General Overheads
+* map principal repayments to General Overheads
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only.
+
+### Must update
+
+* Clarify category subtotals are review/detail only
+* Clarify future monthly actuals may reveal category drift
+* Clarify updates from monthly actuals must be explicit
+* Clarify category subtotals must not feed Quote Engine
+* Clarify category subtotals must not become Feedback Loop job-costing inputs in V1
+
+### Do not update
+
+* No new calculation variables
+* No Cost Summary logic
+* No Quote Engine logic
+* No Feedback Loop comparison logic
+* No cash-flow logic
+
+---
+
+## FINAL DEFINITION
+
+In v3.7, Staff Overheads, Vehicle Running Costs, and Non-Asset Interest are General Overheads categories only.
+
+They support user review, classification, reconciliation, future automation, and monthly actuals comparison, but roll into one downstream value:
+
+* total_general_overheads
+
+Asset ownership costs and asset finance interest belong to Assets.
+
+Principal repayments belong to the future Cash Flow layer.
+
+Cost Summary consumes only total_general_overheads from General Overheads.
+
+Quote Engine must not consume General Overheads category subtotals directly.
+
+The Feedback Loop may later observe overhead movement at macro level, but must not overwrite the overhead model automatically.

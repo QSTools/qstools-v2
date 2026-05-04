@@ -1,0 +1,1078 @@
+# QS Tools — Business Modelling Brief
+
+## v3.7 — SCENARIO BENCHMARK UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.7
+**FILE NUMBER:** 21
+**REPLACES:** Business Modelling v3.6
+**BUILD STATUS:** ACTIVE / UPDATE REQUIRED FOR QUOTE ENGINE BENCHMARK BOUNDARY
+
+---
+
+## PURPOSE
+
+Business Modelling is the controlled scenario layer of QS Tools.
+
+It starts from the current Business Summary mirror and lets the user test controlled changes without altering the real model.
+
+Business Modelling answers:
+
+**What happens if we change the business assumptions?**
+
+It does not answer:
+
+* what is the current business position?
+* what did the business sell?
+* what does the business cost?
+* what quote should be accepted?
+* what cash-flow pressure exists?
+* did a specific job perform correctly?
+
+Those belong to other layers.
+
+Business Modelling v3.6 already defined this page as the controlled scenario layer that starts from Business Summary, creates a locked baseline, and lets the user test scenario changes without mutating source modules. This v3.7 update preserves that role and clarifies how Business Modelling becomes the scenario benchmark source for Quote Engine.
+
+---
+
+## PRODUCT ROLE
+
+Business Modelling is not the current business mirror.
+
+Business Modelling is not a quote tool.
+
+Business Modelling is not a cash-flow tool.
+
+Business Modelling is the scenario benchmark layer.
+
+It tells the user:
+
+**This is what the business could look like if these controlled assumptions changed.**
+
+The page should help answer:
+
+**If my assumptions change, does the business still work?**
+
+But it should do this at business-model level, not quote level.
+
+---
+
+## CLEAN ROLE SPLIT
+
+Business Summary = what the business currently is
+Business Modelling = what the business could become
+Quote Engine = whether a quote supports that model
+Monthly Actuals later = whether accepted quotes matched reality
+
+Business Modelling is the bridge between current reality and quote testing.
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Business Modelling
+↓
+Quote Engine
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+
+Simplified role chain:
+
+Business Summary = current trusted baseline
+Business Modelling = controlled scenario benchmark
+Quote Engine = quote-level leak detection against baseline or scenario
+Feedback Loop later = accepted predictions vs monthly actuals
+
+---
+
+## CORE ROLE
+
+Business Modelling is the control layer.
+
+It must create:
+
+Baseline = locked current business
+Scenario = editable copy of baseline
+Delta = difference between baseline and scenario
+
+The user must be able to adjust the scenario without changing the baseline or any source module.
+
+Business Modelling should create clear model benchmarks that Quote Engine can later consume.
+
+---
+
+## CORE PRINCIPLE
+
+Model = Mirror → Then Modify
+
+Business Modelling must always start from the current business state.
+
+It must not start from generic assumptions such as:
+
+* 20% margin
+* arbitrary hourly rate
+* guessed productivity
+* template overheads
+* assumed labour recovery
+* assumed material margin
+
+The first model is the current business.
+
+Scenario changes must be deliberate and visible.
+
+---
+
+## WHAT THIS PAGE ANSWERS
+
+Business Modelling answers:
+
+* What happens if revenue changes?
+* What happens if direct costs change?
+* What happens if margin improves or worsens?
+* What happens if productive hours increase or decrease?
+* What happens if operating cost burden changes?
+* What happens if the business performs better than baseline?
+* What happens if the business is under pressure?
+* What scenario benchmark should Quote Engine test against later?
+
+---
+
+## WHAT THIS PAGE DOES NOT ANSWER
+
+Business Modelling does not answer:
+
+* what is the current business position?
+* should I accept a quote?
+* what price should I charge?
+* what quote changes close the gap?
+* can I physically deliver the work?
+* can I afford the cash flow?
+* did this exact job perform correctly?
+
+Those belong elsewhere:
+
+Business Summary = current business position
+Quote Engine = individual quote test
+Production Capacity = delivery ability
+Cash Flow = liquidity pressure
+Monthly Actuals / Feedback = prediction vs reality over time
+
+---
+
+## REQUIRED INPUTS
+
+### From Business Summary
+
+Business Modelling consumes:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* total_cost_burden
+* net_position
+* total_productive_output
+* required_recovery_rate
+* current_margin_per_productive_hour
+* recovery_gap_per_hour
+* business_summary_ready
+* business_summary_status
+* business_summary_warnings
+* model_trust_state where available
+
+Business Summary owns the current factual mirror.
+
+Business Modelling must not recalculate Business Summary.
+
+---
+
+### Optional from Labour
+
+Business Modelling may consume explicitly defined user target values if available:
+
+* target_labour_charge_out_rate
+* target_labour_margin_percent
+* target_labour_recovery_rate
+
+These may prefill the Upside scenario only if they already exist as explicit user-defined Labour settings.
+
+They must not be guessed.
+
+---
+
+## OUTPUT CONTRACT
+
+Business Modelling outputs:
+
+* modelling_ready
+* baseline_snapshot
+* active_scenario
+* upside_scenario
+* downside_scenario
+* scenario_delta_annual
+* scenario_delta_per_hour
+* scenario_net_position
+* scenario_required_recovery_rate
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+* scenario_status
+* modelling_warnings
+
+Quote Engine-ready outputs later:
+
+* selected_model_id
+* selected_model_name
+* selected_model_type
+* selected_model_trust_state
+* selected_model_total_revenue
+* selected_model_direct_costs
+* selected_model_margin_pool
+* selected_model_total_cost_burden
+* selected_model_total_productive_output
+* selected_model_required_recovery_rate
+* selected_model_margin_per_productive_hour
+* selected_model_recovery_gap_per_hour
+* selected_model_net_position
+
+---
+
+## BASELINE SNAPSHOT RULE
+
+On first entry to Business Modelling, the system must create a baseline snapshot from Business Summary.
+
+The baseline snapshot is read-only.
+
+The baseline represents the current business as-is.
+
+The baseline must not be edited by the user.
+
+The baseline must not be overwritten automatically.
+
+If upstream data changes, the existing baseline remains frozen until the user explicitly creates or refreshes the baseline.
+
+Recommended control:
+
+Create New Baseline From Current Business
+
+or:
+
+Refresh Baseline From Current Business
+
+This action must be explicit.
+
+---
+
+## BASELINE SNAPSHOT CONTENT
+
+baseline_snapshot should include:
+
+* baseline_id
+* baseline_name
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* total_cost_burden
+* net_position
+* total_productive_output
+* required_recovery_rate
+* current_margin_per_productive_hour
+* recovery_gap_per_hour
+* created_at
+* source_model_status
+* source_business_summary_status
+* source_warnings
+
+The baseline should preserve enough data to compare future scenario changes against the original state.
+
+---
+
+## SCENARIO RULE
+
+Scenario starts as a copy of baseline.
+
+The user edits scenario values only.
+
+Scenario changes must not mutate:
+
+* P&L
+* Labour
+* Assets
+* General Overheads
+* Cost Summary
+* Revenue / COGS
+* Business Summary
+* baseline_snapshot
+
+Scenario must always be reversible.
+
+Required reset action:
+
+Reset Scenario To Baseline
+
+---
+
+## STANDARD SCENARIO STRUCTURE
+
+Business Modelling should provide three model slots:
+
+1. Baseline
+2. Upside Scenario
+3. Downside Scenario
+
+These are not unlimited saved profiles in V1.
+
+The system should avoid scenario clutter.
+
+Recommended v3.7 structure:
+
+* one locked Baseline
+* one Upside Scenario
+* one Downside Scenario
+* one active selected model for downstream Quote Engine later
+
+---
+
+## BASELINE MODEL
+
+Baseline is the current trusted Business Summary snapshot.
+
+It answers:
+
+**Does the business work as it currently is?**
+
+Baseline is read-only unless explicitly refreshed.
+
+Baseline is the default model for Quote Engine first build.
+
+---
+
+## UPSIDE MODEL
+
+Upside is the target or improved model.
+
+It answers:
+
+**Does this business support where we want to go?**
+
+Upside may test:
+
+* higher revenue
+* improved gross margin
+* lower direct costs
+* more productive hours
+* better margin per productive hour
+* lower operating cost pressure
+* higher labour recovery
+
+Upside must not invent assumptions.
+
+Auto-fill only what the user has already explicitly defined elsewhere.
+
+Everything else remains baseline until edited.
+
+---
+
+## DOWNSIDE MODEL
+
+Downside is the pressure-test model.
+
+It answers:
+
+**Does this business survive if conditions get worse?**
+
+Downside may test:
+
+* lower revenue
+* reduced gross margin
+* higher direct costs
+* lower productive hours
+* higher operating cost pressure
+* weaker recovery per hour
+
+Downside must not automatically use the minimum recoverable rate as the downside labour rate.
+
+Required recovery rate is a reference line.
+
+It is not a scenario.
+
+The user decides how much to stress the model.
+
+---
+
+## MINIMUM RECOVERABLE RATE RULE
+
+required_recovery_rate from Cost Summary / Business Summary is a reference line.
+
+It must not be treated as:
+
+* a scenario
+* a default downside value
+* a pricing recommendation
+* a target charge-out rate
+
+It represents the operating cost floor per productive hour.
+
+Scenarios are measured against it.
+
+---
+
+## EDITABLE LEVERS
+
+Business Modelling must stay controlled.
+
+Allowed editable scenario levers in v3.7 should be limited to:
+
+1. Revenue adjustment
+2. Material margin / direct cost adjustment
+3. Labour charge-out or labour recovery adjustment
+4. Productivity / productive output adjustment
+5. Operating cost burden adjustment
+
+Do not turn this into a spreadsheet.
+
+Do not add excessive inputs.
+
+Few levers, big impact.
+
+---
+
+## REVENUE LEVER
+
+The revenue lever may adjust:
+
+* scenario_total_revenue
+* scenario_margin_pool
+* scenario_net_position
+* scenario_margin_per_productive_hour
+
+It must not mutate P&L or Revenue / COGS.
+
+It is a scenario-only adjustment.
+
+---
+
+## MATERIAL MARGIN / DIRECT COST LEVER
+
+The material margin or direct cost lever may adjust:
+
+* scenario_total_direct_costs
+* scenario_margin_pool
+* scenario_margin_per_productive_hour
+* scenario_net_position
+
+It must not mutate Revenue / COGS source data.
+
+It must not reclassify P&L lines.
+
+It is a scenario-only adjustment.
+
+---
+
+## LABOUR / RECOVERY LEVER
+
+The labour or recovery lever may adjust:
+
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+* scenario_required_recovery_rate where explicitly modelled as scenario assumption
+
+It must not mutate the Labour module.
+
+It must not change actual Labour cost.
+
+It is a scenario-only adjustment.
+
+Where available, Upside may prefill from explicit Labour target settings.
+
+---
+
+## PRODUCTIVITY LEVER
+
+The productivity lever may adjust scenario productive output.
+
+It must not mutate Labour source data.
+
+It must not overwrite Labour’s total_productive_output.
+
+It must be treated as a scenario assumption.
+
+Extreme productivity assumptions should remain visible as assumptions.
+
+---
+
+## OPERATING COST LEVER
+
+The operating cost lever may adjust scenario total_cost_burden.
+
+It must not mutate Cost Summary or upstream modules.
+
+It may represent:
+
+* overhead reduction
+* asset cost change
+* operating cost pressure
+* people cost pressure
+
+It is a scenario-only adjustment.
+
+---
+
+## CORE SCENARIO VARIABLES
+
+Each scenario should contain:
+
+* scenario_id
+* scenario_name
+* scenario_type
+* scenario_total_revenue
+* scenario_total_direct_costs
+* scenario_margin_pool
+* scenario_gross_margin_percent
+* scenario_total_cost_burden
+* scenario_total_productive_output
+* scenario_required_recovery_rate
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+* scenario_net_position
+* scenario_delta_annual
+* scenario_delta_per_hour
+* scenario_status
+* scenario_trust_state
+* scenario_warnings
+* created_at
+* updated_at
+
+Suggested scenario_type values:
+
+* baseline
+* upside
+* downside
+
+---
+
+## CORE SCENARIO FORMULAS
+
+scenario_margin_pool =
+scenario_total_revenue - scenario_total_direct_costs
+
+scenario_net_position =
+scenario_margin_pool - scenario_total_cost_burden
+
+scenario_margin_per_productive_hour =
+scenario_margin_pool / scenario_total_productive_output
+
+scenario_recovery_gap_per_hour =
+scenario_margin_per_productive_hour - scenario_required_recovery_rate
+
+scenario_delta_annual =
+scenario_net_position - baseline_snapshot.net_position
+
+scenario_delta_per_hour =
+scenario_recovery_gap_per_hour - baseline_snapshot.recovery_gap_per_hour
+
+If scenario_total_productive_output = 0:
+
+scenario_margin_per_productive_hour = 0
+scenario_recovery_gap_per_hour = 0
+warning required.
+
+---
+
+## LIVE DELTA RULE
+
+Business Modelling must show the live difference between baseline and scenario.
+
+Display both:
+
+* annual change
+* per-hour change
+
+Recommended display:
+
+Change vs Current:
+
+Per hour: +$X/hr
+Annual: +$Y/year
+
+Hourly change should be prioritised because it connects directly to how the business prices and operates.
+
+Annual change should be shown for scale.
+
+---
+
+## BASELINE VISIBILITY RULE
+
+Baseline must remain visible while the user edits scenarios.
+
+The user must not need to remember baseline numbers or flick back to Business Summary.
+
+Recommended structure:
+
+* Baseline card: read-only, muted
+* Scenario card: editable
+* Delta card: live difference
+
+The user should always see:
+
+* what is real
+* what is being tested
+* what changed
+
+---
+
+## SCENARIO COMPARISON DISPLAY
+
+Business Modelling should show Baseline, Upside, and Downside clearly.
+
+Suggested display:
+
+Baseline = current model
+Upside = target model
+Downside = pressure model
+
+For each model show:
+
+* net position
+* required recovery rate
+* margin per productive hour
+* recovery gap per hour
+* annual delta vs baseline
+* per-hour delta vs baseline
+* trust / warning state
+
+---
+
+## SELECTED MODEL RULE
+
+Business Modelling may later expose one selected model for Quote Engine.
+
+Selected model may be:
+
+* baseline
+* upside
+* downside
+* active scenario
+
+Business Modelling must always show which model is selected.
+
+Business Modelling must not silently switch selected model.
+
+Quote Engine must not mutate Business Modelling scenarios.
+
+---
+
+## READINESS RULE
+
+modelling_ready = true when:
+
+* Business Summary is ready or usable with warnings
+* baseline_snapshot exists
+* active scenario exists
+* no blocking upstream model readiness issues exist
+
+If Business Summary is not trusted:
+
+* Business Modelling may display preview state only
+* scenario outputs must not be treated as final
+* baseline must be marked untrusted
+
+---
+
+## TRUST RULE
+
+Business Modelling must never hide the trust state of its baseline.
+
+If the baseline comes from a warning state, the scenario must show that it is based on a warning model.
+
+If the baseline comes from an untrusted state, the scenario must be marked preview only.
+
+Quote Engine later must inherit the selected model trust state.
+
+---
+
+## WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Minimum warnings:
+
+* no_business_summary_baseline
+* baseline_not_trusted
+* scenario_missing
+* scenario_productive_output_zero
+* scenario_required_recovery_rate_zero
+* scenario_assumption_extreme
+* selected_model_not_trusted
+* upstream_business_summary_warning
+
+Warning wording examples:
+
+* Business Summary is not ready, so the baseline is preview only.
+* Scenario productive output is zero, so per-hour outputs are held at 0.
+* Selected model has warnings and should not be used as a trusted Quote Engine benchmark.
+
+---
+
+## CASH FLOW BOUNDARY
+
+Business Modelling does not model principal repayments in v3.7.
+
+Principal belongs to the future Cash Flow layer.
+
+Business Modelling may later consume Cash Flow outputs when a Cash Flow brief is locked.
+
+Until then, principal must not alter:
+
+* scenario_total_cost_burden
+* scenario_required_recovery_rate
+* scenario_net_position
+* scenario_recovery_gap_per_hour
+
+---
+
+## RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Modelling consumes Business Summary.
+
+Business Summary is factual.
+
+Business Modelling is hypothetical.
+
+Business Modelling must not change Business Summary.
+
+Business Summary answers:
+
+**What is happening?**
+
+Business Modelling answers:
+
+**What happens if something changes?**
+
+---
+
+## RELATIONSHIP TO QUOTE ENGINE
+
+Quote Engine may consume selected Business Modelling outputs as quote benchmark assumptions.
+
+Business Modelling does not price quotes.
+
+Business Modelling does not decide quote acceptance.
+
+Business Modelling creates scenario benchmarks that Quote Engine can later test individual quotes against.
+
+Boundary statement:
+
+**Business Modelling creates the benchmark. Quote Engine tests the quote against it.**
+
+Quote Engine may later show:
+
+* quote works against baseline
+* quote does not meet upside
+* quote survives downside
+
+This comparison depends on Business Modelling exposing clean scenario outputs.
+
+---
+
+## RELATIONSHIP TO MONTHLY ACTUALS / FEEDBACK LOOP
+
+Monthly Actuals / Feedback belongs later.
+
+Business Modelling may later be updated or refreshed based on monthly actuals, but only through explicit user action or a locked feedback-loop brief.
+
+Monthly actuals must not silently overwrite baseline snapshots or scenario assumptions.
+
+Future loop:
+
+accepted quotes in a month
+vs
+monthly P&L actuals
+vs
+business baseline / model
+
+Business Modelling provides the scenario benchmarks.
+
+It does not perform feedback analysis in V1.
+
+---
+
+## RELATIONSHIP TO CASH FLOW
+
+Cash Flow later may consume scenario assumptions to show payment pressure.
+
+Cash Flow remains separate from Cost Summary and Business Modelling operating-cost logic.
+
+Business Modelling must not treat cash-flow pressure as operating cost.
+
+---
+
+## RELATIONSHIP TO PRODUCTION CAPACITY
+
+Production Capacity belongs later.
+
+Business Modelling may provide scenario productive output assumptions, but it does not validate delivery capacity.
+
+Production Capacity answers:
+
+**Can the business actually deliver this work?**
+
+Business Modelling answers:
+
+**What happens if the business assumptions change?**
+
+---
+
+## DISPLAY STRUCTURE
+
+Business Modelling should use a clear structured layout, not a generic dashboard.
+
+Recommended structure:
+
+1. BusinessModellingStatusStrip
+2. BusinessModellingBaselineCard
+3. BusinessModellingScenarioControls
+4. BusinessModellingScenarioResult
+5. BusinessModellingDeltaCard
+6. BusinessModellingHelpPanel
+
+If using simpler v1 build structure:
+
+1. Status Strip
+2. Baseline Snapshot
+3. Scenario Controls
+4. Scenario Result
+5. Delta vs Baseline
+6. Help Panel
+
+---
+
+## STATUS STRIP
+
+Status Strip may show:
+
+* Baseline date
+* Scenario selected
+* Scenario modified / unchanged
+* Model ready / warning / blocked
+* Annual delta
+* Per-hour delta
+* Selected model trust state
+
+---
+
+## BASELINE SNAPSHOT CARD
+
+Baseline Snapshot must show:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* total_cost_burden
+* net_position
+* total_productive_output
+* required_recovery_rate
+* current_margin_per_productive_hour
+* recovery_gap_per_hour
+* baseline trust state
+
+Baseline is read-only.
+
+---
+
+## SCENARIO CONTROLS
+
+Scenario Controls should be limited to high-impact levers:
+
+* revenue adjustment
+* direct cost / material margin adjustment
+* productive output adjustment
+* operating cost adjustment
+* labour recovery / charge-out adjustment where available
+
+Keep this simple.
+
+Do not create spreadsheet-style modelling.
+
+---
+
+## SCENARIO RESULT CARD
+
+Scenario Result must show:
+
+* scenario_total_revenue
+* scenario_total_direct_costs
+* scenario_margin_pool
+* scenario_total_cost_burden
+* scenario_net_position
+* scenario_total_productive_output
+* scenario_required_recovery_rate
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+
+---
+
+## DELTA CARD
+
+Delta Card must show:
+
+* scenario_delta_annual
+* scenario_delta_per_hour
+* net position change
+* margin pool change
+* recovery gap change
+
+The user should always see what changed from baseline.
+
+---
+
+## HELP PANEL
+
+Help Panel must explain:
+
+* Business Summary is the current mirror
+* Business Modelling is a scenario copy of that mirror
+* Scenarios do not change source modules
+* Baseline must be refreshed explicitly
+* Upside and Downside are controlled assumptions
+* Quote Engine may later use a selected scenario as its benchmark
+
+---
+
+## USER EXPERIENCE PRINCIPLE
+
+The user should land on Business Modelling and immediately see:
+
+This is our business.
+
+This is the same model, now editable as a scenario.
+
+This is what changed.
+
+No setup friction.
+
+No generic defaults.
+
+No hidden assumptions.
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+**Business Summary shows what the business is. Business Modelling shows what it could become.**
+
+**Scenario changes do not alter your real business model.**
+
+**Baseline is the current business mirror, locked for comparison.**
+
+**Upside tests the target business. Downside tests pressure.**
+
+**Quote Engine can later test quotes against the selected model.**
+
+---
+
+## NOT ALLOWED
+
+Business Modelling must not:
+
+* overwrite baseline automatically
+* mutate source modules
+* edit P&L
+* edit Labour
+* edit Assets
+* edit General Overheads
+* edit Cost Summary
+* edit Revenue / COGS
+* edit Business Summary
+* treat required_recovery_rate as a scenario
+* auto-fill assumptions that the user has not explicitly defined
+* include principal repayments in operating cost
+* model Cash Flow before Cash Flow is briefed
+* create unlimited scenario clutter
+* hide baseline trust state
+* hide scenario assumptions
+* suggest actions as if they are required
+* price quotes
+* calculate quote gaps
+* store accepted quote snapshots
+* perform monthly actuals feedback analysis
+
+---
+
+## FIRST UPDATE SCOPE
+
+This v3.7 update requires wording and boundary changes only unless the existing implementation is missing required display values.
+
+### Must update
+
+* Clarify Business Modelling as the controlled scenario benchmark layer
+* Clarify Business Summary vs Business Modelling vs Quote Engine boundary
+* Add explicit Baseline / Upside / Downside role clarity
+* Ensure selected model outputs are planned for Quote Engine
+* Ensure baseline snapshot is locked and not auto-overwritten
+* Ensure scenario assumptions remain visible
+* Ensure warnings are explicit
+
+### Do not update
+
+* No quote logic
+* No accepted quote logic
+* No repair levers
+* No monthly actuals feedback logic
+* No cash-flow logic
+* No production capacity logic
+
+---
+
+## DEFINITION OF DONE
+
+Business Modelling v3.7 is complete when:
+
+* it starts from a locked Business Summary baseline
+* it provides controlled scenario editing
+* it supports Baseline, Upside, and Downside model roles
+* it shows annual and per-hour deltas
+* it keeps source modules unchanged
+* it exposes clean scenario outputs for Quote Engine later
+* it shows baseline and scenario trust state
+* it keeps assumptions visible
+* it remains simple and controlled
+* build passes
+
+---
+
+## FINAL DEFINITION
+
+Business Modelling is the controlled scenario benchmark layer.
+
+It starts from a locked Business Summary baseline and creates editable scenario copies.
+
+It shows live annual and per-hour deltas.
+
+It does not mutate the real model.
+
+It does not include cash-flow pressure.
+
+It does not price quotes.
+
+It creates the baseline, upside, and downside benchmarks that Quote Engine can later use to test individual quotes.
