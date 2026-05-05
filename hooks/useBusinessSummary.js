@@ -39,6 +39,7 @@ export default function useBusinessSummary() {
       required_recovery_rate:
         cost_summary_output_contract.required_recovery_rate ?? 0,
     });
+
     const model_trust_state =
       cost_summary_output_contract.model_readiness_status ??
       (cost_summary_output_contract.model_ready === true ? "ready" : "blocked");
@@ -50,26 +51,39 @@ export default function useBusinessSummary() {
         revenue_cogs_output_contract.revenue_cogs_ready === true,
       cost_summary_ready: cost_summary_output_contract.model_ready === true,
     });
+
     const card = buildBusinessSummaryCard(calculations);
 
     const output_contract = {
       business_summary_ready: status.business_summary_ready,
+
       total_revenue: calculations.total_revenue,
       total_direct_costs: calculations.total_direct_costs,
       margin_pool: calculations.margin_pool,
       gross_margin_percent: calculations.gross_margin_percent,
+
       total_cost_burden: calculations.total_cost_burden,
       net_position: calculations.net_position,
+
       total_productive_output: calculations.total_productive_output,
+
+      weighted_productivity_percent:
+        cost_summary_output_contract.weighted_productivity_percent ?? 0,
+      total_available_hours_before_productivity:
+        cost_summary_output_contract.total_available_hours_before_productivity ?? 0,
+
       required_recovery_rate: calculations.required_recovery_rate,
       current_margin_per_productive_hour:
         calculations.current_margin_per_hour,
       recovery_gap_per_hour: calculations.hourly_gap,
+
       current_margin_per_hour: calculations.current_margin_per_hour,
       hourly_gap: calculations.hourly_gap,
+
       business_summary_status: status.business_summary_status,
       business_summary_warnings: status.business_summary_warnings,
       model_trust_state,
+
       revenue_cogs_ready:
         revenue_cogs_output_contract.revenue_cogs_ready === true,
       cost_summary_ready: cost_summary_output_contract.model_ready === true,

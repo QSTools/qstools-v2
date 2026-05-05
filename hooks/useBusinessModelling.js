@@ -56,8 +56,6 @@ export default function useBusinessModelling() {
   const business_summary = useBusinessSummary();
 
   const [business_modelling_state, setBusinessModellingState] = useState(() => {
-    // Always initialize with default state to ensure server and client match
-    // localStorage will be loaded in useEffect after mount
     return {
       baseline_snapshot: null,
       upside_scenario: null,
@@ -69,9 +67,7 @@ export default function useBusinessModelling() {
     };
   });
 
-  // Load localStorage after mount only
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     const storedState = loadBusinessModellingState();
     setBusinessModellingState(storedState);
   }, []);
@@ -90,9 +86,7 @@ export default function useBusinessModelling() {
     [business_summary_output_contract]
   );
 
-  // Baseline is only created after Business Summary is usable
   const baseline_snapshot = useMemo(() => {
-    // Return stored baseline if available and not empty
     if (
       business_modelling_state.baseline_snapshot &&
       !isBaselineEmpty(business_modelling_state.baseline_snapshot)
@@ -104,7 +98,6 @@ export default function useBusinessModelling() {
       return null;
     }
 
-    // Create baseline from live Business Summary
     return buildBaselineSnapshot({
       total_revenue: business_summary_output_contract.total_revenue,
       total_direct_costs: business_summary_output_contract.total_direct_costs,
@@ -115,6 +108,10 @@ export default function useBusinessModelling() {
       net_position: business_summary_output_contract.net_position,
       total_productive_output:
         business_summary_output_contract.total_productive_output,
+      weighted_productivity_percent:
+        business_summary_output_contract.weighted_productivity_percent,
+      total_available_hours_before_productivity:
+        business_summary_output_contract.total_available_hours_before_productivity,
       required_recovery_rate:
         business_summary_output_contract.required_recovery_rate,
       current_margin_per_productive_hour:
@@ -127,19 +124,21 @@ export default function useBusinessModelling() {
       business_summary_warnings:
         business_summary_output_contract.business_summary_warnings,
     });
-  }, [business_modelling_state.baseline_snapshot, business_summary_output_contract, business_summary_usable]);
+  }, [
+    business_modelling_state.baseline_snapshot,
+    business_summary_output_contract,
+    business_summary_usable,
+  ]);
 
-  // Auto-save newly created baseline
   useEffect(() => {
     const storedBaselineEmpty = isBaselineEmpty(
       business_modelling_state.baseline_snapshot
     );
 
-    if ((
-      !business_modelling_state.baseline_snapshot ||
-      storedBaselineEmpty
-    ) && baseline_snapshot) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (
+      (!business_modelling_state.baseline_snapshot || storedBaselineEmpty) &&
+      baseline_snapshot
+    ) {
       setBusinessModellingState((previous) =>
         buildBusinessModellingState({
           ...previous,
@@ -167,12 +166,14 @@ export default function useBusinessModelling() {
     });
   }, [baseline_snapshot, business_modelling_state.downside_scenario]);
 
-  const selected_model_type = business_modelling_state.selected_model_type || "baseline";
+  const selected_model_type =
+    business_modelling_state.selected_model_type || "baseline";
 
   const active_scenario = useMemo(() => {
     if (selected_model_type === "upside") {
       return upside_scenario;
     }
+
     if (selected_model_type === "downside") {
       return downside_scenario;
     }
@@ -192,11 +193,17 @@ export default function useBusinessModelling() {
       scenario_gross_margin_percent: baseline_snapshot.gross_margin_percent,
       scenario_total_cost_burden: baseline_snapshot.total_cost_burden,
       scenario_net_position: baseline_snapshot.net_position,
-      scenario_total_productive_output: baseline_snapshot.total_productive_output,
-      scenario_required_recovery_rate: baseline_snapshot.required_recovery_rate,
+      scenario_total_productive_output:
+        baseline_snapshot.total_productive_output,
+      scenario_required_recovery_rate:
+        baseline_snapshot.required_recovery_rate,
       scenario_margin_per_productive_hour:
         baseline_snapshot.current_margin_per_productive_hour,
       scenario_recovery_gap_per_hour: baseline_snapshot.recovery_gap_per_hour,
+      scenario_productivity_percent:
+        baseline_snapshot.weighted_productivity_percent || 100,
+      baseline_productivity_percent:
+        baseline_snapshot.weighted_productivity_percent || 100,
       scenario_trust_state: baseline_snapshot.model_trust_state,
       scenario_status:
         baseline_snapshot.model_trust_state === "blocked"
@@ -204,7 +211,12 @@ export default function useBusinessModelling() {
           : "ready",
       scenario_warnings: baseline_snapshot.source_warnings || [],
     };
-  }, [selected_model_type, upside_scenario, downside_scenario, baseline_snapshot]);
+  }, [
+    selected_model_type,
+    upside_scenario,
+    downside_scenario,
+    baseline_snapshot,
+  ]);
 
   const scenario_delta = useMemo(() => {
     return calculateScenarioDelta({
@@ -214,16 +226,17 @@ export default function useBusinessModelling() {
   }, [active_scenario, baseline_snapshot]);
 
   const modelling_ready = useMemo(() => {
-    const summary_status = business_summary_output_contract.business_summary_status;
+    const summary_status =
+      business_summary_output_contract.business_summary_status;
     const has_baseline = Boolean(baseline_snapshot);
     const has_scenario = Boolean(active_scenario);
 
-    return (
-      has_baseline &&
-      has_scenario &&
-      summary_status !== "blocked"
-    );
-  }, [baseline_snapshot, active_scenario, business_summary_output_contract.business_summary_status]);
+    return has_baseline && has_scenario && summary_status !== "blocked";
+  }, [
+    baseline_snapshot,
+    active_scenario,
+    business_summary_output_contract.business_summary_status,
+  ]);
 
   const modelling_warnings = useMemo(() => {
     const warnings = [];
@@ -244,9 +257,7 @@ export default function useBusinessModelling() {
       Boolean(business_modelling_state.baseline_snapshot) &&
       isBaselineEmpty(business_modelling_state.baseline_snapshot);
     const shouldWarnAboutStoredBaselineEmpty =
-      storedBaselineEmpty &&
-      !baseline_snapshot &&
-      business_summary_usable;
+      storedBaselineEmpty && !baseline_snapshot && business_summary_usable;
 
     if (shouldWarnAboutStoredBaselineEmpty) {
       warnings.push({
@@ -296,7 +307,13 @@ export default function useBusinessModelling() {
     }
 
     return warnings;
-  }, [business_summary_output_contract, active_scenario, baseline_snapshot, business_summary_usable]);
+  }, [
+    business_summary_output_contract,
+    active_scenario,
+    baseline_snapshot,
+    business_summary_usable,
+    business_modelling_state.baseline_snapshot,
+  ]);
 
   const status = useMemo(() => {
     return buildBusinessModellingStatus({
@@ -308,7 +325,14 @@ export default function useBusinessModelling() {
       modelling_warnings,
       selected_model_type,
     });
-  }, [baseline_snapshot, active_scenario, business_summary_output_contract.business_summary_status, modelling_ready, modelling_warnings, selected_model_type]);
+  }, [
+    baseline_snapshot,
+    active_scenario,
+    business_summary_output_contract.business_summary_status,
+    modelling_ready,
+    modelling_warnings,
+    selected_model_type,
+  ]);
 
   const baseline = useMemo(() => {
     return buildBusinessModellingBaselineCard(baseline_snapshot);
@@ -341,6 +365,7 @@ export default function useBusinessModelling() {
   function updateScenarioField(field, value) {
     const update = (previous, scenario_key) => {
       const current = previous[scenario_key] || {};
+
       return {
         ...previous,
         [scenario_key]: {
@@ -377,6 +402,11 @@ export default function useBusinessModelling() {
         net_position: business_summary.output_contract.net_position,
         total_productive_output:
           business_summary.output_contract.total_productive_output,
+        weighted_productivity_percent:
+          business_summary.output_contract.weighted_productivity_percent,
+        total_available_hours_before_productivity:
+          business_summary.output_contract
+            .total_available_hours_before_productivity,
         required_recovery_rate:
           business_summary.output_contract.required_recovery_rate,
         current_margin_per_productive_hour:
@@ -399,41 +429,44 @@ export default function useBusinessModelling() {
   }
 
   function resetScenarioToBaseline() {
+    if (!baseline_snapshot) {
+      return;
+    }
+
     setBusinessModellingState((previous) => {
-      const baselineValues = {
-        scenario_total_revenue: baseline_snapshot.total_revenue,
-        scenario_total_direct_costs: baseline_snapshot.total_direct_costs,
-        scenario_total_cost_burden: baseline_snapshot.total_cost_burden,
-        scenario_total_productive_output:
-          baseline_snapshot.total_productive_output,
-        scenario_required_recovery_rate:
-          baseline_snapshot.required_recovery_rate,
-        updated_at: new Date().toISOString(),
-      };
+      const resetScenario = ({ scenario_type, scenario_name }) =>
+        buildScenarioState({
+          baseline_snapshot,
+          scenario_type,
+          scenario_name,
+          scenario_state: {},
+        });
 
       const next = {
         ...previous,
+        updated_at: new Date().toISOString(),
       };
 
       if (selected_model_type === "upside") {
-        next.upside_scenario = {
-          ...previous.upside_scenario,
-          ...baselineValues,
-        };
+        next.upside_scenario = resetScenario({
+          scenario_type: "upside",
+          scenario_name: "Upside Scenario",
+        });
       } else if (selected_model_type === "downside") {
-        next.downside_scenario = {
-          ...previous.downside_scenario,
-          ...baselineValues,
-        };
+        next.downside_scenario = resetScenario({
+          scenario_type: "downside",
+          scenario_name: "Downside Scenario",
+        });
       } else {
-        next.upside_scenario = {
-          ...previous.upside_scenario,
-          ...baselineValues,
-        };
-        next.downside_scenario = {
-          ...previous.downside_scenario,
-          ...baselineValues,
-        };
+        next.upside_scenario = resetScenario({
+          scenario_type: "upside",
+          scenario_name: "Upside Scenario",
+        });
+
+        next.downside_scenario = resetScenario({
+          scenario_type: "downside",
+          scenario_name: "Downside Scenario",
+        });
       }
 
       return buildBusinessModellingState(next);
@@ -499,8 +532,7 @@ export default function useBusinessModelling() {
       selected_model_output.selected_model_margin_per_productive_hour,
     selected_model_recovery_gap_per_hour:
       selected_model_output.selected_model_recovery_gap_per_hour,
-    selected_model_net_position:
-      selected_model_output.selected_model_net_position,
+    selected_model_net_position: selected_model_output.selected_model_net_position,
     updateScenarioField,
     refreshBaseline,
     resetScenarioToBaseline,

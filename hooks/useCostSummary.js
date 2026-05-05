@@ -64,6 +64,8 @@ export default function useCostSummary(inputs = {}) {
     const output_contract = {
       total_people_cost_annual: calculations.total_people_cost_annual ?? 0,
       total_productive_output: calculations.total_productive_output ?? 0,
+      total_available_hours_before_productivity: labour_data.total_available_hours_before_productivity ?? 0,
+      weighted_productivity_percent: labour_data.weighted_productivity_percent ?? 0,
       total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
       total_asset_interest_annual:
         calculations.total_asset_interest_annual ?? 0,
