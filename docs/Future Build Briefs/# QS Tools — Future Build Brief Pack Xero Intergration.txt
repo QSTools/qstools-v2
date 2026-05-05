@@ -1,0 +1,744 @@
+# QS Tools — Future Build Brief Pack Xero Intergration 
+
+Status: Future Build Planning Pack
+Purpose: This pack captures the next major foundation and enhancement builds after the current core modelling work is stabilised.
+
+---
+
+# 01 — Login + Company Foundation Brief
+
+Status: Future Foundation Build
+
+## Purpose
+
+The Login + Company layer creates the ownership foundation for QS Tools.
+
+It answers:
+
+* Who is using the system?
+* Which company does their data belong to?
+* Which company should future records be saved against?
+
+This layer must exist before the database becomes the live storage layer.
+
+## System Role
+
+Login + Company is the ownership layer.
+
+It must:
+
+* create a user identity
+* create or select a company identity
+* link users to companies
+* ensure all saved module records belong to a company
+
+It must not:
+
+* calculate business data
+* own module logic
+* change module output contracts
+* store Xero financial data directly inside the auth layer
+
+## Required Concepts
+
+### User
+
+Represents the person logging in.
+
+Required fields:
+
+* user_id
+* email
+* display_name
+* created_at
+* updated_at
+
+### Company
+
+Represents the business account.
+
+Required fields:
+
+* company_id
+* company_name
+* created_at
+* updated_at
+
+### User Company Link
+
+Links a user to a company.
+
+Required fields:
+
+* user_company_id
+* user_id
+* company_id
+* role
+* is_active
+* created_at
+* updated_at
+
+Allowed starter roles:
+
+* owner
+* member
+
+## Default Behaviour
+
+On first signup:
+
+1. create user
+2. ask for company name
+3. create company
+4. link user to company as owner
+5. set company as active context
+
+On later login:
+
+1. load user
+2. load active company
+3. use company_id for all module data access
+
+## Core Rule
+
+Every saved business record must belong to a company.
+
+Required field on all future module tables:
+
+* company_id
+
+## Definition of Done
+
+This build is complete when:
+
+* user can log in
+* first user can create a company
+* active company_id is available to the app
+* future database records can be saved against company_id
+* no module logic is changed
+
+---
+
+# 02 — Baseline Database Foundation Brief
+
+Status: Future Foundation Build
+
+## Purpose
+
+The database replaces browser-only storage as the persistent storage layer for QS Tools.
+
+It exists to store:
+
+* company-owned module data
+* generated IDs
+* active records
+* version history
+* module outputs
+
+The database must support the existing module architecture without changing module logic.
+
+## System Role
+
+The database is the persistence layer.
+
+It must:
+
+* store stable module records
+* preserve history
+* attach all business data to company_id
+* support active/current records
+* support future Xero, dashboard, and feedback-loop builds
+
+It must not:
+
+* become the calculation engine
+* rename variables
+* rebuild module maths
+* bypass hooks or module contracts
+* store unrelated UI-only state as business truth
+
+## Core Principle
+
+The database replaces storage, not logic.
+
+Current pattern:
+
+UI → Hook → Calculations → Selectors → Storage
+
+Future pattern:
+
+UI → Hook → Calculations → Selectors → Database-backed Storage
+
+## Minimum Required Tables
+
+### companies
+
+* company_id
+* company_name
+* created_at
+* updated_at
+
+### users
+
+* user_id
+* email
+* display_name
+* created_at
+* updated_at
+
+### user_companies
+
+* user_company_id
+* user_id
+* company_id
+* role
+* is_active
+* created_at
+* updated_at
+
+### labour_profiles
+
+Stores Labour profile versions and outputs.
+
+Required baseline fields:
+
+* labour_profile_id
+* company_id
+* staff_id
+* profile_version
+* is_active
+* effective_from
+* input_json
+* output_json
+* created_at
+* updated_at
+
+### asset_profiles
+
+Stores Asset profile versions and outputs.
+
+Required baseline fields:
+
+* asset_profile_id
+* company_id
+* asset_id
+* profile_version
+* is_active
+* is_retired
+* effective_from
+* input_json
+* output_json
+* created_at
+* updated_at
+
+### general_overhead_profiles
+
+Stores General Overheads profile versions and outputs.
+
+Required baseline fields:
+
+* general_overhead_profile_id
+* company_id
+* profile_version
+* is_active
+* effective_from
+* input_json
+* output_json
+* created_at
+* updated_at
+
+### pnl_snapshots
+
+Stores imported or manually entered P&L snapshots.
+
+Required baseline fields:
+
+* pnl_snapshot_id
+* company_id
+* source
+* period_start
+* period_end
+* imported_at
+* raw_json
+* classified_json
+* created_at
+* updated_at
+
+Allowed source values:
+
+* manual
+* xero
+
+### cost_summary_snapshots
+
+Stores Cost Summary output snapshots.
+
+Required baseline fields:
+
+* cost_summary_snapshot_id
+* company_id
+* source_pnl_snapshot_id
+* output_json
+* created_at
+* updated_at
+
+## Versioning Rule
+
+When a business record changes, create a new version.
+
+Do not overwrite historical versions.
+
+Only one active version should exist per current business object where applicable.
+
+## Storage Rule
+
+For the baseline database build, JSON storage is acceptable for module input/output payloads if it preserves the locked variable names.
+
+Do not prematurely over-normalise every module field.
+
+## Definition of Done
+
+This build is complete when:
+
+* company-owned data can be saved and loaded
+* current module storage functions can use the database instead of browser storage
+* IDs remain stable
+* active records can be queried by company_id
+* history is preserved
+* existing module calculations remain unchanged
+
+---
+
+# 03 — Xero Connection Brief
+
+Status: Future Integration Build
+
+## Purpose
+
+The Xero Connection layer allows QS Tools to securely connect to a company’s Xero organisation and import financial data.
+
+The first target is Profit and Loss import only.
+
+## System Role
+
+Xero Connection is an integration layer.
+
+It must:
+
+* allow a user to connect their Xero organisation
+* store the secure connection server-side
+* import P&L data for a selected period
+* save imported data against company_id
+
+It must not:
+
+* expose API secrets in the browser
+* require manual API key entry by the user
+* change Xero data
+* replace QS Tools classification logic
+* calculate QS Tools business outputs directly
+
+## User Experience
+
+Initial setup:
+
+1. user clicks Connect to Xero
+2. user logs into Xero
+3. user selects the correct Xero organisation
+4. user allows access
+5. QS Tools stores the connection securely
+
+Ongoing use:
+
+1. user selects reporting period
+2. user clicks Import P&L
+3. QS Tools pulls the P&L from Xero
+4. QS Tools applies saved classifications
+5. P&L page updates
+
+## Required Stored Connection Fields
+
+* xero_connection_id
+* company_id
+* xero_tenant_id
+* access_token_encrypted
+* refresh_token_encrypted
+* token_expires_at
+* connection_status
+* connected_at
+* updated_at
+
+## First Import Scope
+
+Only import:
+
+* Profit and Loss report
+* account names
+* account codes where available
+* period values
+* report period start/end
+
+Do not import:
+
+* invoices
+* bills
+* contacts
+* bank transactions
+* payroll
+* balance sheet in this first build
+
+## Classification Rule
+
+Xero provides raw accounting lines.
+
+QS Tools owns classification.
+
+Classification must be stored by stable account reference where possible:
+
+* xero_account_id or account_code if available
+* fallback to account_name only where necessary
+
+## Definition of Done
+
+This build is complete when:
+
+* user can connect to Xero
+* Xero connection persists without reconnecting every import
+* user can import a full-year P&L
+* imported lines are stored as a P&L snapshot
+* classification can be applied in QS Tools
+* no secrets are stored in browser storage
+
+---
+
+# 04 — P&L Setup + Classification Refresh Brief
+
+Status: Future Page Adjustment Build
+
+## Purpose
+
+The P&L page must evolve from a manual-entry page into a setup, import, review, and classification page.
+
+It remains the entry point for business financial data.
+
+## System Role
+
+The P&L page is the financial intake page.
+
+It must:
+
+* support manual entry where needed
+* support Xero import once connected
+* allow account classification
+* save classification rules
+* prepare clean outputs for downstream modules
+
+It must not:
+
+* become the Cost Summary
+* calculate recovery strategy
+* hide unclassified accounts silently
+* require repeat classification every month for known accounts
+
+## Required User Flow
+
+First setup:
+
+1. choose setup method
+
+   * Connect to Xero
+   * Enter manually
+2. load full-year P&L
+3. classify accounts once
+4. save mapping
+5. mark P&L as ready
+
+Monthly update:
+
+1. import new period
+2. auto-apply saved mappings
+3. show only new/unmapped accounts for review
+4. save updated snapshot
+
+## Classification Outputs
+
+Each P&L line should classify into one of the approved downstream areas, such as:
+
+* income
+* cogs
+* labour-related
+* general overheads
+* asset finance interest
+* excluded / review
+
+Exact categories should align with the active P&L and downstream module contracts before build.
+
+## Not Ready Conditions
+
+P&L page must show not ready when:
+
+* no P&L data exists
+* period is missing
+* accounts are unclassified
+* Xero import failed
+* required totals are zero or invalid
+
+## Definition of Done
+
+This build is complete when:
+
+* full-year P&L can be loaded manually or from Xero
+* user can classify account lines
+* classifications persist
+* repeated imports auto-classify known accounts
+* unclassified new accounts are clearly shown
+* downstream modules receive clean classified outputs
+
+---
+
+# 05 — Feedback Loop Brief
+
+Status: Future Enhancement Build
+
+## Purpose
+
+The Feedback Loop compares what QS Tools expected against what actually happened after accepted work is completed.
+
+It turns the model into a learning system.
+
+## System Role
+
+Feedback Loop is the expected-vs-actual layer.
+
+It must:
+
+* use accepted quote snapshots
+* use actual job results
+* compare expected vs actual performance
+* show variance and trend
+* inform future model improvement
+
+It must not:
+
+* replace Quote Engine
+* rebuild Cost Summary
+* rebuild Business Modelling
+* automatically change assumptions without user review
+
+## Required Inputs
+
+From accepted quote snapshot:
+
+* expected revenue
+* expected costs
+* expected labour hours
+* expected margin
+* expected recovery
+
+From actual job result:
+
+* actual revenue
+* actual costs
+* actual labour hours
+* actual margin
+* actual recovery
+
+## Required Outputs
+
+* revenue_variance
+* cost_variance
+* labour_hour_variance
+* margin_variance
+* recovery_variance
+* feedback_status
+* trend_direction
+* recommended_review_area
+
+## Page Purpose
+
+The Feedback page answers:
+
+* Were we right or wrong?
+* Where did we drift?
+* Are we getting better or worse?
+
+## Definition of Done
+
+This build is complete when:
+
+* accepted quote snapshots can be compared to actual outcomes
+* variance is shown clearly
+* trends are visible
+* model changes remain controlled and user-approved
+
+---
+
+# 06 — Dashboard / Landing Page Brief
+
+Status: Future Enhancement Build
+
+## Purpose
+
+The Dashboard becomes the QS Tools landing page.
+
+It provides a simple, decision-focused view of business state.
+
+## System Role
+
+Dashboard is the top-level signal page.
+
+It must:
+
+* summarise the current business state
+* show clear decision signals
+* point users to problems
+* avoid clutter
+
+It must not:
+
+* become a reporting dump
+* replace module pages
+* create new calculations outside approved selectors/calculations
+* show charts without clear meaning
+
+## Dashboard Answers
+
+The page should answer:
+
+* Are we okay?
+* Are we recovering properly?
+* Are quotes working?
+* Is cash or business health under pressure?
+* What needs attention first?
+
+## Starter Signals
+
+Allowed starter cards:
+
+* Business readiness
+* Required recovery rate
+* Current model status
+* Quote Engine status
+* P&L readiness
+* Xero connection status
+* Warnings requiring attention
+
+Later cards:
+
+* cash position
+* balance sheet health
+* feedback trend
+* quote leakage trend
+
+## Definition of Done
+
+This build is complete when:
+
+* dashboard is the app landing page
+* it shows clear status signals
+* it links to pages needing attention
+* it does not duplicate module logic
+* it remains simple and decision-first
+
+---
+
+# 07 — Balance Sheet / Business Health Brief
+
+Status: Future Final-Layer Build
+
+## Purpose
+
+The Balance Sheet layer gives QS Tools the long-term business health view.
+
+It answers whether the business is becoming stronger over time.
+
+## System Role
+
+Balance Sheet is the business position layer.
+
+It must:
+
+* import or enter balance sheet data
+* show assets, liabilities, equity, and cash position
+* track business strength over time
+* provide clear plain-English interpretation
+
+It must not:
+
+* change Cost Summary recovery calculations
+* replace the Assets module
+* include depreciation in pricing recovery
+* become an accounting report clone
+
+## Source
+
+Initial future source:
+
+* Xero Balance Sheet report
+
+Manual entry may be allowed as fallback.
+
+## Required Concepts
+
+* assets
+* liabilities
+* equity
+* bank/cash balances
+* debt levels
+* net position
+
+## Key Distinction
+
+P&L shows performance.
+
+Balance Sheet shows position.
+
+Cash is part of the Balance Sheet.
+
+## Page Purpose
+
+The Balance Sheet / Business Health page should answer:
+
+* Is debt reducing?
+* Is cash improving?
+* Are assets increasing?
+* Is the business becoming stronger?
+
+## Definition of Done
+
+This build is complete when:
+
+* balance sheet data can be loaded
+* cash position is visible
+* debt and asset position are clear
+* business health is shown in plain English
+* it remains separate from pricing and recovery logic
+
+---
+
+# Recommended Future Build Order
+
+1. Finish current core wiring and page stabilisation
+2. Login + Company Foundation
+3. Baseline Database Foundation
+4. Xero Connection
+5. P&L Setup + Classification Refresh
+6. Feedback Loop
+7. Dashboard / Landing Page
+8. Balance Sheet / Business Health
+
+---
+
+# Final Principle
+
+The next foundation builds complete the core QS Tools system.
+
+Login + Company gives ownership.
+
+Database gives persistence.
+
+Xero gives live financial data.
+
+P&L classification gives structure.
+
+Everything after that is intelligence and visibility layered on top.

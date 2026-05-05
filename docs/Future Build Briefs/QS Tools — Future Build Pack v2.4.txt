@@ -1,0 +1,817 @@
+# QS Tools — Future Build Pack v2.4
+
+## Business Modes + Onboarding System
+
+Status: Future Build Pack
+Build Type: Future Expansion / Product Architecture
+Current Action: Store only — do not implement yet
+
+---
+
+# 1. Purpose
+
+This brief defines how QS Tools will evolve from a single-mode business cost and recovery tool into a multi-mode business model validation system.
+
+It captures the future structure for:
+
+* business onboarding
+* business profile creation
+* business mode selection
+* first-use user flow
+* labour / quote mode
+* transaction / volume mode
+* pre-start business modelling
+
+This brief does not modify any current active modules.
+
+It is a future build pack only.
+
+---
+
+# 2. Core Product Principle
+
+QS Tools is one engine with multiple business modes.
+
+The core engine remains:
+
+```text
+Cost
+↓
+Recovery
+↓
+Structure
+↓
+Decision
+```
+
+The mode changes how the business generates recovery.
+
+The engine does not change.
+
+---
+
+# 3. Current Product Position
+
+Current system focus:
+
+* labour / quote-based businesses
+* trade businesses
+* contractors
+* businesses where recovery is based on productive hours, labour output, and/or asset-supported delivery
+
+This is the current active system direction.
+
+Future expansion adds a second mode for businesses where recovery is driven by transaction volume rather than productive labour hours.
+
+---
+
+# 4. Supported Business Modes — V1 Future Expansion
+
+## 4.1 Labour / Quote Mode
+
+Used for:
+
+* builders
+* contractors
+* subcontractors
+* trades
+* labour-based service businesses
+* asset-supported delivery businesses
+* businesses that quote work before delivery
+
+Recovery base:
+
+```text
+productive hours / labour output / asset-supported delivery
+```
+
+Primary first input:
+
+```text
+Labour Module
+```
+
+Purpose:
+
+* define staff
+* define wage cost
+* define productive capacity
+* create immediate cost visibility
+* produce the first user hook
+
+---
+
+## 4.2 Transaction / Volume Mode
+
+Used for:
+
+* retail businesses
+* cafés
+* small shops
+* sales-driven businesses
+* businesses where revenue is generated through repeated transactions
+
+Recovery base:
+
+```text
+transactions / sales volume
+```
+
+Primary first input:
+
+```text
+Business Activity / Volume Module
+```
+
+Purpose:
+
+* define number of transactions
+* define expected sales activity
+* calculate required recovery per transaction
+* test whether sales volume can support business cost
+
+---
+
+# 5. What Is a Transaction?
+
+A transaction means one completed customer sale.
+
+Example:
+
+```text
+Customer buys 3 t-shirts = 1 transaction
+```
+
+Transaction does not mean each item sold.
+
+Unit count may become useful later for product-level margin or inventory modelling, but the first transaction mode should use completed sale count as the primary recovery base.
+
+Required starter inputs:
+
+* transactions_per_period
+* period_type
+* average_sale_value optional
+
+Possible period types:
+
+* daily
+* weekly
+* monthly
+* annual
+
+Derived values:
+
+* transactions_per_year
+* estimated_sales_revenue
+* required_recovery_per_transaction
+
+---
+
+# 6. Business Mode Rule
+
+Business mode is selected once during onboarding.
+
+The selected mode controls:
+
+* which first input page the user sees
+* which recovery denominator is used
+* which setup flow is shown
+* which language appears in the interface
+
+Business mode must not duplicate the whole system.
+
+The underlying system remains shared.
+
+---
+
+# 7. Onboarding System
+
+## 7.1 Purpose
+
+The onboarding system creates the user’s first business profile and assigns the business mode.
+
+It is a one-off setup step for first-time users.
+
+It is not a full business setup wizard.
+
+---
+
+## 7.2 Onboarding Trigger
+
+Rule:
+
+```text
+IF user has no active business profile
+→ redirect to onboarding
+```
+
+Returning users with an active business profile bypass onboarding and go directly to the app.
+
+---
+
+## 7.3 Onboarding Page Name
+
+Recommended page title:
+
+```text
+Create your first business
+```
+
+Recommended primary button:
+
+```text
+Create Business
+```
+
+---
+
+## 7.4 Required Onboarding Inputs
+
+Only collect:
+
+1. Business Name
+2. Business Mode
+3. Region / Country
+
+No other data should be collected during onboarding.
+
+---
+
+## 7.5 Business Name
+
+Purpose:
+
+* creates the business identity inside QS Tools
+* separates login identity from business identity
+* allows future support for multiple businesses per user
+
+Business name is not the same as user login email.
+
+---
+
+## 7.6 Business Mode
+
+Allowed values:
+
+```text
+labour_quote
+transaction_volume
+```
+
+Display labels:
+
+```text
+Labour / Quote Business
+Transaction / Sales Business
+```
+
+The label may change for UX clarity, but internal values should remain stable once implemented.
+
+---
+
+## 7.7 Region / Country
+
+Purpose:
+
+* controls future tax, payroll, entitlement, accounting, and reporting defaults
+* supports New Zealand first
+* allows future regional expansion
+
+Starter value:
+
+```text
+New Zealand
+```
+
+---
+
+# 8. Business Profile Data Model — Future
+
+Onboarding creates a business profile.
+
+Suggested fields:
+
+```text
+business_id
+business_name
+business_mode
+region
+created_at
+updated_at
+is_active
+```
+
+Future optional fields:
+
+```text
+owner_user_id
+business_status
+industry_label
+currency
+```
+
+Do not overbuild this in the first version.
+
+---
+
+# 9. User Account vs Business Profile
+
+User account represents the person logging in.
+
+Business profile represents the business being modelled.
+
+Relationship:
+
+```text
+User Account
+↓
+Business Profile
+↓
+Module Profiles / Business Data
+```
+
+Future-ready relationship:
+
+```text
+One user may own multiple businesses
+One business may later have multiple users
+```
+
+Do not build multi-user or multi-business switching in the first implementation unless required.
+
+---
+
+# 10. Post-Onboarding Flow
+
+After the user clicks Create Business, the system should route based on business mode.
+
+## Labour / Quote Mode
+
+Flow:
+
+```text
+Create Business
+↓
+Labour Module
+```
+
+Reason:
+
+* Labour is the strongest current module
+* It creates immediate value
+* It shows true labour cost quickly
+* It creates the first “wait, that’s what it actually costs?” moment
+
+This is the primary hook for labour / quote businesses.
+
+---
+
+## Transaction / Volume Mode
+
+Flow:
+
+```text
+Create Business
+↓
+Business Activity / Volume Module
+```
+
+Reason:
+
+* Transaction businesses do not start from productive hours
+* They start from sales activity
+* The first hook should be required recovery per transaction
+
+Example hook:
+
+```text
+“You need each transaction to contribute $X to cover your business cost.”
+```
+
+---
+
+# 11. First-Use Hook Principle
+
+The first page after onboarding must create immediate useful output.
+
+It should not feel like admin.
+
+It should produce a simple, surprising, commercially meaningful result.
+
+Examples:
+
+## Labour / Quote Mode
+
+```text
+True productive labour cost per hour
+Minimum charge-out pressure
+Actual margin gap
+```
+
+## Transaction / Volume Mode
+
+```text
+Required recovery per transaction
+Required annual sales activity
+Sales volume pressure
+```
+
+The first-use hook is critical before showing the product to testers.
+
+---
+
+# 12. Guided Completion Flow
+
+After the first input module, the system should guide the user to complete the rest of the business model.
+
+## Labour / Quote Mode Suggested Flow
+
+```text
+Labour
+↓
+General Overheads
+↓
+Assets
+↓
+Cost Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Recovery Outcome
+```
+
+## Transaction / Volume Mode Suggested Flow
+
+```text
+Business Activity / Volume
+↓
+General Overheads
+↓
+Assets if applicable
+↓
+Cost Summary
+↓
+Recovery Summary
+↓
+Recovery Outcome
+```
+
+Cost Allocation may be bypassed or simplified for Transaction / Volume Mode unless structural validation is required.
+
+---
+
+# 13. Pre-Start Business Modelling Use Case
+
+This is a major product use case.
+
+QS Tools can be used before a business exists.
+
+A user can:
+
+* create a business profile
+* enter assumed costs
+* estimate labour or transaction activity
+* test whether the model is viable
+* decide whether to start, change, or abandon the business idea
+
+This does not require a separate draft mode.
+
+Drafting a business means using the normal system with estimated inputs.
+
+---
+
+# 14. No Separate Draft Mode Rule
+
+Do not create a third mode called Draft Mode.
+
+Reason:
+
+* Drafting is a lifecycle stage, not a business model
+* The same system works with real or estimated inputs
+* A separate mode would duplicate logic and confuse users
+
+Correct model:
+
+```text
+Business Mode = how the business generates recovery
+Input Confidence = real or estimated data
+```
+
+Future optional feature:
+
+```text
+profile_status = draft / active / archived
+```
+
+This should be a profile state, not a separate operating mode.
+
+---
+
+# 15. Two Modes Are Enough for Future V1
+
+Do not add more modes yet.
+
+Future V1 modes:
+
+1. Labour / Quote Mode
+2. Transaction / Volume Mode
+
+These cover the main expansion without diluting the system.
+
+Avoid adding:
+
+* manufacturing mode
+* product mode
+* SaaS mode
+* e-commerce mode
+* custom mode
+
+until the two-mode model is proven.
+
+---
+
+# 16. Product Positioning Shift
+
+Old narrow positioning:
+
+```text
+A tool for builders / trades to price work properly
+```
+
+Improved positioning:
+
+```text
+A business model validation system that shows whether a business can cover its true cost and operate viably.
+```
+
+Plain-language version:
+
+```text
+QS Tools tells you if your business model actually works.
+```
+
+---
+
+# 17. Market Expansion Logic
+
+The future mode expansion increases the addressable market from mostly quote-driven trade businesses to include transaction-driven businesses.
+
+Target users now include:
+
+* quote-based businesses
+* service businesses
+* trade businesses
+* small retail businesses
+* cafés
+* pre-start business founders
+* small operators who do not know where to start
+
+Do not describe the product as “for everyone.”
+
+Correct framing:
+
+```text
+For businesses that need to know whether their activity can recover their true cost.
+```
+
+---
+
+# 18. What Must Not Change
+
+This future pack must not change current active module logic.
+
+Do not change:
+
+* Labour calculations
+* Cost Summary calculations
+* Recovery Summary v1.0
+* Cost Allocation v2.1
+* Recovery Outcome v1.0
+* Current module output contracts
+
+This pack is planning only.
+
+---
+
+# 19. Future Build Requirements Before Implementation
+
+Before implementing this future pack, create separate active build briefs for:
+
+1. Onboarding Page
+2. Business Profile Storage
+3. Business Mode Routing
+4. Business Activity / Volume Module
+5. Recovery Summary Mode Extension
+6. Recovery Outcome Wording Extension
+
+Do not implement directly from this planning brief.
+
+---
+
+# 20. Future Business Activity / Volume Module — Starter Concept
+
+Status: Future module concept only
+
+Module type:
+
+```text
+Input Module
+```
+
+Purpose:
+
+Define the activity base for transaction / sales businesses.
+
+Inputs:
+
+```text
+transactions_per_period
+period_type
+average_sale_value
+trading_days_per_week optional
+trading_weeks_per_year optional
+```
+
+Outputs:
+
+```text
+transactions_per_year
+estimated_sales_revenue
+average_sale_value
+```
+
+Recovery Summary would then calculate:
+
+```text
+required_recovery_per_transaction = total_cost_burden / transactions_per_year
+```
+
+Do not build full SKU, stock, margin, or inventory logic in V1.
+
+---
+
+# 21. Recovery Summary Future Extension
+
+Recovery Summary currently handles labour / asset / overhead recovery.
+
+Future extension adds:
+
+```text
+recovery_basis
+```
+
+Allowed values:
+
+```text
+productive_output
+transaction_volume
+```
+
+Labour / Quote Mode:
+
+```text
+recovery_basis = productive_output
+```
+
+Transaction / Volume Mode:
+
+```text
+recovery_basis = transaction_volume
+```
+
+Do not alter the cost layer.
+
+Only the denominator changes.
+
+---
+
+# 22. Cost Allocation Future Behaviour by Mode
+
+## Labour / Quote Mode
+
+Cost Allocation remains active.
+
+Purpose:
+
+* validate labour / asset structure
+* validate operational groups
+* confirm whether the recovery strategy can be delivered
+
+## Transaction / Volume Mode
+
+Cost Allocation may be:
+
+* bypassed
+* simplified
+* replaced by a lighter readiness check
+
+Do not force asset-labour operational linking on transaction businesses unless their model requires it.
+
+---
+
+# 23. UX Rules
+
+Onboarding must be:
+
+* one screen
+* minimal
+* fast
+* plain English
+* confidence-building
+
+It must not:
+
+* ask for costs
+* ask for staff
+* ask for revenue
+* ask for assets
+* become a survey
+* feel like accounting software setup
+
+First-use flow must:
+
+* produce a meaningful result quickly
+* guide the user to the next setup step
+* make missing setup obvious
+* avoid overwhelming the user
+
+---
+
+# 24. Not Allowed
+
+Do not:
+
+* create Draft Mode
+* create more than two business modes in the first future version
+* mix labour and transaction inputs in one page
+* duplicate Cost Summary per mode
+* duplicate Recovery Summary per mode
+* turn onboarding into full business setup
+* force P&L-style accounting entry as the first experience
+* build revenue-first logic
+* use estimated revenue to mask missing cost inputs
+* weaken the first-principles rule
+
+---
+
+# 25. First-Principles Protection
+
+All modes must preserve the first-principles rule:
+
+```text
+No answer is produced unless the required inputs are complete enough to support that answer.
+```
+
+If data is missing, the system must show:
+
+```text
+Not ready
+```
+
+It must not guess, invent, or silently substitute missing values.
+
+---
+
+# 26. Final Definition
+
+This future build pack defines how QS Tools expands from a labour / quote-based business tool into a multi-mode business model validation system.
+
+It introduces:
+
+* one-off business onboarding
+* business profile creation
+* business mode selection
+* labour / quote mode
+* transaction / volume mode
+* pre-start viability modelling as a use case
+
+It preserves the core QS Tools engine:
+
+```text
+Cost → Recovery → Structure → Decision
+```
+
+The future product direction is:
+
+```text
+One engine.
+Two modes.
+Multiple business stages.
+One decision system.
+```
+
+---
+
+# 27. Storage Instruction
+
+Store this as a future planning brief.
+
+Do not move it into active source authority until the onboarding and business mode build is formally started.
+
+Suggested filename:
+
+```text
+Future_Build_Pack_v2.4_Business_Modes_and_Onboarding_System.txt
+```
