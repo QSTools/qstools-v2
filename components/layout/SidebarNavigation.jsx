@@ -9,6 +9,7 @@ const nav_groups = [
   {
     label: "Quick Start",
     items: [
+      { href: "/business-setup", label: "Business Setup" },
       { href: "/quick-start", label: "Quick Start Overview" },
       {
         href: "/labour-rate-reality-check",
@@ -42,9 +43,7 @@ const nav_groups = [
   },
 ];
 
-const standalone_items = [
-  { href: "/settings", label: "Settings" },
-];
+const standalone_items = [{ href: "/settings", label: "Settings" }];
 
 const SETUP_FLOW_ORDER = [
   "/p-and-l",
@@ -73,6 +72,8 @@ const setup_progress = {
 function build_initial_open_groups(pathname) {
   return {
     "Quick Start":
+      pathname === "/business-setup" ||
+      pathname.startsWith("/business-setup/") ||
       pathname === "/quick-start" ||
       pathname.startsWith("/quick-start/") ||
       pathname === "/labour-rate-reality-check" ||
@@ -153,7 +154,7 @@ export default function SidebarNavigation() {
   const pathname = usePathname();
 
   const [open_groups, set_open_groups] = useState(
-    build_initial_open_groups(pathname),
+    build_initial_open_groups(pathname)
   );
 
   function toggle_group(group_label) {
