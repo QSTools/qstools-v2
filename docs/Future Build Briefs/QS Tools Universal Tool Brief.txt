@@ -1,0 +1,1221 @@
+# QS Tools — Handover Brief
+
+## Business Setup Page + Two-Mode System + Universal Business Tool Architecture
+
+### Draft v1.0 — Build Handover
+
+---
+
+## STATUS
+
+This is the current handover brief for the next build session.
+
+This brief captures the most important architectural breakthrough so far:
+
+> QS Tools is no longer only a construction/business recovery tool.
+> It is a universal business diagnostic engine based on cost recovery through an output driver.
+
+The two core output drivers are:
+
+```text
+Hours → Labour / service-based businesses
+Units → Product / unit-based businesses
+```
+
+Everything else is a variation of those two models.
+
+---
+
+# 1. THE CORE BREAKTHROUGH
+
+## Universal business principle
+
+Every business has the same core problem:
+
+```text
+Am I recovering my true business cost through the output I sell?
+```
+
+The output may be:
+
+* hours
+* units
+* products
+* subscriptions
+* users
+* custom builds
+* manufactured items
+* retail sales
+
+But the model is the same:
+
+```text
+Total Business Cost ÷ Activity Driver = Required Recovery Per Output
+```
+
+## The two core modes
+
+### 1. Labour-based / service-based
+
+Used when the business primarily sells time, labour, or service output.
+
+Examples:
+
+* builder
+* contractor
+* consultant
+* trade business
+* professional services
+* labour-driven construction business
+
+Activity driver:
+
+```text
+productive_hours
+```
+
+Output:
+
+```text
+required_recovery_per_hour
+```
+
+---
+
+### 2. Product-based / unit-based
+
+Used when the business primarily sells units, products, subscriptions, or productised outputs.
+
+Examples:
+
+* retail store
+* online store
+* SaaS product
+* manufacturer
+* productised service
+* custom product builder
+* subscription business
+
+Activity driver:
+
+```text
+units_sold
+```
+
+Output:
+
+```text
+required_recovery_per_unit
+```
+
+---
+
+# 2. CRITICAL NAMING DECISION
+
+Use language that is simple for business owners.
+
+Recommended setup choices:
+
+```text
+Service / Labour-based business
+Product / Unit-based business
+```
+
+Avoid over-specific labels such as:
+
+* retail
+* manufacturing
+* SaaS
+* construction-only
+
+Reason:
+
+Those are industries or business shapes, not the core economic driver.
+
+The setup page should determine how the business sells output, not try to classify every industry.
+
+---
+
+# 3. CURRENT BUILD PRIORITY
+
+The next build must happen in this order:
+
+```text
+1. Build Business Setup page
+2. Make Revenue / COG page mode-aware
+3. Make Business Summary mode-aware
+4. Then rebuild Recovery Summary clean
+5. Then build Cost Allocation
+6. Then build Business Outcome
+7. Then reconnect Business Modelling
+8. Dashboard later
+```
+
+The immediate build is NOT Cost Allocation yet.
+
+The immediate build is the mode foundation.
+
+---
+
+# 4. BUSINESS SETUP PAGE — BUILD BRIEF
+
+## Purpose
+
+The Business Setup page captures the minimum information required to set the business identity and operating mode.
+
+It controls whether later pages use:
+
+```text
+hours
+or
+units
+```
+
+## Page role
+
+This is a setup/configuration page.
+
+It is not a calculation page.
+
+It is not a summary page.
+
+It is not a recovery strategy page.
+
+It only sets the business context.
+
+---
+
+## Initial development behaviour
+
+During the current build phase, keep this page accessible.
+
+Reason:
+
+We need to switch between business modes during testing.
+
+Later, once stable:
+
+* make it a first-time setup page
+* hide normal access from the main flow
+* allow access only through Settings
+
+---
+
+## Required inputs
+
+### 1. Business name
+
+Field:
+
+```js
+business_name
+```
+
+Purpose:
+
+* identify the business
+* display across dashboard and summaries later
+
+---
+
+### 2. Business type / mode
+
+Field:
+
+```js
+business_type
+```
+
+Allowed values:
+
+```js
+"labour_based"
+"product_based"
+```
+
+Display labels:
+
+```text
+Service / Labour-based business
+Product / Unit-based business
+```
+
+---
+
+## Helper text
+
+### Service / Labour-based business
+
+Suggested explanation:
+
+```text
+Choose this if your business mainly sells time, labour, services, or charge-out hours.
+```
+
+Examples:
+
+```text
+Builders, contractors, trades, consultants, service businesses.
+```
+
+---
+
+### Product / Unit-based business
+
+Suggested explanation:
+
+```text
+Choose this if your business mainly sells products, units, subscriptions, or productised outputs.
+```
+
+Examples:
+
+```text
+Retail, online stores, SaaS, manufacturing, subscriptions, product businesses.
+```
+
+---
+
+## Required saved outputs
+
+Business Setup must save:
+
+```js
+{
+  business_name,
+  business_type,
+  setup_completed,
+  created_at,
+  updated_at
+}
+```
+
+Optional later:
+
+```js
+business_setup_id
+owner_scope_id
+profile_version
+effective_from
+```
+
+Do not overbuild versioning in the first pass unless the current app pattern requires it.
+
+---
+
+## Global access requirement
+
+`business_type` must be easy for other modules to consume.
+
+At minimum, it must be available to:
+
+* Revenue / COG page
+* Business Summary
+* Recovery Summary later
+* Cost Allocation later
+* Business Outcome later
+* Dashboard later
+
+Recommended hook:
+
+```js
+useBusinessSetup()
+```
+
+Expected return:
+
+```js
+{
+  business_name,
+  business_type,
+  is_labour_based,
+  is_product_based,
+  setup_completed,
+  setBusinessSetup,
+  resetBusinessSetup
+}
+```
+
+---
+
+## Suggested file structure
+
+Follow QS Tools module structure.
+
+```text
+app/business-setup/page.jsx
+hooks/useBusinessSetup.js
+lib/storage/businessSetupStorage.js
+lib/selectors/businessSetupSelectors.js
+components/business-setup/BusinessSetupMainCard.jsx
+components/business-setup/BusinessSetupStatusStrip.jsx
+components/business-setup/BusinessSetupHelpPanel.jsx
+```
+
+Calculations file is likely not required because this page should not calculate business logic.
+
+If a calculations file is required for consistency, keep it minimal or omit until needed.
+
+---
+
+## Page structure
+
+```text
+BusinessSetupStatusStrip
+BusinessSetupMainCard
+BusinessSetupHelpPanel
+```
+
+### Status strip
+
+Shows:
+
+* setup complete / incomplete
+* selected business type
+* business name
+
+### Main card
+
+Contains:
+
+* business name input
+* business type radio/toggle cards
+* save/update button
+
+### Help panel
+
+Explains:
+
+* why this choice matters
+* service/labour-based means hours are the activity driver
+* product/unit-based means units are the activity driver
+* this does not lock the user into an industry
+
+---
+
+## UI rules
+
+* keep page simple
+* no heavy explanatory text in the main form
+* use helper text under each option
+* do not add extra business classifications
+* no industry dropdown yet
+* no hidden calculations
+* no inline styles
+* use existing UI system classes
+
+---
+
+# 5. REVENUE / COG PAGE — MODE ADAPTATION BRIEF
+
+## Purpose
+
+The Revenue / COG page already represents how the business generates revenue and what direct costs are attached to that revenue.
+
+This is the correct place to add the retail/product unit driver.
+
+Do NOT create a separate Retail Mode page.
+
+---
+
+## Core decision
+
+If the business is product-based, Revenue / COG must show:
+
+```js
+units_sold_annual
+```
+
+If the business is labour-based, this field must not appear.
+
+---
+
+## Required mode behaviour
+
+### If business_type = labour_based
+
+Revenue / COG page behaves as currently designed.
+
+Do not show units sold.
+
+Do not ask for jobs per year.
+
+Do not add construction-specific job count logic.
+
+Labour-based businesses use productive hours from the Labour / Cost Summary pathway.
+
+---
+
+### If business_type = product_based
+
+Show:
+
+```js
+units_sold_annual
+```
+
+Label options:
+
+```text
+Units sold per year
+Annual units sold
+Expected units sold per year
+```
+
+Recommended label:
+
+```text
+Units sold per year
+```
+
+Helper text:
+
+```text
+Use the total number of products, units, subscriptions, or productised outputs sold in a year.
+```
+
+Examples in helper text:
+
+```text
+Products sold, subscriptions, users, licences, custom units, manufactured units.
+```
+
+---
+
+## What units_sold_annual means
+
+This is the product-based activity driver.
+
+It is NOT:
+
+* revenue
+* COGS
+* cost per unit
+* margin per unit
+
+It is only the denominator used to spread total business cost across product output.
+
+---
+
+## Calculation principle
+
+Do not ask the user for required cost per unit.
+
+The system calculates it.
+
+Formula:
+
+```text
+required_recovery_per_unit = total_business_cost / units_sold_annual
+```
+
+Where `total_business_cost` comes from the existing Cost Summary / Business Summary flow.
+
+---
+
+## Important correction
+
+Do not confuse:
+
+```text
+COGS per unit
+```
+
+with:
+
+```text
+required recovery per unit
+```
+
+COGS is direct product cost.
+
+Required recovery per unit is total business cost spread across units.
+
+Both are useful, but they are not the same thing.
+
+---
+
+## Revenue / COG output additions
+
+If product-based, Revenue / COG should expose:
+
+```js
+units_sold_annual
+```
+
+Optional if already available or later required:
+
+```js
+average_sell_price_per_unit
+average_cog_per_unit
+average_gross_margin_per_unit
+annual_gross_margin
+```
+
+Only add optional fields if they already match the current Revenue / COG design.
+
+For the immediate mode unlock, the required field is:
+
+```js
+units_sold_annual
+```
+
+---
+
+# 6. BUSINESS SUMMARY — MODE ADAPTATION BRIEF
+
+## Purpose
+
+Business Summary must become mode-aware.
+
+It currently assumes a labour/hour model.
+
+It must now support:
+
+```text
+$/hour for labour-based businesses
+$/unit for product-based businesses
+```
+
+---
+
+## Core rule
+
+Use one shared concept:
+
+```js
+activity_driver
+```
+
+Do not create separate downstream formulas everywhere for hours and units.
+
+---
+
+## Activity driver behaviour
+
+### If business_type = labour_based
+
+```js
+activity_driver_type = "hours"
+activity_driver_label = "productive hours"
+activity_driver_value = total_productive_output
+required_recovery_per_driver = total_cost_burden / total_productive_output
+```
+
+Display as:
+
+```text
+Required recovery per hour
+```
+
+---
+
+### If business_type = product_based
+
+```js
+activity_driver_type = "units"
+activity_driver_label = "units sold"
+activity_driver_value = units_sold_annual
+required_recovery_per_driver = total_cost_burden / units_sold_annual
+```
+
+Display as:
+
+```text
+Required recovery per unit
+```
+
+---
+
+## Shared formula
+
+```text
+required_recovery_per_driver = total_cost_burden / activity_driver_value
+```
+
+Where:
+
+```text
+activity_driver_value = productive hours OR units sold
+```
+
+---
+
+## Required Business Summary outputs
+
+Business Summary should expose a mode-aware output contract similar to:
+
+```js
+{
+  business_type,
+  activity_driver_type,
+  activity_driver_label,
+  activity_driver_value,
+  total_cost_burden,
+  required_recovery_per_driver,
+  required_recovery_label,
+  required_recovery_unit_label
+}
+```
+
+Example labels:
+
+### Labour-based
+
+```js
+required_recovery_label = "Required recovery per hour"
+required_recovery_unit_label = "$/hour"
+```
+
+### Product-based
+
+```js
+required_recovery_label = "Required recovery per unit"
+required_recovery_unit_label = "$/unit"
+```
+
+---
+
+## Required warnings
+
+### Labour-based warning
+
+If `total_productive_output` is zero or missing:
+
+```text
+No productive hours available. Required recovery per hour cannot be calculated.
+```
+
+### Product-based warning
+
+If `units_sold_annual` is zero or missing:
+
+```text
+Units sold are required to calculate required recovery per unit.
+```
+
+---
+
+## UI behaviour
+
+Business Summary should adapt labels and headline cards based on mode.
+
+### Labour-based display
+
+Show:
+
+* total cost burden
+* productive hours
+* required recovery per hour
+
+### Product-based display
+
+Show:
+
+* total cost burden
+* units sold per year
+* required recovery per unit
+
+---
+
+## Do not duplicate the page
+
+Do not create separate Business Summary pages.
+
+One Business Summary page must adapt based on `business_type`.
+
+---
+
+# 7. MODE EFFECT SUMMARY
+
+## Pages affected now
+
+### 1. Business Setup
+
+Creates the mode:
+
+```js
+business_type
+```
+
+---
+
+### 2. Revenue / COG
+
+Uses the mode to show/hide:
+
+```js
+units_sold_annual
+```
+
+---
+
+### 3. Business Summary
+
+Uses the mode to calculate/display:
+
+```text
+required recovery per hour
+or
+required recovery per unit
+```
+
+---
+
+## Pages affected later
+
+### Recovery Summary
+
+Will use mode to set defaults/emphasis.
+
+Examples:
+
+* labour-based: labour recovery likely primary
+* product-based: product/material margin recovery likely primary
+
+---
+
+### Cost Allocation
+
+Will use mode and structure relevance.
+
+Examples:
+
+* labour-based: may be active if labour/assets structure matters
+* product-based pure retail/SaaS: may be passive
+* product-based manufacturing: active if labour/assets produce units
+
+---
+
+### Business Outcome
+
+Will adapt diagnosis language.
+
+Examples:
+
+* labour-based: labour recovery shortfall
+* product-based: margin per unit / volume / product recovery shortfall
+
+---
+
+### Business Modelling
+
+Will adapt levers and labels.
+
+Examples:
+
+* labour-based: productivity, labour rate, labour sales
+* product-based: units sold, product margin, price per unit
+
+---
+
+## Pages not affected by mode
+
+These should remain unchanged as cost/source modules:
+
+* P&L
+* General Overheads
+* Labour
+* Assets
+* Cost Summary
+
+Reason:
+
+Mode affects how cost is distributed and interpreted, not how cost is collected.
+
+---
+
+# 8. FUTURE BUILD — UNIVERSAL BUSINESS TOOL BRIEF
+
+## The universal business model
+
+QS Tools should now be positioned internally as a universal business diagnostic tool.
+
+It works because every business can be reduced to:
+
+```text
+Cost Base
++
+Output Driver
++
+Recovery Strategy
++
+Delivery Structure
++
+Outcome Diagnosis
+```
+
+---
+
+## Core equation
+
+```text
+Total Business Cost ÷ Output Driver = Required Recovery Per Output
+```
+
+Where output driver is:
+
+```text
+hours
+or
+units
+```
+
+---
+
+## Why this applies widely
+
+### Construction / service
+
+```text
+Total cost ÷ productive hours = required recovery per hour
+```
+
+### Retail
+
+```text
+Total cost ÷ units sold = required recovery per unit
+```
+
+### SaaS
+
+```text
+Total cost ÷ subscriptions/users = required recovery per user
+```
+
+### Manufacturing
+
+```text
+Total cost ÷ units produced/sold = required recovery per unit
+```
+
+### Productised service
+
+```text
+Total cost ÷ productised outputs = required recovery per output
+```
+
+---
+
+## Do not dilute the tool
+
+Do not add industry-specific engines.
+
+Do not create separate logic for:
+
+* retail
+* manufacturing
+* SaaS
+* construction
+* consulting
+
+Instead, keep the architecture:
+
+```text
+Business type = labour-based or product-based
+Activity driver = hours or units
+Structure relevance = none / light / active
+```
+
+This keeps the tool universal without becoming bloated.
+
+---
+
+# 9. PRODUCT PRICING CHECK — FUTURE EXTENSION
+
+The existing quote-checking idea can be generalised.
+
+It should become a pricing validation engine.
+
+## Labour-based check
+
+Question:
+
+```text
+Is this quote priced correctly?
+```
+
+Uses:
+
+* hours
+* labour rate
+* required recovery per hour
+
+---
+
+## Product-based check
+
+Question:
+
+```text
+Is this product priced correctly?
+```
+
+Uses:
+
+* sell price per unit
+* COGS per unit
+* expected units sold
+* required recovery per unit
+
+---
+
+## Required product check levels
+
+The product check should work at two levels:
+
+### 1. Per-unit check
+
+Shows:
+
+* sell price per unit
+* COGS per unit
+* gross margin per unit
+* required recovery per unit
+* per-unit shortfall or surplus
+
+### 2. Volume check
+
+Shows:
+
+* expected units sold
+* total gross margin
+* required recovery contribution
+* total shortfall or surplus
+
+Reason:
+
+A product can look profitable per unit but still fail if volume is too low.
+
+---
+
+# 10. RECOVERY SUMMARY — FUTURE POSITION
+
+Recovery Summary must be rebuilt after the mode foundation is working.
+
+Purpose:
+
+```text
+Define how the business intends to recover its required cost burden.
+```
+
+It should consume:
+
+* Business Summary outputs
+* business_type
+* activity_driver_type
+* required recovery per driver
+
+It should support recovery channels such as:
+
+* labour recovery
+* product/material margin recovery
+* asset recovery
+* other/absorbed recovery
+
+---
+
+# 11. COST ALLOCATION — FUTURE POSITION
+
+Cost Allocation must come after Recovery Summary.
+
+Purpose:
+
+```text
+Test whether the business structure can deliver the recovery plan.
+```
+
+Important:
+
+Cost Allocation should not be hidden purely because the business is product-based.
+
+Instead, Cost Allocation should be active only when production/delivery structure matters.
+
+Examples:
+
+### Product-based pure retail / SaaS
+
+* cost allocation passive/minimal
+* no asset/labour production structure required
+
+### Product-based manufacturing
+
+* cost allocation active
+* assets/labour produce the units
+
+### Labour-based construction / service
+
+* cost allocation active if labour/assets structure matters
+
+---
+
+# 12. BUSINESS OUTCOME — FUTURE POSITION
+
+Business Outcome is the final decision page of the core engine.
+
+It replaces the weaker name “Allocation Summary”.
+
+Purpose:
+
+```text
+Tell the user whether the business model works and what to fix first.
+```
+
+It should output:
+
+* viable / marginal / not viable
+* primary driver
+* cause
+* lever
+* expected effect
+
+Core diagnostic chain:
+
+```text
+Outcome → Driver → Cause → Lever → Expected Effect
+```
+
+---
+
+# 13. DASHBOARD — FUTURE POSITION
+
+Dashboard is the final home page after setup.
+
+Purpose:
+
+```text
+Monitor the business over time.
+```
+
+Difference:
+
+```text
+Business Outcome = Does the model work?
+Dashboard = How are we tracking now?
+```
+
+Do not build dashboard before the engine is stable.
+
+---
+
+# 14. IMMEDIATE BUILD CHECKLIST
+
+## Step 1 — Business Setup Page
+
+Build:
+
+```text
+app/business-setup/page.jsx
+hooks/useBusinessSetup.js
+lib/storage/businessSetupStorage.js
+lib/selectors/businessSetupSelectors.js
+components/business-setup/BusinessSetupStatusStrip.jsx
+components/business-setup/BusinessSetupMainCard.jsx
+components/business-setup/BusinessSetupHelpPanel.jsx
+```
+
+Must save:
+
+```js
+business_name
+business_type
+setup_completed
+```
+
+Allowed business_type values:
+
+```js
+labour_based
+product_based
+```
+
+---
+
+## Step 2 — Revenue / COG Page
+
+Read:
+
+```js
+business_type
+```
+
+If:
+
+```js
+business_type === "product_based"
+```
+
+Show:
+
+```js
+units_sold_annual
+```
+
+If labour-based, hide this field.
+
+---
+
+## Step 3 — Business Summary
+
+Read:
+
+```js
+business_type
+units_sold_annual
+total_productive_output
+total_cost_burden
+```
+
+Set:
+
+```js
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+```
+
+Use:
+
+```text
+required_recovery_per_driver = total_cost_burden / activity_driver_value
+```
+
+Display either:
+
+```text
+Required recovery per hour
+```
+
+or:
+
+```text
+Required recovery per unit
+```
+
+---
+
+# 15. FINAL HANDOVER SUMMARY
+
+The next build is about creating the mode foundation.
+
+Do this before Recovery Summary, Cost Allocation, or Business Outcome.
+
+The foundation is:
+
+```text
+Business Setup chooses labour-based or product-based.
+Revenue / COG captures units sold only for product-based businesses.
+Business Summary switches from required $/hour to required $/unit based on mode.
+```
+
+This unlocks QS Tools as a universal business tool.
+
+The architecture stays clean because the system is not industry-based.
+
+It is driver-based:
+
+```text
+hours or units
+```
+
+That is the key breakthrough.
