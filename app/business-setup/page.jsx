@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import useBusinessSetup from "@/hooks/useBusinessSetup";
@@ -10,22 +9,18 @@ import BusinessSetupHelpPanel from "@/components/business-setup/BusinessSetupHel
 
 export default function BusinessSetupPage() {
   const router = useRouter();
-  const [show_next_step, setShowNextStep] = useState(false);
 
   const {
     status,
     card,
+    setup_completed,
     updateBusinessSetupField,
     saveBusinessSetup,
     resetBusinessSetup,
   } = useBusinessSetup();
 
   function handleSaveBusinessSetup() {
-    const setup_complete = saveBusinessSetup();
-
-    if (setup_complete) {
-      setShowNextStep(true);
-    }
+    saveBusinessSetup();
   }
 
   function handleContinueToLabour() {
@@ -57,7 +52,7 @@ export default function BusinessSetupPage() {
 
         <BusinessSetupMainCard
           card={card}
-          show_next_step={show_next_step}
+          setup_completed={setup_completed}
           updateBusinessSetupField={updateBusinessSetupField}
           saveBusinessSetup={handleSaveBusinessSetup}
           resetBusinessSetup={resetBusinessSetup}

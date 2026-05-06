@@ -7,7 +7,7 @@ import RevenueCogsCard from "@/components/revenue-cogs/RevenueCogsCard";
 import RevenueCogsHelpPanel from "@/components/revenue-cogs/RevenueCogsHelpPanel";
 
 export default function RevenueCogsPage() {
-  const { status, card } = useRevenueCogs();
+  const { status, card, updateRevenueCogsField } = useRevenueCogs();
 
   return (
     <main className="ui-page">
@@ -28,6 +28,11 @@ export default function RevenueCogsPage() {
           gross_margin_percent={card.gross_margin_percent}
           revenue_line_items={card.revenue_line_items}
           direct_cost_categories={card.direct_cost_categories}
+          business_type={card.business_type}
+          is_product_based={card.is_product_based}
+          is_labour_based={card.is_labour_based}
+          units_sold_annual={card.units_sold_annual}
+          updateRevenueCogsField={updateRevenueCogsField}
         />
 
         <RevenueCogsHelpPanel />

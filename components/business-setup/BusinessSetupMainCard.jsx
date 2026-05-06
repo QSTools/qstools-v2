@@ -32,14 +32,23 @@ function BusinessTypeOption({ option, onSelect }) {
   );
 }
 
+function getSelectedBusinessType(card) {
+  return (
+    card.business_type_options.find((option) => option.is_selected) ||
+    card.business_type_options[0]
+  );
+}
+
 export default function BusinessSetupMainCard({
   card,
-  show_next_step,
+  setup_completed,
   updateBusinessSetupField,
   saveBusinessSetup,
   resetBusinessSetup,
   continueToNextStep,
 }) {
+  const selected_business_type = getSelectedBusinessType(card);
+
   return (
     <section className="ui-section">
       <div className="ui-panel ui-stack-md">
@@ -87,6 +96,16 @@ export default function BusinessSetupMainCard({
             </p>
           </div>
 
+          <div className="ui-panel ui-stack-sm business-setup-name-panel">
+            <div className="ui-kicker">Current selected business type</div>
+            <strong>{selected_business_type.label}</strong>
+            <p className="ui-help">{selected_business_type.driver_label}</p>
+            <p className="ui-help">
+              You can switch this during testing, then click Save business
+              profile to persist the mode.
+            </p>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             {card.business_type_options.map((option) => (
               <BusinessTypeOption
@@ -102,22 +121,29 @@ export default function BusinessSetupMainCard({
 
         <div className="ui-panel ui-stack-sm">
           <div>
-            <div className="ui-kicker">Next step</div>
+            <div className="ui-kicker">Current setup</div>
             <div className="ui-card-title-sm">Save your business profile</div>
             <p className="ui-help">
-              You can change this later in Settings once the setup flow is
-              finalised.
+              During development, this page stays editable so you can switch
+              between labour-based and product-based mode while testing. Later
+              this will move into Settings.
             </p>
           </div>
 
-          {show_next_step ? (
+          {setup_completed ? (
             <div className="ui-panel ui-stack-sm business-setup-name-panel">
               <div className="ui-kicker">Profile saved</div>
-              <strong>Next we will build your labour cost base.</strong>
+              <strong>Your current business setup is saved.</strong>
               <p className="ui-help">
-                The first thing we need to do is enter your staff and their pay
-                rates. QS Tools will use that to work out the true labour cost,
-                productive labour cost rate, and charge-out recovery position.
+                Saved mode: {selected_business_type.label}. You can change the
+                business type above and save again while we build the mode-aware
+                pages.
+              </p>
+              <p className="ui-help">
+                You can now continue to Labour. The first thing we will do is
+                enter your staff and their pay rates so QS Tools can work out
+                the true labour cost, productive labour cost rate, and
+                charge-out recovery position.
               </p>
 
               <div className="ui-actions">
@@ -130,7 +156,16 @@ export default function BusinessSetupMainCard({
                 </button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="ui-panel ui-stack-sm">
+              <div className="ui-kicker">Not saved yet</div>
+              <strong>Save the business profile to continue.</strong>
+              <p className="ui-help">
+                Enter a business name and choose a recovery driver before
+                moving to the Labour page.
+              </p>
+            </div>
+          )}
 
           <div className="ui-actions">
             <button

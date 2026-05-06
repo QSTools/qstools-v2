@@ -15,6 +15,8 @@ import {
 } from "@/lib/selectors/businessSetupSelectors";
 
 export default function useBusinessSetup() {
+  const [storage_loaded, setStorageLoaded] = useState(false);
+
   const [business_setup_state, setBusinessSetupState] = useState(() =>
     getDefaultBusinessSetupState()
   );
@@ -22,11 +24,16 @@ export default function useBusinessSetup() {
   useEffect(() => {
     const stored_state = loadBusinessSetupState();
     setBusinessSetupState(stored_state);
+    setStorageLoaded(true);
   }, []);
 
   useEffect(() => {
+    if (!storage_loaded) {
+      return;
+    }
+
     saveBusinessSetupState(business_setup_state);
-  }, [business_setup_state]);
+  }, [business_setup_state, storage_loaded]);
 
   const status = useMemo(() => {
     return buildBusinessSetupStatus(business_setup_state);
@@ -47,25 +54,26 @@ export default function useBusinessSetup() {
   }
 
   function saveBusinessSetup() {
-  const setup_completed =
-    Boolean(business_setup_state.business_name?.trim()) &&
-    Boolean(business_setup_state.business_type);
+    const setup_completed =
+      Boolean(business_setup_state.business_name?.trim()) &&
+      Boolean(business_setup_state.business_type);
 
-  const next_state = buildBusinessSetupState({
-    ...business_setup_state,
-    setup_completed,
-    updated_at: new Date().toISOString(),
-  });
+    const next_state = buildBusinessSetupState({
+      ...business_setup_state,
+      setup_completed,
+      updated_at: new Date().toISOString(),
+    });
 
-  setBusinessSetupState(next_state);
-  saveBusinessSetupState(next_state);
+    setBusinessSetupState(next_state);
+    saveBusinessSetupState(next_state);
 
-  return setup_completed;
-}
+    return setup_completed;
+  }
 
   function resetBusinessSetup() {
     clearBusinessSetupState();
     setBusinessSetupState(getDefaultBusinessSetupState());
+    setStorageLoaded(true);
   }
 
   return {
