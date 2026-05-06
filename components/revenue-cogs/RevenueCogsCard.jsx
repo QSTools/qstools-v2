@@ -21,6 +21,14 @@ function formatPercent(value) {
   }).format(number);
 }
 
+function formatNumber(value) {
+  const number = Number(String(value).replace(/,/g, "")) || 0;
+
+  return new Intl.NumberFormat("en-NZ", {
+    maximumFractionDigits: 0,
+  }).format(number);
+}
+
 function TableRow({ label, value, total = false }) {
   return (
     <div className={`labour-summary-table-row${total ? " total" : ""}`}>
@@ -107,14 +115,13 @@ export default function RevenueCogsCard({
               <span>Units sold per year</span>
               <input
                 className="ui-input"
-                type="number"
-                min="0"
-                step="1"
-                value={units_sold_annual}
+                type="text"
+                inputMode="numeric"
+                value={formatNumber(units_sold_annual)}
                 onChange={(event) =>
                   updateRevenueCogsField(
                     "units_sold_annual",
-                    event.target.value
+                    event.target.value.replace(/,/g, "")
                   )
                 }
               />

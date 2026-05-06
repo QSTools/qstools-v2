@@ -12,9 +12,13 @@ function formatCurrency(value) {
 
 export default function BusinessSummaryStatusStrip({
   net_position = 0,
-  current_margin_per_hour = 0,
-  required_recovery_rate = 0,
-  hourly_gap = 0,
+  current_margin_per_driver = 0,
+  required_recovery_per_driver = 0,
+  recovery_gap_per_driver = 0,
+  current_margin_label = "Current margin per hour",
+  required_recovery_label = "Required recovery rate",
+  recovery_gap_label = "Hourly gap",
+  required_recovery_unit_label = "$/hour",
   warning_count = 0,
   business_summary_warnings = [],
 }) {
@@ -34,28 +38,37 @@ export default function BusinessSummaryStatusStrip({
               {formatCurrency(net_position)}
             </div>
           </div>
+
           <div className="labour-summary-table-row">
             <div className="labour-summary-table-label">
-              Current Margin per Hour
+              {current_margin_label}
             </div>
             <div className="labour-summary-table-value">
-              {formatCurrency(current_margin_per_hour)} / hr
+              {formatCurrency(current_margin_per_driver)}{" "}
+              {required_recovery_unit_label}
             </div>
           </div>
+
           <div className="labour-summary-table-row">
             <div className="labour-summary-table-label">
-              Required Recovery Rate
+              {required_recovery_label}
             </div>
             <div className="labour-summary-table-value">
-              {formatCurrency(required_recovery_rate)} / hr
+              {formatCurrency(required_recovery_per_driver)}{" "}
+              {required_recovery_unit_label}
             </div>
           </div>
+
           <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">Hourly Gap</div>
+            <div className="labour-summary-table-label">
+              {recovery_gap_label}
+            </div>
             <div className="labour-summary-table-value">
-              {formatCurrency(hourly_gap)} / hr
+              {formatCurrency(recovery_gap_per_driver)}{" "}
+              {required_recovery_unit_label}
             </div>
           </div>
+
           <div className="labour-summary-table-row">
             <div className="labour-summary-table-label">Warnings</div>
             <div className="labour-summary-table-value">{warning_count}</div>

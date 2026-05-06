@@ -23,6 +23,8 @@ export default function useRevenueCogs() {
   const pnl_output_contract = profit_and_loss.output_contract ?? {};
   const business_setup_output_contract = business_setup.output_contract ?? {};
 
+  const [storage_loaded, setStorageLoaded] = useState(false);
+
   const [revenue_cogs_state, setRevenueCogsState] = useState(() =>
     getDefaultRevenueCogsState()
   );
@@ -30,17 +32,22 @@ export default function useRevenueCogs() {
   useEffect(() => {
     const stored_state = loadRevenueCogsState();
     setRevenueCogsState(stored_state);
+    setStorageLoaded(true);
   }, []);
 
   useEffect(() => {
+    if (!storage_loaded) {
+      return;
+    }
+
     saveRevenueCogsState(revenue_cogs_state);
-  }, [revenue_cogs_state]);
+  }, [revenue_cogs_state, storage_loaded]);
 
   function updateRevenueCogsField(field, value) {
     setRevenueCogsState((previous) =>
       buildRevenueCogsState({
         ...previous,
-        [field]: Number(value) || 0,
+        [field]: Number(String(value).replace(/,/g, "")) || 0,
         updated_at: new Date().toISOString(),
       })
     );

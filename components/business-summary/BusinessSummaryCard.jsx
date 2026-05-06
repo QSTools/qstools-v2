@@ -43,11 +43,26 @@ export default function BusinessSummaryCard({
   gross_margin_percent = 0,
   total_cost_burden = 0,
   total_productive_output = 0,
-  required_recovery_rate = 0,
+  units_sold_annual = 0,
+  business_type = "labour_based",
+  activity_driver_type = "hours",
+  activity_driver_display_label = "Productive hours",
+  activity_driver_value = 0,
+  activity_driver_suffix = "hrs",
+  required_recovery_per_driver = 0,
+  required_recovery_label = "Required recovery per hour",
+  required_recovery_unit_label = "$/hour",
+  current_margin_per_driver = 0,
+  current_margin_label = "Current margin per hour",
+  recovery_gap_per_driver = 0,
+  recovery_gap_label = "Hourly gap",
   net_position = 0,
-  current_margin_per_hour = 0,
-  hourly_gap = 0,
 }) {
+  const business_type_label =
+    business_type === "product_based"
+      ? "Product / Unit-based business"
+      : "Service / Labour-based business";
+
   return (
     <section className="ui-section">
       <div className="ui-stack">
@@ -56,6 +71,16 @@ export default function BusinessSummaryCard({
           <div className="ui-card-title">Current position</div>
           <p className="ui-help">
             Factual summary of trading output compared with operating costs.
+          </p>
+        </div>
+
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Business mode</div>
+          <div className="ui-card-title-sm">{business_type_label}</div>
+          <p className="ui-help">
+            {activity_driver_type === "units"
+              ? "Business Summary is calculating recovery through units sold."
+              : "Business Summary is calculating recovery through productive hours."}
           </p>
         </div>
 
@@ -88,27 +113,54 @@ export default function BusinessSummaryCard({
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Per-Hour Reality</div>
+          <div className="ui-kicker">
+            {activity_driver_type === "units"
+              ? "Per-Unit Reality"
+              : "Per-Hour Reality"}
+          </div>
+
           <div className="labour-summary-table">
             <TableRow
-              label="Required to run business"
-              value={`${formatCurrency(required_recovery_rate)} / hr`}
+              label={required_recovery_label}
+              value={`${formatCurrency(
+                required_recovery_per_driver
+              )} ${required_recovery_unit_label}`}
             />
             <TableRow
-              label="Current margin per hour"
-              value={`${formatCurrency(current_margin_per_hour)} / hr`}
+              label={current_margin_label}
+              value={`${formatCurrency(
+                current_margin_per_driver
+              )} ${required_recovery_unit_label}`}
             />
             <TableRow
-              label="Hourly gap"
-              value={`${formatCurrency(hourly_gap)} / hr`}
+              label={recovery_gap_label}
+              value={`${formatCurrency(
+                recovery_gap_per_driver
+              )} ${required_recovery_unit_label}`}
               total
             />
             <TableRow
-              label="Productive Hours"
-              value={`${formatNumber(total_productive_output)} hrs`}
+              label={activity_driver_display_label}
+              value={`${formatNumber(activity_driver_value)} ${activity_driver_suffix}`}
             />
           </div>
         </div>
+
+        {activity_driver_type === "units" ? (
+          <div className="ui-panel ui-stack-sm">
+            <div className="ui-kicker">Product driver source</div>
+            <div className="labour-summary-table">
+              <TableRow
+                label="Units sold per year"
+                value={`${formatNumber(units_sold_annual)} units`}
+              />
+              <TableRow
+                label="Productive hours still available"
+                value={`${formatNumber(total_productive_output)} hrs`}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
