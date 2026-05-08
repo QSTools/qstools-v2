@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import useLabour from "@/hooks/useLabour";
-import useAssets from "@/hooks/useAssets";
-import useGeneralOverheads from "@/hooks/useGeneralOverheads";
-import useCostSummary from "@/hooks/useCostSummary";
 import useRecoverySummary from "@/hooks/useRecoverySummary";
 
 import RecoverySummaryStatusStrip from "@/components/recovery-summary/RecoverySummaryStatusStrip";
@@ -19,19 +15,7 @@ export default function RecoverySummaryPage() {
     set_is_mounted(true);
   }, []);
 
-  const labour = useLabour();
-  const assets = useAssets();
-  const general_overheads = useGeneralOverheads();
-
-  const cost_summary = useCostSummary({
-    labour,
-    assets,
-    general_overheads,
-  });
-
-  const { status, card } = useRecoverySummary({
-    cost_summary: cost_summary.output_contract ?? {},
-  });
+  const { status, card } = useRecoverySummary();
 
   if (!is_mounted) {
     return null;

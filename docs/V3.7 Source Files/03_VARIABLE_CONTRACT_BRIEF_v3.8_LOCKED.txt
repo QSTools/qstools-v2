@@ -1,0 +1,888 @@
+# QS Tools — Variable Contract Brief
+
+## v3.8 — MODE-AWARE RECOVERY CHAIN CONTRACT UPDATED
+
+**STATUS:** ACTIVE VARIABLE CONTRACT
+**VERSION:** v3.8
+**REPLACES:** 03_VARIABLE_CONTRACT_BRIEF_v3.7_LOCKED.txt
+**UPDATED FOR:** Business Setup, mode-aware Revenue / COGS, mode-aware Business Summary, Recovery Summary, Cost Allocation, and Business Outcome.
+
+---
+
+## PURPOSE
+
+This brief defines allowed cross-module variable names for QS Tools v3.8.
+
+No module may rename contract variables without updating this brief.
+
+No downstream module may rebuild upstream maths.
+
+No downstream module may consume raw upstream form state unless a locked brief explicitly allows it.
+
+If a downstream module needs a value, the owning upstream module must expose it through its output contract.
+
+---
+
+# 1. CORE CONTRACT RULES
+
+Every cross-module value must have:
+
+```text
+one owner
+one locked variable name
+one clear downstream meaning
+one calculation source
+one trust state where relevant
+```
+
+Benchmarks are diagnostic.
+
+Source module outputs are authoritative.
+
+Predictions are locked separately from actuals.
+
+Cost Summary must consume approved upstream outputs only.
+
+Business Summary must consume Revenue / COGS and Cost Summary outputs only.
+
+Recovery Summary must consume Business Summary outputs only for current reality.
+
+Cost Allocation must consume Recovery Summary outputs for the plan and Labour / Asset identity outputs for structure.
+
+Business Outcome must consume Recovery Summary and Cost Allocation outputs without rebuilding either.
+
+---
+
+# 2. CORE RECOVERY CHAIN CONTRACT PRINCIPLE
+
+The active recovery chain is:
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+Core product rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+---
+
+# 3. BUSINESS SETUP OUTPUTS
+
+Allowed Business Setup outputs:
+
+```js
+business_name
+business_type
+is_labour_based
+is_product_based
+setup_completed
+```
+
+Allowed `business_type` values:
+
+```js
+"labour_based"
+"product_based"
+```
+
+Business Setup owns the business recovery driver mode.
+
+Business Setup must not calculate financial outputs.
+
+---
+
+# 4. P&L OUTPUTS
+
+Allowed P&L outputs:
+
+```js
+pnl_ready
+pnl_lines
+pnl_categories
+total_business_costs
+labour_benchmark_total
+assets_benchmark_total
+general_overheads_benchmark_total
+income_benchmark_total
+cogs_benchmark_total
+direct_cost_benchmark_total
+unassigned_balance
+```
+
+P&L benchmark totals are diagnostic only.
+
+They flow to Module Reconciliation.
+
+They must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / Direct Cost outputs may feed Revenue / COGS.
+
+---
+
+# 5. REVENUE / COGS OUTPUTS
+
+Allowed Revenue / COGS outputs:
+
+```js
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+revenue_cogs_ready
+revenue_cogs_warnings
+business_type
+is_labour_based
+is_product_based
+units_sold_annual
+```
+
+Optional display outputs:
+
+```js
+revenue_category_totals
+direct_cost_category_totals
+revenue_lines
+direct_cost_lines
+review_required_lines
+excluded_trading_lines
+```
+
+Core formula:
+
+```js
+margin_pool = total_revenue - total_direct_costs
+```
+
+```js
+gross_margin_percent = total_revenue === 0
+  ? 0
+  : margin_pool / total_revenue
+```
+
+Revenue / COGS consumes Business Setup mode.
+
+If `business_type = product_based`, Revenue / COGS captures:
+
+```js
+units_sold_annual
+```
+
+Revenue / COGS must not calculate:
+
+```text
+net_position
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+recovery strategy
+quote gaps
+```
+
+---
+
+# 6. GENERAL OVERHEADS OUTPUTS
+
+Allowed General Overheads outputs:
+
+```js
+total_general_overheads
+category_totals
+general_overheads_ready
+general_overheads_variance_amount
+general_overheads_variance_percent
+non_asset_interest_annual
+```
+
+Only this value may flow to Cost Summary:
+
+```js
+total_general_overheads
+```
+
+Category subtotals are display / diagnostic values.
+
+---
+
+# 7. LABOUR OUTPUTS
+
+Allowed Labour cost outputs:
+
+```js
+total_gross_wages_annual
+total_entitlements_annual
+total_employer_kiwisaver_annual
+total_esct_annual
+total_acc_levy_annual
+total_employer_contribution_annual
+total_labour_cost_annual
+total_productive_output
+labour_ready
+```
+
+Allowed Labour rate outputs where available:
+
+```js
+productive_labour_cost_rate
+loaded_labour_cost_rate
+minimum_charge_out_rate
+charge_out_rate
+```
+
+Per-staff outputs may include:
+
+```js
+staff_id
+staff_name
+gross_wages_annual
+entitlements_annual
+employer_kiwisaver_gross
+esct_amount
+acc_cu_code
+acc_rate_percent
+acc_levy_annual
+total_employer_contribution_cost
+productive_hours
+productive_labour_cost_rate
+loaded_labour_cost_rate
+charge_out_rate
+is_active
+```
+
+Cost Summary must use:
+
+```js
+total_labour_cost_annual
+total_productive_output
+```
+
+Cost Allocation may consume Labour identity and capacity outputs.
+
+Cost Allocation must not create staff identity or rebuild Labour maths.
+
+---
+
+# 8. ASSETS OUTPUTS
+
+Allowed Assets outputs:
+
+```js
+total_asset_cost_annual
+total_asset_interest_annual
+assets_ready
+no_active_assets_confirmed
+```
+
+Per-asset outputs may include:
+
+```js
+asset_id
+asset_name
+asset_type
+finance_cost_annual
+asset_interest_annual
+estimated_remaining_finance_balance
+finance_progress_percent
+lease_cost_annual
+depreciation_cost_annual
+ownership_cost_annual
+total_asset_cost_annual
+finance_active
+finance_status
+finance_start_date
+finance_end_date
+finance_paid_off
+is_active
+```
+
+Deprecated:
+
+```js
+running_cost_annual
+```
+
+Cost Allocation may consume Asset identity and structure outputs.
+
+Cost Allocation must not create asset identity or rebuild Asset maths.
+
+---
+
+# 9. MODULE RECONCILIATION OUTPUTS
+
+Allowed Module Reconciliation outputs:
+
+```js
+reconciliation_ready
+reconciliation_checks
+blocking_checks
+warning_checks
+blocking_modules
+warning_modules
+module_total_business_costs
+pnl_business_cost_variance
+pnl_business_cost_variance_percent
+pnl_business_cost
+business_cost_variance_amount
+business_cost_variance_percent
+setup_module_benchmark_total
+full_pnl_business_cost_variance
+full_pnl_business_cost_variance_percent
+```
+
+Diagnostic totals do not replace source-of-truth module totals.
+
+Module Reconciliation must not calculate recovery strategy, allocation status, business outcome status, quote outputs, or feedback-loop outputs.
+
+---
+
+# 10. MODEL READINESS OUTPUTS
+
+Allowed Model Readiness outputs:
+
+```js
+model_ready
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+model_readiness_status
+```
+
+Allowed `model_readiness_status` values:
+
+```js
+"ready"
+"warning"
+"blocked"
+```
+
+Model Readiness does not create cost totals.
+
+Recovery Summary, Cost Allocation, and Business Outcome must inherit or preserve model trust state where relevant.
+
+---
+
+# 11. COST SUMMARY OUTPUTS
+
+Allowed Cost Summary outputs:
+
+```js
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_cost_burden
+required_revenue
+required_recovery_rate
+total_productive_output
+model_ready
+blocking_modules
+warning_modules
+model_readiness_status
+```
+
+Supporting display outputs where available:
+
+```js
+total_asset_interest_annual
+weighted_productivity_percent
+total_available_hours_before_productivity
+```
+
+Core formulas:
+
+```js
+total_people_cost_annual = total_labour_cost_annual
+```
+
+```js
+total_business_overheads = total_general_overheads
+```
+
+```js
+total_business_cost_annual = total_asset_cost_annual + total_business_overheads
+```
+
+```js
+total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads
+```
+
+```js
+required_revenue = total_cost_burden
+```
+
+```js
+required_recovery_rate = total_productive_output === 0
+  ? 0
+  : required_revenue / total_productive_output
+```
+
+Cost Summary must not calculate required recovery per unit or required recovery per driver.
+
+Business Summary owns the activity-driver bridge.
+
+---
+
+# 12. BUSINESS SUMMARY OUTPUTS
+
+Allowed Business Summary outputs:
+
+```js
+business_summary_ready
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+total_productive_output
+units_sold_annual
+net_position
+business_summary_status
+business_summary_warnings
+model_trust_state
+revenue_cogs_ready
+cost_summary_ready
+```
+
+Backwards-compatible hour outputs:
+
+```js
+required_recovery_rate
+current_margin_per_productive_hour
+recovery_gap_per_hour
+current_margin_per_hour
+hourly_gap
+```
+
+Core formulas:
+
+```js
+net_position = margin_pool - total_cost_burden
+```
+
+```js
+activity_driver_value = business_type === "product_based"
+  ? units_sold_annual
+  : total_productive_output
+```
+
+```js
+required_recovery_per_driver = activity_driver_value === 0
+  ? 0
+  : total_cost_burden / activity_driver_value
+```
+
+```js
+current_margin_per_driver = activity_driver_value === 0
+  ? 0
+  : margin_pool / activity_driver_value
+```
+
+```js
+recovery_gap_per_driver = current_margin_per_driver - required_recovery_per_driver
+```
+
+Business Summary consumes Revenue / COGS outputs and Cost Summary outputs only.
+
+Business Summary must not create strategy, allocation, outcome, modelling, or quote logic.
+
+---
+
+# 13. RECOVERY SUMMARY OUTPUTS
+
+Allowed Recovery Summary outputs:
+
+```js
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+recovery_model
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+```
+
+Allowed `recovery_model` / `active_recovery_model` values:
+
+```js
+"labour_only"
+"asset_driven"
+"hybrid"
+```
+
+Core recovery split object:
+
+```js
+recovery_plan_split = {
+  labour_share_percent,
+  asset_share_percent,
+  overhead_share_percent
+}
+```
+
+Core component object:
+
+```js
+component_required_recovery = {
+  labour: {
+    share_percent,
+    recovery_cost,
+    required_recovery_rate
+  },
+  asset: {
+    share_percent,
+    recovery_cost,
+    required_recovery
+  },
+  overhead: {
+    share_percent,
+    recovery_cost
+  }
+}
+```
+
+Core formulas:
+
+```js
+recovery_plan_target_per_driver = required_recovery_per_driver
+```
+
+```js
+labour_recovery_cost = total_cost_burden * labour_share_percent / 100
+asset_recovery_cost = total_cost_burden * asset_share_percent / 100
+overhead_absorbed_cost = total_cost_burden * overhead_share_percent / 100
+```
+
+```js
+required_labour_recovery_rate = total_productive_output === 0
+  ? 0
+  : labour_recovery_cost / total_productive_output
+```
+
+```js
+required_asset_recovery = asset_recovery_cost
+```
+
+Recovery Summary consumes Business Summary outputs.
+
+Recovery Summary must not rebuild Business Summary, Cost Summary, or Revenue / COGS.
+
+Recovery Summary must not calculate allocation_status or business_outcome_status.
+
+---
+
+# 14. COST ALLOCATION OUTPUTS
+
+Allowed Cost Allocation outputs:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_allocation_profile_id
+active_asset_labour_links
+active_operational_groups
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+total_operational_groups
+valid_operational_groups
+invalid_operational_groups
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+duplicate_link_warnings
+orphan_warnings
+group_validation_warnings
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Optional useful outputs:
+
+```js
+internal_capacity_supported
+external_delivery_note
+labour_capacity_status
+asset_capacity_status
+capacity_dependency_summary
+```
+
+Allowed `allocation_status` values:
+
+```js
+"ready"
+"ready_with_dependency"
+"strained"
+"not_supported"
+```
+
+Allowed `allocation_dependency_type` values:
+
+```js
+"none"
+"internal_capacity"
+"external_delivery"
+"asset_structure"
+"mixed"
+"unknown"
+```
+
+Cost Allocation consumes Recovery Summary outputs and Labour / Asset identity outputs.
+
+Cost Allocation must not change recovery strategy.
+
+Cost Allocation must not rebuild Recovery Summary.
+
+Cost Allocation must not decide final outcome.
+
+---
+
+# 15. BUSINESS OUTCOME OUTPUTS
+
+Allowed Business Outcome outputs:
+
+```js
+business_outcome_status
+outcome_status
+outcome_title
+outcome_message
+primary_constraint_key
+primary_constraint_title
+primary_constraint_message
+recommended_action
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+net_position
+recovery_gap_per_driver
+dependency_level
+business_model_health
+decision_warnings
+```
+
+Allowed `business_outcome_status` / `outcome_status` values:
+
+```js
+"viable"
+"viable_with_dependency"
+"at_risk"
+"not_viable"
+```
+
+Allowed `primary_constraint_key` values:
+
+```js
+"healthy"
+"external_delivery_dependency"
+"weak_structure"
+"structure_incomplete"
+"share_model_invalid"
+"no_recoverable_base"
+"asset_strategy_without_assets"
+"negative_net_position"
+"recovery_gap_negative"
+"model_not_trusted"
+"unknown"
+```
+
+Business Outcome consumes Recovery Summary and Cost Allocation outputs.
+
+Business Outcome must not rebuild either.
+
+Business Outcome must not optimise strategy, price quotes, or create scenarios.
+
+---
+
+# 16. BUSINESS MODELLING OUTPUTS — LATER
+
+Business Modelling remains primarily hour/labour-oriented until a later product-mode modelling brief is locked.
+
+Existing legacy outputs may remain:
+
+```js
+modelling_ready
+baseline_snapshot
+active_scenario
+upside_scenario
+downside_scenario
+scenario_delta_annual
+scenario_delta_per_hour
+scenario_net_position
+scenario_required_recovery_rate
+scenario_margin_per_productive_hour
+scenario_recovery_gap_per_hour
+scenario_status
+modelling_warnings
+```
+
+Business Modelling must not mutate source module outputs.
+
+Do not add product-mode optimisation variables until a later locked brief defines them.
+
+---
+
+# 17. QUOTE ENGINE OUTPUTS — LATER
+
+Quote Engine is deferred until the recovery chain and selected baseline/model boundaries are stable.
+
+Existing quote variables remain future/later unless explicitly briefed.
+
+Quote Engine must not assume all businesses are labour/hour-based once v3.8 mode-aware recovery is active.
+
+---
+
+# 18. ACCEPTED QUOTE SNAPSHOT OUTPUTS — LATER
+
+Accepted quote snapshots remain later.
+
+They must not be built before Quote Engine and accepted status/versioning rules are stable.
+
+---
+
+# 19. MONTHLY ACTUALS / FEEDBACK LOOP OUTPUTS — LATER
+
+Feedback Loop remains later.
+
+Monthly actuals must not overwrite accepted quote snapshots.
+
+Feedback Loop must not rewrite source modules automatically.
+
+---
+
+# 20. CASH FLOW OUTPUTS — LATER
+
+Allowed future Cash Flow outputs may include:
+
+```js
+total_principal_repayment_annual
+total_principal_repayment_monthly
+total_finance_payment_annual
+total_finance_payment_monthly
+total_cash_pressure_annual
+total_cash_pressure_monthly
+cash_flow_status
+cash_flow_warnings
+```
+
+Cash Flow must not feed Cost Summary.
+
+Cash Flow must not alter required recovery values.
+
+---
+
+# 21. PRODUCTION CAPACITY OUTPUTS — LATER
+
+Production Capacity belongs after Quote Engine.
+
+Do not build or depend on these until Quote Engine and capacity briefs are explicitly locked.
+
+---
+
+# 22. BANNED VARIABLES
+
+Do not use:
+
+```js
+employee_overheads_total
+total_employee_overheads_annual
+employee_overheads_total_annual
+employee_overheads_benchmark_total
+employee_overheads_ready
+employee_overheads_status
+employee_overheads_variance_amount
+employee_overheads_variance_percent
+employee_overheads_annual
+staff_overheads_total
+staff_overheads_ready
+active_revenue_model inside Cost Summary
+active_asset_labour_links inside Cost Summary
+running_cost_annual inside Cost Summary
+raw P&L lines inside Cost Summary
+P&L benchmark values as Cost Summary calculation inputs
+P&L interest as asset finance authority
+historical P&L asset interest as Cost Summary input
+principal repayments inside Cost Summary
+principal repayments inside total_asset_cost_annual
+principal repayments inside total_general_overheads
+quote outputs inside Cost Summary
+quote outputs inside Revenue / COGS
+quote outputs inside Business Summary unless a later locked brief explicitly allows comparison display
+accepted quote snapshots inside Cost Summary
+accepted quote snapshots inside Revenue / COGS
+monthly actuals inside Quote Engine
+feedback-loop outputs inside source modules
+cash-flow outputs inside Cost Summary
+```
+
+---
+
+# 23. FINAL DEFINITION
+
+The v3.8 variable contract keeps all module boundaries explicit.
+
+Business Setup owns mode.
+
+Revenue / COGS owns Margin Pool and product units.
+
+Cost Summary owns operating cost burden and the legacy hour-based recovery baseline.
+
+Business Summary owns current reality through the selected activity driver.
+
+Recovery Summary owns strategy and visible consequence.
+
+Cost Allocation owns delivery structure and dependency status.
+
+Business Outcome owns the verdict.
+
+No downstream module may rebuild upstream maths or consume unapproved variables.

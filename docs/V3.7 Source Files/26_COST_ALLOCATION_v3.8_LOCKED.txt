@@ -1,0 +1,1153 @@
+# QS Tools — Cost Allocation Brief
+
+## v3.8 — STRUCTURE, CAPACITY, AND DEPENDENCY LAYER
+
+**STATUS:** ACTIVE BUILD BRIEF
+**VERSION:** v3.8
+**POSITION:** Recovery Summary → Cost Allocation → Business Outcome
+**REPLACES / SUPERSEDES:** Older Cost Allocation assumptions where Cost Allocation owned recovery strategy or treated staff shortage as automatic failure
+**PRIMARY RULE:** Not enough internal capacity is not automatic failure. It is a dependency signal.
+
+---
+
+# 1. PURPOSE
+
+Cost Allocation validates whether the selected recovery plan can be delivered by the business structure.
+
+It combines:
+
+```text
+Recovery Summary strategy outputs
+Labour identity and internal productive capacity
+Asset identity and structural capacity
+external / scalable delivery dependency indicators
+```
+
+Cost Allocation answers:
+
+```text
+Can this recovery plan actually be delivered?
+What internal structure supports it?
+What external dependency does it create?
+```
+
+Cost Allocation is not where the recovery strategy is chosen.
+
+Recovery Summary chooses the plan.
+
+Cost Allocation tests the plan.
+
+---
+
+# 2. CORE FIRST-PRINCIPLES RULE
+
+There must be no hidden assumptions.
+
+Cost Allocation must not silently assume:
+
+```text
+labour recovery = internal staff only
+staff shortage = business failure
+subcontract labour = internal labour
+asset recovery = automatically deliverable
+capacity exists without evidence
+external delivery exists without being visible
+```
+
+Every dependency must be visible.
+
+Every shortfall must be explained.
+
+Every output must trace back to:
+
+```text
+Recovery Summary contract
+Labour contract
+Assets contract
+local Cost Allocation structure
+visible external-delivery assumption
+```
+
+---
+
+# 3. SYSTEM POSITION
+
+Active flow:
+
+```text
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+```
+
+Expanded system flow:
+
+```text
+Business Setup
+→ P&L
+→ Revenue / COGS
+→ General Overheads / Labour / Assets
+→ Cost Summary
+→ Business Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Business Outcome
+→ Business Modelling later
+→ Quote Engine later
+```
+
+Cost Allocation sits after Recovery Summary because it needs the recovery plan first.
+
+Do not build Cost Allocation before Recovery Summary has a clean output contract.
+
+---
+
+# 4. CLEAN ROLE SPLIT
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+More detail:
+
+```text
+Business Summary tells us where the business is now.
+Recovery Summary tells us what recovery plan has been chosen.
+Cost Allocation tells us whether that plan is internally supported, externally dependent, strained, or unsupported.
+Business Outcome tells us whether the model works.
+```
+
+---
+
+# 5. PRODUCT ROLE
+
+Cost Allocation is a structural and dependency validation layer.
+
+It is not:
+
+```text
+Recovery Summary
+Business Summary
+Business Outcome
+Business Modelling
+Quote Engine
+pricing engine
+cost engine
+```
+
+Cost Allocation must not calculate business costs.
+
+Cost Allocation must not choose recovery strategy.
+
+Cost Allocation must not produce the final business verdict.
+
+Cost Allocation must reveal what the selected recovery plan depends on.
+
+---
+
+# 6. CORE PRODUCT RULE
+
+The locked product rule for the recovery chain is:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+Recovery Summary shows the consequence of the chosen recovery plan.
+
+Cost Allocation shows the delivery dependency created by that plan.
+
+If the selected plan requires more capacity than the internal business currently has, Cost Allocation must show that clearly.
+
+It must not hide the dependency.
+
+It must not automatically call it failure.
+
+---
+
+# 7. REQUIRED INPUTS FROM RECOVERY SUMMARY
+
+Cost Allocation consumes the clean Recovery Summary contract.
+
+Required inputs:
+
+```js
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+active_recovery_model
+recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+```
+
+Cost Allocation must not recalculate these values.
+
+If any required value is missing, Recovery Summary must expose it first.
+
+---
+
+# 8. REQUIRED INPUTS FROM LABOUR
+
+Cost Allocation consumes active Labour identity and capacity outputs.
+
+Required inputs:
+
+```js
+staff_id
+staff_name
+staff_role where available
+labour_class where available
+is_active
+productive_hours
+```
+
+Aggregate / selector inputs where available:
+
+```js
+total_productive_output
+active_staff_count
+```
+
+Labour owns:
+
+```js
+staff_id
+productive_hours
+total_productive_output
+```
+
+Cost Allocation must not create staff identity.
+
+Cost Allocation must not rebuild Labour calculations.
+
+Display names are display only.
+
+They must never be used as keys.
+
+---
+
+# 9. REQUIRED INPUTS FROM ASSETS
+
+Cost Allocation consumes active Asset identity and structure outputs.
+
+Required inputs:
+
+```js
+asset_id
+asset_name
+is_active
+total_asset_cost_annual where available
+```
+
+Aggregate / selector inputs where available:
+
+```js
+active_asset_count
+```
+
+Assets owns:
+
+```js
+asset_id
+total_asset_cost_annual
+```
+
+Cost Allocation must not create asset identity.
+
+Cost Allocation must not rebuild Asset calculations.
+
+Display names are display only.
+
+They must never be used as keys.
+
+---
+
+# 10. EXTERNAL / SCALABLE DELIVERY PRINCIPLE
+
+Cost Allocation must distinguish between:
+
+```text
+constrained internal capacity
+scalable external delivery
+```
+
+Examples of constrained internal capacity:
+
+```text
+internal staff productive hours
+owned assets
+active operational groups
+```
+
+Examples of scalable external delivery:
+
+```text
+subcontract labour
+labour hire
+outsourced delivery
+external plant hire
+external supply
+```
+
+Subcontract labour may sit in Revenue / COGS as direct cost / COGS.
+
+It must not be confused with internal Labour module capacity.
+
+Cost Allocation must not treat lack of internal staff as automatic failure if the business can visibly use scalable delivery.
+
+Correct interpretation:
+
+```text
+Internal labour capacity is insufficient; this recovery plan depends on external delivery.
+```
+
+Incorrect interpretation:
+
+```text
+You do not have enough staff, so the model fails.
+```
+
+---
+
+# 11. LOCAL COST ALLOCATION INPUTS
+
+Cost Allocation may own structural inputs:
+
+```js
+allocation_profile_id
+allocation_profile_name
+effective_from
+asset_labour_links
+operational_groups
+external_delivery_enabled
+external_delivery_note
+```
+
+`external_delivery_enabled` is a visible assumption.
+
+It must not be hidden.
+
+If external delivery is used to support the plan, the user must see that dependency clearly.
+
+---
+
+# 12. DATA MODEL
+
+## Allocation Profile
+
+```js
+allocation_profile_id
+allocation_profile_name
+effective_from
+is_active
+created_at
+updated_at
+```
+
+Rules:
+
+```text
+one active allocation profile should be used downstream
+history should be preserved where profile versioning exists
+```
+
+---
+
+## Asset Labour Link
+
+```js
+asset_labour_link_id
+asset_id
+staff_id
+is_active
+created_at
+updated_at
+```
+
+Rules:
+
+```text
+asset_id comes from Assets
+staff_id comes from Labour
+same active asset_id + staff_id pair must not be duplicated
+display names are never keys
+```
+
+---
+
+## Operational Group
+
+```js
+group_id
+group_name
+required_asset_ids
+required_staff_count
+is_active
+created_at
+updated_at
+```
+
+Operational group means minimum viable working unit.
+
+Example:
+
+```text
+Pump Unit = pump + ute + 1 driver
+```
+
+Operational groups are not pricing packages.
+
+Operational groups are not quote products.
+
+---
+
+# 13. REQUIRED OUTPUT CONTRACT
+
+Cost Allocation must expose:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_allocation_profile_id
+active_asset_labour_links
+active_operational_groups
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+total_operational_groups
+valid_operational_groups
+invalid_operational_groups
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+duplicate_link_warnings
+orphan_warnings
+group_validation_warnings
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Optional useful outputs:
+
+```js
+internal_capacity_supported
+external_delivery_note
+labour_capacity_status
+asset_capacity_status
+capacity_dependency_summary
+```
+
+---
+
+# 14. NEW REQUIRED FIELD — allocation_status
+
+Allowed values:
+
+```js
+"ready"
+"ready_with_dependency"
+"strained"
+"not_supported"
+```
+
+---
+
+## ready
+
+Meaning:
+
+```text
+Recovery plan is supported by internal structure and capacity.
+```
+
+Use when:
+
+```text
+Recovery Summary is ready
+structure is valid
+required internal recovery is supported
+no major external dependency is required
+no blocking warnings exist
+```
+
+Display wording:
+
+```text
+Recovery plan is supported by current internal structure.
+```
+
+---
+
+## ready_with_dependency
+
+Meaning:
+
+```text
+Recovery plan can work, but depends on external delivery or scalable supply.
+```
+
+Use when:
+
+```text
+internal capacity is insufficient
+external delivery is enabled or visibly assumed
+shortfall is explainable as dependency, not failure
+no blocking structural failure exists
+```
+
+This is a valid business state.
+
+It must not be treated as failure.
+
+Display wording:
+
+```text
+Recovery plan depends on external delivery capacity.
+```
+
+---
+
+## strained
+
+Meaning:
+
+```text
+Recovery plan may be possible, but creates heavy pressure or weak coverage.
+```
+
+Use when:
+
+```text
+coverage is low
+internal capacity is heavily stretched
+external dependency is high or unclear
+warnings exist but no hard failure exists
+```
+
+Display wording:
+
+```text
+Recovery plan is possible but structurally strained.
+```
+
+---
+
+## not_supported
+
+Meaning:
+
+```text
+Recovery plan cannot currently be supported by internal structure or visible external dependency.
+```
+
+Use when:
+
+```text
+Recovery Summary is not ready
+required structure is missing
+required assets or labour are absent
+external dependency is required but not enabled / visible
+blocking warnings exist
+```
+
+Display wording:
+
+```text
+Recovery plan is not currently supported by the visible structure.
+```
+
+---
+
+# 15. NEW REQUIRED FIELD — allocation_dependency_type
+
+Allowed values:
+
+```js
+"none"
+"internal_capacity"
+"external_delivery"
+"asset_structure"
+"mixed"
+"unknown"
+```
+
+Interpretation:
+
+```text
+none = supported internally
+internal_capacity = limited by internal labour / internal productive capacity
+external_delivery = relies on subcontract / labour hire / outsourced capacity
+asset_structure = limited by missing or incomplete asset structure
+mixed = more than one dependency type exists
+unknown = missing data prevents classification
+```
+
+---
+
+# 16. NEW REQUIRED FIELD — allocation_warnings
+
+Warnings must be explicit.
+
+Minimum warning keys:
+
+```text
+recovery_summary_not_ready
+missing_recovery_plan_target
+missing_component_required_recovery
+structure_incomplete
+low_staff_coverage
+low_asset_coverage
+low_group_coverage
+internal_capacity_shortfall
+external_delivery_required
+external_delivery_not_defined
+asset_recovery_without_asset_structure
+duplicate_active_links
+orphan_staff
+orphan_assets
+invalid_operational_groups
+```
+
+Warning wording examples:
+
+```text
+Recovery Summary is not ready, so Cost Allocation is preview only.
+
+The recovery plan requires internal capacity beyond the current staff structure.
+
+This plan depends on external delivery, but no external delivery assumption has been confirmed.
+
+Asset recovery is selected, but asset structure is incomplete.
+
+Operational groups are incomplete.
+```
+
+---
+
+# 17. CAPACITY / DEPENDENCY LOGIC
+
+Cost Allocation must evaluate:
+
+```text
+required recovery by component
+internal capacity available
+shortfall
+external delivery availability / dependency
+structure validity
+coverage strength
+```
+
+Simple logic:
+
+```text
+If internal capacity supports the plan:
+  allocation_status = ready
+
+If internal capacity is short but external delivery is visible:
+  allocation_status = ready_with_dependency
+
+If internal capacity is short and external dependency is high or unclear:
+  allocation_status = strained
+
+If required structure/capacity is missing and no visible fallback exists:
+  allocation_status = not_supported
+```
+
+---
+
+# 18. INTERNAL CAPACITY SHORTFALL RULE
+
+Internal capacity shortfall must be treated as a signal, not an automatic failure.
+
+```text
+Shortfall = required internal recovery / delivery pressure exceeds visible internal capacity.
+```
+
+If external delivery is enabled:
+
+```text
+shortfall becomes dependency
+```
+
+If external delivery is not enabled:
+
+```text
+shortfall becomes strain or not_supported depending on severity and structure
+```
+
+---
+
+# 19. STRUCTURAL RULES BY RECOVERY MODEL
+
+## labour_only
+
+```text
+asset links optional
+operational groups optional
+external delivery may be relevant
+staff shortfall is dependency, not automatic failure
+```
+
+## asset_driven
+
+```text
+asset links required
+operational groups required where applicable
+missing asset structure may block support
+external delivery does not replace missing owned-asset structure unless explicitly modelled later
+```
+
+## hybrid
+
+```text
+mixed structure allowed
+partial links allowed
+warnings required where coverage is low
+external dependency can support labour shortfall if visible
+asset structure still required where asset share is material
+```
+
+---
+
+# 20. STRUCTURAL VALIDATION RULES
+
+## Duplicate links
+
+Not allowed:
+
+```text
+same active asset_id + staff_id pair
+```
+
+## Orphan detection
+
+Show warnings for:
+
+```text
+active staff not linked where links are expected
+active assets not linked where links are expected
+assets not included in operational groups where groups are expected
+```
+
+## Group validity
+
+A group is valid only if:
+
+```text
+all required_asset_ids exist and are active
+required staff count can be met
+```
+
+## Coverage
+
+Expose:
+
+```js
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+```
+
+Coverage is a warning / strain signal.
+
+Coverage does not automatically decide the final business verdict.
+
+Business Outcome owns final verdict.
+
+---
+
+# 21. PAGE STRUCTURE
+
+Recommended page structure:
+
+```text
+CostAllocationStatusStrip
+CostAllocationMainCard
+CostAllocationHelpPanel
+```
+
+Supporting components where needed:
+
+```text
+CostAllocationLinkTable
+CostAllocationGroupsCard
+```
+
+---
+
+# 22. STATUS STRIP
+
+Status strip should show:
+
+```text
+allocation_status
+allocation_dependency_type
+active_recovery_model
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+warnings count
+```
+
+Status labels must be plain-English and consequence-focused.
+
+---
+
+# 23. MAIN CARD SECTIONS
+
+Recommended order:
+
+```text
+A. Recovery Context
+B. Allocation Status
+C. Capacity / Dependency Summary
+D. Structural Coverage
+E. Link Management
+F. Operational Groups
+G. Problem Highlight
+```
+
+---
+
+## A. Recovery Context
+
+Read-only.
+
+Show:
+
+```js
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+```
+
+This confirms the plan being tested.
+
+Cost Allocation must not allow the user to change recovery strategy here.
+
+---
+
+## B. Allocation Status
+
+Show:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+```
+
+Plain-English examples:
+
+```text
+Supported internally
+Supported with external delivery dependency
+Structurally strained
+Not currently supported
+```
+
+---
+
+## C. Capacity / Dependency Summary
+
+Show:
+
+```js
+internal_capacity_shortfall
+external_delivery_enabled
+external_delivery_required
+capacity_dependency_summary
+```
+
+This is where the page makes subcontract/external reliance visible.
+
+---
+
+## D. Structural Coverage
+
+Show:
+
+```js
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+structure_valid
+```
+
+---
+
+## E. Link Management
+
+Use:
+
+```text
+CostAllocationLinkTable
+```
+
+Rules:
+
+```text
+create/remove active links
+prevent duplicate active pairs
+show linked/unlinked state
+use IDs only
+```
+
+---
+
+## F. Operational Groups
+
+Use:
+
+```text
+CostAllocationGroupsCard
+```
+
+Rules:
+
+```text
+create/edit groups
+assign required assets
+assign required staff count
+show valid/invalid groups
+```
+
+---
+
+## G. Problem Highlight
+
+Examples:
+
+```text
+Internal labour capacity is short; external delivery is required.
+Asset recovery is selected, but asset links are incomplete.
+Three active assets are not included in any operational group.
+Hybrid recovery is selected, but group coverage is weak.
+```
+
+---
+
+# 24. RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary owns:
+
+```js
+recovery_model
+recovery_plan_split
+component_required_recovery
+recovery_plan_target_per_driver
+```
+
+Cost Allocation consumes those values.
+
+Cost Allocation must not change them.
+
+Cost Allocation must not create its own recovery model.
+
+---
+
+# 25. RELATIONSHIP TO LABOUR
+
+Labour owns:
+
+```js
+staff_id
+productive_hours
+total_productive_output
+```
+
+Cost Allocation consumes Labour identity and capacity.
+
+Cost Allocation does not calculate labour cost.
+
+Cost Allocation does not treat subcontract labour as internal Labour module capacity.
+
+---
+
+# 26. RELATIONSHIP TO ASSETS
+
+Assets owns:
+
+```js
+asset_id
+total_asset_cost_annual
+```
+
+Cost Allocation consumes Asset identity and structure.
+
+Cost Allocation does not calculate asset cost.
+
+Cost Allocation does not create asset packages unless a later locked brief enables that.
+
+---
+
+# 27. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome consumes Cost Allocation outputs:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Cost Allocation does not decide the final business outcome.
+
+Business Outcome owns the verdict.
+
+---
+
+# 28. WHAT COST ALLOCATION MUST NOT DO
+
+Cost Allocation must not:
+
+```text
+change recovery_model
+change recovery_plan_split
+change labour_share_percent
+change asset_share_percent
+recalculate Recovery Summary
+recalculate Business Summary
+recalculate Cost Summary
+calculate pricing
+calculate quote gaps
+create Business Outcome verdicts
+assume staff shortage equals failure
+assume subcontract labour equals internal labour
+hide external delivery assumptions
+use display names as keys
+create staff_id
+create asset_id
+create product/unit strategy
+optimise recovery mix
+```
+
+---
+
+# 29. FILES TO INSPECT BEFORE IMPLEMENTATION
+
+Before editing, inspect:
+
+```text
+hooks/useCostAllocation.js
+lib/calculations/costAllocationRules.js
+lib/selectors/costAllocationSelectors.js
+components/cost-allocation/*
+app/cost-allocation/page.jsx
+```
+
+Also inspect upstream contracts:
+
+```text
+hooks/useRecoverySummary.js
+hooks/useLabour.js
+hooks/useAssets.js
+```
+
+Do not guess field paths.
+
+Confirm actual hook output names before wiring.
+
+---
+
+# 30. CODEX IMPLEMENTATION RULE
+
+For contract alignment, Codex should only add explicit named outputs.
+
+Task:
+
+```text
+Add allocation_status, allocation_dependency_type, and allocation_warnings to Cost Allocation using existing structure, coverage, dependency, and warning data.
+
+Do not redesign the page.
+Do not rebuild Recovery Summary.
+Do not change recovery strategy.
+Do not create new pricing or modelling logic.
+```
+
+---
+
+# 31. DEFINITION OF DONE
+
+Cost Allocation v3.8 is complete when:
+
+```text
+it consumes Recovery Summary named outputs
+it exposes allocation_status
+it exposes allocation_dependency_type
+it exposes allocation_warnings
+it distinguishes internal capacity from external dependency
+it does not treat staff shortage as automatic failure
+it validates structural readiness
+it makes external delivery assumptions visible
+it does not change recovery strategy
+it does not create Business Outcome verdicts
+it uses IDs only
+it does not rebuild upstream maths
+build passes
+```
+
+---
+
+# 32. FINAL DEFINITION
+
+Cost Allocation v3.8 is the structure, capacity, and dependency layer.
+
+It consumes the selected recovery plan from Recovery Summary and tests whether that plan is supported by the visible business structure.
+
+It separates internal constrained capacity from external scalable delivery.
+
+It treats internal shortfall as a visible dependency signal, not automatic failure.
+
+It does not decide the final verdict.
+
+It prepares clean allocation evidence for Business Outcome.

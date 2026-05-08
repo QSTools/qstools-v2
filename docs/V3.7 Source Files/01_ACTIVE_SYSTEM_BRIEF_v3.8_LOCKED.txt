@@ -1,0 +1,1004 @@
+# QS Tools — Active System Brief
+
+## v3.8 — MODE-AWARE RECOVERY CHAIN UPDATED
+
+**STATUS:** ACTIVE SYSTEM BRIEF
+**VERSION:** v3.8
+**REPLACES:** 01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt previous draft and all addendums
+**UPDATED FOR:** Business Setup, mode-aware Revenue / COGS, mode-aware Business Summary, Recovery Summary, Cost Allocation, Business Outcome, and activity-driver recovery logic.
+
+---
+
+# 1. PURPOSE
+
+This brief defines the active QS Tools system architecture, build order, product standard, and commercial logic.
+
+It is the central orientation brief for all current builds.
+
+All module briefs, implementation briefs, AGENTS.md instructions, and future build tasks must align with this file.
+
+This file is intended to replace separate Active System addendums.
+
+---
+
+# 2. ACTIVE SOURCE PACK
+
+Use the current active source briefs only.
+
+The active source pack includes:
+
+```text
+01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+02_IMPLEMENTATION_ORDER_v3.8_LOCKED.txt
+03_VARIABLE_CONTRACT_BRIEF_v3.8_LOCKED.txt
+24_Bussiness_Setup_v3.7_Locked.txt
+19_REVENUE_COGS_v3.8_LOCKED.txt
+20_BUSINESS_SUMMARY_v3.8_LOCKED.txt
+RECOVERY_SUMMARY_v3.8_LOCKED.txt
+COST_ALLOCATION_v3.8_LOCKED.txt
+BUSINESS_OUTCOME_v3.8_LOCKED.txt
+```
+
+Older v3.7 briefs remain active only where not replaced.
+
+If any older v3.7 brief conflicts with this v3.8 active system brief, this v3.8 brief wins.
+
+---
+
+# 3. HIGHEST-LEVEL PRINCIPLE
+
+QS Tools is built on:
+
+```text
+First principles for everything.
+Simple in hindsight. Invisible beforehand.
+```
+
+The system must reveal what was previously hidden in the business.
+
+Every cost must belong to exactly one owner.
+
+Every important output must be traceable, explainable, and defensible.
+
+If a number cannot be defended, it should not be trusted.
+
+Core product question:
+
+```text
+Do your assumptions about how your business runs match reality?
+```
+
+---
+
+# 4. CORE SYSTEM PHILOSOPHY
+
+QS Tools uses historical accounting data to build a forward-looking commercial model.
+
+The P&L shows what happened.
+
+QS Tools uses that information to classify, reconcile, and model what the business needs to recover going forward.
+
+Past accounting data is input evidence.
+
+Forward-looking commercial cost is the decision basis.
+
+Business Setup defines whether the business is interpreted through:
+
+```text
+productive hours
+units sold
+```
+
+This allows QS Tools to support both service / labour-based businesses and product / unit-based businesses without changing the first-principles model.
+
+---
+
+# 5. CORE MODE-AWARE PRINCIPLE
+
+QS Tools uses one universal recovery equation:
+
+```text
+Total Business Cost ÷ Activity Driver = Required Recovery Per Output
+```
+
+The activity driver is selected by Business Setup and applied by Business Summary.
+
+```text
+labour_based  → productive hours → $/hour
+product_based → units sold       → $/unit
+```
+
+This is not an industry category.
+
+It is the output driver used by the system to interpret recovery pressure.
+
+---
+
+# 6. CORE RECOVERY CHAIN PRINCIPLE
+
+The recovery chain must follow this separation:
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+Core recovery rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+This means:
+
+```text
+REALITY      = current business position
+STRATEGY     = user-selected recovery plan
+CONSEQUENCE  = live pressure, gap, dependency, and feasibility
+VERDICT      = whether the model works
+```
+
+No hidden assumptions.
+
+No fantasy modelling.
+
+No downstream page may calculate what an upstream page already owns.
+
+---
+
+# 7. LOCKED SYSTEM FLOW
+
+The active system flow is:
+
+```text
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+General Overheads / Labour / Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+↓
+Business Modelling later
+↓
+Quote Engine later
+↓
+Accepted Quote Snapshot later
+↓
+Monthly Actuals / Feedback Loop later
+↓
+Cash Flow later
+↓
+Production Capacity later
+```
+
+Operationally, Cost Summary depends on General Overheads, Labour, Assets, Module Reconciliation, and Model Readiness.
+
+Commercially, Revenue / COGS creates Margin Pool and Business Summary compares that Margin Pool against Cost Summary’s operating burden through the selected activity driver.
+
+Strategically, Recovery Summary chooses how the burden is intended to be recovered.
+
+Structurally, Cost Allocation checks what the strategy depends on.
+
+Outcome-wise, Business Outcome produces the verdict.
+
+---
+
+# 8. CORE SEPARATION
+
+```text
+Business Setup = business identity and recovery driver mode
+P&L = raw financial input, classification, and future monthly actuals preparation
+Revenue / COGS = what trading produces / Margin Pool / units sold where product-based
+General Overheads = shared / unclear / staff overhead / vehicle running / non-asset overhead cost classification
+Labour = people cost, employer obligations, productive hours
+Assets = ownership-only asset costs and asset finance interest
+Module Reconciliation = evidence layer
+Model Readiness = trust gate
+Cost Summary = what the business costs to operate going forward
+Business Summary = current business mirror through the selected activity driver
+Recovery Summary = how the business intends to recover the burden and what that choice causes
+Cost Allocation = whether the structure can deliver the recovery plan and what it depends on
+Business Outcome = whether the model works
+Business Modelling = baseline snapshot and scenario benchmark layer later
+Quote Engine = quote-level leak detection against baseline or selected model later
+Accepted Quote Snapshot = locked prediction later
+Monthly Actuals = period-based reality later
+Feedback Loop = macro prediction-vs-reality comparison later
+Cash Flow = principal repayments, finance payment pressure, and liquidity view later
+Production Capacity = can the priced work be delivered later
+```
+
+---
+
+# 9. BUSINESS SETUP OWNS
+
+Business Setup owns:
+
+```js
+business_name
+business_type
+is_labour_based
+is_product_based
+setup_completed
+```
+
+Allowed `business_type` values:
+
+```js
+"labour_based"
+"product_based"
+```
+
+Business Setup answers:
+
+```text
+What business is being modelled, and does it recover cost through hours or units?
+```
+
+Business Setup controls downstream interpretation:
+
+```text
+labour_based  → productive hours → required recovery per hour
+product_based → units sold       → required recovery per unit
+```
+
+Business Setup does not calculate revenue, direct costs, margin pool, cost burden, recovery, scenarios, quotes, allocation, outcome, or cash flow.
+
+Business Setup must remain editable during the current build phase so the mode-aware system can be tested.
+
+---
+
+# 10. P&L OWNS
+
+P&L owns:
+
+```text
+raw P&L lines
+P&L classification
+P&L benchmark totals
+income / revenue classification
+COGS / direct cost classification
+review-required status
+excluded status
+WIP / accounting adjustment visibility
+reusable P&L mapping over time
+future monthly actuals by accounting period
+```
+
+P&L does not own downstream source-of-truth cost totals.
+
+P&L benchmark values flow to Module Reconciliation only.
+
+P&L values must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / Direct Cost outputs may feed Revenue / COGS.
+
+P&L later provides monthly actuals.
+
+P&L does not compare predictions to actuals.
+
+---
+
+# 11. REVENUE / COGS OWNS
+
+Revenue / COGS owns:
+
+```js
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+revenue_cogs_ready
+revenue_cogs_warnings
+business_type
+is_labour_based
+is_product_based
+units_sold_annual
+```
+
+Revenue / COGS consumes classified P&L income and COGS / direct cost outputs.
+
+Revenue / COGS consumes Business Setup mode.
+
+Core formula:
+
+```text
+Revenue - Direct Costs = Margin Pool
+```
+
+In product-based mode, Revenue / COGS captures:
+
+```js
+units_sold_annual
+```
+
+This is the annual product / unit activity driver used by Business Summary.
+
+Revenue / COGS does not calculate:
+
+```text
+required recovery per unit
+required recovery per hour
+required recovery per driver
+current margin per driver
+recovery gap per driver
+net position
+total cost burden
+pricing
+quote gaps
+recovery strategy
+```
+
+Margin Pool is not final profit.
+
+Margin Pool is the pool available to carry the business operating cost burden.
+
+---
+
+# 12. GENERAL OVERHEADS OWNS
+
+General Overheads owns:
+
+```text
+staff overhead review categories
+vehicle running costs
+fleet running costs
+office/admin costs
+finance/admin overheads
+non-asset interest
+insurance/compliance
+sales/growth overheads
+travel overheads
+unclear / unallocated business costs after review
+total_general_overheads
+```
+
+Only `total_general_overheads` flows to Cost Summary.
+
+Category subtotals are review/detail only.
+
+General Overheads does not own Labour employer obligations, asset ownership costs, or asset finance interest.
+
+---
+
+# 13. LABOUR OWNS
+
+Labour owns:
+
+```text
+staff_id
+gross wages
+paid entitlements
+employer KiwiSaver
+ESCT
+employer ACC levy
+productive hours
+final productive output after entitlement and productivity logic
+total_labour_cost_annual
+total_productive_output
+productive_labour_cost_rate where available
+labour_ready
+```
+
+Labour output contracts must aggregate all active saved Labour profiles.
+
+Active means:
+
+```js
+profile.is_active !== false
+```
+
+Cost Summary must use Labour’s final `total_productive_output` as the hour-based recovery denominator.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
+In product-based mode, Labour remains a source cost and productive-capacity input, but Business Summary uses `units_sold_annual` as the primary recovery driver.
+
+---
+
+# 14. ASSETS OWNS
+
+Assets owns:
+
+```text
+asset_id
+ownership-only asset cost calculations
+finance cost
+asset finance interest
+lease cost
+ownership cost
+replacement / ownership recovery if explicitly enabled
+total_asset_cost_annual
+total_asset_interest_annual
+assets_ready
+no_active_assets_confirmed
+```
+
+Assets does not own vehicle running costs or labour costs.
+
+Vehicle and fleet running costs belong in General Overheads.
+
+Assets must distinguish active, inactive, paid-off, term-ended, retired, and sold asset/finance states.
+
+Principal repayments are cash-flow pressure, not operating cost.
+
+Principal repayments must not feed `total_asset_cost_annual` or Cost Summary.
+
+---
+
+# 15. MODULE RECONCILIATION OWNS
+
+Module Reconciliation owns:
+
+```text
+evidence checks
+cross-module consistency
+benchmark variance visibility
+blocker/warning generation
+reconciliation_ready
+reconciliation_checks
+blocking_checks
+warning_checks
+module_total_business_costs
+pnl_business_cost_variance
+pnl_business_cost_variance_percent
+informational interest / finance bridge where available
+```
+
+Module Reconciliation does not recalculate upstream modules.
+
+Module Reconciliation must not calculate:
+
+```text
+recovery strategy
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+business_outcome_status
+quote gaps
+feedback-loop variance
+```
+
+Business cost benchmark variance is diagnostic evidence unless a source module fails readiness.
+
+Module Reconciliation must not alter Assets, General Overheads, or Cost Summary totals to force a historical accounting match.
+
+---
+
+# 16. MODEL READINESS OWNS
+
+Model Readiness owns:
+
+```text
+model_ready
+model_readiness_status
+blocking modules
+warning modules
+final trust verdict
+```
+
+Allowed `model_readiness_status` values:
+
+```js
+"ready"
+"warning"
+"blocked"
+```
+
+Model Readiness gates:
+
+```text
+Cost Summary
+Revenue / COGS
+Business Summary
+Recovery Summary
+Cost Allocation
+Business Outcome
+Business Modelling later
+Quote Engine later
+Cash Flow later
+Production Capacity later
+Feedback Loop later
+```
+
+Downstream modules must inherit this trust state.
+
+Model Readiness does not create cost totals, recovery strategy, allocation status, or business outcome verdicts.
+
+---
+
+# 17. COST SUMMARY OWNS
+
+Cost Summary owns:
+
+```js
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_cost_burden
+required_revenue
+required_recovery_rate
+total_productive_output
+model_ready
+blocking_modules
+warning_modules
+model_readiness_status
+```
+
+Cost Summary must not rebuild upstream maths.
+
+Cost Summary must consume Model Readiness outputs and clearly show whether the model is trusted, warning, or blocked.
+
+Cost Summary is forward-looking.
+
+Required Recovery Rate remains:
+
+```text
+total_cost_burden / total_productive_output
+```
+
+Required Recovery Rate is not a labour charge-out rate.
+
+It is the business break-even pressure per productive hour.
+
+Important v3.8 clarification:
+
+```text
+Cost Summary still owns total_cost_burden, total_productive_output, and required_recovery_rate.
+Business Summary decides whether the recovery display uses productive hours or units sold.
+Cost Summary must not calculate required recovery per unit.
+```
+
+---
+
+# 18. BUSINESS SUMMARY OWNS
+
+Business Summary owns:
+
+```js
+business_summary_ready
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+total_productive_output
+units_sold_annual
+net_position
+business_summary_status
+business_summary_warnings
+model_trust_state
+revenue_cogs_ready
+cost_summary_ready
+```
+
+Business Summary is the current business mirror.
+
+It combines Margin Pool from Revenue / COGS with Total Cost Burden from Cost Summary to show Net Position.
+
+Then it compares:
+
+```text
+Required Recovery Per Driver
+vs
+Current Margin Per Driver
+=
+Recovery Gap Per Driver
+```
+
+The driver is:
+
+```text
+productive hours in labour_based mode
+units sold in product_based mode
+```
+
+Business Summary must preserve legacy hour fields while Business Modelling remains hour/labour-oriented:
+
+```js
+required_recovery_rate
+current_margin_per_productive_hour
+recovery_gap_per_hour
+current_margin_per_hour
+hourly_gap
+```
+
+Business Summary does not suggest fixes, model scenarios, test individual quotes, or overwrite Cost Summary / Revenue / COGS outputs.
+
+Business Summary is the current-reality baseline for Recovery Summary.
+
+---
+
+# 19. RECOVERY SUMMARY OWNS
+
+Recovery Summary owns the selected recovery strategy and visible consequence.
+
+Recovery Summary consumes Business Summary outputs.
+
+Recovery Summary must expose:
+
+```js
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+active_recovery_model
+recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+business_type
+activity_driver_type
+activity_driver_value
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+```
+
+Recovery Summary must show:
+
+```text
+Current Reality
+Chosen Strategy
+Live Consequence
+```
+
+Recovery Summary must not assume all recovery is labour/hour-based.
+
+Recovery Summary must not recalculate Business Summary, Revenue / COGS, or Cost Summary.
+
+Recovery Summary must not calculate allocation_status or business_outcome_status.
+
+Recovery Summary may guide with consequence signals but must not optimise recovery mix automatically.
+
+---
+
+# 20. COST ALLOCATION OWNS
+
+Cost Allocation owns delivery structure, capacity visibility, and dependency status.
+
+Cost Allocation consumes Recovery Summary outputs and relevant Labour / Asset structural identities.
+
+Cost Allocation must expose:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_allocation_profile_id
+active_asset_labour_links
+active_operational_groups
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+total_operational_groups
+valid_operational_groups
+invalid_operational_groups
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Allowed `allocation_status` values:
+
+```js
+"ready"
+"ready_with_dependency"
+"strained"
+"not_supported"
+```
+
+Critical rule:
+
+```text
+Not enough internal capacity is not automatic failure. It is a dependency signal.
+```
+
+Cost Allocation must distinguish internal constrained capacity from external scalable delivery.
+
+Cost Allocation must not decide business mode, change recovery strategy, recalculate Business Summary or Recovery Summary, or produce the final business verdict.
+
+---
+
+# 21. BUSINESS OUTCOME OWNS
+
+Business Outcome owns the verdict layer.
+
+Business Outcome consumes Recovery Summary and Cost Allocation outputs.
+
+Business Outcome must expose:
+
+```js
+business_outcome_status
+outcome_status
+outcome_title
+outcome_message
+primary_constraint_key
+primary_constraint_title
+primary_constraint_message
+recommended_action
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+net_position
+recovery_gap_per_driver
+dependency_level
+business_model_health
+decision_warnings
+```
+
+Allowed `business_outcome_status` values:
+
+```js
+"viable"
+"viable_with_dependency"
+"at_risk"
+"not_viable"
+```
+
+Business Outcome must not calculate source costs, Revenue / COGS, Business Summary, Recovery Summary, or Cost Allocation.
+
+Business Outcome must not mutate upstream modules.
+
+Business Outcome should inherit the active business mode and activity-driver context from upstream outputs.
+
+---
+
+# 22. BUSINESS MODELLING OWNS LATER
+
+Business Modelling owns baseline snapshots and editable scenarios later.
+
+Current v3.8 implementation note:
+
+```text
+Business Modelling remains primarily hour/labour-oriented and uses legacy Business Summary hour fields.
+Product-mode Business Modelling is deferred until a later locked brief.
+```
+
+Business Modelling must not bypass Recovery Summary, Cost Allocation, or Business Outcome.
+
+---
+
+# 23. QUOTE ENGINE OWNS LATER
+
+Quote Engine owns quote-level leak detection later.
+
+Quote Engine must not assume all businesses are labour/hour-based once Business Summary v3.8 is active.
+
+Quote Engine must not rebuild upstream maths.
+
+Quote Engine is deferred until Business Outcome and selected baseline/model boundaries are clear.
+
+---
+
+# 24. DOWNSTREAM CONTRACT RULE
+
+Upstream modules own inputs and calculations.
+
+Downstream modules consume outputs only.
+
+Never rebuild upstream maths downstream.
+
+Never read raw upstream form state in downstream modules unless the relevant brief explicitly allows it.
+
+Never rename locked contract variables without a matching source brief update.
+
+Never use display names as join keys.
+
+Use IDs only for joins.
+
+If a downstream module needs a value, the upstream module must expose it through its output contract.
+
+---
+
+# 25. COST OWNERSHIP RULE
+
+Every cost must have one owner.
+
+No duplicate cost ownership is allowed.
+
+Examples:
+
+```text
+Salary & Wages → Labour
+Employer KiwiSaver → Labour
+ESCT → Labour
+Employer ACC Levy → Labour
+Staff Expenses → General Overheads / Staff Overheads category
+Entertainment → General Overheads / Staff Overheads category
+Vehicle fuel / servicing / repairs / tyres / registration → General Overheads / Vehicle Running Costs
+Vehicle finance / asset ownership → Assets
+Asset finance interest → Assets
+Paid-off asset finance → $0 current finance cost
+Non-asset interest / overdraft / working capital interest → General Overheads
+Revenue / COGS → Revenue / COGS
+Quote direct cost packages → Quote Engine later
+Principal repayments → Cash Flow later, not Cost Summary
+WIP Adjustment → Review Required until explicitly resolved
+Penalties / Non-Deductible → Excluded unless explicitly included
+```
+
+---
+
+# 26. MODEL READINESS RULE
+
+The user must never accidentally trust an incomplete model.
+
+If the model is incomplete, QS Tools must say so clearly.
+
+If a number is preliminary, QS Tools must say so clearly.
+
+If a cost is excluded, QS Tools must keep it visible.
+
+Readiness formula:
+
+```text
+model_ready =
+pnl_ready
+AND general_overheads_ready
+AND labour_ready
+AND assets_ready
+AND reconciliation_ready
+AND blocking_checks.length = 0
+```
+
+Status formula:
+
+```text
+if blocking_checks.length > 0:
+  model_readiness_status = "blocked"
+
+else if warning_checks.length > 0:
+  model_readiness_status = "warning"
+
+else:
+  model_readiness_status = "ready"
+```
+
+Recovery Summary, Cost Allocation, and Business Outcome must inherit Model Readiness state.
+
+---
+
+# 27. CURRENT BUILD PRIORITY
+
+The current implementation priority is:
+
+```text
+1. Confirm Business Summary current-reality contract.
+2. Align Recovery Summary to expose recovery_plan_target_per_driver, recovery_plan_split, and component_required_recovery.
+3. Align Cost Allocation to expose allocation_status, allocation_dependency_type, and allocation_warnings.
+4. Align Business Outcome to consume clean Recovery Summary and Cost Allocation outputs.
+5. Defer Business Modelling until the recovery chain is stable.
+6. Defer Quote Engine until Business Outcome and selected baseline/model boundaries are clear.
+```
+
+Do not run a broad Codex task.
+
+Do not allow Codex to redesign the architecture.
+
+Do not build downstream pages before upstream contracts are stable.
+
+---
+
+# 28. NOT ALLOWED
+
+The system must not:
+
+```text
+hide assumptions
+duplicate costs
+create untraceable recovery rates
+treat benchmarks as source-of-truth totals
+rebuild upstream maths downstream
+use raw P&L lines directly in Cost Summary
+use P&L interest as the authority for asset finance interest
+include principal repayments in Cost Summary
+mix cash-flow pressure into operating cost
+reintroduce Employee Overheads
+reintroduce Staff Overheads as a standalone module
+use micro / activity classification as a core calculation driver without a locked brief
+let Revenue / COGS calculate Net Position
+let Revenue / COGS calculate required recovery per unit
+let Business Summary mutate Business Setup
+let Business Summary mutate Revenue / COGS
+let Business Summary mutate Cost Summary
+let Business Summary create scenarios
+let Recovery Summary rebuild Business Summary
+let Recovery Summary calculate allocation_status
+let Recovery Summary calculate business_outcome_status
+let Recovery Summary optimise strategy automatically
+let Cost Allocation change recovery strategy
+let Cost Allocation treat internal staff shortage as automatic failure
+let Cost Allocation calculate final business outcome
+let Business Outcome rebuild Recovery Summary or Cost Allocation
+let Cost Summary calculate required recovery per unit
+let Business Modelling mutate source modules
+let Quote Engine rebuild upstream maths
+let Feedback Loop overwrite accepted quote snapshots
+let monthly actuals overwrite baseline assumptions automatically
+hide model readiness trust state
+```
+
+---
+
+# 29. FINAL DEFINITION
+
+QS Tools v3.8 introduces a mode-aware recovery chain.
+
+Business Setup defines whether the business is interpreted through hours or units.
+
+Revenue / COGS creates Margin Pool and captures `units_sold_annual` where product mode requires it.
+
+Cost Summary defines the operating cost burden and productive-hour recovery baseline.
+
+Business Summary converts the trading result and operating burden into a universal activity-driver view:
+
+```text
+Required Recovery Per Driver
+Current Margin Per Driver
+Recovery Gap Per Driver
+```
+
+Recovery Summary turns that current reality into a selected strategy and visible consequence.
+
+Cost Allocation tests the delivery structure and dependency created by that strategy.
+
+Business Outcome gives the verdict.
+
+The system remains first-principles, traceable, and ownership-safe.
+
+Every downstream module must consume mode-aware outputs without rebuilding upstream maths.

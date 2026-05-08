@@ -1,0 +1,1446 @@
+# QS Tools — Business Outcome Brief
+
+## v3.8 — VERDICT LAYER
+
+**STATUS:** ACTIVE BUILD BRIEF
+**VERSION:** v3.8
+**POSITION:** Recovery Summary → Cost Allocation → Business Outcome
+**REPLACES / SUPERSEDES:** Older outcome assumptions where the final verdict was blended into Business Summary, Recovery Summary, Cost Allocation, Business Modelling, or Quote Engine
+**PRIMARY RULE:** Business Outcome gives the verdict but does not rebuild the evidence.
+
+---
+
+# 1. PURPOSE
+
+Business Outcome is the final verdict layer of the Recovery Chain.
+
+It combines the selected recovery strategy from Recovery Summary with the delivery/dependency evidence from Cost Allocation.
+
+Business Outcome answers:
+
+```text
+Does this business model work under the selected recovery plan and delivery structure?
+```
+
+It gives the user a clear, plain-English result.
+
+It does not rebuild upstream calculations.
+
+It does not choose the recovery strategy.
+
+It does not create allocation structure.
+
+It does not run scenarios.
+
+It does not price quotes.
+
+---
+
+# 2. CORE FIRST-PRINCIPLES RULE
+
+There must be no hidden assumptions.
+
+Business Outcome must make the final consequence visible.
+
+The locked recovery-chain rule is:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+Business Outcome is where the consequence becomes a verdict.
+
+It must show whether the selected recovery plan is:
+
+```text
+financially viable
+structurally supported
+externally dependent
+strained
+not currently viable
+```
+
+---
+
+# 3. SYSTEM POSITION
+
+Active flow:
+
+```text
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+```
+
+Expanded system flow:
+
+```text
+Business Setup
+→ P&L
+→ Revenue / COGS
+→ General Overheads / Labour / Assets
+→ Cost Summary
+→ Business Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Business Outcome
+→ Business Modelling later
+→ Quote Engine later
+→ Accepted Quote Snapshot later
+→ Monthly Actuals / Feedback Loop later
+→ Cash Flow later
+```
+
+Business Outcome sits after Cost Allocation because it needs both:
+
+```text
+Recovery plan evidence
+Delivery/dependency evidence
+```
+
+---
+
+# 4. CLEAN ROLE SPLIT
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+More detail:
+
+```text
+Business Summary tells us where the business is now.
+Recovery Summary tells us what recovery plan has been chosen and what pressure it creates.
+Cost Allocation tells us whether the plan is internally supported, externally dependent, strained, or unsupported.
+Business Outcome tells us whether the model works.
+```
+
+---
+
+# 5. PRODUCT ROLE
+
+Business Outcome is the verdict layer.
+
+It is not:
+
+```text
+Business Summary
+Recovery Summary
+Cost Allocation
+Business Modelling
+Quote Engine
+pricing engine
+optimisation engine
+cash-flow model
+feedback loop
+```
+
+Business Outcome must be conclusion-first.
+
+It should help the user understand the state of the model without hunting through all upstream pages.
+
+It must remain traceable back to upstream outputs.
+
+---
+
+# 6. WHAT BUSINESS OUTCOME ANSWERS
+
+Business Outcome answers:
+
+```text
+Does the selected recovery plan work?
+Is the model viable?
+Is the model viable only because it depends on something external?
+Is the structure strained?
+Is the plan unsupported?
+What is the main constraint?
+What is the next most important action?
+```
+
+---
+
+# 7. WHAT BUSINESS OUTCOME DOES NOT ANSWER
+
+Business Outcome does not answer:
+
+```text
+what recovery split should be chosen?
+how should the user optimise the model?
+what quote price should be used?
+what individual quote should be accepted?
+what cash-flow pressure exists?
+can the business physically schedule the work?
+did monthly actuals match predictions?
+```
+
+Those belong later.
+
+---
+
+# 8. REQUIRED INPUTS FROM RECOVERY SUMMARY
+
+Business Outcome consumes Recovery Summary outputs.
+
+Required inputs:
+
+```js
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+active_recovery_model
+recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+```
+
+Business Outcome must not recalculate these values.
+
+If a required value is missing, Recovery Summary must expose it first.
+
+---
+
+# 9. REQUIRED INPUTS FROM COST ALLOCATION
+
+Business Outcome consumes Cost Allocation outputs.
+
+Required inputs:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+linked_staff_count
+unlinked_staff_count
+linked_asset_count
+unlinked_asset_count
+valid_operational_groups
+invalid_operational_groups
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+duplicate_link_warnings
+orphan_warnings
+group_validation_warnings
+```
+
+Business Outcome must not recalculate allocation status.
+
+Business Outcome must not rebuild Cost Allocation structure.
+
+---
+
+# 10. REQUIRED OUTPUT CONTRACT
+
+Business Outcome must expose:
+
+```js
+business_outcome_status
+outcome_status
+outcome_title
+outcome_message
+primary_constraint_key
+primary_constraint_title
+primary_constraint_message
+recommended_action
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+allocation_warnings
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+net_position
+recovery_gap_per_driver
+dependency_level
+business_model_health
+decision_warnings
+model_trust_state
+```
+
+`business_outcome_status` and `outcome_status` may use the same value if backwards compatibility requires both names.
+
+---
+
+# 11. BUSINESS OUTCOME STATUS VALUES
+
+Allowed values:
+
+```js
+"viable"
+"viable_with_dependency"
+"at_risk"
+"not_viable"
+```
+
+---
+
+## viable
+
+Meaning:
+
+```text
+The selected recovery plan is financially and structurally supported.
+```
+
+Use when:
+
+```text
+Recovery Summary is ready
+Cost Allocation is ready
+allocation_status = ready
+net_position is acceptable
+recovery gap is not materially negative
+no blocking warnings exist
+model trust state is ready or warning-usable
+```
+
+Display wording:
+
+```text
+The current model is supported under the selected recovery plan.
+```
+
+---
+
+## viable_with_dependency
+
+Meaning:
+
+```text
+The selected recovery plan can work, but it depends on visible external delivery or another declared dependency.
+```
+
+Use when:
+
+```text
+allocation_status = ready_with_dependency
+external delivery is visible or explicitly enabled
+no hard blocking issue exists
+financial result is not blocked
+```
+
+This is not failure.
+
+It is a valid business state with a visible dependency.
+
+Display wording:
+
+```text
+The current model can work, but it depends on external delivery capacity.
+```
+
+---
+
+## at_risk
+
+Meaning:
+
+```text
+The selected recovery plan may work, but pressure, dependency, or financial weakness is material.
+```
+
+Use when:
+
+```text
+allocation_status = strained
+recovery gap is materially negative
+net position is weak or negative
+coverage is low
+warnings are material but not fatal
+external dependency is high or unclear
+```
+
+Display wording:
+
+```text
+The current model is under pressure. The selected recovery plan may be possible, but the structure or recovery gap is weak.
+```
+
+---
+
+## not_viable
+
+Meaning:
+
+```text
+The selected recovery plan is not currently supported by the visible model and structure.
+```
+
+Use when:
+
+```text
+allocation_status = not_supported
+Recovery Summary is blocked
+required recovery structure is missing
+share model is invalid
+upstream model is not trusted
+blocking warnings exist
+```
+
+Display wording:
+
+```text
+The current model does not currently support the selected recovery plan.
+```
+
+---
+
+# 12. PRIMARY CONSTRAINT KEYS
+
+Allowed values:
+
+```js
+"healthy"
+"external_delivery_dependency"
+"weak_structure"
+"structure_incomplete"
+"share_model_invalid"
+"no_recoverable_base"
+"asset_strategy_without_assets"
+"negative_net_position"
+"recovery_gap_negative"
+"model_not_trusted"
+"allocation_not_supported"
+"recovery_summary_not_ready"
+"unknown"
+```
+
+---
+
+# 13. PRIMARY CONSTRAINT INTERPRETATION
+
+## healthy
+
+Use when:
+
+```text
+model is viable
+allocation is ready
+no material dependency or warning exists
+```
+
+Message:
+
+```text
+The selected recovery plan is supported by the visible business structure.
+```
+
+---
+
+## external_delivery_dependency
+
+Use when:
+
+```text
+allocation_status = ready_with_dependency
+allocation_dependency_type includes external_delivery
+```
+
+Message:
+
+```text
+The model can work, but it depends on external delivery capacity.
+```
+
+---
+
+## weak_structure
+
+Use when:
+
+```text
+allocation_status = strained
+coverage is low
+warnings exist but no hard blocker exists
+```
+
+Message:
+
+```text
+The recovery plan is structurally weak or heavily stretched.
+```
+
+---
+
+## structure_incomplete
+
+Use when:
+
+```text
+structure_valid = false
+invalid operational groups exist
+required asset/staff links are missing
+```
+
+Message:
+
+```text
+The delivery structure is incomplete.
+```
+
+---
+
+## share_model_invalid
+
+Use when:
+
+```text
+recovery_plan_split is missing
+shares do not total 100%
+component_required_recovery is missing or invalid
+```
+
+Message:
+
+```text
+The recovery split is incomplete or invalid.
+```
+
+---
+
+## no_recoverable_base
+
+Use when:
+
+```text
+activity_driver_value is zero or missing
+required_recovery_per_driver is missing
+margin_pool is missing
+```
+
+Message:
+
+```text
+The model does not have a valid recovery base yet.
+```
+
+---
+
+## asset_strategy_without_assets
+
+Use when:
+
+```text
+asset share is material
+asset recovery is required
+asset structure or active assets are missing
+```
+
+Message:
+
+```text
+Asset recovery is selected, but the asset structure is not ready.
+```
+
+---
+
+## negative_net_position
+
+Use when:
+
+```text
+net_position is negative and is the main issue
+```
+
+Message:
+
+```text
+The business is not currently generating enough margin pool to carry its operating cost burden.
+```
+
+---
+
+## recovery_gap_negative
+
+Use when:
+
+```text
+recovery_gap_per_driver is materially negative and is the main issue
+```
+
+Message:
+
+```text
+The current margin per driver is below the required recovery per driver.
+```
+
+---
+
+## model_not_trusted
+
+Use when:
+
+```text
+model_trust_state is blocked or not trusted
+upstream warnings block a final verdict
+```
+
+Message:
+
+```text
+The upstream model is not trusted, so the outcome is preview only.
+```
+
+---
+
+## allocation_not_supported
+
+Use when:
+
+```text
+allocation_status = not_supported
+```
+
+Message:
+
+```text
+The selected recovery plan is not supported by the visible allocation structure.
+```
+
+---
+
+## recovery_summary_not_ready
+
+Use when:
+
+```text
+recovery_summary_status = blocked or not_trusted
+```
+
+Message:
+
+```text
+Recovery Summary is not ready, so Business Outcome cannot issue a final verdict.
+```
+
+---
+
+## unknown
+
+Use when:
+
+```text
+required evidence is missing or cannot be classified
+```
+
+Message:
+
+```text
+The outcome cannot yet be classified from the available data.
+```
+
+---
+
+# 14. DECISION LOGIC
+
+Business Outcome must be evidence-based.
+
+Recommended decision order:
+
+```text
+1. If model_trust_state is blocked/not trusted → not_viable or preview / model_not_trusted
+2. If Recovery Summary is blocked/not ready → not_viable / recovery_summary_not_ready
+3. If recovery_plan_split is missing or invalid → not_viable / share_model_invalid
+4. If component_required_recovery is missing → not_viable / share_model_invalid
+5. If activity_driver_value is zero/missing → not_viable / no_recoverable_base
+6. If allocation_status = not_supported → not_viable / allocation_not_supported
+7. If asset recovery is material but asset structure is missing → not_viable or at_risk / asset_strategy_without_assets
+8. If allocation_status = ready_with_dependency → viable_with_dependency / external_delivery_dependency
+9. If allocation_status = strained → at_risk / weak_structure
+10. If net_position is negative and material → at_risk / negative_net_position
+11. If recovery_gap_per_driver is negative and material → at_risk / recovery_gap_negative
+12. If allocation_status = ready and no material warnings exist → viable / healthy
+13. Otherwise → at_risk / unknown
+```
+
+Do not optimise here.
+
+Do not create scenario options here.
+
+Business Outcome gives the current verdict only.
+
+---
+
+# 15. DEPENDENCY LEVEL
+
+Business Outcome may expose:
+
+```js
+dependency_level
+```
+
+Allowed values:
+
+```js
+"none"
+"low"
+"medium"
+"high"
+"unknown"
+```
+
+Suggested mapping:
+
+```text
+none = allocation_dependency_type is none
+low = minor warnings only
+medium = ready_with_dependency or moderate shortfall
+high = strained, high shortfall, or external dependency not fully defined
+unknown = missing dependency information
+```
+
+Dependency level is display/supporting detail only.
+
+It does not replace `business_outcome_status`.
+
+---
+
+# 16. BUSINESS MODEL HEALTH
+
+Business Outcome may expose:
+
+```js
+business_model_health
+```
+
+Allowed values:
+
+```js
+"healthy"
+"dependent"
+"strained"
+"unsupported"
+"unknown"
+```
+
+Suggested mapping:
+
+```text
+healthy = viable
+dependent = viable_with_dependency
+strained = at_risk
+unsupported = not_viable
+unknown = insufficient evidence
+```
+
+This may be useful for UI labels and status strip display.
+
+---
+
+# 17. DECISION WARNINGS
+
+Business Outcome must expose explicit warnings.
+
+Minimum warning keys:
+
+```text
+model_not_trusted
+recovery_summary_not_ready
+allocation_not_ready
+missing_recovery_plan_target
+missing_recovery_plan_split
+missing_component_required_recovery
+missing_allocation_status
+missing_activity_driver
+negative_net_position
+negative_recovery_gap
+external_delivery_dependency
+external_delivery_not_defined
+structure_incomplete
+weak_structure
+asset_strategy_without_assets
+allocation_warnings_present
+```
+
+Warnings must be plain-English and specific.
+
+Do not show only warning counts.
+
+---
+
+# 18. RECOMMENDED ACTION RULE
+
+Business Outcome must provide one primary recommended action.
+
+Recommended action must be based on the primary constraint.
+
+It must be short, direct, and non-prescriptive.
+
+It must not become consulting advice.
+
+It must not create a strategy automatically.
+
+---
+
+## Recommended action examples
+
+### healthy
+
+```text
+Continue to Business Modelling when you are ready to test scenarios.
+```
+
+### external_delivery_dependency
+
+```text
+Confirm the external delivery source required by this recovery plan.
+```
+
+### weak_structure
+
+```text
+Strengthen the allocation structure before relying on this recovery plan.
+```
+
+### structure_incomplete
+
+```text
+Complete the required staff, asset, and operational group structure.
+```
+
+### share_model_invalid
+
+```text
+Fix recovery shares so the selected split totals 100%.
+```
+
+### no_recoverable_base
+
+```text
+Complete the activity driver and Business Summary recovery base.
+```
+
+### asset_strategy_without_assets
+
+```text
+Complete asset structure before relying on asset-driven recovery.
+```
+
+### negative_net_position
+
+```text
+Review margin pool, operating cost burden, or recovery strategy before moving downstream.
+```
+
+### recovery_gap_negative
+
+```text
+Review the recovery gap before using this model as a downstream benchmark.
+```
+
+### model_not_trusted
+
+```text
+Resolve upstream readiness issues before treating this verdict as final.
+```
+
+### allocation_not_supported
+
+```text
+Fix Cost Allocation blockers before relying on this recovery plan.
+```
+
+### recovery_summary_not_ready
+
+```text
+Complete Recovery Summary before Business Outcome can issue a verdict.
+```
+
+### unknown
+
+```text
+Review missing inputs before relying on the outcome.
+```
+
+---
+
+# 19. PAGE STRUCTURE
+
+Recommended page structure:
+
+```text
+BusinessOutcomeStatusStrip
+BusinessOutcomeMainCard
+BusinessOutcomeEvidenceCard
+BusinessOutcomeWarningsCard
+BusinessOutcomeHelpPanel
+```
+
+If the existing module is named Recovery Outcome, the same logic applies to:
+
+```text
+RecoveryOutcomeStatusStrip
+RecoveryOutcomeMainCard
+RecoveryOutcomeEvidenceCard
+RecoveryOutcomeWarningsCard
+RecoveryOutcomeHelpPanel
+```
+
+Naming must follow the repository’s current route/module decision.
+
+Do not create duplicate outcome pages.
+
+---
+
+# 20. STATUS STRIP
+
+Status strip should show:
+
+```js
+business_outcome_status
+outcome_title
+allocation_status
+allocation_dependency_type
+active_recovery_model
+net_position
+recovery_gap_per_driver
+dependency_level
+warning_count
+```
+
+Status labels must be plain-English and consequence-focused.
+
+---
+
+# 21. MAIN CARD
+
+Main card should show:
+
+```text
+1. Outcome status
+2. Plain-English verdict
+3. Primary constraint
+4. Recommended action
+```
+
+Main card must be simple.
+
+It should not become a dashboard.
+
+---
+
+# 22. EVIDENCE CARD
+
+Evidence card should show the upstream evidence used by the verdict.
+
+Recommended fields:
+
+```js
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+net_position
+recovery_gap_per_driver
+```
+
+Evidence card is read-only.
+
+It must not allow editing recovery strategy or allocation structure.
+
+---
+
+# 23. WARNINGS CARD
+
+Warnings card should show:
+
+```js
+decision_warnings
+allocation_warnings
+recovery_summary_warnings
+```
+
+Warnings must be explicit.
+
+Warnings must identify the owning upstream layer where possible.
+
+Examples:
+
+```text
+Recovery Summary: recovery shares do not total 100%.
+Cost Allocation: external delivery is required but not defined.
+Business Summary: model is preview only because upstream readiness is blocked.
+```
+
+---
+
+# 24. HELP PANEL
+
+Help panel must explain:
+
+```text
+Business Outcome gives the verdict.
+Recovery Summary defines the recovery plan.
+Cost Allocation tests delivery structure and dependency.
+Business Outcome does not rebuild either page.
+A model can be viable but dependent.
+A dependency is not failure, but it must be visible.
+```
+
+Use plain English.
+
+---
+
+# 25. PLAIN-ENGLISH RESULT EXAMPLES
+
+## viable
+
+```text
+The current model is supported under the selected recovery plan.
+```
+
+## viable_with_dependency
+
+```text
+The current model can work, but it depends on external delivery capacity.
+```
+
+## at_risk
+
+```text
+The current model is under pressure. The selected recovery plan may be possible, but the structure or recovery gap is weak.
+```
+
+## not_viable
+
+```text
+The current model does not currently support the selected recovery plan.
+```
+
+---
+
+# 26. RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Outcome does not consume Business Summary directly unless a later locked brief allows display-only fallback.
+
+Business Outcome should receive Business Summary reality through Recovery Summary.
+
+Business Summary owns:
+
+```js
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+activity_driver_type
+activity_driver_value
+```
+
+Business Outcome must not recalculate these values.
+
+---
+
+# 27. RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary owns:
+
+```js
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_recovery_model
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+```
+
+Business Outcome consumes these values.
+
+Business Outcome must not change them.
+
+Business Outcome must not create recovery strategy.
+
+---
+
+# 28. RELATIONSHIP TO COST ALLOCATION
+
+Cost Allocation owns:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Business Outcome consumes these values.
+
+Business Outcome must not change them.
+
+Business Outcome must not create allocation structure.
+
+---
+
+# 29. RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling comes later.
+
+Business Outcome may become the handoff checkpoint before Business Modelling.
+
+Business Modelling may use the verdict as context, but Business Outcome must not create scenarios.
+
+Correct relationship:
+
+```text
+Business Outcome = verdict
+Business Modelling = scenario testing later
+```
+
+Business Outcome must not optimise recovery mix.
+
+---
+
+# 30. RELATIONSHIP TO QUOTE ENGINE
+
+Quote Engine comes later.
+
+Business Outcome does not test individual quotes.
+
+Business Outcome may later help determine whether the current model is safe to use as a quote benchmark.
+
+Quote Engine owns quote-level leak detection.
+
+Business Outcome must not calculate quote gaps, quote repair levers, accepted quote snapshots, or quote status.
+
+---
+
+# 31. RELATIONSHIP TO CASH FLOW
+
+Cash Flow comes later.
+
+Business Outcome must not include principal repayments in operating viability.
+
+Principal repayments are cash-flow pressure.
+
+They may affect a future Cash Flow verdict, but not the v3.8 Business Outcome verdict unless a later locked Cash Flow integration brief explicitly changes the model.
+
+Business Outcome must not alter:
+
+```js
+net_position
+total_cost_burden
+required_recovery_per_driver
+recovery_gap_per_driver
+```
+
+because of principal repayments.
+
+---
+
+# 32. RELATIONSHIP TO FEEDBACK LOOP
+
+Feedback Loop comes later.
+
+Business Outcome is a current model verdict.
+
+Feedback Loop is prediction-vs-reality comparison later.
+
+Business Outcome must not compare accepted quote snapshots with monthly actuals.
+
+Business Outcome must not mutate baselines based on actuals.
+
+---
+
+# 33. TRUST RULE
+
+Business Outcome must inherit upstream trust state.
+
+If upstream model trust is blocked:
+
+```text
+Business Outcome may display preview only.
+Business Outcome must not present a final trusted verdict.
+```
+
+If upstream model trust is warning:
+
+```text
+Business Outcome may produce a warning-state verdict.
+Warnings must remain visible.
+```
+
+If upstream model trust is ready:
+
+```text
+Business Outcome may issue a trusted verdict, subject to its own warnings.
+```
+
+---
+
+# 34. USER-FACING WORDING RULES
+
+Use neutral wording.
+
+Use:
+
+```text
+viable
+viable with dependency
+at risk
+not viable
+supported
+dependent
+strained
+not currently supported
+```
+
+Avoid:
+
+```text
+failure
+bad business
+you should
+guaranteed
+best strategy
+perfect model
+```
+
+Business Outcome must remain clear and calm.
+
+---
+
+# 35. UI / UX PRINCIPLE
+
+The user should immediately understand:
+
+```text
+what the outcome is
+why that outcome was reached
+what the main constraint is
+what one next action matters most
+```
+
+The page should be:
+
+```text
+simple
+verdict-first
+evidence-backed
+read-only
+plain-English
+traceable
+```
+
+---
+
+# 36. FILES TO INSPECT BEFORE IMPLEMENTATION
+
+Before editing, inspect:
+
+```text
+hooks/useBusinessOutcome.js
+hooks/useRecoveryOutcome.js
+lib/calculations/businessOutcomeCalculations.js
+lib/calculations/recoveryOutcomeCalculations.js
+lib/selectors/businessOutcomeSelectors.js
+lib/selectors/recoveryOutcomeSelectors.js
+components/business-outcome/*
+components/recovery-outcome/*
+app/business-outcome/page.jsx
+app/recovery-outcome/page.jsx
+```
+
+Also inspect upstream contracts:
+
+```text
+hooks/useRecoverySummary.js
+hooks/useCostAllocation.js
+```
+
+Do not guess field paths.
+
+Confirm actual hook output names before wiring.
+
+Do not create duplicate Business Outcome / Recovery Outcome modules.
+
+Use the route/module naming already established in the repository, unless a locked naming brief requires a rename.
+
+---
+
+# 37. CODEX IMPLEMENTATION RULE
+
+For contract alignment, Codex should only consume explicit named outputs and expose the verdict contract.
+
+Task:
+
+```text
+Add or align Business Outcome / Recovery Outcome to consume Recovery Summary and Cost Allocation outputs and expose:
+
+- business_outcome_status
+- outcome_status
+- outcome_title
+- outcome_message
+- primary_constraint_key
+- primary_constraint_title
+- primary_constraint_message
+- recommended_action
+- dependency_level
+- business_model_health
+- decision_warnings
+
+Use Recovery Summary outputs:
+- recovery_plan_target_per_driver
+- recovery_plan_split
+- component_required_recovery
+
+Use Cost Allocation outputs:
+- allocation_status
+- allocation_dependency_type
+- allocation_warnings
+
+Do not redesign the page.
+Do not rebuild Recovery Summary.
+Do not rebuild Cost Allocation.
+Do not change recovery strategy.
+Do not create Business Modelling logic.
+Do not create Quote Engine logic.
+Do not create Cash Flow logic.
+If the repo already has Recovery Outcome naming, align the existing module rather than creating a duplicate Business Outcome page.
+```
+
+---
+
+# 38. WHAT BUSINESS OUTCOME MUST NOT DO
+
+Business Outcome must not:
+
+```text
+recalculate Business Summary
+recalculate Recovery Summary
+recalculate Cost Allocation
+change recovery_model
+change recovery_plan_split
+change labour_share_percent
+change asset_share_percent
+change allocation_status
+change allocation_dependency_type
+create allocation links
+create operational groups
+read raw P&L lines
+read raw Labour form state
+read raw Asset form state
+read raw General Overheads form state
+optimise recovery mix automatically
+create scenarios
+create quote logic
+calculate quote gaps
+calculate quote repair levers
+store accepted quote snapshots
+calculate cash flow
+include principal repayments
+perform feedback-loop analysis
+hide upstream trust state
+hide external dependency
+turn dependency into failure automatically
+```
+
+---
+
+# 39. DEFINITION OF DONE
+
+Business Outcome v3.8 is complete when:
+
+```text
+it consumes clean Recovery Summary outputs
+it consumes clean Cost Allocation outputs
+it exposes business_outcome_status / outcome_status
+it distinguishes viable from viable_with_dependency
+it treats external dependency as visible dependency, not automatic failure
+it gives one clear primary constraint
+it gives one clear recommended action
+it shows explicit warnings
+it preserves upstream trust state
+it does not rebuild upstream logic
+it does not create recovery strategy
+it does not create allocation logic
+it does not create Business Modelling logic
+it does not create Quote Engine logic
+it does not create Cash Flow logic
+it passes build
+```
+
+---
+
+# 40. FINAL DEFINITION
+
+Business Outcome v3.8 is the verdict layer of the Recovery Chain.
+
+It consumes the selected recovery strategy from Recovery Summary and the delivery/dependency evidence from Cost Allocation.
+
+It answers:
+
+```text
+Does this business model work under the selected recovery plan and delivery structure?
+```
+
+It separates:
+
+```text
+viable
+viable with dependency
+at risk
+not viable
+```
+
+It makes the primary constraint and next action visible.
+
+It does not rebuild upstream calculations.
+
+It does not optimise.
+
+It does not price quotes.
+
+It does not model cash flow.
+
+It gives the verdict, backed by the evidence already created upstream.

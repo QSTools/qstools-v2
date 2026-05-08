@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+
 import { calculateRecoveryOutcome } from "@/lib/calculations/recoveryOutcomeCalculations";
 import {
   buildRecoveryOutcomeStatus,
@@ -12,8 +13,6 @@ export default function useRecoveryOutcome(inputs = {}) {
     const outputs = calculateRecoveryOutcome({
       recovery_summary: inputs.recovery_summary ?? {},
       cost_allocation: inputs.cost_allocation ?? {},
-      materials: inputs.materials ?? {},
-      rate_models: inputs.rate_models ?? {},
     });
 
     return {
@@ -21,10 +20,5 @@ export default function useRecoveryOutcome(inputs = {}) {
       card: buildRecoveryOutcomeCard(outputs),
       output_contract: outputs,
     };
-  }, [
-    inputs.recovery_summary,
-    inputs.cost_allocation,
-    inputs.materials,
-    inputs.rate_models,
-  ]);
+  }, [inputs.recovery_summary, inputs.cost_allocation]);
 }

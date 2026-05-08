@@ -1,0 +1,601 @@
+# QS Tools — Business Setup Brief
+
+## v1.0 — BUSINESS MODE FOUNDATION
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**SOURCE PACK CONTEXT:** v3.8 mode-aware update
+**BRIEF VERSION:** v1.0
+**FILE NUMBER:** 24
+**REPLACES:** New source brief
+**BUILD STATUS:** ACTIVE / IMPLEMENTED BASELINE
+
+---
+
+## PURPOSE
+
+Business Setup is the business identity and mode foundation page.
+
+It captures the minimum information required to define how QS Tools should interpret the business model.
+
+Business Setup answers:
+
+```text
+What business is being modelled, and does it recover cost through hours or units?
+```
+
+It does not answer:
+
+```text
+what does the business cost to run?
+what margin pool is being created?
+is the business viable?
+what recovery strategy should be used?
+what should the user change?
+what quote should be accepted?
+what scenario should be modelled?
+```
+
+Those belong to later modules.
+
+---
+
+## PRODUCT ROLE
+
+Business Setup is not a calculation page.
+
+Business Setup is not a dashboard.
+
+Business Setup is not Business Summary.
+
+Business Setup is not Recovery Summary.
+
+Business Setup is not Cost Allocation.
+
+Business Setup is not Business Outcome.
+
+Business Setup is the configuration layer that defines the global business context.
+
+It tells the system:
+
+```text
+This is the business name, and this is the output driver model to use.
+```
+
+---
+
+## SYSTEM POSITION
+
+Current practical system flow:
+
+```text
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour / Assets / General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Engine later
+```
+
+Simplified role chain:
+
+```text
+Business Setup = what mode the business uses
+Revenue / COGS = what trading produces
+Cost Summary = what the business costs
+Business Summary = whether trading carries cost through the selected driver
+Recovery Summary = how recovery is intended to happen
+Cost Allocation = whether the structure can deliver the recovery plan
+Business Outcome = whether the model works
+```
+
+---
+
+## CORE ROLE
+
+Business Setup owns:
+
+```js
+business_name
+business_type
+setup_completed
+created_at
+updated_at
+```
+
+The global business mode controls whether downstream pages interpret recovery through:
+
+```text
+productive hours
+units sold
+```
+
+---
+
+## CORE BUSINESS MODEL PRINCIPLE
+
+QS Tools uses one universal business equation:
+
+```text
+Total Business Cost ÷ Output Driver = Required Recovery Per Output
+```
+
+The output driver is either:
+
+```text
+Hours
+Units
+```
+
+This keeps the system universal without becoming industry-specific.
+
+---
+
+## REQUIRED INPUTS
+
+Business Setup requires:
+
+```js
+business_name
+business_type
+```
+
+Allowed `business_type` values:
+
+```js
+"labour_based"
+"product_based"
+```
+
+Display labels:
+
+```text
+Service / Labour-based business
+Product / Unit-based business
+```
+
+---
+
+## REQUIRED SAVED OUTPUTS
+
+Business Setup must save:
+
+```js
+{
+  business_name,
+  business_type,
+  setup_completed,
+  created_at,
+  updated_at
+}
+```
+
+---
+
+## OUTPUT CONTRACT
+
+Business Setup outputs:
+
+```js
+{
+  business_name,
+  business_type,
+  is_labour_based,
+  is_product_based,
+  setup_completed
+}
+```
+
+Where:
+
+```js
+is_labour_based = business_type === "labour_based"
+is_product_based = business_type === "product_based"
+```
+
+---
+
+## STORAGE RULE
+
+Business Setup must persist through localStorage during the current build phase.
+
+Storage must not overwrite saved state with blank defaults before localStorage has loaded.
+
+The hook must use a storage-loaded guard before automatic save effects run.
+
+Required behaviour:
+
+```text
+user enters business name
+user selects business type
+user saves business profile
+user navigates away
+user returns to Business Setup
+saved business name and selected business type remain visible
+```
+
+---
+
+## DEVELOPMENT BEHAVIOUR
+
+During the current build phase, Business Setup must remain accessible and editable.
+
+Reason:
+
+```text
+The app is actively being wired for both business modes, so the user must be able to switch between labour-based and product-based mode for testing.
+```
+
+Current development behaviour:
+
+```text
+show current saved profile
+allow business name to be edited
+allow business type to be switched
+save and stay on page
+allow separate Continue to Labour action
+```
+
+Later behaviour:
+
+```text
+make this a first-time setup page
+move normal access into Settings
+keep mode changes controlled and intentional
+```
+
+---
+
+## BUSINESS TYPE DEFINITIONS
+
+### Service / Labour-based business
+
+Use when the business mainly sells:
+
+```text
+time
+labour
+services
+charge-out hours
+productive labour output
+```
+
+Examples:
+
+```text
+builders
+contractors
+trades
+consultants
+professional services
+service businesses
+```
+
+Activity driver:
+
+```text
+productive_hours
+```
+
+Recovery display:
+
+```text
+$/hour
+```
+
+---
+
+### Product / Unit-based business
+
+Use when the business mainly sells:
+
+```text
+products
+units
+subscriptions
+licences
+users
+manufactured outputs
+productised services
+```
+
+Examples:
+
+```text
+retail
+online stores
+SaaS
+manufacturing
+subscriptions
+product businesses
+```
+
+Activity driver:
+
+```text
+units_sold
+```
+
+Recovery display:
+
+```text
+$/unit
+```
+
+---
+
+## WHAT BUSINESS SETUP DOES NOT DO
+
+Business Setup must not:
+
+```text
+calculate Revenue
+calculate Direct Costs
+calculate Margin Pool
+calculate Cost Summary
+calculate Net Position
+calculate Required Recovery
+create scenarios
+calculate quotes
+create recovery strategies
+classify P&L lines
+collect detailed industry information
+ask for industry type
+ask for jobs per year
+ask for pricing strategy
+```
+
+---
+
+## MODE EFFECT
+
+Business Setup controls downstream interpretation.
+
+### labour_based
+
+Downstream pages should interpret the recovery model through:
+
+```text
+productive hours
+required recovery per hour
+current margin per hour
+hourly recovery gap
+```
+
+### product_based
+
+Downstream pages should interpret the recovery model through:
+
+```text
+units sold
+required recovery per unit
+current margin per unit
+unit recovery gap
+```
+
+---
+
+## RELATIONSHIP TO REVENUE / COGS
+
+Revenue / COGS consumes `business_type`.
+
+If `business_type = labour_based`:
+
+```text
+Revenue / COGS behaves as the standard trading margin page
+units_sold_annual is hidden
+```
+
+If `business_type = product_based`:
+
+```text
+Revenue / COGS shows units_sold_annual
+units_sold_annual becomes the product activity driver used later by Business Summary
+```
+
+Business Setup must not calculate Revenue / COGS.
+
+Business Setup must not mutate Revenue / COGS.
+
+---
+
+## RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary consumes business type and activity driver values.
+
+If `business_type = labour_based`:
+
+```text
+Business Summary shows per-hour recovery
+```
+
+If `business_type = product_based`:
+
+```text
+Business Summary shows per-unit recovery
+```
+
+Business Setup must not calculate Business Summary.
+
+Business Setup must not mutate Business Summary.
+
+---
+
+## RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary consumes downstream Business Summary outputs.
+
+Business Setup does not define recovery strategy.
+
+Business Setup only defines the activity-driver mode that allows later pages to interpret recovery correctly.
+
+Recovery Summary owns how recovery is intended to happen.
+
+---
+
+## RELATIONSHIP TO COST ALLOCATION
+
+Cost Allocation does not consume Business Setup directly unless a later locked brief requires it.
+
+Cost Allocation should receive the selected recovery and structure context from downstream recovery layers.
+
+Business Setup must not create operational groups, asset links, staff links, delivery units, or allocation rules.
+
+---
+
+## RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome consumes downstream recovery, allocation, and summary outputs.
+
+Business Setup does not decide whether the business model works.
+
+Business Setup only defines whether the model is interpreted through hours or units.
+
+---
+
+## RELATIONSHIP TO SETTINGS
+
+During development, Business Setup remains visible in the main navigation.
+
+Later, Business Setup should become part of Settings once the setup flow is finalised.
+
+The user-facing message may state:
+
+```text
+You can change this later in Settings once the setup flow is finalised.
+```
+
+---
+
+## UI / UX PRINCIPLES
+
+Business Setup must be simple and obvious.
+
+The page should show:
+
+```text
+1. title block
+2. current setup status
+3. Step 1: business name
+4. Step 2: business type / recovery driver
+5. save business profile
+6. next-step guidance
+```
+
+The selected business type must be visually obvious.
+
+Selected-card styling must be strong enough to show the active mode at a glance.
+
+This selected-card pattern should later become part of the global UI system.
+
+---
+
+## STATUS DISPLAY
+
+Business Setup status may show:
+
+```text
+setup complete / incomplete
+business name
+business type
+activity driver
+warning count
+```
+
+Warnings should be explicit where needed.
+
+Minimum warnings:
+
+```text
+business name is required
+business type is required
+```
+
+---
+
+## USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+```text
+Create your business profile and choose how QS Tools should interpret the business model.
+
+Labour-based businesses recover cost through productive hours.
+
+Product-based businesses recover cost through units sold.
+
+This is not an industry category. It defines the output driver used by the system.
+
+During development, this page stays editable so you can switch between modes while testing.
+```
+
+---
+
+## NOT ALLOWED
+
+Business Setup must not:
+
+```text
+become an industry classifier
+add industry dropdowns
+add unnecessary setup fields
+calculate financial outputs
+mutate downstream modules directly
+hide the selected mode during development
+overwrite saved setup state with defaults before storage has loaded
+lock the user out of changing business type during the current build phase
+calculate Revenue / COGS
+calculate Business Summary
+calculate Recovery Summary
+calculate Cost Allocation
+calculate Business Outcome
+calculate Business Modelling
+calculate Quote Engine outputs
+```
+
+---
+
+## DEFINITION OF DONE
+
+Business Setup is complete when:
+
+```text
+/business-setup exists
+business_name can be entered
+business_type can be selected
+allowed business types are labour_based and product_based
+selected business type is visually obvious
+setup_completed is saved
+saved profile persists after navigation and refresh
+page remains editable during development
+downstream modules can consume useBusinessSetup()
+Revenue / COGS can read business_type
+Business Summary can read the downstream mode-aware values
+build passes
+```
+
+---
+
+## FINAL DEFINITION
+
+Business Setup is the business identity and mode foundation layer.
+
+It defines whether QS Tools interprets the business through hours or units.
+
+It does not calculate recovery.
+
+It enables downstream pages to calculate recovery correctly.

@@ -1,0 +1,621 @@
+# QS Tools — Module Reconciliation
+
+## v3.8 — EVIDENCE LAYER AND RECOVERY CHAIN BOUNDARY UPDATED
+
+**STATUS:** EVIDENCE LAYER
+**VERSION:** v3.8
+**FILE NUMBER:** 10
+**REPLACES:** 10_MODULE_RECONCILIATION_v3.7_LOCKED.txt and all addendums
+**BUILD STATUS:** ACTIVE / RECOVERY CHAIN BOUNDARY UPDATED
+
+---
+
+# 1. PURPOSE
+
+Module Reconciliation checks whether the upstream model is internally consistent, contract-compliant, and safe to pass into Model Readiness.
+
+It is not a user workflow page.
+
+It is a system evidence layer.
+
+Module Reconciliation answers:
+
+```text
+Is the upstream model evidence clean enough for Model Readiness to issue a trust verdict?
+```
+
+It does not answer:
+
+```text
+what the final verdict is
+what recovery strategy should be selected
+whether the selected recovery strategy can be delivered
+whether the business model works
+what quote should be accepted
+whether a quote is leaking
+whether accepted quotes matched monthly actuals
+what scenario should be selected
+what cash-flow pressure exists
+```
+
+Those belong to other layers.
+
+---
+
+# 2. PRODUCT ROLE
+
+Module Reconciliation is the evidence layer.
+
+Model Readiness is the trust verdict layer.
+
+Cost Summary and all later downstream layers depend on the verdict.
+
+Module Reconciliation is not:
+
+```text
+Recovery Summary
+Cost Allocation
+Business Outcome
+Business Modelling
+Quote Engine
+Feedback Loop
+Cash Flow
+```
+
+It proves whether source modules are contract-compliant before trusted downstream use.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Reconciliation is the evidence layer.
+
+Model Readiness is the verdict layer.
+
+Module Reconciliation does not create source-of-truth totals.
+
+Module Reconciliation does not create recovery strategy.
+
+Module Reconciliation does not create allocation status.
+
+Module Reconciliation does not create business outcome verdicts.
+
+Cost Summary must not be trusted until reconciliation has checked the upstream modules.
+
+Recovery Summary, Cost Allocation, and Business Outcome must inherit trust through Model Readiness.
+
+---
+
+# 4. POSITION IN SYSTEM
+
+Active system position:
+
+```text
+P&L
+↓
+General Overheads / Labour / Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+↓
+Business Modelling later
+↓
+Quote Engine later
+```
+
+Module Reconciliation remains upstream of the recovery chain.
+
+---
+
+# 5. MODULE TYPE
+
+System support layer.
+
+It may have a temporary developer diagnostics page, but it is not part of normal user navigation.
+
+Recommended structure:
+
+```text
+lib/reconciliation/reconciliationRules.js
+lib/reconciliation/moduleReconciliation.js
+hooks/useModuleReconciliation.js
+```
+
+Optional temporary diagnostics:
+
+```text
+app/dev/model-readiness/page.jsx
+```
+
+---
+
+# 6. INPUTS FROM P&L
+
+Module Reconciliation may consume:
+
+```js
+pnl_lines
+pnl_categories
+pnl_ready
+total_business_costs
+labour_benchmark_total
+assets_benchmark_total
+general_overheads_benchmark_total
+income_benchmark_total where available
+cogs_benchmark_total where available
+direct_cost_benchmark_total where available
+unassigned_balance
+```
+
+P&L benchmark totals are diagnostic evidence only.
+
+They must not replace source module totals.
+
+---
+
+# 7. INPUTS FROM GENERAL OVERHEADS
+
+Module Reconciliation may consume:
+
+```js
+total_general_overheads
+general_overheads_ready
+category_totals
+general_overheads_variance_amount
+general_overheads_variance_percent
+```
+
+Module Reconciliation must not recalculate General Overheads.
+
+---
+
+# 8. INPUTS FROM LABOUR
+
+Module Reconciliation may consume:
+
+```js
+total_labour_cost_annual
+total_gross_wages_annual
+total_entitlements_annual
+total_employer_kiwisaver_annual
+total_esct_annual
+total_acc_levy_annual
+total_employer_contribution_annual
+total_productive_output
+labour_ready
+```
+
+Module Reconciliation must not recalculate Labour.
+
+---
+
+# 9. INPUTS FROM ASSETS
+
+Module Reconciliation may consume:
+
+```js
+total_asset_cost_annual
+total_asset_interest_annual where available
+assets_ready
+active_assets
+no_active_assets_confirmed
+```
+
+Module Reconciliation must not recalculate Assets.
+
+---
+
+# 10. HARD CHECKS — P&L
+
+P&L checks include:
+
+```text
+P&L data exists
+pnl_ready is true
+required P&L categories are valid
+unassigned_balance = 0
+no active employee_overheads category remains
+P&L can provide benchmark/reference totals if used
+Revenue / COGS preparation classifications exist where required
+```
+
+---
+
+# 11. HARD CHECKS — GENERAL OVERHEADS
+
+General Overheads checks include:
+
+```text
+total_general_overheads exists
+general_overheads_ready is true
+General Overheads categories exist
+Staff Overheads is category only
+Staff Overheads is not a separate module
+total_general_overheads is the only downstream overhead output
+vehicle running costs are classified to General Overheads
+General Overheads does not include Labour employer obligations
+General Overheads does not include asset ownership costs
+General Overheads does not include asset finance interest
+General Overheads does not expose quote-level repair inputs
+```
+
+---
+
+# 12. HARD CHECKS — LABOUR
+
+Labour checks include:
+
+```text
+total_labour_cost_annual exists
+total_productive_output exists
+total_productive_output > 0 where hour-based recovery is required
+total_employer_contribution_annual exists
+employer KiwiSaver is included
+ESCT is included
+employer ACC levy is included
+Labour does not include staff overheads
+Labour does not include asset ownership costs
+Labour does not include general overheads
+Labour does not expose quote-level accepted snapshot fields
+```
+
+In product-based mode, zero productive hours may still require warning depending on downstream use, but Business Summary uses units sold as the primary recovery driver.
+
+---
+
+# 13. HARD CHECKS — ASSETS
+
+Assets checks include:
+
+```text
+total_asset_cost_annual exists
+assets_ready is true
+Assets are ownership-only
+running_cost_annual does not feed Cost Summary
+Assets do not include fuel
+Assets do not include servicing
+Assets do not include maintenance
+Assets do not include registration
+Assets do not include tyres
+Assets do not include shared fleet costs
+Assets do not include labour cost
+Assets do not include principal repayments in total_asset_cost_annual
+```
+
+If no active assets exist, Module Reconciliation must check whether the user has explicitly confirmed that no active assets are required.
+
+Allowed confirmation field:
+
+```js
+no_active_assets_confirmed
+```
+
+Rules:
+
+```text
+If active assets exist:
+  Assets readiness should be based on ownership-only cost completeness and reconciliation.
+
+If no active assets exist and no_active_assets_confirmed = true:
+  Assets may pass readiness with an informational check.
+
+If no active assets exist and no confirmation exists:
+  Assets readiness must fail.
+```
+
+A missing or zero P&L asset benchmark must not be treated as confirmation that no assets are required.
+
+---
+
+# 14. CROSS-MODULE CHECKS
+
+Cross-module checks include:
+
+```text
+no Employee Overheads output exists
+no Staff Overheads standalone output exists
+no duplicate cost ownership detected
+Cost Summary inputs are available
+banned variables are not present in downstream contracts
+no raw P&L lines are consumed by Cost Summary
+no quote-level accepted snapshot fields are present in source module contracts
+no feedback-loop actuals are mutating source module assumptions
+```
+
+---
+
+# 15. RECOVERY CHAIN BOUNDARY
+
+Module Reconciliation must not calculate:
+
+```js
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+allocation_status
+allocation_dependency_type
+business_outcome_status
+outcome_status
+primary_constraint_key
+recommended_action
+```
+
+These belong downstream:
+
+```text
+Recovery Summary owns recovery plan outputs.
+Cost Allocation owns allocation status and dependency outputs.
+Business Outcome owns verdict outputs.
+```
+
+---
+
+# 16. WHAT MODULE RECONCILIATION MAY CHECK FOR RECOVERY CHAIN READINESS
+
+Module Reconciliation may check whether upstream source modules expose values needed later, such as:
+
+```js
+total_labour_cost_annual
+total_productive_output
+total_asset_cost_annual
+total_general_overheads
+pnl_ready
+general_overheads_ready
+labour_ready
+assets_ready
+```
+
+It may also check whether banned variables or duplicated ownership patterns exist.
+
+It must not use those checks to create recovery strategy or allocation outputs.
+
+---
+
+# 17. BLOCKER VS WARNING RULE
+
+## Blockers
+
+A blocker means Cost Summary may display totals but must not be trusted.
+
+Examples:
+
+```text
+missing total_labour_cost_annual
+missing total_general_overheads
+missing total_asset_cost_annual
+employer ACC levy missing from Labour
+running_cost_annual feeding Assets total
+employee_overheads active category or output detected
+total_productive_output missing or zero where hour-based recovery rate is required
+no active assets exist and no_active_assets_confirmed is not true
+module total business cost differs materially from P&L business cost
+principal repayments feeding Assets, General Overheads, or Cost Summary
+source modules include quote-level snapshot fields
+```
+
+## Warnings
+
+A warning means the model can display but the user should review the result.
+
+Examples:
+
+```text
+P&L benchmark variance exists
+unallocated General Overheads remain
+optional category detail missing
+unusual cost split detected
+no active assets exist but no_active_assets_confirmed is true
+P&L asset benchmark is missing but the user has explicitly confirmed no active assets are required
+P&L reported interest differs from Assets modelled interest
+monthly actuals later show drift but no explicit model refresh has been made
+```
+
+---
+
+# 18. OUTPUTS
+
+Module Reconciliation must output:
+
+```js
+reconciliation_ready
+reconciliation_checks
+blocking_checks
+warning_checks
+blocking_modules
+warning_modules
+```
+
+Each check should include:
+
+```js
+check_id
+module
+severity
+passed
+message
+detail
+recommended_action
+```
+
+Allowed severity values:
+
+```js
+"blocker"
+"warning"
+"info"
+```
+
+---
+
+# 19. DIAGNOSTIC TOTALS
+
+Module Reconciliation may calculate:
+
+```js
+module_total_business_costs =
+  total_labour_cost_annual
+  + total_asset_cost_annual
+  + total_general_overheads
+```
+
+```js
+pnl_business_cost_variance =
+  module_total_business_costs - total_business_costs
+```
+
+```js
+pnl_business_cost_variance_percent =
+  total_business_costs === 0
+    ? 0
+    : pnl_business_cost_variance / total_business_costs
+```
+
+These are diagnostics only.
+
+They do not replace module totals.
+
+They do not feed Cost Summary calculations.
+
+They do not feed Recovery Summary, Cost Allocation, Business Outcome, Quote Engine, or Feedback Loop calculations.
+
+---
+
+# 20. REVENUE / COGS BOUNDARY
+
+Module Reconciliation may check whether P&L has clean income and COGS / direct cost classifications.
+
+Revenue / COGS owns:
+
+```js
+margin_pool
+gross_margin_percent
+units_sold_annual
+```
+
+Module Reconciliation must not calculate:
+
+```text
+margin_pool
+gross_margin_percent
+net_position
+required_recovery_per_driver
+quote_gap
+monthly feedback variance
+```
+
+---
+
+# 21. BUSINESS SUMMARY / RECOVERY CHAIN BOUNDARY
+
+Module Reconciliation does not create Business Summary, Recovery Summary, Cost Allocation, or Business Outcome outputs.
+
+It may provide trust evidence that downstream outputs depend on.
+
+Business Summary, Recovery Summary, Cost Allocation, and Business Outcome must inherit trust state through Model Readiness.
+
+---
+
+# 22. QUOTE ENGINE BOUNDARY
+
+Quote Engine depends on trusted baseline/model outputs later.
+
+Module Reconciliation must not:
+
+```text
+calculate quote gaps
+calculate repair levers
+store quote versions
+store accepted quote snapshots
+decide whether a quote should be accepted
+```
+
+Quote Engine must inherit trust state through Model Readiness.
+
+If Model Readiness is blocked, Quote Engine outputs must be preview/not trusted only.
+
+---
+
+# 23. FEEDBACK LOOP / MONTHLY ACTUALS BOUNDARY
+
+The Feedback Loop belongs later.
+
+Module Reconciliation does not compare accepted quote predictions with monthly actuals.
+
+Module Reconciliation does not rewrite source module assumptions based on actuals.
+
+If monthly actuals later reveal drift, that belongs to Feedback Loop or explicit model refresh flow.
+
+Reconciliation remains evidence for the current baseline model.
+
+---
+
+# 24. NOT ALLOWED
+
+Module Reconciliation must not:
+
+```text
+recalculate Labour
+recalculate Assets
+recalculate General Overheads
+edit P&L lines
+move costs automatically
+create pricing logic
+create recovery logic
+create recovery shares
+create component recovery requirements
+create allocation status
+create dependency type
+create cost allocation structure
+create asset/staff links
+create operational groups
+create business outcome verdict
+create recommended action
+create quote logic
+create feedback-loop logic
+create new source-of-truth totals
+infer that no assets are required from missing asset data
+infer that no assets are required from a missing or zero P&L asset benchmark
+overwrite source assumptions from monthly actuals
+```
+
+---
+
+# 25. DEFINITION OF DONE
+
+Module Reconciliation v3.8 is complete when:
+
+```text
+it remains evidence-only
+it checks upstream source module compliance
+it does not create source-of-truth totals
+it does not create recovery strategy
+it does not create allocation status
+it does not create business outcome verdicts
+it does not create quote logic
+it does not perform feedback-loop analysis
+it passes trust evidence to Model Readiness
+build passes
+```
+
+---
+
+# 26. FINAL DEFINITION
+
+Module Reconciliation v3.8 is the evidence layer that checks whether P&L, General Overheads, Labour, and Assets are contract-compliant before Model Readiness issues the final trust verdict.
+
+It does not calculate recovery strategies, allocation statuses, business outcomes, quotes, scenarios, feedback-loop results, or source-of-truth totals.
+
+Assets may only pass without active asset records when the user explicitly confirms that no active assets are required.
+
+Missing asset data is not confirmation.

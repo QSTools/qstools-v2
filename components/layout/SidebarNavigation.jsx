@@ -35,6 +35,14 @@ const nav_groups = [
     ],
   },
   {
+    label: "Recovery Chain",
+    items: [
+      { href: "/recovery-summary", label: "Recovery Summary" },
+      { href: "/cost-allocation", label: "Cost Allocation" },
+      { href: "/recovery-outcome", label: "Business Outcome" },
+    ],
+  },
+  {
     label: "Business Modelling",
     items: [
       { href: "/business-modelling", label: "Business Modelling" },
@@ -53,6 +61,9 @@ const SETUP_FLOW_ORDER = [
   "/cost-summary",
   "/revenue-cogs",
   "/business-summary",
+  "/recovery-summary",
+  "/cost-allocation",
+  "/recovery-outcome",
   "/business-modelling",
   "/quote-engine",
 ];
@@ -65,6 +76,9 @@ const setup_progress = {
   "/cost-summary": false,
   "/revenue-cogs": false,
   "/business-summary": false,
+  "/recovery-summary": false,
+  "/cost-allocation": false,
+  "/recovery-outcome": false,
   "/business-modelling": false,
   "/quote-engine": false,
 };
@@ -96,6 +110,14 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/revenue-cogs/") ||
       pathname === "/business-summary" ||
       pathname.startsWith("/business-summary/"),
+
+    "Recovery Chain":
+      pathname === "/recovery-summary" ||
+      pathname.startsWith("/recovery-summary/") ||
+      pathname === "/cost-allocation" ||
+      pathname.startsWith("/cost-allocation/") ||
+      pathname === "/recovery-outcome" ||
+      pathname.startsWith("/recovery-outcome/"),
 
     "Business Modelling":
       pathname === "/business-modelling" ||

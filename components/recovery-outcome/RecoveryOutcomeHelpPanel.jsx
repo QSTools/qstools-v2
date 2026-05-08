@@ -22,47 +22,50 @@ export default function RecoveryOutcomeHelpPanel() {
               <div>
                 <p className="ui-kicker">How to read this page</p>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                  Recovery Outcome is the macro business verdict
+                  Business Outcome is the recovery-chain verdict
                 </h2>
               </div>
 
               <p className="text-sm text-[var(--text-secondary)]">
-                This page combines cost baseline, recovery strategy, revenue
-                streams, and structural readiness to show whether the overall
-                business model works.
+                This page combines the recovery strategy from Recovery Summary
+                with the delivery structure and dependency result from Cost
+                Allocation.
               </p>
 
               <p className="text-sm text-[var(--text-secondary)]">
-                It is not the place to author rates, set up structure, or rebuild
-                cost logic. Go back upstream to change assumptions.
+                It does not calculate costs, choose strategy, build structure,
+                price quotes, or run scenarios. It only turns upstream evidence
+                into a clear verdict.
               </p>
 
               <div className="ui-stack">
                 <div className="ui-readonly">
-                  <span className="ui-label">Cost Summary</span>
+                  <span className="ui-label">Business Summary</span>
                   <div className="text-sm text-[var(--text-primary)]">
-                    Defines what the business costs.
+                    Defines the current business reality.
                   </div>
                 </div>
 
                 <div className="ui-readonly">
                   <span className="ui-label">Recovery Summary</span>
                   <div className="text-sm text-[var(--text-primary)]">
-                    Defines how cost is intended to be recovered.
-                  </div>
-                </div>
-
-                <div className="ui-readonly">
-                  <span className="ui-label">Materials + Rate Models</span>
-                  <div className="text-sm text-[var(--text-primary)]">
-                    Define material margin and production-based recovery streams.
+                    Defines the selected recovery plan and visible consequence.
                   </div>
                 </div>
 
                 <div className="ui-readonly">
                   <span className="ui-label">Cost Allocation</span>
                   <div className="text-sm text-[var(--text-primary)]">
-                    Confirms whether the operating structure can actually deliver the model.
+                    Tests whether the selected recovery plan is internally
+                    supported, externally dependent, strained, or unsupported.
+                  </div>
+                </div>
+
+                <div className="ui-readonly">
+                  <span className="ui-label">Business Outcome</span>
+                  <div className="text-sm text-[var(--text-primary)]">
+                    Gives the verdict: viable, viable with dependency, at risk,
+                    or not viable.
                   </div>
                 </div>
               </div>

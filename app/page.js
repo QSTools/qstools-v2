@@ -73,6 +73,7 @@ export default function HomePage() {
                 QS Tools strips your business back to first principles,
                 then compares your quotes, costs, and monthly reality against the model you thought you were running.
                 Think of it as a leak detection system
+                A digital CFO
                 
               </p>
             </div>

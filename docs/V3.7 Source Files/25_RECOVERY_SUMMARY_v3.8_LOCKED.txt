@@ -1,0 +1,1026 @@
+# QS Tools — Recovery Summary Brief
+
+## v3.8 — STRATEGY + CONSEQUENCE LAYER
+
+**STATUS:** ACTIVE BUILD BRIEF
+**VERSION:** v3.8
+**POSITION:** Business Summary → Recovery Summary → Cost Allocation
+**REPLACES / SUPERSEDES:** Older Recovery Summary assumptions where recovery was hour-only, Cost Summary-only, or disconnected from Business Summary reality
+**PRIMARY RULE:** You can choose anything, but you cannot hide from what it causes.
+
+---
+
+# 1. PURPOSE
+
+Recovery Summary defines the selected recovery strategy and shows the consequences of that strategy.
+
+It consumes the current business reality from Business Summary.
+
+It allows the user to choose how cost recovery is distributed.
+
+It immediately shows what that choice causes.
+
+Recovery Summary answers:
+
+```text
+How are we choosing to recover the cost burden?
+What pressure does that choice create?
+How does that compare with current reality?
+```
+
+Recovery Summary is not a raw-data entry page.
+
+It is not where the user enters wages, costs, revenue, hours, assets, or P&L information.
+
+It is where the user chooses recovery strategy and sees consequence.
+
+---
+
+# 2. CORE FIRST-PRINCIPLES RULE
+
+There must be no hidden assumptions.
+
+The user may choose a recovery strategy, but the consequence must always be visible.
+
+Locked product rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+The page must always show:
+
+```text
+REALITY      = current business position
+STRATEGY     = selected recovery plan
+CONSEQUENCE  = live pressure, gap, and downstream dependency
+```
+
+If the user changes a recovery input, the page must immediately show the impact.
+
+If the consequence is not visible, the page is wrong.
+
+---
+
+# 3. SYSTEM POSITION
+
+Active flow:
+
+```text
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+```
+
+Expanded system flow:
+
+```text
+Business Setup
+→ P&L
+→ Revenue / COGS
+→ General Overheads / Labour / Assets
+→ Cost Summary
+→ Business Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Business Outcome
+→ Business Modelling later
+→ Quote Engine later
+```
+
+Recovery Summary sits after Business Summary because it needs the current business reality first.
+
+Recovery Summary sits before Cost Allocation because Cost Allocation needs the recovery plan before it can test delivery structure.
+
+---
+
+# 4. CLEAN ROLE SPLIT
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+More detail:
+
+```text
+Business Summary tells us where the business is now.
+Recovery Summary lets the user choose how recovery is intended to happen.
+Cost Allocation tests what that choice depends on.
+Business Outcome decides whether the model works.
+```
+
+---
+
+# 5. PRODUCT ROLE
+
+Recovery Summary is a controlled strategy layer.
+
+It is not:
+
+```text
+Business Summary
+Cost Allocation
+Business Outcome
+Business Modelling
+Quote Engine
+pricing engine
+optimisation engine
+cash-flow model
+```
+
+Recovery Summary must show consequences.
+
+Recovery Summary must not optimise the best recovery mix automatically.
+
+Recovery Summary may guide the user with warnings and visible pressure signals.
+
+Optimisation belongs to Business Modelling later.
+
+---
+
+# 6. REQUIRED INPUTS FROM BUSINESS SUMMARY
+
+Recovery Summary consumes the clean Business Summary output contract.
+
+Required inputs:
+
+```js
+business_summary_ready
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+total_productive_output
+units_sold_annual
+net_position
+business_summary_status
+business_summary_warnings
+model_trust_state
+revenue_cogs_ready
+cost_summary_ready
+```
+
+Recovery Summary must not recalculate these fields.
+
+If any required Business Summary value is missing, fix Business Summary first.
+
+Do not rebuild Business Summary inside Recovery Summary.
+
+---
+
+# 7. OPTIONAL BACKWARDS-COMPATIBLE INPUTS
+
+Recovery Summary may consume legacy hour fields for compatibility or supporting display only:
+
+```js
+required_recovery_rate
+current_margin_per_productive_hour
+recovery_gap_per_hour
+current_margin_per_hour
+hourly_gap
+```
+
+In `product_based` mode, these must not drive the primary Recovery Summary display.
+
+Product-based mode uses:
+
+```js
+activity_driver_type = "units"
+activity_driver_value = units_sold_annual
+```
+
+Labour-based mode uses:
+
+```js
+activity_driver_type = "hours"
+activity_driver_value = total_productive_output
+```
+
+---
+
+# 8. LOCAL RECOVERY STRATEGY INPUTS
+
+Recovery Summary owns these strategy inputs:
+
+```js
+recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+```
+
+Allowed `recovery_model` values:
+
+```js
+"labour_only"
+"asset_driven"
+"hybrid"
+```
+
+Default behaviour:
+
+```js
+recovery_model = "labour_only"
+labour_share_percent = 100
+asset_share_percent = 0
+overhead_share_percent = 0
+```
+
+Share rule:
+
+```js
+labour_share_percent + asset_share_percent + overhead_share_percent = 100
+```
+
+If shares do not total 100, warning required.
+
+---
+
+# 9. USER INTERACTION RULE
+
+Recovery Summary is interactive only for recovery strategy.
+
+The user may change:
+
+```text
+recovery model
+labour share
+asset share
+overhead absorbed share
+```
+
+The user must not change:
+
+```text
+revenue
+COGS
+margin pool
+total cost burden
+productive hours
+units sold
+labour cost
+asset cost
+general overheads
+net position
+```
+
+Those are owned upstream.
+
+---
+
+# 10. REQUIRED OUTPUT CONTRACT
+
+Recovery Summary must expose:
+
+```js
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+recovery_model
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+```
+
+Optional display outputs:
+
+```js
+recovery_driver_display_label
+required_recovery_display_label
+current_recovery_display_label
+recovery_gap_display_label
+recovery_unit_label
+business_mode_label
+recovery_explanation
+```
+
+---
+
+# 11. NEW REQUIRED FIELD — recovery_plan_target_per_driver
+
+This is the selected recovery target per active driver.
+
+Default:
+
+```js
+recovery_plan_target_per_driver = required_recovery_per_driver
+```
+
+It must be derived from Business Summary / Recovery Summary values only.
+
+It must not rebuild Cost Summary.
+
+It must not rebuild Business Summary.
+
+It must not be optimised automatically.
+
+---
+
+# 12. NEW REQUIRED FIELD — recovery_plan_split
+
+This is the selected recovery strategy split.
+
+Shape:
+
+```js
+recovery_plan_split = {
+  labour_share_percent,
+  asset_share_percent,
+  overhead_share_percent
+}
+```
+
+This is a strategy output.
+
+It is not:
+
+```text
+P&L historical ratio
+a recommended optimum
+a hidden default from history
+a quote-level pricing split
+```
+
+The user can choose it.
+
+The consequence must be visible.
+
+---
+
+# 13. NEW REQUIRED FIELD — component_required_recovery
+
+This exposes the required recovery by component.
+
+Shape:
+
+```js
+component_required_recovery = {
+  labour: {
+    share_percent: labour_share_percent,
+    recovery_cost: labour_recovery_cost,
+    required_recovery_rate: required_labour_recovery_rate
+  },
+  asset: {
+    share_percent: asset_share_percent,
+    recovery_cost: asset_recovery_cost,
+    required_recovery: required_asset_recovery
+  },
+  overhead: {
+    share_percent: overhead_share_percent,
+    recovery_cost: overhead_absorbed_cost
+  }
+}
+```
+
+This must be derived from existing Recovery Summary values.
+
+Cost Allocation must consume this field.
+
+Cost Allocation must not rebuild it.
+
+---
+
+# 14. CORE CALCULATIONS
+
+## Share balance
+
+```js
+share_total = labour_share_percent + asset_share_percent + overhead_share_percent
+is_balanced = share_total === 100
+```
+
+If not balanced, warning required.
+
+---
+
+## Recovery distribution
+
+```js
+labour_recovery_cost = total_cost_burden * labour_share_percent / 100
+asset_recovery_cost = total_cost_burden * asset_share_percent / 100
+overhead_absorbed_cost = total_cost_burden * overhead_share_percent / 100
+```
+
+---
+
+## Labour recovery rate
+
+```js
+required_labour_recovery_rate = total_productive_output === 0
+  ? 0
+  : labour_recovery_cost / total_productive_output
+```
+
+If `total_productive_output = 0` and labour share is greater than zero, warning required.
+
+---
+
+## Asset recovery requirement
+
+```js
+required_asset_recovery = asset_recovery_cost
+```
+
+V3.8 keeps this as an annual recovery requirement.
+
+Per-asset utilisation logic belongs to a later locked brief if needed.
+
+---
+
+## Recovery plan target
+
+```js
+recovery_plan_target_per_driver = required_recovery_per_driver
+```
+
+---
+
+# 15. REALITY / STRATEGY / CONSEQUENCE DISPLAY
+
+Recovery Summary must show three sections clearly:
+
+```text
+1. Current Reality
+2. Chosen Strategy
+3. Live Consequence
+```
+
+---
+
+## Current Reality
+
+Show:
+
+```js
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+activity_driver_type
+activity_driver_value
+```
+
+This is locked reality from Business Summary.
+
+It is not editable.
+
+---
+
+## Chosen Strategy
+
+Show/edit:
+
+```js
+recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+```
+
+This is the recovery plan.
+
+It is editable.
+
+---
+
+## Live Consequence
+
+Show:
+
+```js
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+recovery_plan_target_per_driver
+component_required_recovery
+```
+
+This must update when strategy inputs change.
+
+---
+
+# 16. MODE BEHAVIOUR
+
+## labour_based
+
+If:
+
+```js
+business_type === "labour_based"
+```
+
+Then display:
+
+```text
+Recovery driver: Productive hours
+Required recovery per hour
+Current margin per hour
+Recovery gap per hour
+$/hour
+```
+
+Wording:
+
+```text
+Recovery is being viewed through productive hours.
+```
+
+Explain:
+
+```text
+This is not a labour charge-out rate. It is the business recovery pressure per productive hour.
+```
+
+---
+
+## product_based
+
+If:
+
+```js
+business_type === "product_based"
+```
+
+Then display:
+
+```text
+Recovery driver: Units sold
+Required recovery per unit
+Current margin per unit
+Recovery gap per unit
+$/unit
+```
+
+Wording:
+
+```text
+Recovery is being viewed through units sold.
+```
+
+Explain:
+
+```text
+Required recovery per unit is not COGS per unit. It is the operating cost burden spread across units sold.
+```
+
+---
+
+# 17. GUIDANCE RULE
+
+Recovery Summary may guide the user, but must not optimise automatically.
+
+Allowed guidance:
+
+```text
+This increases labour recovery pressure.
+This strategy depends more heavily on asset recovery.
+This recovery plan creates a larger gap than the current position.
+The selected recovery split does not total 100%.
+Asset recovery is selected, so Cost Allocation will need asset structure.
+Labour recovery is selected, so Cost Allocation will test internal capacity and external delivery dependency.
+```
+
+Not allowed:
+
+```text
+Use this exact optimal split.
+This is the best recovery strategy.
+The system recommends this model automatically.
+This automatically solves your recovery gap.
+```
+
+Optimisation belongs to Business Modelling later.
+
+Recovery Summary is consequence-first, not optimiser-first.
+
+---
+
+# 18. STATUS RULES
+
+Allowed `recovery_summary_status` values:
+
+```js
+"ready"
+"ready_with_warnings"
+"not_trusted"
+"blocked"
+```
+
+Suggested interpretation:
+
+```text
+ready = Business Summary is ready and recovery shares are valid
+ready_with_warnings = values can display but warnings remain visible
+not_trusted = upstream model or Business Summary is not trusted
+blocked = required driver or required Business Summary values are missing
+```
+
+Recovery Summary must inherit upstream trust state.
+
+If Business Summary is not trusted, Recovery Summary must not present outputs as final.
+
+---
+
+# 19. WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Do not show only:
+
+```text
+1 warning
+```
+
+Minimum warning keys:
+
+```text
+business_summary_not_ready
+upstream_model_not_ready
+share_not_balanced
+no_activity_driver
+no_productive_output
+no_units_sold
+no_required_recovery_per_driver
+negative_margin_pool
+negative_net_position
+recovery_gap_negative
+labour_share_without_productive_output
+asset_share_without_asset_recovery_base
+```
+
+Suggested warning wording:
+
+```text
+Business Summary is not ready, so Recovery Summary is preview only.
+
+No activity driver is available, so recovery per output cannot be calculated.
+
+Productive hours are required to calculate labour recovery pressure.
+
+Units sold are required to calculate product-based recovery pressure.
+
+The selected recovery shares do not total 100%.
+```
+
+---
+
+# 20. PAGE STRUCTURE
+
+Recommended page structure:
+
+```text
+RecoverySummaryStatusStrip
+RecoverySummaryMainCard
+RecoverySummaryHelpPanel
+```
+
+Recommended main card sections:
+
+```text
+A. Current Reality
+B. Recovery Strategy
+C. Live Consequence
+D. Component Recovery Requirement
+E. Warning / Insight Block
+```
+
+---
+
+# 21. STATUS STRIP
+
+Status strip should show:
+
+```js
+recovery_summary_status
+business_type
+activity_driver_type
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+active_recovery_model
+warning_count
+```
+
+Labels must adapt by mode.
+
+Do not hardcode hour labels.
+
+---
+
+# 22. MAIN CARD SECTIONS
+
+## A. Current Reality
+
+Read-only.
+
+Shows:
+
+```text
+Required recovery per driver
+Current margin per driver
+Recovery gap per driver
+Margin Pool
+Total Cost Burden
+Net Position
+```
+
+---
+
+## B. Recovery Strategy
+
+Editable.
+
+Shows:
+
+```text
+Recovery model selector
+Labour share
+Asset share
+Overhead absorbed share
+Share balance status
+```
+
+---
+
+## C. Live Consequence
+
+Read-only calculated from selected strategy.
+
+Shows:
+
+```text
+Labour recovery cost
+Asset recovery cost
+Overhead absorbed cost
+Required labour recovery rate
+Required asset recovery
+```
+
+---
+
+## D. Component Recovery Requirement
+
+Read-only output handoff for Cost Allocation.
+
+Shows:
+
+```js
+component_required_recovery
+```
+
+This confirms what Cost Allocation will test.
+
+---
+
+## E. Warning / Insight Block
+
+Shows:
+
+```text
+share warnings
+missing driver warnings
+negative gap warnings
+upstream trust warnings
+```
+
+Insights must be neutral and consequence-focused.
+
+---
+
+# 23. HELP PANEL
+
+Help panel must explain:
+
+```text
+Business Summary shows the current business reality.
+Recovery Summary lets you choose how recovery should happen.
+Every choice creates a visible consequence.
+Cost Allocation tests whether the selected plan can be delivered.
+This page is not pricing and not optimisation.
+```
+
+Use plain English.
+
+---
+
+# 24. RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary owns the current reality.
+
+Recovery Summary consumes Business Summary outputs.
+
+Recovery Summary must not rebuild:
+
+```js
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+```
+
+If Recovery Summary needs one of those values, Business Summary must expose it.
+
+---
+
+# 25. RELATIONSHIP TO COST ALLOCATION
+
+Cost Allocation consumes Recovery Summary outputs.
+
+Recovery Summary must expose:
+
+```js
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_recovery_model
+```
+
+Cost Allocation tests whether the selected recovery plan can be delivered by internal structure, external dependency, or both.
+
+Recovery Summary does not test delivery structure.
+
+---
+
+# 26. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome consumes Recovery Summary and Cost Allocation outputs.
+
+Recovery Summary does not decide the final verdict.
+
+Business Outcome owns:
+
+```text
+viable
+viable_with_dependency
+at_risk
+not_viable
+```
+
+Recovery Summary only shows the plan and its immediate consequence.
+
+---
+
+# 27. RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling remains later.
+
+Business Modelling may eventually optimise recovery mix, run scenarios, or compare model options.
+
+Recovery Summary must not become that optimiser.
+
+Current rule:
+
+```text
+Recovery Summary may guide, but must not optimise.
+```
+
+---
+
+# 28. WHAT RECOVERY SUMMARY MUST NOT DO
+
+Recovery Summary must not:
+
+```text
+rebuild Business Summary
+rebuild Cost Summary
+rebuild Revenue / COGS
+read raw P&L lines
+read raw Labour form state
+read raw Asset form state
+read raw General Overheads form state
+define Cost Allocation structure
+calculate allocation_status
+calculate business_outcome_status
+optimise recovery mix automatically
+create quote logic
+create scenario logic
+include principal repayments
+hide consequence of strategy choices
+```
+
+---
+
+# 29. FILES TO INSPECT BEFORE IMPLEMENTATION
+
+Before editing, inspect:
+
+```text
+hooks/useRecoverySummary.js
+lib/calculations/recoverySummaryCalculations.js
+lib/selectors/recoverySummarySelectors.js
+components/recovery-summary/*
+app/recovery-summary/page.jsx
+```
+
+Also inspect upstream contract:
+
+```text
+hooks/useBusinessSummary.js
+```
+
+Do not guess field paths.
+
+Confirm actual hook output names before wiring.
+
+---
+
+# 30. CODEX IMPLEMENTATION RULE
+
+For contract alignment, Codex should only add explicit named outputs.
+
+Task:
+
+```text
+Add recovery_plan_target_per_driver, recovery_plan_split, and component_required_recovery to Recovery Summary using existing Business Summary and Recovery Summary values.
+
+Do not redesign the page.
+Do not rebuild Business Summary.
+Do not rebuild Cost Summary.
+Do not create optimisation logic.
+Do not create Cost Allocation logic.
+```
+
+---
+
+# 31. DEFINITION OF DONE
+
+Recovery Summary v3.8 is complete when:
+
+```text
+it consumes Business Summary outputs only for current reality
+it exposes recovery_plan_target_per_driver
+it exposes recovery_plan_split
+it exposes component_required_recovery
+it shows reality, strategy, and consequence
+it supports labour_based and product_based labels
+it makes every strategy change produce visible consequence
+it does not optimise automatically
+it does not rebuild upstream maths
+it does not create Cost Allocation logic
+it passes build
+```
+
+---
+
+# 32. FINAL DEFINITION
+
+Recovery Summary v3.8 is the strategy and consequence layer.
+
+It consumes Business Summary’s current-reality baseline and allows the user to choose how recovery is intended to happen.
+
+It exposes the selected recovery plan in a clean contract for Cost Allocation.
+
+It does not optimise the plan.
+
+It does not test delivery structure.
+
+It does not produce the final verdict.
+
+It exists to make every recovery choice visible, traceable, and consequence-based.

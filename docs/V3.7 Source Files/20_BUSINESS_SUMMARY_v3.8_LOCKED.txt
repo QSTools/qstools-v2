@@ -1,0 +1,1307 @@
+# QS Tools — Business Summary Brief
+
+## v3.8 — MODE-AWARE ACTIVITY DRIVER AND RECOVERY CHAIN HANDOFF UPDATED
+
+**STATUS:** ACTIVE SOURCE BRIEF
+**VERSION:** v3.8
+**FILE NUMBER:** 20
+**REPLACES:** 20_BUSINESS_SUMMARY_v3.8_LOCKED.txt previous draft and all addendums
+**BUILD STATUS:** ACTIVE / MODE FOUNDATION AND RECOVERY CHAIN HANDOFF IMPLEMENTED
+
+---
+
+# 1. PURPOSE
+
+Business Summary is the current business mirror.
+
+It combines the trading result from Revenue / COGS with the operating cost burden from Cost Summary.
+
+Business Summary answers:
+
+```text
+Is the current business generating enough margin pool to carry its operating cost burden?
+```
+
+It answers that question through the selected business activity driver:
+
+```text
+productive hours for labour-based businesses
+units sold for product-based businesses
+```
+
+Business Summary is the locked current-reality baseline for the Recovery Chain.
+
+It does not answer:
+
+```text
+how should recovery be split?
+what should the user change?
+how should the user price?
+what scenario should the business run?
+what quote should be accepted?
+what cash-flow pressure exists?
+did a specific job perform correctly?
+```
+
+Those belong to later layers.
+
+---
+
+# 2. PRODUCT ROLE
+
+Business Summary is not a quote tool.
+
+Business Summary is not a modelling tool.
+
+Business Summary is not a recommendation engine.
+
+Business Summary is not Recovery Summary.
+
+Business Summary is not Cost Allocation.
+
+Business Summary is not Business Outcome.
+
+Business Summary is the macro current-state mirror.
+
+It tells the user:
+
+```text
+This is what the business currently looks like when trading margin is compared against operating cost burden.
+```
+
+For labour-based mode it shows this through hours.
+
+For product-based mode it shows this through units.
+
+---
+
+# 3. SYSTEM POSITION
+
+Current practical system flow:
+
+```text
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+↓
+Business Modelling later
+↓
+Quote Engine later
+```
+
+Simplified role chain:
+
+```text
+Business Setup = whether the business uses hours or units
+Revenue / COGS = what trading produces and product units where required
+Cost Summary = what the business costs
+Business Summary = whether trading margin carries cost through the selected driver
+Recovery Summary = how recovery is intended to happen and what it causes
+Cost Allocation = whether the structure can deliver the recovery plan
+Business Outcome = verdict
+Quote Engine = whether an individual quote supports the selected baseline later
+```
+
+---
+
+# 4. RECOVERY CHAIN PRINCIPLE
+
+The recovery chain must follow this separation:
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+Core product rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+Business Summary provides the current-reality side of that rule.
+
+Recovery Summary provides the choice and consequence side.
+
+---
+
+# 5. CORE ROLE
+
+Business Summary is a factual mirror.
+
+It shows:
+
+```text
+Revenue - Direct Costs = Margin Pool
+```
+
+Then:
+
+```text
+Margin Pool - Operating Cost Burden = Net Position
+```
+
+Then it shows the activity-driver reality of the model:
+
+```text
+Required Recovery Per Driver
+vs
+Current Margin Per Driver
+=
+Recovery Gap Per Driver
+```
+
+The driver is:
+
+```text
+productive hours in labour_based mode
+units sold in product_based mode
+```
+
+This page shows the business as it currently stands.
+
+It does not tell the user what to change.
+
+---
+
+# 6. UNIVERSAL BUSINESS SUMMARY PRINCIPLE
+
+The shared recovery equation is:
+
+```text
+Total Business Cost ÷ Activity Driver = Required Recovery Per Output
+```
+
+Where:
+
+```js
+activity_driver_value = productive hours OR units sold
+```
+
+Business Summary must use this shared activity-driver concept rather than duplicating separate page logic.
+
+---
+
+# 7. BUSINESS MODE BEHAVIOUR
+
+Business Summary consumes `business_type` from the upstream mode-aware flow.
+
+Allowed `business_type` values:
+
+```js
+"labour_based"
+"product_based"
+```
+
+## labour_based
+
+If `business_type = labour_based`:
+
+```js
+activity_driver_type = "hours"
+activity_driver_label = "Productive hours"
+activity_driver_value = total_productive_output
+required_recovery_per_driver = total_cost_burden / total_productive_output
+```
+
+Display wording:
+
+```text
+Required recovery per hour
+Current margin per hour
+Hourly gap
+Productive hours
+$/hour
+```
+
+## product_based
+
+If `business_type = product_based`:
+
+```js
+activity_driver_type = "units"
+activity_driver_label = "Units sold"
+activity_driver_value = units_sold_annual
+required_recovery_per_driver = total_cost_burden / units_sold_annual
+```
+
+Display wording:
+
+```text
+Required recovery per unit
+Current margin per unit
+Unit recovery gap
+Units sold per year
+$/unit
+```
+
+---
+
+# 8. REQUIRED INPUTS
+
+## From Business Setup / Revenue COGS mode flow
+
+Business Summary consumes:
+
+```js
+business_type
+units_sold_annual where product_based
+```
+
+## From Revenue / COGS
+
+Business Summary consumes:
+
+```js
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+revenue_cogs_ready
+revenue_cogs_warnings
+business_type
+units_sold_annual
+revenue_lines where available
+direct_cost_category_totals where available
+```
+
+Revenue / COGS owns the trading result and product unit input.
+
+Business Summary must not reclassify P&L lines.
+
+## From Cost Summary
+
+Business Summary consumes:
+
+```js
+total_cost_burden
+total_productive_output
+required_recovery_rate
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+model_ready
+model_readiness_status
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+weighted_productivity_percent where available
+total_available_hours_before_productivity where available
+```
+
+Cost Summary owns the operating cost burden.
+
+Business Summary must not recalculate Cost Summary.
+
+---
+
+# 9. OUTPUT CONTRACT
+
+Business Summary outputs:
+
+```js
+business_summary_ready
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+total_productive_output
+units_sold_annual
+net_position
+business_summary_status
+business_summary_warnings
+model_trust_state
+revenue_cogs_ready
+cost_summary_ready
+```
+
+These outputs form the Recovery Summary input contract.
+
+Recovery Summary must consume these outputs instead of rebuilding them.
+
+---
+
+# 10. BACKWARDS-COMPATIBLE OUTPUTS
+
+Business Summary must continue to expose the legacy hour-based outputs while Business Modelling remains labour/hour-oriented:
+
+```js
+required_recovery_rate
+current_margin_per_productive_hour
+recovery_gap_per_hour
+current_margin_per_hour
+hourly_gap
+```
+
+In `labour_based` mode, these match the universal per-driver values.
+
+In `product_based` mode, these remain hour-based compatibility values where productive hours exist and must not be confused with the product/unit recovery display.
+
+---
+
+# 11. CORE FORMULAS
+
+## Net Position
+
+```js
+net_position = margin_pool - total_cost_burden
+```
+
+Where:
+
+```text
+margin_pool comes from Revenue / COGS
+total_cost_burden comes from Cost Summary
+```
+
+## Activity Driver Value
+
+Labour-based:
+
+```js
+activity_driver_value = total_productive_output
+```
+
+Product-based:
+
+```js
+activity_driver_value = units_sold_annual
+```
+
+## Required Recovery Per Driver
+
+```js
+required_recovery_per_driver = activity_driver_value === 0
+  ? 0
+  : total_cost_burden / activity_driver_value
+```
+
+If `activity_driver_value = 0`, warning required.
+
+## Current Margin Per Driver
+
+```js
+current_margin_per_driver = activity_driver_value === 0
+  ? 0
+  : margin_pool / activity_driver_value
+```
+
+If `activity_driver_value = 0`, warning required.
+
+## Recovery Gap Per Driver
+
+```js
+recovery_gap_per_driver = current_margin_per_driver - required_recovery_per_driver
+```
+
+If `activity_driver_value = 0`, warning required.
+
+## Legacy Current Margin Per Productive Hour
+
+```js
+current_margin_per_productive_hour = total_productive_output === 0
+  ? 0
+  : margin_pool / total_productive_output
+```
+
+Warning required when in `labour_based` mode and `total_productive_output = 0`.
+
+## Legacy Recovery Gap Per Hour
+
+```js
+recovery_gap_per_hour = current_margin_per_productive_hour - required_recovery_rate
+```
+
+Warning required when in `labour_based` mode and `total_productive_output = 0`.
+
+---
+
+# 12. BUSINESS SNAPSHOT DISPLAY
+
+The main snapshot must show:
+
+```text
+Revenue
+Direct Costs
+Margin Pool
+Operating Cost Burden
+Net Position
+```
+
+This is the simplest top-level view.
+
+The page must make clear:
+
+```text
+Margin Pool is the money left after direct costs to carry the business.
+```
+
+---
+
+# 13. MODE DISPLAY
+
+Business Summary must show the current business mode:
+
+```text
+Product / Unit-based business
+Service / Labour-based business
+```
+
+It must also clearly state whether it is calculating recovery through:
+
+```text
+productive hours
+units sold
+```
+
+---
+
+# 14. OPERATIONAL REALITY DISPLAY
+
+Business Summary must show the selected driver reality.
+
+## labour_based display
+
+```text
+Required recovery per hour
+Current margin per hour
+Hourly gap
+Productive hours
+```
+
+## product_based display
+
+```text
+Required recovery per unit
+Current margin per unit
+Unit recovery gap
+Units sold per year
+```
+
+---
+
+# 15. REALITY BASELINE RULE
+
+Business Summary is the baseline reality layer.
+
+The baseline is not a historical P&L ratio.
+
+The baseline is:
+
+```text
+required recovery per driver
+current margin per driver
+recovery gap per driver
+margin pool
+total cost burden
+net position
+```
+
+This distinction is critical.
+
+P&L history is processed upstream into Revenue / COGS and Cost Summary.
+
+Business Summary receives those processed outputs and converts them into current commercial reality.
+
+Recovery Summary must not go back to raw history.
+
+---
+
+# 16. NO HISTORY DIRECTLY INTO RECOVERY SUMMARY
+
+Business Summary may be informed by historical P&L through upstream modules.
+
+Recovery Summary must not consume raw history directly.
+
+Correct flow:
+
+```text
+P&L history
+↓
+Revenue / COGS + Cost Summary
+↓
+Business Summary current reality
+↓
+Recovery Summary strategy and consequence
+```
+
+Incorrect flow:
+
+```text
+Raw P&L history
+↓
+Recovery Summary strategy
+```
+
+That would create duplicated logic and hidden assumptions.
+
+---
+
+# 17. CURRENT REALITY DISPLAY REQUIREMENT
+
+Business Summary should make these three values obvious enough that Recovery Summary can use them as the current-reality anchor:
+
+```text
+Required recovery per hour/unit
+Current margin per hour/unit
+Recovery gap per hour/unit
+```
+
+Simple test:
+
+```text
+Can the user clearly say:
+"I need $X per hour/unit, I am currently getting $Y, and the gap is $Z"?
+```
+
+If not, Business Summary needs to be fixed before Recovery Summary is built.
+
+---
+
+# 18. PRODUCT DRIVER SOURCE DISPLAY
+
+When product-based, Business Summary may show:
+
+```text
+Units sold per year
+Productive hours still available
+```
+
+This helps explain that the product-mode recovery driver is units, while Labour and Cost Summary data remain available as cost inputs.
+
+---
+
+# 19. REQUIRED RECOVERY WORDING
+
+Required Recovery must be explained according to mode.
+
+## labour_based
+
+Use:
+
+```text
+This is not a labour charge-out rate.
+This is the business break-even pressure per productive hour.
+It shows what the business must recover across productive hours to carry its operating cost burden.
+```
+
+## product_based
+
+Use:
+
+```text
+This is not COGS per unit.
+This is the business operating cost burden spread across units sold.
+It shows what each unit must contribute after direct costs to carry the business.
+```
+
+---
+
+# 20. PRODUCTIVE HOURS WORDING
+
+In `labour_based` mode, Business Summary should reinforce:
+
+```text
+All staff cost must be recovered. Only productive staff hours can recover it.
+```
+
+In `product_based` mode, productive hours may still exist as cost structure data, but they are not the primary activity driver unless a later locked brief introduces a production-structure model.
+
+---
+
+# 21. UNITS SOLD WORDING
+
+In `product_based` mode, Business Summary should reinforce:
+
+```text
+Units sold is the denominator used to spread business operating cost across product output.
+```
+
+And:
+
+```text
+COGS per unit and required recovery per unit are not the same thing.
+```
+
+COGS per unit is direct product cost.
+
+Required recovery per unit is operating cost burden spread across the product output driver.
+
+---
+
+# 22. WHY THIS IS NOT JUST A P&L
+
+Business Summary is not a P&L replacement.
+
+A P&L shows historical accounting results.
+
+Business Summary restructures the business into:
+
+```text
+Trading result
+vs
+Operating burden
+vs
+Activity driver
+```
+
+This reveals whether the current margin pool is enough to carry the cost of operating.
+
+---
+
+# 23. TRUST / READINESS RULE
+
+Business Summary is trusted only when:
+
+```text
+Revenue / COGS is ready
+Cost Summary is trusted or usable with warnings
+Model Readiness state is visible
+no blocking upstream checks exist
+selected activity driver exists
+```
+
+If `model_ready = false`:
+
+```text
+Business Summary may display preview values
+values must be marked not trusted
+downstream modules must not treat the baseline as final
+```
+
+If `model_readiness_status = warning`:
+
+```text
+Business Summary may display values
+warnings must remain visible
+```
+
+If `model_readiness_status = ready`:
+
+```text
+Business Summary outputs are trusted
+```
+
+---
+
+# 24. BUSINESS SUMMARY STATUS VALUES
+
+Allowed values:
+
+```js
+"ready"
+"ready_with_warnings"
+"not_trusted"
+"blocked"
+```
+
+Suggested interpretation:
+
+```text
+ready = Revenue / COGS and Cost Summary are ready and no blocking warnings exist
+ready_with_warnings = Business Summary can be displayed but upstream warnings remain visible
+not_trusted = Business Summary can preview outputs but should not be used as locked baseline
+blocked = Required upstream values are missing or invalid
+```
+
+---
+
+# 25. WARNING REQUIREMENTS
+
+Warnings must be explicit.
+
+Do not show vague wording like:
+
+```text
+1 warning
+```
+
+Minimum warnings:
+
+```text
+no_revenue_data
+no_direct_cost_data
+no_margin_pool
+no_cost_summary_data
+no_productive_output for labour_based mode
+no_units_sold for product_based mode
+no_activity_driver
+no_required_recovery_rate
+negative_margin_pool
+negative_net_position
+upstream_model_not_ready
+revenue_cogs_not_ready
+cost_summary_not_ready
+```
+
+Warning wording examples:
+
+```text
+Revenue / COGS has no revenue data.
+Revenue / COGS has no direct cost data.
+Cost Summary has no productive output.
+Units sold are required to calculate required recovery per unit.
+Business Summary is preview only because the upstream model is not ready.
+```
+
+---
+
+# 26. RELATIONSHIP TO BUSINESS SETUP
+
+Business Summary consumes business mode indirectly through the mode-aware Revenue / COGS output contract.
+
+Business Setup owns `business_type`.
+
+Business Summary must not mutate Business Setup.
+
+---
+
+# 27. RELATIONSHIP TO REVENUE / COGS
+
+Business Summary consumes Revenue / COGS.
+
+Business Summary must not:
+
+```text
+reclassify P&L lines
+recalculate direct cost ownership
+use micro / activity classifications as calculation drivers
+change margin_pool
+mutate Revenue / COGS
+change units_sold_annual
+```
+
+Revenue / COGS owns the trading result and product units input.
+
+Business Summary only compares it against Cost Summary.
+
+---
+
+# 28. RELATIONSHIP TO COST SUMMARY
+
+Business Summary consumes Cost Summary.
+
+Business Summary must not:
+
+```text
+recalculate Cost Summary
+rebuild Labour maths
+rebuild Asset maths
+rebuild General Overheads maths
+change total_cost_burden
+change required_recovery_rate
+change total_productive_output
+```
+
+Cost Summary owns the operating cost burden.
+
+Business Summary only compares it against Margin Pool through the selected driver.
+
+---
+
+# 29. RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary consumes Business Summary outputs.
+
+Business Summary tells Recovery Summary:
+
+```text
+what driver is active
+what must be recovered per driver
+what current margin per driver is being produced
+what the recovery gap per driver is
+whether the business currently has surplus or shortfall
+```
+
+Business Summary is the current-reality baseline for Recovery Summary.
+
+It does not decide how recovery should happen.
+
+It exposes the required recovery per driver, current margin per driver, and recovery gap per driver so Recovery Summary can show the consequence of recovery strategy choices.
+
+Recovery Summary must consume these outputs and must not rebuild Business Summary calculations.
+
+---
+
+# 30. DOWNSTREAM CONTRACT PROTECTION
+
+Recovery Summary must not recalculate these Business Summary-owned values:
+
+```js
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+```
+
+If Recovery Summary needs them, Business Summary must expose them.
+
+If they are missing, fix Business Summary first.
+
+Do not rebuild them downstream.
+
+---
+
+# 31. RELATIONSHIP TO COST ALLOCATION
+
+Business Summary does not feed Cost Allocation directly unless a later locked brief allows a display-only fallback.
+
+Cost Allocation should consume Recovery Summary outputs.
+
+Recovery Summary is the handoff layer between Business Summary and Cost Allocation.
+
+---
+
+# 32. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome consumes Recovery Summary and Cost Allocation outputs.
+
+Business Summary does not produce the final business verdict.
+
+Business Summary provides current-reality context only.
+
+---
+
+# 33. RELATIONSHIP TO BUSINESS MODELLING
+
+Business Modelling consumes Business Summary as the current business baseline later.
+
+Business Summary does not create scenarios.
+
+Business Summary does not save editable model states.
+
+Business Summary does not overwrite source modules.
+
+Current implementation note:
+
+```text
+Business Modelling remains primarily hour/labour-oriented and uses legacy hour fields. Product-mode Business Modelling must be handled in a later build.
+```
+
+---
+
+# 34. RELATIONSHIP TO QUOTE ENGINE
+
+Quote Engine consumes the business baseline and applies it to individual quotes later.
+
+Business Summary does not test individual quotes.
+
+Business Summary does not:
+
+```text
+create quote inputs
+calculate quote gaps
+create repair levers
+compare quote versions
+store accepted quote snapshots
+decide whether a quote should be accepted
+```
+
+Quote Engine owns quote-level leak detection later.
+
+---
+
+# 35. RELATIONSHIP TO CASH FLOW
+
+Business Summary does not include principal repayments in Net Position.
+
+Principal repayments are cash-flow pressure.
+
+They belong to the future Cash Flow layer.
+
+Business Summary may later show a separate Cash Flow indicator if a Cash Flow brief is locked, but principal must not alter:
+
+```text
+net_position
+total_cost_burden
+required_recovery_per_driver
+recovery_gap_per_driver
+```
+
+---
+
+# 36. DISPLAY STRUCTURE
+
+Business Summary should use the same structured page system as the rest of QS Tools.
+
+Recommended structure:
+
+```text
+BusinessSummaryStatusStrip
+BusinessSummaryCard
+BusinessSummaryHelpPanel
+```
+
+If more detail is needed:
+
+```text
+Status Strip
+Business Snapshot
+Mode / Activity Driver
+Operational Reality
+Supporting Detail / Drilldown
+Help Panel
+```
+
+The page should not be a dashboard.
+
+It should be a clear structured summary.
+
+---
+
+# 37. STATUS STRIP
+
+The status strip may show:
+
+```text
+Business Summary Ready
+Ready With Warnings
+Not Trusted / Blocked
+Net Position
+Required Recovery Per Driver
+Current Margin Per Driver
+Recovery Gap Per Driver
+Warning count
+```
+
+Labels must adapt by mode.
+
+Status wording must remain neutral.
+
+Avoid emotional or judgmental wording.
+
+---
+
+# 38. BUSINESS SNAPSHOT CARD
+
+Business Snapshot must show:
+
+```text
+Revenue
+Direct Costs
+Margin Pool
+Operating Cost Burden
+Net Position
+```
+
+This should be the main top-level commercial snapshot.
+
+Do not clutter this card with too much drilldown.
+
+---
+
+# 39. OPERATIONAL REALITY CARD / SECTION
+
+Operational Reality must show the selected activity-driver reality.
+
+## labour_based
+
+```text
+Productive hours
+Required recovery per hour
+Current margin per hour
+Recovery gap per hour
+```
+
+## product_based
+
+```text
+Units sold per year
+Required recovery per unit
+Current margin per unit
+Recovery gap per unit
+```
+
+This section connects accounting reality to output-driver reality.
+
+---
+
+# 40. SUPPORTING DETAIL
+
+Supporting detail may show:
+
+From Revenue / COGS:
+
+```text
+revenue category totals
+direct cost category totals
+supporting P&L revenue lines
+supporting P&L direct cost lines
+units_sold_annual where product_based
+```
+
+From Cost Summary:
+
+```text
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_productive_output
+```
+
+Supporting detail is drilldown only.
+
+Top-level Business Summary must remain simple.
+
+---
+
+# 41. UI / UX PRINCIPLE
+
+The user should not need to interpret a dashboard.
+
+The page should directly show:
+
+```text
+what came in
+what went out as direct cost
+what margin pool remained
+what the business costs to operate
+what the net position is
+what driver is being used
+what the recovery requirement is per hour or per unit
+```
+
+The page should be:
+
+```text
+simple
+factual
+macro-first
+drilldown second
+neutral in tone
+```
+
+---
+
+# 42. WORDING RULES
+
+Use neutral wording.
+
+Use:
+
+```text
+Revenue
+Direct Costs
+Margin Pool
+Operating Cost Burden
+Net Position
+Required Recovery Per Hour
+Required Recovery Per Unit
+Current Margin Per Hour
+Current Margin Per Unit
+Recovery Gap Per Hour
+Recovery Gap Per Unit
+Units sold per year
+Productive hours
+```
+
+Do not use:
+
+```text
+Loss
+Failure
+Fix this
+You should
+Recommended action
+Bad quote
+Good quote
+```
+
+Net Position should show the signed number.
+
+Example:
+
+```text
+Net Position: -$50,000
+```
+
+Do not relabel it as:
+
+```text
+Loss: $50,000
+```
+
+---
+
+# 43. USER-FACING STATEMENTS
+
+Use these where appropriate:
+
+```text
+Business Summary shows the current business position.
+
+Margin Pool is what remains after direct costs.
+
+Operating Cost Burden is what the business needs to carry.
+
+Required recovery per hour is not a labour charge-out rate. It is the business break-even pressure per productive hour.
+
+Required recovery per unit is not COGS per unit. It is the operating cost burden spread across units sold.
+
+Business Summary is the factual mirror. Recovery Summary is the strategy and consequence layer.
+```
+
+---
+
+# 44. NOT ALLOWED
+
+Business Summary must not:
+
+```text
+suggest actions
+create recovery strategy
+store recovery model choices
+calculate recovery shares
+optimise recovery mix
+calculate allocation status
+calculate dependency status
+calculate business outcome status
+create scenarios
+alter source data
+mutate P&L
+mutate Cost Summary
+mutate Revenue / COGS
+mutate Business Setup
+calculate quote pricing
+calculate quote gaps
+calculate quote repair levers
+store accepted quote snapshots
+calculate cash flow
+include principal repayments in operating result
+treat gross margin as proof of profit
+treat Net Position as a recommendation
+hide upstream readiness warnings
+display untrusted values as final
+become Recovery Summary
+become Cost Allocation
+become Business Outcome
+become Business Modelling
+become Quote Engine
+become Monthly Actuals / Feedback
+become Production Capacity
+```
+
+---
+
+# 45. DEFINITION OF READY FOR RECOVERY SUMMARY
+
+Business Summary is ready for Recovery Summary when it exposes:
+
+```js
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+activity_driver_type
+activity_driver_value
+margin_pool
+total_cost_burden
+net_position
+business_summary_status
+model_trust_state
+```
+
+And the page clearly displays:
+
+```text
+required per driver
+current per driver
+gap per driver
+```
+
+If any of those are missing, do not build Recovery Summary yet.
+
+---
+
+# 46. DEFINITION OF DONE
+
+Business Summary v3.8 is complete when:
+
+```text
+it clearly shows Revenue, Direct Costs, Margin Pool, Operating Cost Burden, and Net Position
+it clearly shows current business mode
+labour_based mode shows Required Recovery Per Hour vs Current Margin Per Hour
+product_based mode shows Required Recovery Per Unit vs Current Margin Per Unit
+product_based mode uses units_sold_annual from Revenue / COGS
+labour_based mode uses total_productive_output from Cost Summary
+it exposes universal activity driver output fields
+it preserves legacy hour fields for downstream compatibility
+it exposes the clean Recovery Summary handoff contract
+it explains that Margin Pool must carry operating cost burden
+it shows explicit upstream warnings
+it remains neutral and factual
+it does not contain recovery strategy logic
+it does not contain allocation logic
+it does not contain outcome logic
+it does not contain quote-level logic
+it does not contain scenario logic
+it does not contain cash-flow logic
+it does not contain recommendations
+build passes
+```
+
+---
+
+# 47. FINAL DEFINITION
+
+Business Summary is the factual current-business mirror and locked current-reality baseline for the Recovery Chain.
+
+It combines Revenue / COGS Margin Pool with Cost Summary Operating Cost Burden to show Net Position and recovery pressure through the selected activity driver.
+
+For labour-based businesses, the driver is productive hours.
+
+For product-based businesses, the driver is units sold.
+
+It answers:
+
+```text
+Is the current business generating enough margin pool to carry its operating cost burden?
+```
+
+It does not advise, model, price, repair, allocate, decide, or optimise.
+
+It hands a clean current-reality contract to Recovery Summary so the next page can show:
+
+```text
+Reality → Strategy → Consequence
+```
+
+without rebuilding upstream maths.

@@ -11,13 +11,17 @@ function format_percent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function format_number(value) {
+  return Number(value || 0).toLocaleString();
+}
+
 function Pill({ label, tone = "ok" }) {
   return <span className={`ui-pill ui-pill-${tone}`}>{label}</span>;
 }
 
 function get_tone(status) {
-  if (status === "viable" || status === true) return "good";
-  if (status === "marginal") return "ok";
+  if (status === "viable") return "good";
+  if (status === "viable_with_dependency" || status === "at_risk") return "ok";
   return "bad";
 }
 
@@ -25,22 +29,45 @@ function ValueRow({ label, value }) {
   return (
     <div className="ui-readonly">
       <span className="ui-label">{label}</span>
-      <div className="text-sm font-medium text-[var(--text-primary)]">{value}</div>
+      <div className="text-sm font-medium text-[var(--text-primary)]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function WarningRow({ warning }) {
+  const message =
+    typeof warning === "string"
+      ? warning
+      : warning?.message || warning?.warning_key || "Warning";
+
+  const source =
+    typeof warning === "string"
+      ? "Business Outcome"
+      : warning?.source || "Business Outcome";
+
+  return (
+    <div className="ui-readonly">
+      <span className="ui-label">{source}</span>
+      <div className="text-sm text-[var(--text-primary)]">{message}</div>
     </div>
   );
 }
 
 export default function RecoveryOutcomeMainCard({
   outcome_banner = {},
-  cost_baseline = {},
+  primary_constraint = {},
   recovery_context = {},
-  recovery_streams = [],
-  structure_summary = {},
-  macro_driver = {},
-  totals = {},
+  allocation_context = {},
+  outcome_context = {},
   warnings = [],
 }) {
   const banner_tone = get_tone(outcome_banner.outcome_status);
+
+  const split = recovery_context.recovery_plan_split ?? {};
+  const component_recovery =
+    recovery_context.component_required_recovery ?? {};
 
   return (
     <section className="ui-section">
@@ -49,11 +76,18 @@ export default function RecoveryOutcomeMainCard({
           <div className="ui-panel">
             <div className="ui-stack">
               <div className="ui-actions">
-                <Pill label={outcome_banner.outcome_status} tone={banner_tone} />
+                <Pill
+                  label={outcome_banner.outcome_status || "not_viable"}
+                  tone={banner_tone}
+                />
+                <Pill
+                  label={`Health: ${outcome_context.business_model_health || "unknown"}`}
+                  tone={banner_tone}
+                />
               </div>
 
               <div>
-                <p className="ui-kicker">Outcome</p>
+                <p className="ui-kicker">Verdict</p>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                   {outcome_banner.outcome_title}
                 </h2>
@@ -72,79 +106,142 @@ export default function RecoveryOutcomeMainCard({
           </div>
 
           <div>
-            <p className="ui-kicker">Cost baseline</p>
+            <p className="ui-kicker">Primary constraint</p>
             <div className="ui-stack">
               <ValueRow
-                label="Total Cost Burden"
-                value={format_currency(cost_baseline.total_cost_burden)}
+                label="Constraint"
+                value={primary_constraint.primary_constraint_title}
               />
-              <ValueRow
-                label="Required Revenue"
-                value={format_currency(cost_baseline.required_revenue)}
-              />
-              <ValueRow
-                label="Required Recovery Rate"
-                value={format_currency(cost_baseline.required_recovery_rate)}
-              />
-              <ValueRow
-                label="Total Productive Output"
-                value={Number(cost_baseline.total_productive_output || 0).toLocaleString()}
-              />
+              <div className="ui-readonly">
+                <span className="ui-label">Explanation</span>
+                <div className="text-sm text-[var(--text-primary)]">
+                  {primary_constraint.primary_constraint_message}
+                </div>
+              </div>
             </div>
           </div>
 
           <div>
-            <p className="ui-kicker">Recovery strategy context</p>
+            <p className="ui-kicker">Recovery context</p>
             <div className="ui-stack">
               <ValueRow
-                label="Active Recovery Model"
+                label="Recovery Model"
                 value={recovery_context.active_recovery_model}
               />
               <ValueRow
-                label="Labour Share"
-                value={format_percent(recovery_context.labour_share_percent)}
+                label="Activity Driver"
+                value={`${recovery_context.activity_driver_label || "Driver"} (${format_number(
+                  recovery_context.activity_driver_value
+                )})`}
               />
               <ValueRow
-                label="Asset Share"
-                value={format_percent(recovery_context.asset_share_percent)}
+                label="Plan Target Per Driver"
+                value={format_currency(
+                  recovery_context.recovery_plan_target_per_driver
+                )}
               />
               <ValueRow
-                label="Overhead Share"
-                value={format_percent(recovery_context.overhead_share_percent)}
+                label="Required Recovery Per Driver"
+                value={format_currency(
+                  recovery_context.required_recovery_per_driver
+                )}
               />
               <ValueRow
-                label="Required Labour Recovery Rate"
-                value={format_currency(recovery_context.required_labour_recovery_rate)}
+                label="Current Margin Per Driver"
+                value={format_currency(
+                  recovery_context.current_margin_per_driver
+                )}
               />
               <ValueRow
-                label="Required Asset Recovery"
-                value={format_currency(recovery_context.required_asset_recovery)}
+                label="Recovery Gap Per Driver"
+                value={format_currency(recovery_context.recovery_gap_per_driver)}
+              />
+              <ValueRow
+                label="Margin Pool"
+                value={format_currency(recovery_context.margin_pool)}
+              />
+              <ValueRow
+                label="Total Cost Burden"
+                value={format_currency(recovery_context.total_cost_burden)}
+              />
+              <ValueRow
+                label="Net Position"
+                value={format_currency(recovery_context.net_position)}
               />
             </div>
           </div>
 
           <div>
-            <p className="ui-kicker">Recovery streams</p>
+            <p className="ui-kicker">Recovery split</p>
             <div className="ui-stack">
-              {recovery_streams.length === 0 ? (
-                <div className="ui-readonly">
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    No recovery streams available yet.
-                  </div>
-                </div>
-              ) : (
-                recovery_streams.map((stream) => (
-                  <div key={stream.stream_key} className="ui-readonly">
-                    <span className="ui-label">{stream.stream_name}</span>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">
-                      {format_currency(stream.contribution_value)}
-                    </div>
-                    <div className="text-xs text-[var(--text-secondary)]">
-                      {format_percent(stream.contribution_percent)} of total recovery
-                    </div>
-                  </div>
-                ))
-              )}
+              <ValueRow
+                label="Labour Share"
+                value={format_percent(split.labour_share_percent)}
+              />
+              <ValueRow
+                label="Asset Share"
+                value={format_percent(split.asset_share_percent)}
+              />
+              <ValueRow
+                label="Overhead Share"
+                value={format_percent(split.overhead_share_percent)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="ui-kicker">Component recovery requirement</p>
+            <div className="ui-stack">
+              <ValueRow
+                label="Labour Recovery Cost"
+                value={format_currency(component_recovery.labour?.recovery_cost)}
+              />
+              <ValueRow
+                label="Required Labour Recovery Rate"
+                value={format_currency(
+                  component_recovery.labour?.required_recovery_rate
+                )}
+              />
+              <ValueRow
+                label="Asset Recovery Cost"
+                value={format_currency(component_recovery.asset?.recovery_cost)}
+              />
+              <ValueRow
+                label="Required Asset Recovery"
+                value={format_currency(component_recovery.asset?.required_recovery)}
+              />
+              <ValueRow
+                label="Overhead Absorbed Cost"
+                value={format_currency(component_recovery.overhead?.recovery_cost)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="ui-kicker">Allocation / dependency context</p>
+            <div className="ui-stack">
+              <ValueRow
+                label="Allocation Status"
+                value={allocation_context.allocation_status || "unknown"}
+              />
+              <ValueRow
+                label="Dependency Type"
+                value={allocation_context.allocation_dependency_type || "unknown"}
+              />
+              <ValueRow
+                label="External Delivery Enabled"
+                value={allocation_context.external_delivery_enabled ? "Yes" : "No"}
+              />
+              <ValueRow
+                label="External Delivery Required"
+                value={allocation_context.external_delivery_required ? "Yes" : "No"}
+              />
+              <ValueRow
+                label="Internal Capacity Shortfall"
+                value={format_currency(
+                  allocation_context.internal_capacity_shortfall
+                )}
+              />
             </div>
           </div>
 
@@ -153,85 +250,37 @@ export default function RecoveryOutcomeMainCard({
             <div className="ui-stack">
               <ValueRow
                 label="Structure Valid"
-                value={structure_summary.structure_valid ? "Yes" : "No"}
+                value={allocation_context.structure_valid ? "Yes" : "No"}
               />
               <ValueRow
                 label="Staff Coverage"
-                value={format_percent(structure_summary.staff_coverage_percent)}
+                value={format_percent(allocation_context.staff_coverage_percent)}
               />
               <ValueRow
                 label="Asset Coverage"
-                value={format_percent(structure_summary.asset_coverage_percent)}
+                value={format_percent(allocation_context.asset_coverage_percent)}
               />
               <ValueRow
                 label="Group Coverage"
-                value={format_percent(structure_summary.group_coverage_percent)}
+                value={format_percent(allocation_context.group_coverage_percent)}
               />
               <ValueRow
                 label="Linked Staff / Unlinked Staff"
-                value={`${structure_summary.linked_staff_count || 0} / ${
-                  structure_summary.unlinked_staff_count || 0
+                value={`${allocation_context.linked_staff_count || 0} / ${
+                  allocation_context.unlinked_staff_count || 0
                 }`}
               />
               <ValueRow
                 label="Linked Assets / Unlinked Assets"
-                value={`${structure_summary.linked_asset_count || 0} / ${
-                  structure_summary.unlinked_asset_count || 0
+                value={`${allocation_context.linked_asset_count || 0} / ${
+                  allocation_context.unlinked_asset_count || 0
                 }`}
               />
               <ValueRow
                 label="Valid Groups / Invalid Groups"
-                value={`${structure_summary.valid_operational_groups || 0} / ${
-                  structure_summary.invalid_operational_groups || 0
+                value={`${allocation_context.valid_operational_groups || 0} / ${
+                  allocation_context.invalid_operational_groups || 0
                 }`}
-              />
-            </div>
-          </div>
-
-          <div>
-            <p className="ui-kicker">Macro driver</p>
-            <div className="ui-stack">
-              <ValueRow
-                label="Dominant Recovery Stream"
-                value={
-                  macro_driver.dominant_recovery_stream
-                    ? `${macro_driver.dominant_recovery_stream} (${format_percent(
-                        macro_driver.dominant_recovery_share_percent
-                      )})`
-                    : "None"
-                }
-              />
-              <ValueRow
-                label="Primary Constraint"
-                value={macro_driver.primary_constraint_title}
-              />
-              <div className="ui-readonly">
-                <span className="ui-label">Constraint message</span>
-                <div className="text-sm text-[var(--text-primary)]">
-                  {macro_driver.primary_constraint_message}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <p className="ui-kicker">Macro totals</p>
-            <div className="ui-stack">
-              <ValueRow
-                label="Total Recovery Actual"
-                value={format_currency(totals.total_recovery_actual)}
-              />
-              <ValueRow
-                label="Recovery Gap"
-                value={format_currency(totals.recovery_gap)}
-              />
-              <ValueRow
-                label="Recovery Gap %"
-                value={format_percent(totals.recovery_gap_percent)}
-              />
-              <ValueRow
-                label="Business Model Health"
-                value={totals.business_model_health}
               />
             </div>
           </div>
@@ -242,14 +291,12 @@ export default function RecoveryOutcomeMainCard({
               {warnings.length === 0 ? (
                 <div className="ui-readonly">
                   <div className="text-sm text-[var(--text-secondary)]">
-                    No warnings at the moment.
+                    No outcome warnings.
                   </div>
                 </div>
               ) : (
                 warnings.map((warning, index) => (
-                  <div key={`${warning}-${index}`} className="ui-readonly">
-                    <div className="text-sm text-[var(--text-primary)]">{warning}</div>
-                  </div>
+                  <WarningRow key={`${warning?.warning_key || "warning"}-${index}`} warning={warning} />
                 ))
               )}
             </div>

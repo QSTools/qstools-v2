@@ -4,8 +4,6 @@ import { useMemo } from "react";
 
 import { useLabour } from "@/hooks/useLabour";
 import useAssets from "@/hooks/useAssets";
-import useGeneralOverheads from "@/hooks/useGeneralOverheads";
-import useCostSummary from "@/hooks/useCostSummary";
 import useRecoverySummary from "@/hooks/useRecoverySummary";
 
 import {
@@ -19,20 +17,15 @@ import {
 import { useCostAllocationStorage } from "@/lib/storage/costAllocationStorage";
 import { useCostAllocationProfileStorage } from "@/lib/storage/costAllocationProfileStorage";
 
-export default function useCostAllocation() {
+export default function useCostAllocation(inputs = {}) {
     const labour = useLabour();
     const assets = useAssets();
-    const general_overheads = useGeneralOverheads();
 
-    const cost_summary = useCostSummary({
-        labour,
-        assets,
-        general_overheads,
-    });
-
-    const recovery_summary = useRecoverySummary({
-        cost_summary: cost_summary?.output_contract ?? {},
-    });
+    const fallback_recovery_summary = useRecoverySummary();
+    const recovery_summary =
+        inputs.recovery_summary ??
+        fallback_recovery_summary?.output_contract ??
+        {};
 
     const {
         state,
@@ -146,7 +139,14 @@ export default function useCostAllocation() {
     };
 
     const output_contract = {
+        allocation_status: calculated.allocation_status,
+        allocation_dependency_type: calculated.allocation_dependency_type,
+        allocation_warnings: calculated.allocation_warnings,
         active_recovery_model: calculated.active_recovery_model,
+        recovery_plan_target_per_driver:
+            calculated.recovery_plan_target_per_driver,
+        recovery_plan_split: calculated.recovery_plan_split,
+        component_required_recovery: calculated.component_required_recovery,
         active_allocation_profile_id: calculated.active_allocation_profile_id,
         active_asset_labour_links: calculated.active_asset_labour_links,
         active_operational_groups: calculated.active_operational_groups,
@@ -164,6 +164,9 @@ export default function useCostAllocation() {
         staff_coverage_percent: calculated.staff_coverage_percent,
         asset_coverage_percent: calculated.asset_coverage_percent,
         group_coverage_percent: calculated.group_coverage_percent,
+        external_delivery_enabled: calculated.external_delivery_enabled,
+        external_delivery_required: calculated.external_delivery_required,
+        internal_capacity_shortfall: calculated.internal_capacity_shortfall,
     };
 
     return {
