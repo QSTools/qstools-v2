@@ -5,7 +5,6 @@ import CollapsibleSection from "@/components/common/CollapsibleSection";
 import SetupNextButton from "@/components/common/SetupNextButton";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
-import ProfitAndLossAwarenessPanel from "@/components/p-and-l/ProfitAndLossAwarenessPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
@@ -61,8 +60,8 @@ function SavedPnlProfilesPanel({
     >
       <div className="ui-panel ui-stack-sm">
         <p className="ui-help">
-          Load a previously saved P&amp;L before continuing into General
-          Overheads.
+          Load a previously saved P&amp;L profile if you need to review,
+          compare, or restore a previous setup.
         </p>
 
         <div className="ui-actions">
@@ -117,6 +116,44 @@ function SavedPnlProfilesPanel({
   );
 }
 
+function UnassignedLineCard({ line }) {
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div>
+        <strong>Section:</strong> {line.section}
+      </div>
+      <div>
+        <strong>Line Name:</strong> {line.line_name}
+      </div>
+      <div>
+        <strong>Amount:</strong> {line.amount}
+      </div>
+      <div>
+        <strong>Current Category:</strong> {line.current_category}
+      </div>
+      <div>
+        <strong>Suggested Action:</strong> {line.suggested_action}
+      </div>
+    </div>
+  );
+}
+
+function UnassignedLineGroup({ title, lines = [] }) {
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="ui-stack-sm">
+      <div className="ui-label">{title}</div>
+
+      <div className="ui-stack-sm">
+        {lines.map((line, index) => (
+          <UnassignedLineCard key={index} line={line} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SummaryPanel({
   summary,
   warnings = [],
@@ -128,6 +165,11 @@ function SummaryPanel({
 }) {
   const can_continue_to_overheads =
     summary.pnl_ready === "Ready" && warnings.length === 0;
+
+  const has_unassigned_details =
+    unassigned_details.accounting_adjustments?.length > 0 ||
+    unassigned_details.unassigned_operating_expenses?.length > 0 ||
+    unassigned_details.other_unassigned_lines?.length > 0;
 
   return (
     <CollapsibleSection
@@ -171,7 +213,8 @@ function SummaryPanel({
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">QS Benchmark View</div>
+          <div className="ui-kicker">Mirra Benchmark View</div>
+
           <p className="ui-help">
             These are the P&amp;L benchmark totals used to check Labour, Assets,
             and General Overheads later.
@@ -179,6 +222,7 @@ function SummaryPanel({
 
           <div className="labour-summary-table">
             <SummaryRow label="Revenue" value={summary.total_revenue} />
+
             {(summary.direct_cost_category_totals ?? []).map((category) => (
               <SummaryRow
                 key={category.category_id}
@@ -186,6 +230,7 @@ function SummaryPanel({
                 value={category.formatted_total}
               />
             ))}
+
             <SummaryRow label="Total COGS" value={summary.total_cogs} total />
 
             <div className="labour-summary-table-spacer" />
@@ -216,9 +261,10 @@ function SummaryPanel({
 
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Assignment Check</div>
+
           <p className="ui-help">
             This shows whether the business costs from your P&amp;L have been
-            assigned into the QS Tools setup buckets.
+            assigned into the Mirra setup buckets.
           </p>
 
           <div className="labour-summary-table">
@@ -255,67 +301,32 @@ function SummaryPanel({
           )}
         </div>
 
-        {(unassigned_details.accounting_adjustments?.length > 0 ||
-          unassigned_details.unassigned_operating_expenses?.length > 0 ||
-          unassigned_details.other_unassigned_lines?.length > 0) && (
+        {has_unassigned_details ? (
           <div className="ui-panel ui-stack-sm theme-warn-soft">
-            <div className="ui-kicker theme-warn">Unassigned Costs Requiring Review</div>
+            <div className="ui-kicker theme-warn">
+              Unassigned Costs Requiring Review
+            </div>
 
-            {unassigned_details.accounting_adjustments?.length > 0 && (
-              <div className="ui-stack-sm">
-                <div className="ui-label">Accounting Adjustments Requiring Review</div>
-                <div className="ui-stack-sm">
-                  {unassigned_details.accounting_adjustments.map((line, index) => (
-                    <div key={index} className="ui-panel ui-stack-sm">
-                      <div><strong>Section:</strong> {line.section}</div>
-                      <div><strong>Line Name:</strong> {line.line_name}</div>
-                      <div><strong>Amount:</strong> {line.amount}</div>
-                      <div><strong>Current Category:</strong> {line.current_category}</div>
-                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <UnassignedLineGroup
+              title="Accounting Adjustments Requiring Review"
+              lines={unassigned_details.accounting_adjustments}
+            />
 
-            {unassigned_details.unassigned_operating_expenses?.length > 0 && (
-              <div className="ui-stack-sm">
-                <div className="ui-label">Unassigned Operating Expenses</div>
-                <div className="ui-stack-sm">
-                  {unassigned_details.unassigned_operating_expenses.map((line, index) => (
-                    <div key={index} className="ui-panel ui-stack-sm">
-                      <div><strong>Section:</strong> {line.section}</div>
-                      <div><strong>Line Name:</strong> {line.line_name}</div>
-                      <div><strong>Amount:</strong> {line.amount}</div>
-                      <div><strong>Current Category:</strong> {line.current_category}</div>
-                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <UnassignedLineGroup
+              title="Unassigned Operating Expenses"
+              lines={unassigned_details.unassigned_operating_expenses}
+            />
 
-            {unassigned_details.other_unassigned_lines?.length > 0 && (
-              <div className="ui-stack-sm">
-                <div className="ui-label">Other Unassigned Lines</div>
-                <div className="ui-stack-sm">
-                  {unassigned_details.other_unassigned_lines.map((line, index) => (
-                    <div key={index} className="ui-panel ui-stack-sm">
-                      <div><strong>Section:</strong> {line.section}</div>
-                      <div><strong>Line Name:</strong> {line.line_name}</div>
-                      <div><strong>Amount:</strong> {line.amount}</div>
-                      <div><strong>Current Category:</strong> {line.current_category}</div>
-                      <div><strong>Suggested Action:</strong> {line.suggested_action}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <UnassignedLineGroup
+              title="Other Unassigned Lines"
+              lines={unassigned_details.other_unassigned_lines}
+            />
           </div>
-        )}
+        ) : null}
 
         <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Save</div>
+
           <p className="ui-help">
             Save this P&amp;L after checking the totals against your actual
             accounting P&amp;L.
@@ -379,16 +390,6 @@ export default function ProfitAndLossMainCard({
 
         <ProfitAndLossPeriodPanel state={state} actions={actions} />
 
-        <SavedPnlProfilesPanel
-          profiles={profiles}
-          show_saved_snapshots={show_saved_snapshots}
-          on_toggle_saved_snapshots={actions.on_toggle_saved_snapshots}
-          on_load={actions.on_load}
-          on_delete={actions.on_delete}
-        />
-
-        <ProfitAndLossAwarenessPanel />
-
         <ProfitAndLossSectionBlock
           section="trading_income"
           state={state}
@@ -429,6 +430,14 @@ export default function ProfitAndLossMainCard({
           on_save={actions.on_save}
           on_continue_to_overheads={handle_continue_to_overheads}
           gating_enabled={SETUP_NAV_GATING_ENABLED}
+        />
+
+        <SavedPnlProfilesPanel
+          profiles={profiles}
+          show_saved_snapshots={show_saved_snapshots}
+          on_toggle_saved_snapshots={actions.on_toggle_saved_snapshots}
+          on_load={actions.on_load}
+          on_delete={actions.on_delete}
         />
       </div>
     </section>
