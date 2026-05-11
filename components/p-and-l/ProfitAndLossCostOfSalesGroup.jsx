@@ -15,6 +15,20 @@ export default function ProfitAndLossCostOfSalesGroup({
 }) {
   const subtotal = get_line_amount_total(group.lines);
   const line_label = group.lines.length === 1 ? "line" : "lines";
+  const can_delete_category = group.is_custom && group.lines.length === 0;
+
+  function handle_delete_category() {
+    if (!can_delete_category) return;
+
+    const next_categories = (state.direct_cost_categories ?? []).filter(
+      (category) => category.category_id !== group.group_key,
+    );
+
+    actions.update_profit_and_loss_field(
+      "direct_cost_categories",
+      next_categories,
+    );
+  }
 
   return (
     <CollapsibleSection
@@ -24,8 +38,35 @@ export default function ProfitAndLossCostOfSalesGroup({
     >
       <div className="ui-stack-sm">
         <div className="ui-panel ui-stack-sm">
-          <span className="ui-label">{group.title}</span>
-          <p className="ui-help">{group.help}</p>
+          <div className="ui-row-between">
+            <div className="ui-stack-sm">
+              <span className="ui-label">{group.title}</span>
+              <p className="ui-help">{group.help}</p>
+            </div>
+
+            {group.is_custom ? (
+              <button
+                type="button"
+                className="ui-button-secondary"
+                onClick={handle_delete_category}
+                disabled={!can_delete_category}
+                title={
+                  can_delete_category
+                    ? "Delete this custom category"
+                    : "Move or remove all lines before deleting this category"
+                }
+              >
+                Delete Category
+              </button>
+            ) : null}
+          </div>
+
+          {group.is_custom && !can_delete_category ? (
+            <p className="ui-help">
+              This custom category cannot be deleted while it still contains
+              lines. Move those lines to another Cost of Sales category first.
+            </p>
+          ) : null}
         </div>
 
         {group.lines.map((line) => (

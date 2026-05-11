@@ -167,22 +167,24 @@ export default function ProfitAndLossSectionBlock({
       defaultOpen={get_section_default_open(section)}
     >
       <div className="ui-stack">
-        <div className="ui-actions">
+        <div className="ui-actions pnl-section-actions">
           <div className="ui-stack-sm">
             <span className="ui-kicker">{title}</span>
           </div>
 
-          <button
-            type="button"
-            className="ui-button-secondary"
-            onClick={() => actions.add_pnl_line(section)}
-          >
-            Add Custom Line
-          </button>
+          {section !== "cost_of_sales" ? (
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => actions.add_pnl_line(section)}
+            >
+              Add Custom Line
+            </button>
+          ) : null}
         </div>
 
         {section === "cost_of_sales" ? (
-          <div className="ui-panel ui-stack-sm">
+          <div className="ui-panel ui-stack-sm pnl-guidance-panel">
             <div className="ui-label">Direct cost classification</div>
             <div className="ui-help">
               Start with the main Cost of Sales categories. Open a category only
@@ -196,7 +198,7 @@ export default function ProfitAndLossSectionBlock({
         ) : null}
 
         {section === "operating_expenses" ? (
-          <div className="ui-panel ui-stack-sm">
+          <div className="ui-panel ui-stack-sm pnl-guidance-panel">
             <div className="ui-label">Important</div>
             <div className="ui-help">
               This is the most important classification section on the page.
@@ -242,6 +244,30 @@ export default function ProfitAndLossSectionBlock({
               state={state}
               actions={actions}
             />
+
+            <div className="ui-panel ui-stack-sm pnl-action-panel">
+              <div>
+                <span className="ui-label">Add a Cost of Sales line</span>
+                <p className="ui-help">
+                  Add a new Cost of Sales line when the P&amp;L has a direct
+                  cost that is missing from the imported or entered list.
+                </p>
+                <p className="ui-help">
+                  After adding the line, open the relevant category above and
+                  classify it into the correct Cost of Sales group.
+                </p>
+              </div>
+
+              <div className="ui-actions">
+                <button
+                  type="button"
+                  className="ui-button-secondary"
+                  onClick={() => actions.add_pnl_line(section)}
+                >
+                  Add Custom Line
+                </button>
+              </div>
+            </div>
           </div>
         ) : section === "operating_expenses" ? (
           <div className="ui-stack-sm">
@@ -274,17 +300,19 @@ export default function ProfitAndLossSectionBlock({
           </div>
         )}
 
-        <div className="ui-actions justify-end">
-          <button
-            type="button"
-            className="ui-button-secondary"
-            onClick={() => actions.add_pnl_line(section)}
-          >
-            Add Custom Line
-          </button>
-        </div>
+        {section !== "cost_of_sales" ? (
+          <div className="ui-actions justify-end">
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => actions.add_pnl_line(section)}
+            >
+              Add Custom Line
+            </button>
+          </div>
+        ) : null}
 
-        <div className="ui-panel ui-stack-sm">
+        <div className="ui-panel ui-stack-sm pnl-summary-panel pnl-summary-panel--total">
           <span className="ui-label">{subtotal_label}</span>
           <div>{subtotal_value}</div>
         </div>
