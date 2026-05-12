@@ -39,13 +39,13 @@ function get_section_title(section) {
 function get_section_help(section) {
   switch (section) {
     case "trading_income":
-      return "Enter income lines as they appear on your P&L.";
+      return "Enter income lines";
     case "cost_of_sales":
-      return "Classify the costs directly attached to producing, buying, or delivering what you sell.";
+      return "Classify direct costs";
     case "other_income":
-      return "Enter any non-trading income shown on the P&L.";
+      return "Enter non-trading income";
     case "operating_expenses":
-      return "Classify costs to drive Labour, Assets, and General Overheads setup.";
+      return "Classify business costs";
     default:
       return "";
   }

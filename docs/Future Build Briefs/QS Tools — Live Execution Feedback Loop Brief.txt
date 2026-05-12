@@ -1,0 +1,1279 @@
+# QS Tools — Live Execution Feedback Loop Brief
+
+## v1.0 — PURCHASE ORDERS, TIME TRACKING, POS DATA & REALITY BACKFEED
+
+**STATUS:** DRAFT SOURCE BRIEF
+**ROLE:** Future build layer
+**POSITION:** Business Model → Execution Tracking → Dashboard / Outcome → Model Improvement
+**PRODUCT IDENTITY:** Digital CFO / user-controlled decision system
+
+---
+
+## 1. PURPOSE
+
+This brief defines the next major layer of QS Tools:
+
+**the live execution feedback layer.**
+
+This layer connects the planned business model to real-world activity as it happens.
+
+It allows QS Tools to compare:
+
+```text
+What we thought would happen
+vs
+What is actually happening
+```
+
+The purpose is not to replace job management, inventory, POS, accounting, or user judgement.
+
+The purpose is to create a live financial control layer that feeds reality back into the model.
+
+---
+
+## 2. CORE PRODUCT PRINCIPLE
+
+QS Tools is a **Digital CFO**.
+
+It does not run the business.
+
+It does not make autonomous decisions.
+
+It does not remove control from the user.
+
+It exists to show:
+
+```text
+If you do this, this is what happens to your business.
+```
+
+The system must:
+
+* observe reality
+* compare it to the model
+* show variance
+* explain impact
+* suggest possible action
+
+The user must always decide.
+
+---
+
+## 3. THE NEW LOOP
+
+The original system already had a planning loop:
+
+```text
+Business Setup
+→ Cost Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Recovery Outcome
+```
+
+That shows whether the business model works.
+
+The new layer adds execution reality:
+
+```text
+Model
+→ Plan
+→ Execute
+→ Track
+→ Compare
+→ Learn
+→ Adjust Model
+```
+
+This turns QS Tools from a static planning system into a live operating system.
+
+---
+
+## 4. TWO FEEDBACK LOOPS
+
+There are now two loops.
+
+---
+
+### A. Fast Loop — Live Control
+
+This happens during the job, day, week, or trading period.
+
+It answers:
+
+```text
+Are we on track right now?
+```
+
+Examples:
+
+* This purchase order pushes concrete over budget.
+* This job has used 80% of labour allowance.
+* This product group is under margin this week.
+* This stock category is tying up too much capital.
+
+The fast loop is about control.
+
+---
+
+### B. Slow Loop — Model Learning
+
+This happens over multiple jobs, products, or periods.
+
+It answers:
+
+```text
+Is our model wrong?
+```
+
+Examples:
+
+* Concrete is consistently 12% under allowance.
+* Framing labour is consistently 8% over.
+* Coffee margin is consistently below target.
+* Food stock is consistently slower moving than expected.
+
+The slow loop is about improving the assumptions.
+
+---
+
+## 5. SYSTEM POSITION
+
+The live execution layer sits after the planning/model layers and before final insight.
+
+Recommended conceptual flow:
+
+```text
+Business Model
+↓
+Quote / Product Model / Scenario
+↓
+Live Execution Layer
+↓
+Dashboard
+↓
+Outcome / Feedback
+↓
+Model Adjustment
+```
+
+It does not replace existing modules.
+
+It backfeeds them.
+
+---
+
+## 6. BUSINESS TYPE SPLIT
+
+The execution layer must support two operating modes:
+
+```text
+Job Mode
+Flow Mode
+```
+
+---
+
+## 7. JOB MODE — SERVICE / TRADE / BUILDER BUSINESS
+
+Job Mode applies to:
+
+* builders
+* trades
+* contractors
+* mechanics
+* service businesses
+* project-based businesses
+
+These businesses operate around jobs.
+
+Reality is captured through:
+
+* time tracking
+* purchase orders
+* job costs
+* contract vs variation tracking
+
+---
+
+## 8. JOB MODE CORE QUESTION
+
+Job Mode answers:
+
+```text
+What happened on this job compared with what we allowed?
+```
+
+---
+
+## 9. JOB MODE CORE DATA
+
+Each job should have:
+
+* job_id
+* quote_id or accepted_quote_snapshot_id
+* job name
+* contract value
+* budgeted labour
+* budgeted materials
+* budgeted categories
+* accepted quote assumptions
+* contract allowances
+* variation allowances
+
+---
+
+## 10. JOB MODE TRACKING INPUTS
+
+Job Mode should capture:
+
+### Labour
+
+* person
+* job
+* date
+* start time
+* finish time
+* total hours
+* optional task/category
+
+### Purchase Orders
+
+* job
+* supplier
+* category
+* quantity
+* unit
+* cost
+* contract or variation classification
+
+### Optional Later Inputs
+
+* supplier invoices
+* delivery dockets
+* subcontractor claims
+* progress claims
+* job completion percentage
+
+---
+
+## 11. CONTRACT VS VARIATION RULE
+
+Every job cost must be clearly classified as either:
+
+```text
+Contract
+Variation
+```
+
+This classification is chosen by the user.
+
+The system must not assume that an over-budget item is a variation.
+
+A cost can be:
+
+* contract and within budget
+* contract and over budget
+* variation and within approved variation budget
+* variation and over variation budget
+
+The classification reflects commercial reality, not system preference.
+
+---
+
+## 12. CONTRACT OVER-BUDGET WARNING
+
+If a user creates a contract purchase order that exceeds the contract allowance, the system must show a clear consequence box.
+
+Example:
+
+```text
+This order puts concrete 10 m³ over the contract allowance.
+
+Impact:
+- Contract quantity exceeded
+- Estimated cost overrun: $X
+- Estimated margin reduction: $Y
+- This is classified as Contract
+- Recovery via variation may not be possible
+```
+
+The system must not block the action.
+
+It must make the consequence visible.
+
+---
+
+## 13. VARIATION RULE
+
+A variation is a controlled expansion of the job budget.
+
+Variation costs must:
+
+* be separate from contract costs
+* increase working budget only if approved
+* remain visible as variation
+* not hide original contract mistakes
+
+The system must always preserve two views:
+
+```text
+Original Contract Position
+Working Position Including Variations
+```
+
+---
+
+## 14. LIVE JOB POSITION
+
+For each tracked category, the system should show:
+
+```text
+Budgeted
+Committed
+Actual
+Remaining
+Variance
+Impact
+```
+
+Example:
+
+```text
+Concrete
+Budgeted: 100 m³
+Committed: 80 m³
+Remaining: 20 m³
+```
+
+If the next PO adds 30 m³:
+
+```text
+New committed: 110 m³
+Over budget: 10 m³
+Margin impact: $X
+```
+
+---
+
+## 15. JOB MODE INSIGHT
+
+The system should not only identify losses.
+
+It must also identify over-allowance.
+
+Example:
+
+```text
+Concrete allowed: 100 m³
+Concrete used: 80 m³
+Variance: 20 m³ under
+```
+
+This may mean:
+
+* the job made extra margin
+* the quote was too conservative
+* the business may be losing competitiveness
+* the quote variable may need adjustment
+
+Being under budget is not automatically “good”.
+
+It may expose pricing inefficiency.
+
+---
+
+## 16. QUOTE ASSUMPTION FEEDBACK
+
+The live execution layer must connect back to quote assumptions.
+
+Example:
+
+A quoting variable says:
+
+```text
+Excavated footings require 15% extra concrete
+```
+
+After multiple jobs, the system may find:
+
+```text
+Actual uplift averages 8%
+```
+
+The system should then suggest:
+
+```text
+Your excavation concrete allowance may be too high.
+Consider reviewing this variable.
+```
+
+The system must not automatically change the variable.
+
+The user decides.
+
+---
+
+## 17. MODEL UPDATE CONTROL RULE
+
+The model must never update automatically from a single job.
+
+Execution data must feed a learning pool.
+
+The system may suggest model updates only when there is enough evidence.
+
+Correct behaviour:
+
+```text
+Data comes in
+→ pattern forms
+→ system suggests
+→ user approves
+→ model changes
+```
+
+Incorrect behaviour:
+
+```text
+Data comes in
+→ model changes automatically
+```
+
+One bad job must not corrupt the model.
+
+---
+
+## 18. FLOW MODE — PRODUCT BUSINESS
+
+Flow Mode applies to:
+
+* cafés
+* retail
+* e-commerce
+* product businesses
+* manufacturing-style businesses
+* businesses where output is sold as units
+
+These businesses do not operate primarily around jobs.
+
+They operate around product flow.
+
+Reality is captured through:
+
+* POS sales
+* product / SKU data
+* stock movement signals
+* purchase / cost information
+* product group performance
+
+---
+
+## 19. FLOW MODE CORE QUESTION
+
+Flow Mode answers:
+
+```text
+Is the product mix performing against the model?
+```
+
+Not:
+
+```text
+What happened on this job?
+```
+
+---
+
+## 20. FLOW MODE DATA SOURCES
+
+The system should not become a POS or inventory system.
+
+It should sit above existing systems.
+
+Possible sources:
+
+* Shopify POS
+* Square
+* Lightspeed
+* Vend / Lightspeed Retail
+* Xero inventory where available
+* CSV exports
+* API integrations later
+
+The product system remains the source of operational truth.
+
+QS Tools reads and interprets the data.
+
+---
+
+## 21. FLOW MODE CORE INPUTS
+
+Minimum useful inputs:
+
+* SKU / product ID
+* product name
+* quantity sold
+* revenue
+* product group
+* expected cost
+* expected margin
+* period
+
+Optional later inputs:
+
+* stock on hand
+* purchases
+* average cost
+* gross margin
+* discounts
+* wastage
+* stock turn
+* days inventory on hand
+
+---
+
+## 22. PRODUCT GROUPING RULE
+
+Flow Mode must not require heavy manual categorisation.
+
+Use broad product groups.
+
+Example for café:
+
+* Coffee
+* Food
+* Drinks
+* Other
+
+Example for retail:
+
+* Apparel
+* Accessories
+* Hardware
+* Consumables
+* Other
+
+The group is for macro insight only.
+
+SKU-level detail is used for drilldown, not default display.
+
+---
+
+## 23. SKU RULE
+
+In product businesses:
+
+```text
+SKU = product line item
+```
+
+This is equivalent to a quote line item in Job Mode.
+
+Builder:
+
+```text
+Concrete
+Timber
+Labour
+Subcontractor
+```
+
+Product business:
+
+```text
+SKU001
+SKU002
+SKU003
+```
+
+Both are measurable items against an assumption.
+
+---
+
+## 24. FLOW MODE IS NOT INVENTORY MANAGEMENT
+
+QS Tools may hold inventory-like data.
+
+But it must not become an inventory system.
+
+Inventory system:
+
+* manages stock
+* controls quantities
+* handles reorders
+* owns operational stock truth
+
+QS Tools:
+
+* reads product and stock signals
+* compares performance against assumptions
+* explains commercial impact
+
+Correct framing:
+
+```text
+Inventory system = what exists
+POS = what sold
+Xero = what happened financially
+QS Tools = what it means
+```
+
+---
+
+## 25. FLOW MODE MACRO VIEW
+
+The user should not see every SKU first.
+
+Default view should show:
+
+* total sales
+* total cost estimate
+* total margin
+* product group performance
+* underperforming groups
+* high-risk stock signals
+* margin drift
+
+Then allow drilldown into:
+
+* group
+* SKU
+* period
+
+---
+
+## 26. PRODUCT BUSINESS LEARNING LOOP
+
+Example:
+
+Initial model:
+
+```text
+Coffee expected margin = $0.70 per cup
+```
+
+Reality:
+
+```text
+Average actual margin = $0.58 per cup
+```
+
+System response:
+
+```text
+Coffee margin is consistently below target.
+Review price, cost, wastage, or product mix.
+```
+
+The system does not automatically update the model.
+
+The user decides.
+
+---
+
+## 27. MARKET RATE TESTING
+
+The system must support market-rate testing.
+
+This applies to both service and product businesses.
+
+Examples:
+
+```text
+Concrete laying market rate = $X per m²
+Coffee market price = $Y per cup
+```
+
+The system should answer:
+
+```text
+Can this business operate sustainably at that rate?
+```
+
+This is not price setting.
+
+It is viability testing.
+
+---
+
+## 28. MARKET RATE POSITIONING RULE
+
+QS Tools must not tell the market what to charge.
+
+It must not coordinate prices.
+
+It must not encourage price fixing.
+
+It must show:
+
+```text
+At this price, given your business model, this works / does not work.
+```
+
+Correct framing:
+
+```text
+We do not set the market.
+We test whether your business can survive inside it.
+```
+
+---
+
+## 29. PRODUCT MIX CHECKER
+
+For product businesses, viability is not based on one product.
+
+It is based on product mix.
+
+The system must not simply say:
+
+```text
+You need to sell 1,000 coffees.
+```
+
+Instead, it should evaluate:
+
+```text
+Given this product mix, does the total margin carry the business?
+```
+
+Example:
+
+```text
+Coffee
+Food
+Drinks
+Other
+```
+
+Together they must produce enough margin and recovery.
+
+---
+
+## 30. QUOTE CHECKER EVOLUTION
+
+The existing “quote checker” concept should evolve into a broader:
+
+```text
+Viability Checker
+```
+
+It can test:
+
+* a building quote
+* a service job
+* a product batch
+* a product mix
+* a market rate
+* a pricing scenario
+
+Core question:
+
+```text
+Does this scenario align with the business model?
+```
+
+---
+
+## 31. DASHBOARD ROLE
+
+The homepage/dashboard becomes the Digital CFO view.
+
+It should show:
+
+* are we on track?
+* where are the leaks?
+* what is drifting?
+* what needs attention?
+* what is the financial consequence?
+
+The dashboard should not be a data table.
+
+It should be a decision surface.
+
+---
+
+## 32. DASHBOARD EXAMPLES
+
+Job Mode:
+
+```text
+Job A: Concrete over allowance by 10 m³
+Margin impact: -$X
+```
+
+```text
+Job B: Labour 75% used, job 50% complete
+Risk: labour overrun likely
+```
+
+Flow Mode:
+
+```text
+Coffee margin below target this week
+```
+
+```text
+Food group slow-moving, capital tied up
+```
+
+```text
+Product mix is not producing required recovery
+```
+
+---
+
+## 33. DIGITAL CFO RULE
+
+The system is not an autonomous agent.
+
+It is a Digital CFO.
+
+It must:
+
+* show truth
+* show consequence
+* suggest action
+* preserve user control
+
+It must not:
+
+* place POs automatically
+* change prices automatically
+* update model variables automatically
+* classify costs without user review where commercial judgement is required
+* remove the user from decision-making
+
+---
+
+## 34. AGENT-LIKE BEHAVIOUR ALLOWED
+
+QS Tools may behave in agent-like ways by:
+
+* observing inputs
+* detecting patterns
+* identifying constraints
+* suggesting actions
+* preparing draft actions
+* producing warnings
+
+But it must stop before autonomous execution.
+
+Correct pattern:
+
+```text
+System observes
+→ System explains
+→ System suggests
+→ User decides
+```
+
+Not:
+
+```text
+System observes
+→ System decides
+→ System acts
+```
+
+---
+
+## 35. USER CONTROL PRINCIPLE
+
+This is non-negotiable:
+
+```text
+The point of the tool is to give the user control.
+It must never take control away at the end.
+```
+
+The system teaches the user what is going wrong, where it is going wrong, and why it is going wrong.
+
+That learning is part of the product.
+
+Full autonomy would break the product.
+
+---
+
+## 36. DATA TRUST RULE
+
+External data sources must be treated as inputs, not unquestioned truth.
+
+Examples:
+
+* POS data may be incomplete
+* stock data may be delayed
+* timesheets may be wrong
+* POs may be misclassified
+* invoices may arrive late
+
+The system should show confidence / completeness where required.
+
+---
+
+## 37. COMMON DATA MODEL PRINCIPLE
+
+Even though Job Mode and Flow Mode capture reality differently, both must feed the same interpretation logic.
+
+Universal pattern:
+
+```text
+Expected
+Actual
+Variance
+Impact
+Learning
+```
+
+Job Mode:
+
+```text
+Quote allowance
+Actual job activity
+Variance
+Margin impact
+Quote assumption learning
+```
+
+Flow Mode:
+
+```text
+Product model
+Actual sales / stock flow
+Variance
+Margin / capital impact
+Product model learning
+```
+
+---
+
+## 38. DO NOT OVERBUILD RULE
+
+The execution layer must not become:
+
+* full job management software
+* full inventory software
+* full POS software
+* full accounting software
+* full project management software
+
+QS Tools should only own critical capture where the market does not provide it well.
+
+Examples:
+
+Own:
+
+* simple job time tracking
+* PO classification
+* contract vs variation context
+* model comparison
+* consequence display
+
+Read from others:
+
+* POS
+* Xero
+* inventory systems
+* supplier systems where possible
+
+---
+
+## 39. INTEGRATION STRATEGY
+
+Start simple.
+
+Preferred stages:
+
+### Stage 1 — Manual / CSV
+
+* import POS summaries
+* import purchase data
+* enter basic job tracking
+* manually classify where needed
+
+### Stage 2 — Structured Imports
+
+* repeatable CSV templates
+* mapped categories
+* saved supplier / SKU / quote item mappings
+
+### Stage 3 — API Integrations
+
+* Xero
+* Shopify
+* Square
+* Lightspeed
+* other systems as needed
+
+### Stage 4 — Smart Mapping
+
+* auto-suggest categories
+* learn mappings
+* flag exceptions
+
+---
+
+## 40. CATEGORY MAPPING STRATEGY
+
+Do not attempt to predefine every trade or business category upfront.
+
+Use staged mapping:
+
+### Initial generic categories
+
+* Labour
+* Materials
+* Subcontract
+* Other
+
+### User adjustment
+
+Users can rename or create broad categories.
+
+### System learning
+
+The system observes repeated mappings.
+
+### Future suggested templates
+
+Possible templates later:
+
+* Builder
+* Plumber
+* Electrician
+* Café
+* Retail
+* Mechanic
+
+The system should earn the right to suggest categories after enough real data exists.
+
+---
+
+## 41. BUILDER CATEGORY EXAMPLE
+
+Recommended broad job buckets:
+
+* Foundations
+* Framing / Structure
+* Exterior / Cladding
+* Interior / Linings
+* Services
+* External Works
+* Other
+
+The principle:
+
+```text
+Track at the level you would change the quote.
+```
+
+Do not track every nail unless the nail category itself changes a decision.
+
+---
+
+## 42. PRODUCT CATEGORY EXAMPLE
+
+Recommended broad product buckets:
+
+* Coffee
+* Food
+* Drinks
+* Merchandise
+* Other
+
+The principle:
+
+```text
+Track at the level you would change pricing, ordering, or assumptions.
+```
+
+Do not show every SKU unless drilling into a problem.
+
+---
+
+## 43. MAPPING RULE
+
+The system should not rely on perfect automatic categorisation from day one.
+
+Correct approach:
+
+```text
+Suggest
+→ User confirms
+→ System remembers
+→ Future imports improve
+```
+
+The system may auto-map high-confidence items, but must allow correction.
+
+---
+
+## 44. EXTERNAL BENCHMARKING FUTURE
+
+Over time, QS Tools may use anonymised aggregated patterns to improve guidance.
+
+Allowed:
+
+* anonymous pattern ranges
+* typical variance signals
+* benchmark-style insights
+* sustainability indicators
+
+Not allowed:
+
+* exposing user data
+* selling user data
+* identifying individual businesses
+* setting market prices
+* coordinating prices
+
+Correct framing:
+
+```text
+We do not share data.
+We share patterns.
+```
+
+---
+
+## 45. BENCHMARKING PURPOSE
+
+The purpose is to help users answer:
+
+```text
+Am I operating sustainably?
+```
+
+Not:
+
+```text
+What should everyone charge?
+```
+
+The system tests the market, but does not set the market.
+
+---
+
+## 46. REQUIRED FUTURE MODULES / LAYERS
+
+This brief implies future modules or pages such as:
+
+### Job Execution Layer
+
+For job/service businesses:
+
+* jobs
+* time tracking
+* POs
+* contract vs variation
+* live budget position
+
+### Product Flow Layer
+
+For product businesses:
+
+* product groups
+* SKU imports
+* sales summaries
+* product mix performance
+* margin drift
+
+### Live Dashboard
+
+For all business types:
+
+* on-track / off-track
+* live warnings
+* key leaks
+* model drift
+* impact summary
+
+### Feedback / Learning Layer
+
+For all business types:
+
+* repeated variance detection
+* assumption review
+* suggested model adjustments
+* user-approved updates
+
+---
+
+## 47. PAGE PLACEMENT
+
+This layer does not replace the current architecture.
+
+It adds live reality between model and outcome.
+
+Conceptual placement:
+
+```text
+Business Setup
+↓
+Cost Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Recovery Outcome
+↓
+Execution Tracking Layer
+↓
+Dashboard / Feedback
+↓
+Business Modelling Adjustment
+```
+
+In practical UX, dashboard may sit at the front as the homepage.
+
+---
+
+## 48. HOMEPAGE ROLE
+
+The homepage should become:
+
+```text
+Digital CFO Dashboard
+```
+
+It should answer in one glance:
+
+```text
+Am I okay?
+Where am I leaking?
+What needs attention?
+What is the impact?
+```
+
+The homepage should not be a menu.
+
+It should be a live financial control surface.
+
+---
+
+## 49. FINAL PRODUCT DEFINITION
+
+QS Tools is becoming:
+
+```text
+A Digital CFO that connects business model, live execution, and real-world feedback so the owner can understand, control, and improve the business.
+```
+
+---
+
+## 50. LOCKED STATEMENT
+
+```text
+The system explains.
+The user decides.
+The business improves.
+```
+
+---
+
+## 51. FINAL ONE-LINE POSITIONING
+
+```text
+QS Tools is a Digital CFO that shows whether your business is working, where it is leaking, and what each decision does to your outcome.
+```

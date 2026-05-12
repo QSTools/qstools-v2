@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import SetupNextButton from "@/components/common/SetupNextButton";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
+import ProfitAndLossProgressPanel from "@/components/p-and-l/ProfitAndLossProgressPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
@@ -388,57 +389,73 @@ export default function ProfitAndLossMainCard({
           on_reset={actions.reset_profit_and_loss_state}
         />
 
-        <ProfitAndLossPeriodPanel state={state} actions={actions} />
+        <div className="pnl-layout">
+          <div className="pnl-layout__main">
+            <div className="pnl-layout__main-stack">
+              <ProfitAndLossPeriodPanel state={state} actions={actions} />
 
-        <ProfitAndLossSectionBlock
-          section="trading_income"
-          state={state}
-          category_options={category_options}
-          actions={actions}
-          summary={summary}
-        />
+              <ProfitAndLossSectionBlock
+                section="trading_income"
+                state={state}
+                category_options={category_options}
+                actions={actions}
+                summary={summary}
+              />
 
-        <ProfitAndLossSectionBlock
-          section="cost_of_sales"
-          state={state}
-          category_options={category_options}
-          actions={actions}
-          summary={summary}
-        />
+              <ProfitAndLossSectionBlock
+                section="cost_of_sales"
+                state={state}
+                category_options={category_options}
+                actions={actions}
+                summary={summary}
+              />
 
-        <ProfitAndLossSectionBlock
-          section="other_income"
-          state={state}
-          category_options={category_options}
-          actions={actions}
-          summary={summary}
-        />
+              <ProfitAndLossSectionBlock
+                section="other_income"
+                state={state}
+                category_options={category_options}
+                actions={actions}
+                summary={summary}
+              />
 
-        <ProfitAndLossSectionBlock
-          section="operating_expenses"
-          state={state}
-          category_options={category_options}
-          actions={actions}
-          summary={summary}
-        />
+              <ProfitAndLossSectionBlock
+                section="operating_expenses"
+                state={state}
+                category_options={category_options}
+                actions={actions}
+                summary={summary}
+              />
 
-        <SummaryPanel
-          summary={summary}
-          warnings={warnings}
-          unassigned_details={unassigned_details}
-          save_message={save_message}
-          on_save={actions.on_save}
-          on_continue_to_overheads={handle_continue_to_overheads}
-          gating_enabled={SETUP_NAV_GATING_ENABLED}
-        />
+              <SummaryPanel
+                summary={summary}
+                warnings={warnings}
+                unassigned_details={unassigned_details}
+                save_message={save_message}
+                on_save={actions.on_save}
+                on_continue_to_overheads={handle_continue_to_overheads}
+                gating_enabled={SETUP_NAV_GATING_ENABLED}
+              />
 
-        <SavedPnlProfilesPanel
-          profiles={profiles}
-          show_saved_snapshots={show_saved_snapshots}
-          on_toggle_saved_snapshots={actions.on_toggle_saved_snapshots}
-          on_load={actions.on_load}
-          on_delete={actions.on_delete}
-        />
+              <SavedPnlProfilesPanel
+                profiles={profiles}
+                show_saved_snapshots={show_saved_snapshots}
+                on_toggle_saved_snapshots={actions.on_toggle_saved_snapshots}
+                on_load={actions.on_load}
+                on_delete={actions.on_delete}
+              />
+            </div>
+          </div>
+
+          <aside className="pnl-layout__rail">
+            <div className="pnl-layout__rail-stack">
+              <ProfitAndLossProgressPanel
+                state={state}
+                summary={summary}
+                warnings={warnings}
+              />
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
   );
