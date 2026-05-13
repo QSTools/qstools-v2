@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   create_empty_general_overhead_state,
   load_general_overhead_state,
@@ -77,9 +77,10 @@ function normalise_interest_treatment(value) {
 
 function create_synced_interest_item(line, amount, index) {
   const interest_treatment = normalise_interest_treatment(
-    line?.interest_treatment,
+    line?.interest_treatment
   );
-  const source_id = line?.pnl_line_id || `${normalise_name(line?.line_name)}-${index}`;
+  const source_id =
+    line?.pnl_line_id || `${normalise_name(line?.line_name)}-${index}`;
 
   return {
     synced_overhead_id: `pnl-interest-${source_id}`,
@@ -101,72 +102,87 @@ function add_overhead_amount(state, key, amount) {
   state[key] = to_number(state[key]) + amount;
 }
 
-function assign_review_subcategory_cost(next_state, review_subcategory, name, amount) {
+function assign_review_subcategory_cost(
+  next_state,
+  review_subcategory,
+  name,
+  amount
+) {
   switch (review_subcategory) {
     case "staff_overheads":
       add_overhead_amount(next_state, "staff_overheads_cost", amount);
       return true;
+
     case "office_admin":
       add_overhead_amount(next_state, "office_admin_cost", amount);
       return true;
+
     case "finance_admin":
       add_overhead_amount(next_state, "accounting_fees", amount);
       return true;
+
     case "finance_interest":
       add_overhead_amount(next_state, "finance_interest_cost", amount);
       return true;
+
     case "insurance_compliance":
       if (
         matches_keywords(name, ["professional indemnity", "indemnity insurance"])
       ) {
-        add_overhead_amount(next_state, "professional_indemnity_insurance", amount);
+        add_overhead_amount(
+          next_state,
+          "professional_indemnity_insurance",
+          amount
+        );
         return true;
       }
+
       if (matches_keywords(name, ["public liability", "liability insurance"])) {
         add_overhead_amount(next_state, "public_liability_insurance", amount);
         return true;
       }
+
       add_overhead_amount(next_state, "insurance_compliance_cost", amount);
       return true;
+
     case "sales_growth":
       if (matches_keywords(name, ["advertising", "marketing"])) {
         add_overhead_amount(next_state, "marketing_cost", amount);
         return true;
       }
+
       add_overhead_amount(next_state, "sales_growth_cost", amount);
       return true;
+
     case "travel":
       add_overhead_amount(next_state, "travel_cost", amount);
       return true;
+
     case "vehicle_running_costs":
-      if (
-        matches_keywords(name, [
-          "fuel",
-          "diesel",
-          "petrol",
-          "motor vehicle",
-          "vehicle",
-          "rego",
-          "registration",
-          "licence",
-          "licences",
-          "license",
-          "licenses",
-          "repair",
-          "repairs",
-          "maintenance",
-          "service",
-          "servicing",
-        ])
-      ) {
-        add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
-      } else {
-        add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
-      }
+      add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
       return true;
+
     default:
       return false;
   }
+}
+
+function build_pnl_sync_signature(pnl_output_contract = {}) {
+  const pnl_lines = Array.isArray(pnl_output_contract?.pnl_lines)
+    ? pnl_output_contract.pnl_lines
+    : [];
+
+  return JSON.stringify(
+    pnl_lines.map((line, index) => ({
+      index,
+      pnl_line_id: line?.pnl_line_id || "",
+      line_name: line?.line_name || "",
+      amount: to_number(line?.amount),
+      category: line?.category || "",
+      review_subcategory: line?.review_subcategory || "",
+      interest_treatment: line?.interest_treatment || "",
+    }))
+  );
 }
 
 function build_general_overheads_from_pnl({
@@ -177,14 +193,44 @@ function build_general_overheads_from_pnl({
     ? pnl_output_contract.pnl_lines
     : [];
 
+  const timestamp = new Date().toISOString();
+
   const next_state = {
     ...create_empty_general_overhead_state(),
+
+    overhead_profile_id:
+      current_overhead_state?.overhead_profile_id ||
+      create_empty_general_overhead_state().overhead_profile_id,
+
+    owner_scope_id: current_overhead_state?.owner_scope_id || "",
+
     overhead_profile_name:
       current_overhead_state?.overhead_profile_name ||
       "General Overheads from P&L",
-    effective_from: current_overhead_state?.effective_from || "",
-    is_active: true,
+
+    profile_version: Number(current_overhead_state?.profile_version || 1),
+
+    effective_from:
+      current_overhead_state?.effective_from ||
+      current_overhead_state?.created_at ||
+      "",
+
+    is_active: current_overhead_state?.is_active !== false,
+
+    created_at: current_overhead_state?.created_at || timestamp,
+    updated_at: timestamp,
+
+    change_reason: current_overhead_state?.change_reason || "",
+    notes: current_overhead_state?.notes || "",
+
     synced_pnl_overhead_items: [],
+
+    custom_overhead_items: Array.isArray(
+      current_overhead_state?.custom_overhead_items
+    )
+      ? current_overhead_state.custom_overhead_items
+      : [],
+
     overhead_category_overrides:
       current_overhead_state?.overhead_category_overrides ?? {},
   };
@@ -224,7 +270,15 @@ function build_general_overheads_from_pnl({
       continue;
     }
 
-    if (review_subcategory && assign_review_subcategory_cost(next_state, review_subcategory, name, amount)) {
+    if (
+      review_subcategory &&
+      assign_review_subcategory_cost(
+        next_state,
+        review_subcategory,
+        name,
+        amount
+      )
+    ) {
       continue;
     }
 
@@ -366,10 +420,7 @@ function build_general_overheads_from_pnl({
       to_number(next_state.other_general_overhead_cost) + amount;
   }
 
-  return {
-    ...next_state,
-    updated_at: new Date().toISOString(),
-  };
+  return next_state;
 }
 
 export default function useGeneralOverheads() {
@@ -381,11 +432,17 @@ export default function useGeneralOverheads() {
 
   const [saved_overheads, set_saved_overheads] = useState([]);
 
+  const last_pnl_sync_signature_ref = useRef("");
+
   const { profit_and_loss_state } = useProfitAndLossStorage();
 
   const pnl_output_contract = useMemo(() => {
     return calculateProfitAndLoss(profit_and_loss_state);
   }, [profit_and_loss_state]);
+
+  const pnl_sync_signature = useMemo(() => {
+    return build_pnl_sync_signature(pnl_output_contract);
+  }, [pnl_output_contract]);
 
   useEffect(() => {
     const loaded_state = load_general_overhead_state();
@@ -399,6 +456,25 @@ export default function useGeneralOverheads() {
     set_saved_overheads(load_saved_overheads());
     set_is_hydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!is_hydrated || !pnl_sync_signature) {
+      return;
+    }
+
+    if (last_pnl_sync_signature_ref.current === pnl_sync_signature) {
+      return;
+    }
+
+    last_pnl_sync_signature_ref.current = pnl_sync_signature;
+
+    set_overhead_state((current) =>
+      build_general_overheads_from_pnl({
+        pnl_output_contract,
+        current_overhead_state: current,
+      })
+    );
+  }, [is_hydrated, pnl_output_contract, pnl_sync_signature]);
 
   useEffect(() => {
     if (!is_hydrated) {
@@ -416,6 +492,7 @@ export default function useGeneralOverheads() {
     const category_totals = build_general_overhead_category_totals(
       calculated.overhead_rows
     );
+
     const has_asset_finance_interest_duplication = calculated.overhead_rows.some(
       (row) =>
         row.contains_asset_finance_interest === true &&
@@ -438,8 +515,7 @@ export default function useGeneralOverheads() {
     set_overhead_state((current) => ({
       ...current,
       [field]: value,
-      overhead_category_overrides:
-        current.overhead_category_overrides ?? {},
+      overhead_category_overrides: current.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -455,10 +531,8 @@ export default function useGeneralOverheads() {
             }
           : item
       ),
-      overhead_category_overrides:
-        current.overhead_category_overrides ?? {},
-      synced_pnl_overhead_items:
-        current.synced_pnl_overhead_items ?? [],
+      overhead_category_overrides: current.overhead_category_overrides ?? {},
+      synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
   }
@@ -474,10 +548,8 @@ export default function useGeneralOverheads() {
           custom_overhead_amount: 0,
         },
       ],
-      overhead_category_overrides:
-        current.overhead_category_overrides ?? {},
-      synced_pnl_overhead_items:
-        current.synced_pnl_overhead_items ?? [],
+      overhead_category_overrides: current.overhead_category_overrides ?? {},
+      synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
   }
@@ -515,12 +587,12 @@ export default function useGeneralOverheads() {
   }
 
   function sync_from_pnl() {
-    const next_state = build_general_overheads_from_pnl({
-      pnl_output_contract,
-      current_overhead_state: overhead_state,
-    });
-
-    set_overhead_state(next_state);
+    set_overhead_state((current) =>
+      build_general_overheads_from_pnl({
+        pnl_output_contract,
+        current_overhead_state: current,
+      })
+    );
   }
 
   function save_profile() {
@@ -547,8 +619,7 @@ export default function useGeneralOverheads() {
 
     set_overhead_state({
       ...loaded,
-      overhead_category_overrides:
-        loaded?.overhead_category_overrides ?? {},
+      overhead_category_overrides: loaded?.overhead_category_overrides ?? {},
       updated_at: new Date().toISOString(),
     });
   }
@@ -565,6 +636,8 @@ export default function useGeneralOverheads() {
       ...next_state,
       overhead_category_overrides: {},
     });
+
+    last_pnl_sync_signature_ref.current = "";
   }
 
   const status = build_general_overhead_status({
