@@ -1,3 +1,5 @@
+import CollapsibleSection from "@/components/common/CollapsibleSection";
+
 function SummaryRow({ label, value, strong = false, helper = "" }) {
   return (
     <div className={`labour-summary-table-row ${strong ? "total" : ""}`}>
@@ -16,39 +18,39 @@ function PortfolioSummaryCard({ portfolio_summary = {} }) {
     : [];
 
   return (
-    <div className="ui-panel">
+    <section className="ui-section">
       <div className="ui-stack-sm">
         <div className="ui-kicker">Asset Portfolio</div>
-        <div className="ui-card-title-sm">Live asset cost baseline</div>
-        <div className="ui-help">
+        <h2 className="ui-card-title-sm">Live asset cost baseline</h2>
+        <p className="ui-help">
           As assets are added, this shows the annual cost of the active asset
           portfolio.
-        </div>
+        </p>
 
-        <div className="labour-summary-table">
-          {rows.map((row, index) => (
-            <SummaryRow
-              key={`${row.label}-${index}`}
-              label={row.label}
-              value={row.value}
-              strong={row.emphasis === true}
-            />
-          ))}
+        <div className="ui-panel">
+          <div className="labour-summary-table">
+            {rows.map((row, index) => (
+              <SummaryRow
+                key={`${row.label}-${index}`}
+                label={row.label}
+                value={row.value}
+                strong={row.emphasis === true}
+              />
+            ))}
+          </div>
         </div>
 
         {portfolio_summary.note ? (
-          <div className="ui-help">{portfolio_summary.note}</div>
+          <p className="ui-help">{portfolio_summary.note}</p>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }
 
-export default function AssetSummaryCard({
+function SelectedAssetDetailCard({
   rows = [],
-  portfolio_summary = {},
   meta = {},
-  status = {},
   on_new_asset,
   on_save_asset,
 }) {
@@ -59,18 +61,20 @@ export default function AssetSummaryCard({
   const is_retired = lifecycle === "Retired";
 
   return (
-    <section className="ui-section">
-      <div className="ui-stack">
-        <PortfolioSummaryCard portfolio_summary={portfolio_summary} />
-
-        <div className="ui-panel ui-stack">
+    <CollapsibleSection
+      title="Selected asset summary"
+      summary="Finance build, lifecycle and selected asset detail"
+      defaultOpen={false}
+    >
+      <section className="ui-section">
+        <div className="ui-stack">
           <div className="ui-stack-sm">
-            <div className="ui-kicker">Summary</div>
-            <div className="ui-card-title-sm">Selected asset</div>
-            <div className="ui-help">
-              Check the selected asset cost build before saving or moving to
-              the next setup module.
-            </div>
+            <div className="ui-kicker">Selected Asset Summary</div>
+            <h2 className="ui-card-title">Selected asset position</h2>
+            <p className="ui-help">
+              Detail for the currently selected asset. The portfolio total
+              remains visible in the side card as you build the asset list.
+            </p>
           </div>
 
           <div className="ui-panel">
@@ -97,7 +101,7 @@ export default function AssetSummaryCard({
 
           <div className="ui-panel">
             <div className="ui-stack-sm">
-              <div className="ui-kicker">First-Principles Finance Build</div>
+              <div className="ui-kicker">Finance Build</div>
 
               <div className="labour-summary-table">
                 <SummaryRow
@@ -157,10 +161,10 @@ export default function AssetSummaryCard({
 
           <div className="ui-panel ui-stack-sm">
             <div className="ui-kicker">Next Step</div>
-            <div className="ui-help">
-              Check this asset summary, save the profile, then continue to the
+            <p className="ui-help">
+              Check this asset summary, save the asset, then continue to the
               next setup module.
-            </div>
+            </p>
 
             <div className="ui-actions">
               <button
@@ -188,20 +192,44 @@ export default function AssetSummaryCard({
           <div className="ui-panel">
             <div className="ui-stack-sm">
               <div className="ui-kicker">What this means</div>
-              <div className="ui-help">
+              <p className="ui-help">
                 This is the forward-looking annual asset ownership cost. Asset
                 finance interest comes from Assets, not from P&amp;L interest.
-              </div>
+              </p>
 
-              <div className="ui-help">
+              <p className="ui-help">
                 Principal is shown only as future Cash Flow support. It is not
                 part of operating asset cost, and vehicle running costs belong
                 in General Overheads.
-              </div>
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </CollapsibleSection>
+  );
+}
+
+export default function AssetSummaryCard({
+  rows = [],
+  portfolio_summary = {},
+  meta = {},
+  status = {},
+  on_new_asset,
+  on_save_asset,
+  view = "detail",
+}) {
+  if (view === "portfolio") {
+    return <PortfolioSummaryCard portfolio_summary={portfolio_summary} />;
+  }
+
+  return (
+    <SelectedAssetDetailCard
+      rows={rows}
+      meta={meta}
+      status={status}
+      on_new_asset={on_new_asset}
+      on_save_asset={on_save_asset}
+    />
   );
 }

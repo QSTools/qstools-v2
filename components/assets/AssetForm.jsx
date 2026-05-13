@@ -13,9 +13,7 @@ const finance_fields = [
 
 function render_input({ field_name, label, type = "number", value, on_change }) {
   const display_value =
-    type === "number"
-      ? format_number_with_commas(value)
-      : value ?? "";
+    type === "number" ? format_number_with_commas(value) : value ?? "";
 
   return (
     <label key={field_name} className="ui-stack-sm">
@@ -39,12 +37,14 @@ function render_input({ field_name, label, type = "number", value, on_change }) 
 }
 
 export default function AssetForm({ values, on_change, on_reset }) {
-  const asset_type =
-    values.asset_type === "support" ? "support" : "productive";
+  const asset_type = values.asset_type === "support" ? "support" : "productive";
   const asset_status = values.is_retired ? "retired" : "active";
+
   const finance_status = values.finance_paid_off
     ? "paid_off"
-    : "finance_active";
+    : values.finance_term_extended
+      ? "term_extended"
+      : "finance_active";
 
   function handle_asset_status_change(next_status) {
     const is_retired = next_status === "retired";
@@ -53,7 +53,28 @@ export default function AssetForm({ values, on_change, on_reset }) {
   }
 
   function handle_finance_status_change(next_status) {
-    on_change("finance_paid_off", next_status === "paid_off");
+    if (next_status === "paid_off") {
+      on_change("finance_paid_off", true);
+      on_change("finance_term_extended", false);
+      on_change("finance_paid_off_date", "");
+      on_change("revised_finance_end_date", "");
+      on_change("revised_term_months", 0);
+      return;
+    }
+
+    if (next_status === "term_extended") {
+      on_change("finance_paid_off", false);
+      on_change("finance_term_extended", true);
+      on_change("finance_paid_off_date", "");
+      on_change("revised_finance_end_date", "");
+      return;
+    }
+
+    on_change("finance_paid_off", false);
+    on_change("finance_term_extended", false);
+    on_change("finance_paid_off_date", "");
+    on_change("revised_finance_end_date", "");
+    on_change("revised_term_months", 0);
   }
 
   return (
@@ -92,6 +113,17 @@ export default function AssetForm({ values, on_change, on_reset }) {
             </select>
           </label>
 
+          <label className="ui-stack-sm">
+            <span className="ui-label">Effective From</span>
+            <input
+              className="ui-input"
+              type="date"
+              value={values.effective_from || ""}
+              onChange={(event) =>
+                on_change("effective_from", event.target.value)
+              }
+            />
+          </label>
         </div>
 
         <div className="ui-stack-sm">
@@ -121,7 +153,8 @@ export default function AssetForm({ values, on_change, on_reset }) {
               }
             >
               <option value="finance_active">Finance active</option>
-              <option value="paid_off">Paid off</option>
+              <option value="paid_off">Paid off early</option>
+              <option value="term_extended">Term extended</option>
             </select>
           </label>
 
@@ -162,6 +195,52 @@ export default function AssetForm({ values, on_change, on_reset }) {
             />
           </label>
         </div>
+
+        {values.finance_paid_off === true ? (
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Early Payoff</div>
+              <p className="ui-help">
+                Use this when the asset remains active but the finance has been
+                paid off early. Future interest, principal and finance payments
+                will be treated as zero.
+              </p>
+
+              <label className="ui-stack-sm">
+                <span className="ui-label">Paid Off Date</span>
+                <input
+                  className="ui-input"
+                  type="date"
+                  value={values.finance_paid_off_date || ""}
+                  onChange={(event) =>
+                    on_change("finance_paid_off_date", event.target.value)
+                  }
+                />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {values.finance_term_extended === true ? (
+          <div className="ui-panel">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Term Extension</div>
+              <p className="ui-help">
+                Use this when the finance agreement has been extended. The
+                current finance outputs will use the original term plus the
+                extension months.
+              </p>
+
+              {render_input({
+                field_name: "revised_term_months",
+                label: "Extension Months",
+                type: "number",
+                value: values.revised_term_months,
+                on_change,
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div className="ui-actions">
           <button
