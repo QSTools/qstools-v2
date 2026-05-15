@@ -19,6 +19,12 @@ export default function useCostSummary(inputs = {}) {
         asset_output_contract.total_asset_cost_annual ?? 0,
       total_asset_interest_annual:
         asset_output_contract.total_asset_interest_annual ?? 0,
+      asset_detail: {
+        running_cost_annual:
+          asset_output_contract.legacy_display?.running_cost_annual ??
+          asset_output_contract.running_cost_annual ??
+          0,
+      },
     };
 
     const general_overheads_output_contract =
@@ -26,6 +32,18 @@ export default function useCostSummary(inputs = {}) {
     const general_overhead_data = {
       total_general_overheads:
         general_overheads_output_contract.total_general_overheads ?? 0,
+      overhead_detail: {
+        category_totals: Array.isArray(
+          general_overheads_output_contract.category_totals
+        )
+          ? general_overheads_output_contract.category_totals
+          : [],
+        overhead_rows: Array.isArray(
+          general_overheads_output_contract.overhead_rows
+        )
+          ? general_overheads_output_contract.overhead_rows
+          : [],
+      },
     };
 
     const model_readiness_input = inputs.model_readiness ?? {};
@@ -63,6 +81,7 @@ export default function useCostSummary(inputs = {}) {
 
     const output_contract = {
       total_people_cost_annual: calculations.total_people_cost_annual ?? 0,
+      total_recovery_hours: calculations.total_recovery_hours ?? 0,
       total_productive_output: calculations.total_productive_output ?? 0,
       total_available_hours_before_productivity: labour_data.total_available_hours_before_productivity ?? 0,
       weighted_productivity_percent: labour_data.weighted_productivity_percent ?? 0,

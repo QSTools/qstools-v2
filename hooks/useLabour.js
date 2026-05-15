@@ -59,6 +59,8 @@ export function useLabour() {
           staff_name: data.staff_name ?? "",
           staff_role: data.staff_role ?? "",
           labour_class: data.labour_class ?? "",
+          contributes_to_recovery_hours:
+            data.contributes_to_recovery_hours !== false,
           is_active: true,
           ...calculated,
         };

@@ -29,7 +29,7 @@ export default function CostSummaryPage() {
           blocking_checks={status.blocking_checks}
           warning_checks={status.warning_checks}
           required_recovery_rate={card.required_recovery_rate}
-          total_productive_output={card.total_productive_output}
+          total_recovery_hours={card.total_recovery_hours}
           total_people_cost_annual={card.people_cost_total}
           total_asset_cost_annual={card.asset_cost_total}
           total_business_overheads={card.general_overheads_total}
@@ -44,7 +44,10 @@ export default function CostSummaryPage() {
           total_cost_burden={card.total_cost_burden}
           required_revenue={card.required_revenue}
           required_recovery_rate={card.required_recovery_rate}
-          total_productive_output={card.total_productive_output}
+          total_recovery_hours={card.total_recovery_hours}
+          labour_detail={card.labour_detail}
+          asset_detail={card.asset_detail}
+          overhead_detail={card.overhead_detail}
           highlight_insight={card.highlight_insight}
         />
 

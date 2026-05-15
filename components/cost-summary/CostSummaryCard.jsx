@@ -1,87 +1,293 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-function formatMoney(value) {
-  const number = Number(value || 0);
+const TIME_SCALES = [
+  { key: "hour", label: "Hour", suffix: "/ hr" },
+  { key: "day", label: "Day", suffix: "/ day" },
+  { key: "week", label: "Week", suffix: "/ week" },
+  { key: "month", label: "Month", suffix: "/ month" },
+  { key: "quarter", label: "Quarter", suffix: "/ quarter" },
+  { key: "year", label: "Year", suffix: "/ year" },
+];
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value, maximumFractionDigits = 0) {
+  const number = toNumber(value);
+
   return `$${number.toLocaleString(undefined, {
-    maximumFractionDigits: 0,
+    maximumFractionDigits,
   })}`;
 }
 
 function formatNumber(value) {
-  return Number(value || 0).toLocaleString();
+  return toNumber(value).toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  });
 }
 
 function formatPercent(value) {
-  const number = Number(value || 0);
-  return `${Math.round(number)}%`;
+  return `${Math.round(toNumber(value))}%`;
 }
 
 function calculateShare(part, total) {
-  const safePart = Number(part || 0);
-  const safeTotal = Number(total || 0);
+  const safePart = toNumber(part);
+  const safeTotal = toNumber(total);
 
   if (safeTotal <= 0) return 0;
   return (safePart / safeTotal) * 100;
 }
 
-function SectionHeader({ kicker, title, summary, isOpen, onToggle }) {
-  return (
-    <div className="ui-stack-sm">
-      <div className="ui-split">
-        <div className="ui-stack-sm">
-          <div className="ui-kicker">{kicker}</div>
-          <div className="ui-card-title-sm">{title}</div>
-          {summary ? <div className="ui-help">{summary}</div> : null}
-        </div>
+function scaleAnnualValue(annualValue, timeScale, totalRecoveryHours) {
+  const value = toNumber(annualValue);
+  const recoveryHours = toNumber(totalRecoveryHours);
 
-        <div className="ui-actions">
+  if (timeScale === "hour") {
+    return recoveryHours > 0 ? value / recoveryHours : 0;
+  }
+
+  if (timeScale === "day") return value / 260;
+  if (timeScale === "week") return value / 52;
+  if (timeScale === "month") return value / 12;
+  if (timeScale === "quarter") return value / 4;
+
+  return value;
+}
+
+function getTimeScaleSuffix(timeScale) {
+  return TIME_SCALES.find((option) => option.key === timeScale)?.suffix ?? "";
+}
+
+function getInsightForLevel(level, items, totalCostBurden) {
+  const largestItem = [...items].sort((a, b) => b.amount - a.amount)[0];
+
+  if (!largestItem || totalCostBurden <= 0) {
+    return "Cost Summary shows the business cost that must be recovered.";
+  }
+
+  const shareOfTotal = calculateShare(largestItem.amount, totalCostBurden);
+
+  if (level === "total") {
+    return `${largestItem.label} is the largest part of your total cost at ${formatPercent(
+      shareOfTotal
+    )}.`;
+  }
+
+  return `${largestItem.label} is the largest item in this layer and represents ${formatPercent(
+    shareOfTotal
+  )} of your total cost.`;
+}
+
+function CostBar({
+  items,
+  total,
+  timeScale,
+  totalRecoveryHours,
+  hoveredItemKey,
+  onHoverItem,
+  onClearHover,
+  onSelect,
+}) {
+  const safeTotal = toNumber(total);
+  const hasPositiveTotal = safeTotal > 0;
+  const hasPositiveSegments = items.some((item) => toNumber(item.amount) > 0);
+
+  if (!hasPositiveTotal || !hasPositiveSegments || items.length === 0) {
+    return (
+      <div
+        className="cost-summary-bar empty"
+        aria-label="Cost composition unavailable"
+      >
+        <div className="cost-summary-bar-empty" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="cost-summary-bar" aria-label="Cost composition">
+      {items.map((item, index) => {
+        const hasChildren =
+          Array.isArray(item.children) && item.children.length > 0;
+        const share = calculateShare(item.amount, safeTotal);
+        const scaledValue = scaleAnnualValue(
+          item.amount,
+          timeScale,
+          totalRecoveryHours
+        );
+        const isActive = hoveredItemKey === item.key;
+        const isMuted = Boolean(hoveredItemKey) && !isActive;
+        const className = [
+          "cost-summary-bar-segment",
+          `cost-summary-bar-segment--${index % 6}`,
+          hasChildren ? "clickable" : "static",
+          isActive ? "active" : "",
+          isMuted ? "muted" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const sharedProps = {
+          className,
+          style: { "--segment-grow": `${Math.max(toNumber(item.amount), 0)}` },
+          onMouseEnter: () => onHoverItem(item.key),
+          onMouseLeave: onClearHover,
+          "aria-label": `${item.label}: ${formatMoney(
+            scaledValue
+          )}${getTimeScaleSuffix(timeScale)}, ${formatPercent(
+            share
+          )} of this layer`,
+          title: `${item.label}: ${formatMoney(
+            scaledValue
+          )}${getTimeScaleSuffix(timeScale)}, ${formatPercent(
+            share
+          )} of this layer`,
+        };
+
+        if (!hasChildren) {
+          return <div key={item.key} role="img" {...sharedProps} />;
+        }
+
+        return (
           <button
+            key={item.key}
             type="button"
-            onClick={onToggle}
-            className="ui-button-secondary"
-          >
-            {isOpen ? "Hide" : "Show"}
-          </button>
+            {...sharedProps}
+            onFocus={() => onHoverItem(item.key)}
+            onBlur={onClearHover}
+            onClick={() => onSelect(item)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function DrillRow({
+  item,
+  parentTotal,
+  totalCostBurden,
+  timeScale,
+  totalRecoveryHours,
+  hoveredItemKey,
+  onHoverItem,
+  onClearHover,
+  onSelect,
+}) {
+  const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+  const scaledValue = scaleAnnualValue(
+    item.amount,
+    timeScale,
+    totalRecoveryHours
+  );
+
+  const shareOfParent = calculateShare(item.amount, parentTotal);
+  const shareOfTotal = calculateShare(item.amount, totalCostBurden);
+  const isActive = hoveredItemKey === item.key;
+  const isMuted = Boolean(hoveredItemKey) && !isActive;
+  const className = [
+    "cost-summary-drill-row",
+    hasChildren ? "clickable" : "static",
+    isActive ? "active" : "",
+    isMuted ? "muted" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <>
+      <div className="ui-stack-sm">
+        <div className="cost-summary-drill-label">{item.label}</div>
+        {item.note ? <div className="ui-help">{item.note}</div> : null}
+      </div>
+
+      <div className="cost-summary-drill-value">
+        <div className="ui-card-title-sm">
+          {formatMoney(scaledValue)}
+          <span className="ui-help"> {getTimeScaleSuffix(timeScale)}</span>
+        </div>
+        <div className="ui-help">
+          {formatPercent(shareOfParent)} of this layer
+          {" · "}
+          {formatPercent(shareOfTotal)} of total
         </div>
       </div>
+    </>
+  );
+
+  const sharedProps = {
+    className,
+    onMouseEnter: () => onHoverItem(item.key),
+    onMouseLeave: onClearHover,
+  };
+
+  if (!hasChildren) {
+    return <div {...sharedProps}>{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      {...sharedProps}
+      onFocus={() => onHoverItem(item.key)}
+      onBlur={onClearHover}
+      onClick={() => onSelect(item)}
+    >
+      {content}
+    </button>
+  );
+}
+
+function Breadcrumb({ path, onSelect }) {
+  return (
+    <div className="cost-summary-breadcrumb">
+      {path.map((crumb, index) => (
+        <button
+          key={`${crumb.key}-${index}`}
+          type="button"
+          className="cost-summary-breadcrumb-item"
+          onClick={() => onSelect(index)}
+        >
+          {crumb.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function TableRow({ label, value, total = false }) {
-  return (
-    <div className={`labour-summary-table-row${total ? " total" : ""}`}>
-      <div className="labour-summary-table-label">{label}</div>
-      <div className="labour-summary-table-value">{value}</div>
-    </div>
-  );
+function makeNode({ key, label, amount = 0, title, note, children = [] }) {
+  return {
+    key,
+    label,
+    title: title || label,
+    amount: toNumber(amount),
+    total: toNumber(amount),
+    note,
+    children,
+    items: children,
+  };
 }
 
-function CompositionRow({ label, amount, share, total = false }) {
-  return (
-    <div className={`labour-summary-table-row${total ? " total" : ""}`}>
-      <div className="labour-summary-table-label">{label}</div>
-      <div className="labour-summary-table-value">
-        {share !== null
-          ? `${formatMoney(amount)} / ${formatPercent(share)}`
-          : formatMoney(amount)}
-      </div>
-    </div>
-  );
+function getNodeByPath(root, activePath = []) {
+  return activePath.slice(1).reduce((node, key) => {
+    return node?.children?.find((child) => child.key === key) ?? node;
+  }, root);
 }
 
-function HeadlineMetric({ label, value, helper, emphasis = false }) {
-  return (
-    <div className="ui-panel ui-stack-sm">
-      <div className="ui-kicker">{label}</div>
-      <div className={emphasis ? "ui-display" : "ui-card-title-sm"}>
-        {value}
-      </div>
-      {helper ? <div className="ui-help">{helper}</div> : null}
-    </div>
-  );
+function getBreadcrumbNodes(root, activePath = []) {
+  const nodes = [root];
+  let node = root;
+
+  for (const key of activePath.slice(1)) {
+    const next = node?.children?.find((child) => child.key === key);
+    if (!next) break;
+    nodes.push(next);
+    node = next;
+  }
+
+  return nodes;
 }
 
 export default function CostSummaryCard({
@@ -93,207 +299,380 @@ export default function CostSummaryCard({
   total_cost_burden,
   required_revenue,
   required_recovery_rate,
-  total_productive_output = 0,
+  total_recovery_hours = 0,
+  labour_detail = {},
+  asset_detail = {},
+  overhead_detail = {},
   highlight_insight = "",
 }) {
-  const [peopleCostOpen, setPeopleCostOpen] = useState(true);
-  const [businessCostOpen, setBusinessCostOpen] = useState(true);
+  const [timeScale, setTimeScale] = useState("hour");
+  const [activePath, setActivePath] = useState(["total"]);
+  const [hoveredItemKey, setHoveredItemKey] = useState("");
 
-  const total_people_cost_annual = Number(people_cost_total || 0);
-  const total_business_cost_annual = Number(business_cost_total || 0);
-  const total_asset_cost_annual = Number(asset_cost_total || 0);
-  const total_asset_interest = Number(total_asset_interest_annual || 0);
-  const total_business_overheads = Number(general_overheads_total || 0);
+  const total_people_cost_annual = toNumber(people_cost_total);
+  const total_business_cost_annual = toNumber(business_cost_total);
+  const total_asset_cost_annual = toNumber(asset_cost_total);
+  const total_asset_interest = toNumber(total_asset_interest_annual);
+  const total_business_overheads = toNumber(general_overheads_total);
+  const total_cost_burden_annual = toNumber(total_cost_burden);
+  const required_revenue_annual = toNumber(required_revenue);
+  const required_recovery_rate_hourly = toNumber(required_recovery_rate);
+  const recovery_hours_total = toNumber(total_recovery_hours);
 
-  const total_cost_burden_annual = Number(total_cost_burden || 0);
-  const required_revenue_annual = Number(required_revenue || 0);
-  const required_recovery_rate_hourly = Number(required_recovery_rate || 0);
-  const productive_output_total = Number(total_productive_output || 0);
+  const hierarchy = useMemo(() => {
+    function buildContributionNodes(prefix, detail = {}) {
+      return [
+        makeNode({
+          key: `${prefix}-kiwisaver`,
+          label: "KiwiSaver",
+          amount: detail.employer_kiwisaver_annual,
+        }),
+        makeNode({
+          key: `${prefix}-esct`,
+          label: "ESCT",
+          amount: detail.esct_annual,
+        }),
+        makeNode({
+          key: `${prefix}-acc`,
+          label: "ACC",
+          amount: detail.acc_levy_annual,
+        }),
+      ];
+    }
 
-  const people_share = calculateShare(
+    function buildEntitlementNodes(prefix) {
+      const note =
+        "Future-ready: Labour does not currently expose this entitlement split to Cost Summary.";
+
+      return [
+        makeNode({ key: `${prefix}-annual-leave`, label: "Annual Leave", note }),
+        makeNode({
+          key: `${prefix}-public-holidays`,
+          label: "Public Holidays",
+          note,
+        }),
+        makeNode({ key: `${prefix}-sick-leave`, label: "Sick Leave", note }),
+        makeNode({
+          key: `${prefix}-bereavement-leave`,
+          label: "Bereavement Leave",
+          note,
+        }),
+        makeNode({
+          key: `${prefix}-family-violence-leave`,
+          label: "Family Violence Leave",
+          note,
+        }),
+      ];
+    }
+
+    function buildLabourClassNode(key, label, detail = {}) {
+      return makeNode({
+        key,
+        label,
+        amount: detail.total_labour_cost_annual,
+        children: [
+          makeNode({
+            key: `${key}-base-wages`,
+            label: "Base Wages",
+            amount: detail.base_wages_annual,
+          }),
+          makeNode({
+            key: `${key}-employer-contributions`,
+            label: "Employer Contributions",
+            amount: detail.employer_contribution_annual,
+            children: buildContributionNodes(key, detail),
+          }),
+          makeNode({
+            key: `${key}-entitlements`,
+            label: "Entitlements",
+            amount: detail.entitlements_annual,
+            note: "Entitlement cost is separated from base wages here for review.",
+            children: buildEntitlementNodes(key),
+          }),
+        ],
+      });
+    }
+
+    const running_cost_annual = toNumber(asset_detail.running_cost_annual);
+    const asset_children = [
+      makeNode({
+        key: "asset-total-cost",
+        label: "Total Asset Cost",
+        amount: total_asset_cost_annual,
+      }),
+      makeNode({
+        key: "asset-finance-interest",
+        label: "Asset Finance Interest",
+        amount: total_asset_interest,
+        note: "Supporting detail only. This is already included inside Asset Cost where applicable.",
+      }),
+    ];
+
+    if (running_cost_annual > 0) {
+      asset_children.push(
+        makeNode({
+          key: "asset-running-cost",
+          label: "Running Cost",
+          amount: running_cost_annual,
+          note: "Legacy display only where upstream Assets exposes running cost.",
+        })
+      );
+    }
+
+    const category_totals = Array.isArray(overhead_detail.category_totals)
+      ? overhead_detail.category_totals
+      : [];
+    const overhead_children = category_totals
+      .filter((category) => toNumber(category?.total) > 0)
+      .map((category) =>
+        makeNode({
+          key: `overheads-${category.category_id}`,
+          label: category.category_name || category.category_id,
+          amount: category.total,
+        })
+      );
+
+    if (overhead_children.length === 0) {
+      overhead_children.push(
+        makeNode({
+          key: "general-overheads-total",
+          label: "Total General Overheads",
+          amount: total_business_overheads,
+          note: "Future-ready: category-level overhead outputs are not available in this Cost Summary view.",
+        })
+      );
+    }
+
+    return makeNode({
+      key: "total",
+      label: "Total Cost",
+      title: "Where your business cost comes from",
+      amount: total_cost_burden_annual,
+      children: [
+        makeNode({
+          key: "people",
+          label: "People Cost",
+          title: "People cost breakdown",
+          amount: total_people_cost_annual,
+          children: [
+            buildLabourClassNode(
+              "productive-labour",
+              "Productive Labour",
+              labour_detail.productive
+            ),
+            buildLabourClassNode(
+              "non-productive-labour",
+              "Non-productive Labour",
+              labour_detail.non_productive
+            ),
+          ],
+        }),
+        makeNode({
+          key: "assets",
+          label: "Assets",
+          title: "Asset cost breakdown",
+          amount: total_asset_cost_annual,
+          children: asset_children,
+        }),
+        makeNode({
+          key: "overheads",
+          label: "General Overheads",
+          title: "General overhead breakdown",
+          amount: total_business_overheads,
+          children: overhead_children,
+        }),
+      ],
+    });
+  }, [
+    total_cost_burden_annual,
     total_people_cost_annual,
-    total_cost_burden_annual
-  );
-  const asset_share = calculateShare(
     total_asset_cost_annual,
-    total_cost_burden_annual
-  );
-  const overhead_share = calculateShare(
+    total_asset_interest,
     total_business_overheads,
-    total_cost_burden_annual
-  );
+    labour_detail,
+    asset_detail,
+    overhead_detail,
+  ]);
+
+  const activeLevel = getNodeByPath(hierarchy, activePath);
+  const activeItems = activeLevel.items ?? [];
+  const breadcrumb = getBreadcrumbNodes(hierarchy, activePath);
+
+  const headlineValue =
+    timeScale === "hour"
+      ? required_recovery_rate_hourly
+      : scaleAnnualValue(
+          required_revenue_annual,
+          timeScale,
+          recovery_hours_total
+        );
 
   const insight =
     highlight_insight ||
-    (people_share > asset_share && people_share > overhead_share
-      ? "Labour is the dominant cost driver."
-      : asset_share > overhead_share
-        ? "Assets are a major cost driver."
-        : "General overheads are a significant cost driver.");
+    getInsightForLevel(
+      activeLevel.key,
+      activeItems,
+      total_cost_burden_annual
+    );
+
+  function handleSelectLevel(item) {
+    setHoveredItemKey("");
+    setActivePath((currentPath) => [...currentPath, item.key]);
+  }
+
+  function handleSelectBreadcrumb(index) {
+    setActivePath((currentPath) => currentPath.slice(0, index + 1));
+    setHoveredItemKey("");
+  }
 
   return (
     <section className="ui-section">
       <div className="ui-stack">
-        <div className="ui-stack-sm">
+        <div className="ui-panel ui-stack-sm">
           <div className="ui-kicker">Cost Baseline</div>
-          <div className="ui-card-title">Forward operating cost</div>
-          <p className="ui-help">
-            {insight ||
-              "Defines the current cost burden and required recovery rate."}
-          </p>
-        </div>
-
-        <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Headline Summary</div>
-          <div className="ui-card-title-sm">What the business costs to run</div>
-          <div className="ui-help">
-            Result first: annual operating cost, productive hours carrying that
-            cost, and the required recovery rate.
+          <div className="ui-card-title">
+            What your business must recover
           </div>
 
-          <div className="ui-stack-sm">
-            <div className="ui-split-2">
-              <HeadlineMetric
-                label="Total Operating Cost"
-                value={formatMoney(total_cost_burden_annual)}
-                helper="Labour, Assets, and General Overheads."
-              />
-              <HeadlineMetric
-                label="Productive Hours"
-                value={`${formatNumber(productive_output_total)} hrs`}
-                helper="Final Labour productive output."
-              />
+          <div className="cost-summary-hero">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">
+                Required Recovery {getTimeScaleSuffix(timeScale)}
+              </div>
+              <div className="ui-display">
+                {formatMoney(headlineValue)}
+                <span className="ui-help"> {getTimeScaleSuffix(timeScale)}</span>
+              </div>
+              <div className="ui-help">
+                {timeScale === "hour"
+                  ? "This is the cost your business must recover for each recovery hour."
+                  : "This is the same cost baseline scaled to the selected period."}
+              </div>
             </div>
-            <HeadlineMetric
-              label="Required Recovery Rate"
-              value={`${formatMoney(required_recovery_rate_hourly)} / hr`}
-              helper="Operating cost per productive hour."
-              emphasis
-            />
+
+            <div className="cost-summary-toggle" aria-label="Time scale">
+              {TIME_SCALES.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={
+                    option.key === timeScale
+                      ? "cost-summary-toggle-button active"
+                      : "cost-summary-toggle-button"
+                  }
+                  onClick={() => setTimeScale(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Cost Composition</div>
-          <div className="ui-card-title-sm">Core cost split</div>
-          <div className="ui-help">
-            Display-only view of the annual cost burden by source module.
+          <Breadcrumb path={breadcrumb} onSelect={handleSelectBreadcrumb} />
+
+          <div className="ui-split">
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Cost Composition</div>
+              <div className="ui-card-title-sm">{activeLevel.title}</div>
+              <div className="ui-help">
+                {activeLevel.key === "people"
+                  ? "Only selected productive staff generate recovery hours. All staff costs are carried by those hours."
+                  : "Click a section to explore. Values stay tied back to the total recovery baseline."}
+              </div>
+            </div>
+
+            <div className="cost-summary-level-total">
+              <span className="cost-summary-level-total-label">Total</span>
+              <span className="cost-summary-level-total-value">
+                {formatMoney(
+                  scaleAnnualValue(
+                    activeLevel.total,
+                    timeScale,
+                    recovery_hours_total
+                  )
+                )}
+                <span className="cost-summary-level-total-suffix">
+                  {getTimeScaleSuffix(timeScale)}
+                </span>
+              </span>
+            </div>
           </div>
+
+          <CostBar
+            items={activeItems}
+            total={activeLevel.total}
+            timeScale={timeScale}
+            totalRecoveryHours={recovery_hours_total}
+            hoveredItemKey={hoveredItemKey}
+            onHoverItem={setHoveredItemKey}
+            onClearHover={() => setHoveredItemKey("")}
+            onSelect={handleSelectLevel}
+          />
+
+          <div className="cost-summary-drill-list">
+            {activeItems.map((item) => (
+              <DrillRow
+                key={item.key}
+                item={item}
+                parentTotal={activeLevel.total}
+                totalCostBurden={total_cost_burden_annual}
+                timeScale={timeScale}
+                totalRecoveryHours={recovery_hours_total}
+                hoveredItemKey={hoveredItemKey}
+                onHoverItem={setHoveredItemKey}
+                onClearHover={() => setHoveredItemKey("")}
+                onSelect={handleSelectLevel}
+              />
+            ))}
+          </div>
+
+          <div className="cost-summary-insight">
+            <div className="ui-kicker">Plain-language read</div>
+            <div className="ui-help">{insight}</div>
+          </div>
+        </div>
+
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Baseline Inputs</div>
+          <div className="ui-card-title-sm">What this is based on</div>
 
           <div className="labour-summary-table">
-            <CompositionRow
-              label="Labour / People Cost"
-              amount={total_people_cost_annual}
-              share={people_share}
-            />
-            <CompositionRow
-              label="Assets"
-              amount={total_asset_cost_annual}
-              share={asset_share}
-            />
-            <CompositionRow
-              label="General Overheads"
-              amount={total_business_overheads}
-              share={overhead_share}
-            />
-            <CompositionRow
-              label="Total Operating Cost"
-              amount={total_cost_burden_annual}
-              share={null}
-              total
-            />
-          </div>
-        </div>
-
-        <div className="ui-panel ui-stack-sm">
-          <SectionHeader
-            kicker="People Cost"
-            title="Labour output"
-            summary="Consumed from Labour's total_labour_cost_annual output."
-            isOpen={peopleCostOpen}
-            onToggle={() => setPeopleCostOpen((prev) => !prev)}
-          />
-
-          {peopleCostOpen ? (
-            <div className="ui-panel">
-              <div className="labour-summary-table">
-                <TableRow
-                  label="Total People Cost"
-                  value={formatMoney(total_people_cost_annual)}
-                  total
-                />
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">
+                Total Operating Cost
+              </div>
+              <div className="labour-summary-table-value">
+                {formatMoney(total_cost_burden_annual)}
               </div>
             </div>
-          ) : null}
-        </div>
 
-        <div className="ui-panel ui-stack-sm">
-          <SectionHeader
-            kicker="Business Cost"
-            title="Assets and overheads"
-            summary="Consumed from Assets and General Overheads output contracts."
-            isOpen={businessCostOpen}
-            onToggle={() => setBusinessCostOpen((prev) => !prev)}
-          />
-
-          {businessCostOpen ? (
-            <div className="ui-panel">
-              <div className="labour-summary-table">
-                <TableRow
-                  label="Total Business Cost"
-                  value={formatMoney(total_business_cost_annual)}
-                  total
-                />
-                <TableRow
-                  label="Asset Cost"
-                  value={formatMoney(total_asset_cost_annual)}
-                />
-                <TableRow
-                  label="Asset Finance Interest"
-                  value={formatMoney(total_asset_interest)}
-                />
-                <TableRow
-                  label="General Overheads"
-                  value={formatMoney(total_business_overheads)}
-                />
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">
+                Recovery Hours
               </div>
-              <p className="ui-help">
-                Asset finance interest is shown as supporting detail only. It is
-                already included inside Asset Cost where applicable.
-              </p>
+              <div className="labour-summary-table-value">
+                {formatNumber(recovery_hours_total)} hrs
+              </div>
             </div>
-          ) : null}
-        </div>
 
-        <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Downstream Handoff</div>
-          <div className="ui-card-title-sm">Operating cost baseline</div>
-
-          <div className="ui-panel">
-            <div className="labour-summary-table">
-              <TableRow
-                label="Total Operating Cost"
-                value={formatMoney(total_cost_burden_annual)}
-              />
-              <TableRow
-                label="Required Revenue"
-                value={formatMoney(required_revenue_annual)}
-              />
-              <TableRow
-                label="Required Recovery Rate"
-                value={formatMoney(required_recovery_rate_hourly)}
-              />
-              <TableRow
-                label="Total Productive Output"
-                value={`${formatNumber(productive_output_total)} hrs`}
-              />
+            <div className="labour-summary-table-row total">
+              <div className="labour-summary-table-label">
+                Required Recovery Rate
+              </div>
+              <div className="labour-summary-table-value">
+                {formatMoney(required_recovery_rate_hourly)} / hr
+              </div>
             </div>
           </div>
 
-          <p className="ui-help">
-            Next step after a trusted Cost Summary: Revenue / COGS can compare
-            trading revenue and direct costs against this operating cost burden.
-          </p>
+          <div className="ui-help">
+            The selected period changes the display scale only. The baseline is
+            still built from total operating cost and selected recovery hours.
+            This is your break-even cost baseline. Materials and profit sit on
+            top.
+          </div>
         </div>
       </div>
     </section>

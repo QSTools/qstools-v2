@@ -15,11 +15,8 @@ const STAFF_ROLE_OPTIONS = [
 
 const LABOUR_CLASS_OPTIONS = [
   { value: "", label: "Select labour class" },
-  { value: "productive_labour", label: "Productive Labour" },
-  { value: "supervision", label: "Supervision" },
-  { value: "management", label: "Management" },
-  { value: "apprentice_labour", label: "Apprentice Labour" },
-  { value: "support_labour", label: "Support Labour" },
+  { value: "productive", label: "Productive" },
+  { value: "non_productive", label: "Non-productive" },
 ];
 
 export default function LabourProfileCard({
@@ -32,6 +29,14 @@ export default function LabourProfileCard({
     if (typeof create_profile === "function") {
       create_profile();
     }
+  }
+
+  function handle_labour_class_change(value) {
+    update_field?.("labour_class", value);
+    update_field?.(
+      "contributes_to_recovery_hours",
+      value === "non_productive" ? false : true
+    );
   }
 
   const profile_is_locked = Boolean(has_profile);
@@ -87,9 +92,8 @@ export default function LabourProfileCard({
               className="ui-select"
               value={state.labour_class ?? ""}
               onChange={(event) =>
-                update_field?.("labour_class", event.target.value)
+                handle_labour_class_change(event.target.value)
               }
-              disabled={profile_is_locked}
             >
               {LABOUR_CLASS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -97,6 +101,11 @@ export default function LabourProfileCard({
                 </option>
               ))}
             </select>
+            <span className="ui-help">
+              Productive staff add recovery hours. Non-productive staff add
+              cost, but their hours do not reduce the Cost Summary recovery
+              rate.
+            </span>
           </label>
         </div>
 
@@ -116,9 +125,9 @@ export default function LabourProfileCard({
             <div className="ui-stack-sm">
               <div className="ui-kicker">Profile active</div>
               <p className="ui-help">
-                The identity fields are now locked for this live profile. Start
-                a new profile or load another saved profile to change the
-                identity setup.
+                Staff identity fields are now locked for this live profile.
+                Labour class remains editable so recovery-hour treatment can be
+                updated and saved.
               </p>
             </div>
           </div>

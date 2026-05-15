@@ -46,13 +46,13 @@ export default function CostSummaryStatusStrip({
   blocking_checks = [],
   warning_checks = [],
   required_recovery_rate = 0,
-  total_productive_output = 0,
+  total_recovery_hours = 0,
   total_people_cost_annual = 0,
   total_asset_cost_annual = 0,
   total_business_overheads = 0,
 }) {
   const pressure_value = formatCurrency(required_recovery_rate);
-  const output_value = formatHours(total_productive_output);
+  const output_value = formatHours(total_recovery_hours);
   const insight = getLargestCostDriver({
     total_people_cost_annual,
     total_asset_cost_annual,
@@ -119,7 +119,7 @@ export default function CostSummaryStatusStrip({
         </div>
 
         <p className="ui-help">
-          Based on Labour's final {output_value} productive hours.
+          Based on Labour's selected {output_value} recovery hours.
         </p>
 
         {!model_ready ? (
