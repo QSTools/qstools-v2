@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatCostSummaryPercent } from "@/lib/selectors/costSummarySelectors";
 
 const TIME_SCALES = [
   { key: "hour", label: "Hour", suffix: "/ hr" },
@@ -28,10 +29,6 @@ function formatNumber(value) {
   return toNumber(value).toLocaleString(undefined, {
     maximumFractionDigits: 0,
   });
-}
-
-function formatPercent(value) {
-  return `${Math.round(toNumber(value))}%`;
 }
 
 function calculateShare(part, total) {
@@ -72,12 +69,12 @@ function getInsightForLevel(level, items, totalCostBurden) {
   const shareOfTotal = calculateShare(largestItem.amount, totalCostBurden);
 
   if (level === "total") {
-    return `${largestItem.label} is the largest part of your total cost at ${formatPercent(
+    return `${largestItem.label} is the largest part of your total cost at ${formatCostSummaryPercent(
       shareOfTotal
     )}.`;
   }
 
-  return `${largestItem.label} is the largest item in this layer and represents ${formatPercent(
+  return `${largestItem.label} is the largest item in this layer and represents ${formatCostSummaryPercent(
     shareOfTotal
   )} of your total cost.`;
 }
@@ -136,12 +133,12 @@ function CostBar({
           onMouseLeave: onClearHover,
           "aria-label": `${item.label}: ${formatMoney(
             scaledValue
-          )}${getTimeScaleSuffix(timeScale)}, ${formatPercent(
+          )}${getTimeScaleSuffix(timeScale)}, ${formatCostSummaryPercent(
             share
           )} of this layer`,
           title: `${item.label}: ${formatMoney(
             scaledValue
-          )}${getTimeScaleSuffix(timeScale)}, ${formatPercent(
+          )}${getTimeScaleSuffix(timeScale)}, ${formatCostSummaryPercent(
             share
           )} of this layer`,
         };
@@ -209,9 +206,9 @@ function DrillRow({
           <span className="ui-help"> {getTimeScaleSuffix(timeScale)}</span>
         </div>
         <div className="ui-help">
-          {formatPercent(shareOfParent)} of this layer
+          {formatCostSummaryPercent(shareOfParent)} of this layer
           {" · "}
-          {formatPercent(shareOfTotal)} of total
+          {formatCostSummaryPercent(shareOfTotal)} of total
         </div>
       </div>
     </>
@@ -340,27 +337,32 @@ export default function CostSummaryCard({
       ];
     }
 
-    function buildEntitlementNodes(prefix) {
-      const note =
-        "Future-ready: Labour does not currently expose this entitlement split to Cost Summary.";
-
+    function buildEntitlementNodes(prefix, detail = {}) {
       return [
-        makeNode({ key: `${prefix}-annual-leave`, label: "Annual Leave", note }),
+        makeNode({
+          key: `${prefix}-annual-leave`,
+          label: "Annual Leave",
+          amount: detail.annual_leave_cost_annual,
+        }),
         makeNode({
           key: `${prefix}-public-holidays`,
           label: "Public Holidays",
-          note,
+          amount: detail.public_holiday_cost_annual,
         }),
-        makeNode({ key: `${prefix}-sick-leave`, label: "Sick Leave", note }),
+        makeNode({
+          key: `${prefix}-sick-leave`,
+          label: "Sick Leave",
+          amount: detail.sick_leave_cost_annual,
+        }),
         makeNode({
           key: `${prefix}-bereavement-leave`,
           label: "Bereavement Leave",
-          note,
+          amount: detail.bereavement_leave_cost_annual,
         }),
         makeNode({
           key: `${prefix}-family-violence-leave`,
           label: "Family Violence Leave",
-          note,
+          amount: detail.family_violence_leave_cost_annual,
         }),
       ];
     }
@@ -387,7 +389,7 @@ export default function CostSummaryCard({
             label: "Entitlements",
             amount: detail.entitlements_annual,
             note: "Entitlement cost is separated from base wages here for review.",
-            children: buildEntitlementNodes(key),
+            children: buildEntitlementNodes(key, detail),
           }),
         ],
       });
