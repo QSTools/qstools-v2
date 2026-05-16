@@ -28,9 +28,15 @@ export default function BusinessSummaryPage() {
         <BusinessSummaryCard
           total_revenue={card.total_revenue}
           total_direct_costs={card.total_direct_costs}
+          direct_cost_category_totals={card.direct_cost_category_totals}
           margin_pool={card.margin_pool}
           gross_margin_percent={card.gross_margin_percent}
           total_cost_burden={card.total_cost_burden}
+          total_people_cost_annual={card.total_people_cost_annual}
+          total_asset_cost_annual={card.total_asset_cost_annual}
+          total_business_overheads={card.total_business_overheads}
+          total_recovery_hours={card.total_recovery_hours}
+          recovery_hours_used={card.recovery_hours_used}
           total_productive_output={card.total_productive_output}
           units_sold_annual={card.units_sold_annual}
           business_type={card.business_type}
@@ -45,6 +51,11 @@ export default function BusinessSummaryPage() {
           current_margin_label={card.current_margin_label}
           recovery_gap_per_driver={card.recovery_gap_per_driver}
           recovery_gap_label={card.recovery_gap_label}
+          required_recovery_rate={card.required_recovery_rate}
+          actual_recovery_rate={card.actual_recovery_rate}
+          profit_or_deficit_per_recovery_hour={
+            card.profit_or_deficit_per_recovery_hour
+          }
           net_position={card.net_position}
         />
 

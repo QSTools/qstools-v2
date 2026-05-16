@@ -34,6 +34,8 @@ export default function useBusinessSummary() {
         revenue_cogs_output_contract.gross_margin_percent ?? 0,
       total_cost_burden:
         cost_summary_output_contract.total_cost_burden ?? 0,
+      total_recovery_hours:
+        cost_summary_output_contract.total_recovery_hours ?? 0,
       total_productive_output:
         cost_summary_output_contract.total_productive_output ?? 0,
       units_sold_annual: revenue_cogs_output_contract.units_sold_annual ?? 0,
@@ -54,7 +56,21 @@ export default function useBusinessSummary() {
       cost_summary_ready: cost_summary_output_contract.model_ready === true,
     });
 
-    const card = buildBusinessSummaryCard(calculations);
+    const display_details = {
+      direct_cost_category_totals:
+        revenue_cogs_output_contract.direct_cost_category_totals ?? [],
+      total_people_cost_annual:
+        cost_summary_output_contract.total_people_cost_annual ?? 0,
+      total_asset_cost_annual:
+        cost_summary_output_contract.total_asset_cost_annual ?? 0,
+      total_business_overheads:
+        cost_summary_output_contract.total_business_overheads ?? 0,
+    };
+
+    const card = buildBusinessSummaryCard({
+      ...calculations,
+      ...display_details,
+    });
 
     const output_contract = {
       business_summary_ready: status.business_summary_ready,
@@ -75,12 +91,22 @@ export default function useBusinessSummary() {
 
       total_revenue: calculations.total_revenue,
       total_direct_costs: calculations.total_direct_costs,
+      direct_cost_category_totals:
+        display_details.direct_cost_category_totals,
       margin_pool: calculations.margin_pool,
       gross_margin_percent: calculations.gross_margin_percent,
 
       total_cost_burden: calculations.total_cost_burden,
+      total_people_cost_annual:
+        display_details.total_people_cost_annual,
+      total_asset_cost_annual:
+        display_details.total_asset_cost_annual,
+      total_business_overheads:
+        display_details.total_business_overheads,
       net_position: calculations.net_position,
 
+      total_recovery_hours: calculations.total_recovery_hours,
+      recovery_hours_used: calculations.recovery_hours_used,
       total_productive_output: calculations.total_productive_output,
       units_sold_annual: calculations.units_sold_annual,
 
@@ -90,6 +116,9 @@ export default function useBusinessSummary() {
         cost_summary_output_contract.total_available_hours_before_productivity ?? 0,
 
       required_recovery_rate: calculations.required_recovery_rate,
+      actual_recovery_rate: calculations.actual_recovery_rate,
+      profit_or_deficit_per_recovery_hour:
+        calculations.profit_or_deficit_per_recovery_hour,
       current_margin_per_productive_hour:
         calculations.current_margin_per_hour,
       recovery_gap_per_hour: calculations.hourly_gap,

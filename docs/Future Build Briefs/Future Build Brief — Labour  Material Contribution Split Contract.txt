@@ -1,0 +1,405 @@
+# Future Build Brief — Labour / Material Contribution Split Contract
+
+## Purpose
+
+This future build defines the data contract required to show the true split between:
+
+```text
+Labour contribution
+Material contribution
+Other contribution
+```
+
+inside Business Summary.
+
+This should not be built yet as a calculation layer.
+
+For now, Business Summary can include future-ready hierarchy nodes, but the true labour/material split must remain marked as pending until quote, job, invoice, and claimed labour-hour data are connected.
+
+---
+
+# Core principle
+
+Business Summary can currently show:
+
+```text
+Revenue
+- COG / Direct Costs
+= Gross Profit / Margin Pool
+
+Gross Profit / Margin Pool
+- Operating Cost Baseline
+= Surplus / Deficit
+```
+
+But Business Summary cannot yet safely prove:
+
+```text
+How much of the margin pool came from labour
+How much came from materials
+How much came from other sources
+```
+
+because the system does not yet know:
+
+```text
+How many labour hours were actually claimed / invoiced
+How many labour hours were actually used
+How the quote split revenue between labour and materials
+```
+
+So the contribution split must be future-ready only.
+
+---
+
+# Business Summary current wording
+
+Use this pending message:
+
+```text
+Full labour and material margin split becomes available once claimed labour hours and quote/job data are connected.
+```
+
+Alternative shorter version:
+
+```text
+Contribution split pending. Requires claimed labour hours and quote/job data.
+```
+
+---
+
+# Business Summary future hierarchy
+
+Business Summary should eventually support:
+
+```text
+Business Result
+→ Revenue Generated
+→ COG / Direct Costs
+→ Gross Profit / Margin Pool
+→ Operating Cost Baseline
+→ Surplus / Deficit
+```
+
+Then under:
+
+```text
+Gross Profit / Margin Pool
+```
+
+show:
+
+```text
+Labour Contribution
+Material Contribution
+Other Contribution
+```
+
+For now, these nodes can exist as pending nodes only.
+
+Do not calculate or display final values until the data contract below is available.
+
+---
+
+# Future data contract
+
+## Claimed / invoiced labour fields
+
+These describe what the business actually billed or claimed for labour.
+
+```js
+claimed_labour_hours
+claimed_labour_revenue
+claimed_labour_rate
+```
+
+Definitions:
+
+```text
+claimed_labour_hours = labour hours charged / claimed to the customer
+claimed_labour_revenue = labour revenue charged to the customer
+claimed_labour_rate = claimed_labour_revenue / claimed_labour_hours
+```
+
+Important distinction:
+
+```text
+claimed_labour_hours are not the same as recovery_hours.
+```
+
+Recovery hours are business capacity.
+
+Claimed labour hours are what was actually charged or recovered through invoices / quotes.
+
+---
+
+## Actual labour used fields
+
+These describe the labour actually consumed by the job or business activity.
+
+```js
+actual_labour_hours_used
+actual_labour_cost
+```
+
+Definitions:
+
+```text
+actual_labour_hours_used = labour hours actually consumed by the work
+actual_labour_cost = cost of labour used on the work
+```
+
+This may come from:
+
+```text
+timesheets
+job tracking
+quote actuals
+invoice processor
+manual job inputs
+```
+
+---
+
+## Labour contribution fields
+
+These describe what labour actually contributed.
+
+```js
+labour_contribution
+labour_contribution_percent
+labour_recovery_gap
+```
+
+Future formulas:
+
+```text
+labour_contribution =
+claimed_labour_revenue - actual_labour_cost
+```
+
+```text
+labour_contribution_percent =
+labour_contribution / claimed_labour_revenue
+```
+
+```text
+labour_recovery_gap =
+claimed_labour_revenue - required_labour_recovery
+```
+
+Do not calculate these until claimed labour and actual labour data are available.
+
+---
+
+## Material contribution fields
+
+These describe direct material contribution.
+
+```js
+material_revenue
+material_cost
+material_contribution
+material_contribution_percent
+```
+
+Future formulas:
+
+```text
+material_contribution =
+material_revenue - material_cost
+```
+
+```text
+material_contribution_percent =
+material_contribution / material_revenue
+```
+
+This is safe once material revenue and material cost are cleanly available.
+
+Do not infer material revenue from total revenue unless the Revenue / COG or quote layer explicitly provides it.
+
+---
+
+## Other contribution fields
+
+These describe contribution from revenue streams that are not clearly labour or material.
+
+```js
+other_revenue
+other_cost
+other_contribution
+other_contribution_percent
+```
+
+Future formulas:
+
+```text
+other_contribution =
+other_revenue - other_cost
+```
+
+```text
+other_contribution_percent =
+other_contribution / other_revenue
+```
+
+Examples may include:
+
+```text
+hire income
+admin fees
+delivery charges
+service fees
+miscellaneous revenue
+```
+
+---
+
+# Future allocated margin fields
+
+These are the full-model outputs once the system can allocate the recovery gap properly.
+
+```js
+allocated_labour_margin
+allocated_material_margin
+allocated_other_margin
+```
+
+Percent fields:
+
+```js
+allocated_labour_margin_percent
+allocated_material_margin_percent
+allocated_other_margin_percent
+```
+
+These should only be calculated when the full quote/job/time loop exists.
+
+They should not be guessed from P&L totals alone.
+
+---
+
+# Availability flag
+
+Business Summary should eventually receive:
+
+```js
+contribution_split_available
+```
+
+Definition:
+
+```text
+true only when claimed labour hours, claimed labour revenue, material revenue, material cost, and quote/job data are connected strongly enough to calculate contribution split safely.
+```
+
+Until then:
+
+```js
+contribution_split_available = false
+```
+
+When false, Business Summary should display pending messaging, not fake values.
+
+---
+
+# Guardrails
+
+Do not use these labels until the full data exists:
+
+```text
+True Material Margin
+True Labour Margin
+Real Material Margin
+Real Labour Margin
+Fully Loaded Material Margin
+Fully Loaded Labour Margin
+```
+
+Preferred labels:
+
+```text
+Material Contribution
+Labour Contribution
+Contribution Split
+Allocated Material Margin
+Allocated Labour Margin
+```
+
+Use:
+
+```text
+Contribution
+```
+
+for direct, current, observable values.
+
+Use:
+
+```text
+Allocated Margin
+```
+
+only for future fully allocated values.
+
+---
+
+# Important modelling rule
+
+Do not force the entire business gap onto materials.
+
+A low Business Summary result may be caused by:
+
+```text
+labour under-recovery
+material margin
+overhead load
+non-productive labour
+productivity loss
+quote leakage
+a combination of all of the above
+```
+
+Business Summary should detect the gap.
+
+Business Modelling should test the levers.
+
+Quote / Job Checker should prove the result against real work.
+
+---
+
+# Future workflow
+
+The future full loop should be:
+
+```text
+Cost Summary
+→ Required recovery baseline
+
+Business Summary
+→ Actual performance and margin pool
+
+Business Modelling
+→ Test which levers close the gap
+
+Quote / Job Checker
+→ Check whether jobs meet the required recovery
+
+Quote / Job / Time Actuals
+→ Measure claimed labour, actual labour, material cost, and real contribution split
+```
+
+---
+
+# Final definition
+
+The future Labour / Material Contribution Split build should answer:
+
+```text
+How much margin is really coming from labour?
+How much margin is really coming from materials?
+Are we under-claiming labour, under-marking materials, or both?
+```
+
+Until the data exists, Business Summary must show the structure as pending, not calculated.
