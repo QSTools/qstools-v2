@@ -12,6 +12,20 @@ export default function BusinessSummaryPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        <section className="ui-hero">
+          <div className="ui-hero-inner">
+            <div className="ui-kicker">Business Performance</div>
+            <h1 className="ui-hero-title">Business Summary</h1>
+            <p className="ui-hero-copy">
+              Turn your P&amp;L into an operating result.
+            </p>
+            <p className="ui-hero-copy">
+              This page shows what your business is actually making after
+              direct costs and your Cost Summary baseline are covered.
+            </p>
+          </div>
+        </section>
+
         <BusinessSummaryStatusStrip
           net_position={status.net_position}
           current_margin_per_driver={status.current_margin_per_driver}

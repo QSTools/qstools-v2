@@ -93,6 +93,11 @@ export default function ProfitAndLossCostOfSalesLineRow({
                 "review_subcategory",
                 direct_cost_category_id,
               );
+              actions.update_pnl_line(
+                line.pnl_line_id,
+                "wip_treatment",
+                undefined,
+              );
               return;
             }
 

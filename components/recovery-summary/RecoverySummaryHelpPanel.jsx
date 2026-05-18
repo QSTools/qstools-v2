@@ -12,13 +12,14 @@ export default function RecoverySummaryHelpPanel() {
           <div className="ui-stack mt-4">
             <p className="text-sm text-[var(--text-primary)]">
               Cost Summary defines what the business costs. Recovery Summary
-              defines how that cost is intended to be recovered.
+              defines how that cost is intended to be recovered across the
+              selected recovery strategy.
             </p>
 
             <p className="text-sm text-[var(--text-primary)]">
-              Labour-only businesses may recover most or all cost through labour.
-              Asset-driven or hybrid businesses may distribute recovery across
-              labour, assets, and absorbed overhead.
+              Selected recovery hours come from the Cost Summary recovery-hour
+              baseline. Asset-driven or hybrid businesses may distribute
+              recovery across labour, assets, and absorbed overhead.
             </p>
 
             <p className="text-sm text-[var(--text-primary)]">
@@ -27,8 +28,9 @@ export default function RecoverySummaryHelpPanel() {
             </p>
 
             <p className="text-sm text-[var(--text-primary)]">
-              This module consumes Cost Summary outputs only and must not rebuild
-              upstream labour, asset, or overhead calculations.
+              This module consumes Business Summary recovery outputs and must
+              not rebuild upstream labour, asset, overhead, Cost Summary, or
+              Business Summary calculations.
             </p>
           </div>
         </details>

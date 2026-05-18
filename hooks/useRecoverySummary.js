@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+
 import useBusinessSummary from "@/hooks/useBusinessSummary";
 import { calculateRecoverySummary } from "@/lib/calculations/recoverySummaryCalculations";
 import {
@@ -11,6 +12,7 @@ import { useRecoverySummaryStorage } from "@/lib/storage/recoverySummaryStorage"
 
 export default function useRecoverySummary(inputs = {}) {
   const business_summary = useBusinessSummary();
+
   const {
     recovery_state,
     update_recovery_field,
@@ -18,13 +20,12 @@ export default function useRecoverySummary(inputs = {}) {
   } = useRecoverySummaryStorage();
 
   const business_summary_outputs =
-    inputs.business_summary ??
-    business_summary.output_contract ??
-    {};
+    inputs.business_summary ?? business_summary.output_contract ?? {};
 
   const calculated = useMemo(() => {
     return calculateRecoverySummary({
       ...business_summary_outputs,
+
       recovery_model: recovery_state.recovery_model,
       labour_share_percent: recovery_state.labour_share_percent,
       asset_share_percent: recovery_state.asset_share_percent,
@@ -57,35 +58,66 @@ export default function useRecoverySummary(inputs = {}) {
       activity_driver_type: calculated.activity_driver_type,
       activity_driver_label: calculated.activity_driver_label,
       activity_driver_value: calculated.activity_driver_value,
+
       required_recovery_per_driver: calculated.required_recovery_per_driver,
       current_margin_per_driver: calculated.current_margin_per_driver,
       recovery_gap_per_driver: calculated.recovery_gap_per_driver,
+
       recovery_plan_target_per_driver:
         calculated.recovery_plan_target_per_driver,
       recovery_plan_split: calculated.recovery_plan_split,
       component_required_recovery: calculated.component_required_recovery,
+
       recovery_model: calculated.recovery_model,
       active_recovery_model: calculated.active_recovery_model,
+
       labour_share_percent: calculated.labour_share_percent,
       asset_share_percent: calculated.asset_share_percent,
       overhead_share_percent: calculated.overhead_share_percent,
+
       labour_recovery_cost: calculated.labour_recovery_cost,
       asset_recovery_cost: calculated.asset_recovery_cost,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+
       required_revenue: calculated.required_revenue,
       required_recovery_rate: calculated.required_recovery_rate,
+
+      total_recovery_hours: calculated.total_recovery_hours,
+      recovery_hours_used: calculated.recovery_hours_used,
+      actual_recovery_rate: calculated.actual_recovery_rate,
+      profit_or_deficit_per_recovery_hour:
+        calculated.profit_or_deficit_per_recovery_hour,
+
       required_labour_recovery_rate: calculated.required_labour_recovery_rate,
+      required_labour_recovery_rate_per_recovery_hour:
+        calculated.required_labour_recovery_rate_per_recovery_hour,
+      required_asset_recovery_per_recovery_hour:
+        calculated.required_asset_recovery_per_recovery_hour,
+      overhead_absorbed_cost_per_recovery_hour:
+        calculated.overhead_absorbed_cost_per_recovery_hour,
       required_asset_recovery: calculated.required_asset_recovery,
+
+      total_revenue: calculated.total_revenue,
+      total_direct_costs: calculated.total_direct_costs,
+      gross_margin_percent: calculated.gross_margin_percent,
       margin_pool: calculated.margin_pool,
+
+      total_people_cost_annual: calculated.total_people_cost_annual,
+      total_asset_cost_annual: calculated.total_asset_cost_annual,
+      total_business_overheads: calculated.total_business_overheads,
       total_cost_burden: calculated.total_cost_burden,
+
       net_position: calculated.net_position,
       model_trust_state: calculated.model_trust_state,
 
       // Backwards-compatible outputs still consumed by existing downstream code.
       total_productive_output: calculated.total_productive_output,
+      units_sold_annual: calculated.units_sold_annual,
+
       warnings: calculated.warnings,
       share_not_balanced: calculated.share_not_balanced,
       no_productive_output: calculated.no_productive_output,
+      no_recovery_hours: calculated.no_recovery_hours,
       asset_recovery_without_assets: calculated.asset_recovery_without_assets,
       labour_recovery_without_labour: calculated.labour_recovery_without_labour,
     };

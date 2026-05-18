@@ -1,10 +1,14 @@
 "use client";
 
+import { is_empty_placeholder_line } from "@/lib/p-and-l/profitAndLossLineRules";
+
 function get_section_lines(pnl_lines = [], section) {
   return (pnl_lines ?? []).filter((line) => line.section === section);
 }
 
 function is_review_line(line) {
+  if (is_empty_placeholder_line(line)) return false;
+
   const category = line.category || "unassigned";
 
   if (category === "review_required") return true;

@@ -1,15 +1,13 @@
 "use client";
 
 export default function CostAllocationStatusStrip({
+  status_label,
+  allocation_status,
+  allocation_dependency_type,
   active_recovery_model,
   structure_valid,
-  linked_staff_count,
-  linked_asset_count,
-  total_operational_groups,
   warnings_count,
 }) {
-  const status_label = structure_valid ? "Structure ready" : "Structure incomplete";
-
   return (
     <section className="ui-section">
       <div className="ui-panel">
@@ -17,15 +15,22 @@ export default function CostAllocationStatusStrip({
           <div>
             <p className="ui-kicker">Cost allocation</p>
             <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-              Structural readiness
+              {status_label || allocation_status || "Needs review"}
             </h1>
             <p className="ui-help">
-              Recovery strategy is read-only here. This page validates whether the
-              current structure can support delivery.
+              This page tests whether the selected recovery plan is supported by
+              the visible delivery structure.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3">
+            <div className="ui-readonly">
+              <span className="ui-label">Dependency</span>
+              <div className="mt-1 text-sm text-[var(--text-primary)]">
+                {allocation_dependency_type || "unknown"}
+              </div>
+            </div>
+
             <div className="ui-readonly">
               <span className="ui-label">Active recovery model</span>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
@@ -34,30 +39,9 @@ export default function CostAllocationStatusStrip({
             </div>
 
             <div className="ui-readonly">
-              <span className="ui-label">Structure status</span>
+              <span className="ui-label">Structure valid</span>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {status_label}
-              </div>
-            </div>
-
-            <div className="ui-readonly">
-              <span className="ui-label">Linked staff</span>
-              <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {linked_staff_count}
-              </div>
-            </div>
-
-            <div className="ui-readonly">
-              <span className="ui-label">Linked assets</span>
-              <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {linked_asset_count}
-              </div>
-            </div>
-
-            <div className="ui-readonly">
-              <span className="ui-label">Operational groups</span>
-              <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {total_operational_groups}
+                {structure_valid ? "Yes" : "No"}
               </div>
             </div>
 

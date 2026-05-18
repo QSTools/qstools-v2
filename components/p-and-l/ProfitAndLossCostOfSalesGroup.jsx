@@ -6,6 +6,7 @@ import {
   format_money,
   get_line_amount_total,
 } from "@/lib/p-and-l/profitAndLossFormatters";
+import { is_empty_placeholder_line } from "@/lib/p-and-l/profitAndLossLineRules";
 
 export default function ProfitAndLossCostOfSalesGroup({
   group,
@@ -14,7 +15,10 @@ export default function ProfitAndLossCostOfSalesGroup({
   handle_line_name_change,
 }) {
   const subtotal = get_line_amount_total(group.lines);
-  const line_label = group.lines.length === 1 ? "line" : "lines";
+  const active_line_count = group.lines.filter(
+    (line) => !is_empty_placeholder_line(line),
+  ).length;
+  const line_label = active_line_count === 1 ? "line" : "lines";
   const can_delete_category = group.is_custom && group.lines.length === 0;
 
   function handle_delete_category() {
@@ -33,7 +37,7 @@ export default function ProfitAndLossCostOfSalesGroup({
   return (
     <CollapsibleSection
       title={group.title}
-      summary={`${format_money(subtotal)} · ${group.lines.length} ${line_label}`}
+      summary={`${format_money(subtotal)} · ${active_line_count} ${line_label}`}
       defaultOpen={group.defaultOpen}
     >
       <div className="ui-stack-sm">
