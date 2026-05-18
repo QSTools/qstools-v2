@@ -22,14 +22,10 @@ function get_business_type_label(business_type) {
     : "Labour-driven business";
 }
 
-function get_recovery_driver_label(activity_driver_type, activity_driver_label) {
-  if (activity_driver_label) {
-    return activity_driver_label;
-  }
-
+function get_recovery_driver_label(activity_driver_type) {
   return activity_driver_type === "units"
     ? "Units sold"
-    : "Productive recovery hours";
+    : "Selected recovery hours";
 }
 
 function SummaryMetric({ id, label, value, active, onClick }) {
@@ -62,22 +58,22 @@ function DetailPanel({
     return (
       <div className="ui-panel">
         <div className="ui-stack-sm">
-          <p className="ui-label">Recovery model status</p>
+          <p className="ui-label">Recovery strategy status</p>
+
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {status_label}
           </h3>
 
           <p className="ui-help">
-            This tells you whether the starting recovery model can be used by
-            the next page. A warning does not always block the model. Some
-            warnings simply show that the business is under pressure.
+            This tells you whether the recovery strategy is usable enough to
+            carry forward into Cost Allocation.
           </p>
 
           <div className="ui-readonly">
             <p className="text-sm font-medium text-[var(--text-primary)]">
-              The model can continue when the recovery driver exists and the
-              recovery setup is structurally valid. Commercial warnings remain
-              visible so the user understands the pressure in the business.
+              Warnings may still exist because Business Summary has identified
+              commercial pressure. That does not always block the recovery
+              strategy. It tells you what Cost Allocation needs to test next.
             </p>
           </div>
         </div>
@@ -90,19 +86,20 @@ function DetailPanel({
       <div className="ui-panel">
         <div className="ui-stack-sm">
           <p className="ui-label">Business type</p>
+
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {business_type_label}
           </h3>
 
           <p className="ui-help">
             This comes from Business Setup through Business Summary. It controls
-            how QS Tools interprets the main recovery driver.
+            how QS Tools expresses the recovery pressure.
           </p>
 
           <div className="ui-readonly">
             <p className="text-sm font-medium text-[var(--text-primary)]">
-              Labour-driven businesses are tested against recovery hours.
-              Product-driven businesses are tested against units sold.
+              Labour-driven businesses are tested against selected recovery
+              hours. Product-driven businesses are tested against units sold.
             </p>
           </div>
         </div>
@@ -115,21 +112,21 @@ function DetailPanel({
       <div className="ui-panel">
         <div className="ui-stack-sm">
           <p className="ui-label">Recovery driver</p>
+
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {recovery_driver_label}
           </h3>
 
           <p className="ui-help">
-            This is the activity base QS Tools uses to spread the total cost
-            burden. It is the denominator for the required recovery level.
+            This is the selected recovery denominator used to express the
+            required recovery pressure.
           </p>
 
           <div className="ui-readonly">
             <p className="text-sm font-medium text-[var(--text-primary)]">
-              The same recovery maths applies whether the result is good or bad:
-              total cost burden is compared against the selected recovery
-              driver, then Business Summary shows whether the business is
-              generating enough margin to cover it.
+              Business Summary works out the current position. Recovery Summary
+              carries the recovery requirement forward so Cost Allocation can
+              test whether the business structure can support it.
             </p>
           </div>
         </div>
@@ -171,7 +168,6 @@ export default function RecoverySummaryStatusStrip({
   total_people_cost_annual,
   total_asset_cost_annual,
   total_business_overheads,
-  cost_burden_breakdown,
 }) {
   const [active_detail, set_active_detail] = useState("status");
 
@@ -194,11 +190,6 @@ export default function RecoverySummaryStatusStrip({
     total_people_cost_annual,
     total_asset_cost_annual,
     total_business_overheads,
-    cost_burden_breakdown: cost_burden_breakdown ?? {
-      people: {},
-      assets: {},
-      business_overheads: {},
-    },
   };
 
   return (
@@ -209,15 +200,13 @@ export default function RecoverySummaryStatusStrip({
             <p className="ui-kicker">Recovery summary</p>
 
             <h1 className="ui-card-title-sm text-[var(--text-primary)]">
-              Your starting recovery model
+              Your recovery strategy
             </h1>
 
             <p className="ui-help">
-              This page shows the recovery strategy QS Tools is carrying
-              forward from Business Summary. The diagnostic source trail belongs
-              in Business Summary; this page explains the selected recovery
-              basis before Cost Allocation tests whether the structure can
-              support it.
+              This page shows the recovery strategy QS Tools is carrying forward
+              from Business Summary. It explains the selected recovery basis
+              before Cost Allocation tests whether the structure can support it.
             </p>
           </div>
 

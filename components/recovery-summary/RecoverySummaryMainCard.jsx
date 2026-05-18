@@ -14,6 +14,10 @@ function format_number(value) {
   }).format(Number(value ?? 0));
 }
 
+function format_rate(value, suffix = "/hr") {
+  return `${format_currency(value)}${suffix}`;
+}
+
 function ReadOnlyRow({ label, value, emphasis = false }) {
   return (
     <div className="ui-split">
@@ -37,6 +41,7 @@ function PercentField({ label, value, onChange, disabled = false }) {
       <span className="mb-2 block text-sm text-[var(--text-secondary)]">
         {label}
       </span>
+
       <input
         type="number"
         min="0"
@@ -50,70 +55,17 @@ function PercentField({ label, value, onChange, disabled = false }) {
   );
 }
 
-function get_business_mode_label(business_type) {
-  return business_type === "product_based"
-    ? "product-driven business"
-    : "labour-driven business";
-}
-
-function get_recovery_driver_label(activity_driver_type, activity_driver_label) {
-  if (activity_driver_label) {
-    return activity_driver_label;
-  }
-
-  return activity_driver_type === "units"
-    ? "units sold"
-    : "productive recovery hours";
-}
-
-function get_recovery_model_label(recovery_model) {
-  const model_map = {
-    labour_only: "Labour-led recovery",
-    asset_driven: "Asset-supported recovery",
-    hybrid: "Hybrid recovery",
-  };
-
-  return model_map[recovery_model] || "Recovery model";
-}
-
-function get_split_message({
-  business_type,
-  activity_driver_label,
-  recovery_model,
-  labour_share_percent,
-  asset_share_percent,
-  overhead_share_percent,
-}) {
-  const business_mode_label = get_business_mode_label(business_type);
-  const recovery_driver_label = get_recovery_driver_label(
-    null,
-    activity_driver_label
-  );
-
-  if (recovery_model === "labour_only") {
-    return `QS Tools is currently treating this as a ${business_mode_label}. The business cost burden is being tested against ${recovery_driver_label}, with the recovery burden currently assigned to labour-led recovery.`;
-  }
-
-  if (recovery_model === "asset_driven") {
-    return `QS Tools is currently treating this as a ${business_mode_label}. The business cost burden is being tested against ${recovery_driver_label}, with a major part of the recovery burden assigned to assets.`;
-  }
-
-  if (recovery_model === "hybrid") {
-    return `QS Tools is currently treating this as a ${business_mode_label}. The business cost burden is being tested against ${recovery_driver_label}, with recovery spread across labour, assets, and absorbed overhead.`;
-  }
-
-  return `QS Tools is currently assigning recovery as Labour ${labour_share_percent}%, Assets ${asset_share_percent}%, and Absorbed overhead ${overhead_share_percent}%.`;
-}
-
 export default function RecoverySummaryMainCard({
-  business_type,
-  activity_driver_type,
-  activity_driver_label,
-  activity_driver_value,
-
   total_cost_burden,
   required_recovery_rate,
   recovery_hours_used,
+
+  business_type,
+  activity_driver_type,
+  units_sold_annual,
+
+  actual_recovery_rate,
+  profit_or_deficit_per_recovery_hour,
 
   recovery_model,
   labour_share_percent,
@@ -123,14 +75,9 @@ export default function RecoverySummaryMainCard({
   labour_recovery_cost,
   asset_recovery_cost,
   overhead_absorbed_cost,
-  required_labour_recovery_rate_per_recovery_hour,
-  required_asset_recovery,
   share_total,
 
   share_not_balanced,
-  no_recovery_hours,
-  asset_recovery_without_assets,
-  labour_recovery_without_labour,
 
   insight_text,
 
@@ -141,36 +88,79 @@ export default function RecoverySummaryMainCard({
   on_reset,
 }) {
   const labour_only_locked = recovery_model === "labour_only";
+  const is_product_based =
+    business_type === "product_based" || activity_driver_type === "units";
 
-  const business_mode_label = get_business_mode_label(business_type);
-  const recovery_driver_label = get_recovery_driver_label(
-    activity_driver_type,
-    activity_driver_label
+  const recovery_driver_label = is_product_based
+    ? "Units used"
+    : "Selected recovery hours";
+
+  const recovery_driver_quantity = is_product_based
+    ? units_sold_annual
+    : recovery_hours_used;
+
+  const required_recovery_label = is_product_based
+    ? "Required recovery per unit"
+    : "Required recovery per recovery hour";
+
+  const actual_recovery_label = is_product_based
+    ? "Actual recovery per unit"
+    : "Actual recovery per recovery hour";
+
+  const variance_label = is_product_based
+    ? "Recovery variance per unit"
+    : "Recovery variance per recovery hour";
+
+  const rate_suffix = is_product_based ? "/unit" : "/hr";
+
+  const required_recovery_rate_display = format_rate(
+    required_recovery_rate,
+    rate_suffix
   );
-  const recovery_model_label = get_recovery_model_label(recovery_model);
 
-  const split_message = get_split_message({
-    business_type,
-    activity_driver_label: recovery_driver_label,
-    recovery_model,
-    labour_share_percent,
-    asset_share_percent,
-    overhead_share_percent,
-  });
+  const actual_recovery_rate_display = format_rate(
+    actual_recovery_rate,
+    rate_suffix
+  );
+
+  const recovery_variance_display = format_rate(
+    profit_or_deficit_per_recovery_hour,
+    rate_suffix
+  );
+
+  const has_recovery_shortfall =
+    Number(profit_or_deficit_per_recovery_hour ?? 0) < 0;
+
+  const has_recovery_surplus =
+    Number(profit_or_deficit_per_recovery_hour ?? 0) > 0;
+
+  const recovery_result_text = has_recovery_shortfall
+    ? `The business is currently ${format_rate(
+        Math.abs(Number(profit_or_deficit_per_recovery_hour ?? 0)),
+        rate_suffix
+      )} below the required recovery rate.`
+    : has_recovery_surplus
+      ? `The business is currently ${format_rate(
+          profit_or_deficit_per_recovery_hour,
+          rate_suffix
+        )} above the required recovery rate.`
+      : "The business is currently matching the required recovery rate.";
 
   return (
     <section className="ui-section">
       <div className="ui-panel">
         <div className="ui-stack">
           <div>
-            <p className="ui-kicker">Recovery summary</p>
+            <p className="ui-kicker">Recovery basis</p>
+
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-              Your starting recovery model
+              Recovery basis being carried forward
             </h2>
+
             <p className="ui-help">
-              This page shows the starting basis QS Tools is using to understand
-              how your business recovers its cost burden. It is not a quote
-              tool and it is not Business Modelling.
+              This section shows how the Business Summary cost burden becomes a
+              recovery rate. Cost Allocation will test whether the business
+              structure can support this rate.
             </p>
           </div>
 
@@ -178,197 +168,103 @@ export default function RecoverySummaryMainCard({
             <div className="ui-stack">
               <div>
                 <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  What this page is telling you
+                  Recovery requirement
                 </h3>
+
                 <p className="ui-help">
-                  Based on your current setup, QS Tools is treating this as a{" "}
-                  {business_mode_label}. The main recovery driver is{" "}
-                  {recovery_driver_label}.
+                  This shows how the Business Summary cost burden becomes the
+                  recovery rate carried forward into Cost Allocation.
                 </p>
               </div>
 
-              <div className="ui-panel">
-                <p className="text-sm text-[var(--text-primary)]">
-                  {split_message}
-                </p>
-              </div>
+              <div className="ui-readonly">
+                <div className="ui-stack-sm">
+                  <p className="ui-kicker">Required recovery build-up</p>
 
-              <div className="ui-panel">
-                <p className="text-sm text-[var(--text-primary)]">
-                  Cost Allocation will check whether your staff, assets, and
-                  operational structure can support this starting recovery model.
-                </p>
-              </div>
-            </div>
-          </div>
+                  <div className="labour-summary-table">
+                    <div className="labour-summary-table-row">
+                      <div className="labour-summary-table-label">
+                        Total cost burden
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {format_currency(total_cost_burden)}
+                      </div>
+                    </div>
 
-          <div className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  What the business needs to recover
-                </h3>
-                <p className="ui-help">
-                  This is the total business cost burden coming from the current
-                  model.
-                </p>
-              </div>
+                    <div className="labour-summary-table-row">
+                      <div className="labour-summary-table-label">
+                        {recovery_driver_label}
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {is_product_based
+                          ? format_number(recovery_driver_quantity)
+                          : `${format_number(recovery_driver_quantity)} hrs`}
+                      </div>
+                    </div>
 
-              <ReadOnlyRow
-                label="Total cost burden"
-                value={format_currency(total_cost_burden)}
-                emphasis
-              />
+                    <div className="labour-summary-table-row total">
+                      <div className="labour-summary-table-label">
+                        {required_recovery_label}
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {required_recovery_rate_display}
+                      </div>
+                    </div>
+                  </div>
 
-              <ReadOnlyRow
-                label="Minimum recovery rate"
-                value={format_currency(required_recovery_rate)}
-              />
-
-              <ReadOnlyRow
-                label="Recovery driver"
-                value={recovery_driver_label}
-              />
-
-              <ReadOnlyRow
-                label="Recovery driver quantity"
-                value={format_number(activity_driver_value ?? recovery_hours_used)}
-              />
-            </div>
-          </div>
-
-          <div className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  Suggested recovery split
-                </h3>
-                <p className="ui-help">
-                  This is the starting recovery split QS Tools is using for the
-                  model. Alternative strategies should be tested later in
-                  Business Modelling.
-                </p>
-              </div>
-
-              <ReadOnlyRow
-                label="Starting recovery type"
-                value={recovery_model_label}
-                emphasis
-              />
-
-              <ReadOnlyRow
-                label="Labour-led recovery share"
-                value={`${format_number(labour_share_percent)}%`}
-              />
-
-              <ReadOnlyRow
-                label="Asset recovery share"
-                value={`${format_number(asset_share_percent)}%`}
-              />
-
-              <ReadOnlyRow
-                label="Absorbed overhead share"
-                value={`${format_number(overhead_share_percent)}%`}
-              />
-
-              <ReadOnlyRow
-                label="Share total"
-                value={`${format_number(share_total)}%`}
-                emphasis
-              />
-
-              {share_not_balanced ? (
-                <div className="ui-panel">
-                  <p className="text-sm text-[var(--text-primary)]">
-                    Recovery shares must total 100% before this recovery model
-                    can be used.
+                  <p className="ui-help">
+                    {is_product_based
+                      ? "Total cost burden ÷ units used = required recovery per unit."
+                      : "Total cost burden ÷ selected recovery hours = required recovery per recovery hour."}
                   </p>
                 </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  What this split means in dollars
-                </h3>
-                <p className="ui-help">
-                  This shows how the total cost burden is being assigned under
-                  the current recovery model.
-                </p>
               </div>
 
-              <ReadOnlyRow
-                label="Labour-led recovery burden"
-                value={format_currency(labour_recovery_cost)}
-              />
+              <div className="ui-readonly">
+                <div className="ui-stack-sm">
+                  <p className="ui-kicker">Actual vs required</p>
 
-              <ReadOnlyRow
-                label="Asset recovery burden"
-                value={format_currency(asset_recovery_cost)}
-              />
+                  <div className="labour-summary-table">
+                    <div className="labour-summary-table-row">
+                      <div className="labour-summary-table-label">
+                        {actual_recovery_label}
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {actual_recovery_rate_display}
+                      </div>
+                    </div>
 
-              <ReadOnlyRow
-                label="Absorbed overhead burden"
-                value={format_currency(overhead_absorbed_cost)}
-              />
-            </div>
-          </div>
+                    <div className="labour-summary-table-row">
+                      <div className="labour-summary-table-label">
+                        {required_recovery_label}
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {required_recovery_rate_display}
+                      </div>
+                    </div>
 
-          <div className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  What Cost Allocation will test next
-                </h3>
-                <p className="ui-help">
-                  The next page checks whether the visible business structure
-                  can support this starting recovery model.
-                </p>
+                    <div className="labour-summary-table-row total">
+                      <div className="labour-summary-table-label">
+                        {variance_label}
+                      </div>
+                      <div className="labour-summary-table-value">
+                        {recovery_variance_display}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="ui-help">
+                    Actual recovery rate - required recovery rate = recovery
+                    variance.
+                  </p>
+
+                  <div className="ui-readonly">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                      {recovery_result_text}
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              <ReadOnlyRow
-                label="Labour recovery pressure"
-                value={format_currency(
-                  required_labour_recovery_rate_per_recovery_hour
-                )}
-                emphasis
-              />
-
-              <ReadOnlyRow
-                label="Required asset recovery"
-                value={format_currency(required_asset_recovery)}
-                emphasis
-              />
-
-              {no_recovery_hours ? (
-                <div className="ui-panel">
-                  <p className="text-sm text-[var(--text-primary)]">
-                    No recovery hours are available, so labour recovery pressure
-                    is held at 0.
-                  </p>
-                </div>
-              ) : null}
-
-              {asset_recovery_without_assets ? (
-                <div className="ui-panel">
-                  <p className="text-sm text-[var(--text-primary)]">
-                    Asset recovery is active, but no asset recovery base is
-                    available upstream.
-                  </p>
-                </div>
-              ) : null}
-
-              {labour_recovery_without_labour ? (
-                <div className="ui-panel">
-                  <p className="text-sm text-[var(--text-primary)]">
-                    Labour recovery is active, but no labour base is available
-                    upstream.
-                  </p>
-                </div>
-              ) : null}
             </div>
           </div>
 
@@ -376,29 +272,11 @@ export default function RecoverySummaryMainCard({
             <div className="ui-stack">
               <div>
                 <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  Model notes
+                  Recovery model selector
                 </h3>
-                <p className="ui-help">
-                  These notes explain what the current recovery model means.
-                </p>
-              </div>
 
-              <p className="text-sm text-[var(--text-primary)]">
-                {insight_text}
-              </p>
-            </div>
-          </div>
-
-          <div className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  Advanced recovery settings
-                </h3>
                 <p className="ui-help">
-                  These settings are available for testing the starting recovery
-                  model. Larger strategy changes should be handled later in
-                  Business Modelling.
+                  Choose how the total cost burden is intended to be recovered.
                 </p>
               </div>
 
@@ -406,6 +284,7 @@ export default function RecoverySummaryMainCard({
                 <span className="mb-2 block text-sm text-[var(--text-secondary)]">
                   Recovery model
                 </span>
+
                 <select
                   value={recovery_model}
                   onChange={(event) =>
@@ -418,17 +297,34 @@ export default function RecoverySummaryMainCard({
                   <option value="hybrid">Hybrid recovery</option>
                 </select>
               </label>
+            </div>
+          </div>
+
+          <div className="ui-panel">
+            <div className="ui-stack">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Recovery share inputs
+                </h3>
+
+                <p className="ui-help">
+                  These shares define how the recovery burden is split across
+                  labour, assets, and absorbed overhead. Leave this as the
+                  default unless you are intentionally modelling a different
+                  recovery strategy.
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 gap-3">
                 <PercentField
-                  label="Labour-led recovery share percent"
+                  label="Labour share percent"
                   value={labour_share_percent}
                   onChange={on_labour_share_change}
                   disabled={labour_only_locked}
                 />
 
                 <PercentField
-                  label="Asset recovery share percent"
+                  label="Asset share percent"
                   value={asset_share_percent}
                   onChange={on_asset_share_change}
                   disabled={labour_only_locked}
@@ -442,15 +338,73 @@ export default function RecoverySummaryMainCard({
                 />
               </div>
 
+              <ReadOnlyRow
+                label="Share total"
+                value={`${format_number(share_total)}%`}
+                emphasis
+              />
+
+              {share_not_balanced ? (
+                <div className="ui-readonly">
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    Recovery shares must total 100%.
+                  </p>
+                </div>
+              ) : null}
+
               <div className="ui-actions">
                 <button
                   type="button"
                   onClick={on_reset}
                   className="ui-button-secondary"
                 >
-                  Reset to suggested model
+                  Reset to defaults
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div className="ui-panel">
+            <div className="ui-stack">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Recovery distribution
+                </h3>
+
+                <p className="ui-help">
+                  This shows how the cost burden is being assigned by the
+                  current recovery strategy.
+                </p>
+              </div>
+
+              <ReadOnlyRow
+                label="Labour recovery cost"
+                value={format_currency(labour_recovery_cost)}
+              />
+
+              <ReadOnlyRow
+                label="Asset recovery cost"
+                value={format_currency(asset_recovery_cost)}
+              />
+
+              <ReadOnlyRow
+                label="Absorbed overhead cost"
+                value={format_currency(overhead_absorbed_cost)}
+              />
+            </div>
+          </div>
+
+          <div className="ui-panel">
+            <div className="ui-stack">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Recovery insight
+                </h3>
+              </div>
+
+              <p className="text-sm text-[var(--text-primary)]">
+                {insight_text}
+              </p>
             </div>
           </div>
         </div>

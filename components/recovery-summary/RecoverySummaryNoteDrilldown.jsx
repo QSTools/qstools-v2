@@ -2,8 +2,20 @@
 
 import { useState } from "react";
 
-import RecoverySummaryCalculationTable from "@/components/recovery-summary/RecoverySummaryCalculationTable";
 import { get_warning_detail } from "@/components/recovery-summary/recoverySummaryWarningDetails";
+
+function ValueRow({ label, value, emphasis = false }) {
+  return (
+    <div
+      className={`recovery-summary-row ${
+        emphasis ? "recovery-summary-row-total" : ""
+      }`}
+    >
+      <div className="recovery-summary-row-label">{label}</div>
+      <div className="recovery-summary-row-value">{value}</div>
+    </div>
+  );
+}
 
 export default function RecoverySummaryNoteDrilldown({
   warning_count,
@@ -34,8 +46,8 @@ export default function RecoverySummaryNoteDrilldown({
           </h3>
 
           <p className="ui-help">
-            Click a note to see what it means, where it came from, and the
-            actual values behind it.
+            These notes explain the recovery pressure being carried forward.
+            Use Business Summary Macro Position to audit the source values.
           </p>
         </div>
 
@@ -80,7 +92,7 @@ export default function RecoverySummaryNoteDrilldown({
                   </div>
 
                   <div className="ui-readonly">
-                    <p className="ui-label">Where it came from</p>
+                    <p className="ui-label">Where to audit it</p>
 
                     <p className="text-sm font-medium text-[var(--text-primary)]">
                       {selected_detail.source}
@@ -88,19 +100,44 @@ export default function RecoverySummaryNoteDrilldown({
                   </div>
 
                   {selected_detail.actual_maths.length > 0 ? (
-                    <RecoverySummaryCalculationTable
-                      title={selected_detail.calculation_title}
-                      rows={selected_detail.actual_maths}
-                      formula={selected_detail.formula}
-                      values={values}
-                    />
+                    <div className="ui-panel">
+                      <div className="ui-stack-sm">
+                        <p className="ui-kicker">
+                          {selected_detail.calculation_title}
+                        </p>
+
+                        {selected_detail.actual_maths.map((row) => (
+                          <ValueRow
+                            key={row.label}
+                            label={row.label}
+                            value={row.value}
+                            emphasis={row.emphasis}
+                          />
+                        ))}
+
+                        {selected_detail.formula ? (
+                          <p className="ui-help">
+                            {selected_detail.formula}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
                   ) : (
                     <div className="ui-readonly">
                       <p className="text-sm font-medium text-[var(--text-primary)]">
-                        No value breakdown is available for this note yet.
+                        No recovery value summary is available for this note
+                        yet.
                       </p>
                     </div>
                   )}
+
+                  <div className="ui-readonly">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                      Recovery Summary carries this recovery pressure forward.
+                      Use Cost Allocation next to test whether the structure can
+                      support it.
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : null}
