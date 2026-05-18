@@ -106,6 +106,7 @@ export default function useRecoverySummary(inputs = {}) {
       total_asset_cost_annual: calculated.total_asset_cost_annual,
       total_business_overheads: calculated.total_business_overheads,
       total_cost_burden: calculated.total_cost_burden,
+      cost_burden_breakdown: calculated.cost_burden_breakdown,
 
       net_position: calculated.net_position,
       model_trust_state: calculated.model_trust_state,

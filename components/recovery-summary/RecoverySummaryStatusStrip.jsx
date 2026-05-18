@@ -37,14 +37,12 @@ function SummaryMetric({ id, label, value, active, onClick }) {
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`ui-readonly text-left transition ${
-        active
-          ? "border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]"
-          : ""
+      className={`recovery-summary-interactive ui-readonly text-left ${
+        active ? "is-active" : ""
       }`}
     >
       <div className="ui-label">{label}</div>
-      <div className="text-base font-semibold text-[var(--text-primary)]">
+      <div className="recovery-summary-row-value text-base font-semibold">
         {value}
       </div>
     </button>
@@ -68,6 +66,7 @@ function DetailPanel({
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {status_label}
           </h3>
+
           <p className="ui-help">
             This tells you whether the starting recovery model can be used by
             the next page. A warning does not always block the model. Some
@@ -94,6 +93,7 @@ function DetailPanel({
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {business_type_label}
           </h3>
+
           <p className="ui-help">
             This comes from Business Setup through Business Summary. It controls
             how QS Tools interprets the main recovery driver.
@@ -118,6 +118,7 @@ function DetailPanel({
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {recovery_driver_label}
           </h3>
+
           <p className="ui-help">
             This is the activity base QS Tools uses to spread the total cost
             burden. It is the denominator for the required recovery level.
@@ -170,6 +171,7 @@ export default function RecoverySummaryStatusStrip({
   total_people_cost_annual,
   total_asset_cost_annual,
   total_business_overheads,
+  cost_burden_breakdown,
 }) {
   const [active_detail, set_active_detail] = useState("status");
 
@@ -192,6 +194,11 @@ export default function RecoverySummaryStatusStrip({
     total_people_cost_annual,
     total_asset_cost_annual,
     total_business_overheads,
+    cost_burden_breakdown: cost_burden_breakdown ?? {
+      people: {},
+      assets: {},
+      business_overheads: {},
+    },
   };
 
   return (
@@ -206,9 +213,11 @@ export default function RecoverySummaryStatusStrip({
             </h1>
 
             <p className="ui-help">
-              This page shows the starting basis QS Tools is using to understand
-              how your business recovers its cost burden before Cost Allocation
-              tests whether the structure can support it.
+              This page shows the recovery strategy QS Tools is carrying
+              forward from Business Summary. The diagnostic source trail belongs
+              in Business Summary; this page explains the selected recovery
+              basis before Cost Allocation tests whether the structure can
+              support it.
             </p>
           </div>
 

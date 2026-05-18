@@ -21,15 +21,6 @@ function formatCurrency(value) {
   }).format(number);
 }
 
-function formatPercent(value) {
-  const number = Number(value) || 0;
-
-  return new Intl.NumberFormat("en-NZ", {
-    style: "percent",
-    maximumFractionDigits: 1,
-  }).format(number);
-}
-
 function formatDisplayPercent(value) {
   const percent = Number(value) || 0;
 
@@ -758,34 +749,6 @@ export default function BusinessSummaryCard({
               ? "Business Summary is calculating recovery through units sold."
               : "Business Summary is calculating recovery through productive hours."}
           </p>
-        </div>
-
-        <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Macro Position</div>
-          <div className="labour-summary-table">
-            <TableRow label="Revenue" value={formatCurrency(total_revenue)} />
-            <TableRow
-              label="Direct Costs"
-              value={formatCurrency(total_direct_costs)}
-            />
-            <TableRow
-              label="Margin Pool"
-              value={formatCurrency(margin_pool)}
-            />
-            <TableRow
-              label="Gross Margin %"
-              value={formatPercent(gross_margin_percent)}
-            />
-            <TableRow
-              label="Operating Costs"
-              value={formatCurrency(total_cost_burden)}
-            />
-            <TableRow
-              label="Net Position"
-              value={formatCurrency(net_position)}
-              total
-            />
-          </div>
         </div>
 
         <div className="ui-panel ui-stack-sm">

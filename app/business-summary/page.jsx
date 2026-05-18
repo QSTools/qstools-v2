@@ -4,6 +4,7 @@ import useBusinessSummary from "@/hooks/useBusinessSummary";
 
 import BusinessSummaryStatusStrip from "@/components/business-summary/BusinessSummaryStatusStrip";
 import BusinessSummaryCard from "@/components/business-summary/BusinessSummaryCard";
+import BusinessSummaryMacroPositionCard from "@/components/business-summary/BusinessSummaryMacroPositionCard";
 import BusinessSummaryHelpPanel from "@/components/business-summary/BusinessSummaryHelpPanel";
 
 export default function BusinessSummaryPage() {
@@ -71,6 +72,19 @@ export default function BusinessSummaryPage() {
             card.profit_or_deficit_per_recovery_hour
           }
           net_position={card.net_position}
+        />
+
+        <BusinessSummaryMacroPositionCard
+          total_revenue={card.total_revenue}
+          total_direct_costs={card.total_direct_costs}
+          direct_cost_category_totals={card.direct_cost_category_totals}
+          margin_pool={card.margin_pool}
+          total_cost_burden={card.total_cost_burden}
+          total_people_cost_annual={card.total_people_cost_annual}
+          total_asset_cost_annual={card.total_asset_cost_annual}
+          total_business_overheads={card.total_business_overheads}
+          net_position={card.net_position}
+          cost_burden_breakdown={card.cost_burden_breakdown}
         />
 
         <BusinessSummaryHelpPanel />

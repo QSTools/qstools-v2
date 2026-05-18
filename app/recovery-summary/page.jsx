@@ -42,6 +42,7 @@ export default function RecoverySummaryPage() {
           total_people_cost_annual={card.total_people_cost_annual}
           total_asset_cost_annual={card.total_asset_cost_annual}
           total_business_overheads={card.total_business_overheads}
+          cost_burden_breakdown={card.cost_burden_breakdown}
         />
 
         <RecoverySummaryMainCard {...card} />
