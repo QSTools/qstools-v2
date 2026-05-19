@@ -59,7 +59,10 @@ export default function useBusinessSummary() {
         revenue_cogs_output_contract.units_sold_annual ?? 0,
 
       business_type:
-        revenue_cogs_output_contract.business_type ?? "labour_based",
+        revenue_cogs_output_contract.business_type ??
+        (revenue_cogs_output_contract.is_product_based === true
+          ? "product_based"
+          : "labour_based"),
 
       required_recovery_rate:
         cost_summary_output_contract.required_recovery_rate ?? 0,
@@ -121,6 +124,8 @@ export default function useBusinessSummary() {
       business_summary_ready: status.business_summary_ready,
 
       business_type: calculations.business_type,
+      is_product_based: calculations.is_product_based,
+      is_labour_based: calculations.is_labour_based,
       activity_driver_type: calculations.activity_driver_type,
       activity_driver_label: calculations.activity_driver_label,
       activity_driver_value: calculations.activity_driver_value,
@@ -137,6 +142,13 @@ export default function useBusinessSummary() {
 
       recovery_gap_per_driver: calculations.recovery_gap_per_driver,
       recovery_gap_label: calculations.recovery_gap_label,
+      revenue_per_unit: calculations.revenue_per_unit,
+      direct_cost_per_unit: calculations.direct_cost_per_unit,
+      margin_per_unit: calculations.margin_per_unit,
+      required_units_to_break_even:
+        calculations.required_units_to_break_even,
+      unit_surplus_or_shortfall:
+        calculations.unit_surplus_or_shortfall,
 
       total_revenue: calculations.total_revenue,
       total_direct_costs: calculations.total_direct_costs,

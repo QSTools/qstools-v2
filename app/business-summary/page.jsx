@@ -72,6 +72,8 @@ export default function BusinessSummaryPage() {
           total_productive_output={card.total_productive_output}
           units_sold_annual={card.units_sold_annual}
           business_type={card.business_type}
+          is_product_based={card.is_product_based}
+          is_labour_based={card.is_labour_based}
           activity_driver_type={card.activity_driver_type}
           activity_driver_display_label={card.activity_driver_display_label}
           activity_driver_value={card.activity_driver_value}
@@ -83,6 +85,11 @@ export default function BusinessSummaryPage() {
           current_margin_label={card.current_margin_label}
           recovery_gap_per_driver={card.recovery_gap_per_driver}
           recovery_gap_label={card.recovery_gap_label}
+          revenue_per_unit={card.revenue_per_unit}
+          direct_cost_per_unit={card.direct_cost_per_unit}
+          margin_per_unit={card.margin_per_unit}
+          required_units_to_break_even={card.required_units_to_break_even}
+          unit_surplus_or_shortfall={card.unit_surplus_or_shortfall}
           required_recovery_rate={card.required_recovery_rate}
           actual_recovery_rate={card.actual_recovery_rate}
           profit_or_deficit_per_recovery_hour={

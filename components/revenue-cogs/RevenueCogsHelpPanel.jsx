@@ -56,6 +56,19 @@ export default function RevenueCogsHelpPanel() {
                 title="Margin Pool"
                 body="Margin Pool equals Revenue minus Direct Costs."
               />
+
+              <HelpRow
+                title="Product mode"
+                body="In product mode, this page uses units sold per year to calculate revenue per unit, direct cost per unit, and margin per unit."
+              />
+              <HelpRow
+                title="Units sold"
+                body="Units sold means expected annual sales volume, not units purchased or stock on hand."
+              />
+              <HelpRow
+                title="Downstream recovery test"
+                body="This page does not compare product margin against operating cost burden. Business Summary and Recovery Summary use this trading margin information downstream."
+              />
               <HelpRow
                 title="Operating Costs"
                 body="This page does not include operating costs."
