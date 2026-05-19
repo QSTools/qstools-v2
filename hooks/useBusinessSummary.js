@@ -80,6 +80,18 @@ export default function useBusinessSummary() {
       total_asset_cost_annual:
         cost_summary_output_contract.total_asset_cost_annual ?? 0,
 
+      has_productive_asset_recovery_base:
+        cost_summary_output_contract.has_productive_asset_recovery_base ===
+        true,
+      productive_asset_count:
+        cost_summary_output_contract.productive_asset_count ?? 0,
+      support_asset_count:
+        cost_summary_output_contract.support_asset_count ?? 0,
+      productive_asset_cost:
+        cost_summary_output_contract.productive_asset_cost ?? 0,
+      support_asset_cost:
+        cost_summary_output_contract.support_asset_cost ?? 0,
+
       total_business_overheads:
         cost_summary_output_contract.total_business_overheads ?? 0,
 
@@ -133,6 +145,17 @@ export default function useBusinessSummary() {
 
       total_asset_cost_annual:
         display_details.total_asset_cost_annual,
+
+      has_productive_asset_recovery_base:
+        display_details.has_productive_asset_recovery_base,
+      productive_asset_count:
+        display_details.productive_asset_count,
+      support_asset_count:
+        display_details.support_asset_count,
+      productive_asset_cost:
+        display_details.productive_asset_cost,
+      support_asset_cost:
+        display_details.support_asset_cost,
 
       total_business_overheads:
         display_details.total_business_overheads,

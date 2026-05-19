@@ -94,6 +94,16 @@ export default function useCostSummary(inputs = {}) {
       total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
       total_asset_interest_annual:
         calculations.total_asset_interest_annual ?? 0,
+      has_productive_asset_recovery_base:
+        asset_output_contract.has_productive_asset_recovery_base === true,
+      productive_asset_count:
+        asset_output_contract.productive_asset_count ?? 0,
+      support_asset_count:
+        asset_output_contract.support_asset_count ?? 0,
+      productive_asset_cost:
+        asset_output_contract.productive_asset_cost ?? 0,
+      support_asset_cost:
+        asset_output_contract.support_asset_cost ?? 0,
 
       total_business_overheads: calculations.total_business_overheads ?? 0,
       total_business_cost_annual:
@@ -142,6 +152,16 @@ export default function useCostSummary(inputs = {}) {
             calculations.total_asset_interest_annual ?? 0,
           finance_cost_annual:
             asset_output_contract.finance_cost_annual ?? 0,
+          has_productive_asset_recovery_base:
+            asset_output_contract.has_productive_asset_recovery_base === true,
+          productive_asset_count:
+            asset_output_contract.productive_asset_count ?? 0,
+          support_asset_count:
+            asset_output_contract.support_asset_count ?? 0,
+          productive_asset_cost:
+            asset_output_contract.productive_asset_cost ?? 0,
+          support_asset_cost:
+            asset_output_contract.support_asset_cost ?? 0,
           active_assets: Array.isArray(asset_output_contract.active_assets)
             ? asset_output_contract.active_assets
             : [],

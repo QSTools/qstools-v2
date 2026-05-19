@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
   createEmptyAssetState,
+  normalizeAssetType,
   useAssetStorage,
 } from "@/lib/storage/assetStorage";
 import { calculateAssetOutputs } from "@/lib/calculations/assetCalculations";
@@ -96,8 +97,7 @@ export default function useAssets() {
           .map((asset) => ({
             asset_id: asset.asset_id ?? "",
             asset_name: asset.asset_name ?? "Unnamed Asset",
-            asset_type:
-              asset.asset_type === "support" ? "support" : "productive",
+            asset_type: normalizeAssetType(asset.asset_type),
             total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
             asset_interest_annual: Number(
               asset.asset_interest_annual ?? asset.interest_annual ?? 0
@@ -137,7 +137,21 @@ export default function useAssets() {
     const live_assets = Array.isArray(saved_assets)
       ? saved_assets.filter((asset) => !asset.is_retired)
       : [];
+    const productive_assets = live_assets.filter(
+      (asset) => normalizeAssetType(asset.asset_type) === "productive"
+    );
+    const support_assets = live_assets.filter(
+      (asset) => normalizeAssetType(asset.asset_type) === "support"
+    );
     const total_asset_cost_annual = live_assets.reduce(
+      (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+      0
+    );
+    const productive_asset_cost = productive_assets.reduce(
+      (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+      0
+    );
+    const support_asset_cost = support_assets.reduce(
       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
       0
     );
@@ -169,8 +183,7 @@ export default function useAssets() {
       assets: live_assets.map((asset) => ({
         asset_id: asset.asset_id ?? "",
         asset_name: asset.asset_name ?? "Unnamed Asset",
-        asset_type:
-          asset.asset_type === "support" ? "support" : "productive",
+        asset_type: normalizeAssetType(asset.asset_type),
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
         asset_interest_annual: Number(
           asset.asset_interest_annual ?? asset.interest_annual ?? 0
@@ -203,8 +216,7 @@ export default function useAssets() {
       active_assets: live_assets.map((asset) => ({
         asset_id: asset.asset_id ?? "",
         asset_name: asset.asset_name ?? "Unnamed Asset",
-        asset_type:
-          asset.asset_type === "support" ? "support" : "productive",
+        asset_type: normalizeAssetType(asset.asset_type),
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
         asset_interest_annual: Number(
           asset.asset_interest_annual ?? asset.interest_annual ?? 0
@@ -234,6 +246,11 @@ export default function useAssets() {
       assets_ready: Boolean(status.assets_ready),
       no_active_assets_confirmed:
         asset_state.no_active_assets_confirmed === true,
+      has_productive_asset_recovery_base: productive_assets.length > 0,
+      productive_asset_count: productive_assets.length,
+      support_asset_count: support_assets.length,
+      productive_asset_cost,
+      support_asset_cost,
 
       finance_cost_annual: live_assets.reduce(
         (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),

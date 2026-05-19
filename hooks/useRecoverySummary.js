@@ -27,9 +27,13 @@ export default function useRecoverySummary(inputs = {}) {
       ...business_summary_outputs,
 
       recovery_model: recovery_state.recovery_model,
+
       labour_share_percent: recovery_state.labour_share_percent,
       asset_share_percent: recovery_state.asset_share_percent,
-      overhead_share_percent: recovery_state.overhead_share_percent,
+      material_share_percent: recovery_state.material_share_percent,
+
+      // Unexplained recovery allowance is calculated inside Recovery Summary
+      // as 100% minus labour, asset, and materials / products shares.
     });
   }, [business_summary_outputs, recovery_state]);
 
@@ -73,10 +77,17 @@ export default function useRecoverySummary(inputs = {}) {
 
       labour_share_percent: calculated.labour_share_percent,
       asset_share_percent: calculated.asset_share_percent,
-      overhead_share_percent: calculated.overhead_share_percent,
+      material_share_percent: calculated.material_share_percent,
+      overhead_absorbed_percent: calculated.overhead_absorbed_percent,
+
+      // Backwards-compatible output while older downstream code migrates.
+      overhead_share_percent: calculated.overhead_absorbed_percent,
+
+      explained_recovery_total: calculated.explained_recovery_total,
 
       labour_recovery_cost: calculated.labour_recovery_cost,
       asset_recovery_cost: calculated.asset_recovery_cost,
+      material_recovery_cost: calculated.material_recovery_cost,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
 
       required_revenue: calculated.required_revenue,
@@ -91,11 +102,31 @@ export default function useRecoverySummary(inputs = {}) {
       required_labour_recovery_rate: calculated.required_labour_recovery_rate,
       required_labour_recovery_rate_per_recovery_hour:
         calculated.required_labour_recovery_rate_per_recovery_hour,
+
       required_asset_recovery_per_recovery_hour:
         calculated.required_asset_recovery_per_recovery_hour,
+
+      required_material_recovery_per_recovery_hour:
+        calculated.required_material_recovery_per_recovery_hour,
+
       overhead_absorbed_cost_per_recovery_hour:
         calculated.overhead_absorbed_cost_per_recovery_hour,
+
       required_asset_recovery: calculated.required_asset_recovery,
+      required_material_recovery: calculated.required_material_recovery,
+
+      gross_profit: calculated.gross_profit,
+      gross_profit_source_status: calculated.gross_profit_source_status,
+      material_margin_status: calculated.material_margin_status,
+      asset_utilisation_status: calculated.asset_utilisation_status,
+      material_recovery_included: calculated.material_recovery_included,
+      asset_recovery_included: calculated.asset_recovery_included,
+
+      overhead_absorption_level: calculated.overhead_absorption_level,
+      overhead_absorption_title: calculated.overhead_absorption_title,
+      overhead_absorption_message: calculated.overhead_absorption_message,
+      overhead_absorption_diagnostics:
+        calculated.overhead_absorption_diagnostics,
 
       total_revenue: calculated.total_revenue,
       total_direct_costs: calculated.total_direct_costs,
