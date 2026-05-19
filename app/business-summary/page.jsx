@@ -84,6 +84,8 @@ export default function BusinessSummaryPage() {
           total_people_cost_annual={card.total_people_cost_annual}
           total_asset_cost_annual={card.total_asset_cost_annual}
           total_business_overheads={card.total_business_overheads}
+          margin_after_labour={card.margin_after_labour}
+          non_people_cost_burden={card.non_people_cost_burden}
           net_position={card.net_position}
           cost_burden_breakdown={card.cost_burden_breakdown}
         />

@@ -20,6 +20,80 @@ function SourceRow({ id, label, value, active, onClick }) {
   );
 }
 
+function DirectCostsBreakdown({ values }) {
+  const direct_cost_categories = Array.isArray(
+    values.direct_cost_category_totals
+  )
+    ? values.direct_cost_category_totals
+    : [];
+
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <p className="ui-kicker">COGS / direct costs breakdown</p>
+        <p className="ui-help">
+          These costs are removed from revenue before Gross Profit / Margin Pool
+          is calculated.
+        </p>
+
+        <div className="labour-summary-table">
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">Revenue</div>
+            <div className="labour-summary-table-value">
+              {format_currency(values.total_revenue)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              Less COGS / direct costs
+            </div>
+            <div className="labour-summary-table-value">
+              -{format_currency(values.total_direct_costs)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row total">
+            <div className="labour-summary-table-label">
+              Gross Profit / Margin Pool
+            </div>
+            <div className="labour-summary-table-value">
+              {format_currency(values.margin_pool)}
+            </div>
+          </div>
+        </div>
+
+        {direct_cost_categories.length > 0 ? (
+          <div className="ui-stack-sm">
+            <p className="ui-label">Direct cost categories</p>
+            {direct_cost_categories.map((category, index) => (
+              <div
+                key={`${category.category_id || category.label || "direct-cost"}-${index}`}
+                className="labour-summary-table-row"
+              >
+                <div className="labour-summary-table-label">
+                  {category.label || category.category_name || "Direct cost"}
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(category.amount ?? category.total ?? 0)}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="ui-help">
+            Direct cost category totals are not exposed to this section yet.
+          </p>
+        )}
+
+        <p className="ui-help">
+          Revenue - COGS / direct costs = Gross Profit / Margin Pool.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessSummarySourceBreakdown({
   active_breakdown,
   values,
@@ -30,71 +104,24 @@ export default function BusinessSummarySourceBreakdown({
     return null;
   }
 
+  if (active_breakdown === "direct_costs") {
+    return <DirectCostsBreakdown values={values} />;
+  }
+
   if (active_breakdown === "margin_pool") {
-    const direct_cost_categories = Array.isArray(
-      values.direct_cost_category_totals
-    )
-      ? values.direct_cost_category_totals
-      : [];
+    return <DirectCostsBreakdown values={values} />;
+  }
 
+  if (
+    active_breakdown === "people_cost" ||
+    active_breakdown === "asset_cost" ||
+    active_breakdown === "business_overheads"
+  ) {
     return (
-      <div className="ui-readonly">
-        <div className="ui-stack-sm">
-          <p className="ui-kicker">Margin Pool breakdown</p>
-          <p className="ui-help">
-            Margin Pool comes from Revenue / COGS. It shows what remains after
-            direct costs before the operating cost burden is tested.
-          </p>
-
-          <div className="labour-summary-table">
-            <div className="labour-summary-table-row">
-              <div className="labour-summary-table-label">Revenue</div>
-              <div className="labour-summary-table-value">
-                {format_currency(values.total_revenue)}
-              </div>
-            </div>
-
-            <div className="labour-summary-table-row">
-              <div className="labour-summary-table-label">Direct Costs</div>
-              <div className="labour-summary-table-value">
-                {format_currency(values.total_direct_costs)}
-              </div>
-            </div>
-
-            <div className="labour-summary-table-row total">
-              <div className="labour-summary-table-label">Margin Pool</div>
-              <div className="labour-summary-table-value">
-                {format_currency(values.margin_pool)}
-              </div>
-            </div>
-          </div>
-
-          {direct_cost_categories.length > 0 ? (
-            <div className="ui-stack-sm">
-              <p className="ui-label">Direct cost categories</p>
-              {direct_cost_categories.map((category, index) => (
-                <div
-                  key={`${category.category_id || category.label || "direct-cost"}-${index}`}
-                  className="labour-summary-table-row"
-                >
-                  <div className="labour-summary-table-label">
-                    {category.label || category.category_name || "Direct cost"}
-                  </div>
-                  <div className="labour-summary-table-value">
-                    {format_currency(category.amount ?? category.total ?? 0)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="ui-help">
-              Direct cost category totals are not exposed to this section yet.
-            </p>
-          )}
-
-          <p className="ui-help">Revenue - Direct Costs = Margin Pool</p>
-        </div>
-      </div>
+      <BusinessSummaryComponentBreakdown
+        active_component={active_breakdown}
+        values={values}
+      />
     );
   }
 
@@ -165,7 +192,7 @@ export default function BusinessSummarySourceBreakdown({
           </div>
 
           <p className="ui-help">
-            People Cost + Asset Cost + Business Overheads = Total Cost Burden
+            People Cost + Asset Cost + Business Overheads = Total Cost Burden.
           </p>
         </div>
       </div>

@@ -40,6 +40,15 @@ export default function useBusinessSummary() {
       total_cost_burden:
         cost_summary_output_contract.total_cost_burden ?? 0,
 
+      total_people_cost_annual:
+        cost_summary_output_contract.total_people_cost_annual ?? 0,
+
+      total_asset_cost_annual:
+        cost_summary_output_contract.total_asset_cost_annual ?? 0,
+
+      total_business_overheads:
+        cost_summary_output_contract.total_business_overheads ?? 0,
+
       total_recovery_hours:
         cost_summary_output_contract.total_recovery_hours ?? 0,
 
@@ -139,6 +148,8 @@ export default function useBusinessSummary() {
       gross_margin_percent: calculations.gross_margin_percent,
 
       total_cost_burden: calculations.total_cost_burden,
+      margin_after_labour: calculations.margin_after_labour,
+      non_people_cost_burden: calculations.non_people_cost_burden,
 
       total_people_cost_annual:
         display_details.total_people_cost_annual,

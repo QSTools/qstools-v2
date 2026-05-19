@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import BusinessSummaryCalculationTable from "@/components/business-summary/BusinessSummaryCalculationTable";
+import BusinessSummarySourceBreakdown from "@/components/business-summary/BusinessSummarySourceBreakdown";
 import {
   format_currency,
   format_percent,
@@ -67,6 +67,8 @@ export default function BusinessSummaryMacroPositionCard({
   total_people_cost_annual = 0,
   total_asset_cost_annual = 0,
   total_business_overheads = 0,
+  margin_after_labour = 0,
+  non_people_cost_burden = 0,
 
   direct_cost_category_totals = [],
   cost_burden_breakdown = {
@@ -81,65 +83,58 @@ export default function BusinessSummaryMacroPositionCard({
     {
       id: "revenue",
       title: "Revenue",
-      help: "Income before direct costs and operating cost baseline.",
+      help: "Income before COGS / direct costs and operating cost burden.",
       value: format_currency(total_revenue),
     },
     {
       id: "direct_costs",
       title: "Less COGS / direct costs",
-      help: "COGS / direct costs removed before margin pool is calculated.",
+      help: "Materials, subcontract costs, hired plant, freight, tipping, consumables, and other direct costs.",
       value: `-${format_currency(total_direct_costs)}`,
+      drilldown_key: "direct_costs",
     },
     {
       id: "margin_pool",
-      title: "Margin Pool",
-      help: `${format_percent(gross_margin_percent)} of revenue after COGS / direct costs.`,
+      title: "Gross Profit / Margin Pool",
+      help: `${format_percent(
+        gross_margin_percent
+      )} of revenue after COGS / direct costs. This must still cover people cost, assets, business overheads, and profit.`,
       value: format_currency(margin_pool),
-      drilldown_key: "margin_pool",
     },
     {
-      id: "total_cost_burden",
-      title: "Less total cost burden",
-      help: "Annual operating cost burden from Cost Summary.",
-      value: `-${format_currency(total_cost_burden)}`,
-      drilldown_key: "total_cost_burden",
+      id: "people_cost",
+      title: "Less People Cost",
+      help: "Annual people cost from Cost Summary.",
+      value: `-${format_currency(total_people_cost_annual)}`,
+      drilldown_key: "people_cost",
+    },
+    {
+      id: "margin_after_labour",
+      title: "Margin after Labour",
+      help: "Gross Profit / Margin Pool minus People Cost. This shows whether the business is positive or negative before assets and overheads.",
+      value: format_currency(margin_after_labour),
+      total: true,
+    },
+    {
+      id: "asset_cost",
+      title: "Less Asset Cost",
+      help: "Annual asset cost from Cost Summary.",
+      value: `-${format_currency(total_asset_cost_annual)}`,
+      drilldown_key: "asset_cost",
+    },
+    {
+      id: "business_overheads",
+      title: "Less Business Overheads",
+      help: "Annual business overheads from Cost Summary.",
+      value: `-${format_currency(total_business_overheads)}`,
+      drilldown_key: "business_overheads",
     },
     {
       id: "net_position",
       title: "Net Position",
-      help: "Margin Pool minus Total Cost Burden.",
+      help: "Final position after Gross Profit / Margin Pool is reduced by People Cost, Asset Cost, and Business Overheads.",
       value: format_currency(net_position),
       total: true,
-    },
-  ];
-
-  const calculation_rows = [
-    {
-      label: "Revenue",
-      value: format_currency(total_revenue),
-    },
-    {
-      label: "Less COGS / direct costs",
-      value: `-${format_currency(total_direct_costs)}`,
-    },
-    {
-      label: "Margin Pool",
-      value: format_currency(margin_pool),
-      drilldown_key: "margin_pool",
-    },
-    {
-      label: "Margin pool percentage",
-      value: format_percent(gross_margin_percent),
-    },
-    {
-      label: "Less total cost burden",
-      value: `-${format_currency(total_cost_burden)}`,
-      drilldown_key: "total_cost_burden",
-    },
-    {
-      label: "Net Position",
-      value: format_currency(net_position),
-      emphasis: true,
     },
   ];
 
@@ -153,6 +148,8 @@ export default function BusinessSummaryMacroPositionCard({
     total_people_cost_annual,
     total_asset_cost_annual,
     total_business_overheads,
+    margin_after_labour,
+    non_people_cost_burden,
 
     direct_cost_category_totals,
     cost_burden_breakdown,
@@ -170,42 +167,43 @@ export default function BusinessSummaryMacroPositionCard({
             </h2>
 
             <p className="ui-help">
-              This shows the current business position before recovery
-              strategy. Margin pool is what remains after COGS / direct costs.
-              Total cost burden then shows what the business must recover from
-              that margin pool.
+              This shows the current business position before recovery strategy.
+              Gross Profit / Margin Pool is what remains after COGS / direct
+              costs. It must still cover People Cost, Asset Cost, Business
+              Overheads, and profit.
             </p>
           </div>
 
           <div className="business-summary-macro-grid">
-            {rows.map((row) => (
-              <MacroRow
-                key={row.id}
-                id={row.drilldown_key}
-                title={row.title}
-                help={row.help}
-                value={row.value}
-                total={row.total}
-                active={active_breakdown === row.drilldown_key}
-                onClick={
-                  row.drilldown_key ? set_active_breakdown : undefined
-                }
-              />
-            ))}
-          </div>
+            {rows.map((row) => {
+              const is_active = active_breakdown === row.drilldown_key;
 
-          {active_breakdown ? (
-            <div className="business-summary-macro-drilldown">
-              <BusinessSummaryCalculationTable
-                title="Annual cost position"
-                rows={calculation_rows}
-                formula="Revenue - COGS / direct costs = Margin Pool. Margin Pool - Total Cost Burden = Net Position."
-                values={values}
-                active_breakdown={active_breakdown}
-                on_active_breakdown_change={set_active_breakdown}
-              />
-            </div>
-          ) : null}
+              return (
+                <div key={row.id} className="ui-stack-sm">
+                  <MacroRow
+                    id={row.drilldown_key}
+                    title={row.title}
+                    help={row.help}
+                    value={row.value}
+                    total={row.total}
+                    active={is_active}
+                    onClick={
+                      row.drilldown_key ? set_active_breakdown : undefined
+                    }
+                  />
+
+                  {is_active ? (
+                    <div className="business-summary-macro-drilldown">
+                      <BusinessSummarySourceBreakdown
+                        active_breakdown={active_breakdown}
+                        values={values}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
