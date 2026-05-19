@@ -3,8 +3,8 @@
 export default function CostAllocationStatusStrip({
   status_label,
   allocation_status,
-  allocation_dependency_type,
-  active_recovery_model,
+  allocation_dependency_label,
+  active_recovery_model_label,
   structure_valid,
   warnings_count,
 }) {
@@ -27,14 +27,14 @@ export default function CostAllocationStatusStrip({
             <div className="ui-readonly">
               <span className="ui-label">Dependency</span>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {allocation_dependency_type || "unknown"}
+                {allocation_dependency_label || "Unknown"}
               </div>
             </div>
 
             <div className="ui-readonly">
               <span className="ui-label">Active recovery model</span>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {active_recovery_model}
+                {active_recovery_model_label || "Labour-led recovery"}
               </div>
             </div>
 

@@ -21,15 +21,14 @@ export default function CostAllocationNoticeBanner({
             </p>
 
             <p className="text-sm text-[var(--text-secondary)]">
-              You can create multiple allocation profiles, but only one profile is
-              active at a time. The active profile is what the system uses for
-              structural validation.
+              You can save multiple allocation setups, but only the loaded
+              allocation setup is used for structural validation.
             </p>
 
             <div className="ui-readonly">
-              <span className="ui-label">Active allocation profile</span>
+              <span className="ui-label">Loaded allocation setup</span>
               <div className="mt-1 text-sm text-[var(--text-primary)]">
-                {active_profile_name || "No active profile selected"}
+                {active_profile_name || "No allocation setup loaded"}
               </div>
             </div>
 
@@ -39,11 +38,11 @@ export default function CostAllocationNoticeBanner({
               </p>
 
               <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--text-secondary)]">
-                <li>Confirm recovery model above</li>
+                <li>Confirm the recovery model being tested</li>
                 <li>Create asset ↔ staff capability links</li>
                 <li>Build operational groups</li>
                 <li>Review structure validity and warnings</li>
-                <li>Save the setup as a profile if needed</li>
+                <li>Save the setup if you want to reuse it later</li>
               </ul>
             </div>
 
@@ -55,7 +54,10 @@ export default function CostAllocationNoticeBanner({
               <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--text-secondary)]">
                 <li>Links = what can work together</li>
                 <li>Groups = what must work together</li>
-                <li>Profiles = saved structural setups (one active at a time)</li>
+                <li>
+                  Allocation setups = saved structural setups you can load,
+                  edit, and reuse
+                </li>
               </ul>
             </div>
           </div>

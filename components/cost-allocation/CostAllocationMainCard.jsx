@@ -18,12 +18,81 @@ function yesNo(value) {
   return value ? "Yes" : "No";
 }
 
+function formatStatusLabel(value) {
+  const label_map = {
+    pending_live_feedback: "Pending live job feedback",
+    estimated: "Estimated until verified",
+    not_selected: "Not selected",
+  };
+
+  return label_map[value] || value || "Not available";
+}
+
 function DetailRow({ label, value }) {
   return (
     <div className="ui-readonly">
       <span className="ui-label">{label}</span>
       <div className="mt-1 text-sm text-[var(--text-primary)]">{value}</div>
     </div>
+  );
+}
+
+function AllocationTestBlock({ test }) {
+  if (!test) {
+    return null;
+  }
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">{test.status_label}</p>
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+            {test.title}
+          </h3>
+          <p className="ui-help">{test.message}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <DetailRow
+            label="Recovery share"
+            value={`${Number(test.share_percent || 0).toFixed(1)}%`}
+          />
+          <DetailRow
+            label="Recovery value"
+            value={formatMoney(test.recovery_cost)}
+          />
+
+          {test.productive_asset_count !== undefined ? (
+            <DetailRow
+              label="Productive assets"
+              value={`${test.productive_asset_count} productive asset(s)`}
+            />
+          ) : null}
+
+          {test.support_asset_count !== undefined ? (
+            <DetailRow
+              label="Support assets"
+              value={`${test.support_asset_count} support asset(s) remain in total cost burden`}
+            />
+          ) : null}
+
+          {test.asset_utilisation_status ? (
+            <DetailRow
+              label="Asset utilisation"
+              value={test.asset_utilisation_status}
+            />
+          ) : null}
+
+          {test.material_margin_status ? (
+            <DetailRow
+              label="Material margin"
+              value={test.material_margin_status}
+            />
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -86,9 +155,10 @@ function CompactEvidence({ delivery_summary }) {
 function RecoveryComponentRows({ component_required_recovery }) {
   const labour = component_required_recovery?.labour;
   const asset = component_required_recovery?.asset;
+  const material = component_required_recovery?.material;
   const overhead = component_required_recovery?.overhead;
 
-  if (!labour && !asset && !overhead) {
+  if (!labour && !asset && !material && !overhead) {
     return (
       <p className="ui-help">
         Component recovery detail is not available from Recovery Summary.
@@ -116,9 +186,18 @@ function RecoveryComponentRows({ component_required_recovery }) {
         />
       ) : null}
 
+      {material ? (
+        <DetailRow
+          label="Materials / products recovery"
+          value={`${formatMoney(material.recovery_cost)} at ${Number(
+            material.share_percent || 0,
+          ).toFixed(1)}%`}
+        />
+      ) : null}
+
       {overhead ? (
         <DetailRow
-          label="Overhead recovery"
+          label="Unassigned recovery share"
           value={`${formatMoney(overhead.recovery_cost)} at ${Number(
             overhead.share_percent || 0,
           ).toFixed(1)}%`}
@@ -132,6 +211,7 @@ export default function CostAllocationMainCard({
   profile,
   outcome,
   recovery_plan,
+  allocation_tests,
   delivery_summary,
   evidence,
   links,
@@ -156,62 +236,26 @@ export default function CostAllocationMainCard({
           <section className="ui-panel">
             <div className="ui-stack">
               <div>
-                <p className="ui-kicker">Allocation outcome</p>
-                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                  {outcome?.headline || "This recovery plan needs review."}
-                </h2>
-                <p className="ui-help">{outcome?.reason}</p>
-              </div>
-
-              <div className="ui-readonly">
-                <span className="ui-label">Recommended check</span>
-                <div className="mt-1 text-sm text-[var(--text-primary)]">
-                  {outcome?.recommended_check}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                <DetailRow
-                  label="Dependency"
-                  value={outcome?.allocation_dependency_label || "Unknown"}
-                />
-                <DetailRow
-                  label="Structure valid"
-                  value={yesNo(outcome?.structure_valid)}
-                />
-                <DetailRow
-                  label="Internal shortfall"
-                  value={yesNo(outcome?.internal_capacity_shortfall)}
-                />
-                <DetailRow
-                  label="External delivery required"
-                  value={yesNo(outcome?.external_delivery_required)}
-                />
-                <DetailRow
-                  label="External delivery confirmed"
-                  value={yesNo(outcome?.external_delivery_enabled)}
-                />
-                <DetailRow
-                  label="Warnings"
-                  value={outcome?.warning_count ?? 0}
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="ui-panel">
-            <div className="ui-stack">
-              <div>
                 <p className="ui-kicker">Recovery plan being tested</p>
                 <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                  Read-only strategy from Recovery Summary
+                  {recovery_plan?.active_recovery_model_label ||
+                    "Read-only strategy from Recovery Summary"}
                 </h3>
+                <p className="ui-help">
+                  Cost Allocation does not choose the recovery strategy. It
+                  tests whether the selected Recovery Summary plan can be
+                  supported by visible structure.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
                 <DetailRow
                   label="Active recovery model"
-                  value={recovery_plan?.active_recovery_model || "labour_only"}
+                  value={
+                    recovery_plan?.active_recovery_model_label ||
+                    recovery_plan?.active_recovery_model ||
+                    "Labour-led recovery"
+                  }
                 />
                 <DetailRow
                   label="Target per driver"
@@ -224,14 +268,46 @@ export default function CostAllocationMainCard({
                   value={recovery_plan?.business_type || "labour_based"}
                 />
                 <DetailRow
-                  label="Labour / asset / overhead split"
+                  label="Labour / asset / materials / unassigned split"
                   value={`${Number(recovery_split.labour_share_percent || 0).toFixed(
                     1,
                   )}% / ${Number(recovery_split.asset_share_percent || 0).toFixed(
                     1,
+                  )}% / ${Number(recovery_split.material_share_percent || 0).toFixed(
+                    1,
                   )}% / ${Number(
-                    recovery_split.overhead_share_percent || 0,
+                    recovery_split.overhead_absorbed_percent ??
+                      recovery_split.overhead_share_percent ??
+                      0,
                   ).toFixed(1)}%`}
+                />
+                <DetailRow
+                  label="Recovery hours used"
+                  value={Number(
+                    recovery_plan?.recovery_hours_used || 0,
+                  ).toLocaleString("en-NZ")}
+                />
+                <DetailRow
+                  label="Productive asset recovery base"
+                  value={
+                    recovery_plan?.has_productive_asset_recovery_base
+                      ? `${recovery_plan?.productive_asset_count ?? 0} productive asset(s)`
+                      : "No productive asset recovery base"
+                  }
+                />
+                <DetailRow
+                  label="Support assets"
+                  value={`${recovery_plan?.support_asset_count ?? 0} support asset(s) remain in cost burden`}
+                />
+                <DetailRow
+                  label="Material margin"
+                  value={formatStatusLabel(recovery_plan?.material_margin_status)}
+                />
+                <DetailRow
+                  label="Asset utilisation"
+                  value={formatStatusLabel(
+                    recovery_plan?.asset_utilisation_status,
+                  )}
                 />
               </div>
 
@@ -243,14 +319,35 @@ export default function CostAllocationMainCard({
             </div>
           </section>
 
+          <AllocationTestBlock test={allocation_tests?.labour} />
+
+          <AllocationTestBlock test={allocation_tests?.asset} />
+
+          <AllocationTestBlock test={allocation_tests?.material} />
+
+          <AllocationTestBlock test={allocation_tests?.unassigned} />
+
           <section className="ui-panel">
             <div className="ui-stack">
               <div>
-                <p className="ui-kicker">Delivery and dependency summary</p>
-                <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                  What the visible structure supports
-                </h3>
+                <p className="ui-kicker">Overall structural result</p>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                  {outcome?.headline || "This recovery plan needs review."}
+                </h2>
+                <p className="ui-help">{outcome?.reason}</p>
               </div>
+
+              {evidence?.main_issue ? (
+                <div className="ui-readonly">
+                  <span className="ui-label">Main issue</span>
+                  <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+                    {evidence.main_issue.title}
+                  </div>
+                  <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                    {evidence.main_issue.message}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-1 gap-3">
                 <DetailRow
@@ -280,48 +377,13 @@ export default function CostAllocationMainCard({
                   label="External delivery confirmed"
                   value={yesNo(delivery_summary?.external_delivery_enabled)}
                 />
-              </div>
-            </div>
-          </section>
-
-          <section className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <p className="ui-kicker">Evidence summary</p>
-                <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                  Coverage and structural evidence
-                </h3>
+                <DetailRow
+                  label="Warnings"
+                  value={outcome?.warning_count ?? 0}
+                />
               </div>
 
               <CompactEvidence delivery_summary={delivery_summary} />
-            </div>
-          </section>
-
-          <section className="ui-panel">
-            <div className="ui-stack">
-              <div>
-                <p className="ui-kicker">Warnings and evidence</p>
-                <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                  What needs attention
-                </h3>
-              </div>
-
-              {evidence?.main_issue ? (
-                <div className="ui-readonly">
-                  <span className="ui-label">Main issue</span>
-                  <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">
-                    {evidence.main_issue.title}
-                  </div>
-                  <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                    {evidence.main_issue.message}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="ui-stack-sm">
-                <span className="ui-label">Structure evidence</span>
-                <CompactEvidence delivery_summary={delivery_summary} />
-              </div>
 
               {(evidence?.supporting_warnings ?? []).length === 0 ? (
                 <p className="ui-help">No allocation warnings are currently active.</p>
@@ -344,6 +406,29 @@ export default function CostAllocationMainCard({
                   </div>
                 </details>
               ) : null}
+            </div>
+          </section>
+
+          <section className="ui-panel">
+            <div className="ui-stack">
+              <div>
+                <p className="ui-kicker">Next-step handoff</p>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                  What to do next
+                </h3>
+                <p className="ui-help">
+                  Use the evidence below to complete links and operational
+                  groups. Cost Allocation tests support and dependency only; it
+                  does not change the recovery model or create pricing logic.
+                </p>
+              </div>
+
+              <div className="ui-readonly">
+                <span className="ui-label">Recommended check</span>
+                <div className="mt-1 text-sm text-[var(--text-primary)]">
+                  {outcome?.recommended_check}
+                </div>
+              </div>
             </div>
           </section>
 
