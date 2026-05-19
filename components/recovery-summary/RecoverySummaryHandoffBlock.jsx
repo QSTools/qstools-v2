@@ -2,23 +2,6 @@ export default function RecoverySummaryHandoffBlock({
   material_recovery_included,
   asset_recovery_included,
 }) {
-  const cost_allocation_handoff_notes = [
-    "Recovery Summary defines the starting recovery model.",
-    "Cost Allocation will now test whether labour, productive assets, materials / products, and operating links can support this starting model.",
-  ];
-
-  if (material_recovery_included) {
-    cost_allocation_handoff_notes.push(
-      "Materials / products recovery is included, but actual material or product margin will be validated later through live job feedback."
-    );
-  }
-
-  if (asset_recovery_included) {
-    cost_allocation_handoff_notes.push(
-      "Asset recovery is included, but only productive assets should carry asset recovery by default. Support assets remain in the cost burden."
-    );
-  }
-
   return (
     <div className="ui-panel">
       <div className="ui-stack">
@@ -29,21 +12,39 @@ export default function RecoverySummaryHandoffBlock({
 
           <p className="ui-help">
             Recovery Summary defines the starting recovery model. Cost
-            Allocation tests whether the actual business structure can support
-            it.
+            Allocation will test whether the business structure can support it.
           </p>
         </div>
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
-            {cost_allocation_handoff_notes.map((note) => (
-              <p
-                key={note}
-                className="text-sm font-medium text-[var(--text-primary)]"
-              >
-                {note}
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Next step: test the recovery model against labour, productive
+              assets, materials / products, and operating links.
+            </p>
+
+            {material_recovery_included ? (
+              <p className="ui-help">
+                Materials / products recovery is included. Actual material or
+                product margin will be validated later through live job
+                feedback.
               </p>
-            ))}
+            ) : null}
+
+            {asset_recovery_included ? (
+              <p className="ui-help">
+                Asset recovery is included. Cost Allocation will test whether
+                productive asset structure can support the selected model.
+              </p>
+            ) : null}
+
+            {!asset_recovery_included ? (
+              <p className="ui-help">
+                Asset recovery is not currently included in the starting split.
+                Assets remain in the cost burden and can be tested later when
+                productive utilisation is available.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

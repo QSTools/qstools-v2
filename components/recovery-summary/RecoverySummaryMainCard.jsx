@@ -1,14 +1,14 @@
 "use client";
 
-import RecoverySummaryDistributionBlock from "@/components/recovery-summary/RecoverySummaryDistributionBlock";
-import RecoverySummaryHandoffBlock from "@/components/recovery-summary/RecoverySummaryHandoffBlock";
-import RecoverySummaryInsightBlock from "@/components/recovery-summary/RecoverySummaryInsightBlock";
 import RecoverySummaryModelSelectorBlock from "@/components/recovery-summary/RecoverySummaryModelSelectorBlock";
 import RecoverySummaryStartingSplitBlock from "@/components/recovery-summary/RecoverySummaryStartingSplitBlock";
+import RecoverySummaryDistributionBlock from "@/components/recovery-summary/RecoverySummaryDistributionBlock";
 import RecoverySummaryUnassignedCheckBlock from "@/components/recovery-summary/RecoverySummaryUnassignedCheckBlock";
+import RecoverySummaryHandoffBlock from "@/components/recovery-summary/RecoverySummaryHandoffBlock";
 
 export default function RecoverySummaryMainCard({
   recovery_model,
+
   labour_share_percent,
   asset_share_percent,
   material_share_percent,
@@ -19,9 +19,9 @@ export default function RecoverySummaryMainCard({
   asset_recovery_cost,
   material_recovery_cost,
   overhead_absorbed_cost,
+
   explained_recovery_total,
   share_total,
-
   share_not_balanced,
 
   material_recovery_included,
@@ -31,8 +31,6 @@ export default function RecoverySummaryMainCard({
   overhead_absorption_title,
   overhead_absorption_message,
   overhead_absorption_diagnostics = [],
-
-  insight_text,
 
   on_recovery_model_change,
   on_reset,
@@ -76,8 +74,6 @@ export default function RecoverySummaryMainCard({
             material_recovery_included={material_recovery_included}
             asset_recovery_included={asset_recovery_included}
           />
-
-          <RecoverySummaryInsightBlock insight_text={insight_text} />
         </div>
       </div>
     </section>

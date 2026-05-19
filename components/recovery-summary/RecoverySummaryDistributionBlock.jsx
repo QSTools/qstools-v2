@@ -1,4 +1,4 @@
-import RecoverySummaryReadOnlyRow from "@/components/recovery-summary/RecoverySummaryReadOnlyRow";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
 import { format_currency } from "@/components/recovery-summary/recoverySummaryFormatters";
 
 export default function RecoverySummaryDistributionBlock({
@@ -8,18 +8,16 @@ export default function RecoverySummaryDistributionBlock({
   overhead_absorbed_cost,
 }) {
   return (
-    <div className="ui-panel">
+    <CollapsibleSection
+      title="Recovery distribution"
+      summary="Cost allocation"
+      defaultOpen={false}
+    >
       <div className="ui-stack">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Recovery distribution
-          </h3>
-
-          <p className="ui-help">
-            This shows how the cost burden is being assigned by the current
-            starting recovery strategy.
-          </p>
-        </div>
+        <p className="ui-help">
+          This shows how the cost burden is being assigned by the current
+          starting recovery strategy.
+        </p>
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
@@ -70,6 +68,6 @@ export default function RecoverySummaryDistributionBlock({
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }

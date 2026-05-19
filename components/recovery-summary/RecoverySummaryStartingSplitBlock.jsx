@@ -1,6 +1,5 @@
-import {
-  format_number,
-} from "@/components/recovery-summary/recoverySummaryFormatters";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
+import { format_number } from "@/components/recovery-summary/recoverySummaryFormatters";
 
 export default function RecoverySummaryStartingSplitBlock({
   labour_share_percent,
@@ -19,22 +18,19 @@ export default function RecoverySummaryStartingSplitBlock({
   );
 
   return (
-    <div className="ui-panel">
+    <CollapsibleSection
+      title="Suggested starting recovery split"
+      summary={`${format_number(share_total)}% model`}
+      defaultOpen={false}
+    >
       <div className="ui-stack">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Suggested starting recovery split
-          </h3>
-
-          <p className="ui-help">
-            These shares are a system-generated starting recovery assumption
-            based on the current business structure. They are read-only in V1
-            because the true split cannot be proven until live jobs are tracked.
-            Cost Allocation will test whether this structure can support the
-            model, and live job feedback will begin to reveal the actual split
-            over time.
-          </p>
-        </div>
+        <p className="ui-help">
+          These shares are a system-generated starting recovery assumption based
+          on the current business structure. They are read-only in V1 because
+          the true split cannot be proven until live jobs are tracked. Cost
+          Allocation will test whether this structure can support the model, and
+          live job feedback will begin to reveal the actual split over time.
+        </p>
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
@@ -130,6 +126,6 @@ export default function RecoverySummaryStartingSplitBlock({
           </button>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
