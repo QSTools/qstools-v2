@@ -50,6 +50,23 @@ export default function BusinessSummaryPage() {
           total_people_cost_annual={card.total_people_cost_annual}
           total_asset_cost_annual={card.total_asset_cost_annual}
           total_business_overheads={card.total_business_overheads}
+          margin_after_labour={card.margin_after_labour}
+          non_people_cost_burden={card.non_people_cost_burden}
+          people_cost_per_recovery_hour={
+            card.people_cost_per_recovery_hour
+          }
+          asset_cost_per_recovery_hour={
+            card.asset_cost_per_recovery_hour
+          }
+          business_overheads_per_recovery_hour={
+            card.business_overheads_per_recovery_hour
+          }
+          margin_after_labour_per_recovery_hour={
+            card.margin_after_labour_per_recovery_hour
+          }
+          non_people_cost_burden_per_recovery_hour={
+            card.non_people_cost_burden_per_recovery_hour
+          }
           total_recovery_hours={card.total_recovery_hours}
           recovery_hours_used={card.recovery_hours_used}
           total_productive_output={card.total_productive_output}
@@ -72,6 +89,7 @@ export default function BusinessSummaryPage() {
             card.profit_or_deficit_per_recovery_hour
           }
           net_position={card.net_position}
+          cost_burden_breakdown={card.cost_burden_breakdown}
         />
 
         <BusinessSummaryMacroPositionCard
@@ -86,6 +104,21 @@ export default function BusinessSummaryPage() {
           total_business_overheads={card.total_business_overheads}
           margin_after_labour={card.margin_after_labour}
           non_people_cost_burden={card.non_people_cost_burden}
+          people_cost_per_recovery_hour={
+            card.people_cost_per_recovery_hour
+          }
+          asset_cost_per_recovery_hour={
+            card.asset_cost_per_recovery_hour
+          }
+          business_overheads_per_recovery_hour={
+            card.business_overheads_per_recovery_hour
+          }
+          margin_after_labour_per_recovery_hour={
+            card.margin_after_labour_per_recovery_hour
+          }
+          non_people_cost_burden_per_recovery_hour={
+            card.non_people_cost_burden_per_recovery_hour
+          }
           net_position={card.net_position}
           cost_burden_breakdown={card.cost_burden_breakdown}
         />

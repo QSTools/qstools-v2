@@ -150,6 +150,16 @@ export default function useBusinessSummary() {
       total_cost_burden: calculations.total_cost_burden,
       margin_after_labour: calculations.margin_after_labour,
       non_people_cost_burden: calculations.non_people_cost_burden,
+      people_cost_per_recovery_hour:
+        calculations.people_cost_per_recovery_hour,
+      asset_cost_per_recovery_hour:
+        calculations.asset_cost_per_recovery_hour,
+      business_overheads_per_recovery_hour:
+        calculations.business_overheads_per_recovery_hour,
+      margin_after_labour_per_recovery_hour:
+        calculations.margin_after_labour_per_recovery_hour,
+      non_people_cost_burden_per_recovery_hour:
+        calculations.non_people_cost_burden_per_recovery_hour,
 
       total_people_cost_annual:
         display_details.total_people_cost_annual,

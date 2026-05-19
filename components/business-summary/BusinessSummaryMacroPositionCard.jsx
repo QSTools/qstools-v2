@@ -69,6 +69,11 @@ export default function BusinessSummaryMacroPositionCard({
   total_business_overheads = 0,
   margin_after_labour = 0,
   non_people_cost_burden = 0,
+  people_cost_per_recovery_hour = 0,
+  asset_cost_per_recovery_hour = 0,
+  business_overheads_per_recovery_hour = 0,
+  margin_after_labour_per_recovery_hour = 0,
+  non_people_cost_burden_per_recovery_hour = 0,
 
   direct_cost_category_totals = [],
   cost_burden_breakdown = {
@@ -150,6 +155,11 @@ export default function BusinessSummaryMacroPositionCard({
     total_business_overheads,
     margin_after_labour,
     non_people_cost_burden,
+    people_cost_per_recovery_hour,
+    asset_cost_per_recovery_hour,
+    business_overheads_per_recovery_hour,
+    margin_after_labour_per_recovery_hour,
+    non_people_cost_burden_per_recovery_hour,
 
     direct_cost_category_totals,
     cost_burden_breakdown,
