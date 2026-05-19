@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import RecoverySummaryNoteDrilldown from "@/components/recovery-summary/RecoverySummaryNoteDrilldown";
+import { format_rate } from "@/components/recovery-summary/recoverySummaryFormatters";
 
 function get_status_label(recovery_ready, warning_count) {
   if (recovery_ready && warning_count > 0) {
@@ -42,6 +43,73 @@ function SummaryMetric({ id, label, value, active, onClick }) {
         {value}
       </div>
     </button>
+  );
+}
+
+function RecoveryPressureBlock({
+  actual_recovery_rate,
+  required_recovery_rate,
+  profit_or_deficit_per_recovery_hour,
+}) {
+  const recovery_gap = Number(profit_or_deficit_per_recovery_hour ?? 0);
+  const recovery_gap_abs = Math.abs(recovery_gap);
+  const recovery_result_text =
+    recovery_gap < 0
+      ? `The business is currently ${format_rate(recovery_gap_abs)} below the required recovery rate.`
+      : recovery_gap > 0
+        ? `The business is currently ${format_rate(recovery_gap)} above the required recovery rate.`
+        : "The business is currently matching the required recovery rate.";
+
+  return (
+    <div className="ui-panel">
+      <div className="ui-stack-sm">
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            Recovery pressure
+          </h2>
+
+          <p className="ui-help">
+            This compares the current recovery rate with the required recovery
+            rate carried forward from Business Summary.
+          </p>
+        </div>
+
+        <div className="labour-summary-table">
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              Actual recovery per recovery hour
+            </div>
+            <div className="labour-summary-table-value">
+              {format_rate(actual_recovery_rate)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              Required recovery per recovery hour
+            </div>
+            <div className="labour-summary-table-value">
+              {format_rate(required_recovery_rate)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row total">
+            <div className="labour-summary-table-label">
+              Recovery gap per recovery hour
+            </div>
+            <div className="labour-summary-table-value">
+              {format_rate(profit_or_deficit_per_recovery_hour)}
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-readonly">
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            {recovery_result_text}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -162,6 +230,9 @@ export default function RecoverySummaryStatusStrip({
   current_margin_per_driver,
   required_recovery_per_driver,
   recovery_gap_per_driver,
+  actual_recovery_rate,
+  required_recovery_rate,
+  profit_or_deficit_per_recovery_hour,
 
   total_revenue,
   total_direct_costs,
@@ -243,6 +314,14 @@ export default function RecoverySummaryStatusStrip({
               onClick={set_active_detail}
             />
           </div>
+
+          <RecoveryPressureBlock
+            actual_recovery_rate={actual_recovery_rate}
+            required_recovery_rate={required_recovery_rate}
+            profit_or_deficit_per_recovery_hour={
+              profit_or_deficit_per_recovery_hour
+            }
+          />
 
           <DetailPanel
             active_detail={active_detail}

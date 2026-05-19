@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import BusinessSummaryCalculationTable from "@/components/business-summary/BusinessSummaryCalculationTable";
-import { format_currency } from "@/components/business-summary/businessSummaryFormatters";
+import {
+  format_currency,
+  format_percent,
+} from "@/components/business-summary/businessSummaryFormatters";
 
 function MacroRow({
   id,
@@ -57,6 +60,7 @@ export default function BusinessSummaryMacroPositionCard({
   total_revenue = 0,
   total_direct_costs = 0,
   margin_pool = 0,
+  gross_margin_percent = 0,
   total_cost_burden = 0,
   net_position = 0,
 
@@ -82,22 +86,22 @@ export default function BusinessSummaryMacroPositionCard({
     },
     {
       id: "direct_costs",
-      title: "Direct Costs",
+      title: "Less COGS / direct costs",
       help: "COGS / direct costs removed before margin pool is calculated.",
-      value: format_currency(total_direct_costs),
+      value: `-${format_currency(total_direct_costs)}`,
     },
     {
       id: "margin_pool",
       title: "Margin Pool",
-      help: "Revenue left after direct costs.",
+      help: `${format_percent(gross_margin_percent)} of revenue after COGS / direct costs.`,
       value: format_currency(margin_pool),
       drilldown_key: "margin_pool",
     },
     {
       id: "total_cost_burden",
-      title: "Total Cost Burden",
+      title: "Less total cost burden",
       help: "Annual operating cost burden from Cost Summary.",
-      value: format_currency(total_cost_burden),
+      value: `-${format_currency(total_cost_burden)}`,
       drilldown_key: "total_cost_burden",
     },
     {
@@ -111,13 +115,25 @@ export default function BusinessSummaryMacroPositionCard({
 
   const calculation_rows = [
     {
+      label: "Revenue",
+      value: format_currency(total_revenue),
+    },
+    {
+      label: "Less COGS / direct costs",
+      value: `-${format_currency(total_direct_costs)}`,
+    },
+    {
       label: "Margin Pool",
       value: format_currency(margin_pool),
       drilldown_key: "margin_pool",
     },
     {
-      label: "Total Cost Burden",
-      value: format_currency(total_cost_burden),
+      label: "Margin pool percentage",
+      value: format_percent(gross_margin_percent),
+    },
+    {
+      label: "Less total cost burden",
+      value: `-${format_currency(total_cost_burden)}`,
       drilldown_key: "total_cost_burden",
     },
     {
@@ -154,9 +170,10 @@ export default function BusinessSummaryMacroPositionCard({
             </h2>
 
             <p className="ui-help">
-              This is the annual source trail behind the Business Summary
-              result. It shows trading margin, operating cost burden, and net
-              position without changing upstream calculations.
+              This shows the current business position before recovery
+              strategy. Margin pool is what remains after COGS / direct costs.
+              Total cost burden then shows what the business must recover from
+              that margin pool.
             </p>
           </div>
 
@@ -182,7 +199,7 @@ export default function BusinessSummaryMacroPositionCard({
               <BusinessSummaryCalculationTable
                 title="Annual cost position"
                 rows={calculation_rows}
-                formula="Margin Pool - Total Cost Burden = Net Position"
+                formula="Revenue - COGS / direct costs = Margin Pool. Margin Pool - Total Cost Burden = Net Position."
                 values={values}
                 active_breakdown={active_breakdown}
                 on_active_breakdown_change={set_active_breakdown}

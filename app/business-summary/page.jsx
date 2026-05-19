@@ -79,6 +79,7 @@ export default function BusinessSummaryPage() {
           total_direct_costs={card.total_direct_costs}
           direct_cost_category_totals={card.direct_cost_category_totals}
           margin_pool={card.margin_pool}
+          gross_margin_percent={card.gross_margin_percent}
           total_cost_burden={card.total_cost_burden}
           total_people_cost_annual={card.total_people_cost_annual}
           total_asset_cost_annual={card.total_asset_cost_annual}

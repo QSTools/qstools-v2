@@ -1,88 +1,57 @@
 import RecoverySummaryReadOnlyRow from "@/components/recovery-summary/RecoverySummaryReadOnlyRow";
 import {
   format_currency,
-  format_status_label,
+  format_percent,
 } from "@/components/recovery-summary/recoverySummaryFormatters";
 
 export default function RecoverySummaryGrossProfitStatusBlock({
   gross_profit,
   margin_pool,
-  gross_profit_source_status,
-  material_margin_status,
-  asset_utilisation_status,
+  gross_margin_percent,
 }) {
-  const resolved_gross_profit = Number(gross_profit ?? margin_pool ?? 0);
+  const resolved_margin_pool = Number(gross_profit ?? margin_pool ?? 0);
 
   return (
     <div className="ui-panel">
       <div className="ui-stack">
         <div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Gross Profit Source Status
+            Margin Pool
           </h3>
 
           <p className="ui-help">
-            Gross profit is known from current business data, but the system
-            cannot yet separate how much of that margin came from labour
-            recovery, materials / products contribution, or asset contribution.
+            This is the margin remaining after materials / COGS / direct costs.
           </p>
         </div>
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              The recovery split below is therefore a starting recovery
-              assumption, not a fully verified result.
-            </p>
+            <div className="labour-summary-table">
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Margin pool
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(resolved_margin_pool)}
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row total">
+                <div className="labour-summary-table-label">
+                  Margin pool percentage
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_percent(gross_margin_percent)}
+                </div>
+              </div>
+            </div>
 
             <p className="ui-help">
-              As full jobs are run through the live feedback loop, actual labour
-              recovery, material margin, and asset contribution will begin to
-              reveal themselves. The starting split can then be corrected using
-              real job evidence.
+              Labour, assets, and overheads are not included at this stage. They
+              are tested in the recovery model below.
             </p>
           </div>
         </div>
-
-        <div className="ui-readonly">
-          <div className="ui-stack-sm">
-            <RecoverySummaryReadOnlyRow
-              label="Gross profit"
-              value={`Known - ${format_currency(resolved_gross_profit)}`}
-            />
-
-            <RecoverySummaryReadOnlyRow
-              label="Margin source"
-              value={format_status_label(gross_profit_source_status)}
-            />
-
-            <RecoverySummaryReadOnlyRow
-              label="Materials / COGS"
-              value="Known"
-            />
-
-            <RecoverySummaryReadOnlyRow
-              label="Material margin"
-              value={format_status_label(material_margin_status)}
-            />
-
-            <RecoverySummaryReadOnlyRow
-              label="Asset contribution"
-              value={format_status_label(asset_utilisation_status)}
-            />
-
-            <RecoverySummaryReadOnlyRow
-              label="Labour recovery"
-              value="Based on current selected recovery hours"
-            />
-          </div>
-        </div>
-
-        <p className="ui-help">
-          Materials / COGS are known. Material margin is not yet verified.
-          Productive assets can carry recovery. Support assets stay in the cost
-          burden but do not automatically carry asset recovery.
-        </p>
       </div>
     </div>
   );

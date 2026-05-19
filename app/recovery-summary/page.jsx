@@ -37,6 +37,11 @@ export default function RecoverySummaryPage() {
           current_margin_per_driver={card.current_margin_per_driver}
           required_recovery_per_driver={card.required_recovery_per_driver}
           recovery_gap_per_driver={card.recovery_gap_per_driver}
+          actual_recovery_rate={card.actual_recovery_rate}
+          required_recovery_rate={card.required_recovery_rate}
+          profit_or_deficit_per_recovery_hour={
+            card.profit_or_deficit_per_recovery_hour
+          }
           total_revenue={card.total_revenue}
           total_direct_costs={card.total_direct_costs}
           total_people_cost_annual={card.total_people_cost_annual}

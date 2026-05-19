@@ -11,3 +11,10 @@ export function format_number(value, suffix = "") {
     maximumFractionDigits: 2,
   }).format(Number(value ?? 0))}${suffix}`;
 }
+
+export function format_percent(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(Number(value ?? 0));
+}

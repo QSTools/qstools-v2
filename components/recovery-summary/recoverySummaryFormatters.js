@@ -16,6 +16,13 @@ export function format_rate(value, suffix = "/hr") {
   return `${format_currency(value)}${suffix}`;
 }
 
+export function format_percent(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(Number(value ?? 0));
+}
+
 export function format_status_label(value) {
   const status_map = {
     pending_live_feedback: "Pending live job feedback",

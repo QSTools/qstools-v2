@@ -8,9 +8,11 @@ export default function RecoverySummaryRequirementBlock({
   total_cost_burden,
   required_recovery_rate,
   recovery_hours_used,
+
   business_type,
   activity_driver_type,
   units_sold_annual,
+
   actual_recovery_rate,
   profit_or_deficit_per_recovery_hour,
 }) {
@@ -20,35 +22,46 @@ export default function RecoverySummaryRequirementBlock({
   const recovery_driver_label = is_product_based
     ? "Units used"
     : "Selected recovery hours";
+
   const recovery_driver_quantity = is_product_based
     ? units_sold_annual
     : recovery_hours_used;
+
   const required_recovery_label = is_product_based
     ? "Required recovery per unit"
     : "Required recovery per recovery hour";
+
   const actual_recovery_label = is_product_based
     ? "Actual recovery per unit"
     : "Actual recovery per recovery hour";
+
   const variance_label = is_product_based
     ? "Recovery variance per unit"
     : "Recovery variance per recovery hour";
+
   const rate_suffix = is_product_based ? "/unit" : "/hr";
+
   const required_recovery_rate_display = format_rate(
     required_recovery_rate,
     rate_suffix
   );
+
   const actual_recovery_rate_display = format_rate(
     actual_recovery_rate,
     rate_suffix
   );
+
   const recovery_variance_display = format_rate(
     profit_or_deficit_per_recovery_hour,
     rate_suffix
   );
+
   const has_recovery_shortfall =
     Number(profit_or_deficit_per_recovery_hour ?? 0) < 0;
+
   const has_recovery_surplus =
     Number(profit_or_deficit_per_recovery_hour ?? 0) > 0;
+
   const recovery_result_text = has_recovery_shortfall
     ? `The business is currently ${format_rate(
         Math.abs(Number(profit_or_deficit_per_recovery_hour ?? 0)),
@@ -70,8 +83,8 @@ export default function RecoverySummaryRequirementBlock({
           </h3>
 
           <p className="ui-help">
-            This shows how the Business Summary cost burden becomes the
-            recovery rate carried forward into Cost Allocation.
+            This shows how the Business Summary cost burden becomes the recovery
+            rate carried forward into Cost Allocation.
           </p>
         </div>
 
@@ -112,8 +125,8 @@ export default function RecoverySummaryRequirementBlock({
 
             <p className="ui-help">
               {is_product_based
-                ? "Total cost burden / units used = required recovery per unit."
-                : "Total cost burden / selected recovery hours = required recovery per recovery hour."}
+                ? "Total cost burden ÷ units used = required recovery per unit."
+                : "Total cost burden ÷ selected recovery hours = required recovery per recovery hour."}
             </p>
           </div>
         </div>
