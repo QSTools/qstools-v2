@@ -1,5 +1,6 @@
-import RecoverySummaryReadOnlyRow from "@/components/recovery-summary/RecoverySummaryReadOnlyRow";
-import { format_number } from "@/components/recovery-summary/recoverySummaryFormatters";
+import {
+  format_number,
+} from "@/components/recovery-summary/recoverySummaryFormatters";
 
 export default function RecoverySummaryStartingSplitBlock({
   labour_share_percent,
@@ -37,62 +38,79 @@ export default function RecoverySummaryStartingSplitBlock({
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
-            <RecoverySummaryReadOnlyRow
-              label="Labour recovery share"
-              value={`${format_number(labour_share_percent)}%`}
-            />
+            <p className="ui-kicker">System suggested split</p>
+
+            <div className="labour-summary-table">
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Labour recovery share
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(labour_share_percent)}%
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Asset recovery share
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(asset_share_percent)}%
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Materials / products contribution
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(resolved_material_share_percent)}%
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row total">
+                <div className="labour-summary-table-label">
+                  Unassigned recovery share
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(resolved_overhead_absorbed_percent)}%
+                </div>
+              </div>
+            </div>
 
             <p className="ui-help">
-              The share of recovery expected to come from people's productive
-              work.
-            </p>
-
-            <RecoverySummaryReadOnlyRow
-              label="Asset recovery share"
-              value={`${format_number(asset_share_percent)}%`}
-            />
-
-            <p className="ui-help">
-              The share of recovery expected to come from productive assets,
-              plant, vehicles, machinery, or equipment. Support assets remain in
-              cost burden but do not automatically carry asset recovery.
-            </p>
-
-            <RecoverySummaryReadOnlyRow
-              label="Materials / products contribution"
-              value={`${format_number(resolved_material_share_percent)}%`}
-            />
-
-            <p className="ui-help">
-              The share of recovery expected to come from materials, supplied
-              goods, product margin, resale margin, or transformed goods.
-            </p>
-
-            <RecoverySummaryReadOnlyRow
-              label="Unassigned recovery share"
-              value={`${format_number(resolved_overhead_absorbed_percent)}%`}
-              emphasis
-            />
-
-            <p className="ui-help">
-              This is calculated automatically as 100% minus the labour, asset,
-              and materials / products shares. In V1, the suggested split is
-              read-only and live job feedback will improve the actual split over
-              time.
+              This suggested split is read-only in V1. It is based on the
+              current business structure and will improve as live job feedback
+              reveals the actual recovery split over time.
             </p>
           </div>
         </div>
 
-        <RecoverySummaryReadOnlyRow
-          label="Explained recovery total"
-          value={`${format_number(explained_recovery_total)}%`}
-          emphasis
-        />
+        <div className="ui-readonly">
+          <div className="ui-stack-sm">
+            <p className="ui-kicker">Recovery model total</p>
 
-        <RecoverySummaryReadOnlyRow
-          label="Total recovery model"
-          value={`${format_number(share_total)}%`}
-        />
+            <div className="labour-summary-table">
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Explained recovery total
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(explained_recovery_total)}%
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row total">
+                <div className="labour-summary-table-label">
+                  Total recovery model
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_number(share_total)}%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {share_not_balanced ? (
           <div className="ui-readonly">

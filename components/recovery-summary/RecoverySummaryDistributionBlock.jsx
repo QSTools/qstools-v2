@@ -21,25 +21,54 @@ export default function RecoverySummaryDistributionBlock({
           </p>
         </div>
 
-        <RecoverySummaryReadOnlyRow
-          label="Labour recovery cost"
-          value={format_currency(labour_recovery_cost)}
-        />
+        <div className="ui-readonly">
+          <div className="ui-stack-sm">
+            <p className="ui-kicker">Recovery cost allocation</p>
 
-        <RecoverySummaryReadOnlyRow
-          label="Asset recovery cost"
-          value={format_currency(asset_recovery_cost)}
-        />
+            <div className="labour-summary-table">
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Labour recovery cost
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(labour_recovery_cost)}
+                </div>
+              </div>
 
-        <RecoverySummaryReadOnlyRow
-          label="Materials / products recovery contribution"
-          value={format_currency(material_recovery_cost)}
-        />
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Asset recovery cost
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(asset_recovery_cost)}
+                </div>
+              </div>
 
-        <RecoverySummaryReadOnlyRow
-          label="Unassigned recovery share"
-          value={format_currency(overhead_absorbed_cost)}
-        />
+              <div className="labour-summary-table-row">
+                <div className="labour-summary-table-label">
+                  Materials / products recovery contribution
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(material_recovery_cost)}
+                </div>
+              </div>
+
+              <div className="labour-summary-table-row total">
+                <div className="labour-summary-table-label">
+                  Unassigned recovery share
+                </div>
+                <div className="labour-summary-table-value">
+                  {format_currency(overhead_absorbed_cost)}
+                </div>
+              </div>
+            </div>
+
+            <p className="ui-help">
+              These values apply the suggested starting split to the total cost
+              burden. They are not verified source-of-margin results.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
