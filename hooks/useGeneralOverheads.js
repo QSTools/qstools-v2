@@ -236,6 +236,8 @@ function build_general_overheads_from_pnl({
       current_overhead_state?.overhead_category_overrides ?? {},
     system_allocation_overrides:
       current_overhead_state?.system_allocation_overrides ?? {},
+    system_allocation_amount_overrides:
+      current_overhead_state?.system_allocation_amount_overrides ?? {},
   };
 
   for (const [index, line] of pnl_lines.entries()) {
@@ -456,6 +458,8 @@ export default function useGeneralOverheads() {
         loaded_state?.overhead_category_overrides ?? {},
       system_allocation_overrides:
         loaded_state?.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        loaded_state?.system_allocation_amount_overrides ?? {},
     });
 
     set_saved_overheads(load_saved_overheads());
@@ -536,6 +540,8 @@ export default function useGeneralOverheads() {
       overhead_category_overrides: current.overhead_category_overrides ?? {},
       system_allocation_overrides:
         current.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        current.system_allocation_amount_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -554,6 +560,8 @@ export default function useGeneralOverheads() {
       overhead_category_overrides: current.overhead_category_overrides ?? {},
       system_allocation_overrides:
         current.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        current.system_allocation_amount_overrides ?? {},
       synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
@@ -573,6 +581,8 @@ export default function useGeneralOverheads() {
       overhead_category_overrides: current.overhead_category_overrides ?? {},
       system_allocation_overrides:
         current.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        current.system_allocation_amount_overrides ?? {},
       synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
@@ -590,15 +600,21 @@ export default function useGeneralOverheads() {
       const next_system_allocation_overrides = {
         ...(current.system_allocation_overrides ?? {}),
       };
+      const next_system_allocation_amount_overrides = {
+        ...(current.system_allocation_amount_overrides ?? {}),
+      };
 
       delete next_overrides[custom_overhead_id];
       delete next_system_allocation_overrides[custom_overhead_id];
+      delete next_system_allocation_amount_overrides[custom_overhead_id];
 
       return {
         ...current,
         custom_overhead_items: next_custom_items,
         overhead_category_overrides: next_overrides,
         system_allocation_overrides: next_system_allocation_overrides,
+        system_allocation_amount_overrides:
+          next_system_allocation_amount_overrides,
         updated_at: new Date().toISOString(),
       };
     });
@@ -613,6 +629,8 @@ export default function useGeneralOverheads() {
       },
       system_allocation_overrides:
         current.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        current.system_allocation_amount_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -624,6 +642,22 @@ export default function useGeneralOverheads() {
       system_allocation_overrides: {
         ...(current.system_allocation_overrides ?? {}),
         [row_key]: system_allocation_type,
+      },
+      system_allocation_amount_overrides:
+        current.system_allocation_amount_overrides ?? {},
+      updated_at: new Date().toISOString(),
+    }));
+  }
+
+  function update_system_allocation_amount_override(row_key, allocation_amount) {
+    set_overhead_state((current) => ({
+      ...current,
+      overhead_category_overrides: current.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        current.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides: {
+        ...(current.system_allocation_amount_overrides ?? {}),
+        [row_key]: allocation_amount,
       },
       updated_at: new Date().toISOString(),
     }));
@@ -645,6 +679,8 @@ export default function useGeneralOverheads() {
         overhead_state.overhead_category_overrides ?? {},
       system_allocation_overrides:
         overhead_state.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        overhead_state.system_allocation_amount_overrides ?? {},
       output_contract,
       total_general_overheads: calculated.total_general_overheads,
       overhead_rows: calculated.overhead_rows,
@@ -666,6 +702,8 @@ export default function useGeneralOverheads() {
       ...loaded,
       overhead_category_overrides: loaded?.overhead_category_overrides ?? {},
       system_allocation_overrides: loaded?.system_allocation_overrides ?? {},
+      system_allocation_amount_overrides:
+        loaded?.system_allocation_amount_overrides ?? {},
       updated_at: new Date().toISOString(),
     });
   }
@@ -682,6 +720,7 @@ export default function useGeneralOverheads() {
       ...next_state,
       overhead_category_overrides: {},
       system_allocation_overrides: {},
+      system_allocation_amount_overrides: {},
     });
 
     last_pnl_sync_signature_ref.current = "";
@@ -705,6 +744,7 @@ export default function useGeneralOverheads() {
       remove_custom_item,
       update_category_override,
       update_system_allocation_override,
+      update_system_allocation_amount_override,
       sync_from_pnl,
       save_profile,
       load_profile,

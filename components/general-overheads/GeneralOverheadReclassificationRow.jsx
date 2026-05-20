@@ -34,6 +34,16 @@ export default function GeneralOverheadReclassificationRow({
     on_change_system_allocation_type(row, event.target.value);
   }
 
+  const amount_label = row.is_balanced_parent_pool
+    ? "Remaining amount"
+    : "Amount";
+
+  const amount_help = row.is_balanced_parent_pool
+    ? "This is the unassigned balance left in the pool after the split rows below."
+    : row.is_pool_split_row
+      ? "Enter the portion of the parent pool assigned to this line. This does not change Cost Summary."
+      : "Enter the overhead amount for this line.";
+
   return (
     <div
       className="ui-panel ui-stack-sm"
@@ -44,14 +54,10 @@ export default function GeneralOverheadReclassificationRow({
         <div className="ui-stack-sm">
           <div className="ui-label">{row.label}</div>
 
-          <div className="ui-help">
-            Current: {row.effective_category_label}
-          </div>
+          <div className="ui-help">Current: {row.effective_category_label}</div>
 
           {row.is_reclassified && (
-            <div className="ui-help">
-              From: {row.default_category_label}
-            </div>
+            <div className="ui-help">From: {row.default_category_label}</div>
           )}
         </div>
 
@@ -59,13 +65,14 @@ export default function GeneralOverheadReclassificationRow({
       </div>
 
       <label className="ui-field">
-        <span className="ui-label">Amount</span>
+        <span className="ui-label">{amount_label}</span>
         <input
           type="text"
           inputMode="decimal"
           className="ui-input"
           value={format_number_with_commas(row.amount)}
           onChange={handle_change_amount}
+          readOnly={row.is_balanced_parent_pool}
         />
       </label>
 
@@ -99,11 +106,7 @@ export default function GeneralOverheadReclassificationRow({
         </select>
       </label>
 
-      <div className="ui-help">
-        Use this to identify the portion of this overhead that should flow into
-        asset recovery modelling. This does not change the P&amp;L total or Cost
-        Summary.
-      </div>
+      <div className="ui-help">{amount_help}</div>
     </div>
   );
 }
