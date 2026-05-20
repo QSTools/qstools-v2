@@ -1,0 +1,1142 @@
+# Future Build Brief — Mirra Control Loop, Business Modelling, Proof Layer, and Contribution Split
+
+## Purpose
+
+This brief captures the future builds we discussed after completing the first usable versions of **Cost Summary** and **Business Summary**.
+
+The core idea is:
+
+> **Xero is the proof layer. Mirra is the control layer.**
+
+Xero records what happened.
+Mirra explains why it happened, models what should happen next, controls the operating levers, and then checks the next actual result against the model.
+
+This future build must preserve one first-principles rule:
+
+> **Always variance, never silent overwrite.**
+
+Actuals do not automatically update the baseline.
+Actuals prove whether the business is aligned to the baseline or drifting away from it.
+
+---
+
+# 1. Business Summary — Future Polish and Macro Drilldown
+
+## Current state
+
+Business Summary now shows:
+
+> how much the business is making per recovery hour, day, week, month, quarter, and year after real operating costs are covered.
+
+It already has:
+
+* recovery-hour result
+* time-scale toggle
+* revenue as reference total
+* revenue-consumption bar
+* drilldown hierarchy
+* margin pool pending nodes
+* no fake labour/material split
+
+## Future improvement
+
+Add or refine the macro proof layer:
+
+```text
+Business Result
+→ Minimum Required Recovery
+→ Actual Recovery
+→ Surplus / Deficit
+```
+
+## Purpose
+
+This shows the user:
+
+```text
+Here is the minimum line.
+Here is where you actually are.
+Here is the balance.
+```
+
+## Definitions
+
+```text
+Minimum Required Recovery =
+total_cost_burden / total_recovery_hours
+```
+
+```text
+Actual Recovery =
+margin_pool / total_recovery_hours
+```
+
+```text
+Surplus / Deficit =
+actual_recovery - minimum_required_recovery
+```
+
+## Guardrail
+
+Do not treat revenue as profit.
+
+Use:
+
+```text
+margin_pool
+```
+
+not:
+
+```text
+total_revenue
+```
+
+for actual recovery.
+
+---
+
+# 2. Gross Profit / Margin Pool Contribution Split
+
+## Current state
+
+Business Summary can show:
+
+```text
+Revenue
+- COG / Direct Costs
+= Gross Profit / Margin Pool
+- Operating Cost Baseline
+= Surplus / Deficit
+```
+
+But it cannot yet prove:
+
+```text
+how much margin came from labour
+how much margin came from materials
+how much margin came from other sources
+```
+
+## Future hierarchy
+
+Inside Business Summary:
+
+```text
+Gross Profit / Margin Pool
+→ Labour Contribution Split
+→ Material Contribution Split
+→ Other Contribution Split
+```
+
+## Current display rule
+
+Until the job / quote / time layer exists, these must remain pending.
+
+Suggested message:
+
+```text
+Full labour and material margin split becomes available once claimed labour hours and quote/job data are connected.
+```
+
+## Important guardrail
+
+Do not display:
+
+```text
+True Labour Margin
+True Material Margin
+Real Material Margin
+Fully Loaded Material Margin
+```
+
+until the data exists.
+
+Use:
+
+```text
+Contribution Split Pending
+```
+
+or:
+
+```text
+Requires claimed labour hours / quote-job data
+```
+
+---
+
+# 3. Future Contribution Split Data Contract
+
+## Purpose
+
+Define future field names now so later modules can plug into the Business Summary hierarchy cleanly.
+
+## Claimed labour fields
+
+```js
+claimed_labour_hours
+claimed_labour_revenue
+claimed_labour_rate
+```
+
+Meaning:
+
+```text
+claimed_labour_hours = labour hours charged or claimed to the customer
+claimed_labour_revenue = labour revenue charged to the customer
+claimed_labour_rate = claimed_labour_revenue / claimed_labour_hours
+```
+
+Important:
+
+```text
+claimed_labour_hours are not the same as recovery_hours.
+```
+
+Recovery hours are business capacity.
+Claimed labour hours are what was actually invoiced or recovered.
+
+## Actual labour fields
+
+```js
+actual_labour_hours_used
+actual_labour_cost
+```
+
+Meaning:
+
+```text
+actual_labour_hours_used = labour hours actually consumed by the work
+actual_labour_cost = cost of labour actually consumed
+```
+
+## Labour contribution fields
+
+```js
+labour_contribution
+labour_contribution_percent
+labour_recovery_gap
+```
+
+Future formulas:
+
+```text
+labour_contribution =
+claimed_labour_revenue - actual_labour_cost
+```
+
+```text
+labour_contribution_percent =
+labour_contribution / claimed_labour_revenue
+```
+
+```text
+labour_recovery_gap =
+claimed_labour_revenue - required_labour_recovery
+```
+
+Do not calculate these until claimed labour and actual labour data exist.
+
+## Material contribution fields
+
+```js
+material_revenue
+material_cost
+material_contribution
+material_contribution_percent
+```
+
+Future formulas:
+
+```text
+material_contribution =
+material_revenue - material_cost
+```
+
+```text
+material_contribution_percent =
+material_contribution / material_revenue
+```
+
+Do not infer material revenue from total revenue unless the quote/job/revenue contract explicitly provides it.
+
+## Other contribution fields
+
+```js
+other_revenue
+other_cost
+other_contribution
+other_contribution_percent
+```
+
+## Allocated margin fields
+
+These are future full-model outputs once the system can allocate recovery gaps safely.
+
+```js
+allocated_labour_margin
+allocated_material_margin
+allocated_other_margin
+```
+
+Percent fields:
+
+```js
+allocated_labour_margin_percent
+allocated_material_margin_percent
+allocated_other_margin_percent
+```
+
+## Availability flag
+
+```js
+contribution_split_available
+```
+
+Meaning:
+
+```text
+true only when claimed labour hours, actual labour hours, material revenue, material cost, and quote/job data are connected strongly enough to calculate the split safely.
+```
+
+Until then:
+
+```js
+contribution_split_available = false
+```
+
+---
+
+# 4. Optional 100% Labour Recovery Preview
+
+## Idea
+
+We discussed whether Business Summary could show an assumed material contribution if:
+
+```text
+100% of productive labour recovery was claimed
+```
+
+## Decision
+
+Do **not** show this as fact.
+
+If used later, it must be clearly labelled as an assumption.
+
+## Suggested wording
+
+```text
+100% Labour Recovery Preview
+```
+
+```text
+This preview assumes all productive labour recovery was claimed. It is not confirmed actual margin until quote/job labour recovery is connected.
+```
+
+## Guardrail
+
+Never silently assume 100% labour recovery.
+
+Any assumption must be labelled as:
+
+```text
+Preview
+Scenario
+Assumption
+Modelled
+```
+
+not:
+
+```text
+Actual
+True
+Final
+```
+
+---
+
+# 5. Business Modelling Page
+
+## Purpose
+
+Business Modelling is where the user tests changes before they become part of the model.
+
+It answers:
+
+```text
+What do I need to change to close the gap or hit my target profit?
+```
+
+## Inputs from Business Summary
+
+```js
+current_profit_per_recovery_hour
+required_recovery_rate
+actual_recovery_rate
+surplus_or_deficit_per_recovery_hour
+total_recovery_hours
+margin_pool
+net_position
+```
+
+## Main modelling anchor
+
+```text
+Current result: $32/hr surplus
+Target result: $60/hr surplus
+Gap to target: $28/hr
+```
+
+## Core modelling unit
+
+```text
+profit movement per recovery hour
+```
+
+Annual translation:
+
+```text
+annual_impact =
+profit_movement_per_hour × total_recovery_hours
+```
+
+Example:
+
+```text
++$1/hr = +$1,476/year
++$10/hr = +$14,760/year
++$50/hr = +$73,800/year
+```
+
+## First modelling view
+
+The first version should show:
+
+```text
+Current Result
+Target Result
+Gap to Target
+```
+
+Then simple levers:
+
+```text
+Charge-out improvement
+Claimed labour recovery improvement
+Material contribution improvement
+Operating cost reduction
+```
+
+Each lever should show:
+
+```text
+Impact per recovery hour
+Annual impact
+Remaining gap
+```
+
+## Guardrail
+
+Modelled values are not actuals.
+
+Use labels:
+
+```text
+Modelled
+Scenario
+Estimated impact
+Target
+```
+
+Do not use:
+
+```text
+Actual
+True
+Final
+```
+
+unless real data exists.
+
+---
+
+# 6. Scenario-First Model Changes
+
+## Core rule
+
+> **No structural change enters the active model without first passing through Business Modelling.**
+
+This applies to:
+
+* hiring staff
+* removing staff
+* wage changes
+* new assets
+* asset finance changes
+* new overheads
+* owner wage changes
+* recovery-hour changes
+* charge-out rate changes
+* material markup target changes
+
+## Workflow
+
+```text
+1. User proposes change
+2. Mirra creates scenario
+3. Business Modelling shows impact
+4. User reviews consequence
+5. User approves
+6. Mirra creates baseline adjustment event
+7. Active model updates from effective date
+8. Xero actuals later prove whether it worked
+```
+
+## Example
+
+Before buying an asset:
+
+```text
+Asset adds $18,000/year cost.
+Required recovery increases by $12/hr.
+Business must recover additional $18,000/year to justify it.
+```
+
+Before hiring staff:
+
+```text
+New staff adds $95,000/year cost.
+If productive, adds X recovery hours.
+If non-productive, adds cost but no recovery hours.
+Required recovery changes by Y.
+```
+
+---
+
+# 7. Baseline Adjustment Events
+
+## Purpose
+
+A new staff member, new asset, or new overhead should not automatically create a whole new baseline.
+
+It should create a controlled adjustment event inside the active baseline.
+
+## Examples
+
+```text
+Labour adjustment
+Asset adjustment
+Overhead adjustment
+Owner wage adjustment
+Recovery hours adjustment
+Charge-out assumption adjustment
+```
+
+## Required fields
+
+```js
+adjustment_id
+baseline_id
+scenario_id
+module_changed
+change_type
+old_value
+new_value
+effective_date
+expected_impact_per_hour
+expected_annual_impact
+reason
+created_by
+approved_date
+```
+
+## Rule
+
+```text
+Baseline v1 remains active.
+Adjustment is recorded against Baseline v1.
+Historical metrics remain intact.
+```
+
+This allows:
+
+```text
+before change
+after change
+variance after change
+```
+
+without losing the original baseline.
+
+---
+
+# 8. Baseline Versioning
+
+## Purpose
+
+A full new baseline version should only be created deliberately, usually after evidence shows the business model has changed.
+
+## Rule
+
+```text
+Actuals never overwrite the baseline.
+Actuals create variance.
+Variance creates evidence.
+Evidence may justify a new baseline.
+Only the user creates the new baseline.
+```
+
+## Baseline lifecycle
+
+```text
+Baseline v1
+→ monthly actual variance
+→ evidence period
+→ review
+→ deliberate Baseline v2
+```
+
+## When to consider a new baseline
+
+A baseline review may be recommended when there is:
+
+### Sustained variance
+
+Example:
+
+```text
+operating costs 8% above baseline for 6 months
+recovery hours 10% below baseline for 6 months
+actual recovery rate consistently above or below baseline
+```
+
+### Material difference
+
+Example:
+
+```text
+required recovery would change by more than $10/hr
+operating cost baseline moved by more than 5–10%
+recovery hours changed by more than 10%
+```
+
+### Structural change
+
+Example:
+
+* new division
+* major restructure
+* ownership change
+* business model change
+* major staffing or asset strategy change
+
+## Baseline record fields
+
+```js
+baseline_id
+baseline_name
+created_date
+source_period
+source_type
+created_by
+reason
+required_recovery_rate
+total_cost_burden
+total_recovery_hours
+owner_wage_assumption
+labour_structure
+overhead_structure
+asset_structure
+```
+
+---
+
+# 9. Baseline Review Recommended Signal
+
+## Purpose
+
+There should be a signal when the current baseline may no longer represent the operating model.
+
+But it must not be a contrived score.
+
+Do not use:
+
+```text
+Baseline Health Score
+```
+
+Use:
+
+```text
+Baseline Review Recommended
+```
+
+## Evidence-based trigger
+
+The signal should come from:
+
+```text
+time + consistency + materiality + structural change
+```
+
+Example output:
+
+```text
+Baseline review recommended because:
+- Operating costs have been 8.4% above baseline for 6 months
+- Recovery hours have been 11.2% below baseline for 6 months
+- Required recovery would move from $268/hr to $294/hr using the last 12 months
+```
+
+## User options
+
+```text
+Keep current baseline
+Create new baseline version
+```
+
+The system recommends review.
+The user decides.
+
+---
+
+# 10. Xero Proof Layer
+
+## Principle
+
+```text
+Xero is the proof layer.
+Mirra is the control layer.
+```
+
+Xero records what happened.
+
+Mirra:
+
+* builds the model
+* shows required recovery
+* shows actual performance
+* models change
+* controls quote/work-order/PO/time decisions
+* checks variance
+* recommends review when evidence exists
+
+## Monthly proof loop
+
+```text
+Xero monthly P&L
+→ proves what actually happened
+
+Mirra model
+→ explains why it happened
+
+Mirra operating layer
+→ changes quotes, work orders, POs, time, recovery, margins
+
+Next Xero monthly P&L
+→ proves whether the changes worked
+```
+
+## Rule
+
+Xero actuals do not update the baseline automatically.
+
+They create:
+
+```text
+Expected vs Actual variance
+```
+
+---
+
+# 11. Variance Layer
+
+## Purpose
+
+Every actual result should compare against the model.
+
+## Variance structure
+
+```text
+Expected
+Actual
+Variance
+Cause
+```
+
+## Example
+
+```text
+Expected profit per recovery hour: $60/hr
+Actual profit per recovery hour: $32/hr
+Variance: -$28/hr
+Possible causes:
+- labour under-recovery
+- material margin leakage
+- COG increase
+- overhead creep
+- recovery hours shortfall
+```
+
+## Rule
+
+Always variance. Never silent overwrite.
+
+---
+
+# 12. Quote / Work Order / PO / Time Feedback Loop
+
+## Purpose
+
+This is the operational loop that makes Mirra more than a dashboard.
+
+## Flow
+
+```text
+Quote
+→ Work Order
+→ Purchase Order
+→ Labour / Time
+→ Invoice
+→ Reconciliation
+→ Pressure Layer
+→ Business Alignment
+→ Xero proof
+```
+
+## What each layer does
+
+### Quote
+
+Checks whether proposed work meets the required recovery baseline.
+
+### Work Order
+
+Turns the quote into planned production.
+
+### Purchase Order
+
+Controls material, subcontractor, and direct-cost spend.
+
+### Labour / Time
+
+Measures actual labour used vs claimed labour.
+
+### Invoice
+
+Shows what was actually charged.
+
+### Reconciliation
+
+Compares:
+
+```text
+quoted
+planned
+purchased
+worked
+invoiced
+actual cost
+```
+
+### Pressure Layer
+
+Shows where the job leaked.
+
+### Business Alignment
+
+Updates operating behaviour through modelling and controlled adjustments.
+
+### Xero
+
+Proves whether the results actually improved.
+
+---
+
+# 13. Quote / Job Checker
+
+## Purpose
+
+Check whether a quote or job meets the business requirement.
+
+## Question
+
+```text
+Does this job recover enough?
+```
+
+## Future fields
+
+```js
+quoted_labour_hours
+claimed_labour_hours
+actual_labour_hours_used
+quoted_material_cost
+actual_material_cost
+material_revenue
+invoice_value
+job_cog
+job_contribution
+required_job_recovery
+job_recovery_gap
+```
+
+## Output
+
+```text
+Meets baseline
+Below baseline
+Exceeds baseline
+```
+
+With variance:
+
+```text
+Required recovery
+Actual / quoted recovery
+Gap
+```
+
+---
+
+# 14. Pressure Layer
+
+## Purpose
+
+Show where the business is leaking operationally.
+
+## Signals
+
+```text
+Quoted labour recovery vs actual labour used
+Claimed labour hours vs recovery hours required
+PO budget vs supplier invoices
+Material margin expected vs actual
+Subcontract cost expected vs actual
+Job contribution vs required contribution
+Recovery shortfall per job
+```
+
+## Purpose statement
+
+```text
+The Pressure Layer shows which part of the operating model is under pressure.
+```
+
+This becomes the diagnostic layer between Business Summary and Business Modelling.
+
+---
+
+# 15. Product / Packaged Service / Hybrid Support
+
+## Principle
+
+Do not introduce product/labour mode into Cost Summary or Business Summary.
+
+Those pages are universal.
+
+Core rule:
+
+```text
+Every business must generate enough revenue per hour.
+```
+
+Products, packaged services, labour jobs, and retail sales are different ways of generating revenue per hour.
+
+## Examples
+
+```text
+Mechanic oil change = packaged service
+T-shirt sale = product revenue
+Construction job = labour/material quote
+Manufactured unit = product consuming time/capacity
+```
+
+## Where mode-like behaviour belongs
+
+```text
+Cost Allocation
+Business Modelling
+Quote / Product / Unit Analysis
+```
+
+Not in summary pages.
+
+---
+
+# 16. Cost Allocation Layer
+
+## Purpose
+
+Define how cost and revenue are assigned to activity.
+
+Future allocation types:
+
+```text
+labour/material business
+product-based business
+hybrid business
+packaged service business
+retail/resale business
+manufacturing/unit production
+```
+
+## Purpose
+
+Cost Allocation decides:
+
+```text
+how cost attaches to revenue streams
+how overhead is allocated
+how products consume business capacity
+how labour and material recovery are separated
+```
+
+---
+
+# 17. Product / Unit Recovery Analysis
+
+## Purpose
+
+For product or packaged service businesses, apply recovery logic to units.
+
+Formula:
+
+```text
+required recovery rate × time per unit =
+required baseline per unit
+```
+
+Example:
+
+```text
+$268/hr × 2 hours =
+$536 required recovery for that product/service
+```
+
+## Guardrail
+
+Do not average cost across all products unless the activity mix supports it.
+
+Products must be tied back to time, capacity, or another defensible activity driver.
+
+---
+
+# 18. Valuation / Business Value Dashboard
+
+## Purpose
+
+Show how business value may improve as operating performance improves.
+
+## Simple model
+
+```text
+Indicative Business Value =
+maintainable annual earnings × valuation multiple
+```
+
+## Required wording
+
+```text
+Indicative value only.
+Actual business value depends on risk, consistency, market conditions, assets, debt, and buyer demand.
+```
+
+## Use case
+
+If Business Modelling shows:
+
+```text
++$20/hr improvement
+```
+
+then the dashboard can show:
+
+```text
+annual profit impact
+possible valuation impact
+```
+
+This turns the operating model into an asset-building goal.
+
+---
+
+# 19. Audit Trail / Model Change History
+
+## Purpose
+
+Every model change must be trackable.
+
+## Records should show
+
+```text
+what changed
+why it changed
+who changed it
+when it changed
+what scenario supported it
+what baseline it affected
+expected impact
+actual result later
+```
+
+## Product principle
+
+```text
+Every number should be traceable.
+Every change should be intentional.
+Every result should be provable.
+```
+
+---
+
+# 20. Summary Page Interaction Standard
+
+This pattern should be reused across major pages.
+
+## Standard shape
+
+```text
+headline answer
+time-scale toggle
+full-width composition bar
+clickable rows
+breadcrumb drilldown
+linked hover between bar and rows
+one active hierarchy level at a time
+plain-language insight
+```
+
+## Applies to
+
+```text
+Cost Summary
+Business Summary
+Business Modelling
+Quote Checker
+Pressure Layer
+Valuation Dashboard
+```
+
+---
+
+# Final System Principle
+
+The full Mirra system should behave like this:
+
+```text
+Baseline defines the model.
+Operating layer creates the action.
+Xero proves the result.
+Variance exposes the truth.
+Modelling controls the next change.
+Baseline adjustments preserve the history.
+```
+
+The system must never silently drift.
+
+The long-term rule is:
+
+> **More data should create more proof, not more noise.**
