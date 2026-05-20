@@ -18,6 +18,7 @@ import {
   build_general_overhead_status,
   build_general_overhead_card,
   build_general_overhead_category_totals,
+  build_general_overhead_allocation_outputs,
 } from "@/lib/selectors/generalOverheadSelectors";
 
 import { useProfitAndLossStorage } from "@/lib/storage/profitAndLossStorage";
@@ -233,6 +234,8 @@ function build_general_overheads_from_pnl({
 
     overhead_category_overrides:
       current_overhead_state?.overhead_category_overrides ?? {},
+    system_allocation_overrides:
+      current_overhead_state?.system_allocation_overrides ?? {},
   };
 
   for (const [index, line] of pnl_lines.entries()) {
@@ -451,6 +454,8 @@ export default function useGeneralOverheads() {
       ...loaded_state,
       overhead_category_overrides:
         loaded_state?.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        loaded_state?.system_allocation_overrides ?? {},
     });
 
     set_saved_overheads(load_saved_overheads());
@@ -492,6 +497,10 @@ export default function useGeneralOverheads() {
     const category_totals = build_general_overhead_category_totals(
       calculated.overhead_rows
     );
+    const allocation_outputs = build_general_overhead_allocation_outputs({
+      overhead_rows: calculated.overhead_rows,
+      overhead_state,
+    });
 
     const has_asset_finance_interest_duplication = calculated.overhead_rows.some(
       (row) =>
@@ -507,15 +516,26 @@ export default function useGeneralOverheads() {
         category_totals.length > 0 &&
         !has_asset_finance_interest_duplication,
       non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
-      overhead_rows: calculated.overhead_rows,
+      overhead_rows: allocation_outputs.allocation_rows,
+      asset_overhead_pools: allocation_outputs.asset_overhead_pools,
+      total_asset_overhead_pool_amount:
+        allocation_outputs.total_asset_overhead_pool_amount,
+      unallocated_overhead_lines:
+        allocation_outputs.unallocated_overhead_lines,
+      unallocated_overhead_amount:
+        allocation_outputs.unallocated_overhead_amount,
+      allocation_pool_warnings: allocation_outputs.allocation_pool_warnings,
+      allocation_pool_summaries: allocation_outputs.allocation_pool_summaries,
     };
-  }, [calculated]);
+  }, [calculated, overhead_state]);
 
   function update_field(field, value) {
     set_overhead_state((current) => ({
       ...current,
       [field]: value,
       overhead_category_overrides: current.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        current.system_allocation_overrides ?? {},
       updated_at: new Date().toISOString(),
     }));
   }
@@ -532,6 +552,8 @@ export default function useGeneralOverheads() {
           : item
       ),
       overhead_category_overrides: current.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        current.system_allocation_overrides ?? {},
       synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
@@ -549,6 +571,8 @@ export default function useGeneralOverheads() {
         },
       ],
       overhead_category_overrides: current.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        current.system_allocation_overrides ?? {},
       synced_pnl_overhead_items: current.synced_pnl_overhead_items ?? [],
       updated_at: new Date().toISOString(),
     }));
@@ -563,13 +587,18 @@ export default function useGeneralOverheads() {
       const next_overrides = {
         ...(current.overhead_category_overrides ?? {}),
       };
+      const next_system_allocation_overrides = {
+        ...(current.system_allocation_overrides ?? {}),
+      };
 
       delete next_overrides[custom_overhead_id];
+      delete next_system_allocation_overrides[custom_overhead_id];
 
       return {
         ...current,
         custom_overhead_items: next_custom_items,
         overhead_category_overrides: next_overrides,
+        system_allocation_overrides: next_system_allocation_overrides,
         updated_at: new Date().toISOString(),
       };
     });
@@ -581,6 +610,20 @@ export default function useGeneralOverheads() {
       overhead_category_overrides: {
         ...(current.overhead_category_overrides ?? {}),
         [row_key]: category_key,
+      },
+      system_allocation_overrides:
+        current.system_allocation_overrides ?? {},
+      updated_at: new Date().toISOString(),
+    }));
+  }
+
+  function update_system_allocation_override(row_key, system_allocation_type) {
+    set_overhead_state((current) => ({
+      ...current,
+      overhead_category_overrides: current.overhead_category_overrides ?? {},
+      system_allocation_overrides: {
+        ...(current.system_allocation_overrides ?? {}),
+        [row_key]: system_allocation_type,
       },
       updated_at: new Date().toISOString(),
     }));
@@ -600,6 +643,8 @@ export default function useGeneralOverheads() {
       ...overhead_state,
       overhead_category_overrides:
         overhead_state.overhead_category_overrides ?? {},
+      system_allocation_overrides:
+        overhead_state.system_allocation_overrides ?? {},
       output_contract,
       total_general_overheads: calculated.total_general_overheads,
       overhead_rows: calculated.overhead_rows,
@@ -620,6 +665,7 @@ export default function useGeneralOverheads() {
     set_overhead_state({
       ...loaded,
       overhead_category_overrides: loaded?.overhead_category_overrides ?? {},
+      system_allocation_overrides: loaded?.system_allocation_overrides ?? {},
       updated_at: new Date().toISOString(),
     });
   }
@@ -635,6 +681,7 @@ export default function useGeneralOverheads() {
     set_overhead_state({
       ...next_state,
       overhead_category_overrides: {},
+      system_allocation_overrides: {},
     });
 
     last_pnl_sync_signature_ref.current = "";
@@ -657,6 +704,7 @@ export default function useGeneralOverheads() {
       add_custom_item,
       remove_custom_item,
       update_category_override,
+      update_system_allocation_override,
       sync_from_pnl,
       save_profile,
       load_profile,

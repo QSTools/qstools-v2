@@ -23,6 +23,13 @@ export default function GeneralOverheadReclassificationSection({
     resolve_row_amount_change(form, row, value);
   }
 
+  function handle_change_system_allocation_type(row, system_allocation_type) {
+    reclassification.update_system_allocation_override(
+      row.key,
+      system_allocation_type
+    );
+  }
+
   return (
     <div className="ui-panel ui-stack-sm">
       <div className="ui-kicker">Working Layer</div>
@@ -40,6 +47,9 @@ export default function GeneralOverheadReclassificationSection({
             group={group}
             on_move_row={handle_move_row}
             on_change_row_amount={handle_change_row_amount}
+            on_change_system_allocation_type={
+              handle_change_system_allocation_type
+            }
           />
         ))}
       </div>

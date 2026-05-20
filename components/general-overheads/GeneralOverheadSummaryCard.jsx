@@ -36,8 +36,57 @@ function SummaryRow({ row }) {
         {interest_treatment_label ? (
           <div className="ui-help">{interest_treatment_label}</div>
         ) : null}
+        {row.system_allocation_label ? (
+          <div className="ui-help">
+            System allocation: {row.system_allocation_label}
+          </div>
+        ) : null}
       </div>
       <div className="labour-summary-table-value">{row.amount_display}</div>
+    </div>
+  );
+}
+
+function format_pool_status(status) {
+  const labels = {
+    unallocated: "Unallocated",
+    partially_allocated: "Partially allocated",
+    fully_allocated: "Fully allocated",
+    over_allocated: "Over allocated",
+  };
+
+  return labels[status] || "Unallocated";
+}
+
+function AllocationPoolSummary({ group }) {
+  return (
+    <div className="ui-readonly">
+      <div className="grid grid-cols-1 gap-2">
+        <div>
+          <span className="ui-label">P&amp;L source total</span>
+          <div className="mt-1 text-sm text-[var(--text-primary)]">
+            {format_currency(group.source_total_amount)}
+          </div>
+        </div>
+        <div>
+          <span className="ui-label">Allocation pool used</span>
+          <div className="mt-1 text-sm text-[var(--text-primary)]">
+            {format_currency(group.allocation_pool_used)}
+          </div>
+        </div>
+        <div>
+          <span className="ui-label">Remaining as general overhead</span>
+          <div className="mt-1 text-sm text-[var(--text-primary)]">
+            {format_currency(group.allocation_pool_remaining)}
+          </div>
+        </div>
+        <div>
+          <span className="ui-label">Status</span>
+          <div className="mt-1 text-sm text-[var(--text-primary)]">
+            {format_pool_status(group.allocation_pool_status)}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -72,6 +121,8 @@ export default function GeneralOverheadSummaryCard({
             defaultOpen={false}
           >
             <div className="ui-panel ui-stack-sm">
+              <AllocationPoolSummary group={group} />
+
               {group.rows.length === 0 ? (
                 <div className="ui-help">No items in this category yet.</div>
               ) : (
@@ -99,6 +150,22 @@ export default function GeneralOverheadSummaryCard({
           <div className="ui-help">
             {output_contract.overhead_rows.length} overhead rows included in the
             current output.
+          </div>
+        ) : null}
+
+        {output_contract?.asset_overhead_pools ? (
+          <div className="ui-stack-sm">
+            <div className="ui-label">Asset overhead pools</div>
+            {Object.entries(output_contract.asset_overhead_pools).map(
+              ([pool_key, pool]) => (
+                <div key={pool_key} className="ui-readonly">
+                  <div className="ui-row-between">
+                    <span>{pool.label}</span>
+                    <span>{format_currency(pool.amount)}</span>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         ) : null}
       </div>

@@ -7,6 +7,7 @@ export default function GeneralOverheadReclassificationGroup({
   group,
   on_move_row,
   on_change_row_amount,
+  on_change_system_allocation_type,
 }) {
   function handle_drag_over(event) {
     event.preventDefault();
@@ -50,6 +51,9 @@ export default function GeneralOverheadReclassificationGroup({
                 row={row}
                 on_move_row={on_move_row}
                 on_change_row_amount={on_change_row_amount}
+                on_change_system_allocation_type={
+                  on_change_system_allocation_type
+                }
               />
             ))}
           </div>
