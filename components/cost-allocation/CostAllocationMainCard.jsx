@@ -53,6 +53,14 @@ export default function CostAllocationMainCard({
   const structural_count = outcome?.structural_warnings_count ?? 0;
   const links_count = links?.rows?.length ?? 0;
   const groups_count = groups?.rows?.length ?? 0;
+  const asset_recovery_count = Array.isArray(recovery_plan?.asset_recovery_rows)
+    ? recovery_plan.asset_recovery_rows.length
+    : 0;
+  const operational_recovery_count = Array.isArray(
+    recovery_plan?.operational_group_recovery_rows
+  )
+    ? recovery_plan.operational_group_recovery_rows.length
+    : 0;
 
   const sections = [
     {
@@ -79,6 +87,16 @@ export default function CostAllocationMainCard({
       key: "groups",
       label: "Operational Groups",
       meta: `${groups_count} active`,
+    },
+    {
+      key: "asset_recovery",
+      label: "Asset Recovery",
+      meta: `${asset_recovery_count} asset${asset_recovery_count === 1 ? "" : "s"}`,
+    },
+    {
+      key: "operational_recovery",
+      label: "Operational Recovery",
+      meta: `${operational_recovery_count} group${operational_recovery_count === 1 ? "" : "s"}`,
     },
     {
       key: "evidence",

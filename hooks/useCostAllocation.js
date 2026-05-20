@@ -17,6 +17,310 @@ import {
 import { useCostAllocationStorage } from "@/lib/storage/costAllocationStorage";
 import { useCostAllocationProfileStorage } from "@/lib/storage/costAllocationProfileStorage";
 
+function safe_number(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalise_asset_type(value) {
+  return value === "support" ? "support" : "productive";
+}
+
+function normalise_key(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+}
+
+function get_asset_name(asset = {}) {
+  return asset.asset_name || asset.name || "Unnamed Asset";
+}
+
+function get_labour_type_key(item = {}) {
+  return (
+    item.labour_type_key ||
+    item.labour_type_id ||
+    item.staff_type ||
+    item.staff_role ||
+    item.labour_class ||
+    normalise_key(item.label || item.name)
+  );
+}
+
+function get_labour_type_label(item = {}) {
+  return (
+    item.labour_type_label ||
+    item.label ||
+    item.staff_type ||
+    item.staff_role ||
+    item.labour_class ||
+    "Unclassified productive labour"
+  );
+}
+
+function get_group_asset_ids(group = {}) {
+  const possible_lists = [
+    group.asset_ids,
+    group.assigned_asset_ids,
+    group.linked_asset_ids,
+    group.assets,
+  ];
+
+  for (const list of possible_lists) {
+    if (Array.isArray(list)) {
+      return list
+        .map((item) =>
+          typeof item === "string" ? item : item?.asset_id || item?.id || ""
+        )
+        .filter(Boolean);
+    }
+  }
+
+  if (group.asset_id) {
+    return [group.asset_id];
+  }
+
+  return [];
+}
+
+function get_group_labour_type_key(group = {}) {
+  return normalise_key(
+    group.labour_type_key ||
+      group.labour_type_id ||
+      group.staff_type ||
+      group.staff_role ||
+      group.labour_class ||
+      group.role ||
+      ""
+  );
+}
+
+function build_productive_labour_type_rows(labour_output_contract = {}) {
+  const productive_labour_types = Array.isArray(
+    labour_output_contract?.productive_labour_types
+  )
+    ? labour_output_contract.productive_labour_types
+    : [];
+
+  return productive_labour_types.map((item) => {
+    const labour_type_key = normalise_key(get_labour_type_key(item));
+    const weighted_recovery_rate = safe_number(
+      item.weighted_recovery_rate ??
+        item.weighted_recovery_rate_per_hour ??
+        item.real_cost_per_productive_hour ??
+        item.minimum_recovery_rate ??
+        0
+    );
+
+    const highest_recovery_rate = safe_number(
+      item.highest_recovery_rate ??
+        item.highest_recovery_rate_per_hour ??
+        weighted_recovery_rate
+    );
+
+    return {
+      labour_type_key,
+      labour_type_label: get_labour_type_label(item),
+      labour_class: item.labour_class ?? "",
+      staff_role: item.staff_role ?? "",
+      staff_type: item.staff_type ?? "",
+      staff_count: safe_number(item.staff_count ?? item.count ?? 0),
+      total_productive_hours: safe_number(
+        item.total_productive_hours ?? item.productive_hours ?? 0
+      ),
+      total_labour_cost: safe_number(
+        item.total_labour_cost ?? item.labour_cost ?? 0
+      ),
+      weighted_recovery_rate,
+      highest_recovery_rate,
+    };
+  });
+}
+
+function build_asset_recovery_overlay({
+  asset_output_contract = {},
+  recovery_hours_used = 0,
+}) {
+  const active_assets = Array.isArray(asset_output_contract.active_assets)
+    ? asset_output_contract.active_assets
+    : [];
+
+  const default_recovery_hours = safe_number(recovery_hours_used);
+
+  const recovery_assets = active_assets.map((asset) => {
+    const base_asset_cost_annual = safe_number(asset.total_asset_cost_annual);
+    const allocated_asset_overhead_cost_annual = safe_number(
+      asset.allocated_asset_overhead_cost_annual
+    );
+
+    const asset_recovery_cost_annual =
+      asset.asset_recovery_cost_annual !== undefined
+        ? safe_number(asset.asset_recovery_cost_annual)
+        : base_asset_cost_annual + allocated_asset_overhead_cost_annual;
+
+    const asset_recovery_rate_per_hour =
+      default_recovery_hours > 0
+        ? asset_recovery_cost_annual / default_recovery_hours
+        : 0;
+
+    return {
+      ...asset,
+      asset_type: normalise_asset_type(asset.asset_type),
+      asset_name: get_asset_name(asset),
+      base_asset_cost_annual,
+      allocated_asset_overhead_cost_annual,
+      asset_recovery_cost_annual,
+      asset_recovery_hours_used: default_recovery_hours,
+      asset_recovery_rate_per_hour,
+      cost_allocation_asset_cost_annual: asset_recovery_cost_annual,
+    };
+  });
+
+  const asset_recovery_rows = recovery_assets.map((asset) => ({
+    asset_id: asset.asset_id ?? "",
+    asset_name: asset.asset_name ?? "Unnamed Asset",
+    asset_type: asset.asset_type,
+    base_asset_cost_annual: safe_number(asset.base_asset_cost_annual),
+    allocated_asset_overhead_cost_annual: safe_number(
+      asset.allocated_asset_overhead_cost_annual
+    ),
+    asset_recovery_cost_annual: safe_number(asset.asset_recovery_cost_annual),
+    asset_recovery_hours_used: safe_number(asset.asset_recovery_hours_used),
+    asset_recovery_rate_per_hour: safe_number(
+      asset.asset_recovery_rate_per_hour
+    ),
+  }));
+
+  const productive_assets = recovery_assets.filter(
+    (asset) => asset.asset_type === "productive"
+  );
+
+  const support_assets = recovery_assets.filter(
+    (asset) => asset.asset_type === "support"
+  );
+
+  const productive_asset_base_cost = productive_assets.reduce(
+    (sum, asset) => sum + safe_number(asset.base_asset_cost_annual),
+    0
+  );
+
+  const support_asset_base_cost = support_assets.reduce(
+    (sum, asset) => sum + safe_number(asset.base_asset_cost_annual),
+    0
+  );
+
+  const productive_asset_allocated_overhead_cost = productive_assets.reduce(
+    (sum, asset) =>
+      sum + safe_number(asset.allocated_asset_overhead_cost_annual),
+    0
+  );
+
+  const support_asset_allocated_overhead_cost = support_assets.reduce(
+    (sum, asset) =>
+      sum + safe_number(asset.allocated_asset_overhead_cost_annual),
+    0
+  );
+
+  const productive_asset_recovery_cost = productive_assets.reduce(
+    (sum, asset) => sum + safe_number(asset.asset_recovery_cost_annual),
+    0
+  );
+
+  const support_asset_recovery_cost = support_assets.reduce(
+    (sum, asset) => sum + safe_number(asset.asset_recovery_cost_annual),
+    0
+  );
+
+  return {
+    active_assets: recovery_assets,
+    asset_recovery_rows,
+
+    productive_asset_base_cost,
+    support_asset_base_cost,
+
+    productive_asset_allocated_overhead_cost,
+    support_asset_allocated_overhead_cost,
+
+    productive_asset_recovery_cost,
+    support_asset_recovery_cost,
+
+    productive_asset_cost: productive_asset_recovery_cost,
+    support_asset_cost: support_asset_recovery_cost,
+
+    total_allocated_asset_overhead_cost:
+      productive_asset_allocated_overhead_cost +
+      support_asset_allocated_overhead_cost,
+
+    total_asset_recovery_cost:
+      productive_asset_recovery_cost + support_asset_recovery_cost,
+  };
+}
+
+function build_operational_group_recovery_rows({
+  operational_groups = [],
+  active_assets = [],
+  productive_labour_type_rows = [],
+}) {
+  const asset_map = new Map(
+    active_assets.map((asset) => [asset.asset_id, asset])
+  );
+
+  const labour_type_map = new Map(
+    productive_labour_type_rows.map((row) => [row.labour_type_key, row])
+  );
+
+  return (Array.isArray(operational_groups) ? operational_groups : []).map(
+    (group, index) => {
+      const group_asset_ids = get_group_asset_ids(group);
+      const group_assets = group_asset_ids
+        .map((asset_id) => asset_map.get(asset_id))
+        .filter(Boolean);
+
+      const group_labour_type_key = get_group_labour_type_key(group);
+      const labour_type =
+        labour_type_map.get(group_labour_type_key) ||
+        productive_labour_type_rows.find((row) => {
+          return (
+            row.labour_type_key === group_labour_type_key ||
+            normalise_key(row.labour_type_label) === group_labour_type_key
+          );
+        }) ||
+        null;
+
+      const labour_recovery_rate_per_hour = safe_number(
+        labour_type?.weighted_recovery_rate
+      );
+
+      const asset_recovery_rate_per_hour = group_assets.reduce(
+        (sum, asset) => sum + safe_number(asset.asset_recovery_rate_per_hour),
+        0
+      );
+
+      return {
+        group_id: group.group_id || group.operational_group_id || `group-${index}`,
+        group_name: group.group_name || group.name || `Operational Group ${index + 1}`,
+        labour_type_key: group_labour_type_key,
+        labour_type_label:
+          labour_type?.labour_type_label ||
+          group.staff_role ||
+          group.staff_type ||
+          group.labour_class ||
+          "No productive labour type selected",
+        labour_recovery_rate_per_hour,
+        asset_count: group_assets.length,
+        asset_names: group_assets.map((asset) => asset.asset_name),
+        asset_recovery_rate_per_hour,
+        operational_group_recovery_rate_per_hour:
+          labour_recovery_rate_per_hour + asset_recovery_rate_per_hour,
+        has_labour_rate: labour_recovery_rate_per_hour > 0,
+        has_asset_rate: asset_recovery_rate_per_hour > 0,
+      };
+    }
+  );
+}
+
 export default function useCostAllocation(inputs = {}) {
   const labour = useLabour();
   const assets = useAssets();
@@ -46,7 +350,7 @@ export default function useCostAllocation(inputs = {}) {
     delete_profile,
   } = useCostAllocationProfileStorage();
 
-  const calculation_inputs = useMemo(() => {
+  const base_calculation_inputs = useMemo(() => {
     return build_cost_allocation_inputs({
       recovery_summary,
       labour,
@@ -54,6 +358,66 @@ export default function useCostAllocation(inputs = {}) {
       allocation_state: state,
     });
   }, [recovery_summary, labour, assets, state]);
+
+  const productive_labour_type_rows = useMemo(() => {
+    return build_productive_labour_type_rows(labour?.output_contract ?? {});
+  }, [labour?.output_contract]);
+
+  const asset_recovery_overlay = useMemo(() => {
+    return build_asset_recovery_overlay({
+      asset_output_contract: assets?.output_contract ?? {},
+      recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
+    });
+  }, [assets?.output_contract, base_calculation_inputs?.recovery_hours_used]);
+
+  const operational_group_recovery_rows = useMemo(() => {
+    return build_operational_group_recovery_rows({
+      operational_groups: state?.operational_groups ?? [],
+      active_assets: asset_recovery_overlay.active_assets,
+      productive_labour_type_rows,
+    });
+  }, [
+    state?.operational_groups,
+    asset_recovery_overlay.active_assets,
+    productive_labour_type_rows,
+  ]);
+
+  const calculation_inputs = useMemo(() => {
+    return {
+      ...base_calculation_inputs,
+      active_assets: asset_recovery_overlay.active_assets,
+      asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
+
+      productive_labour_type_rows,
+      operational_group_recovery_rows,
+
+      productive_asset_base_cost:
+        asset_recovery_overlay.productive_asset_base_cost,
+      support_asset_base_cost: asset_recovery_overlay.support_asset_base_cost,
+
+      productive_asset_allocated_overhead_cost:
+        asset_recovery_overlay.productive_asset_allocated_overhead_cost,
+      support_asset_allocated_overhead_cost:
+        asset_recovery_overlay.support_asset_allocated_overhead_cost,
+
+      productive_asset_recovery_cost:
+        asset_recovery_overlay.productive_asset_recovery_cost,
+      support_asset_recovery_cost:
+        asset_recovery_overlay.support_asset_recovery_cost,
+
+      productive_asset_cost: asset_recovery_overlay.productive_asset_cost,
+      support_asset_cost: asset_recovery_overlay.support_asset_cost,
+
+      total_allocated_asset_overhead_cost:
+        asset_recovery_overlay.total_allocated_asset_overhead_cost,
+      total_asset_recovery_cost: asset_recovery_overlay.total_asset_recovery_cost,
+    };
+  }, [
+    base_calculation_inputs,
+    asset_recovery_overlay,
+    productive_labour_type_rows,
+    operational_group_recovery_rows,
+  ]);
 
   const calculated = useMemo(() => {
     return calculate_cost_allocation(calculation_inputs);
@@ -109,6 +473,24 @@ export default function useCostAllocation(inputs = {}) {
 
   const card = {
     ...base_card,
+    recovery_plan: {
+      ...(base_card?.recovery_plan ?? {}),
+      productive_asset_base_cost: calculated.productive_asset_base_cost,
+      support_asset_base_cost: calculated.support_asset_base_cost,
+      productive_asset_allocated_overhead_cost:
+        calculated.productive_asset_allocated_overhead_cost,
+      support_asset_allocated_overhead_cost:
+        calculated.support_asset_allocated_overhead_cost,
+      productive_asset_recovery_cost: calculated.productive_asset_recovery_cost,
+      support_asset_recovery_cost: calculated.support_asset_recovery_cost,
+      total_allocated_asset_overhead_cost:
+        calculated.total_allocated_asset_overhead_cost,
+      total_asset_recovery_cost: calculated.total_asset_recovery_cost,
+      asset_recovery_rows: calculated.asset_recovery_rows,
+      productive_labour_type_rows: calculated.productive_labour_type_rows,
+      operational_group_recovery_rows:
+        calculated.operational_group_recovery_rows,
+    },
     profile: {
       allocation_profile_name: state?.allocation_profile_name ?? "",
       effective_from: state?.effective_from ?? "",
@@ -176,6 +558,24 @@ export default function useCostAllocation(inputs = {}) {
       calculated.has_productive_asset_recovery_base,
     productive_asset_count: calculated.productive_asset_count,
     support_asset_count: calculated.support_asset_count,
+
+    productive_asset_base_cost: calculated.productive_asset_base_cost,
+    support_asset_base_cost: calculated.support_asset_base_cost,
+    productive_asset_allocated_overhead_cost:
+      calculated.productive_asset_allocated_overhead_cost,
+    support_asset_allocated_overhead_cost:
+      calculated.support_asset_allocated_overhead_cost,
+    productive_asset_recovery_cost: calculated.productive_asset_recovery_cost,
+    support_asset_recovery_cost: calculated.support_asset_recovery_cost,
+    total_allocated_asset_overhead_cost:
+      calculated.total_allocated_asset_overhead_cost,
+    total_asset_recovery_cost: calculated.total_asset_recovery_cost,
+
+    asset_recovery_rows: calculated.asset_recovery_rows,
+    productive_labour_type_rows: calculated.productive_labour_type_rows,
+    operational_group_recovery_rows:
+      calculated.operational_group_recovery_rows,
+
     productive_asset_cost: calculated.productive_asset_cost,
     support_asset_cost: calculated.support_asset_cost,
 

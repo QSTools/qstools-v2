@@ -128,6 +128,19 @@ function assign_review_subcategory_cost(
 
     case "insurance_compliance":
       if (
+        matches_keywords(name, [
+          "asset insurance",
+          "vehicle insurance",
+          "plant insurance",
+          "fleet insurance",
+          "equipment insurance",
+        ])
+      ) {
+        add_overhead_amount(next_state, "asset_insurance_cost", amount);
+        return true;
+      }
+
+      if (
         matches_keywords(name, ["professional indemnity", "indemnity insurance"])
       ) {
         add_overhead_amount(
@@ -342,6 +355,20 @@ function build_general_overheads_from_pnl({
     ) {
       next_state.professional_indemnity_insurance =
         to_number(next_state.professional_indemnity_insurance) + amount;
+      continue;
+    }
+
+    if (
+      matches_keywords(name, [
+        "asset insurance",
+        "vehicle insurance",
+        "plant insurance",
+        "fleet insurance",
+        "equipment insurance",
+      ])
+    ) {
+      next_state.asset_insurance_cost =
+        to_number(next_state.asset_insurance_cost) + amount;
       continue;
     }
 

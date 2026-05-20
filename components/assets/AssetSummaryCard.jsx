@@ -1,4 +1,8 @@
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import {
+  format_number_with_commas,
+  parse_number_string,
+} from "@/lib/formatters/numberFormatters";
 
 function SummaryRow({ label, value, strong = false, helper = "" }) {
   return (
@@ -48,9 +52,73 @@ function PortfolioSummaryCard({ portfolio_summary = {} }) {
   );
 }
 
+function AssetOverheadPoolAssignmentCard({
+  pool_summary = [],
+  on_change_asset_overhead_pool_assignment,
+}) {
+  if (!Array.isArray(pool_summary) || pool_summary.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="ui-panel">
+      <div className="ui-stack-sm">
+        <div className="ui-kicker">Asset Overhead Pools</div>
+        <h3 className="ui-card-title-sm">Assign overhead pools to this asset</h3>
+        <p className="ui-help">
+          These values come from General Overheads. Assign the portion of each
+          pool that belongs to this asset. This does not change Cost Summary.
+        </p>
+
+        <div className="ui-stack-sm">
+          {pool_summary.map((pool) => (
+            <div key={pool.pool_key} className="ui-readonly">
+              <div className="ui-stack-sm">
+                <div className="ui-row-between">
+                  <div>
+                    <div className="ui-label">{pool.label}</div>
+                    <div className="ui-help">
+                      Available {pool.available_amount_label} · Remaining{" "}
+                      {pool.remaining_amount_label}
+                    </div>
+                  </div>
+
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                    {pool.assigned_total_label}
+                  </div>
+                </div>
+
+                <label className="ui-field">
+                  <span className="ui-label">Assigned to this asset</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="ui-input"
+                    value={format_number_with_commas(
+                      pool.assigned_to_current_asset
+                    )}
+                    onChange={(event) =>
+                      on_change_asset_overhead_pool_assignment(
+                        pool.pool_key,
+                        parse_number_string(event.target.value)
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SelectedAssetDetailCard({
   rows = [],
   meta = {},
+  asset_overhead_pool_summary = [],
+  on_change_asset_overhead_pool_assignment,
   on_new_asset,
   on_save_asset,
 }) {
@@ -137,9 +205,25 @@ function SelectedAssetDetailCard({
                   value={find_row_value("Operating Asset Cost Annual")}
                   strong
                 />
+                <SummaryRow
+                  label="Allocated Asset Overhead Pools"
+                  value={find_row_value("Allocated Asset Overhead Pools")}
+                />
+                <SummaryRow
+                  label="Asset Recovery Cost Annual"
+                  value={find_row_value("Asset Recovery Cost Annual")}
+                  strong
+                />
               </div>
             </div>
           </div>
+
+          <AssetOverheadPoolAssignmentCard
+            pool_summary={asset_overhead_pool_summary}
+            on_change_asset_overhead_pool_assignment={
+              on_change_asset_overhead_pool_assignment
+            }
+          />
 
           <div className="ui-panel">
             <div className="ui-stack-sm">
@@ -198,9 +282,9 @@ function SelectedAssetDetailCard({
               </p>
 
               <p className="ui-help">
-                Principal is shown only as future Cash Flow support. It is not
-                part of operating asset cost, and vehicle running costs belong
-                in General Overheads.
+                Principal is shown only as future Cash Flow support. Asset
+                overhead pools come from General Overheads and are used for
+                recovery modelling, not for changing Cost Summary.
               </p>
             </div>
           </div>
@@ -215,6 +299,8 @@ export default function AssetSummaryCard({
   portfolio_summary = {},
   meta = {},
   status = {},
+  asset_overhead_pool_summary = [],
+  on_change_asset_overhead_pool_assignment,
   on_new_asset,
   on_save_asset,
   view = "detail",
@@ -228,6 +314,10 @@ export default function AssetSummaryCard({
       rows={rows}
       meta={meta}
       status={status}
+      asset_overhead_pool_summary={asset_overhead_pool_summary}
+      on_change_asset_overhead_pool_assignment={
+        on_change_asset_overhead_pool_assignment
+      }
       on_new_asset={on_new_asset}
       on_save_asset={on_save_asset}
     />
