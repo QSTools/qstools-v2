@@ -38,11 +38,14 @@ export default function CostAllocationPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        <CostAllocationStatusStrip {...status} />
+
+        <CostAllocationMainCard {...card} {...actions} />
+
         <CostAllocationNoticeBanner
           active_profile_name={card?.profile?.active_profile_name}
         />
-        <CostAllocationStatusStrip {...status} />
-        <CostAllocationMainCard {...card} {...actions} />
+
         <CostAllocationHelpPanel />
       </div>
     </main>
