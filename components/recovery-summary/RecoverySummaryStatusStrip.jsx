@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import RecoverySummaryNoteDrilldown from "@/components/recovery-summary/RecoverySummaryNoteDrilldown";
-import { format_rate } from "@/components/recovery-summary/recoverySummaryFormatters";
+import {
+  format_currency,
+  format_rate,
+} from "@/components/recovery-summary/recoverySummaryFormatters";
 
 function get_status_label(recovery_ready, warning_count) {
   if (recovery_ready && warning_count > 0) {
@@ -55,9 +58,13 @@ function RecoveryPressureBlock({
   const recovery_gap_abs = Math.abs(recovery_gap);
   const recovery_result_text =
     recovery_gap < 0
-      ? `The business is currently ${format_rate(recovery_gap_abs)} below the required recovery rate.`
+      ? `The business is currently ${format_rate(
+          recovery_gap_abs
+        )} below the required recovery rate.`
       : recovery_gap > 0
-        ? `The business is currently ${format_rate(recovery_gap)} above the required recovery rate.`
+        ? `The business is currently ${format_rate(
+            recovery_gap
+          )} above the required recovery rate.`
         : "The business is currently matching the required recovery rate.";
 
   return (
@@ -192,9 +199,9 @@ function DetailPanel({
 
           <div className="ui-readonly">
             <p className="text-sm font-medium text-[var(--text-primary)]">
-              Business Summary works out the current position. Recovery Summary
-              carries the recovery requirement forward so Cost Allocation can
-              test whether the business structure can support it.
+              {values.business_type === "product_based"
+                ? "Product recovery is expressed through trading margin per unit and units sold. Cost Allocation remains a structural test and does not decide product margin."
+                : "Business Summary works out the current position. Recovery Summary carries the recovery requirement forward so Cost Allocation can test whether the business structure can support it."}
             </p>
           </div>
         </div>
@@ -217,6 +224,7 @@ function DetailPanel({
 
 export default function RecoverySummaryStatusStrip({
   business_type,
+  is_product_based,
   activity_driver_type,
   activity_driver_label,
 
@@ -248,8 +256,11 @@ export default function RecoverySummaryStatusStrip({
     activity_driver_type,
     activity_driver_label
   );
+  const product_mode_active =
+    is_product_based === true || business_type === "product_based";
 
   const values = {
+    business_type,
     margin_pool,
     total_cost_burden,
     net_position,
@@ -301,7 +312,9 @@ export default function RecoverySummaryStatusStrip({
             <SummaryMetric
               id="driver"
               label="Recovery driver"
-              value={recovery_driver_label}
+              value={
+                product_mode_active ? "Units and margin" : recovery_driver_label
+              }
               active={active_detail === "driver"}
               onClick={set_active_detail}
             />
@@ -315,19 +328,23 @@ export default function RecoverySummaryStatusStrip({
             />
           </div>
 
-          <RecoveryPressureBlock
-            actual_recovery_rate={actual_recovery_rate}
-            required_recovery_rate={required_recovery_rate}
-            profit_or_deficit_per_recovery_hour={
-              profit_or_deficit_per_recovery_hour
-            }
-          />
+          {product_mode_active ? null : (
+            <RecoveryPressureBlock
+              actual_recovery_rate={actual_recovery_rate}
+              required_recovery_rate={required_recovery_rate}
+              profit_or_deficit_per_recovery_hour={
+                profit_or_deficit_per_recovery_hour
+              }
+            />
+          )}
 
           <DetailPanel
             active_detail={active_detail}
             status_label={status_label}
             business_type_label={business_type_label}
-            recovery_driver_label={recovery_driver_label}
+            recovery_driver_label={
+              product_mode_active ? "Units and margin" : recovery_driver_label
+            }
             warning_count={warning_count}
             warning_items={warning_items}
             values={values}

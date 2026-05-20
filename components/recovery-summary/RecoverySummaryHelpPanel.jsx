@@ -30,6 +30,11 @@ export default function RecoverySummaryHelpPanel() {
             rate, recovery gap, total cost burden, and current business model
             status.
           </p>
+
+          <p className="ui-help">
+            Labour recovery is tested through productive hours. Product
+            recovery is tested through trading margin per unit and units sold.
+          </p>
         </div>
 
         <div>
@@ -42,6 +47,11 @@ export default function RecoverySummaryHelpPanel() {
             the business is below the required recovery rate, the page shows how
             that burden is expected to be recovered through labour, productive
             assets, materials / products, or a hybrid model.
+          </p>
+
+          <p className="ui-help">
+            In product mode, start by checking whether margin per unit and
+            expected annual unit volume can cover the business cost burden.
           </p>
 
           <p className="ui-help">
@@ -62,6 +72,12 @@ export default function RecoverySummaryHelpPanel() {
             logic. It does not prove actual labour margin, material margin, or
             asset contribution. Those become clearer later through Cost
             Allocation and live job feedback.
+          </p>
+
+          <p className="ui-help">
+            Product mode does not belong in Cost Allocation. Cost Allocation
+            remains structural only: it tests whether the selected recovery
+            model can be supported by the visible business structure.
           </p>
         </div>
 

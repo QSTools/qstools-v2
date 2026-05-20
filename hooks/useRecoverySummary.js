@@ -59,6 +59,8 @@ export default function useRecoverySummary(inputs = {}) {
       recovery_summary_warnings: status.recovery_summary_warnings,
 
       business_type: calculated.business_type,
+      is_product_based: calculated.is_product_based,
+      is_labour_based: calculated.is_labour_based,
       activity_driver_type: calculated.activity_driver_type,
       activity_driver_label: calculated.activity_driver_label,
       activity_driver_value: calculated.activity_driver_value,
@@ -145,6 +147,13 @@ export default function useRecoverySummary(inputs = {}) {
       // Backwards-compatible outputs still consumed by existing downstream code.
       total_productive_output: calculated.total_productive_output,
       units_sold_annual: calculated.units_sold_annual,
+      margin_per_unit: calculated.margin_per_unit,
+      required_units_to_break_even:
+        calculated.required_units_to_break_even,
+      unit_surplus_or_shortfall:
+        calculated.unit_surplus_or_shortfall,
+      product_recovery_ready: calculated.product_recovery_ready,
+      product_recovery_status: calculated.product_recovery_status,
 
       warnings: calculated.warnings,
       share_not_balanced: calculated.share_not_balanced,
