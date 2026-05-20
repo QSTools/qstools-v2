@@ -1,0 +1,525 @@
+# Future Build Brief — Revenue Model Layer and Unit-Based Revenue Flow
+
+STATUS: FUTURE BUILD BRIEF
+PURPOSE: Define the missing Revenue Model layer and clarify how unit-based / rate-based / labour-based revenue should flow into Business Summary and Recovery Outcome.
+
+---
+
+## 1. WHY THIS BRIEF EXISTS
+
+During the Revenue / COGS, Business Summary, and Recovery Summary mode-awareness work, we identified that the system is still missing one major layer:
+
+Revenue Model
+
+The current system can now show:
+- labour-mode recovery pressure
+- product/unit-mode recovery pressure
+- margin per unit
+- required units to break even
+- unit surplus / shortfall
+
+But the system does not yet formally define how the business earns money.
+
+Revenue / COGS currently gives the macro P&L view:
+- Revenue
+- COGS / Direct Costs
+- Margin Pool
+
+But it should not become a detailed pricing engine.
+
+Therefore, a separate Revenue Model layer is required.
+
+---
+
+## 2. CURRENT SYSTEM POSITION
+
+Current core flow:
+
+Cost Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Business Summary / Recovery Outcome
+
+Future required flow:
+
+Cost Summary
+→ Cost Allocation
+→ Revenue Model
+→ Business Summary
+→ Recovery Summary / Recovery Outcome
+
+Important clarification:
+The exact page order can be finalised later, but conceptually the system needs both:
+- cost structure
+- revenue structure
+
+before it can make a proper outcome judgement.
+
+---
+
+## 3. CORE PRINCIPLE
+
+Cost Allocation defines:
+
+What does it cost to deliver the unit?
+
+Revenue Model defines:
+
+What do we charge for the unit?
+
+Business Summary / Outcome compares:
+
+Does what we charge cover what it costs?
+
+---
+
+## 4. REVENUE MODEL DEFINITION
+
+Revenue Model = how the business turns output into money.
+
+It must support multiple revenue mechanisms:
+
+1. Labour-driven revenue
+   - hours × $/hour
+
+2. Unit-driven revenue
+   - units × $/unit
+   - m² × $/m²
+   - m³ × $/m³
+   - transactions × average sale
+
+3. Fixed / lump-sum revenue
+   - total revenue entered directly
+
+4. Hybrid revenue
+   - multiple revenue streams combined
+
+---
+
+## 5. BUSINESS SETUP MODE CHANGE
+
+The current “product-based” naming is too narrow.
+
+Replace or reinterpret as:
+
+Primary Revenue Driver
+
+Options:
+- Labour-driven
+- Unit-driven
+- Mixed / Hybrid
+
+Where:
+
+Labour-driven =
+Revenue mainly comes from productive labour hours.
+
+Unit-driven =
+Revenue mainly comes from a repeatable output unit:
+- products
+- m²
+- m³
+- tonnes
+- transactions
+- jobs
+- other custom unit
+
+Mixed / Hybrid =
+Revenue comes from multiple mechanisms.
+
+Important:
+Mode sets defaults and guidance only.
+It must not restrict the user from adding other revenue streams.
+
+Rule:
+Mode = starting point.
+Revenue streams = reality.
+
+---
+
+## 6. UNIT-BASED REVENUE MODEL
+
+Unit-based revenue covers:
+
+- retail products
+- café transactions
+- concrete laying by m²
+- concrete pumping by m³
+- gib fixing by m²
+- cladding by m²
+- any repeatable output unit
+
+Core formula:
+
+Revenue = Output Volume × Rate
+
+Examples:
+
+Retail:
+transactions × average sale
+
+Concrete laying:
+m²/year × $/m²
+
+Concrete pumping:
+m³/year × effective $/m³
+
+Labour:
+productive hours × $/hour
+
+The calculation is the same.
+Only the unit changes.
+
+Rule:
+Change the unit, not the maths.
+
+---
+
+## 7. REQUIRED UNIT FIELD
+
+Business Setup or Revenue Model must define:
+
+primary_output_unit
+
+Examples:
+- hr
+- unit
+- transaction
+- m²
+- m³
+- tonne
+- job
+- custom
+
+This unit must flow through:
+- Revenue / COGS
+- Business Summary
+- Recovery Summary
+- Recovery Outcome
+
+So the system displays:
+- $/m²
+- m²/year
+- required m²
+- m² shortfall
+
+instead of generic “units”.
+
+---
+
+## 8. REVENUE / COGS ROLE
+
+Revenue / COGS should remain macro.
+
+It should show:
+- total revenue
+- total COGS / direct costs
+- margin pool
+- optional high-level unit driver
+
+It should not become:
+- a quoting engine
+- a job pricing engine
+- a detailed revenue stream builder
+- a calculator page
+
+Revenue / COGS may accept:
+- total revenue
+- output volume
+- rate
+
+But the detailed revenue structure belongs in Revenue Model.
+
+---
+
+## 9. REVENUE MODEL INPUT LOGIC
+
+The Revenue Model should allow the user to choose what they know.
+
+For a unit-based stream, the user should not need to enter both volume and rate freely if revenue is already fixed.
+
+Supported input modes:
+
+A. I know my volume
+
+User enters:
+- output volume
+
+System derives:
+- implied rate = revenue / output volume
+
+B. I know my rate
+
+User enters:
+- rate per unit
+
+System derives:
+- implied volume = revenue / rate
+
+C. I know both rate and volume
+
+System derives:
+- revenue = rate × volume
+
+This mode should be used when the Revenue Model is producing revenue, rather than reconciling to a known P&L revenue total.
+
+Core rule:
+Fix one, solve the other.
+Do not let all values float freely without showing reconciliation.
+
+---
+
+## 10. CALCULATORS / HELPERS
+
+Calculators are optional helpers.
+
+They should help the user estimate current reality.
+
+They should not own the model.
+
+Rule:
+Calculator estimates current reality.
+Business Summary calculates required reality.
+
+Calculator examples:
+
+Concrete pump helper:
+- hourly setup rate
+- pump hourly rate
+- m³ rate
+- average jobs
+- average m³
+- estimated annual m³
+- effective $/m³
+
+Concrete laying helper:
+- average $/m²
+- minimum job charge
+- typical job size
+- jobs per year
+- effective annual revenue
+- effective $/m²
+
+Café / retail helper:
+- average transaction value
+- transactions per day
+- trading days per year
+- annual revenue
+
+These should feed or suggest Revenue Model inputs, but not become the core stored logic unless explicitly saved.
+
+Rule:
+Calculators convert real-world thinking into model inputs.
+Revenue streams store the model inputs.
+
+---
+
+## 11. REVENUE STREAMS
+
+Revenue Model should support multiple revenue streams.
+
+Each stream should have:
+
+- revenue_stream_id
+- revenue_stream_name
+- revenue_stream_type
+- output_unit
+- input_mode
+- annual_volume
+- rate_per_unit
+- annual_revenue
+- direct_costs / COGS if applicable
+- margin_pool contribution
+
+Revenue stream types:
+- labour_rate
+- unit_rate
+- transaction
+- fixed_revenue
+- hybrid/manual
+
+Examples:
+
+Concrete business:
+Stream 1 — Concrete laying
+- unit: m²
+- rate: $/m²
+- volume: m²/year
+
+Stream 2 — Concrete pumping
+- unit: m³
+- rate: $/m³
+- volume: m³/year
+
+Stream 3 — Concrete supply
+- unit: m³
+- rate: $/m³
+- COGS included
+
+Cafe:
+Stream 1 — Store transactions
+- unit: transaction
+- average sale
+- transactions/year
+
+Gib fixing:
+Stream 1 — Walls
+- unit: m²
+- rate: $/m²
+
+Stream 2 — Ceilings
+- unit: m²
+- rate: $/m²
+
+For Phase 1, avoid forcing detailed streams.
+Allow simple blended streams.
+
+---
+
+## 12. SIMPLE VS ADVANCED MODEL
+
+Default should be simple.
+
+Simple mode:
+- one blended revenue stream
+- one unit
+- one rate or total revenue
+- one volume
+
+Advanced mode:
+- multiple streams
+- stream mix
+- optional calculators
+- optional direct cost allocation
+
+Important:
+If the model requires real job data to be accurate, keep it out of Phase 1.
+
+Detailed category-level accuracy belongs later in:
+- Quote Engine
+- Work Orders
+- Job Costing
+- Live Data Feedback
+
+---
+
+## 13. RECONCILIATION RULE
+
+Revenue Model should be able to reconcile against Revenue / COGS.
+
+If Revenue / COGS has a known P&L revenue total:
+
+Revenue Model streams should show:
+
+- modelled revenue
+- P&L revenue
+- variance
+
+This prevents the model from drifting away from known financial reality.
+
+---
+
+## 14. DOWNSTREAM USE
+
+Business Summary should consume Revenue Model outputs once built.
+
+Business Summary should compare:
+- total revenue
+- total COGS
+- margin pool
+- total cost burden
+- unit-based recovery requirement
+
+For unit-based businesses, Business Summary should show:
+- rate per unit
+- margin per unit
+- required units to break even
+- actual / expected units
+- unit surplus / shortfall
+
+Recovery Summary should interpret:
+- required recovery per hour for labour mode
+- required recovery per unit for unit-driven mode
+- both where hybrid
+
+Recovery Outcome should only make final viability calls once:
+- cost structure is available
+- revenue model is available
+- cost allocation structure is ready where required
+
+---
+
+## 15. WARNING CLASSIFICATION
+
+Warnings should be split into:
+
+1. Setup / assignment warnings
+   - missing links
+   - missing units
+   - missing stream inputs
+   - incomplete allocation
+
+2. Structural warnings
+   - incomplete operational groups
+   - weak coverage
+   - missing assets / labour for selected recovery model
+
+3. Commercial warnings
+   - margin too low
+   - unit shortfall
+   - revenue below cost burden
+   - not enough trading margin
+
+Setup warnings should feel like a checklist, not a failure.
+
+Rule:
+If the user can fix it by assigning or entering something, it is a setup warning, not a business failure.
+
+---
+
+## 16. KEY DECISIONS LOCKED FROM DISCUSSION
+
+1. Product business, m² business, m³ business, transaction business are all unit-driven businesses.
+
+2. The calculation is the same:
+   Revenue = Output × Rate
+
+3. The unit changes:
+   units, m², m³, transactions, hours, jobs.
+
+4. Revenue / COGS should stay macro.
+
+5. A new Revenue Model layer is needed before final Business Outcome can be fully trusted.
+
+6. Calculators are optional helpers, not the core model.
+
+7. Cost Allocation defines the delivery/cost unit.
+
+8. Revenue Model defines what is charged for that unit.
+
+9. Business Summary compares cost and revenue.
+
+10. Recovery Outcome should not make hard final judgement until the relevant setup is complete.
+
+---
+
+## 17. FUTURE BUILD TARGET
+
+Build a Revenue Model layer that:
+
+- supports simple blended revenue streams
+- supports unit-based output labels
+- supports revenue-first or unit/rate-first entry
+- reconciles against Revenue / COGS
+- feeds Business Summary
+- prepares Recovery Outcome for final viability decision
+
+Do not overbuild the calculator layer in Phase 1.
+
+Phase 1 must stay macro and usable.
+
+---
+
+## ONE-LINE DEFINITION
+
+Revenue Model = the layer that defines how the business turns output into revenue, using flexible streams, units, and rates, without becoming a quoting engine.
