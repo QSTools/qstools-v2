@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 export default function CostAllocationGroupsCard({
   groups,
   add_operational_group,
@@ -39,6 +37,7 @@ export default function CostAllocationGroupsCard({
 
     update_operational_group(group.group_id, {
       required_staff_ids: [...current_ids, staff_id],
+      required_staff_count: current_ids.length + 1,
     });
   }
 
@@ -47,8 +46,11 @@ export default function CostAllocationGroupsCard({
       ? group.required_staff_ids
       : [];
 
+    const next_ids = current_ids.filter((id) => id !== staff_id);
+
     update_operational_group(group.group_id, {
-      required_staff_ids: current_ids.filter((id) => id !== staff_id),
+      required_staff_ids: next_ids,
+      required_staff_count: next_ids.length,
     });
   }
 
@@ -120,8 +122,6 @@ function GroupEditor({
   update_operational_group,
   remove_operational_group,
 }) {
-  const [selected_staff_id, set_selected_staff_id] = useState("");
-
   const required_staff_ids = Array.isArray(group?.required_staff_ids)
     ? group.required_staff_ids
     : [];
@@ -130,13 +130,19 @@ function GroupEditor({
     required_staff_ids.includes(staff.staff_id)
   );
 
-  function handle_add_staff() {
-    if (!selected_staff_id) {
+  const available_staff_rows = staff_rows.filter(
+    (staff) => !required_staff_ids.includes(staff.staff_id)
+  );
+
+  function handle_staff_select(event) {
+    const staff_id = event.target.value;
+
+    if (!staff_id) {
       return;
     }
 
-    add_staff_to_group(group, selected_staff_id);
-    set_selected_staff_id("");
+    add_staff_to_group(group, staff_id);
+    event.target.value = "";
   }
 
   return (
@@ -158,37 +164,40 @@ function GroupEditor({
 
         <div className="ui-stack">
           <span className="ui-label">Required assets</span>
-          {asset_rows.map((asset) => {
-            const is_checked = (group.required_asset_ids ?? []).includes(
-              asset.asset_id
-            );
 
-            return (
-              <label key={asset.asset_id} className="block">
-                <span className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                  <input
-                    type="checkbox"
-                    checked={is_checked}
-                    onChange={() => toggle_asset(group, asset.asset_id)}
-                  />
-                  {asset.asset_name}
-                </span>
-              </label>
-            );
-          })}
+          {asset_rows.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">
+              No active productive assets available.
+            </p>
+          ) : (
+            asset_rows.map((asset) => {
+              const is_checked = (group.required_asset_ids ?? []).includes(
+                asset.asset_id
+              );
+
+              return (
+                <label key={asset.asset_id} className="block">
+                  <span className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                    <input
+                      type="checkbox"
+                      checked={is_checked}
+                      onChange={() => toggle_asset(group, asset.asset_id)}
+                    />
+                    {asset.asset_name}
+                  </span>
+                </label>
+              );
+            })
+          )}
         </div>
 
         <div className="ui-stack">
           <span className="ui-label">Required staff</span>
 
           <label className="block">
-            <select
-              className="ui-input"
-              value={selected_staff_id}
-              onChange={(event) => set_selected_staff_id(event.target.value)}
-            >
-              <option value="">Select staff</option>
-              {staff_rows.map((staff) => (
+            <select className="ui-input" defaultValue="" onChange={handle_staff_select}>
+              <option value="">Select staff to add</option>
+              {available_staff_rows.map((staff) => (
                 <option key={staff.staff_id} value={staff.staff_id}>
                   {staff.staff_name}
                   {staff.staff_role ? ` — ${staff.staff_role}` : ""}
@@ -196,16 +205,6 @@ function GroupEditor({
               ))}
             </select>
           </label>
-
-          <div className="ui-actions">
-            <button
-              type="button"
-              className="ui-button-primary"
-              onClick={handle_add_staff}
-            >
-              Add staff
-            </button>
-          </div>
 
           {selected_staff_rows.length === 0 ? (
             <p className="text-sm text-[var(--text-secondary)]">

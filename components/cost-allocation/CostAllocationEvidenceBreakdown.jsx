@@ -271,9 +271,9 @@ function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
               No operational recovery groups yet
             </h3>
             <p className="ui-help">
-              Create operational groups first. Once groups have a productive
-              labour type and asset assignment, Cost Allocation can calculate a
-              combined hourly recovery rate.
+              Create operational groups first. Once groups have selected staff
+              and selected assets, Cost Allocation can calculate a combined
+              hourly recovery rate.
             </p>
           </div>
 
@@ -289,11 +289,11 @@ function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
         <div>
           <p className="ui-kicker">Operational Recovery</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
-            Operational group recovery rate build-up
+            Operational group minimum recoverable rate
           </h3>
           <p className="ui-help">
-            This combines the productive labour type weighted recovery rate with
-            the asset hourly recovery rate.
+            This combines selected staff labour recovery rates with selected
+            asset hourly recovery rates.
           </p>
         </div>
 
@@ -306,8 +306,8 @@ function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
                 Group rate build-up
               </p>
               <p className="ui-help">
-                Labour rate + asset hourly recovery rate = operational group
-                recovery rate.
+                Labour rate + asset hourly recovery rate = minimum recoverable
+                operational group rate.
               </p>
             </div>
 
@@ -319,15 +319,50 @@ function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
                 >
                   <div className="labour-summary-table-label">
                     <div>{group.group_name}</div>
+
                     <div className="ui-help">
-                      {group.labour_type_label}
-                      {" · "}
-                      Assets {group.asset_count || 0}
-                      {Array.isArray(group.asset_names) &&
-                      group.asset_names.length > 0
-                        ? ` · ${group.asset_names.join(", ")}`
-                        : ""}
+                      Staff {group.selected_staff_count || 0} · Assets{" "}
+                      {group.selected_asset_count || 0}
                     </div>
+
+                    {Array.isArray(group.staff_recovery_rows) &&
+                    group.staff_recovery_rows.length > 0 ? (
+                      <div className="ui-help">
+                        Labour:{" "}
+                        {group.staff_recovery_rows
+                          .map(
+                            (staff) =>
+                              `${staff.staff_name} ${formatRate(
+                                staff.labour_recovery_rate_per_hour
+                              )}`
+                          )
+                          .join(", ")}
+                      </div>
+                    ) : (
+                      <div className="ui-help">
+                        No staff selected for this group.
+                      </div>
+                    )}
+
+                    {Array.isArray(group.asset_recovery_rows) &&
+                    group.asset_recovery_rows.length > 0 ? (
+                      <div className="ui-help">
+                        Assets:{" "}
+                        {group.asset_recovery_rows
+                          .map(
+                            (asset) =>
+                              `${asset.asset_name} ${formatRate(
+                                asset.asset_recovery_rate_per_hour
+                              )}`
+                          )
+                          .join(", ")}
+                      </div>
+                    ) : (
+                      <div className="ui-help">
+                        No assets selected for this group.
+                      </div>
+                    )}
+
                     {!group.has_labour_rate ? (
                       <div className="ui-help">
                         Labour rate missing for this group.
@@ -337,7 +372,7 @@ function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
 
                   <div className="labour-summary-table-value">
                     <div>
-                      {formatRate(group.operational_group_recovery_rate_per_hour)}
+                      {formatRate(group.minimum_recoverable_rate_per_hour)}
                     </div>
                     <div className="ui-help">
                       Labour {formatRate(group.labour_recovery_rate_per_hour)}

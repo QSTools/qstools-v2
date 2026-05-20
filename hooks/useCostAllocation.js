@@ -39,13 +39,15 @@ function get_asset_name(asset = {}) {
 }
 
 function get_labour_type_key(item = {}) {
-  return (
+  return normalise_key(
     item.labour_type_key ||
-    item.labour_type_id ||
-    item.staff_type ||
-    item.staff_role ||
-    item.labour_class ||
-    normalise_key(item.label || item.name)
+      item.labour_type_id ||
+      item.staff_type ||
+      item.staff_role ||
+      item.labour_class ||
+      item.label ||
+      item.name ||
+      ""
   );
 }
 
@@ -60,8 +62,32 @@ function get_labour_type_label(item = {}) {
   );
 }
 
+function get_staff_labour_type_key(staff = {}) {
+  return normalise_key(
+    staff.labour_type_key ||
+      staff.labour_type_id ||
+      staff.staff_type ||
+      staff.staff_role ||
+      staff.labour_class ||
+      staff.role ||
+      ""
+  );
+}
+
+function get_staff_label(staff = {}) {
+  return (
+    staff.staff_name ||
+    staff.name ||
+    staff.staff_role ||
+    staff.staff_type ||
+    staff.labour_class ||
+    "Selected staff"
+  );
+}
+
 function get_group_asset_ids(group = {}) {
   const possible_lists = [
+    group.required_asset_ids,
     group.asset_ids,
     group.assigned_asset_ids,
     group.linked_asset_ids,
@@ -85,16 +111,30 @@ function get_group_asset_ids(group = {}) {
   return [];
 }
 
-function get_group_labour_type_key(group = {}) {
-  return normalise_key(
-    group.labour_type_key ||
-      group.labour_type_id ||
-      group.staff_type ||
-      group.staff_role ||
-      group.labour_class ||
-      group.role ||
-      ""
-  );
+function get_group_staff_ids(group = {}) {
+  const possible_lists = [
+    group.required_staff_ids,
+    group.staff_ids,
+    group.assigned_staff_ids,
+    group.linked_staff_ids,
+    group.staff,
+  ];
+
+  for (const list of possible_lists) {
+    if (Array.isArray(list)) {
+      return list
+        .map((item) =>
+          typeof item === "string" ? item : item?.staff_id || item?.id || ""
+        )
+        .filter(Boolean);
+    }
+  }
+
+  if (group.staff_id) {
+    return [group.staff_id];
+  }
+
+  return [];
 }
 
 function build_productive_labour_type_rows(labour_output_contract = {}) {
@@ -105,7 +145,8 @@ function build_productive_labour_type_rows(labour_output_contract = {}) {
     : [];
 
   return productive_labour_types.map((item) => {
-    const labour_type_key = normalise_key(get_labour_type_key(item));
+    const labour_type_key = get_labour_type_key(item);
+
     const weighted_recovery_rate = safe_number(
       item.weighted_recovery_rate ??
         item.weighted_recovery_rate_per_hour ??
@@ -258,64 +299,164 @@ function build_asset_recovery_overlay({
   };
 }
 
+function find_labour_type_for_staff(staff = {}, productive_labour_type_rows = []) {
+  const rows = Array.isArray(productive_labour_type_rows)
+    ? productive_labour_type_rows
+    : [];
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const staff_key = get_staff_labour_type_key(staff);
+
+  const direct_match = rows.find((row) => {
+    return (
+      row.labour_type_key === staff_key ||
+      normalise_key(row.labour_type_label) === staff_key ||
+      normalise_key(row.staff_type) === staff_key ||
+      normalise_key(row.staff_role) === staff_key ||
+      normalise_key(row.labour_class) === staff_key
+    );
+  });
+
+  if (direct_match) {
+    return direct_match;
+  }
+
+  const staff_role_key = normalise_key(staff.staff_role);
+  const staff_type_key = normalise_key(staff.staff_type);
+  const labour_class_key = normalise_key(staff.labour_class);
+
+  const loose_match = rows.find((row) => {
+    const row_values = [
+      row.labour_type_key,
+      row.labour_type_label,
+      row.staff_type,
+      row.staff_role,
+      row.labour_class,
+    ].map(normalise_key);
+
+    return (
+      row_values.includes(staff_role_key) ||
+      row_values.includes(staff_type_key) ||
+      row_values.includes(labour_class_key)
+    );
+  });
+
+  if (loose_match) {
+    return loose_match;
+  }
+
+  if (rows.length === 1) {
+    return rows[0];
+  }
+
+  return null;
+}
+
 function build_operational_group_recovery_rows({
   operational_groups = [],
   active_assets = [],
+  active_staff = [],
   productive_labour_type_rows = [],
 }) {
   const asset_map = new Map(
     active_assets.map((asset) => [asset.asset_id, asset])
   );
 
-  const labour_type_map = new Map(
-    productive_labour_type_rows.map((row) => [row.labour_type_key, row])
-  );
+  const staff_map = new Map(active_staff.map((staff) => [staff.staff_id, staff]));
 
   return (Array.isArray(operational_groups) ? operational_groups : []).map(
     (group, index) => {
       const group_asset_ids = get_group_asset_ids(group);
+      const group_staff_ids = get_group_staff_ids(group);
+
       const group_assets = group_asset_ids
         .map((asset_id) => asset_map.get(asset_id))
         .filter(Boolean);
 
-      const group_labour_type_key = get_group_labour_type_key(group);
-      const labour_type =
-        labour_type_map.get(group_labour_type_key) ||
-        productive_labour_type_rows.find((row) => {
-          return (
-            row.labour_type_key === group_labour_type_key ||
-            normalise_key(row.labour_type_label) === group_labour_type_key
-          );
-        }) ||
-        null;
+      const group_staff = group_staff_ids
+        .map((staff_id) => staff_map.get(staff_id))
+        .filter(Boolean);
 
-      const labour_recovery_rate_per_hour = safe_number(
-        labour_type?.weighted_recovery_rate
+      const staff_recovery_rows = group_staff.map((staff) => {
+        const labour_type = find_labour_type_for_staff(
+          staff,
+          productive_labour_type_rows
+        );
+
+        const labour_recovery_rate_per_hour = safe_number(
+          labour_type?.weighted_recovery_rate ??
+            staff.weighted_recovery_rate ??
+            staff.productive_labour_cost_rate ??
+            staff.labour_cost_rate ??
+            0
+        );
+
+        return {
+          staff_id: staff.staff_id,
+          staff_name: get_staff_label(staff),
+          labour_type_key:
+            labour_type?.labour_type_key || get_staff_labour_type_key(staff),
+          labour_type_label:
+            labour_type?.labour_type_label ||
+            staff.staff_type ||
+            staff.staff_role ||
+            staff.labour_class ||
+            "Unclassified productive labour",
+          labour_recovery_rate_per_hour,
+        };
+      });
+
+      const asset_recovery_rows = group_assets.map((asset) => ({
+        asset_id: asset.asset_id,
+        asset_name: asset.asset_name,
+        asset_type: asset.asset_type,
+        asset_recovery_rate_per_hour: safe_number(
+          asset.asset_recovery_rate_per_hour
+        ),
+        asset_recovery_cost_annual: safe_number(
+          asset.asset_recovery_cost_annual
+        ),
+      }));
+
+      const labour_recovery_rate_per_hour = staff_recovery_rows.reduce(
+        (sum, staff) => sum + safe_number(staff.labour_recovery_rate_per_hour),
+        0
       );
 
-      const asset_recovery_rate_per_hour = group_assets.reduce(
+      const asset_recovery_rate_per_hour = asset_recovery_rows.reduce(
         (sum, asset) => sum + safe_number(asset.asset_recovery_rate_per_hour),
         0
       );
 
+      const minimum_recoverable_rate_per_hour =
+        labour_recovery_rate_per_hour + asset_recovery_rate_per_hour;
+
       return {
         group_id: group.group_id || group.operational_group_id || `group-${index}`,
         group_name: group.group_name || group.name || `Operational Group ${index + 1}`,
-        labour_type_key: group_labour_type_key,
-        labour_type_label:
-          labour_type?.labour_type_label ||
-          group.staff_role ||
-          group.staff_type ||
-          group.labour_class ||
-          "No productive labour type selected",
-        labour_recovery_rate_per_hour,
-        asset_count: group_assets.length,
+
+        required_staff_count: safe_number(group.required_staff_count),
+        selected_staff_count: group_staff.length,
+        selected_asset_count: group_assets.length,
+
+        staff_recovery_rows,
+        asset_recovery_rows,
+
+        staff_names: group_staff.map(get_staff_label),
         asset_names: group_assets.map((asset) => asset.asset_name),
+
+        labour_recovery_rate_per_hour,
         asset_recovery_rate_per_hour,
         operational_group_recovery_rate_per_hour:
-          labour_recovery_rate_per_hour + asset_recovery_rate_per_hour,
+          minimum_recoverable_rate_per_hour,
+        minimum_recoverable_rate_per_hour,
+
         has_labour_rate: labour_recovery_rate_per_hour > 0,
         has_asset_rate: asset_recovery_rate_per_hour > 0,
+        is_rate_ready: minimum_recoverable_rate_per_hour > 0,
       };
     }
   );
@@ -374,11 +515,13 @@ export default function useCostAllocation(inputs = {}) {
     return build_operational_group_recovery_rows({
       operational_groups: state?.operational_groups ?? [],
       active_assets: asset_recovery_overlay.active_assets,
+      active_staff: base_calculation_inputs?.active_staff ?? [],
       productive_labour_type_rows,
     });
   }, [
     state?.operational_groups,
     asset_recovery_overlay.active_assets,
+    base_calculation_inputs?.active_staff,
     productive_labour_type_rows,
   ]);
 
