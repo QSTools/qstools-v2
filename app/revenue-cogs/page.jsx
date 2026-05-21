@@ -7,7 +7,14 @@ import RevenueCogsCard from "@/components/revenue-cogs/RevenueCogsCard";
 import RevenueCogsHelpPanel from "@/components/revenue-cogs/RevenueCogsHelpPanel";
 
 export default function RevenueCogsPage() {
-  const { status, card, updateRevenueCogsField } = useRevenueCogs();
+  const {
+    status,
+    card,
+    updateRevenueCogsField,
+    updateUnitDriverRow,
+    addUnitDriverRow,
+    removeUnitDriverRow,
+  } = useRevenueCogs();
 
   return (
     <main className="ui-page">
@@ -31,8 +38,31 @@ export default function RevenueCogsPage() {
           business_type={card.business_type}
           is_product_based={card.is_product_based}
           is_labour_based={card.is_labour_based}
+
+          commercial_driver_mode={card.commercial_driver_mode}
+          commercial_driver_label={card.commercial_driver_label}
+          is_hours_based={card.is_hours_based}
+          is_unit_based={card.is_unit_based}
+          is_mixed_unit_based={card.is_mixed_unit_based}
+
+          unit_driver_rows={card.unit_driver_rows}
+          total_unit_revenue={card.total_unit_revenue}
+          total_unit_direct_cost={card.total_unit_direct_cost}
+          total_unit_margin_pool={card.total_unit_margin_pool}
+          total_derived_units_annual={card.total_derived_units_annual}
+          weighted_average_margin_per_unit={
+            card.weighted_average_margin_per_unit
+          }
+          unit_recovery_ready={card.unit_recovery_ready}
+          unit_recovery_warnings={card.unit_recovery_warnings}
+
           units_sold_annual={card.units_sold_annual}
+          margin_per_unit={card.margin_per_unit}
+
           updateRevenueCogsField={updateRevenueCogsField}
+          updateUnitDriverRow={updateUnitDriverRow}
+          addUnitDriverRow={addUnitDriverRow}
+          removeUnitDriverRow={removeUnitDriverRow}
         />
 
         <RevenueCogsHelpPanel />

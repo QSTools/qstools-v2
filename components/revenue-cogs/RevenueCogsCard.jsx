@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 function toNumber(value) {
-  const parsed = Number(String(value).replace(/,/g, ""));
+  const parsed = Number(String(value ?? "").replace(/,/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
@@ -52,10 +52,22 @@ function formatNumber(value) {
   }).format(number);
 }
 
-function TableRow({ label, value, total = false }) {
+function formatNumberPrecise(value) {
+  const number = toNumber(value);
+
+  return new Intl.NumberFormat("en-NZ", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(number);
+}
+
+function TableRow({ label, value, total = false, help }) {
   return (
     <div className={`labour-summary-table-row${total ? " total" : ""}`}>
-      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-label">
+        <div>{label}</div>
+        {help ? <div className="ui-help">{help}</div> : null}
+      </div>
       <div className="labour-summary-table-value">{value}</div>
     </div>
   );
@@ -82,6 +94,181 @@ function DetailList({ title, empty_message, items = [] }) {
   );
 }
 
+function TextInput({ label, value, onChange, inputMode = "decimal", help }) {
+  return (
+    <label className="form-field ui-stack-sm">
+      <span>{label}</span>
+      <input
+        className="ui-input"
+        type="text"
+        inputMode={inputMode}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {help ? <span className="ui-help">{help}</span> : null}
+    </label>
+  );
+}
+
+function SelectInput({ label, value, onChange, children, help }) {
+  return (
+    <label className="form-field ui-stack-sm">
+      <span>{label}</span>
+      <select
+        className="ui-input"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {children}
+      </select>
+      {help ? <span className="ui-help">{help}</span> : null}
+    </label>
+  );
+}
+
+function DriverModeButton({ title, body, active, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`ui-readonly text-left transition ${
+        active ? "border border-[var(--accent)]" : ""
+      }`}
+      onClick={onClick}
+    >
+      <div className="text-sm font-semibold text-[var(--text-primary)]">
+        {title}
+      </div>
+      <p className="mt-1 ui-help">{body}</p>
+    </button>
+  );
+}
+
+function UnitDriverRow({
+  row,
+  is_mixed_unit_based,
+  updateUnitDriverRow,
+  removeUnitDriverRow,
+  can_remove,
+}) {
+  return (
+    <div className="ui-panel ui-stack">
+      <div className="ui-split">
+        <div>
+          <div className="ui-kicker">Unit driver</div>
+          <div className="ui-card-title-sm">
+            {row.unit_label || "Unit driver"}
+          </div>
+          <p className="ui-help">
+            Define one commercial unit, such as m², m³, tonne, each, lineal
+            metre, or another output unit.
+          </p>
+        </div>
+
+        {can_remove ? (
+          <div className="ui-actions">
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => removeUnitDriverRow(row.id)}
+            >
+              Remove
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <TextInput
+          label="Unit label"
+          value={row.unit_label || ""}
+          onChange={(value) => updateUnitDriverRow(row.id, "unit_label", value)}
+          inputMode="text"
+          help="Example: Slab m², pumped concrete m³, coffees, shirts."
+        />
+
+        <SelectInput
+          label="Unit type"
+          value={row.unit_type || "each"}
+          onChange={(value) => updateUnitDriverRow(row.id, "unit_type", value)}
+        >
+          <option value="each">Each</option>
+          <option value="m2">m²</option>
+          <option value="m3">m³</option>
+          <option value="lm">Lineal metre</option>
+          <option value="tonne">Tonne</option>
+          <option value="hour">Hour</option>
+          <option value="custom">Custom</option>
+        </SelectInput>
+
+        <TextInput
+          label="Revenue split %"
+          value={formatNumberPrecise(row.revenue_share_percent)}
+          onChange={(value) =>
+            updateUnitDriverRow(
+              row.id,
+              "revenue_share_percent",
+              value.replace(/,/g, "")
+            )
+          }
+          help={
+            is_mixed_unit_based
+              ? "Estimated share of total revenue for this unit."
+              : "Single unit mode uses 100%."
+          }
+        />
+
+        <TextInput
+          label="Average sale rate"
+          value={formatNumberPrecise(row.average_sale_rate_per_unit)}
+          onChange={(value) =>
+            updateUnitDriverRow(
+              row.id,
+              "average_sale_rate_per_unit",
+              value.replace(/,/g, "")
+            )
+          }
+          help="Average charge per unit."
+        />
+
+        <TextInput
+          label="Direct cost per unit"
+          value={formatNumberPrecise(row.direct_cost_per_unit)}
+          onChange={(value) =>
+            updateUnitDriverRow(
+              row.id,
+              "direct_cost_per_unit",
+              value.replace(/,/g, "")
+            )
+          }
+          help="COGS / direct cost per unit."
+        />
+      </div>
+
+      <div className="labour-summary-table">
+        <TableRow
+          label="Derived annual revenue"
+          value={formatCurrency(row.annual_revenue)}
+        />
+        <TableRow
+          label="Derived annual units"
+          value={`${formatNumber(row.derived_units_annual)} ${
+            row.unit_type_label || "units"
+          }`}
+        />
+        <TableRow
+          label="Margin per unit"
+          value={formatCurrencyPrecise(row.margin_per_unit)}
+        />
+        <TableRow
+          label="Annual margin pool"
+          value={formatCurrency(row.annual_margin_pool)}
+          total
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function RevenueCogsCard({
   total_revenue = 0,
   total_direct_costs = 0,
@@ -89,11 +276,28 @@ export default function RevenueCogsCard({
   gross_margin_percent = 0,
   revenue_line_items = [],
   direct_cost_categories = [],
+
   business_type = "labour_based",
   is_product_based = false,
-  is_labour_based = true,
+
+  commercial_driver_mode = "hours_based",
+  commercial_driver_label = "Hours-based trading model",
+  is_unit_based = false,
+  is_mixed_unit_based = false,
+
+  unit_driver_rows = [],
+  total_unit_margin_pool = 0,
+  total_derived_units_annual = 0,
+  weighted_average_margin_per_unit = 0,
+  unit_recovery_warnings = [],
+
   units_sold_annual = 0,
+  margin_per_unit = 0,
+
   updateRevenueCogsField,
+  updateUnitDriverRow,
+  addUnitDriverRow,
+  removeUnitDriverRow,
 }) {
   const [detailsOpen, setDetailsOpen] = useState(true);
 
@@ -103,47 +307,203 @@ export default function RevenueCogsCard({
     total_direct_costs,
     safe_units_sold_annual
   );
-  const margin_per_unit = safeDivide(margin_pool, safe_units_sold_annual);
 
-  const business_mode_title = is_product_based
-    ? "Product / Unit-based business"
-    : "Service / Labour-based business";
+  const revenue_split_total = unit_driver_rows.reduce(
+    (sum, row) => sum + toNumber(row.revenue_share_percent),
+    0
+  );
 
   return (
     <section className="ui-section">
       <div className="ui-stack">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Revenue / COGS</div>
-          <div className="ui-card-title">
-            {is_product_based ? "Trading margin pool" : "Revenue margin pool"}
-          </div>
+          <div className="ui-card-title">Commercial driver layer</div>
           <p className="ui-help">
-            {is_product_based
-              ? "Revenue less Direct Costs shows the trading margin available before operating costs."
-              : "Revenue less Direct Costs shows what is left before operating costs."}
+            Revenue / COGS defines how the business sells work. This does not
+            change Cost Summary or Business Summary cost calculations.
           </p>
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Business mode</div>
-          <div className="ui-card-title-sm">{business_mode_title}</div>
-          <p className="ui-help">
-            {is_product_based
-              ? "Revenue / COGS is using units sold as the product activity driver."
-              : "Revenue / COGS is using the standard labour-based flow. Units sold is hidden in this mode."}
-          </p>
-          <p className="ui-help">Current stored mode: {business_type}</p>
+          <div className="ui-kicker">Commercial driver mode</div>
+          <div className="ui-card-title-sm">{commercial_driver_label}</div>
+
+          {is_product_based ? (
+            <>
+              <p className="ui-help">
+                Business Setup is set to product / unit-based. Revenue / COGS
+                defines whether this is a single-unit or mixed-unit trading
+                model.
+              </p>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <DriverModeButton
+                  title="Single unit-based"
+                  body="One output unit drives trading recovery, such as coffees, m², m³, or each."
+                  active={commercial_driver_mode === "unit_based"}
+                  onClick={() =>
+                    updateRevenueCogsField(
+                      "commercial_driver_mode",
+                      "unit_based"
+                    )
+                  }
+                />
+
+                <DriverModeButton
+                  title="Mixed unit-based"
+                  body="Multiple output units share revenue, such as m² work and m³ pumping."
+                  active={commercial_driver_mode === "mixed_unit_based"}
+                  onClick={() =>
+                    updateRevenueCogsField(
+                      "commercial_driver_mode",
+                      "mixed_unit_based"
+                    )
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="ui-help">
+                Business Setup is set to hours-based. Revenue / COGS stays in
+                hours-based mode.
+              </p>
+
+              <div className="ui-readonly">
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
+                  Hours-based
+                </div>
+                <p className="mt-1 ui-help">
+                  Labour / asset time is the recovery engine. Materials and
+                  COGS remain a margin layer and do not reduce the hourly
+                  recovery requirement.
+                </p>
+              </div>
+            </>
+          )}
+
+          <p className="ui-help">Current stored business type: {business_type}</p>
         </div>
 
-        {is_product_based ? (
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Macro Result</div>
+          <div className="labour-summary-table">
+            <TableRow label="Revenue" value={formatCurrency(total_revenue)} />
+            <TableRow
+              label="Direct Costs"
+              value={formatCurrency(total_direct_costs)}
+            />
+            <TableRow
+              label={is_unit_based ? "Trading Margin Pool" : "Margin Pool"}
+              value={formatCurrency(margin_pool)}
+              total
+            />
+            <TableRow
+              label={is_unit_based ? "Trading Margin %" : "Gross Margin %"}
+              value={formatPercent(gross_margin_percent)}
+            />
+          </div>
+        </div>
+
+        {is_product_based && is_unit_based ? (
+          <div className="ui-panel ui-stack">
+            <div className="ui-split">
+              <div>
+                <div className="ui-kicker">Unit-based trading model</div>
+                <div className="ui-card-title-sm">
+                  Define the commercial units being sold
+                </div>
+                <p className="ui-help">
+                  This is a commercial estimate. It helps Recovery Summary test
+                  whether unit-based revenue can recover the business cost
+                  burden. It does not change Cost Summary.
+                </p>
+              </div>
+
+              <div className="ui-actions">
+                <button
+                  type="button"
+                  className="ui-button-secondary"
+                  onClick={addUnitDriverRow}
+                >
+                  Add unit driver
+                </button>
+              </div>
+            </div>
+
+            <div className="labour-summary-table">
+              <TableRow
+                label="Revenue split total"
+                value={`${formatNumberPrecise(revenue_split_total)}%`}
+                help="For unit-based recovery testing, the unit split should total 100%."
+              />
+              <TableRow
+                label="Derived annual units"
+                value={formatNumber(total_derived_units_annual)}
+              />
+              <TableRow
+                label="Weighted average margin per unit"
+                value={formatCurrencyPrecise(weighted_average_margin_per_unit)}
+              />
+              <TableRow
+                label="Derived annual margin pool"
+                value={formatCurrency(total_unit_margin_pool)}
+                total
+              />
+            </div>
+
+            <div className="ui-stack">
+              {unit_driver_rows.map((row) => (
+                <UnitDriverRow
+                  key={row.id}
+                  row={row}
+                  is_mixed_unit_based={is_mixed_unit_based}
+                  updateUnitDriverRow={updateUnitDriverRow}
+                  removeUnitDriverRow={removeUnitDriverRow}
+                  can_remove={unit_driver_rows.length > 1}
+                />
+              ))}
+            </div>
+
+            {unit_recovery_warnings.length > 0 ? (
+              <div className="ui-readonly">
+                <div className="ui-card-title-sm">Unit driver warnings</div>
+                <div className="ui-stack-sm">
+                  {unit_recovery_warnings.map((warning) => (
+                    <p
+                      className="ui-help"
+                      key={`${warning.warning_id}-${warning.unit_driver_id || "all"}`}
+                    >
+                      {warning.message}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!is_product_based ? (
+          <div className="ui-panel ui-stack-sm">
+            <div className="ui-kicker">Hours-based trading model</div>
+            <div className="ui-card-title-sm">Materials remain margin layer</div>
+            <p className="ui-help">
+              In hours-based mode, Revenue / COGS remains a margin-pool view.
+              Labour and assets recover the business cost through operating
+              hours. Materials do not reduce the hourly recovery requirement.
+            </p>
+          </div>
+        ) : null}
+
+        {false ? (
           <div className="ui-panel ui-stack-sm">
             <div>
-              <div className="ui-kicker">Product activity driver</div>
+              <div className="ui-kicker">Legacy product activity driver</div>
               <div className="ui-card-title-sm">Units sold per year</div>
               <p className="ui-help">
-                Use the expected annual sales volume. This is not units
-                purchased or stock on hand; it is the number of units expected
-                to be sold in the year.
+                This legacy field remains for backwards compatibility. New
+                unit-based models should use the unit driver rows above.
               </p>
             </div>
 
@@ -162,40 +522,6 @@ export default function RevenueCogsCard({
                 }
               />
             </label>
-          </div>
-        ) : null}
-
-        <div className="ui-panel ui-stack-sm">
-          <div className="ui-kicker">Macro Result</div>
-          <div className="labour-summary-table">
-            <TableRow label="Revenue" value={formatCurrency(total_revenue)} />
-            <TableRow
-              label="Direct Costs"
-              value={formatCurrency(total_direct_costs)}
-            />
-            <TableRow
-              label={is_product_based ? "Trading Margin Pool" : "Margin Pool"}
-              value={formatCurrency(margin_pool)}
-              total
-            />
-            <TableRow
-              label={is_product_based ? "Trading Margin %" : "Gross Margin %"}
-              value={formatPercent(gross_margin_percent)}
-            />
-          </div>
-        </div>
-
-        {is_product_based ? (
-          <div className="ui-panel ui-stack-sm">
-            <div>
-              <div className="ui-kicker">Product unit economics</div>
-              <div className="ui-card-title-sm">Margin per unit</div>
-              <p className="ui-help">
-                This converts the annual trading margin pool into a per-unit
-                margin. Downstream pages can compare this against the business
-                cost burden.
-              </p>
-            </div>
 
             <div className="labour-summary-table">
               <TableRow
@@ -216,12 +542,6 @@ export default function RevenueCogsCard({
                 total
               />
             </div>
-
-            {safe_units_sold_annual <= 0 ? (
-              <p className="ui-help">
-                Enter units sold per year to calculate product unit economics.
-              </p>
-            ) : null}
           </div>
         ) : null}
 
