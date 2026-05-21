@@ -7,13 +7,6 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function safeDivide(numerator, denominator) {
-  const top = toNumber(numerator);
-  const bottom = toNumber(denominator);
-
-  return bottom === 0 ? 0 : top / bottom;
-}
-
 function formatCurrency(value) {
   const number = Number(value) || 0;
 
@@ -130,9 +123,8 @@ function DriverModeButton({ title, body, active, onClick }) {
   return (
     <button
       type="button"
-      className={`ui-readonly text-left transition ${
-        active ? "border border-[var(--accent)]" : ""
-      }`}
+      className={`ui-readonly text-left transition ${active ? "border border-[var(--accent)]" : ""
+        }`}
       onClick={onClick}
     >
       <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -177,7 +169,7 @@ function UnitDriverRow({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <TextInput
           label="Unit label"
           value={row.unit_label || ""}
@@ -202,7 +194,7 @@ function UnitDriverRow({
 
         <TextInput
           label="Revenue split %"
-          value={formatNumberPrecise(row.revenue_share_percent)}
+          value={String(row.revenue_share_percent ?? "")}
           onChange={(value) =>
             updateUnitDriverRow(
               row.id,
@@ -219,7 +211,7 @@ function UnitDriverRow({
 
         <TextInput
           label="Average sale rate"
-          value={formatNumberPrecise(row.average_sale_rate_per_unit)}
+          value={String(row.average_sale_rate_per_unit ?? "")}
           onChange={(value) =>
             updateUnitDriverRow(
               row.id,
@@ -228,19 +220,6 @@ function UnitDriverRow({
             )
           }
           help="Average charge per unit."
-        />
-
-        <TextInput
-          label="Direct cost per unit"
-          value={formatNumberPrecise(row.direct_cost_per_unit)}
-          onChange={(value) =>
-            updateUnitDriverRow(
-              row.id,
-              "direct_cost_per_unit",
-              value.replace(/,/g, "")
-            )
-          }
-          help="COGS / direct cost per unit."
         />
       </div>
 
@@ -251,13 +230,13 @@ function UnitDriverRow({
         />
         <TableRow
           label="Derived annual units"
-          value={`${formatNumber(row.derived_units_annual)} ${
-            row.unit_type_label || "units"
-          }`}
+          value={`${formatNumber(row.derived_units_annual)} ${row.unit_type_label || "units"
+            }`}
         />
         <TableRow
           label="Margin per unit"
           value={formatCurrencyPrecise(row.margin_per_unit)}
+          help="Derived from the P&L margin pool, not from a user-entered direct cost."
         />
         <TableRow
           label="Annual margin pool"
@@ -291,22 +270,12 @@ export default function RevenueCogsCard({
   weighted_average_margin_per_unit = 0,
   unit_recovery_warnings = [],
 
-  units_sold_annual = 0,
-  margin_per_unit = 0,
-
   updateRevenueCogsField,
   updateUnitDriverRow,
   addUnitDriverRow,
   removeUnitDriverRow,
 }) {
   const [detailsOpen, setDetailsOpen] = useState(true);
-
-  const safe_units_sold_annual = toNumber(units_sold_annual);
-  const revenue_per_unit = safeDivide(total_revenue, safe_units_sold_annual);
-  const direct_cost_per_unit = safeDivide(
-    total_direct_costs,
-    safe_units_sold_annual
-  );
 
   const revenue_split_total = unit_driver_rows.reduce(
     (sum, row) => sum + toNumber(row.revenue_share_percent),
@@ -419,17 +388,26 @@ export default function RevenueCogsCard({
                   whether unit-based revenue can recover the business cost
                   burden. It does not change Cost Summary.
                 </p>
+
+                {is_mixed_unit_based ? (
+                  <p className="ui-help">
+                    Add another unit when your revenue is split across more
+                    than one output, such as m² work and m³ pumping.
+                  </p>
+                ) : null}
               </div>
 
-              <div className="ui-actions">
-                <button
-                  type="button"
-                  className="ui-button-secondary"
-                  onClick={addUnitDriverRow}
-                >
-                  Add unit driver
-                </button>
-              </div>
+              {is_mixed_unit_based ? (
+                <div className="ui-actions">
+                  <button
+                    type="button"
+                    className="ui-button-primary"
+                    onClick={addUnitDriverRow}
+                  >
+                    + Add another unit
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="labour-summary-table">
@@ -461,10 +439,24 @@ export default function RevenueCogsCard({
                   is_mixed_unit_based={is_mixed_unit_based}
                   updateUnitDriverRow={updateUnitDriverRow}
                   removeUnitDriverRow={removeUnitDriverRow}
-                  can_remove={unit_driver_rows.length > 1}
+                  can_remove={
+                    is_mixed_unit_based && unit_driver_rows.length > 2
+                  }
                 />
               ))}
             </div>
+
+            {is_mixed_unit_based ? (
+              <div className="ui-actions">
+                <button
+                  type="button"
+                  className="ui-button-primary"
+                  onClick={addUnitDriverRow}
+                >
+                  + Add another unit
+                </button>
+              </div>
+            ) : null}
 
             {unit_recovery_warnings.length > 0 ? (
               <div className="ui-readonly">
@@ -493,55 +485,6 @@ export default function RevenueCogsCard({
               Labour and assets recover the business cost through operating
               hours. Materials do not reduce the hourly recovery requirement.
             </p>
-          </div>
-        ) : null}
-
-        {false ? (
-          <div className="ui-panel ui-stack-sm">
-            <div>
-              <div className="ui-kicker">Legacy product activity driver</div>
-              <div className="ui-card-title-sm">Units sold per year</div>
-              <p className="ui-help">
-                This legacy field remains for backwards compatibility. New
-                unit-based models should use the unit driver rows above.
-              </p>
-            </div>
-
-            <label className="form-field ui-stack-sm">
-              <span>Units sold per year</span>
-              <input
-                className="ui-input"
-                type="text"
-                inputMode="numeric"
-                value={formatNumber(units_sold_annual)}
-                onChange={(event) =>
-                  updateRevenueCogsField(
-                    "units_sold_annual",
-                    event.target.value.replace(/,/g, "")
-                  )
-                }
-              />
-            </label>
-
-            <div className="labour-summary-table">
-              <TableRow
-                label="Units sold per year"
-                value={`${formatNumber(safe_units_sold_annual)} units`}
-              />
-              <TableRow
-                label="Revenue per unit"
-                value={formatCurrencyPrecise(revenue_per_unit)}
-              />
-              <TableRow
-                label="Direct cost per unit"
-                value={formatCurrencyPrecise(direct_cost_per_unit)}
-              />
-              <TableRow
-                label="Margin per unit"
-                value={formatCurrencyPrecise(margin_per_unit)}
-                total
-              />
-            </div>
           </div>
         ) : null}
 

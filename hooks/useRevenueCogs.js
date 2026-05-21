@@ -21,15 +21,46 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function buildNewUnitDriverRow(index = 0) {
+function buildNewUnitDriverRow(index = 0, revenue_share_percent = 0) {
   return {
     id: `unit-driver-${Date.now()}-${index}`,
     unit_label: index === 0 ? "Primary unit" : `Unit ${index + 1}`,
     unit_type: "each",
-    revenue_share_percent: index === 0 ? 100 : 0,
+    revenue_share_percent,
     average_sale_rate_per_unit: 0,
-    direct_cost_per_unit: 0,
   };
+}
+
+function normaliseSingleUnitRows(rows = []) {
+  const first_row =
+    Array.isArray(rows) && rows.length > 0
+      ? rows[0]
+      : buildNewUnitDriverRow(0, 100);
+
+  return [
+    {
+      ...first_row,
+      revenue_share_percent: 100,
+    },
+  ];
+}
+
+function normaliseMixedUnitRows(rows = []) {
+  const source_rows = Array.isArray(rows) ? rows : [];
+
+  if (source_rows.length >= 2) {
+    return source_rows;
+  }
+
+  const first_row = source_rows[0] || buildNewUnitDriverRow(0, 50);
+
+  return [
+    {
+      ...first_row,
+      revenue_share_percent: 50,
+    },
+    buildNewUnitDriverRow(1, 50),
+  ];
 }
 
 export default function useRevenueCogs() {
@@ -40,6 +71,8 @@ export default function useRevenueCogs() {
   const business_setup_output_contract = business_setup.output_contract ?? {};
 
   const [storage_loaded, setStorageLoaded] = useState(false);
+  const [last_manual_saved_at, setLastManualSavedAt] = useState("");
+  const [save_status_message, setSaveStatusMessage] = useState("");
 
   const [revenue_cogs_state, setRevenueCogsState] = useState(() =>
     getDefaultRevenueCogsState()
@@ -48,6 +81,7 @@ export default function useRevenueCogs() {
   useEffect(() => {
     const stored_state = loadRevenueCogsState();
     setRevenueCogsState(stored_state);
+    setLastManualSavedAt(stored_state.updated_at || "");
     setStorageLoaded(true);
   }, []);
 
@@ -60,16 +94,43 @@ export default function useRevenueCogs() {
   }, [revenue_cogs_state, storage_loaded]);
 
   function updateRevenueCogsField(field, value) {
+    if (field === "commercial_driver_mode") {
+      updateCommercialDriverMode(value);
+      return;
+    }
+
     setRevenueCogsState((previous) =>
       buildRevenueCogsState({
         ...previous,
-        [field]:
-          field === "commercial_driver_mode"
-            ? value
-            : toNumber(value),
+        [field]: toNumber(value),
         updated_at: new Date().toISOString(),
       })
     );
+    setSaveStatusMessage("");
+  }
+
+  function updateCommercialDriverMode(mode) {
+    setRevenueCogsState((previous) => {
+      const current_rows = Array.isArray(previous.unit_driver_rows)
+        ? previous.unit_driver_rows
+        : [];
+
+      const next_mode =
+        mode === "mixed_unit_based" ? "mixed_unit_based" : "unit_based";
+
+      const next_rows =
+        next_mode === "mixed_unit_based"
+          ? normaliseMixedUnitRows(current_rows)
+          : normaliseSingleUnitRows(current_rows);
+
+      return buildRevenueCogsState({
+        ...previous,
+        commercial_driver_mode: next_mode,
+        unit_driver_rows: next_rows,
+        updated_at: new Date().toISOString(),
+      });
+    });
+    setSaveStatusMessage("");
   }
 
   function updateUnitDriverRow(row_id, field, value) {
@@ -78,69 +139,91 @@ export default function useRevenueCogs() {
         ? previous.unit_driver_rows
         : [];
 
+      const is_single_mode = previous.commercial_driver_mode === "unit_based";
+
       const next_rows = current_rows.map((row) => {
         if (row.id !== row_id) {
           return row;
         }
 
-        return {
+        const next_row = {
           ...row,
           [field]:
             field === "unit_label" || field === "unit_type"
               ? value
               : toNumber(value),
         };
+
+        if (is_single_mode) {
+          next_row.revenue_share_percent = 100;
+        }
+
+        return next_row;
       });
 
       return buildRevenueCogsState({
         ...previous,
-        unit_driver_rows: next_rows,
+        unit_driver_rows: is_single_mode
+          ? normaliseSingleUnitRows(next_rows)
+          : next_rows,
         updated_at: new Date().toISOString(),
       });
     });
+    setSaveStatusMessage("");
   }
 
   function addUnitDriverRow() {
     setRevenueCogsState((previous) => {
-      const current_rows = Array.isArray(previous.unit_driver_rows)
-        ? previous.unit_driver_rows
-        : [];
+      const current_rows = normaliseMixedUnitRows(previous.unit_driver_rows);
 
       return buildRevenueCogsState({
         ...previous,
-        commercial_driver_mode:
-          current_rows.length >= 1
-            ? "mixed_unit_based"
-            : previous.commercial_driver_mode,
+        commercial_driver_mode: "mixed_unit_based",
         unit_driver_rows: [
           ...current_rows,
-          buildNewUnitDriverRow(current_rows.length),
+          buildNewUnitDriverRow(current_rows.length, 0),
         ],
         updated_at: new Date().toISOString(),
       });
     });
+    setSaveStatusMessage("");
   }
 
   function removeUnitDriverRow(row_id) {
     setRevenueCogsState((previous) => {
-      const current_rows = Array.isArray(previous.unit_driver_rows)
-        ? previous.unit_driver_rows
-        : [];
+      const current_rows = normaliseMixedUnitRows(previous.unit_driver_rows);
+
+      if (current_rows.length <= 2) {
+        return buildRevenueCogsState({
+          ...previous,
+          commercial_driver_mode: "mixed_unit_based",
+          unit_driver_rows: current_rows,
+          updated_at: new Date().toISOString(),
+        });
+      }
 
       const next_rows = current_rows.filter((row) => row.id !== row_id);
 
       return buildRevenueCogsState({
         ...previous,
-        commercial_driver_mode:
-          next_rows.length > 1
-            ? "mixed_unit_based"
-            : previous.commercial_driver_mode === "mixed_unit_based"
-              ? "unit_based"
-              : previous.commercial_driver_mode,
-        unit_driver_rows: next_rows.length > 0 ? next_rows : current_rows,
+        commercial_driver_mode: "mixed_unit_based",
+        unit_driver_rows: normaliseMixedUnitRows(next_rows),
         updated_at: new Date().toISOString(),
       });
     });
+    setSaveStatusMessage("");
+  }
+
+  function saveRevenueCogsPage() {
+    const saved_state = buildRevenueCogsState({
+      ...revenue_cogs_state,
+      updated_at: new Date().toISOString(),
+    });
+
+    saveRevenueCogsState(saved_state);
+    setRevenueCogsState(saved_state);
+    setLastManualSavedAt(saved_state.updated_at);
+    setSaveStatusMessage("Revenue / COGS saved locally.");
   }
 
   return useMemo(() => {
@@ -159,6 +242,13 @@ export default function useRevenueCogs() {
         : "unit_based"
       : "hours_based";
 
+    const resolved_unit_driver_rows =
+      resolved_commercial_driver_mode === "unit_based"
+        ? normaliseSingleUnitRows(revenue_cogs_state.unit_driver_rows)
+        : resolved_commercial_driver_mode === "mixed_unit_based"
+          ? normaliseMixedUnitRows(revenue_cogs_state.unit_driver_rows)
+          : revenue_cogs_state.unit_driver_rows;
+
     const calculations = calculateRevenueCogs({
       total_revenue: pnl_output_contract.total_revenue ?? 0,
       total_direct_costs: pnl_output_contract.total_direct_costs ?? 0,
@@ -166,7 +256,7 @@ export default function useRevenueCogs() {
       direct_cost_category_totals:
         pnl_output_contract.direct_cost_category_totals ?? [],
       commercial_driver_mode: resolved_commercial_driver_mode,
-      unit_driver_rows: revenue_cogs_state.unit_driver_rows,
+      unit_driver_rows: resolved_unit_driver_rows,
       units_sold_annual: revenue_cogs_state.units_sold_annual,
     });
 
@@ -189,7 +279,6 @@ export default function useRevenueCogs() {
       commercial_driver_mode: calculations.commercial_driver_mode,
       unit_driver_rows: calculations.unit_driver_rows,
       total_unit_revenue: calculations.total_unit_revenue,
-      total_unit_direct_cost: calculations.total_unit_direct_cost,
       total_unit_margin_pool: calculations.total_unit_margin_pool,
       total_derived_units_annual: calculations.total_derived_units_annual,
       primary_unit_label: calculations.primary_unit_label,
@@ -211,6 +300,8 @@ export default function useRevenueCogs() {
         business_type,
         is_product_based,
         is_labour_based,
+        last_manual_saved_at,
+        save_status_message,
       },
       card: {
         ...card,
@@ -224,10 +315,13 @@ export default function useRevenueCogs() {
       updateUnitDriverRow,
       addUnitDriverRow,
       removeUnitDriverRow,
+      saveRevenueCogsPage,
     };
   }, [
     pnl_output_contract,
     business_setup_output_contract,
     revenue_cogs_state,
+    last_manual_saved_at,
+    save_status_message,
   ]);
 }
