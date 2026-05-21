@@ -1,0 +1,263 @@
+BUILD BRIEF — NEXT PASS AFTER OPERATIONAL RECOVERY RATE BUILD-UP
+
+Objective
+
+Build the next Cost Allocation pass so the operational group recovery rate becomes clearer, more robust, and ready to feed the next layer.
+
+The current working result is:
+
+Operational group minimum recoverable rate =
+labour weighted recovery rate + asset hourly recovery rate
+
+Next we need to clean up how the user sees and manages this.
+
+
+BUILD TARGET
+
+Improve the Operational Recovery section so it becomes a proper review table for minimum recoverable group rates.
+
+
+REQUIRED OUTCOME
+
+For each operational group, display:
+
+- Group name
+- Selected staff / productive labour type
+- Selected assets
+- Labour recovery rate
+- Asset recovery rate
+- Minimum recoverable rate
+- Readiness status
+
+Example target layout:
+
+PC55
+
+Labour:
+Hayden / Productive — $63.42/hr
+
+Assets:
+PC55 — $6.74/hr
+
+Minimum recoverable rate:
+$70.16/hr
+
+Status:
+Ready
+
+
+CURRENT WORKING FORMULA
+
+minimum_recoverable_rate_per_hour =
+labour_recovery_rate_per_hour + asset_recovery_rate_per_hour
+
+Current confirmed result:
+
+PC55
+Labour $63.42/hr + Asset $6.74/hr = $70.16/hr
+
+
+FILES LIKELY INVOLVED
+
+- hooks/useCostAllocation.js
+- components/cost-allocation/CostAllocationEvidenceBreakdown.jsx
+- components/cost-allocation/CostAllocationGroupsCard.jsx
+
+Potentially later:
+
+- lib/calculations/costAllocationRules.js
+- lib/selectors/costAllocationSelectors.js
+
+
+BUILD STEP 1 — RENAME DISPLAY LANGUAGE
+
+Use user-facing language:
+
+Minimum recoverable rate
+
+instead of only:
+
+Operational group recovery rate
+
+Keep the internal value:
+
+minimum_recoverable_rate_per_hour
+
+Current output already includes this, so this is mainly display cleanup.
+
+
+BUILD STEP 2 — IMPROVE OPERATIONAL RECOVERY TABLE
+
+Current section works, but should be made easier to read.
+
+Replace compact rows with clearer blocks:
+
+Operational group: PC55
+
+Labour build-up
+- Hayden / Productive: $63.42/hr
+
+Asset build-up
+- PC55: $6.74/hr
+
+Minimum recoverable rate
+- $70.16/hr
+
+Add a summary at the top:
+
+Operational groups: 1
+Ready groups: 1
+Incomplete groups: 0
+Highest group rate: $70.16/hr
+
+
+BUILD STEP 3 — READINESS LOGIC
+
+Each group should expose:
+
+- is_rate_ready
+- has_labour_rate
+- has_asset_rate
+- minimum_recoverable_rate_per_hour
+
+Readiness rules:
+
+Ready:
+Has at least one labour rate or asset rate and total rate > 0.
+
+Incomplete:
+No labour and no asset rate.
+
+Labour missing:
+Asset exists but selected staff/labour rate missing.
+
+Asset missing:
+Labour exists but no asset selected.
+
+
+BUILD STEP 4 — PRODUCTIVE LABOUR TYPE SELECTION REFINEMENT
+
+Current Operational Groups still selects individual staff.
+
+This works, but the better model is to select:
+
+productive labour type
+
+rather than an individual person.
+
+Reason:
+
+The operational group needs a weighted labour type rate, not a specific person rate.
+
+Future target UI:
+
+Required labour type:
+Productive — $63.42/hr
+
+Required assets:
+PC55 — $6.74/hr
+
+This avoids confusion when multiple operators exist at different rates.
+
+
+BUILD STEP 5 — PRESERVE BACKWARD COMPATIBILITY
+
+Existing groups currently store:
+
+required_staff_ids
+required_asset_ids
+
+Do not break this.
+
+Future compatible structure should allow:
+
+required_labour_type_keys
+required_asset_ids
+
+For now, keep staff support and add labour type support later.
+
+
+BUILD STEP 6 — ADD / LOCK OPERATIONAL GROUP OUTPUT CONTRACT
+
+Cost Allocation output contract should expose:
+
+operational_group_recovery_rows
+
+Each row should include:
+
+{
+  group_id,
+  group_name,
+
+  selected_staff_count,
+  selected_asset_count,
+
+  staff_recovery_rows,
+  asset_recovery_rows,
+
+  labour_recovery_rate_per_hour,
+  asset_recovery_rate_per_hour,
+  minimum_recoverable_rate_per_hour,
+
+  has_labour_rate,
+  has_asset_rate,
+  is_rate_ready
+}
+
+This is already mostly implemented. Next pass should confirm and lock the shape.
+
+
+BUILD STEP 7 — FUTURE CONNECTION TO RECOVERY OUTCOME
+
+Do not build Recovery Outcome yet, but prepare for it.
+
+Recovery Outcome will eventually consume:
+
+- minimum_recoverable_rate_per_hour
+- required_recovery_rate
+- actual expected sales / charge-out rate
+
+Decision logic later:
+
+If proposed rate >= minimum recoverable rate:
+  structurally viable
+
+If proposed rate < minimum recoverable rate:
+  structurally not viable or requires adjustment
+
+
+GUARDRAILS
+
+Do not change Cost Summary.
+
+Do not change Recovery Summary maths.
+
+Do not push asset overhead pools back into Cost Summary.
+
+Do not turn Operational Recovery into pricing yet.
+
+Do not treat the minimum recoverable rate as sale price.
+
+It is a minimum structural recovery benchmark only.
+
+
+SUCCESS CRITERIA
+
+This next pass is successful when:
+
+1. Operational Recovery clearly shows each group’s labour + asset rate build-up.
+2. PC55 shows $63.42/hr + $6.74/hr = $70.16/hr.
+3. The table clearly labels $70.16/hr as the minimum recoverable rate.
+4. Missing labour or asset setup is clearly flagged.
+5. No Cost Summary values change.
+6. npm run build passes.
+
+Final expected page behaviour:
+
+Cost Allocation → Operational Recovery
+
+PC55
+Labour: Hayden / Productive $63.42/hr
+Asset: PC55 $6.74/hr
+Minimum recoverable rate: $70.16/hr
+Status: Ready

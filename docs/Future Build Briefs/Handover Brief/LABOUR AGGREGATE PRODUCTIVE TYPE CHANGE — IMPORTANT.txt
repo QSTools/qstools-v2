@@ -1,0 +1,141 @@
+LABOUR AGGREGATE PRODUCTIVE TYPE CHANGE — IMPORTANT
+
+A major Labour module change was completed before the Cost Allocation work.
+
+Purpose:
+
+Instead of Cost Allocation relying only on individual staff records, Labour now creates aggregate productive labour type rows.
+
+This was required for cases like multiple operators with different rates.
+
+Example:
+
+Operator A
+Operator B
+Operator C
+
+Instead of treating each operator separately, Labour can collapse them into one productive labour type:
+
+Productive / Operator
+
+This gives Cost Allocation one weighted rate to use for operational group modelling.
+
+New Labour output concepts added:
+
+- productive_labour_types
+- productive_labour_type_count
+- total_productive_labour_type_hours
+- total_productive_labour_type_cost
+
+Each productive labour type row includes:
+
+- labour_type_key
+- labour_type_label
+- labour_class
+- staff_role
+- staff_type
+- staff_count
+- total_productive_hours
+- total_labour_cost
+- weighted_recovery_rate
+- highest_recovery_rate
+
+Core formula:
+
+weighted_recovery_rate =
+total_labour_cost / total_productive_hours
+
+Reason this matters:
+
+If there are 4 operators at different pay rates, Cost Allocation should not guess which individual rate to use.
+
+It should use the aggregate productive labour type weighted rate.
+
+This creates a more defensible minimum recoverable operational group rate.
+
+Current confirmed example:
+
+Productive labour type:
+Productive
+
+Total productive hours:
+1,475.6
+
+Weighted recovery rate:
+$63.42/hr
+
+Highest recovery rate:
+$63.42/hr
+
+Cost Allocation now consumes:
+
+productive_labour_types
+→ weighted_recovery_rate
+
+Operational Group example:
+
+Hayden is selected as the staff member in the PC55 group.
+
+Cost Allocation maps Hayden back to the Productive labour type.
+
+Then it uses:
+
+Productive weighted recovery rate:
+$63.42/hr
+
+not an individual manually entered group rate.
+
+Fallback rule added in Cost Allocation:
+
+If selected staff does not directly match a productive labour type, and there is only one productive labour type, use that productive labour type.
+
+This was necessary because the current group UI still selects individual staff, but the intended model is aggregate productive labour type recovery.
+
+Current working result:
+
+Hayden
+→ Productive labour type
+→ $63.42/hr
+
+PC55 asset
+→ $6.74/hr
+
+Minimum recoverable rate:
+$63.42/hr + $6.74/hr = $70.16/hr
+
+Important architectural rule:
+
+Labour owns the aggregate labour type calculation.
+
+Cost Allocation does not recalculate labour cost from raw staff wages.
+
+Cost Allocation only consumes Labour’s productive_labour_types output.
+
+Future improvement:
+
+Operational Groups should eventually select productive labour type directly instead of individual staff.
+
+Future field:
+
+required_labour_type_keys
+
+Existing field to preserve:
+
+required_staff_ids
+
+Reason:
+
+The operational group needs the weighted labour type recovery rate, not a specific person rate.
+
+This will be especially important where several operators exist with different rates.
+
+Example future UI:
+
+Required labour type:
+Operator / Productive — $63.42/hr
+
+Required assets:
+PC55 — $6.74/hr
+
+Minimum recoverable group rate:
+$70.16/hr

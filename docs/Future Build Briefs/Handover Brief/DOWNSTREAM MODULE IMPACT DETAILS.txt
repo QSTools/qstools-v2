@@ -1,0 +1,283 @@
+DOWNSTREAM MODULE IMPACT DETAILS
+
+This integration changed the downstream data flow across General Overheads, Assets, Cost Allocation, and future Recovery Outcome readiness.
+
+1. General Overheads downstream impact
+
+General Overheads now has two roles:
+
+A. It still contributes to the business cost burden through the normal overhead output.
+B. It now also identifies portions of overhead that should be available as asset recovery modelling pools.
+
+Important separation:
+
+General Overheads total remains part of the normal business overhead structure.
+
+Asset-related allocation values are modelling allocations only.
+
+These allocations do not reduce or increase the P&L total.
+
+These allocations do not change Cost Summary.
+
+They create downstream asset pool values for Assets and Cost Allocation.
+
+New downstream output concepts from General Overheads:
+
+- asset_overhead_pools
+- total_asset_overhead_pool_amount
+- unallocated_overhead_lines
+- unallocated_overhead_amount
+- allocation_pool_warnings
+- allocation_pool_summaries
+
+These are consumed downstream by Assets.
+
+2. Assets downstream impact
+
+Assets now consumes the asset overhead pools from General Overheads.
+
+Each asset can be assigned a portion of the available asset overhead pools.
+
+This created a second asset cost concept.
+
+Existing asset cost:
+
+total_asset_cost_annual
+
+This remains the base annual asset ownership / finance cost used by Cost Summary.
+
+New recovery asset cost:
+
+asset_recovery_cost_annual
+
+This is used by Cost Allocation.
+
+Formula:
+
+asset_recovery_cost_annual =
+total_asset_cost_annual + allocated_asset_overhead_cost_annual
+
+Assets now exposes recovery modelling values downstream:
+
+- allocated_asset_overhead_cost_annual
+- asset_recovery_cost_annual
+- asset_overhead_pool_assignments
+- total_allocated_asset_overhead_cost_annual
+- total_asset_recovery_cost_annual
+
+Important rule:
+
+Cost Summary must continue to use total_asset_cost_annual only.
+
+Cost Allocation should use asset_recovery_cost_annual.
+
+3. Cost Summary downstream impact
+
+Cost Summary should not change because of this pass.
+
+Cost Summary remains protected from asset pool allocations.
+
+The assigned asset overhead pools are not pushed back into Cost Summary.
+
+This avoids double counting overheads.
+
+Cost Summary continues to read:
+
+total_asset_cost_annual
+
+It should not read:
+
+asset_recovery_cost_annual
+
+Reason:
+
+asset_recovery_cost_annual includes assigned overhead pool values and is only for recovery allocation modelling.
+
+4. Recovery Summary downstream impact
+
+Recovery Summary maths was not changed in this pass.
+
+Recovery Summary still provides the recovery model, recovery split, and recovery hours used.
+
+Cost Allocation now uses Recovery Summary’s recovery_hours_used as the default divisor for asset hourly recovery rates.
+
+Formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / recovery_hours_used
+
+No asset utilisation input was added in Assets yet.
+
+The current decision was to use the existing Labour / Recovery Summary recovery hours as the default utilisation base.
+
+5. Cost Allocation downstream impact
+
+Cost Allocation now consumes:
+
+From Labour:
+
+- productive_labour_types
+- weighted_recovery_rate
+- highest_recovery_rate
+- total_productive_hours
+
+From Assets:
+
+- active_assets
+- total_asset_cost_annual
+- allocated_asset_overhead_cost_annual
+- asset_recovery_cost_annual
+
+From Recovery Summary:
+
+- recovery_hours_used
+- recovery_plan_split
+- component_required_recovery
+- active_recovery_model
+
+Cost Allocation now calculates:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / recovery_hours_used
+
+Operational group minimum recoverable rate:
+
+minimum_recoverable_rate_per_hour =
+labour_recovery_rate_per_hour + asset_recovery_rate_per_hour
+
+New Cost Allocation sections added:
+
+- Asset Recovery
+- Operational Recovery
+
+Asset Recovery shows:
+
+- productive assets
+- support assets
+- base asset cost
+- assigned overhead pools
+- total asset recovery cost
+- per-asset recovery cost
+- per-asset hourly recovery rate
+
+Operational Recovery shows:
+
+- productive labour type rate
+- selected group staff
+- selected group assets
+- labour hourly rate
+- asset hourly rate
+- minimum recoverable operational group rate
+
+6. Operational Groups downstream impact
+
+Operational Groups now stores selected assets and selected staff clearly.
+
+Current storage fields:
+
+- required_asset_ids
+- required_staff_ids
+
+The UI was changed so staff selection is added immediately when selected, rather than requiring a separate Add Staff button.
+
+This fixed the issue where the dropdown looked selected but the group still had zero staff.
+
+Operational Groups now drives the Operational Recovery table.
+
+Each group maps:
+
+required_staff_ids
+→ active staff rows
+→ productive labour type
+→ weighted labour recovery rate
+
+required_asset_ids
+→ active asset rows
+→ asset recovery rate per hour
+
+Then:
+
+labour rate + asset rate = minimum recoverable rate
+
+7. Labour downstream impact
+
+Labour was already updated earlier to expose productive labour type rows.
+
+Current Labour downstream output used by Cost Allocation:
+
+- productive_labour_types
+- productive_labour_type_count
+- total_productive_labour_type_hours
+- total_productive_labour_type_cost
+- weighted_recovery_rate
+- highest_recovery_rate
+
+Cost Allocation currently maps selected staff back to the matching productive labour type.
+
+Fallback rule added:
+
+If selected staff does not directly match a productive labour type, and there is only one productive labour type, use that one.
+
+This allowed Hayden to resolve to the Productive labour type rate of $63.42/hr.
+
+8. Recovery Outcome future downstream impact
+
+Recovery Outcome has not been changed yet.
+
+However, this pass prepares the value it will eventually need:
+
+minimum_recoverable_rate_per_hour
+
+Future Recovery Outcome can compare:
+
+minimum_recoverable_rate_per_hour
+against
+quoted / proposed / actual charge-out or recovery rate
+
+Future decision logic:
+
+If proposed rate >= minimum recoverable rate:
+  operational structure is recoverable.
+
+If proposed rate < minimum recoverable rate:
+  operational structure is under-recovering.
+
+Important guardrail:
+
+Minimum recoverable rate is not a sale price.
+
+It is a structural recovery benchmark.
+
+9. Quote Checker / future pricing downstream impact
+
+This pass does not build Quote Checker.
+
+But it prepares a future benchmark that Quote Checker can use.
+
+Future Quote Checker could compare a quoted task rate against:
+
+- labour-only minimum recoverable rate
+- asset-only recovery rate
+- combined operational group minimum recoverable rate
+- required business recovery rate
+- material margin recovery where relevant
+
+This makes the operational group rate a future bridge between business model recovery and quote-level pricing checks.
+
+10. Reporting / diagnostic downstream impact
+
+The new data can support future reporting tables:
+
+- asset recovery by asset
+- asset overhead assigned by pool
+- unassigned overhead pool amounts
+- operational group minimum recovery rate
+- labour component of group rate
+- asset component of group rate
+- support asset burden
+- productive asset recovery base
+- groups missing labour
+- groups missing assets
+- groups not rate-ready
+
+These are diagnostic / modelling outputs only at this stage.

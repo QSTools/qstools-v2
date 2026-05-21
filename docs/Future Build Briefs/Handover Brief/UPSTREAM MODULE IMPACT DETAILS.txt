@@ -1,0 +1,368 @@
+UPSTREAM MODULE IMPACT DETAILS
+
+This integration also affected how upstream module outputs are interpreted and consumed downstream.
+
+The key point is:
+
+Upstream modules still own their own calculations.
+Cost Allocation now consumes more of their output contracts, but it must not rebuild their core maths.
+
+1. Labour upstream impact
+
+Labour had already been updated to expose a productive labour type summary.
+
+This upstream output is now actively consumed by Cost Allocation.
+
+Labour output used:
+
+- productive_labour_types
+- productive_labour_type_count
+- total_productive_labour_type_hours
+- total_productive_labour_type_cost
+- weighted_recovery_rate
+- highest_recovery_rate
+
+Labour ownership rule:
+
+Labour owns the calculation of productive labour type cost and weighted recovery rate.
+
+Cost Allocation does not calculate the labour rate from wages again.
+
+Cost Allocation only consumes the Labour output.
+
+Current working example:
+
+Productive labour type:
+Productive
+
+Weighted recovery rate:
+$63.42/hr
+
+This is now used in Operational Recovery.
+
+2. Labour matching impact
+
+Operational Groups still select individual staff records at this stage.
+
+Cost Allocation maps selected staff back to Labour’s productive labour type.
+
+Current mapping logic:
+
+required_staff_ids
+→ active staff
+→ staff role / type / labour class
+→ productive_labour_types
+→ weighted_recovery_rate
+
+Fallback rule added:
+
+If a selected staff member does not directly match a productive labour type, and there is only one productive labour type, Cost Allocation uses that productive labour type.
+
+This was required to make Hayden resolve correctly to the Productive labour type rate.
+
+Current confirmed result:
+
+Hayden
+→ Productive labour type
+→ $63.42/hr
+
+Future improvement:
+
+Operational Groups should eventually select productive labour type directly instead of individual staff.
+
+Target future field:
+
+required_labour_type_keys
+
+Existing field to preserve:
+
+required_staff_ids
+
+3. Assets upstream impact
+
+Assets now consumes General Overheads asset pools.
+
+This means Assets has a new modelling role:
+
+It still owns base asset cost.
+It now also owns assigned asset overhead pool amounts.
+
+Asset output used by Cost Allocation:
+
+- active_assets
+- total_asset_cost_annual
+- allocated_asset_overhead_cost_annual
+- asset_recovery_cost_annual
+- asset_overhead_pool_assignments
+
+Asset ownership rule:
+
+Assets owns the assignment of asset overhead pools to specific assets.
+
+Cost Allocation does not assign asset overhead pools.
+
+Cost Allocation only consumes the asset recovery values.
+
+Important separation:
+
+total_asset_cost_annual
+= base asset cost used by Cost Summary
+
+asset_recovery_cost_annual
+= base asset cost + assigned overhead pools used by Cost Allocation
+
+Current working example:
+
+PC55
+
+Base asset cost:
+$4,451
+
+Assigned overhead pools:
+$5,500
+
+Asset recovery cost annual:
+$9,951
+
+4. Assets hourly conversion impact
+
+No new utilisation input was added to Assets in this pass.
+
+The asset hourly recovery rate is currently calculated inside Cost Allocation using Recovery Summary recovery hours.
+
+Formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / recovery_hours_used
+
+Current working example:
+
+PC55 annual recovery cost:
+$9,951
+
+Recovery hours used:
+1,475.6
+
+PC55 hourly asset recovery:
+$6.74/hr
+
+Future improvement:
+
+Assets may later own productive_asset_hours_annual per asset.
+
+If that is added later, Cost Allocation should use:
+
+asset_recovery_cost_annual / productive_asset_hours_annual
+
+with fallback to:
+
+asset_recovery_cost_annual / recovery_hours_used
+
+But this was intentionally not added yet.
+
+5. General Overheads upstream impact
+
+General Overheads now has new modelling outputs for asset-related pools.
+
+General Overheads still owns the source overhead rows and category/system allocation review.
+
+New or active General Overheads output concepts:
+
+- asset_overhead_pools
+- total_asset_overhead_pool_amount
+- unallocated_overhead_lines
+- unallocated_overhead_amount
+- allocation_pool_warnings
+- allocation_pool_summaries
+
+General Overheads ownership rule:
+
+General Overheads owns identifying which overhead costs are business overheads and which portions should be available as asset-related pools.
+
+Assets consumes those pools and assigns them to assets.
+
+Cost Allocation consumes the resulting asset recovery cost from Assets.
+
+General Overheads should not directly feed asset recovery rates into Cost Allocation.
+
+6. General Overheads source total protection
+
+A key fix was made to prevent allocation inputs from changing the original overhead source amount.
+
+The correct behaviour is:
+
+Original P&L / overhead amount remains intact.
+Assigned asset pool amount is a modelling allocation.
+Remaining amount stays as general overhead or unassigned.
+Cost Summary total is not changed.
+
+This prevents over/under allocation from corrupting business cost totals.
+
+7. P&L upstream impact
+
+P&L itself was not directly changed in this pass.
+
+However, General Overheads continues to sync from P&L operating cost rows.
+
+The relevant upstream flow remains:
+
+P&L
+→ General Overheads
+→ overhead category/system allocation review
+→ asset-related overhead pools
+→ Assets
+→ Cost Allocation
+
+Important rule:
+
+P&L totals are not rewritten by asset pool assignments.
+
+8. Cost Summary upstream impact
+
+Cost Summary was intentionally protected.
+
+No Cost Summary maths should change from this pass.
+
+Cost Summary continues to consume:
+
+From Assets:
+total_asset_cost_annual
+
+From General Overheads:
+total_general_overheads
+
+Cost Summary must not consume:
+
+asset_recovery_cost_annual
+allocated_asset_overhead_cost_annual
+asset_overhead_pool_assignments
+operational_group_recovery_rows
+minimum_recoverable_rate_per_hour
+
+Reason:
+
+Cost Summary defines WHAT the business costs.
+
+Cost Allocation defines CAN the recovery structure support delivery.
+
+The assigned asset pool values are downstream modelling allocations only and must not change the baseline cost burden.
+
+9. Recovery Summary upstream impact
+
+Recovery Summary was not changed.
+
+It still consumes Cost Summary outputs and defines:
+
+- active_recovery_model
+- recovery_plan_split
+- labour_recovery_cost
+- asset_recovery_cost
+- overhead_absorbed_cost
+- recovery_hours_used
+- required_recovery_rate
+
+Cost Allocation now relies on Recovery Summary for:
+
+recovery_hours_used
+
+This is used as the default divisor for asset hourly recovery rates.
+
+Important rule:
+
+Recovery Summary owns recovery strategy.
+Cost Allocation does not change recovery shares.
+
+10. Cost Allocation input contract impact
+
+Cost Allocation now depends on these upstream outputs being present:
+
+From Labour:
+
+productive_labour_types
+active_staff
+
+From Assets:
+
+active_assets
+asset_recovery_cost_annual
+allocated_asset_overhead_cost_annual
+total_asset_cost_annual
+
+From General Overheads indirectly through Assets:
+
+asset_overhead_pools
+
+From Recovery Summary:
+
+recovery_hours_used
+active_recovery_model
+component_required_recovery
+recovery_plan_split
+
+From Cost Allocation storage:
+
+required_staff_ids
+required_asset_ids
+operational_groups
+
+11. Upstream contract guardrails
+
+Do not move calculations upstream or downstream incorrectly.
+
+Labour owns:
+- labour rates
+- productive labour type grouping
+- weighted recovery rate
+
+Assets owns:
+- asset records
+- base asset cost
+- assigned asset overhead pool amounts
+- asset_recovery_cost_annual
+
+General Overheads owns:
+- overhead source rows
+- category/system allocation review
+- asset overhead pool availability
+
+Cost Summary owns:
+- total business cost burden
+- required recovery baseline
+
+Recovery Summary owns:
+- recovery model
+- recovery share strategy
+- recovery hours used
+
+Cost Allocation owns:
+- structure
+- links
+- operational groups
+- asset hourly recovery rate using current default recovery hours
+- minimum recoverable operational group rate
+
+12. Current confirmed upstream-to-downstream result
+
+The current full upstream-to-downstream chain is:
+
+Labour:
+Productive weighted rate = $63.42/hr
+
+General Overheads:
+Asset-related pools assigned into Assets
+
+Assets:
+PC55 asset recovery cost annual = $9,951
+
+Recovery Summary:
+Recovery hours used = 1,475.6
+
+Cost Allocation:
+PC55 asset hourly rate = $9,951 / 1,475.6 = $6.74/hr
+
+Operational Group:
+Hayden/Productive labour $63.42/hr
++
+PC55 asset $6.74/hr
+=
+Minimum recoverable rate $70.16/hr

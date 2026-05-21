@@ -1,0 +1,1050 @@
+ADDITIONAL IMPORTANT DETAILS — GENERAL OVERHEADS, ASSETS, AND DOUBLE-COUNTING GUARDRAILS
+
+1. General Overheads now has two separate purposes
+
+General Overheads still performs its original role:
+
+- classify overhead costs
+- sync from P&L where applicable
+- contribute to total general overheads
+- feed Cost Summary through the normal general overhead total
+
+But it now also has a second modelling role:
+
+- identify portions of overhead that are asset-related
+- make those portions available as asset overhead pools
+- allow those pools to be assigned later to assets
+
+This second role is for downstream recovery modelling only.
+
+It must not change the original overhead baseline.
+
+
+2. General Overheads system allocation types were expanded
+
+General Overheads now supports system allocation types such as:
+
+- business_overhead
+- asset_related_fuel_pool
+- asset_related_insurance_pool
+- asset_related_repairs_maintenance_pool
+- asset_related_registration_compliance_pool
+- asset_related_consumables_pool
+- asset_finance_interest
+- staff_overhead
+- premises_overhead
+- sales_overhead
+- unallocated_needs_review
+
+These system allocation types tell the system how each overhead line should behave downstream.
+
+Important distinction:
+
+Category = where the cost belongs for review/display.
+System allocation type = how the cost should be used downstream.
+
+Example:
+
+An insurance line may sit in Insurance / Compliance as a category, but the user can allocate part of it to asset_related_insurance_pool for asset recovery modelling.
+
+
+3. General Overheads allocation amount does not alter the source amount
+
+A key fix was made after the allocation logic became too complex.
+
+The correct rule is now:
+
+- the source overhead line remains unchanged
+- the user enters one allocation value
+- that value becomes the asset pool amount
+- the remaining amount stays in the original/general overhead bucket
+
+Example:
+
+Insurance source line:
+$10,000
+
+Asset insurance allocation:
+$3,000
+
+Remaining business insurance/general overhead:
+$7,000
+
+The $10,000 source total is not overwritten.
+
+This fixed the earlier issue where editing an allocation value changed the top-line amount or flipped the row into the wrong category.
+
+
+4. General Overheads asset pool outputs
+
+General Overheads now produces asset-related pool outputs.
+
+Important output concepts:
+
+- asset_overhead_pools
+- total_asset_overhead_pool_amount
+- allocation_pool_summaries
+- allocation_pool_warnings
+- unallocated_overhead_lines
+- unallocated_overhead_amount
+
+Asset pool examples:
+
+- asset_fuel_pool
+- asset_insurance_pool
+- asset_repairs_maintenance_pool
+- asset_registration_compliance_pool
+- asset_consumables_pool
+- asset_finance_interest_pool
+
+These pools flow to Assets.
+
+They do not flow directly to Cost Summary.
+
+They do not directly set Cost Allocation rates.
+
+Assets must assign them first.
+
+
+5. Asset Insurance was added as its own pool concept
+
+We identified that the existing insurance categories were mainly business operating insurances, such as:
+
+- Public Liability Insurance
+- Professional Indemnity Insurance
+- Insurance / Compliance
+
+But asset-related insurance needed to be separated.
+
+Therefore, Asset Insurance was added as an asset-related pool so that vehicle/plant insurance can be assigned to assets.
+
+This matters because:
+
+- public liability should remain business overhead
+- professional indemnity should remain business overhead
+- plant/vehicle insurance can support asset recovery modelling
+
+This avoids mixing business insurance with asset ownership/recovery cost.
+
+
+6. Fuel, repairs, maintenance, registration, and consumables are treated as asset pools
+
+The system now supports rough allocation of asset-related running costs from General Overheads into asset pools.
+
+Relevant pool types:
+
+- fuel
+- repairs / maintenance
+- registration / compliance
+- consumables
+- insurance
+
+This solves the earlier problem where those costs may exist in P&L or General Overheads as aggregate amounts, but the system needs a way to assign the asset-related portion to productive/support assets.
+
+The allocation does not need to be perfect.
+
+It provides a controlled modelling layer.
+
+
+7. Assets now consumes General Overheads pools
+
+Assets now reads the asset_overhead_pools output from General Overheads.
+
+The user can assign available pool values to individual assets.
+
+Example:
+
+Available asset insurance pool:
+$5,500
+
+Assign to PC55:
+$5,500
+
+PC55 now carries that assigned amount as an asset recovery modelling value.
+
+This is done in Assets because Assets owns individual asset records.
+
+
+8. Assets now has base cost and recovery cost separation
+
+This is one of the most important architectural changes.
+
+There are now two separate asset cost concepts:
+
+A. Base asset cost
+
+total_asset_cost_annual
+
+This is the asset’s core ownership/finance cost.
+
+This remains the value for Cost Summary.
+
+B. Recovery asset cost
+
+asset_recovery_cost_annual
+
+This is the asset’s base cost plus assigned asset overhead pools.
+
+Formula:
+
+asset_recovery_cost_annual =
+total_asset_cost_annual + allocated_asset_overhead_cost_annual
+
+This is the value for Cost Allocation.
+
+Example:
+
+PC55 base asset cost:
+$4,451
+
+Assigned asset overhead pools:
+$5,500
+
+PC55 asset recovery cost annual:
+$9,951
+
+
+9. Assets output contract was expanded
+
+Assets now exposes additional recovery modelling fields.
+
+Important fields:
+
+- allocated_asset_overhead_cost_annual
+- asset_recovery_cost_annual
+- asset_overhead_pool_assignments
+- total_allocated_asset_overhead_cost_annual
+- total_asset_recovery_cost_annual
+
+Asset records now carry enough information for Cost Allocation to calculate an hourly asset recovery rate.
+
+
+10. Cost Summary must not consume asset_recovery_cost_annual
+
+This is a critical double-counting guardrail.
+
+Cost Summary must continue to use:
+
+total_asset_cost_annual
+
+Cost Summary must not use:
+
+asset_recovery_cost_annual
+allocated_asset_overhead_cost_annual
+asset_overhead_pool_assignments
+
+Reason:
+
+The assigned overhead pool values already exist in the business overhead cost base.
+
+If Cost Summary added them again through Assets, it would double count.
+
+Correct separation:
+
+Cost Summary = total cost burden
+Cost Allocation = recovery modelling / delivery structure
+
+So asset_recovery_cost_annual is intentionally downstream-only.
+
+
+11. Cost Allocation uses asset_recovery_cost_annual
+
+Cost Allocation now uses:
+
+asset_recovery_cost_annual
+
+with fallback to:
+
+total_asset_cost_annual
+
+This allows Cost Allocation to test whether the operational structure can recover the true asset burden once asset-related overhead pools are assigned.
+
+This is why PC55 can now show:
+
+Base asset cost:
+$4,451
+
+Assigned pools:
+$5,500
+
+Annual asset recovery:
+$9,951
+
+
+12. Asset hourly rate is calculated in Cost Allocation for now
+
+We discussed whether asset utilisation should live in Assets.
+
+The decision for this pass was:
+
+Do not add a new asset utilisation input yet.
+
+Instead, Cost Allocation calculates the hourly asset recovery rate using the existing recovery hours from Recovery Summary.
+
+Formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / recovery_hours_used
+
+Current example:
+
+PC55 annual recovery cost:
+$9,951
+
+Recovery hours used:
+1,475.6
+
+PC55 hourly recovery rate:
+$6.74/hr
+
+This is a good default because it aligns the asset hourly recovery rate to the same productive recovery base already used by Labour.
+
+
+13. Future asset utilisation improvement
+
+A future pass may add per-asset utilisation.
+
+Potential future field:
+
+productive_asset_hours_annual
+
+Future formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / productive_asset_hours_annual
+
+Fallback rule:
+
+If productive_asset_hours_annual is blank or zero:
+  use recovery_hours_used from Recovery Summary
+
+This was intentionally not built yet to avoid complicating Assets before the Cost Allocation chain was proven.
+
+
+14. Support assets remain visible but do not create productive capacity
+
+Assets can be either:
+
+- productive
+- support
+
+Productive assets can support operational recovery.
+
+Support assets remain visible as cost burden/context.
+
+Current Cost Allocation displays both, but productive asset recovery base should only rely on productive assets.
+
+Important:
+
+Support asset costs may still matter commercially, but they should not automatically create productive delivery capacity.
+
+
+15. Asset Recovery section was added in Cost Allocation
+
+Cost Allocation now has an Asset Recovery section.
+
+It shows:
+
+- productive asset count
+- support asset count
+- base asset cost
+- assigned overhead pools
+- total asset recovery cost
+- per-asset annual recovery cost
+- per-asset hourly recovery rate
+
+This section proves that the asset recovery value being used downstream is visible and explainable.
+
+
+16. Operational Recovery section was added in Cost Allocation
+
+Cost Allocation now has an Operational Recovery section.
+
+It combines:
+
+- Labour productive type weighted rate
+- Asset hourly recovery rate
+
+Formula:
+
+minimum_recoverable_rate_per_hour =
+labour_recovery_rate_per_hour + asset_recovery_rate_per_hour
+
+Confirmed example:
+
+Hayden / Productive labour:
+$63.42/hr
+
+PC55 asset:
+$6.74/hr
+
+Minimum recoverable operational group rate:
+$70.16/hr
+
+
+17. Operational Groups now connect structure to rate build-up
+
+Operational Groups were previously only structural validation.
+
+They now also support a rate build-up.
+
+Current group storage:
+
+- required_staff_ids
+- required_asset_ids
+
+The group maps selected staff and selected assets into:
+
+- staff_recovery_rows
+- asset_recovery_rows
+- labour_recovery_rate_per_hour
+- asset_recovery_rate_per_hour
+- minimum_recoverable_rate_per_hour
+
+This turns the operational group into a macro delivery unit.
+
+
+18. Staff selection UX was fixed
+
+Previously, selecting a staff member in the dropdown did not save them until the Add Staff button was clicked.
+
+This caused confusion because the UI looked like a staff member was selected, but the group still showed:
+
+Required staff selected: 0
+
+The UI was changed so staff is added immediately when selected.
+
+This fixed the operational recovery row showing:
+
+Staff 0 · Assets 1
+
+when it should have shown:
+
+Staff 1 · Assets 1
+
+
+19. Labour matching fallback was added
+
+The selected staff row did not directly match the aggregate productive labour type.
+
+To make the system work with the current UI, a fallback was added:
+
+If selected staff does not directly match a productive labour type, and there is only one productive labour type, use that productive labour type.
+
+This allowed:
+
+Hayden
+→ Productive labour type
+→ $63.42/hr
+
+This is important because the long-term model should select productive labour type directly, but the current UI still selects staff.
+
+
+20. Important future UI direction
+
+Operational Groups should eventually change from selecting individual staff to selecting productive labour type.
+
+Future field:
+
+required_labour_type_keys
+
+Current field to preserve:
+
+required_staff_ids
+
+Reason:
+
+The rate belongs to the productive labour type aggregate, not necessarily to one individual staff member.
+
+This is especially important when there are multiple operators with different costs.
+
+Example future UI:
+
+Required labour type:
+Operator / Productive — $63.42/hr
+
+Required assets:
+PC55 — $6.74/hr
+
+Minimum recoverable rate:
+$70.16/hr
+
+
+21. Current confirmed full chain
+
+General Overheads:
+Asset-related pools are identified.
+
+Assets:
+PC55 receives assigned asset overhead pools.
+PC55 asset recovery annual cost = $9,951.
+
+Recovery Summary:
+Recovery hours used = 1,475.6.
+
+Cost Allocation:
+PC55 hourly asset recovery = $9,951 / 1,475.6 = $6.74/hr.
+
+Labour:
+Productive labour weighted rate = $63.42/hr.
+
+Operational Group:
+Hayden/Productive + PC55 =
+$63.42/hr + $6.74/hr =
+$70.16/hr minimum recoverable rate.
+
+
+22. Critical guardrail summary
+
+Do not change Cost Summary with this data.
+
+Do not treat asset_recovery_cost_annual as a business cost total.
+
+Do not push assigned asset overhead pools back upstream.
+
+Do not treat minimum_recoverable_rate_per_hour as a sale price.
+
+It is a structural recovery benchmark only.
+
+The correct ownership remains:
+
+General Overheads:
+Defines available asset-related overhead pools.
+
+Assets:
+Assigns pools to assets and creates asset_recovery_cost_annual.
+
+Recovery Summary:
+Defines recovery strategy and recovery hours.
+
+Cost Allocation:
+Converts annual recovery values into hourly operational recovery rates.
+
+Recovery Outcome:
+Will later decide whether the strategy/structure is viable.
+
+
+ADDITIONAL IMPORTANT DETAILS — GENERAL OVERHEADS, ASSETS, AND DOUBLE-COUNTING GUARDRAILS
+
+1. General Overheads now has two separate purposes
+
+General Overheads still performs its original role:
+
+- classify overhead costs
+- sync from P&L where applicable
+- contribute to total general overheads
+- feed Cost Summary through the normal general overhead total
+
+But it now also has a second modelling role:
+
+- identify portions of overhead that are asset-related
+- make those portions available as asset overhead pools
+- allow those pools to be assigned later to assets
+
+This second role is for downstream recovery modelling only.
+
+It must not change the original overhead baseline.
+
+
+2. General Overheads system allocation types were expanded
+
+General Overheads now supports system allocation types such as:
+
+- business_overhead
+- asset_related_fuel_pool
+- asset_related_insurance_pool
+- asset_related_repairs_maintenance_pool
+- asset_related_registration_compliance_pool
+- asset_related_consumables_pool
+- asset_finance_interest
+- staff_overhead
+- premises_overhead
+- sales_overhead
+- unallocated_needs_review
+
+These system allocation types tell the system how each overhead line should behave downstream.
+
+Important distinction:
+
+Category = where the cost belongs for review/display.
+System allocation type = how the cost should be used downstream.
+
+Example:
+
+An insurance line may sit in Insurance / Compliance as a category, but the user can allocate part of it to asset_related_insurance_pool for asset recovery modelling.
+
+
+3. General Overheads allocation amount does not alter the source amount
+
+A key fix was made after the allocation logic became too complex.
+
+The correct rule is now:
+
+- the source overhead line remains unchanged
+- the user enters one allocation value
+- that value becomes the asset pool amount
+- the remaining amount stays in the original/general overhead bucket
+
+Example:
+
+Insurance source line:
+$10,000
+
+Asset insurance allocation:
+$3,000
+
+Remaining business insurance/general overhead:
+$7,000
+
+The $10,000 source total is not overwritten.
+
+This fixed the earlier issue where editing an allocation value changed the top-line amount or flipped the row into the wrong category.
+
+
+4. General Overheads asset pool outputs
+
+General Overheads now produces asset-related pool outputs.
+
+Important output concepts:
+
+- asset_overhead_pools
+- total_asset_overhead_pool_amount
+- allocation_pool_summaries
+- allocation_pool_warnings
+- unallocated_overhead_lines
+- unallocated_overhead_amount
+
+Asset pool examples:
+
+- asset_fuel_pool
+- asset_insurance_pool
+- asset_repairs_maintenance_pool
+- asset_registration_compliance_pool
+- asset_consumables_pool
+- asset_finance_interest_pool
+
+These pools flow to Assets.
+
+They do not flow directly to Cost Summary.
+
+They do not directly set Cost Allocation rates.
+
+Assets must assign them first.
+
+
+5. Asset Insurance was added as its own pool concept
+
+We identified that the existing insurance categories were mainly business operating insurances, such as:
+
+- Public Liability Insurance
+- Professional Indemnity Insurance
+- Insurance / Compliance
+
+But asset-related insurance needed to be separated.
+
+Therefore, Asset Insurance was added as an asset-related pool so that vehicle/plant insurance can be assigned to assets.
+
+This matters because:
+
+- public liability should remain business overhead
+- professional indemnity should remain business overhead
+- plant/vehicle insurance can support asset recovery modelling
+
+This avoids mixing business insurance with asset ownership/recovery cost.
+
+
+6. Fuel, repairs, maintenance, registration, and consumables are treated as asset pools
+
+The system now supports rough allocation of asset-related running costs from General Overheads into asset pools.
+
+Relevant pool types:
+
+- fuel
+- repairs / maintenance
+- registration / compliance
+- consumables
+- insurance
+
+This solves the earlier problem where those costs may exist in P&L or General Overheads as aggregate amounts, but the system needs a way to assign the asset-related portion to productive/support assets.
+
+The allocation does not need to be perfect.
+
+It provides a controlled modelling layer.
+
+
+7. Assets now consumes General Overheads pools
+
+Assets now reads the asset_overhead_pools output from General Overheads.
+
+The user can assign available pool values to individual assets.
+
+Example:
+
+Available asset insurance pool:
+$5,500
+
+Assign to PC55:
+$5,500
+
+PC55 now carries that assigned amount as an asset recovery modelling value.
+
+This is done in Assets because Assets owns individual asset records.
+
+
+8. Assets now has base cost and recovery cost separation
+
+This is one of the most important architectural changes.
+
+There are now two separate asset cost concepts:
+
+A. Base asset cost
+
+total_asset_cost_annual
+
+This is the asset’s core ownership/finance cost.
+
+This remains the value for Cost Summary.
+
+B. Recovery asset cost
+
+asset_recovery_cost_annual
+
+This is the asset’s base cost plus assigned asset overhead pools.
+
+Formula:
+
+asset_recovery_cost_annual =
+total_asset_cost_annual + allocated_asset_overhead_cost_annual
+
+This is the value for Cost Allocation.
+
+Example:
+
+PC55 base asset cost:
+$4,451
+
+Assigned asset overhead pools:
+$5,500
+
+PC55 asset recovery cost annual:
+$9,951
+
+
+9. Assets output contract was expanded
+
+Assets now exposes additional recovery modelling fields.
+
+Important fields:
+
+- allocated_asset_overhead_cost_annual
+- asset_recovery_cost_annual
+- asset_overhead_pool_assignments
+- total_allocated_asset_overhead_cost_annual
+- total_asset_recovery_cost_annual
+
+Asset records now carry enough information for Cost Allocation to calculate an hourly asset recovery rate.
+
+
+10. Cost Summary must not consume asset_recovery_cost_annual
+
+This is a critical double-counting guardrail.
+
+Cost Summary must continue to use:
+
+total_asset_cost_annual
+
+Cost Summary must not use:
+
+asset_recovery_cost_annual
+allocated_asset_overhead_cost_annual
+asset_overhead_pool_assignments
+
+Reason:
+
+The assigned overhead pool values already exist in the business overhead cost base.
+
+If Cost Summary added them again through Assets, it would double count.
+
+Correct separation:
+
+Cost Summary = total cost burden
+Cost Allocation = recovery modelling / delivery structure
+
+So asset_recovery_cost_annual is intentionally downstream-only.
+
+
+11. Cost Allocation uses asset_recovery_cost_annual
+
+Cost Allocation now uses:
+
+asset_recovery_cost_annual
+
+with fallback to:
+
+total_asset_cost_annual
+
+This allows Cost Allocation to test whether the operational structure can recover the true asset burden once asset-related overhead pools are assigned.
+
+This is why PC55 can now show:
+
+Base asset cost:
+$4,451
+
+Assigned pools:
+$5,500
+
+Annual asset recovery:
+$9,951
+
+
+12. Asset hourly rate is calculated in Cost Allocation for now
+
+We discussed whether asset utilisation should live in Assets.
+
+The decision for this pass was:
+
+Do not add a new asset utilisation input yet.
+
+Instead, Cost Allocation calculates the hourly asset recovery rate using the existing recovery hours from Recovery Summary.
+
+Formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / recovery_hours_used
+
+Current example:
+
+PC55 annual recovery cost:
+$9,951
+
+Recovery hours used:
+1,475.6
+
+PC55 hourly recovery rate:
+$6.74/hr
+
+This is a good default because it aligns the asset hourly recovery rate to the same productive recovery base already used by Labour.
+
+
+13. Future asset utilisation improvement
+
+A future pass may add per-asset utilisation.
+
+Potential future field:
+
+productive_asset_hours_annual
+
+Future formula:
+
+asset_recovery_rate_per_hour =
+asset_recovery_cost_annual / productive_asset_hours_annual
+
+Fallback rule:
+
+If productive_asset_hours_annual is blank or zero:
+  use recovery_hours_used from Recovery Summary
+
+This was intentionally not built yet to avoid complicating Assets before the Cost Allocation chain was proven.
+
+
+14. Support assets remain visible but do not create productive capacity
+
+Assets can be either:
+
+- productive
+- support
+
+Productive assets can support operational recovery.
+
+Support assets remain visible as cost burden/context.
+
+Current Cost Allocation displays both, but productive asset recovery base should only rely on productive assets.
+
+Important:
+
+Support asset costs may still matter commercially, but they should not automatically create productive delivery capacity.
+
+
+15. Asset Recovery section was added in Cost Allocation
+
+Cost Allocation now has an Asset Recovery section.
+
+It shows:
+
+- productive asset count
+- support asset count
+- base asset cost
+- assigned overhead pools
+- total asset recovery cost
+- per-asset annual recovery cost
+- per-asset hourly recovery rate
+
+This section proves that the asset recovery value being used downstream is visible and explainable.
+
+
+16. Operational Recovery section was added in Cost Allocation
+
+Cost Allocation now has an Operational Recovery section.
+
+It combines:
+
+- Labour productive type weighted rate
+- Asset hourly recovery rate
+
+Formula:
+
+minimum_recoverable_rate_per_hour =
+labour_recovery_rate_per_hour + asset_recovery_rate_per_hour
+
+Confirmed example:
+
+Hayden / Productive labour:
+$63.42/hr
+
+PC55 asset:
+$6.74/hr
+
+Minimum recoverable operational group rate:
+$70.16/hr
+
+
+17. Operational Groups now connect structure to rate build-up
+
+Operational Groups were previously only structural validation.
+
+They now also support a rate build-up.
+
+Current group storage:
+
+- required_staff_ids
+- required_asset_ids
+
+The group maps selected staff and selected assets into:
+
+- staff_recovery_rows
+- asset_recovery_rows
+- labour_recovery_rate_per_hour
+- asset_recovery_rate_per_hour
+- minimum_recoverable_rate_per_hour
+
+This turns the operational group into a macro delivery unit.
+
+
+18. Staff selection UX was fixed
+
+Previously, selecting a staff member in the dropdown did not save them until the Add Staff button was clicked.
+
+This caused confusion because the UI looked like a staff member was selected, but the group still showed:
+
+Required staff selected: 0
+
+The UI was changed so staff is added immediately when selected.
+
+This fixed the operational recovery row showing:
+
+Staff 0 · Assets 1
+
+when it should have shown:
+
+Staff 1 · Assets 1
+
+
+19. Labour matching fallback was added
+
+The selected staff row did not directly match the aggregate productive labour type.
+
+To make the system work with the current UI, a fallback was added:
+
+If selected staff does not directly match a productive labour type, and there is only one productive labour type, use that productive labour type.
+
+This allowed:
+
+Hayden
+→ Productive labour type
+→ $63.42/hr
+
+This is important because the long-term model should select productive labour type directly, but the current UI still selects staff.
+
+
+20. Important future UI direction
+
+Operational Groups should eventually change from selecting individual staff to selecting productive labour type.
+
+Future field:
+
+required_labour_type_keys
+
+Current field to preserve:
+
+required_staff_ids
+
+Reason:
+
+The rate belongs to the productive labour type aggregate, not necessarily to one individual staff member.
+
+This is especially important when there are multiple operators with different costs.
+
+Example future UI:
+
+Required labour type:
+Operator / Productive — $63.42/hr
+
+Required assets:
+PC55 — $6.74/hr
+
+Minimum recoverable rate:
+$70.16/hr
+
+
+21. Current confirmed full chain
+
+General Overheads:
+Asset-related pools are identified.
+
+Assets:
+PC55 receives assigned asset overhead pools.
+PC55 asset recovery annual cost = $9,951.
+
+Recovery Summary:
+Recovery hours used = 1,475.6.
+
+Cost Allocation:
+PC55 hourly asset recovery = $9,951 / 1,475.6 = $6.74/hr.
+
+Labour:
+Productive labour weighted rate = $63.42/hr.
+
+Operational Group:
+Hayden/Productive + PC55 =
+$63.42/hr + $6.74/hr =
+$70.16/hr minimum recoverable rate.
+
+
+22. Critical guardrail summary
+
+Do not change Cost Summary with this data.
+
+Do not treat asset_recovery_cost_annual as a business cost total.
+
+Do not push assigned asset overhead pools back upstream.
+
+Do not treat minimum_recoverable_rate_per_hour as a sale price.
+
+It is a structural recovery benchmark only.
+
+The correct ownership remains:
+
+General Overheads:
+Defines available asset-related overhead pools.
+
+Assets:
+Assigns pools to assets and creates asset_recovery_cost_annual.
+
+Recovery Summary:
+Defines recovery strategy and recovery hours.
+
+Cost Allocation:
+Converts annual recovery values into hourly operational recovery rates.
+
+Recovery Outcome:
+Will later decide whether the strategy/structure is viable.
