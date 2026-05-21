@@ -1,7 +1,7 @@
 "use client";
 
-import CostAllocationLinkTable from "@/components/cost-allocation/CostAllocationLinkTable";
 import CostAllocationGroupsCard from "@/components/cost-allocation/CostAllocationGroupsCard";
+import CostAllocationLinkTable from "@/components/cost-allocation/CostAllocationLinkTable";
 
 function formatMoney(value) {
   return `$${Number(value || 0).toLocaleString("en-NZ", {
@@ -24,24 +24,74 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString("en-NZ");
 }
 
-function formatStatusLabel(value) {
-  const label_map = {
-    pending_live_feedback: "Pending live job feedback",
-    estimated: "Estimated until verified",
-    not_selected: "Not selected",
-  };
-
-  return label_map[value] || value || "Not available";
-}
-
 function yesNo(value) {
   return value ? "Yes" : "No";
 }
 
-function TableRow({ label, value, total = false }) {
+function getGroupRows(recovery_plan) {
+  return Array.isArray(recovery_plan?.operational_group_recovery_rows)
+    ? recovery_plan.operational_group_recovery_rows
+    : [];
+}
+
+function getLabourRows(recovery_plan) {
+  return Array.isArray(recovery_plan?.productive_labour_type_rows)
+    ? recovery_plan.productive_labour_type_rows
+    : [];
+}
+
+function getAssetRows(recovery_plan) {
+  return Array.isArray(recovery_plan?.asset_recovery_rows)
+    ? recovery_plan.asset_recovery_rows
+    : [];
+}
+
+function getRunningRate(row) {
+  return (
+    Number(row?.running_cost_rate_per_hour || 0) ||
+    Number(row?.labour_recovery_rate_per_hour || 0) +
+      Number(row?.asset_recovery_rate_per_hour || 0)
+  );
+}
+
+function getOverheadBurdenRate(row) {
+  const explicit_value =
+    row?.overhead_burden_rate_per_hour ??
+    row?.business_overhead_rate_per_hour ??
+    row?.allocated_overhead_rate_per_hour ??
+    row?.remaining_overhead_rate_per_hour;
+
+  if (explicit_value !== undefined && explicit_value !== null) {
+    return Number(explicit_value || 0);
+  }
+
+  const minimum_rate = Number(row?.minimum_recoverable_rate_per_hour || 0);
+  const running_rate = getRunningRate(row);
+
+  if (minimum_rate > running_rate) {
+    return minimum_rate - running_rate;
+  }
+
+  return 0;
+}
+
+function getMinimumRecoverableRate(row) {
+  const explicit_value = Number(row?.minimum_recoverable_rate_per_hour || 0);
+
+  if (explicit_value > 0) {
+    return explicit_value;
+  }
+
+  return getRunningRate(row) + getOverheadBurdenRate(row);
+}
+
+function TableRow({ label, value, help, total = false }) {
   return (
     <div className={`labour-summary-table-row ${total ? "total" : ""}`}>
-      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-label">
+        <div>{label}</div>
+        {help ? <div className="ui-help">{help}</div> : null}
+      </div>
       <div className="labour-summary-table-value">
         {value ?? "Not available"}
       </div>
@@ -93,14 +143,415 @@ function WarningList({ warnings = [], empty_message }) {
   );
 }
 
-function AssetRecoveryTable({ rows = [] }) {
+function RateReadinessLabel({ group }) {
+  if (group?.is_rate_ready) {
+    return <span className="ui-pill">Ready</span>;
+  }
+
+  if (!group?.has_labour_rate && group?.has_asset_rate) {
+    return <span className="ui-pill">Labour missing</span>;
+  }
+
+  if (group?.has_labour_rate && !group?.has_asset_rate) {
+    return <span className="ui-pill">Asset missing</span>;
+  }
+
+  return <span className="ui-pill">Incomplete</span>;
+}
+
+function ProductiveLabourTypeTable({ rows = [] }) {
   if (!Array.isArray(rows) || rows.length === 0) {
     return (
       <div className="ui-readonly">
         <p className="ui-help">
-          No asset recovery rows are currently available from Assets.
+          No productive labour type rows are currently available from Labour.
         </p>
       </div>
+    );
+  }
+
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Labour rates from Labour
+          </p>
+          <p className="ui-help">
+            Cost Allocation uses Labour’s productive type weighted rate. It does
+            not rebuild wages or labour cost here.
+          </p>
+        </div>
+
+        <div className="labour-summary-table">
+          {rows.map((row) => (
+            <div
+              key={row.labour_type_key || row.labour_type_label}
+              className="labour-summary-table-row"
+            >
+              <div className="labour-summary-table-label">
+                <div>{row.labour_type_label || "Productive labour"}</div>
+                <div className="ui-help">
+                  Staff {row.staff_count || 0} · Hours{" "}
+                  {formatNumber(row.total_productive_hours)}
+                </div>
+              </div>
+
+              <div className="labour-summary-table-value">
+                <div>{formatRate(row.weighted_recovery_rate)}</div>
+                <div className="ui-help">
+                  Highest {formatRate(row.highest_recovery_rate)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RunningCostSection({ recovery_plan }) {
+  const rows = getGroupRows(recovery_plan);
+  const labour_rows = getLabourRows(recovery_plan);
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Running cost</p>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Cost to run each working unit
+          </h3>
+          <p className="ui-help">
+            This is the direct productive cost inside the working unit: labour
+            doing the work plus productive assets used to do the work.
+          </p>
+        </div>
+
+        <ProductiveLabourTypeTable rows={labour_rows} />
+
+        {rows.length === 0 ? (
+          <div className="ui-readonly">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              No working unit rates available yet
+            </p>
+            <p className="mt-1 ui-help">
+              Create a working unit first. Running cost will appear once the
+              group has productive labour or productive assets selected.
+            </p>
+          </div>
+        ) : (
+          <div className="ui-stack">
+            {rows.map((group) => {
+              const labour_rate = Number(
+                group.labour_recovery_rate_per_hour || 0
+              );
+              const asset_rate = Number(group.asset_recovery_rate_per_hour || 0);
+              const running_rate = getRunningRate(group);
+
+              return (
+                <div
+                  key={group.group_id || group.group_name}
+                  className="ui-readonly"
+                >
+                  <div className="ui-stack-sm">
+                    <div className="ui-actions">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                          {group.group_name || "Unnamed working unit"}
+                        </p>
+                        <p className="ui-help">
+                          Staff {group.selected_staff_count || 0} · Assets{" "}
+                          {group.selected_asset_count || 0}
+                        </p>
+                      </div>
+                      <RateReadinessLabel group={group} />
+                    </div>
+
+                    <div className="labour-summary-table">
+                      <TableRow
+                        label="Labour running cost"
+                        value={formatRate(labour_rate)}
+                        help="Productive labour rate from Labour."
+                      />
+                      <TableRow
+                        label="Asset running cost"
+                        value={formatRate(asset_rate)}
+                        help="Productive asset recovery rate from Assets / Recovery Summary."
+                      />
+                      <TableRow
+                        label="Running cost total"
+                        value={formatRate(running_rate)}
+                        help="Cost to physically run this working unit."
+                        total
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="ui-help">
+          Running cost is not the final number. The unit still has to carry
+          overhead burden before it becomes a true minimum recoverable rate.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function OverheadBurdenSection({ recovery_plan }) {
+  const rows = getGroupRows(recovery_plan);
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Overhead burden</p>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Cost each working unit must carry
+          </h3>
+          <p className="ui-help">
+            This is the working-unit recovery share left after direct labour and
+            productive asset running cost. Materials / products recovery stays
+            outside Cost Allocation.
+          </p>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="ui-readonly">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              No working units available yet
+            </p>
+            <p className="mt-1 ui-help">
+              Create a working unit first. Overhead burden will be shown against
+              each working unit once the recovery layer is wired.
+            </p>
+          </div>
+        ) : (
+          <div className="ui-stack">
+            {rows.map((group) => {
+              const overhead_rate = getOverheadBurdenRate(group);
+
+              return (
+                <div
+                  key={group.group_id || group.group_name}
+                  className="ui-readonly"
+                >
+                  <div className="ui-stack-sm">
+                    <div className="ui-actions">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
+                          {group.group_name || "Unnamed working unit"}
+                        </p>
+                        <p className="ui-help">
+                          This is the business cost this unit must carry, not
+                          extra labour inside the group.
+                        </p>
+                      </div>
+                      <span className="ui-pill">
+                        {group?.is_rate_ready ? "Wired" : "Pending wiring"}
+                      </span>
+                    </div>
+
+                    <div className="labour-summary-table">
+                      <TableRow
+                        label="Overhead burden"
+                        value={formatRate(overhead_rate)}
+                        help="This comes from labour, asset, and intentionally unassigned recovery only."
+                        total
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <p className="ui-help">
+          Do not put owner, admin, office, or other non-productive support inside
+          the working unit unless they are actually doing productive work. The
+          working unit carries those costs through overhead burden.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function MinimumRecoverableRateSection({ recovery_plan }) {
+  const rows = getGroupRows(recovery_plan);
+  const labour_rows = getLabourRows(recovery_plan);
+
+  if (rows.length === 0) {
+    return (
+      <section className="ui-panel">
+        <div className="ui-stack">
+          <div>
+            <p className="ui-kicker">Minimum recoverable rate</p>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+              No working unit rate build-up yet
+            </h3>
+            <p className="ui-help">
+              Create working units first. Once they have productive labour or
+              productive assets, Cost Allocation can show the minimum
+              recoverable hourly benchmark.
+            </p>
+          </div>
+
+          <ProductiveLabourTypeTable rows={labour_rows} />
+
+          <p className="ui-help">
+            Minimum recoverable rate is a recovery benchmark, not a sale price.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const ready_groups = rows.filter((group) => group?.is_rate_ready).length;
+  const incomplete_groups = rows.length - ready_groups;
+  const highest_rate = rows.reduce((highest, group) => {
+    return Math.max(highest, getMinimumRecoverableRate(group));
+  }, 0);
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Minimum recoverable rate</p>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Running cost + overhead burden
+          </h3>
+          <p className="ui-help">
+            This is the true hourly recovery benchmark for each working unit. It
+            is not a sale price, quote rate, or recommended charge-out.
+          </p>
+        </div>
+
+        <TableBlock
+          title="Working unit recovery summary"
+          help_text="This shows how many working units are ready for revenue testing."
+        >
+          <TableRow label="Working units" value={formatNumber(rows.length)} />
+          <TableRow label="Ready units" value={formatNumber(ready_groups)} />
+          <TableRow
+            label="Units needing review"
+            value={formatNumber(incomplete_groups)}
+          />
+          <TableRow
+            label="Highest minimum recoverable rate"
+            value={formatRate(highest_rate)}
+            total
+          />
+        </TableBlock>
+
+        <div className="ui-stack">
+          {rows.map((group) => {
+            const labour_rate = Number(group.labour_recovery_rate_per_hour || 0);
+            const asset_rate = Number(group.asset_recovery_rate_per_hour || 0);
+            const running_rate = getRunningRate(group);
+            const overhead_rate = getOverheadBurdenRate(group);
+            const minimum_rate = getMinimumRecoverableRate(group);
+
+            return (
+              <div
+                key={group.group_id || group.group_name}
+                className="ui-readonly"
+              >
+                <div className="ui-stack-sm">
+                  <div className="ui-actions">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        {group.group_name || "Unnamed working unit"}
+                      </p>
+                      <p className="ui-help">
+                        Staff {group.selected_staff_count || 0} · Assets{" "}
+                        {group.selected_asset_count || 0}
+                      </p>
+                    </div>
+
+                    <RateReadinessLabel group={group} />
+                  </div>
+
+                  <div className="labour-summary-table">
+                    <TableRow
+                      label="Labour running cost"
+                      value={formatRate(labour_rate)}
+                    />
+                    <TableRow
+                      label="Asset running cost"
+                      value={formatRate(asset_rate)}
+                    />
+                    <TableRow
+                      label="Running cost total"
+                      value={formatRate(running_rate)}
+                      help="Cost to physically run this working unit."
+                    />
+                    <TableRow
+                      label="Overhead burden"
+                      value={formatRate(overhead_rate)}
+                      help="Business cost this working unit still has to carry."
+                    />
+                    <TableRow
+                      label="Minimum recoverable rate"
+                      value={formatRate(minimum_rate)}
+                      help="Running cost plus working-unit overhead burden."
+                      total
+                    />
+                  </div>
+
+                  {!group.has_labour_rate ? (
+                    <p className="ui-help">
+                      Labour rate is missing for this working unit. Check
+                      selected productive labour.
+                    </p>
+                  ) : null}
+
+                  {!group.has_asset_rate ? (
+                    <p className="ui-help">
+                      Asset rate is missing for this working unit. This is fine
+                      for labour-only businesses, but asset-driven units should
+                      have productive assets selected.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="ui-help">
+          This benchmark goes to the next layer, where it can be compared
+          against charge-out rate, product margin, sales volume, or revenue unit.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function AssetRecoverySection({ recovery_plan }) {
+  const rows = getAssetRows(recovery_plan);
+
+  if (rows.length === 0) {
+    return (
+      <section className="ui-panel">
+        <div className="ui-stack">
+          <div>
+            <p className="ui-kicker">Asset recovery detail</p>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              No asset recovery rows available
+            </h3>
+            <p className="ui-help">
+              Asset recovery rows will appear once Assets provides active asset
+              recovery values.
+            </p>
+          </div>
+        </div>
+      </section>
     );
   }
 
@@ -127,29 +578,32 @@ function AssetRecoveryTable({ rows = [] }) {
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">Asset Recovery</p>
+          <p className="ui-kicker">Asset recovery detail</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
-            Asset recovery build-up used by Cost Allocation
+            Asset values used in working units
           </h3>
           <p className="ui-help">
-            This table comes from Assets. It converts annual asset recovery cost
-            into an hourly rate using the Labour recovery hours from Recovery
-            Summary.
+            Productive asset recovery can feed working-unit running cost.
+            Support assets remain visible but should be carried through overhead
+            burden unless they directly produce work.
           </p>
         </div>
 
         <TableBlock
           title="Asset recovery summary"
-          help_text="Productive assets can support asset recovery. Support assets remain visible as cost context but do not create productive recovery capacity."
+          help_text="This is review-only. Cost Allocation does not push these values back into Cost Summary."
         >
           <TableRow
             label="Productive assets"
             value={`${productive_rows.length}`}
           />
           <TableRow label="Support assets" value={`${support_rows.length}`} />
-          <TableRow label="Base asset cost" value={formatMoney(total_base_cost)} />
           <TableRow
-            label="Assigned overhead pools"
+            label="Base asset cost"
+            value={formatMoney(total_base_cost)}
+          />
+          <TableRow
+            label="Assigned asset overhead pools"
             value={formatMoney(total_pool_cost)}
           />
           <TableRow
@@ -161,15 +615,9 @@ function AssetRecoveryTable({ rows = [] }) {
 
         <div className="ui-readonly">
           <div className="ui-stack-sm">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                Per-asset recovery build-up
-              </p>
-              <p className="ui-help">
-                Hourly rate is annual asset recovery cost divided by recovery
-                hours used.
-              </p>
-            </div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Per-asset hourly recovery
+            </p>
 
             <div className="labour-summary-table">
               {rows.map((asset) => (
@@ -178,213 +626,29 @@ function AssetRecoveryTable({ rows = [] }) {
                   className="labour-summary-table-row"
                 >
                   <div className="labour-summary-table-label">
-                    <div>{asset.asset_name || "Unnamed Asset"}</div>
+                    <div>{asset.asset_name || "Unnamed asset"}</div>
                     <div className="ui-help">
                       {asset.asset_type === "support" ? "Support" : "Productive"}
                       {" · "}
-                      Base {formatMoney(asset.base_asset_cost_annual)}
-                      {" · "}
-                      Pools{" "}
-                      {formatMoney(asset.allocated_asset_overhead_cost_annual)}
+                      Annual {formatMoney(asset.asset_recovery_cost_annual)}
                       {" · "}
                       Hours {formatNumber(asset.asset_recovery_hours_used)}
                     </div>
                   </div>
 
                   <div className="labour-summary-table-value">
-                    <div>{formatMoney(asset.asset_recovery_cost_annual)}</div>
-                    <div className="ui-help">
-                      {formatRate(asset.asset_recovery_rate_per_hour)}
-                    </div>
+                    {formatRate(asset.asset_recovery_rate_per_hour)}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
 
-function ProductiveLabourTypeTable({ rows = [] }) {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return (
-      <div className="ui-readonly">
         <p className="ui-help">
-          No productive labour type rows are currently available from Labour.
+          Asset recovery is a modelling value for Cost Allocation. It must not be
+          treated as a sale price or pushed back into Cost Summary.
         </p>
-      </div>
-    );
-  }
-
-  return (
-    <section className="ui-panel">
-      <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Labour Recovery</p>
-          <h3 className="text-base font-semibold text-[var(--text-primary)]">
-            Productive labour type rates
-          </h3>
-          <p className="ui-help">
-            Cost Allocation uses the weighted recovery rate from Labour when
-            building operational group recovery rates.
-          </p>
-        </div>
-
-        <div className="labour-summary-table">
-          {rows.map((row) => (
-            <div
-              key={row.labour_type_key || row.labour_type_label}
-              className="labour-summary-table-row"
-            >
-              <div className="labour-summary-table-label">
-                <div>{row.labour_type_label}</div>
-                <div className="ui-help">
-                  Staff {row.staff_count || 0} · Hours{" "}
-                  {formatNumber(row.total_productive_hours)}
-                </div>
-              </div>
-
-              <div className="labour-summary-table-value">
-                <div>{formatRate(row.weighted_recovery_rate)}</div>
-                <div className="ui-help">
-                  Highest {formatRate(row.highest_recovery_rate)}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function OperationalRecoveryTable({ rows = [], labour_rows = [] }) {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return (
-      <section className="ui-panel">
-        <div className="ui-stack">
-          <div>
-            <p className="ui-kicker">Operational Recovery</p>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">
-              No operational recovery groups yet
-            </h3>
-            <p className="ui-help">
-              Create operational groups first. Once groups have selected staff
-              and selected assets, Cost Allocation can calculate a combined
-              hourly recovery rate.
-            </p>
-          </div>
-
-          <ProductiveLabourTypeTable rows={labour_rows} />
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="ui-panel">
-      <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Operational Recovery</p>
-          <h3 className="text-base font-semibold text-[var(--text-primary)]">
-            Operational group minimum recoverable rate
-          </h3>
-          <p className="ui-help">
-            This combines selected staff labour recovery rates with selected
-            asset hourly recovery rates.
-          </p>
-        </div>
-
-        <ProductiveLabourTypeTable rows={labour_rows} />
-
-        <div className="ui-readonly">
-          <div className="ui-stack-sm">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                Group rate build-up
-              </p>
-              <p className="ui-help">
-                Labour rate + asset hourly recovery rate = minimum recoverable
-                operational group rate.
-              </p>
-            </div>
-
-            <div className="labour-summary-table">
-              {rows.map((group) => (
-                <div
-                  key={group.group_id || group.group_name}
-                  className="labour-summary-table-row"
-                >
-                  <div className="labour-summary-table-label">
-                    <div>{group.group_name}</div>
-
-                    <div className="ui-help">
-                      Staff {group.selected_staff_count || 0} · Assets{" "}
-                      {group.selected_asset_count || 0}
-                    </div>
-
-                    {Array.isArray(group.staff_recovery_rows) &&
-                    group.staff_recovery_rows.length > 0 ? (
-                      <div className="ui-help">
-                        Labour:{" "}
-                        {group.staff_recovery_rows
-                          .map(
-                            (staff) =>
-                              `${staff.staff_name} ${formatRate(
-                                staff.labour_recovery_rate_per_hour
-                              )}`
-                          )
-                          .join(", ")}
-                      </div>
-                    ) : (
-                      <div className="ui-help">
-                        No staff selected for this group.
-                      </div>
-                    )}
-
-                    {Array.isArray(group.asset_recovery_rows) &&
-                    group.asset_recovery_rows.length > 0 ? (
-                      <div className="ui-help">
-                        Assets:{" "}
-                        {group.asset_recovery_rows
-                          .map(
-                            (asset) =>
-                              `${asset.asset_name} ${formatRate(
-                                asset.asset_recovery_rate_per_hour
-                              )}`
-                          )
-                          .join(", ")}
-                      </div>
-                    ) : (
-                      <div className="ui-help">
-                        No assets selected for this group.
-                      </div>
-                    )}
-
-                    {!group.has_labour_rate ? (
-                      <div className="ui-help">
-                        Labour rate missing for this group.
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="labour-summary-table-value">
-                    <div>
-                      {formatRate(group.minimum_recoverable_rate_per_hour)}
-                    </div>
-                    <div className="ui-help">
-                      Labour {formatRate(group.labour_recovery_rate_per_hour)}
-                      {" + "}
-                      Asset {formatRate(group.asset_recovery_rate_per_hour)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -404,23 +668,23 @@ function RecoveryPlanSection({ recovery_plan }) {
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">Recovery Plan</p>
+          <p className="ui-kicker">Recovery plan being tested</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
             {recovery_plan?.active_recovery_model_label ||
               "Read-only strategy from Recovery Summary"}
           </h3>
           <p className="ui-help">
-            Cost Allocation consumes this plan from Recovery Summary and tests
-            whether the delivery structure can support it.
+            This plan comes from Recovery Summary. Cost Allocation only shows
+            what each working unit must carry.
           </p>
         </div>
 
         <TableBlock
           title="Recovery basis"
-          help_text="This is the selected recovery strategy being tested against your delivery structure."
+          help_text="This is the recovery strategy being tested against the working units."
         >
           <TableRow
-            label="Active recovery model"
+            label="Recovery plan"
             value={
               recovery_plan?.active_recovery_model_label ||
               recovery_plan?.active_recovery_model ||
@@ -440,12 +704,13 @@ function RecoveryPlanSection({ recovery_plan }) {
           <TableRow
             label="Recovery hours used"
             value={formatNumber(recovery_plan?.recovery_hours_used)}
+            total
           />
         </TableBlock>
 
         <TableBlock
           title="Recovery split"
-          help_text="This shows how the selected recovery plan spreads recovery pressure across labour, assets, materials, and unassigned recovery."
+          help_text="This shows the recovery strategy before it is expressed at working-unit level."
         >
           <TableRow
             label="Labour recovery"
@@ -484,7 +749,7 @@ function RecoveryPlanSection({ recovery_plan }) {
             }
           />
           <TableRow
-            label="Unassigned recovery"
+            label="Unassigned / overhead recovery"
             value={
               overhead
                 ? `${formatMoney(overhead.recovery_cost)} at ${Number(
@@ -499,40 +764,17 @@ function RecoveryPlanSection({ recovery_plan }) {
             total
           />
         </TableBlock>
-
-        <TableBlock
-          title="Asset context"
-          help_text="This shows whether asset recovery has a visible productive asset base to test."
-        >
-          <TableRow
-            label="Productive asset recovery base"
-            value={
-              recovery_plan?.has_productive_asset_recovery_base
-                ? `${recovery_plan?.productive_asset_count ?? 0} productive asset(s)`
-                : "No productive asset recovery base"
-            }
-          />
-          <TableRow
-            label="Support assets"
-            value={`${recovery_plan?.support_asset_count ?? 0} support asset(s) remain in cost burden`}
-          />
-          <TableRow
-            label="Asset utilisation"
-            value={formatStatusLabel(recovery_plan?.asset_utilisation_status)}
-            total
-          />
-        </TableBlock>
       </div>
     </section>
   );
 }
 
-function ChecklistSection({ title, help_text, warnings, empty_message }) {
+function ChecklistSection({ kicker, title, help_text, warnings, empty_message }) {
   return (
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">{title}</p>
+          <p className="ui-kicker">{kicker || title}</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
             {title}
           </h3>
@@ -545,24 +787,24 @@ function ChecklistSection({ title, help_text, warnings, empty_message }) {
   );
 }
 
-function EvidenceSection({ delivery_summary, problems }) {
+function WhatNeedsAttentionSection({ delivery_summary, problems }) {
   return (
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">Evidence</p>
+          <p className="ui-kicker">What needs attention</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
-            Structural coverage and dependency evidence
+            Working-unit readiness
           </h3>
           <p className="ui-help">
-            These values show the current structure and dependency signals used
-            by Cost Allocation.
+            These checks explain whether the working-unit setup is ready to move
+            to revenue testing.
           </p>
         </div>
 
         <TableBlock
-          title="Coverage"
-          help_text="Coverage shows how much of the visible staff, asset, and group structure has been assigned."
+          title="Structure coverage"
+          help_text="Coverage shows whether productive labour, productive assets, and working units are properly assigned."
         >
           <TableRow
             label="Staff coverage"
@@ -581,7 +823,7 @@ function EvidenceSection({ delivery_summary, problems }) {
 
         <TableBlock
           title="Linked structure"
-          help_text="These counts show what is currently linked and grouped."
+          help_text="These counts show which people, assets, and working units still need review."
         >
           <TableRow
             label="Linked / unlinked staff"
@@ -600,7 +842,7 @@ function EvidenceSection({ delivery_summary, problems }) {
             }`}
           />
           <TableRow
-            label="Valid / invalid groups"
+            label="Ready / incomplete working units"
             value={`${delivery_summary?.valid_operational_groups ?? 0} / ${
               delivery_summary?.invalid_operational_groups ?? 0
             }`}
@@ -609,8 +851,8 @@ function EvidenceSection({ delivery_summary, problems }) {
         </TableBlock>
 
         <TableBlock
-          title="Dependency signals"
-          help_text="These show whether the structure depends on extra capacity or external delivery."
+          title="Capacity and dependency"
+          help_text="Internal shortfall is a dependency signal. It is not automatically a final business failure."
         >
           <TableRow
             label="Internal capacity shortfall"
@@ -655,11 +897,28 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
+  if (active_section === "running_cost") {
+    return <RunningCostSection recovery_plan={recovery_plan} />;
+  }
+
+  if (active_section === "overhead_burden") {
+    return <OverheadBurdenSection recovery_plan={recovery_plan} />;
+  }
+
+  if (active_section === "operational_recovery") {
+    return <MinimumRecoverableRateSection recovery_plan={recovery_plan} />;
+  }
+
+  if (active_section === "asset_recovery") {
+    return <AssetRecoverySection recovery_plan={recovery_plan} />;
+  }
+
   if (active_section === "setup_checklist") {
     return (
       <ChecklistSection
-        title="Setup checklist"
-        help_text="Complete these items to finish defining how the business delivers work."
+        kicker="Setup checklist"
+        title="Setup items needing review"
+        help_text="Complete these items to make the working-unit setup reliable."
         warnings={evidence?.setup_warnings}
         empty_message="No setup checklist items are currently active."
       />
@@ -669,20 +928,11 @@ export default function CostAllocationEvidenceBreakdown({
   if (active_section === "structural_warnings") {
     return (
       <ChecklistSection
-        title="Structural warnings"
-        help_text="These are structural issues that may prevent this recovery strategy from being supported."
+        kicker="Capacity and dependency"
+        title="Capacity and dependency warnings"
+        help_text="These are structure, capacity, or dependency issues that may prevent the recovery plan from being fully supported."
         warnings={evidence?.structural_warnings}
         empty_message="No structural warnings are currently active."
-      />
-    );
-  }
-
-  if (active_section === "links") {
-    return (
-      <CostAllocationLinkTable
-        links={links}
-        add_asset_labour_link={add_asset_labour_link}
-        remove_asset_labour_link={remove_asset_labour_link}
       />
     );
   }
@@ -698,22 +948,19 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "asset_recovery") {
-    return <AssetRecoveryTable rows={recovery_plan?.asset_recovery_rows} />;
-  }
-
-  if (active_section === "operational_recovery") {
+  if (active_section === "links") {
     return (
-      <OperationalRecoveryTable
-        rows={recovery_plan?.operational_group_recovery_rows}
-        labour_rows={recovery_plan?.productive_labour_type_rows}
+      <CostAllocationLinkTable
+        links={links}
+        add_asset_labour_link={add_asset_labour_link}
+        remove_asset_labour_link={remove_asset_labour_link}
       />
     );
   }
 
   if (active_section === "evidence") {
     return (
-      <EvidenceSection
+      <WhatNeedsAttentionSection
         delivery_summary={delivery_summary}
         problems={problems}
       />

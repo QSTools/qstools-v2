@@ -22,6 +22,10 @@ function safe_number(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function safe_array(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function normalise_asset_type(value) {
   return value === "support" ? "support" : "productive";
 }
@@ -138,11 +142,9 @@ function get_group_staff_ids(group = {}) {
 }
 
 function build_productive_labour_type_rows(labour_output_contract = {}) {
-  const productive_labour_types = Array.isArray(
+  const productive_labour_types = safe_array(
     labour_output_contract?.productive_labour_types
-  )
-    ? labour_output_contract.productive_labour_types
-    : [];
+  );
 
   return productive_labour_types.map((item) => {
     const labour_type_key = get_labour_type_key(item);
@@ -184,10 +186,7 @@ function build_asset_recovery_overlay({
   asset_output_contract = {},
   recovery_hours_used = 0,
 }) {
-  const active_assets = Array.isArray(asset_output_contract.active_assets)
-    ? asset_output_contract.active_assets
-    : [];
-
+  const active_assets = safe_array(asset_output_contract.active_assets);
   const default_recovery_hours = safe_number(recovery_hours_used);
 
   const recovery_assets = active_assets.map((asset) => {
@@ -300,9 +299,7 @@ function build_asset_recovery_overlay({
 }
 
 function find_labour_type_for_staff(staff = {}, productive_labour_type_rows = []) {
-  const rows = Array.isArray(productive_labour_type_rows)
-    ? productive_labour_type_rows
-    : [];
+  const rows = safe_array(productive_labour_type_rows);
 
   if (rows.length === 0) {
     return null;
@@ -355,111 +352,146 @@ function find_labour_type_for_staff(staff = {}, productive_labour_type_rows = []
   return null;
 }
 
+function get_overhead_burden_rate_for_group({
+  working_unit_recovery_rate = 0,
+  running_cost_rate_per_hour = 0,
+}) {
+  const required_rate = safe_number(working_unit_recovery_rate);
+  const running_rate = safe_number(running_cost_rate_per_hour);
+
+  return Math.max(required_rate - running_rate, 0);
+}
+
 function build_operational_group_recovery_rows({
   operational_groups = [],
   active_assets = [],
   active_staff = [],
   productive_labour_type_rows = [],
+  working_unit_recovery_cost = 0,
+  overhead_absorbed_cost = 0,
+  recovery_hours_used = 0,
 }) {
   const asset_map = new Map(
-    active_assets.map((asset) => [asset.asset_id, asset])
+    safe_array(active_assets).map((asset) => [asset.asset_id, asset])
   );
 
-  const staff_map = new Map(active_staff.map((staff) => [staff.staff_id, staff]));
+  const staff_map = new Map(
+    safe_array(active_staff).map((staff) => [staff.staff_id, staff])
+  );
 
-  return (Array.isArray(operational_groups) ? operational_groups : []).map(
-    (group, index) => {
-      const group_asset_ids = get_group_asset_ids(group);
-      const group_staff_ids = get_group_staff_ids(group);
+  return safe_array(operational_groups).map((group, index) => {
+    const group_asset_ids = get_group_asset_ids(group);
+    const group_staff_ids = get_group_staff_ids(group);
 
-      const group_assets = group_asset_ids
-        .map((asset_id) => asset_map.get(asset_id))
-        .filter(Boolean);
+    const group_assets = group_asset_ids
+      .map((asset_id) => asset_map.get(asset_id))
+      .filter(Boolean);
 
-      const group_staff = group_staff_ids
-        .map((staff_id) => staff_map.get(staff_id))
-        .filter(Boolean);
+    const group_staff = group_staff_ids
+      .map((staff_id) => staff_map.get(staff_id))
+      .filter(Boolean);
 
-      const staff_recovery_rows = group_staff.map((staff) => {
-        const labour_type = find_labour_type_for_staff(
-          staff,
-          productive_labour_type_rows
-        );
-
-        const labour_recovery_rate_per_hour = safe_number(
-          labour_type?.weighted_recovery_rate ??
-            staff.weighted_recovery_rate ??
-            staff.productive_labour_cost_rate ??
-            staff.labour_cost_rate ??
-            0
-        );
-
-        return {
-          staff_id: staff.staff_id,
-          staff_name: get_staff_label(staff),
-          labour_type_key:
-            labour_type?.labour_type_key || get_staff_labour_type_key(staff),
-          labour_type_label:
-            labour_type?.labour_type_label ||
-            staff.staff_type ||
-            staff.staff_role ||
-            staff.labour_class ||
-            "Unclassified productive labour",
-          labour_recovery_rate_per_hour,
-        };
-      });
-
-      const asset_recovery_rows = group_assets.map((asset) => ({
-        asset_id: asset.asset_id,
-        asset_name: asset.asset_name,
-        asset_type: asset.asset_type,
-        asset_recovery_rate_per_hour: safe_number(
-          asset.asset_recovery_rate_per_hour
-        ),
-        asset_recovery_cost_annual: safe_number(
-          asset.asset_recovery_cost_annual
-        ),
-      }));
-
-      const labour_recovery_rate_per_hour = staff_recovery_rows.reduce(
-        (sum, staff) => sum + safe_number(staff.labour_recovery_rate_per_hour),
-        0
+    const staff_recovery_rows = group_staff.map((staff) => {
+      const labour_type = find_labour_type_for_staff(
+        staff,
+        productive_labour_type_rows
       );
 
-      const asset_recovery_rate_per_hour = asset_recovery_rows.reduce(
-        (sum, asset) => sum + safe_number(asset.asset_recovery_rate_per_hour),
-        0
+      const labour_recovery_rate_per_hour = safe_number(
+        labour_type?.weighted_recovery_rate ??
+          staff.weighted_recovery_rate ??
+          staff.productive_labour_cost_rate ??
+          staff.labour_cost_rate ??
+          0
       );
-
-      const minimum_recoverable_rate_per_hour =
-        labour_recovery_rate_per_hour + asset_recovery_rate_per_hour;
 
       return {
-        group_id: group.group_id || group.operational_group_id || `group-${index}`,
-        group_name: group.group_name || group.name || `Operational Group ${index + 1}`,
-
-        required_staff_count: safe_number(group.required_staff_count),
-        selected_staff_count: group_staff.length,
-        selected_asset_count: group_assets.length,
-
-        staff_recovery_rows,
-        asset_recovery_rows,
-
-        staff_names: group_staff.map(get_staff_label),
-        asset_names: group_assets.map((asset) => asset.asset_name),
-
+        staff_id: staff.staff_id,
+        staff_name: get_staff_label(staff),
+        labour_type_key:
+          labour_type?.labour_type_key || get_staff_labour_type_key(staff),
+        labour_type_label:
+          labour_type?.labour_type_label ||
+          staff.staff_type ||
+          staff.staff_role ||
+          staff.labour_class ||
+          "Unclassified productive labour",
         labour_recovery_rate_per_hour,
-        asset_recovery_rate_per_hour,
-        operational_group_recovery_rate_per_hour:
-          minimum_recoverable_rate_per_hour,
+      };
+    });
+
+    const asset_recovery_rows = group_assets.map((asset) => ({
+      asset_id: asset.asset_id,
+      asset_name: asset.asset_name,
+      asset_type: asset.asset_type,
+      asset_recovery_rate_per_hour: safe_number(
+        asset.asset_recovery_rate_per_hour
+      ),
+      asset_recovery_cost_annual: safe_number(asset.asset_recovery_cost_annual),
+    }));
+
+    const labour_recovery_rate_per_hour = staff_recovery_rows.reduce(
+      (sum, staff) => sum + safe_number(staff.labour_recovery_rate_per_hour),
+      0
+    );
+
+    const asset_recovery_rate_per_hour = asset_recovery_rows.reduce(
+      (sum, asset) => sum + safe_number(asset.asset_recovery_rate_per_hour),
+      0
+    );
+
+    const running_cost_rate_per_hour =
+      labour_recovery_rate_per_hour + asset_recovery_rate_per_hour;
+
+    const working_unit_recovery_rate =
+      safe_number(recovery_hours_used) > 0
+        ? (safe_number(working_unit_recovery_cost) +
+            safe_number(overhead_absorbed_cost)) /
+          safe_number(recovery_hours_used)
+        : 0;
+
+    const overhead_burden_rate_per_hour = get_overhead_burden_rate_for_group({
+      working_unit_recovery_rate,
+      running_cost_rate_per_hour,
+    });
+
+    const minimum_recoverable_rate_per_hour =
+      running_cost_rate_per_hour + overhead_burden_rate_per_hour;
+
+    return {
+      group_id:
+        group.group_id || group.operational_group_id || `group-${index}`,
+      group_name:
+        group.group_name || group.name || `Working Unit ${index + 1}`,
+
+      required_staff_count: safe_number(group.required_staff_count),
+      selected_staff_count: group_staff.length,
+      selected_asset_count: group_assets.length,
+
+      staff_recovery_rows,
+      asset_recovery_rows,
+
+      staff_names: group_staff.map(get_staff_label),
+      asset_names: group_assets.map((asset) => asset.asset_name),
+
+      labour_recovery_rate_per_hour,
+      asset_recovery_rate_per_hour,
+
+      running_cost_rate_per_hour,
+      working_unit_recovery_rate_per_hour: working_unit_recovery_rate,
+      overhead_burden_rate_per_hour,
+      minimum_recoverable_rate_per_hour,
+
+      operational_group_recovery_rate_per_hour:
         minimum_recoverable_rate_per_hour,
 
-        has_labour_rate: labour_recovery_rate_per_hour > 0,
-        has_asset_rate: asset_recovery_rate_per_hour > 0,
-        is_rate_ready: minimum_recoverable_rate_per_hour > 0,
-      };
-    }
-  );
+      has_labour_rate: labour_recovery_rate_per_hour > 0,
+      has_asset_rate: asset_recovery_rate_per_hour > 0,
+      has_running_cost: running_cost_rate_per_hour > 0,
+      has_overhead_burden: overhead_burden_rate_per_hour > 0,
+      is_rate_ready: minimum_recoverable_rate_per_hour > 0,
+    };
+  });
 }
 
 export default function useCostAllocation(inputs = {}) {
@@ -517,12 +549,21 @@ export default function useCostAllocation(inputs = {}) {
       active_assets: asset_recovery_overlay.active_assets,
       active_staff: base_calculation_inputs?.active_staff ?? [],
       productive_labour_type_rows,
+      working_unit_recovery_cost:
+        safe_number(base_calculation_inputs?.labour_recovery_cost) +
+        safe_number(base_calculation_inputs?.asset_recovery_cost),
+      overhead_absorbed_cost: base_calculation_inputs?.overhead_absorbed_cost,
+      recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
     });
   }, [
     state?.operational_groups,
     asset_recovery_overlay.active_assets,
     base_calculation_inputs?.active_staff,
     productive_labour_type_rows,
+    base_calculation_inputs?.labour_recovery_cost,
+    base_calculation_inputs?.asset_recovery_cost,
+    base_calculation_inputs?.overhead_absorbed_cost,
+    base_calculation_inputs?.recovery_hours_used,
   ]);
 
   const calculation_inputs = useMemo(() => {

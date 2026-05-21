@@ -23,14 +23,24 @@ export default function useRecoverySummary(inputs = {}) {
     inputs.business_summary ?? business_summary.output_contract ?? {};
 
   const calculated = useMemo(() => {
+    const use_saved_split =
+      recovery_state.split_manually_overridden === true ||
+      recovery_state.recovery_model !== "hybrid";
+
     return calculateRecoverySummary({
       ...business_summary_outputs,
 
       recovery_model: recovery_state.recovery_model,
 
-      labour_share_percent: recovery_state.labour_share_percent,
-      asset_share_percent: recovery_state.asset_share_percent,
-      material_share_percent: recovery_state.material_share_percent,
+      labour_share_percent: use_saved_split
+        ? recovery_state.labour_share_percent
+        : undefined,
+      asset_share_percent: use_saved_split
+        ? recovery_state.asset_share_percent
+        : undefined,
+      material_share_percent: use_saved_split
+        ? recovery_state.material_share_percent
+        : undefined,
 
       // Unexplained recovery allowance is calculated inside Recovery Summary
       // as 100% minus labour, asset, and materials / products shares.

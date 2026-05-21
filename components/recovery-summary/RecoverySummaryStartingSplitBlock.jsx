@@ -1,5 +1,14 @@
 import CollapsibleSection from "@/components/common/CollapsibleSection";
-import { format_number } from "@/components/recovery-summary/recoverySummaryFormatters";
+
+function format_share_percent(value) {
+  const numeric_value = Number(value || 0);
+
+  if (!Number.isFinite(numeric_value)) {
+    return "0.0";
+  }
+
+  return numeric_value.toFixed(1);
+}
 
 export default function RecoverySummaryStartingSplitBlock({
   labour_share_percent,
@@ -12,6 +21,8 @@ export default function RecoverySummaryStartingSplitBlock({
   share_not_balanced,
   on_reset,
 }) {
+  const resolved_labour_share_percent = Number(labour_share_percent ?? 0);
+  const resolved_asset_share_percent = Number(asset_share_percent ?? 0);
   const resolved_material_share_percent = Number(material_share_percent ?? 0);
   const resolved_overhead_absorbed_percent = Number(
     overhead_absorbed_percent ?? overhead_share_percent ?? 0
@@ -20,7 +31,7 @@ export default function RecoverySummaryStartingSplitBlock({
   return (
     <CollapsibleSection
       title="Suggested starting recovery split"
-      summary={`${format_number(share_total)}% model`}
+      summary={`${format_share_percent(share_total)}% model`}
       defaultOpen={false}
     >
       <div className="ui-stack">
@@ -42,7 +53,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Labour recovery share
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(labour_share_percent)}%
+                  {format_share_percent(resolved_labour_share_percent)}%
                 </div>
               </div>
 
@@ -51,7 +62,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Asset recovery share
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(asset_share_percent)}%
+                  {format_share_percent(resolved_asset_share_percent)}%
                 </div>
               </div>
 
@@ -60,7 +71,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Materials / products contribution
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(resolved_material_share_percent)}%
+                  {format_share_percent(resolved_material_share_percent)}%
                 </div>
               </div>
 
@@ -69,7 +80,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Unassigned recovery share
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(resolved_overhead_absorbed_percent)}%
+                  {format_share_percent(resolved_overhead_absorbed_percent)}%
                 </div>
               </div>
             </div>
@@ -92,7 +103,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Explained recovery total
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(explained_recovery_total)}%
+                  {format_share_percent(explained_recovery_total)}%
                 </div>
               </div>
 
@@ -101,7 +112,7 @@ export default function RecoverySummaryStartingSplitBlock({
                   Total recovery model
                 </div>
                 <div className="labour-summary-table-value">
-                  {format_number(share_total)}%
+                  {format_share_percent(share_total)}%
                 </div>
               </div>
             </div>
