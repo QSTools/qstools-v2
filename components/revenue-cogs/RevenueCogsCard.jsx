@@ -7,6 +7,22 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function cleanNumberInput(value) {
+  return String(value ?? "").replace(/[^\d]/g, "");
+}
+
+function formatWithCommas(value) {
+  const number = Number(String(value ?? "").replace(/,/g, ""));
+
+  if (!Number.isFinite(number) || number === 0) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("en-NZ", {
+    maximumFractionDigits: 0,
+  }).format(number);
+}
+
 function formatCurrency(value) {
   const number = Number(value) || 0;
 
@@ -123,8 +139,9 @@ function DriverModeButton({ title, body, active, onClick }) {
   return (
     <button
       type="button"
-      className={`ui-readonly text-left transition ${active ? "border border-[var(--accent)]" : ""
-        }`}
+      className={`ui-readonly text-left transition ${
+        active ? "border border-[var(--accent)]" : ""
+      }`}
       onClick={onClick}
     >
       <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -142,6 +159,8 @@ function UnitDriverRow({
   removeUnitDriverRow,
   can_remove,
 }) {
+  const is_revenue_bucket = row.unit_type === "each";
+
   return (
     <div className="ui-panel ui-stack">
       <div className="ui-split">
@@ -199,7 +218,7 @@ function UnitDriverRow({
             updateUnitDriverRow(
               row.id,
               "revenue_share_percent",
-              value.replace(/,/g, "")
+              cleanNumberInput(value)
             )
           }
           help={
@@ -209,35 +228,72 @@ function UnitDriverRow({
           }
         />
 
-        <TextInput
-          label="Average sale rate"
-          value={String(row.average_sale_rate_per_unit ?? "")}
-          onChange={(value) =>
-            updateUnitDriverRow(
-              row.id,
-              "average_sale_rate_per_unit",
-              value.replace(/,/g, "")
-            )
-          }
-          help="Average charge per unit."
-        />
+        {is_revenue_bucket ? (
+          <TextInput
+            label="Estimated units sold per year"
+            value={formatWithCommas(row.estimated_units_annual)}
+            onChange={(value) =>
+              updateUnitDriverRow(
+                row.id,
+                "estimated_units_annual",
+                cleanNumberInput(value)
+              )
+            }
+            help="Use POS or sales data. Do not model individual product lines here."
+          />
+        ) : (
+          <TextInput
+            label="Average sale rate"
+            value={formatWithCommas(row.average_sale_rate_per_unit)}
+            onChange={(value) =>
+              updateUnitDriverRow(
+                row.id,
+                "average_sale_rate_per_unit",
+                cleanNumberInput(value)
+              )
+            }
+            help="Average charge per measurable unit."
+          />
+        )}
       </div>
+
+      {is_revenue_bucket ? (
+        <div className="ui-readonly">
+          <div className="text-sm font-semibold text-[var(--text-primary)]">
+            Revenue bucket
+          </div>
+          <p className="mt-1 ui-help">
+            “Each” is treated as a product basket. Enter estimated total units
+            sold per year, but do not model individual items here.
+          </p>
+        </div>
+      ) : null}
 
       <div className="labour-summary-table">
         <TableRow
           label="Derived annual revenue"
           value={formatCurrency(row.annual_revenue)}
         />
+
         <TableRow
-          label="Derived annual units"
-          value={`${formatNumber(row.derived_units_annual)} ${row.unit_type_label || "units"
-            }`}
+          label={
+            is_revenue_bucket ? "Estimated annual units" : "Derived annual units"
+          }
+          value={`${formatNumber(row.derived_units_annual)} ${
+            row.unit_type_label || "units"
+          }`}
         />
+
         <TableRow
           label="Margin per unit"
           value={formatCurrencyPrecise(row.margin_per_unit)}
-          help="Derived from the P&L margin pool, not from a user-entered direct cost."
+          help={
+            is_revenue_bucket
+              ? "Derived from the P&L margin pool and estimated annual units."
+              : "Derived from the P&L margin pool and measured unit volume."
+          }
         />
+
         <TableRow
           label="Annual margin pool"
           value={formatCurrency(row.annual_margin_pool)}
@@ -417,7 +473,7 @@ export default function RevenueCogsCard({
                 help="For unit-based recovery testing, the unit split should total 100%."
               />
               <TableRow
-                label="Derived annual units"
+                label="Annual units"
                 value={formatNumber(total_derived_units_annual)}
               />
               <TableRow

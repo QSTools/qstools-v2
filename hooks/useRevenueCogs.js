@@ -28,6 +28,7 @@ function buildNewUnitDriverRow(index = 0, revenue_share_percent = 0) {
     unit_type: "each",
     revenue_share_percent,
     average_sale_rate_per_unit: 0,
+    estimated_units_annual: 0,
   };
 }
 
