@@ -85,6 +85,9 @@ export default function useCostSummary(inputs = {}) {
     const output_contract = {
       total_people_cost_annual: calculations.total_people_cost_annual ?? 0,
       total_recovery_hours: calculations.total_recovery_hours ?? 0,
+      business_recovery_hours: calculations.business_recovery_hours ?? 0,
+      operating_recovery_hours: calculations.operating_recovery_hours ?? 0,
+      total_staff_recovery_hours: calculations.total_staff_recovery_hours ?? 0,
       total_productive_output: calculations.total_productive_output ?? 0,
       total_available_hours_before_productivity:
         labour_data.total_available_hours_before_productivity ?? 0,
@@ -130,6 +133,12 @@ export default function useCostSummary(inputs = {}) {
             calculations.total_people_cost_annual ??
             0,
           total_recovery_hours: calculations.total_recovery_hours ?? 0,
+          business_recovery_hours:
+            calculations.business_recovery_hours ?? 0,
+          operating_recovery_hours:
+            calculations.operating_recovery_hours ?? 0,
+          total_staff_recovery_hours:
+            calculations.total_staff_recovery_hours ?? 0,
           total_productive_output:
             calculations.total_productive_output ?? 0,
           total_available_hours_before_productivity:

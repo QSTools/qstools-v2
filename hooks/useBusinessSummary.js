@@ -52,6 +52,12 @@ export default function useBusinessSummary() {
       total_recovery_hours:
         cost_summary_output_contract.total_recovery_hours ?? 0,
 
+      business_recovery_hours:
+        cost_summary_output_contract.business_recovery_hours ?? 0,
+
+      operating_recovery_hours:
+        cost_summary_output_contract.operating_recovery_hours ?? 0,
+
       total_productive_output:
         cost_summary_output_contract.total_productive_output ?? 0,
 
@@ -198,6 +204,12 @@ export default function useBusinessSummary() {
       net_position: calculations.net_position,
 
       total_recovery_hours: calculations.total_recovery_hours,
+      business_recovery_hours:
+        cost_summary_output_contract.business_recovery_hours ?? 0,
+      operating_recovery_hours:
+        cost_summary_output_contract.operating_recovery_hours ?? 0,
+      total_staff_recovery_hours:
+        cost_summary_output_contract.total_staff_recovery_hours ?? 0,
       recovery_hours_used: calculations.recovery_hours_used,
       total_productive_output: calculations.total_productive_output,
       units_sold_annual: calculations.units_sold_annual,

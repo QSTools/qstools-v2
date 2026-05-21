@@ -97,7 +97,7 @@ export default function CostSummaryHelpPanel() {
 
               <HelpRow
                 title="Required Recovery Rate"
-                body="Required Recovery Rate converts annual operating cost into a per-recovery-hour baseline using Labour's selected recovery hours."
+                body="Required Recovery Rate converts annual operating cost into a per-recovery-hour baseline using Labour's operating recovery hours."
               />
             </div>
           ) : null}

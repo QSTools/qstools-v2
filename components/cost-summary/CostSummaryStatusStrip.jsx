@@ -119,7 +119,7 @@ export default function CostSummaryStatusStrip({
         </div>
 
         <p className="ui-help">
-          Based on Labour's selected {output_value} recovery hours.
+          Based on Labour's {output_value} operating recovery hours.
         </p>
 
         {!model_ready ? (

@@ -39,7 +39,7 @@ export default function BusinessSummaryModePanel({
         <p className="ui-help">
           {activity_driver_type === "units"
             ? "Business Summary is calculating recovery through units sold."
-            : "Business Summary is calculating recovery through productive hours."}
+            : "Business Summary is calculating recovery through operating recovery hours."}
         </p>
       </div>
 
@@ -53,14 +53,14 @@ export default function BusinessSummaryModePanel({
         <p className="ui-help">
           {activity_driver_type === "units"
             ? "This shows the business result spread across annual units sold."
-            : "This shows the business result spread across total productive hours. The recovery rate above uses selected recovery hours."}
+            : "This shows the business result spread across operating recovery hours."}
         </p>
 
         <div className="labour-summary-table">
           <TableRow
             label={
               activity_driver_type === "hours"
-                ? "Required recovery per productive hour"
+                ? "Required recovery per recovery hour"
                 : required_recovery_label
             }
             value={`${formatCurrency(
@@ -70,7 +70,7 @@ export default function BusinessSummaryModePanel({
           <TableRow
             label={
               activity_driver_type === "hours"
-                ? "Current margin per productive hour"
+                ? "Current margin per recovery hour"
                 : current_margin_label
             }
             value={`${formatCurrency(
@@ -80,7 +80,7 @@ export default function BusinessSummaryModePanel({
           <TableRow
             label={
               activity_driver_type === "hours"
-                ? "Productive hourly gap"
+                ? "Recovery hourly gap"
                 : recovery_gap_label
             }
             value={`${formatCurrency(
@@ -94,7 +94,7 @@ export default function BusinessSummaryModePanel({
           />
           {activity_driver_type === "hours" ? (
             <TableRow
-              label="Selected Recovery Hours"
+              label="Operating Recovery Hours"
               value={`${formatNumber(total_recovery_hours)} hrs`}
             />
           ) : null}

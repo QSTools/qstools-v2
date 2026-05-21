@@ -652,7 +652,7 @@ export default function CostSummaryCard({
 
             <div className="labour-summary-table-row">
               <div className="labour-summary-table-label">
-                Recovery Hours
+                Operating Recovery Hours
               </div>
               <div className="labour-summary-table-value">
                 {formatNumber(recovery_hours_total)} hrs
@@ -671,7 +671,7 @@ export default function CostSummaryCard({
 
           <div className="ui-help">
             The selected period changes the display scale only. The baseline is
-            still built from total operating cost and selected recovery hours.
+            still built from total operating cost and operating recovery hours.
             This is your break-even cost baseline. Materials and profit sit on
             top.
           </div>

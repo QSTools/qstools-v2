@@ -62,7 +62,7 @@ export default function BusinessSummaryHelpPanel() {
               />
               <HelpRow
                 title="Current Margin per Hour"
-                body="Current margin per hour compares trading output against productive hours."
+                body="Current margin per hour compares trading output against operating recovery hours."
               />
               <HelpRow
                 title="No Modelling"
