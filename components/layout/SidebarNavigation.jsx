@@ -31,6 +31,7 @@ const nav_groups = [
     items: [
       { href: "/cost-summary", label: "Cost Summary" },
       { href: "/revenue-cogs", label: "Revenue / COGS" },
+      { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/business-summary", label: "Business Summary" },
     ],
   },
@@ -60,6 +61,7 @@ const SETUP_FLOW_ORDER = [
   "/assets",
   "/cost-summary",
   "/revenue-cogs",
+  "/revenue-reality",
   "/business-summary",
   "/recovery-summary",
   "/cost-allocation",
@@ -75,6 +77,7 @@ const setup_progress = {
   "/assets": false,
   "/cost-summary": false,
   "/revenue-cogs": false,
+  "/revenue-reality": false,
   "/business-summary": false,
   "/recovery-summary": false,
   "/cost-allocation": false,
@@ -108,6 +111,8 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/cost-summary/") ||
       pathname === "/revenue-cogs" ||
       pathname.startsWith("/revenue-cogs/") ||
+      pathname === "/revenue-reality" ||
+      pathname.startsWith("/revenue-reality/") ||
       pathname === "/business-summary" ||
       pathname.startsWith("/business-summary/"),
 
