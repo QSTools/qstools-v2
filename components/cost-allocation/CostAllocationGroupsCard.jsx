@@ -11,7 +11,13 @@ function getGroupId(group) {
 }
 
 function getStaffId(staff) {
-  return staff?.staff_id || staff?.id || staff?.value;
+  return (
+    staff?.labour_type_id ||
+    staff?.labour_type_key ||
+    staff?.staff_id ||
+    staff?.id ||
+    staff?.value
+  );
 }
 
 function getAssetId(asset) {
@@ -57,6 +63,9 @@ function normaliseStaffOptions(groups) {
     ...staff,
     staff_id: getStaffId(staff),
     staff_name: getStaffLabel(staff),
+    is_labour_driver:
+      Boolean(staff?.labour_type_id || staff?.labour_type_key) ||
+      staff?.is_labour_driver === true,
   }));
 }
 
@@ -354,10 +363,10 @@ function WorkingUnitEditor({
               <p className="text-sm font-semibold text-[var(--text-primary)]">
                 Productive labour
               </p>
-              <p className="ui-help">
-                Select the labour that actually does the productive work for
-                this unit.
-              </p>
+                <p className="ui-help">
+                  Select the productive labour driver that actually does the
+                  work for this unit.
+                </p>
             </div>
 
             <div className="ui-actions">
@@ -370,7 +379,7 @@ function WorkingUnitEditor({
                   addStaff(value);
                 }}
               >
-                <option value="">Add productive labour...</option>
+                <option value="">Add productive labour driver...</option>
                 {staff_options
                   .filter((staff) => !staff_ids.includes(staff.staff_id))
                   .map((staff) => (
@@ -397,7 +406,9 @@ function WorkingUnitEditor({
                           </p>
                           {staff?.labour_type_label || staff?.staff_role ? (
                             <p className="ui-help">
-                              {staff.labour_type_label || staff.staff_role}
+                              {staff.labour_type_label ||
+                                staff.staff_role ||
+                                "Productive labour driver"}
                             </p>
                           ) : null}
                         </div>

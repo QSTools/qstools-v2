@@ -63,9 +63,9 @@ export default function CostAllocationHelpPanel() {
           </HelpStep>
 
           <HelpStep number="3" title="Select productive labour and assets">
-            Add only the labour and assets that actually do the productive work.
-            Do not add owner, admin, office, or support costs unless they are
-            directly doing the work.
+            Add the productive labour driver and productive assets that actually
+            do the work. Do not add owner, admin, office, or support costs
+            unless they are directly doing the work.
           </HelpStep>
 
           <HelpStep number="4" title="Review running cost">
@@ -125,6 +125,11 @@ export default function CostAllocationHelpPanel() {
             Cost Allocation does not rebuild Labour, Assets, General Overheads,
             Cost Summary, or Recovery Summary. It takes the cost truth already
             built upstream and shows what each working unit has to recover.
+          </p>
+          <p className="mt-1 ui-help">
+            Materials, products, and COGS do not belong in Cost Allocation.
+            They stay in Revenue / COGS and are tested downstream through the
+            active recovery mode.
           </p>
         </div>
       </div>

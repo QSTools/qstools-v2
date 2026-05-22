@@ -29,9 +29,32 @@ function yesNo(value) {
 }
 
 function getGroupRows(recovery_plan) {
-  return Array.isArray(recovery_plan?.operational_group_recovery_rows)
+  const recovery_rows = Array.isArray(
+    recovery_plan?.operational_group_recovery_rows
+  )
     ? recovery_plan.operational_group_recovery_rows
     : [];
+
+  const cost_rows = Array.isArray(recovery_plan?.operational_group_cost_rows)
+    ? recovery_plan.operational_group_cost_rows
+    : [];
+
+  if (recovery_rows.length === 0) {
+    return cost_rows;
+  }
+
+  return recovery_rows.map((row) => {
+    const cost_row = cost_rows.find(
+      (item) =>
+        item.group_id === row.group_id ||
+        item.group_name === row.group_name
+    );
+
+    return {
+      ...cost_row,
+      ...row,
+    };
+  });
 }
 
 function getLabourRows(recovery_plan) {
@@ -211,6 +234,43 @@ function ProductiveLabourTypeTable({ rows = [] }) {
   );
 }
 
+function OperatingCostBaseSummary({ recovery_plan }) {
+  return (
+    <TableBlock
+      title="Operating cost base"
+      help_text="Cost Allocation groups labour, productive assets, and overhead burden. Materials / COGS stay in Revenue / COGS."
+    >
+      <TableRow
+        label="Grouped labour cost"
+        value={formatMoney(recovery_plan?.total_grouped_labour_cost)}
+      />
+      <TableRow
+        label="Grouped asset cost"
+        value={formatMoney(recovery_plan?.total_grouped_asset_cost)}
+      />
+      <TableRow
+        label="Grouped overhead cost"
+        value={formatMoney(recovery_plan?.total_grouped_overhead_cost)}
+      />
+      <TableRow
+        label="Total grouped operating cost"
+        value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+        total
+      />
+      <TableRow
+        label="Total unassigned cost"
+        value={formatMoney(recovery_plan?.total_unassigned_cost)}
+      />
+      <TableRow
+        label="Productive asset utilisation"
+        value={`${formatNumber(
+          recovery_plan?.productive_asset_utilisation_hours_annual
+        )} hrs`}
+      />
+    </TableBlock>
+  );
+}
+
 function RunningCostSection({ recovery_plan }) {
   const rows = getGroupRows(recovery_plan);
   const labour_rows = getLabourRows(recovery_plan);
@@ -230,6 +290,7 @@ function RunningCostSection({ recovery_plan }) {
         </div>
 
         <ProductiveLabourTypeTable rows={labour_rows} />
+        <OperatingCostBaseSummary recovery_plan={recovery_plan} />
 
         {rows.length === 0 ? (
           <div className="ui-readonly">
@@ -276,9 +337,19 @@ function RunningCostSection({ recovery_plan }) {
                         help="Productive labour rate from Labour."
                       />
                       <TableRow
+                        label="Annual labour cost"
+                        value={formatMoney(group.annual_labour_cost)}
+                        help="Weighted productive labour driver annual cost assigned to this unit."
+                      />
+                      <TableRow
                         label="Asset running cost"
                         value={formatRate(asset_rate)}
                         help="Productive asset recovery rate from Assets / Recovery Summary."
+                      />
+                      <TableRow
+                        label="Annual asset cost"
+                        value={formatMoney(group.annual_asset_cost)}
+                        help="Productive asset annual cost assigned to this unit."
                       />
                       <TableRow
                         label="Running cost total"
@@ -333,6 +404,7 @@ function OverheadBurdenSection({ recovery_plan }) {
           </div>
         ) : (
           <div className="ui-stack">
+            <OperatingCostBaseSummary recovery_plan={recovery_plan} />
             {rows.map((group) => {
               const overhead_rate = getOverheadBurdenRate(group);
 
@@ -358,6 +430,11 @@ function OverheadBurdenSection({ recovery_plan }) {
                     </div>
 
                     <div className="labour-summary-table">
+                      <TableRow
+                        label="Annual overhead allocation"
+                        value={formatMoney(group.annual_overhead_allocation)}
+                        help="Overhead burden assigned to this working unit."
+                      />
                       <TableRow
                         label="Overhead burden"
                         value={formatRate(overhead_rate)}
@@ -446,6 +523,14 @@ function MinimumRecoverableRateSection({ recovery_plan }) {
             label="Highest minimum recoverable rate"
             value={formatRate(highest_rate)}
             total
+          />
+          <TableRow
+            label="Grouped operating cost"
+            value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+          />
+          <TableRow
+            label="Unassigned operating cost"
+            value={formatMoney(recovery_plan?.total_unassigned_cost)}
           />
         </TableBlock>
 

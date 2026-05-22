@@ -164,6 +164,8 @@ function build_productive_labour_type_rows(labour_output_contract = {}) {
     );
 
     return {
+      ...item,
+      labour_type_id: item.labour_type_id ?? labour_type_key,
       labour_type_key,
       labour_type_label: get_labour_type_label(item),
       labour_class: item.labour_class ?? "",
@@ -178,6 +180,7 @@ function build_productive_labour_type_rows(labour_output_contract = {}) {
       ),
       weighted_recovery_rate,
       highest_recovery_rate,
+      source_staff_ids: safe_array(item.source_staff_ids),
     };
   });
 }
@@ -379,6 +382,13 @@ function build_operational_group_recovery_rows({
     safe_array(active_staff).map((staff) => [staff.staff_id, staff])
   );
 
+  const labour_driver_map = new Map(
+    safe_array(productive_labour_type_rows).map((row) => [
+      row.labour_type_id || row.labour_type_key,
+      row,
+    ])
+  );
+
   return safe_array(operational_groups).map((group, index) => {
     const group_asset_ids = get_group_asset_ids(group);
     const group_staff_ids = get_group_staff_ids(group);
@@ -388,14 +398,34 @@ function build_operational_group_recovery_rows({
       .filter(Boolean);
 
     const group_staff = group_staff_ids
-      .map((staff_id) => staff_map.get(staff_id))
+      .map((staff_id) => {
+        const labour_driver = labour_driver_map.get(staff_id);
+
+        if (labour_driver) {
+          return {
+            staff_id: labour_driver.labour_type_id || labour_driver.labour_type_key,
+            staff_name: labour_driver.labour_type_label,
+            labour_type_key: labour_driver.labour_type_key,
+            labour_type_label: labour_driver.labour_type_label,
+            staff_type: labour_driver.staff_type,
+            staff_role: labour_driver.staff_role,
+            labour_class: labour_driver.labour_class,
+            productive_hours: labour_driver.total_productive_hours,
+            total_labour_cost_annual: labour_driver.total_labour_cost,
+            weighted_recovery_rate: labour_driver.weighted_recovery_rate,
+            source_staff_ids: labour_driver.source_staff_ids,
+            is_labour_driver: true,
+          };
+        }
+
+        return staff_map.get(staff_id);
+      })
       .filter(Boolean);
 
     const staff_recovery_rows = group_staff.map((staff) => {
-      const labour_type = find_labour_type_for_staff(
-        staff,
-        productive_labour_type_rows
-      );
+      const labour_type = staff.is_labour_driver
+        ? staff
+        : find_labour_type_for_staff(staff, productive_labour_type_rows);
 
       const labour_recovery_rate_per_hour = safe_number(
         labour_type?.weighted_recovery_rate ??
@@ -674,6 +704,19 @@ export default function useCostAllocation(inputs = {}) {
       productive_labour_type_rows: calculated.productive_labour_type_rows,
       operational_group_recovery_rows:
         calculated.operational_group_recovery_rows,
+      operational_group_cost_rows: calculated.operational_group_cost_rows,
+      total_grouped_labour_cost: calculated.total_grouped_labour_cost,
+      total_grouped_asset_cost: calculated.total_grouped_asset_cost,
+      total_grouped_overhead_cost: calculated.total_grouped_overhead_cost,
+      total_grouped_operating_cost: calculated.total_grouped_operating_cost,
+      unassigned_labour_cost: calculated.unassigned_labour_cost,
+      unassigned_asset_cost: calculated.unassigned_asset_cost,
+      unassigned_overhead_cost: calculated.unassigned_overhead_cost,
+      total_unassigned_cost: calculated.total_unassigned_cost,
+      productive_asset_utilisation_hours_annual:
+        calculated.productive_asset_utilisation_hours_annual,
+      group_recovery_basis_label: calculated.group_recovery_basis_label,
+      group_required_recovery_rate: calculated.group_required_recovery_rate,
     },
     profile: {
       allocation_profile_name: state?.allocation_profile_name ?? "",
@@ -759,6 +802,25 @@ export default function useCostAllocation(inputs = {}) {
     productive_labour_type_rows: calculated.productive_labour_type_rows,
     operational_group_recovery_rows:
       calculated.operational_group_recovery_rows,
+    operational_group_cost_rows: calculated.operational_group_cost_rows,
+
+    cost_allocation_ready:
+      calculated.allocation_status === "ready" ||
+      calculated.allocation_status === "ready_with_dependency",
+    cost_allocation_warnings: calculated.allocation_warnings,
+    operational_groups: calculated.active_operational_groups,
+    total_grouped_labour_cost: calculated.total_grouped_labour_cost,
+    total_grouped_asset_cost: calculated.total_grouped_asset_cost,
+    total_grouped_overhead_cost: calculated.total_grouped_overhead_cost,
+    total_grouped_operating_cost: calculated.total_grouped_operating_cost,
+    unassigned_labour_cost: calculated.unassigned_labour_cost,
+    unassigned_asset_cost: calculated.unassigned_asset_cost,
+    unassigned_overhead_cost: calculated.unassigned_overhead_cost,
+    total_unassigned_cost: calculated.total_unassigned_cost,
+    productive_asset_utilisation_hours_annual:
+      calculated.productive_asset_utilisation_hours_annual,
+    group_recovery_basis_label: calculated.group_recovery_basis_label,
+    group_required_recovery_rate: calculated.group_required_recovery_rate,
 
     productive_asset_cost: calculated.productive_asset_cost,
     support_asset_cost: calculated.support_asset_cost,

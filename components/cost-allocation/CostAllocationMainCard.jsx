@@ -67,6 +67,20 @@ function getDependencyLabel(value) {
   return DEPENDENCY_LABELS[value] || value || "Not classified";
 }
 
+function getBusinessModeLabel(value) {
+  return value === "product_based"
+    ? "Product / unit-based"
+    : "Hours-based";
+}
+
+function getBusinessModeHelp(value) {
+  if (value === "product_based") {
+    return "Cost Allocation builds the operating cost base. Recovery Summary tests whether unit margin can carry this cost.";
+  }
+
+  return "Cost Allocation builds labour and asset operating groups. Recovery Summary tests labour and assets as separate streams.";
+}
+
 function MetricCard({ label, value, help }) {
   return (
     <div className="ui-readonly">
@@ -449,6 +463,7 @@ export default function CostAllocationMainCard({
     : Number(outcome?.setup_warnings_count || 0);
 
   const groups_count = groups?.rows?.length ?? 0;
+  const business_type = recovery_plan?.business_type || "labour_based";
 
   const ready_groups =
     delivery_summary?.ready_working_units_count ??
@@ -544,17 +559,23 @@ export default function CostAllocationMainCard({
                 Build working units and show what each one must recover
               </h2>
               <p className="ui-help">
-                Cost Allocation takes the cost truth already built upstream and
-                shows what each real working unit has to carry.
+                Cost Allocation builds the operating structure: labour drivers,
+                productive assets, overhead burden, and operational group cost.
               </p>
               <p className="ui-help">
-                Create the working unit first, then review running cost,
-                overhead burden, and minimum recoverable rate before moving to
-                revenue or pricing.
+                Materials / COGS stay in Revenue / COGS. This page does not
+                prove recovery or set price; Recovery Summary and Business
+                Outcome use this structure downstream.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <MetricCard
+                label="Business mode"
+                value={getBusinessModeLabel(business_type)}
+                help={getBusinessModeHelp(business_type)}
+              />
+
               <MetricCard
                 label="Allocation status"
                 value={getStatusLabel(allocation_status, outcome?.status_label)}
@@ -567,12 +588,29 @@ export default function CostAllocationMainCard({
                 help="Shortfall is shown as dependency, not automatic failure."
               />
 
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <MetricCard
                 label="Working units"
                 value={`${formatCount(ready_groups)} / ${formatCount(
                   groups_count
                 )}`}
                 help="Ready units compared with total units created."
+              />
+
+              <MetricCard
+                label="Grouped operating cost"
+                value={`$${formatCount(
+                  recovery_plan?.total_grouped_operating_cost
+                )}`}
+                help="Labour, productive assets, and overhead currently assigned."
+              />
+
+              <MetricCard
+                label="Unassigned cost"
+                value={`$${formatCount(recovery_plan?.total_unassigned_cost)}`}
+                help="Cost still outside operational groups."
               />
             </div>
           </div>

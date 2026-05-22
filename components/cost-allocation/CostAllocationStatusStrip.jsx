@@ -44,6 +44,12 @@ function StatusMetric({ label, value, help }) {
 }
 
 export default function CostAllocationStatusStrip({
+  allocation_status: flat_allocation_status,
+  allocation_dependency_type: flat_allocation_dependency_type,
+  working_units_count: flat_working_units_count,
+  warnings_count: flat_warnings_count,
+  total_grouped_operating_cost = 0,
+  total_unassigned_cost = 0,
   status,
   outcome,
   delivery_summary,
@@ -51,18 +57,21 @@ export default function CostAllocationStatusStrip({
   recovery_plan,
 }) {
   const allocation_status =
+    flat_allocation_status ||
     status?.allocation_status ||
     outcome?.allocation_status ||
     delivery_summary?.allocation_status ||
     "review";
 
   const allocation_dependency_type =
+    flat_allocation_dependency_type ||
     status?.allocation_dependency_type ||
     outcome?.allocation_dependency_type ||
     delivery_summary?.allocation_dependency_type ||
     "unknown";
 
   const working_units_count =
+    flat_working_units_count ||
     status?.working_units_count ||
     delivery_summary?.working_units_count ||
     groups?.working_units_count ||
@@ -89,6 +98,7 @@ export default function CostAllocationStatusStrip({
     0;
 
   const warning_count =
+    flat_warnings_count ||
     status?.warnings_count ||
     outcome?.warning_count ||
     outcome?.warnings_count ||
@@ -151,6 +161,20 @@ export default function CostAllocationStatusStrip({
             label="Warnings"
             value={formatCount(warning_count)}
             help="Items to review before relying on this setup."
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <StatusMetric
+            label="Grouped operating cost"
+            value={`$${formatCount(total_grouped_operating_cost)}`}
+            help="Labour, productive asset, and overhead cost currently assigned to operational groups."
+          />
+
+          <StatusMetric
+            label="Unassigned cost"
+            value={`$${formatCount(total_unassigned_cost)}`}
+            help="Labour, asset, or overhead cost still outside operational groups."
           />
         </div>
 
