@@ -16,13 +16,19 @@ function ProductRecoveryRequirementBlock({
   required_units_if_margin_fixed = 0,
   required_margin_if_units_fixed = 0,
   product_unit_recovery_status = "not_recoverable",
+  product_unit_margin_label = "Margin per unit",
+  product_required_cost_label = "Required cost per unit",
+  product_surplus_gap_label = "Surplus / gap per unit",
+  product_total_units_label = "Total units",
+  product_unit_suffix = "units",
+  product_rate_suffix = "/unit",
 }) {
   const status_message =
     product_unit_recovery_status === "not_recoverable"
       ? "Product margin is not positive, so unit volume cannot recover the business cost burden."
       : product_unit_recovery_status === "shortfall"
-        ? "Unit margin is below the full business cost per unit."
-        : "Unit margin is above the full business cost per unit.";
+        ? `Unit margin is below the required business cost per ${product_unit_suffix}.`
+        : `Unit margin currently covers the business cost per ${product_unit_suffix}.`;
 
   return (
     <div className="ui-panel">
@@ -46,31 +52,35 @@ function ProductRecoveryRequirementBlock({
             </div>
           </div>
           <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">Unit Margin</div>
+            <div className="labour-summary-table-label">
+              {product_unit_margin_label}
+            </div>
             <div className="labour-summary-table-value">
-              {format_currency(margin_per_unit)} /unit
+              {format_currency(margin_per_unit)} {product_rate_suffix}
             </div>
           </div>
           <div className="labour-summary-table-row">
             <div className="labour-summary-table-label">
-              Full Business Cost per Unit
+              {product_required_cost_label}
             </div>
             <div className="labour-summary-table-value">
-              {format_currency(required_cost_per_unit)} /unit
+              {format_currency(required_cost_per_unit)} {product_rate_suffix}
             </div>
           </div>
           <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">Units per Year</div>
+            <div className="labour-summary-table-label">
+              {product_total_units_label}
+            </div>
             <div className="labour-summary-table-value">
-              {format_number(total_units, " units")}
+              {format_number(total_units, ` ${product_unit_suffix}`)}
             </div>
           </div>
           <div className="labour-summary-table-row total">
             <div className="labour-summary-table-label">
-              Surplus / Gap per Unit
+              {product_surplus_gap_label}
             </div>
             <div className="labour-summary-table-value">
-              {format_currency(unit_surplus_or_gap)} /unit
+              {format_currency(unit_surplus_or_gap)} {product_rate_suffix}
             </div>
           </div>
           <div className="labour-summary-table-row">
@@ -86,7 +96,10 @@ function ProductRecoveryRequirementBlock({
               Required Units if Margin Fixed
             </div>
             <div className="labour-summary-table-value">
-              {format_number(required_units_if_margin_fixed, " units")}
+              {format_number(
+                required_units_if_margin_fixed,
+                ` ${product_unit_suffix}`
+              )}
             </div>
           </div>
           <div className="labour-summary-table-row">
@@ -94,7 +107,8 @@ function ProductRecoveryRequirementBlock({
               Required Margin if Units Fixed
             </div>
             <div className="labour-summary-table-value">
-              {format_currency(required_margin_if_units_fixed)} /unit
+              {format_currency(required_margin_if_units_fixed)}{" "}
+              {product_rate_suffix}
             </div>
           </div>
         </div>
@@ -273,6 +287,12 @@ export default function RecoverySummaryMainCard({
   required_units_if_margin_fixed,
   required_margin_if_units_fixed,
   product_unit_recovery_status,
+  product_unit_margin_label,
+  product_required_cost_label,
+  product_surplus_gap_label,
+  product_total_units_label,
+  product_unit_suffix,
+  product_rate_suffix,
 }) {
   const product_mode_active =
     is_product_based === true ||
@@ -310,6 +330,12 @@ export default function RecoverySummaryMainCard({
               required_units_if_margin_fixed={required_units_if_margin_fixed}
               required_margin_if_units_fixed={required_margin_if_units_fixed}
               product_unit_recovery_status={product_unit_recovery_status}
+              product_unit_margin_label={product_unit_margin_label}
+              product_required_cost_label={product_required_cost_label}
+              product_surplus_gap_label={product_surplus_gap_label}
+              product_total_units_label={product_total_units_label}
+              product_unit_suffix={product_unit_suffix}
+              product_rate_suffix={product_rate_suffix}
             />
           ) : (
             <HoursBasedRecoveryTests
