@@ -36,7 +36,12 @@ function render_input({ field_name, label, type = "number", value, on_change }) 
   );
 }
 
-export default function AssetForm({ values, on_change, on_reset }) {
+export default function AssetForm({
+  values,
+  on_change,
+  on_bulk_change,
+  on_reset,
+}) {
   const asset_type = values.asset_type === "support" ? "support" : "productive";
   const asset_status = values.is_retired ? "retired" : "active";
 
@@ -50,6 +55,25 @@ export default function AssetForm({ values, on_change, on_reset }) {
     const is_retired = next_status === "retired";
     on_change("is_active", !is_retired);
     on_change("is_retired", is_retired);
+  }
+
+  function handle_asset_type_change(next_asset_type) {
+    if (typeof on_bulk_change === "function") {
+      on_bulk_change({
+        asset_type: next_asset_type,
+        utilisation_hours_per_week:
+          next_asset_type === "productive"
+            ? Number(values.utilisation_hours_per_week || 40)
+            : 0,
+        utilisation_hours_annual:
+          next_asset_type === "productive"
+            ? Number(values.utilisation_hours_per_week || 40) * 48
+            : 0,
+      });
+      return;
+    }
+
+    on_change("asset_type", next_asset_type);
   }
 
   function handle_finance_status_change(next_status) {
@@ -106,12 +130,34 @@ export default function AssetForm({ values, on_change, on_reset }) {
             <select
               className="ui-input"
               value={asset_type}
-              onChange={(event) => on_change("asset_type", event.target.value)}
+              onChange={(event) => handle_asset_type_change(event.target.value)}
             >
               <option value="productive">Productive</option>
               <option value="support">Support</option>
             </select>
           </label>
+
+          {asset_type === "productive" ? (
+            <label className="ui-stack-sm">
+              <span className="ui-label">Hours used per week</span>
+              <input
+                className="ui-input"
+                type="text"
+                value={format_number_with_commas(
+                  values.utilisation_hours_per_week ?? 40
+                )}
+                onChange={(event) =>
+                  on_change(
+                    "utilisation_hours_per_week",
+                    parse_number_string(event.target.value)
+                  )
+                }
+              />
+              <span className="ui-help">
+                How many hours per week is this asset actually used?
+              </span>
+            </label>
+          ) : null}
 
           <label className="ui-stack-sm">
             <span className="ui-label">Effective From</span>

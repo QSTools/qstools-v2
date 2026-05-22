@@ -214,6 +214,19 @@ function SelectedAssetDetailCard({
                   value={find_row_value("Asset Recovery Cost Annual")}
                   strong
                 />
+                <SummaryRow
+                  label="Utilisation Hours / Week"
+                  value={find_row_value("Utilisation Hours / Week", "-")}
+                />
+                <SummaryRow
+                  label="Annual Utilisation Hours"
+                  value={find_row_value("Annual Utilisation Hours", "-")}
+                />
+                <SummaryRow
+                  label="Required Asset Recovery Rate"
+                  value={find_row_value("Required Asset Recovery Rate", "-")}
+                  strong
+                />
               </div>
             </div>
           </div>

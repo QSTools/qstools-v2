@@ -45,6 +45,32 @@ function get_allocated_asset_overhead_cost(asset = {}) {
   );
 }
 
+function get_asset_utilisation_fields(asset = {}) {
+  const asset_type = normalizeAssetType(asset.asset_type);
+  const utilisation_hours_per_week =
+    asset_type === "productive"
+      ? Math.max(to_number(asset.utilisation_hours_per_week ?? 40), 0)
+      : 0;
+  const utilisation_hours_annual =
+    asset_type === "productive"
+      ? to_number(asset.utilisation_hours_annual) ||
+        utilisation_hours_per_week * 48
+      : 0;
+  const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
+  const required_asset_recovery_rate =
+    asset_type === "productive" && utilisation_hours_annual > 0
+      ? total_asset_cost_annual / utilisation_hours_annual
+      : 0;
+
+  return {
+    utilisation_hours_per_week,
+    utilisation_hours_annual,
+    required_asset_recovery_rate,
+    productive_asset_hours: utilisation_hours_annual,
+    true_asset_cost_per_hour: required_asset_recovery_rate,
+  };
+}
+
 function build_asset_recovery_fields(asset = {}) {
   const allocated_asset_overhead_cost_annual =
     get_allocated_asset_overhead_cost(asset);
@@ -172,6 +198,7 @@ export default function useAssets() {
           .filter((asset) => !asset.is_retired)
           .map((asset) => {
             const recovery_fields = build_asset_recovery_fields(asset);
+            const utilisation_fields = get_asset_utilisation_fields(asset);
 
             return {
               asset_id: asset.asset_id ?? "",
@@ -199,6 +226,12 @@ export default function useAssets() {
               finance_start_date: asset.finance_start_date ?? "",
               finance_end_date: asset.finance_end_date ?? "",
               finance_paid_off: asset.finance_paid_off === true,
+              utilisation_hours_per_week:
+                utilisation_fields.utilisation_hours_per_week,
+              utilisation_hours_annual:
+                utilisation_fields.utilisation_hours_annual,
+              required_asset_recovery_rate:
+                utilisation_fields.required_asset_recovery_rate,
               cash_flow_support: {
                 asset_principal_repayment_annual: Number(
                   asset.asset_principal_repayment_annual ??
@@ -209,10 +242,9 @@ export default function useAssets() {
                   asset.asset_total_finance_payment_annual ?? 0
                 ),
               },
-              productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
-              true_asset_cost_per_hour: Number(
-                asset.true_asset_cost_per_hour ?? 0
-              ),
+              productive_asset_hours: utilisation_fields.productive_asset_hours,
+              true_asset_cost_per_hour:
+                utilisation_fields.true_asset_cost_per_hour,
               is_active: !asset.is_retired,
             };
           })
@@ -233,6 +265,7 @@ export default function useAssets() {
 
     const asset_rows = live_assets.map((asset) => {
       const recovery_fields = build_asset_recovery_fields(asset);
+      const utilisation_fields = get_asset_utilisation_fields(asset);
 
       return {
         asset_id: asset.asset_id ?? "",
@@ -256,6 +289,11 @@ export default function useAssets() {
         finance_start_date: asset.finance_start_date ?? "",
         finance_end_date: asset.finance_end_date ?? "",
         finance_paid_off: asset.finance_paid_off === true,
+        utilisation_hours_per_week:
+          utilisation_fields.utilisation_hours_per_week,
+        utilisation_hours_annual: utilisation_fields.utilisation_hours_annual,
+        required_asset_recovery_rate:
+          utilisation_fields.required_asset_recovery_rate,
         cash_flow_support: {
           asset_principal_repayment_annual: Number(
             asset.asset_principal_repayment_annual ??
@@ -266,8 +304,9 @@ export default function useAssets() {
             asset.asset_total_finance_payment_annual ?? 0
           ),
         },
-        productive_asset_hours: Number(asset.productive_asset_hours ?? 0),
-        true_asset_cost_per_hour: Number(asset.true_asset_cost_per_hour ?? 0),
+        productive_asset_hours: utilisation_fields.productive_asset_hours,
+        true_asset_cost_per_hour:
+          utilisation_fields.true_asset_cost_per_hour,
         is_active: !asset.is_retired,
       };
     });
@@ -288,7 +327,11 @@ export default function useAssets() {
       0
     );
 
-    const productive_asset_cost = productive_assets.reduce(
+    const productive_asset_rows = asset_rows.filter(
+      (asset) => asset.asset_type === "productive"
+    );
+
+    const productive_asset_cost = productive_asset_rows.reduce(
       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
       0
     );
@@ -322,6 +365,16 @@ export default function useAssets() {
       cash_flow_layer: "future_only",
     };
 
+    const total_productive_asset_utilisation_hours_annual =
+      productive_asset_rows.reduce(
+        (sum, asset) => sum + Number(asset.utilisation_hours_annual ?? 0),
+        0
+      );
+    const productive_asset_recovery_rate =
+      total_productive_asset_utilisation_hours_annual > 0
+        ? productive_asset_cost / total_productive_asset_utilisation_hours_annual
+        : 0;
+
     return {
       assets: asset_rows,
       active_assets: asset_rows,
@@ -332,7 +385,10 @@ export default function useAssets() {
       productive_asset_count: productive_assets.length,
       support_asset_count: support_assets.length,
       productive_asset_cost,
+      productive_asset_cost_annual: productive_asset_cost,
       support_asset_cost,
+      total_productive_asset_utilisation_hours_annual,
+      productive_asset_recovery_rate,
 
       asset_overhead_pools,
       total_allocated_asset_overhead_cost_annual,

@@ -55,6 +55,28 @@ export default function AssetListCard({
                           {asset.total_asset_cost_annual}
                         </span>
                       </div>
+
+                      {asset.asset_type === "Productive" ? (
+                        <>
+                          <div className="labour-summary-row">
+                            <span className="labour-summary-label">
+                              Hours Used / Week
+                            </span>
+                            <span className="labour-summary-value">
+                              {asset.utilisation_hours_per_week}
+                            </span>
+                          </div>
+
+                          <div className="labour-summary-row">
+                            <span className="labour-summary-label">
+                              Asset Recovery Rate
+                            </span>
+                            <span className="labour-summary-value">
+                              {asset.required_asset_recovery_rate}
+                            </span>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
 
                     <div className="ui-actions">

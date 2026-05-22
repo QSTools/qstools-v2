@@ -21,6 +21,16 @@ export default function AssetHelpPanel() {
           <p className="ui-help">
             This page is not a fleet expense tracker or a running-cost model.
           </p>
+
+          <p className="ui-help">
+            Productive assets also capture utilisation as hours used per week.
+            The system converts this to annual utilisation using 48 weeks.
+          </p>
+
+          <p className="ui-help">
+            Utilisation does not assign an operator. Labour-to-asset pairing
+            happens later in Cost Allocation.
+          </p>
         </div>
       </details>
     </section>

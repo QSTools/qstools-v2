@@ -22,6 +22,10 @@ export default function AssetStatusStrip({
   assets_variance_percent_label,
   reconciliation_label,
   active_asset_count_label,
+  productive_asset_count_label,
+  total_productive_asset_utilisation_hours_annual_label,
+  productive_asset_cost_annual_label,
+  productive_asset_recovery_rate_label,
   warning_count,
   warnings,
   is_ready,
@@ -53,6 +57,22 @@ export default function AssetStatusStrip({
               <SummaryRow
                 label="Active Assets"
                 value={active_asset_count_label}
+              />
+              <SummaryRow
+                label="Productive Assets"
+                value={productive_asset_count_label}
+              />
+              <SummaryRow
+                label="Productive Asset Utilisation"
+                value={total_productive_asset_utilisation_hours_annual_label}
+              />
+              <SummaryRow
+                label="Productive Asset Annual Cost"
+                value={productive_asset_cost_annual_label}
+              />
+              <SummaryRow
+                label="Productive Asset Recovery Rate"
+                value={productive_asset_recovery_rate_label}
               />
             </div>
           </div>
