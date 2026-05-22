@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 
 import useBusinessSummary from "@/hooks/useBusinessSummary";
+import useModelReadiness from "@/hooks/useModelReadiness";
+import useRevenueCogs from "@/hooks/useRevenueCogs";
 import { calculateRecoverySummary } from "@/lib/calculations/recoverySummaryCalculations";
 import {
   buildRecoverySummaryCard,
@@ -12,6 +14,8 @@ import { useRecoverySummaryStorage } from "@/lib/storage/recoverySummaryStorage"
 
 export default function useRecoverySummary(inputs = {}) {
   const business_summary = useBusinessSummary();
+  const revenue_cogs = useRevenueCogs();
+  const model_readiness = useModelReadiness();
 
   const {
     recovery_state,
@@ -21,6 +25,16 @@ export default function useRecoverySummary(inputs = {}) {
 
   const business_summary_outputs =
     inputs.business_summary ?? business_summary.output_contract ?? {};
+  const revenue_cogs_outputs =
+    inputs.revenue_cogs ?? revenue_cogs.output_contract ?? {};
+  const asset_outputs =
+    inputs.assets ?? model_readiness.modules?.assets?.output_contract ?? {};
+  const labour_outputs =
+    inputs.labour ?? model_readiness.modules?.labour?.output_contract ?? {};
+  const general_overheads_outputs =
+    inputs.general_overheads ??
+    model_readiness.modules?.generalOverheads?.output_contract ??
+    {};
 
   const calculated = useMemo(() => {
     const use_saved_split =
@@ -29,6 +43,10 @@ export default function useRecoverySummary(inputs = {}) {
 
     return calculateRecoverySummary({
       ...business_summary_outputs,
+      revenue_cogs: revenue_cogs_outputs,
+      assets: asset_outputs,
+      labour: labour_outputs,
+      general_overheads: general_overheads_outputs,
 
       recovery_model: recovery_state.recovery_model,
 
@@ -45,7 +63,14 @@ export default function useRecoverySummary(inputs = {}) {
       // Unexplained recovery allowance is calculated inside Recovery Summary
       // as 100% minus labour, asset, and materials / products shares.
     });
-  }, [business_summary_outputs, recovery_state]);
+  }, [
+    business_summary_outputs,
+    revenue_cogs_outputs,
+    asset_outputs,
+    labour_outputs,
+    general_overheads_outputs,
+    recovery_state,
+  ]);
 
   const status = useMemo(() => {
     return buildRecoverySummaryStatus({
@@ -69,6 +94,7 @@ export default function useRecoverySummary(inputs = {}) {
       recovery_summary_warnings: status.recovery_summary_warnings,
 
       business_type: calculated.business_type,
+      recovery_mode: calculated.recovery_mode,
       is_product_based: calculated.is_product_based,
       is_labour_based: calculated.is_labour_based,
       activity_driver_type: calculated.activity_driver_type,
@@ -98,8 +124,18 @@ export default function useRecoverySummary(inputs = {}) {
       explained_recovery_total: calculated.explained_recovery_total,
 
       labour_recovery_cost: calculated.labour_recovery_cost,
+      labour_recovery_hours: calculated.labour_recovery_hours,
+      labour_recovery_status: calculated.labour_recovery_status,
+      labour_recovery_gap: calculated.labour_recovery_gap,
       asset_recovery_cost: calculated.asset_recovery_cost,
+      asset_utilisation_hours_annual:
+        calculated.asset_utilisation_hours_annual,
+      required_asset_recovery_rate: calculated.required_asset_recovery_rate,
+      asset_recovery_status: calculated.asset_recovery_status,
       material_recovery_cost: calculated.material_recovery_cost,
+      material_margin_pool: calculated.material_margin_pool,
+      material_margin_percent: calculated.material_margin_percent,
+      material_margin_status: calculated.material_margin_status,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
 
       required_revenue: calculated.required_revenue,
@@ -164,6 +200,18 @@ export default function useRecoverySummary(inputs = {}) {
         calculated.unit_surplus_or_shortfall,
       product_recovery_ready: calculated.product_recovery_ready,
       product_recovery_status: calculated.product_recovery_status,
+      total_units: calculated.total_units,
+      required_cost_per_unit: calculated.required_cost_per_unit,
+      unit_surplus_or_gap: calculated.unit_surplus_or_gap,
+      total_annual_surplus_or_gap: calculated.total_annual_surplus_or_gap,
+      required_units_if_margin_fixed:
+        calculated.required_units_if_margin_fixed,
+      required_margin_if_units_fixed:
+        calculated.required_margin_if_units_fixed,
+      product_unit_recovery_status:
+        calculated.product_unit_recovery_status,
+      commercial_driver_mode: calculated.commercial_driver_mode,
+      unit_driver_rows: calculated.unit_driver_rows,
 
       warnings: calculated.warnings,
       share_not_balanced: calculated.share_not_balanced,

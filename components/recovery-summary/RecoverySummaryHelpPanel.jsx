@@ -12,10 +12,10 @@ export default function RecoverySummaryHelpPanel() {
           </h4>
 
           <p className="ui-help">
-            Recovery Summary explains how the business intends to recover the
-            cost burden carried forward from Business Summary. It turns the
-            current recovery pressure into a starting recovery strategy before
-            Cost Allocation tests whether the structure can support it.
+            Recovery Summary tests whether the cost base is recovered correctly
+            for the active business mode. It does not build the cost base.
+            Labour, Assets, General Overheads, Revenue / COGS, Cost Summary,
+            and Business Summary own the source numbers.
           </p>
         </div>
 
@@ -25,15 +25,20 @@ export default function RecoverySummaryHelpPanel() {
           </h4>
 
           <p className="ui-help">
-            This page uses the Business Summary recovery outputs, including the
-            selected recovery driver, required recovery rate, actual recovery
-            rate, recovery gap, total cost burden, and current business model
-            status.
+            In hours-based mode, labour recovers labour, productive assets
+            recover productive assets, and materials cover themselves and
+            create margin. There is no cross-subsidy between those streams.
           </p>
 
           <p className="ui-help">
-            Labour recovery is tested through productive hours. Product
-            recovery is tested through trading margin per unit and units sold.
+            This exposes whether material margin is hiding a labour or asset
+            recovery problem.
+          </p>
+
+          <p className="ui-help">
+            In product / unit-based mode, COGS is consumed to create the
+            product. Margin after COGS must recover labour, assets, overheads,
+            and profit. The unit must carry the whole business.
           </p>
         </div>
 
@@ -43,22 +48,19 @@ export default function RecoverySummaryHelpPanel() {
           </h4>
 
           <p className="ui-help">
-            Start by checking the recovery pressure at the top of the page. If
-            the business is below the required recovery rate, the page shows how
-            that burden is expected to be recovered through labour, productive
-            assets, materials / products, or a hybrid model.
+            Start by checking the active recovery mode. Hours-based businesses
+            should review the labour, asset, and material margin tests
+            separately.
           </p>
 
           <p className="ui-help">
-            In product mode, start by checking whether margin per unit and
-            expected annual unit volume can cover the business cost burden.
+            In product mode, start by checking whether margin per unit covers
+            the full business cost per unit.
           </p>
 
           <p className="ui-help">
-            The recovery strategy selector lets you choose the model that best
-            matches how the business expects to recover margin. The suggested
-            starting split is read-only in V1 because the true split cannot be
-            proven until live job feedback is available.
+            Cost Allocation is still the structural test. It does not add
+            materials to working-unit recovery.
           </p>
         </div>
 
@@ -69,15 +71,14 @@ export default function RecoverySummaryHelpPanel() {
 
           <p className="ui-help">
             This page does not set sell rates, packages, quotes, or pricing
-            logic. It does not prove actual labour margin, material margin, or
-            asset contribution. Those become clearer later through Cost
-            Allocation and live job feedback.
+            logic. It does not assign operators to assets. Labour-to-asset
+            pairing happens later in Cost Allocation.
           </p>
 
           <p className="ui-help">
-            Product mode does not belong in Cost Allocation. Cost Allocation
-            remains structural only: it tests whether the selected recovery
-            model can be supported by the visible business structure.
+            Product mode does not create separate labour, material, and asset
+            recovery streams at the Recovery Summary level. Only margin after
+            COGS recovers the business.
           </p>
         </div>
 
@@ -87,10 +88,10 @@ export default function RecoverySummaryHelpPanel() {
           </h4>
 
           <p className="ui-help">
-            Cost Allocation uses the selected recovery model to test whether the
-            actual business structure can support it. Live job feedback will
-            later improve the recovery split by showing what actually happened
-            across labour, materials / products, and productive asset use.
+            Cost Allocation tests whether the actual business structure can
+            support the recovery model. Live job feedback can later show what
+            actually happened across labour, materials / products, and
+            productive asset use.
           </p>
         </div>
 

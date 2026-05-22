@@ -22,8 +22,8 @@ function get_status_label(recovery_ready, warning_count) {
 
 function get_business_type_label(business_type) {
   return business_type === "product_based"
-    ? "Product-driven business"
-    : "Labour-driven business";
+    ? "Product / unit-based business"
+    : "Hours-based business";
 }
 
 function get_recovery_driver_label(activity_driver_type) {
@@ -224,6 +224,7 @@ function DetailPanel({
 
 export default function RecoverySummaryStatusStrip({
   business_type,
+  recovery_mode,
   is_product_based,
   activity_driver_type,
   activity_driver_label,
@@ -257,7 +258,9 @@ export default function RecoverySummaryStatusStrip({
     activity_driver_label
   );
   const product_mode_active =
-    is_product_based === true || business_type === "product_based";
+    is_product_based === true ||
+    business_type === "product_based" ||
+    recovery_mode === "product_unit";
 
   const values = {
     business_type,
@@ -287,8 +290,9 @@ export default function RecoverySummaryStatusStrip({
 
             <p className="ui-help">
               This page shows the recovery strategy QS Tools is carrying forward
-              from Business Summary. It explains the selected recovery basis
-              before Cost Allocation tests whether the structure can support it.
+              from Business Summary. It now uses the active business mode to
+              decide whether recovery is tested by separate streams or by unit
+              margin.
             </p>
           </div>
 

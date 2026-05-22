@@ -11,8 +11,9 @@ export default function RecoverySummaryHandoffBlock({
           </h3>
 
           <p className="ui-help">
-            Recovery Summary defines the starting recovery model. Cost
-            Allocation will test whether the business structure can support it.
+            Recovery Summary defines the recovery test. Cost Allocation will
+            test whether the business structure can support the relevant
+            working-unit recovery.
           </p>
         </div>
 
@@ -20,7 +21,7 @@ export default function RecoverySummaryHandoffBlock({
           <div className="ui-stack-sm">
             <p className="text-sm font-medium text-[var(--text-primary)]">
               Next step: test the recovery model against labour, productive
-              assets, materials / products, and operating links.
+              assets, and operating links where working-unit recovery applies.
             </p>
 
             {material_recovery_included ? (

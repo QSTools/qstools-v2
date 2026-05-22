@@ -26,6 +26,7 @@ export default function RecoverySummaryPage() {
       <div className="ui-page-stack">
         <RecoverySummaryStatusStrip
           business_type={card.business_type}
+          recovery_mode={card.recovery_mode}
           is_product_based={card.is_product_based}
           activity_driver_type={card.activity_driver_type}
           activity_driver_label={card.activity_driver_label}
@@ -44,10 +45,11 @@ export default function RecoverySummaryPage() {
             card.profit_or_deficit_per_recovery_hour
           }
           margin_per_unit={card.margin_per_unit}
-          units_sold_annual={card.units_sold_annual}
-          required_units_to_break_even={card.required_units_to_break_even}
-          unit_surplus_or_shortfall={card.unit_surplus_or_shortfall}
-          product_recovery_status={card.product_recovery_status}
+          total_units={card.total_units}
+          required_cost_per_unit={card.required_cost_per_unit}
+          unit_surplus_or_gap={card.unit_surplus_or_gap}
+          total_annual_surplus_or_gap={card.total_annual_surplus_or_gap}
+          product_unit_recovery_status={card.product_unit_recovery_status}
           total_revenue={card.total_revenue}
           total_direct_costs={card.total_direct_costs}
           total_people_cost_annual={card.total_people_cost_annual}
