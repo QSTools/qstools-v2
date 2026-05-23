@@ -6,6 +6,7 @@ import SetupNextButton from "@/components/common/SetupNextButton";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
 import ProfitAndLossProgressPanel from "@/components/p-and-l/ProfitAndLossProgressPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
+import ProfitAndLossQuickImportPanel from "@/components/p-and-l/ProfitAndLossQuickImportPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
@@ -393,6 +394,8 @@ export default function ProfitAndLossMainCard({
           <div className="pnl-layout__main">
             <div className="pnl-layout__main-stack">
               <ProfitAndLossPeriodPanel state={state} actions={actions} />
+
+              <ProfitAndLossQuickImportPanel state={state} actions={actions} />
 
               <ProfitAndLossSectionBlock
                 section="trading_income"
