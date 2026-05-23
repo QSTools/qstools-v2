@@ -1,0 +1,694 @@
+# QS TOOLS — NEW PAGE BUILD PACK
+# Revenue Reality / Margin Stress Test Page
+# Version: v1.0
+# Purpose: Expose the gap between P&L GP and usable margin after labour is paid
+
+============================================================
+1. PAGE NAME
+============================================================
+
+Revenue Reality / Margin Stress Test
+
+Recommended route:
+
+app/revenue-reality/page.jsx
+
+Alternative names if preferred:
+- Revenue Reality
+- Margin Stress Test
+- Revenue / Margin Reality
+- GP Stress Test
+
+Do not call it Business Outcome.
+Do not call it Revenue / COGS.
+Do not merge it into Business Summary.
+
+This is a separate baseline diagnostic page.
+
+============================================================
+2. PAGE PURPOSE
+============================================================
+
+This page sits between:
+
+Revenue / COGS
+Business Summary
+Recovery Summary
+Business Outcome
+
+Its purpose is to expose the gap between:
+
+1. Traditional P&L GP / Material Margin
+
+and
+
+2. Stress-tested margin after labour is paid
+
+The page answers:
+
+“What does my GP actually deliver after I pay labour?”
+
+It is a baseline truth page, not a forecast, not a scenario model, and not a pricing recommendation page.
+
+============================================================
+3. CORE BUSINESS LOGIC
+============================================================
+
+Traditional P&L GP / Material Margin:
+
+Revenue - COGS = Material Margin
+
+Stress-tested Margin after Labour:
+
+Material Margin - Total Labour Cost = Stress-Tested Margin after Labour
+
+The page must make clear:
+
+- Material Margin / GP comes from Revenue / COGS
+- Labour Cost comes from the Labour module / Cost Summary / Business Summary
+- Labour must be paid
+- This is not assuming labour is recovered
+- This is enforcing that labour is a real cost
+
+============================================================
+4. WHY THIS PAGE EXISTS
+============================================================
+
+Business Summary already shows the forward proof:
+
+Revenue
+minus COGS
+minus Labour
+equals Residual Margin after Labour
+
+This new page shows the reverse proof:
+
+P&L GP looks like X.
+But after labour is paid, the usable margin is Y.
+
+This exposes whether:
+
+- material margin is propping up labour
+- labour is consuming the GP
+- the P&L GP is misleading
+- the business has no margin left for assets, overheads, or profit
+- the business is structurally relying on cross-subsidy
+
+============================================================
+5. WHAT THIS PAGE IS NOT
+============================================================
+
+This page is not:
+
+- Revenue / COGS
+- Business Summary
+- Recovery Summary
+- Cost Allocation
+- Business Outcome
+- a quote checker
+- a pricing model
+- a scenario planner
+- a forecast
+- a product catalogue
+- a detailed cost allocation page
+
+It should not change upstream calculations.
+
+It should only consume outputs and present the stress-tested view.
+
+============================================================
+6. CRITICAL TERMINOLOGY
+============================================================
+
+Use these terms:
+
+- P&L GP
+- Material Margin
+- Stress-tested Margin after Labour
+- Post-Labour Margin
+- Residual Margin after Labour
+- Margin consumed by Labour
+- Margin remaining after Labour
+
+Do NOT call the stress-tested number:
+
+- Real GP
+- Negative GP
+- Negative material margin
+- Actual GP
+- Accounting GP
+
+Reason:
+
+Accounting GP remains Revenue minus COGS.
+
+The stress-tested number is an operational margin after labour is enforced.
+
+Preferred title:
+
+Stress-tested Margin after Labour
+
+Preferred explanation:
+
+“This is not accounting GP. It shows what your P&L GP actually leaves behind after labour is paid.”
+
+============================================================
+7. INPUTS REQUIRED
+============================================================
+
+From Revenue / COGS:
+
+- total_revenue
+- total_direct_costs / total_cogs
+- margin_pool
+- gross_margin_percent
+- revenue_cogs_ready
+- revenue_cogs_warnings
+
+From Labour / Cost Summary / Business Summary:
+
+- total_people_cost_annual
+- total_labour_cost_annual if available
+- productive_labour_cost_annual if available
+- non_productive_labour_cost_annual if available
+- recovery_hours_used if needed for hourly view
+- business_summary_ready if available
+- cost_summary_ready if available
+
+From Business Setup:
+
+- business_type
+- is_labour_based
+- is_product_based
+
+Optional from Revenue / COGS product mode:
+
+- units_sold_annual
+- total_derived_units_annual
+- weighted_average_margin_per_unit
+- primary_unit_label
+- primary_unit_type
+
+Optional from Assets / Cost Summary:
+
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+
+But first pass should focus on labour stress test only.
+
+============================================================
+8. CORE OUTPUTS
+============================================================
+
+The page should calculate and expose:
+
+1. P&L GP / Material Margin
+
+margin_pool = revenue - cogs
+
+2. Stress-tested Margin after Labour
+
+stress_tested_margin_after_labour = margin_pool - total_labour_cost_annual
+
+3. Labour Consumption of GP
+
+labour_consumption_percent_of_gp = total_labour_cost_annual / margin_pool
+
+4. Margin Remaining Percent
+
+stress_tested_margin_percent_of_revenue = stress_tested_margin_after_labour / revenue
+
+5. Margin Gap
+
+If stress_tested_margin_after_labour < 0:
+
+margin_gap_after_labour = absolute value of stress_tested_margin_after_labour
+
+6. Status
+
+Possible statuses:
+
+- strong_margin_after_labour
+- labour_consuming_margin
+- labour_exceeds_margin
+- no_margin_data
+- no_labour_data
+
+============================================================
+9. CORE FORMULAS
+============================================================
+
+Revenue:
+
+total_revenue
+
+COGS:
+
+total_direct_costs
+
+Material Margin / P&L GP:
+
+material_margin = total_revenue - total_direct_costs
+
+Material Margin %:
+
+material_margin_percent = material_margin / total_revenue
+
+Total Labour Cost:
+
+total_labour_cost_annual
+
+Stress-tested Margin after Labour:
+
+stress_tested_margin_after_labour = material_margin - total_labour_cost_annual
+
+Labour Consumption of GP:
+
+labour_consumption_percent = total_labour_cost_annual / material_margin
+
+Stress-tested Margin % of Revenue:
+
+stress_tested_margin_percent = stress_tested_margin_after_labour / total_revenue
+
+If negative:
+
+labour_shortfall_against_margin = abs(stress_tested_margin_after_labour)
+
+============================================================
+10. PAGE DISPLAY STRUCTURE
+============================================================
+
+Recommended sections:
+
+------------------------------------------------------------
+A. Status Strip
+------------------------------------------------------------
+
+Title:
+
+Revenue Reality Ready
+or
+Revenue Reality Has Warnings
+
+Show:
+
+- Revenue
+- COGS
+- P&L GP / Material Margin
+- Labour Cost
+- Stress-tested Margin after Labour
+- Warning count
+
+------------------------------------------------------------
+B. Main Hero Card
+------------------------------------------------------------
+
+Title:
+
+What your GP actually leaves behind
+
+Subtitle:
+
+Your P&L GP is tested after labour is paid.
+
+Hero value:
+
+Stress-tested Margin after Labour
+
+If positive:
+
+“After paying labour, your margin still leaves $X.”
+
+If zero:
+
+“Your P&L GP is fully consumed by labour.”
+
+If negative:
+
+“Your P&L GP is short by $X after labour is paid.”
+
+------------------------------------------------------------
+C. Before / After Comparison
+------------------------------------------------------------
+
+Show a clear comparison:
+
+P&L View:
+Revenue - COGS = Material Margin
+
+Stress-Tested View:
+Material Margin - Labour = Margin after Labour
+
+Rows:
+
+- Revenue
+- COGS
+- P&L GP / Material Margin
+- Labour Cost
+- Stress-tested Margin after Labour
+
+------------------------------------------------------------
+D. Labour Consumption Block
+------------------------------------------------------------
+
+Title:
+
+How much of your GP labour consumes
+
+Show:
+
+- Labour cost
+- P&L GP
+- Labour consumption %
+- Remaining margin %
+
+Message examples:
+
+If labour_consumption_percent < 80%:
+
+“Labour is consuming part of your GP, but margin remains after labour.”
+
+If labour_consumption_percent between 80% and 100%:
+
+“Labour is consuming most of your GP. This leaves limited room for assets, overheads, and profit.”
+
+If labour_consumption_percent >= 100%:
+
+“Labour consumes all of your GP and more. This means the business is short before assets and overheads are paid.”
+
+------------------------------------------------------------
+E. Cross-Subsidy Warning Block
+------------------------------------------------------------
+
+Title:
+
+What this reveals
+
+Message:
+
+“This test shows whether material margin is being used to support labour. In an hours-based business, labour should stand on its own. If labour consumes most or all of GP, the business may be relying on material margin to hide labour under-recovery.”
+
+For product/unit-based mode, adjust wording:
+
+“In a product/unit-based business, margin after COGS must carry the whole business. This test shows how much of that margin is consumed by labour before assets, overheads, and profit.”
+
+------------------------------------------------------------
+F. Handoff Block
+------------------------------------------------------------
+
+Title:
+
+What happens next
+
+Message:
+
+“Recovery Summary tests whether the correct recovery model works. Business Outcome will later show what must change to make the baseline viable.”
+
+============================================================
+11. MODE-SPECIFIC WORDING
+============================================================
+
+The calculation can be the same, but wording changes by business type.
+
+------------------------------------------------------------
+Hours-Based Business
+------------------------------------------------------------
+
+Use language:
+
+- Labour should recover labour.
+- Materials should not prop up labour.
+- This page shows whether GP is being consumed by labour.
+- If the result is negative, labour is not being supported by the current margin structure.
+
+Main question:
+
+“Is material margin hiding a labour recovery problem?”
+
+------------------------------------------------------------
+Product / Unit-Based Business
+------------------------------------------------------------
+
+Use language:
+
+- Margin after COGS carries the whole business.
+- Labour is one of the costs paid from unit margin.
+- This page shows how much product margin remains after labour.
+- Assets, overheads, and profit still need to be paid after this.
+
+Main question:
+
+“After labour is paid, how much unit/product margin remains?”
+
+============================================================
+12. WARNINGS
+============================================================
+
+Warnings to support:
+
+1. Missing Revenue
+
+warning_id:
+missing_revenue
+
+Message:
+“Revenue is missing, so Revenue Reality cannot be tested.”
+
+2. Missing COGS
+
+warning_id:
+missing_cogs
+
+Message:
+“COGS / Direct Costs are missing. Confirm P&L classification before relying on this page.”
+
+3. Missing Labour Cost
+
+warning_id:
+missing_labour_cost
+
+Message:
+“Labour cost is missing, so the stress-tested margin after labour cannot be calculated.”
+
+4. Negative Material Margin
+
+warning_id:
+negative_material_margin
+
+Message:
+“COGS are greater than Revenue, so P&L GP / Material Margin is negative before labour is tested.”
+
+5. Labour Exceeds Material Margin
+
+warning_id:
+labour_exceeds_margin
+
+Message:
+“Labour cost exceeds P&L GP. The business is short before assets and overheads are paid.”
+
+6. Labour Consumes Most Margin
+
+warning_id:
+labour_consumes_most_margin
+
+Threshold:
+labour_consumption_percent >= 80% and < 100%
+
+Message:
+“Labour consumes most of P&L GP, leaving limited margin for assets, overheads, and profit.”
+
+============================================================
+13. REQUIRED FILES TO CREATE
+============================================================
+
+Recommended new files:
+
+app/revenue-reality/page.jsx
+
+hooks/useRevenueReality.js
+
+lib/calculations/revenueRealityCalculations.js
+
+lib/selectors/revenueRealitySelectors.js
+
+components/revenue-reality/RevenueRealityStatusStrip.jsx
+
+components/revenue-reality/RevenueRealityMainCard.jsx
+
+components/revenue-reality/RevenueRealityComparisonBlock.jsx
+
+components/revenue-reality/RevenueRealityLabourConsumptionBlock.jsx
+
+components/revenue-reality/RevenueRealityHandoffBlock.jsx
+
+components/revenue-reality/RevenueRealityHelpPanel.jsx
+
+Optional storage file:
+
+lib/storage/revenueRealityStorage.js
+
+Only add storage if page has user-controlled display state.
+
+The first pass likely does not need persistent storage because it is a read-only diagnostic page.
+
+============================================================
+14. HOOK STRUCTURE
+============================================================
+
+useRevenueReality should consume:
+
+- useRevenueCogs
+- useLabour or useCostSummary / useBusinessSummary, depending on where total labour cost is most reliable
+- useBusinessSetup
+- optionally useCostSummary for total cost context
+
+Return:
+
+status
+card
+output_contract
+
+No user inputs required in first pass.
+
+============================================================
+15. OUTPUT CONTRACT
+============================================================
+
+Revenue Reality output_contract should include:
+
+- total_revenue
+- total_direct_costs
+- material_margin
+- material_margin_percent
+- total_labour_cost_annual
+- stress_tested_margin_after_labour
+- stress_tested_margin_percent
+- labour_consumption_percent
+- labour_shortfall_against_margin
+- revenue_reality_ready
+- revenue_reality_warnings
+- business_type
+- is_hours_based
+- is_product_based
+- revenue_reality_status
+
+This output may later feed Business Outcome.
+
+============================================================
+16. UI STYLE
+============================================================
+
+Use existing QS Tools UI system:
+
+- ui-page
+- ui-page-stack
+- ui-section
+- ui-panel
+- ui-stack
+- ui-stack-sm
+- ui-split
+- ui-kicker
+- ui-card-title
+- ui-card-title-sm
+- ui-help
+- labour-summary-table
+- labour-summary-table-row
+- labour-summary-table-label
+- labour-summary-table-value
+
+Follow current page style:
+- dark cards
+- clear section labels
+- plain-language explanations
+- no dense accounting language
+
+============================================================
+17. HELP PANEL CONTENT
+============================================================
+
+Help panel should explain:
+
+1. What this page does
+
+“This page stress-tests P&L GP by enforcing labour cost.”
+
+2. What P&L GP means
+
+“P&L GP is Revenue minus COGS.”
+
+3. Why labour is subtracted
+
+“Labour is a real cost that must be paid. This page shows what GP leaves behind after labour.”
+
+4. Why this is not accounting GP
+
+“Accounting GP does not change. This page shows an operational margin after labour.”
+
+5. What a negative result means
+
+“Labour exceeds GP. The business is short before assets and overheads are paid.”
+
+6. How this helps
+
+“It exposes whether material margin is hiding a labour recovery problem.”
+
+7. What happens next
+
+“Recovery Summary tests the recovery model. Business Outcome later shows what must change.”
+
+============================================================
+18. ACCEPTANCE CRITERIA
+============================================================
+
+The page is complete when:
+
+- It renders at /revenue-reality
+- It pulls Revenue / COGS totals correctly
+- It pulls labour cost correctly
+- It calculates P&L GP / Material Margin
+- It calculates Stress-tested Margin after Labour
+- It shows positive, zero, and negative states clearly
+- It does not call the stress-tested number accounting GP
+- It does not introduce charge-out rates
+- It does not introduce user assumptions
+- It does not change upstream modules
+- It exposes warnings correctly
+- It has a readable helper panel
+- npm run build passes
+
+============================================================
+19. GUARDRAILS
+============================================================
+
+Do not use charge-out rate.
+
+Do not use target margin.
+
+Do not use minimum recovery rate.
+
+Do not assume labour is recovered.
+
+Do not redefine accounting GP.
+
+Do not include asset recovery in this first page unless only as future context.
+
+Do not add scenario controls.
+
+Do not add pricing recommendations.
+
+Do not modify Revenue / COGS.
+
+Do not modify Recovery Summary.
+
+Do not modify Cost Allocation.
+
+This page is a read-only diagnostic bridge.
+
+============================================================
+20. COMMIT MESSAGE
+============================================================
+
+Recommended commit message:
+
+Add revenue reality margin stress test page
