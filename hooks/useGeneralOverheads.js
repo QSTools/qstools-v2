@@ -51,8 +51,28 @@ function matches_keywords(name, keywords = []) {
   return keywords.some((keyword) => name.includes(keyword));
 }
 
-function is_general_overhead_category(category) {
-  return category === "general_overheads" || category === "employee_overheads";
+function normalise_pnl_category(category) {
+  switch (category) {
+    case "employee_overheads":
+      return "general_overheads";
+    case "cogs_materials":
+    case "cogs_subcontract":
+    case "cogs_hire":
+      return "cogs";
+    default:
+      return category || "unassigned";
+  }
+}
+
+function is_excluded_operating_expense_category(category) {
+  return [
+    "revenue",
+    "cogs",
+    "direct_costs",
+    "labour",
+    "assets",
+    "excluded",
+  ].includes(normalise_pnl_category(category));
 }
 
 function is_interest_line(line) {
@@ -99,99 +119,161 @@ function create_synced_interest_item(line, amount, index) {
   };
 }
 
-function add_overhead_amount(state, key, amount) {
-  state[key] = to_number(state[key]) + amount;
-}
+function get_overhead_category_key_for_line(line = {}) {
+  const name = normalise_name(line.line_name);
+  const review_subcategory = normalise_name(line.review_subcategory);
 
-function assign_review_subcategory_cost(
-  next_state,
-  review_subcategory,
-  name,
-  amount
-) {
   switch (review_subcategory) {
     case "staff_overheads":
-      add_overhead_amount(next_state, "staff_overheads_cost", amount);
-      return true;
-
+      return "staff_overheads";
     case "office_admin":
-      add_overhead_amount(next_state, "office_admin_cost", amount);
-      return true;
-
+      return "office_admin";
     case "finance_admin":
-      add_overhead_amount(next_state, "accounting_fees", amount);
-      return true;
-
+      return "financial_admin";
     case "finance_interest":
-      add_overhead_amount(next_state, "finance_interest_cost", amount);
-      return true;
-
+      return "finance_interest";
     case "insurance_compliance":
-      if (
-        matches_keywords(name, [
-          "asset insurance",
-          "vehicle insurance",
-          "plant insurance",
-          "fleet insurance",
-          "equipment insurance",
-        ])
-      ) {
-        add_overhead_amount(next_state, "asset_insurance_cost", amount);
-        return true;
-      }
-
-      if (
-        matches_keywords(name, ["professional indemnity", "indemnity insurance"])
-      ) {
-        add_overhead_amount(
-          next_state,
-          "professional_indemnity_insurance",
-          amount
-        );
-        return true;
-      }
-
-      if (matches_keywords(name, ["public liability", "liability insurance"])) {
-        add_overhead_amount(next_state, "public_liability_insurance", amount);
-        return true;
-      }
-
-      add_overhead_amount(next_state, "insurance_compliance_cost", amount);
-      return true;
-
+      return "insurance_compliance";
     case "sales_growth":
-      if (matches_keywords(name, ["advertising", "marketing"])) {
-        add_overhead_amount(next_state, "marketing_cost", amount);
-        return true;
-      }
-
-      add_overhead_amount(next_state, "sales_growth_cost", amount);
-      return true;
-
+      return "sales_growth";
     case "travel":
-      add_overhead_amount(next_state, "travel_cost", amount);
-      return true;
-
+      return "travel";
     case "vehicle_running_costs":
-      add_overhead_amount(next_state, "vehicle_running_cost_annual", amount);
-      return true;
-
+      return "vehicles_running";
     default:
-      return false;
+      break;
   }
+
+  if (
+    matches_keywords(name, [
+      "fuel",
+      "diesel",
+      "petrol",
+      "motor vehicle",
+      "vehicle",
+      "rego",
+      "registration",
+      "licence",
+      "licences",
+      "license",
+      "licenses",
+      "repair",
+      "repairs",
+      "maintenance",
+      "service",
+      "servicing",
+    ])
+  ) {
+    return "vehicles_running";
+  }
+
+  if (
+    matches_keywords(name, [
+      "accounting",
+      "accountant",
+      "bookkeeper",
+      "legal",
+      "lawyer",
+      "solicitor",
+      "bank",
+    ])
+  ) {
+    return "financial_admin";
+  }
+
+  if (
+    matches_keywords(name, [
+      "public liability",
+      "liability insurance",
+      "professional indemnity",
+      "indemnity insurance",
+      "asset insurance",
+      "vehicle insurance",
+      "plant insurance",
+      "fleet insurance",
+      "equipment insurance",
+      "insurance",
+    ])
+  ) {
+    return "insurance_compliance";
+  }
+
+  if (
+    matches_keywords(name, [
+      "software",
+      "subscription",
+      "subscriptions",
+      "computer",
+      "telephone",
+      "phone",
+      "internet",
+      "stationery",
+      "office expenses",
+      "office supplies",
+      "printing",
+      "admin",
+      "administration",
+      "staff",
+      "ppe",
+      "uniform",
+      "uniforms",
+      "training",
+      "tools",
+      "small equipment",
+    ])
+  ) {
+    return "office_admin";
+  }
+
+  if (matches_keywords(name, ["rent", "storage", "premises", "power", "electricity"])) {
+    return "facilities_premises";
+  }
+
+  if (matches_keywords(name, ["advertising", "marketing"])) {
+    return "sales_growth";
+  }
+
+  return "other_unallocated";
+}
+
+function create_synced_pnl_overhead_item(line, amount, index) {
+  if (is_interest_line(line)) {
+    return create_synced_interest_item(line, amount, index);
+  }
+
+  const source_id =
+    line?.pnl_line_id || `${normalise_name(line?.line_name)}-${index}`;
+
+  return {
+    synced_overhead_id: `pnl-overhead-${source_id}`,
+    synced_overhead_name: line?.line_name || "P&L Operating Expense",
+    synced_overhead_amount: amount,
+    source_module: "p_and_l",
+    source_pnl_line_id: line?.pnl_line_id || "",
+    source_line_name: line?.line_name || "",
+    source_review_subcategory: line?.review_subcategory || "",
+    source_category: line?.category || "",
+    source_section: line?.section || "",
+    overhead_category_key: get_overhead_category_key_for_line(line),
+    interest_treatment: "",
+    contains_asset_finance_interest: false,
+  };
 }
 
 function build_pnl_sync_signature(pnl_output_contract = {}) {
-  const pnl_lines = Array.isArray(pnl_output_contract?.pnl_lines)
-    ? pnl_output_contract.pnl_lines
+  const operating_expense_lines = Array.isArray(
+    pnl_output_contract?.operating_expense_lines
+  )
+    ? pnl_output_contract.operating_expense_lines
     : [];
 
   return JSON.stringify(
-    pnl_lines.map((line, index) => ({
+    operating_expense_lines.map((line, index) => ({
       index,
       pnl_line_id: line?.pnl_line_id || "",
       line_name: line?.line_name || "",
       amount: to_number(line?.amount),
+      section: line?.section || "",
       category: line?.category || "",
       review_subcategory: line?.review_subcategory || "",
       interest_treatment: line?.interest_treatment || "",
@@ -203,8 +285,10 @@ function build_general_overheads_from_pnl({
   pnl_output_contract,
   current_overhead_state,
 }) {
-  const pnl_lines = Array.isArray(pnl_output_contract?.pnl_lines)
-    ? pnl_output_contract.pnl_lines
+  const operating_expense_lines = Array.isArray(
+    pnl_output_contract?.operating_expense_lines
+  )
+    ? pnl_output_contract.operating_expense_lines
     : [];
 
   const timestamp = new Date().toISOString();
@@ -253,8 +337,7 @@ function build_general_overheads_from_pnl({
       current_overhead_state?.system_allocation_amount_overrides ?? {},
   };
 
-  for (const [index, line] of pnl_lines.entries()) {
-    const name = normalise_name(line.line_name);
+  for (const [index, line] of operating_expense_lines.entries()) {
     const amount = to_number(line.amount);
     const review_subcategory = normalise_name(line.review_subcategory);
 
@@ -262,23 +345,13 @@ function build_general_overheads_from_pnl({
       continue;
     }
 
-    if (is_interest_line(line)) {
-      next_state.synced_pnl_overhead_items = [
-        ...(next_state.synced_pnl_overhead_items ?? []),
-        create_synced_interest_item(line, amount, index),
-      ];
-      continue;
-    }
-
-    if (!is_general_overhead_category(line.category)) {
+    if (is_excluded_operating_expense_category(line.category)) {
       continue;
     }
 
     if (
       review_subcategory &&
       [
-        "mixed_finance",
-        "other_review_required",
         "wip_accounting_adjustment",
         "wip_accounting_adjustment_excluded",
         "wip_direct_job_cost",
@@ -288,168 +361,10 @@ function build_general_overheads_from_pnl({
       continue;
     }
 
-    if (
-      review_subcategory &&
-      assign_review_subcategory_cost(
-        next_state,
-        review_subcategory,
-        name,
-        amount
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "fuel",
-        "diesel",
-        "petrol",
-        "motor vehicle",
-        "vehicle",
-        "rego",
-        "registration",
-        "licence",
-        "licences",
-        "license",
-        "licenses",
-        "repair",
-        "repairs",
-        "maintenance",
-        "service",
-        "servicing",
-      ])
-    ) {
-      next_state.fuel_cost_annual =
-        to_number(next_state.fuel_cost_annual) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["accounting", "accountant", "bookkeeper"])) {
-      next_state.accounting_fees =
-        to_number(next_state.accounting_fees) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["legal", "lawyer", "solicitor"])) {
-      next_state.legal_fees = to_number(next_state.legal_fees) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["bank"])) {
-      next_state.bank_fees = to_number(next_state.bank_fees) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["public liability", "liability insurance"])) {
-      next_state.public_liability_insurance =
-        to_number(next_state.public_liability_insurance) + amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "professional indemnity",
-        "indemnity insurance",
-      ])
-    ) {
-      next_state.professional_indemnity_insurance =
-        to_number(next_state.professional_indemnity_insurance) + amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "asset insurance",
-        "vehicle insurance",
-        "plant insurance",
-        "fleet insurance",
-        "equipment insurance",
-      ])
-    ) {
-      next_state.asset_insurance_cost =
-        to_number(next_state.asset_insurance_cost) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["insurance"])) {
-      next_state.public_liability_insurance =
-        to_number(next_state.public_liability_insurance) + amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "software",
-        "subscription",
-        "subscriptions",
-        "computer",
-      ])
-    ) {
-      next_state.software_subscriptions =
-        to_number(next_state.software_subscriptions) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["telephone", "phone"])) {
-      next_state.phone_system_cost =
-        to_number(next_state.phone_system_cost) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["internet"])) {
-      next_state.internet_cost = to_number(next_state.internet_cost) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["rent", "storage", "premises"])) {
-      next_state.office_rent = to_number(next_state.office_rent) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["power", "electricity"])) {
-      next_state.power_cost = to_number(next_state.power_cost) + amount;
-      continue;
-    }
-
-    if (matches_keywords(name, ["advertising", "marketing"])) {
-      next_state.marketing_cost = to_number(next_state.marketing_cost) + amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "stationery",
-        "office expenses",
-        "office supplies",
-        "printing",
-      ])
-    ) {
-      next_state.office_supplies_cost =
-        to_number(next_state.office_supplies_cost) + amount;
-      continue;
-    }
-
-    if (
-      matches_keywords(name, [
-        "admin",
-        "administration",
-        "staff",
-        "ppe",
-        "uniform",
-        "uniforms",
-        "training",
-        "tools",
-        "small equipment",
-      ])
-    ) {
-      next_state.general_admin_cost =
-        to_number(next_state.general_admin_cost) + amount;
-      continue;
-    }
-
-    next_state.other_general_overhead_cost =
-      to_number(next_state.other_general_overhead_cost) + amount;
+    next_state.synced_pnl_overhead_items = [
+      ...(next_state.synced_pnl_overhead_items ?? []),
+      create_synced_pnl_overhead_item(line, amount, index),
+    ];
   }
 
   return next_state;
@@ -525,13 +440,14 @@ export default function useGeneralOverheads() {
   }, [overhead_state]);
 
   const output_contract = useMemo(() => {
-    const category_totals = build_general_overhead_category_totals(
-      calculated.overhead_rows
-    );
     const allocation_outputs = build_general_overhead_allocation_outputs({
       overhead_rows: calculated.overhead_rows,
       overhead_state,
     });
+    const category_totals = build_general_overhead_category_totals(
+      calculated.overhead_rows,
+      overhead_state
+    );
 
     const has_asset_finance_interest_duplication = calculated.overhead_rows.some(
       (row) =>
@@ -548,9 +464,22 @@ export default function useGeneralOverheads() {
         !has_asset_finance_interest_duplication,
       non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
       overhead_rows: allocation_outputs.allocation_rows,
+      synced_pnl_overhead_items:
+        overhead_state.synced_pnl_overhead_items ?? [],
+      imported_pnl_overhead_rows: allocation_outputs.allocation_rows.filter(
+        (row) => row.is_synced_from_pnl
+      ),
       asset_overhead_pools: allocation_outputs.asset_overhead_pools,
       total_asset_overhead_pool_amount:
         allocation_outputs.total_asset_overhead_pool_amount,
+      asset_related_overhead_pool: allocation_outputs.asset_overhead_pools,
+      asset_related_unassigned_cost:
+        allocation_outputs.total_asset_overhead_pool_amount,
+      asset_review_required:
+        allocation_outputs.total_asset_overhead_pool_amount > 0,
+      asset_related_pool_rows: allocation_outputs.allocation_rows.filter(
+        (row) => row.is_asset_related_pool
+      ),
       unallocated_overhead_lines:
         allocation_outputs.unallocated_overhead_lines,
       unallocated_overhead_amount:
