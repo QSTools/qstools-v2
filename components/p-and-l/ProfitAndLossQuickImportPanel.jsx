@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 const IMPORTED_REVIEW_REQUIRED_CATEGORY_ID = "imported_review_required";
@@ -142,7 +142,26 @@ function infer_line_mapping(line_name) {
     };
   }
 
-  if (["material", "materials"].some((word) => name.includes(word))) {
+  if (["cartage", "freight", "delivery"].some((word) => name.includes(word))) {
+    return {
+      section: "cost_of_sales",
+      category: "cogs",
+      direct_cost_category_id: "freight_cartage",
+      review_subcategory: "",
+    };
+  }
+
+  if (
+    [
+      "material",
+      "materials",
+      "concrete purchase",
+      "purchase - fill",
+      "purchases - fill",
+      "purchase - steel",
+      "purchases - steel",
+    ].some((word) => name.includes(word))
+  ) {
     return {
       section: "cost_of_sales",
       category: "cogs",
@@ -151,7 +170,11 @@ function infer_line_mapping(line_name) {
     };
   }
 
-  if (["subcontract", "subcontractor"].some((word) => name.includes(word))) {
+  if (
+    ["subcontract", "subcontractor", "subcontracting"].some((word) =>
+      name.includes(word),
+    )
+  ) {
     return {
       section: "cost_of_sales",
       category: "cogs",
@@ -169,15 +192,6 @@ function infer_line_mapping(line_name) {
       section: "cost_of_sales",
       category: "cogs",
       direct_cost_category_id: "hired_equipment_plant",
-      review_subcategory: "",
-    };
-  }
-
-  if (["freight", "cartage", "delivery"].some((word) => name.includes(word))) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "freight_cartage",
       review_subcategory: "",
     };
   }
@@ -211,6 +225,11 @@ function infer_line_mapping(line_name) {
       "contract cost",
       "project cost",
       "site cost",
+      "concrete laying",
+      "concrete pumping",
+      "opening work in progress",
+      "wip",
+      "purchases - other",
     ].some((word) => name.includes(word))
   ) {
     return {
@@ -373,22 +392,28 @@ function normalise_import_line(item = {}) {
   };
 }
 
-function parse_json_import(raw_text) {
-  const parsed = JSON.parse(raw_text);
-  const raw_lines = parsed.line_items || parsed.pnl_lines || [];
+function build_draft_import(payload = {}) {
+  const raw_lines = payload.line_items || payload.pnl_lines || [];
 
   if (!Array.isArray(raw_lines)) {
-    throw new Error("JSON must contain line_items[] or pnl_lines[].");
+    throw new Error("Import must contain line_items[] or pnl_lines[].");
   }
 
   return {
-    financial_year: parsed.financial_year || "",
-    period_month: parsed.period_month || "",
+    source_type: payload.source_type || "",
+    source_file: payload.source_file || "",
+    financial_year: payload.financial_year || "",
+    period_month: payload.period_month || "",
     pnl_lines: raw_lines.map(normalise_import_line),
     direct_cost_categories: normalise_direct_cost_categories(
-      parsed.direct_cost_categories,
+      payload.direct_cost_categories,
     ),
+    unmatched_lines: payload.unmatched_lines || [],
   };
+}
+
+function parse_json_import(raw_text) {
+  return build_draft_import(JSON.parse(raw_text));
 }
 
 function count_by_section(lines = []) {
@@ -408,10 +433,13 @@ function count_by_section(lines = []) {
 }
 
 export default function ProfitAndLossQuickImportPanel({ state, actions }) {
+  const file_input_ref = useRef(null);
   const [raw_text, set_raw_text] = useState("");
+  const [selected_file, set_selected_file] = useState(null);
   const [draft_import, set_draft_import] = useState(null);
   const [error_message, set_error_message] = useState("");
   const [import_message, set_import_message] = useState("");
+  const [is_extracting, set_is_extracting] = useState(false);
 
   const section_counts = useMemo(() => {
     return count_by_section(draft_import?.pnl_lines ?? []);
@@ -435,6 +463,68 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
     } catch (error) {
       set_draft_import(null);
       set_error_message(error?.message || "Could not parse import JSON.");
+    }
+  }
+
+  async function handle_extract_pdf() {
+    set_error_message("");
+    set_import_message("");
+
+    const file = selected_file || file_input_ref.current?.files?.[0] || null;
+
+    if (!file) {
+      set_error_message(
+        "Choose a P&L PDF first. If the file name is visible, reselect it and click Extract PDF again.",
+      );
+      return;
+    }
+
+    set_is_extracting(true);
+
+    try {
+      const form_data = new FormData();
+      form_data.append("file", file);
+
+      const response = await fetch("/api/pnl-import", {
+        method: "POST",
+        body: form_data,
+      });
+
+      const response_text = await response.text();
+
+      let payload = null;
+
+      try {
+        payload = JSON.parse(response_text);
+      } catch {
+        throw new Error(
+          response_text?.slice(0, 300) ||
+            "PDF import failed. The server did not return JSON.",
+        );
+      }
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload?.error || "PDF import failed.");
+      }
+
+      const parsed = build_draft_import(payload);
+
+      if (parsed.pnl_lines.length === 0) {
+        set_draft_import(null);
+        set_error_message("No P&L lines were extracted from the PDF.");
+        return;
+      }
+
+      set_draft_import(parsed);
+      set_selected_file(file);
+      set_import_message(
+        `${parsed.pnl_lines.length} lines extracted from PDF and ready to import.`,
+      );
+    } catch (error) {
+      set_draft_import(null);
+      set_error_message(error?.message || "Could not extract the P&L PDF.");
+    } finally {
+      set_is_extracting(false);
     }
   }
 
@@ -482,33 +572,70 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
 
   function handle_clear() {
     set_raw_text("");
+    set_selected_file(null);
     set_draft_import(null);
     set_error_message("");
     set_import_message("");
+
+    if (file_input_ref.current) {
+      file_input_ref.current.value = "";
+    }
   }
 
   return (
     <CollapsibleSection
       title="P&L Quick Import"
-      summary="Paste extracted P&L JSON and import reviewed lines"
+      summary="Upload a P&L PDF or paste extracted JSON"
       defaultOpen={false}
     >
       <div className="ui-panel ui-stack">
         <div>
           <div className="ui-kicker">Import helper</div>
-          <h2 className="ui-card-title-sm">Load P&amp;L lines from JSON</h2>
+          <h2 className="ui-card-title-sm">Load P&amp;L lines</h2>
           <p className="ui-help">
-            This imports line items into the existing P&amp;L page only. It does
-            not change Cost Summary, Recovery Summary, or any downstream
-            calculations.
+            Upload a text-based P&amp;L PDF or paste extracted P&amp;L JSON.
+            The import only updates this P&amp;L page after you confirm it.
           </p>
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-label">Paste extracted P&amp;L JSON</div>
+          <div className="ui-label">Upload P&amp;L PDF</div>
+
+          <input
+            ref={file_input_ref}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="ui-input"
+            onChange={(event) => {
+              const file = event.target.files?.[0] || null;
+              set_selected_file(file);
+              set_error_message("");
+              set_import_message(file ? `Selected PDF: ${file.name}` : "");
+            }}
+          />
+
+          <div className="ui-actions">
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={handle_extract_pdf}
+              disabled={is_extracting}
+            >
+              {is_extracting ? "Extracting..." : "Extract PDF"}
+            </button>
+          </div>
+
+          <p className="ui-help">
+            This currently supports text-based PDFs. Scanned/image PDFs will
+            need OCR fallback later.
+          </p>
+        </div>
+
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-label">Optional: paste extracted P&amp;L JSON</div>
           <textarea
             className="ui-input"
-            rows={12}
+            rows={8}
             value={raw_text}
             onChange={(event) => set_raw_text(event.target.value)}
             placeholder={`{
@@ -527,7 +654,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
               className="ui-button-secondary"
               onClick={handle_parse}
             >
-              Parse Import
+              Parse JSON
             </button>
 
             <button
@@ -553,6 +680,12 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
         {draft_import ? (
           <div className="ui-panel ui-stack-sm">
             <div className="ui-kicker">Import preview</div>
+
+            {draft_import.source_file ? (
+              <p className="ui-help">
+                Source: <strong>{draft_import.source_file}</strong>
+              </p>
+            ) : null}
 
             <div className="labour-summary-table">
               <div className="labour-summary-table-row">
@@ -606,6 +739,17 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
                 Showing first 12 of {draft_import.pnl_lines.length} imported
                 lines.
               </p>
+            ) : null}
+
+            {draft_import.unmatched_lines?.length > 0 ? (
+              <div className="ui-panel ui-stack-sm theme-warn-soft">
+                <div className="ui-kicker theme-warn">Unmatched PDF lines</div>
+                {draft_import.unmatched_lines.slice(0, 8).map((line, index) => (
+                  <div key={`${line}_${index}`} className="ui-help">
+                    {line}
+                  </div>
+                ))}
+              </div>
             ) : null}
 
             <div className="ui-actions">
