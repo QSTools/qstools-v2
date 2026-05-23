@@ -110,6 +110,42 @@ function build_asset_overhead_pool_assignment_summary({
   });
 }
 
+function get_effective_asset_pool_assignments({
+  asset = {},
+  pool_summary = [],
+}) {
+  const assignments = get_asset_pool_assignments(asset);
+  const summary_by_key = new Map(
+    pool_summary.map((pool) => [pool.pool_key, pool])
+  );
+
+  return Object.fromEntries(
+    Object.entries(assignments).map(([pool_key, amount]) => {
+      const raw_amount = to_number(amount);
+      const pool = summary_by_key.get(pool_key);
+      const available_amount = to_number(pool?.available_amount);
+      const assigned_amount = to_number(pool?.assigned_amount);
+
+      if (raw_amount <= 0 || assigned_amount <= available_amount) {
+        return [pool_key, raw_amount];
+      }
+
+      if (available_amount <= 0) {
+        return [pool_key, 0];
+      }
+
+      return [pool_key, raw_amount * (available_amount / assigned_amount)];
+    })
+  );
+}
+
+function sum_asset_pool_assignments(assignments = {}) {
+  return Object.values(assignments).reduce(
+    (sum, value) => sum + to_number(value),
+    0
+  );
+}
+
 function get_asset_utilisation_fields(asset = {}) {
   const asset_type = normalizeAssetType(asset.asset_type);
   const utilisation_hours_per_week =
@@ -183,10 +219,42 @@ export default function useAssets() {
   }, [asset_state, saved_assets, assets_benchmark_total]);
 
   const current_asset_recovery_fields = useMemo(() => {
-    const recovery_fields = build_asset_recovery_fields({
-      ...asset_state,
-      total_asset_cost_annual: base_calculations.total_asset_cost_annual,
-    });
+    const current_assignments = get_asset_pool_assignments(asset_state);
+    const active_saved_assets = Array.isArray(saved_assets)
+      ? saved_assets.filter(
+          (asset) =>
+            !asset.is_retired && asset.asset_id !== asset_state.asset_id
+        )
+      : [];
+    const effective_current_assignments = Object.fromEntries(
+      Object.entries(current_assignments).map(([pool_key, amount]) => {
+        const available_amount = to_number(
+          asset_overhead_pools?.[pool_key]?.amount
+        );
+        const assigned_to_other_assets = active_saved_assets.reduce(
+          (sum, asset) =>
+            sum +
+            to_number(asset.asset_overhead_pool_assignments?.[pool_key]),
+          0
+        );
+        const remaining_available = Math.max(
+          available_amount - assigned_to_other_assets,
+          0
+        );
+
+        return [pool_key, Math.min(to_number(amount), remaining_available)];
+      })
+    );
+    const allocated_asset_overhead_cost_annual = sum_asset_pool_assignments(
+      effective_current_assignments
+    );
+    const asset_recovery_cost_annual =
+      to_number(base_calculations.total_asset_cost_annual) +
+      allocated_asset_overhead_cost_annual;
+    const recovery_fields = {
+      allocated_asset_overhead_cost_annual,
+      asset_recovery_cost_annual,
+    };
     const utilisation_fields = get_asset_utilisation_fields({
       ...asset_state,
       total_asset_cost_annual: base_calculations.total_asset_cost_annual,
@@ -199,7 +267,12 @@ export default function useAssets() {
         utilisation_fields.required_asset_recovery_rate,
       true_asset_cost_per_hour: utilisation_fields.true_asset_cost_per_hour,
     };
-  }, [asset_state, base_calculations.total_asset_cost_annual]);
+  }, [
+    asset_state,
+    saved_assets,
+    asset_overhead_pools,
+    base_calculations.total_asset_cost_annual,
+  ]);
 
   const calculations = useMemo(() => {
     return {
@@ -354,24 +427,12 @@ export default function useAssets() {
       (asset) => normalizeAssetType(asset.asset_type) === "support"
     );
 
-    const asset_rows = live_assets.map((asset) => {
-      const recovery_fields = build_asset_recovery_fields(asset);
-      const utilisation_fields = get_asset_utilisation_fields({
-        ...asset,
-        asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
-      });
-
-      return {
+    const raw_asset_rows = live_assets.map((asset) => ({
         asset_id: asset.asset_id ?? "",
         asset_name: asset.asset_name ?? "Unnamed Asset",
         asset_type: normalizeAssetType(asset.asset_type),
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
-        allocated_asset_overhead_cost_annual:
-          recovery_fields.allocated_asset_overhead_cost_annual,
-        asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
         asset_overhead_pool_assignments: get_asset_pool_assignments(asset),
-        assigned_asset_overhead_source_rows:
-          build_asset_overhead_assignment_rows(asset),
         asset_interest_annual: Number(
           asset.asset_interest_annual ?? asset.interest_annual ?? 0
         ),
@@ -385,11 +446,6 @@ export default function useAssets() {
         finance_start_date: asset.finance_start_date ?? "",
         finance_end_date: asset.finance_end_date ?? "",
         finance_paid_off: asset.finance_paid_off === true,
-        utilisation_hours_per_week:
-          utilisation_fields.utilisation_hours_per_week,
-        utilisation_hours_annual: utilisation_fields.utilisation_hours_annual,
-        required_asset_recovery_rate:
-          utilisation_fields.required_asset_recovery_rate,
         cash_flow_support: {
           asset_principal_repayment_annual: Number(
             asset.asset_principal_repayment_annual ??
@@ -400,10 +456,48 @@ export default function useAssets() {
             asset.asset_total_finance_payment_annual ?? 0
           ),
         },
+        is_active: !asset.is_retired,
+      }));
+
+    const asset_overhead_pool_assignment_summary =
+      build_asset_overhead_pool_assignment_summary({
+        asset_rows: raw_asset_rows,
+        asset_overhead_pools,
+      });
+
+    const asset_rows = raw_asset_rows.map((asset) => {
+      const effective_assignments = get_effective_asset_pool_assignments({
+        asset,
+        pool_summary: asset_overhead_pool_assignment_summary,
+      });
+      const allocated_asset_overhead_cost_annual =
+        sum_asset_pool_assignments(effective_assignments);
+      const asset_recovery_cost_annual =
+        Number(asset.total_asset_cost_annual ?? 0) +
+        allocated_asset_overhead_cost_annual;
+      const utilisation_fields = get_asset_utilisation_fields({
+        ...asset,
+        asset_recovery_cost_annual,
+      });
+
+      return {
+        ...asset,
+        allocated_asset_overhead_cost_annual,
+        asset_recovery_cost_annual,
+        effective_asset_overhead_pool_assignments: effective_assignments,
+        assigned_asset_overhead_source_rows:
+          build_asset_overhead_assignment_rows({
+            ...asset,
+            asset_overhead_pool_assignments: effective_assignments,
+          }),
+        utilisation_hours_per_week:
+          utilisation_fields.utilisation_hours_per_week,
+        utilisation_hours_annual: utilisation_fields.utilisation_hours_annual,
+        required_asset_recovery_rate:
+          utilisation_fields.required_asset_recovery_rate,
         productive_asset_hours: utilisation_fields.productive_asset_hours,
         true_asset_cost_per_hour:
           utilisation_fields.true_asset_cost_per_hour,
-        is_active: !asset.is_retired,
       };
     });
 
@@ -491,11 +585,6 @@ export default function useAssets() {
         ? productive_asset_recovery_cost_annual /
           total_productive_asset_utilisation_hours_annual
         : 0;
-    const asset_overhead_pool_assignment_summary =
-      build_asset_overhead_pool_assignment_summary({
-        asset_rows,
-        asset_overhead_pools,
-      });
     const total_asset_related_overhead_pool_amount =
       asset_overhead_pool_assignment_summary.reduce(
         (sum, pool) => sum + Number(pool.available_amount ?? 0),
@@ -536,8 +625,16 @@ export default function useAssets() {
       asset_overhead_pools,
       asset_overhead_pool_assignment_summary,
       total_allocated_asset_overhead_cost_annual,
+      total_assigned_asset_overhead_cost_annual:
+        total_allocated_asset_overhead_cost_annual,
       total_asset_related_overhead_pool_amount,
+      asset_related_pool_total: total_asset_related_overhead_pool_amount,
+      asset_related_assigned_to_assets:
+        total_allocated_asset_overhead_cost_annual,
       asset_related_unassigned_cost,
+      asset_related_unassigned_balance: asset_related_unassigned_cost,
+      total_unassigned_asset_related_overhead_cost_annual:
+        asset_related_unassigned_cost,
       asset_related_overhead_pool: asset_overhead_pool_assignment_summary,
       asset_review_required: asset_related_unassigned_cost > 0,
       asset_overhead_assignment_warnings,

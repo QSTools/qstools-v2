@@ -142,6 +142,11 @@ export default function useCostSummary(inputs = {}) {
       total_general_overheads_before_asset_assignment,
       total_general_overheads_after_asset_assignment:
         calculations.total_business_overheads ?? 0,
+      general_overheads_after_asset_assignment:
+        calculations.total_business_overheads ?? 0,
+      total_assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+      total_unassigned_asset_related_overhead_cost_annual:
+        asset_output_contract.asset_related_unassigned_cost ?? 0,
       total_business_cost_annual:
         calculations.total_business_cost_annual ?? 0,
       total_cost_burden: calculations.total_cost_burden ?? 0,
@@ -246,6 +251,10 @@ export default function useCostSummary(inputs = {}) {
           total_general_overheads_before_asset_assignment:
             total_general_overheads_before_asset_assignment,
           assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+          general_overheads_after_asset_assignment:
+            total_general_overheads_after_asset_assignment,
+          total_unassigned_asset_related_overhead_cost_annual:
+            asset_output_contract.asset_related_unassigned_cost ?? 0,
           category_totals: Array.isArray(
             general_overheads_output_contract.category_totals
           )

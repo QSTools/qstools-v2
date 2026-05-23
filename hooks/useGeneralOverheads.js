@@ -472,8 +472,15 @@ export default function useGeneralOverheads() {
       asset_overhead_pools: allocation_outputs.asset_overhead_pools,
       total_asset_overhead_pool_amount:
         allocation_outputs.total_asset_overhead_pool_amount,
+      asset_related_pool_total:
+        allocation_outputs.total_asset_overhead_pool_amount,
+      asset_related_assigned_to_assets: 0,
       asset_related_overhead_pool: allocation_outputs.asset_overhead_pools,
       asset_related_unassigned_cost:
+        allocation_outputs.total_asset_overhead_pool_amount,
+      asset_related_unassigned_balance:
+        allocation_outputs.total_asset_overhead_pool_amount,
+      total_unassigned_asset_related_overhead_cost_annual:
         allocation_outputs.total_asset_overhead_pool_amount,
       asset_review_required:
         allocation_outputs.total_asset_overhead_pool_amount > 0,
