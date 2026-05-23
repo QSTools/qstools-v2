@@ -67,7 +67,9 @@ function AssetOverheadPoolAssignmentCard({
         <h3 className="ui-card-title-sm">Assign overhead pools to this asset</h3>
         <p className="ui-help">
           These values come from General Overheads. Assign the portion of each
-          pool that belongs to this asset. This does not change Cost Summary.
+          pool that belongs to this asset. Cost Summary transfers assigned
+          amounts from overheads into asset recovery so the same source cost is
+          not counted twice.
         </p>
 
         <div className="ui-stack-sm">
@@ -201,8 +203,8 @@ function SelectedAssetDetailCard({
                   value={find_row_value("Finance Progress", "0.00%")}
                 />
                 <SummaryRow
-                  label="Operating Asset Cost Annual"
-                  value={find_row_value("Operating Asset Cost Annual")}
+                  label="Base Asset Cost Annual"
+                  value={find_row_value("Base Asset Cost Annual")}
                   strong
                 />
                 <SummaryRow
@@ -297,7 +299,8 @@ function SelectedAssetDetailCard({
               <p className="ui-help">
                 Principal is shown only as future Cash Flow support. Asset
                 overhead pools come from General Overheads and are used for
-                recovery modelling, not for changing Cost Summary.
+                asset recovery. Cost Summary transfers assigned pool amounts
+                from overheads to assets so the same source cost has one owner.
               </p>
             </div>
           </div>

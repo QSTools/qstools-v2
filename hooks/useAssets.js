@@ -45,6 +45,71 @@ function get_allocated_asset_overhead_cost(asset = {}) {
   );
 }
 
+function build_asset_overhead_assignment_rows(asset = {}) {
+  const assignments = get_asset_pool_assignments(asset);
+
+  return Object.entries(assignments)
+    .filter(([, amount]) => to_number(amount) !== 0)
+    .map(([pool_key, amount]) => ({
+      pool_key,
+      amount: to_number(amount),
+      assigned_asset_id: asset.asset_id ?? "",
+      assigned_asset_name: asset.asset_name ?? "Unnamed Asset",
+      assigned_asset_type: normalizeAssetType(asset.asset_type),
+    }));
+}
+
+function build_asset_overhead_pool_assignment_summary({
+  asset_rows = [],
+  asset_overhead_pools = {},
+}) {
+  return ASSET_POOL_KEYS.map((pool_key) => {
+    const pool = asset_overhead_pools?.[pool_key] ?? {};
+    const available_amount = to_number(pool.amount);
+    const assigned_assets = asset_rows
+      .map((asset) => {
+        const assigned_amount = to_number(
+          asset.asset_overhead_pool_assignments?.[pool_key]
+        );
+
+        if (assigned_amount === 0) {
+          return null;
+        }
+
+        return {
+          asset_id: asset.asset_id,
+          asset_name: asset.asset_name,
+          asset_type: asset.asset_type,
+          amount: assigned_amount,
+        };
+      })
+      .filter(Boolean);
+    const assigned_amount = assigned_assets.reduce(
+      (sum, assignment) => sum + to_number(assignment.amount),
+      0
+    );
+    const remaining_amount = available_amount - assigned_amount;
+
+    return {
+      pool_key,
+      label: pool.label || pool_key,
+      available_amount,
+      assigned_amount,
+      remaining_amount,
+      assignment_status:
+        assigned_amount === 0
+          ? "unassigned"
+          : assigned_amount < available_amount
+            ? "partially_assigned"
+            : assigned_amount === available_amount
+              ? "fully_assigned"
+              : "over_assigned",
+      source_lines: Array.isArray(pool.source_lines) ? pool.source_lines : [],
+      assigned_assets,
+    };
+  });
+}
+
 function get_asset_utilisation_fields(asset = {}) {
   const asset_type = normalizeAssetType(asset.asset_type);
   const utilisation_hours_per_week =
@@ -59,7 +124,8 @@ function get_asset_utilisation_fields(asset = {}) {
   const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
   const required_asset_recovery_rate =
     asset_type === "productive" && utilisation_hours_annual > 0
-      ? total_asset_cost_annual / utilisation_hours_annual
+      ? to_number(asset.asset_recovery_cost_annual ?? total_asset_cost_annual) /
+        utilisation_hours_annual
       : 0;
 
   return {
@@ -117,10 +183,22 @@ export default function useAssets() {
   }, [asset_state, saved_assets, assets_benchmark_total]);
 
   const current_asset_recovery_fields = useMemo(() => {
-    return build_asset_recovery_fields({
+    const recovery_fields = build_asset_recovery_fields({
       ...asset_state,
       total_asset_cost_annual: base_calculations.total_asset_cost_annual,
     });
+    const utilisation_fields = get_asset_utilisation_fields({
+      ...asset_state,
+      total_asset_cost_annual: base_calculations.total_asset_cost_annual,
+      asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
+    });
+
+    return {
+      ...recovery_fields,
+      required_asset_recovery_rate:
+        utilisation_fields.required_asset_recovery_rate,
+      true_asset_cost_per_hour: utilisation_fields.true_asset_cost_per_hour,
+    };
   }, [asset_state, base_calculations.total_asset_cost_annual]);
 
   const calculations = useMemo(() => {
@@ -161,8 +239,15 @@ export default function useAssets() {
       calculations,
       saved_assets,
       active_asset_count,
+      asset_overhead_pools,
     });
-  }, [asset_state, calculations, saved_assets, active_asset_count]);
+  }, [
+    asset_state,
+    calculations,
+    saved_assets,
+    active_asset_count,
+    asset_overhead_pools,
+  ]);
 
   const card = useMemo(() => {
     return buildAssetCard({
@@ -198,7 +283,11 @@ export default function useAssets() {
           .filter((asset) => !asset.is_retired)
           .map((asset) => {
             const recovery_fields = build_asset_recovery_fields(asset);
-            const utilisation_fields = get_asset_utilisation_fields(asset);
+            const utilisation_fields = get_asset_utilisation_fields({
+              ...asset,
+              asset_recovery_cost_annual:
+                recovery_fields.asset_recovery_cost_annual,
+            });
 
             return {
               asset_id: asset.asset_id ?? "",
@@ -211,6 +300,8 @@ export default function useAssets() {
                 recovery_fields.asset_recovery_cost_annual,
               asset_overhead_pool_assignments:
                 get_asset_pool_assignments(asset),
+              assigned_asset_overhead_source_rows:
+                build_asset_overhead_assignment_rows(asset),
               asset_interest_annual: Number(
                 asset.asset_interest_annual ?? asset.interest_annual ?? 0
               ),
@@ -265,7 +356,10 @@ export default function useAssets() {
 
     const asset_rows = live_assets.map((asset) => {
       const recovery_fields = build_asset_recovery_fields(asset);
-      const utilisation_fields = get_asset_utilisation_fields(asset);
+      const utilisation_fields = get_asset_utilisation_fields({
+        ...asset,
+        asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
+      });
 
       return {
         asset_id: asset.asset_id ?? "",
@@ -276,6 +370,8 @@ export default function useAssets() {
           recovery_fields.allocated_asset_overhead_cost_annual,
         asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
         asset_overhead_pool_assignments: get_asset_pool_assignments(asset),
+        assigned_asset_overhead_source_rows:
+          build_asset_overhead_assignment_rows(asset),
         asset_interest_annual: Number(
           asset.asset_interest_annual ?? asset.interest_annual ?? 0
         ),
@@ -335,10 +431,30 @@ export default function useAssets() {
       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
       0
     );
+    const productive_asset_recovery_cost_annual =
+      productive_asset_rows.reduce(
+        (sum, asset) => sum + Number(asset.asset_recovery_cost_annual ?? 0),
+        0
+      );
+    const productive_asset_assigned_overhead_cost_annual =
+      productive_asset_rows.reduce(
+        (sum, asset) =>
+          sum + Number(asset.allocated_asset_overhead_cost_annual ?? 0),
+        0
+      );
     const support_asset_cost = support_assets.reduce(
       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
       0
     );
+    const support_asset_rows = asset_rows.filter(
+      (asset) => asset.asset_type === "support"
+    );
+    const support_asset_assigned_overhead_cost_annual =
+      support_asset_rows.reduce(
+        (sum, asset) =>
+          sum + Number(asset.allocated_asset_overhead_cost_annual ?? 0),
+        0
+      );
 
     const total_asset_interest_annual = live_assets.reduce(
       (sum, asset) =>
@@ -372,8 +488,32 @@ export default function useAssets() {
       );
     const productive_asset_recovery_rate =
       total_productive_asset_utilisation_hours_annual > 0
-        ? productive_asset_cost / total_productive_asset_utilisation_hours_annual
+        ? productive_asset_recovery_cost_annual /
+          total_productive_asset_utilisation_hours_annual
         : 0;
+    const asset_overhead_pool_assignment_summary =
+      build_asset_overhead_pool_assignment_summary({
+        asset_rows,
+        asset_overhead_pools,
+      });
+    const total_asset_related_overhead_pool_amount =
+      asset_overhead_pool_assignment_summary.reduce(
+        (sum, pool) => sum + Number(pool.available_amount ?? 0),
+        0
+      );
+    const asset_related_unassigned_cost =
+      asset_overhead_pool_assignment_summary.reduce(
+        (sum, pool) => sum + Math.max(Number(pool.remaining_amount ?? 0), 0),
+        0
+      );
+    const asset_overhead_assignment_warnings =
+      asset_overhead_pool_assignment_summary
+        .filter((pool) => pool.assignment_status === "over_assigned")
+        .map((pool) => ({
+          warning_key: "asset_pool_assigned_over_available",
+          message: `${pool.label} has more assigned to assets than the General Overheads pool contains.`,
+          pool_key: pool.pool_key,
+        }));
 
     return {
       assets: asset_rows,
@@ -386,12 +526,21 @@ export default function useAssets() {
       support_asset_count: support_assets.length,
       productive_asset_cost,
       productive_asset_cost_annual: productive_asset_cost,
+      productive_asset_recovery_cost_annual,
+      productive_asset_assigned_overhead_cost_annual,
       support_asset_cost,
+      support_asset_assigned_overhead_cost_annual,
       total_productive_asset_utilisation_hours_annual,
       productive_asset_recovery_rate,
 
       asset_overhead_pools,
+      asset_overhead_pool_assignment_summary,
       total_allocated_asset_overhead_cost_annual,
+      total_asset_related_overhead_pool_amount,
+      asset_related_unassigned_cost,
+      asset_related_overhead_pool: asset_overhead_pool_assignment_summary,
+      asset_review_required: asset_related_unassigned_cost > 0,
+      asset_overhead_assignment_warnings,
       total_asset_recovery_cost_annual,
 
       finance_cost_annual: live_assets.reduce(

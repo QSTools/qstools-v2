@@ -17,10 +17,26 @@ export default function useCostSummary(inputs = {}) {
     const asset_output_contract = inputs.assets?.output_contract ?? {};
     const general_overheads_output_contract =
       inputs.general_overheads?.output_contract ?? {};
+    const assigned_asset_overhead_cost = Number(
+      asset_output_contract.total_allocated_asset_overhead_cost_annual ?? 0
+    );
+    const total_general_overheads_before_asset_assignment = Number(
+      general_overheads_output_contract.total_general_overheads ?? 0
+    );
+    const total_general_overheads_after_asset_assignment = Math.max(
+      total_general_overheads_before_asset_assignment -
+        assigned_asset_overhead_cost,
+      0
+    );
 
     const asset_data = {
       total_asset_cost_annual:
+        asset_output_contract.total_asset_recovery_cost_annual ??
+        asset_output_contract.total_asset_cost_annual ??
+        0,
+      base_asset_cost_annual:
         asset_output_contract.total_asset_cost_annual ?? 0,
+      assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
       total_asset_interest_annual:
         asset_output_contract.total_asset_interest_annual ?? 0,
       asset_detail: {
@@ -33,7 +49,10 @@ export default function useCostSummary(inputs = {}) {
 
     const general_overhead_data = {
       total_general_overheads:
-        general_overheads_output_contract.total_general_overheads ?? 0,
+        total_general_overheads_after_asset_assignment,
+      total_general_overheads_before_asset_assignment:
+        total_general_overheads_before_asset_assignment,
+      assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
       overhead_detail: {
         category_totals: Array.isArray(
           general_overheads_output_contract.category_totals
@@ -95,6 +114,13 @@ export default function useCostSummary(inputs = {}) {
         labour_data.weighted_productivity_percent ?? 0,
 
       total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
+      base_asset_cost_annual:
+        asset_output_contract.total_asset_cost_annual ?? 0,
+      assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+      total_asset_recovery_cost_annual:
+        asset_output_contract.total_asset_recovery_cost_annual ??
+        calculations.total_asset_cost_annual ??
+        0,
       total_asset_interest_annual:
         calculations.total_asset_interest_annual ?? 0,
       has_productive_asset_recovery_base:
@@ -105,10 +131,17 @@ export default function useCostSummary(inputs = {}) {
         asset_output_contract.support_asset_count ?? 0,
       productive_asset_cost:
         asset_output_contract.productive_asset_cost ?? 0,
+      productive_asset_recovery_cost_annual:
+        asset_output_contract.productive_asset_recovery_cost_annual ??
+        asset_output_contract.productive_asset_cost ??
+        0,
       support_asset_cost:
         asset_output_contract.support_asset_cost ?? 0,
 
       total_business_overheads: calculations.total_business_overheads ?? 0,
+      total_general_overheads_before_asset_assignment,
+      total_general_overheads_after_asset_assignment:
+        calculations.total_business_overheads ?? 0,
       total_business_cost_annual:
         calculations.total_business_cost_annual ?? 0,
       total_cost_burden: calculations.total_cost_burden ?? 0,
@@ -148,6 +181,12 @@ export default function useCostSummary(inputs = {}) {
           active_staff: Array.isArray(labour_output_contract.active_staff)
             ? labour_output_contract.active_staff
             : [],
+          productive_labour_types: Array.isArray(
+            labour_output_contract.productive_labour_types
+          )
+            ? labour_output_contract.productive_labour_types
+            : [],
+          labour_detail: labour_data.labour_detail ?? {},
           entitlement_totals:
             labour_output_contract.entitlement_totals ?? {},
           employer_contribution_totals:
@@ -157,6 +196,13 @@ export default function useCostSummary(inputs = {}) {
         assets: {
           total_asset_cost_annual:
             calculations.total_asset_cost_annual ?? 0,
+          base_asset_cost_annual:
+            asset_output_contract.total_asset_cost_annual ?? 0,
+          assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+          total_asset_recovery_cost_annual:
+            asset_output_contract.total_asset_recovery_cost_annual ??
+            calculations.total_asset_cost_annual ??
+            0,
           total_asset_interest_annual:
             calculations.total_asset_interest_annual ?? 0,
           finance_cost_annual:
@@ -169,8 +215,21 @@ export default function useCostSummary(inputs = {}) {
             asset_output_contract.support_asset_count ?? 0,
           productive_asset_cost:
             asset_output_contract.productive_asset_cost ?? 0,
+          productive_asset_recovery_cost_annual:
+            asset_output_contract.productive_asset_recovery_cost_annual ??
+            asset_output_contract.productive_asset_cost ??
+            0,
           support_asset_cost:
             asset_output_contract.support_asset_cost ?? 0,
+          asset_overhead_pool_assignment_summary: Array.isArray(
+            asset_output_contract.asset_overhead_pool_assignment_summary
+          )
+            ? asset_output_contract.asset_overhead_pool_assignment_summary
+            : [],
+          asset_related_unassigned_cost:
+            asset_output_contract.asset_related_unassigned_cost ?? 0,
+          asset_review_required:
+            asset_output_contract.asset_review_required === true,
           active_assets: Array.isArray(asset_output_contract.active_assets)
             ? asset_output_contract.active_assets
             : [],
@@ -183,7 +242,10 @@ export default function useCostSummary(inputs = {}) {
           total_business_overheads:
             calculations.total_business_overheads ?? 0,
           total_general_overheads:
-            general_overheads_output_contract.total_general_overheads ?? 0,
+            total_general_overheads_after_asset_assignment,
+          total_general_overheads_before_asset_assignment:
+            total_general_overheads_before_asset_assignment,
+          assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
           category_totals: Array.isArray(
             general_overheads_output_contract.category_totals
           )
