@@ -271,6 +271,50 @@ function infer_line_mapping(line_name) {
     };
   }
 
+  if (name.includes("insurance")) {
+    return {
+      section: "operating_expenses",
+      category: "general_overheads",
+      direct_cost_category_id: "",
+      review_subcategory: "insurance_compliance",
+    };
+  }
+
+  if (name.includes("mixed finance") || name.includes("mixed")) {
+    return {
+      section: "operating_expenses",
+      category: "general_overheads",
+      direct_cost_category_id: "",
+      review_subcategory: "finance_interest",
+    };
+  }
+
+  if (
+    ["asset finance", "equipment finance", "finance lease"].some((word) =>
+      name.includes(word),
+    )
+  ) {
+    return {
+      section: "operating_expenses",
+      category: "assets",
+      direct_cost_category_id: "",
+      review_subcategory: "asset_finance",
+    };
+  }
+
+  if (
+    ["bank fees", "loan interest", "finance", "interest"].some((word) =>
+      name.includes(word),
+    )
+  ) {
+    return {
+      section: "operating_expenses",
+      category: "general_overheads",
+      direct_cost_category_id: "",
+      review_subcategory: "finance_interest",
+    };
+  }
+
   if (
     [
       "vehicle",
@@ -280,8 +324,6 @@ function infer_line_mapping(line_name) {
       "license",
       "repairs",
       "maintenance",
-      "interest",
-      "finance",
       "plant",
       "machinery",
     ].some((word) => name.includes(word))
@@ -352,6 +394,10 @@ function normalise_direct_cost_categories(categories = []) {
 function normalise_import_line(item = {}) {
   const line_name = item.line_name || item.name || item.description || "";
   const inferred = infer_line_mapping(line_name);
+  const is_insurance_operating_expense = String(line_name || "")
+    .toLowerCase()
+    .includes("insurance");
+  const normalised_line_name = String(line_name || "").toLowerCase();
 
   let section = item.section || inferred.section;
   let category = item.category || inferred.category;
@@ -359,6 +405,22 @@ function normalise_import_line(item = {}) {
     item.direct_cost_category_id || inferred.direct_cost_category_id || "";
   let review_subcategory =
     item.review_subcategory || inferred.review_subcategory || "";
+  const is_asset_specific_finance = [
+    "asset finance",
+    "equipment finance",
+    "finance lease",
+  ].some((word) => normalised_line_name.includes(word));
+  const is_mixed_or_generic_finance =
+    !is_asset_specific_finance &&
+    (review_subcategory === "mixed_finance" ||
+      [
+        "mixed finance",
+        "mixed",
+        "bank fees",
+        "loan interest",
+        "finance",
+        "interest",
+      ].some((word) => normalised_line_name.includes(word)));
 
   if (section === "cost_of_sales") {
     category = "cogs";
@@ -378,6 +440,18 @@ function normalise_import_line(item = {}) {
 
   if (section === "operating_expenses" && category === "unassigned") {
     review_subcategory = review_subcategory || "review_required";
+  }
+
+  if (section === "operating_expenses" && is_mixed_or_generic_finance) {
+    category = "general_overheads";
+    direct_cost_category_id = "";
+    review_subcategory = "finance_interest";
+  }
+
+  if (section === "operating_expenses" && is_insurance_operating_expense) {
+    category = "general_overheads";
+    direct_cost_category_id = "";
+    review_subcategory = "insurance_compliance";
   }
 
   return {

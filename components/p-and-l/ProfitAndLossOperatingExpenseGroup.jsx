@@ -112,9 +112,9 @@ const OPERATING_EXPENSE_CLASSIFICATION_OPTIONS = [
   },
   {
     value: "mixed_finance",
-    category: "review_required",
-    review_subcategory: "mixed_finance",
-    label: "Mixed Finance → Review Required",
+    category: "general_overheads",
+    review_subcategory: "finance_interest",
+    label: "Mixed Finance / Assets + Business → General Overheads",
   },
   {
     value: "insurance_compliance",
@@ -213,6 +213,14 @@ function detect_operating_expense_subcategory(line_name = "") {
     };
   }
 
+  if (normalized.includes("insurance")) {
+    return {
+      category: "general_overheads",
+      subcategory: "insurance_compliance",
+      label: "Insurance / Compliance",
+    };
+  }
+
   if (
     normalized.includes("fuel") ||
     normalized.includes("diesel") ||
@@ -257,6 +265,14 @@ function detect_operating_expense_subcategory(line_name = "") {
     };
   }
 
+  if (normalized.includes("mixed") || normalized.includes("mixed finance")) {
+    return {
+      category: "general_overheads",
+      subcategory: "finance_interest",
+      label: "Mixed Finance / Assets + Business",
+    };
+  }
+
   if (
     normalized.includes("asset finance") ||
     normalized.includes("equipment finance") ||
@@ -266,14 +282,6 @@ function detect_operating_expense_subcategory(line_name = "") {
       category: "assets",
       subcategory: "asset_finance",
       label: "Asset Finance",
-    };
-  }
-
-  if (normalized.includes("mixed") || normalized.includes("mixed finance")) {
-    return {
-      category: "review_required",
-      subcategory: "mixed_finance",
-      label: "Mixed Finance",
     };
   }
 
@@ -295,14 +303,6 @@ function detect_operating_expense_subcategory(line_name = "") {
       category: "general_overheads",
       subcategory: "finance_interest",
       label: "Finance / Interest",
-    };
-  }
-
-  if (normalized.includes("insurance")) {
-    return {
-      category: "general_overheads",
-      subcategory: "insurance_compliance",
-      label: "Insurance / Compliance",
     };
   }
 
@@ -478,6 +478,9 @@ function get_category_help_text(category) {
     case "employee_overheads":
     case "general_overheads":
       return "Feeds the General Overheads benchmark. Use for business-wide costs such as insurance, phones, internet, office, accounting, and subscriptions.";
+    case "finance_interest":
+    case "mixed_finance":
+      return "Use when finance or interest may contain both asset-related and business finance. It will flow to General Overheads first, then asset-related portions can be assigned later.";
     case "assets":
       return "Feeds the Assets benchmark. Use for vehicle, plant, finance, running costs, repairs, maintenance, licences, registrations, and ownership costs.";
     case "review_required":
@@ -492,6 +495,14 @@ function get_category_help_text(category) {
     default:
       return "Not ready yet. Leave here only if you still need to decide where this line belongs.";
   }
+}
+
+function get_option_help_text(option_value) {
+  if (option_value === "mixed_finance") {
+    return "Use when finance or interest may contain both asset-related and business finance. It will flow to General Overheads first, then asset-related portions can be assigned later.";
+  }
+
+  return "";
 }
 
 function get_interest_treatment_help_text(interest_treatment) {
@@ -624,7 +635,10 @@ function ProfitAndLossLineEditor({
           ))}
         </select>
 
-        <p className="ui-help">{get_category_help_text(effective_category)}</p>
+        <p className="ui-help">
+          {get_option_help_text(current_option_value) ||
+            get_category_help_text(effective_category)}
+        </p>
 
         {is_wip_line(line.line_name) ? (
           <div className="ui-panel ui-stack-sm theme-warn-soft">

@@ -6,10 +6,36 @@ function get_section_lines(pnl_lines = [], section) {
   return (pnl_lines ?? []).filter((line) => line.section === section);
 }
 
+const REVIEW_DIRECT_COST_CATEGORY_IDS = new Set([
+  "",
+  "review_required",
+  "imported_review_required",
+  "__review_required",
+  "unassigned",
+  "__unassigned",
+]);
+
+function normalise_category(category) {
+  if (category === "employee_overheads") {
+    return "general_overheads";
+  }
+
+  if (
+    category === "cogs_materials" ||
+    category === "cogs_subcontract" ||
+    category === "cogs_hire"
+  ) {
+    return "cogs";
+  }
+
+  return category || "unassigned";
+}
+
 function is_review_line(line) {
   if (is_empty_placeholder_line(line)) return false;
 
-  const category = line.category || "unassigned";
+  const category = normalise_category(line.category);
+  const direct_cost_category_id = String(line.direct_cost_category_id || "");
 
   if (category === "review_required") return true;
   if (category === "unassigned") return true;
@@ -17,7 +43,7 @@ function is_review_line(line) {
   if (
     line.section === "cost_of_sales" &&
     category === "cogs" &&
-    !line.direct_cost_category_id
+    REVIEW_DIRECT_COST_CATEGORY_IDS.has(direct_cost_category_id)
   ) {
     return true;
   }
