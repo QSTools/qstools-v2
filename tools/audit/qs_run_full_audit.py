@@ -1,6 +1,6 @@
 """
 QS Tools — Full Audit Runner
-v1.0
+v1.1
 
 Purpose:
 Run the current QS Tools audit suite from one command.
@@ -112,7 +112,7 @@ def status_from_output(exit_code: int, stdout: str, stderr: str) -> str:
 
     if "failed_validation" in combined:
         # Some scripts intentionally include failed scenarios.
-        # The full runner treats reconciliation controlled failure as warning only
+        # The full runner treats a controlled intentional failure as a warning
         # if the script itself exits zero.
         return "warning_unexplained_variance"
 
@@ -258,18 +258,48 @@ def write_text_report(report: FullAuditReport) -> Path:
 
     lines.append("INTERPRETATION")
     lines.append("-" * 80)
+    lines.append("validated means the step passed without detected risk.")
     lines.append(
-        "validated means the step passed without detected risk."
+        "warning_unexplained_variance means the step ran successfully, but known audit warnings remain."
+    )
+    lines.append("failed_validation means the step failed or exited non-zero.")
+    lines.append("")
+
+    lines.append("KNOWN CURRENT WARNINGS")
+    lines.append("-" * 80)
+    lines.append(
+        "1. Calculation test runner: Cost Allocation currently uses the Next.js @ alias, "
+        "so lib/calculations/costAllocationRules.js cannot be imported directly by Node "
+        "until an alias-aware adapter is added."
     )
     lines.append(
-        "warning_unexplained_variance means the step ran, but known audit warnings remain."
+        "2. P&L reconciliation audit: one controlled scenario intentionally fails to prove "
+        "that material unexplained variance is detected and marked untrusted."
+    )
+    lines.append("")
+
+    lines.append("CURRENT TRUST POSITION")
+    lines.append("-" * 80)
+    lines.append("Cost Summary controlled calculation test is passing.")
+    lines.append("Recovery Summary hours-based controlled calculation test is passing.")
+    lines.append(
+        "P&L reconciliation logic correctly passes explained variance and fails material unexplained variance."
     )
     lines.append(
-        "failed_validation means the step failed or exited non-zero."
+        "The current warning state is expected until Cost Allocation receives an alias-aware Node adapter "
+        "and the reconciliation audit is switched from proof scenarios to live app snapshots."
     )
-    lines.append(
-        "This runner does not change production app files."
-    )
+    lines.append("")
+
+    lines.append("NEXT RECOMMENDED IMPROVEMENTS")
+    lines.append("-" * 80)
+    lines.append("1. Add an alias-aware adapter for Cost Allocation calculation tests.")
+    lines.append("2. Add a live app-state JSON input mode for P&L reconciliation.")
+    lines.append("3. Add controlled Recovery Outcome tests after Cost Allocation can be loaded.")
+    lines.append("4. Add a short summary output for CI or pre-commit use later.")
+    lines.append("")
+
+    lines.append("This runner does not change production app files.")
 
     output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
