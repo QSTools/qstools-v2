@@ -225,7 +225,19 @@ function get_overhead_category_key_for_line(line = {}) {
     return "office_admin";
   }
 
-  if (matches_keywords(name, ["rent", "storage", "premises", "power", "electricity"])) {
+  if (
+    matches_keywords(name, [
+      "rent",
+      "storage",
+      "premises",
+      "power",
+      "electricity",
+      "cleaning",
+      "cleaner",
+      "cleaners",
+      "cleaning services",
+    ])
+  ) {
     return "facilities_premises";
   }
 
@@ -515,9 +527,9 @@ export default function useGeneralOverheads() {
       custom_overhead_items: (current.custom_overhead_items ?? []).map((item) =>
         item.custom_overhead_id === custom_overhead_id
           ? {
-              ...item,
-              [field]: value,
-            }
+            ...item,
+            [field]: value,
+          }
           : item
       ),
       overhead_category_overrides: current.overhead_category_overrides ?? {},
