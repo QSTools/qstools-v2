@@ -1,6 +1,6 @@
 """
 QS Tools — Calculation Test Runner
-v1.2
+v1.3
 
 Purpose:
 Run controlled calculation tests against the actual QS Tools JavaScript
@@ -13,11 +13,8 @@ It must not become a duplicate production calculation engine.
 Current behaviour:
 - checks that Node.js is available
 - discovers exports from key JS calculation files
-- runs first controlled Cost Summary test against calculateCostSummary
-- uses current Cost Summary contract:
-    labour_data
-    asset_data
-    general_overhead_data
+- runs controlled Cost Summary test against calculateCostSummary
+- runs controlled Recovery Summary hours-based test against calculateRecoverySummary
 - writes text and JSON reports
 - does not change production app files
 """
@@ -154,8 +151,8 @@ class ModuleDiscoveryResult:
 @dataclass
 class CalculationCheckResult:
     variable_name: str
-    expected: float | int | str | bool | None
-    actual: float | int | str | bool | None
+    expected: float | int | str | bool | list | None
+    actual: float | int | str | bool | list | None
     difference: float | None
     passed: bool
     notes: str
@@ -234,6 +231,24 @@ def almost_equal(
 
     difference = actual_number - expected_number
     return abs(difference) <= tolerance, difference
+
+
+def make_check(variable_name: str, expected: Any, actual: Any) -> CalculationCheckResult:
+    """Create one calculation check."""
+    passed, difference = almost_equal(actual, expected)
+
+    return CalculationCheckResult(
+        variable_name=variable_name,
+        expected=expected,
+        actual=actual,
+        difference=difference,
+        passed=passed,
+        notes=(
+            "PASS"
+            if passed
+            else "Expected value did not match actual calculation output."
+        ),
+    )
 
 
 # ============================================================
@@ -417,21 +432,6 @@ if (typeof calculateCostSummary !== "function") {{
   process.exit(0);
 }}
 
-/*
-  Current expected Cost Summary inputs:
-
-  Labour:
-  Comes from Labour module only.
-
-  General Overheads:
-  Includes normal business overheads plus employee overheads.
-  There is no separate Employee Overheads module input into Cost Summary.
-
-  P&L:
-  Not used as a Cost Summary calculation input.
-  P&L is used later for reconciliation only.
-*/
-
 const labour_data = {{
   total_labour_cost_annual: 59995,
   total_productive_output: 1000,
@@ -450,107 +450,25 @@ const general_overhead_data = {{
   total_general_overheads: 23000,
 }};
 
-const expectedKeys = [
-  "total_people_cost_annual",
-  "total_productive_output",
-  "total_staff_recovery_hours",
-  "business_recovery_hours",
-  "operating_recovery_hours",
-  "total_recovery_hours",
-  "total_asset_cost_annual",
-  "total_asset_interest_annual",
-  "total_business_overheads",
-  "total_business_cost_annual",
-  "total_cost_burden",
-  "required_revenue",
-  "required_recovery_rate",
-];
-
-function unwrapResult(result) {{
-  if (!result || typeof result !== "object") return result;
-
-  if (result.output_contract && typeof result.output_contract === "object") {{
-    return result.output_contract;
-  }}
-
-  if (result.calculations && typeof result.calculations === "object") {{
-    return result.calculations;
-  }}
-
-  return result;
-}}
-
-function hasUsefulOutput(result) {{
-  const unwrapped = unwrapResult(result);
-  if (!unwrapped || typeof unwrapped !== "object") return false;
-
-  return expectedKeys.some((key) =>
-    Object.prototype.hasOwnProperty.call(unwrapped, key)
-  );
-}}
-
-const attempts = [];
-
-const callShapes = [
-  {{
-    name: "single_object_current_contract",
-    run: () =>
-      calculateCostSummary({{
-        labour_data,
-        asset_data,
-        general_overhead_data,
-      }}),
-  }},
-];
-
-let selected = null;
-
-for (const shape of callShapes) {{
-  try {{
-    const result = shape.run();
-    const actual = unwrapResult(result);
-
-    const attempt = {{
-      name: shape.name,
-      success: true,
-      useful_output: hasUsefulOutput(result),
-      actual,
-      error: null,
-    }};
-
-    attempts.push(attempt);
-
-    if (!selected && attempt.useful_output) {{
-      selected = attempt;
-    }}
-  }} catch (error) {{
-    attempts.push({{
-      name: shape.name,
-      success: false,
-      useful_output: false,
-      actual: null,
-      error: String(error && error.stack ? error.stack : error),
-    }});
-  }}
-}}
-
-if (!selected) {{
-  console.log(JSON.stringify({{
-    success: false,
-    error: "No call shape returned a useful Cost Summary output.",
-    selected_call_shape: null,
-    actual: null,
-    attempts,
-  }}, null, 2));
-  process.exit(0);
-}}
+const result = calculateCostSummary({{
+  labour_data,
+  asset_data,
+  general_overhead_data,
+}});
 
 console.log(JSON.stringify({{
   success: true,
   error: null,
-  selected_call_shape: selected.name,
-  actual: selected.actual,
-  attempts,
+  selected_call_shape: "single_object_current_contract",
+  actual: result,
+  attempts: [
+    {{
+      name: "single_object_current_contract",
+      success: true,
+      useful_output: true,
+      error: null
+    }}
+  ],
 }}, null, 2));
 """
 
@@ -559,15 +477,13 @@ console.log(JSON.stringify({{
 
 
 def run_cost_summary_controlled_test() -> ControlledTestResult:
-    """Run the first controlled Cost Summary test through Node."""
+    """Run the controlled Cost Summary test through Node."""
     script_path = create_cost_summary_test_script()
 
     code, stdout, stderr = run_command(
         ["node", str(script_path)],
         PROJECT_ROOT,
     )
-
-    attempted_call_shapes: list[dict[str, Any]] = []
 
     if code != 0:
         return ControlledTestResult(
@@ -578,7 +494,7 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
             selected_call_shape=None,
             checks=[],
             raw_actual_output=None,
-            attempted_call_shapes=attempted_call_shapes,
+            attempted_call_shapes=[],
             error=stderr or stdout or "Node test runner failed.",
             notes="The Node adapter failed before returning a result.",
         )
@@ -594,12 +510,10 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
             selected_call_shape=None,
             checks=[],
             raw_actual_output=None,
-            attempted_call_shapes=attempted_call_shapes,
+            attempted_call_shapes=[],
             error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
             notes="The Node adapter returned invalid JSON.",
         )
-
-    attempted_call_shapes = payload.get("attempts", [])
 
     if not payload.get("success"):
         return ControlledTestResult(
@@ -610,7 +524,7 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
             selected_call_shape=payload.get("selected_call_shape"),
             checks=[],
             raw_actual_output=payload.get("actual"),
-            attempted_call_shapes=attempted_call_shapes,
+            attempted_call_shapes=payload.get("attempts", []),
             error=payload.get("error"),
             notes="No usable Cost Summary output was returned.",
         )
@@ -633,26 +547,10 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
         "required_recovery_rate": 94.995,
     }
 
-    checks: list[CalculationCheckResult] = []
-
-    for variable_name, expected in expected_values.items():
-        actual_value = actual.get(variable_name)
-        passed, difference = almost_equal(actual_value, expected)
-
-        checks.append(
-            CalculationCheckResult(
-                variable_name=variable_name,
-                expected=expected,
-                actual=actual_value,
-                difference=difference,
-                passed=passed,
-                notes=(
-                    "PASS"
-                    if passed
-                    else "Expected value did not match actual Cost Summary output."
-                ),
-            )
-        )
+    checks = [
+        make_check(variable_name, expected, actual.get(variable_name))
+        for variable_name, expected in expected_values.items()
+    ]
 
     all_passed = all(check.passed for check in checks)
 
@@ -664,12 +562,264 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
         selected_call_shape=payload.get("selected_call_shape"),
         checks=checks,
         raw_actual_output=actual,
-        attempted_call_shapes=attempted_call_shapes,
+        attempted_call_shapes=payload.get("attempts", []),
         error=None,
         notes=(
             "Controlled Cost Summary outputs matched expected values."
             if all_passed
             else "One or more Cost Summary outputs did not match expected values."
+        ),
+    )
+
+
+# ============================================================
+# Controlled Recovery Summary test
+# ============================================================
+
+def create_recovery_summary_test_script() -> Path:
+    """
+    Create a temporary Node .mjs script that calls the real calculateRecoverySummary export.
+
+    This first test validates current hours-based recovery logic.
+
+    In hours-based mode, calculateRecoverySummary deliberately assigns:
+    - labour_recovery_cost = total_people_cost_annual
+    - asset_recovery_cost = productive_asset_cost
+    - overhead_absorbed_cost = total_business_overheads
+
+    It does not use the old manual share split as the source of truth for
+    hours-based recovery.
+    """
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    script_path = TEMP_DIR / "recovery_summary_controlled_test.mjs"
+
+    recovery_summary_path = normalise_path_for_node(
+        PROJECT_ROOT / "lib" / "calculations" / "recoverySummaryCalculations.js"
+    )
+
+    script = f"""
+import {{ pathToFileURL }} from "url";
+
+const modulePath = {json.dumps(recovery_summary_path)};
+const moduleUrl = pathToFileURL(modulePath).href;
+
+const importedModule = await import(moduleUrl);
+const calculateRecoverySummary = importedModule.calculateRecoverySummary;
+
+if (typeof calculateRecoverySummary !== "function") {{
+  console.log(JSON.stringify({{
+    success: false,
+    error: "calculateRecoverySummary export was not found or is not a function.",
+    selected_call_shape: null,
+    actual: null,
+    attempts: []
+  }}, null, 2));
+  process.exit(0);
+}}
+
+const input = {{
+  business_summary_ready: true,
+  business_type: "labour_based",
+  is_labour_based: true,
+  is_product_based: false,
+  recovery_model: "hybrid",
+
+  total_people_cost_annual: 60000,
+  total_asset_cost_annual: 12000,
+  total_business_overheads: 23000,
+  total_cost_burden: 95000,
+
+  total_productive_output: 1000,
+  total_recovery_hours: 1000,
+  required_recovery_rate: 95,
+
+  productive_asset_cost: 12000,
+  productive_asset_cost_annual: 12000,
+  has_productive_asset_recovery_base: true,
+  productive_asset_count: 1,
+  asset_utilisation_hours_annual: 1000,
+
+  total_revenue: 150000,
+  total_direct_costs: 0,
+  margin_pool: 150000,
+  gross_margin_percent: 100,
+  current_margin_per_driver: 100,
+  actual_recovery_rate: 100,
+  profit_or_deficit_per_recovery_hour: 5,
+  required_recovery_per_driver: 95,
+  recovery_gap_per_driver: 5,
+  activity_driver_type: "hours",
+  activity_driver_value: 1000,
+  model_trust_state: "ready",
+}};
+
+const result = calculateRecoverySummary(input);
+
+console.log(JSON.stringify({{
+  success: true,
+  error: null,
+  selected_call_shape: "single_object_current_contract",
+  actual: result,
+  attempts: [
+    {{
+      name: "single_object_current_contract",
+      success: true,
+      useful_output: true,
+      error: null
+    }}
+  ],
+}}, null, 2));
+"""
+
+    script_path.write_text(script, encoding="utf-8")
+    return script_path
+
+
+def run_recovery_summary_controlled_test() -> ControlledTestResult:
+    """Run the controlled Recovery Summary hours-based test through Node."""
+    script_path = create_recovery_summary_test_script()
+
+    code, stdout, stderr = run_command(
+        ["node", str(script_path)],
+        PROJECT_ROOT,
+    )
+
+    if code != 0:
+        return ControlledTestResult(
+            test_name="Recovery Summary hours-based controlled test",
+            module_name="Recovery Summary",
+            function_name="calculateRecoverySummary",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=stderr or stdout or "Node test runner failed.",
+            notes="The Node adapter failed before returning a result.",
+        )
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        return ControlledTestResult(
+            test_name="Recovery Summary hours-based controlled test",
+            module_name="Recovery Summary",
+            function_name="calculateRecoverySummary",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
+            notes="The Node adapter returned invalid JSON.",
+        )
+
+    if not payload.get("success"):
+        return ControlledTestResult(
+            test_name="Recovery Summary hours-based controlled test",
+            module_name="Recovery Summary",
+            function_name="calculateRecoverySummary",
+            status="failed_validation",
+            selected_call_shape=payload.get("selected_call_shape"),
+            checks=[],
+            raw_actual_output=payload.get("actual"),
+            attempted_call_shapes=payload.get("attempts", []),
+            error=payload.get("error"),
+            notes="No usable Recovery Summary output was returned.",
+        )
+
+    actual = payload.get("actual") or {}
+
+    expected_values = {
+        "business_summary_ready": True,
+        "business_type": "labour_based",
+        "recovery_mode": "hours_based",
+        "active_recovery_model": "hybrid",
+
+        "total_people_cost_annual": 60000,
+        "total_asset_cost_annual": 12000,
+        "total_business_overheads": 23000,
+        "total_cost_burden": 95000,
+
+        "productive_asset_cost": 12000,
+        "productive_asset_cost_annual": 12000,
+        "asset_utilisation_hours_annual": 1000,
+        "required_asset_recovery_rate": 12,
+
+        "required_revenue": 95000,
+        "required_recovery_rate": 95,
+        "total_recovery_hours": 1000,
+        "recovery_hours_used": 1000,
+        "total_productive_output": 1000,
+
+        "labour_recovery_cost": 60000,
+        "asset_recovery_cost": 12000,
+        "material_recovery_cost": 0,
+        "overhead_absorbed_cost": 23000,
+
+        "required_labour_recovery_rate": 60,
+        "required_labour_recovery_rate_per_recovery_hour": 60,
+        "required_asset_recovery_per_recovery_hour": 12,
+        "required_material_recovery_per_recovery_hour": 0,
+        "overhead_absorbed_cost_per_recovery_hour": 23,
+        "required_asset_recovery": 12000,
+        "required_material_recovery": 0,
+
+        "share_not_balanced": False,
+        "no_productive_output": False,
+        "no_recovery_hours": False,
+        "asset_recovery_without_assets": False,
+        "labour_recovery_without_labour": False,
+    }
+
+    checks = [
+        make_check(variable_name, expected, actual.get(variable_name))
+        for variable_name, expected in expected_values.items()
+    ]
+
+    # Warnings should not include core readiness failures for this controlled test.
+    warnings = actual.get("warnings", [])
+    blocked_warning_keys = [
+        "business_summary_not_ready",
+        "upstream_model_not_ready",
+        "no_productive_output",
+        "missing_labour_cost",
+        "missing_productive_asset_utilisation",
+        "share_not_balanced",
+    ]
+
+    for warning_key in blocked_warning_keys:
+        checks.append(
+            CalculationCheckResult(
+                variable_name=f"warnings_excludes_{warning_key}",
+                expected=False,
+                actual=warning_key in warnings if isinstance(warnings, list) else None,
+                difference=None,
+                passed=isinstance(warnings, list) and warning_key not in warnings,
+                notes=(
+                    "PASS"
+                    if isinstance(warnings, list) and warning_key not in warnings
+                    else f"Unexpected warning found: {warning_key}"
+                ),
+            )
+        )
+
+    all_passed = all(check.passed for check in checks)
+
+    return ControlledTestResult(
+        test_name="Recovery Summary hours-based controlled test",
+        module_name="Recovery Summary",
+        function_name="calculateRecoverySummary",
+        status="validated" if all_passed else "failed_validation",
+        selected_call_shape=payload.get("selected_call_shape"),
+        checks=checks,
+        raw_actual_output=actual,
+        attempted_call_shapes=payload.get("attempts", []),
+        error=None,
+        notes=(
+            "Controlled Recovery Summary hours-based outputs matched expected values."
+            if all_passed
+            else "One or more Recovery Summary outputs did not match expected values."
         ),
     )
 
@@ -766,7 +916,10 @@ def build_audit_result() -> CalculationAuditResult:
         )
 
     module_results = discover_module_exports()
-    controlled_tests = [run_cost_summary_controlled_test()]
+    controlled_tests = [
+        run_cost_summary_controlled_test(),
+        run_recovery_summary_controlled_test(),
+    ]
 
     status = build_status(node_available, module_results, controlled_tests)
     summary = build_summary(
