@@ -11,8 +11,56 @@ node_version: v24.14.0
 total_modules_checked: 12
 existing_modules: 12
 loadable_modules: 11
-critical_modules: 7
+critical_modules: 6
 failed_critical_modules: 0
+total_controlled_tests: 1
+passed_controlled_tests: 1
+failed_controlled_tests: 0
+
+CONTROLLED TESTS
+--------------------------------------------------------------------------------
+
+Test: Cost Summary controlled formula test
+Module: Cost Summary
+Function: calculateCostSummary
+Status: validated
+Selected call shape: single_object_current_contract
+Notes: Controlled Cost Summary outputs matched expected values.
+
+Checks:
+  PASS total_people_cost_annual: expected=59995 actual=59995 difference=0.0
+  PASS total_productive_output: expected=1000 actual=1000 difference=0.0
+  PASS total_staff_recovery_hours: expected=1000 actual=1000 difference=0.0
+  PASS business_recovery_hours: expected=1000 actual=1000 difference=0.0
+  PASS operating_recovery_hours: expected=1000 actual=1000 difference=0.0
+  PASS total_recovery_hours: expected=1000 actual=1000 difference=0.0
+  PASS total_asset_cost_annual: expected=12000 actual=12000 difference=0.0
+  PASS total_asset_interest_annual: expected=0 actual=0 difference=0.0
+  PASS total_business_overheads: expected=23000 actual=23000 difference=0.0
+  PASS total_business_cost_annual: expected=35000 actual=35000 difference=0.0
+  PASS total_cost_burden: expected=94995 actual=94995 difference=0.0
+  PASS required_revenue: expected=94995 actual=94995 difference=0.0
+  PASS required_recovery_rate: expected=94.995 actual=94.995 difference=0.0
+
+Raw actual output:
+{
+  "total_people_cost_annual": 59995,
+  "total_productive_output": 1000,
+  "total_staff_recovery_hours": 1000,
+  "business_recovery_hours": 1000,
+  "operating_recovery_hours": 1000,
+  "total_recovery_hours": 1000,
+  "total_asset_cost_annual": 12000,
+  "total_asset_interest_annual": 0,
+  "total_business_overheads": 23000,
+  "total_business_cost_annual": 35000,
+  "total_cost_burden": 94995,
+  "required_revenue": 94995,
+  "required_recovery_rate": 94.995
+}
+
+Attempted call shapes:
+  - single_object_current_contract: success=True useful_output=True
 
 MODULE DISCOVERY
 --------------------------------------------------------------------------------
@@ -30,11 +78,11 @@ Exports:
 
 Module: Employee Overheads
 Path: lib/calculations/employeeOverheadCalculations.js
-Critical: True
+Critical: False
 Exists: True
 Loadable: True
 Default export type: None
-Notes: Owns staff-linked employee overhead calculations.
+Notes: Legacy / retired as standalone source for Cost Summary. Employee overheads are now included through General Overheads.
 Exports:
   - calculateEmployeeOverheadModule
   - calculateEmployeeOverheadProfile
@@ -55,7 +103,7 @@ Critical: True
 Exists: True
 Loadable: True
 Default export type: None
-Notes: Owns general overhead calculations.
+Notes: Owns general overhead calculations. Employee overheads are included inside this overhead pathway.
 Exports:
   - calculate_general_overheads
 
@@ -65,7 +113,7 @@ Critical: True
 Exists: True
 Loadable: True
 Default export type: None
-Notes: Owns total cost burden and required recovery baseline.
+Notes: Owns total cost burden and required recovery baseline. Consumes Labour, Assets, and General Overheads only.
 Exports:
   - calculateCostSummary
 
@@ -154,6 +202,5 @@ Exports:
 
 INTERPRETATION
 --------------------------------------------------------------------------------
-This v1 runner confirms which actual JS calculation files can be loaded and which exported functions are available for controlled testing.
-Next step: wire test adapters to the discovered exports so Python can feed controlled inputs into the real JS calculation functions.
+This runner discovers calculation exports and runs controlled tests against actual JS calculation functions.
 No production files were changed by this runner.

@@ -1,26 +1,25 @@
 """
 QS Tools — Calculation Test Runner
-v1.0
+v1.2
 
 Purpose:
-Discover and prepare controlled calculation testing against the actual QS Tools
-JavaScript calculation files.
+Run controlled calculation tests against the actual QS Tools JavaScript
+calculation files.
 
 Important:
 This Python script is a runner only.
-It must not become a duplicate business logic engine.
+It must not become a duplicate production calculation engine.
 
-Current v1 behaviour:
+Current behaviour:
 - checks that Node.js is available
 - discovers exports from key JS calculation files
-- reports which calculation modules are loadable
+- runs first controlled Cost Summary test against calculateCostSummary
+- uses current Cost Summary contract:
+    labour_data
+    asset_data
+    general_overhead_data
 - writes text and JSON reports
 - does not change production app files
-
-Next version:
-- call specific exported calculation functions
-- feed controlled test inputs
-- compare actual outputs against expected outputs
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -56,8 +55,11 @@ CALCULATION_MODULES = [
     {
         "module_name": "Employee Overheads",
         "path": "lib/calculations/employeeOverheadCalculations.js",
-        "critical": True,
-        "notes": "Owns staff-linked employee overhead calculations.",
+        "critical": False,
+        "notes": (
+            "Legacy / retired as standalone source for Cost Summary. "
+            "Employee overheads are now included through General Overheads."
+        ),
     },
     {
         "module_name": "Assets",
@@ -69,13 +71,19 @@ CALCULATION_MODULES = [
         "module_name": "General Overheads",
         "path": "lib/calculations/generalOverheadCalculations.js",
         "critical": True,
-        "notes": "Owns general overhead calculations.",
+        "notes": (
+            "Owns general overhead calculations. Employee overheads are included "
+            "inside this overhead pathway."
+        ),
     },
     {
         "module_name": "Cost Summary",
         "path": "lib/calculations/costSummaryCalculations.js",
         "critical": True,
-        "notes": "Owns total cost burden and required recovery baseline.",
+        "notes": (
+            "Owns total cost burden and required recovery baseline. Consumes "
+            "Labour, Assets, and General Overheads only."
+        ),
     },
     {
         "module_name": "Recovery Summary",
@@ -84,11 +92,15 @@ CALCULATION_MODULES = [
         "notes": "Owns recovery strategy distribution.",
     },
     {
-    "module_name": "Cost Allocation",
-    "path": "lib/calculations/costAllocationRules.js",
-    "critical": False,
-    "notes": "Owns structural validation logic. Marked non-critical for direct Node discovery because this file uses the Next.js @ alias and needs an alias-aware test adapter.",
-},
+        "module_name": "Cost Allocation",
+        "path": "lib/calculations/costAllocationRules.js",
+        "critical": False,
+        "notes": (
+            "Owns structural validation logic. Marked non-critical for direct "
+            "Node discovery because this file uses the Next.js @ alias and "
+            "needs an alias-aware test adapter."
+        ),
+    },
     {
         "module_name": "Recovery Outcome",
         "path": "lib/calculations/recoveryOutcomeCalculations.js",
@@ -140,10 +152,35 @@ class ModuleDiscoveryResult:
 
 
 @dataclass
+class CalculationCheckResult:
+    variable_name: str
+    expected: float | int | str | bool | None
+    actual: float | int | str | bool | None
+    difference: float | None
+    passed: bool
+    notes: str
+
+
+@dataclass
+class ControlledTestResult:
+    test_name: str
+    module_name: str
+    function_name: str
+    status: str
+    selected_call_shape: str | None
+    checks: list[CalculationCheckResult]
+    raw_actual_output: dict[str, Any] | None
+    attempted_call_shapes: list[dict[str, Any]]
+    error: str | None
+    notes: str
+
+
+@dataclass
 class CalculationAuditResult:
     node_available: bool
     node_version: str | None
     module_results: list[ModuleDiscoveryResult]
+    controlled_tests: list[ControlledTestResult]
     status: str
     summary: dict[str, Any]
 
@@ -183,12 +220,28 @@ def normalise_path_for_node(path: Path) -> str:
     return path.as_posix()
 
 
-def create_node_discovery_script() -> Path:
-    """
-    Create a temporary Node .mjs script that imports modules and lists exports.
+def almost_equal(
+    actual: Any,
+    expected: Any,
+    tolerance: float = 0.01,
+) -> tuple[bool, float | None]:
+    """Compare numeric values with tolerance."""
+    try:
+        actual_number = float(actual)
+        expected_number = float(expected)
+    except (TypeError, ValueError):
+        return actual == expected, None
 
-    The generated script is placed under reports/audit/calculation_test_reports/_temp.
-    """
+    difference = actual_number - expected_number
+    return abs(difference) <= tolerance, difference
+
+
+# ============================================================
+# Node discovery
+# ============================================================
+
+def create_node_discovery_script() -> Path:
+    """Create a temporary Node .mjs script that imports modules and lists exports."""
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
     script_path = TEMP_DIR / "discover_calculation_exports.mjs"
 
@@ -206,7 +259,6 @@ def create_node_discovery_script() -> Path:
         )
 
     script = f"""
-import path from "path";
 import {{ pathToFileURL }} from "url";
 import fs from "fs";
 
@@ -311,7 +363,7 @@ def discover_module_exports() -> list[ModuleDiscoveryResult]:
                 loadable=False,
                 exports=[],
                 default_export_type=None,
-                error=f"Could not parse Node output as JSON: {exc}\\nOutput:\\n{stdout}",
+                error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
                 notes="The generated Node discovery runner returned invalid JSON.",
             )
         ]
@@ -319,9 +371,317 @@ def discover_module_exports() -> list[ModuleDiscoveryResult]:
     return [ModuleDiscoveryResult(**item) for item in raw_results]
 
 
+# ============================================================
+# Controlled Cost Summary test
+# ============================================================
+
+def create_cost_summary_test_script() -> Path:
+    """
+    Create a temporary Node .mjs script that calls the real calculateCostSummary export.
+
+    Current Cost Summary contract:
+    calculateCostSummary({
+      labour_data,
+      asset_data,
+      general_overhead_data,
+    })
+
+    Labour comes from Labour module.
+    Employee overheads are included through General Overheads.
+    P&L is not an input to Cost Summary.
+    """
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    script_path = TEMP_DIR / "cost_summary_controlled_test.mjs"
+
+    cost_summary_path = normalise_path_for_node(
+        PROJECT_ROOT / "lib" / "calculations" / "costSummaryCalculations.js"
+    )
+
+    script = f"""
+import {{ pathToFileURL }} from "url";
+
+const modulePath = {json.dumps(cost_summary_path)};
+const moduleUrl = pathToFileURL(modulePath).href;
+
+const importedModule = await import(moduleUrl);
+const calculateCostSummary = importedModule.calculateCostSummary;
+
+if (typeof calculateCostSummary !== "function") {{
+  console.log(JSON.stringify({{
+    success: false,
+    error: "calculateCostSummary export was not found or is not a function.",
+    selected_call_shape: null,
+    actual: null,
+    attempts: []
+  }}, null, 2));
+  process.exit(0);
+}}
+
+/*
+  Current expected Cost Summary inputs:
+
+  Labour:
+  Comes from Labour module only.
+
+  General Overheads:
+  Includes normal business overheads plus employee overheads.
+  There is no separate Employee Overheads module input into Cost Summary.
+
+  P&L:
+  Not used as a Cost Summary calculation input.
+  P&L is used later for reconciliation only.
+*/
+
+const labour_data = {{
+  total_labour_cost_annual: 59995,
+  total_productive_output: 1000,
+  total_staff_recovery_hours: 1000,
+  business_recovery_hours: 1000,
+  operating_recovery_hours: 1000,
+  total_recovery_hours: 1000,
+}};
+
+const asset_data = {{
+  total_asset_cost_annual: 12000,
+  total_asset_interest_annual: 0,
+}};
+
+const general_overhead_data = {{
+  total_general_overheads: 23000,
+}};
+
+const expectedKeys = [
+  "total_people_cost_annual",
+  "total_productive_output",
+  "total_staff_recovery_hours",
+  "business_recovery_hours",
+  "operating_recovery_hours",
+  "total_recovery_hours",
+  "total_asset_cost_annual",
+  "total_asset_interest_annual",
+  "total_business_overheads",
+  "total_business_cost_annual",
+  "total_cost_burden",
+  "required_revenue",
+  "required_recovery_rate",
+];
+
+function unwrapResult(result) {{
+  if (!result || typeof result !== "object") return result;
+
+  if (result.output_contract && typeof result.output_contract === "object") {{
+    return result.output_contract;
+  }}
+
+  if (result.calculations && typeof result.calculations === "object") {{
+    return result.calculations;
+  }}
+
+  return result;
+}}
+
+function hasUsefulOutput(result) {{
+  const unwrapped = unwrapResult(result);
+  if (!unwrapped || typeof unwrapped !== "object") return false;
+
+  return expectedKeys.some((key) =>
+    Object.prototype.hasOwnProperty.call(unwrapped, key)
+  );
+}}
+
+const attempts = [];
+
+const callShapes = [
+  {{
+    name: "single_object_current_contract",
+    run: () =>
+      calculateCostSummary({{
+        labour_data,
+        asset_data,
+        general_overhead_data,
+      }}),
+  }},
+];
+
+let selected = null;
+
+for (const shape of callShapes) {{
+  try {{
+    const result = shape.run();
+    const actual = unwrapResult(result);
+
+    const attempt = {{
+      name: shape.name,
+      success: true,
+      useful_output: hasUsefulOutput(result),
+      actual,
+      error: null,
+    }};
+
+    attempts.push(attempt);
+
+    if (!selected && attempt.useful_output) {{
+      selected = attempt;
+    }}
+  }} catch (error) {{
+    attempts.push({{
+      name: shape.name,
+      success: false,
+      useful_output: false,
+      actual: null,
+      error: String(error && error.stack ? error.stack : error),
+    }});
+  }}
+}}
+
+if (!selected) {{
+  console.log(JSON.stringify({{
+    success: false,
+    error: "No call shape returned a useful Cost Summary output.",
+    selected_call_shape: null,
+    actual: null,
+    attempts,
+  }}, null, 2));
+  process.exit(0);
+}}
+
+console.log(JSON.stringify({{
+  success: true,
+  error: null,
+  selected_call_shape: selected.name,
+  actual: selected.actual,
+  attempts,
+}}, null, 2));
+"""
+
+    script_path.write_text(script, encoding="utf-8")
+    return script_path
+
+
+def run_cost_summary_controlled_test() -> ControlledTestResult:
+    """Run the first controlled Cost Summary test through Node."""
+    script_path = create_cost_summary_test_script()
+
+    code, stdout, stderr = run_command(
+        ["node", str(script_path)],
+        PROJECT_ROOT,
+    )
+
+    attempted_call_shapes: list[dict[str, Any]] = []
+
+    if code != 0:
+        return ControlledTestResult(
+            test_name="Cost Summary controlled formula test",
+            module_name="Cost Summary",
+            function_name="calculateCostSummary",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=attempted_call_shapes,
+            error=stderr or stdout or "Node test runner failed.",
+            notes="The Node adapter failed before returning a result.",
+        )
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        return ControlledTestResult(
+            test_name="Cost Summary controlled formula test",
+            module_name="Cost Summary",
+            function_name="calculateCostSummary",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=attempted_call_shapes,
+            error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
+            notes="The Node adapter returned invalid JSON.",
+        )
+
+    attempted_call_shapes = payload.get("attempts", [])
+
+    if not payload.get("success"):
+        return ControlledTestResult(
+            test_name="Cost Summary controlled formula test",
+            module_name="Cost Summary",
+            function_name="calculateCostSummary",
+            status="failed_validation",
+            selected_call_shape=payload.get("selected_call_shape"),
+            checks=[],
+            raw_actual_output=payload.get("actual"),
+            attempted_call_shapes=attempted_call_shapes,
+            error=payload.get("error"),
+            notes="No usable Cost Summary output was returned.",
+        )
+
+    actual = payload.get("actual") or {}
+
+    expected_values = {
+        "total_people_cost_annual": 59995,
+        "total_productive_output": 1000,
+        "total_staff_recovery_hours": 1000,
+        "business_recovery_hours": 1000,
+        "operating_recovery_hours": 1000,
+        "total_recovery_hours": 1000,
+        "total_asset_cost_annual": 12000,
+        "total_asset_interest_annual": 0,
+        "total_business_overheads": 23000,
+        "total_business_cost_annual": 35000,
+        "total_cost_burden": 94995,
+        "required_revenue": 94995,
+        "required_recovery_rate": 94.995,
+    }
+
+    checks: list[CalculationCheckResult] = []
+
+    for variable_name, expected in expected_values.items():
+        actual_value = actual.get(variable_name)
+        passed, difference = almost_equal(actual_value, expected)
+
+        checks.append(
+            CalculationCheckResult(
+                variable_name=variable_name,
+                expected=expected,
+                actual=actual_value,
+                difference=difference,
+                passed=passed,
+                notes=(
+                    "PASS"
+                    if passed
+                    else "Expected value did not match actual Cost Summary output."
+                ),
+            )
+        )
+
+    all_passed = all(check.passed for check in checks)
+
+    return ControlledTestResult(
+        test_name="Cost Summary controlled formula test",
+        module_name="Cost Summary",
+        function_name="calculateCostSummary",
+        status="validated" if all_passed else "failed_validation",
+        selected_call_shape=payload.get("selected_call_shape"),
+        checks=checks,
+        raw_actual_output=actual,
+        attempted_call_shapes=attempted_call_shapes,
+        error=None,
+        notes=(
+            "Controlled Cost Summary outputs matched expected values."
+            if all_passed
+            else "One or more Cost Summary outputs did not match expected values."
+        ),
+    )
+
+
+# ============================================================
+# Result builders
+# ============================================================
+
 def build_status(
     node_available: bool,
     module_results: list[ModuleDiscoveryResult],
+    controlled_tests: list[ControlledTestResult],
 ) -> str:
     """Build overall audit status."""
     if not node_available:
@@ -335,6 +695,12 @@ def build_status(
     if failed_critical:
         return "failed_validation"
 
+    failed_tests = [
+        item for item in controlled_tests if item.status == "failed_validation"
+    ]
+    if failed_tests:
+        return "failed_validation"
+
     if any(not item.loadable for item in module_results):
         return "warning_unexplained_variance"
 
@@ -345,6 +711,7 @@ def build_summary(
     node_available: bool,
     node_version: str | None,
     module_results: list[ModuleDiscoveryResult],
+    controlled_tests: list[ControlledTestResult],
 ) -> dict[str, Any]:
     """Build report summary."""
     total_modules = len(module_results)
@@ -356,6 +723,13 @@ def build_summary(
         for item in module_results
         if item.critical and (not item.exists or not item.loadable)
     )
+    total_controlled_tests = len(controlled_tests)
+    passed_controlled_tests = sum(
+        1 for item in controlled_tests if item.status == "validated"
+    )
+    failed_controlled_tests = sum(
+        1 for item in controlled_tests if item.status == "failed_validation"
+    )
 
     return {
         "node_available": node_available,
@@ -365,6 +739,9 @@ def build_summary(
         "loadable_modules": loadable_modules,
         "critical_modules": critical_modules,
         "failed_critical_modules": failed_critical_modules,
+        "total_controlled_tests": total_controlled_tests,
+        "passed_controlled_tests": passed_controlled_tests,
+        "failed_controlled_tests": failed_controlled_tests,
     }
 
 
@@ -374,30 +751,44 @@ def build_audit_result() -> CalculationAuditResult:
 
     if not node_available:
         module_results: list[ModuleDiscoveryResult] = []
+        controlled_tests: list[ControlledTestResult] = []
         status = "untrusted"
-        summary = build_summary(False, None, module_results)
+        summary = build_summary(False, None, module_results, controlled_tests)
         summary["node_error"] = node_version_or_error
 
         return CalculationAuditResult(
             node_available=False,
             node_version=None,
             module_results=module_results,
+            controlled_tests=controlled_tests,
             status=status,
             summary=summary,
         )
 
     module_results = discover_module_exports()
-    status = build_status(node_available, module_results)
-    summary = build_summary(node_available, node_version_or_error, module_results)
+    controlled_tests = [run_cost_summary_controlled_test()]
+
+    status = build_status(node_available, module_results, controlled_tests)
+    summary = build_summary(
+        node_available,
+        node_version_or_error,
+        module_results,
+        controlled_tests,
+    )
 
     return CalculationAuditResult(
         node_available=True,
         node_version=node_version_or_error,
         module_results=module_results,
+        controlled_tests=controlled_tests,
         status=status,
         summary=summary,
     )
 
+
+# ============================================================
+# Report writers
+# ============================================================
 
 def write_json_report(result: CalculationAuditResult) -> Path:
     """Write JSON report."""
@@ -410,6 +801,7 @@ def write_json_report(result: CalculationAuditResult) -> Path:
         "status": result.status,
         "summary": result.summary,
         "module_results": [asdict(item) for item in result.module_results],
+        "controlled_tests": [asdict(item) for item in result.controlled_tests],
     }
 
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -435,6 +827,54 @@ def write_text_report(result: CalculationAuditResult) -> Path:
         lines.append(f"{key}: {value}")
     lines.append("")
 
+    lines.append("CONTROLLED TESTS")
+    lines.append("-" * 80)
+
+    if not result.controlled_tests:
+        lines.append("No controlled tests were run.")
+
+    for test in result.controlled_tests:
+        lines.append("")
+        lines.append(f"Test: {test.test_name}")
+        lines.append(f"Module: {test.module_name}")
+        lines.append(f"Function: {test.function_name}")
+        lines.append(f"Status: {test.status}")
+        lines.append(f"Selected call shape: {test.selected_call_shape or 'None'}")
+        lines.append(f"Notes: {test.notes}")
+
+        if test.error:
+            lines.append("Error:")
+            lines.append(test.error)
+
+        if test.checks:
+            lines.append("")
+            lines.append("Checks:")
+            for check in test.checks:
+                status_label = "PASS" if check.passed else "FAIL"
+                lines.append(
+                    f"  {status_label} {check.variable_name}: "
+                    f"expected={check.expected} actual={check.actual} "
+                    f"difference={check.difference}"
+                )
+
+        if test.raw_actual_output is not None:
+            lines.append("")
+            lines.append("Raw actual output:")
+            lines.append(json.dumps(test.raw_actual_output, indent=2))
+
+        if test.attempted_call_shapes:
+            lines.append("")
+            lines.append("Attempted call shapes:")
+            for attempt in test.attempted_call_shapes:
+                lines.append(
+                    f"  - {attempt.get('name')}: "
+                    f"success={attempt.get('success')} "
+                    f"useful_output={attempt.get('useful_output')}"
+                )
+                if attempt.get("error"):
+                    lines.append(f"    error={attempt.get('error')}")
+
+    lines.append("")
     lines.append("MODULE DISCOVERY")
     lines.append("-" * 80)
 
@@ -466,16 +906,10 @@ def write_text_report(result: CalculationAuditResult) -> Path:
     lines.append("INTERPRETATION")
     lines.append("-" * 80)
     lines.append(
-        "This v1 runner confirms which actual JS calculation files can be loaded "
-        "and which exported functions are available for controlled testing."
+        "This runner discovers calculation exports and runs controlled tests "
+        "against actual JS calculation functions."
     )
-    lines.append(
-        "Next step: wire test adapters to the discovered exports so Python can "
-        "feed controlled inputs into the real JS calculation functions."
-    )
-    lines.append(
-        "No production files were changed by this runner."
-    )
+    lines.append("No production files were changed by this runner.")
 
     output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
@@ -495,6 +929,11 @@ def print_console_summary(
 
     for key, value in result.summary.items():
         print(f"{key}: {value}")
+
+    print("")
+    print("Controlled tests:")
+    for test in result.controlled_tests:
+        print(f"  {test.test_name}: {test.status}")
 
     print("")
     print("Reports:")
