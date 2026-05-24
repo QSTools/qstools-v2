@@ -1,0 +1,910 @@
+[
+  {
+    "variable_name": "staff_id",
+    "owning_module": "Labour",
+    "owning_file": "lib/identity/staffIdentity.js",
+    "variable_type": "identity",
+    "calculation_source": "System generated identity",
+    "downstream_consumers": [
+      "Employee Overheads",
+      "Cost Summary",
+      "Cost Allocation"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Labour owns staff_id. Display names must never be used as join keys."
+  },
+  {
+    "variable_name": "staff_name",
+    "owning_module": "Labour",
+    "owning_file": "Labour storage / profile state",
+    "variable_type": "display_input",
+    "calculation_source": "User entered display label",
+    "downstream_consumers": [
+      "UI only"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": false,
+    "notes": "Display only. Must never be used as a join key."
+  },
+  {
+    "variable_name": "staff_role",
+    "owning_module": "Labour",
+    "owning_file": "Labour storage / profile state",
+    "variable_type": "display_input",
+    "calculation_source": "User entered display label",
+    "downstream_consumers": [
+      "UI only"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": false,
+    "notes": "Display only."
+  },
+  {
+    "variable_name": "labour_class",
+    "owning_module": "Labour",
+    "owning_file": "Labour storage / profile state",
+    "variable_type": "display_input",
+    "calculation_source": "User entered classification",
+    "downstream_consumers": [
+      "UI only",
+      "Cost Allocation display"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": false,
+    "notes": "Display/category only unless later brief defines otherwise."
+  },
+  {
+    "variable_name": "hours_per_week",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered working pattern",
+    "downstream_consumers": [
+      "Labour calculations"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to calculate paid_hours_per_year and daily_hours."
+  },
+  {
+    "variable_name": "days_per_week",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered working pattern",
+    "downstream_consumers": [
+      "Labour calculations"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to calculate daily_hours."
+  },
+  {
+    "variable_name": "labour_rate",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered hourly wage/rate",
+    "downstream_consumers": [
+      "Labour calculations"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Cost Summary must not use this to rebuild Labour outputs."
+  },
+  {
+    "variable_name": "charge_out_rate",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered commercial charge-out rate",
+    "downstream_consumers": [
+      "Labour calculations",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used for margin/profit comparison only."
+  },
+  {
+    "variable_name": "productivity_percent",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered productivity assumption",
+    "downstream_consumers": [
+      "Labour calculations",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to convert available hours to productive hours."
+  },
+  {
+    "variable_name": "margin_target_percent",
+    "owning_module": "Labour",
+    "owning_file": "Labour input state",
+    "variable_type": "input",
+    "calculation_source": "User entered margin target",
+    "downstream_consumers": [
+      "Labour calculations",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to calculate minimum_charge_out_rate."
+  },
+  {
+    "variable_name": "paid_hours_per_year",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "hours_per_week * 52",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour downstream outputs"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Core Labour time output."
+  },
+  {
+    "variable_name": "daily_hours",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "hours_per_week / days_per_week",
+    "downstream_consumers": [
+      "Labour calculations"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to convert entitlement days to hours."
+  },
+  {
+    "variable_name": "non_productive_paid_hours",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "leave + public holidays + sick + bereavement + family violence leave",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour downstream outputs"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Critical entitlement burden output."
+  },
+  {
+    "variable_name": "productive_hours",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "(paid_hours_per_year - non_productive_paid_hours) * productivity_percent",
+    "downstream_consumers": [
+      "Cost Summary",
+      "Recovery Summary through Cost Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Cost Summary consumes this as productive output. Must not be rebuilt downstream."
+  },
+  {
+    "variable_name": "base_labour_cost_annual",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "labour_rate * paid_hours_per_year",
+    "downstream_consumers": [
+      "Labour UI"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Annual gross wage base before employer contributions."
+  },
+  {
+    "variable_name": "gross_wages_annual",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "base_labour_cost_annual",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Locked Labour output consumed by Cost Summary."
+  },
+  {
+    "variable_name": "entitlements_annual",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "labour_rate * non_productive_paid_hours",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Locked Labour output consumed by Cost Summary."
+  },
+  {
+    "variable_name": "employer_kiwisaver_gross",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "labour_rate * paid_hours_per_year * employer_kiwisaver_rate",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Locked Labour output consumed by Cost Summary."
+  },
+  {
+    "variable_name": "esct_rate",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "Derived ESCT band result",
+    "downstream_consumers": [
+      "Labour UI"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Must represent derived band result, not universal hardcoded assumption."
+  },
+  {
+    "variable_name": "esct_amount",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "employer_kiwisaver_gross * derived esct_rate",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Locked Labour output consumed by Cost Summary."
+  },
+  {
+    "variable_name": "total_employer_contribution_cost",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "employer_kiwisaver_gross + esct_amount",
+    "downstream_consumers": [
+      "Cost Summary",
+      "Labour UI"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Subtotal only. KiwiSaver and ESCT must remain separately visible."
+  },
+  {
+    "variable_name": "total_labour_cost_annual",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "base_labour_cost_annual + total_employer_contribution_cost",
+    "downstream_consumers": [
+      "Labour UI"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Labour-only annual burden before Employee Overheads."
+  },
+  {
+    "variable_name": "loaded_labour_cost_rate",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "total_labour_cost_annual / paid_hours_per_year",
+    "downstream_consumers": [
+      "Labour UI"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Loaded rate over paid hours."
+  },
+  {
+    "variable_name": "productive_labour_cost_rate",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "total_labour_cost_annual / productive_hours",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Critical commercial Labour output."
+  },
+  {
+    "variable_name": "minimum_charge_out_rate",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "productive_labour_cost_rate / (1 - margin_target_percent)",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Critical Labour recovery threshold."
+  },
+  {
+    "variable_name": "profit_per_hour",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "charge_out_rate - productive_labour_cost_rate",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Commercial Labour output."
+  },
+  {
+    "variable_name": "above_recovery",
+    "owning_module": "Labour",
+    "owning_file": "lib/calculations/labourCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "charge_out_rate - minimum_charge_out_rate",
+    "downstream_consumers": [
+      "Labour UI",
+      "Labour Scenario"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Commercial Labour recovery comparison."
+  },
+  {
+    "variable_name": "employee_overheads_total_annual",
+    "owning_module": "Employee Overheads",
+    "owning_file": "lib/calculations/employeeOverheadCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "Employee overhead categories summed per staff_id",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Must join to Labour by staff_id only."
+  },
+  {
+    "variable_name": "total_employee_overheads_annual",
+    "owning_module": "Employee Overheads",
+    "owning_file": "lib/calculations/employeeOverheadCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "sum(employee_overheads_total_annual)",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Aggregate Employee Overheads output."
+  },
+  {
+    "variable_name": "asset_id",
+    "owning_module": "Assets",
+    "owning_file": "Assets identity/storage",
+    "variable_type": "identity",
+    "calculation_source": "System generated identity",
+    "downstream_consumers": [
+      "Cost Allocation"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Assets owns asset_id. Display names must never be used as keys."
+  },
+  {
+    "variable_name": "finance_cost_annual",
+    "owning_module": "Assets",
+    "owning_file": "lib/calculations/assetCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "Annual finance cost calculation",
+    "downstream_consumers": [
+      "Assets UI"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "May be part of explained variance against P&L due to finance/accounting treatment."
+  },
+  {
+    "variable_name": "running_cost_annual",
+    "owning_module": "Assets",
+    "owning_file": "lib/calculations/assetCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "monthly running costs * 12",
+    "downstream_consumers": [
+      "Assets UI"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Annual cash running cost."
+  },
+  {
+    "variable_name": "total_asset_cost_annual",
+    "owning_module": "Assets",
+    "owning_file": "lib/calculations/assetCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "finance_cost_annual + running_cost_annual",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Cost Summary consumes this directly. Must not rebuild asset maths downstream."
+  },
+  {
+    "variable_name": "total_general_overheads",
+    "owning_module": "General Overheads",
+    "owning_file": "lib/calculations/generalOverheadCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "sum(all fixed categories + custom overhead items)",
+    "downstream_consumers": [
+      "Cost Summary"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Cost Summary maps this to total_business_overheads."
+  },
+  {
+    "variable_name": "total_gross_wages_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "sum(gross_wages_annual)",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Aggregate of locked Labour output."
+  },
+  {
+    "variable_name": "total_entitlements_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "sum(entitlements_annual)",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Aggregate of locked Labour output."
+  },
+  {
+    "variable_name": "total_employer_kiwisaver_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "sum(employer_kiwisaver_gross)",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Aggregate of locked Labour output."
+  },
+  {
+    "variable_name": "total_esct_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "sum(esct_amount)",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Aggregate of locked Labour output."
+  },
+  {
+    "variable_name": "total_people_cost_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "wages + entitlements + KiwiSaver + ESCT + employee overheads",
+    "downstream_consumers": [
+      "Recovery Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Critical Cost Summary People Cost output."
+  },
+  {
+    "variable_name": "total_productive_output",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "sum(productive_hours)",
+    "downstream_consumers": [
+      "Recovery Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Used to calculate required_recovery_rate."
+  },
+  {
+    "variable_name": "total_business_overheads",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "total_general_overheads",
+    "downstream_consumers": [
+      "Recovery Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "General Overheads mapped into Cost Summary."
+  },
+  {
+    "variable_name": "total_business_cost_annual",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "total_asset_cost_annual + total_business_overheads",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Business cost excluding People Cost."
+  },
+  {
+    "variable_name": "total_cost_burden",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+    "downstream_consumers": [
+      "Recovery Summary",
+      "Recovery Outcome",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Main Cost Summary output. Must reconcile to P&L or explained variance."
+  },
+  {
+    "variable_name": "required_revenue",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "total_cost_burden",
+    "downstream_consumers": [
+      "Recovery Summary",
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Baseline required revenue before recovery strategy."
+  },
+  {
+    "variable_name": "required_recovery_rate",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "required_revenue / total_productive_output",
+    "downstream_consumers": [
+      "Recovery Summary",
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Baseline recovery rate."
+  },
+  {
+    "variable_name": "active_recovery_model",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "selected recovery_model",
+    "downstream_consumers": [
+      "Cost Allocation",
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery Summary owns recovery model. Cost Allocation must not define revenue_model."
+  },
+  {
+    "variable_name": "labour_share_percent",
+    "owning_module": "Recovery Summary",
+    "owning_file": "Recovery Summary state/calculations",
+    "variable_type": "input_output",
+    "calculation_source": "User selected recovery share",
+    "downstream_consumers": [
+      "Cost Allocation",
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery share must balance with asset and overhead shares."
+  },
+  {
+    "variable_name": "asset_share_percent",
+    "owning_module": "Recovery Summary",
+    "owning_file": "Recovery Summary state/calculations",
+    "variable_type": "input_output",
+    "calculation_source": "User selected recovery share",
+    "downstream_consumers": [
+      "Cost Allocation",
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery share must balance with labour and overhead shares."
+  },
+  {
+    "variable_name": "overhead_share_percent",
+    "owning_module": "Recovery Summary",
+    "owning_file": "Recovery Summary state/calculations",
+    "variable_type": "input_output",
+    "calculation_source": "User selected recovery share",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery share must balance with labour and asset shares."
+  },
+  {
+    "variable_name": "labour_recovery_cost",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "total_cost_burden * labour_share_percent",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery Summary distribution output."
+  },
+  {
+    "variable_name": "asset_recovery_cost",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "total_cost_burden * asset_share_percent",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery Summary distribution output."
+  },
+  {
+    "variable_name": "overhead_absorbed_cost",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "total_cost_burden * overhead_share_percent",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Recovery Summary distribution output."
+  },
+  {
+    "variable_name": "required_labour_recovery_rate",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "labour_recovery_cost / total_productive_output",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Labour recovery pressure after recovery split."
+  },
+  {
+    "variable_name": "required_asset_recovery",
+    "owning_module": "Recovery Summary",
+    "owning_file": "lib/calculations/recoverySummaryCalculations.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "asset_recovery_cost",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Annual asset recovery requirement."
+  },
+  {
+    "variable_name": "structure_valid",
+    "owning_module": "Cost Allocation",
+    "owning_file": "lib/calculations/costAllocationRules.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "validation of links, groups, and active recovery model requirements",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Cost Allocation validates structure only. It must not calculate recovery."
+  },
+  {
+    "variable_name": "staff_coverage_percent",
+    "owning_module": "Cost Allocation",
+    "owning_file": "lib/calculations/costAllocationRules.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "linked staff / active staff",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Coverage metric used by Recovery Outcome."
+  },
+  {
+    "variable_name": "asset_coverage_percent",
+    "owning_module": "Cost Allocation",
+    "owning_file": "lib/calculations/costAllocationRules.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "linked assets / active assets",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Coverage metric used by Recovery Outcome."
+  },
+  {
+    "variable_name": "group_coverage_percent",
+    "owning_module": "Cost Allocation",
+    "owning_file": "lib/calculations/costAllocationRules.js",
+    "variable_type": "calculated_output",
+    "calculation_source": "valid groups / total groups",
+    "downstream_consumers": [
+      "Recovery Outcome"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Coverage metric used by Recovery Outcome."
+  },
+  {
+    "variable_name": "outcome_status",
+    "owning_module": "Recovery Outcome",
+    "owning_file": "lib/calculations/recoveryOutcomeCalculations.js",
+    "variable_type": "decision_output",
+    "calculation_source": "decision rules based on Recovery Summary and Cost Allocation outputs",
+    "downstream_consumers": [
+      "Recovery Outcome UI",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Strict values: viable, marginal, not_viable."
+  },
+  {
+    "variable_name": "primary_constraint_key",
+    "owning_module": "Recovery Outcome",
+    "owning_file": "lib/calculations/recoveryOutcomeCalculations.js",
+    "variable_type": "decision_output",
+    "calculation_source": "main blocking or warning reason",
+    "downstream_consumers": [
+      "Recovery Outcome UI",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Strict constraint key set."
+  },
+  {
+    "variable_name": "recommended_action",
+    "owning_module": "Recovery Outcome",
+    "owning_file": "lib/calculations/recoveryOutcomeCalculations.js",
+    "variable_type": "decision_output",
+    "calculation_source": "human-readable action from outcome state",
+    "downstream_consumers": [
+      "Recovery Outcome UI",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Should be short, direct, and actionable."
+  },
+  {
+    "variable_name": "pnl_baseline_cost",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "P&L import / reconciliation audit",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported P&L baseline cost",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Source truth baseline from P&L/Xero."
+  },
+  {
+    "variable_name": "qs_tools_calculated_cost",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Usually total_cost_burden",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Calculated QS Tools burden to compare against P&L."
+  },
+  {
+    "variable_name": "gross_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "qs_tools_calculated_cost - pnl_baseline_cost",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Gross variance is not automatically an error."
+  },
+  {
+    "variable_name": "explained_variance_total",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "sum(all explained variance categories)",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Explained variance offsets gross variance."
+  },
+  {
+    "variable_name": "unexplained_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "gross_variance - explained_variance_total",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "This is the key risk number."
+  },
+  {
+    "variable_name": "reconciliation_status",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "status from unexplained variance and validation checks",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "validated, validated_with_explained_variance, warning_unexplained_variance, failed_validation, untrusted."
+  }
+]
