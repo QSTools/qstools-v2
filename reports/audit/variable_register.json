@@ -6,7 +6,7 @@
     "variable_type": "identity",
     "calculation_source": "System generated identity",
     "downstream_consumers": [
-      "Employee Overheads",
+      "General Overheads",
       "Cost Summary",
       "Cost Allocation"
     ],
@@ -188,7 +188,7 @@
     ],
     "must_balance_to_pnl": false,
     "test_required": true,
-    "notes": "Cost Summary consumes this as productive output. Must not be rebuilt downstream."
+    "notes": "Cost Summary consumes this through Labour module output. Must not be rebuilt downstream."
   },
   {
     "variable_name": "base_labour_cost_annual",
@@ -207,40 +207,43 @@
     "variable_name": "gross_wages_annual",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "downstream_contract_output",
+    "variable_type": "labour_detail_output",
     "calculation_source": "base_labour_cost_annual",
     "downstream_consumers": [
-      "Cost Summary"
+      "Labour UI",
+      "Cost Summary detail display where available"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Locked Labour output consumed by Cost Summary."
+    "notes": "Labour detail output. Cost Summary people cost is driven by total_labour_cost_annual, not by rebuilding this row-level value."
   },
   {
     "variable_name": "entitlements_annual",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "downstream_contract_output",
+    "variable_type": "labour_detail_output",
     "calculation_source": "labour_rate * non_productive_paid_hours",
     "downstream_consumers": [
-      "Cost Summary"
+      "Labour UI",
+      "Cost Summary detail display where available"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Locked Labour output consumed by Cost Summary."
+    "notes": "Labour detail output. Cost Summary must not rebuild Labour from entitlement parts."
   },
   {
     "variable_name": "employer_kiwisaver_gross",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "downstream_contract_output",
+    "variable_type": "labour_detail_output",
     "calculation_source": "labour_rate * paid_hours_per_year * employer_kiwisaver_rate",
     "downstream_consumers": [
-      "Cost Summary"
+      "Labour UI",
+      "Cost Summary detail display where available"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Locked Labour output consumed by Cost Summary."
+    "notes": "Labour detail output. Cost Summary must not rebuild Labour from KiwiSaver parts."
   },
   {
     "variable_name": "esct_rate",
@@ -259,41 +262,42 @@
     "variable_name": "esct_amount",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "downstream_contract_output",
+    "variable_type": "labour_detail_output",
     "calculation_source": "employer_kiwisaver_gross * derived esct_rate",
     "downstream_consumers": [
-      "Cost Summary"
+      "Labour UI",
+      "Cost Summary detail display where available"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Locked Labour output consumed by Cost Summary."
+    "notes": "Labour detail output. Cost Summary must not rebuild Labour from ESCT parts."
   },
   {
     "variable_name": "total_employer_contribution_cost",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "downstream_contract_output",
+    "variable_type": "labour_detail_output",
     "calculation_source": "employer_kiwisaver_gross + esct_amount",
     "downstream_consumers": [
-      "Cost Summary",
-      "Labour UI"
+      "Labour UI",
+      "Cost Summary detail display where available"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Subtotal only. KiwiSaver and ESCT must remain separately visible."
+    "notes": "Subtotal only. KiwiSaver and ESCT must remain separately visible in Labour detail."
   },
   {
     "variable_name": "total_labour_cost_annual",
     "owning_module": "Labour",
     "owning_file": "lib/calculations/labourCalculations.js",
-    "variable_type": "calculated_output",
-    "calculation_source": "base_labour_cost_annual + total_employer_contribution_cost",
+    "variable_type": "downstream_contract_output",
+    "calculation_source": "Labour module total annual labour cost",
     "downstream_consumers": [
-      "Labour UI"
+      "Cost Summary"
     ],
-    "must_balance_to_pnl": false,
+    "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Labour-only annual burden before Employee Overheads."
+    "notes": "Primary Labour contract output consumed by Cost Summary as total_people_cost_annual."
   },
   {
     "variable_name": "loaded_labour_cost_rate",
@@ -366,29 +370,29 @@
   },
   {
     "variable_name": "employee_overheads_total_annual",
-    "owning_module": "Employee Overheads",
-    "owning_file": "lib/calculations/employeeOverheadCalculations.js",
-    "variable_type": "downstream_contract_output",
-    "calculation_source": "Employee overhead categories summed per staff_id",
+    "owning_module": "General Overheads",
+    "owning_file": "lib/calculations/generalOverheadCalculations.js",
+    "variable_type": "overhead_category",
+    "calculation_source": "Employee overheads are included inside General Overheads",
     "downstream_consumers": [
-      "Cost Summary"
+      "Cost Summary through total_general_overheads"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Must join to Labour by staff_id only."
+    "notes": "Retired as standalone Cost Summary input. Employee overheads now flow through General Overheads only."
   },
   {
     "variable_name": "total_employee_overheads_annual",
-    "owning_module": "Employee Overheads",
-    "owning_file": "lib/calculations/employeeOverheadCalculations.js",
-    "variable_type": "downstream_contract_output",
-    "calculation_source": "sum(employee_overheads_total_annual)",
+    "owning_module": "General Overheads",
+    "owning_file": "lib/calculations/generalOverheadCalculations.js",
+    "variable_type": "overhead_category_total",
+    "calculation_source": "Employee overhead category total inside General Overheads",
     "downstream_consumers": [
-      "Cost Summary"
+      "Cost Summary through total_general_overheads"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Aggregate Employee Overheads output."
+    "notes": "Retired as standalone Cost Summary input. Do not feed this separately into Cost Summary."
   },
   {
     "variable_name": "asset_id",
@@ -447,110 +451,357 @@
     "owning_module": "General Overheads",
     "owning_file": "lib/calculations/generalOverheadCalculations.js",
     "variable_type": "downstream_contract_output",
-    "calculation_source": "sum(all fixed categories + custom overhead items)",
+    "calculation_source": "sum(all fixed categories + custom overhead items + employee overhead categories)",
     "downstream_consumers": [
       "Cost Summary"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Cost Summary maps this to total_business_overheads."
+    "notes": "General Overheads output consumed by Cost Summary as total_business_overheads. Employee overheads are included in this pathway."
+  },
+  {
+    "variable_name": "pnl_revenue",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / Revenue COGS state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported P&L revenue",
+    "downstream_consumers": [
+      "Revenue Summary",
+      "Business Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "P&L source truth. Not a Cost Summary calculation input."
+  },
+  {
+    "variable_name": "pnl_cogs",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / Revenue COGS state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported P&L cost of goods sold",
+    "downstream_consumers": [
+      "Revenue Summary",
+      "Business Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "P&L source truth. Used for reconciliation and commercial reality checks, not Cost Summary input."
+  },
+  {
+    "variable_name": "pnl_gross_profit",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / Revenue COGS state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "pnl_revenue - pnl_cogs",
+    "downstream_consumers": [
+      "Revenue Summary",
+      "Business Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "P&L source truth / derived accounting position."
+  },
+  {
+    "variable_name": "pnl_operating_expenses",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / Revenue COGS state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported P&L operating expenses",
+    "downstream_consumers": [
+      "Business Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "P&L operating baseline. Used for reconciliation only."
+  },
+  {
+    "variable_name": "pnl_net_profit",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / Revenue COGS state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported or derived P&L net profit",
+    "downstream_consumers": [
+      "Business Summary",
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "P&L source truth / derived accounting position."
+  },
+  {
+    "variable_name": "pnl_labour_cost",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / mapping",
+    "variable_type": "source_truth_mapping",
+    "calculation_source": "Mapped P&L labour cost",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used to explain variance between P&L labour and QS Tools Labour model. Not a Cost Summary input."
+  },
+  {
+    "variable_name": "pnl_asset_cost",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / mapping",
+    "variable_type": "source_truth_mapping",
+    "calculation_source": "Mapped P&L asset cost",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used to explain variance between P&L asset treatment and QS Tools Assets model. Not a Cost Summary input."
+  },
+  {
+    "variable_name": "pnl_general_overheads",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / mapping",
+    "variable_type": "source_truth_mapping",
+    "calculation_source": "Mapped P&L overhead cost",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used to reconcile General Overheads against accounting source truth."
+  },
+  {
+    "variable_name": "pnl_depreciation",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / mapping",
+    "variable_type": "source_truth_mapping",
+    "calculation_source": "Mapped P&L depreciation",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used as explained variance where QS Tools asset recovery excludes depreciation."
+  },
+  {
+    "variable_name": "pnl_interest",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / mapping",
+    "variable_type": "source_truth_mapping",
+    "calculation_source": "Mapped P&L interest / finance cost",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used as explained variance where asset finance treatment differs from P&L timing or year-end journals."
+  },
+  {
+    "variable_name": "pnl_baseline_cost",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / reconciliation audit",
+    "variable_type": "source_truth_input",
+    "calculation_source": "Entered/imported P&L baseline cost",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Source truth baseline from P&L/Xero. Reconciliation input only."
+  },
+  {
+    "variable_name": "pnl_period_start",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / period state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "P&L reporting period start date",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used for timing and annualisation checks."
+  },
+  {
+    "variable_name": "pnl_period_end",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / period state",
+    "variable_type": "source_truth_input",
+    "calculation_source": "P&L reporting period end date",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used for timing and annualisation checks."
+  },
+  {
+    "variable_name": "pnl_annualisation_factor",
+    "owning_module": "P&L / Revenue / COGS",
+    "owning_file": "P&L import / period state",
+    "variable_type": "calculated_reconciliation_input",
+    "calculation_source": "12 months / P&L period months",
+    "downstream_consumers": [
+      "Reconciliation Audit"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used where P&L period differs from annual QS Tools model."
   },
   {
     "variable_name": "total_gross_wages_annual",
     "owning_module": "Cost Summary",
-    "owning_file": "lib/calculations/costSummaryCalculations.js",
-    "variable_type": "calculated_aggregate",
-    "calculation_source": "sum(gross_wages_annual)",
+    "owning_file": "Cost Summary detail / selector where available",
+    "variable_type": "display_detail",
+    "calculation_source": "Labour detail display only where exposed by Labour output",
     "downstream_consumers": [
       "Cost Summary UI",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
-    "test_required": true,
-    "notes": "Aggregate of locked Labour output."
+    "test_required": false,
+    "notes": "Detail value only. Cost Summary core calculation uses total_labour_cost_annual as total_people_cost_annual."
   },
   {
     "variable_name": "total_entitlements_annual",
     "owning_module": "Cost Summary",
-    "owning_file": "lib/calculations/costSummaryCalculations.js",
-    "variable_type": "calculated_aggregate",
-    "calculation_source": "sum(entitlements_annual)",
+    "owning_file": "Cost Summary detail / selector where available",
+    "variable_type": "display_detail",
+    "calculation_source": "Labour entitlement detail display only where exposed by Labour output",
     "downstream_consumers": [
       "Cost Summary UI",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
-    "test_required": true,
-    "notes": "Aggregate of locked Labour output."
+    "test_required": false,
+    "notes": "Detail value only. Cost Summary must not rebuild Labour from entitlement parts."
   },
   {
     "variable_name": "total_employer_kiwisaver_annual",
     "owning_module": "Cost Summary",
-    "owning_file": "lib/calculations/costSummaryCalculations.js",
-    "variable_type": "calculated_aggregate",
-    "calculation_source": "sum(employer_kiwisaver_gross)",
+    "owning_file": "Cost Summary detail / selector where available",
+    "variable_type": "display_detail",
+    "calculation_source": "Labour KiwiSaver detail display only where exposed by Labour output",
     "downstream_consumers": [
       "Cost Summary UI",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
-    "test_required": true,
-    "notes": "Aggregate of locked Labour output."
+    "test_required": false,
+    "notes": "Detail value only. Cost Summary must not rebuild Labour from KiwiSaver parts."
   },
   {
     "variable_name": "total_esct_annual",
     "owning_module": "Cost Summary",
-    "owning_file": "lib/calculations/costSummaryCalculations.js",
-    "variable_type": "calculated_aggregate",
-    "calculation_source": "sum(esct_amount)",
+    "owning_file": "Cost Summary detail / selector where available",
+    "variable_type": "display_detail",
+    "calculation_source": "Labour ESCT detail display only where exposed by Labour output",
     "downstream_consumers": [
       "Cost Summary UI",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
-    "test_required": true,
-    "notes": "Aggregate of locked Labour output."
+    "test_required": false,
+    "notes": "Detail value only. Cost Summary must not rebuild Labour from ESCT parts."
   },
   {
     "variable_name": "total_people_cost_annual",
     "owning_module": "Cost Summary",
     "owning_file": "lib/calculations/costSummaryCalculations.js",
     "variable_type": "calculated_aggregate",
-    "calculation_source": "wages + entitlements + KiwiSaver + ESCT + employee overheads",
+    "calculation_source": "Labour module total_labour_cost_annual only",
     "downstream_consumers": [
       "Recovery Summary",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Critical Cost Summary People Cost output."
+    "notes": "Critical Cost Summary People Cost output. Must come from Labour module only. Employee overheads are now included through General Overheads, not People Cost."
   },
   {
     "variable_name": "total_productive_output",
     "owning_module": "Cost Summary",
     "owning_file": "lib/calculations/costSummaryCalculations.js",
     "variable_type": "calculated_aggregate",
-    "calculation_source": "sum(productive_hours)",
+    "calculation_source": "labour_data.total_productive_output",
     "downstream_consumers": [
       "Recovery Summary"
     ],
     "must_balance_to_pnl": false,
     "test_required": true,
-    "notes": "Used to calculate required_recovery_rate."
+    "notes": "Used to calculate required_recovery_rate where recovery hours are not otherwise provided."
+  },
+  {
+    "variable_name": "total_staff_recovery_hours",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "labour_data.total_staff_recovery_hours or labour_data.total_productive_output",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Recovery Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Staff recovery hours from Labour pathway."
+  },
+  {
+    "variable_name": "business_recovery_hours",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "labour_data.business_recovery_hours or operating_recovery_hours or total_recovery_hours",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Recovery Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Business recovery hours from Labour pathway."
+  },
+  {
+    "variable_name": "operating_recovery_hours",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "same as resolved total_recovery_hours",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Recovery Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Operating recovery hours from Labour pathway."
+  },
+  {
+    "variable_name": "total_recovery_hours",
+    "owning_module": "Cost Summary",
+    "owning_file": "lib/calculations/costSummaryCalculations.js",
+    "variable_type": "calculated_aggregate",
+    "calculation_source": "business recovery hours if available, otherwise total_productive_output",
+    "downstream_consumers": [
+      "Cost Summary UI",
+      "Recovery Summary"
+    ],
+    "must_balance_to_pnl": false,
+    "test_required": true,
+    "notes": "Primary denominator for required recovery rate."
   },
   {
     "variable_name": "total_business_overheads",
     "owning_module": "Cost Summary",
     "owning_file": "lib/calculations/costSummaryCalculations.js",
     "variable_type": "calculated_aggregate",
-    "calculation_source": "total_general_overheads",
+    "calculation_source": "general_overhead_data.total_general_overheads",
     "downstream_consumers": [
       "Recovery Summary",
       "Reconciliation Audit"
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "General Overheads mapped into Cost Summary."
+    "notes": "General Overheads mapped into Cost Summary. This includes employee overheads where classified inside the General Overheads pathway."
   },
   {
     "variable_name": "total_business_cost_annual",
@@ -579,7 +830,7 @@
     ],
     "must_balance_to_pnl": true,
     "test_required": true,
-    "notes": "Main Cost Summary output. Must reconcile to P&L or explained variance."
+    "notes": "Main Cost Summary output. Labour comes from Labour module, assets from Assets, and employee overheads through General Overheads. Must reconcile to P&L or explained variance."
   },
   {
     "variable_name": "required_revenue",
@@ -600,7 +851,7 @@
     "owning_module": "Cost Summary",
     "owning_file": "lib/calculations/costSummaryCalculations.js",
     "variable_type": "downstream_contract_output",
-    "calculation_source": "required_revenue / total_productive_output",
+    "calculation_source": "required_revenue / total_recovery_hours",
     "downstream_consumers": [
       "Recovery Summary",
       "Recovery Outcome"
@@ -824,20 +1075,6 @@
     "notes": "Should be short, direct, and actionable."
   },
   {
-    "variable_name": "pnl_baseline_cost",
-    "owning_module": "P&L Reconciliation",
-    "owning_file": "P&L import / reconciliation audit",
-    "variable_type": "source_truth_input",
-    "calculation_source": "Entered/imported P&L baseline cost",
-    "downstream_consumers": [
-      "Reconciliation Audit",
-      "Business Outcome later"
-    ],
-    "must_balance_to_pnl": true,
-    "test_required": true,
-    "notes": "Source truth baseline from P&L/Xero."
-  },
-  {
     "variable_name": "qs_tools_calculated_cost",
     "owning_module": "P&L Reconciliation",
     "owning_file": "tools/audit/qs_reconciliation_audit.py",
@@ -878,6 +1115,146 @@
     "must_balance_to_pnl": true,
     "test_required": true,
     "notes": "Explained variance offsets gross variance."
+  },
+  {
+    "variable_name": "labour_model_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "QS Tools Labour model cost - mapped P&L labour cost",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Valid explained variance where Labour model differs from P&L labour treatment."
+  },
+  {
+    "variable_name": "asset_model_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "QS Tools Assets model cost - mapped P&L asset cost",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Valid explained variance where asset model differs from accounting treatment."
+  },
+  {
+    "variable_name": "asset_finance_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Finance/interest timing or treatment difference",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Valid explained variance where finance costs are handled differently in P&L or year-end journals."
+  },
+  {
+    "variable_name": "depreciation_exclusion_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "P&L depreciation excluded from QS Tools cash recovery model",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Valid explained variance where QS Tools excludes depreciation from real cash recovery."
+  },
+  {
+    "variable_name": "employee_overhead_mapping_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Staff overhead mapping difference",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used where staff overheads are reclassified through General Overheads."
+  },
+  {
+    "variable_name": "general_overhead_mapping_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "General overhead mapping difference",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used where operating expense categories are mapped into General Overheads."
+  },
+  {
+    "variable_name": "cost_of_sales_mapping_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "COGS/direct cost mapping difference",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used where COGS/materials/subcontractors are excluded from internal cost burden or handled in Revenue / COGS."
+  },
+  {
+    "variable_name": "timing_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Timing or period mismatch",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used where P&L period differs from annualised QS Tools model or journals occur at year end."
+  },
+  {
+    "variable_name": "rounding_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Immaterial rounding difference",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Used only for immaterial rounding differences."
+  },
+  {
+    "variable_name": "unmapped_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "Variance not mapped to a known category",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "Dangerous variance until explained."
   },
   {
     "variable_name": "unexplained_variance",
