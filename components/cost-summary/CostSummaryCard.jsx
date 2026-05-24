@@ -59,14 +59,14 @@ function getTimeScaleSuffix(timeScale) {
   return TIME_SCALES.find((option) => option.key === timeScale)?.suffix ?? "";
 }
 
-function getInsightForLevel(level, items, totalCostBurden) {
+function getInsightForLevel(level, items, total_cost_burden) {
   const largestItem = [...items].sort((a, b) => b.amount - a.amount)[0];
 
-  if (!largestItem || totalCostBurden <= 0) {
+  if (!largestItem || total_cost_burden <= 0) {
     return "Cost Summary shows the business cost that must be recovered.";
   }
 
-  const shareOfTotal = calculateShare(largestItem.amount, totalCostBurden);
+  const shareOfTotal = calculateShare(largestItem.amount, total_cost_burden);
 
   if (level === "total") {
     return `${largestItem.label} is the largest part of your total cost at ${formatCostSummaryPercent(
@@ -165,7 +165,7 @@ function CostBar({
 function DrillRow({
   item,
   parentTotal,
-  totalCostBurden,
+  total_cost_burden,
   timeScale,
   totalRecoveryHours,
   hoveredItemKey,
@@ -181,7 +181,7 @@ function DrillRow({
   );
 
   const shareOfParent = calculateShare(item.amount, parentTotal);
-  const shareOfTotal = calculateShare(item.amount, totalCostBurden);
+  const shareOfTotal = calculateShare(item.amount, total_cost_burden);
   const isActive = hoveredItemKey === item.key;
   const isMuted = Boolean(hoveredItemKey) && !isActive;
   const className = [
@@ -619,7 +619,7 @@ export default function CostSummaryCard({
                 key={item.key}
                 item={item}
                 parentTotal={activeLevel.total}
-                totalCostBurden={total_cost_burden_annual}
+                total_cost_burden={total_cost_burden_annual}
                 timeScale={timeScale}
                 totalRecoveryHours={recovery_hours_total}
                 hoveredItemKey={hoveredItemKey}
