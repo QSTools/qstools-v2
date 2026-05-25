@@ -164,10 +164,20 @@ def build_steps() -> list[tuple[str, list[str], str]]:
                 "Runs controlled Cost Summary, Recovery Summary, Cost Allocation, and Recovery Outcome tests.",
             ),
             (
-                "P&L reconciliation audit",
-                [python_exe, "tools/audit/qs_reconciliation_audit.py"],
-                "Runs controlled reconciliation scenarios.",
-            ),
+    "P&L reconciliation audit — proof mode",
+    [python_exe, "tools/audit/qs_reconciliation_audit.py"],
+    "Runs controlled reconciliation scenarios, including one intentional failed scenario.",
+),
+(
+    "P&L reconciliation audit — snapshot mode",
+    [
+        python_exe,
+        "tools/audit/qs_reconciliation_audit.py",
+        "--snapshot",
+        "reports/audit/live_snapshots/current_audit_snapshot.json",
+    ],
+    "Runs live app-state snapshot reconciliation.",
+),
         ]
     )
 
