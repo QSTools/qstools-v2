@@ -1,6 +1,6 @@
 """
 QS Tools — Full Audit Runner
-v1.3
+v1.4
 
 Purpose:
 Run the current QS Tools audit suite from one command.
@@ -8,10 +8,12 @@ Run the current QS Tools audit suite from one command.
 Runs:
 1. Variable register export
 2. Live audit snapshot builder
-3. Variable trace for key variables
-4. Calculation test runner
-5. P&L reconciliation audit in proof mode
-6. P&L reconciliation audit in snapshot mode
+3. Live snapshot export helper test
+4. Live snapshot download helper test
+5. Variable trace for key variables
+6. Calculation test runner
+7. P&L reconciliation audit in proof mode
+8. P&L reconciliation audit in snapshot mode
 
 This script is a developer audit tool.
 It does not change production app code.
@@ -148,10 +150,20 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             "Exports reports/audit/variable_register.json.",
         ),
         (
-    "Live snapshot export helper test",
-    ["node", "tools/audit/qs_test_live_snapshot_export.mjs"],
-    "Validates the JS helper that builds the app-state audit export contract.",
-),
+            "Build live audit snapshot",
+            [python_exe, "tools/audit/qs_build_live_snapshot.py"],
+            "Builds reports/audit/live_snapshots/current_audit_snapshot.json from app-state input.",
+        ),
+        (
+            "Live snapshot export helper test",
+            ["node", "tools/audit/qs_test_live_snapshot_export.mjs"],
+            "Validates the JS helper that builds the app-state audit export contract.",
+        ),
+        (
+            "Live snapshot download helper test",
+            ["node", "tools/audit/qs_test_live_snapshot_download_helper.mjs"],
+            "Validates the browser download helper imports correctly and is safe outside the browser.",
+        ),
     ]
 
     for variable_name in TRACE_VARIABLES:
@@ -299,6 +311,8 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("CURRENT TRUST POSITION")
     lines.append("-" * 80)
     lines.append("Live audit snapshot builder is working.")
+    lines.append("Live snapshot export helper contract test is passing.")
+    lines.append("Live snapshot download helper server-safety test is passing.")
     lines.append("Cost Summary controlled calculation test is passing.")
     lines.append("Recovery Summary hours-based controlled calculation test is passing.")
     lines.append("Cost Allocation valid-structure controlled calculation test is passing.")
