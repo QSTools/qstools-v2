@@ -148,10 +148,10 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             "Exports reports/audit/variable_register.json.",
         ),
         (
-            "Build live audit snapshot",
-            [python_exe, "tools/audit/qs_build_live_snapshot.py"],
-            "Builds reports/audit/live_snapshots/current_audit_snapshot.json from app-state input.",
-        ),
+    "Live snapshot export helper test",
+    ["node", "tools/audit/qs_test_live_snapshot_export.mjs"],
+    "Validates the JS helper that builds the app-state audit export contract.",
+),
     ]
 
     for variable_name in TRACE_VARIABLES:
