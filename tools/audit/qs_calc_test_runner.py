@@ -1,6 +1,6 @@
 """
 QS Tools — Calculation Test Runner
-v1.3
+v1.4
 
 Purpose:
 Run controlled calculation tests against the actual QS Tools JavaScript
@@ -12,6 +12,7 @@ It must not become a duplicate production calculation engine.
 
 Current behaviour:
 - checks that Node.js is available
+- uses a Node alias loader so direct imports can resolve Next.js "@/..." paths
 - discovers exports from key JS calculation files
 - runs controlled Cost Summary test against calculateCostSummary
 - runs controlled Recovery Summary hours-based test against calculateRecoverySummary
@@ -36,6 +37,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REPORT_DIR = PROJECT_ROOT / "reports" / "audit" / "calculation_test_reports"
 TEMP_DIR = REPORT_DIR / "_temp"
+NODE_ALIAS_LOADER = PROJECT_ROOT / "tools" / "audit" / "qs_node_alias_loader.mjs"
 
 
 # ============================================================
@@ -91,12 +93,8 @@ CALCULATION_MODULES = [
     {
         "module_name": "Cost Allocation",
         "path": "lib/calculations/costAllocationRules.js",
-        "critical": False,
-        "notes": (
-            "Owns structural validation logic. Marked non-critical for direct "
-            "Node discovery because this file uses the Next.js @ alias and "
-            "needs an alias-aware test adapter."
-        ),
+        "critical": True,
+        "notes": "Owns structural validation logic. Loaded through the audit Node alias loader.",
     },
     {
         "module_name": "Recovery Outcome",
@@ -201,6 +199,18 @@ def run_command(command: list[str], cwd: Path) -> tuple[int, str, str]:
     except FileNotFoundError as exc:
         return 1, "", str(exc)
 
+
+def build_node_command(script_path: Path) -> list[str]:
+    """Build a Node command using the audit alias loader when available."""
+    if NODE_ALIAS_LOADER.exists():
+        return [
+            "node",
+            "--loader",
+            NODE_ALIAS_LOADER.as_uri(),
+            str(script_path),
+        ]
+
+    return ["node", str(script_path)]
 
 def check_node() -> tuple[bool, str | None]:
     """Check whether Node.js is available."""
@@ -347,7 +357,7 @@ def discover_module_exports() -> list[ModuleDiscoveryResult]:
     script_path = create_node_discovery_script()
 
     code, stdout, stderr = run_command(
-        ["node", str(script_path)],
+        build_node_command(script_path),
         PROJECT_ROOT,
     )
 
@@ -481,7 +491,7 @@ def run_cost_summary_controlled_test() -> ControlledTestResult:
     script_path = create_cost_summary_test_script()
 
     code, stdout, stderr = run_command(
-        ["node", str(script_path)],
+        build_node_command(script_path),
         PROJECT_ROOT,
     )
 
@@ -680,7 +690,7 @@ def run_recovery_summary_controlled_test() -> ControlledTestResult:
     script_path = create_recovery_summary_test_script()
 
     code, stdout, stderr = run_command(
-        ["node", str(script_path)],
+        build_node_command(script_path),
         PROJECT_ROOT,
     )
 
