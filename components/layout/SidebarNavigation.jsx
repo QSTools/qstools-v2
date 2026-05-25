@@ -33,6 +33,7 @@ const nav_groups = [
       { href: "/revenue-cogs", label: "Revenue / COGS" },
       { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/business-summary", label: "Business Summary" },
+      { href: "/model-readiness", label: "Model Readiness" },
     ],
   },
   {
@@ -63,6 +64,7 @@ const SETUP_FLOW_ORDER = [
   "/revenue-cogs",
   "/revenue-reality",
   "/business-summary",
+  "/model-readiness",
   "/recovery-summary",
   "/cost-allocation",
   "/recovery-outcome",
@@ -79,6 +81,7 @@ const setup_progress = {
   "/revenue-cogs": false,
   "/revenue-reality": false,
   "/business-summary": false,
+  "/model-readiness": false,
   "/recovery-summary": false,
   "/cost-allocation": false,
   "/recovery-outcome": false,
@@ -114,7 +117,9 @@ function build_initial_open_groups(pathname) {
       pathname === "/revenue-reality" ||
       pathname.startsWith("/revenue-reality/") ||
       pathname === "/business-summary" ||
-      pathname.startsWith("/business-summary/"),
+      pathname.startsWith("/business-summary/") ||
+      pathname === "/model-readiness" ||
+      pathname.startsWith("/model-readiness/"),
 
     "Recovery Chain":
       pathname === "/recovery-summary" ||
