@@ -1,7 +1,7 @@
 QS TOOLS FULL AUDIT REPORT
 ================================================================================
 Status: warning_unexplained_variance
-Generated at: 2026-05-25T12:05:34
+Generated at: 2026-05-25T12:16:29
 Total steps: 11
 Passed steps: 10
 Warning steps: 1
@@ -57,7 +57,7 @@ validated | Variable trace: unexplained_variance
 validated | Calculation test runner
   Command: D:\QSTools\qstools-web\.venv\Scripts\python.exe tools/audit/qs_calc_test_runner.py
   Exit code: 0
-  Notes: Runs controlled Cost Summary and Recovery Summary tests.
+  Notes: Runs controlled Cost Summary, Recovery Summary, and Cost Allocation tests.
 
 warning_unexplained_variance | P&L reconciliation audit
   Command: D:\QSTools\qstools-web\.venv\Scripts\python.exe tools/audit/qs_reconciliation_audit.py
@@ -72,21 +72,20 @@ failed_validation means the step failed or exited non-zero.
 
 KNOWN CURRENT WARNINGS
 --------------------------------------------------------------------------------
-1. Calculation test runner: Cost Allocation currently uses the Next.js @ alias, so lib/calculations/costAllocationRules.js cannot be imported directly by Node until an alias-aware adapter is added.
-2. P&L reconciliation audit: one controlled scenario intentionally fails to prove that material unexplained variance is detected and marked untrusted.
+1. P&L reconciliation audit: one controlled scenario intentionally fails to prove that material unexplained variance is detected and marked untrusted.
 
 CURRENT TRUST POSITION
 --------------------------------------------------------------------------------
 Cost Summary controlled calculation test is passing.
 Recovery Summary hours-based controlled calculation test is passing.
+Cost Allocation valid-structure controlled calculation test is passing.
 P&L reconciliation logic correctly passes explained variance and fails material unexplained variance.
-The current warning state is expected until Cost Allocation receives an alias-aware Node adapter and the reconciliation audit is switched from proof scenarios to live app snapshots.
+The current warning state is expected until the reconciliation audit is switched from proof scenarios to live app snapshots.
 
 NEXT RECOMMENDED IMPROVEMENTS
 --------------------------------------------------------------------------------
-1. Add an alias-aware adapter for Cost Allocation calculation tests.
-2. Add a live app-state JSON input mode for P&L reconciliation.
-3. Add controlled Recovery Outcome tests after Cost Allocation can be loaded.
-4. Add a short summary output for CI or pre-commit use later.
+1. Add a live app-state JSON input mode for P&L reconciliation.
+2. Add controlled Recovery Outcome tests using Cost Summary, Recovery Summary, and Cost Allocation outputs.
+3. Add a short summary output for CI or pre-commit use later.
 
 This runner does not change production app files.

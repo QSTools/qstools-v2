@@ -1,6 +1,6 @@
 """
 QS Tools — Full Audit Runner
-v1.1
+v1.2
 
 Purpose:
 Run the current QS Tools audit suite from one command.
@@ -23,7 +23,6 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 
 # ============================================================
@@ -98,9 +97,11 @@ def status_from_output(exit_code: int, stdout: str, stderr: str) -> str:
     """
     Convert command result to audit status.
 
-    Non-zero exit is a failed validation.
-    If output contains warning_unexplained_variance, keep it as warning.
-    Otherwise validated.
+    Non-zero exit is failed validation.
+
+    If a command exits zero but includes warning_unexplained_variance or
+    failed_validation in its controlled proof output, classify the step as a
+    warning rather than a hard failure.
     """
     combined = f"{stdout}\n{stderr}"
 
@@ -111,9 +112,8 @@ def status_from_output(exit_code: int, stdout: str, stderr: str) -> str:
         return "warning_unexplained_variance"
 
     if "failed_validation" in combined:
-        # Some scripts intentionally include failed scenarios.
-        # The full runner treats a controlled intentional failure as a warning
-        # if the script itself exits zero.
+        # Reconciliation proof scenarios intentionally include a failed case.
+        # If the script exits zero, the runner treats that as a controlled warning.
         return "warning_unexplained_variance"
 
     return "validated"
@@ -161,7 +161,7 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             (
                 "Calculation test runner",
                 [python_exe, "tools/audit/qs_calc_test_runner.py"],
-                "Runs controlled Cost Summary and Recovery Summary tests.",
+                "Runs controlled Cost Summary, Recovery Summary, and Cost Allocation tests.",
             ),
             (
                 "P&L reconciliation audit",
@@ -268,12 +268,7 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("KNOWN CURRENT WARNINGS")
     lines.append("-" * 80)
     lines.append(
-        "1. Calculation test runner: Cost Allocation currently uses the Next.js @ alias, "
-        "so lib/calculations/costAllocationRules.js cannot be imported directly by Node "
-        "until an alias-aware adapter is added."
-    )
-    lines.append(
-        "2. P&L reconciliation audit: one controlled scenario intentionally fails to prove "
+        "1. P&L reconciliation audit: one controlled scenario intentionally fails to prove "
         "that material unexplained variance is detected and marked untrusted."
     )
     lines.append("")
@@ -282,21 +277,24 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("-" * 80)
     lines.append("Cost Summary controlled calculation test is passing.")
     lines.append("Recovery Summary hours-based controlled calculation test is passing.")
+    lines.append("Cost Allocation valid-structure controlled calculation test is passing.")
     lines.append(
         "P&L reconciliation logic correctly passes explained variance and fails material unexplained variance."
     )
     lines.append(
-        "The current warning state is expected until Cost Allocation receives an alias-aware Node adapter "
-        "and the reconciliation audit is switched from proof scenarios to live app snapshots."
+        "The current warning state is expected until the reconciliation audit is switched "
+        "from proof scenarios to live app snapshots."
     )
     lines.append("")
 
     lines.append("NEXT RECOMMENDED IMPROVEMENTS")
     lines.append("-" * 80)
-    lines.append("1. Add an alias-aware adapter for Cost Allocation calculation tests.")
-    lines.append("2. Add a live app-state JSON input mode for P&L reconciliation.")
-    lines.append("3. Add controlled Recovery Outcome tests after Cost Allocation can be loaded.")
-    lines.append("4. Add a short summary output for CI or pre-commit use later.")
+    lines.append("1. Add a live app-state JSON input mode for P&L reconciliation.")
+    lines.append(
+        "2. Add controlled Recovery Outcome tests using Cost Summary, Recovery Summary, "
+        "and Cost Allocation outputs."
+    )
+    lines.append("3. Add a short summary output for CI or pre-commit use later.")
     lines.append("")
 
     lines.append("This runner does not change production app files.")
