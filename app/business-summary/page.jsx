@@ -1,6 +1,7 @@
 "use client";
 
 import useBusinessSummary from "@/hooks/useBusinessSummary";
+import useModelReadiness from "@/hooks/useModelReadiness";
 
 import BusinessSummaryStatusStrip from "@/components/business-summary/BusinessSummaryStatusStrip";
 import BusinessSummaryCard from "@/components/business-summary/BusinessSummaryCard";
@@ -9,6 +10,7 @@ import BusinessSummaryHelpPanel from "@/components/business-summary/BusinessSumm
 
 export default function BusinessSummaryPage() {
   const { status, card } = useBusinessSummary();
+  const { status: model_readiness_status } = useModelReadiness();
 
   return (
     <main className="ui-page">
@@ -52,12 +54,8 @@ export default function BusinessSummaryPage() {
           total_business_overheads={card.total_business_overheads}
           margin_after_labour={card.margin_after_labour}
           non_people_cost_burden={card.non_people_cost_burden}
-          people_cost_per_recovery_hour={
-            card.people_cost_per_recovery_hour
-          }
-          asset_cost_per_recovery_hour={
-            card.asset_cost_per_recovery_hour
-          }
+          people_cost_per_recovery_hour={card.people_cost_per_recovery_hour}
+          asset_cost_per_recovery_hour={card.asset_cost_per_recovery_hour}
           business_overheads_per_recovery_hour={
             card.business_overheads_per_recovery_hour
           }
@@ -111,12 +109,8 @@ export default function BusinessSummaryPage() {
           total_business_overheads={card.total_business_overheads}
           margin_after_labour={card.margin_after_labour}
           non_people_cost_burden={card.non_people_cost_burden}
-          people_cost_per_recovery_hour={
-            card.people_cost_per_recovery_hour
-          }
-          asset_cost_per_recovery_hour={
-            card.asset_cost_per_recovery_hour
-          }
+          people_cost_per_recovery_hour={card.people_cost_per_recovery_hour}
+          asset_cost_per_recovery_hour={card.asset_cost_per_recovery_hour}
           business_overheads_per_recovery_hour={
             card.business_overheads_per_recovery_hour
           }
@@ -128,6 +122,18 @@ export default function BusinessSummaryPage() {
           }
           net_position={card.net_position}
           cost_burden_breakdown={card.cost_burden_breakdown}
+          labour_benchmark_total={
+            model_readiness_status?.labour_benchmark_total ?? 0
+          }
+          asset_finance_benchmark_total={
+            model_readiness_status?.asset_finance_benchmark_total ?? 0
+          }
+          total_asset_interest_annual={
+            model_readiness_status?.total_asset_interest_annual ?? 0
+          }
+          general_overheads_benchmark_total={
+            model_readiness_status?.general_overheads_benchmark_total ?? 0
+          }
         />
 
         <BusinessSummaryHelpPanel />

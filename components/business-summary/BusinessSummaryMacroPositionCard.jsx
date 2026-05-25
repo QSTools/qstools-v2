@@ -8,6 +8,11 @@ import {
   format_percent,
 } from "@/components/business-summary/businessSummaryFormatters";
 
+function to_number(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function MacroRow({
   id,
   title,
@@ -56,6 +61,149 @@ function MacroRow({
   );
 }
 
+function BridgeRow({
+  title,
+  help,
+  benchmark,
+  module_total,
+  variance,
+  benchmark_label = "P&L benchmark",
+  module_label = "QS Tools total",
+}) {
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div className="ui-row-between">
+        <div>
+          <div className="ui-kicker">{title}</div>
+          {help ? <p className="ui-help">{help}</p> : null}
+        </div>
+
+        <span className="ui-pill">
+          {Math.abs(to_number(variance)) < 1 ? "Reconciled" : "Review"}
+        </span>
+      </div>
+
+      <div className="labour-summary-table">
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">{benchmark_label}</div>
+          <div className="labour-summary-table-value">
+            {format_currency(benchmark)}
+          </div>
+        </div>
+
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">{module_label}</div>
+          <div className="labour-summary-table-value">
+            {format_currency(module_total)}
+          </div>
+        </div>
+
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">Variance</div>
+          <div className="labour-summary-table-value">
+            {format_currency(variance)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OperationalRealityBridge({
+  labour_benchmark_total = 0,
+  total_people_cost_annual = 0,
+
+  asset_finance_benchmark_total = 0,
+  total_asset_interest_annual = 0,
+
+  general_overheads_benchmark_total = 0,
+  total_business_overheads = 0,
+}) {
+  const labour_variance =
+    to_number(total_people_cost_annual) - to_number(labour_benchmark_total);
+
+  const asset_finance_variance =
+    to_number(total_asset_interest_annual) -
+    to_number(asset_finance_benchmark_total);
+
+  const adjusted_overheads_benchmark =
+    to_number(general_overheads_benchmark_total) -
+    to_number(asset_finance_benchmark_total);
+
+  const overhead_variance =
+    to_number(total_business_overheads) - adjusted_overheads_benchmark;
+
+  const operational_pressure_adjustment =
+    labour_variance + asset_finance_variance + overhead_variance;
+
+  return (
+    <div className="ui-panel ui-stack">
+      <div>
+        <p className="ui-kicker">P&amp;L to Operational Reality Bridge</p>
+
+        <h3 className="ui-card-title-sm text-[var(--text-primary)]">
+          Why this position differs from the P&amp;L benchmark
+        </h3>
+
+        <p className="ui-help">
+          The P&amp;L shows the historical accounting position. QS Tools shows
+          the operating burden the business is currently carrying. This bridge
+          explains the difference before downstream recovery and outcome
+          decisions are trusted.
+        </p>
+      </div>
+
+      <div className="ui-stack-sm">
+        <BridgeRow
+          title="Labour variance"
+          help="Labour variance is a review signal, not a conclusion. It may reflect current pay assumptions, staff mix, timing, classification differences, or actual labour movement."
+          benchmark={labour_benchmark_total}
+          module_total={total_people_cost_annual}
+          variance={labour_variance}
+          benchmark_label="P&L labour benchmark"
+          module_label="People Cost from Cost Summary"
+        />
+
+        <BridgeRow
+          title="Asset finance variance"
+          help="This highlights asset finance / ownership cost that may not yet be fully visible in the P&L until interest, depreciation, or journal timing is complete."
+          benchmark={asset_finance_benchmark_total}
+          module_total={total_asset_interest_annual}
+          variance={asset_finance_variance}
+          benchmark_label="P&L interest marked as asset finance"
+          module_label="Assets finance / interest cost"
+        />
+
+        <BridgeRow
+          title="General overheads reconciliation"
+          help="General Overheads is checked after asset finance interest is removed from the P&L overhead benchmark, because asset finance is reviewed separately against Assets."
+          benchmark={adjusted_overheads_benchmark}
+          module_total={total_business_overheads}
+          variance={overhead_variance}
+          benchmark_label="Adjusted P&L overhead benchmark"
+          module_label="Net General Overheads"
+        />
+      </div>
+
+      <div className="business-summary-macro-row total">
+        <div className="business-summary-macro-row-label">
+          <div className="business-summary-macro-row-title">
+            Operational pressure adjustment
+          </div>
+          <div className="business-summary-macro-row-help">
+            Total visible difference between the P&amp;L benchmark and the QS
+            Tools operating burden.
+          </div>
+        </div>
+
+        <div className="business-summary-macro-row-value">
+          {format_currency(operational_pressure_adjustment)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessSummaryMacroPositionCard({
   total_revenue = 0,
   total_direct_costs = 0,
@@ -74,6 +222,11 @@ export default function BusinessSummaryMacroPositionCard({
   business_overheads_per_recovery_hour = 0,
   margin_after_labour_per_recovery_hour = 0,
   non_people_cost_burden_per_recovery_hour = 0,
+
+  labour_benchmark_total = 0,
+  asset_finance_benchmark_total = 0,
+  total_asset_interest_annual = 0,
+  general_overheads_benchmark_total = 0,
 
   direct_cost_category_totals = [],
   cost_burden_breakdown = {
@@ -214,6 +367,17 @@ export default function BusinessSummaryMacroPositionCard({
               );
             })}
           </div>
+
+          <OperationalRealityBridge
+            labour_benchmark_total={labour_benchmark_total}
+            total_people_cost_annual={total_people_cost_annual}
+            asset_finance_benchmark_total={asset_finance_benchmark_total}
+            total_asset_interest_annual={total_asset_interest_annual}
+            general_overheads_benchmark_total={
+              general_overheads_benchmark_total
+            }
+            total_business_overheads={total_business_overheads}
+          />
         </div>
       </div>
     </section>
