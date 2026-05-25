@@ -1,0 +1,189 @@
+QS Tools — Live Audit Snapshot Contract v1.0
+================================================================================
+
+Purpose
+--------------------------------------------------------------------------------
+This contract defines the app-state JSON shape required by:
+
+tools/audit/qs_build_live_snapshot.py
+
+The builder converts app-state JSON into:
+
+reports/audit/live_snapshots/current_audit_snapshot.json
+
+That snapshot is then validated by:
+
+tools/audit/qs_reconciliation_audit.py --snapshot reports/audit/live_snapshots/current_audit_snapshot.json
+
+
+Core Principle
+--------------------------------------------------------------------------------
+The audit layer does not trust UI display values alone.
+
+The app must export the source calculation values that produced the visible result.
+The Python audit layer then checks whether QS Tools calculated cost balances to the
+P&L baseline or has a traceable explained variance.
+
+
+Required App-State Export Shape
+--------------------------------------------------------------------------------
+
+{
+  "snapshot_name": "Current QS Tools Audit Snapshot",
+  "snapshot_source": "qs_tools_app_export",
+  "snapshot_date": "YYYY-MM-DD",
+
+  "pnl": {
+    "pnl_baseline_cost": 0,
+    "pnl_labour_cost": 0,
+    "pnl_asset_cost": 0,
+    "pnl_general_overheads": 0,
+    "pnl_depreciation": 0,
+    "pnl_interest": 0
+  },
+
+  "cost_summary": {
+    "total_people_cost_annual": 0,
+    "total_asset_cost_annual": 0,
+    "total_business_overheads": 0,
+    "total_cost_burden": 0
+  },
+
+  "explained_variance": {
+    "labour_model_variance": 0,
+    "asset_model_variance": 0,
+    "asset_finance_variance": 0,
+    "depreciation_exclusion_variance": 0,
+    "employee_overhead_mapping_variance": 0,
+    "general_overhead_mapping_variance": 0,
+    "cost_of_sales_mapping_variance": 0,
+    "timing_variance": 0,
+    "rounding_variance": 0,
+    "unmapped_variance": 0
+  },
+
+  "notes": "Optional notes explaining the snapshot source."
+}
+
+
+Required Fields
+--------------------------------------------------------------------------------
+
+snapshot_name
+  Human-readable name for the export.
+
+snapshot_source
+  Should be qs_tools_app_export for real app exports.
+
+snapshot_date
+  Date the snapshot was produced.
+
+pnl.pnl_baseline_cost
+  Total P&L baseline cost that QS Tools should reconcile against.
+
+pnl.pnl_labour_cost
+  P&L labour cost included in the baseline.
+
+pnl.pnl_asset_cost
+  P&L asset cost included in the baseline.
+
+pnl.pnl_general_overheads
+  P&L general overhead cost included in the baseline.
+
+pnl.pnl_depreciation
+  Depreciation included in the P&L baseline, if any.
+
+pnl.pnl_interest
+  Interest included in the P&L baseline, if any.
+
+cost_summary.total_people_cost_annual
+  Labour cost used by QS Tools Cost Summary.
+  This must come from the Labour module, not the P&L or General Overheads.
+
+cost_summary.total_asset_cost_annual
+  Asset cost used by QS Tools Cost Summary.
+
+cost_summary.total_business_overheads
+  Business overheads used by QS Tools Cost Summary.
+  Employee overheads are included through the General Overheads pathway.
+
+cost_summary.total_cost_burden
+  Final QS Tools calculated cost burden.
+
+explained_variance.*
+  Variance categories used to explain why QS Tools calculated cost may differ from
+  the P&L baseline.
+
+
+Important Rules
+--------------------------------------------------------------------------------
+
+1. Labour must come from the Labour module only.
+   It must not be taken directly from General Overheads or the P&L.
+
+2. Employee overheads are no longer a separate module.
+   They are included in General Overheads and must flow through the overhead pathway.
+
+3. Gross variance is not automatically an error.
+   Only unexplained variance is treated as a trust failure.
+
+4. Asset finance or depreciation treatment may create justified variance.
+   These differences must be mapped into explained_variance.
+
+5. The app export should contain calculation values, not formatted display strings.
+
+6. The snapshot must be able to reconcile to the P&L or clearly explain the variance.
+
+
+Output Produced by the Builder
+--------------------------------------------------------------------------------
+
+The builder writes:
+
+reports/audit/live_snapshots/current_audit_snapshot.json
+
+The output shape is:
+
+{
+  "snapshot_name": "...",
+  "snapshot_source": "...",
+  "snapshot_date": "...",
+
+  "pnl": { ... },
+
+  "qs_tools": {
+    "qs_tools_calculated_cost": 0,
+    "total_people_cost_annual": 0,
+    "total_asset_cost_annual": 0,
+    "total_business_overheads": 0,
+    "total_cost_burden": 0
+  },
+
+  "explained_variance": { ... },
+
+  "notes": "..."
+}
+
+
+Validation Command
+--------------------------------------------------------------------------------
+
+python tools/audit/qs_build_live_snapshot.py
+python tools/audit/qs_reconciliation_audit.py --snapshot reports/audit/live_snapshots/current_audit_snapshot.json
+
+
+Full Audit Command
+--------------------------------------------------------------------------------
+
+python tools/audit/qs_run_full_audit.py
+
+
+Current Status
+--------------------------------------------------------------------------------
+
+Current version uses:
+
+reports/audit/live_snapshots/mock_app_state.json
+
+Next implementation step is to add an app/export helper that writes a real app-state
+JSON file matching this contract.
