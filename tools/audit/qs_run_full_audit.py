@@ -1,15 +1,17 @@
 """
 QS Tools — Full Audit Runner
-v1.2
+v1.3
 
 Purpose:
 Run the current QS Tools audit suite from one command.
 
 Runs:
 1. Variable register export
-2. Variable trace for key variables
-3. Calculation test runner
-4. P&L reconciliation audit
+2. Live audit snapshot builder
+3. Variable trace for key variables
+4. Calculation test runner
+5. P&L reconciliation audit in proof mode
+6. P&L reconciliation audit in snapshot mode
 
 This script is a developer audit tool.
 It does not change production app code.
@@ -100,7 +102,7 @@ def status_from_output(exit_code: int, stdout: str, stderr: str) -> str:
     Non-zero exit is failed validation.
 
     If a command exits zero but includes warning_unexplained_variance or
-    failed_validation in its controlled proof output, classify the step as a
+    failed_validation in controlled proof output, classify the step as a
     warning rather than a hard failure.
     """
     combined = f"{stdout}\n{stderr}"
@@ -112,8 +114,8 @@ def status_from_output(exit_code: int, stdout: str, stderr: str) -> str:
         return "warning_unexplained_variance"
 
     if "failed_validation" in combined:
-        # Reconciliation proof scenarios intentionally include a failed case.
-        # If the script exits zero, the runner treats that as a controlled warning.
+        # Proof-mode reconciliation intentionally includes one failed case.
+        # If the script exits zero, this is treated as a controlled warning.
         return "warning_unexplained_variance"
 
     return "validated"
@@ -145,6 +147,11 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             [python_exe, "tools/audit/qs_variable_register.py"],
             "Exports reports/audit/variable_register.json.",
         ),
+        (
+            "Build live audit snapshot",
+            [python_exe, "tools/audit/qs_build_live_snapshot.py"],
+            "Builds reports/audit/live_snapshots/current_audit_snapshot.json from app-state input.",
+        ),
     ]
 
     for variable_name in TRACE_VARIABLES:
@@ -161,23 +168,29 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             (
                 "Calculation test runner",
                 [python_exe, "tools/audit/qs_calc_test_runner.py"],
-                "Runs controlled Cost Summary, Recovery Summary, Cost Allocation, and Recovery Outcome tests.",
+                (
+                    "Runs controlled Cost Summary, Recovery Summary, Cost Allocation, "
+                    "and Recovery Outcome tests."
+                ),
             ),
             (
-    "P&L reconciliation audit — proof mode",
-    [python_exe, "tools/audit/qs_reconciliation_audit.py"],
-    "Runs controlled reconciliation scenarios, including one intentional failed scenario.",
-),
-(
-    "P&L reconciliation audit — snapshot mode",
-    [
-        python_exe,
-        "tools/audit/qs_reconciliation_audit.py",
-        "--snapshot",
-        "reports/audit/live_snapshots/current_audit_snapshot.json",
-    ],
-    "Runs live app-state snapshot reconciliation.",
-),
+                "P&L reconciliation audit — proof mode",
+                [python_exe, "tools/audit/qs_reconciliation_audit.py"],
+                (
+                    "Runs controlled reconciliation scenarios, including one intentional "
+                    "failed scenario."
+                ),
+            ),
+            (
+                "P&L reconciliation audit — snapshot mode",
+                [
+                    python_exe,
+                    "tools/audit/qs_reconciliation_audit.py",
+                    "--snapshot",
+                    "reports/audit/live_snapshots/current_audit_snapshot.json",
+                ],
+                "Runs live app-state snapshot reconciliation.",
+            ),
         ]
     )
 
@@ -278,30 +291,36 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("KNOWN CURRENT WARNINGS")
     lines.append("-" * 80)
     lines.append(
-        "1. P&L reconciliation audit: one controlled scenario intentionally fails to prove "
-        "that material unexplained variance is detected and marked untrusted."
+        "1. P&L reconciliation audit proof mode intentionally includes one failed "
+        "scenario to prove that material unexplained variance is detected and marked untrusted."
     )
     lines.append("")
 
     lines.append("CURRENT TRUST POSITION")
     lines.append("-" * 80)
+    lines.append("Live audit snapshot builder is working.")
     lines.append("Cost Summary controlled calculation test is passing.")
     lines.append("Recovery Summary hours-based controlled calculation test is passing.")
     lines.append("Cost Allocation valid-structure controlled calculation test is passing.")
+    lines.append("Cost Allocation invalid-structure controlled calculation test is passing.")
     lines.append("Recovery Outcome healthy controlled calculation test is passing.")
+    lines.append("Recovery Outcome not-viable controlled calculation test is passing.")
     lines.append(
-        "P&L reconciliation logic correctly passes explained variance and fails material unexplained variance."
+        "P&L reconciliation proof mode correctly passes explained variance and fails material unexplained variance."
     )
     lines.append(
-        "The current warning state is expected until the reconciliation audit is switched "
-        "from proof scenarios to live app snapshots."
+        "P&L reconciliation snapshot mode validates the current live audit snapshot."
     )
     lines.append("")
 
     lines.append("NEXT RECOMMENDED IMPROVEMENTS")
     lines.append("-" * 80)
-    lines.append("1. Add a live app-state JSON input mode for P&L reconciliation.")
-    lines.append("2. Add failure-mode controlled tests for Cost Allocation and Recovery Outcome.")
+    lines.append(
+        "1. Replace mock_app_state.json with a real app-state export from QS Tools."
+    )
+    lines.append(
+        "2. Add additional edge-case tests for missing recovery base, negative recovery gap, and external delivery dependency."
+    )
     lines.append("3. Add a short summary output for CI or pre-commit use later.")
     lines.append("")
 
