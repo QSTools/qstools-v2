@@ -1167,7 +1167,314 @@ def run_cost_allocation_controlled_test() -> ControlledTestResult:
         ),
     )
 
+# ============================================================
+# Controlled Cost Allocation invalid-structure test
+# ============================================================
 
+def create_cost_allocation_invalid_structure_test_script() -> Path:
+    """Create a temporary Node .mjs script that proves Cost Allocation rejects invalid structure."""
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    script_path = TEMP_DIR / "cost_allocation_invalid_structure_test.mjs"
+
+    cost_allocation_path = normalise_path_for_node(
+        PROJECT_ROOT / "lib" / "calculations" / "costAllocationRules.js"
+    )
+
+    script = f"""
+import {{ pathToFileURL }} from "url";
+
+const modulePath = {json.dumps(cost_allocation_path)};
+const moduleUrl = pathToFileURL(modulePath).href;
+
+const importedModule = await import(moduleUrl);
+const calculateCostAllocation = importedModule.calculate_cost_allocation;
+
+if (typeof calculateCostAllocation !== "function") {{
+  console.log(JSON.stringify({{
+    success: false,
+    error: "calculate_cost_allocation export was not found or is not a function.",
+    selected_call_shape: null,
+    actual: null,
+    attempts: []
+  }}, null, 2));
+  process.exit(0);
+}}
+
+const input = {{
+  recovery_summary_ready: true,
+  active_recovery_model: "hybrid",
+  recovery_model: "hybrid",
+
+  recovery_plan_target_per_driver: 95,
+  recovery_plan_split: {{
+    labour_share_percent: 63.16,
+    asset_share_percent: 12.63,
+    material_share_percent: 0,
+    overhead_absorbed_percent: 24.21,
+    overhead_share_percent: 24.21,
+  }},
+
+  component_required_recovery: {{
+    labour: {{
+      share_percent: 63.16,
+      recovery_cost: 60000,
+      required_recovery_rate: 60,
+    }},
+    asset: {{
+      share_percent: 12.63,
+      recovery_cost: 12000,
+      required_recovery: 12000,
+    }},
+    material: {{
+      share_percent: 0,
+      recovery_cost: 0,
+      required_recovery: 0,
+    }},
+    overhead: {{
+      share_percent: 24.21,
+      recovery_cost: 23000,
+    }},
+  }},
+
+  labour_share_percent: 63.16,
+  asset_share_percent: 12.63,
+  material_share_percent: 0,
+  overhead_absorbed_percent: 24.21,
+  overhead_share_percent: 24.21,
+
+  total_people_cost_annual: 60000,
+  total_asset_cost_annual: 12000,
+  total_business_overheads: 23000,
+  total_cost_burden: 95000,
+
+  labour_recovery_cost: 60000,
+  asset_recovery_cost: 12000,
+  material_recovery_cost: 0,
+  overhead_absorbed_cost: 23000,
+
+  required_labour_recovery_rate: 60,
+  required_asset_recovery: 12000,
+  required_material_recovery: 0,
+  recovery_hours_used: 1000,
+  required_recovery_rate: 95,
+  actual_recovery_rate: 100,
+  profit_or_deficit_per_recovery_hour: 5,
+
+  material_recovery_included: false,
+  asset_recovery_included: true,
+  has_productive_asset_recovery_base: true,
+
+  business_type: "labour_based",
+  activity_driver_type: "hours",
+  activity_driver_value: 1000,
+  margin_pool: 150000,
+  net_position: 0,
+  model_trust_state: "ready",
+
+  active_staff: [
+    {{
+      staff_id: "staff_test_001",
+      staff_name: "Test Operator",
+      productive_hours: 1000,
+      total_labour_cost_annual: 60000,
+      productive_labour_cost_rate: 60,
+    }},
+  ],
+
+  productive_labour_type_rows: [
+    {{
+      labour_type_id: "staff_test_001",
+      labour_type_label: "Test Operator",
+      total_productive_hours: 1000,
+      total_labour_cost: 60000,
+      weighted_recovery_rate: 60,
+      source_staff_ids: ["staff_test_001"],
+    }},
+  ],
+
+  active_assets: [
+    {{
+      asset_id: "asset_test_001",
+      asset_name: "Test Excavator",
+      asset_type: "productive",
+      base_asset_cost_annual: 12000,
+      total_asset_cost_annual: 12000,
+      asset_recovery_cost_annual: 12000,
+      utilisation_hours_annual: 1000,
+      asset_recovery_hours_used: 1000,
+    }},
+  ],
+
+  operational_groups: [
+    {{
+      group_id: "group_invalid_001",
+      group_name: "Broken Working Unit",
+      required_staff_ids: ["missing_staff_999"],
+      required_asset_ids: ["missing_asset_999"],
+      is_active: true,
+    }},
+  ],
+
+  asset_labour_links: [],
+  asset_recovery_rows: [],
+  operational_group_recovery_rows: [],
+}};
+
+const result = calculateCostAllocation(input);
+
+console.log(JSON.stringify({{
+  success: true,
+  error: null,
+  selected_call_shape: "single_object_current_contract",
+  actual: result,
+  attempts: [
+    {{
+      name: "single_object_current_contract",
+      success: true,
+      useful_output: true,
+      error: null
+    }}
+  ],
+}}, null, 2));
+"""
+
+    script_path.write_text(script, encoding="utf-8")
+    return script_path
+
+
+def run_cost_allocation_invalid_structure_controlled_test() -> ControlledTestResult:
+    """Run the controlled Cost Allocation invalid-structure test through Node."""
+    script_path = create_cost_allocation_invalid_structure_test_script()
+
+    code, stdout, stderr = run_command(
+        build_node_command(script_path),
+        PROJECT_ROOT,
+    )
+
+    if code != 0:
+        return ControlledTestResult(
+            test_name="Cost Allocation invalid structure controlled test",
+            module_name="Cost Allocation",
+            function_name="calculate_cost_allocation",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=stderr or stdout or "Node test runner failed.",
+            notes="The Node adapter failed before returning a result.",
+        )
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        return ControlledTestResult(
+            test_name="Cost Allocation invalid structure controlled test",
+            module_name="Cost Allocation",
+            function_name="calculate_cost_allocation",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
+            notes="The Node adapter returned invalid JSON.",
+        )
+
+    if not payload.get("success"):
+        return ControlledTestResult(
+            test_name="Cost Allocation invalid structure controlled test",
+            module_name="Cost Allocation",
+            function_name="calculate_cost_allocation",
+            status="failed_validation",
+            selected_call_shape=payload.get("selected_call_shape"),
+            checks=[],
+            raw_actual_output=payload.get("actual"),
+            attempted_call_shapes=payload.get("attempts", []),
+            error=payload.get("error"),
+            notes="No usable Cost Allocation output was returned.",
+        )
+
+    actual = payload.get("actual") or {}
+
+    expected_values = {
+        "structure_valid": False,
+
+        # Staff/assets exist and are visible to Cost Allocation, but the working unit is invalid.
+        # So staff/asset coverage remains 100, while group coverage fails.
+        "linked_staff_count": 1,
+        "unlinked_staff_count": 0,
+        "linked_asset_count": 1,
+        "unlinked_asset_count": 0,
+
+        "total_active_staff": 1,
+        "total_active_assets": 1,
+        "total_operational_groups": 1,
+        "valid_operational_groups": 0,
+        "invalid_operational_groups": 1,
+
+        "staff_coverage_percent": 100,
+        "asset_coverage_percent": 100,
+        "group_coverage_percent": 0,
+
+        "total_grouped_labour_cost": 0,
+        "total_grouped_asset_cost": 0,
+        "total_grouped_overhead_cost": 0,
+        "total_grouped_operating_cost": 0,
+
+        "unassigned_labour_cost": 60000,
+        "unassigned_asset_cost": 12000,
+        "unassigned_overhead_cost": 23000,
+        "total_unassigned_cost": 95000,
+
+        "allocation_status": "not_supported",
+        "allocation_dependency_type": "asset_structure",
+    }
+
+    checks = [
+        make_check(variable_name, expected, actual.get(variable_name))
+        for variable_name, expected in expected_values.items()
+    ]
+    
+
+    group_validation_warnings = actual.get("group_validation_warnings", [])
+    checks.append(
+        CalculationCheckResult(
+            variable_name="group_validation_warnings_not_empty",
+            expected=True,
+            actual=len(group_validation_warnings) > 0
+            if isinstance(group_validation_warnings, list)
+            else None,
+            difference=None,
+            passed=isinstance(group_validation_warnings, list)
+            and len(group_validation_warnings) > 0,
+            notes=(
+                "PASS"
+                if isinstance(group_validation_warnings, list)
+                and len(group_validation_warnings) > 0
+                else "Invalid group should produce group validation warnings."
+            ),
+        )
+    )
+
+    all_passed = all(check.passed for check in checks)
+
+    return ControlledTestResult(
+        test_name="Cost Allocation invalid structure controlled test",
+        module_name="Cost Allocation",
+        function_name="calculate_cost_allocation",
+        status="validated" if all_passed else "failed_validation",
+        selected_call_shape=payload.get("selected_call_shape"),
+        checks=checks,
+        raw_actual_output=actual,
+        attempted_call_shapes=payload.get("attempts", []),
+        error=None,
+        notes=(
+            "Controlled Cost Allocation invalid-structure outputs matched expected failure behaviour."
+            if all_passed
+            else "One or more Cost Allocation invalid-structure outputs did not match expected failure behaviour."
+        ),
+    )
 # ============================================================
 # Controlled Recovery Outcome test
 # ============================================================
@@ -1565,11 +1872,12 @@ def build_audit_result() -> CalculationAuditResult:
 
     module_results = discover_module_exports()
     controlled_tests = [
-        run_cost_summary_controlled_test(),
-        run_recovery_summary_controlled_test(),
-        run_cost_allocation_controlled_test(),
-        run_recovery_outcome_controlled_test(),
-    ]
+    run_cost_summary_controlled_test(),
+    run_recovery_summary_controlled_test(),
+    run_cost_allocation_controlled_test(),
+    run_cost_allocation_invalid_structure_controlled_test(),
+    run_recovery_outcome_controlled_test(),
+]
 
     status = build_status(node_available, module_results, controlled_tests)
     summary = build_summary(
