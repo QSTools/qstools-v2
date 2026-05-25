@@ -8,9 +8,32 @@ import BusinessSummaryCard from "@/components/business-summary/BusinessSummaryCa
 import BusinessSummaryMacroPositionCard from "@/components/business-summary/BusinessSummaryMacroPositionCard";
 import BusinessSummaryHelpPanel from "@/components/business-summary/BusinessSummaryHelpPanel";
 
+function to_number(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 export default function BusinessSummaryPage() {
   const { status, card } = useBusinessSummary();
   const { status: model_readiness_status } = useModelReadiness();
+
+  const other_income =
+    card.other_income ??
+    card.total_other_income ??
+    card.other_income_total ??
+    card.total_other_income_annual ??
+    model_readiness_status?.other_income ??
+    model_readiness_status?.total_other_income ??
+    0;
+
+  const pnl_net_profit =
+    card.net_profit ??
+    card.pnl_net_profit ??
+    model_readiness_status?.net_profit ??
+    model_readiness_status?.pnl_net_profit ??
+    to_number(card.margin_pool) +
+      to_number(other_income) -
+      to_number(model_readiness_status?.total_business_costs);
 
   return (
     <main className="ui-page">
@@ -134,6 +157,8 @@ export default function BusinessSummaryPage() {
           general_overheads_benchmark_total={
             model_readiness_status?.general_overheads_benchmark_total ?? 0
           }
+          other_income={other_income}
+          pnl_net_profit={pnl_net_profit}
         />
 
         <BusinessSummaryHelpPanel />

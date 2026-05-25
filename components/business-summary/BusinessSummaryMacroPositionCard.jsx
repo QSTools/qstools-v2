@@ -109,6 +109,123 @@ function BridgeRow({
   );
 }
 
+function OtherIncomeBridgeRow({ other_income = 0 }) {
+  const other_income_amount = to_number(other_income);
+
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div className="ui-row-between">
+        <div>
+          <div className="ui-kicker">Other income treatment</div>
+          <p className="ui-help">
+            Traditional P&amp;L net profit includes Other Income. Business
+            Summary excludes Other Income from the operating margin pool so the
+            recovery model is based on core trading performance.
+          </p>
+        </div>
+
+        <span className="ui-pill">
+          {Math.abs(other_income_amount) < 1 ? "No adjustment" : "Bridge"}
+        </span>
+      </div>
+
+      <div className="labour-summary-table">
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">P&amp;L Other Income</div>
+          <div className="labour-summary-table-value">
+            {format_currency(other_income_amount)}
+          </div>
+        </div>
+
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">
+            Business Summary operating margin treatment
+          </div>
+          <div className="labour-summary-table-value">
+            {format_currency(0)}
+          </div>
+        </div>
+
+        <div className="labour-summary-table-row">
+          <div className="labour-summary-table-label">Bridge impact</div>
+          <div className="labour-summary-table-value">
+            {format_currency(other_income_amount)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BridgeProofRow({ label, value, is_total = false }) {
+  return (
+    <div
+      className={`labour-summary-table-row ${
+        is_total ? "border-t border-[var(--border-primary)] pt-3" : ""
+      }`}
+    >
+      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-value">{format_currency(value)}</div>
+    </div>
+  );
+}
+
+function BridgeReconciliationProof({
+  pnl_net_profit = 0,
+  labour_variance = 0,
+  asset_finance_variance = 0,
+  overhead_variance = 0,
+  other_income_treatment = 0,
+  qs_tools_operating_position = 0,
+}) {
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div>
+        <div className="ui-kicker">Reconciliation proof</div>
+        <p className="ui-help">
+          This confirms how traditional P&amp;L net profit bridges to the QS
+          Tools operating position. Cost-burden movements and Other Income
+          treatment are shown separately so income and expenses are not treated
+          as one category.
+        </p>
+      </div>
+
+      <div className="labour-summary-table">
+        <BridgeProofRow
+          label="Traditional P&L Net Profit"
+          value={pnl_net_profit}
+        />
+
+        <BridgeProofRow
+          label="Less labour variance"
+          value={-Math.abs(to_number(labour_variance))}
+        />
+
+        <BridgeProofRow
+          label="Less asset finance variance"
+          value={-Math.abs(to_number(asset_finance_variance))}
+        />
+
+        <BridgeProofRow
+          label="Less overhead variance"
+          value={-Math.abs(to_number(overhead_variance))}
+        />
+
+        <BridgeProofRow
+          label="Less Other Income excluded"
+          value={-Math.abs(to_number(other_income_treatment))}
+        />
+
+        <BridgeProofRow
+          label="QS Tools Operating Position"
+          value={qs_tools_operating_position}
+          is_total
+        />
+      </div>
+    </div>
+  );
+}
+
 function OperationalRealityBridge({
   labour_benchmark_total = 0,
   total_people_cost_annual = 0,
@@ -118,6 +235,10 @@ function OperationalRealityBridge({
 
   general_overheads_benchmark_total = 0,
   total_business_overheads = 0,
+
+  other_income = 0,
+  pnl_net_profit = 0,
+  qs_tools_operating_position = 0,
 }) {
   const labour_variance =
     to_number(total_people_cost_annual) - to_number(labour_benchmark_total);
@@ -135,6 +256,11 @@ function OperationalRealityBridge({
 
   const operational_pressure_adjustment =
     labour_variance + asset_finance_variance + overhead_variance;
+
+  const other_income_treatment = to_number(other_income);
+
+  const total_bridge_adjustment =
+    operational_pressure_adjustment + other_income_treatment;
 
   return (
     <div className="ui-panel ui-stack">
@@ -183,23 +309,35 @@ function OperationalRealityBridge({
           benchmark_label="Adjusted P&L overhead benchmark"
           module_label="Net General Overheads"
         />
+
+        <OtherIncomeBridgeRow other_income={other_income_treatment} />
       </div>
 
       <div className="business-summary-macro-row total">
         <div className="business-summary-macro-row-label">
           <div className="business-summary-macro-row-title">
-            Operational pressure adjustment
+            Total difference to P&amp;L net profit
           </div>
           <div className="business-summary-macro-row-help">
-            Total visible difference between the P&amp;L benchmark and the QS
-            Tools operating burden.
+            Cost-burden movements and Other Income treatment explain why the QS
+            Tools operating position differs from traditional P&amp;L net
+            profit.
           </div>
         </div>
 
         <div className="business-summary-macro-row-value">
-          {format_currency(operational_pressure_adjustment)}
+          {format_currency(total_bridge_adjustment)}
         </div>
       </div>
+
+      <BridgeReconciliationProof
+        pnl_net_profit={pnl_net_profit}
+        labour_variance={labour_variance}
+        asset_finance_variance={asset_finance_variance}
+        overhead_variance={overhead_variance}
+        other_income_treatment={other_income_treatment}
+        qs_tools_operating_position={qs_tools_operating_position}
+      />
     </div>
   );
 }
@@ -211,6 +349,7 @@ export default function BusinessSummaryMacroPositionCard({
   gross_margin_percent = 0,
   total_cost_burden = 0,
   net_position = 0,
+  pnl_net_profit = 0,
 
   total_people_cost_annual = 0,
   total_asset_cost_annual = 0,
@@ -227,6 +366,7 @@ export default function BusinessSummaryMacroPositionCard({
   asset_finance_benchmark_total = 0,
   total_asset_interest_annual = 0,
   general_overheads_benchmark_total = 0,
+  other_income = 0,
 
   direct_cost_category_totals = [],
   cost_burden_breakdown = {
@@ -377,6 +517,9 @@ export default function BusinessSummaryMacroPositionCard({
               general_overheads_benchmark_total
             }
             total_business_overheads={total_business_overheads}
+            other_income={other_income}
+            pnl_net_profit={pnl_net_profit}
+            qs_tools_operating_position={net_position}
           />
         </div>
       </div>
