@@ -1,6 +1,6 @@
 """
 QS Tools — Calculation Test Runner
-v1.5
+v1.6
 
 Purpose:
 Run controlled calculation tests against the actual QS Tools JavaScript
@@ -17,6 +17,7 @@ Current behaviour:
 - runs controlled Cost Summary test against calculateCostSummary
 - runs controlled Recovery Summary hours-based test against calculateRecoverySummary
 - runs controlled Cost Allocation valid-structure test against calculate_cost_allocation
+- runs controlled Recovery Outcome healthy test against calculateRecoveryOutcome
 - writes text and JSON reports
 - does not change production app files
 """
@@ -1168,6 +1169,310 @@ def run_cost_allocation_controlled_test() -> ControlledTestResult:
 
 
 # ============================================================
+# Controlled Recovery Outcome test
+# ============================================================
+
+def create_recovery_outcome_test_script() -> Path:
+    """Create a temporary Node .mjs script that calls calculateRecoveryOutcome."""
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    script_path = TEMP_DIR / "recovery_outcome_controlled_test.mjs"
+
+    recovery_outcome_path = normalise_path_for_node(
+        PROJECT_ROOT / "lib" / "calculations" / "recoveryOutcomeCalculations.js"
+    )
+
+    script = f"""
+import {{ pathToFileURL }} from "url";
+
+const modulePath = {json.dumps(recovery_outcome_path)};
+const moduleUrl = pathToFileURL(modulePath).href;
+
+const importedModule = await import(moduleUrl);
+const calculateRecoveryOutcome = importedModule.calculateRecoveryOutcome;
+
+if (typeof calculateRecoveryOutcome !== "function") {{
+  console.log(JSON.stringify({{
+    success: false,
+    error: "calculateRecoveryOutcome export was not found or is not a function.",
+    selected_call_shape: null,
+    actual: null,
+    attempts: []
+  }}, null, 2));
+  process.exit(0);
+}}
+
+const recovery_summary = {{
+  business_summary_ready: true,
+  recovery_summary_ready: true,
+  recovery_summary_status: "ready",
+  model_trust_state: "ready",
+
+  business_type: "labour_based",
+  recovery_model: "hybrid",
+  active_recovery_model: "hybrid",
+
+  activity_driver_type: "hours",
+  activity_driver_label: "Selected recovery hours",
+  activity_driver_value: 1000,
+
+  recovery_plan_target_per_driver: 95,
+  required_recovery_per_driver: 95,
+  current_margin_per_driver: 100,
+  recovery_gap_per_driver: 5,
+
+  recovery_plan_split: {{
+    labour_share_percent: 63.16,
+    asset_share_percent: 12.63,
+    overhead_share_percent: 24.21,
+  }},
+
+  component_required_recovery: {{
+    labour: {{
+      share_percent: 63.16,
+      recovery_cost: 60000,
+      required_recovery_rate: 60,
+    }},
+    asset: {{
+      share_percent: 12.63,
+      recovery_cost: 12000,
+      required_recovery: 12000,
+    }},
+    overhead: {{
+      share_percent: 24.21,
+      recovery_cost: 23000,
+    }},
+  }},
+
+  labour_share_percent: 63.16,
+  asset_share_percent: 12.63,
+  overhead_share_percent: 24.21,
+
+  labour_recovery_cost: 60000,
+  asset_recovery_cost: 12000,
+  overhead_absorbed_cost: 23000,
+
+  required_labour_recovery_rate: 60,
+  required_asset_recovery: 12000,
+
+  margin_pool: 150000,
+  total_cost_burden: 95000,
+  net_position: 55000,
+
+  warnings: [],
+  recovery_summary_warnings: [],
+}};
+
+const cost_allocation = {{
+  allocation_status: "ready",
+  allocation_dependency_type: "none",
+
+  structure_valid: true,
+  staff_coverage_percent: 100,
+  asset_coverage_percent: 100,
+  group_coverage_percent: 100,
+
+  linked_staff_count: 1,
+  unlinked_staff_count: 0,
+  linked_asset_count: 1,
+  unlinked_asset_count: 0,
+  valid_operational_groups: 1,
+  invalid_operational_groups: 0,
+
+  external_delivery_enabled: false,
+  external_delivery_required: false,
+  internal_capacity_shortfall: false,
+
+  allocation_warnings: [],
+  duplicate_link_warnings: [],
+  orphan_warnings: [],
+  group_validation_warnings: [],
+}};
+
+const result = calculateRecoveryOutcome({{
+  recovery_summary,
+  cost_allocation,
+}});
+
+console.log(JSON.stringify({{
+  success: true,
+  error: null,
+  selected_call_shape: "single_object_current_contract",
+  actual: result,
+  attempts: [
+    {{
+      name: "single_object_current_contract",
+      success: true,
+      useful_output: true,
+      error: null
+    }}
+  ],
+}}, null, 2));
+"""
+
+    script_path.write_text(script, encoding="utf-8")
+    return script_path
+
+
+def run_recovery_outcome_controlled_test() -> ControlledTestResult:
+    """Run the controlled Recovery Outcome healthy-structure test through Node."""
+    script_path = create_recovery_outcome_test_script()
+
+    code, stdout, stderr = run_command(
+        build_node_command(script_path),
+        PROJECT_ROOT,
+    )
+
+    if code != 0:
+        return ControlledTestResult(
+            test_name="Recovery Outcome healthy controlled test",
+            module_name="Recovery Outcome",
+            function_name="calculateRecoveryOutcome",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=stderr or stdout or "Node test runner failed.",
+            notes="The Node adapter failed before returning a result.",
+        )
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        return ControlledTestResult(
+            test_name="Recovery Outcome healthy controlled test",
+            module_name="Recovery Outcome",
+            function_name="calculateRecoveryOutcome",
+            status="failed_validation",
+            selected_call_shape=None,
+            checks=[],
+            raw_actual_output=None,
+            attempted_call_shapes=[],
+            error=f"Could not parse Node output as JSON: {exc}\nOutput:\n{stdout}",
+            notes="The Node adapter returned invalid JSON.",
+        )
+
+    if not payload.get("success"):
+        return ControlledTestResult(
+            test_name="Recovery Outcome healthy controlled test",
+            module_name="Recovery Outcome",
+            function_name="calculateRecoveryOutcome",
+            status="failed_validation",
+            selected_call_shape=payload.get("selected_call_shape"),
+            checks=[],
+            raw_actual_output=payload.get("actual"),
+            attempted_call_shapes=payload.get("attempts", []),
+            error=payload.get("error"),
+            notes="No usable Recovery Outcome output was returned.",
+        )
+
+    actual = payload.get("actual") or {}
+
+    expected_values = {
+        "business_outcome_status": "viable",
+        "outcome_status": "viable",
+        "primary_constraint_key": "healthy",
+        "primary_constraint_title": "Business model is supported",
+        "recommended_action": "Continue to Business Modelling when you are ready to test scenarios.",
+
+        "active_recovery_model": "hybrid",
+        "recovery_model": "hybrid",
+        "recovery_plan_target_per_driver": 95,
+
+        "business_type": "labour_based",
+        "activity_driver_type": "hours",
+        "activity_driver_value": 1000,
+
+        "required_recovery_per_driver": 95,
+        "current_margin_per_driver": 100,
+        "recovery_gap_per_driver": 5,
+
+        "labour_share_percent": 63.2,
+        "asset_share_percent": 12.6,
+        "overhead_share_percent": 24.2,
+
+        "labour_recovery_cost": 60000,
+        "asset_recovery_cost": 12000,
+        "overhead_absorbed_cost": 23000,
+
+        "required_labour_recovery_rate": 60,
+        "required_asset_recovery": 12000,
+
+        "margin_pool": 150000,
+        "total_cost_burden": 95000,
+        "net_position": 55000,
+        "model_trust_state": "ready",
+
+        "allocation_status": "ready",
+        "allocation_dependency_type": "none",
+        "structure_valid": True,
+
+        "staff_coverage_percent": 100,
+        "asset_coverage_percent": 100,
+        "group_coverage_percent": 100,
+
+        "linked_staff_count": 1,
+        "unlinked_staff_count": 0,
+        "linked_asset_count": 1,
+        "unlinked_asset_count": 0,
+        "valid_operational_groups": 1,
+        "invalid_operational_groups": 0,
+
+        "external_delivery_enabled": False,
+        "external_delivery_required": False,
+        "internal_capacity_shortfall": 0,
+
+        "dependency_level": "none",
+        "business_model_health": "healthy",
+    }
+
+    checks = [
+        make_check(variable_name, expected, actual.get(variable_name))
+        for variable_name, expected in expected_values.items()
+    ]
+
+    list_expectations = {
+        "allocation_warnings": [],
+        "duplicate_link_warnings": [],
+        "orphan_warnings": [],
+        "group_validation_warnings": [],
+        "decision_warnings": [],
+    }
+
+    for variable_name, expected in list_expectations.items():
+        actual_value = actual.get(variable_name)
+        checks.append(
+            CalculationCheckResult(
+                variable_name=variable_name,
+                expected=expected,
+                actual=actual_value,
+                difference=None,
+                passed=actual_value == expected,
+                notes="PASS" if actual_value == expected else "Expected empty warning list.",
+            )
+        )
+
+    all_passed = all(check.passed for check in checks)
+
+    return ControlledTestResult(
+        test_name="Recovery Outcome healthy controlled test",
+        module_name="Recovery Outcome",
+        function_name="calculateRecoveryOutcome",
+        status="validated" if all_passed else "failed_validation",
+        selected_call_shape=payload.get("selected_call_shape"),
+        checks=checks,
+        raw_actual_output=actual,
+        attempted_call_shapes=payload.get("attempts", []),
+        error=None,
+        notes=(
+            "Controlled Recovery Outcome healthy outputs matched expected values."
+            if all_passed
+            else "One or more Recovery Outcome outputs did not match expected values."
+        ),
+    )
+
+
+# ============================================================
 # Result builders
 # ============================================================
 
@@ -1263,6 +1568,7 @@ def build_audit_result() -> CalculationAuditResult:
         run_cost_summary_controlled_test(),
         run_recovery_summary_controlled_test(),
         run_cost_allocation_controlled_test(),
+        run_recovery_outcome_controlled_test(),
     ]
 
     status = build_status(node_available, module_results, controlled_tests)

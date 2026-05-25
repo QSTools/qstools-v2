@@ -161,7 +161,7 @@ def build_steps() -> list[tuple[str, list[str], str]]:
             (
                 "Calculation test runner",
                 [python_exe, "tools/audit/qs_calc_test_runner.py"],
-                "Runs controlled Cost Summary, Recovery Summary, and Cost Allocation tests.",
+                "Runs controlled Cost Summary, Recovery Summary, Cost Allocation, and Recovery Outcome tests.",
             ),
             (
                 "P&L reconciliation audit",
@@ -278,6 +278,7 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("Cost Summary controlled calculation test is passing.")
     lines.append("Recovery Summary hours-based controlled calculation test is passing.")
     lines.append("Cost Allocation valid-structure controlled calculation test is passing.")
+    lines.append("Recovery Outcome healthy controlled calculation test is passing.")
     lines.append(
         "P&L reconciliation logic correctly passes explained variance and fails material unexplained variance."
     )
@@ -290,10 +291,7 @@ def write_text_report(report: FullAuditReport) -> Path:
     lines.append("NEXT RECOMMENDED IMPROVEMENTS")
     lines.append("-" * 80)
     lines.append("1. Add a live app-state JSON input mode for P&L reconciliation.")
-    lines.append(
-        "2. Add controlled Recovery Outcome tests using Cost Summary, Recovery Summary, "
-        "and Cost Allocation outputs."
-    )
+    lines.append("2. Add failure-mode controlled tests for Cost Allocation and Recovery Outcome.")
     lines.append("3. Add a short summary output for CI or pre-commit use later.")
     lines.append("")
 
