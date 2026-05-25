@@ -1,0 +1,55 @@
+QS TOOLS VARIABLE TRACE REPORT
+================================================================================
+Variable: unexplained_variance
+Registered: True
+Files found: 3
+
+REGISTER RECORD
+--------------------------------------------------------------------------------
+Owner: P&L Reconciliation
+Owning file: tools/audit/qs_reconciliation_audit.py
+Type: audit_output
+Calculation/source: gross_variance - explained_variance_total
+Downstream consumers: Reconciliation Audit, Business Outcome later
+Must balance to P&L: True
+Test required: True
+Notes: This is the key risk number.
+
+LAYER SUMMARY
+--------------------------------------------------------------------------------
+audit_tool: 3
+
+USAGE SUMMARY
+--------------------------------------------------------------------------------
+formula: 1
+object_key: 2
+reference: 4
+string_literal: 2
+
+FINDINGS
+--------------------------------------------------------------------------------
+
+File: tools/audit/qs_reconciliation_audit.py
+Layer: audit_tool
+Matches:
+  L87: unexplained_variance: float [OBJECT_KEY]
+  L143: unexplained_variance: float, [OBJECT_KEY]
+  L159: absolute_unexplained = abs(unexplained_variance) [REFERENCE]
+  L196: unexplained_variance = round_money(gross_variance - explained_variance_total) [FORMULA]
+  L200: unexplained_variance=unexplained_variance, [REFERENCE]
+  L216: unexplained_variance=unexplained_variance, [REFERENCE]
+  L508: lines.append(f"Unexplained variance:      ${result.unexplained_variance:,.2f}") [REFERENCE]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L53: "unexplained_variance", [STRING_LITERAL]
+
+File: tools/audit/qs_variable_register.py
+Layer: audit_tool
+Matches:
+  L1106: "unexplained_variance", [STRING_LITERAL]
+
+RISK FLAGS
+--------------------------------------------------------------------------------
+No risk flags.

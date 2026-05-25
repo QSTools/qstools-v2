@@ -1,0 +1,233 @@
+QS TOOLS VARIABLE TRACE REPORT
+================================================================================
+Variable: asset_recovery_cost
+Registered: True
+Files found: 29
+
+REGISTER RECORD
+--------------------------------------------------------------------------------
+Owner: Recovery Summary
+Owning file: lib/calculations/recoverySummaryCalculations.js
+Type: calculated_output
+Calculation/source: total_cost_burden * asset_share_percent
+Downstream consumers: Recovery Outcome
+Must balance to P&L: False
+Test required: True
+Notes: Recovery Summary distribution output.
+
+LAYER SUMMARY
+--------------------------------------------------------------------------------
+audit_tool: 3
+calculation: 4
+component: 2
+docs: 15
+hook: 2
+selector: 3
+
+USAGE SUMMARY
+--------------------------------------------------------------------------------
+assignment: 1
+comparison: 1
+default_value: 2
+formatting: 12
+formula: 11
+jsx_prop: 1
+object_key: 15
+reference: 27
+string_literal: 3
+
+FINDINGS
+--------------------------------------------------------------------------------
+
+File: hooks/useCostAllocation.js
+Layer: hook
+Matches:
+  L584: safe_number(base_calculation_inputs?.asset_recovery_cost), [FORMATTING]
+  L594: base_calculation_inputs?.asset_recovery_cost, [REFERENCE]
+  L769: asset_recovery_cost: calculated.asset_recovery_cost, [OBJECT_KEY]
+
+File: hooks/useRecoverySummary.js
+Layer: hook
+Matches:
+  L130: asset_recovery_cost: calculated.asset_recovery_cost, [OBJECT_KEY]
+
+File: tools/audit/qs_calc_test_runner.py
+Layer: audit_tool
+Matches:
+  L744: "asset_recovery_cost": 12000, [REFERENCE]
+  L894: asset_recovery_cost: 12000, [OBJECT_KEY]
+  L1055: "asset_recovery_cost": 12000, [REFERENCE]
+  L1251: asset_recovery_cost: 12000, [OBJECT_KEY]
+  L1558: asset_recovery_cost: 12000, [OBJECT_KEY]
+  L1702: "asset_recovery_cost": 12000, [REFERENCE]
+  L1861: asset_recovery_cost: 12000, [OBJECT_KEY]
+  L2035: "asset_recovery_cost": 12000, [REFERENCE]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L51: "asset_recovery_cost", [STRING_LITERAL]
+
+File: tools/audit/qs_variable_register.py
+Layer: audit_tool
+Matches:
+  L830: "asset_recovery_cost", [STRING_LITERAL]
+  L867: "asset_recovery_cost", [STRING_LITERAL]
+
+File: lib/calculations/costAllocationRules.js
+Layer: calculation
+Matches:
+  L721: safe_number(inputs?.asset_recovery_cost) || [FORMATTING]
+  L916: asset_recovery_cost: safe_number(inputs?.asset_recovery_cost), [FORMATTING]
+
+File: lib/calculations/recoveryOutcomeCalculations.js
+Layer: calculation
+Matches:
+  L167: const asset_recovery_cost = [ASSIGNMENT]
+  L169: recovery_summary.asset_recovery_cost; [REFERENCE]
+  L172: asset_share_percent > 0 || to_number(asset_recovery_cost) > 0; [COMPARISON]
+  L534: asset_recovery_cost: round_currency(recovery_summary.asset_recovery_cost), [FORMATTING]
+
+File: lib/calculations/recoverySummaryCalculations.js
+Layer: calculation
+Matches:
+  L563: let asset_recovery_cost = round_currency( [FORMATTING]
+  L594: asset_recovery_cost = round_currency(productive_asset_cost); [FORMATTING]
+  L601: asset_recovery_cost = 0; [DEFAULT_VALUE]
+  L623: : round_currency(asset_recovery_cost / recovery_hours_used); [FORMATTING]
+  L633: const required_asset_recovery = round_currency(asset_recovery_cost); [FORMATTING]
+  L672: asset_recovery_cost + [FORMULA]
+  L681: ? (asset_recovery_cost / recovery_stream_total) * 100 [FORMULA]
+  L720: recovery_cost: asset_recovery_cost, [OBJECT_KEY]
+  L949: asset_recovery_cost, [REFERENCE]
+
+File: lib/selectors/costAllocationSelectors.js
+Layer: selector
+Matches:
+  L230: recovery_cost: calculated?.asset_recovery_cost ?? 0, [OBJECT_KEY]
+  L499: asset_recovery_cost: calculated?.asset_recovery_cost ?? 0, [OBJECT_KEY]
+
+File: lib/selectors/recoveryOutcomeSelectors.js
+Layer: selector
+Matches:
+  L67: asset_recovery_cost: outputs.asset_recovery_cost, [OBJECT_KEY]
+
+File: lib/selectors/recoverySummarySelectors.js
+Layer: selector
+Matches:
+  L25: safe_number(calculated.asset_recovery_cost) + [FORMATTING]
+  L159: component_cost: calculated.asset_recovery_cost, [OBJECT_KEY]
+  L277: component_cost: calculated.asset_recovery_cost, [OBJECT_KEY]
+  L361: component_cost: calculated.asset_recovery_cost, [OBJECT_KEY]
+  L541: asset_recovery_cost: calculated.asset_recovery_cost ?? 0, [OBJECT_KEY]
+
+File: lib/calculations/cost-allocation/costAllocationInputBuilder.js
+Layer: calculation
+Matches:
+  L56: asset_recovery_cost: safe_number(recovery_outputs?.asset_recovery_cost), [FORMATTING]
+
+File: docs/V3.7 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L663: asset_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/02_IMPLEMENTATION_ORDER_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L480: asset_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/03_VARIABLE_CONTRACT_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L531: asset_recovery_cost [REFERENCE]
+  L588: asset_recovery_cost = total_cost_burden * asset_share_percent / 100 [FORMULA]
+  L599: required_asset_recovery = asset_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/25_RECOVERY_SUMMARY_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L314: asset_recovery_cost [REFERENCE]
+  L404: recovery_cost: asset_recovery_cost, [OBJECT_KEY]
+  L439: asset_recovery_cost = total_cost_burden * asset_share_percent / 100 [FORMULA]
+  L460: required_asset_recovery = asset_recovery_cost [REFERENCE]
+  L533: asset_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/26_COST_ALLOCATION_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L201: asset_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/27_BUSINESS_OUTCOME_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L213: asset_recovery_cost [REFERENCE]
+  L1086: asset_recovery_cost [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/RECOVERY SUMMARY v3.5.txt
+Layer: docs
+Matches:
+  L72: - asset_recovery_cost [FORMULA]
+
+File: docs/sources/Source Files V3.0/V3.6 Updated Build/VARIABLE CONTRACT BRIEF v3.6.txt
+Layer: docs
+Matches:
+  L165: - asset_recovery_cost [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.7/01_ACTIVE_SYSTEM_BRIEF_RECOVERY_CHAIN_ADDENDUM_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L100: asset_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost Allocation Page — Build Brief v2.1.txt
+Layer: docs
+Matches:
+  L265: asset_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary locked state.txt
+Layer: docs
+Matches:
+  L25: * `asset_recovery_cost` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary Page — Build Brief v1.0.txt
+Layer: docs
+Matches:
+  L97: asset_recovery_cost = total_cost_burden × asset_share_percent / 100 [FORMULA]
+  L107: required_asset_recovery = asset_recovery_cost [REFERENCE]
+  L117: asset_recovery_cost [REFERENCE]
+  L176: asset_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery_Summary_Page_v1.0_LOCKED.txt
+Layer: docs
+Matches:
+  L141: asset_recovery_cost = [REFERENCE]
+  L159: asset_recovery_cost [REFERENCE]
+  L170: - asset_recovery_cost [FORMULA]
+  L207: - asset_recovery_cost [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/3 Update Assets and Recovery Model/Recovery_Summary_v1.1_LOCKED.txt
+Layer: docs
+Matches:
+  L52: asset_recovery_cost [REFERENCE]
+
+File: docs/Future Build Briefs/Handover Brief/UPSTREAM MODULE IMPACT DETAILS.txt
+Layer: docs
+Matches:
+  L259: - asset_recovery_cost [FORMULA]
+
+File: components/recovery-summary/RecoverySummaryDistributionBlock.jsx
+Layer: component
+Matches:
+  L6: asset_recovery_cost, [REFERENCE]
+  L41: {format_currency(asset_recovery_cost)} [FORMATTING]
+
+File: components/recovery-summary/RecoverySummaryMainCard.jsx
+Layer: component
+Matches:
+  L186: asset_recovery_cost = 0, [DEFAULT_VALUE]
+  L225: value: format_currency(asset_recovery_cost), [FORMATTING]
+  L270: asset_recovery_cost, [REFERENCE]
+  L346: asset_recovery_cost={asset_recovery_cost} [JSX_PROP]
+
+RISK FLAGS
+--------------------------------------------------------------------------------
+No risk flags.

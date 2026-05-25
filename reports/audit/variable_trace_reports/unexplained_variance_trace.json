@@ -1,0 +1,106 @@
+{
+  "variable_name": "unexplained_variance",
+  "registered": true,
+  "register_record": {
+    "variable_name": "unexplained_variance",
+    "owning_module": "P&L Reconciliation",
+    "owning_file": "tools/audit/qs_reconciliation_audit.py",
+    "variable_type": "audit_output",
+    "calculation_source": "gross_variance - explained_variance_total",
+    "downstream_consumers": [
+      "Reconciliation Audit",
+      "Business Outcome later"
+    ],
+    "must_balance_to_pnl": true,
+    "test_required": true,
+    "notes": "This is the key risk number."
+  },
+  "finding_count": 3,
+  "layer_summary": {
+    "audit_tool": 3
+  },
+  "usage_summary": {
+    "formula": 1,
+    "object_key": 2,
+    "reference": 4,
+    "string_literal": 2
+  },
+  "findings": [
+    {
+      "file": "tools/audit/qs_reconciliation_audit.py",
+      "layer": "audit_tool",
+      "matches": [
+        {
+          "line_number": 87,
+          "line": "unexplained_variance: float",
+          "usage_type": "object_key",
+          "has_arithmetic": false
+        },
+        {
+          "line_number": 143,
+          "line": "unexplained_variance: float,",
+          "usage_type": "object_key",
+          "has_arithmetic": false
+        },
+        {
+          "line_number": 159,
+          "line": "absolute_unexplained = abs(unexplained_variance)",
+          "usage_type": "reference",
+          "has_arithmetic": false
+        },
+        {
+          "line_number": 196,
+          "line": "unexplained_variance = round_money(gross_variance - explained_variance_total)",
+          "usage_type": "formula",
+          "has_arithmetic": true
+        },
+        {
+          "line_number": 200,
+          "line": "unexplained_variance=unexplained_variance,",
+          "usage_type": "reference",
+          "has_arithmetic": false
+        },
+        {
+          "line_number": 216,
+          "line": "unexplained_variance=unexplained_variance,",
+          "usage_type": "reference",
+          "has_arithmetic": false
+        },
+        {
+          "line_number": 508,
+          "line": "lines.append(f\"Unexplained variance:      ${result.unexplained_variance:,.2f}\")",
+          "usage_type": "reference",
+          "has_arithmetic": false
+        }
+      ],
+      "alias_matches": []
+    },
+    {
+      "file": "tools/audit/qs_run_full_audit.py",
+      "layer": "audit_tool",
+      "matches": [
+        {
+          "line_number": 53,
+          "line": "\"unexplained_variance\",",
+          "usage_type": "string_literal",
+          "has_arithmetic": false
+        }
+      ],
+      "alias_matches": []
+    },
+    {
+      "file": "tools/audit/qs_variable_register.py",
+      "layer": "audit_tool",
+      "matches": [
+        {
+          "line_number": 1106,
+          "line": "\"unexplained_variance\",",
+          "usage_type": "string_literal",
+          "has_arithmetic": false
+        }
+      ],
+      "alias_matches": []
+    }
+  ],
+  "risk_flags": []
+}

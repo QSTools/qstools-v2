@@ -1,0 +1,700 @@
+QS TOOLS VARIABLE TRACE REPORT
+================================================================================
+Variable: total_people_cost_annual
+Registered: True
+Files found: 102
+
+REGISTER RECORD
+--------------------------------------------------------------------------------
+Owner: Cost Summary
+Owning file: lib/calculations/costSummaryCalculations.js
+Type: calculated_aggregate
+Calculation/source: Labour module total_labour_cost_annual only
+Downstream consumers: Recovery Summary, Reconciliation Audit
+Must balance to P&L: True
+Test required: True
+Notes: Critical Cost Summary People Cost output. Must come from Labour module only. Employee overheads are now included through General Overheads, not People Cost.
+
+LAYER SUMMARY
+--------------------------------------------------------------------------------
+audit_tool: 4
+calculation: 7
+component: 11
+docs: 67
+hook: 4
+page: 3
+selector: 5
+unknown: 1
+
+USAGE SUMMARY
+--------------------------------------------------------------------------------
+assignment: 3
+comparison: 5
+default_value: 7
+formatting: 10
+formula: 105
+jsx_prop: 6
+object_key: 15
+reference: 85
+string_literal: 5
+
+FINDINGS
+--------------------------------------------------------------------------------
+
+File: hooks/useBusinessSummary.js
+Layer: hook
+Matches:
+  L43: total_people_cost_annual: [OBJECT_KEY]
+  L44: cost_summary_output_contract.total_people_cost_annual ?? 0, [REFERENCE]
+  L95: total_people_cost_annual: [OBJECT_KEY]
+  L96: cost_summary_output_contract.total_people_cost_annual ?? 0, [REFERENCE]
+  L182: total_people_cost_annual: [OBJECT_KEY]
+  L183: display_details.total_people_cost_annual, [REFERENCE]
+
+File: hooks/useCostSummary.js
+Layer: hook
+Matches:
+  L105: total_people_cost_annual: calculations.total_people_cost_annual ?? 0, [OBJECT_KEY]
+  L167: total_people_cost_annual: [OBJECT_KEY]
+  L168: calculations.total_people_cost_annual ?? 0, [REFERENCE]
+  L171: calculations.total_people_cost_annual ?? [REFERENCE]
+
+File: hooks/useRecoverySummary.js
+Layer: hook
+Matches:
+  L184: total_people_cost_annual: calculated.total_people_cost_annual, [OBJECT_KEY]
+
+File: hooks/useRevenueReality.js
+Layer: hook
+Matches:
+  L29: business_summary_output_contract.total_people_cost_annual ?? [REFERENCE]
+
+File: tools/audit/qs_build_live_snapshot.py
+Layer: audit_tool
+Matches:
+  L129: "total_people_cost_annual": 60000, [REFERENCE]
+  L205: total_people_cost_annual = round_money( [REFERENCE]
+  L206: get_nested(app_state, "cost_summary", "total_people_cost_annual") [REFERENCE]
+  L223: total_people_cost_annual [REFERENCE]
+  L286: "total_people_cost_annual": total_people_cost_annual, [REFERENCE]
+
+File: tools/audit/qs_calc_test_runner.py
+Layer: audit_tool
+Matches:
+  L535: "total_people_cost_annual": 59995, [REFERENCE]
+  L615: total_people_cost_annual: 60000, [OBJECT_KEY]
+  L727: "total_people_cost_annual": 60000, [REFERENCE]
+  L888: total_people_cost_annual: 60000, [OBJECT_KEY]
+  L1245: total_people_cost_annual: 60000, [OBJECT_KEY]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L48: "total_people_cost_annual", [STRING_LITERAL]
+
+File: tools/audit/qs_variable_register.py
+Layer: audit_tool
+Matches:
+  L297: "Primary Labour contract output consumed by Cost Summary as total_people_cost_annual.", [STRING_LITERAL]
+  L614: "Detail value only. Cost Summary core calculation uses total_labour_cost_annual as total_people_cost_annual.", [STRING_LITERAL]
+  L650: "total_people_cost_annual", [STRING_LITERAL]
+  L742: "total_people_cost_annual + total_asset_cost_annual + total_business_overheads", [STRING_LITERAL]
+
+File: lib/audit/buildLiveAuditSnapshotExport.js
+Layer: unknown
+Matches:
+  L82: getValue(costSummaryData, "total_people_cost_annual", 0) [REFERENCE]
+  L109: total_people_cost_annual: totalPeopleCostAnnual, [OBJECT_KEY]
+Alias matches:
+  L81: totalPeopleCostAnnual -> const totalPeopleCostAnnual = roundMoney( [ASSIGNMENT]
+  L103: totalPeopleCostAnnual -> totalPeopleCostAnnual + [FORMULA]
+  L109: totalPeopleCostAnnual -> total_people_cost_annual: totalPeopleCostAnnual, [OBJECT_KEY]
+
+File: lib/calculations/businessSummaryCalculations.js
+Layer: calculation
+Matches:
+  L53: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L67: const people_cost_total = to_number(total_people_cost_annual); [ASSIGNMENT]
+  L177: total_people_cost_annual: people_cost_total, [OBJECT_KEY]
+
+File: lib/calculations/costAllocationRules.js
+Layer: calculation
+Matches:
+  L713: safe_number(inputs?.total_people_cost_annual) || [FORMATTING]
+
+File: lib/calculations/costSummaryCalculations.js
+Layer: calculation
+Matches:
+  L11: const total_people_cost_annual = to_number( [ASSIGNMENT]
+  L41: total_people_cost_annual + [FORMULA]
+  L53: total_people_cost_annual, [REFERENCE]
+
+File: lib/calculations/quoteEngineCalculations.js
+Layer: calculation
+Matches:
+  L40: const total_people_cost_annual = toNumber( [FORMATTING]
+  L41: cost_summary_output_contract.total_people_cost_annual [REFERENCE]
+  L137: total_people_cost_annual, [REFERENCE]
+
+File: lib/calculations/recoverySummaryCalculations.js
+Layer: calculation
+Matches:
+  L133: total_people_cost_annual, [REFERENCE]
+  L143: to_number(total_people_cost_annual) > 0; [COMPARISON]
+  L152: ? to_number(total_people_cost_annual) [REFERENCE]
+  L252: total_people_cost_annual, [REFERENCE]
+  L279: if (total_people_cost_annual > 0 && labour_share_percent <= 0) { [COMPARISON]
+  L404: const total_people_cost_annual = to_number( [ASSIGNMENT]
+  L405: input.total_people_cost_annual ?? labour_contract.total_labour_cost_annual [REFERENCE]
+  L414: total_people_cost_annual + total_asset_cost_annual + total_business_overheads; [FORMULA]
+  L502: total_people_cost_annual, [REFERENCE]
+  L580: total_people_cost_annual <= 0 [COMPARISON]
+  L593: labour_recovery_cost = round_currency(total_people_cost_annual); [FORMATTING]
+  L663: total_people_cost_annual, [REFERENCE]
+  L776: if (recovery_mode === "hours_based" && total_people_cost_annual <= 0) { [COMPARISON]
+  L871: total_people_cost_annual: round_currency(total_people_cost_annual), [FORMATTING]
+
+File: lib/calculations/revenueSummaryCalculations.js
+Layer: calculation
+Matches:
+  L27: const total_people_cost_annual = round_currency( [FORMATTING]
+  L28: cost_summary.total_people_cost_annual [REFERENCE]
+  L124: pnl_direct_labour - total_people_cost_annual [FORMULA]
+  L128: total_people_cost_annual > 0 [COMPARISON]
+  L129: ? round_percent((labour_variance / total_people_cost_annual) * 100) [FORMULA]
+  L156: total_people_cost_annual, [REFERENCE]
+
+File: lib/selectors/businessSummarySelectors.js
+Layer: selector
+Matches:
+  L185: total_people_cost_annual: toNumber(calculations.total_people_cost_annual), [FORMATTING]
+
+File: lib/selectors/costSummarySelectors.js
+Layer: selector
+Matches:
+  L214: ? (calculations.total_people_cost_annual / [FORMULA]
+  L232: people_cost_total: calculations.total_people_cost_annual, [OBJECT_KEY]
+
+File: lib/selectors/labourSelectors.js
+Layer: selector
+Matches:
+  L121: staff?.total_people_cost_annual ?? [REFERENCE]
+
+File: lib/selectors/recoverySummarySelectors.js
+Layer: selector
+Matches:
+  L433: total_people_cost_annual: calculated.total_people_cost_annual ?? 0, [OBJECT_KEY]
+
+File: lib/selectors/revenueSummarySelectors.js
+Layer: selector
+Matches:
+  L54: total_people_cost_annual: calculated.total_people_cost_annual ?? 0, [OBJECT_KEY]
+
+File: lib/calculations/cost-allocation/costAllocationInputBuilder.js
+Layer: calculation
+Matches:
+  L85: total_people_cost_annual: safe_number( [FORMATTING]
+  L86: recovery_outputs?.total_people_cost_annual [REFERENCE]
+
+File: docs/audit/QS_Tools_Live_Audit_Snapshot_Contract_v1.0.txt
+Layer: docs
+Matches:
+  L46: "total_people_cost_annual": 0, [REFERENCE]
+  L99: cost_summary.total_people_cost_annual [REFERENCE]
+  L156: "total_people_cost_annual": 0, [REFERENCE]
+
+File: docs/V3.7 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L330: * total_people_cost_annual [FORMULA]
+
+File: docs/V3.7 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L533: total_people_cost_annual [REFERENCE]
+
+File: docs/V3.7 Source Files/02_IMPLEMENTATION_ORDER_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L351: total_people_cost_annual [REFERENCE]
+
+File: docs/V3.7 Source Files/03_VARIABLE_CONTRACT_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L375: total_people_cost_annual [REFERENCE]
+  L400: total_people_cost_annual = total_labour_cost_annual [REFERENCE]
+  L412: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads [FORMULA]
+
+File: docs/V3.7 Source Files/13_COST_SUMMARY_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L245: total_people_cost_annual = [REFERENCE]
+  L255: total_people_cost_annual [REFERENCE]
+  L340: total_people_cost_annual = total_labour_cost_annual [REFERENCE]
+  L591: * total_people_cost_annual [FORMULA]
+
+File: docs/V3.7 Source Files/14_COST_SUMMARY_BUILD_BRIEF_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L179: total_people_cost_annual = [REFERENCE]
+  L189: total_people_cost_annual [REFERENCE]
+
+File: docs/V3.7 Source Files/20_BUSINESS_SUMMARY_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L300: total_people_cost_annual [REFERENCE]
+  L1074: total_people_cost_annual [REFERENCE]
+
+File: docs/V3.7 Source Files/22_QUOTE_ENGINE_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L379: * total_people_cost_annual [FORMULA]
+
+File: docs/V3.7 Source Files/28_Revenue_Stress_Test_Page_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L170: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/02_IMPLEMENTATION_ORDER_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L132: * total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/03_VARIABLE_CONTRACT_BRIEF_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L379: * total_people_cost_annual [FORMULA]
+  L403: total_people_cost_annual = [REFERENCE]
+  L416: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/COST SUMMARY v3.5.txt
+Layer: docs
+Matches:
+  L84: total_people_cost_annual = [REFERENCE]
+  L110: total_people_cost_annual [REFERENCE]
+  L135: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/QS Tools — Variable Contract Brief (v3.5 — LOCKED).txt
+Layer: docs
+Matches:
+  L109: - total_people_cost_annual [FORMULA]
+  L122: total_people_cost_annual = [REFERENCE]
+  L135: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/RECOVERY SUMMARY v3.5.txt
+Layer: docs
+Matches:
+  L41: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Source Files V3.0/V3.6 Updated Build/COST SUMMARY v3.6 — alignment patch.txt
+Layer: docs
+Matches:
+  L35: total_people_cost_annual = [REFERENCE]
+  L45: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.6 Updated Build/VARIABLE CONTRACT BRIEF v3.6.txt
+Layer: docs
+Matches:
+  L118: - total_people_cost_annual [FORMULA]
+  L134: total_people_cost_annual = [REFERENCE]
+  L144: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Depricated v3.6/V3.6/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L309: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.6/01_ACTIVE_SYSTEM_BRIEF_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L420: - total_people_cost_annual [FORMULA]
+  L970: total_people_cost_annual = [REFERENCE]
+  L980: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Depricated v3.6/V3.6/02_IMPLEMENTATION_ORDER_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L111: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.6/03_VARIABLE_CONTRACT_BRIEF_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L329: - total_people_cost_annual [FORMULA]
+  L352: total_people_cost_annual = [REFERENCE]
+  L362: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Depricated v3.6/V3.6/13_COST_SUMMARY_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L194: total_people_cost_annual = [REFERENCE]
+  L204: total_people_cost_annual [REFERENCE]
+  L235: total_people_cost_annual = total_labour_cost_annual [REFERENCE]
+  L404: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.6/14_COST_SUMMARY_BUILD_BRIEF_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L166: total_people_cost_annual = [REFERENCE]
+  L176: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Depricated v3.6/V3.6/20_BUSINESS_SUMMARY_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L105: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.6/20_BUSINESS_SUMMARY_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L226: * total_people_cost_annual [FORMULA]
+  L758: * total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.6/22_QUOTE_ENGINE_v3.6_LOCKED.txt
+Layer: docs
+Matches:
+  L379: * total_people_cost_annual [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.7/01_ACTIVE_SYSTEM_BRIEF_v3.7_LOCKED.txt
+Layer: docs
+Matches:
+  L452: * total_people_cost_annual [FORMULA]
+  L818: total_people_cost_annual = total_labour_cost_annual [REFERENCE]
+  L825: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Current Source Files/01_modules/Cost_Summary_v2.0_MASTER.txt
+Layer: docs
+Matches:
+  L48: total_people_cost_annual = [REFERENCE]
+  L64: total_people_cost_annual [REFERENCE]
+  L70: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/QS_Tools_Aligned_Source_Pack_2026-04-07/Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L160: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L170: - `total_people_cost_annual` [FORMULA]
+  L190: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L210: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/QS_Tools_Aligned_Source_Pack_2026-04-07/Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/QS_Tools_Aligned_Source_Pack_2026-04-07/Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L17: - add employee_overheads_annual into total_people_cost_annual [FORMULA]
+  L32: - total_people_cost_annual [FORMULA]
+  L40: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/QS_Tools_Aligned_Source_Pack_2026-04-07/QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+Layer: docs
+Matches:
+  L62: - total_people_cost_annual [FORMULA]
+  L86: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/QS_Tools_Aligned_Source_Pack_2026-04-07/QS Tools — Source Files Guardrail Brief (v1.0 — LOCKED).txt
+Layer: docs
+Matches:
+  L172: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Pack_2026-04-05 updated/Budget_Module_v1.2_LOCKED.txt
+Layer: docs
+Matches:
+  L93: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Pack_2026-04-05 updated/Cost_Summary_Module_v1.4_LOCKED.txt
+Layer: docs
+Matches:
+  L158: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L167: - `total_people_cost_annual` [FORMULA]
+  L187: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L206: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Pack_2026-04-05 updated/Cost_Summary_Page_v1.4_LOCKED.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Pack_2026-04-05 updated/Employee_Overheads_Module_v1.6_ALIGNED_STATUS.txt
+Layer: docs
+Matches:
+  L219: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Briefs_From_This_Chat/QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+Layer: docs
+Matches:
+  L62: - total_people_cost_annual [FORMULA]
+  L86: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_Source_of_Truth_v1.14/Budget_Module_v1.2_LOCKED.txt
+Layer: docs
+Matches:
+  L93: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_Source_of_Truth_v1.14/Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L160: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L170: - `total_people_cost_annual` [FORMULA]
+  L190: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L210: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_Source_of_Truth_v1.14/Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_Source_of_Truth_v1.14/Employee_Overheads_Module_v1.6_ALIGNED_STATUS.txt
+Layer: docs
+Matches:
+  L219: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Next_Build_Brief_Pack_2026-04-05/Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L17: - add employee_overheads_annual into total_people_cost_annual [FORMULA]
+  L32: - total_people_cost_annual [FORMULA]
+  L40: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Source_Pack_Aligned V2.2/Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L160: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L170: - `total_people_cost_annual` [FORMULA]
+  L190: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L210: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Source_Pack_Aligned V2.2/Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Source_Pack_Aligned V2.2/Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L17: - add employee_overheads_annual into total_people_cost_annual [FORMULA]
+  L32: - total_people_cost_annual [FORMULA]
+  L40: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Source_Pack_Aligned V2.2/QS Tools — Source Files Guardrail Brief (v1.0 — LOCKED).txt
+Layer: docs
+Matches:
+  L172: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/Cost_Summary_Module_v1.3_LOCKED.txt
+Layer: docs
+Matches:
+  L156: `total_people_cost_annual = gross_wages_annual + entitlements_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L164: - `total_people_cost_annual` [FORMULA]
+  L181: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L199: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/Cost_Summary_Page_v1.3_LOCKED.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/QS_Tools_Full_System_Pack_2026-04-05_COMPLETE/Employee_Overheads_Module_v1.6_LOCKED.txt
+Layer: docs
+Matches:
+  L219: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Download_Pack_2026-04-05 v1.2/QS_Tools_Aligned_Download_Pack_2026-04-05/ACTIVE_SOURCE_OF_TRUTH/Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L160: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L170: - `total_people_cost_annual` [FORMULA]
+  L190: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L210: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Download_Pack_2026-04-05 v1.2/QS_Tools_Aligned_Download_Pack_2026-04-05/ACTIVE_SOURCE_OF_TRUTH/Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Old Source Files/QS_Tools_Aligned_Download_Pack_2026-04-05 v1.2/QS_Tools_Aligned_Download_Pack_2026-04-05/NEXT_BUILD_REFERENCE/Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L17: - add employee_overheads_annual into total_people_cost_annual [FORMULA]
+  L32: - total_people_cost_annual [FORMULA]
+  L40: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost_Summary_Module_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L160: `total_people_cost_annual = gross_wages_annual + entitlements_annual + employer_kiwisaver_annual + esct_annual + employee_overheads_annual` [FORMULA]
+  L170: - `total_people_cost_annual` [FORMULA]
+  L190: `total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads` [FORMULA]
+  L210: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost_Summary_Module_v1.6_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L152: total_people_cost_annual = [REFERENCE]
+  L168: - total_people_cost_annual [FORMULA]
+  L188: total_people_cost_annual [REFERENCE]
+  L212: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost_Summary_Module_v2.0_MASTER.txt
+Layer: docs
+Matches:
+  L49: total_people_cost_annual = [REFERENCE]
+  L63: total_people_cost_annual [REFERENCE]
+  L67: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Layer: docs
+Matches:
+  L170: - `total_people_cost_annual` [FORMULA]
+  L183: - `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost_Summary_Wiring_v1.7_LOCKED.txt
+Layer: docs
+Matches:
+  L54: - total_people_cost_annual = [FORMULA]
+  L67: - total_people_cost_annual [FORMULA]
+  L95: total_people_cost_annual + total_asset_cost_annual + total_business_overheads [FORMULA]
+  L116: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Implementation_Brief_Assets_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L38: total_people_cost_annual + total_asset_cost_annual + total_business_overheads [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Implementation_Brief_General_Overheads_to_Cost_Summary_v1.0.txt
+Layer: docs
+Matches:
+  L39: total_people_cost_annual + total_asset_cost_annual + total_business_overheads [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+Layer: docs
+Matches:
+  L62: - total_people_cost_annual [FORMULA]
+  L86: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/QS Tools — Source Files Guardrail Brief (v1.0 — LOCKED).txt
+Layer: docs
+Matches:
+  L172: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary Page — Build Brief v1.0.txt
+Layer: docs
+Matches:
+  L61: total_people_cost_annual [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery_Summary_Page_v1.0_LOCKED.txt
+Layer: docs
+Matches:
+  L95: - total_people_cost_annual [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/4 Revenue_Recovery_Build_Pack_2026-04-09/Labour_Reconciliation_Upgrade_v1.0_LOCKED.txt
+Layer: docs
+Matches:
+  L72: - module_total = total_people_cost_annual or locked labour model total selected for benchmark comparison [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/4 Revenue_Recovery_Build_Pack_2026-04-09/QS Tools — Business Snapshot + Modelling Page (v1.0 — LOCKED).txt
+Layer: docs
+Matches:
+  L91: * `total_people_cost_annual` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/4 Revenue_Recovery_Build_Pack_2026-04-09/QS Tools — Implementation Note — Cost Summary Baseline Clarification (v1.0).txt
+Layer: docs
+Matches:
+  L149: - total_people_cost_annual [FORMULA]
+
+File: components/business-summary/BusinessSummaryCard.jsx
+Layer: component
+Matches:
+  L23: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L77: total_people_cost_annual, [REFERENCE]
+
+File: components/business-summary/BusinessSummaryComponentBreakdown.jsx
+Layer: component
+Matches:
+  L108: people.total_people_cost_annual ?? [REFERENCE]
+  L109: values.total_people_cost_annual ?? [REFERENCE]
+
+File: components/business-summary/BusinessSummaryHierarchyBuilder.js
+Layer: component
+Matches:
+  L46: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L177: : scaleDisplayPeriodValue(total_people_cost_annual); [REFERENCE]
+
+File: components/business-summary/BusinessSummaryMacroPositionCard.jsx
+Layer: component
+Matches:
+  L67: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L113: value: `-${format_currency(total_people_cost_annual)}`, [FORMATTING]
+  L153: total_people_cost_annual, [REFERENCE]
+
+File: components/business-summary/BusinessSummarySourceBreakdown.jsx
+Layer: component
+Matches:
+  L142: value={format_currency(values.total_people_cost_annual)} [JSX_PROP]
+
+File: components/cost-summary/CostSummaryCard.jsx
+Layer: component
+Matches:
+  L309: const total_people_cost_annual = toNumber(people_cost_total); [FORMATTING]
+  L458: amount: total_people_cost_annual, [OBJECT_KEY]
+  L490: total_people_cost_annual, [REFERENCE]
+
+File: components/cost-summary/CostSummaryStatusStrip.jsx
+Layer: component
+Matches:
+  L22: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L27: { label: "Labour", value: Number(total_people_cost_annual) || 0 }, [REFERENCE]
+  L50: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L57: total_people_cost_annual, [REFERENCE]
+
+File: components/recovery-summary/RecoverySummaryComponentBreakdown.jsx
+Layer: component
+Matches:
+  L32: staff.total_people_cost_annual ?? [REFERENCE]
+  L183: people.total_people_cost_annual ?? [REFERENCE]
+  L184: values.total_people_cost_annual ?? [REFERENCE]
+
+File: components/recovery-summary/RecoverySummarySourceBreakdown.jsx
+Layer: component
+Matches:
+  L88: value={format_currency(values.total_people_cost_annual)} [JSX_PROP]
+
+File: components/recovery-summary/RecoverySummaryStatusStrip.jsx
+Layer: component
+Matches:
+  L248: total_people_cost_annual, [REFERENCE]
+  L275: total_people_cost_annual, [REFERENCE]
+
+File: components/revenue-summary/RevenueSummaryMainCard.jsx
+Layer: component
+Matches:
+  L56: total_people_cost_annual = 0, [DEFAULT_VALUE]
+  L126: {format_currency(total_people_cost_annual)} [FORMATTING]
+
+File: app/business-summary/page.jsx
+Layer: page
+Matches:
+  L50: total_people_cost_annual={card.total_people_cost_annual} [JSX_PROP]
+  L109: total_people_cost_annual={card.total_people_cost_annual} [JSX_PROP]
+
+File: app/cost-summary/page.jsx
+Layer: page
+Matches:
+  L33: total_people_cost_annual={card.people_cost_total} [JSX_PROP]
+
+File: app/recovery-summary/page.jsx
+Layer: page
+Matches:
+  L55: total_people_cost_annual={card.total_people_cost_annual} [JSX_PROP]
+
+RISK FLAGS
+--------------------------------------------------------------------------------
+- Possible alias drift: camelCase alias found in lib/audit/buildLiveAuditSnapshotExport.js
+- Check selector formula/shaping: lib/selectors/costSummarySelectors.js:214

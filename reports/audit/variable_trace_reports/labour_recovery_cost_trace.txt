@@ -1,0 +1,232 @@
+QS TOOLS VARIABLE TRACE REPORT
+================================================================================
+Variable: labour_recovery_cost
+Registered: True
+Files found: 30
+
+REGISTER RECORD
+--------------------------------------------------------------------------------
+Owner: Recovery Summary
+Owning file: lib/calculations/recoverySummaryCalculations.js
+Type: calculated_output
+Calculation/source: total_cost_burden * labour_share_percent
+Downstream consumers: Recovery Outcome
+Must balance to P&L: False
+Test required: True
+Notes: Recovery Summary distribution output.
+
+LAYER SUMMARY
+--------------------------------------------------------------------------------
+audit_tool: 3
+calculation: 4
+component: 2
+docs: 16
+hook: 2
+selector: 3
+
+USAGE SUMMARY
+--------------------------------------------------------------------------------
+default_value: 2
+formatting: 12
+formula: 15
+jsx_prop: 1
+object_key: 14
+reference: 23
+string_literal: 3
+
+FINDINGS
+--------------------------------------------------------------------------------
+
+File: hooks/useCostAllocation.js
+Layer: hook
+Matches:
+  L583: safe_number(base_calculation_inputs?.labour_recovery_cost) + [FORMATTING]
+  L593: base_calculation_inputs?.labour_recovery_cost, [REFERENCE]
+  L768: labour_recovery_cost: calculated.labour_recovery_cost, [OBJECT_KEY]
+
+File: hooks/useRecoverySummary.js
+Layer: hook
+Matches:
+  L126: labour_recovery_cost: calculated.labour_recovery_cost, [OBJECT_KEY]
+
+File: tools/audit/qs_calc_test_runner.py
+Layer: audit_tool
+Matches:
+  L743: "labour_recovery_cost": 60000, [REFERENCE]
+  L893: labour_recovery_cost: 60000, [OBJECT_KEY]
+  L1054: "labour_recovery_cost": 60000, [REFERENCE]
+  L1250: labour_recovery_cost: 60000, [OBJECT_KEY]
+  L1557: labour_recovery_cost: 60000, [OBJECT_KEY]
+  L1701: "labour_recovery_cost": 60000, [REFERENCE]
+  L1860: labour_recovery_cost: 60000, [OBJECT_KEY]
+  L2034: "labour_recovery_cost": 60000, [REFERENCE]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L50: "labour_recovery_cost", [STRING_LITERAL]
+
+File: tools/audit/qs_variable_register.py
+Layer: audit_tool
+Matches:
+  L819: "labour_recovery_cost", [STRING_LITERAL]
+  L856: "labour_recovery_cost / total_productive_output", [STRING_LITERAL]
+
+File: lib/calculations/costAllocationRules.js
+Layer: calculation
+Matches:
+  L714: safe_number(inputs?.labour_recovery_cost) || [FORMATTING]
+  L915: labour_recovery_cost: safe_number(inputs?.labour_recovery_cost), [FORMATTING]
+
+File: lib/calculations/recoveryOutcomeCalculations.js
+Layer: calculation
+Matches:
+  L533: labour_recovery_cost: round_currency(recovery_summary.labour_recovery_cost), [FORMATTING]
+
+File: lib/calculations/recoverySummaryCalculations.js
+Layer: calculation
+Matches:
+  L559: let labour_recovery_cost = round_currency( [FORMATTING]
+  L593: labour_recovery_cost = round_currency(total_people_cost_annual); [FORMATTING]
+  L600: labour_recovery_cost = 0; [DEFAULT_VALUE]
+  L611: : round_currency(labour_recovery_cost / recovery_hours_used); [FORMATTING]
+  L619: : round_currency(labour_recovery_cost / recovery_hours_used); [FORMATTING]
+  L671: labour_recovery_cost + [FORMULA]
+  L677: ? (labour_recovery_cost / recovery_stream_total) * 100 [FORMULA]
+  L715: recovery_cost: labour_recovery_cost, [OBJECT_KEY]
+  L945: labour_recovery_cost, [REFERENCE]
+
+File: lib/selectors/costAllocationSelectors.js
+Layer: selector
+Matches:
+  L213: recovery_cost: calculated?.labour_recovery_cost ?? 0, [OBJECT_KEY]
+  L498: labour_recovery_cost: calculated?.labour_recovery_cost ?? 0, [OBJECT_KEY]
+
+File: lib/selectors/recoveryOutcomeSelectors.js
+Layer: selector
+Matches:
+  L66: labour_recovery_cost: outputs.labour_recovery_cost, [OBJECT_KEY]
+
+File: lib/selectors/recoverySummarySelectors.js
+Layer: selector
+Matches:
+  L24: safe_number(calculated.labour_recovery_cost) + [FORMATTING]
+  L271: component_cost: calculated.labour_recovery_cost, [OBJECT_KEY]
+  L355: component_cost: calculated.labour_recovery_cost, [OBJECT_KEY]
+  L537: labour_recovery_cost: calculated.labour_recovery_cost ?? 0, [OBJECT_KEY]
+
+File: lib/calculations/cost-allocation/costAllocationInputBuilder.js
+Layer: calculation
+Matches:
+  L55: labour_recovery_cost: safe_number(recovery_outputs?.labour_recovery_cost), [FORMATTING]
+
+File: docs/V3.7 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L662: labour_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/02_IMPLEMENTATION_ORDER_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L479: labour_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/03_VARIABLE_CONTRACT_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L530: labour_recovery_cost [REFERENCE]
+  L587: labour_recovery_cost = total_cost_burden * labour_share_percent / 100 [FORMULA]
+  L595: : labour_recovery_cost / total_productive_output [FORMULA]
+
+File: docs/V3.7 Source Files/07_LABOUR_MODULE_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L562: labour_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/25_RECOVERY_SUMMARY_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L313: labour_recovery_cost [REFERENCE]
+  L399: recovery_cost: labour_recovery_cost, [OBJECT_KEY]
+  L438: labour_recovery_cost = total_cost_burden * labour_share_percent / 100 [FORMULA]
+  L450: : labour_recovery_cost / total_productive_output [FORMULA]
+  L532: labour_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/26_COST_ALLOCATION_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L200: labour_recovery_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/27_BUSINESS_OUTCOME_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L212: labour_recovery_cost [REFERENCE]
+  L1085: labour_recovery_cost [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/RECOVERY SUMMARY v3.5.txt
+Layer: docs
+Matches:
+  L71: - labour_recovery_cost [FORMULA]
+
+File: docs/sources/Source Files V3.0/V3.6 Updated Build/VARIABLE CONTRACT BRIEF v3.6.txt
+Layer: docs
+Matches:
+  L164: - labour_recovery_cost [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.7/01_ACTIVE_SYSTEM_BRIEF_RECOVERY_CHAIN_ADDENDUM_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L99: labour_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost Allocation Page — Build Brief v2.1.txt
+Layer: docs
+Matches:
+  L264: labour_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary locked state.txt
+Layer: docs
+Matches:
+  L24: * `labour_recovery_cost` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary Page — Build Brief v1.0.txt
+Layer: docs
+Matches:
+  L96: labour_recovery_cost = total_cost_burden × labour_share_percent / 100 [FORMULA]
+  L100: required_labour_recovery_rate = labour_recovery_cost / total_productive_output [FORMULA]
+  L116: labour_recovery_cost [REFERENCE]
+  L175: labour_recovery_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery_Summary_Page_v1.0_LOCKED.txt
+Layer: docs
+Matches:
+  L138: labour_recovery_cost = [REFERENCE]
+  L152: labour_recovery_cost / total_productive_output [FORMULA]
+  L169: - labour_recovery_cost [FORMULA]
+  L206: - labour_recovery_cost [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/3 Update Assets and Recovery Model/Recovery_Summary_v1.1_LOCKED.txt
+Layer: docs
+Matches:
+  L51: labour_recovery_cost [REFERENCE]
+
+File: docs/Future Build Briefs/Handover Brief/UPSTREAM MODULE IMPACT DETAILS.txt
+Layer: docs
+Matches:
+  L258: - labour_recovery_cost [FORMULA]
+
+File: components/recovery-summary/RecoverySummaryDistributionBlock.jsx
+Layer: component
+Matches:
+  L5: labour_recovery_cost, [REFERENCE]
+  L32: {format_currency(labour_recovery_cost)} [FORMATTING]
+
+File: components/recovery-summary/RecoverySummaryMainCard.jsx
+Layer: component
+Matches:
+  L182: labour_recovery_cost = 0, [DEFAULT_VALUE]
+  L203: value: format_currency(labour_recovery_cost), [FORMATTING]
+  L266: labour_recovery_cost, [REFERENCE]
+  L342: labour_recovery_cost={labour_recovery_cost} [JSX_PROP]
+
+RISK FLAGS
+--------------------------------------------------------------------------------
+No risk flags.

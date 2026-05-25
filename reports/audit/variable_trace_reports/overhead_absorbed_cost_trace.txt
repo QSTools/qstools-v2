@@ -1,0 +1,222 @@
+QS TOOLS VARIABLE TRACE REPORT
+================================================================================
+Variable: overhead_absorbed_cost
+Registered: True
+Files found: 29
+
+REGISTER RECORD
+--------------------------------------------------------------------------------
+Owner: Recovery Summary
+Owning file: lib/calculations/recoverySummaryCalculations.js
+Type: calculated_output
+Calculation/source: total_cost_burden * overhead_share_percent
+Downstream consumers: Recovery Outcome
+Must balance to P&L: False
+Test required: True
+Notes: Recovery Summary distribution output.
+
+LAYER SUMMARY
+--------------------------------------------------------------------------------
+audit_tool: 3
+calculation: 4
+component: 1
+docs: 16
+hook: 2
+selector: 3
+
+USAGE SUMMARY
+--------------------------------------------------------------------------------
+default_value: 1
+formatting: 12
+formula: 9
+object_key: 16
+reference: 25
+string_literal: 2
+
+FINDINGS
+--------------------------------------------------------------------------------
+
+File: hooks/useCostAllocation.js
+Layer: hook
+Matches:
+  L374: overhead_absorbed_cost = 0, [DEFAULT_VALUE]
+  L479: safe_number(overhead_absorbed_cost)) / [FORMATTING]
+  L585: overhead_absorbed_cost: base_calculation_inputs?.overhead_absorbed_cost, [OBJECT_KEY]
+  L595: base_calculation_inputs?.overhead_absorbed_cost, [REFERENCE]
+  L771: overhead_absorbed_cost: calculated.overhead_absorbed_cost, [OBJECT_KEY]
+
+File: hooks/useRecoverySummary.js
+Layer: hook
+Matches:
+  L139: overhead_absorbed_cost: calculated.overhead_absorbed_cost, [OBJECT_KEY]
+
+File: tools/audit/qs_calc_test_runner.py
+Layer: audit_tool
+Matches:
+  L746: "overhead_absorbed_cost": 23000, [REFERENCE]
+  L896: overhead_absorbed_cost: 23000, [OBJECT_KEY]
+  L1057: "overhead_absorbed_cost": 23000, [REFERENCE]
+  L1253: overhead_absorbed_cost: 23000, [OBJECT_KEY]
+  L1559: overhead_absorbed_cost: 23000, [OBJECT_KEY]
+  L1703: "overhead_absorbed_cost": 23000, [REFERENCE]
+  L1862: overhead_absorbed_cost: 23000, [OBJECT_KEY]
+  L2036: "overhead_absorbed_cost": 23000, [REFERENCE]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L52: "overhead_absorbed_cost", [STRING_LITERAL]
+
+File: tools/audit/qs_variable_register.py
+Layer: audit_tool
+Matches:
+  L841: "overhead_absorbed_cost", [STRING_LITERAL]
+
+File: lib/calculations/costAllocationRules.js
+Layer: calculation
+Matches:
+  L692: overhead_cost: safe_number(inputs?.overhead_absorbed_cost), [FORMATTING]
+  L725: safe_number(inputs?.overhead_absorbed_cost); [FORMATTING]
+  L918: overhead_absorbed_cost: safe_number(inputs?.overhead_absorbed_cost), [FORMATTING]
+
+File: lib/calculations/recoveryOutcomeCalculations.js
+Layer: calculation
+Matches:
+  L535: overhead_absorbed_cost: round_currency( [FORMATTING]
+  L536: recovery_summary.overhead_absorbed_cost [REFERENCE]
+
+File: lib/calculations/recoverySummaryCalculations.js
+Layer: calculation
+Matches:
+  L571: let overhead_absorbed_cost = round_currency( [FORMATTING]
+  L596: overhead_absorbed_cost = round_currency(total_business_overheads); [FORMATTING]
+  L603: overhead_absorbed_cost = round_currency(total_cost_burden); [FORMATTING]
+  L631: : round_currency(overhead_absorbed_cost / recovery_hours_used); [FORMATTING]
+  L674: overhead_absorbed_cost; [REFERENCE]
+  L730: recovery_cost: overhead_absorbed_cost, [OBJECT_KEY]
+  L953: overhead_absorbed_cost, [REFERENCE]
+
+File: lib/selectors/costAllocationSelectors.js
+Layer: selector
+Matches:
+  L254: recovery_cost: calculated?.overhead_absorbed_cost ?? 0, [OBJECT_KEY]
+  L501: overhead_absorbed_cost: calculated?.overhead_absorbed_cost ?? 0, [OBJECT_KEY]
+
+File: lib/selectors/recoveryOutcomeSelectors.js
+Layer: selector
+Matches:
+  L68: overhead_absorbed_cost: outputs.overhead_absorbed_cost, [OBJECT_KEY]
+
+File: lib/selectors/recoverySummarySelectors.js
+Layer: selector
+Matches:
+  L27: safe_number(calculated.overhead_absorbed_cost) [FORMATTING]
+  L172: component_cost: calculated.overhead_absorbed_cost, [OBJECT_KEY]
+  L292: component_cost: calculated.overhead_absorbed_cost, [OBJECT_KEY]
+  L373: component_cost: calculated.overhead_absorbed_cost, [OBJECT_KEY]
+  L545: overhead_absorbed_cost: calculated.overhead_absorbed_cost ?? 0, [OBJECT_KEY]
+
+File: lib/calculations/cost-allocation/costAllocationInputBuilder.js
+Layer: calculation
+Matches:
+  L60: overhead_absorbed_cost: safe_number( [FORMATTING]
+  L61: recovery_outputs?.overhead_absorbed_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L664: overhead_absorbed_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/02_IMPLEMENTATION_ORDER_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L481: overhead_absorbed_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/03_VARIABLE_CONTRACT_BRIEF_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L532: overhead_absorbed_cost [REFERENCE]
+  L589: overhead_absorbed_cost = total_cost_burden * overhead_share_percent / 100 [FORMULA]
+
+File: docs/V3.7 Source Files/25_RECOVERY_SUMMARY_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L315: overhead_absorbed_cost [REFERENCE]
+  L409: recovery_cost: overhead_absorbed_cost [OBJECT_KEY]
+  L440: overhead_absorbed_cost = total_cost_burden * overhead_share_percent / 100 [FORMULA]
+  L534: overhead_absorbed_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/26_COST_ALLOCATION_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L202: overhead_absorbed_cost [REFERENCE]
+
+File: docs/V3.7 Source Files/27_BUSINESS_OUTCOME_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L214: overhead_absorbed_cost [REFERENCE]
+  L1087: overhead_absorbed_cost [REFERENCE]
+
+File: docs/sources/Source Files V3.0/V3.5 Updated Build/RECOVERY SUMMARY v3.5.txt
+Layer: docs
+Matches:
+  L74: - overhead_absorbed_cost [FORMULA]
+
+File: docs/sources/Source Files V3.0/V3.6 Updated Build/VARIABLE CONTRACT BRIEF v3.6.txt
+Layer: docs
+Matches:
+  L166: - overhead_absorbed_cost [FORMULA]
+
+File: docs/sources/Depricated v3.6/V3.7/01_ACTIVE_SYSTEM_BRIEF_RECOVERY_CHAIN_ADDENDUM_v3.8_LOCKED.txt
+Layer: docs
+Matches:
+  L101: overhead_absorbed_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Cost Allocation Page — Build Brief v2.1.txt
+Layer: docs
+Matches:
+  L266: overhead_absorbed_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary locked state.txt
+Layer: docs
+Matches:
+  L26: * `overhead_absorbed_cost` [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery Summary Page — Build Brief v1.0.txt
+Layer: docs
+Matches:
+  L98: overhead_absorbed_cost = total_cost_burden × overhead_share_percent / 100 [FORMULA]
+  L118: overhead_absorbed_cost [REFERENCE]
+  L177: overhead_absorbed_cost [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/1 Locked Source Files for Base Project/Recovery_Summary_Page_v1.0_LOCKED.txt
+Layer: docs
+Matches:
+  L144: overhead_absorbed_cost = [REFERENCE]
+  L171: - overhead_absorbed_cost [FORMULA]
+  L208: - overhead_absorbed_cost [FORMULA]
+
+File: docs/sources/Current Source Files/Modules 2 0/3 Update Assets and Recovery Model/QS Tools — Safe Implementation Order for Productive Asset Recovery Upgrade (v1.0 — LOCKED).txt
+Layer: docs
+Matches:
+  L114: overhead_absorbed_cost if still needed [REFERENCE]
+
+File: docs/sources/Current Source Files/Modules 2 0/3 Update Assets and Recovery Model/Recovery_Summary_v1.1_LOCKED.txt
+Layer: docs
+Matches:
+  L53: overhead_absorbed_cost [REFERENCE]
+
+File: docs/Future Build Briefs/Handover Brief/UPSTREAM MODULE IMPACT DETAILS.txt
+Layer: docs
+Matches:
+  L260: - overhead_absorbed_cost [FORMULA]
+
+File: components/recovery-summary/RecoverySummaryDistributionBlock.jsx
+Layer: component
+Matches:
+  L8: overhead_absorbed_cost, [REFERENCE]
+  L59: {format_currency(overhead_absorbed_cost)} [FORMATTING]
+
+RISK FLAGS
+--------------------------------------------------------------------------------
+No risk flags.

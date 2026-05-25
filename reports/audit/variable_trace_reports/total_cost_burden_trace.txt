@@ -2,7 +2,7 @@ QS TOOLS VARIABLE TRACE REPORT
 ================================================================================
 Variable: total_cost_burden
 Registered: True
-Files found: 153
+Files found: 159
 
 REGISTER RECORD
 --------------------------------------------------------------------------------
@@ -13,30 +13,31 @@ Calculation/source: total_people_cost_annual + total_asset_cost_annual + total_b
 Downstream consumers: Recovery Summary, Recovery Outcome, Reconciliation Audit
 Must balance to P&L: True
 Test required: True
-Notes: Main Cost Summary output. Must reconcile to P&L or explained variance.
+Notes: Main Cost Summary output. Labour comes from Labour module, assets from Assets, and employee overheads through General Overheads. Must reconcile to P&L or explained variance.
 
 LAYER SUMMARY
 --------------------------------------------------------------------------------
-audit_tool: 2
+audit_tool: 6
 calculation: 9
 component: 15
-docs: 112
+docs: 113
 hook: 4
 page: 4
 selector: 6
 tooling: 1
+unknown: 1
 
 USAGE SUMMARY
 --------------------------------------------------------------------------------
 assignment: 6
-comparison: 8
+comparison: 9
 default_value: 9
 formatting: 26
 formula: 188
 jsx_prop: 8
-object_key: 14
-reference: 130
-string_literal: 8
+object_key: 20
+reference: 145
+string_literal: 10
 
 FINDINGS
 --------------------------------------------------------------------------------
@@ -73,15 +74,50 @@ Layer: tooling
 Matches:
   L83: python tools/audit/qs_variable_trace.py total_cost_burden [FORMULA]
 
+File: tools/audit/qs_build_live_snapshot.py
+Layer: audit_tool
+Matches:
+  L132: "total_cost_burden": 95000 [REFERENCE]
+  L217: total_cost_burden = round_money( [REFERENCE]
+  L218: get_nested(app_state, "cost_summary", "total_cost_burden") [REFERENCE]
+  L221: if total_cost_burden == 0: [COMPARISON]
+  L222: total_cost_burden = round_money( [REFERENCE]
+  L285: "qs_tools_calculated_cost": total_cost_burden, [REFERENCE]
+  L289: "total_cost_burden": total_cost_burden [REFERENCE]
+
+File: tools/audit/qs_calc_test_runner.py
+Layer: audit_tool
+Matches:
+  L545: "total_cost_burden": 94995, [REFERENCE]
+  L618: total_cost_burden: 95000, [OBJECT_KEY]
+  L730: "total_cost_burden": 95000, [REFERENCE]
+  L891: total_cost_burden: 95000, [OBJECT_KEY]
+  L1098: "total_cost_burden": 95000, [REFERENCE]
+  L1248: total_cost_burden: 95000, [OBJECT_KEY]
+  L1565: total_cost_burden: 95000, [OBJECT_KEY]
+  L1709: "total_cost_burden": 95000, [REFERENCE]
+  L1868: total_cost_burden: 95000, [OBJECT_KEY]
+  L2042: "total_cost_burden": 95000, [REFERENCE]
+
+File: tools/audit/qs_reconciliation_audit.py
+Layer: audit_tool
+Matches:
+  L368: qs_tools.get("total_cost_burden", 0), [REFERENCE]
+
+File: tools/audit/qs_run_full_audit.py
+Layer: audit_tool
+Matches:
+  L46: "total_cost_burden", [STRING_LITERAL]
+
 File: tools/audit/qs_variable_register.py
 Layer: audit_tool
 Matches:
-  L529: "total_cost_burden", [STRING_LITERAL]
-  L544: "total_cost_burden", [STRING_LITERAL]
-  L614: "total_cost_burden * labour_share_percent", [STRING_LITERAL]
-  L625: "total_cost_burden * asset_share_percent", [STRING_LITERAL]
-  L636: "total_cost_burden * overhead_share_percent", [STRING_LITERAL]
-  L769: "Usually total_cost_burden", [STRING_LITERAL]
+  L738: "total_cost_burden", [STRING_LITERAL]
+  L753: "total_cost_burden", [STRING_LITERAL]
+  L823: "total_cost_burden * labour_share_percent", [STRING_LITERAL]
+  L834: "total_cost_burden * asset_share_percent", [STRING_LITERAL]
+  L845: "total_cost_burden * overhead_share_percent", [STRING_LITERAL]
+  L967: "Usually total_cost_burden", [STRING_LITERAL]
 
 File: tools/audit/qs_variable_trace.py
 Layer: audit_tool
@@ -89,6 +125,15 @@ Matches:
   L9: python tools/audit/qs_variable_trace.py total_cost_burden [FORMULA]
   L212: # total_cost_burden: calculations.total_cost_burden [REFERENCE]
   L531: help="Variable name to trace, e.g. total_cost_burden", [REFERENCE]
+
+File: lib/audit/buildLiveAuditSnapshotExport.js
+Layer: unknown
+Matches:
+  L95: "total_cost_burden", [STRING_LITERAL]
+  L112: total_cost_burden: totalCostBurden, [OBJECT_KEY]
+Alias matches:
+  L99: totalCostBurden -> const totalCostBurden = [ASSIGNMENT]
+  L112: totalCostBurden -> total_cost_burden: totalCostBurden, [OBJECT_KEY]
 
 File: lib/calculations/businessModellingCalculations.js
 Layer: calculation
@@ -194,6 +239,13 @@ File: lib/calculations/cost-allocation/costAllocationInputBuilder.js
 Layer: calculation
 Matches:
   L84: total_cost_burden: safe_number(recovery_outputs?.total_cost_burden), [FORMATTING]
+
+File: docs/audit/QS_Tools_Live_Audit_Snapshot_Contract_v1.0.txt
+Layer: docs
+Matches:
+  L49: "total_cost_burden": 0 [REFERENCE]
+  L110: cost_summary.total_cost_burden [REFERENCE]
+  L159: "total_cost_burden": 0 [REFERENCE]
 
 File: docs/Future Build Briefs/# Future Build Brief — Mirra Xero Validation Layer.txt
 Layer: docs
@@ -1052,4 +1104,5 @@ Matches:
 
 RISK FLAGS
 --------------------------------------------------------------------------------
+- Possible alias drift: camelCase alias found in lib/audit/buildLiveAuditSnapshotExport.js
 - Check selector formula/shaping: lib/selectors/costSummarySelectors.js:215
