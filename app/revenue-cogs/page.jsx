@@ -109,6 +109,7 @@ export default function RevenueCogsPage() {
           gross_margin_percent={card.gross_margin_percent}
           revenue_line_items={card.revenue_line_items}
           direct_cost_categories={card.direct_cost_categories}
+          direct_cost_account_lines={card.direct_cost_account_lines}
           business_type={card.business_type}
           is_product_based={card.is_product_based}
           is_labour_based={card.is_labour_based}

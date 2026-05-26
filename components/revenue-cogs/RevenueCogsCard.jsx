@@ -312,6 +312,7 @@ export default function RevenueCogsCard({
   gross_margin_percent = 0,
   revenue_line_items = [],
   direct_cost_categories = [],
+  direct_cost_account_lines = [],
 
   business_type = "labour_based",
   is_product_based = false,
@@ -434,6 +435,7 @@ export default function RevenueCogsCard({
         </div>
 
         <RevenueCogXeroImportPanel
+          pnl_direct_cost_account_lines={direct_cost_account_lines}
           on_import_complete={onXeroCogImportComplete}
         />
 

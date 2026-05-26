@@ -142,7 +142,7 @@ export default function ProfitAndLossCostOfSalesLineRow({
               key={category.category_id}
               value={`direct:${category.category_id}`}
             >
-              {category.category_name} → Materials / Cost of Goods Sold
+              {category.category_name} → Cost of Sales
             </option>
           ))}
 
@@ -156,7 +156,7 @@ export default function ProfitAndLossCostOfSalesLineRow({
             ? `${get_direct_cost_category_name(
                 state,
                 current_group_key,
-              )} is treated as Materials / Cost of Goods Sold.`
+              )} is treated as a Cost of Sales direct cost category.`
             : get_category_help_text(line.category || "unassigned")}
         </p>
       </div>

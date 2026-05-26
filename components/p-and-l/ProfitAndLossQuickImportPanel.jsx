@@ -23,6 +23,14 @@ const DEFAULT_DIRECT_COST_CATEGORIES = [
     updated_at: "",
   },
   {
+    category_id: "subcontracting_general",
+    category_name: "Subcontracting - General",
+    is_default: true,
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  },
+  {
     category_id: "hired_equipment_plant",
     category_name: "Hired equipment / plant",
     is_default: true,
@@ -171,7 +179,44 @@ function infer_line_mapping(line_name) {
   }
 
   if (
-    ["subcontract", "subcontractor", "subcontracting"].some((word) =>
+    [
+      "subcontracting - general",
+      "subcontracting general",
+      "concrete laying",
+      "concrete pumping",
+      "pumping",
+      "blocklaying",
+      "bricklaying",
+      "reinforcing",
+      "waterproofing",
+      "cutting",
+      "sawing",
+      "drilling",
+      "scaffold",
+      "scaffolding",
+    ].some((word) =>
+      name.includes(word),
+    )
+  ) {
+    return {
+      section: "cost_of_sales",
+      category: "cogs",
+      direct_cost_category_id: "subcontracting_general",
+      review_subcategory: "",
+    };
+  }
+
+  if (
+    [
+      "subcontracting - labour",
+      "subcontract labour",
+      "subcontract labour",
+      "subcontracting labour",
+      "subcontractor labour",
+      "subcontract",
+      "subcontractor",
+      "subcontracting",
+    ].some((word) =>
       name.includes(word),
     )
   ) {

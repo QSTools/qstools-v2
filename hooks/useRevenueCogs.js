@@ -254,6 +254,8 @@ export default function useRevenueCogs() {
       total_revenue: pnl_output_contract.total_revenue ?? 0,
       total_direct_costs: pnl_output_contract.total_direct_costs ?? 0,
       revenue_lines: pnl_output_contract.revenue_lines ?? [],
+      cost_of_sales_lines: pnl_output_contract.cost_of_sales_lines ?? [],
+      direct_cost_categories: pnl_output_contract.direct_cost_categories ?? [],
       direct_cost_category_totals:
         pnl_output_contract.direct_cost_category_totals ?? [],
       commercial_driver_mode: resolved_commercial_driver_mode,
