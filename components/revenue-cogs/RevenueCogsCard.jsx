@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import RevenueCogXeroImportPanel from "@/components/revenue-cogs/RevenueCogXeroImportPanel";
 
 function toNumber(value) {
   const parsed = Number(String(value ?? "").replace(/,/g, ""));
@@ -330,6 +331,7 @@ export default function RevenueCogsCard({
   updateUnitDriverRow,
   addUnitDriverRow,
   removeUnitDriverRow,
+  onXeroCogImportComplete = () => {},
 }) {
   const [detailsOpen, setDetailsOpen] = useState(true);
 
@@ -431,6 +433,10 @@ export default function RevenueCogsCard({
           </div>
         </div>
 
+        <RevenueCogXeroImportPanel
+          on_import_complete={onXeroCogImportComplete}
+        />
+
         {is_product_based && is_unit_based ? (
           <div className="ui-panel ui-stack">
             <div className="ui-split">
@@ -521,7 +527,9 @@ export default function RevenueCogsCard({
                   {unit_recovery_warnings.map((warning) => (
                     <p
                       className="ui-help"
-                      key={`${warning.warning_id}-${warning.unit_driver_id || "all"}`}
+                      key={`${warning.warning_id}-${
+                        warning.unit_driver_id || "all"
+                      }`}
                     >
                       {warning.message}
                     </p>
