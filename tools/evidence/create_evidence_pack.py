@@ -19,13 +19,20 @@ import sys
 # - git status
 # - copied screenshots from EvidenceDrop
 # - copied logs / notes from EvidenceDrop
+# - copied source briefs / text notes from EvidenceDrop
 # - index.json metadata
+#
+# Default behaviour:
+# EvidenceDrop is cleared after a successful pack is created.
 #
 # Usage:
 # python tools\evidence\create_evidence_pack.py --label "PNL_Source_Integrity"
 #
 # Optional:
 # python tools\evidence\create_evidence_pack.py --label "PNL_Source_Integrity" --note "Before P&L rebuild"
+#
+# Keep EvidenceDrop files:
+# python tools\evidence\create_evidence_pack.py --label "PNL_Source_Integrity" --keep-drop
 # ============================================================
 
 
@@ -44,8 +51,6 @@ SCREENSHOT_EXTENSIONS = {
 }
 
 LOG_EXTENSIONS = {
-    ".txt",
-    ".md",
     ".csv",
     ".json",
     ".log",
@@ -62,10 +67,7 @@ def safe_timestamp() -> str:
 
 
 def slugify_label(label: str) -> str:
-    cleaned = "".join(
-        char if char.isalnum() else "_"
-        for char in label.strip()
-    )
+    cleaned = "".join(char if char.isalnum() else "_" for char in label.strip())
 
     while "__" in cleaned:
         cleaned = cleaned.replace("__", "_")
@@ -191,6 +193,13 @@ def create_git_logs(pack_paths: dict[str, Path]) -> dict:
     return outputs
 
 
+def format_file_list(items: list[str], fallback: str = "- None") -> str:
+    if not items:
+        return fallback
+
+    return "\n".join(f"- {item}" for item in items)
+
+
 def build_readme(
     pack_label: str,
     pack_name: str,
@@ -198,11 +207,27 @@ def build_readme(
     note: str,
     copied: dict,
     git_outputs: dict,
+    drop_was_cleared: bool,
 ) -> str:
     screenshot_count = len(copied["screenshots"])
     log_count = len(copied["logs"])
     source_count = len(copied["source_briefs"])
     other_count = len(copied["other"])
+
+    screenshots_list = format_file_list(copied["screenshots"])
+    logs_list = format_file_list(copied["logs"])
+    source_list = format_file_list(copied["source_briefs"])
+    other_list = format_file_list(copied["other"])
+
+    git_outputs_list = "\n".join(
+        f"- {key}: {value}" for key, value in git_outputs.items()
+    )
+
+    drop_status = (
+        "EvidenceDrop was cleared after successful pack creation."
+        if drop_was_cleared
+        else "EvidenceDrop was kept after pack creation."
+    )
 
     return f"""# Mirra Evidence Pack
 
@@ -221,6 +246,9 @@ This evidence pack records a product development milestone for Mirra.
 Note:
 {note or "No additional note provided."}
 
+Drop folder status:
+{drop_status}
+
 ---
 
 ## Contents
@@ -229,7 +257,7 @@ source_briefs/
 - Source briefs, build contracts, or relevant milestone notes copied from EvidenceDrop.
 
 logs/
-- Git log, git status, command outputs, changelogs, and text notes.
+- Git log, git status, command outputs, changelogs, and structured log files.
 
 screenshots/
 - Current-state UI screenshots copied from EvidenceDrop.
@@ -247,10 +275,10 @@ audit_outputs/
 Screenshots:
 {screenshot_count}
 
-Logs / notes:
+Logs:
 {log_count}
 
-Source briefs:
+Source briefs / text notes:
 {source_count}
 
 Other files:
@@ -258,9 +286,33 @@ Other files:
 
 ---
 
+## Screenshots
+
+{screenshots_list}
+
+---
+
+## Logs Copied From EvidenceDrop
+
+{logs_list}
+
+---
+
+## Source Briefs / Notes Copied From EvidenceDrop
+
+{source_list}
+
+---
+
+## Other Copied Files
+
+{other_list}
+
+---
+
 ## Generated Git Evidence
 
-{chr(10).join(f"- {key}: {value}" for key, value in git_outputs.items())}
+{git_outputs_list}
 
 ---
 
@@ -297,6 +349,7 @@ def write_index(
     note: str,
     copied: dict,
     git_outputs: dict,
+    drop_was_cleared: bool,
 ) -> Path:
     index = {
         "product": "Mirra",
@@ -307,6 +360,8 @@ def write_index(
         "project_root": str(PROJECT_ROOT),
         "pack_path": str(pack_path),
         "note": note,
+        "drop_folder": str(DROP_ROOT),
+        "drop_was_cleared": drop_was_cleared,
         "copied_files": copied,
         "generated_git_outputs": git_outputs,
     }
@@ -317,10 +372,7 @@ def write_index(
     return index_path
 
 
-def optionally_clear_drop_folder(clear_drop: bool) -> None:
-    if not clear_drop:
-        return
-
+def clear_drop_folder() -> None:
     if not DROP_ROOT.exists():
         return
 
@@ -331,7 +383,7 @@ def optionally_clear_drop_folder(clear_drop: bool) -> None:
             item.unlink()
 
 
-def create_evidence_pack(label: str, note: str = "", clear_drop: bool = False) -> Path:
+def create_evidence_pack(label: str, note: str = "", keep_drop: bool = False) -> Path:
     timestamp = safe_timestamp()
     safe_label = slugify_label(label)
 
@@ -353,6 +405,12 @@ def create_evidence_pack(label: str, note: str = "", clear_drop: bool = False) -
     copied = collect_drop_files(pack_paths)
     git_outputs = create_git_logs(pack_paths)
 
+    drop_was_cleared = False
+
+    if not keep_drop:
+        clear_drop_folder()
+        drop_was_cleared = True
+
     readme_content = build_readme(
         pack_label=label,
         pack_name=pack_name,
@@ -360,6 +418,7 @@ def create_evidence_pack(label: str, note: str = "", clear_drop: bool = False) -
         note=note,
         copied=copied,
         git_outputs=git_outputs,
+        drop_was_cleared=drop_was_cleared,
     )
 
     readme_path = pack_path / f"README_EVIDENCE_{pack_name}.txt"
@@ -373,9 +432,8 @@ def create_evidence_pack(label: str, note: str = "", clear_drop: bool = False) -
         note=note,
         copied=copied,
         git_outputs=git_outputs,
+        drop_was_cleared=drop_was_cleared,
     )
-
-    optionally_clear_drop_folder(clear_drop)
 
     print("Evidence pack created successfully.")
     print()
@@ -385,9 +443,15 @@ def create_evidence_pack(label: str, note: str = "", clear_drop: bool = False) -
     print()
     print("Copied files:")
     print(f"- Screenshots: {len(copied['screenshots'])}")
-    print(f"- Logs / notes: {len(copied['logs'])}")
-    print(f"- Source briefs: {len(copied['source_briefs'])}")
+    print(f"- Logs: {len(copied['logs'])}")
+    print(f"- Source briefs / notes: {len(copied['source_briefs'])}")
     print(f"- Other: {len(copied['other'])}")
+    print()
+    print("Drop folder:")
+    if drop_was_cleared:
+        print("- EvidenceDrop cleared after successful copy.")
+    else:
+        print("- EvidenceDrop kept because --keep-drop was used.")
     print()
     print("Generated git evidence:")
     for key, value in git_outputs.items():
@@ -418,9 +482,9 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--clear-drop",
+        "--keep-drop",
         action="store_true",
-        help="Clear EvidenceDrop after copying files.",
+        help="Keep EvidenceDrop files after copying. By default, EvidenceDrop is cleared after a successful pack is created.",
     )
 
     return parser.parse_args()
@@ -439,7 +503,7 @@ def main():
     create_evidence_pack(
         label=args.label,
         note=args.note,
-        clear_drop=args.clear_drop,
+        keep_drop=args.keep_drop,
     )
 
 
