@@ -1,0 +1,146 @@
+# MIRRA v4.0 — P&L Source Integrity Contract
+
+STATUS: BUILD CONTRACT
+SOURCE: 04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+PURPOSE: Short implementation checklist before P&L rebuild / source integrity audit.
+
+---
+
+## 1. Module Role
+
+The P&L page owns imported accounting evidence and source classification.
+
+It is the accounting-source truth layer for the monthly business model.
+
+It does not calculate recovery strategy, build rates, create quote targets, or mutate downstream modules.
+
+---
+
+## 2. P&L Owns
+
+- imported accounting evidence
+- source P&L period selection
+- account identity
+- account grouping
+- revenue grouping
+- COG grouping
+- operating expense grouping
+- custom category assignment
+- other / unallocated handling
+- source reconciliation
+- P&L warning state
+- P&L trust state
+- source trace visibility
+
+---
+
+## 3. P&L Outputs
+
+The P&L rebuild must preserve or expose:
+
+- pnl_ready
+- pnl_status
+- pnl_warnings
+- pnl_model_trust_state
+- total_revenue
+- total_cogs
+- gross_profit
+- gross_profit_percent
+- total_operating_expenses
+- net_profit
+- revenue_groups
+- cost_of_sales_groups
+- operating_expense_groups
+- unallocated_rows
+- custom_category_rows
+- reassignment_map
+- source_trace
+- reconciliation_status
+
+---
+
+## 4. P&L Must Not
+
+- build rates
+- calculate recovery strategy
+- create Business Modelling scenarios
+- calculate quote targets
+- mutate downstream modules
+- fake supplier-level markups
+- handle SOQ / product detail
+- duplicate Revenue / COGS page logic
+- silently hide unallocated rows
+- duplicate an account into both unallocated and assigned categories
+
+---
+
+## 5. Known Issue To Fix First
+
+In P&L other / unallocated, sometimes when an item is reassigned it moves correctly, and other times it remains visible in the old category.
+
+Required behaviour:
+
+- reassignment must move the item
+- reassignment must not duplicate the item
+- an account/category row must not exist in both unallocated and assigned category after reassignment
+- the reassignment map must be the single source of truth for override category placement
+- display selectors must derive visible groups from the same reassignment state
+
+---
+
+## 6. Source Integrity Checks
+
+Before downstream rebuilds, confirm:
+
+- imported totals reconcile to source P&L
+- revenue grouping is stable
+- COG grouping is stable
+- operating expense grouping is stable
+- other / unallocated rows are explainable
+- reassigned rows are removed from unallocated display
+- custom categories preserve account identity
+- source_trace can explain where each displayed row came from
+- warnings are explicit and not hidden
+- pnl_model_trust_state reflects unresolved source issues
+
+---
+
+## 7. Architecture Rules
+
+page.jsx:
+- layout and orchestration only
+- no grouping maths
+- no reconciliation maths
+- no reassignment logic
+
+hook:
+- orchestrates import state, selectors, and actions
+- exposes status/card/action props
+
+calculations:
+- totals and accounting calculations only
+
+selectors:
+- visible grouping
+- warning shaping
+- status shaping
+- source trace shaping
+
+components:
+- UI only
+- no hidden formulas
+- no category mutation outside passed handlers
+
+---
+
+## 8. Definition Of Done
+
+P&L source integrity is ready when:
+
+- reassignment from other/unallocated is deterministic
+- no row appears in both unallocated and assigned groups
+- grouped totals reconcile to imported totals
+- warning state is visible
+- source trace exists for grouped rows
+- downstream modules consume only clean P&L outputs
+- page loads without console/build errors
