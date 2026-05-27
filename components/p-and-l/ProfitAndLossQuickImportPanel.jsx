@@ -2,91 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
-
-const IMPORTED_REVIEW_REQUIRED_CATEGORY_ID = "imported_review_required";
-
-const DEFAULT_DIRECT_COST_CATEGORIES = [
-  {
-    category_id: "materials",
-    category_name: "Materials",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "subcontract_labour",
-    category_name: "Subcontract labour",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "subcontracting_general",
-    category_name: "Subcontracting - General",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "hired_equipment_plant",
-    category_name: "Hired equipment / plant",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "freight_cartage",
-    category_name: "Freight / cartage",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "waste_tipping",
-    category_name: "Waste / tipping",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "direct_consumables",
-    category_name: "Direct consumables",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "other_direct_costs",
-    category_name: "Other direct costs",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: "review_required",
-    category_name: "Review required",
-    is_default: true,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    category_id: IMPORTED_REVIEW_REQUIRED_CATEGORY_ID,
-    category_name: "Imported / Review required",
-    is_default: false,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-];
+import { parse_profit_and_loss_excel_file } from "@/lib/p-and-l/profitAndLossExcelImporter";
 
 function make_pnl_line_id() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -125,6 +41,30 @@ function clean_amount(value) {
   return is_negative ? -Math.abs(parsed) : parsed;
 }
 
+function make_imported_cogs_category_id(line_name) {
+  const cleaned = String(line_name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return cleaned ? `imported_cogs_${cleaned}` : "imported_cogs_review_required";
+}
+
+function make_imported_cogs_category(line_name) {
+  const category_name = String(line_name || "").trim() || "Imported cost of sales";
+
+  return {
+    category_id: make_imported_cogs_category_id(category_name),
+    category_name,
+    is_default: false,
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
 function infer_line_mapping(line_name) {
   const name = String(line_name || "").toLowerCase();
 
@@ -150,17 +90,11 @@ function infer_line_mapping(line_name) {
     };
   }
 
-  if (["cartage", "freight", "delivery"].some((word) => name.includes(word))) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "freight_cartage",
-      review_subcategory: "",
-    };
-  }
-
   if (
     [
+      "cartage",
+      "freight",
+      "delivery",
       "material",
       "materials",
       "concrete purchase",
@@ -168,18 +102,6 @@ function infer_line_mapping(line_name) {
       "purchases - fill",
       "purchase - steel",
       "purchases - steel",
-    ].some((word) => name.includes(word))
-  ) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "materials",
-      review_subcategory: "",
-    };
-  }
-
-  if (
-    [
       "subcontracting - general",
       "subcontracting general",
       "concrete laying",
@@ -194,73 +116,21 @@ function infer_line_mapping(line_name) {
       "drilling",
       "scaffold",
       "scaffolding",
-    ].some((word) =>
-      name.includes(word),
-    )
-  ) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "subcontracting_general",
-      review_subcategory: "",
-    };
-  }
-
-  if (
-    [
       "subcontracting - labour",
-      "subcontract labour",
       "subcontract labour",
       "subcontracting labour",
       "subcontractor labour",
       "subcontract",
       "subcontractor",
       "subcontracting",
-    ].some((word) =>
-      name.includes(word),
-    )
-  ) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "subcontract_labour",
-      review_subcategory: "",
-    };
-  }
-
-  if (
-    ["equipment hire", "plant hire", "hire"].some((word) =>
-      name.includes(word),
-    )
-  ) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "hired_equipment_plant",
-      review_subcategory: "",
-    };
-  }
-
-  if (["waste", "tipping", "dump"].some((word) => name.includes(word))) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "waste_tipping",
-      review_subcategory: "",
-    };
-  }
-
-  if (["consumable", "consumables"].some((word) => name.includes(word))) {
-    return {
-      section: "cost_of_sales",
-      category: "cogs",
-      direct_cost_category_id: "direct_consumables",
-      review_subcategory: "",
-    };
-  }
-
-  if (
-    [
+      "equipment hire",
+      "plant hire",
+      "hire",
+      "waste",
+      "tipping",
+      "dump",
+      "consumable",
+      "consumables",
       "testing",
       "site works",
       "traffic",
@@ -270,8 +140,6 @@ function infer_line_mapping(line_name) {
       "contract cost",
       "project cost",
       "site cost",
-      "concrete laying",
-      "concrete pumping",
       "opening work in progress",
       "wip",
       "purchases - other",
@@ -280,8 +148,8 @@ function infer_line_mapping(line_name) {
     return {
       section: "cost_of_sales",
       category: "cogs",
-      direct_cost_category_id: IMPORTED_REVIEW_REQUIRED_CATEGORY_ID,
-      review_subcategory: "review_required",
+      direct_cost_category_id: make_imported_cogs_category_id(line_name),
+      review_subcategory: "",
     };
   }
 
@@ -423,10 +291,10 @@ function infer_line_mapping(line_name) {
 
 function normalise_direct_cost_categories(categories = []) {
   const seen = new Set();
-  const combined = [...DEFAULT_DIRECT_COST_CATEGORIES, ...(categories ?? [])];
 
-  return combined.filter((category) => {
+  return (categories ?? []).filter((category) => {
     const category_id = category?.category_id || "";
+
     if (!category_id || seen.has(category_id) || category?.is_active === false) {
       return false;
     }
@@ -450,11 +318,13 @@ function normalise_import_line(item = {}) {
     item.direct_cost_category_id || inferred.direct_cost_category_id || "";
   let review_subcategory =
     item.review_subcategory || inferred.review_subcategory || "";
+
   const is_asset_specific_finance = [
     "asset finance",
     "equipment finance",
     "finance lease",
   ].some((word) => normalised_line_name.includes(word));
+
   const is_mixed_or_generic_finance =
     !is_asset_specific_finance &&
     (review_subcategory === "mixed_finance" ||
@@ -469,11 +339,8 @@ function normalise_import_line(item = {}) {
 
   if (section === "cost_of_sales") {
     category = "cogs";
-
-    if (!direct_cost_category_id) {
-      direct_cost_category_id = IMPORTED_REVIEW_REQUIRED_CATEGORY_ID;
-      review_subcategory = "review_required";
-    }
+    direct_cost_category_id = make_imported_cogs_category_id(line_name);
+    review_subcategory = "";
   }
 
   if (
@@ -508,7 +375,15 @@ function normalise_import_line(item = {}) {
     interest_treatment: item.interest_treatment || "not_reviewed",
     review_subcategory,
     direct_cost_category_id,
+    source_type: item.source_type || "",
+    import_source: item.import_source || "",
   };
+}
+
+function build_direct_cost_categories_from_pnl_lines(pnl_lines = []) {
+  return pnl_lines
+    .filter((line) => line.section === "cost_of_sales")
+    .map((line) => make_imported_cogs_category(line.line_name));
 }
 
 function build_draft_import(payload = {}) {
@@ -518,14 +393,16 @@ function build_draft_import(payload = {}) {
     throw new Error("Import must contain line_items[] or pnl_lines[].");
   }
 
+  const pnl_lines = raw_lines.map(normalise_import_line);
+
   return {
     source_type: payload.source_type || "",
     source_file: payload.source_file || "",
     financial_year: payload.financial_year || "",
     period_month: payload.period_month || "",
-    pnl_lines: raw_lines.map(normalise_import_line),
+    pnl_lines,
     direct_cost_categories: normalise_direct_cost_categories(
-      payload.direct_cost_categories,
+      build_direct_cost_categories_from_pnl_lines(pnl_lines),
     ),
     unmatched_lines: payload.unmatched_lines || [],
   };
@@ -549,6 +426,21 @@ function count_by_section(lines = []) {
       operating_expenses: 0,
     },
   );
+}
+
+function is_excel_or_csv_file(file) {
+  const file_name = String(file?.name || "").toLowerCase();
+
+  return (
+    file_name.endsWith(".xlsx") ||
+    file_name.endsWith(".xls") ||
+    file_name.endsWith(".csv")
+  );
+}
+
+function is_pdf_file(file) {
+  const file_name = String(file?.name || "").toLowerCase();
+  return file_name.endsWith(".pdf");
 }
 
 export default function ProfitAndLossQuickImportPanel({ state, actions }) {
@@ -585,7 +477,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
     }
   }
 
-  async function handle_extract_pdf() {
+  async function handle_extract_file() {
     set_error_message("");
     set_import_message("");
 
@@ -593,7 +485,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
 
     if (!file) {
       set_error_message(
-        "Choose a P&L PDF first. If the file name is visible, reselect it and click Extract PDF again.",
+        "Choose a P&L Excel, CSV, or PDF file first. If the file name is visible, reselect it and click Extract again.",
       );
       return;
     }
@@ -601,6 +493,28 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
     set_is_extracting(true);
 
     try {
+      if (is_excel_or_csv_file(file)) {
+        const payload = await parse_profit_and_loss_excel_file(file);
+        const parsed = build_draft_import(payload);
+
+        if (parsed.pnl_lines.length === 0) {
+          set_draft_import(null);
+          set_error_message("No P&L lines were extracted from the Excel file.");
+          return;
+        }
+
+        set_draft_import(parsed);
+        set_selected_file(file);
+        set_import_message(
+          `${parsed.pnl_lines.length} lines extracted from Excel and ready to import.`,
+        );
+        return;
+      }
+
+      if (!is_pdf_file(file)) {
+        throw new Error("Unsupported file type. Upload .xlsx, .xls, .csv, or .pdf.");
+      }
+
       const form_data = new FormData();
       form_data.append("file", file);
 
@@ -641,7 +555,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
       );
     } catch (error) {
       set_draft_import(null);
-      set_error_message(error?.message || "Could not extract the P&L PDF.");
+      set_error_message(error?.message || "Could not extract the P&L file.");
     } finally {
       set_is_extracting(false);
     }
@@ -656,21 +570,46 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
     const next_period_month =
       draft_import.period_month ?? state?.period_month ?? "";
 
-    const next_pnl_lines = draft_import.pnl_lines;
+    const imported_pnl_lines = Array.isArray(draft_import.pnl_lines)
+      ? draft_import.pnl_lines
+      : [];
 
-    const next_direct_cost_categories = normalise_direct_cost_categories([
-      ...(state?.direct_cost_categories ?? []),
-      ...(draft_import.direct_cost_categories ?? []),
-    ]);
+    const next_pnl_lines = imported_pnl_lines.map((line) => {
+      if (line?.section !== "cost_of_sales") {
+        return {
+          ...line,
+          amount: clean_amount(line.amount),
+          source_type: line.source_type || draft_import.source_type || "",
+          import_source: line.import_source || draft_import.source_type || "",
+        };
+      }
+
+      return {
+        ...line,
+        section: "cost_of_sales",
+        category: "cogs",
+        amount: clean_amount(line.amount),
+        direct_cost_category_id: make_imported_cogs_category_id(line.line_name),
+        review_subcategory: "",
+        source_type: line.source_type || draft_import.source_type || "",
+        import_source: line.import_source || draft_import.source_type || "",
+      };
+    });
+
+    const next_direct_cost_categories = normalise_direct_cost_categories(
+      build_direct_cost_categories_from_pnl_lines(next_pnl_lines),
+    );
+
+    const next_state = {
+      ...state,
+      financial_year: next_financial_year,
+      period_month: next_period_month,
+      pnl_lines: next_pnl_lines,
+      direct_cost_categories: next_direct_cost_categories,
+    };
 
     if (typeof actions.set_profit_and_loss_state === "function") {
-      actions.set_profit_and_loss_state({
-        ...state,
-        financial_year: next_financial_year,
-        period_month: next_period_month,
-        pnl_lines: next_pnl_lines,
-        direct_cost_categories: next_direct_cost_categories,
-      });
+      actions.set_profit_and_loss_state(next_state);
     } else {
       actions.update_profit_and_loss_field(
         "financial_year",
@@ -685,7 +624,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
     }
 
     set_import_message(
-      `Imported ${draft_import.pnl_lines.length} P&L lines into the page.`,
+      `Imported ${next_pnl_lines.length} P&L lines into the page.`,
     );
   }
 
@@ -704,7 +643,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
   return (
     <CollapsibleSection
       title="P&L Quick Import"
-      summary="Upload a P&L PDF or paste extracted JSON"
+      summary="Upload a P&L Excel, CSV, PDF, or paste extracted JSON"
       defaultOpen={false}
     >
       <div className="ui-panel ui-stack">
@@ -712,24 +651,25 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
           <div className="ui-kicker">Import helper</div>
           <h2 className="ui-card-title-sm">Load P&amp;L lines</h2>
           <p className="ui-help">
-            Upload a text-based P&amp;L PDF or paste extracted P&amp;L JSON.
-            The import only updates this P&amp;L page after you confirm it.
+            Upload a P&amp;L Excel, CSV, or text-based PDF, or paste extracted
+            P&amp;L JSON. Excel / CSV is preferred because it preserves
+            structured accounting lines more safely.
           </p>
         </div>
 
         <div className="ui-panel ui-stack-sm">
-          <div className="ui-label">Upload P&amp;L PDF</div>
+          <div className="ui-label">Upload P&amp;L file</div>
 
           <input
             ref={file_input_ref}
             type="file"
-            accept="application/pdf,.pdf"
+            accept=".xlsx,.xls,.csv,application/pdf,.pdf"
             className="ui-input"
             onChange={(event) => {
               const file = event.target.files?.[0] || null;
               set_selected_file(file);
               set_error_message("");
-              set_import_message(file ? `Selected PDF: ${file.name}` : "");
+              set_import_message(file ? `Selected file: ${file.name}` : "");
             }}
           />
 
@@ -737,16 +677,16 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
             <button
               type="button"
               className="ui-button-secondary"
-              onClick={handle_extract_pdf}
+              onClick={handle_extract_file}
               disabled={is_extracting}
             >
-              {is_extracting ? "Extracting..." : "Extract PDF"}
+              {is_extracting ? "Extracting..." : "Extract File"}
             </button>
           </div>
 
           <p className="ui-help">
-            This currently supports text-based PDFs. Scanned/image PDFs will
-            need OCR fallback later.
+            The P&amp;L page uses the accounting export line names directly.
+            Detailed commercial classification happens later in Revenue / COGS.
           </p>
         </div>
 
@@ -862,7 +802,7 @@ export default function ProfitAndLossQuickImportPanel({ state, actions }) {
 
             {draft_import.unmatched_lines?.length > 0 ? (
               <div className="ui-panel ui-stack-sm theme-warn-soft">
-                <div className="ui-kicker theme-warn">Unmatched PDF lines</div>
+                <div className="ui-kicker theme-warn">Import warnings</div>
                 {draft_import.unmatched_lines.slice(0, 8).map((line, index) => (
                   <div key={`${line}_${index}`} className="ui-help">
                     {line}
