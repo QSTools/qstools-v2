@@ -229,25 +229,38 @@ function infer_line_mapping(line_name) {
   }
 
   if (
-    [
-      "vehicle",
-      "fuel",
-      "registration",
-      "licence",
-      "license",
-      "repairs",
-      "maintenance",
-      "plant",
-      "machinery",
-    ].some((word) => name.includes(word))
-  ) {
-    return {
-      section: "operating_expenses",
-      category: "assets",
-      direct_cost_category_id: "",
-      review_subcategory: "",
-    };
-  }
+  ["asset finance", "equipment finance", "finance lease"].some((word) =>
+    name.includes(word),
+  )
+) {
+  return {
+    section: "operating_expenses",
+    category: "assets",
+    direct_cost_category_id: "",
+    review_subcategory: "asset_finance",
+  };
+}
+
+if (
+  [
+    "vehicle",
+    "fuel",
+    "registration",
+    "licence",
+    "license",
+    "repairs",
+    "maintenance",
+    "plant",
+    "machinery",
+  ].some((word) => name.includes(word))
+) {
+  return {
+    section: "operating_expenses",
+    category: "general_overheads",
+    direct_cost_category_id: "",
+    review_subcategory: "vehicle_running_costs",
+  };
+}
 
   if (
     [
