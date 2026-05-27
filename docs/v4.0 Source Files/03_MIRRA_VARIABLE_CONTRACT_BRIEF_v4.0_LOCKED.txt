@@ -1,0 +1,3080 @@
+# Mirra — Variable Contract Brief
+
+## v4.0 — MODULE OWNERSHIP, DOWNSTREAM CONTRACTS, TRUST STATES, AND NO-LEAK VARIABLE STANDARD
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 03
+
+REPLACES:
+- QS Tools v3.x variable contract briefs where naming has changed
+- older variable contracts that place Rate Builder after Business Outcome
+- older Cost Allocation contracts that do not include default labour, asset, and overhead pools
+- older Revenue / COGS contracts that treat P&L COG categories as final operational COG classifications
+- any variable contract that allows downstream modules to rebuild upstream maths
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Every variable has one owner. Every downstream value has a traceable source. No duplicate truth. No hidden leaks.
+
+---
+
+# 1. PURPOSE
+
+This brief defines the active Mirra v4.0 variable contract.
+
+It controls:
+
+- variable ownership
+- module boundaries
+- upstream inputs
+- downstream outputs
+- standard status variables
+- warning variables
+- reconciliation variables
+- trust-state variables
+- mode-aware variables
+- source trace variables
+- no-leak guardrail variables
+
+Every module must create only the variables it owns.
+
+Downstream modules may consume upstream variables.
+
+Downstream modules must not recreate upstream variables.
+
+---
+
+# 2. CONTRACT PRINCIPLES
+
+## 2.1 One variable, one owner
+
+Every core variable must have one owning module.
+
+Example:
+
+total_labour_cost_annual belongs to Labour.
+
+Cost Summary may consume it.
+
+Business Summary may display it.
+
+Recovery Summary may use it.
+
+Rate Builder may use it.
+
+But no downstream module may recreate it.
+
+---
+
+## 2.2 Source truth vs interpretation
+
+Mirra must distinguish:
+
+- source truth
+- calculated output
+- interpretation
+- warning
+- reconciliation
+- scenario value
+
+Example:
+
+P&L account amount is source truth.
+
+Labour module annual people cost is module source truth.
+
+Module Reconciliation compares them.
+
+Business Summary explains the operating bridge.
+
+Business Outcome gives the consequence.
+
+Do not collapse these into one variable.
+
+---
+
+## 2.3 No display names as IDs
+
+Never use display labels as primary IDs.
+
+Use stable IDs.
+
+Allowed:
+
+staff_id
+asset_id
+pnl_line_id
+cog_category_id
+operational_group_id
+
+Not allowed:
+
+"Paul"
+"Truck"
+"Concrete Purchase"
+"Operators"
+"Materials"
+
+Display names may change.
+
+IDs must remain stable.
+
+---
+
+## 2.4 Snake case
+
+All internal variables must use snake_case.
+
+Examples:
+
+total_cost_burden
+required_recovery_per_driver
+productive_staff_type_rates
+asset_pool_guardrail_status
+
+Do not use camelCase for contract variables unless an existing code path already requires it and migration has not yet been done.
+
+UI component props may use existing project conventions temporarily, but the source contract should be snake_case.
+
+---
+
+## 2.5 No silent aliases
+
+Do not create multiple names for the same concept unless migration requires it.
+
+If an alias is required, mark it clearly.
+
+Example:
+
+business_outcome_status
+outcome_status
+
+These may temporarily mirror each other for compatibility, but the owner must define which is primary.
+
+---
+
+## 2.6 Future-only variables
+
+Future-only variables must be marked:
+
+future_only: true
+
+or listed in a future section.
+
+Do not implement future-only variables inside active calculations until the relevant module is active.
+
+---
+
+# 3. STANDARD MODULE OUTPUT SHAPE
+
+Each major module should expose:
+
+{
+  status,
+  card,
+  output_contract
+}
+
+Where practical:
+
+status =
+readiness, trust, warning, and high-level summary
+
+card =
+display-shaped values for UI
+
+output_contract =
+stable downstream contract
+
+If the repo uses an existing pattern, align with that pattern while preserving these concepts.
+
+---
+
+# 4. STANDARD READINESS VARIABLES
+
+Each module should expose readiness using module-specific names and shared trust fields.
+
+Recommended pattern:
+
+module_ready
+module_status
+module_warnings
+warning_count
+model_trust_state
+
+Examples:
+
+pnl_ready
+revenue_cogs_ready
+labour_ready
+assets_ready
+general_overheads_ready
+cost_summary_ready
+business_summary_ready
+cost_allocation_ready
+recovery_summary_ready
+rate_builder_ready
+business_outcome_ready
+
+Allowed module_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+leak_detected
+preview_only
+not_ready
+
+Allowed model_trust_state values:
+
+ready
+warning
+blocked
+preview_only
+
+---
+
+# 5. STANDARD WARNING OBJECT
+
+Warnings must use structured objects.
+
+Standard shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Allowed severity values:
+
+info
+warning
+critical
+
+Rules:
+
+- warning_id must be stable
+- source_module must be included
+- message must be plain English
+- blocking must be true or false
+- review_action should tell the user where to review
+
+Example:
+
+{
+  warning_id: "cog_reconciliation_leak_detected",
+  source_module: "revenue_cogs",
+  severity: "critical",
+  message: "COG Account Transactions do not reconcile to P&L Cost of Sales.",
+  affected_variable: "cog_reconciliation_status",
+  blocking: true,
+  review_action: "Review the Account Transactions import and P&L Cost of Sales lines."
+}
+
+---
+
+# 6. STANDARD RECONCILIATION OBJECT
+
+Any module that reconciles to a source must use a reconciliation object.
+
+Standard shape:
+
+{
+  reconciliation_id,
+  source_module,
+  source_name,
+  source_amount,
+  module_name,
+  module_amount,
+  variance_amount,
+  variance_percent,
+  reconciliation_status,
+  tolerance_amount,
+  explanation,
+  blocking,
+  reviewed
+}
+
+Allowed reconciliation_status values:
+
+balanced
+rounding_only
+variance_review
+leak_detected
+blocked
+not_available
+
+Default tolerance:
+
+tolerance_amount = 1.00
+
+Rules:
+
+- difference = 0.00 means balanced
+- absolute difference <= 1.00 may be rounding_only
+- anything above tolerance must be visible
+- control-source imports above tolerance should be leak_detected unless reviewed state is explicitly supported
+- never hide a variance
+- never overwrite one side with the other
+
+---
+
+# 7. STANDARD SOURCE TRACE OBJECT
+
+Key downstream variables should have a trace object.
+
+Standard shape:
+
+{
+  output_variable,
+  source_module,
+  source_variable,
+  calculation_rule,
+  source_status,
+  last_updated,
+  trust_state
+}
+
+Required for variables that affect:
+
+- cost burden
+- recovery rate
+- COG margin
+- labour recovery
+- asset recovery
+- overhead recovery
+- rate builder output
+- business outcome
+
+---
+
+# 8. STANDARD SOURCE PERIOD OBJECT
+
+Accounting-derived or imported data must preserve source period.
+
+Standard shape:
+
+{
+  period_start,
+  period_end,
+  period_label,
+  source_system,
+  imported_at,
+  source_file_name,
+  source_report_name,
+  source_report_type
+}
+
+Required for:
+
+- P&L import
+- Account Transactions COG import
+- future Xero imports
+- monthly actuals
+- accepted quote feedback periods
+
+---
+
+# 9. BUSINESS SETUP VARIABLE CONTRACT
+
+## 9.1 Owner
+
+Business Setup owns business identity and business mode.
+
+## 9.2 Owned variables
+
+business_name
+business_type
+is_labour_based
+is_product_based
+setup_completed
+created_at
+updated_at
+
+## 9.3 Allowed business_type values
+
+Current active internal values:
+
+labour_based
+product_based
+
+Display labels:
+
+Service / Labour-based business
+Product / Unit-based business
+
+Future possible display wording:
+
+hours_based
+product_unit_based
+
+Do not rename internal stored values until migration is explicitly briefed.
+
+## 9.4 Derived booleans
+
+is_labour_based =
+business_type === "labour_based"
+
+is_product_based =
+business_type === "product_based"
+
+## 9.5 Downstream consumers
+
+Revenue / COGS
+Business Summary
+Revenue Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+Business Modelling later
+Quote Engine later
+
+## 9.6 Business Setup must not own
+
+revenue
+cogs
+margin_pool
+labour cost
+asset cost
+overheads
+cost burden
+recovery rates
+allocation groups
+rate builder outputs
+business outcome
+
+---
+
+# 10. P&L VARIABLE CONTRACT
+
+## 10.1 Owner
+
+P&L owns accounting intake, P&L source lines, P&L classification, accounting benchmarks, and P&L period identity.
+
+## 10.2 Source identity variables
+
+pnl_snapshot_id
+pnl_source_type
+pnl_source_file_name
+pnl_source_report_name
+pnl_source_report_type
+pnl_imported_at
+pnl_period_start
+pnl_period_end
+pnl_period_label
+
+## 10.3 P&L line variables
+
+pnl_lines[]
+
+Each line should include:
+
+{
+  pnl_line_id,
+  account_code,
+  account_name,
+  line_name,
+  section,
+  classification,
+  amount,
+  raw_amount,
+  source_order,
+  mapping_status,
+  review_required
+}
+
+Allowed section values:
+
+revenue
+cost_of_sales
+operating_expenses
+other_income
+other_expenses
+unassigned
+review_required
+
+## 10.4 Classification variables
+
+pnl_classifications
+saved_account_mappings
+unclassified_lines
+review_required_lines
+pnl_classification_status
+
+Rules:
+
+- saved/manual classification wins before fallback rules
+- fallback classification only runs where saved mapping is absent
+- unknown rows must go to review_required or unassigned
+- do not silently discard unknown lines
+
+## 10.5 Benchmark totals
+
+pnl_total_revenue
+pnl_total_cogs
+pnl_gross_profit
+pnl_gross_margin_percent
+pnl_total_operating_expenses
+pnl_total_other_income
+pnl_total_other_expenses
+pnl_net_profit
+
+## 10.6 Module benchmark totals
+
+labour_benchmark_total
+asset_finance_benchmark_total
+general_overheads_benchmark_total
+operating_expense_benchmark_total
+cost_of_sales_benchmark_total
+
+## 10.7 Readiness variables
+
+pnl_ready
+pnl_status
+pnl_warnings
+pnl_warning_count
+pnl_model_trust_state
+
+## 10.8 Downstream consumers
+
+Revenue / COGS consumes:
+
+- pnl revenue lines
+- pnl cost_of_sales lines
+- pnl total revenue
+- pnl total cogs
+
+General Overheads consumes:
+
+- relevant operating expense classifications
+
+Module Reconciliation consumes:
+
+- P&L benchmark totals
+
+Business Summary consumes:
+
+- P&L bridge values through reconciliation/output contracts
+
+Revenue Reality consumes:
+
+- revenue and COGS through Revenue / COGS, not raw P&L where possible
+
+## 10.9 P&L must not own
+
+operational COG categories
+labour productive rates
+asset utilisation
+overhead distribution
+cost allocation groups
+recovery tests
+rate builder outputs
+business outcome
+
+---
+
+# 11. REVENUE / COGS VARIABLE CONTRACT
+
+## 11.1 Owner
+
+Revenue / COGS owns commercial selling layer, COGS control reconciliation, margin pool, unit drivers, and operational COG assignment.
+
+## 11.2 Core totals
+
+total_revenue
+total_direct_costs
+total_cogs
+margin_pool
+gross_margin_percent
+
+Preferred active variable:
+
+total_direct_costs
+
+Alias allowed if already used:
+
+total_cogs
+
+The source brief must define whether both remain for compatibility.
+
+## 11.3 Revenue line variables
+
+revenue_lines[]
+
+Each row:
+
+{
+  line_id,
+  source_pnl_line_id,
+  account_code,
+  account_name,
+  line_name,
+  amount,
+  source_module
+}
+
+## 11.4 Raw COG account variables
+
+raw_cog_account_lines[]
+
+Each row:
+
+{
+  cog_account_id,
+  source_pnl_line_id,
+  account_code,
+  account_name,
+  original_account_name,
+  pnl_amount,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  reconciliation_status,
+  source_module
+}
+
+Rules:
+
+- original_account_name must never be overwritten
+- assigned category is separate from P&L account name
+- raw COG lines come from P&L Cost of Sales
+
+## 11.5 COG category variables
+
+cog_categories[]
+
+Each row:
+
+{
+  cog_category_id,
+  cog_category_name,
+  source,
+  is_default_from_pnl_account,
+  is_user_created,
+  is_active
+}
+
+Allowed source values:
+
+pnl_account_default
+user_created
+template_future
+
+Default rule:
+
+Each imported raw COG account creates a matching category by default.
+
+Example:
+
+Concrete Purchase → Concrete Purchase
+
+User may create:
+
+Materials
+
+Then assign:
+
+Concrete Purchase → Materials
+
+## 11.6 COG assignment variables
+
+cog_category_assignments[]
+
+Each row:
+
+{
+  assignment_id,
+  cog_account_id,
+  original_account_name,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  pnl_amount
+}
+
+## 11.7 Account Transactions COG import variables
+
+xero_account_transactions_import_id
+cog_import_source_system
+cog_import_source_file_name
+cog_imported_at
+cog_import_period_start
+cog_import_period_end
+cog_import_report_name
+cog_import_report_type
+
+## 11.8 COG transaction rows
+
+cog_account_transaction_rows[]
+
+Each row:
+
+{
+  transaction_id,
+  account_code,
+  account_name,
+  date,
+  source,
+  description,
+  reference,
+  debit_total,
+  credit_total,
+  net_total,
+  gross_total,
+  gst_total
+}
+
+Calculation:
+
+net_total = debit_total - credit_total
+
+Rules:
+
+- Gross is GST-inclusive
+- Gross is stored for audit/future use only
+- GST is stored for audit/future use only
+- Debit - Credit is the COG value
+- Date is stored for future monthly/quarterly/seasonality analysis
+- Date does not need to display in first Revenue / COGS page pass
+
+## 11.9 COG account summaries
+
+cog_account_summaries[]
+
+Each row:
+
+{
+  account_code,
+  account_name,
+  annual_debit_total,
+  annual_credit_total,
+  annual_net_total,
+  annual_gross_total,
+  annual_gst_total,
+  transaction_count,
+  matched_pnl_cog_account,
+  pnl_amount,
+  difference,
+  variance_percent,
+  reconciliation_status,
+  assigned_cog_category_id,
+  assigned_cog_category_name
+}
+
+## 11.10 COG reconciliation variables
+
+cog_reconciliation_status
+cog_reconciliation_difference
+cog_reconciliation_variance_percent
+cog_reconciliation_checks[]
+cog_reconciliation_warnings[]
+
+Formula:
+
+difference =
+account_transactions_net_total - pnl_cog_total
+
+Balanced:
+
+difference = 0.00
+
+Rounding-only:
+
+absolute difference <= 1.00
+
+Anything above tolerance:
+
+leak_detected
+
+## 11.11 Commercial driver variables
+
+commercial_driver_mode
+commercial_driver_label
+is_hours_based
+is_unit_based
+is_mixed_unit_based
+
+Allowed commercial_driver_mode values:
+
+hours_based
+unit_based
+mixed_unit_based
+
+Mapping from business_type:
+
+If business_type = labour_based:
+commercial_driver_mode = hours_based
+
+If business_type = product_based:
+commercial_driver_mode may be unit_based or mixed_unit_based
+
+## 11.12 Unit driver variables
+
+unit_driver_rows[]
+
+Each row:
+
+{
+  id,
+  unit_label,
+  unit_type,
+  unit_type_label,
+  revenue_share_percent,
+  annual_revenue,
+  average_sale_rate_per_unit,
+  estimated_units_annual,
+  derived_units_annual,
+  annual_margin_pool,
+  margin_per_unit,
+  unit_recovery_status,
+  unit_recovery_warnings
+}
+
+Allowed unit_type values:
+
+each
+m2
+m3
+lm
+tonne
+hour
+custom
+
+## 11.13 Unit totals
+
+total_unit_revenue
+total_unit_direct_cost
+total_unit_margin_pool
+total_derived_units_annual
+primary_unit_label
+primary_unit_type
+primary_unit_type_label
+weighted_average_margin_per_unit
+unit_recovery_ready
+unit_recovery_warnings
+
+## 11.14 Legacy product unit fields
+
+units_sold_annual
+margin_per_unit
+product_recovery_ready
+product_recovery_status
+
+These may remain only for compatibility if already in code.
+
+Preferred v4.0 source should use unit_driver_rows and total_derived_units_annual.
+
+## 11.15 Readiness variables
+
+revenue_cogs_ready
+revenue_cogs_status
+revenue_cogs_warnings
+revenue_cogs_warning_count
+revenue_cogs_model_trust_state
+
+## 11.16 Downstream consumers
+
+Business Summary consumes:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- unit driver context
+
+Revenue Reality consumes:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+
+Cost Allocation consumes:
+
+- Revenue / COGS unit labels as suggested group defaults only
+
+Recovery Summary consumes:
+
+- margin pool
+- unit margin context
+- COG readiness status
+
+Rate Builder consumes:
+
+- reconciled COG output
+- COG category assignments
+- unit driver context
+
+Business Outcome consumes:
+
+- Revenue / COGS readiness and warnings through downstream layers
+
+## 11.17 Revenue / COGS must not own
+
+labour cost
+asset cost
+overhead cost
+cost allocation groups
+asset utilisation
+required labour recovery rate
+required asset recovery rate
+final unit rate
+business outcome
+
+---
+
+# 12. LABOUR VARIABLE CONTRACT
+
+## 12.1 Owner
+
+Labour owns staff identity, labour cost, productive capacity, productive staff type rates, and labour readiness.
+
+## 12.2 Staff identity variables
+
+staff_rows[]
+
+Each row:
+
+{
+  staff_id,
+  staff_name,
+  staff_type_id,
+  staff_type_name,
+  is_productive,
+  is_active,
+  employment_type,
+  annual_base_cost,
+  annual_on_costs,
+  annual_labour_cost,
+  productive_hours_annual,
+  non_productive_hours_annual,
+  total_hours_annual,
+  labour_status
+}
+
+## 12.3 Labour totals
+
+total_labour_cost_annual
+total_people_cost_annual
+total_productive_labour_cost
+total_non_productive_labour_cost
+total_productive_labour_hours
+total_productive_output
+total_staff_count
+productive_staff_count
+non_productive_staff_count
+
+Preferred v4.0 interpretation:
+
+total_labour_cost_annual =
+full labour cost controlled by Labour
+
+total_people_cost_annual =
+alias/compatibility name where existing Cost Summary expects it
+
+## 12.4 Productive labour rates
+
+productive_labour_cost_rate
+weighted_all_productive_labour_rate
+
+Formula:
+
+weighted_all_productive_labour_rate =
+total_productive_labour_cost / total_productive_labour_hours
+
+If total_productive_labour_hours = 0:
+
+weighted_all_productive_labour_rate = 0
+rate_status = invalid_zero_productive_hours
+
+## 12.5 Productive staff type rates
+
+productive_staff_type_rates[]
+
+Each row:
+
+{
+  staff_type_id,
+  staff_type_name,
+  staff_count,
+  total_annual_cost,
+  total_productive_hours,
+  weighted_productive_hourly_rate,
+  productive_share_percent,
+  is_productive,
+  rate_status,
+  source
+}
+
+Formula:
+
+weighted_productive_hourly_rate =
+total_annual_cost / total_productive_hours
+
+Allowed rate_status values:
+
+ready
+invalid_zero_productive_hours
+review_zero_cost
+review_unassigned_staff_type
+
+## 12.6 Unassigned staff type review
+
+unassigned_productive_staff[]
+unassigned_productive_staff_cost
+unassigned_productive_staff_hours
+
+If productive staff member has no staff_type_id:
+
+assign to review bucket:
+
+staff_type_id = unassigned_productive_review
+staff_type_name = Unassigned / Review required
+
+## 12.7 Labour warnings
+
+labour_warnings[]
+
+Required warning IDs:
+
+productive_staff_type_zero_hours
+productive_staff_type_zero_cost
+productive_staff_type_unassigned
+total_productive_hours_zero
+labour_data_missing
+labour_reconciliation_variance
+
+## 12.8 Readiness variables
+
+labour_ready
+labour_status
+labour_warnings
+labour_warning_count
+labour_model_trust_state
+
+## 12.9 Downstream consumers
+
+Module Reconciliation consumes:
+
+- total_labour_cost_annual / total_people_cost_annual
+
+Cost Summary consumes:
+
+- total_people_cost_annual
+- total_productive_output
+
+Business Summary consumes:
+
+- labour totals through Cost Summary and direct labour stress where required
+
+Revenue Reality consumes:
+
+- total_labour_cost_annual
+
+Cost Allocation consumes:
+
+- productive_staff_type_rates
+- productive labour cost
+- productive labour hours
+
+Recovery Summary consumes:
+
+- labour recovery basis
+
+Rate Builder consumes:
+
+- productive_staff_type_rates
+- weighted_all_productive_labour_rate
+
+Business Outcome consumes:
+
+- labour readiness and recovery results through downstream modules
+
+## 12.10 Labour must not own
+
+subcontractor COG
+materials
+asset utilisation
+asset recovery
+overhead allocation
+revenue
+COGS
+unit margin
+business outcome
+
+---
+
+# 13. ASSETS VARIABLE CONTRACT
+
+## 13.1 Owner
+
+Assets owns asset identity, asset ownership cost, productive asset status, utilisation, asset recovery basis, and asset pool guardrails.
+
+## 13.2 Asset identity variables
+
+asset_rows[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  asset_type,
+  asset_group_id,
+  asset_group_name,
+  is_active,
+  is_productive_asset,
+  ownership_status,
+  asset_status
+}
+
+## 13.3 Asset cost variables
+
+asset_ownership_cost_annual
+asset_finance_interest_annual
+asset_lease_cost_annual
+asset_depreciation_or_replacement_cost_annual
+asset_insurance_cost_annual where owned by Assets
+asset_registration_cost_annual where owned by Assets
+asset_other_ownership_cost_annual
+total_asset_cost_annual
+total_productive_asset_cost_annual
+total_non_productive_asset_cost_annual
+
+Rules:
+
+- Assets owns ownership cost
+- Running costs may belong in General Overheads unless explicitly modelled as asset source pools
+- Principal repayments are cash flow, not operating recovery cost, unless separately briefed
+
+## 13.4 Asset utilisation variables
+
+utilisation_hours_per_week
+utilisation_hours_annual
+default_utilisation_hours_per_week
+
+Default:
+
+default_utilisation_hours_per_week = 40
+
+Formula:
+
+utilisation_hours_annual =
+utilisation_hours_per_week * 48
+
+Use 48 weeks, not 52.
+
+## 13.5 Asset recovery variables
+
+required_asset_recovery_rate
+asset_recovery_rate_status
+
+Formula:
+
+required_asset_recovery_rate =
+asset_ownership_cost_annual / utilisation_hours_annual
+
+If utilisation_hours_annual = 0 and asset has cost:
+
+required_asset_recovery_rate = 0
+asset_recovery_rate_status = invalid_zero_utilisation_hours
+
+## 13.6 Productive asset pool variables
+
+productive_asset_rows[]
+total_productive_asset_burden
+productive_asset_count
+productive_asset_recovery_hours
+
+## 13.7 Asset source pool guardrails
+
+asset_pool_guardrails[]
+
+Each row:
+
+{
+  cost_pool_id,
+  cost_pool_name,
+  available_pool_amount,
+  assigned_pool_amount,
+  remaining_pool_amount,
+  over_allocated_amount,
+  allocation_status,
+  warning_message,
+  asset_assignment_count
+}
+
+Allowed allocation_status values:
+
+balanced
+under_allocated
+over_allocated
+no_source_pool
+review_required
+
+## 13.8 Asset pool summary
+
+total_available_asset_cost_pool
+total_assigned_asset_cost_pool
+total_remaining_asset_cost_pool
+total_over_allocated_asset_cost_pool
+asset_pool_guardrail_status
+
+Allowed asset_pool_guardrail_status values:
+
+ready
+review_required
+blocked
+
+Rules:
+
+If any pool is over_allocated:
+asset_pool_guardrail_status = blocked
+
+If any pool is under_allocated, no_source_pool, or review_required:
+asset_pool_guardrail_status = review_required
+
+Else:
+asset_pool_guardrail_status = ready
+
+## 13.9 Asset warnings
+
+assets_warnings[]
+
+Required warning IDs:
+
+asset_zero_utilisation_hours
+asset_cost_without_utilisation
+asset_pool_over_allocated
+asset_pool_no_source
+asset_pool_under_allocated
+productive_asset_missing_cost
+asset_data_missing
+
+## 13.10 Readiness variables
+
+assets_ready
+assets_status
+assets_warnings
+assets_warning_count
+assets_model_trust_state
+
+## 13.11 Downstream consumers
+
+Module Reconciliation consumes:
+
+- asset finance / interest totals
+- asset cost totals
+
+Cost Summary consumes:
+
+- total_asset_cost_annual
+
+Cost Allocation consumes:
+
+- productive asset rows
+- productive asset burden
+- asset pool guardrail status
+
+Recovery Summary consumes:
+
+- asset recovery rates/status
+
+Rate Builder consumes:
+
+- required_asset_recovery_rate
+- productive asset burden
+- Cost Allocation asset group assignments
+
+Business Outcome consumes:
+
+- asset readiness and recovery results through downstream modules
+
+## 13.12 Assets must not own
+
+labour operators
+operator-machine pairing
+operational groups
+overhead allocation
+COGS
+revenue
+unit margin
+business outcome
+
+---
+
+# 14. GENERAL OVERHEADS VARIABLE CONTRACT
+
+## 14.1 Owner
+
+General Overheads owns general overhead source pool, net general overhead amount, and overhead readiness.
+
+## 14.2 Core overhead variables
+
+total_general_overheads
+gross_general_overheads_benchmark
+net_general_overheads
+general_overheads_source_total
+general_overhead_categories[]
+
+Each category:
+
+{
+  overhead_category_id,
+  overhead_category_name,
+  source_pnl_line_ids,
+  annual_amount,
+  is_active,
+  review_required
+}
+
+## 14.3 Asset finance exclusion variables
+
+asset_finance_interest_excluded
+asset_finance_interest_excluded_amount
+adjusted_general_overheads_benchmark
+
+Formula:
+
+adjusted_general_overheads_benchmark =
+gross_general_overheads_benchmark - asset_finance_interest_excluded_amount
+
+Purpose:
+
+Prevent double counting asset finance interest when it is reviewed separately against Assets.
+
+## 14.4 Overhead source pool variables
+
+general_overheads_pool_amount
+general_overheads_pool_source_module
+general_overheads_pool_source_name
+
+Default:
+
+general_overheads_pool_amount = total_general_overheads
+general_overheads_pool_source_module = general_overheads
+
+## 14.5 Readiness variables
+
+general_overheads_ready
+general_overheads_status
+general_overheads_warnings
+general_overheads_warning_count
+general_overheads_model_trust_state
+
+## 14.6 Downstream consumers
+
+Module Reconciliation consumes:
+
+- total_general_overheads
+- adjusted_general_overheads_benchmark
+
+Cost Summary consumes:
+
+- total_general_overheads
+
+Cost Allocation consumes:
+
+- general_overheads_pool_amount
+
+Recovery Summary consumes:
+
+- overhead burden through Cost Allocation / Business Summary
+
+Rate Builder consumes:
+
+- overhead allocation through Cost Allocation
+
+Business Outcome consumes:
+
+- overhead recovery results through downstream modules
+
+## 14.7 General Overheads must not own
+
+employee wage cost
+productive labour hours
+asset ownership cost
+asset finance interest where selected as asset finance
+COGS
+materials
+revenue
+recovery strategy
+rate builder outputs
+
+---
+
+# 15. MODULE RECONCILIATION VARIABLE CONTRACT
+
+## 15.1 Owner
+
+Module Reconciliation owns evidence and variance visibility between accounting benchmarks and Mirra module outputs.
+
+## 15.2 Core variables
+
+reconciliation_ready
+reconciliation_status
+reconciliation_checks[]
+blocking_checks[]
+warning_checks[]
+normalised_reconciliation_inputs
+
+## 15.3 Benchmark variables
+
+labour_benchmark_total
+asset_finance_benchmark_total
+general_overheads_benchmark_total
+assets_benchmark_total
+setup_module_benchmark_total
+operating_expense_benchmark_total
+
+## 15.4 Module total variables
+
+total_labour_cost_annual
+total_people_cost_annual
+total_asset_cost_annual
+total_asset_interest_annual
+total_general_overheads
+total_business_costs
+module_total_business_costs
+
+## 15.5 Variance variables
+
+labour_variance_amount
+labour_variance_percent
+asset_finance_variance_amount
+asset_finance_variance_percent
+general_overheads_variance_amount
+general_overheads_variance_percent
+total_business_cost_variance_amount
+total_business_cost_variance_percent
+
+## 15.6 Other income variable
+
+total_other_income
+
+Purpose:
+
+Other Income is included in traditional P&L net profit but excluded from core operating margin where appropriate.
+
+Business Summary bridge must show this treatment.
+
+## 15.7 Reconciliation checks
+
+reconciliation_checks[] should use the standard reconciliation object.
+
+Required checks:
+
+- labour reconciliation
+- asset finance reconciliation
+- general overheads reconciliation
+- total business cost reconciliation
+- COGS reconciliation where available from Revenue / COGS or referenced separately
+
+## 15.8 Readiness variables
+
+module_reconciliation_ready
+module_reconciliation_status
+module_reconciliation_warnings
+module_reconciliation_warning_count
+module_reconciliation_model_trust_state
+
+## 15.9 Downstream consumers
+
+Model Readiness consumes Module Reconciliation status.
+
+Business Summary consumes reconciliation bridge values.
+
+Business Outcome consumes trust state downstream.
+
+## 15.10 Module Reconciliation must not own
+
+source module values
+recovery rates
+Cost Allocation groups
+Rate Builder rates
+Business Outcome verdicts
+scenario values
+
+---
+
+# 16. MODEL READINESS VARIABLE CONTRACT
+
+## 16.1 Owner
+
+Model Readiness owns trust state and readiness gate.
+
+## 16.2 Core variables
+
+model_ready
+model_readiness_status
+model_trust_state
+blocking_modules[]
+warning_modules[]
+blocking_checks[]
+warning_checks[]
+readiness_warnings[]
+
+Allowed model_trust_state values:
+
+ready
+warning
+blocked
+preview_only
+
+## 16.3 Source module readiness inputs
+
+pnl_ready
+revenue_cogs_ready
+labour_ready
+assets_ready
+general_overheads_ready
+module_reconciliation_ready
+cost_summary_ready where relevant
+
+## 16.4 Downstream consumers
+
+Cost Summary
+Business Summary
+Revenue Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+
+## 16.5 Model Readiness must not own
+
+module calculations
+reconciliation maths
+rate calculations
+business outcome verdicts
+scenario changes
+
+---
+
+# 17. COST SUMMARY VARIABLE CONTRACT
+
+## 17.1 Owner
+
+Cost Summary owns aggregated operating cost burden.
+
+## 17.2 Inputs consumed
+
+From Labour:
+
+total_people_cost_annual
+total_labour_cost_annual
+total_productive_output
+
+From Assets:
+
+total_asset_cost_annual
+
+From General Overheads:
+
+total_general_overheads
+
+From Model Readiness:
+
+model_trust_state
+
+## 17.3 Core outputs
+
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_cost_burden
+required_revenue
+required_recovery_rate
+total_productive_output
+
+## 17.4 Formula
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_recovery_rate =
+total_cost_burden / total_productive_output
+
+If total_productive_output = 0:
+
+required_recovery_rate = 0
+cost_summary_status = blocked
+
+## 17.5 Readiness variables
+
+cost_summary_ready
+cost_summary_status
+cost_summary_warnings
+cost_summary_warning_count
+cost_summary_model_trust_state
+
+## 17.6 Downstream consumers
+
+Business Summary
+Revenue Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+
+## 17.7 Cost Summary must not own
+
+Revenue / COGS
+unit driver rows
+product/unit recovery
+Cost Allocation groups
+Rate Builder rates
+Business Outcome verdicts
+
+---
+
+# 18. BUSINESS SUMMARY VARIABLE CONTRACT
+
+## 18.1 Owner
+
+Business Summary owns current business mirror, forward proof, activity-driver context, and P&L-to-operational bridge.
+
+## 18.2 Inputs consumed
+
+From Business Setup:
+
+business_type
+is_labour_based
+is_product_based
+
+From Revenue / COGS:
+
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+units_sold_annual
+total_derived_units_annual
+weighted_average_margin_per_unit
+
+From Cost Summary:
+
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_cost_burden
+total_productive_output
+required_recovery_rate
+
+From Module Reconciliation:
+
+labour_variance_amount
+asset_finance_variance_amount
+general_overheads_variance_amount
+total_other_income
+pnl_net_profit where available
+module_total_business_costs
+
+From Model Readiness:
+
+model_trust_state
+
+## 18.3 Forward proof variables
+
+material_margin
+material_margin_percent
+residual_margin_after_labour
+margin_after_labour
+post_labour_margin
+net_position
+
+Preferred active variable:
+
+residual_margin_after_labour
+
+Aliases allowed only for compatibility:
+
+margin_after_labour
+post_labour_margin
+
+Formula:
+
+material_margin =
+total_revenue - total_direct_costs
+
+residual_margin_after_labour =
+material_margin - total_people_cost_annual
+
+net_position =
+residual_margin_after_labour
+- total_asset_cost_annual
+- total_business_overheads
+
+## 18.4 Activity-driver variables
+
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+
+If business_type = labour_based:
+
+activity_driver_type = hours
+activity_driver_label = productive hours
+activity_driver_value = total_productive_output
+required_recovery_label = Required recovery per hour
+required_recovery_unit_label = $/hour
+
+If business_type = product_based:
+
+activity_driver_type = units
+activity_driver_label = units sold
+activity_driver_value = total_derived_units_annual or units_sold_annual
+required_recovery_label = Required recovery per unit
+required_recovery_unit_label = $/unit
+
+Formula:
+
+required_recovery_per_driver =
+total_cost_burden / activity_driver_value
+
+current_margin_per_driver =
+margin_pool / activity_driver_value
+
+recovery_gap_per_driver =
+current_margin_per_driver - required_recovery_per_driver
+
+If activity_driver_value = 0:
+
+required_recovery_per_driver = 0
+current_margin_per_driver = 0
+recovery_gap_per_driver = 0
+business_summary_status = blocked or not_ready
+
+## 18.5 P&L-to-operational bridge variables
+
+pnl_to_operational_bridge
+traditional_pnl_net_profit
+labour_bridge_variance
+asset_finance_bridge_variance
+general_overheads_bridge_variance
+other_income_excluded
+mirra_operating_position
+bridge_difference
+bridge_status
+
+Formula concept:
+
+Traditional P&L Net Profit
+± Labour variance
+± Asset finance variance
+± General overheads variance
+± Other Income treatment
+= Mirra Operating Position
+
+## 18.6 Readiness variables
+
+business_summary_ready
+business_summary_status
+business_summary_warnings
+business_summary_warning_count
+business_summary_model_trust_state
+
+## 18.7 Downstream consumers
+
+Revenue Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+
+## 18.8 Business Summary must not own
+
+Cost Allocation groups
+Recovery Summary tests
+Rate Builder rates
+Business Outcome verdicts
+Business Modelling scenarios
+Quote Engine checks
+
+---
+
+# 19. REVENUE REALITY VARIABLE CONTRACT
+
+## 19.1 Owner
+
+Revenue Reality owns the reverse proof between P&L GP / material margin and stress-tested margin after labour.
+
+## 19.2 Inputs consumed
+
+From Revenue / COGS:
+
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+
+From Labour / Cost Summary:
+
+total_labour_cost_annual
+total_people_cost_annual
+
+From Business Setup:
+
+business_type
+is_labour_based
+is_product_based
+
+## 19.3 Core variables
+
+material_margin
+material_margin_percent
+total_labour_cost_annual
+stress_tested_margin_after_labour
+stress_tested_margin_percent
+labour_consumption_percent
+labour_shortfall_against_margin
+revenue_reality_status
+
+Formula:
+
+material_margin =
+total_revenue - total_direct_costs
+
+stress_tested_margin_after_labour =
+material_margin - total_labour_cost_annual
+
+labour_consumption_percent =
+total_labour_cost_annual / material_margin
+
+stress_tested_margin_percent =
+stress_tested_margin_after_labour / total_revenue
+
+If stress_tested_margin_after_labour < 0:
+
+labour_shortfall_against_margin =
+absolute value of stress_tested_margin_after_labour
+
+## 19.4 Status values
+
+strong_margin_after_labour
+labour_consuming_margin
+labour_exceeds_margin
+no_margin_data
+no_labour_data
+
+## 19.5 Readiness variables
+
+revenue_reality_ready
+revenue_reality_status
+revenue_reality_warnings
+revenue_reality_warning_count
+revenue_reality_model_trust_state
+
+## 19.6 Downstream consumers
+
+Business Outcome consumes Revenue Reality diagnostic signals.
+
+Rate Builder may display context but must not use Revenue Reality as source for rate maths.
+
+## 19.7 Revenue Reality must not own
+
+recovery rates
+Cost Allocation groups
+Rate Builder rates
+Business Outcome verdicts
+scenario values
+
+---
+
+# 20. COST ALLOCATION VARIABLE CONTRACT
+
+## 20.1 Owner
+
+Cost Allocation owns operating structure, cost base allocation, default pools, operational groups, and allocation reconciliation.
+
+## 20.2 Inputs consumed
+
+From Labour:
+
+productive_staff_type_rates
+total_productive_labour_cost
+total_productive_labour_hours
+
+From Assets:
+
+productive_asset_rows
+total_productive_asset_burden
+asset_pool_guardrail_status
+
+From General Overheads:
+
+general_overheads_pool_amount
+total_general_overheads
+
+From Revenue / COGS:
+
+unit_driver_rows as suggested group labels only
+
+From Business Summary:
+
+business_type
+activity_driver_type
+activity_driver_value
+
+## 20.3 Operational groups
+
+allocation_groups[]
+
+Each row:
+
+{
+  operational_group_id,
+  operational_group_name,
+  operational_group_type,
+  source,
+  labour_cost,
+  productive_hours,
+  weighted_labour_rate,
+  assigned_asset_burden,
+  assigned_overhead_burden,
+  total_group_cost_burden,
+  recovery_rate_per_hour,
+  group_status,
+  warnings
+}
+
+Allowed operational_group_type values:
+
+default_productive_labour
+default_productive_asset_pool
+default_general_overheads_pool
+labour_group
+asset_group
+mixed_labour_asset_group
+product_unit_group
+review_required
+
+## 20.4 Default productive labour group
+
+default_productive_labour_group
+
+{
+  group_id,
+  group_name,
+  source_productive_labour_cost,
+  source_productive_labour_hours,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  remaining_labour_cost,
+  remaining_labour_hours,
+  status
+}
+
+Rule:
+
+All productive labour starts in Productive Labour.
+
+Assigning labour to another group pulls it out.
+
+## 20.5 Productive asset pool
+
+productive_asset_pool
+
+{
+  group_id,
+  group_name,
+  source_productive_asset_burden,
+  assigned_productive_asset_burden,
+  remaining_productive_asset_burden,
+  over_assigned_productive_asset_burden,
+  asset_count,
+  status
+}
+
+Rule:
+
+All productive assets start in Productive Asset Pool.
+
+Assigning 20% of an asset pulls out only 20%.
+
+## 20.6 General overheads pool
+
+general_overheads_pool
+
+{
+  pool_id,
+  pool_name,
+  source_overhead_pool_amount,
+  assigned_overhead_amount,
+  remaining_overhead_pool_amount,
+  over_assigned_overhead_amount,
+  overhead_allocation_status,
+  overhead_distribution_method
+}
+
+Rule:
+
+All overheads start in General Overheads Pool.
+
+Overhead distribution must use an explicit selected method.
+
+## 20.7 Labour assignments
+
+labour_assignments[]
+
+Each row:
+
+{
+  assignment_id,
+  staff_type_id,
+  staff_type_name,
+  source_labour_cost,
+  source_productive_hours,
+  assigned_group_id,
+  assigned_group_name,
+  assigned_labour_cost,
+  assigned_productive_hours,
+  assignment_status
+}
+
+## 20.8 Asset assignments
+
+productive_asset_assignments[]
+
+Each row:
+
+{
+  assignment_id,
+  asset_id,
+  asset_name,
+  source_asset_burden,
+  assigned_group_id,
+  assigned_group_name,
+  usage_percent,
+  assigned_asset_burden,
+  remaining_asset_burden,
+  allocation_status
+}
+
+Rules:
+
+total usage per asset cannot exceed 100%.
+
+Over 100% = blocked.
+
+Do not cap.
+
+Do not redistribute.
+
+## 20.9 Shared asset allocations
+
+shared_asset_allocations[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  total_asset_cost_burden,
+  assigned_group_id,
+  assigned_group_name,
+  usage_percent,
+  assigned_asset_cost_burden
+}
+
+Formula:
+
+assigned_asset_cost_burden =
+total_asset_cost_burden * usage_percent
+
+## 20.10 Overhead assignments
+
+overhead_assignments[]
+
+Each row:
+
+{
+  assignment_id,
+  overhead_pool_id,
+  overhead_pool_name,
+  assigned_group_id,
+  assigned_group_name,
+  distribution_method,
+  basis_value,
+  allocation_percent,
+  assigned_overhead_amount,
+  assignment_status
+}
+
+Allowed distribution_method values:
+
+productive_hours
+labour_cost_share
+labour_asset_burden_share
+revenue_or_unit_share
+manual_percentage
+manual_amount
+unassigned
+
+No default method may be silently selected.
+
+## 20.11 Reconciliation variables
+
+labour_reconciliation
+asset_reconciliation
+overhead_reconciliation
+
+Each should use standard reconciliation structure plus allocation-specific fields.
+
+## 20.12 Labour reconciliation fields
+
+{
+  source_productive_labour_cost,
+  source_productive_labour_hours,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  remaining_default_labour_cost,
+  remaining_default_labour_hours,
+  difference_cost,
+  difference_hours,
+  status
+}
+
+## 20.13 Productive asset reconciliation fields
+
+{
+  source_productive_asset_burden,
+  assigned_productive_asset_burden,
+  remaining_productive_asset_pool_burden,
+  over_assigned_productive_asset_burden,
+  productive_asset_allocation_difference,
+  productive_asset_allocation_status
+}
+
+## 20.14 Overhead reconciliation fields
+
+{
+  source_overhead_pool_amount,
+  assigned_overhead_amount,
+  remaining_overhead_pool_amount,
+  over_assigned_overhead_amount,
+  overhead_allocation_difference,
+  overhead_allocation_status,
+  overhead_distribution_method
+}
+
+## 20.15 Cost Allocation status
+
+cost_allocation_status
+
+Allowed values:
+
+ready
+review_required
+blocked
+leak_detected
+
+## 20.16 Readiness variables
+
+cost_allocation_ready
+cost_allocation_status
+cost_allocation_warnings
+cost_allocation_warning_count
+cost_allocation_model_trust_state
+
+## 20.17 Downstream consumers
+
+Recovery Summary consumes:
+
+- allocation groups
+- labour/asset/overhead burden
+- group readiness
+
+Rate Builder consumes:
+
+- allocation groups
+- assigned labour/asset/overhead burden
+- shared asset allocations
+
+Business Outcome consumes:
+
+- allocation status
+- group status
+- warnings
+
+## 20.18 Cost Allocation must not own
+
+materials / COGS
+revenue
+margin pool
+unit sale rates
+recovery test verdicts
+Rate Builder rate models
+Business Outcome verdicts
+
+---
+
+# 21. RECOVERY SUMMARY VARIABLE CONTRACT
+
+## 21.1 Owner
+
+Recovery Summary owns mode-dependent recovery testing.
+
+## 21.2 Inputs consumed
+
+From Business Setup:
+
+business_type
+
+From Business Summary:
+
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+
+From Cost Allocation:
+
+allocation_groups
+labour_reconciliation
+asset_reconciliation
+overhead_reconciliation
+cost_allocation_status
+
+From Revenue / COGS:
+
+margin_pool
+weighted_average_margin_per_unit
+unit_driver_rows
+cog_reconciliation_status
+
+## 21.3 Core variables
+
+recovery_summary_ready
+recovery_summary_status
+recovery_summary_warnings
+business_type
+recovery_test_status
+total_recovery_gap
+
+## 21.4 Hours-based recovery tests
+
+hours_based_recovery_tests
+
+{
+  labour_recovery_test,
+  asset_recovery_test,
+  material_margin_test
+}
+
+labour_recovery_test:
+
+{
+  labour_cost,
+  productive_hours,
+  required_labour_recovery_rate,
+  actual_labour_recovery_position,
+  labour_recovery_gap,
+  test_status
+}
+
+asset_recovery_test:
+
+{
+  productive_asset_cost,
+  asset_utilisation_hours,
+  required_asset_recovery_rate,
+  actual_asset_recovery_position,
+  asset_recovery_gap,
+  test_status
+}
+
+material_margin_test:
+
+{
+  revenue,
+  cogs,
+  material_margin,
+  material_margin_percent,
+  margin_contribution,
+  test_status
+}
+
+## 21.5 Product/unit recovery tests
+
+unit_based_recovery_tests
+
+{
+  unit_margin_test,
+  required_units_test,
+  required_margin_test
+}
+
+unit_margin_test:
+
+{
+  annual_units,
+  margin_pool,
+  margin_per_unit,
+  total_cost_burden,
+  required_cost_per_unit,
+  surplus_or_gap_per_unit,
+  annual_surplus_or_gap,
+  test_status
+}
+
+required_units_test:
+
+{
+  total_cost_burden,
+  margin_per_unit,
+  required_units,
+  current_units,
+  unit_gap,
+  test_status
+}
+
+required_margin_test:
+
+{
+  total_cost_burden,
+  current_units,
+  required_margin_per_unit,
+  current_margin_per_unit,
+  margin_gap_per_unit,
+  test_status
+}
+
+## 21.6 Status values
+
+ready
+review_required
+blocked
+leak_detected
+not_ready
+
+## 21.7 Downstream consumers
+
+Rate Builder consumes Recovery Summary tests.
+
+Business Outcome consumes Recovery Summary status and test results.
+
+## 21.8 Recovery Summary must not own
+
+Rate Builder rates
+Business Outcome verdict
+scenario changes
+quote-level checks
+
+---
+
+# 22. RATE BUILDER VARIABLE CONTRACT
+
+## 22.1 Owner
+
+Rate Builder owns required rates and rate consequence.
+
+## 22.2 Inputs consumed
+
+From Revenue / COGS:
+
+cog_reconciliation_status
+cog_category_assignments
+cog_account_summaries
+unit_driver_rows
+weighted_average_margin_per_unit
+
+From Labour:
+
+productive_staff_type_rates
+weighted_all_productive_labour_rate
+
+From Assets:
+
+required_asset_recovery_rate
+asset_pool_guardrail_status
+
+From Cost Allocation:
+
+allocation_groups
+shared_asset_allocations
+labour_reconciliation
+asset_reconciliation
+overhead_reconciliation
+
+From Recovery Summary:
+
+hours_based_recovery_tests
+unit_based_recovery_tests
+recovery_summary_status
+
+From Business Summary:
+
+business_type
+activity_driver_type
+activity_driver_value
+
+## 22.3 Core variables
+
+rate_builder_mode
+source_status
+rate_builder_ready
+rate_builder_status
+rate_builder_warnings
+rate_builder_warning_count
+rate_builder_model_trust_state
+
+Allowed rate_builder_mode values:
+
+hours_based
+unit_based
+mixed_unit_based
+
+## 22.4 Hourly rate models
+
+hourly_rate_models[]
+
+Each row:
+
+{
+  group_id,
+  group_name,
+  productive_hours,
+  labour_cost,
+  asset_burden,
+  overhead_burden,
+  total_recovery_burden,
+  required_hourly_rate,
+  current_hourly_rate,
+  hourly_rate_gap,
+  status
+}
+
+Formula:
+
+required_hourly_rate =
+total_recovery_burden / productive_hours
+
+## 22.5 Asset rate models
+
+asset_rate_models[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  assigned_group_id,
+  assigned_group_name,
+  asset_cost_burden,
+  utilisation_hours_annual,
+  required_asset_rate,
+  current_asset_rate,
+  asset_rate_gap,
+  status
+}
+
+Formula:
+
+required_asset_rate =
+asset_cost_burden / utilisation_hours_annual
+
+## 22.6 Unit rate models
+
+unit_rate_models[]
+
+Each row:
+
+{
+  unit_group_id,
+  unit_group_name,
+  unit_type,
+  annual_units,
+  cog_cost,
+  labour_burden,
+  asset_burden,
+  overhead_burden,
+  total_cost_burden,
+  unit_cog_cost,
+  unit_labour_cost,
+  unit_asset_cost,
+  unit_overhead_cost,
+  fully_burdened_unit_cost,
+  current_sale_rate,
+  required_unit_rate,
+  unit_margin,
+  unit_margin_percent,
+  unit_gap,
+  status
+}
+
+Formula:
+
+fully_burdened_unit_cost =
+unit_cog_cost
++ unit_labour_cost
++ unit_asset_cost
++ unit_overhead_cost
+
+required_unit_rate =
+fully_burdened_unit_cost + target_margin_per_unit where target margin exists
+
+If no target margin exists:
+
+required_unit_rate =
+fully_burdened_unit_cost
+
+## 22.7 Material margin models
+
+material_margin_models[]
+
+Each row:
+
+{
+  cog_category_id,
+  cog_category_name,
+  cog_cost,
+  cog_sale_value,
+  cog_margin,
+  cog_margin_percent,
+  markup_percent,
+  status
+}
+
+Formula:
+
+cog_margin =
+cog_sale_value - cog_cost
+
+cog_margin_percent =
+cog_margin / cog_sale_value
+
+markup_percent =
+cog_margin / cog_cost
+
+If cog_sale_value is missing:
+
+status = sale_value_missing
+
+Do not infer sale value.
+
+## 22.8 Crew mix models
+
+crew_mix_models[]
+
+Future or optional.
+
+Each row:
+
+{
+  crew_id,
+  crew_name,
+  rows,
+  total_crew_labour_cost_per_hour,
+  total_crew_recovery_rate_per_hour,
+  output_per_hour,
+  labour_cost_per_unit,
+  recovery_cost_per_unit,
+  status
+}
+
+Crew mix must be user-defined.
+
+Do not infer crew mix.
+
+## 22.9 Source status
+
+source_status
+
+Should include:
+
+{
+  cog_ready,
+  labour_ready,
+  assets_ready,
+  cost_allocation_ready,
+  recovery_summary_ready,
+  blocked_sources,
+  warning_sources
+}
+
+## 22.10 Downstream consumers
+
+Business Outcome consumes:
+
+- hourly_rate_models
+- asset_rate_models
+- unit_rate_models
+- material_margin_models
+- rate_builder_status
+- rate consequence summary
+
+Business Modelling later consumes:
+
+- rate builder output as baseline rates
+
+Quote Engine later consumes:
+
+- required rates
+
+## 22.11 Rate Builder must not own
+
+source costs
+source COG
+source labour
+source assets
+source overheads
+recovery strategy
+Business Outcome verdict
+scenario changes
+quote acceptance
+
+---
+
+# 23. BUSINESS OUTCOME VARIABLE CONTRACT
+
+## 23.1 Owner
+
+Business Outcome owns final baseline diagnosis and action layer.
+
+## 23.2 Inputs consumed
+
+From Business Summary:
+
+business_summary_status
+net_position
+recovery_gap_per_driver
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+
+From Revenue Reality:
+
+stress_tested_margin_after_labour
+labour_consumption_percent
+labour_shortfall_against_margin
+revenue_reality_status
+
+From Cost Allocation:
+
+cost_allocation_status
+allocation_groups
+cost_allocation_warnings
+
+From Recovery Summary:
+
+recovery_summary_status
+hours_based_recovery_tests
+unit_based_recovery_tests
+total_recovery_gap
+
+From Rate Builder:
+
+rate_builder_status
+hourly_rate_models
+asset_rate_models
+unit_rate_models
+material_margin_models
+
+From Model Readiness:
+
+model_trust_state
+
+## 23.3 Core variables
+
+business_outcome_status
+outcome_status
+outcome_title
+outcome_message
+primary_constraint_key
+primary_constraint_title
+primary_constraint_message
+recommended_action
+business_model_health
+dependency_level
+decision_warnings
+required_change_summary
+rate_consequence_summary
+
+Allowed business_outcome_status values:
+
+viable
+viable_with_dependency
+at_risk
+not_viable
+
+Allowed business_model_health values:
+
+healthy
+dependent
+strained
+unsupported
+unknown
+
+Allowed dependency_level values:
+
+none
+low
+medium
+high
+unknown
+
+## 23.4 Primary constraint keys
+
+healthy
+external_delivery_dependency
+weak_structure
+structure_incomplete
+share_model_invalid
+no_recoverable_base
+asset_strategy_without_assets
+negative_net_position
+recovery_gap_negative
+model_not_trusted
+allocation_not_supported
+recovery_summary_not_ready
+rate_builder_not_ready
+labour_under_recovery
+asset_under_recovery
+unit_margin_gap
+unit_volume_gap
+overhead_burden_gap
+material_margin_dependency
+unknown
+
+## 23.5 Required change summary
+
+required_change_summary
+
+{
+  primary_change_type,
+  required_labour_rate_change,
+  required_asset_rate_change,
+  required_unit_rate_change,
+  required_unit_volume_change,
+  required_margin_change,
+  required_overhead_reduction,
+  required_utilisation_change,
+  explanation
+}
+
+## 23.6 Rate consequence summary
+
+rate_consequence_summary
+
+{
+  required_hourly_rates,
+  required_asset_rates,
+  required_unit_rates,
+  material_margin_status,
+  rate_builder_status,
+  blocking_rate_issues
+}
+
+## 23.7 Readiness variables
+
+business_outcome_ready
+business_outcome_status
+business_outcome_warnings
+business_outcome_warning_count
+business_outcome_model_trust_state
+
+## 23.8 Downstream consumers
+
+Business Modelling consumes Business Outcome baseline diagnosis later.
+
+Quote Engine may consume Business Outcome / Rate Builder baseline context later.
+
+Dashboard may consume Business Outcome status later.
+
+## 23.9 Business Outcome must not own
+
+upstream calculations
+Cost Allocation maths
+Recovery Summary tests
+Rate Builder calculations
+scenario modelling
+quote checks
+cash flow
+monthly actual variance
+
+---
+
+# 24. BUSINESS MODELLING VARIABLE CONTRACT
+
+STATUS:
+Future / not active until baseline chain is stable.
+
+## 24.1 Owner
+
+Business Modelling owns scenarios.
+
+## 24.2 Future variables
+
+scenario_id
+scenario_name
+baseline_id
+scenario_type
+scenario_inputs
+scenario_outputs
+target_recovery_per_driver
+modelled_change_summary
+annual_impact
+scenario_status
+user_approved_for_baseline
+
+## 24.3 Rule
+
+Business Modelling must not mutate source modules unless a user-approved baseline adjustment event is explicitly created.
+
+---
+
+# 25. QUOTE ENGINE VARIABLE CONTRACT
+
+STATUS:
+Future / not active until Rate Builder and Business Outcome are stable.
+
+## 25.1 Owner
+
+Quote Engine owns quote-level leak detection.
+
+## 25.2 Future variables
+
+quote_id
+quote_version
+quote_status
+quoted_sale_price
+quoted_direct_cog
+quoted_labour_hours
+quoted_margin
+quote_required_recovery
+quote_recovery_gap
+quote_viability_status
+accepted_quote_snapshot_id
+
+## 25.3 Rule
+
+Accepted quote snapshots must not be overwritten by later actuals.
+
+---
+
+# 26. FUTURE FEEDBACK LOOP VARIABLE CONTRACT
+
+STATUS:
+Future.
+
+## 26.1 Owner
+
+Feedback Loop owns expected vs actual variance.
+
+## 26.2 Future variables
+
+expected_revenue
+actual_revenue
+revenue_variance
+expected_cost
+actual_cost
+cost_variance
+expected_labour_hours
+actual_labour_hours
+labour_hour_variance
+expected_margin
+actual_margin
+margin_variance
+feedback_status
+
+## 26.3 Rule
+
+Actuals create variance.
+
+Actuals do not overwrite baseline.
+
+---
+
+# 27. GLOBAL NO-LEAK VARIABLES
+
+The following concepts must exist across modules where relevant.
+
+## 27.1 Source pool guardrail variables
+
+available_pool_amount
+assigned_pool_amount
+remaining_pool_amount
+over_allocated_amount
+allocation_status
+
+## 27.2 Reconciliation variables
+
+source_amount
+module_amount
+variance_amount
+variance_percent
+reconciliation_status
+tolerance_amount
+blocking
+reviewed
+
+## 27.3 Trust variables
+
+model_trust_state
+module_status
+module_ready
+blocking
+preview_only
+
+## 27.4 Mode variables
+
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+
+## 27.5 Source trace variables
+
+source_module
+source_variable
+source_status
+calculation_rule
+last_updated
+trust_state
+
+---
+
+# 28. GLOBAL DO-NOT-DUPLICATE LIST
+
+Do not duplicate these variables in downstream modules.
+
+## Labour-owned
+
+staff_id
+staff_type_id
+total_labour_cost_annual
+productive_staff_type_rates
+total_productive_labour_hours
+
+## Asset-owned
+
+asset_id
+total_asset_cost_annual
+utilisation_hours_per_week
+utilisation_hours_annual
+required_asset_recovery_rate
+asset_pool_guardrails
+
+## Revenue / COGS-owned
+
+total_revenue
+total_direct_costs
+margin_pool
+raw_cog_account_lines
+cog_category_assignments
+cog_reconciliation_status
+unit_driver_rows
+
+## General Overheads-owned
+
+total_general_overheads
+general_overheads_pool_amount
+
+## Cost Allocation-owned
+
+allocation_groups
+productive_asset_pool
+default_productive_labour_group
+general_overheads_pool
+shared_asset_allocations
+overhead_assignments
+
+## Recovery Summary-owned
+
+hours_based_recovery_tests
+unit_based_recovery_tests
+recovery_test_status
+
+## Rate Builder-owned
+
+hourly_rate_models
+asset_rate_models
+unit_rate_models
+material_margin_models
+
+## Business Outcome-owned
+
+business_outcome_status
+primary_constraint_key
+recommended_action
+required_change_summary
+
+---
+
+# 29. GLOBAL ACCEPTANCE CRITERIA
+
+This variable contract is accepted when:
+
+1. Every active module has clear owned variables.
+2. Every key output has one owner.
+3. Every downstream dependency has a source.
+4. Mode-aware variables are defined.
+5. P&L reconciliation variables are defined.
+6. COG control reconciliation variables are defined.
+7. Labour weighted staff type rate variables are defined.
+8. Asset utilisation and guardrail variables are defined.
+9. Cost Allocation default pool variables are defined.
+10. Recovery Summary test variables are defined.
+11. Rate Builder rate consequence variables are defined.
+12. Business Outcome diagnosis variables are defined.
+13. Future-only variables are clearly marked.
+14. No downstream module owns upstream source truth.
+15. No hidden duplicate truth exists.
+16. No display names are required as IDs.
+17. No unreconciled value can become trusted upstream output.
+18. The contract supports no-leak enforcement.
+19. The contract supports source traceability.
+20. The contract supports build implementation one module at a time.
+
+---
+
+# 30. FINAL VARIABLE CONTRACT PRINCIPLE
+
+Every Mirra number must answer:
+
+Where did this come from?
+Who owns it?
+How was it calculated?
+Does it reconcile?
+Can it be trusted?
+Where does it go next?
+
+If those questions cannot be answered, the variable is not ready for downstream use.
+
+No assumptions.
+No duplicate truth.
+No hidden aliases.
+No silent overwrite.
+No unreconciled upstream use.
+No leaks.

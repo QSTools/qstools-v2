@@ -1,0 +1,1191 @@
+# Mirra — Rate Builder Brief
+
+## v4.0 — MODE-GUIDED RATE CONSTRUCTION, COMPONENT RATES, RECOVERY UNRAVELLING, MATERIAL MARKUP CONTEXT, AND QUOTE CHECKER HANDOFF
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 19
+
+REPLACES:
+- older QS Tools Rate Builder assumptions
+- older logic that builds rates inside Cost Allocation
+- older logic that treats Cost Allocation groups as sellable rates
+- older logic that assumes product/unit rates can be derived from COG detail in all business modes
+- older logic that lets Rate Builder redefine business mode
+- older logic that hides material markup context
+- older logic that treats supplier-level COG detail as a direct pricing input for labour-based businesses
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Rate Builder is the first layer where upstream pressure is converted into actual charge-out rates. It builds sellable rates from the allocated structure, but it does not create source costs, assign costs, test recovery again, or issue the final business outcome.
+
+---
+
+# 1. PURPOSE
+
+Rate Builder answers:
+
+What do I need to charge?
+
+It takes the pressure identified upstream and converts it into real-world rates.
+
+It should show:
+
+- labour rate
+- asset / machine rate
+- machine + operator rate
+- full crew rate
+- unit/product rate where valid
+- minimum recoverable rate
+- margin-added sell rate
+- current rate gap
+- under-recovery warning
+
+Rate Builder is where the business finally sees:
+
+- what each component costs
+- what overhead burden sits on it
+- what minimum recovery is required
+- what sell rate is needed
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Active flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Rate Builder comes after Recovery Summary.
+
+Recovery Summary says:
+
+What must be recovered?
+
+Rate Builder says:
+
+What rate recovers it?
+
+Business Outcome says:
+
+What does that mean and what should change?
+
+Quote Checker later says:
+
+Does this quote align with the model?
+
+---
+
+# 3. CORE PRINCIPLE
+
+Rate Builder is mode-guided, not mode-restricted.
+
+Business mode comes from Business Setup.
+
+Rate Builder must not ask the user to choose the business mode again.
+
+However, real businesses can sell both hours and products.
+
+Therefore:
+
+- business mode sets the default behaviour
+- individual rates may still have their own rate driver
+
+Example:
+
+Labour-based business:
+Default = hourly rates
+Allowed exceptions = product/unit rates if manually or structurally valid
+
+Product-based business:
+Default = unit/product rates
+Allowed exceptions = dayworks / hourly rates
+
+---
+
+# 4. MODE RULE
+
+Business Setup owns the mode.
+
+Rate Builder consumes:
+
+- business_type
+- is_labour_based
+- is_product_based
+
+If labour-based:
+
+Default Rate Builder behaviour is hourly / labour / asset / crew based.
+
+If product-based:
+
+Default Rate Builder behaviour is unit / m² / m³ / product based.
+
+If mixed rates exist:
+
+Rate Builder may support mixed rate rows.
+
+But Rate Builder must not change the business mode.
+
+---
+
+# 5. IMPORTANT MODE DISTINCTION
+
+The system mode describes how the business primarily operates.
+
+The rate driver describes what is being sold.
+
+Therefore:
+
+System mode = business default  
+Rate driver = individual sellable rate
+
+Examples:
+
+A labour-based business may sell:
+- labour per hour
+- digger + operator per hour
+- full crew per day
+- occasional product/unit items only if manually defined
+
+A product-based business may sell:
+- block laying per m²
+- concrete pumping per m³
+- coffee per unit
+- dayworks per hour as an exception
+
+---
+
+# 6. RATE BUILDER DOES NOT REPLACE SOURCE MODULES
+
+Rate Builder must not create:
+
+- labour cost
+- asset cost
+- overhead cost
+- COG cost
+- source revenue
+- source margin
+- productive hours
+- asset utilisation
+- Cost Allocation groups
+
+It consumes these from upstream modules.
+
+Rate Builder must preserve traceability.
+
+---
+
+# 7. WHAT RATE BUILDER UNRAVELS
+
+Rate Builder is the first page that unpacks upstream pressure into chargeable rates.
+
+Revenue Reality says:
+
+Margin after Labour is tight or negative.
+
+Asset Reality says:
+
+Assets require a recovery rate.
+
+Recovery Summary says:
+
+This structure needs to recover a certain amount.
+
+Rate Builder converts that into:
+
+- labour needs to be $X/hr
+- digger + operator needs to be $Y/hr
+- crew needs to be $Z/hr
+- product needs to be $A/unit where valid
+
+This is the first practical pricing layer.
+
+---
+
+# 8. INPUTS FROM COST ALLOCATION
+
+Rate Builder consumes:
+
+- working_groups
+- group_cost_stacks
+- labour_group_assignments
+- asset_group_assignments
+- overhead_group_assignments
+- assigned labour costs
+- assigned labour hours
+- assigned asset burden
+- assigned asset utilisation hours
+- assigned overhead amounts
+- allocation status
+- unassigned pools
+- cost_allocation_model_trust_state
+
+Cost Allocation owns structure.
+
+Rate Builder owns rates.
+
+---
+
+# 9. INPUTS FROM RECOVERY SUMMARY
+
+Rate Builder consumes:
+
+- recovery_summary_status
+- recovery_model_type
+- group_recovery_rows
+- total_required_recovery_amount
+- required_recovery_per_driver
+- recovery warnings
+- recovery_summary_model_trust_state
+
+Recovery Summary owns recovery testing.
+
+Rate Builder does not retest recovery.
+
+It uses the recovery requirement as the cost base for pricing.
+
+---
+
+# 10. INPUTS FROM REVENUE REALITY
+
+Rate Builder consumes:
+
+- margin_pool
+- margin_after_labour
+- labour_consumption_of_margin_percent
+- labour_shortfall_against_margin
+- margin_surplus_after_labour
+- revenue_reality_status
+
+Revenue Reality context must remain visible.
+
+If margin after labour is negative, Rate Builder must not hide it.
+
+Rate Builder should show that the rate being built is responding to that pressure.
+
+---
+
+# 11. INPUTS FROM ASSET REALITY
+
+Rate Builder consumes:
+
+- productive asset recovery rows
+- required asset recovery rate
+- weighted required asset recovery rate
+- highest pressure asset
+- lowest utilisation asset
+- asset pressure flags
+- asset_reality_status
+
+Asset Reality owns asset pressure.
+
+Rate Builder can use the asset recovery rate as component context.
+
+Rate Builder must not overwrite asset utilisation.
+
+---
+
+# 12. INPUTS FROM REVENUE / COGS
+
+Rate Builder consumes:
+
+- total revenue
+- total COG
+- margin pool
+- gross margin percentage
+- unit driver rows where product mode applies
+- supplier/category COG detail as context
+- blended material markup where available
+
+Important distinction:
+
+In labour-based mode, supplier/category COG detail is not a direct rate construction input.
+
+In product-based mode, COG detail may support top-down unit rate analysis if the product/unit is the primary business driver.
+
+---
+
+# 13. COG DETAIL RULE BY MODE
+
+## Labour-Based Business
+
+Revenue / COG detail is used for:
+
+- margin visibility
+- material markup context
+- supplier spend concentration
+- supplier negotiation insight
+- future SOQ/job layer preparation
+
+It is not used to automatically build product/unit rates.
+
+Reason:
+
+Labour-based businesses do not have enough quantity linkage to derive true product cost from supplier totals.
+
+## Product-Based Business
+
+Revenue / COG detail may be used for:
+
+- unit margin
+- unit COG
+- top-down cost per unit
+- product/unit rate validation
+
+Only where the unit is the primary business driver.
+
+---
+
+# 14. TOP-DOWN RATE DERIVATION RULE
+
+Top-down rate derivation is valid only when the selected driver is the primary business driver.
+
+Examples:
+
+Product-based block laying business:
+
+Revenue ÷ m² = revenue per m²  
+COG ÷ m² = COG per m²  
+Margin ÷ m² = margin per m²
+
+This works because m² is the primary driver.
+
+Labour-based business:
+
+Revenue ÷ m² is not valid unless m² is tracked as a real production driver.
+
+Therefore product/unit rates in a labour-based business require:
+
+- manual component definition
+- or future SOQ / job / PO data
+
+Do not infer product/unit rates from supplier totals alone.
+
+---
+
+# 15. LABOUR-BASED PRODUCT RATE LIMITATION
+
+For a labour-based business, true product/unit rates cannot be built from annual COG supplier totals alone.
+
+To build a true product/unit rate, the system needs:
+
+- schedule of quantities
+- job-level quantities
+- material consumption
+- labour consumption
+- subcontractor consumption
+- PO/job cost mapping
+
+This belongs to the future SOQ / Job Tracking / PO layer.
+
+Until then, product/unit rates in labour mode must be:
+
+- manual
+- template-based
+- or marked not_available / preview_only
+
+Do not create false precision.
+
+---
+
+# 16. PRODUCT-BASED DAYWORKS RULE
+
+Product-based businesses may still sell hours.
+
+Example:
+
+A square-metre installation business may also charge dayworks.
+
+This is valid.
+
+Rate Builder should allow an hourly rate row inside product mode.
+
+But the system mode remains product-based.
+
+Hourly rate is an exception rate, not a new business mode.
+
+---
+
+# 17. SELLABLE RATE VS WORKING GROUP RULE
+
+A Cost Allocation working group is not always a sellable rate.
+
+Example:
+
+Site Works Group contains:
+
+- 2 labourers
+- 1 operator
+- 1 digger
+
+But the business may sell:
+
+- digger + operator
+- labourer only
+- full crew
+- dayworks
+- m³ / m² product rate
+
+Therefore Rate Builder must allow rates to be built from:
+
+- full group
+- subset of group
+- individual labour component
+- asset + operator combination
+- unit/product driver where valid
+
+---
+
+# 18. SUBSET RATE RULE
+
+Rate Builder must allow component selection.
+
+Example:
+
+Cost Allocation group:
+
+Site Works:
+- 2 labourers
+- 1 operator
+- 1 digger
+
+Rate Builder rate:
+
+Digger + Operator Rate:
+- include operator
+- include digger
+- include proportional overhead
+- exclude 2 labourers
+
+This produces the real charge-out rate for the machine and operator.
+
+---
+
+# 19. COMPONENT TYPES
+
+Allowed rate component types:
+
+- labour
+- asset
+- overhead
+- COG/material
+- subcontractor
+- manual adjustment
+- margin/profit
+
+Each component must be traceable.
+
+No hidden cost layer.
+
+No duplicated cost layer.
+
+---
+
+# 20. LABOUR COMPONENT
+
+Labour component uses:
+
+- assigned labour cost
+- assigned labour hours
+- weighted labour rate from Labour
+- Cost Allocation assignment
+
+It can produce:
+
+- labourer hourly rate
+- operator hourly rate
+- crew labour rate
+
+Non-productive labour must not appear here directly.
+
+Non-productive labour is recovered through overheads.
+
+---
+
+# 21. ASSET COMPONENT
+
+Asset component uses:
+
+- assigned asset burden
+- assigned asset utilisation hours
+- required asset recovery rate
+- asset cost from Assets
+- assignment from Cost Allocation
+
+It can produce:
+
+- digger hourly recovery
+- pump hourly recovery
+- truck hourly recovery
+- equipment cost component
+
+Asset running costs already transferred into Assets must not be added again through overheads.
+
+---
+
+# 22. OVERHEAD COMPONENT
+
+Overhead component uses:
+
+- assigned overhead from Cost Allocation
+- selected overhead allocation basis
+
+Possible allocation basis:
+
+- labour hours
+- asset hours
+- selected component cost
+- group cost share
+- equal split
+- manual visible override
+
+Overhead must be included in the rate unless explicitly excluded and flagged.
+
+---
+
+# 23. COG / MATERIAL COMPONENT
+
+COG/material component rules depend on mode.
+
+In product mode:
+
+COG/material may be included as unit cost where unit driver is valid.
+
+In labour mode:
+
+COG/material must not be automatically included in a product/unit rate unless manually defined or supplied by future SOQ/job data.
+
+COG detail may still be shown as material markup context.
+
+---
+
+# 24. MATERIAL MARKUP CONTEXT
+
+Rate Builder may show light material markup context.
+
+This should not become the main analysis section.
+
+The main analysis belongs in Business Outcome.
+
+Rate Builder may show:
+
+- blended material markup %
+- total COG
+- gross margin
+- note that detailed supplier markup is not individually known
+
+Important:
+
+There is one blended material markup.
+
+The system cannot assign a true markup per supplier from total COG data alone.
+
+Supplier/category detail shows contribution to the blended result, not separate supplier markups.
+
+---
+
+# 25. SUPPLIER CONTRIBUTION CONTEXT
+
+Supplier/category COG detail may show:
+
+- top supplier spend
+- top category spend
+- percentage of total COG
+- concentration of spend
+
+This is useful context.
+
+But in Rate Builder it should remain light.
+
+Full supplier impact and modelling belongs in Business Outcome.
+
+---
+
+# 26. BUSINESS OUTCOME HANDOFF FOR SUPPLIER MODELLING
+
+Rate Builder should hand off supplier/material sensitivity to Business Outcome.
+
+Business Outcome should model:
+
+- supplier price increase
+- supplier price decrease
+- total COG movement
+- blended material markup change
+- margin impact
+- recovery impact
+- required rate impact
+
+Example:
+
+If concrete supplier cost reduces by 1%, show:
+
+- COG reduction
+- margin improvement
+- rate pressure reduction
+
+This is Business Outcome modelling, not Rate Builder construction.
+
+---
+
+# 27. RATE BUILDER OUTPUT TO QUOTE CHECKER
+
+Rate Builder must produce clean outputs for Quote Checker.
+
+Quote Checker will later use:
+
+- minimum recoverable rate
+- suggested sell rate
+- component rates
+- required margin
+- current model assumptions
+- business outcome targets
+
+Quote Checker asks:
+
+Does this quote align with the model?
+
+Rate Builder must provide stable rate outputs for this.
+
+---
+
+# 28. MINIMUM RECOVERABLE RATE
+
+Rate Builder owns minimum recoverable rate.
+
+Formula:
+
+selected total cost ÷ selected driver
+
+Selected total cost may include:
+
+- labour component
+- asset component
+- overhead component
+- COG/material component where valid
+- manual visible adjustment
+
+This is cost-only.
+
+It is not the sell rate.
+
+---
+
+# 29. FULLY BURDENED COST RATE
+
+Fully burdened cost rate includes all selected cost layers before profit.
+
+For many use cases this equals minimum recoverable rate.
+
+It must clearly show:
+
+- labour
+- asset
+- overhead
+- COG/material where valid
+
+---
+
+# 30. MARGIN / MARKUP
+
+Rate Builder may apply:
+
+- margin %
+- markup %
+- fixed profit per driver
+- target sell rate
+
+Margin and markup must not be confused.
+
+Margin:
+
+sell rate = cost rate ÷ (1 - margin %)
+
+Markup:
+
+sell rate = cost rate × (1 + markup %)
+
+The active method must be visible.
+
+---
+
+# 31. SUGGESTED SELL RATE
+
+Suggested sell rate is:
+
+fully burdened cost rate
++ selected profit/margin method
+
+Rate Builder should show:
+
+- cost-only rate
+- profit amount
+- final sell rate
+
+This is the practical number the user can charge.
+
+---
+
+# 32. CURRENT / MARKET / TARGET RATE COMPARISON
+
+Rate Builder may compare against:
+
+- current charge-out rate
+- target rate
+- market rate where manually supplied
+- imported price list later
+
+Do not invent market rates.
+
+If no comparison exists, show not_available.
+
+---
+
+# 33. RATE STATUS
+
+Allowed rate_status values:
+
+- ready
+- ready_with_warnings
+- review_required
+- blocked
+- preview_only
+- under_recovering
+- margin_shortfall
+- not_available
+
+A bad rate is not a data failure.
+
+Example:
+
+Current rate below minimum recoverable rate = under_recovering
+
+That is a commercial result, not broken data.
+
+---
+
+# 34. RATE BUILDER OUTPUT CONTRACT
+
+Rate Builder should expose:
+
+- rate_builder_ready
+- rate_builder_status
+- rate_builder_warnings
+- rate_builder_model_trust_state
+- rate_builder_rows
+- minimum_recoverable_rate by rate
+- fully_burdened_cost_rate by rate
+- suggested_sell_rate by rate
+- selected labour component
+- selected asset component
+- selected overhead component
+- selected COG/material component where valid
+- current rate comparison
+- target rate comparison
+- market rate comparison
+- under-recovering rates
+- margin shortfall rates
+- revenue reality context
+- asset reality context
+- recovery summary context
+- cost allocation context
+- material markup context
+- quote checker handoff values
+
+---
+
+# 35. RATE ROW CONTRACT
+
+Each rate row should include:
+
+rate_id  
+rate_name  
+rate_type  
+source_group_id  
+source_group_name  
+rate_driver_type  
+rate_driver_label  
+rate_driver_value  
+
+selected_labour_components  
+selected_asset_components  
+selected_overhead_components  
+selected_cog_components  
+manual_adjustments  
+
+selected_labour_cost  
+selected_asset_burden  
+selected_overhead_burden  
+selected_cog_cost  
+selected_total_cost  
+
+minimum_recoverable_rate  
+fully_burdened_cost_rate  
+
+margin_method  
+margin_percent  
+markup_percent  
+fixed_profit_per_driver  
+suggested_sell_rate  
+
+current_rate  
+target_rate  
+market_rate  
+rate_gap_to_current  
+rate_gap_to_target  
+rate_gap_to_market  
+
+rate_status  
+warnings  
+source_trace  
+
+---
+
+# 36. REQUIRED WARNINGS
+
+Required warning IDs:
+
+rate_builder_missing_business_setup  
+rate_builder_missing_cost_allocation  
+rate_builder_missing_recovery_summary  
+rate_builder_cost_allocation_blocked  
+rate_builder_recovery_summary_blocked  
+rate_builder_missing_rate_driver  
+rate_builder_zero_rate_driver  
+rate_builder_missing_components  
+rate_builder_invalid_component_source  
+rate_builder_product_rate_not_supported_from_cog_totals  
+rate_builder_unit_rate_requires_soq_or_manual_components  
+rate_builder_under_recovering  
+rate_builder_margin_shortfall  
+rate_builder_market_rate_not_available  
+rate_builder_current_rate_not_available  
+rate_builder_revenue_reality_pressure  
+rate_builder_asset_reality_pressure  
+rate_builder_material_markup_context_only  
+rate_builder_preview_only  
+rate_builder_upstream_blocked  
+
+---
+
+# 37. UI STRUCTURE
+
+Recommended Rate Builder UI:
+
+1. Rate Builder Status Strip
+2. Mode Context Panel
+3. Upstream Pressure Panel
+4. Rate List / Rate Cards
+5. Component Builder
+6. Minimum Recoverable Rate Panel
+7. Margin / Markup Panel
+8. Suggested Sell Rate Panel
+9. Current / Target / Market Comparison Panel
+10. Material Markup Context Panel
+11. Quote Checker Handoff Panel
+12. Source Trust / Warning Panel
+13. Help Panel
+
+---
+
+# 38. MODE CONTEXT PANEL
+
+Show:
+
+- business mode
+- default rate driver
+- rate type
+- whether rate is default-mode or exception-mode
+
+Example:
+
+Business mode: Labour-based  
+Default rate type: Hourly  
+This rate: Digger + operator hourly
+
+Or:
+
+Business mode: Product-based  
+Default rate type: m²  
+This rate: Dayworks hourly exception
+
+---
+
+# 39. UPSTREAM PRESSURE PANEL
+
+Show:
+
+- margin after labour
+- labour consumption of margin
+- asset pressure
+- recovery requirement
+- under-recovery status
+
+This reminds the user why the rate matters.
+
+Do not recalculate upstream pages.
+
+---
+
+# 40. RATE LIST / RATE CARDS
+
+Each card should show:
+
+- rate name
+- rate driver
+- selected components
+- minimum recoverable rate
+- suggested sell rate
+- current rate if available
+- gap
+- status
+
+---
+
+# 41. COMPONENT BUILDER
+
+This is the main interactive part.
+
+The user can select:
+
+- group
+- labour components
+- asset components
+- overhead basis
+- COG/material component where valid
+- rate driver
+- margin method
+
+This is where rates are created.
+
+---
+
+# 42. MINIMUM RECOVERABLE RATE PANEL
+
+Show proof:
+
+selected labour
++ selected assets
++ selected overhead
++ selected COG/material where valid
++ adjustments
+= selected total cost
+
+selected total cost ÷ driver
+= minimum recoverable rate
+
+---
+
+# 43. MATERIAL MARKUP CONTEXT PANEL
+
+This panel should be light.
+
+Show:
+
+- blended material markup %
+- total COG
+- top COG categories by spend
+- top suppliers by spend
+- note that supplier-level markup is not individually known
+
+This is context only.
+
+The deeper modelling belongs in Business Outcome.
+
+---
+
+# 44. QUOTE CHECKER HANDOFF PANEL
+
+Show:
+
+These are the values that will be used later to check quotes:
+
+- minimum recoverable rate
+- suggested sell rate
+- required margin
+- selected components
+- rate driver
+- model assumptions
+
+Quote Checker will use these to test quote alignment.
+
+---
+
+# 45. WHAT TO MOVE IN FROM COST ALLOCATION
+
+If currently present in Cost Allocation, move/refactor these into Rate Builder:
+
+- minimum recoverable rate
+- running cost rate per hour
+- labour recovery rate per hour
+- asset recovery rate per hour
+- overhead burden rate per hour
+- operational group recovery rate per hour
+- working unit recovery rate
+- rate-ready flags
+- component running cost proof
+
+Cost Allocation should retain only group cost stacks and assignment structure.
+
+---
+
+# 46. WHAT TO KEEP OUT OF RATE BUILDER
+
+Keep out:
+
+- group creation
+- labour assignment
+- asset assignment
+- shared asset allocation
+- overhead distribution
+- source pool reconciliation
+- recovery test ownership
+- final business verdict
+- final business modelling actions
+
+Those belong elsewhere.
+
+---
+
+# 47. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome receives:
+
+- rate rows
+- minimum recoverable rates
+- suggested sell rates
+- under-recovering rates
+- margin shortfall rates
+- material markup context
+- supplier/category concentration
+- current / target / market gaps
+- quote checker handoff values
+
+Business Outcome uses these to model fixes and consequences.
+
+---
+
+# 48. OUTPUT TO QUOTE CHECKER
+
+Quote Checker receives:
+
+- approved model rates
+- minimum recoverable rates
+- component assumptions
+- margin requirements
+- rate drivers
+- material markup assumptions
+- business outcome targets
+
+Quote Checker compares quoted rates against these.
+
+---
+
+# 49. ACCEPTANCE CRITERIA
+
+Rate Builder v4.0 is accepted when:
+
+1. It consumes Business Setup mode.
+2. It is mode-guided, not mode-restricted.
+3. It does not allow business mode to be redefined.
+4. It supports labour-based default hourly rates.
+5. It supports product-based default unit rates.
+6. It supports exception rates.
+7. It supports full-group rates.
+8. It supports subset rates.
+9. It can build digger + operator separately from a larger group.
+10. It consumes Cost Allocation structure.
+11. It consumes Recovery Summary requirements.
+12. It consumes Revenue Reality context.
+13. It consumes Asset Reality context.
+14. It calculates minimum recoverable rate.
+15. It calculates fully burdened cost rate.
+16. It applies margin or markup.
+17. It calculates suggested sell rate.
+18. It compares current / target / market rates where supplied.
+19. It does not invent market rates.
+20. It does not derive labour-based product rates from COG totals alone.
+21. It requires SOQ/manual component data for labour-mode product rates.
+22. It supports top-down unit analysis only where unit is primary business driver.
+23. It shows blended material markup context.
+24. It does not calculate supplier-level markups as if they are true individual markups.
+25. It hands supplier/material modelling to Business Outcome.
+26. It produces Quote Checker handoff values.
+27. It does not issue final Business Outcome verdict.
+28. Build passes.
+
+---
+
+# 50. FINAL PRINCIPLE
+
+Rate Builder is where pressure becomes pricing.
+
+It turns:
+
+structure
++ recovery requirement
++ component costs
++ margin target
+
+into:
+
+minimum recoverable rates
+and
+sellable charge-out rates
+
+It is mode-guided.
+
+It supports real-world exceptions.
+
+It does not fake product rates from insufficient data.
+
+It does not invent supplier markups.
+
+It keeps product/unit pricing honest.
+
+It gives Business Outcome the rates and levers needed to model fixes.
+
+It gives Quote Checker the rates needed to enforce alignment.
+
+No source mutation.
+No duplicated costs.
+No fake unit rates.
+No invented market rates.
+No hidden margin.
+No final verdict.
+No leaks.

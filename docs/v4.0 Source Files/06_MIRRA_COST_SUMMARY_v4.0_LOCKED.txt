@@ -1,0 +1,1204 @@
+# Mirra — Cost Summary Module Brief
+
+## v4.0 — OPERATING COST BURDEN, SOURCE MODULE AGGREGATION, AND BASELINE RECOVERY PRESSURE
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 06
+
+REPLACES:
+- QS Tools Cost Summary briefs where naming has changed
+- older Cost Summary briefs that do not carry v4.0 trust-state requirements
+- older Cost Summary assumptions that allow downstream modules to rebuild source module totals
+- any Cost Summary brief that mixes COGS, revenue, pricing, or recovery strategy into the operating cost burden
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Cost Summary aggregates trusted operating cost burden from source modules. It does not interpret revenue, assign operating structure, test recovery, build rates, or create the business verdict.
+
+---
+
+# 1. PURPOSE
+
+The Cost Summary module defines the business operating cost burden.
+
+It answers:
+
+What does the business cost to operate before recovery strategy, rate setting, or outcome diagnosis?
+
+Cost Summary aggregates the trusted annual cost outputs from:
+
+- Labour
+- Assets
+- General Overheads
+
+It creates the baseline cost burden that later modules use to test recovery, build rates, and diagnose the business model.
+
+Cost Summary does not decide whether the business model works.
+
+It provides the cost base.
+
+---
+
+# 2. MODULE ROLE
+
+Cost Summary owns:
+
+- aggregated people cost
+- aggregated asset cost
+- aggregated general overhead cost
+- total business cost burden
+- baseline productive output
+- baseline required recovery rate per productive hour
+- cost source composition
+- cost summary readiness
+- cost summary warnings
+- cost burden trust state
+
+Cost Summary does not own:
+
+- revenue
+- COGS
+- margin pool
+- P&L classification
+- operational COG assignment
+- COG Account Transactions reconciliation
+- staff identity
+- asset identity
+- overhead category source truth
+- cost allocation groups
+- overhead distribution
+- recovery strategy
+- required unit recovery
+- Rate Builder rates
+- Business Outcome verdict
+- Business Modelling scenarios
+- quote checks
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Cost Summary sits after the source cost modules and trust gates.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Margin Stress Test
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Cost Summary must consume source module outputs only.
+
+It must not recreate Labour, Assets, or General Overheads calculations.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Cost Summary is an aggregation layer.
+
+It must answer:
+
+How much cost must the business recover?
+
+It must not answer:
+
+- how should the business recover it?
+- which labour group recovers it?
+- which asset group recovers it?
+- what unit rate should be charged?
+- is the business viable?
+- what should the owner change?
+- what quote should be accepted?
+
+Those questions belong downstream.
+
+---
+
+# 5. SOURCE MODULES
+
+Cost Summary consumes three core source modules:
+
+## Labour
+
+Provides:
+
+- total_people_cost_annual
+- total_labour_cost_annual
+- total_productive_labour_cost
+- total_productive_labour_hours
+- total_productive_output
+- productive_labour_cost_rate
+- labour_ready
+- labour_status
+- labour_model_trust_state
+- labour_warnings
+
+## Assets
+
+Provides:
+
+- total_asset_cost_annual
+- total_productive_asset_cost_annual
+- total_productive_asset_burden
+- required_asset_recovery_rate
+- assets_ready
+- assets_status
+- assets_model_trust_state
+- assets_warnings
+
+## General Overheads
+
+Provides:
+
+- total_general_overheads
+- general_overheads_pool_amount
+- general_overheads_ready
+- general_overheads_status
+- general_overheads_model_trust_state
+- general_overheads_warnings
+
+Cost Summary does not consume COGS as operating cost burden.
+
+COGS belongs to Revenue / COGS.
+
+---
+
+# 6. COGS EXCLUSION RULE
+
+COGS / Cost of Sales must not be included in Cost Summary operating cost burden.
+
+Reason:
+
+COGS is treated differently depending on business mode.
+
+## Hours-based mode
+
+COGS creates material margin.
+
+It is not part of the hourly business operating cost burden by default.
+
+## Product / unit-based mode
+
+COGS is consumed by the product/unit.
+
+It belongs in unit cost stack logic through Revenue / COGS and Rate Builder.
+
+Therefore Cost Summary must not add COGS into:
+
+total_cost_burden
+
+or:
+
+total_business_cost_annual
+
+COGS must remain outside Cost Summary.
+
+---
+
+# 7. REVENUE EXCLUSION RULE
+
+Revenue must not be included in Cost Summary.
+
+Revenue belongs to Revenue / COGS and Business Summary.
+
+Cost Summary may later be displayed beside revenue context, but it does not own revenue.
+
+Cost Summary is cost-only.
+
+---
+
+# 8. REQUIRED INPUT VARIABLES
+
+Cost Summary consumes:
+
+From Labour:
+
+total_people_cost_annual
+total_labour_cost_annual
+total_productive_output
+total_productive_labour_hours
+labour_ready
+labour_status
+labour_model_trust_state
+labour_warnings
+
+From Assets:
+
+total_asset_cost_annual
+total_productive_asset_cost_annual
+assets_ready
+assets_status
+assets_model_trust_state
+assets_warnings
+
+From General Overheads:
+
+total_general_overheads
+general_overheads_ready
+general_overheads_status
+general_overheads_model_trust_state
+general_overheads_warnings
+
+From Model Readiness:
+
+model_ready
+model_readiness_status
+model_trust_state
+blocking_modules
+warning_modules
+
+---
+
+# 9. REQUIRED OUTPUT VARIABLES
+
+Cost Summary owns and exposes:
+
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_business_cost_annual
+total_cost_burden
+required_revenue
+required_recovery_rate
+total_productive_output
+cost_summary_ready
+cost_summary_status
+cost_summary_warnings
+cost_summary_warning_count
+cost_summary_model_trust_state
+cost_summary_source_breakdown
+cost_summary_reconciliation_context
+
+---
+
+# 10. PRIMARY FORMULA
+
+Cost Summary primary formula:
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+Where:
+
+total_people_cost_annual =
+Labour source output
+
+total_asset_cost_annual =
+Assets source output
+
+total_business_overheads =
+General Overheads source output
+
+No COGS.
+
+No revenue.
+
+No profit target unless a later v4.0 brief explicitly adds target profit to Business Modelling or Rate Builder.
+
+---
+
+# 11. TOTAL BUSINESS COST ANNUAL
+
+total_business_cost_annual should equal:
+
+total_cost_burden
+
+unless the current codebase requires both names for compatibility.
+
+Preferred v4.0 interpretation:
+
+total_cost_burden =
+primary contract variable
+
+total_business_cost_annual =
+alias / compatibility variable where existing downstream modules expect it
+
+Do not create divergent meanings.
+
+If both exist, they must reconcile exactly.
+
+---
+
+# 12. REQUIRED REVENUE VARIABLE
+
+required_revenue may remain as a compatibility variable if already used.
+
+In v4.0, be careful with wording.
+
+Cost Summary does not calculate commercial revenue target in the full sense.
+
+It calculates the cost burden that must be recovered.
+
+Preferred wording:
+
+required_revenue =
+total_cost_burden
+
+or:
+
+minimum_recovery_required =
+total_cost_burden
+
+If required_revenue exists for compatibility, its meaning must be:
+
+the minimum annual recovery required to cover operating cost burden before profit target
+
+It must not imply sales revenue, invoice revenue, or market revenue.
+
+Revenue / COGS owns actual revenue.
+
+---
+
+# 13. BASELINE PRODUCTIVE OUTPUT
+
+Cost Summary consumes:
+
+total_productive_output
+
+from Labour.
+
+This represents annual productive hours for the current labour setup.
+
+In labour/hour-based mode, this is the denominator for baseline required recovery per productive hour.
+
+In product/unit-based mode, Cost Summary may still calculate this baseline productive-hour pressure, but Business Summary and Recovery Summary must use product/unit driver where appropriate.
+
+Cost Summary does not own product/unit output.
+
+Revenue / COGS owns unit driver rows and annual unit counts.
+
+---
+
+# 14. REQUIRED RECOVERY RATE FORMULA
+
+Cost Summary calculates:
+
+required_recovery_rate =
+total_cost_burden / total_productive_output
+
+This is the baseline hourly cost pressure.
+
+If total_productive_output is zero:
+
+required_recovery_rate = 0
+
+and:
+
+cost_summary_status = blocked
+
+or:
+
+cost_summary_status = not_ready
+
+depending source state.
+
+Do not divide by zero.
+
+Do not invent productive hours.
+
+Do not use units sold as a Cost Summary denominator.
+
+Product/unit recovery per unit is handled downstream in Business Summary, Recovery Summary, and Rate Builder.
+
+---
+
+# 15. COST SOURCE BREAKDOWN
+
+Cost Summary should expose source breakdown.
+
+Required object:
+
+cost_summary_source_breakdown
+
+Suggested shape:
+
+{
+  labour: {
+    source_module,
+    source_variable,
+    amount,
+    status,
+    trust_state
+  },
+  assets: {
+    source_module,
+    source_variable,
+    amount,
+    status,
+    trust_state
+  },
+  general_overheads: {
+    source_module,
+    source_variable,
+    amount,
+    status,
+    trust_state
+  }
+}
+
+Purpose:
+
+Show exactly where total_cost_burden came from.
+
+No hidden source composition.
+
+---
+
+# 16. SOURCE TRACE REQUIREMENT
+
+Each key Cost Summary output should be traceable.
+
+Required source trace objects for:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+
+Example:
+
+{
+  output_variable: "total_cost_burden",
+  source_module: "cost_summary",
+  source_variable: "total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+  calculation_rule: "labour + assets + general_overheads",
+  source_status: "ready",
+  last_updated: "...",
+  trust_state: "ready"
+}
+
+---
+
+# 17. RECONCILIATION CONTEXT
+
+Cost Summary does not own P&L reconciliation.
+
+Module Reconciliation owns P&L vs module variance.
+
+But Cost Summary must carry enough context for downstream modules to understand whether the cost burden is trusted.
+
+Required variable:
+
+cost_summary_reconciliation_context
+
+Suggested shape:
+
+{
+  module_reconciliation_status,
+  model_trust_state,
+  labour_variance_amount,
+  asset_finance_variance_amount,
+  general_overheads_variance_amount,
+  total_business_cost_variance_amount,
+  blocking_checks,
+  warning_checks
+}
+
+Cost Summary must not hide Module Reconciliation warnings.
+
+If Model Readiness is blocked, Cost Summary must show preview-only or blocked status.
+
+---
+
+# 18. MODEL READINESS INHERITANCE
+
+Cost Summary must inherit Model Readiness.
+
+If model_trust_state = blocked:
+
+cost_summary_model_trust_state = blocked
+
+If model_trust_state = preview_only:
+
+cost_summary_model_trust_state = preview_only
+
+If model_trust_state = warning:
+
+cost_summary_model_trust_state = warning
+
+If all source modules are ready and model_trust_state = ready:
+
+cost_summary_model_trust_state = ready
+
+Cost Summary must not override a blocked upstream trust state.
+
+---
+
+# 19. COST SUMMARY READY CONDITIONS
+
+Cost Summary is ready when:
+
+- Labour source exists
+- Assets source exists
+- General Overheads source exists
+- total_people_cost_annual is numeric
+- total_asset_cost_annual is numeric
+- total_business_overheads is numeric
+- total_cost_burden can be calculated
+- total_productive_output is numeric
+- required_recovery_rate can be calculated or clearly marked zero because productive output is zero
+- Model Readiness is not blocked
+- no blocking source module warning exists
+
+Cost Summary is not ready when:
+
+- Labour source is missing
+- Assets source is missing
+- General Overheads source is missing
+- any required source amount is invalid
+- total_cost_burden cannot be calculated
+- source module is blocked
+- Model Readiness is blocked
+- productive output is missing where required
+
+---
+
+# 20. STATUS VALUES
+
+Allowed cost_summary_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+not_ready
+
+Status rules:
+
+ready:
+All required source modules are ready, totals are numeric, trust state ready.
+
+ready_with_warnings:
+Cost Summary can calculate, but warnings from source modules or reconciliation remain.
+
+review_required:
+Cost Summary can calculate, but user review is required before relying downstream.
+
+blocked:
+Cost Summary cannot be trusted due to invalid/missing source values or blocked upstream trust state.
+
+preview_only:
+Cost Summary can display but must not be used as final trusted output because upstream data is incomplete or manually estimated.
+
+not_ready:
+Cost Summary does not have sufficient data to calculate.
+
+---
+
+# 21. TRUST STATE
+
+Cost Summary should expose:
+
+cost_summary_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+cost_summary_status = ready
+→ ready
+
+cost_summary_status = ready_with_warnings or review_required
+→ warning
+
+cost_summary_status = blocked or not_ready
+→ blocked
+
+cost_summary_status = preview_only
+→ preview_only
+
+---
+
+# 22. REQUIRED WARNINGS
+
+Cost Summary must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+cost_summary_missing_labour
+cost_summary_missing_assets
+cost_summary_missing_general_overheads
+cost_summary_invalid_labour_total
+cost_summary_invalid_asset_total
+cost_summary_invalid_overhead_total
+cost_summary_productive_output_zero
+cost_summary_total_cost_zero
+cost_summary_upstream_blocked
+cost_summary_model_preview_only
+cost_summary_reconciliation_warning
+cost_summary_cogs_excluded_notice
+cost_summary_required_recovery_zero
+
+---
+
+# 23. WARNING MEANINGS
+
+## cost_summary_missing_labour
+
+Use when Labour source output is not available.
+
+Blocking:
+
+true.
+
+## cost_summary_missing_assets
+
+Use when Assets source output is not available.
+
+Blocking:
+
+true unless Assets are explicitly confirmed not applicable.
+
+## cost_summary_missing_general_overheads
+
+Use when General Overheads source output is not available.
+
+Blocking:
+
+true unless overheads are explicitly confirmed as zero.
+
+## cost_summary_productive_output_zero
+
+Use when total_productive_output is zero.
+
+Blocking:
+
+true for hourly recovery rate.
+
+Message should explain:
+
+Required recovery per productive hour cannot be calculated because productive output is zero.
+
+## cost_summary_total_cost_zero
+
+Use when total_cost_burden is zero.
+
+Blocking:
+
+review_required unless confirmed.
+
+## cost_summary_upstream_blocked
+
+Use when Model Readiness or a source module is blocked.
+
+Blocking:
+
+true.
+
+## cost_summary_cogs_excluded_notice
+
+Use as info if needed.
+
+Message should explain:
+
+COGS is not included in Cost Summary because COGS is handled in Revenue / COGS and Rate Builder according to business mode.
+
+Blocking:
+
+false.
+
+---
+
+# 24. COST SUMMARY UI STRUCTURE
+
+Recommended Cost Summary UI structure:
+
+1. Cost Summary Status Strip
+2. Headline Cost Burden Panel
+3. Source Composition Panel
+4. Productive Output / Recovery Pressure Panel
+5. Source Trust / Readiness Panel
+6. Reconciliation Context Panel
+7. Warning / Review Panel
+8. Help Panel
+
+Existing UI may be retained if it supports these concepts.
+
+Do not rebuild UI unnecessarily if current components already work.
+
+---
+
+# 25. STATUS STRIP
+
+The status strip should show:
+
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+- cost_summary_status
+- warning count
+- trust state
+
+Labels must avoid overclaiming if model is preview-only.
+
+Example:
+
+Ready:
+Cost Summary ready
+
+Warning:
+Cost Summary ready with review items
+
+Blocked:
+Cost Summary blocked
+
+Preview:
+Cost Summary preview only
+
+---
+
+# 26. HEADLINE COST BURDEN PANEL
+
+This panel should answer:
+
+What does the business cost annually?
+
+Display:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_cost_burden
+
+Suggested display:
+
+People Cost
+Asset Cost
+General Overheads
+Total Cost Burden
+
+Do not display COGS as part of total_cost_burden.
+
+---
+
+# 27. SOURCE COMPOSITION PANEL
+
+This panel should show where the cost burden comes from.
+
+Example:
+
+Labour:
+$X from Labour module
+
+Assets:
+$Y from Assets module
+
+General Overheads:
+$Z from General Overheads module
+
+Each row should show:
+
+- amount
+- source module
+- source status
+- trust state
+- warning marker if any
+
+---
+
+# 28. PRODUCTIVE OUTPUT / RECOVERY PRESSURE PANEL
+
+This panel should show:
+
+- total_productive_output
+- required_recovery_rate
+- denominator label
+- calculation explanation
+
+Formula display:
+
+total_cost_burden / total_productive_output = required_recovery_rate
+
+For labour/hour-based businesses, label:
+
+Required recovery per productive hour
+
+For product/unit-based businesses, keep this as:
+
+Baseline productive-hour pressure
+
+Do not confuse this with required recovery per unit.
+
+Product/unit required recovery belongs in Business Summary / Recovery Summary / Rate Builder.
+
+---
+
+# 29. SOURCE TRUST / READINESS PANEL
+
+This panel should show:
+
+- Labour ready state
+- Assets ready state
+- General Overheads ready state
+- Model Readiness state
+
+Use plain language.
+
+Example:
+
+Labour:
+Ready
+
+Assets:
+Review required
+
+General Overheads:
+Ready
+
+Model Readiness:
+Warning
+
+---
+
+# 30. RECONCILIATION CONTEXT PANEL
+
+This panel should show the summary of Module Reconciliation context.
+
+Examples:
+
+- Labour module vs P&L benchmark variance
+- Asset finance module vs P&L benchmark variance
+- General Overheads vs P&L benchmark variance
+- Total business cost variance
+
+Cost Summary should not recalculate these.
+
+It should display the context passed from Module Reconciliation / Model Readiness.
+
+---
+
+# 31. WARNING / REVIEW PANEL
+
+This panel should show all Cost Summary warnings.
+
+Warnings should be grouped by:
+
+- blocking
+- review required
+- info
+
+Do not hide warnings behind a count only.
+
+Every warning should show review action.
+
+---
+
+# 32. HELP PANEL
+
+The help panel should explain:
+
+- Cost Summary adds Labour, Assets, and General Overheads
+- COGS is not included here
+- Revenue is not included here
+- this page shows what the business costs to operate
+- downstream pages decide how that cost is recovered
+- product/unit mode uses unit drivers later
+- P&L variance is shown through reconciliation, not silently fixed here
+
+Suggested wording:
+
+Cost Summary shows the cost base the business must recover.
+It does not decide how recovery happens.
+Revenue / COGS controls direct costs and margin.
+Cost Allocation, Recovery Summary, and Rate Builder turn this cost burden into operational recovery requirements.
+
+---
+
+# 33. DOWNSTREAM OUTPUT TO BUSINESS SUMMARY
+
+Business Summary should receive:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+- cost_summary_status
+- cost_summary_model_trust_state
+
+Business Summary uses these to calculate:
+
+- forward proof
+- residual margin after labour
+- net position
+- required recovery per driver
+- P&L-to-operational bridge context
+
+Business Summary must not rebuild Cost Summary.
+
+---
+
+# 34. DOWNSTREAM OUTPUT TO REVENUE REALITY
+
+Revenue Reality should receive:
+
+- total_people_cost_annual
+- total_labour_cost_annual where needed
+- cost_summary_model_trust_state
+
+Revenue Reality uses labour cost to stress-test material margin after labour.
+
+Revenue Reality must not recalculate Cost Summary.
+
+---
+
+# 35. DOWNSTREAM OUTPUT TO COST ALLOCATION
+
+Cost Allocation may receive:
+
+- total_cost_burden
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_productive_output
+- cost_summary_model_trust_state
+
+However, Cost Allocation should primarily consume source module detail from Labour, Assets, and General Overheads where it needs allocation detail.
+
+Cost Summary provides macro total context.
+
+Cost Allocation owns group structure.
+
+---
+
+# 36. DOWNSTREAM OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary should receive:
+
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+- cost_summary_status
+- cost_summary_model_trust_state
+
+Recovery Summary tests recovery by mode.
+
+It must not recalculate source module totals.
+
+---
+
+# 37. DOWNSTREAM OUTPUT TO RATE BUILDER
+
+Rate Builder may receive:
+
+- total_cost_burden
+- required_recovery_rate
+- cost_summary_model_trust_state
+
+But Rate Builder should primarily consume:
+
+- Cost Allocation groups
+- Recovery Summary tests
+- Labour staff type rates
+- Assets recovery rates
+- Revenue / COGS COG data
+
+Cost Summary provides baseline cost context.
+
+---
+
+# 38. DOWNSTREAM OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive Cost Summary context through:
+
+- Business Summary
+- Recovery Summary
+- Rate Builder
+- Model Readiness
+
+Business Outcome must not directly recalculate Cost Summary.
+
+Business Outcome may display total_cost_burden, but it should not own it.
+
+---
+
+# 39. DO NOT CHANGE
+
+Do not change:
+
+- Labour source calculations
+- Assets source calculations
+- General Overheads source calculations
+- P&L classification
+- Revenue / COGS COG logic
+- Module Reconciliation variance logic
+- Cost Allocation group logic
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome diagnosis
+
+Do not add COGS into Cost Summary.
+
+Do not add revenue into Cost Summary.
+
+Do not create operational groups in Cost Summary.
+
+Do not distribute overheads in Cost Summary.
+
+Do not calculate product/unit recovery in Cost Summary.
+
+---
+
+# 40. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useCostSummary.js
+lib/calculations/costSummaryCalculations.js
+lib/selectors/costSummarySelectors.js
+components/cost-summary/*.jsx
+app/cost-summary/page.jsx
+lib/storage/costSummaryStorage.js where applicable
+
+Possible related files:
+
+hooks/useLabour.js
+hooks/useAssets.js
+hooks/useGeneralOverheads.js
+hooks/useModelReadiness.js
+hooks/useModuleReconciliation.js
+
+Do not modify unrelated modules unless required to consume updated contracts safely.
+
+---
+
+# 41. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect existing Cost Summary source variables.
+2. Preserve current working totals if they are correct.
+3. Confirm Labour source value is consumed, not recalculated.
+4. Confirm Assets source value is consumed, not recalculated.
+5. Confirm General Overheads source value is consumed, not recalculated.
+6. Confirm COGS is not included.
+7. Confirm revenue is not included.
+8. Confirm total_cost_burden formula.
+9. Confirm required_recovery_rate formula.
+10. Confirm zero productive output guardrail.
+11. Add source composition output if missing.
+12. Add trust-state inheritance if missing.
+13. Add structured warnings if missing.
+14. Add reconciliation context if missing.
+15. Run build.
+16. Confirm downstream Business Summary still receives the expected values.
+17. Confirm no unrelated module logic changes.
+
+---
+
+# 42. ACCEPTANCE CRITERIA
+
+The Cost Summary v4.0 build is accepted when:
+
+1. Cost Summary consumes Labour, Assets, and General Overheads only.
+2. Cost Summary does not include COGS.
+3. Cost Summary does not include Revenue.
+4. total_people_cost_annual is traceable to Labour.
+5. total_asset_cost_annual is traceable to Assets.
+6. total_business_overheads is traceable to General Overheads.
+7. total_cost_burden equals people + assets + overheads.
+8. total_business_cost_annual does not diverge from total_cost_burden.
+9. required_recovery_rate equals total_cost_burden / total_productive_output.
+10. Zero productive output is guarded and does not divide by zero.
+11. Source composition is visible.
+12. Model Readiness trust state is inherited.
+13. Module Reconciliation context is visible.
+14. Cost Summary warnings are structured.
+15. Downstream modules receive stable outputs.
+16. Cost Summary does not create recovery strategy.
+17. Cost Summary does not create rates.
+18. Cost Summary does not create business verdict.
+19. Build passes.
+20. No hidden leaks are introduced.
+
+---
+
+# 43. FINAL PRINCIPLE
+
+Cost Summary defines the operating cost burden.
+
+It is the cost base.
+
+It does not decide recovery.
+
+It does not interpret COGS.
+
+It does not assign structure.
+
+It does not build rates.
+
+It does not diagnose the business.
+
+It answers one question:
+
+What does this business cost to run?
+
+No assumptions.
+No COGS hidden in operating cost.
+No revenue mixed into cost.
+No duplicated source totals.
+No unreconciled upstream use.
+No leaks.

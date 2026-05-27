@@ -1,0 +1,1075 @@
+# Mirra — P&L Page Brief
+
+## v4.0 — ACCOUNTING INTAKE, CLASSIFICATION, BENCHMARK TOTALS, AND RECONCILIATION SOURCE
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 04
+
+REPLACES:
+- QS Tools P&L Page briefs where naming has changed
+- older P&L logic that forces final operational COG classification inside the P&L page
+- older P&L import logic that treats fallback classifications as final truth
+- any P&L brief that allows unclassified accounting lines to disappear silently
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+The P&L is the accounting intake and benchmark source. It preserves what the accounting report says. It does not become the operating model.
+
+---
+
+# 1. PURPOSE
+
+The P&L page is the accounting intake layer for Mirra.
+
+It answers:
+
+What did the accounting report say?
+
+The P&L page imports or captures accounting lines, classifies them into broad system areas, preserves source identity, and provides benchmark totals for reconciliation.
+
+The P&L page must not become:
+
+- Cost Summary
+- Revenue / COGS operational assignment
+- Rate Builder
+- Cost Allocation
+- Recovery Summary
+- Business Outcome
+- job costing
+- quote builder
+- supplier spend analysis
+- detailed product catalogue
+
+The P&L page is the source accounting mirror.
+
+Other modules interpret the data.
+
+---
+
+# 2. CORE ROLE
+
+The P&L page owns:
+
+- P&L source import
+- P&L source period
+- accounting line preservation
+- account classification
+- saved account mappings
+- P&L benchmark totals
+- unclassified / review state
+- source report identity
+- accounting truth reference
+
+The P&L page does not own:
+
+- operational COG category assignment
+- labour productive rates
+- asset utilisation
+- overhead distribution
+- cost allocation groups
+- recovery tests
+- rate calculations
+- business outcome verdicts
+
+---
+
+# 3. SOURCE OF TRUTH ROLE
+
+The P&L is the accounting anchor.
+
+Mirra must always be able to show:
+
+- what the P&L says
+- what each module says
+- where the variance is
+- whether the variance is timing, classification, source, or modelling treatment
+- whether downstream trust is affected
+
+The P&L is not always the final operational truth.
+
+But it is always the accounting benchmark.
+
+No module should silently ignore or overwrite the P&L benchmark.
+
+---
+
+# 4. INPUT METHODS
+
+The P&L page should support, in order of preference:
+
+1. API import
+2. Excel import
+3. CSV import
+4. manual entry
+5. PDF only as last resort
+
+Structured imports are preferred because they preserve:
+
+- rows
+- columns
+- account headings
+- exact numbers
+- report period
+- repeatable validation
+
+PDF should not be preferred because it creates:
+
+- OCR risk
+- layout extraction errors
+- hidden row issues
+- inconsistent headings
+- poor reconciliation confidence
+
+---
+
+# 5. ACTIVE IMPORT STANDARD
+
+For the current active build, Excel import is preferred where API is not yet available.
+
+The P&L Excel import should capture:
+
+- account name
+- account code where available
+- section / grouping where available
+- amount
+- source order
+- report period
+- source filename
+- source report name
+- import timestamp
+
+The importer must preserve original accounting line names.
+
+Do not rename imported account names for operational convenience.
+
+---
+
+# 6. P&L SOURCE PERIOD
+
+Every P&L import must preserve source period identity.
+
+Required fields:
+
+{
+  period_start,
+  period_end,
+  period_label,
+  source_system,
+  imported_at,
+  source_file_name,
+  source_report_name,
+  source_report_type
+}
+
+P&L period identity is required so downstream reconciliations can confirm that imported COG detail, module comparisons, and benchmark totals refer to the same period.
+
+If period is missing, the P&L page should show review_required or not_ready.
+
+---
+
+# 7. P&L LINE CONTRACT
+
+Each P&L line should use this shape:
+
+{
+  pnl_line_id,
+  account_code,
+  account_name,
+  line_name,
+  section,
+  classification,
+  amount,
+  raw_amount,
+  source_order,
+  mapping_status,
+  review_required
+}
+
+Rules:
+
+- pnl_line_id must be stable within the imported snapshot.
+- account_code should be used where available.
+- account_name must preserve the original accounting account name.
+- line_name may mirror account_name for display.
+- amount must be numeric.
+- raw_amount should preserve the original imported value where useful.
+- source_order should preserve original report ordering where available.
+- mapping_status must show whether the classification is saved, fallback, manual, or review required.
+- review_required must be true when the system cannot safely classify the line.
+
+---
+
+# 8. ALLOWED P&L SECTIONS
+
+Allowed section values:
+
+revenue
+cost_of_sales
+operating_expenses
+other_income
+other_expenses
+unassigned
+review_required
+
+Do not create narrow operational categories at the P&L source layer.
+
+Examples of what P&L should identify:
+
+- Revenue
+- Cost of Sales
+- Operating Expenses
+- Other Income
+- Other Expenses
+- Review Required
+
+Examples of what P&L should not finalise:
+
+- Materials
+- Subcontracting - General
+- Hired equipment
+- Waste / tipping
+- Pumping consumables
+- Direct labour rate builder bucket
+- Product group cost stack
+
+Those belong downstream, mainly Revenue / COGS and Cost Allocation.
+
+---
+
+# 9. CLASSIFICATION RESPONSIBILITY
+
+The P&L page classifies accounting lines into broad system areas.
+
+Approved broad classification targets:
+
+- revenue
+- cost_of_sales
+- operating_expenses
+- other_income
+- other_expenses
+- review_required
+- excluded
+
+The P&L page may also classify operating expenses into pathways needed by the current system, such as:
+
+- labour_benchmark
+- asset_finance_benchmark
+- general_overheads_benchmark
+
+But these are benchmark/reconciliation categories, not final operational model categories.
+
+---
+
+# 10. SAVED MAPPING RULE
+
+Saved/manual account mapping must win before fallback inference.
+
+Classification order:
+
+1. Existing saved account mapping
+2. User manual classification
+3. High-confidence import section
+4. Fallback inference rule
+5. Review required
+
+Do not let fallback inference overwrite a saved user choice.
+
+Do not silently reclassify known accounts differently on later imports.
+
+If a saved mapping conflicts with source report structure, show review_required.
+
+---
+
+# 11. UNKNOWN LINE RULE
+
+Unknown lines must not disappear.
+
+If the importer cannot classify a line safely, assign:
+
+section = review_required
+
+or:
+
+section = unassigned
+
+and set:
+
+review_required = true
+
+The page must show these lines clearly.
+
+Unknown revenue, COGS, operating expense, other income, or other expense lines must remain visible.
+
+No imported line with a non-zero amount may be discarded silently.
+
+---
+
+# 12. COGS HANDLING ON P&L PAGE
+
+The P&L page should identify Cost of Sales lines and preserve their raw account names and amounts.
+
+The P&L page should not be the final operational COG classification layer.
+
+For Cost of Sales, P&L should preserve:
+
+- original account name
+- original account code where available
+- P&L amount
+- source section
+- source period
+- source line ID
+
+Example P&L Cost of Sales lines:
+
+- Concrete Purchase
+- Purchases - Fill
+- Purchases - Steel
+- Concrete Pumping
+- Subcontracting - Labour
+- Equipment Hire
+- Cartage
+- Waste Disposal
+- Coffee Beans
+- Milk
+- Packaging
+- Merchant Fees
+- Food Purchases
+- Freight
+
+The P&L page should not force these into hardcoded operational categories.
+
+Revenue / COGS owns operational COG assignment.
+
+---
+
+# 13. WHY COGS IS NOT FINALISED IN P&L
+
+COGS is business-specific.
+
+A construction business, café, manufacturer, retailer, and productised service business may all have completely different COG accounts.
+
+The P&L page should work by default for any company by importing the company’s actual account names.
+
+Operational interpretation happens later.
+
+Correct flow:
+
+P&L page:
+imports raw COG account lines
+
+Revenue / COGS:
+assigns operational COG categories
+reconciles Account Transactions COG detail
+prepares COG for Rate Builder
+
+This avoids assumptions and keeps the P&L universal.
+
+---
+
+# 14. OPERATING EXPENSE HANDLING
+
+Operating Expenses can remain more structured because they feed established overhead, asset-finance, and reconciliation pathways.
+
+Operating Expenses should support the existing classification logic where it already works.
+
+Do not refactor Operating Expenses unnecessarily.
+
+Operating Expenses may flow into:
+
+- General Overheads
+- asset finance benchmark
+- labour benchmark where appropriate
+- Module Reconciliation
+- Model Readiness
+- Business Summary bridge
+
+Operating Expenses should remain stable unless a specific v4.0 source brief changes them.
+
+---
+
+# 15. OTHER INCOME RULE
+
+Other Income must be preserved.
+
+Other Income may be included in traditional P&L net profit but excluded from operating margin where appropriate.
+
+Business Summary must show how Other Income is treated in the P&L-to-operational bridge.
+
+The P&L page owns the source value.
+
+Business Summary owns the bridge explanation.
+
+Do not hide Other Income.
+
+Do not mix Other Income into Revenue / COGS unless explicitly classified as operating revenue by the user.
+
+---
+
+# 16. OTHER EXPENSE RULE
+
+Other Expenses must be preserved.
+
+They may need review before being included in operating cost burden.
+
+If Other Expenses are outside normal operations, they should remain visible as review_required or excluded from operating model with explanation.
+
+Do not silently include unusual expenses in General Overheads without classification.
+
+---
+
+# 17. WIP / JOURNAL / ACCOUNTING ADJUSTMENT VISIBILITY
+
+The P&L may include accounting adjustments such as:
+
+- WIP movement
+- year-end journals
+- accrual adjustments
+- accountant adjustments
+- depreciation
+- finance cost treatment
+- reclassifications
+
+The P&L page must preserve these lines.
+
+Do not assume they are wrong.
+
+Do not automatically remove them.
+
+If they materially affect Revenue, COGS, or Operating Expenses, they should be visible for review.
+
+Downstream modules may treat them differently, but the P&L page must preserve the accounting source.
+
+---
+
+# 18. P&L BENCHMARK TOTALS
+
+The P&L page should output benchmark totals.
+
+Required benchmark totals:
+
+pnl_total_revenue
+pnl_total_cogs
+pnl_gross_profit
+pnl_gross_margin_percent
+pnl_total_operating_expenses
+pnl_total_other_income
+pnl_total_other_expenses
+pnl_net_profit
+
+Formula:
+
+pnl_gross_profit =
+pnl_total_revenue - pnl_total_cogs
+
+pnl_gross_margin_percent =
+pnl_gross_profit / pnl_total_revenue
+
+pnl_net_profit =
+pnl_gross_profit
+- pnl_total_operating_expenses
++ pnl_total_other_income
+- pnl_total_other_expenses
+
+If the imported P&L already provides a net profit line, preserve both:
+
+- calculated net profit
+- imported net profit
+
+and show variance if they differ.
+
+---
+
+# 19. MODULE BENCHMARK TOTALS
+
+The P&L page should also expose benchmark totals for Module Reconciliation.
+
+Required benchmark totals:
+
+labour_benchmark_total
+asset_finance_benchmark_total
+general_overheads_benchmark_total
+operating_expense_benchmark_total
+cost_of_sales_benchmark_total
+
+These are accounting benchmarks only.
+
+They do not replace module source values.
+
+Example:
+
+Labour module may calculate true labour cost of $X.
+
+P&L labour benchmark may show $Y.
+
+Module Reconciliation shows the variance.
+
+Do not force Labour module to equal the P&L.
+
+Do not force P&L to equal Labour module.
+
+Always variance.
+
+Never silent overwrite.
+
+---
+
+# 20. P&L READY CONDITIONS
+
+P&L is ready only when:
+
+- a P&L source exists
+- source period exists
+- revenue lines are classified
+- COGS lines are classified as cost_of_sales or reviewed
+- operating expense lines are classified or reviewed
+- non-zero unclassified lines are not hidden
+- benchmark totals can be calculated
+- no blocking import error exists
+
+P&L is not ready when:
+
+- no P&L data exists
+- source period is missing
+- all totals are zero
+- imported file failed parsing
+- unclassified material lines exist
+- account mapping conflict exists
+- net profit calculation cannot be checked
+- source report structure is unsupported
+
+---
+
+# 21. P&L STATUS VALUES
+
+Allowed pnl_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+not_ready
+
+Status rules:
+
+ready:
+P&L data exists, source period exists, required sections are classified, no blocking warnings.
+
+ready_with_warnings:
+P&L is usable but warnings remain visible.
+
+review_required:
+P&L data exists but some lines need review before downstream trust.
+
+blocked:
+P&L cannot be used due to missing source period, failed import, invalid totals, or material classification issue.
+
+not_ready:
+No valid P&L source exists.
+
+---
+
+# 22. P&L TRUST STATE
+
+P&L should expose:
+
+pnl_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+pnl_status = ready
+→ pnl_model_trust_state = ready
+
+pnl_status = ready_with_warnings or review_required
+→ pnl_model_trust_state = warning
+
+pnl_status = blocked or not_ready
+→ pnl_model_trust_state = blocked
+
+---
+
+# 23. REQUIRED P&L WARNINGS
+
+P&L should produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+no_pnl_data
+pnl_period_missing
+pnl_import_failed
+pnl_totals_zero
+pnl_unclassified_lines
+pnl_account_mapping_conflict
+pnl_net_profit_variance
+pnl_unknown_revenue_lines
+pnl_unknown_cogs_lines
+pnl_unknown_operating_expense_lines
+pnl_other_income_review
+pnl_other_expense_review
+pnl_wip_or_journal_review
+
+---
+
+# 24. P&L RECONCILIATION OUTPUTS
+
+P&L should create self-check reconciliation where possible.
+
+Examples:
+
+- imported net profit vs calculated net profit
+- imported gross profit vs calculated gross profit
+- imported totals vs line sum totals
+
+Use standard reconciliation object:
+
+{
+  reconciliation_id,
+  source_module,
+  source_name,
+  source_amount,
+  module_name,
+  module_amount,
+  variance_amount,
+  variance_percent,
+  reconciliation_status,
+  tolerance_amount,
+  explanation,
+  blocking,
+  reviewed
+}
+
+Default tolerance:
+
+1.00
+
+If imported net profit differs from calculated net profit by more than tolerance, show review_required or blocked depending severity.
+
+---
+
+# 25. P&L OUTPUT CONTRACT
+
+The P&L page should expose:
+
+{
+  pnl_snapshot_id,
+  pnl_source_type,
+  pnl_source_file_name,
+  pnl_source_report_name,
+  pnl_source_report_type,
+  pnl_imported_at,
+  pnl_period_start,
+  pnl_period_end,
+  pnl_period_label,
+  pnl_lines,
+  pnl_classifications,
+  saved_account_mappings,
+  unclassified_lines,
+  review_required_lines,
+  pnl_total_revenue,
+  pnl_total_cogs,
+  pnl_gross_profit,
+  pnl_gross_margin_percent,
+  pnl_total_operating_expenses,
+  pnl_total_other_income,
+  pnl_total_other_expenses,
+  pnl_net_profit,
+  labour_benchmark_total,
+  asset_finance_benchmark_total,
+  general_overheads_benchmark_total,
+  operating_expense_benchmark_total,
+  cost_of_sales_benchmark_total,
+  pnl_ready,
+  pnl_status,
+  pnl_warnings,
+  pnl_warning_count,
+  pnl_model_trust_state,
+  pnl_reconciliation_checks
+}
+
+---
+
+# 26. DOWNSTREAM OUTPUT TO REVENUE / COGS
+
+Revenue / COGS should receive:
+
+- pnl revenue lines
+- pnl cost_of_sales lines
+- pnl_total_revenue
+- pnl_total_cogs
+- pnl_gross_profit
+- pnl_gross_margin_percent
+- source period identity
+
+Revenue / COGS must preserve raw COG account descriptions and create its own operational COG assignment layer.
+
+P&L does not send final COG categories to Revenue / COGS.
+
+P&L sends raw accounting COG account lines.
+
+---
+
+# 27. DOWNSTREAM OUTPUT TO GENERAL OVERHEADS
+
+General Overheads should receive or reference:
+
+- operating expense lines classified as general overheads
+- general_overheads_benchmark_total
+- operating_expense_benchmark_total
+- source period identity
+
+General Overheads owns the final overhead source pool.
+
+P&L only supplies benchmark/accounting source data.
+
+---
+
+# 28. DOWNSTREAM OUTPUT TO MODULE RECONCILIATION
+
+Module Reconciliation should receive:
+
+- labour_benchmark_total
+- asset_finance_benchmark_total
+- general_overheads_benchmark_total
+- operating_expense_benchmark_total
+- cost_of_sales_benchmark_total
+- pnl_total_revenue
+- pnl_total_cogs
+- pnl_net_profit
+- pnl_total_other_income
+- pnl_period identity
+
+Module Reconciliation compares these benchmarks with module outputs.
+
+It does not change P&L values.
+
+---
+
+# 29. DOWNSTREAM OUTPUT TO BUSINESS SUMMARY
+
+Business Summary should not bypass Revenue / COGS, Cost Summary, and Module Reconciliation where those modules provide cleaner contracts.
+
+Business Summary may consume P&L net profit and bridge values through Module Reconciliation.
+
+Business Summary must show the P&L-to-operational bridge.
+
+P&L provides accounting net profit.
+
+Business Summary explains how Mirra operating position differs.
+
+---
+
+# 30. P&L UI STRUCTURE
+
+Recommended P&L page structure:
+
+1. P&L Status Strip
+2. P&L Import / Source Panel
+3. P&L Period Panel
+4. P&L Classification Progress Panel
+5. Revenue Section
+6. Cost of Sales Section
+7. Operating Expenses Section
+8. Other Income / Other Expenses Section
+9. Review Required Section
+10. Reconciliation Panel
+11. Saved Snapshots Panel
+12. Help Panel
+
+Existing UI structure may be retained if it already supports these concepts.
+
+Do not rebuild UI unnecessarily if current components work.
+
+---
+
+# 31. P&L IMPORT PANEL
+
+The import panel should clearly show:
+
+- source file name
+- source report type
+- source period
+- import status
+- line count
+- classified count
+- review count
+- blocking warnings
+
+It should support:
+
+- Excel upload
+- future API import
+- manual fallback where already supported
+
+Do not build Xero API in this module yet unless separately briefed.
+
+---
+
+# 32. P&L CLASSIFICATION UI
+
+The classification UI should allow user review of:
+
+- Revenue
+- Cost of Sales
+- Operating Expenses
+- Other Income
+- Other Expenses
+- Review Required
+
+Each line should show:
+
+- account name
+- account code where available
+- amount
+- current classification
+- mapping source
+- review status
+
+User should be able to update classification and save mapping.
+
+Saved mappings should apply to future imports.
+
+---
+
+# 33. COGS UI ON P&L PAGE
+
+COGS UI should show raw accounting COG accounts.
+
+Do not require the user to assign COG operational category here.
+
+Avoid wording that implies final operational classification.
+
+Correct wording:
+
+- Cost of Sales account
+- P&L COG account
+- Accounting COG line
+- Sent to Revenue / COGS for operational assignment
+
+Avoid wording:
+
+- Materials category
+- Subcontract category
+- Rate Builder category
+- Final COG group
+
+---
+
+# 34. OPERATING EXPENSE UI
+
+Operating Expense UI should continue to support meaningful classification into overhead/reconciliation pathways.
+
+Keep existing working flow unless a specific module brief requires change.
+
+Operating Expense classification should support:
+
+- General Overheads
+- Asset finance / interest review
+- Labour benchmark review
+- Other operating expense review
+- Excluded / review where needed
+
+Operating Expenses should not be refactored as part of the COG redesign unless required.
+
+---
+
+# 35. REVIEW REQUIRED UI
+
+Review Required section must be prominent.
+
+It should show:
+
+- unclassified revenue lines
+- unclassified COG lines
+- unclassified operating expense lines
+- other income requiring review
+- other expense requiring review
+- WIP / journal lines requiring review
+- mapping conflicts
+
+The user should be able to resolve each review item.
+
+No review item should be hidden.
+
+---
+
+# 36. RECONCILIATION UI
+
+P&L reconciliation panel should show:
+
+- imported total
+- calculated line total
+- difference
+- status
+- source section
+- warning where needed
+
+At minimum, show:
+
+- Revenue total check
+- COGS total check
+- Gross Profit check
+- Operating Expenses check
+- Net Profit check
+
+If imported report does not provide all summary totals, show not_available rather than inventing.
+
+---
+
+# 37. HELP PANEL
+
+The P&L help panel should explain:
+
+- P&L is the accounting source
+- P&L preserves what happened
+- Mirra uses it as benchmark evidence
+- P&L classification prepares data for downstream modules
+- COG operational assignment happens in Revenue / COGS
+- Operating Expenses feed overhead and reconciliation pathways
+- variances are evidence, not automatically errors
+- structured Excel/API import is safer than PDF
+
+---
+
+# 38. DO NOT CHANGE
+
+Do not change:
+
+- Labour calculations
+- Assets calculations
+- General Overheads calculations
+- Cost Summary calculations
+- Business Summary calculations
+- Revenue / COGS COG assignment logic from within P&L
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+Do not move business maths into P&L UI components.
+
+Do not rename existing storage keys unless migration is explicitly briefed.
+
+Do not remove existing saved classifications.
+
+Do not break manual classification.
+
+Do not use Payable Invoice Detail as COG control source.
+
+Do not treat P&L COG category assignment as final operational truth.
+
+---
+
+# 39. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+app/p-and-l/page.jsx
+hooks/useProfitAndLoss.js
+lib/storage/profitAndLossStorage.js
+lib/calculations/profitAndLossCalculations.js
+lib/selectors/profitAndLossSelectors.js
+lib/p-and-l/profitAndLossClassificationRules.js
+lib/p-and-l/profitAndLossGroupingRules.js
+components/p-and-l/*.jsx
+lib/imports/pnlImporter.js where applicable
+
+Do not modify unrelated modules unless required to consume the updated P&L output contract.
+
+---
+
+# 40. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect current P&L storage shape.
+2. Preserve backward compatibility where possible.
+3. Keep saved/manual classifications.
+4. Ensure fallback rules do not override saved mappings.
+5. Keep Cost of Sales as raw accounting account lines.
+6. Move operational COG assignment responsibility to Revenue / COGS.
+7. Preserve Operating Expense classification logic where working.
+8. Add source period where missing.
+9. Add warning objects where missing.
+10. Add output contract for downstream modules.
+11. Run build.
+12. Test with known P&L import.
+13. Confirm downstream Revenue / COGS still receives revenue and COGS lines.
+14. Confirm operating expense flow still works.
+
+---
+
+# 41. ACCEPTANCE CRITERIA
+
+The P&L v4.0 build is accepted when:
+
+1. P&L source data can be imported or entered.
+2. P&L source period is preserved.
+3. Original account names are preserved.
+4. Revenue lines are classified.
+5. Cost of Sales lines are preserved as raw COG account lines.
+6. Cost of Sales lines are not forced into final operational COG categories.
+7. Operating Expense classification still works.
+8. Saved/manual mappings win before fallback rules.
+9. Unknown lines go to review_required.
+10. No non-zero imported line is silently discarded.
+11. Benchmark totals are calculated.
+12. Module benchmark totals are exposed.
+13. P&L status and trust state are exposed.
+14. Structured warnings are exposed.
+15. Reconciliation checks are exposed where possible.
+16. Revenue / COGS receives raw revenue and COGS lines.
+17. Module Reconciliation receives benchmark totals.
+18. Business Summary can use P&L net profit bridge values through the correct pathway.
+19. No downstream module maths is moved into P&L.
+20. Build passes.
+
+---
+
+# 42. FINAL PRINCIPLE
+
+The P&L page preserves accounting truth.
+
+It does not decide operational truth.
+
+It imports, classifies, benchmarks, and exposes source evidence.
+
+Revenue / COGS interprets COGS operationally.
+
+Module Reconciliation shows variance.
+
+Business Summary explains the bridge.
+
+No assumptions.
+No hidden lines.
+No silent remapping.
+No unreconciled downstream use.
+No leaks.

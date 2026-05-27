@@ -1,0 +1,883 @@
+# Mirra — Implementation Order Brief
+
+## v4.0 — UPSTREAM-FIRST REBUILD, SOURCE CONTRACT STABILISATION, COST ALLOCATION CLEANUP, RATE BUILDER INSERTION, BUSINESS MODELLING BRIDGE, AND QUOTE CHECKER HANDOFF
+
+STATUS: ACTIVE IMPLEMENTATION BRIEF
+VERSION: v4.0
+FILE NUMBER: 02
+
+REPLACES:
+- older QS Tools implementation orders
+- older implementation order where Cost Allocation was treated as the next isolated fix
+- older implementation order where Recovery Summary and Cost Allocation carried mixed responsibilities
+- older implementation order where Business Outcome fed Quote Checker directly
+- older implementation order where Business Modelling was deferred without a defined bridge
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Implementation must start from the beginning of the active model chain and move downstream in dependency order. Do not rebuild downstream modules before upstream source contracts are stable.
+
+---
+
+# 1. PURPOSE
+
+This brief defines the active implementation order for Mirra v4.0.
+
+The purpose is to avoid:
+
+- downstream rebuilds based on unstable upstream data
+- duplicate calculations
+- source contract leaks
+- cost double counting
+- broken handoffs
+- rebuilding the same logic twice
+- patching symptoms instead of fixing the chain
+
+The implementation must follow the model flow from source truth to quote checking.
+
+---
+
+# 2. CORE IMPLEMENTATION PRINCIPLE
+
+Build from source to decision.
+
+The correct direction is:
+
+source truth
+↓
+cost truth
+↓
+business reality
+↓
+operating structure
+↓
+recovery proof
+↓
+rates
+↓
+diagnosis
+↓
+target model
+↓
+quote checking
+
+Do not start in the middle unless the upstream contracts have already been confirmed.
+
+---
+
+# 3. ACTIVE IMPLEMENTATION CHAIN
+
+The active implementation chain is:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Checker
+
+Future layers come later:
+
+SOQ / Job / PO
+Job Costing / Profitability
+Model Feedback Loop
+Model Review / Approval
+Data Quality Dashboard
+Reporting / Analytics
+Database / Storage / Export
+Integrations / API
+
+---
+
+# 4. WHY IMPLEMENTATION MUST START AT THE BEGINNING
+
+P&L is the first financial source of truth.
+
+If P&L grouping, COG handling, operating expense classification, or source totals are wrong, every downstream module inherits that issue.
+
+Starting downstream risks:
+
+- Cost Summary using unstable categories
+- Business Summary producing unstable net position
+- Revenue Reality using wrong margin pool
+- Cost Allocation assigning wrong source pools
+- Recovery Summary testing wrong cost burden
+- Rate Builder creating wrong rates
+- Business Modelling modelling wrong targets
+- Quote Checker enforcing wrong assumptions
+
+Therefore the v4.0 rebuild starts at Business Setup / P&L and moves forward.
+
+---
+
+# 5. PHASE 1 — BUSINESS SETUP / MODE CONFIRMATION
+
+Purpose:
+
+Confirm the system mode contract before any financial logic is rebuilt.
+
+Business Setup must confirm:
+
+- business_type
+- labour_based mode
+- product_based mode
+- primary activity driver
+- activity driver label
+- whether system is hours-led or units-led
+
+Rules:
+
+- Business Setup owns mode.
+- Downstream modules consume mode.
+- Downstream modules must not redefine mode.
+- Rate Builder may allow exception rates, but not mode changes.
+
+Acceptance:
+
+- business mode is available to all downstream modules
+- business mode is stable
+- no downstream module asks the user to reselect mode
+
+---
+
+# 6. PHASE 2 — P&L SOURCE INTEGRITY
+
+Purpose:
+
+Stabilise the core financial source before downstream rebuild.
+
+P&L must confirm:
+
+- revenue totals
+- COG / direct cost totals
+- operating expense totals
+- account grouping
+- custom categories
+- unallocated / other handling
+- supplier/account assignment where applicable
+- reconciliation to imported source
+- source trust state
+
+Rules:
+
+- P&L owns raw accounting evidence.
+- P&L must not calculate Rate Builder outputs.
+- P&L must not calculate Business Modelling scenarios.
+- P&L must preserve category mapping.
+- Reassigned items must move correctly out of unallocated.
+- No item may remain duplicated after reassignment.
+
+Acceptance:
+
+- imported P&L totals reconcile
+- account/category assignment works
+- custom categories work
+- unallocated items move correctly
+- source totals remain stable
+- P&L outputs are contract-safe
+
+---
+
+# 7. PHASE 3 — REVENUE / COGS ALIGNMENT
+
+Purpose:
+
+Confirm the commercial selling layer and supplier/category COG detail.
+
+Revenue / COGS must confirm:
+
+- total revenue
+- total COG
+- margin pool
+- gross margin %
+- supplier/category COG detail
+- COG categories
+- supplier normalisation where available
+- credit notes/sign handling
+- gross/net/GST handling where relevant
+- unit driver rows for product mode
+- material markup context
+
+Rules:
+
+For labour-based businesses:
+
+- Revenue / COG detail is margin and supplier intelligence.
+- It is not direct product/unit rate construction input.
+- It supports material markup context and supplier/category sensitivity later.
+
+For product-based businesses:
+
+- Revenue / COG detail may support unit margin where the product/unit driver is valid.
+
+Acceptance:
+
+- Revenue / COG totals align with P&L
+- supplier/category rows are stable
+- one blended material markup is produced where valid
+- no fake supplier-level markup is created
+- labour-mode product/unit rates are not inferred from supplier totals
+
+---
+
+# 8. PHASE 4 — LABOUR SOURCE CONTRACT
+
+Purpose:
+
+Confirm productive labour source values before cost allocation and rate building.
+
+Labour must confirm:
+
+- productive staff types
+- productive labour cost
+- productive labour hours
+- weighted labour rates
+- non-productive labour treatment
+- labour warnings
+- labour trust state
+
+Rules:
+
+- Labour owns productive/non-productive split.
+- Labour owns weighted rates.
+- Cost Allocation only assigns productive labour.
+- Non-productive labour flows through overhead/business support pathway.
+
+Acceptance:
+
+- productive labour pool is available
+- productive staff type rates are available
+- productive hours are available
+- non-productive labour is excluded from Cost Allocation labour pool
+- labour output is contract-safe
+
+---
+
+# 9. PHASE 5 — ASSETS SOURCE CONTRACT
+
+Purpose:
+
+Confirm productive asset source values before cost allocation and rate building.
+
+Assets must confirm:
+
+- productive assets
+- non-productive assets
+- annual asset burden
+- asset utilisation hours
+- required asset recovery rate
+- running cost transfer handling
+- asset warnings
+- asset trust state
+
+Rules:
+
+- Assets owns productive/non-productive classification.
+- Assets owns asset utilisation.
+- Cost Allocation may split productive assets by percentage.
+- Cost Allocation must not invent asset hours.
+- Non-productive assets do not enter Productive Asset Pool.
+
+Acceptance:
+
+- productive asset rows are available
+- asset utilisation hours are available
+- annual asset burden is available
+- required recovery rate is available
+- non-productive assets are excluded from Cost Allocation asset pool
+- asset output is contract-safe
+
+---
+
+# 10. PHASE 6 — GENERAL OVERHEADS SOURCE CONTRACT
+
+Purpose:
+
+Confirm remaining overhead pool before Cost Summary and Cost Allocation.
+
+General Overheads must confirm:
+
+- total overheads
+- net overheads
+- remaining overhead after asset running cost transfers
+- overhead categories
+- overhead warnings
+- overhead trust state
+
+Rules:
+
+- Asset running costs transferred into Assets must not also remain in overheads.
+- Remaining overheads are distributed later in Cost Allocation.
+- Overheads are not automatically assigned to Labour or Assets.
+
+Acceptance:
+
+- net overhead pool is available
+- transferred asset running costs are not double counted
+- overhead output is contract-safe
+
+---
+
+# 11. PHASE 7 — MODULE RECONCILIATION / MODEL READINESS
+
+Purpose:
+
+Confirm that source modules can be trusted before downstream model outputs.
+
+Module Reconciliation and Model Readiness must confirm:
+
+- source modules exist
+- required totals reconcile
+- blocking warnings are separated from commercial warnings
+- model readiness does not fail merely because the result is commercially negative
+- trust state is available downstream
+
+Rules:
+
+- Bad commercial outcome is not bad data.
+- Negative net position is not automatically a readiness failure.
+- Under-recovery is not automatically a readiness failure.
+- Source failures block; commercial findings warn.
+
+Acceptance:
+
+- model readiness separates data failures from business results
+- source trust state flows downstream
+- blocking modules are clearly identified
+
+---
+
+# 12. PHASE 8 — COST SUMMARY
+
+Purpose:
+
+Confirm total operating cost burden after source contracts are stable.
+
+Cost Summary must consume:
+
+- Labour
+- Assets
+- General Overheads
+- relevant source statuses
+
+Cost Summary must not consume:
+
+- Revenue / COG as operating overhead
+- Business Outcome modelling
+- Rate Builder outputs
+- Quote Checker outputs
+
+Rules:
+
+- Cost Summary aggregates operating cost burden.
+- It does not build rates.
+- It does not model scenarios.
+- It does not issue final verdict.
+
+Acceptance:
+
+- labour cost comes from Labour only
+- asset cost comes from Assets only
+- overhead cost comes from General Overheads only
+- no double counting exists
+- Cost Summary output is contract-safe
+
+---
+
+# 13. PHASE 9 — BUSINESS SUMMARY
+
+Purpose:
+
+Confirm the current business mirror before stress tests and allocation.
+
+Business Summary must show:
+
+- revenue
+- COG
+- margin pool
+- total cost burden
+- net position
+- current margin position
+- activity driver context
+
+Rules:
+
+- Business Summary mirrors the current state.
+- Negative net position is a valid commercial result.
+- Business Summary does not create scenarios.
+- Business Summary does not build rates.
+
+Acceptance:
+
+- Business Summary correctly consumes Revenue / COGS and Cost Summary
+- net position is calculated
+- negative result creates warning, not source failure
+- output is contract-safe
+
+---
+
+# 14. PHASE 10 — REVENUE REALITY / ASSET REALITY
+
+Purpose:
+
+Confirm the two key stress tests before Cost Allocation.
+
+Revenue Reality must show:
+
+- margin after labour
+- labour consumption of margin
+- labour shortfall or surplus
+
+Asset Reality must show:
+
+- weighted required asset recovery rate
+- asset recovery pressure
+- asset utilisation pressure
+
+Rules:
+
+- Revenue Reality owns margin-after-labour stress test.
+- Asset Reality owns asset pressure test.
+- Neither page builds rates.
+- Neither page assigns costs.
+
+Acceptance:
+
+- Revenue Reality output is available to Recovery Summary, Rate Builder, Business Outcome, and Business Modelling
+- Asset Reality output is available to Cost Allocation, Recovery Summary, Rate Builder, Business Outcome, and Business Modelling
+- outputs are read-only downstream context
+
+---
+
+# 15. PHASE 11 — COST ALLOCATION CLEANUP
+
+Purpose:
+
+Strip Cost Allocation back to structure only.
+
+Cost Allocation must keep:
+
+- working groups
+- default productive labour pool
+- default productive asset pool
+- default overhead pool
+- productive labour assignment
+- productive asset assignment
+- shared asset percentages
+- overhead distribution
+- group cost stacks
+- pool reconciliation
+- allocation warnings
+- trust state
+
+Cost Allocation must remove:
+
+- recovery plan logic
+- recovery basis selection
+- hybrid recovery test
+- minimum recoverable rate
+- recovered / unrecovered cost
+- sell rates
+- margin-added rates
+- business outcome recommendations
+
+Rules:
+
+- Cost Allocation builds structure.
+- It does not test recovery.
+- It does not build rates.
+- It does not issue verdict.
+
+Acceptance:
+
+- source pools reconcile
+- groups calculate cost stacks
+- over-allocation is blocked
+- under-allocation is visible
+- recovery/rate logic has been removed or moved downstream
+- page is simple by default
+
+---
+
+# 16. PHASE 12 — RECOVERY SUMMARY REBUILD
+
+Purpose:
+
+Rebuild Recovery Summary as automatic, mode-dependent, zero-input recovery test.
+
+Recovery Summary must consume:
+
+- Business Setup mode
+- Cost Allocation group cost stacks
+- Business Summary context
+- Revenue Reality context
+- Asset Reality context
+- Revenue / COGS context
+
+Recovery Summary must produce:
+
+- required recovery amount
+- required recovery per driver
+- group recovery rows
+- recovered/unrecovered values where valid
+- not_available where actual recovered value does not exist
+- recovery status
+- trust state
+
+Rules:
+
+- no user input
+- no recovery method selector
+- no group editing
+- no rate building
+- no final verdict
+
+Acceptance:
+
+- Recovery Summary tests whether structure recovers
+- mode is automatic from Business Setup
+- no manual recovery method selection remains
+- under-recovery is commercial warning, not data failure
+
+---
+
+# 17. PHASE 13 — RATE BUILDER BUILD / REFACTOR
+
+Purpose:
+
+Create the pricing conversion layer.
+
+Rate Builder must consume:
+
+- Cost Allocation structure
+- Recovery Summary requirements
+- Revenue Reality pressure
+- Asset Reality pressure
+- Revenue / COGS margin context
+- Business Setup mode
+
+Rate Builder must produce:
+
+- minimum recoverable rates
+- fully burdened cost rates
+- suggested sell rates
+- component rates
+- full-group rates
+- subset rates
+- labour rates
+- asset / machine rates
+- machine + operator rates
+- product/unit rates where valid
+- Quote Checker handoff values
+
+Rules:
+
+- mode-guided, not mode-restricted
+- supports exception rates
+- does not fake product/unit rates from supplier totals
+- does not invent supplier-specific markups
+- does not mutate Cost Allocation
+- does not retest Recovery Summary
+
+Acceptance:
+
+- digger + operator can be built separately from larger group
+- labour-based business can build hourly/crew/machine rates
+- product-based business can build unit rates where valid
+- current / target / market comparison works where supplied
+- Quote Checker handoff values are produced
+
+---
+
+# 18. PHASE 14 — BUSINESS OUTCOME ALIGNMENT
+
+Purpose:
+
+Align Business Outcome as the diagnosis layer.
+
+Business Outcome must consume:
+
+- Business Summary
+- Revenue Reality
+- Asset Reality
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Revenue / COGS supplier/category context
+
+Business Outcome must answer:
+
+- what is wrong
+- where pressure comes from
+- what current result means
+- which pressure source matters most
+
+Business Outcome must not:
+
+- create scenarios
+- select target model
+- feed unselected assumptions to Quote Checker
+- mutate source modules
+- rebuild rates
+- check quotes
+
+Acceptance:
+
+- Business Outcome is diagnosis only
+- no modelling controls are required here
+- pressure source classification works
+- output feeds Business Modelling
+
+---
+
+# 19. PHASE 15 — BUSINESS MODELLING BUILD
+
+Purpose:
+
+Build the selected-fix bridge between Business Outcome and Quote Checker.
+
+Business Modelling must consume:
+
+- Business Outcome diagnosis
+- Rate Builder rates
+- Recovery Summary gaps
+- Revenue / COGS supplier/category detail
+- Revenue Reality pressure
+- Asset Reality pressure
+
+Business Modelling must support:
+
+- supplier/category cost scenarios
+- total COG scenarios
+- labour scenarios
+- asset scenarios
+- overhead scenarios
+- rate target scenarios
+- combined scenarios
+- current vs modelled comparison
+- selected target model
+- Quote Checker target set
+
+Rules:
+
+- modelling does not mutate source modules
+- selected target must be explicit
+- unselected scenarios do not flow to Quote Checker
+- supplier/category modelling must not create fake supplier-level markup
+
+Acceptance:
+
+- current vs modelled outcome is shown
+- target model can be selected
+- Quote Checker target set is produced
+- selected rates and assumptions are traceable
+
+---
+
+# 20. PHASE 16 — QUOTE CHECKER CONTRACT / PAGE
+
+Purpose:
+
+Prepare quote enforcement layer.
+
+Quote Checker must consume:
+
+- selected Business Modelling target model
+- Quote Checker target set
+- Rate Builder rate rows
+- selected minimum recoverable rates
+- selected suggested sell rates
+- selected margin / markup assumptions
+
+Quote Checker must check:
+
+- quote lines
+- quoted rates
+- matched model rates
+- minimum recoverable rates
+- suggested sell rates
+- margin shortfall
+- under-recovery
+- scenario alignment
+
+Rules:
+
+- Quote Checker does not create rates
+- Quote Checker does not create scenarios
+- Quote Checker does not mutate Business Modelling
+- Quote Checker does not fake SOQ/product detail
+
+Acceptance:
+
+- quote lines can be matched to model rates
+- under-recovering lines are flagged
+- margin shortfall lines are flagged
+- quote total recovery gap is calculated
+- selected target model is visible
+
+---
+
+# 21. FUTURE PHASES
+
+Future phases after core implementation:
+
+Phase 17:
+SOQ / Job / PO Layer
+
+Phase 18:
+Job Costing / Profitability
+
+Phase 19:
+Model Feedback Loop
+
+Phase 20:
+Model Review / Approval
+
+Phase 21:
+Data Quality Dashboard
+
+Phase 22:
+Reporting / Analytics
+
+Phase 23:
+Database / Storage / Export
+
+Phase 24:
+Integrations / API
+
+These are not immediate implementation priorities.
+
+---
+
+# 22. CURRENT BUILD START POINT
+
+The next implementation task should start at:
+
+Business Setup / P&L source integrity
+
+not Cost Allocation.
+
+Reason:
+
+P&L is the first financial source of truth.
+
+Before downstream pages are refactored, confirm:
+
+- Business Setup mode exists
+- P&L totals reconcile
+- P&L categories are stable
+- COG / operating expense classification is correct
+- unallocated reassignment works
+- Revenue / COGS totals align
+- source contracts are clean
+
+Then proceed downstream.
+
+---
+
+# 23. IMMEDIATE NEXT TASK
+
+Immediate next task:
+
+Audit current Business Setup and P&L implementation against v4.0 contracts.
+
+Check:
+
+- business mode availability
+- P&L import totals
+- revenue grouping
+- COG grouping
+- operating expense grouping
+- other/unallocated reassignment
+- custom categories
+- source trace availability
+- warnings/trust state
+- downstream output contract
+
+Do not change downstream modules until upstream audit is complete.
+
+---
+
+# 24. DO NOT DO YET
+
+Do not build yet:
+
+- SOQ / Job / PO
+- Job Costing
+- Model Feedback
+- Model Review
+- Reporting
+- Storage
+- Integrations API
+
+Do not refactor Rate Builder before:
+
+- Cost Allocation is cleaned
+- Recovery Summary is rebuilt
+
+Do not refactor Business Modelling before:
+
+- Rate Builder output contract is stable
+
+Do not build Quote Checker before:
+
+- Business Modelling target set exists
+
+---
+
+# 25. FINAL IMPLEMENTATION RULE
+
+Start at the beginning.
+
+Move downstream only when each upstream contract is stable.
+
+The correct implementation discipline is:
+
+stabilise source
+then stabilise cost
+then stabilise reality
+then stabilise structure
+then stabilise recovery
+then stabilise rates
+then stabilise diagnosis
+then stabilise modelling
+then stabilise quote checking
+
+No skipped contracts.
+No downstream patching over upstream uncertainty.
+No duplicate recovery logic.
+No fake unit rates.
+No silent scenario handoff.
+No leaks.

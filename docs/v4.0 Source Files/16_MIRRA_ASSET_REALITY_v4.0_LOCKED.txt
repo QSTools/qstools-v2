@@ -1,0 +1,1376 @@
+# Mirra — Asset Reality Brief
+
+## v4.0 — PRODUCTIVE ASSET UTILISATION STRESS TEST, ASSET RECOVERY PRESSURE, AND SECOND FAILURE CHECKPOINT
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 16
+
+REPLACES:
+- older QS Tools asset recovery assumptions where asset recovery was blended into general cost burden only
+- older logic that used labour hours as the denominator for asset recovery pressure
+- older logic that treated shared asset allocation as an Assets module concept
+- any brief that requires Cost Allocation before productive asset viability can be tested
+- any brief that allows non-productive assets to enter productive asset recovery by default
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+12_MIRRA_BUSINESS_SETUP_v4.0_LOCKED.txt
+14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+15_MIRRA_REVENUE_REALITY_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Asset Reality tests whether productive assets can economically justify themselves at their entered utilisation. It uses asset-level utilisation from the Assets module, not labour hours and not Cost Allocation shared percentages.
+
+---
+
+# 1. PURPOSE
+
+Asset Reality is the second stress-test layer.
+
+It answers:
+
+Are productive assets recovering themselves?
+What does each productive asset need to earn per hour to justify its cost?
+Are assets underutilised?
+Is asset cost pressure being hidden inside the business?
+Which productive assets may be creating recovery pressure before Cost Allocation begins?
+
+Asset Reality is a diagnostic section.
+
+It is not a standalone source module.
+
+It is not a new top-level page unless future navigation changes require it.
+
+It should sit on the Revenue Reality page as a separate section or tab.
+
+---
+
+# 2. PAGE LOCATION
+
+Asset Reality should be added to the existing Revenue Reality page.
+
+Recommended page structure:
+
+Revenue Reality Page
+
+Section 1:
+Material → Labour Stress Test
+
+Section 2:
+Asset Reality / Asset Recovery Stress Test
+
+Do not create a separate top-level page unless a future brief changes this.
+
+The user should be able to see:
+
+1. Does margin survive Labour?
+2. Can productive assets justify themselves at entered utilisation?
+
+These are related diagnostics but must remain separate calculations.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Asset Reality treats each productive asset as a standalone economic unit.
+
+It asks:
+
+Based on this asset’s cost and actual entered utilisation, what hourly recovery rate does it need?
+
+This is not a shared asset allocation test.
+
+This is not a labour/operator pairing test.
+
+This is not Cost Allocation.
+
+This is not Rate Builder.
+
+It is a pressure signal.
+
+---
+
+# 4. SECOND FAILURE CHECKPOINT
+
+Revenue Reality is the first failure checkpoint:
+
+Does margin survive Labour?
+
+Asset Reality is the second failure checkpoint:
+
+Can productive assets justify themselves at entered utilisation?
+
+If Revenue Reality fails:
+
+The business may already be under pressure before assets are considered.
+
+If Asset Reality fails:
+
+The business may have an asset utilisation / asset ownership / asset recovery problem.
+
+If both pass but final result fails:
+
+The issue may sit in overheads, allocation, pricing structure, or final recovery model.
+
+Asset Reality must preserve this diagnostic separation.
+
+---
+
+# 5. SHARED ASSET RULE
+
+Shared assets do not exist in the Assets module.
+
+Shared usage is created later in Cost Allocation.
+
+Therefore Asset Reality must not use shared asset percentages.
+
+Asset Reality must not ask:
+
+Who uses the asset?
+
+Asset Reality asks:
+
+How much is the asset used in total, and does that usage justify the cost?
+
+Assets records:
+
+- what the asset is
+- whether it is productive
+- what it costs
+- how many hours per week it is used by the business
+
+Cost Allocation later records:
+
+- which groups use the asset
+- shared percentages
+- assigned asset burden
+
+Do not mix these concepts.
+
+---
+
+# 6. COST ALLOCATION DEPENDENCY RULE
+
+Cost Allocation is not required for Asset Reality.
+
+Asset Reality depends on:
+
+- Assets module
+- Business Setup mode context
+- Model Readiness trust state
+
+Asset Reality does not depend on:
+
+- Cost Allocation groups
+- group assignments
+- shared asset percentages
+- operator/machine pairing
+- overhead distribution
+- Recovery Summary
+- Rate Builder
+
+Cost Allocation comes later.
+
+Asset Reality answers:
+
+Is the asset economically viable at entered utilisation?
+
+Cost Allocation answers:
+
+How is that asset assigned across operational groups?
+
+---
+
+# 7. INPUTS FROM ASSETS MODULE
+
+Asset Reality consumes:
+
+asset_rows
+productive_asset_rows
+non_productive_asset_rows
+total_asset_cost_annual
+total_productive_asset_cost_annual
+total_non_productive_asset_cost_annual
+total_productive_asset_burden
+productive_asset_count
+non_productive_asset_count
+utilisation_hours_per_week
+utilisation_hours_annual
+required_asset_recovery_rate
+asset_recovery_rate_status
+asset_pool_guardrail_status
+total_asset_running_cost_transferred
+assets_status
+assets_model_trust_state
+assets_warnings
+
+Assets module owns these values.
+
+Asset Reality must not recreate asset source truth.
+
+Asset Reality must not overwrite asset data.
+
+---
+
+# 8. INPUTS FROM BUSINESS SETUP
+
+Asset Reality consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Business Setup provides mode context.
+
+Asset Reality may use business mode to phrase the explanation.
+
+However, the primary Asset Reality denominator is always:
+
+asset utilisation hours from Assets
+
+not labour hours and not unit volume.
+
+---
+
+# 9. INPUTS FROM MODEL READINESS
+
+Asset Reality consumes:
+
+model_readiness_status
+model_trust_state
+blocking_checks
+warning_checks
+downstream_readiness_contract
+
+If Model Readiness is blocked, Asset Reality may show preview calculations but must not present them as trusted final output.
+
+---
+
+# 10. OPTIONAL CONTEXT FROM REVENUE REALITY
+
+Asset Reality may receive:
+
+revenue_reality_status
+margin_after_labour
+labour_consumption_of_margin_percent
+revenue_reality_model_trust_state
+
+This is page-level diagnostic context only.
+
+Asset Reality must not use Revenue Reality values to calculate asset recovery rate.
+
+Asset Reality uses asset-level cost and asset-level utilisation.
+
+---
+
+# 11. OPTIONAL CONTEXT FROM BUSINESS SUMMARY
+
+Asset Reality may receive:
+
+total_asset_cost_annual
+net_position
+business_summary_status
+business_summary_model_trust_state
+
+This is macro context only.
+
+Asset Reality must not use Business Summary as the source of asset utilisation.
+
+Assets module remains the source for asset utilisation.
+
+---
+
+# 12. WHAT ASSET REALITY MUST NOT USE
+
+Asset Reality must not use:
+
+- Labour hours as the denominator
+- business productive hours as the denominator
+- Cost Allocation groups
+- shared asset percentages
+- labour group assignments
+- operator pairing
+- overhead distribution
+- Recovery Summary outputs
+- Rate Builder rates
+- Business Outcome verdicts
+
+This prevents contamination of the test.
+
+---
+
+# 13. PRIMARY ASSET TEST
+
+For each productive asset:
+
+asset_utilisation_hours_annual =
+utilisation_hours_per_week × 48
+
+required_asset_recovery_rate =
+total_asset_cost_annual / asset_utilisation_hours_annual
+
+If utilisation_hours_annual = 0:
+
+required_asset_recovery_rate = 0
+asset_reality_status = blocked or review_required depending source state
+
+Do not divide by zero.
+
+Do not replace asset utilisation with labour hours.
+
+Do not replace asset utilisation with business productive hours.
+
+---
+
+# 14. WHY ASSET UTILISATION IS USED
+
+Asset Reality is testing asset viability.
+
+Therefore the denominator must be how much the asset is actually used.
+
+Example:
+
+A digger is used 10–15 hours per week.
+
+Using total labour hours would make the asset look cheaper than it really is.
+
+Correct:
+
+Digger annual cost
+÷ Digger annual utilisation hours
+= Digger required recovery rate
+
+This exposes underutilisation.
+
+---
+
+# 15. PRODUCTIVE VS NON-PRODUCTIVE ASSETS
+
+Only productive assets enter the Asset Reality recovery test.
+
+Non-productive assets remain visible but do not enter productive asset recovery.
+
+Examples of non-productive assets:
+
+- personal car
+- commute-only ute
+- admin vehicle
+- office equipment
+- non-production equipment
+
+Non-productive asset costs may remain visible as business support cost, but they do not enter productive asset recovery unless reclassified in Assets.
+
+---
+
+# 16. PRODUCTIVE ASSET REALITY ROW CONTRACT
+
+Asset Reality owns:
+
+productive_asset_reality_rows[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  asset_type,
+  is_productive_asset,
+  total_asset_cost_annual,
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  required_asset_recovery_rate,
+  assigned_running_cost_transfers_annual,
+  asset_recovery_rate_status,
+  asset_reality_status,
+  review_required
+}
+
+Rules:
+
+- one row per active productive asset
+- use asset_id as stable key
+- asset_name is display only
+- utilisation comes from Assets module
+- required recovery rate comes from Assets module or is calculated from the same source variables
+- do not use labour hours
+- do not use Cost Allocation percentages
+- do not include non-productive assets
+
+---
+
+# 17. NON-PRODUCTIVE ASSET CONTEXT ROWS
+
+Asset Reality may display:
+
+non_productive_asset_context_rows[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  asset_type,
+  total_asset_cost_annual,
+  asset_status,
+  reason_excluded
+}
+
+Purpose:
+
+Show that non-productive assets exist and are deliberately excluded from productive asset recovery.
+
+This improves transparency.
+
+Non-productive assets must not be blended into productive asset recovery rates.
+
+---
+
+# 18. CORE OUTPUT VARIABLES
+
+Asset Reality owns and exposes:
+
+asset_reality_ready
+asset_reality_status
+asset_reality_warnings
+asset_reality_warning_count
+asset_reality_model_trust_state
+
+productive_asset_reality_rows
+non_productive_asset_context_rows
+total_productive_asset_burden
+total_productive_asset_utilisation_hours
+weighted_required_asset_recovery_rate
+highest_pressure_asset
+lowest_utilisation_asset
+asset_underutilisation_flags
+asset_recovery_pressure_summary
+asset_reality_source_trace
+
+---
+
+# 19. TOTAL PRODUCTIVE ASSET UTILISATION HOURS
+
+Asset Reality calculates:
+
+total_productive_asset_utilisation_hours =
+sum utilisation_hours_annual for active productive assets
+
+If no active productive assets exist:
+
+total_productive_asset_utilisation_hours = 0
+asset_reality_status = review_required or not_ready depending setup
+
+If productive assets exist but utilisation hours total zero:
+
+asset_reality_status = blocked
+
+---
+
+# 20. WEIGHTED ASSET RECOVERY RATE
+
+Asset Reality may calculate a weighted required asset recovery rate for the productive asset pool.
+
+Formula:
+
+weighted_required_asset_recovery_rate =
+total_productive_asset_burden / total_productive_asset_utilisation_hours
+
+Where:
+
+total_productive_asset_utilisation_hours =
+sum utilisation_hours_annual for active productive assets
+
+If total_productive_asset_utilisation_hours = 0:
+
+weighted_required_asset_recovery_rate = 0
+status = blocked or review_required
+
+This is a pool-level diagnostic only.
+
+It is not a final charge-out rate.
+
+It is not a Cost Allocation rate.
+
+It is not a Rate Builder output.
+
+---
+
+# 21. HIGHEST PRESSURE ASSET
+
+Asset Reality should identify:
+
+highest_pressure_asset
+
+Definition:
+
+The active productive asset with the highest required_asset_recovery_rate.
+
+Suggested shape:
+
+{
+  asset_id,
+  asset_name,
+  required_asset_recovery_rate,
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  total_asset_cost_annual
+}
+
+Purpose:
+
+Show which productive asset creates the strongest asset recovery pressure.
+
+This is a diagnostic, not a verdict.
+
+---
+
+# 22. LOWEST UTILISATION ASSET
+
+Asset Reality should identify:
+
+lowest_utilisation_asset
+
+Definition:
+
+The active productive asset with the lowest utilisation_hours_annual, excluding assets with zero utilisation that are already blocked.
+
+Suggested shape:
+
+{
+  asset_id,
+  asset_name,
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  total_asset_cost_annual,
+  required_asset_recovery_rate
+}
+
+Purpose:
+
+Show which productive asset may be underused.
+
+This is a diagnostic, not a verdict.
+
+---
+
+# 23. ASSET PRESSURE FLAGS
+
+Asset Reality should flag:
+
+- zero utilisation
+- low utilisation
+- high required recovery rate
+- zero cost with utilisation
+- productive asset missing cost
+- asset pool guardrail blocked
+- transferred running cost double-count risk
+- non-productive assets excluded from recovery
+
+Low utilisation thresholds may be configurable later.
+
+For v4.0, use warnings rather than hardcoded conclusions unless explicitly defined.
+
+---
+
+# 24. ASSET UNDERUTILISATION FLAGS
+
+Asset Reality may expose:
+
+asset_underutilisation_flags[]
+
+Each row:
+
+{
+  asset_id,
+  asset_name,
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  required_asset_recovery_rate,
+  warning_id,
+  severity,
+  message,
+  review_action
+}
+
+Suggested default:
+
+Do not create a blocking underutilisation warning solely because utilisation is low.
+
+Low utilisation is a commercial pressure signal unless zero utilisation prevents calculation.
+
+---
+
+# 25. ASSET REALITY STATUS VALUES
+
+Allowed asset_reality_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+asset_pressure_detected
+not_ready
+
+Status rules:
+
+ready:
+Assets source is trusted and productive assets have valid cost/utilisation.
+
+ready_with_warnings:
+Calculations are usable but warnings remain visible.
+
+asset_pressure_detected:
+One or more productive assets may require high recovery due to cost or low utilisation.
+
+review_required:
+Values calculate but user review is required.
+
+blocked:
+Assets source is blocked, utilisation is invalid, or asset pool guardrail is blocked.
+
+preview_only:
+Values display but are not trusted final output.
+
+not_ready:
+Required asset data is missing.
+
+Asset pressure is not a data failure.
+
+---
+
+# 26. TRUST STATE
+
+Asset Reality must expose:
+
+asset_reality_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+If model_trust_state = blocked:
+asset_reality_model_trust_state = blocked
+
+If assets_model_trust_state = blocked:
+asset_reality_model_trust_state = blocked
+
+If asset_pool_guardrail_status = blocked:
+asset_reality_model_trust_state = blocked
+
+If model_trust_state = preview_only:
+asset_reality_model_trust_state = preview_only
+
+If warnings exist but calculations are valid:
+asset_reality_model_trust_state = warning
+
+If source data is trusted and no warnings exist:
+asset_reality_model_trust_state = ready
+
+---
+
+# 27. READINESS CONDITIONS
+
+Asset Reality is ready when:
+
+- Assets module exists
+- productive assets exist or user confirms no productive assets
+- active productive assets have valid annual cost
+- active productive assets have valid utilisation hours
+- asset_pool_guardrail_status is not blocked
+- Model Readiness is not blocked
+- no blocking Asset Reality warning exists
+
+Asset Reality may be ready_with_warnings when:
+
+- asset pressure is detected
+- low utilisation is detected
+- high required recovery rate is detected
+- non-productive assets are excluded
+- upstream source data carries warning state
+
+Asset Reality is blocked when:
+
+- Assets source is missing
+- Assets module is blocked
+- asset_pool_guardrail_status is blocked
+- productive asset has cost but zero utilisation
+- productive asset cost is invalid
+- total_productive_asset_utilisation_hours is zero and productive assets exist
+- Model Readiness blocks asset-dependent output
+
+---
+
+# 28. REQUIRED WARNINGS
+
+Asset Reality must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+asset_reality_missing_assets
+asset_reality_no_productive_assets
+asset_reality_zero_utilisation
+asset_reality_invalid_asset_cost
+asset_reality_zero_cost_with_utilisation
+asset_reality_low_utilisation
+asset_reality_high_required_recovery_rate
+asset_reality_asset_pool_blocked
+asset_reality_running_cost_transfer_warning
+asset_reality_non_productive_assets_excluded
+asset_reality_upstream_warning
+asset_reality_upstream_blocked
+asset_reality_preview_only
+
+---
+
+# 29. WARNING MEANINGS
+
+## asset_reality_zero_utilisation
+
+Use when a productive asset has annual cost but zero utilisation.
+
+Blocking:
+
+true.
+
+Meaning:
+
+Required asset recovery rate cannot be calculated because asset utilisation is zero.
+
+## asset_reality_low_utilisation
+
+Use when an asset has low entered utilisation compared with expected use.
+
+Blocking:
+
+false unless threshold rules are later defined.
+
+Meaning:
+
+This asset may need a high recovery rate because it is not used enough.
+
+## asset_reality_high_required_recovery_rate
+
+Use when required asset recovery rate is high.
+
+Blocking:
+
+false by default.
+
+Meaning:
+
+This asset may create pricing pressure.
+
+## asset_reality_asset_pool_blocked
+
+Use when asset_pool_guardrail_status = blocked.
+
+Blocking:
+
+true.
+
+## asset_reality_non_productive_assets_excluded
+
+Use when non-productive assets exist and are excluded from productive asset recovery.
+
+Blocking:
+
+false.
+
+---
+
+# 30. SOURCE TRACE REQUIREMENT
+
+Asset Reality key outputs must include source trace.
+
+Required source trace for:
+
+- productive_asset_reality_rows
+- total_productive_asset_burden
+- total_productive_asset_utilisation_hours
+- weighted_required_asset_recovery_rate
+- highest_pressure_asset
+- lowest_utilisation_asset
+- asset_underutilisation_flags
+
+Each trace should show:
+
+- output_variable
+- source_module
+- source_variable
+- calculation_rule
+- source_status
+- trust_state
+
+---
+
+# 31. OUTPUT CONTRACT
+
+Asset Reality should expose:
+
+{
+  asset_reality_ready,
+  asset_reality_status,
+  asset_reality_warnings,
+  asset_reality_warning_count,
+  asset_reality_model_trust_state,
+
+  productive_asset_reality_rows,
+  non_productive_asset_context_rows,
+
+  total_productive_asset_burden,
+  total_productive_asset_utilisation_hours,
+  weighted_required_asset_recovery_rate,
+
+  highest_pressure_asset,
+  lowest_utilisation_asset,
+  asset_underutilisation_flags,
+  asset_recovery_pressure_summary,
+
+  asset_reality_source_trace
+}
+
+---
+
+# 32. OUTPUT TO BUSINESS SUMMARY
+
+Business Summary may receive:
+
+- weighted_required_asset_recovery_rate
+- total_productive_asset_burden
+- total_productive_asset_utilisation_hours
+- highest_pressure_asset
+- lowest_utilisation_asset
+- asset_recovery_pressure_summary
+- asset_reality_status
+- asset_reality_model_trust_state
+
+Business Summary may display this as diagnostic handoff/context.
+
+Business Summary must not recalculate Asset Reality diagnostics.
+
+Business Summary must not override Asset Reality status.
+
+---
+
+# 33. OUTPUT TO REVENUE REALITY PAGE
+
+Revenue Reality page should display Asset Reality as a separate section or tab.
+
+Revenue Reality calculations must remain separate.
+
+The page may show combined diagnostic status:
+
+- Revenue Reality status
+- Asset Reality status
+
+But it must not blend the calculations.
+
+---
+
+# 34. OUTPUT TO COST ALLOCATION
+
+Cost Allocation may receive:
+
+- asset_reality_status
+- weighted_required_asset_recovery_rate
+- total_productive_asset_burden
+- total_productive_asset_utilisation_hours
+- highest_pressure_asset
+- asset_underutilisation_flags
+- asset_reality_model_trust_state
+
+Cost Allocation uses this only as diagnostic context.
+
+Cost Allocation still consumes productive_asset_rows directly from Assets.
+
+Cost Allocation owns shared asset percentages.
+
+Cost Allocation must not use Asset Reality to create source asset cost.
+
+Cost Allocation must not use Asset Reality to override asset utilisation.
+
+---
+
+# 35. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary may receive:
+
+- asset_reality_status
+- weighted_required_asset_recovery_rate
+- total_productive_asset_burden
+- total_productive_asset_utilisation_hours
+- asset_recovery_pressure_summary
+- asset_reality_model_trust_state
+
+Recovery Summary owns recovery tests.
+
+Asset Reality does not test full recovery.
+
+Recovery Summary must not recalculate Asset Reality if the output is already available.
+
+---
+
+# 36. OUTPUT TO RATE BUILDER
+
+Rate Builder may receive:
+
+- weighted_required_asset_recovery_rate
+- productive_asset_reality_rows
+- asset_reality_status
+- asset_reality_model_trust_state
+
+Rate Builder owns required asset rates and group/unit cost stacks.
+
+Asset Reality does not calculate final rates.
+
+Rate Builder may use Asset Reality values as sanity/context checks.
+
+---
+
+# 37. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive:
+
+- asset_reality_status
+- weighted_required_asset_recovery_rate
+- highest_pressure_asset
+- lowest_utilisation_asset
+- asset_underutilisation_flags
+- asset_recovery_pressure_summary
+- asset_reality_model_trust_state
+
+Business Outcome may use this as evidence in the final diagnosis.
+
+Business Outcome must not rebuild Asset Reality.
+
+---
+
+# 38. UI STRUCTURE
+
+Asset Reality should appear as a section/tab on the Revenue Reality page.
+
+Recommended UI sections:
+
+1. Asset Reality Status Strip
+2. Productive Asset Recovery Stress Test Panel
+3. Productive Asset Table
+4. Asset Utilisation Pressure Panel
+5. Productive vs Non-Productive Asset Panel
+6. Source Trust / Warning Panel
+7. Plain-English Insight Panel
+8. Help Panel
+
+---
+
+# 39. ASSET REALITY STATUS STRIP
+
+The Asset Reality status strip should show:
+
+- asset_reality_status
+- total_productive_asset_burden
+- total_productive_asset_utilisation_hours
+- weighted_required_asset_recovery_rate
+- productive asset count
+- warning count
+- trust state
+
+Suggested labels:
+
+Productive asset burden
+Productive asset hours
+Required asset recovery rate
+Asset pressure status
+
+---
+
+# 40. PRODUCTIVE ASSET RECOVERY STRESS TEST PANEL
+
+This panel should show:
+
+Productive Asset Cost
+÷ Asset Utilisation Hours
+= Required Asset Recovery Rate
+
+At pool level:
+
+Total Productive Asset Burden
+÷ Total Productive Asset Utilisation Hours
+= Weighted Required Asset Recovery Rate
+
+This is not a final charge-out rate.
+
+It is the asset recovery pressure signal.
+
+---
+
+# 41. PRODUCTIVE ASSET TABLE
+
+The table should show:
+
+- asset name
+- asset type
+- annual cost
+- utilisation hours/week
+- annual utilisation hours
+- required recovery rate
+- status
+- warning/review flag
+
+This table must only include productive assets.
+
+Non-productive assets should be shown separately.
+
+---
+
+# 42. ASSET UTILISATION PRESSURE PANEL
+
+This panel should show:
+
+- highest pressure asset
+- lowest utilisation asset
+- low utilisation warnings
+- high required recovery rate warnings
+
+Suggested wording:
+
+Asset recovery pressure increases when asset cost is spread over low utilisation hours.
+
+This is not a final pricing decision.
+
+It is a signal that the asset may need more use, higher recovery, or review.
+
+Do not provide final recommendations here.
+
+Business Outcome owns final action wording.
+
+---
+
+# 43. PRODUCTIVE VS NON-PRODUCTIVE ASSET PANEL
+
+This panel should show:
+
+- productive asset count
+- non-productive asset count
+- productive asset burden
+- non-productive asset cost
+- reminder that non-productive assets do not enter productive recovery
+
+Suggested wording:
+
+Non-productive assets remain visible but are not tested as productive recovery assets unless reclassified in the Assets module.
+
+---
+
+# 44. SOURCE TRUST / WARNING PANEL
+
+This panel should show:
+
+- Assets status
+- Model Readiness status
+- asset_pool_guardrail_status
+- blocking warnings
+- non-blocking warnings
+
+Warnings must not be hidden behind only a count.
+
+---
+
+# 45. PLAIN-ENGLISH INSIGHT PANEL
+
+Example wording:
+
+If asset recovery rate is high:
+
+This asset needs a high hourly recovery rate because its annual cost is being spread across low utilisation hours.
+
+If zero utilisation:
+
+This productive asset has cost but no utilisation hours. Enter utilisation hours before using it in recovery testing.
+
+If asset pool blocked:
+
+Asset cost pools are blocked upstream. Resolve Assets module guardrails before relying on this test.
+
+If no productive assets:
+
+No productive assets are currently being tested. Confirm whether this business has no productive asset recovery requirement or mark relevant assets as productive in the Assets module.
+
+Do not provide final recommendations.
+
+Business Outcome owns final action wording.
+
+---
+
+# 46. HELP PANEL
+
+The help panel should explain:
+
+- Asset Reality tests productive asset pressure
+- it uses asset cost and asset utilisation from Assets
+- it does not use labour hours
+- it does not use shared allocation percentages
+- shared assets are handled later in Cost Allocation
+- non-productive assets are excluded from productive recovery
+- this is not a final charge-out rate
+- Rate Builder handles final rate construction later
+
+---
+
+# 47. RELATIONSHIP TO ASSETS MODULE
+
+Assets owns the source truth:
+
+- asset identity
+- productive status
+- cost
+- utilisation hours
+- recovery rate
+- running cost transfers
+- guardrail status
+
+Asset Reality consumes that source truth.
+
+Asset Reality must not mutate Assets data.
+
+If Asset Reality detects a setup issue, the review action should point the user back to Assets.
+
+---
+
+# 48. RELATIONSHIP TO COST ALLOCATION
+
+Cost Allocation is not required for Asset Reality.
+
+Cost Allocation comes later.
+
+Asset Reality answers:
+
+Is the asset economically viable at entered utilisation?
+
+Cost Allocation answers:
+
+How is that asset assigned across operational groups?
+
+Do not require Cost Allocation to complete Asset Reality.
+
+Do not use Cost Allocation output in Asset Reality.
+
+---
+
+# 49. RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary may use Asset Reality as diagnostic context.
+
+Recovery Summary owns the full recovery test.
+
+Asset Reality only tests asset pressure at entered utilisation.
+
+Recovery Summary must not rely on Asset Reality as the source of asset cost.
+
+Assets remains the source of asset cost.
+
+---
+
+# 50. RELATIONSHIP TO RATE BUILDER
+
+Rate Builder may use Asset Reality values as context.
+
+Rate Builder owns:
+
+- final asset rates
+- group/unit stack rates
+- rate options
+- pricing impact
+
+Asset Reality does not build rates.
+
+Asset Reality does not decide whether a rate is viable.
+
+---
+
+# 51. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome may use Asset Reality to explain final diagnosis.
+
+Example:
+
+Asset Reality shows low utilisation and high required recovery rate.
+
+Business Outcome may say:
+
+Asset utilisation appears to be a major pressure point.
+
+Business Outcome owns final interpretation and action framing.
+
+Asset Reality only provides evidence.
+
+---
+
+# 52. DO NOT CHANGE
+
+Do not change:
+
+- Assets source data
+- Assets calculations
+- Labour calculations
+- Revenue Reality calculations
+- Cost Summary aggregation
+- Business Summary bridge
+- Model Readiness gate logic
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not use labour hours as the asset denominator.
+
+Do not use business productive hours as the asset denominator.
+
+Do not create shared asset percentages.
+
+Do not assign assets to operating groups.
+
+Do not calculate final charge-out rates.
+
+Do not issue final business verdicts.
+
+Do not include non-productive assets in productive asset recovery.
+
+---
+
+# 53. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useAssetReality.js
+lib/calculations/assetRealityCalculations.js
+lib/selectors/assetRealitySelectors.js
+components/asset-reality/*.jsx
+app/revenue-reality/page.jsx
+
+Possible related files:
+
+hooks/useAssets.js
+hooks/useModelReadiness.js
+hooks/useBusinessSummary.js
+hooks/useRevenueReality.js
+components/revenue-reality/*.jsx
+
+Do not modify unrelated modules unless required to consume Asset Reality safely.
+
+---
+
+# 54. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Add Asset Reality as a section/tab on Revenue Reality page.
+2. Consume productive_asset_rows from Assets.
+3. Consume non_productive_asset_rows from Assets for visibility only.
+4. Consume asset utilisation hours from Assets.
+5. Consume required_asset_recovery_rate where already calculated.
+6. Calculate missing diagnostic totals only from Assets source variables.
+7. Do not use labour hours as denominator.
+8. Do not use Cost Allocation shared percentages.
+9. Build productive_asset_reality_rows.
+10. Build non_productive_asset_context_rows.
+11. Calculate total_productive_asset_utilisation_hours.
+12. Calculate weighted_required_asset_recovery_rate.
+13. Identify highest_pressure_asset.
+14. Identify lowest_utilisation_asset.
+15. Add zero utilisation guardrail.
+16. Add low utilisation / high recovery warnings.
+17. Add source trace.
+18. Add structured warnings.
+19. Inherit trust state from Assets and Model Readiness.
+20. Run build.
+21. Confirm Cost Allocation is not required.
+22. Confirm non-productive assets are excluded.
+
+---
+
+# 55. ACCEPTANCE CRITERIA
+
+Asset Reality v4.0 is accepted when:
+
+1. It appears as a separate section/tab on the Revenue Reality page.
+2. It consumes productive assets from the Assets module.
+3. It consumes non-productive assets for visibility only.
+4. It uses asset-level utilisation hours from Assets.
+5. It does not use Labour hours as the denominator.
+6. It does not use business productive hours as the denominator.
+7. It does not use Cost Allocation shared percentages.
+8. It calculates required recovery rate per productive asset.
+9. It calculates total productive asset utilisation hours.
+10. It calculates weighted productive asset recovery rate.
+11. It identifies highest pressure asset.
+12. It identifies lowest utilisation asset.
+13. It excludes non-productive assets from productive recovery.
+14. It shows non-productive assets separately.
+15. It flags zero utilisation.
+16. It flags low utilisation / high recovery pressure.
+17. It inherits blocked status from Assets and Model Readiness.
+18. It respects asset_pool_guardrail_status.
+19. It does not create Cost Allocation groups.
+20. It does not assign shared assets.
+21. It does not calculate Rate Builder rates.
+22. It does not issue final Business Outcome verdict.
+23. Build passes.
+
+---
+
+# 56. FINAL PRINCIPLE
+
+Asset Reality is the asset recovery pressure test.
+
+It tests:
+
+Can each productive asset justify itself at its entered utilisation?
+
+It uses asset-level utilisation from Assets.
+
+It does not use Labour hours.
+
+It does not use shared allocation.
+
+It does not require Cost Allocation.
+
+It exposes whether assets are underutilised or creating recovery pressure before allocation begins.
+
+No assumptions.
+No shared allocation in Assets.
+No labour-hour denominator.
+No business-hours denominator.
+No source mutation.
+No rates.
+No verdict.
+No leaks.

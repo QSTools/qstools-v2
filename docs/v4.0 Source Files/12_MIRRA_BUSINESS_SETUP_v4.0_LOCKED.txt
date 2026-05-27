@@ -1,0 +1,1025 @@
+# Mirra — Business Setup Brief
+
+## v4.0 — BUSINESS IDENTITY, COMMERCIAL MODE, AND GLOBAL RECOVERY DRIVER FOUNDATION
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 12
+
+REPLACES:
+- QS Tools Business Setup briefs where naming has changed
+- older Business Setup assumptions that do not clearly separate hours-based and product/unit-based recovery
+- any setup logic that calculates downstream cost, recovery, rates, or business outcome directly
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Business Setup owns business identity and commercial recovery mode only. It does not calculate business performance.
+
+---
+
+# 1. PURPOSE
+
+Business Setup defines the basic identity and recovery-mode foundation for the Mirra model.
+
+It answers:
+
+What business is being modelled?
+Does the business recover cost mainly through hours or through product/unit margin?
+Is the setup complete enough for mode-aware downstream modules?
+
+Business Setup is the starting point for mode-aware labels, calculations, and downstream interpretation.
+
+It does not calculate:
+
+- revenue
+- COGS
+- labour cost
+- asset cost
+- overheads
+- total cost burden
+- recovery strategy
+- Cost Allocation
+- Rate Builder outputs
+- Business Outcome verdicts
+
+---
+
+# 2. MODULE ROLE
+
+Business Setup owns:
+
+- business name
+- business type
+- commercial mode selection
+- hours-based vs product/unit-based flag
+- setup completed flag
+- setup timestamps
+- basic setup readiness
+- setup warnings
+
+Business Setup does not own:
+
+- P&L data
+- revenue lines
+- COGS lines
+- margin pool
+- unit driver rows
+- labour data
+- asset data
+- overhead data
+- cost summary
+- recovery tests
+- rate models
+- outcome diagnosis
+- scenario modelling
+- quote logic
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Business Setup is the first active module.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Business Setup supplies the mode that downstream modules use to choose labels and recovery logic.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Business Setup must remain simple.
+
+It should not try to solve the business.
+
+It only identifies the business and sets the commercial recovery mode.
+
+The selected mode affects downstream logic, but the calculations happen downstream.
+
+---
+
+# 5. BUSINESS MODE PRINCIPLE
+
+Mirra v4.0 supports two primary active business modes:
+
+1. Hours-based / service-based
+2. Product / unit-based
+
+These are not rigid industry categories.
+
+They describe how the business mainly recovers cost.
+
+---
+
+# 6. HOURS-BASED / SERVICE-BASED MODE
+
+Use this mode when the business mainly sells:
+
+- time
+- labour
+- services
+- productive hours
+- charge-out hours
+- labour + plant services
+- asset-supported work
+
+Examples:
+
+- construction contractor
+- builder
+- tradie
+- earthworks contractor
+- consultant
+- mechanic
+- service business
+- labour hire
+- contractor with productive crews
+
+Primary recovery driver:
+
+productive hours
+
+Primary downstream display:
+
+$/hour
+
+Core recovery rule:
+
+Labour recovers labour.
+Assets recover assets.
+Materials cover themselves and create margin.
+
+---
+
+# 7. PRODUCT / UNIT-BASED MODE
+
+Use this mode when the business mainly sells:
+
+- products
+- units
+- m²
+- m³
+- tonnes
+- each
+- subscriptions
+- transactions
+- productised services
+- repeatable outputs
+
+Examples:
+
+- concrete pumping by m³
+- concrete placing by m²
+- café
+- retailer
+- manufacturer
+- subscription business
+- productised service business
+
+Primary recovery driver:
+
+units / selected commercial unit
+
+Primary downstream display:
+
+$/unit
+
+Core recovery rule:
+
+COGS is consumed by the product.
+Revenue minus COGS creates margin.
+That margin must recover labour, assets, overheads, and profit.
+
+---
+
+# 8. BUSINESS TYPE VALUES
+
+Current active internal values:
+
+labour_based
+product_based
+
+These may remain for compatibility.
+
+Display labels should be clearer:
+
+labour_based:
+Hours-based / Service-based business
+
+product_based:
+Product / Unit-based business
+
+Future naming may migrate to:
+
+hours_based
+product_unit_based
+
+Do not rename stored values without a separate migration brief.
+
+---
+
+# 9. REQUIRED VARIABLES
+
+Business Setup owns:
+
+business_name
+business_type
+is_labour_based
+is_product_based
+setup_completed
+created_at
+updated_at
+business_setup_ready
+business_setup_status
+business_setup_warnings
+business_setup_model_trust_state
+
+---
+
+# 10. BUSINESS NAME
+
+business_name stores the name of the business being modelled.
+
+Rules:
+
+- business_name may be user-entered
+- business_name may be blank during initial setup
+- if blank, show review_required
+- do not use business_name as database/company identity later unless future company system brief says so
+- business_name is display identity only in this module
+
+---
+
+# 11. BUSINESS TYPE
+
+business_type stores the active commercial recovery mode.
+
+Allowed current values:
+
+labour_based
+product_based
+
+Rules:
+
+- business_type must be selected before downstream mode-aware modules are trusted
+- business_type should be editable during development/build phase
+- changing business_type should not delete existing downstream data
+- changing business_type may change downstream labels and readiness warnings
+- changing business_type should not silently reclassify revenue, COGS, labour, assets, or overheads
+
+---
+
+# 12. DERIVED MODE FLAGS
+
+Business Setup owns derived booleans:
+
+is_labour_based
+is_product_based
+
+Formula:
+
+is_labour_based =
+business_type === "labour_based"
+
+is_product_based =
+business_type === "product_based"
+
+These flags are consumed downstream for display logic and mode-specific calculation paths.
+
+Do not manually store conflicting values.
+
+If business_type changes, flags must update.
+
+---
+
+# 13. SETUP COMPLETED FLAG
+
+Business Setup owns:
+
+setup_completed
+
+setup_completed should be true only when:
+
+- business_name is present or intentionally skipped
+- business_type is selected
+- no blocking setup warning exists
+
+setup_completed does not mean the whole Mirra model is ready.
+
+It only means Business Setup itself is complete.
+
+Model Readiness decides overall model trust.
+
+---
+
+# 14. TIMESTAMPS
+
+Business Setup owns:
+
+created_at
+updated_at
+
+Rules:
+
+- created_at should be set when setup record is first created
+- updated_at should change when setup values change
+- timestamps are useful for future audit/source trace
+- timestamps do not determine trust by themselves
+
+---
+
+# 15. READINESS VARIABLES
+
+Business Setup must expose:
+
+business_setup_ready
+business_setup_status
+business_setup_warnings
+business_setup_model_trust_state
+
+Allowed business_setup_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+not_ready
+
+Allowed business_setup_model_trust_state values:
+
+ready
+warning
+blocked
+preview_only
+
+---
+
+# 16. BUSINESS SETUP READY CONDITIONS
+
+Business Setup is ready when:
+
+- business_type is selected
+- business_type is valid
+- setup_completed is true
+- no blocking setup warning exists
+
+Business Setup is review_required when:
+
+- business_name is missing but business_type exists
+- business mode may need confirmation
+- user changed mode after downstream data exists
+
+Business Setup is blocked when:
+
+- business_type is missing
+- business_type is invalid
+- setup state is corrupted
+
+Business Setup is not_ready when:
+
+- no setup data exists
+
+---
+
+# 17. MODE CHANGE RULE
+
+Changing business_type is allowed during the active build phase.
+
+But changing business_type must not silently rewrite downstream source data.
+
+If business_type changes after downstream modules contain data, show warning:
+
+Business mode changed. Review Revenue / COGS, Business Summary, Recovery Summary, Rate Builder, and Business Outcome because mode-dependent interpretation may change.
+
+Affected downstream modules:
+
+- Revenue / COGS
+- Business Summary
+- Revenue Reality
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+- Business Modelling later
+- Quote Engine later
+
+Do not delete downstream data.
+
+Do not auto-reclassify COGS.
+
+Do not auto-create unit driver rows unless Revenue / COGS owns that behaviour.
+
+---
+
+# 18. MODE-AWARE DOWNSTREAM RULE
+
+Business Setup mode affects downstream labels and logic.
+
+Examples:
+
+If business_type = labour_based:
+
+Business Summary should show:
+
+- productive hours
+- required recovery per hour
+- current margin per hour
+- recovery gap per hour
+
+Recovery Summary should test:
+
+- labour recovery
+- asset recovery
+- material margin
+
+Rate Builder should show:
+
+- hourly rates
+- asset rates
+- material margin
+
+If business_type = product_based:
+
+Business Summary should show:
+
+- annual units
+- required recovery per unit
+- current margin per unit
+- recovery gap per unit
+
+Recovery Summary should test:
+
+- unit margin
+- required units
+- required margin per unit
+
+Rate Builder should show:
+
+- unit cost stack
+- required unit rate
+- fully burdened unit margin
+
+---
+
+# 19. NO CALCULATION RULE
+
+Business Setup must not calculate:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- total_labour_cost_annual
+- total_asset_cost_annual
+- total_general_overheads
+- total_cost_burden
+- net_position
+- recovery_gap
+- required_rate
+- business_outcome_status
+
+Those belong downstream.
+
+---
+
+# 20. NO ASSUMPTION RULE
+
+Business Setup must not infer the business mode from:
+
+- business name
+- industry
+- P&L account names
+- uploaded file name
+- user location
+- prior conversations
+- revenue labels
+- COGS labels
+
+The user must choose the mode.
+
+Mirra may explain the choices.
+
+Mirra may suggest what each means.
+
+But the user decides.
+
+---
+
+# 21. WARNING OBJECT
+
+Business Setup warnings must use the standard shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+business_setup_missing
+business_type_missing
+business_type_invalid
+business_name_missing
+business_mode_changed
+business_mode_requires_review
+
+---
+
+# 22. WARNING MEANINGS
+
+## business_setup_missing
+
+Use when no setup record exists.
+
+Blocking:
+
+true.
+
+## business_type_missing
+
+Use when business_type has not been selected.
+
+Blocking:
+
+true.
+
+## business_type_invalid
+
+Use when business_type is not an allowed value.
+
+Blocking:
+
+true.
+
+## business_name_missing
+
+Use when business_name is blank.
+
+Blocking:
+
+false unless name is required by future company profile logic.
+
+## business_mode_changed
+
+Use when the user changes mode after downstream data exists.
+
+Blocking:
+
+false by default, but affected downstream modules should show review_required.
+
+## business_mode_requires_review
+
+Use when mode-dependent downstream pages need confirmation after mode selection or mode change.
+
+Blocking:
+
+false unless the affected downstream page requires explicit setup.
+
+---
+
+# 23. OUTPUT CONTRACT
+
+Business Setup should expose:
+
+{
+  business_name,
+  business_type,
+  is_labour_based,
+  is_product_based,
+  setup_completed,
+  created_at,
+  updated_at,
+  business_setup_ready,
+  business_setup_status,
+  business_setup_warnings,
+  business_setup_warning_count,
+  business_setup_model_trust_state
+}
+
+---
+
+# 24. OUTPUT TO P&L
+
+P&L does not require Business Setup mode to import accounting data.
+
+But P&L may display the current business name/mode for context.
+
+P&L classification should not change solely because of business_type.
+
+---
+
+# 25. OUTPUT TO REVENUE / COGS
+
+Revenue / COGS consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Revenue / COGS uses this to decide:
+
+- commercial driver mode
+- whether unit driver setup is required
+- whether COGS is shown as material margin layer or product/unit cost stack input
+- which labels to display
+
+Revenue / COGS must not infer business_type.
+
+---
+
+# 26. OUTPUT TO BUSINESS SUMMARY
+
+Business Summary consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Business Summary uses this to decide:
+
+- activity_driver_type
+- activity_driver_label
+- required recovery label
+- current margin label
+- recovery gap label
+
+Business Summary calculates values.
+
+Business Setup only supplies mode.
+
+---
+
+# 27. OUTPUT TO COST ALLOCATION
+
+Cost Allocation consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Cost Allocation may use this to:
+
+- display mode-aware group suggestions
+- consume Revenue / COGS unit labels as group defaults in product mode
+- label operating groups clearly
+
+Cost Allocation does not get labour/assets/overheads from Business Setup.
+
+---
+
+# 28. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Recovery Summary uses this to choose:
+
+- hours-based recovery tests
+- product/unit recovery tests
+
+Recovery Summary owns the tests.
+
+Business Setup owns only the mode.
+
+---
+
+# 29. OUTPUT TO RATE BUILDER
+
+Rate Builder consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Rate Builder uses this to choose:
+
+- hourly rate model
+- asset rate model
+- unit rate model
+- material margin model
+
+Rate Builder owns rates.
+
+Business Setup owns only mode.
+
+---
+
+# 30. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Business Outcome uses this to phrase the final diagnosis correctly.
+
+Business Outcome owns the verdict.
+
+Business Setup owns only mode.
+
+---
+
+# 31. UI STRUCTURE
+
+Recommended Business Setup UI structure:
+
+1. Business Setup Status Strip
+2. Business Identity Panel
+3. Business Mode Selection Panel
+4. Mode Explanation Panel
+5. Downstream Impact Panel
+6. Warning / Review Panel
+7. Help Panel
+
+Existing UI may be retained if it supports these concepts.
+
+---
+
+# 32. STATUS STRIP
+
+The status strip should show:
+
+- business_setup_status
+- selected business mode
+- setup_completed
+- warning count
+- trust state
+
+Suggested labels:
+
+Ready
+Review required
+Blocked
+Not ready
+
+---
+
+# 33. BUSINESS IDENTITY PANEL
+
+This panel should allow the user to enter:
+
+business_name
+
+Future company/profile identity will be handled in a separate company/database brief.
+
+For now, business_name is a display field.
+
+---
+
+# 34. BUSINESS MODE SELECTION PANEL
+
+This panel should let the user choose between:
+
+Hours-based / Service-based business
+
+and:
+
+Product / Unit-based business
+
+The UI should explain both choices in plain English.
+
+It should not use accounting jargon.
+
+---
+
+# 35. MODE EXPLANATION PANEL
+
+This panel should explain:
+
+## Hours-based / Service-based
+
+Use this when your business mainly sells time, labour, productive capacity, or services.
+
+In this mode:
+
+Labour recovers labour.
+Assets recover assets.
+Materials cover themselves and create margin.
+
+## Product / Unit-based
+
+Use this when your business mainly sells units, products, m², m³, tonnes, subscriptions, or repeatable outputs.
+
+In this mode:
+
+COGS is consumed by the product.
+Margin after COGS must recover labour, assets, overheads, and profit.
+
+---
+
+# 36. DOWNSTREAM IMPACT PANEL
+
+This panel should explain what the selected mode affects.
+
+Mode affects:
+
+- Revenue / COGS setup
+- Business Summary labels
+- Recovery Summary tests
+- Rate Builder formulas
+- Business Outcome wording
+
+Mode does not change:
+
+- P&L source data
+- Labour source data
+- Assets source data
+- General Overheads source data
+
+---
+
+# 37. WARNING / REVIEW PANEL
+
+This panel should show:
+
+- missing mode
+- invalid mode
+- missing business name
+- mode changed after downstream data exists
+- downstream review required
+
+No warning should be hidden.
+
+---
+
+# 38. HELP PANEL
+
+The help panel should explain:
+
+- Business Setup chooses how the business mainly recovers cost
+- it does not calculate the model
+- the user can change mode during setup
+- changing mode may require downstream review
+- downstream modules calculate the financial result
+- the user decides the mode
+
+---
+
+# 39. DO NOT CHANGE
+
+Do not change:
+
+- P&L source values
+- Revenue / COGS calculations
+- Labour calculations
+- Assets calculations
+- General Overheads calculations
+- Module Reconciliation
+- Model Readiness
+- Cost Summary
+- Business Summary
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+Do not create revenue, COGS, labour, asset, overhead, rate, or outcome values in Business Setup.
+
+Do not infer business type automatically.
+
+Do not silently reclassify downstream data when mode changes.
+
+---
+
+# 40. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+app/business-setup/page.jsx
+hooks/useBusinessSetup.js
+lib/calculations/businessSetupCalculations.js
+lib/selectors/businessSetupSelectors.js
+lib/storage/businessSetupStorage.js
+components/business-setup/*.jsx
+
+Possible related files:
+
+hooks/useRevenueCogs.js
+hooks/useBusinessSummary.js
+hooks/useRecoverySummary.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+
+Do not modify downstream modules except to consume the output contract safely.
+
+---
+
+# 41. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect current Business Setup state.
+2. Preserve existing business_type values.
+3. Preserve compatibility with labour_based and product_based.
+4. Add clear display labels.
+5. Add setup readiness.
+6. Add warning objects.
+7. Add mode-change warning if downstream data exists.
+8. Do not migrate stored mode names unless separately briefed.
+9. Confirm Revenue / COGS consumes mode.
+10. Confirm Business Summary consumes mode.
+11. Confirm Recovery Summary consumes mode.
+12. Confirm Rate Builder later consumes mode.
+13. Run build.
+
+---
+
+# 42. ACCEPTANCE CRITERIA
+
+Business Setup v4.0 is accepted when:
+
+1. Business name can be stored.
+2. Business type can be selected.
+3. Allowed business_type values remain compatible.
+4. is_labour_based is derived correctly.
+5. is_product_based is derived correctly.
+6. setup_completed is exposed.
+7. business_setup_ready is exposed.
+8. business_setup_status is exposed.
+9. business_setup_model_trust_state is exposed.
+10. Structured warnings are exposed.
+11. Business mode is not inferred automatically.
+12. Changing mode does not delete downstream data.
+13. Changing mode triggers downstream review warning.
+14. Revenue / COGS can consume mode.
+15. Business Summary can consume mode.
+16. Recovery Summary can consume mode.
+17. Rate Builder can later consume mode.
+18. Business Outcome can consume mode.
+19. Business Setup does not calculate financial results.
+20. Build passes.
+
+---
+
+# 43. FINAL PRINCIPLE
+
+Business Setup chooses the recovery mode.
+
+It identifies the business.
+
+It does not solve the business.
+
+It does not calculate performance.
+
+It does not create source truth for other modules.
+
+It sets the mode so downstream modules can calculate correctly.
+
+User chooses the mode.
+Mirra explains the consequence.
+
+No assumptions.
+No hidden mode inference.
+No downstream source mutation.
+No leaks.

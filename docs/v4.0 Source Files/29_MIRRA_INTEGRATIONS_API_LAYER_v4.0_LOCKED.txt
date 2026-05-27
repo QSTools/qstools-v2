@@ -1,0 +1,1265 @@
+# Mirra — Integrations / API Layer Brief
+
+## v4.0 — XERO, SOURCE IMPORTS, EXTERNAL DATA CONNECTORS, AUTHENTICATED SYNC, NORMALISED IMPORT CONTRACTS, AND NO-CALCULATION-OWNERSHIP BOUNDARY
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 29
+
+REPLACES:
+- older assumptions that all data must be manually imported
+- older assumptions that Xero integration can write directly into downstream modules
+- older logic where external imports bypass source validation
+- older logic where connector data is trusted without reconciliation
+- older logic where API imports become calculation owners
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+The Integrations / API Layer imports, normalises, validates, and syncs external data into Mirra source contracts. It does not own business calculations, classifications, model outputs, recovery logic, rate logic, quote checking, or business decisions.
+
+---
+
+# 1. PURPOSE
+
+The Integrations / API Layer answers:
+
+Where does external data come from?
+How does Mirra connect to Xero?
+How are P&L rows imported?
+How are supplier bills imported?
+How are invoices, credit notes, journals, payments, and contacts imported?
+How are supplier names normalised?
+How are external rows mapped to Mirra source contracts?
+How does Mirra avoid duplicate imports?
+How does Mirra preserve source trace?
+How does Mirra know whether imported data reconciles?
+
+This layer makes external data usable.
+
+It does not decide what the data means commercially.
+
+---
+
+# 2. POSITION IN SYSTEM
+
+The Integrations / API Layer sits before source modules.
+
+External systems
+↓
+Integrations / API Layer
+↓
+Source Import Contracts
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Downstream model
+
+The API Layer feeds source modules.
+
+It does not bypass them.
+
+---
+
+# 3. CORE PRINCIPLE
+
+External data is source evidence.
+
+It is not automatically trusted business logic.
+
+The integration layer must:
+
+- import
+- normalise
+- deduplicate
+- preserve trace
+- expose status
+- hand data to the correct source module
+
+It must not:
+
+- classify final business outcomes
+- calculate recovery
+- build rates
+- approve models
+- mutate downstream results
+- silently override user-reviewed mappings
+
+---
+
+# 4. MODULE ROLE
+
+Integrations / API Layer owns:
+
+- connector authentication state
+- external account connection status
+- API fetch requests
+- source import records
+- raw external payload storage
+- normalised import rows
+- duplicate detection
+- pagination handling
+- sync status
+- import period tracking
+- source trace creation
+- import warnings
+- connector trust state
+- handoff to source modules
+
+Integrations / API Layer does not own:
+
+- P&L grouping logic
+- Revenue / COG category decisions
+- supplier margin analysis
+- Labour calculations
+- Asset calculations
+- General Overheads calculations
+- Cost Allocation logic
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome modelling
+- Quote Checker validation
+- Job Costing actual calculations
+
+---
+
+# 5. XERO INTEGRATION ROLE
+
+Xero integration should support importing:
+
+- chart of accounts
+- profit and loss reports
+- account transactions
+- supplier bills
+- credit notes
+- journals
+- contacts
+- supplier names
+- invoice metadata
+- tax/GST values
+- tracking categories where available
+- payment status where useful
+- period/date information
+
+Xero remains the accounting source.
+
+Mirra uses Xero data to build business model inputs.
+
+Mirra must not assume Xero categories are always correct.
+
+---
+
+# 6. XERO DATA TYPES
+
+Allowed Xero source types:
+
+xero_profit_and_loss_report
+xero_account_transactions
+xero_bills
+xero_credit_notes
+xero_journals
+xero_contacts
+xero_chart_of_accounts
+xero_tracking_categories
+xero_manual_export
+xero_attachment_metadata
+xero_unknown
+
+Each imported row must identify its source type.
+
+---
+
+# 7. SOURCE IMPORT CONTRACT
+
+source_import_rows[]
+
+Each row:
+
+{
+  source_import_id,
+  source_system,
+  source_type,
+  source_file_name,
+  source_api_endpoint,
+  import_method,
+  imported_at,
+  imported_by,
+  period_start,
+  period_end,
+  row_count,
+  import_status,
+  duplicate_check_status,
+  reconciliation_status,
+  trust_state,
+  source_trace
+}
+
+Allowed source_system values:
+
+- xero
+- manual_csv
+- manual_excel
+- pdf_extraction
+- user_entry
+- future_accounting_system
+- future_po_system
+- future_timesheet_system
+
+Allowed import_method values:
+
+- api
+- csv_upload
+- excel_upload
+- manual_entry
+- pdf_ocr
+- scheduled_sync
+- mock_adapter
+
+---
+
+# 8. RAW PAYLOAD STORAGE RULE
+
+Imported API payloads should be stored or traceable before normalisation.
+
+raw_import_payload_rows[]
+
+{
+  raw_payload_id,
+  source_import_id,
+  source_system,
+  source_type,
+  external_record_id,
+  raw_payload,
+  fetched_at,
+  payload_hash,
+  source_trace
+}
+
+Purpose:
+
+- auditability
+- debugging
+- retry support
+- mapping verification
+- duplicate prevention
+
+Raw payload does not feed calculations directly.
+
+Normalised rows feed source modules.
+
+---
+
+# 9. NORMALISED IMPORT ROW CONTRACT
+
+normalised_import_rows[]
+
+Each row:
+
+{
+  normalised_row_id,
+  source_import_id,
+  source_system,
+  source_type,
+  external_record_id,
+  transaction_date,
+  account_code,
+  account_name,
+  contact_id,
+  contact_name_raw,
+  contact_name_normalised,
+  supplier_id,
+  supplier_name,
+  description,
+  reference,
+  source_document_number,
+  source_document_type,
+  gross_amount,
+  net_amount,
+  gst_amount,
+  signed_amount,
+  currency,
+  tracking_category,
+  tracking_option,
+  source_status,
+  source_trace
+}
+
+Rules:
+
+- gross_amount must preserve source sign.
+- credit notes must be negative or clearly signed.
+- GST must be retained where available.
+- contact raw name and normalised name must both be preserved.
+- external_record_id must be stable where available.
+- no row should lose source trace.
+
+---
+
+# 10. SIGNAGE RULE
+
+The integration layer must preserve debit / credit reality as a signed value.
+
+Required fields:
+
+- gross_amount
+- net_amount
+- gst_amount
+- signed_amount
+- source_document_type
+
+Credit notes should reduce cost/revenue where appropriate.
+
+Do not discard credit notes.
+
+Do not convert all values to positive without a sign/source document type.
+
+If source provides separate debit and credit columns, normalise into signed_amount while preserving original fields in raw payload.
+
+---
+
+# 11. GST RULE
+
+GST must be preserved separately.
+
+Required values where available:
+
+- gross_amount
+- net_amount
+- gst_amount
+- tax_type
+- tax_rate
+
+Source modules may decide whether to use gross or net.
+
+For business modelling, values should usually use net of GST unless user/config says otherwise.
+
+The integration layer must not hide GST.
+
+---
+
+# 12. SUPPLIER NORMALISATION RULE
+
+Supplier names must support raw and normalised forms.
+
+Example:
+
+Raw names:
+
+- Allied Concrete Ltd
+- Allied Concrete
+- Allied Auckland
+- Firth Industries Ltd
+- Firth Concrete
+
+Normalised supplier:
+
+- Allied Concrete
+- Firth Concrete
+
+supplier_normalisation_rows[]
+
+{
+  supplier_normalisation_id,
+  raw_supplier_name,
+  normalised_supplier_name,
+  supplier_id,
+  match_method,
+  confidence,
+  user_reviewed,
+  source_trace
+}
+
+Allowed match_method values:
+
+- exact
+- manual_alias
+- fuzzy
+- rule_based
+- api_contact_id
+- unknown
+
+Rules:
+
+- never discard raw supplier name.
+- user-reviewed aliases should be preserved.
+- low-confidence matches require review.
+- supplier normalisation does not decide COG category by itself.
+
+---
+
+# 13. ACCOUNT NORMALISATION RULE
+
+Chart of accounts should be imported and preserved.
+
+account_normalisation_rows[]
+
+{
+  account_id,
+  source_system,
+  account_code,
+  account_name_raw,
+  account_name_normalised,
+  account_type,
+  mirra_default_module,
+  mirra_default_category,
+  user_reviewed,
+  source_trace
+}
+
+This supports:
+
+- P&L import
+- Revenue / COG mapping
+- overhead classification
+- account-level reconciliation
+
+---
+
+# 14. CATEGORY MAPPING RULE
+
+The integration layer may suggest mappings.
+
+It must not silently force final categories.
+
+Suggested mappings may include:
+
+- COG category
+- overhead category
+- labour-related account
+- asset-related account
+- revenue account
+- other/unallocated
+
+Final mapping belongs in the relevant source module.
+
+Example:
+
+Xero account:
+Concrete Purchases
+
+Suggested Mirra category:
+COG / Concrete Purchases
+
+User may override.
+
+---
+
+# 15. DUPLICATE DETECTION RULE
+
+The integration layer must detect duplicate imports.
+
+Duplicate keys may include:
+
+- external_record_id
+- source_document_number
+- contact_id
+- transaction_date
+- amount
+- account_code
+- reference
+- payload_hash
+
+duplicate_import_rows[]
+
+{
+  duplicate_id,
+  source_import_id,
+  matched_existing_import_id,
+  external_record_id,
+  duplicate_reason,
+  confidence,
+  duplicate_status,
+  source_trace
+}
+
+Allowed duplicate_status values:
+
+- suspected_duplicate
+- confirmed_duplicate
+- not_duplicate
+- ignored
+- needs_review
+
+Do not import duplicate rows silently.
+
+---
+
+# 16. PERIOD RULE
+
+Every import should have a defined period.
+
+Required fields:
+
+- period_start
+- period_end
+- transaction_date
+
+P&L reports use report period.
+
+Transactions use transaction date.
+
+Supplier bills use invoice/bill date.
+
+Payment date may be stored separately but should not replace transaction date unless explicitly required.
+
+---
+
+# 17. RECONCILIATION HANDOFF RULE
+
+The integration layer must provide enough information for source modules to reconcile.
+
+Examples:
+
+P&L total imported from Xero should reconcile to sum of relevant imported account rows where same basis exists.
+
+Supplier bills by COG account should reconcile to Revenue / COG imported totals where possible.
+
+If not reconcilable:
+
+status = review_required
+
+Do not hide mismatch.
+
+---
+
+# 18. P&L HANDOFF CONTRACT
+
+The integration layer should hand P&L source rows to P&L module.
+
+pnl_import_handoff[]
+
+{
+  source_import_id,
+  period_start,
+  period_end,
+  account_code,
+  account_name,
+  account_type,
+  amount,
+  signed_amount,
+  source_system,
+  source_type,
+  source_trace
+}
+
+P&L module owns grouping and classification.
+
+---
+
+# 19. REVENUE / COGS HANDOFF CONTRACT
+
+The integration layer should hand supplier/category source rows to Revenue / COGS.
+
+revenue_cogs_import_handoff[]
+
+{
+  source_import_id,
+  transaction_date,
+  account_code,
+  account_name,
+  supplier_id,
+  supplier_name,
+  contact_name_raw,
+  description,
+  source_document_number,
+  source_document_type,
+  net_amount,
+  gst_amount,
+  gross_amount,
+  signed_amount,
+  suggested_cog_category,
+  source_trace
+}
+
+Revenue / COGS owns final category assignment and supplier/category analysis.
+
+---
+
+# 20. GENERAL OVERHEADS HANDOFF CONTRACT
+
+The integration layer should hand overhead candidate rows to General Overheads.
+
+general_overheads_import_handoff[]
+
+{
+  source_import_id,
+  transaction_date,
+  account_code,
+  account_name,
+  supplier_id,
+  supplier_name,
+  description,
+  source_document_number,
+  net_amount,
+  gst_amount,
+  gross_amount,
+  signed_amount,
+  suggested_overhead_category,
+  source_trace
+}
+
+General Overheads owns final overhead mapping.
+
+---
+
+# 21. ASSET HANDOFF CONTRACT
+
+The integration layer may hand asset-related candidate rows to Assets.
+
+asset_import_handoff[]
+
+{
+  source_import_id,
+  transaction_date,
+  account_code,
+  account_name,
+  supplier_id,
+  supplier_name,
+  description,
+  source_document_number,
+  amount,
+  suggested_asset_name,
+  suggested_asset_cost_type,
+  source_trace
+}
+
+Assets owns productive/non-productive classification and asset cost structure.
+
+---
+
+# 22. LABOUR HANDOFF CONTRACT
+
+The integration layer may hand labour-related source rows to Labour where available.
+
+labour_import_handoff[]
+
+{
+  source_import_id,
+  transaction_date,
+  account_code,
+  account_name,
+  employee_or_supplier_id,
+  employee_or_supplier_name,
+  description,
+  amount,
+  suggested_labour_category,
+  source_trace
+}
+
+Labour owns productive/non-productive classification and labour rate calculation.
+
+---
+
+# 23. MOCK ADAPTER RULE
+
+Before live Xero API integration, a mock adapter may be used.
+
+Purpose:
+
+- test source contracts
+- test reconciliation
+- test supplier/category mapping
+- test page flows without live API dependency
+
+Mock adapter must use the same output contracts as real Xero integration.
+
+Do not build separate downstream logic for mock vs real.
+
+---
+
+# 24. AUTHENTICATION RULE
+
+For live Xero integration, authentication state must be explicit.
+
+connector_auth_status values:
+
+- connected
+- disconnected
+- expired
+- revoked
+- pending
+- error
+- not_configured
+
+Integration must clearly show whether sync is available.
+
+If auth is expired:
+
+- do not silently fail
+- show reconnect required
+- preserve prior imported data
+
+---
+
+# 25. SYNC STATUS RULE
+
+sync_status values:
+
+- idle
+- syncing
+- synced
+- partial_sync
+- failed
+- cancelled
+- needs_review
+
+sync_run_rows[]
+
+{
+  sync_run_id,
+  connector_id,
+  source_system,
+  sync_started_at,
+  sync_finished_at,
+  period_start,
+  period_end,
+  records_fetched,
+  records_imported,
+  duplicates_detected,
+  warnings_count,
+  sync_status,
+  source_trace
+}
+
+---
+
+# 26. ERROR HANDLING RULE
+
+API errors must be visible.
+
+api_error_rows[]
+
+{
+  api_error_id,
+  connector_id,
+  source_system,
+  endpoint,
+  error_code,
+  error_message,
+  occurred_at,
+  retry_available,
+  resolved,
+  source_trace
+}
+
+Do not swallow API errors.
+
+Do not present stale data as fresh without warning.
+
+---
+
+# 27. STALE DATA RULE
+
+Imported data must have freshness state.
+
+freshness_status values:
+
+- current
+- stale
+- outdated
+- unknown
+- not_synced
+
+Freshness should consider:
+
+- last sync date
+- selected reporting period
+- source module period
+- user-selected import period
+
+If stale:
+
+downstream modules may still use data but should show warning.
+
+---
+
+# 28. IMPORT TRUST STATE
+
+Integration layer must expose:
+
+integration_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+ready:
+Connected/synced and no blocking import issues.
+
+warning:
+Imported but mapping/review/stale warnings exist.
+
+blocked:
+No source data, failed import, auth failure, or unreconciled critical import.
+
+preview_only:
+Mock, partial, or draft import.
+
+---
+
+# 29. STATUS VALUES
+
+integration_status values:
+
+- ready
+- ready_with_warnings
+- review_required
+- blocked
+- preview_only
+- not_configured
+- syncing
+
+Definitions:
+
+ready:
+Imports available and trusted.
+
+ready_with_warnings:
+Imports available but warnings exist.
+
+review_required:
+Mappings or duplicates require review.
+
+blocked:
+Import failed or required source missing.
+
+preview_only:
+Mock or partial import only.
+
+not_configured:
+No connector configured.
+
+syncing:
+Import currently running.
+
+---
+
+# 30. REQUIRED WARNINGS
+
+Required warning IDs:
+
+integration_missing_connector
+integration_auth_expired
+integration_sync_failed
+integration_partial_sync
+integration_stale_data
+integration_duplicate_records_detected
+integration_unmapped_supplier
+integration_unmapped_account
+integration_low_confidence_supplier_match
+integration_credit_note_detected
+integration_reconciliation_mismatch
+integration_missing_source_trace
+integration_mock_data_preview_only
+integration_api_error
+integration_upstream_source_unavailable
+
+---
+
+# 31. OUTPUT CONTRACT
+
+Integrations / API Layer should expose:
+
+{
+  integration_ready,
+  integration_status,
+  integration_warnings,
+  integration_warning_count,
+  integration_trust_state,
+
+  connector_rows,
+  sync_run_rows,
+  source_import_rows,
+  raw_import_payload_rows,
+  normalised_import_rows,
+
+  supplier_normalisation_rows,
+  account_normalisation_rows,
+  duplicate_import_rows,
+
+  pnl_import_handoff,
+  revenue_cogs_import_handoff,
+  general_overheads_import_handoff,
+  asset_import_handoff,
+  labour_import_handoff,
+
+  api_error_rows,
+  integration_source_trace
+}
+
+---
+
+# 32. CONNECTOR CONTRACT
+
+connector_rows[]
+
+{
+  connector_id,
+  source_system,
+  connector_name,
+  connector_type,
+  auth_status,
+  last_sync_at,
+  sync_status,
+  enabled,
+  warning_count,
+  trust_state
+}
+
+Allowed connector_type values:
+
+- accounting
+- payroll
+- timesheet
+- po_system
+- quote_system
+- manual_upload
+- future_api
+
+---
+
+# 33. UI STRUCTURE
+
+Recommended Integrations / API UI:
+
+1. Integration Status Strip
+2. Connector List Panel
+3. Xero Connection Panel
+4. Sync Controls Panel
+5. Import Period Panel
+6. Source Imports Panel
+7. Supplier Normalisation Panel
+8. Account Mapping Preview Panel
+9. Duplicate Detection Panel
+10. Reconciliation Preview Panel
+11. API Errors Panel
+12. Source Trace Panel
+13. Help Panel
+
+---
+
+# 34. STATUS STRIP
+
+Show:
+
+- integration_status
+- trust state
+- connector status
+- last sync date
+- sync period
+- records imported
+- duplicate count
+- warning count
+- stale data status
+
+---
+
+# 35. CONNECTOR LIST PANEL
+
+Show:
+
+- connector name
+- source system
+- auth status
+- sync status
+- last sync
+- enabled/disabled
+- warning count
+
+---
+
+# 36. XERO CONNECTION PANEL
+
+Show:
+
+- connected organisation
+- auth status
+- tenant status
+- reconnect option
+- last successful sync
+- permissions/scopes summary where available
+
+Do not expose secrets.
+
+---
+
+# 37. SYNC CONTROLS PANEL
+
+Allow:
+
+- select period
+- run sync
+- cancel sync
+- view last sync
+- retry failed sync
+
+Sync controls must not run downstream calculations directly.
+
+They only import source data.
+
+---
+
+# 38. SOURCE IMPORTS PANEL
+
+Show:
+
+- import ID
+- source type
+- period
+- row count
+- status
+- trust state
+- warnings
+
+---
+
+# 39. SUPPLIER NORMALISATION PANEL
+
+Show:
+
+- raw supplier names
+- normalised supplier names
+- match method
+- confidence
+- review status
+
+Allow user to confirm supplier aliases where this page owns normalisation.
+
+Category assignment still belongs in Revenue / COGS.
+
+---
+
+# 40. ACCOUNT MAPPING PREVIEW PANEL
+
+Show:
+
+- account code
+- account name
+- suggested module/category
+- review status
+
+Final classification belongs in source modules.
+
+---
+
+# 41. DUPLICATE DETECTION PANEL
+
+Show:
+
+- suspected duplicate rows
+- match reason
+- confidence
+- status
+- action required
+
+Do not import confirmed duplicates twice.
+
+---
+
+# 42. RECONCILIATION PREVIEW PANEL
+
+Show:
+
+- imported P&L total
+- imported transaction total
+- source report total
+- difference
+- status
+
+This is preview reconciliation only.
+
+Final reconciliation belongs in source modules and Module Reconciliation.
+
+---
+
+# 43. API ERRORS PANEL
+
+Show:
+
+- failed endpoint
+- error message
+- time
+- retry status
+- recommended action
+
+---
+
+# 44. SOURCE TRACE PANEL
+
+Show source trace for imports.
+
+Every normalised row should be traceable back to source import and external record.
+
+---
+
+# 45. HELP PANEL
+
+Explain:
+
+- integrations import external data
+- source modules still own classification
+- API data may need review
+- credit notes and GST are preserved
+- supplier normalisation does not equal category mapping
+- sync does not automatically approve model results
+
+---
+
+# 46. WHAT TO KEEP OUT
+
+Keep out:
+
+- final P&L grouping decisions
+- final Revenue / COG category assignment
+- final overhead allocation
+- labour productive/non-productive decisions
+- asset productive/non-productive decisions
+- Cost Allocation assignments
+- recovery testing
+- rate building
+- business modelling
+- quote checking
+- job costing
+- model approvals
+
+The integration layer imports and normalises.
+
+It does not interpret the business model.
+
+---
+
+# 47. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useIntegrations.js
+hooks/useXeroIntegration.js
+lib/integrations/xeroClient.js
+lib/integrations/xeroNormalisers.js
+lib/integrations/importDeduplication.js
+lib/integrations/sourceTrace.js
+lib/calculations/integrationStatus.js
+lib/selectors/integrationSelectors.js
+components/integrations/*.jsx
+app/integrations/page.jsx
+
+Mock adapter files:
+
+lib/integrations/mockXeroAdapter.js
+lib/integrations/mockSourceImports.js
+
+Storage/export related:
+
+lib/database/sourceImportStorage.js
+lib/database/rawPayloadStorage.js
+
+---
+
+# 48. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Define connector contract.
+2. Define source import contract.
+3. Define raw payload storage.
+4. Define normalised import rows.
+5. Build mock adapter first if live API is not ready.
+6. Ensure mock adapter outputs same contract as live Xero.
+7. Add supplier normalisation.
+8. Add account normalisation.
+9. Add duplicate detection.
+10. Preserve credit notes.
+11. Preserve GST fields.
+12. Preserve signed amounts.
+13. Add source trace.
+14. Add P&L handoff.
+15. Add Revenue / COGS handoff.
+16. Add General Overheads handoff.
+17. Add Assets/Labour candidate handoffs where useful.
+18. Add sync status.
+19. Add auth status.
+20. Add stale data status.
+21. Do not run downstream calculations inside integration layer.
+22. Add warnings and trust state.
+23. Run build.
+
+---
+
+# 49. ACCEPTANCE CRITERIA
+
+Integrations / API Layer v4.0 is accepted when:
+
+1. It defines connector rows.
+2. It defines sync run rows.
+3. It defines source import rows.
+4. It preserves raw payload trace.
+5. It normalises imported rows.
+6. It preserves GST.
+7. It preserves signed values.
+8. It preserves credit notes.
+9. It supports supplier normalisation.
+10. It supports account normalisation.
+11. It supports duplicate detection.
+12. It supports P&L handoff.
+13. It supports Revenue / COGS handoff.
+14. It supports General Overheads handoff.
+15. It supports Assets/Labour candidate handoffs where useful.
+16. It exposes auth status.
+17. It exposes sync status.
+18. It exposes stale data warnings.
+19. It supports mock adapter output using the same contract.
+20. It does not own downstream calculations.
+21. It does not silently overwrite mappings.
+22. It exposes warnings and trust state.
+23. Build passes.
+
+---
+
+# 50. FINAL PRINCIPLE
+
+The Integrations / API Layer gets data into Mirra safely.
+
+It imports.
+
+It normalises.
+
+It preserves trace.
+
+It detects duplicates.
+
+It exposes sync status.
+
+It hands clean source rows to the correct modules.
+
+It does not decide the business model.
+
+It does not build rates.
+
+It does not approve outcomes.
+
+No hidden sync.
+No duplicate imports.
+No lost credit notes.
+No lost GST.
+No untraceable rows.
+No silent category decisions.
+No leaks.

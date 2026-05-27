@@ -1,0 +1,1345 @@
+# Mirra — Module Reconciliation Brief
+
+## v4.0 — EVIDENCE LAYER, P&L VARIANCE VISIBILITY, AND MODEL TRUST INPUT
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 10
+
+REPLACES:
+- QS Tools Module Reconciliation briefs where naming has changed
+- older reconciliation briefs that do not carry v4.0 no-leak standards
+- any reconciliation logic that changes source module values
+- any reconciliation logic that creates recovery strategy, allocation structure, rates, or business outcome verdicts
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Module Reconciliation is evidence-only. It compares P&L benchmark values against Mirra module values and shows variance. It does not change either side.
+
+---
+
+# 1. PURPOSE
+
+Module Reconciliation compares accounting evidence from the P&L against Mirra source module outputs.
+
+It answers:
+
+Where does Mirra agree with the P&L?
+Where does Mirra differ from the P&L?
+Which module owns the variance?
+Is the variance a warning, a review item, or a blocking leak?
+Can the model be trusted downstream?
+
+Module Reconciliation is a visibility and evidence layer.
+
+It does not correct data.
+
+It does not make decisions.
+
+It does not calculate the business outcome.
+
+---
+
+# 2. MODULE ROLE
+
+Module Reconciliation owns:
+
+- P&L benchmark vs module total comparison
+- variance amount
+- variance percent
+- reconciliation status
+- blocking check list
+- warning check list
+- evidence for Model Readiness
+- normalised reconciliation inputs
+- P&L-to-module variance context
+- other income treatment visibility
+- source module trust context
+
+Module Reconciliation does not own:
+
+- P&L source data
+- Labour source data
+- Assets source data
+- General Overheads source data
+- Revenue / COGS source data
+- COG Account Transactions reconciliation calculation
+- Cost Summary aggregation
+- Business Summary bridge calculation
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdict
+- scenario values
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Module Reconciliation sits after source modules and before Model Readiness.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Module Reconciliation provides evidence to Model Readiness.
+
+Model Readiness converts evidence into trust gate status.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Always variance.
+
+Never silent overwrite.
+
+If the P&L says one value and Mirra says another, the system must show:
+
+- P&L amount
+- Mirra module amount
+- difference
+- variance percent
+- likely review area
+- status
+- downstream consequence
+
+Module Reconciliation must not decide that one side is correct.
+
+The user decides after reviewing the evidence.
+
+---
+
+# 5. P&L AS ACCOUNTING BENCHMARK
+
+The P&L is the accounting anchor.
+
+P&L provides benchmark values such as:
+
+- labour benchmark
+- asset finance benchmark
+- general overheads benchmark
+- total operating expenses benchmark
+- Cost of Sales benchmark
+- revenue
+- gross profit
+- net profit
+- other income
+- other expenses
+
+These are benchmark values.
+
+They are not automatically operational truth.
+
+Module Reconciliation compares them to Mirra module values.
+
+---
+
+# 6. MIRRA MODULE VALUES
+
+Mirra source modules provide operational/source values.
+
+Examples:
+
+Labour provides:
+
+- total_labour_cost_annual
+- total_people_cost_annual
+
+Assets provides:
+
+- total_asset_cost_annual
+- asset finance / interest where applicable
+- total_asset_running_cost_transferred where applicable
+
+General Overheads provides:
+
+- total_general_overheads
+- adjusted_general_overheads_benchmark where applicable
+- general_overheads_pool_amount
+
+Revenue / COGS provides:
+
+- cog_reconciliation_status
+- cog_reconciliation_difference
+- Account Transactions COG reconciliation result
+
+Cost Summary provides:
+
+- total_cost_burden
+- total_business_cost_annual
+
+Module Reconciliation compares source evidence.
+
+It does not recreate these module calculations.
+
+---
+
+# 7. REQUIRED INPUTS FROM P&L
+
+Module Reconciliation should consume:
+
+pnl_total_revenue
+pnl_total_cogs
+pnl_gross_profit
+pnl_total_operating_expenses
+pnl_total_other_income
+pnl_total_other_expenses
+pnl_net_profit
+labour_benchmark_total
+asset_finance_benchmark_total
+general_overheads_benchmark_total
+operating_expense_benchmark_total
+cost_of_sales_benchmark_total
+pnl_period_start
+pnl_period_end
+pnl_period_label
+pnl_model_trust_state
+pnl_status
+pnl_warnings
+
+---
+
+# 8. REQUIRED INPUTS FROM LABOUR
+
+Module Reconciliation should consume:
+
+total_labour_cost_annual
+total_people_cost_annual
+total_productive_labour_cost
+total_productive_labour_hours
+labour_status
+labour_model_trust_state
+labour_warnings
+
+Labour module value should be compared against:
+
+labour_benchmark_total
+
+where available.
+
+---
+
+# 9. REQUIRED INPUTS FROM ASSETS
+
+Module Reconciliation should consume:
+
+total_asset_cost_annual
+total_productive_asset_cost_annual
+asset_finance_interest_annual where available
+total_asset_running_cost_transferred where available
+asset_pool_guardrail_status
+assets_status
+assets_model_trust_state
+assets_warnings
+
+Asset finance / interest may be compared against:
+
+asset_finance_benchmark_total
+
+where available.
+
+Asset running cost transfers may also create reconciliation context against General Overheads, but must not create double counting.
+
+---
+
+# 10. REQUIRED INPUTS FROM GENERAL OVERHEADS
+
+Module Reconciliation should consume:
+
+total_general_overheads
+gross_general_overheads_benchmark
+net_general_overheads
+general_overheads_pool_amount
+asset_finance_interest_excluded_amount
+adjusted_general_overheads_benchmark
+general_overheads_status
+general_overheads_model_trust_state
+general_overheads_warnings
+
+General Overheads module value should be compared against:
+
+general_overheads_benchmark_total
+
+or:
+
+adjusted_general_overheads_benchmark
+
+where asset finance exclusion is active.
+
+---
+
+# 11. REQUIRED INPUTS FROM REVENUE / COGS
+
+Module Reconciliation should consume or reference:
+
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+cog_reconciliation_status
+cog_reconciliation_difference
+cog_reconciliation_variance_percent
+cog_reconciliation_checks
+revenue_cogs_status
+revenue_cogs_model_trust_state
+revenue_cogs_warnings
+
+Revenue / COGS owns the detailed COG Account Transactions reconciliation.
+
+Module Reconciliation may surface that result, but must not recalculate or overwrite it.
+
+---
+
+# 12. REQUIRED INPUTS FROM COST SUMMARY
+
+Module Reconciliation may consume:
+
+total_cost_burden
+total_business_cost_annual
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+cost_summary_status
+cost_summary_model_trust_state
+
+This is useful for total business cost comparison and downstream context.
+
+Module Reconciliation must not recalculate Cost Summary.
+
+---
+
+# 13. CORE OUTPUT VARIABLES
+
+Module Reconciliation owns:
+
+reconciliation_ready
+reconciliation_status
+reconciliation_checks
+blocking_checks
+warning_checks
+normalised_reconciliation_inputs
+labour_variance_amount
+labour_variance_percent
+asset_finance_variance_amount
+asset_finance_variance_percent
+general_overheads_variance_amount
+general_overheads_variance_percent
+total_business_cost_variance_amount
+total_business_cost_variance_percent
+pnl_business_cost_variance
+pnl_business_cost_variance_percent
+module_total_business_costs
+total_other_income
+module_reconciliation_ready
+module_reconciliation_status
+module_reconciliation_warnings
+module_reconciliation_warning_count
+module_reconciliation_model_trust_state
+
+---
+
+# 14. STANDARD RECONCILIATION OBJECT
+
+Every reconciliation check should use this shape:
+
+{
+  reconciliation_id,
+  source_module,
+  source_name,
+  source_amount,
+  module_name,
+  module_amount,
+  variance_amount,
+  variance_percent,
+  reconciliation_status,
+  tolerance_amount,
+  explanation,
+  blocking,
+  reviewed
+}
+
+Allowed reconciliation_status values:
+
+balanced
+rounding_only
+variance_review
+leak_detected
+blocked
+not_available
+
+Default tolerance:
+
+1.00
+
+---
+
+# 15. VARIANCE FORMULA
+
+For each check:
+
+variance_amount =
+module_amount - source_amount
+
+variance_percent =
+variance_amount / source_amount
+
+If source_amount = 0 and module_amount != 0:
+
+variance_percent = null
+reconciliation_status = variance_review or leak_detected depending check
+
+If both source_amount and module_amount = 0:
+
+variance_amount = 0
+variance_percent = 0
+reconciliation_status = balanced
+
+---
+
+# 16. BALANCE RULE
+
+Balanced means:
+
+variance_amount = 0.00
+
+Rounding-only means:
+
+absolute variance_amount <= 1.00
+
+Anything above tolerance must be visible.
+
+For control-source imports such as COG Account Transactions:
+
+anything above tolerance should be leak_detected unless a reviewed variance state is explicitly supported.
+
+For module vs P&L comparisons:
+
+above tolerance may be variance_review unless it creates downstream risk.
+
+Do not hide small percentage variances.
+
+Small percentage leaks can become large dollar leaks at scale.
+
+---
+
+# 17. REQUIRED RECONCILIATION CHECKS
+
+Module Reconciliation should include, where data exists:
+
+1. Labour vs P&L Labour Benchmark
+2. Asset Finance vs P&L Asset Finance Benchmark
+3. General Overheads vs P&L General Overheads Benchmark
+4. Total Operating Cost Modules vs P&L Operating Expense Benchmark
+5. Cost Summary Total Cost Burden context
+6. Revenue / COGS COG Reconciliation status reference
+7. Other Income visibility
+8. P&L net profit to Mirra operating position bridge context
+
+Not every check must be blocking.
+
+Every material check must be visible.
+
+---
+
+# 18. LABOUR RECONCILIATION
+
+Check:
+
+labour_to_pnl_benchmark
+
+source_amount =
+labour_benchmark_total
+
+module_amount =
+total_labour_cost_annual or total_people_cost_annual
+
+variance_amount =
+module_amount - source_amount
+
+Purpose:
+
+Show whether Labour module true people cost aligns with the P&L labour benchmark.
+
+Possible reasons for variance:
+
+- timing difference
+- payroll classification difference
+- owner/director pay treatment
+- employee overheads included elsewhere
+- missing staff
+- P&L period mismatch
+- module uses forward/current cost while P&L is historical
+
+Do not call variance an error automatically.
+
+---
+
+# 19. ASSET FINANCE RECONCILIATION
+
+Check:
+
+asset_finance_to_pnl_benchmark
+
+source_amount =
+asset_finance_benchmark_total
+
+module_amount =
+asset_finance_interest_annual or selected asset finance total
+
+Purpose:
+
+Show whether asset finance / interest in Assets aligns with the P&L benchmark.
+
+Possible reasons for variance:
+
+- end-of-year journal not posted
+- loan interest timing
+- principal/interest split issue
+- asset finance classified elsewhere
+- asset not entered
+- P&L period mismatch
+
+Do not include principal repayment as operating cost.
+
+---
+
+# 20. GENERAL OVERHEADS RECONCILIATION
+
+Check:
+
+general_overheads_to_pnl_benchmark
+
+source_amount =
+general_overheads_benchmark_total or adjusted_general_overheads_benchmark
+
+module_amount =
+total_general_overheads
+
+Purpose:
+
+Show whether General Overheads module aligns with P&L operating expense benchmark.
+
+Possible reasons for variance:
+
+- asset finance excluded
+- running costs transferred to Assets
+- staff overheads reclassified
+- COGS accidentally included in overheads
+- manual overhead adjustment
+- operating expense classification issue
+
+If asset running cost transfers are active, reconciliation must make clear whether General Overheads is gross or net of transferred asset costs.
+
+---
+
+# 21. ASSET RUNNING COST TRANSFER CONTEXT
+
+If Assets transfers running cost pools from General Overheads into productive asset burden, Module Reconciliation must preserve visibility.
+
+Required context:
+
+asset_running_cost_transfer_context
+
+Suggested shape:
+
+{
+  total_asset_running_cost_transferred,
+  gross_general_overheads_before_transfer,
+  net_general_overheads_after_transfer,
+  transfer_status,
+  double_count_risk,
+  affected_pools
+}
+
+Purpose:
+
+Prevent double counting between Assets and General Overheads.
+
+Module Reconciliation must show if:
+
+- transferred amount appears in Assets
+- same amount still appears fully in General Overheads
+- net overhead pool has not been adjusted or marked
+- transfer exceeds available source pool
+
+Over-allocated transfer should be blocking.
+
+---
+
+# 22. TOTAL BUSINESS COST RECONCILIATION
+
+Check:
+
+module_total_business_costs_to_pnl_operating_expense_benchmark
+
+source_amount =
+operating_expense_benchmark_total or relevant P&L benchmark
+
+module_amount =
+module_total_business_costs
+
+module_total_business_costs =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_general_overheads
+
+If asset running cost transfers are included in Assets, ensure total_general_overheads is net of transferred amounts or transfer is otherwise removed from duplicate count.
+
+Purpose:
+
+Show whether the combined Mirra operating cost modules align with P&L operating expense evidence.
+
+This is evidence only.
+
+Do not force the totals to match.
+
+---
+
+# 23. COGS RECONCILIATION REFERENCE
+
+Revenue / COGS owns detailed COGS reconciliation.
+
+Module Reconciliation may include a reference check:
+
+cog_reconciliation_reference
+
+source_amount =
+pnl_total_cogs
+
+module_amount =
+Revenue / COGS Account Transactions COG net total
+
+variance_amount =
+cog_reconciliation_difference
+
+reconciliation_status =
+cog_reconciliation_status
+
+Purpose:
+
+Surface whether COGS is reconciled before downstream use.
+
+If cog_reconciliation_status = leak_detected or blocked:
+
+Model Readiness must treat this as blocking for modules that rely on COGS.
+
+Module Reconciliation does not use Payable Invoice Detail as COG control source.
+
+---
+
+# 24. OTHER INCOME VISIBILITY
+
+Module Reconciliation must preserve:
+
+total_other_income
+
+Other Income may be included in traditional P&L net profit but excluded from core operating margin where appropriate.
+
+Business Summary owns the bridge explanation.
+
+Module Reconciliation provides the amount and source visibility.
+
+Do not hide Other Income.
+
+Do not mix Other Income into operating revenue unless explicitly classified by the user.
+
+---
+
+# 25. NORMALISED RECONCILIATION INPUTS
+
+Module Reconciliation should expose:
+
+normalised_reconciliation_inputs
+
+Suggested shape:
+
+{
+  pnl: {
+    pnl_total_revenue,
+    pnl_total_cogs,
+    pnl_gross_profit,
+    pnl_total_operating_expenses,
+    pnl_total_other_income,
+    pnl_net_profit
+  },
+  modules: {
+    total_people_cost_annual,
+    total_asset_cost_annual,
+    total_general_overheads,
+    total_cost_burden
+  },
+  transfers: {
+    total_asset_running_cost_transferred,
+    net_general_overheads_after_transfer
+  },
+  statuses: {
+    pnl_status,
+    labour_status,
+    assets_status,
+    general_overheads_status,
+    revenue_cogs_status
+  }
+}
+
+Purpose:
+
+Give Model Readiness and Business Summary a clean input set.
+
+---
+
+# 26. BLOCKING CHECKS
+
+blocking_checks[] should include reconciliation or source issues that prevent trusted downstream use.
+
+Examples:
+
+- P&L missing or blocked
+- Labour source invalid
+- Assets source invalid
+- asset pool over-allocated
+- asset running cost transfer over-allocated
+- General Overheads invalid
+- COG reconciliation leak detected
+- total business cost cannot be calculated
+- source period mismatch
+- material unclassified P&L lines
+
+Blocking check shape:
+
+{
+  check_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+---
+
+# 27. WARNING CHECKS
+
+warning_checks[] should include visible issues that do not necessarily block all downstream output.
+
+Examples:
+
+- Labour variance vs P&L
+- Asset finance variance vs P&L
+- General Overheads variance vs P&L
+- Other Income present
+- asset utilisation defaults used
+- non-productive assets excluded from recovery
+- overhead pool under-allocated
+- manual source used
+- review-required but non-material items
+
+Warnings must remain visible.
+
+---
+
+# 28. MODULE RECONCILIATION STATUS VALUES
+
+Allowed module_reconciliation_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+leak_detected
+not_ready
+
+Status rules:
+
+ready:
+All required checks balanced or acceptable with no warnings.
+
+ready_with_warnings:
+No blocking checks, but warnings remain visible.
+
+review_required:
+Material variances require review but do not fully block.
+
+blocked:
+At least one blocking check exists.
+
+leak_detected:
+A source, allocation, or reconciliation mismatch may create hidden loss or double counting.
+
+not_ready:
+Required inputs are missing.
+
+---
+
+# 29. TRUST STATE
+
+Module Reconciliation should expose:
+
+module_reconciliation_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+module_reconciliation_status = ready
+→ ready
+
+module_reconciliation_status = ready_with_warnings or review_required
+→ warning
+
+module_reconciliation_status = blocked or leak_detected or not_ready
+→ blocked
+
+If source data is incomplete but displayable:
+
+module_reconciliation_model_trust_state = preview_only
+
+---
+
+# 30. REQUIRED WARNINGS
+
+Module Reconciliation must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+reconciliation_missing_pnl
+reconciliation_missing_labour
+reconciliation_missing_assets
+reconciliation_missing_general_overheads
+reconciliation_labour_variance
+reconciliation_asset_finance_variance
+reconciliation_general_overheads_variance
+reconciliation_total_business_cost_variance
+reconciliation_cog_leak_detected
+reconciliation_other_income_present
+reconciliation_asset_transfer_double_count_risk
+reconciliation_asset_transfer_over_allocated
+reconciliation_source_period_mismatch
+reconciliation_unclassified_pnl_lines
+reconciliation_preview_only
+
+---
+
+# 31. WARNING MEANINGS
+
+## reconciliation_labour_variance
+
+Use when Labour module amount differs from P&L labour benchmark.
+
+Blocking:
+
+false by default unless Model Readiness rules make it blocking.
+
+## reconciliation_asset_finance_variance
+
+Use when Assets finance/interest differs from P&L benchmark.
+
+Blocking:
+
+false by default unless material and unresolved.
+
+## reconciliation_general_overheads_variance
+
+Use when General Overheads differs from P&L benchmark.
+
+Blocking:
+
+review_required.
+
+## reconciliation_cog_leak_detected
+
+Use when Revenue / COGS COG import does not reconcile to P&L COG.
+
+Blocking:
+
+true for COG-dependent downstream modules.
+
+## reconciliation_asset_transfer_double_count_risk
+
+Use when transferred running costs appear in both Assets and full General Overheads.
+
+Blocking:
+
+true if unresolved.
+
+## reconciliation_source_period_mismatch
+
+Use when P&L and imported detail reports have different periods.
+
+Blocking:
+
+true for affected modules.
+
+---
+
+# 32. OUTPUT CONTRACT
+
+Module Reconciliation should expose:
+
+{
+  reconciliation_ready,
+  reconciliation_status,
+  reconciliation_checks,
+  blocking_checks,
+  warning_checks,
+  normalised_reconciliation_inputs,
+  labour_variance_amount,
+  labour_variance_percent,
+  asset_finance_variance_amount,
+  asset_finance_variance_percent,
+  general_overheads_variance_amount,
+  general_overheads_variance_percent,
+  total_business_cost_variance_amount,
+  total_business_cost_variance_percent,
+  pnl_business_cost_variance,
+  pnl_business_cost_variance_percent,
+  module_total_business_costs,
+  total_other_income,
+  asset_running_cost_transfer_context,
+  module_reconciliation_ready,
+  module_reconciliation_status,
+  module_reconciliation_warnings,
+  module_reconciliation_warning_count,
+  module_reconciliation_model_trust_state
+}
+
+---
+
+# 33. OUTPUT TO MODEL READINESS
+
+Model Readiness should receive:
+
+- module_reconciliation_status
+- module_reconciliation_model_trust_state
+- blocking_checks
+- warning_checks
+- reconciliation_checks
+- cog_reconciliation_reference where available
+- asset_running_cost_transfer_context
+- source period mismatch checks
+
+Model Readiness converts this evidence into overall model trust state.
+
+Module Reconciliation does not decide final downstream page readiness by itself.
+
+---
+
+# 34. OUTPUT TO BUSINESS SUMMARY
+
+Business Summary should receive:
+
+- traditional P&L net profit
+- labour variance amount
+- asset finance variance amount
+- general overheads variance amount
+- total_other_income
+- module_total_business_costs
+- reconciliation status
+- P&L-to-operational bridge inputs
+
+Business Summary owns bridge explanation and Mirra operating position calculation.
+
+Module Reconciliation provides evidence.
+
+---
+
+# 35. OUTPUT TO COST SUMMARY
+
+Cost Summary may receive:
+
+- module_reconciliation_status
+- blocking_checks
+- warning_checks
+- trust state
+
+Cost Summary must not use Module Reconciliation to overwrite Labour, Assets, or General Overheads values.
+
+---
+
+# 36. OUTPUT TO DOWNSTREAM MODULES
+
+Cost Allocation, Recovery Summary, Rate Builder, and Business Outcome should receive reconciliation state through Model Readiness and/or module-specific source outputs.
+
+They must not ignore blocking reconciliation issues.
+
+If Module Reconciliation is blocked:
+
+- downstream modules may display preview-only
+- downstream modules must not show final trusted output
+
+---
+
+# 37. UI STRUCTURE
+
+Recommended Module Reconciliation UI structure:
+
+1. Module Reconciliation Status Strip
+2. P&L Benchmark Summary
+3. Module Totals Summary
+4. Reconciliation Checks Table
+5. Variance Explanation Panel
+6. Asset Running Cost Transfer Context Panel
+7. COG Reconciliation Reference Panel
+8. Blocking Checks Panel
+9. Warning Checks Panel
+10. Help Panel
+
+Existing UI can be retained if it supports these concepts.
+
+---
+
+# 38. STATUS STRIP
+
+The status strip should show:
+
+- module_reconciliation_status
+- warning count
+- blocking count
+- total business cost variance
+- trust state
+
+Suggested labels:
+
+Ready
+Ready with warnings
+Review required
+Leak detected
+Blocked
+Not ready
+
+---
+
+# 39. P&L BENCHMARK SUMMARY
+
+This panel should show:
+
+- P&L period
+- P&L revenue
+- P&L COGS
+- P&L operating expense benchmark
+- P&L net profit
+- P&L other income
+
+This makes the accounting anchor visible.
+
+---
+
+# 40. MODULE TOTALS SUMMARY
+
+This panel should show:
+
+- Labour module total
+- Assets module total
+- General Overheads module total
+- Cost Summary total cost burden
+- transferred asset running costs where applicable
+- net general overheads after transfer where applicable
+
+This shows what Mirra is using as operational source values.
+
+---
+
+# 41. RECONCILIATION CHECKS TABLE
+
+Each row should show:
+
+- check name
+- P&L/source amount
+- Mirra/module amount
+- variance amount
+- variance %
+- status
+- explanation
+- review action
+
+Do not hide rows just because they are balanced.
+
+Balanced rows are useful evidence.
+
+---
+
+# 42. VARIANCE EXPLANATION PANEL
+
+This panel should use cautious wording.
+
+Allowed wording:
+
+- may indicate
+- review signal
+- possible classification difference
+- timing or treatment difference
+- source variance
+- requires review
+
+Avoid unsupported wording:
+
+- bookkeeper error
+- accountant error
+- definitely wrong
+- missing cost confirmed
+- coding mistake confirmed
+
+---
+
+# 43. ASSET RUNNING COST TRANSFER CONTEXT PANEL
+
+If Assets transfers running cost pools from General Overheads, this panel should show:
+
+- source pool
+- available amount
+- transferred to productive assets
+- remaining in General Overheads
+- over-allocated amount
+- double-count status
+
+Purpose:
+
+Show that the same source cost has not been counted twice.
+
+---
+
+# 44. COG RECONCILIATION REFERENCE PANEL
+
+This panel should show Revenue / COGS COG reconciliation state.
+
+Show:
+
+- P&L COG total
+- Account Transactions COG total
+- difference
+- status
+- period
+- source file/report
+
+Do not use Payable Invoice Detail as COG control source.
+
+Do not recalculate COG here.
+
+Revenue / COGS owns it.
+
+---
+
+# 45. BLOCKING CHECKS PANEL
+
+This panel should show all blocking checks.
+
+Each check should show:
+
+- issue
+- source module
+- affected variable
+- review action
+
+Blocking checks must be obvious.
+
+---
+
+# 46. WARNING CHECKS PANEL
+
+This panel should show non-blocking warnings.
+
+Warnings must remain visible.
+
+Do not show only a warning count.
+
+---
+
+# 47. HELP PANEL
+
+The help panel should explain:
+
+- Module Reconciliation compares P&L evidence against Mirra modules
+- a variance is evidence, not automatically an error
+- the module does not overwrite either side
+- Model Readiness uses this evidence as a trust gate
+- downstream modules inherit blocked/warning states
+- COG reconciliation is controlled by Revenue / COGS
+- asset running cost transfers must not be double counted
+
+---
+
+# 48. DO NOT CHANGE
+
+Do not change:
+
+- P&L source data
+- Labour source totals
+- Assets source totals
+- General Overheads source totals
+- Revenue / COGS reconciliation calculations
+- Cost Summary aggregation
+- Business Summary bridge calculations
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not correct source module values inside Module Reconciliation.
+
+Do not create recovery strategy.
+
+Do not create rates.
+
+Do not create business verdict.
+
+---
+
+# 49. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useModuleReconciliation.js
+lib/calculations/moduleReconciliationCalculations.js
+lib/selectors/moduleReconciliationSelectors.js
+components/module-reconciliation/*.jsx
+app/module-reconciliation/page.jsx
+
+Possible related files:
+
+hooks/useProfitAndLoss.js
+hooks/useLabour.js
+hooks/useAssets.js
+hooks/useGeneralOverheads.js
+hooks/useRevenueCogs.js
+hooks/useCostSummary.js
+hooks/useModelReadiness.js
+
+Do not modify unrelated modules unless required to consume updated reconciliation contract.
+
+---
+
+# 50. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect P&L benchmark outputs.
+2. Inspect Labour output contract.
+3. Inspect Assets output contract.
+4. Inspect General Overheads output contract.
+5. Inspect Revenue / COGS COG reconciliation output.
+6. Create standard reconciliation checks.
+7. Add asset running cost transfer context.
+8. Add COG reconciliation reference.
+9. Add blocking/warning checks.
+10. Add trust state.
+11. Do not mutate source values.
+12. Run build.
+13. Verify balanced rows display.
+14. Verify variance rows display.
+15. Verify blocked COG leak flows to Model Readiness.
+16. Verify asset transfer double-count risk is visible.
+
+---
+
+# 51. ACCEPTANCE CRITERIA
+
+Module Reconciliation v4.0 is accepted when:
+
+1. It compares P&L benchmark values to Mirra module outputs.
+2. It shows P&L amount and module amount separately.
+3. It calculates variance amount.
+4. It calculates variance percent.
+5. It uses standard reconciliation objects.
+6. It shows Labour vs P&L benchmark variance.
+7. It shows Asset Finance vs P&L benchmark variance where available.
+8. It shows General Overheads vs P&L benchmark variance.
+9. It references Revenue / COGS COG reconciliation status.
+10. It shows Other Income visibility.
+11. It shows asset running cost transfer context where applicable.
+12. It detects double-count risk for asset running cost transfers.
+13. It creates blocking checks.
+14. It creates warning checks.
+15. It exposes module_reconciliation_model_trust_state.
+16. It feeds Model Readiness.
+17. It does not overwrite P&L values.
+18. It does not overwrite source module values.
+19. It does not create recovery strategy.
+20. It does not create Cost Allocation groups.
+21. It does not create Rate Builder rates.
+22. It does not create Business Outcome verdicts.
+23. Build passes.
+
+---
+
+# 52. FINAL PRINCIPLE
+
+Module Reconciliation is the evidence layer.
+
+It shows where the accounting benchmark and Mirra source modules agree or differ.
+
+It does not fix the values.
+
+It does not choose the answer.
+
+It does not hide variance.
+
+It gives Model Readiness the evidence needed to decide trust state.
+
+Always variance.
+Never silent overwrite.
+No source mutation.
+No unsupported claims.
+No hidden double counting.
+No leaks.

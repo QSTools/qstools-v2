@@ -1,0 +1,1301 @@
+# Mirra — Model Readiness Brief
+
+## v4.0 — TRUST GATE, BLOCKING LOGIC, WARNING FLOW, AND DOWNSTREAM READINESS CONTROL
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 11
+
+REPLACES:
+- QS Tools Model Readiness briefs where naming has changed
+- older readiness briefs that do not include v4.0 no-leak standards
+- older readiness logic that allows downstream modules to show trusted output while upstream sources are blocked
+- any readiness logic that hides module warnings or reconciliation issues
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+10_MIRRA_MODULE_RECONCILIATION_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Model Readiness is the trust gate. It does not calculate source values. It decides whether downstream outputs can be trusted, warned, previewed, or blocked.
+
+---
+
+# 1. PURPOSE
+
+Model Readiness converts source-module readiness and Module Reconciliation evidence into a system-wide trust state.
+
+It answers:
+
+Can Mirra use the current model as trusted input downstream?
+
+Model Readiness does not create business maths.
+
+It does not fix source values.
+
+It does not allocate costs.
+
+It does not calculate rates.
+
+It does not issue the business verdict.
+
+It controls whether downstream modules may show:
+
+- ready output
+- ready with warnings
+- review required
+- preview only
+- blocked output
+- leak detected
+
+---
+
+# 2. MODULE ROLE
+
+Model Readiness owns:
+
+- system trust gate
+- model_ready
+- model_readiness_status
+- model_trust_state
+- blocking module list
+- warning module list
+- blocking check list
+- warning check list
+- readiness warnings
+- downstream readiness control
+- preview-only state
+- no-leak gate
+
+Model Readiness does not own:
+
+- P&L source values
+- Revenue / COGS values
+- Labour values
+- Assets values
+- General Overheads values
+- Module Reconciliation calculations
+- Cost Summary calculations
+- Business Summary bridge
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdict
+- scenario values
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Model Readiness sits after Module Reconciliation and before trusted downstream modules.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Model Readiness is the gate between source/evidence layers and downstream interpretation layers.
+
+---
+
+# 4. CORE PRINCIPLE
+
+A model is not ready just because numbers exist.
+
+A model is ready only when:
+
+- source modules are complete enough
+- material data is not missing
+- blocking warnings are resolved
+- source pools are not over-allocated
+- COGS control data is reconciled where required
+- Module Reconciliation has no blocking checks
+- trust state is not blocked
+- downstream modules can safely consume the outputs
+
+If the model is not trusted, downstream modules must not pretend it is final.
+
+---
+
+# 5. TRUST STATE RULE
+
+Model Readiness must expose:
+
+model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Meaning:
+
+ready:
+The model is trusted for downstream use.
+
+warning:
+The model can be used, but warnings remain visible.
+
+blocked:
+The model must not be used as trusted downstream output.
+
+preview_only:
+The model can display calculations for review, but cannot be treated as final.
+
+---
+
+# 6. MODEL READINESS STATUS VALUES
+
+Model Readiness must expose:
+
+model_readiness_status
+
+Allowed values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+leak_detected
+preview_only
+not_ready
+
+Status meanings:
+
+ready:
+All required source modules and reconciliation checks are ready.
+
+ready_with_warnings:
+Model is usable but warnings remain visible.
+
+review_required:
+Model can calculate but user review is required before relying downstream.
+
+blocked:
+At least one blocking source/module/reconciliation issue exists.
+
+leak_detected:
+A source, allocation, reconciliation, or transfer mismatch may create hidden loss, duplication, or unreconciled output.
+
+preview_only:
+Data exists but cannot be treated as trusted final model.
+
+not_ready:
+Required setup or source modules are missing.
+
+---
+
+# 7. MODEL READY BOOLEAN
+
+Model Readiness must expose:
+
+model_ready
+
+Rule:
+
+model_ready = true only when:
+
+model_readiness_status = ready
+
+or, where explicitly allowed:
+
+model_readiness_status = ready_with_warnings
+
+if downstream module can safely carry warnings.
+
+Default stricter rule:
+
+model_ready = true only when model_trust_state = ready
+
+If model_trust_state is warning, downstream modules may calculate but must show warnings.
+
+If model_trust_state is blocked or preview_only, downstream modules must not show trusted final output.
+
+---
+
+# 8. REQUIRED INPUTS FROM SOURCE MODULES
+
+Model Readiness consumes readiness and warning data from:
+
+Business Setup
+P&L
+Revenue / COGS
+Labour
+Assets
+General Overheads
+Module Reconciliation
+Cost Summary where relevant
+
+Required inputs include:
+
+business_setup_ready
+pnl_ready
+pnl_status
+pnl_model_trust_state
+revenue_cogs_ready
+revenue_cogs_status
+revenue_cogs_model_trust_state
+cog_reconciliation_status
+labour_ready
+labour_status
+labour_model_trust_state
+assets_ready
+assets_status
+assets_model_trust_state
+asset_pool_guardrail_status
+general_overheads_ready
+general_overheads_status
+general_overheads_model_trust_state
+module_reconciliation_ready
+module_reconciliation_status
+module_reconciliation_model_trust_state
+blocking_checks
+warning_checks
+
+---
+
+# 9. REQUIRED OUTPUT VARIABLES
+
+Model Readiness owns and exposes:
+
+model_ready
+model_readiness_status
+model_trust_state
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+readiness_warnings
+readiness_summary
+source_module_statuses
+downstream_readiness_contract
+
+---
+
+# 10. SOURCE MODULE STATUS CONTRACT
+
+Model Readiness should create:
+
+source_module_statuses
+
+Suggested shape:
+
+{
+  business_setup: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  p_and_l: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  revenue_cogs: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  labour: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  assets: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  general_overheads: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  },
+  module_reconciliation: {
+    ready,
+    status,
+    trust_state,
+    warning_count,
+    blocking
+  }
+}
+
+This lets downstream modules show why the model is not ready.
+
+---
+
+# 11. BLOCKING MODULES
+
+Model Readiness must expose:
+
+blocking_modules[]
+
+Each row:
+
+{
+  module_id,
+  module_name,
+  module_status,
+  trust_state,
+  blocking_reason,
+  review_action
+}
+
+A module should be listed as blocking when:
+
+- required source data is missing
+- source module status is blocked
+- trust state is blocked
+- source values are invalid
+- material unclassified rows exist
+- source pool is over-allocated
+- COG reconciliation has leak_detected
+- Module Reconciliation has blocking checks
+- required period is missing
+- required source import failed
+
+---
+
+# 12. WARNING MODULES
+
+Model Readiness must expose:
+
+warning_modules[]
+
+Each row:
+
+{
+  module_id,
+  module_name,
+  module_status,
+  trust_state,
+  warning_reason,
+  review_action
+}
+
+A module should be listed as warning when:
+
+- source module is ready_with_warnings
+- source module is review_required
+- non-blocking variance exists
+- defaults are used
+- manual source is preview-only but still calculable
+- non-material review items exist
+- under-allocated but visible pools exist
+- non-productive assets are excluded from recovery
+- P&L to module variance exists but is not blocking
+
+---
+
+# 13. BLOCKING CHECKS
+
+Model Readiness consumes and may aggregate:
+
+blocking_checks[]
+
+from Module Reconciliation and source modules.
+
+Each check should use:
+
+{
+  check_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Examples of blocking checks:
+
+- P&L missing
+- P&L source period missing
+- Revenue / COGS COG reconciliation leak
+- Labour missing productive hours
+- Labour missing staff type for productive staff
+- Assets source pool over-allocated
+- Asset running cost transfer over-allocated
+- Asset running cost double-count risk
+- General Overheads invalid
+- Module Reconciliation blocked
+- Cost Summary source invalid
+- source period mismatch
+
+---
+
+# 14. WARNING CHECKS
+
+Model Readiness consumes and may aggregate:
+
+warning_checks[]
+
+Examples of warning checks:
+
+- Labour variance vs P&L
+- Asset finance variance vs P&L
+- General Overheads variance vs P&L
+- Asset utilisation default used
+- non-productive assets excluded
+- overhead pool under-allocated
+- asset pool under-allocated
+- Other Income present
+- manual source used
+- review-required but non-blocking item exists
+
+Warnings must remain visible downstream.
+
+---
+
+# 15. READINESS WARNINGS
+
+Model Readiness must create structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+model_missing_business_setup
+model_missing_pnl
+model_pnl_blocked
+model_revenue_cogs_blocked
+model_cog_reconciliation_leak
+model_labour_blocked
+model_assets_blocked
+model_asset_pool_blocked
+model_asset_transfer_double_count_risk
+model_general_overheads_blocked
+model_reconciliation_blocked
+model_source_period_mismatch
+model_preview_only
+model_ready_with_warnings
+
+---
+
+# 16. WARNING MEANINGS
+
+## model_missing_business_setup
+
+Use when Business Setup is incomplete.
+
+Blocking:
+
+true.
+
+## model_missing_pnl
+
+Use when no valid P&L source exists.
+
+Blocking:
+
+true for accounting-based model.
+
+## model_cog_reconciliation_leak
+
+Use when Revenue / COGS COG control data does not reconcile to P&L.
+
+Blocking:
+
+true for COG-dependent downstream modules.
+
+## model_labour_blocked
+
+Use when Labour status is blocked.
+
+Blocking:
+
+true.
+
+## model_assets_blocked
+
+Use when Assets status is blocked.
+
+Blocking:
+
+true.
+
+## model_asset_pool_blocked
+
+Use when asset_pool_guardrail_status = blocked.
+
+Blocking:
+
+true.
+
+## model_asset_transfer_double_count_risk
+
+Use when asset running cost transfers may be counted in both Assets and General Overheads.
+
+Blocking:
+
+true.
+
+## model_general_overheads_blocked
+
+Use when General Overheads status is blocked.
+
+Blocking:
+
+true.
+
+## model_reconciliation_blocked
+
+Use when Module Reconciliation has blocking checks.
+
+Blocking:
+
+true.
+
+## model_preview_only
+
+Use when calculations are displayable but source confidence is not final.
+
+Blocking:
+
+true for final output, false for preview display.
+
+---
+
+# 17. NO-LEAK READINESS RULES
+
+Model Readiness must block trusted downstream output when any of the following exist:
+
+- unreconciled COG control data above tolerance
+- over-allocated asset source pool
+- over-allocated overhead source pool
+- productive labour assigned beyond source pool
+- productive asset assigned beyond 100% in Cost Allocation once that module exists
+- overhead assigned beyond available overhead pool once Cost Allocation exists
+- asset running cost transfer double-count risk
+- source period mismatch between control reports
+- missing P&L source when accounting reconciliation is required
+- source module blocked
+- Module Reconciliation blocked
+- source values invalid
+
+A leak must not become trusted output.
+
+---
+
+# 18. COG READINESS RULE
+
+Revenue / COGS owns COG reconciliation.
+
+Model Readiness must consume:
+
+cog_reconciliation_status
+
+If:
+
+cog_reconciliation_status = leak_detected
+
+or:
+
+cog_reconciliation_status = blocked
+
+then Model Readiness must mark COG-dependent downstream modules as blocked or preview_only.
+
+COG-dependent downstream modules include:
+
+- Revenue / COGS final trusted output
+- Recovery Summary where COG margin/unit margin is used
+- Rate Builder where COG is used
+- Business Outcome where COG affects verdict
+
+---
+
+# 19. ASSET READINESS RULE
+
+Assets owns asset guardrails.
+
+Model Readiness must consume:
+
+assets_status
+asset_pool_guardrail_status
+assets_model_trust_state
+
+If:
+
+asset_pool_guardrail_status = blocked
+
+then downstream modules that consume asset burden must be blocked or preview_only.
+
+Asset-dependent downstream modules include:
+
+- Cost Summary
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+---
+
+# 20. ASSET TRANSFER READINESS RULE
+
+If productive asset running cost transfers exist, Model Readiness must ensure they do not create double counting.
+
+Inputs:
+
+total_asset_running_cost_transferred
+remaining_overhead_after_asset_transfers
+asset_running_cost_transfer_context
+reconciliation_asset_transfer_double_count_risk
+
+If transfer double-count risk exists:
+
+model_readiness_status = leak_detected
+
+or:
+
+model_readiness_status = blocked
+
+depending severity.
+
+The user must correct transfer mapping before trusted downstream use.
+
+---
+
+# 21. LABOUR READINESS RULE
+
+Labour owns productive staff type rates.
+
+Model Readiness must block trusted downstream labour use if:
+
+- Labour is blocked
+- total productive hours are zero
+- productive staff have missing staff type
+- productive staff type rate has invalid_zero_productive_hours
+- productive staff type rate has blocking warnings
+
+Affected downstream modules:
+
+- Cost Summary
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+---
+
+# 22. GENERAL OVERHEADS READINESS RULE
+
+General Overheads owns overhead source pool.
+
+Model Readiness must block trusted downstream overhead use if:
+
+- General Overheads is blocked
+- overhead total is invalid
+- overhead source is missing
+- asset finance exclusion is invalid
+- transferred asset running costs create double counting
+- overhead source pool is over-allocated once Cost Allocation exists
+
+Affected downstream modules:
+
+- Cost Summary
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+---
+
+# 23. P&L READINESS RULE
+
+P&L is the accounting anchor.
+
+Model Readiness must block trusted accounting-based model if:
+
+- P&L is missing
+- P&L import failed
+- P&L period is missing
+- P&L totals are invalid
+- material unclassified P&L lines exist
+- source period mismatch exists
+
+If P&L is missing but the user is intentionally creating a manual preview model, status should be:
+
+preview_only
+
+not ready.
+
+---
+
+# 24. PERIOD MATCH RULE
+
+Where two accounting reports are used as control sources, periods must match.
+
+Examples:
+
+- P&L period
+- Account Transactions COG period
+- future Xero imports
+- future monthly actuals
+
+If periods do not match, mark affected check as blocking.
+
+Do not silently month-shift.
+
+Do not assume timing correction.
+
+Do not auto-adjust report period.
+
+The user must supply matching periods or explicitly accept a reviewed scenario where allowed.
+
+---
+
+# 25. DOWNSTREAM READINESS CONTRACT
+
+Model Readiness should expose:
+
+downstream_readiness_contract
+
+Suggested shape:
+
+{
+  cost_summary: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  business_summary: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  revenue_reality: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  cost_allocation: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  recovery_summary: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  rate_builder: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  },
+  business_outcome: {
+    allowed,
+    trust_state,
+    blocking_reasons,
+    warning_reasons
+  }
+}
+
+Downstream modules may still display preview if allowed = false, but must label it preview_only or blocked.
+
+---
+
+# 26. DOWNSTREAM DISPLAY RULE
+
+If model_trust_state = ready:
+
+Downstream modules may show trusted outputs.
+
+If model_trust_state = warning:
+
+Downstream modules may show calculated outputs but must display warnings.
+
+If model_trust_state = blocked:
+
+Downstream modules must not show final trusted outputs.
+
+They may show:
+
+- blocked state
+- preview-only calculations
+- source issues
+- review actions
+
+If model_trust_state = preview_only:
+
+Downstream modules must clearly label outputs as preview.
+
+---
+
+# 27. RELATIONSHIP TO COST SUMMARY
+
+Cost Summary consumes Model Readiness.
+
+If Model Readiness is blocked:
+
+Cost Summary should not present its output as final trusted cost burden.
+
+It may display preview values if source totals exist.
+
+Cost Summary must show:
+
+- model trust state
+- blocking reasons
+- source module warnings
+
+Cost Summary must not override Model Readiness.
+
+---
+
+# 28. RELATIONSHIP TO BUSINESS SUMMARY
+
+Business Summary consumes Model Readiness.
+
+If Model Readiness is blocked:
+
+Business Summary should show preview-only or blocked state.
+
+It may still explain what can be calculated, but must not imply final diagnosis.
+
+Business Summary must carry warnings into its bridge and forward proof.
+
+---
+
+# 29. RELATIONSHIP TO COST ALLOCATION
+
+Cost Allocation consumes Model Readiness and source module statuses.
+
+If Model Readiness is blocked due to Labour, Assets, or General Overheads:
+
+Cost Allocation must not treat those pools as ready.
+
+If only COG is blocked, Cost Allocation may still show structural setup, but downstream recovery/rate use must carry COG warning where relevant.
+
+Cost Allocation must inherit blocked status from:
+
+- Labour source blocked
+- Assets source blocked
+- Asset pool blocked
+- General Overheads blocked
+- Overhead source invalid
+- Model Reconciliation blocked
+
+---
+
+# 30. RELATIONSHIP TO RECOVERY SUMMARY
+
+Recovery Summary consumes Model Readiness.
+
+If Model Readiness is blocked:
+
+Recovery Summary may show preview calculations only.
+
+If COG reconciliation is blocked:
+
+COG margin and unit margin tests must be blocked or preview-only.
+
+If Labour is blocked:
+
+Labour recovery test must be blocked.
+
+If Assets are blocked:
+
+Asset recovery test must be blocked.
+
+If General Overheads are blocked:
+
+Total recovery tests involving overheads must be blocked.
+
+---
+
+# 31. RELATIONSHIP TO RATE BUILDER
+
+Rate Builder consumes Model Readiness.
+
+If Model Readiness is blocked:
+
+Rate Builder must not show rates as final.
+
+If upstream source is blocked:
+
+- COG blocked → COG/unit/material margin rates blocked
+- Labour blocked → labour and crew rates blocked
+- Assets blocked → asset rates blocked
+- Cost Allocation blocked → group/unit stack rates blocked
+- Recovery Summary blocked → rate consequence is preview-only or blocked
+
+No rate can be trusted if its source is blocked.
+
+---
+
+# 32. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome consumes Model Readiness.
+
+If Model Readiness is blocked:
+
+Business Outcome must not issue a final viable/not-viable verdict as trusted.
+
+It should instead show:
+
+- model not trusted
+- blocking source issues
+- required review actions
+- preview-only consequence where useful
+
+Business Outcome must not hide readiness failures behind a verdict.
+
+---
+
+# 33. UI STRUCTURE
+
+Recommended Model Readiness UI structure:
+
+1. Model Readiness Status Strip
+2. Source Module Status Grid
+3. Blocking Issues Panel
+4. Warning Issues Panel
+5. Downstream Readiness Panel
+6. Reconciliation Evidence Summary
+7. Help Panel
+
+Existing UI may be retained if it supports these concepts.
+
+---
+
+# 34. STATUS STRIP
+
+The status strip should show:
+
+- model_readiness_status
+- model_trust_state
+- blocking count
+- warning count
+- primary blocking module if any
+- summary message
+
+Suggested labels:
+
+Ready
+Ready with warnings
+Review required
+Leak detected
+Blocked
+Preview only
+Not ready
+
+---
+
+# 35. SOURCE MODULE STATUS GRID
+
+This grid should show each module:
+
+- Business Setup
+- P&L
+- Revenue / COGS
+- Labour
+- Assets
+- General Overheads
+- Module Reconciliation
+
+For each:
+
+- ready
+- status
+- trust state
+- warning count
+- blocking flag
+- review action
+
+---
+
+# 36. BLOCKING ISSUES PANEL
+
+This panel should show every blocking issue.
+
+Each row should include:
+
+- source module
+- issue
+- affected variable
+- reason
+- review action
+
+Blocking issues must be easy to see.
+
+Do not bury them behind generic warnings.
+
+---
+
+# 37. WARNING ISSUES PANEL
+
+This panel should show non-blocking warnings.
+
+Each row should include:
+
+- source module
+- issue
+- affected variable
+- review action
+
+Warnings must remain visible downstream.
+
+---
+
+# 38. DOWNSTREAM READINESS PANEL
+
+This panel should show whether each downstream module may be trusted.
+
+Rows:
+
+- Cost Summary
+- Business Summary
+- Revenue Reality
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+Columns:
+
+- allowed
+- trust state
+- blocked reason
+- warning reason
+
+This helps the user understand why a downstream page is preview-only or blocked.
+
+---
+
+# 39. RECONCILIATION EVIDENCE SUMMARY
+
+This panel should summarise Module Reconciliation evidence.
+
+Show:
+
+- Labour variance
+- Asset finance variance
+- General Overheads variance
+- COG reconciliation status
+- Asset running cost transfer status
+- Other Income visibility
+- source period mismatch if any
+
+Model Readiness does not recalculate the evidence.
+
+It displays the status and applies trust rules.
+
+---
+
+# 40. HELP PANEL
+
+The help panel should explain:
+
+- Model Readiness is the trust gate
+- it does not change numbers
+- it checks whether source modules and reconciliation evidence are usable
+- downstream pages inherit this state
+- blocked means not trusted
+- preview means visible but not final
+- warnings remain visible
+- leaks must be resolved before trusted output
+
+---
+
+# 41. DO NOT CHANGE
+
+Do not change:
+
+- P&L import values
+- Revenue / COGS calculations
+- Labour calculations
+- Assets calculations
+- General Overheads calculations
+- Module Reconciliation checks
+- Cost Summary calculations
+- Business Summary bridge
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not fix source values in Model Readiness.
+
+Do not create recovery strategy.
+
+Do not create rates.
+
+Do not create outcome verdict.
+
+---
+
+# 42. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useModelReadiness.js
+lib/calculations/modelReadinessCalculations.js
+lib/selectors/modelReadinessSelectors.js
+components/model-readiness/*.jsx
+app/model-readiness/page.jsx
+
+Possible related files:
+
+hooks/useModuleReconciliation.js
+hooks/useProfitAndLoss.js
+hooks/useRevenueCogs.js
+hooks/useLabour.js
+hooks/useAssets.js
+hooks/useGeneralOverheads.js
+hooks/useCostSummary.js
+
+Do not modify unrelated modules unless required to consume readiness contract safely.
+
+---
+
+# 43. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect source module readiness outputs.
+2. Inspect Module Reconciliation output.
+3. Standardise module status inputs.
+4. Build source_module_statuses.
+5. Build blocking_modules.
+6. Build warning_modules.
+7. Build blocking_checks.
+8. Build warning_checks.
+9. Derive model_readiness_status.
+10. Derive model_trust_state.
+11. Build downstream_readiness_contract.
+12. Add structured warnings.
+13. Do not mutate source values.
+14. Run build.
+15. Confirm blocked upstream state flows downstream.
+16. Confirm warning state remains visible downstream.
+17. Confirm preview-only state is labelled.
+
+---
+
+# 44. ACCEPTANCE CRITERIA
+
+Model Readiness v4.0 is accepted when:
+
+1. It consumes source module readiness states.
+2. It consumes Module Reconciliation blocking and warning checks.
+3. It exposes model_ready.
+4. It exposes model_readiness_status.
+5. It exposes model_trust_state.
+6. It exposes blocking_modules.
+7. It exposes warning_modules.
+8. It exposes blocking_checks.
+9. It exposes warning_checks.
+10. It exposes source_module_statuses.
+11. It exposes downstream_readiness_contract.
+12. It blocks trusted output when P&L is missing or blocked.
+13. It blocks trusted COG-dependent output when COG reconciliation leaks.
+14. It blocks trusted labour output when Labour is blocked.
+15. It blocks trusted asset output when Assets are blocked.
+16. It blocks trusted output when asset source pools are over-allocated.
+17. It blocks trusted output when asset running cost transfer double-count risk exists.
+18. It blocks trusted overhead output when General Overheads is blocked.
+19. It carries warning state downstream.
+20. It allows preview-only display where appropriate.
+21. It does not change source values.
+22. It does not create recovery strategy.
+23. It does not create Rate Builder rates.
+24. It does not create Business Outcome verdict.
+25. Build passes.
+
+---
+
+# 45. FINAL PRINCIPLE
+
+Model Readiness is the trust gate.
+
+It decides whether the model can be relied on downstream.
+
+It does not fix numbers.
+
+It does not create new source truth.
+
+It does not hide warnings.
+
+It does not let leaks become trusted output.
+
+Ready means trusted.
+Warning means visible caution.
+Blocked means do not rely.
+Preview means not final.
+
+No assumptions.
+No hidden warnings.
+No source mutation.
+No unreconciled downstream use.
+No leaks.

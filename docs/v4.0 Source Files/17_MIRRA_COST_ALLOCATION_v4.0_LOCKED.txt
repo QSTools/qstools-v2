@@ -1,0 +1,2226 @@
+# Mirra — Cost Allocation Brief
+
+## v4.0 — SIMPLE WORKING GROUP BUILDER, DEFAULT HOLDING POOLS, PRODUCTIVE LABOUR, PRODUCTIVE ASSETS, OVERHEAD DISTRIBUTION, AND NO-LEAK STRUCTURE
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 17
+
+REPLACES:
+- QS Tools Cost Allocation briefs where naming has changed
+- older Cost Allocation logic that creates recovery plans
+- older Cost Allocation logic that calculates minimum recoverable rates
+- older Cost Allocation logic that tests recovered / unrecovered costs
+- older Cost Allocation logic that blends allocation, recovery, and pricing into one page
+- older Cost Allocation logic that creates source truth
+- older Cost Allocation logic that allows labour, assets, or overheads to be assigned twice
+- older Cost Allocation logic that hides unassigned source pools
+- older Cost Allocation logic that allows productive labour or productive assets to be over-assigned
+- older Cost Allocation logic that allows shared assets to exceed 100%
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
+14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+15_MIRRA_REVENUE_REALITY_v4.0_LOCKED.txt
+16_MIRRA_ASSET_REALITY_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Cost Allocation is the working-group builder. It assigns existing productive labour, productive assets, and remaining overheads into operating groups. It does not test recovery, build rates, create recovery strategy, or issue the business verdict.
+
+---
+
+# 1. PURPOSE
+
+Cost Allocation builds the operating structure of the business.
+
+It answers:
+
+What operating groups does the business run?
+Which productive labour belongs to each group?
+Which productive assets belong to each group?
+Which assets are shared across groups?
+How should remaining overheads be distributed across groups?
+What labour, asset, or overhead cost is still unassigned?
+Has any labour, asset, or overhead pool been over-assigned?
+What cost stack does each group carry before recovery and rate testing?
+
+Cost Allocation should be simple to use.
+
+A basic business should be able to use this page quickly with one default operating group.
+
+Advanced users may create more detailed groups.
+
+---
+
+# 2. MODULE ROLE
+
+Cost Allocation owns:
+
+- working group creation
+- working group labels
+- default holding pools
+- Productive Labour Pool assignment
+- Productive Asset Pool assignment
+- shared productive asset allocation
+- remaining overhead distribution
+- group cost stacks
+- assigned / remaining / over-assigned pool checks
+- allocation reconciliation
+- allocation warnings
+- allocation status
+- allocation trust state
+
+Cost Allocation does not own:
+
+- P&L source values
+- Revenue / COGS source values
+- COG reconciliation
+- labour source cost
+- productive staff type rate creation
+- asset source cost
+- asset utilisation source truth
+- General Overheads source truth
+- Revenue Reality stress-test calculation
+- Asset Reality stress-test calculation
+- recovery method selection
+- recovery plan testing
+- recovered / unrecovered cost analysis
+- minimum recoverable rate
+- sell rates
+- Rate Builder pricing
+- Business Outcome verdict
+- scenario modelling
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Cost Allocation sits after Business Summary, Revenue Reality, and Asset Reality.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Cost Allocation creates structure.
+
+Recovery Summary tests whether the structure works.
+
+Rate Builder turns the structure into rates.
+
+Business Outcome explains the consequence.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Cost Allocation must stay simple.
+
+It should answer one question:
+
+How is the business operationally structured?
+
+It should not ask the user to solve recovery, pricing, or final business strategy.
+
+Those questions belong downstream.
+
+Cost Allocation should feel like:
+
+Create group
+Assign labour
+Assign assets
+Distribute overheads
+Check everything balances
+
+That is all.
+
+---
+
+# 5. STRICT MODULE BOUNDARY
+
+Cost Allocation must not own or display as primary logic:
+
+- recovery plan
+- recovery basis
+- hybrid recovery test
+- minimum recoverable rate
+- recovered cost
+- unrecovered cost
+- charge-out rate
+- sell rate
+- margin added
+- final recommended rate
+- final decision
+- business outcome diagnosis
+
+These belong to:
+
+Recovery Summary:
+Tests whether the allocated structure can recover.
+
+Rate Builder:
+Creates sellable rates and rate options.
+
+Business Outcome:
+Explains the final consequence and action.
+
+Cost Allocation may show read-only diagnostic context from upstream modules, but it must not duplicate downstream logic.
+
+---
+
+# 6. DEFAULT HOLDING POOL PATTERN
+
+Each assignable cost pool must have a visible default holding pool.
+
+Default holding pools are not extra costs.
+
+They are the visible representation of unassigned source values.
+
+Required default pools:
+
+1. Default Productive Labour Pool
+2. Default Productive Asset Pool
+3. Default Overhead Pool
+
+The default pool starts with 100% of its source value.
+
+As the user assigns cost to working groups, values move out of the default pool.
+
+Nothing is copied.
+
+Nothing is duplicated.
+
+Nothing is hidden.
+
+---
+
+# 7. DEFAULT POOL LIFECYCLE
+
+Each default pool has three possible states.
+
+## State 1 — Default pool > 0
+
+Meaning:
+
+Some source value remains unassigned.
+
+Status:
+
+review_required unless the user intentionally leaves it unassigned.
+
+## State 2 — Default pool = 0
+
+Meaning:
+
+The pool has been fully allocated.
+
+Status:
+
+clean / balanced.
+
+This is usually the ideal state.
+
+## State 3 — Default pool < 0
+
+Meaning:
+
+The source pool has been over-assigned.
+
+Status:
+
+blocked.
+
+The system must never allow trusted downstream output when a pool is negative.
+
+---
+
+# 8. SOURCE POOL RULE
+
+Cost Allocation works only from existing source pools.
+
+Core source pools:
+
+1. Productive Labour Pool
+2. Productive Asset Pool
+3. Remaining / Net General Overheads Pool
+
+Each pool must expose:
+
+- available amount
+- assigned amount
+- remaining amount
+- over-allocated amount
+- allocation status
+
+No source cost may disappear.
+
+No source cost may be counted twice.
+
+No pool may be silently over-assigned.
+
+---
+
+# 9. SIMPLE DEFAULT SETUP RULE
+
+To keep the page easy to use, Cost Allocation should support a simple default setup.
+
+Default setup may create:
+
+Primary Operations Group
+
+Then optionally assign:
+
+- all productive labour
+- all productive assets
+- all remaining overheads
+
+to that one group.
+
+This gives a simple business a working, balanced allocation quickly.
+
+The user may then split into additional groups only if useful.
+
+Cost Allocation should not force complex structure.
+
+---
+
+# 10. WORKING GROUPS
+
+Cost Allocation owns working groups.
+
+working_groups[]
+
+Each row:
+
+{
+  group_id,
+  group_name,
+  group_type,
+  source_suggestion,
+  is_default_group,
+  is_active,
+  sort_order,
+  notes
+}
+
+Allowed group_type values:
+
+primary_operations
+labour_group
+asset_group
+product_unit_group
+mixed_operational_group
+overhead_only_group
+custom
+
+Rules:
+
+- group_id must be stable.
+- group_name is display label.
+- user may create groups.
+- user may rename groups.
+- user may deactivate groups.
+- suggested groups do not create assignments automatically.
+- default holding pools are not the same as working groups unless UI intentionally shows them that way.
+- working groups represent real operating structures.
+
+Examples:
+
+- Site Works
+- Digger Crew
+- Boxing Crew
+- Steel Fixing Crew
+- Pump Crew
+- Kitchen
+- Front of House
+- Primary Operations
+
+---
+
+# 11. HIGH-LEVEL BY DEFAULT RULE
+
+Cost Allocation must be usable at a high level.
+
+Default expected user experience:
+
+1. User lands on page.
+2. System shows one simple default structure.
+3. Source pools are visible.
+4. User can accept simple allocation or refine it.
+5. Advanced controls are optional.
+
+Do not make the user model their whole business before continuing.
+
+Do not expose all complexity upfront.
+
+Advanced allocation should be available but not mandatory.
+
+---
+
+# 12. INPUTS FROM LABOUR
+
+Cost Allocation consumes from Labour:
+
+productive_staff_type_rates[]
+productive_labour_rows[]
+total_productive_labour_cost
+total_productive_labour_hours
+total_productive_labour_burden
+labour_status
+labour_model_trust_state
+labour_warnings
+
+Labour owns:
+
+- staff role classification
+- productive/non-productive split
+- productive staff type rates
+- weighted hourly labour rates
+- productive labour cost
+- productive labour hours
+
+Cost Allocation owns only assignment of productive labour to groups.
+
+---
+
+# 13. PRODUCTIVE LABOUR ONLY RULE
+
+Only productive labour enters Cost Allocation labour assignment.
+
+Productive labour includes labour that directly supports production, delivery, output, or chargeable work.
+
+Non-productive labour must not enter the Productive Labour Pool.
+
+Non-productive labour belongs in overheads / business support cost pathway.
+
+Examples of productive labour:
+
+- operators
+- site labourers
+- installers
+- drivers where delivery is productive
+- production staff
+- field staff
+- crew members
+- tradespeople
+- chargeable working roles
+
+Examples of non-productive labour:
+
+- admin
+- office support
+- management where non-productive
+- accounting support
+- sales support unless classified productive
+- general business support
+
+Non-productive labour must not appear in Default Productive Labour Pool.
+
+---
+
+# 14. PRODUCTIVE LABOUR POOL
+
+Cost Allocation must create:
+
+productive_labour_pool
+
+Suggested shape:
+
+{
+  pool_id,
+  pool_name,
+  available_labour_cost,
+  available_labour_hours,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  remaining_labour_cost,
+  remaining_labour_hours,
+  over_allocated_labour_cost,
+  over_allocated_labour_hours,
+  allocation_status
+}
+
+Rules:
+
+- Productive Labour Pool starts with Labour module productive labour totals.
+- Default Productive Labour Pool holds all unassigned productive labour.
+- Assigning labour to working groups pulls from the default pool.
+- Remaining labour stays visible.
+- Over-assigned labour blocks trusted downstream output.
+- Labour cannot be assigned twice.
+
+---
+
+# 15. LABOUR ASSIGNMENT RULE
+
+Labour assignment moves productive labour from Default Productive Labour Pool to working groups.
+
+It does not copy labour.
+
+It does not create labour.
+
+It does not create a new labour rate.
+
+Example:
+
+Total productive labour = $100,000
+
+Start:
+
+Default Productive Labour Pool = $100,000
+Boxing Crew = $0
+Steel Fixing Crew = $0
+
+After assignment:
+
+Boxing Crew = $40,000
+Steel Fixing Crew = $30,000
+Default Productive Labour Pool = $30,000
+
+The totals still reconcile:
+
+$40,000 + $30,000 + $30,000 = $100,000
+
+---
+
+# 16. PRODUCTIVE LABOUR ASSIGNMENT CONTRACT
+
+labour_group_assignments[]
+
+{
+  assignment_id,
+  group_id,
+  staff_type_id,
+  staff_type_name,
+  assigned_hours,
+  assigned_cost,
+  assignment_percent,
+  weighted_hourly_cost_rate,
+  source_pool_id,
+  allocation_status
+}
+
+Rules:
+
+- staff_type_id must come from Labour.
+- assigned_hours cannot exceed available staff type productive hours.
+- assigned_cost should be derived from staff type weighted hourly rate × assigned_hours.
+- assignment_percent may be used if easier, but it must reconcile to source pool.
+- assigning labour reduces the Default Productive Labour Pool.
+- do not create new labour rates in Cost Allocation.
+- do not create new productive labour cost in Cost Allocation.
+- do not assign non-productive labour.
+
+---
+
+# 17. LABOUR / ASSET SEPARATION RULE
+
+Labour and assets are independent pools.
+
+Do not assign labour to assets.
+
+Do not attach an operator directly to a machine inside Cost Allocation.
+
+Correct model:
+
+Working Group =
+Labour
++ Productive Assets
++ Overheads
+
+Example:
+
+Digger Crew:
+- Operator from Productive Labour Pool
+- Digger from Productive Asset Pool
+- Allocated overheads
+
+Incorrect model:
+
+Operator assigned to Labour Group
+and also attached separately to Digger
+
+That would double count labour.
+
+Labour and assets meet only at the working-group level.
+
+---
+
+# 18. INPUTS FROM ASSETS
+
+Cost Allocation consumes from Assets:
+
+productive_asset_rows[]
+total_productive_asset_burden
+productive_asset_count
+asset_pool_guardrail_status
+assets_status
+assets_model_trust_state
+assets_warnings
+
+Each productive asset should include:
+
+asset_id
+asset_name
+asset_type
+total_asset_cost_annual
+utilisation_hours_per_week
+utilisation_hours_annual
+required_asset_recovery_rate
+asset_recovery_rate_status
+
+Assets owns:
+
+- asset cost
+- productive/non-productive status
+- asset utilisation
+- asset recovery rate
+- running cost transfer source truth
+
+Cost Allocation owns only assignment of productive assets to groups.
+
+---
+
+# 19. PRODUCTIVE ASSETS ONLY RULE
+
+Only productive assets enter Cost Allocation asset assignment.
+
+Productive assets are assets that directly support production, delivery, output, or chargeable work.
+
+Non-productive assets must not enter the Productive Asset Pool.
+
+Examples of productive assets:
+
+- digger
+- pump
+- truck used for delivery / production
+- production plant
+- site equipment
+- chargeable machinery
+- core tools where material
+
+Examples of non-productive assets:
+
+- commute-only vehicle
+- personal car
+- admin vehicle
+- office equipment
+- general office fitout
+- support-only assets
+
+Non-productive assets remain visible in Assets but do not enter Cost Allocation unless reclassified as productive.
+
+---
+
+# 20. PRODUCTIVE ASSET POOL
+
+Cost Allocation must create:
+
+productive_asset_pool
+
+Suggested shape:
+
+{
+  pool_id,
+  pool_name,
+  available_asset_burden,
+  available_asset_utilisation_hours,
+  assigned_asset_burden,
+  assigned_asset_utilisation_hours,
+  remaining_asset_burden,
+  remaining_asset_utilisation_hours,
+  over_allocated_asset_burden,
+  over_allocated_asset_percent,
+  allocation_status
+}
+
+Rules:
+
+- Productive Asset Pool starts with Assets module productive asset burden.
+- Default Productive Asset Pool holds all unassigned productive assets or unassigned asset percentages.
+- Assigning assets to working groups pulls from the default pool.
+- Remaining asset burden stays visible.
+- Productive assets cannot be assigned above 100%.
+- Over-assigned asset burden blocks trusted downstream output.
+- Non-productive assets do not enter this pool.
+
+---
+
+# 21. ASSET ASSIGNMENT RULE
+
+Assets behave like labour structurally, but with percentage splitting.
+
+Labour usually moves by hours/cost.
+
+Assets may be split across working groups by assigned percentage.
+
+Example:
+
+Digger annual cost = $60,000
+Digger annual utilisation = 600 hours
+
+Assignment:
+
+Site Works = 60%
+Drainage = 40%
+
+Then:
+
+Site Works asset burden = $36,000
+Site Works asset hours = 360
+
+Drainage asset burden = $24,000
+Drainage asset hours = 240
+
+Default Productive Asset Pool remaining = 0%
+
+If only 80% is assigned:
+
+Default Productive Asset Pool holds remaining 20%.
+
+If 110% is assigned:
+
+blocked.
+
+---
+
+# 22. PRODUCTIVE ASSET ASSIGNMENT CONTRACT
+
+asset_group_assignments[]
+
+{
+  assignment_id,
+  group_id,
+  asset_id,
+  asset_name,
+  assigned_percent,
+  assigned_asset_burden,
+  assigned_utilisation_hours,
+  required_asset_recovery_rate,
+  source_pool_id,
+  allocation_status
+}
+
+Rules:
+
+- asset_id must come from Assets.
+- assigned_percent across all groups for one asset cannot exceed 100%.
+- assigned_asset_burden = asset total cost × assigned_percent.
+- assigned_utilisation_hours = asset annual utilisation hours × assigned_percent.
+- required_asset_recovery_rate comes from Assets / Asset Reality context.
+- assigning an asset reduces the Default Productive Asset Pool.
+- do not change asset source cost.
+- do not change asset utilisation in Cost Allocation.
+- do not create new asset hours.
+- do not assign non-productive assets unless reclassified in Assets.
+
+---
+
+# 23. ASSET UTILISATION CARRY-FORWARD RULE
+
+Cost Allocation must carry forward asset utilisation from Assets.
+
+Required variables:
+
+utilisation_hours_per_week
+utilisation_hours_annual
+assigned_utilisation_hours
+
+Formula:
+
+assigned_utilisation_hours =
+asset utilisation_hours_annual × assigned_percent
+
+Cost Allocation must not use labour hours as asset hours.
+
+Cost Allocation must not invent asset usage.
+
+Cost Allocation must not overwrite asset utilisation.
+
+Asset utilisation is sourced from Assets.
+
+Cost Allocation only splits that utilisation according to group assignment.
+
+---
+
+# 24. SHARED ASSET RULE
+
+Shared assets are created in Cost Allocation only.
+
+Assets module does not define shared assets.
+
+A shared asset means:
+
+one productive asset is used across multiple working groups.
+
+Example:
+
+Digger:
+- 60% Site Works
+- 25% Drainage
+- 15% General Site Support
+
+Cost Allocation must ensure:
+
+sum assigned_percent for asset_id <= 100%
+
+If sum assigned_percent > 100%:
+
+allocation_status = over_allocated
+cost_allocation_status = blocked
+
+Do not silently cap percentages.
+
+Do not auto-correct shares.
+
+Do not create shared asset logic inside Assets.
+
+---
+
+# 25. SHARED ASSET IMPACT ON GROUP COST
+
+For each group:
+
+group_asset_burden =
+sum assigned_asset_burden for that group
+
+For each asset assignment:
+
+assigned_asset_burden =
+asset_total_cost_annual × assigned_percent
+
+assigned_utilisation_hours =
+asset_utilisation_hours_annual × assigned_percent
+
+This creates group-level asset burden and group-level asset hours.
+
+It does not change the original asset cost.
+
+It does not change the original asset utilisation.
+
+It does not change Asset Reality.
+
+---
+
+# 26. INPUTS FROM GENERAL OVERHEADS
+
+Cost Allocation consumes from General Overheads:
+
+total_general_overheads
+net_general_overheads
+general_overheads_pool_amount
+remaining_overhead_after_asset_transfers
+general_overheads_status
+general_overheads_model_trust_state
+general_overheads_warnings
+
+Preferred overhead pool:
+
+net_general_overheads
+
+where asset running cost transfers have already been removed or clearly marked.
+
+If asset running costs were transferred into Assets, Cost Allocation must not also allocate the transferred amount again as overhead.
+
+---
+
+# 27. REMAINING OVERHEADS RULE
+
+Cost Allocation distributes remaining overheads.
+
+Remaining overheads means:
+
+General Overheads after productive asset running cost transfers have been removed or clearly marked as transferred.
+
+Example:
+
+Fuel source pool = $100,000
+Transferred to productive assets = $70,000
+Remaining overhead fuel = $30,000
+
+Cost Allocation distributes the remaining overhead pool.
+
+It must not distribute the transferred $70,000 again.
+
+---
+
+# 28. DEFAULT OVERHEAD POOL
+
+Cost Allocation must create:
+
+general_overheads_pool
+
+Suggested shape:
+
+{
+  pool_id,
+  pool_name,
+  available_overhead_amount,
+  assigned_overhead_amount,
+  remaining_overhead_amount,
+  over_allocated_overhead_amount,
+  allocation_status
+}
+
+Rules:
+
+- Overhead Pool starts with net General Overheads.
+- Default Overhead Pool holds unallocated overheads.
+- Assigning overhead to working groups pulls from the default pool.
+- Remaining overhead stays visible.
+- Over-assigned overhead blocks trusted downstream output.
+- Under-allocated overhead is review_required.
+- Overheads should generally be fully distributed before trusted downstream recovery testing.
+
+---
+
+# 29. OVERHEAD DISTRIBUTION METHODS
+
+Cost Allocation may support overhead distribution methods.
+
+Allowed methods:
+
+manual_percent
+manual_amount
+labour_cost_weighted
+labour_hours_weighted
+asset_burden_weighted
+equal_split
+unassigned_review
+
+Recommended v4.0 methods:
+
+manual_percent
+manual_amount
+labour_cost_weighted
+labour_hours_weighted
+asset_burden_weighted
+equal_split
+
+Rules:
+
+- selected method must be visible.
+- calculated allocation must reconcile to available overhead pool.
+- no method may assign more overhead than available.
+- user may override method where required.
+- overhead allocation method does not change source overhead total.
+- overhead allocation method is not the recovery method.
+
+---
+
+# 30. OVERHEAD ASSIGNMENT CONTRACT
+
+overhead_group_assignments[]
+
+{
+  assignment_id,
+  group_id,
+  overhead_pool_id,
+  allocation_method,
+  assigned_percent,
+  assigned_amount,
+  calculation_basis,
+  allocation_status
+}
+
+Rules:
+
+- assigned overhead totals must reconcile to General Overheads Pool.
+- assigned_amount cannot exceed available overhead pool in total.
+- if manual_percent is used, total percent should equal 100% for full allocation.
+- if less than 100%, remaining overhead stays visible.
+- if more than 100%, block trusted output.
+- assigning overhead reduces the Default Overhead Pool.
+
+---
+
+# 31. GROUP COST STACK
+
+Cost Allocation must calculate group cost stacks.
+
+group_cost_stacks[]
+
+Each row:
+
+{
+  group_id,
+  group_name,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  assigned_asset_burden,
+  assigned_asset_hours,
+  assigned_overhead_amount,
+  total_group_cost,
+  group_cost_per_hour,
+  group_cost_per_unit,
+  allocation_status
+}
+
+Formula:
+
+total_group_cost =
+assigned_labour_cost
++ assigned_asset_burden
++ assigned_overhead_amount
+
+If group driver hours exist:
+
+group_cost_per_hour =
+total_group_cost / group_driver_hours
+
+If group units exist:
+
+group_cost_per_unit =
+total_group_cost / group_driver_units
+
+Do not divide by zero.
+
+Do not invent group drivers.
+
+Cost Allocation may show cost stack values, but they are not sell rates.
+
+---
+
+# 32. GROUP DRIVER RULE
+
+Cost Allocation may store group drivers, but it must not invent them.
+
+Possible group drivers:
+
+- assigned labour hours
+- assigned asset hours
+- product/unit volume from Revenue / COGS
+- manually entered group driver
+- future quote/production data
+
+Rules:
+
+- driver source must be visible.
+- if no driver exists, per-driver group cost should be not_available.
+- Rate Builder may refine driver use later.
+- Cost Allocation should not force a driver to exist.
+
+---
+
+# 33. COST ALLOCATION IS NOT RATE BUILDER
+
+Cost Allocation may calculate:
+
+- assigned group costs
+- assigned group hours
+- group cost stack
+- cost per internal driver where available
+
+Cost Allocation must not calculate:
+
+- final charge-out rate
+- sell rate
+- margin-added rate
+- market rate comparison
+- recommended rate
+- minimum recoverable rate as final output
+
+Rate Builder owns final rate construction.
+
+If current implementation has rate-related logic in Cost Allocation, that logic should be moved or treated as future Rate Builder logic.
+
+---
+
+# 34. COST ALLOCATION IS NOT RECOVERY SUMMARY
+
+Cost Allocation must not decide whether the recovery strategy works.
+
+Cost Allocation must not own:
+
+- recovery plan
+- recovery basis
+- hybrid recovery
+- recovered cost
+- unrecovered cost
+- coverage %
+- recovery shortfall
+- recovery surplus
+- recovery method selection
+
+Recovery Summary owns recovery testing.
+
+If current implementation has recovery test logic in Cost Allocation, that logic should move to Recovery Summary.
+
+---
+
+# 35. COST ALLOCATION IS NOT BUSINESS OUTCOME
+
+Cost Allocation must not issue final conclusions.
+
+Cost Allocation must not own:
+
+- final recommendation
+- next action
+- viability verdict
+- business outcome diagnosis
+- what the user should change
+
+Business Outcome owns final interpretation.
+
+Cost Allocation may show technical allocation warnings only.
+
+---
+
+# 36. REVENUE REALITY CONTEXT RULE
+
+Cost Allocation may consume Revenue Reality context:
+
+margin_after_labour
+labour_consumption_of_margin_percent
+labour_shortfall_against_margin
+margin_surplus_after_labour
+revenue_reality_status
+revenue_reality_model_trust_state
+
+Purpose:
+
+Show whether labour/margin pressure already exists before allocation.
+
+Rules:
+
+- display as read-only context.
+- do not recalculate Revenue Reality.
+- do not use it as a source pool.
+- do not hide a negative margin_after_labour by spreading costs.
+- do not change allocation automatically based on this context.
+
+---
+
+# 37. ASSET REALITY CONTEXT RULE
+
+Cost Allocation may consume Asset Reality context:
+
+weighted_required_asset_recovery_rate
+highest_pressure_asset
+lowest_utilisation_asset
+asset_underutilisation_flags
+asset_recovery_pressure_summary
+asset_reality_status
+asset_reality_model_trust_state
+
+Purpose:
+
+Show whether productive assets are already under pressure before allocation.
+
+Rules:
+
+- display as read-only context.
+- do not recalculate Asset Reality.
+- do not override asset utilisation.
+- do not use it as a source pool.
+- do not hide asset pressure by spreading assets unrealistically.
+- do not change allocation automatically based on this context.
+
+---
+
+# 38. PRODUCT MODE GROUP DEFAULTS
+
+If business_type = product_based and Revenue / COGS has unit_driver_rows, Cost Allocation should offer unit labels as suggested working group names.
+
+Example:
+
+Revenue / COGS unit_label:
+Pumping m3
+
+Suggested Cost Allocation group:
+Pumping m3
+
+Rules:
+
+- suggestion only.
+- no automatic labour assignment unless user accepts a simple default setup.
+- no automatic asset assignment unless user accepts a simple default setup.
+- no automatic overhead assignment unless user accepts a simple default setup.
+- no COG assignment unless explicitly briefed later.
+- preserve unit label exactly.
+
+---
+
+# 39. LABOUR MODE GROUP DEFAULTS
+
+If business_type = labour_based, Cost Allocation may suggest groups from:
+
+- productive staff types
+- common operating crews
+- asset types
+- user-created groups
+
+Examples:
+
+- Operators
+- Labourers
+- Site Works
+- Concrete Crew
+- Earthworks Crew
+- Digger Crew
+- Pump Crew
+- Install Crew
+- Block Laying Crew
+
+Rules:
+
+- suggestions only.
+- do not force group structure.
+- user can keep one simple operating group.
+- user can create detailed group structure if needed.
+
+---
+
+# 40. RATE BUILDER SUBSET REQUIREMENT
+
+Cost Allocation groups are not necessarily sellable rates.
+
+A working group may contain more resources than a specific rate requires.
+
+Example:
+
+Site Works Group:
+
+- 2 labourers
+- 1 operator
+- 1 digger
+
+A sellable digger rate may include only:
+
+- 1 operator
+- 1 digger
+
+Therefore:
+
+Cost Allocation builds available structure.
+
+Rate Builder must allow rates to be built from subsets of assigned group resources.
+
+Cost Allocation does not need to solve this.
+
+But Cost Allocation must preserve enough detail for Rate Builder to select components later.
+
+Required detail:
+
+- assigned labour by staff type
+- assigned asset by asset_id
+- assigned asset hours
+- assigned overhead allocation
+- group_id relationship
+
+---
+
+# 41. RESTAURANT / SERVICE BUSINESS GROUP RULE
+
+Groups do not need assets.
+
+Example:
+
+Kitchen Group:
+
+- chefs
+- kitchen hands
+- cooking equipment if material
+
+Front of House Group:
+
+- waiters
+- bar staff
+- reception
+- no material productive assets or minor assets only
+
+Small support assets may stay in overheads.
+
+Only assets that materially affect recovery need to be assigned as productive assets.
+
+This keeps Cost Allocation simple and avoids over-detail.
+
+---
+
+# 42. POOL BALANCE RULE
+
+For each source pool:
+
+available_amount
+- assigned_amount
+= remaining_amount
+
+over_allocated_amount =
+max(0, assigned_amount - available_amount)
+
+allocation_status values:
+
+balanced
+under_allocated
+over_allocated
+review_required
+not_available
+
+Rules:
+
+- over_allocated blocks trusted output.
+- under_allocated is visible review state.
+- balanced means within tolerance.
+- no silent capping.
+- no silent auto-balance.
+- no hidden remaining pool.
+
+Default tolerance:
+
+absolute difference <= 1.00
+
+---
+
+# 43. TOTAL COST ALLOCATION RECONCILIATION
+
+Cost Allocation must reconcile assigned group totals to source pools.
+
+Required checks:
+
+1. Labour assigned vs Productive Labour Pool
+2. Asset assigned vs Productive Asset Pool
+3. Overhead assigned vs General Overheads Pool
+4. Group total cost vs assigned source totals
+5. Assigned + remaining = available for each source pool
+
+Formula:
+
+total_group_assigned_cost =
+sum group_cost_stacks.total_group_cost
+
+total_assigned_source_cost =
+assigned_labour_cost
++ assigned_asset_burden
++ assigned_overhead_amount
+
+These must match.
+
+If not:
+
+cost_allocation_status = blocked or leak_detected
+
+---
+
+# 44. NO DOUBLE COUNTING RULE
+
+Cost Allocation must prevent double counting.
+
+Examples:
+
+- A staff type assigned above available hours.
+- A productive asset assigned above 100%.
+- An overhead pool allocated 100% to one group and again 100% to another.
+- Asset running costs transferred into Assets and also distributed in General Overheads.
+- Operator assigned once as labour and again as if attached to an asset.
+
+All must be blocked or clearly review-required.
+
+No double counting may flow downstream as trusted.
+
+---
+
+# 45. OVERHEAD DISTRIBUTION RULE
+
+Overheads are distributed across working groups.
+
+They are not ignored.
+
+They are not forced into Assets.
+
+They are not forced into Labour.
+
+They are distributed according to the selected overhead allocation method.
+
+If overheads remain unallocated:
+
+- show remaining overhead amount
+- status = review_required
+- downstream recovery tests must know overheads remain unallocated
+
+If overheads are over-allocated:
+
+- status = blocked
+- downstream trusted output blocked
+
+---
+
+# 46. STATUS VALUES
+
+Allowed cost_allocation_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+leak_detected
+preview_only
+not_ready
+
+Status rules:
+
+ready:
+Required pools assigned or intentionally reviewed, no blocking issues.
+
+ready_with_warnings:
+Usable but warnings remain visible.
+
+review_required:
+Allocations calculate but require user review.
+
+blocked:
+One or more source pools are invalid or over-allocated.
+
+leak_detected:
+Assigned totals do not reconcile to source pools or double counting risk exists.
+
+preview_only:
+Values display but should not be trusted.
+
+not_ready:
+Required inputs or group setup missing.
+
+---
+
+# 47. TRUST STATE
+
+Cost Allocation must expose:
+
+cost_allocation_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+cost_allocation_status = ready
+→ ready
+
+cost_allocation_status = ready_with_warnings or review_required
+→ warning
+
+cost_allocation_status = blocked, leak_detected, not_ready
+→ blocked
+
+cost_allocation_status = preview_only
+→ preview_only
+
+If Model Readiness is blocked:
+
+cost_allocation_model_trust_state = blocked or preview_only depending display mode.
+
+---
+
+# 48. REQUIRED WARNINGS
+
+Cost Allocation must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+cost_allocation_missing_labour_pool
+cost_allocation_missing_asset_pool
+cost_allocation_missing_overhead_pool
+cost_allocation_no_working_groups
+
+cost_allocation_labour_over_allocated
+cost_allocation_labour_under_allocated
+cost_allocation_non_productive_labour_excluded
+
+cost_allocation_asset_over_allocated
+cost_allocation_asset_under_allocated
+cost_allocation_shared_asset_over_100_percent
+cost_allocation_non_productive_asset_excluded
+cost_allocation_asset_utilisation_missing
+
+cost_allocation_overhead_over_allocated
+cost_allocation_overhead_under_allocated
+cost_allocation_overhead_double_count_risk
+
+cost_allocation_group_total_mismatch
+cost_allocation_source_pool_mismatch
+cost_allocation_double_count_risk
+
+cost_allocation_revenue_reality_pressure
+cost_allocation_asset_reality_pressure
+cost_allocation_upstream_blocked
+cost_allocation_preview_only
+
+---
+
+# 49. WARNING MEANINGS
+
+## cost_allocation_labour_over_allocated
+
+Use when assigned labour cost or hours exceed available Productive Labour Pool.
+
+Blocking:
+
+true.
+
+## cost_allocation_labour_under_allocated
+
+Use when some productive labour remains in Default Productive Labour Pool.
+
+Blocking:
+
+false by default.
+
+Status:
+
+review_required.
+
+## cost_allocation_asset_over_allocated
+
+Use when assigned asset burden exceeds Productive Asset Pool or any asset is assigned above 100%.
+
+Blocking:
+
+true.
+
+## cost_allocation_asset_under_allocated
+
+Use when productive asset burden remains in Default Productive Asset Pool.
+
+Blocking:
+
+false by default.
+
+Status:
+
+review_required.
+
+## cost_allocation_shared_asset_over_100_percent
+
+Use when one asset is assigned above 100% across groups.
+
+Blocking:
+
+true.
+
+## cost_allocation_overhead_over_allocated
+
+Use when assigned overhead exceeds available General Overheads Pool.
+
+Blocking:
+
+true.
+
+## cost_allocation_overhead_under_allocated
+
+Use when overhead remains in Default Overhead Pool.
+
+Blocking:
+
+false by default.
+
+Status:
+
+review_required.
+
+## cost_allocation_revenue_reality_pressure
+
+Use when Revenue Reality shows negative margin after Labour or labour pressure.
+
+Blocking:
+
+false if source data is trusted.
+
+## cost_allocation_asset_reality_pressure
+
+Use when Asset Reality shows asset pressure.
+
+Blocking:
+
+false if source data is trusted.
+
+---
+
+# 50. OUTPUT CONTRACT
+
+Cost Allocation should expose:
+
+{
+  cost_allocation_ready,
+  cost_allocation_status,
+  cost_allocation_warnings,
+  cost_allocation_warning_count,
+  cost_allocation_model_trust_state,
+
+  working_groups,
+
+  productive_labour_pool,
+  default_productive_labour_pool,
+  labour_group_assignments,
+
+  productive_asset_pool,
+  default_productive_asset_pool,
+  asset_group_assignments,
+
+  general_overheads_pool,
+  default_overhead_pool,
+  overhead_group_assignments,
+
+  group_cost_stacks,
+
+  total_available_labour_cost,
+  total_assigned_labour_cost,
+  total_remaining_labour_cost,
+  total_available_labour_hours,
+  total_assigned_labour_hours,
+  total_remaining_labour_hours,
+
+  total_available_asset_burden,
+  total_assigned_asset_burden,
+  total_remaining_asset_burden,
+  total_available_asset_utilisation_hours,
+  total_assigned_asset_utilisation_hours,
+  total_remaining_asset_utilisation_hours,
+
+  total_available_overhead_amount,
+  total_assigned_overhead_amount,
+  total_remaining_overhead_amount,
+
+  total_group_assigned_cost,
+  total_assigned_source_cost,
+  allocation_reconciliation_checks,
+
+  revenue_reality_context,
+  asset_reality_context,
+  cost_allocation_source_trace
+}
+
+---
+
+# 51. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary should receive:
+
+- cost_allocation_status
+- cost_allocation_model_trust_state
+- working_groups
+- group_cost_stacks
+- productive_labour_pool status
+- productive_asset_pool status
+- general_overheads_pool status
+- allocation_reconciliation_checks
+- unassigned pool values
+- revenue_reality_context
+- asset_reality_context
+
+Recovery Summary tests whether assigned groups recover.
+
+Cost Allocation does not test recovery.
+
+---
+
+# 52. OUTPUT TO RATE BUILDER
+
+Rate Builder should receive:
+
+- working_groups
+- group_cost_stacks
+- labour_group_assignments by staff type
+- asset_group_assignments by asset_id
+- assigned labour costs/hours
+- assigned asset burden/hours
+- assigned overhead amounts
+- group driver values where available
+- unassigned pool values
+- cost_allocation_model_trust_state
+- revenue_reality_context
+- asset_reality_context
+
+Rate Builder builds rates.
+
+Cost Allocation does not build rates.
+
+Rate Builder must be able to build sellable rates from subsets of group resources.
+
+---
+
+# 53. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive:
+
+- cost_allocation_status
+- cost_allocation_model_trust_state
+- allocation warnings
+- group_cost_stacks
+- unassigned pools
+- over-allocation warnings
+- revenue_reality_context
+- asset_reality_context
+
+Business Outcome uses this as diagnostic evidence.
+
+Cost Allocation does not issue verdict.
+
+---
+
+# 54. UI STRUCTURE
+
+Recommended simplified Cost Allocation UI structure:
+
+1. Cost Allocation Status Strip
+2. Simple Setup / Default Allocation Panel
+3. Diagnostic Context Panel
+4. Working Groups Panel
+5. Productive Labour Pool / Assignment Panel
+6. Productive Asset Pool / Assignment Panel
+7. Shared Asset Assignment Panel
+8. Remaining Overhead Distribution Panel
+9. Group Cost Stack Panel
+10. Pool Reconciliation Panel
+11. Review Required Panel
+12. Help Panel
+
+Existing UI may be retained only where it supports this simplified structure.
+
+Move or remove UI sections that belong to Recovery Summary or Rate Builder.
+
+---
+
+# 55. STATUS STRIP
+
+The status strip should show:
+
+- cost_allocation_status
+- trust state
+- assigned labour %
+- assigned asset %
+- assigned overhead %
+- unassigned labour
+- unassigned assets
+- unassigned overheads
+- warning count
+- blocking count
+
+If over-allocated, show blocked clearly.
+
+If under-allocated, show review required clearly.
+
+---
+
+# 56. SIMPLE SETUP / DEFAULT ALLOCATION PANEL
+
+This panel should let the user quickly start with a simple structure.
+
+Suggested actions:
+
+- Create Primary Operations Group
+- Assign all productive labour to Primary Operations Group
+- Assign all productive assets to Primary Operations Group
+- Assign all remaining overheads to Primary Operations Group
+
+This should make a simple business usable quickly.
+
+The user can refine later.
+
+This panel must not create rates.
+
+This panel must not create recovery strategy.
+
+---
+
+# 57. DIAGNOSTIC CONTEXT PANEL
+
+This panel may show read-only context.
+
+Revenue Reality:
+
+- margin after Labour
+- Labour consumption of margin
+- Revenue Reality status
+
+Asset Reality:
+
+- weighted required asset recovery rate
+- highest pressure asset
+- Asset Reality status
+
+Purpose:
+
+Remind the user whether major pressure already exists before allocation.
+
+Do not recalculate these values here.
+
+Do not use these values as source pools.
+
+---
+
+# 58. WORKING GROUPS PANEL
+
+This panel should allow user to:
+
+- create group
+- rename group
+- deactivate group
+- reorder groups
+- use suggested groups
+- remove unused groups
+
+Suggested groups may come from:
+
+- Revenue / COGS unit labels
+- Labour staff types
+- Asset types
+- user templates later
+
+Suggestions must not auto-assign source pools unless user chooses a simple default allocation action.
+
+---
+
+# 59. PRODUCTIVE LABOUR POOL / ASSIGNMENT PANEL
+
+This panel should show:
+
+- available productive labour cost
+- available productive labour hours
+- assigned labour cost
+- assigned labour hours
+- remaining labour cost
+- remaining labour hours
+- over-allocated amount
+- status
+
+It should allow assigning productive staff types or productive labour rows to working groups.
+
+Show:
+
+- staff type
+- available hours
+- weighted hourly cost rate
+- assigned group
+- assigned hours or %
+- assigned cost
+- remaining hours
+- status
+
+---
+
+# 60. PRODUCTIVE ASSET POOL / ASSIGNMENT PANEL
+
+This panel should show:
+
+- available productive asset burden
+- assigned asset burden
+- remaining asset burden
+- over-allocated asset burden
+- available asset utilisation hours
+- assigned asset utilisation hours
+- remaining asset utilisation hours
+- status
+
+Only productive assets enter this panel.
+
+It should allow assigning productive assets to working groups.
+
+---
+
+# 61. SHARED ASSET ASSIGNMENT PANEL
+
+This panel should allow assigning one productive asset across multiple groups.
+
+Show:
+
+- asset name
+- annual cost
+- annual utilisation hours
+- required recovery rate
+- group assignment %
+- assigned burden
+- assigned utilisation hours
+- total assigned %
+- remaining %
+- status
+
+If total assigned > 100%:
+
+show blocked.
+
+Do not silently cap.
+
+---
+
+# 62. REMAINING OVERHEAD DISTRIBUTION PANEL
+
+This panel should show:
+
+- available overhead pool
+- assigned overhead
+- remaining overhead
+- over-allocated overhead
+- selected allocation method
+- status
+
+Use net General Overheads after asset running cost transfers.
+
+This panel distributes overheads only.
+
+It does not select the recovery method.
+
+---
+
+# 63. GROUP COST STACK PANEL
+
+This panel should show each group:
+
+- assigned labour cost
+- assigned labour hours
+- assigned asset burden
+- assigned asset hours
+- assigned overhead amount
+- total group cost
+- group driver if available
+- internal cost per driver if available
+- status
+
+Do not imply this is the final rate.
+
+Rate Builder owns final rates.
+
+---
+
+# 64. POOL RECONCILIATION PANEL
+
+This panel should show:
+
+- Labour pool available vs assigned vs remaining
+- Asset pool available vs assigned vs remaining
+- Overhead pool available vs assigned vs remaining
+- Group total cost vs assigned source total
+
+This is the no-leak proof for Cost Allocation.
+
+---
+
+# 65. REVIEW REQUIRED PANEL
+
+This panel should show:
+
+- no working groups
+- unassigned productive labour
+- unassigned productive assets
+- unassigned overheads
+- over-assigned labour
+- over-assigned assets
+- shared asset above 100%
+- over-assigned overheads
+- group total mismatch
+- source pool mismatch
+- upstream blocked states
+- Revenue Reality pressure context
+- Asset Reality pressure context
+
+No review item should be hidden.
+
+---
+
+# 66. HELP PANEL
+
+The help panel should explain:
+
+- Cost Allocation builds working groups
+- Labour comes from Labour
+- Assets come from Assets
+- Overheads come from General Overheads
+- Default pools show what is unassigned
+- Assignments move cost out of default pools
+- Revenue Reality and Asset Reality provide diagnostic context
+- Cost Allocation does not create source costs
+- Cost Allocation does not test recovery
+- Cost Allocation does not build rates
+- Recovery Summary tests whether the structure works
+- Rate Builder creates rates
+- Business Outcome explains the final result
+
+---
+
+# 67. WHAT TO MOVE OUT OF CURRENT COST ALLOCATION
+
+If current implementation contains these sections, they should be moved or deprecated from Cost Allocation:
+
+Move to Recovery Summary:
+
+- recovery plan
+- recovery basis
+- hybrid recovery
+- recovered cost
+- unrecovered cost
+- recovery gap
+- recovery coverage %
+- does this recovery model work?
+
+Move to Rate Builder:
+
+- minimum recoverable rate
+- rate options
+- charge-out rate
+- sell rate
+- margin-added rate
+- rate per hour / rate per unit as sellable output
+- component-based rate builder
+
+Move to Business Outcome:
+
+- final recommendation
+- final diagnosis
+- next action
+- business viability message
+- what the user should change
+
+Cost Allocation may keep a simple handoff link or read-only summary, but not the logic.
+
+---
+
+# 68. DO NOT CHANGE
+
+Do not change:
+
+- P&L source values
+- Revenue / COGS values
+- Labour source cost or rates
+- Assets source cost or utilisation
+- Asset Reality calculations
+- General Overheads source values
+- Cost Summary aggregation
+- Business Summary bridge
+- Revenue Reality calculations
+- Model Readiness gate logic
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not create labour cost.
+
+Do not create asset cost.
+
+Do not create overhead cost.
+
+Do not create shared asset percentages in Assets.
+
+Do not assign labour to assets.
+
+Do not use Cost Allocation to fix upstream pressure.
+
+Do not hide negative margin after Labour.
+
+Do not hide asset underutilisation.
+
+Do not over-allocate source pools.
+
+Do not build rates.
+
+Do not test recovery.
+
+Do not issue verdict.
+
+---
+
+# 69. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useCostAllocation.js
+lib/calculations/costAllocationRules.js
+lib/calculations/cost-allocation/*
+lib/selectors/costAllocationSelectors.js
+components/cost-allocation/*.jsx
+app/cost-allocation/page.jsx
+
+Possible related files:
+
+hooks/useLabour.js
+hooks/useAssets.js
+hooks/useGeneralOverheads.js
+hooks/useRevenueReality.js
+hooks/useAssetReality.js
+hooks/useRecoverySummary.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+
+Do not modify unrelated modules unless required to consume Cost Allocation safely.
+
+---
+
+# 70. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Strip Cost Allocation back to working group builder and pool assignment.
+2. Remove or move recovery plan logic.
+3. Remove or move minimum recoverable rate logic.
+4. Remove or move recovered/unrecovered cost logic.
+5. Remove or move final recommendation logic.
+6. Consume Labour productive staff type rates.
+7. Create Productive Labour Pool.
+8. Create Default Productive Labour Pool.
+9. Consume Assets productive asset rows.
+10. Create Productive Asset Pool.
+11. Create Default Productive Asset Pool.
+12. Consume net General Overheads.
+13. Create General Overheads Pool.
+14. Create Default Overhead Pool.
+15. Create working groups.
+16. Add simple default setup option.
+17. Add group suggestions from Revenue / COGS unit labels where product mode applies.
+18. Add labour assignments by staff type.
+19. Add productive asset assignments.
+20. Add shared asset percentage assignment in Cost Allocation only.
+21. Carry forward asset utilisation hours from Assets.
+22. Split assigned asset utilisation by assigned percent.
+23. Add overhead distribution methods.
+24. Calculate group cost stacks.
+25. Add pool reconciliation checks.
+26. Block over-allocation.
+27. Show under-allocation as review required.
+28. Consume Revenue Reality context as read-only context.
+29. Consume Asset Reality context as read-only context.
+30. Do not recalculate those diagnostics.
+31. Add structured warnings.
+32. Add trust state.
+33. Run build.
+
+---
+
+# 71. ACCEPTANCE CRITERIA
+
+Cost Allocation v4.0 is accepted when:
+
+1. Cost Allocation is usable as a simple working-group builder.
+2. It supports a one-group default setup.
+3. It consumes Productive Labour Pool from Labour.
+4. It consumes productive staff type rates.
+5. It excludes non-productive labour from Productive Labour Pool.
+6. It creates Default Productive Labour Pool.
+7. It assigns labour by staff type or productive labour source.
+8. Labour assignments move from default pool to groups.
+9. It prevents labour over-allocation.
+10. It shows labour under-allocation.
+11. It consumes Productive Asset Pool from Assets.
+12. It excludes non-productive assets from Productive Asset Pool.
+13. It creates Default Productive Asset Pool.
+14. It assigns productive assets to groups.
+15. It supports shared asset percentages in Cost Allocation only.
+16. It prevents any asset from being assigned above 100%.
+17. It carries forward asset utilisation hours from Assets.
+18. It splits asset utilisation hours by assigned percentage.
+19. It consumes net General Overheads.
+20. It creates Default Overhead Pool.
+21. It distributes overheads across working groups.
+22. It prevents overhead over-allocation.
+23. It shows overhead under-allocation.
+24. It creates working groups.
+25. It can suggest groups from product/unit labels.
+26. Suggested groups do not auto-assign costs unless user chooses simple default setup.
+27. It calculates group cost stacks.
+28. It reconciles assigned group totals to source pools.
+29. It shows Revenue Reality context without recalculating it.
+30. It shows Asset Reality context without recalculating it.
+31. It does not assign labour to assets.
+32. It does not create source costs.
+33. It does not test recovery.
+34. It does not calculate final rates.
+35. It does not issue Business Outcome verdict.
+36. Build passes.
+
+---
+
+# 72. FINAL PRINCIPLE
+
+Cost Allocation builds the operational structure.
+
+It pulls from:
+
+Labour
+Assets
+General Overheads
+
+It creates:
+
+Working groups
+Default holding pools
+Group cost stacks
+Pool assignment checks
+
+It respects:
+
+Revenue Reality
+Asset Reality
+Model Readiness
+
+It does not create source truth.
+
+It does not test recovery.
+
+It does not build rates.
+
+It does not issue the final verdict.
+
+It should be simple by default and powerful only when the user chooses to refine it.
+
+No assumptions.
+No source mutation.
+No double counting.
+No over-allocation.
+No hidden unassigned pools.
+No labour-to-asset duplication.
+No recovery strategy.
+No rates.
+No verdict.
+No leaks.

@@ -1,0 +1,2841 @@
+# Mirra — Revenue / COGS Module Brief
+
+## v4.0 — COMMERCIAL SELLING LAYER, COG CONTROL RECONCILIATION, SUPPLIER SPEND SUMMARY, SUPPLIER NORMALISATION, UNIT DRIVERS, AND OPTIONAL COG DETAIL STRUCTURE
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 13
+
+REPLACES:
+- QS Tools Revenue / COGS briefs where naming has changed
+- older COG import briefs that use Payable Invoice Detail as the COG control source
+- older Revenue / COGS logic that does not reconcile COG detail back to P&L
+- older P&L COG category assumptions that force operational COG classification inside P&L
+- older COG workflows that require line-by-line transaction categorisation
+- older COG workflows that do not support supplier cleanup / supplier normalisation
+- older COG workflows that do not support optional COG subcategories
+- any Revenue / COGS brief that lets unreconciled COG flow into Rate Builder or Business Outcome
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+12_MIRRA_BUSINESS_SETUP_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Revenue / COGS owns the commercial selling layer. It must reconcile COG detail to the P&L before COG is trusted downstream. Supplier/category cleanup is a grouping layer only and must never change the accounting total.
+
+---
+
+# 1. PURPOSE
+
+Revenue / COGS defines the commercial selling layer of the business.
+
+It answers:
+
+What does the business sell?
+What revenue did the business generate?
+What direct COGS / Cost of Sales were consumed?
+What margin pool was created?
+Is the business hours-based or product/unit-based?
+If product/unit-based, what commercial units does it sell?
+Does detailed COG activity reconcile back to the P&L Cost of Sales?
+Which suppliers make up COG spend?
+Which suppliers or source names need cleanup?
+Which COG categories and optional subcategories should later feed product/unit rates or margin visibility?
+
+Revenue / COGS is not the final pricing module.
+
+It prepares reconciled commercial and COG source data for downstream recovery and rate logic.
+
+---
+
+# 2. MODULE ROLE
+
+Revenue / COGS owns:
+
+- total revenue
+- Cost of Sales / COGS total
+- direct cost total
+- margin pool
+- gross margin percent
+- commercial driver mode
+- unit driver rows
+- annual unit estimates
+- weighted average margin per unit
+- raw P&L COG account lines
+- operational COG categories
+- optional COG subcategories
+- COG account/category assignment
+- Account Transactions COG import
+- COG transaction detail preservation
+- supplier/contact cleanup / normalisation
+- supplier spend summary
+- supplier-level COG category assignment
+- supplier-level optional COG subcategory assignment
+- COG reconciliation to P&L Cost of Sales
+- COG readiness and warning state
+
+Revenue / COGS does not own:
+
+- Labour cost
+- Asset cost
+- General Overheads
+- Cost Summary burden
+- productive staff type rates
+- asset utilisation
+- Cost Allocation groups
+- final recovery tests
+- final required rates
+- Business Outcome verdict
+- scenario modelling
+- quote-level pricing
+- detailed invoice line extraction from supplier PDFs
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Revenue / COGS sits after P&L and Business Setup, before Labour/Assets/Overheads downstream interpretation.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Revenue / COGS provides the commercial and direct-cost layer that later modules use.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Revenue / COGS must preserve the accounting source and add operational interpretation without hiding the original source.
+
+P&L owns raw accounting lines.
+
+Revenue / COGS owns operational COG assignment, supplier summary, supplier cleanup, optional COG subcategory structure, and COG detail reconciliation.
+
+The P&L says what the accounting Cost of Sales total is.
+
+Revenue / COGS proves whether the imported COG detail ties back to that total.
+
+If it does not tie back, downstream use must be blocked or preview-only.
+
+---
+
+# 5. MODE-DEPENDENT COGS RULE
+
+COGS treatment depends on business mode.
+
+## Hours-based / service-based mode
+
+COGS creates material margin.
+
+Revenue - COGS = Material Margin
+
+In this mode:
+
+- COGS is primarily observational.
+- COGS is used for margin visibility, leak detection, and high-level cost-driver review.
+- COGS is not automatically part of hourly recovery burden.
+- Labour should recover labour.
+- Assets should recover assets.
+- Materials should cover themselves and create margin.
+- Material margin must be visible.
+- COG margin must not hide labour or asset under-recovery.
+
+Detailed supplier invoice line-level COG structure is not required to build labour-based rates.
+
+Reason:
+
+Xero and similar accounting systems usually hold the supplier invoice as a high-level transaction. Detailed line items are often inside attached PDFs, not structured transaction data.
+
+Detailed costing for labour-based quotes should come from a structured quoting / estimating system later, not from accounting exports.
+
+## Product / unit-based mode
+
+COGS is consumed by the product/unit.
+
+Revenue - COGS = Margin Pool
+
+That margin pool must recover:
+
+- labour
+- assets
+- overheads
+- profit
+
+In this mode:
+
+- COGS is operational.
+- COGS can become part of product/unit cost stack logic.
+- Unit margin must be tested against cost burden.
+- Rate Builder must include COG per unit in the unit cost stack where user has provided enough mapping.
+- COG categories and optional subcategories become powerful inputs for product/unit pricing.
+
+Example:
+
+Coffee price may need:
+
+- coffee beans
+- milk
+- cups / packaging
+- direct labour burden
+- overhead burden
+- margin
+
+COG category/subcategory structure supports that later.
+
+---
+
+# 6. LABOUR MODE VS PRODUCT MODE COG DETAIL RULE
+
+The same Revenue / COGS structure must support both simple and detailed use.
+
+## Labour mode
+
+COG is a margin and review layer.
+
+Use COG for:
+
+- margin pool
+- material margin
+- supplier spend visibility
+- supplier/category cleanup
+- leak detection
+- rough cost-driver analysis
+
+Do not require COG-to-task or COG-to-product mapping.
+
+Do not attempt to build labour-based rates from Xero COG transaction detail.
+
+## Product/unit mode
+
+COG may become part of the product costing layer.
+
+Use COG for:
+
+- unit COG cost
+- product/unit input grouping
+- margin per unit
+- cost stack preparation
+- Rate Builder input where mapped
+
+Do not infer product consumption without user input.
+
+---
+
+# 7. INPUTS FROM BUSINESS SETUP
+
+Revenue / COGS consumes:
+
+business_type
+is_labour_based
+is_product_based
+
+Business Setup owns the selected mode.
+
+Revenue / COGS must not infer business mode from:
+
+- account names
+- revenue labels
+- industry
+- file name
+- supplier names
+- prior data
+
+The user selects mode in Business Setup.
+
+Revenue / COGS uses mode to select display wording and required setup.
+
+---
+
+# 8. INPUTS FROM P&L
+
+Revenue / COGS consumes from P&L:
+
+pnl revenue lines
+pnl cost_of_sales lines
+pnl_total_revenue
+pnl_total_cogs
+pnl_gross_profit
+pnl_gross_margin_percent
+pnl_period_start
+pnl_period_end
+pnl_period_label
+pnl_source_file_name
+pnl_model_trust_state
+
+P&L sends raw accounting lines.
+
+Revenue / COGS creates operational COG assignments.
+
+P&L does not send final operational COG categories.
+
+---
+
+# 9. CORE TOTALS
+
+Revenue / COGS owns:
+
+total_revenue
+total_direct_costs
+total_cogs
+margin_pool
+gross_margin_percent
+
+Preferred v4.0 variable:
+
+total_direct_costs
+
+Compatibility alias:
+
+total_cogs
+
+If both exist, they must mean the same thing unless a migration brief changes this.
+
+Formula:
+
+margin_pool =
+total_revenue - total_direct_costs
+
+gross_margin_percent =
+margin_pool / total_revenue
+
+If total_revenue = 0:
+
+gross_margin_percent = 0
+status = review_required or blocked depending source state
+
+Do not divide by zero.
+
+---
+
+# 10. REVENUE LINE CONTRACT
+
+Revenue lines should use:
+
+revenue_lines[]
+
+Each row:
+
+{
+  line_id,
+  source_pnl_line_id,
+  account_code,
+  account_name,
+  original_account_name,
+  line_name,
+  amount,
+  source_module,
+  source_period
+}
+
+Rules:
+
+- original_account_name must be preserved.
+- amount comes from P&L revenue line.
+- revenue lines are accounting source evidence.
+- operational revenue grouping may be added later but must not overwrite original account name.
+
+---
+
+# 11. RAW COG ACCOUNT LINE CONTRACT
+
+Revenue / COGS must preserve raw P&L COG account lines.
+
+raw_cog_account_lines[]
+
+Each row:
+
+{
+  cog_account_id,
+  source_pnl_line_id,
+  account_code,
+  account_name,
+  original_account_name,
+  pnl_amount,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  reconciliation_status,
+  source_module
+}
+
+Rules:
+
+- original_account_name must never be overwritten.
+- pnl_amount must remain the accounting amount.
+- assigned category is separate from original account name.
+- COG account line identity must be stable.
+- assignment changes must not alter the P&L source line.
+
+---
+
+# 12. DEFAULT COG CATEGORY RULE
+
+For each imported P&L Cost of Sales account, Revenue / COGS should create a default COG category with the same name.
+
+Example:
+
+P&L COG account:
+Concrete Purchase
+
+Default COG category:
+Concrete Purchase
+
+This makes the system work by default for any company.
+
+The user may then reassign COG accounts or supplier summaries into broader operational categories if needed.
+
+Example:
+
+Concrete Purchase
+Purchases - Steel
+Purchases - Fill
+
+may be assigned to:
+
+Materials
+
+But the original accounting names remain preserved.
+
+---
+
+# 13. COG CATEGORY CONTRACT
+
+cog_categories[]
+
+Each row:
+
+{
+  cog_category_id,
+  cog_category_name,
+  source,
+  is_default_from_pnl_account,
+  is_user_created,
+  is_active
+}
+
+Allowed source values:
+
+pnl_account_default
+user_created
+template_future
+
+Rules:
+
+- user can create new categories.
+- default categories come from P&L COG account names.
+- categories are operational grouping labels.
+- categories must not overwrite P&L account names.
+- categories may later feed Rate Builder.
+- every supplier summary row must have a Category assignment before trusted downstream use where category output is required.
+
+---
+
+# 14. OPTIONAL COG SUBCATEGORY RULE
+
+Revenue / COGS must support a two-level COG structure:
+
+Level 1:
+COG Category
+
+Level 2:
+COG Subcategory
+
+Category is required.
+
+Subcategory is optional.
+
+The system must work fully with zero subcategories.
+
+Subcategories are user-defined and exist to provide extra detail where useful.
+
+Examples:
+
+Construction:
+
+Subcontracting General
+→ Block Laying
+→ Trucking
+→ Concrete Cutting
+→ Waterproofing
+
+Café:
+
+Food & Beverage COGS
+→ Coffee
+→ Muffins
+→ Cabinet Food
+→ Drinks
+
+Retail:
+
+Inventory
+→ Product Group A
+→ Product Group B
+→ Product Group C
+
+The system should encourage simple high-level setup first and allow progressive detail only where it adds analytical value.
+
+---
+
+# 15. COG SUBCATEGORY CONTRACT
+
+cog_subcategories[]
+
+Each row:
+
+{
+  cog_subcategory_id,
+  cog_category_id,
+  cog_subcategory_name,
+  source,
+  is_user_created,
+  is_active
+}
+
+Allowed source values:
+
+user_created
+template_future
+imported_future
+
+Rules:
+
+- subcategory must belong to a category.
+- subcategory cannot exist without a parent category.
+- subcategory is optional.
+- users may create subcategories under any category.
+- default workflow must not require subcategories.
+- no downstream module may require subcategories unless a future brief explicitly says so.
+
+---
+
+# 16. PROGRESSIVE DETAIL PRINCIPLE
+
+COG categorisation must support progressive detail.
+
+Default:
+
+High-level categories only.
+
+Optional:
+
+Detailed subcategories where the user wants deeper analysis.
+
+Rules:
+
+- the system must function fully at a single-category level.
+- subcategories are optional and user-defined.
+- users may add detail progressively where it adds analytical value.
+- the system must not require or enforce granular categorisation.
+- the system must not auto-generate excessive detail.
+- where subcategories exist, they must be preserved and made available for downstream analysis.
+
+This allows the system to remain simple for everyday users while supporting advanced cost analysis for users who want it.
+
+---
+
+# 17. COG ACCOUNT ASSIGNMENT CONTRACT
+
+cog_category_assignments[]
+
+Each row:
+
+{
+  assignment_id,
+  cog_account_id,
+  original_account_name,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  assigned_cog_subcategory_id,
+  assigned_cog_subcategory_name,
+  pnl_amount
+}
+
+Rules:
+
+- each raw COG account can be assigned to one operational COG category unless future split logic is explicitly briefed.
+- assigned_cog_subcategory_id is nullable.
+- assignment does not change the original account.
+- user-created categories and subcategories are allowed.
+- default assignment should preserve original COG account name.
+- no COG account may disappear.
+
+---
+
+# 18. WHY OPERATIONAL COG ASSIGNMENT BELONGS HERE
+
+P&L must work for any business by importing raw accounting lines.
+
+Revenue / COGS is where the user decides how those raw COG accounts should be interpreted commercially.
+
+Examples:
+
+A construction business may group:
+
+- Concrete Purchase
+- Steel
+- Fill
+- Pumping
+- Cartage
+- Tipping
+- Block Laying
+- Concrete Cutting
+
+A café may group:
+
+- Coffee Beans
+- Milk
+- Food Purchases
+- Packaging
+
+A retail business may group:
+
+- Inventory
+- Freight In
+- Merchant Fees
+
+These operational meanings are business-specific.
+
+Therefore they belong in Revenue / COGS, not P&L.
+
+---
+
+# 19. COG CONTROL IMPORT SOURCE RULE
+
+The correct COG control source is:
+
+Account Transactions
+or
+General Ledger-style transaction report
+
+The report must show account-level transaction movements that reconcile to P&L Cost of Sales.
+
+Do not use Payable Invoice Detail as the COG control source.
+
+Payable Invoice Detail creates timing issues because invoice due dates, payment timing, and creditor terms may not match P&L recognition timing.
+
+Account Transactions aligns better because it reflects the accounting movement in the COG accounts.
+
+---
+
+# 20. REQUIRED ACCOUNT TRANSACTIONS COG EXPORT COLUMNS
+
+The current manual Excel import should expect these columns where available:
+
+Date
+Source
+Description
+Debit
+Credit
+Gross
+GST
+
+Useful optional columns:
+
+Account
+Account Number
+Reference
+Contact
+
+Required interpretation:
+
+Debit and Credit create the accounting net movement.
+
+Gross is GST-inclusive and is stored for audit/future use.
+
+GST is stored for audit/future use.
+
+Date is stored for future month/quarter/seasonality analysis.
+
+Source is stored to identify whether the transaction came from invoice, spend money, credit note, journal, or another source type.
+
+---
+
+# 21. DEBIT / CREDIT CALCULATION RULE
+
+COG reconciliation must use:
+
+net_total =
+debit_total - credit_total
+
+Debit/Credit must not be dropped as calculation fields.
+
+Reason:
+
+Gross may appear positive, negative, bracketed, or differently formatted depending accounting system, export style, source type, journals, or credit note treatment.
+
+Debit/Credit is the safest accounting basis.
+
+Gross and GST must be stored, but not used for net COG reconciliation.
+
+Credit notes are handled naturally through the Debit - Credit calculation.
+
+Examples:
+
+Payable Invoice:
+Debit = 1,000
+Credit = 0
+Net = 1,000
+
+Payable Credit Note:
+Debit = 0
+Credit = 300
+Net = -300
+
+Net COG movement:
+1,000 - 300 = 700
+
+No special credit note adjustment is required beyond correct Debit - Credit handling.
+
+---
+
+# 22. GROSS AND GST RULE
+
+Gross is GST-inclusive.
+
+GST is not operating COG.
+
+Gross and GST are stored for:
+
+- audit
+- traceability
+- future GST-inclusive reporting
+- future checking
+- source review
+
+Gross must not be used as the COG net value.
+
+GST must not be included in operating COG.
+
+If the importer detects gross being used as net value, create warning:
+
+cog_gross_used_warning
+
+---
+
+# 23. DATE AND SOURCE RULE
+
+Date must be stored.
+
+Purpose:
+
+- future seasonality
+- monthly analysis
+- quarterly analysis
+- transaction timing review
+- trend reporting
+
+Source must be stored.
+
+Purpose:
+
+- identify payable invoices
+- identify spend money / cash purchases
+- identify credit notes
+- identify journals
+- identify corrections / adjustments
+- understand why discrepancies may exist
+
+Date and Source do not need to be displayed heavily in the first summary view, but they must be retained in transaction detail.
+
+---
+
+# 24. ACCOUNT TRANSACTIONS COG IMPORT CONTRACT
+
+Revenue / COGS owns:
+
+xero_account_transactions_import_id
+cog_import_source_system
+cog_import_source_file_name
+cog_imported_at
+cog_import_period_start
+cog_import_period_end
+cog_import_report_name
+cog_import_report_type
+
+Report name should be:
+
+Account Transactions COG
+
+or user-defined equivalent.
+
+Source system may be:
+
+xero
+manual_excel
+csv
+future_api
+
+---
+
+# 25. COG TRANSACTION ROW CONTRACT
+
+cog_account_transaction_rows[]
+
+Each row:
+
+{
+  transaction_id,
+  account_code,
+  account_name,
+  date,
+  source,
+  raw_supplier_name,
+  clean_supplier_name,
+  description,
+  reference,
+  debit_total,
+  credit_total,
+  net_total,
+  gross_total,
+  gst_total,
+  supplier_normalisation_status
+}
+
+Calculation:
+
+net_total =
+debit_total - credit_total
+
+Rules:
+
+- net_total is the value used for COG reconciliation.
+- gross_total is GST-inclusive and should not be used as COG net cost.
+- GST is stored but not used as operating cost.
+- date is stored for future reporting.
+- source is useful for identifying spend money, payable invoice, credit note, journal, etc.
+- raw supplier/contact/description values must be preserved.
+- transaction rows must remain the audit/drill-down layer.
+
+---
+
+# 26. COG ACCOUNT SUMMARY CONTRACT
+
+cog_account_summaries[]
+
+Each row:
+
+{
+  account_code,
+  account_name,
+  annual_debit_total,
+  annual_credit_total,
+  annual_net_total,
+  annual_gross_total,
+  annual_gst_total,
+  transaction_count,
+  matched_pnl_cog_account,
+  pnl_amount,
+  difference,
+  variance_percent,
+  reconciliation_status,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  assigned_cog_subcategory_id,
+  assigned_cog_subcategory_name
+}
+
+Rules:
+
+- annual_net_total must be calculated from debit - credit.
+- account summary must reconcile against P&L COG account where matched.
+- unmatched account rows must be visible.
+- COG accounts in P&L with no detail must be visible.
+- no summary row should be hidden because it does not match.
+
+---
+
+# 27. SUPPLIER NAME NORMALISATION RULE
+
+Revenue / COGS must include a supplier name normalisation layer for COG transaction imports.
+
+Accounting exports may contain supplier/contact names with extra notes, job descriptions, trade descriptions, payment notes, or correction comments.
+
+Examples:
+
+K & C Building
+K & C Building - Blockwork
+K & C Building - Cutting
+K & C Building - Concrete Laying
+K & C Building - Less part payment from other invoice
+K & C Building - Paul entered the amount that was agreed
+
+These should be grouped under a clean supplier name where appropriate:
+
+K & C Building
+
+The original imported supplier/contact/description text must always be preserved.
+
+The cleaned supplier name is used for supplier spend summary, category assignment, and downstream reporting.
+
+The raw supplier/contact text is retained for audit and drill-down.
+
+---
+
+# 28. SUPPLIER NORMALISATION VARIABLES
+
+Revenue / COGS must support:
+
+raw_supplier_name
+clean_supplier_name
+supplier_normalisation_status
+supplier_normalisation_rule_id
+supplier_normalisation_review_required
+
+Each COG transaction row should include these values where available.
+
+Rules:
+
+- raw_supplier_name must preserve imported supplier/contact text.
+- clean_supplier_name is the normalised supplier used in summary.
+- normalisation must not alter transaction value.
+- normalisation must not delete raw source text.
+- normalisation must not merge suppliers without user review where ambiguous.
+
+---
+
+# 29. SUPPLIER NORMALISATION RULES CONTRACT
+
+The system should support saved supplier normalisation rules.
+
+supplier_normalisation_rules[]
+
+Each row:
+
+{
+  rule_id,
+  raw_match_text,
+  clean_supplier_name,
+  match_type,
+  active,
+  review_required
+}
+
+Allowed match_type values:
+
+exact
+starts_with
+contains
+manual
+
+Example rules:
+
+{
+  raw_match_text: "K & C Building",
+  clean_supplier_name: "K & C Building",
+  match_type: "starts_with"
+}
+
+{
+  raw_match_text: "Sol Constructors",
+  clean_supplier_name: "Sol Constructors Ltd",
+  match_type: "starts_with"
+}
+
+{
+  raw_match_text: "Prime Skills Construction",
+  clean_supplier_name: "Prime Skills Construction Ltd",
+  match_type: "starts_with"
+}
+
+---
+
+# 30. SUPPLIER NORMALISATION STATUS VALUES
+
+Allowed supplier_normalisation_status values:
+
+clean
+normalised
+review_required
+ambiguous
+unmatched
+
+Definitions:
+
+clean:
+raw supplier name already matches clean supplier name.
+
+normalised:
+raw supplier name was cleaned using a saved rule.
+
+review_required:
+system could not safely clean the supplier name.
+
+ambiguous:
+more than one possible clean supplier match exists.
+
+unmatched:
+no existing supplier rule matched.
+
+---
+
+# 31. ORIGINAL SOURCE PRESERVATION RULE
+
+The system must never overwrite the imported supplier/contact/description text.
+
+Correct:
+
+raw_supplier_name = "K & C Building - Blockwork"
+clean_supplier_name = "K & C Building"
+
+Incorrect:
+
+raw_supplier_name is overwritten with "K & C Building"
+
+The raw value must remain available for audit.
+
+---
+
+# 32. SUPPLIER SPEND SUMMARY LAYER
+
+Revenue / COGS must include a Supplier Spend Summary layer.
+
+This layer aggregates COG transaction data by clean supplier name.
+
+Purpose:
+
+- quickly identify major COG suppliers
+- show total spend per supplier
+- reveal cost drivers that are difficult to see in Xero
+- support supplier-level category assignment
+- support supplier-level subcategory assignment
+- avoid line-by-line categorisation
+- provide a clean review workflow
+
+Supplier Spend Summary is a primary working interface for COG categorisation.
+
+Transaction-level data remains audit/drill-down only.
+
+---
+
+# 33. SUPPLIER SUMMARY ROW CONTRACT
+
+supplier_summary_rows[]
+
+Each row:
+
+{
+  supplier_id,
+  clean_supplier_name,
+  raw_supplier_name_examples,
+  total_net_cost,
+  total_gross_cost,
+  total_gst,
+  transaction_count,
+  source_types,
+  first_transaction_date,
+  last_transaction_date,
+  percent_of_total_cog,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  assigned_cog_subcategory_id,
+  assigned_cog_subcategory_name,
+  review_required,
+  supplier_normalisation_status
+}
+
+Rules:
+
+- supplier_id must be stable.
+- clean_supplier_name is used for summary grouping.
+- raw_supplier_name_examples preserve representative imported values.
+- total_net_cost must be calculated from transaction net_total.
+- total_gross_cost is stored for audit.
+- total_gst is stored for audit.
+- percent_of_total_cog shows supplier share of COG.
+- assigned category is required where supplier-level assignment is used.
+- assigned subcategory is optional.
+- supplier summary total must reconcile to transaction total.
+
+---
+
+# 34. SUPPLIER SUMMARY CALCULATION
+
+For each clean supplier:
+
+total_net_cost =
+sum net_total for all transactions mapped to clean_supplier_name
+
+total_gross_cost =
+sum gross_total for all transactions mapped to clean_supplier_name
+
+total_gst =
+sum gst_total for all transactions mapped to clean_supplier_name
+
+transaction_count =
+count transactions mapped to clean_supplier_name
+
+percent_of_total_cog =
+total_net_cost / total_cog_transaction_net_total
+
+Source types:
+
+source_types =
+unique list of transaction source values for that supplier
+
+Example:
+
+KTK Concrete Pumping Ltd
+source_types = Payable Invoice, Payable Credit Note
+
+---
+
+# 35. SUPPLIER SUMMARY SORT RULE
+
+Default Supplier Spend Summary should sort by:
+
+total_net_cost descending
+
+Highest spend suppliers should show first.
+
+This gives the user a useful COG spend view that many accounting reports do not provide cleanly.
+
+Optional sort/filter controls may include:
+
+- supplier name
+- category
+- subcategory
+- source type
+- review required
+- highest spend
+- largest transaction count
+- unassigned
+- unmatched / ambiguous normalisation
+
+---
+
+# 36. SUPPLIER-LEVEL CATEGORY ASSIGNMENT RULE
+
+COG categorisation should happen at clean supplier summary level by default.
+
+Default workflow:
+
+Raw transactions
+→ clean supplier name
+→ supplier summary total
+→ assigned COG category
+→ optional COG subcategory
+
+Example:
+
+K & C Building
+→ Subcontracting General
+→ Block Laying
+
+NZ Diamond Cutters
+→ Subcontracting General
+→ Concrete Cutting
+
+Bunnings
+→ Materials
+→ Review / Misc
+
+Rules:
+
+- users should not be required to categorise individual transaction rows.
+- supplier summary assignment is the primary categorisation workflow.
+- transaction rows remain preserved for audit.
+- supplier assignment must not change transaction accounting values.
+- supplier assignment must not change P&L source values.
+
+---
+
+# 37. SUPPLIER SPLIT OVERRIDE RULE
+
+A supplier may usually have one default category and optional subcategory.
+
+However, some suppliers may genuinely span multiple categories.
+
+Example:
+
+K & C Building may include:
+
+- Block Laying
+- Cutting
+- Concrete Laying
+- corrections / part payments
+
+Default v4.0 workflow:
+
+One supplier → one default category + optional subcategory
+
+Optional advanced workflow:
+
+Supplier split override
+
+supplier_split_overrides[]
+
+Each row:
+
+{
+  split_id,
+  supplier_id,
+  clean_supplier_name,
+  assigned_cog_category_id,
+  assigned_cog_category_name,
+  assigned_cog_subcategory_id,
+  assigned_cog_subcategory_name,
+  split_method,
+  split_amount,
+  split_percent,
+  notes,
+  review_required
+}
+
+Allowed split_method values:
+
+manual_amount
+manual_percent
+transaction_filter_future
+
+Rules:
+
+- split override is optional.
+- system must remain usable without supplier splits.
+- split totals must reconcile to supplier total.
+- split override must not change transaction net total.
+- if split total does not equal supplier total, show warning and block trusted category output.
+
+For first v4.0 build, supplier split override may be future/optional if not yet required.
+
+---
+
+# 38. SUPPLIER SUMMARY NO-LEAK RULE
+
+Supplier name normalisation and categorisation must not change total COG value.
+
+Before normalisation:
+
+sum transaction net_total = COG transaction total
+
+After normalisation:
+
+sum supplier_summary total_net_cost = COG transaction total
+
+After supplier category assignment:
+
+sum category totals = supplier_summary total_net_cost
+
+These totals must match.
+
+If they do not match:
+
+supplier_summary_status = blocked
+warning = supplier_summary_total_mismatch
+
+Normalisation changes grouping only.
+
+Categorisation changes reporting only.
+
+Neither can change accounting value.
+
+---
+
+# 39. TRANSACTION DETAIL DRILL-DOWN RULE
+
+Transaction-level data must be preserved.
+
+Users should be able to drill down from:
+
+Category
+→ Subcategory
+→ Supplier
+→ Transactions
+
+Transaction detail should show:
+
+- date
+- source
+- raw supplier/contact text
+- clean supplier name
+- description
+- reference
+- debit
+- credit
+- net
+- gross
+- GST
+- account
+- category assignment inherited from supplier/category logic
+
+Transaction detail is audit/read-only by default.
+
+Categorisation should not require line-by-line editing.
+
+---
+
+# 40. COG CATEGORY TOTALS
+
+Revenue / COGS must derive category totals from supplier summary assignments.
+
+cog_category_totals[]
+
+Each row:
+
+{
+  cog_category_id,
+  cog_category_name,
+  total_net_cost,
+  total_gross_cost,
+  total_gst,
+  supplier_count,
+  transaction_count,
+  percent_of_total_cog,
+  subcategory_totals,
+  category_status
+}
+
+subcategory_totals[] should include:
+
+{
+  cog_subcategory_id,
+  cog_subcategory_name,
+  total_net_cost,
+  supplier_count,
+  transaction_count,
+  percent_of_category
+}
+
+Rules:
+
+- category totals must reconcile to supplier summary total.
+- subcategory totals must reconcile to category totals where subcategories are assigned.
+- unassigned subcategory values may sit under null / no subcategory.
+- do not require subcategories.
+
+---
+
+# 41. COG RECONCILIATION
+
+Revenue / COGS owns COG reconciliation.
+
+Required variables:
+
+cog_reconciliation_status
+cog_reconciliation_difference
+cog_reconciliation_variance_percent
+cog_reconciliation_checks[]
+cog_reconciliation_warnings[]
+
+Formula:
+
+account_transactions_net_total =
+sum cog_account_transaction_rows net_total
+
+pnl_cog_total =
+pnl_total_cogs
+
+cog_reconciliation_difference =
+account_transactions_net_total - pnl_cog_total
+
+cog_reconciliation_variance_percent =
+cog_reconciliation_difference / pnl_cog_total
+
+---
+
+# 42. COG RECONCILIATION STATUS RULES
+
+Allowed cog_reconciliation_status values:
+
+balanced
+rounding_only
+variance_review
+leak_detected
+blocked
+not_available
+
+Rules:
+
+balanced:
+difference = 0.00
+
+rounding_only:
+absolute difference <= 1.00
+
+leak_detected:
+absolute difference > 1.00 for control-source COG import
+
+blocked:
+required source is missing, period mismatch exists, import failed, or reconciliation cannot be calculated
+
+not_available:
+no Account Transactions import exists yet
+
+variance_review:
+only allowed if a future reviewed variance workflow is explicitly created
+
+Default rule:
+
+If Account Transactions COG import exists and difference is above tolerance:
+
+cog_reconciliation_status = leak_detected
+
+Do not describe material variance as acceptable because the percentage is small.
+
+---
+
+# 43. PERIOD MATCH RULE
+
+P&L period and Account Transactions COG period must match.
+
+If periods do not match:
+
+cog_reconciliation_status = blocked
+
+Warning:
+
+COG Account Transactions period does not match the P&L period. Re-export the report for the same period before using COG downstream.
+
+Do not silently month-shift.
+
+Do not assume invoice timing correction.
+
+Do not auto-adjust dates.
+
+The user may investigate timing outside the model, but the control import must match the P&L period.
+
+---
+
+# 44. COG RECONCILIATION WARNINGS
+
+Required warning IDs:
+
+cog_import_missing
+cog_import_failed
+cog_import_period_missing
+cog_import_period_mismatch
+cog_reconciliation_leak_detected
+cog_reconciliation_unmatched_account
+cog_reconciliation_missing_pnl_account
+cog_reconciliation_missing_transaction_detail
+cog_gross_used_warning
+cog_payable_invoice_detail_rejected
+cog_variance_above_tolerance
+cog_unassigned_category
+cog_unassigned_subcategory_review
+supplier_normalisation_review_required
+supplier_normalisation_ambiguous
+supplier_summary_total_mismatch
+supplier_category_total_mismatch
+supplier_split_total_mismatch
+
+Each warning uses the standard warning object:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+---
+
+# 45. COG LEAK RULE
+
+If detailed COG transactions do not reconcile to P&L COGS:
+
+The leak must be visible.
+
+Downstream modules must not treat COG as trusted.
+
+Affected downstream modules:
+
+- Business Summary where COG affects margin pool
+- Revenue Reality
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+If only P&L high-level totals exist and no detail import exists:
+
+the module may be usable as preview, but COG detail-dependent outputs must be not_available or preview_only.
+
+If detail import exists and does not reconcile:
+
+blocked or leak_detected.
+
+---
+
+# 46. PAYABLE INVOICE DETAIL RULE
+
+Payable Invoice Detail must not be used as the COG control import.
+
+Reason:
+
+It can mismatch the P&L due to:
+
+- invoice due dates
+- creditor terms
+- payment timing
+- spend money vs payable invoices
+- cash purchases
+- deposits
+- journals
+- WIP adjustments
+- timing differences
+
+It may be useful for future supplier spend analysis, but not as the accounting COG control report.
+
+Required warning if detected:
+
+cog_payable_invoice_detail_rejected
+
+Message:
+
+Payable Invoice Detail is not the COG control source. Use Account Transactions for the selected COG accounts and matching P&L period.
+
+---
+
+# 47. XERO EXPORT INSTRUCTION PANEL
+
+Revenue / COGS should include a clear in-app collapsible instruction panel for exporting the correct COG report from Xero.
+
+Panel title:
+
+How to export COG Account Transactions from Xero
+
+The instructions must be step-by-step.
+
+Use a collapsible section component where available.
+
+Do not rely on the user remembering the process.
+
+---
+
+# 48. XERO ACCOUNT TRANSACTIONS EXPORT STEPS
+
+Instruction panel text:
+
+1. In Xero, open the Profit and Loss report for the same financial period you are using in Mirra.
+
+2. Click into one of the Cost of Sales totals to open the Account Transactions view.
+
+3. In the Account field, select all Cost of Sales / COG accounts that are included in your P&L Cost of Sales total.
+
+4. Set the report date range to exactly match the P&L period.
+
+5. Add or confirm the required columns:
+   - Date
+   - Source
+   - Description
+   - Debit
+   - Credit
+   - Gross
+   - GST
+
+6. Include Contact / supplier if Xero allows it in the exported report. If Contact is not available, Mirra may use Description as the raw supplier/source text where appropriate.
+
+7. Click Update.
+
+8. Use Save As to save the report as a custom report.
+
+9. Name it something clear, such as:
+   Account Transactions COG
+
+10. Set the custom report as the default if Xero allows this.
+
+11. Export the report to Excel.
+
+12. Save it in the same folder as your P&L export where possible.
+
+13. Import that Excel file into Revenue / COGS.
+
+14. Check the reconciliation panel.
+
+15. The Account Transactions COG total should reconcile to the P&L Cost of Sales total.
+
+If it does not reconcile, do not use COG downstream until the variance is resolved.
+
+---
+
+# 49. COG IMPORT DISPLAY RULE
+
+The Revenue / COGS page should show:
+
+- P&L COG total
+- Account Transactions COG total
+- difference
+- variance percent
+- reconciliation status
+- source period
+- report name
+- import filename
+- supplier summary total
+- supplier/category total check
+
+It should also show:
+
+- account-level summaries
+- supplier spend summaries
+- supplier cleanup status
+- category totals
+- optional subcategory totals
+
+---
+
+# 50. COMMERCIAL DRIVER MODE
+
+Revenue / COGS owns:
+
+commercial_driver_mode
+
+Allowed values:
+
+hours_based
+unit_based
+mixed_unit_based
+
+Mapping from Business Setup:
+
+If business_type = labour_based:
+
+commercial_driver_mode = hours_based
+
+If business_type = product_based:
+
+commercial_driver_mode may be:
+
+unit_based
+
+or:
+
+mixed_unit_based
+
+depending unit driver setup.
+
+Do not infer mixed unit mode unless the user adds multiple unit driver rows or selects mixed setup.
+
+---
+
+# 51. HOURS-BASED REVENUE / COGS OUTPUT
+
+If commercial_driver_mode = hours_based:
+
+Revenue / COGS should show:
+
+- total revenue
+- total COGS
+- material margin
+- gross margin %
+- material margin per productive hour where useful
+- supplier spend summary
+- category/subcategory spend visibility
+- COG leak/reconciliation status
+
+Revenue / COGS should not force unit driver setup.
+
+COGS remains a margin layer.
+
+COG detail is useful for visibility and cleanup, but does not build the labour-based rate model.
+
+Rate Builder may later show material margin models if sale value exists.
+
+---
+
+# 52. PRODUCT / UNIT-BASED OUTPUT
+
+If commercial_driver_mode = unit_based or mixed_unit_based:
+
+Revenue / COGS should show:
+
+- total revenue
+- total COGS
+- margin pool
+- gross margin %
+- supplier spend summary
+- COG category totals
+- optional COG subcategory totals
+- unit driver rows
+- annual units
+- average sale rate per unit
+- margin per unit
+- weighted average margin per unit
+
+Unit driver setup is required for trusted unit recovery.
+
+If annual units are missing:
+
+unit recovery outputs should be blocked or review_required.
+
+COG category/subcategory structure may later support product/unit cost stacks.
+
+Do not infer product consumption without user setup.
+
+---
+
+# 53. UNIT DRIVER ROW CONTRACT
+
+unit_driver_rows[]
+
+Each row:
+
+{
+  id,
+  unit_label,
+  unit_type,
+  unit_type_label,
+  revenue_share_percent,
+  annual_revenue,
+  average_sale_rate_per_unit,
+  estimated_units_annual,
+  derived_units_annual,
+  annual_margin_pool,
+  margin_per_unit,
+  unit_recovery_status,
+  unit_recovery_warnings
+}
+
+Allowed unit_type values:
+
+each
+m2
+m3
+lm
+tonne
+hour
+custom
+
+Rules:
+
+- unit_label is user-defined.
+- unit_type describes the unit.
+- annual_revenue may be allocated by user or revenue share.
+- estimated_units_annual may be user-entered.
+- derived_units_annual may be calculated from revenue / average sale rate.
+- margin_per_unit requires annual_margin_pool and units.
+- no unit calculation may divide by zero.
+- user labels must be preserved exactly.
+
+---
+
+# 54. UNIT DRIVER TOTALS
+
+Revenue / COGS owns:
+
+total_unit_revenue
+total_unit_direct_cost
+total_unit_margin_pool
+total_derived_units_annual
+primary_unit_label
+primary_unit_type
+primary_unit_type_label
+weighted_average_margin_per_unit
+unit_recovery_ready
+unit_recovery_warnings
+
+Formula:
+
+weighted_average_margin_per_unit =
+total_unit_margin_pool / total_derived_units_annual
+
+If total_derived_units_annual = 0:
+
+weighted_average_margin_per_unit = 0
+unit_recovery_ready = false
+
+Do not invent annual units.
+
+---
+
+# 55. LEGACY PRODUCT UNIT FIELDS
+
+Existing fields may remain for compatibility:
+
+units_sold_annual
+margin_per_unit
+product_recovery_ready
+product_recovery_status
+
+Preferred v4.0 fields:
+
+unit_driver_rows
+total_derived_units_annual
+weighted_average_margin_per_unit
+
+If both exist, they must not diverge silently.
+
+Migration should be separately briefed if needed.
+
+---
+
+# 56. REVENUE / COGS GROUP DEFAULTS FOR COST ALLOCATION
+
+If Revenue / COGS has product/unit rows, their unit labels should be available to Cost Allocation as suggested operational group names.
+
+Example:
+
+Revenue / COGS unit_label:
+Pumping m3
+
+Cost Allocation should offer group default:
+
+Pumping m3
+
+Rules:
+
+- preserve label exactly.
+- suggestion only.
+- no automatic labour assignment.
+- no automatic asset assignment.
+- no automatic overhead assignment.
+- no COG assignment to Cost Allocation group unless explicitly selected later.
+
+Revenue / COGS provides group labels.
+
+Cost Allocation owns operational group identity.
+
+---
+
+# 57. COG CATEGORY USE IN RATE BUILDER
+
+Revenue / COGS prepares COG categories and optional subcategories for Rate Builder.
+
+Rate Builder may consume:
+
+- cog_category_assignments
+- cog_subcategories
+- supplier_summary_rows
+- cog_category_totals
+- cog_account_summaries
+- reconciled COG totals
+- unit driver rows
+- margin per unit context
+
+Rate Builder must not use unreconciled COG.
+
+If cog_reconciliation_status is leak_detected or blocked:
+
+Rate Builder COG-dependent models must be blocked or preview_only.
+
+---
+
+# 58. PRODUCT MODE COST STACK USE
+
+In product/unit mode, COG categories and subcategories may be used later to build product/unit cost stacks.
+
+Example:
+
+Coffee unit rate may consume:
+
+Category:
+Food & Beverage COGS
+
+Subcategories:
+Coffee Beans
+Milk
+Cups / Packaging
+
+Example:
+
+Block work supply and install may consume:
+
+Category:
+Materials
+Subcategories:
+Blocks
+Mortar
+Concrete Fill
+
+Category:
+Subcontracting General
+Subcategory:
+Block Laying
+
+This mapping must be user-controlled.
+
+Do not infer product consumption automatically from supplier spend.
+
+---
+
+# 59. LABOUR MODE COG DETAIL LIMITATION
+
+In labour-based businesses, detailed product/task COG cost stacks should not rely on Xero COG transaction detail.
+
+Reason:
+
+Xero commonly stores high-level supplier invoice values, not detailed supplier invoice line items.
+
+Detailed invoice line items are usually inside supplier PDFs or attachments and are not reliable structured data.
+
+Correct future source for detailed job/task costing:
+
+Quote Engine / estimating system / structured quote data
+
+Not:
+
+Xero high-level COG transaction export
+
+Therefore, in labour mode:
+
+COG categories/subcategories are useful for visibility, margin analysis, and review, but not required for rate building.
+
+---
+
+# 60. MATERIAL MARGIN VISIBILITY
+
+This is the first layer where material / COG margin becomes visible.
+
+In hours-based mode:
+
+material_margin =
+total_revenue - total_direct_costs
+
+material_margin_percent =
+material_margin / total_revenue
+
+Revenue / COGS should expose material margin.
+
+Rate Builder later calculates detailed material margin only where sale value is known.
+
+If sale value by category is missing, do not infer category margin.
+
+---
+
+# 61. NO SALE VALUE ASSUMPTION
+
+Revenue / COGS must not infer material sale value by category unless user provides it or a future quote/invoice source supplies it.
+
+Known:
+
+COG cost
+
+Unknown until provided:
+
+sale value by COG category
+
+Therefore:
+
+category material margin may be not_available.
+
+Do not assume markup.
+
+Do not assume pass-through.
+
+Do not assume sales allocation.
+
+---
+
+# 62. READINESS CONDITIONS
+
+Revenue / COGS is ready when:
+
+- P&L revenue and COGS source data exists
+- total_revenue is numeric
+- total_direct_costs is numeric
+- margin_pool can be calculated
+- P&L source period exists
+- raw COG accounts are preserved
+- COG categories exist
+- all COG accounts have an assignment where account-level assignment is required
+- supplier summary totals reconcile to transaction totals where supplier import exists
+- supplier category totals reconcile to supplier summary totals
+- supplier normalisation review items are resolved or clearly marked review_required
+- Account Transactions COG import is either not required for the current step or reconciled if required
+- unit driver setup is valid where product/unit mode requires it
+- no blocking warning exists
+
+Revenue / COGS is blocked when:
+
+- P&L revenue/COG source is missing
+- source period is missing
+- total_revenue or COGS cannot be calculated
+- Account Transactions COG import exists but does not reconcile
+- report period mismatch exists
+- supplier summary totals do not match transaction totals
+- supplier category totals do not match supplier summary totals
+- supplier split totals do not reconcile where split override is used
+- product/unit mode has required units missing for trusted unit output
+- COG assignment is incomplete where required downstream
+
+---
+
+# 63. STATUS VALUES
+
+Allowed revenue_cogs_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+leak_detected
+preview_only
+not_ready
+
+Status mapping:
+
+ready:
+Revenue / COGS source is complete and trusted.
+
+ready_with_warnings:
+Usable but warnings remain visible.
+
+review_required:
+Can calculate but user review required.
+
+blocked:
+Cannot be trusted due to missing/invalid source or required setup.
+
+leak_detected:
+COG reconciliation, supplier summary, category total, or source mismatch creates a leak risk.
+
+preview_only:
+High-level values can display, but not trusted for downstream use.
+
+not_ready:
+No valid Revenue / COGS source exists.
+
+---
+
+# 64. TRUST STATE
+
+Revenue / COGS should expose:
+
+revenue_cogs_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+revenue_cogs_status = ready
+→ ready
+
+revenue_cogs_status = ready_with_warnings or review_required
+→ warning
+
+revenue_cogs_status = blocked, leak_detected, or not_ready
+→ blocked
+
+revenue_cogs_status = preview_only
+→ preview_only
+
+---
+
+# 65. REQUIRED WARNINGS
+
+Revenue / COGS must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+revenue_cogs_missing_pnl
+revenue_cogs_period_missing
+revenue_cogs_total_revenue_zero
+revenue_cogs_direct_cost_invalid
+revenue_cogs_margin_negative
+cog_import_missing
+cog_import_failed
+cog_import_period_missing
+cog_import_period_mismatch
+cog_reconciliation_leak_detected
+cog_reconciliation_unmatched_account
+cog_reconciliation_missing_pnl_account
+cog_reconciliation_missing_transaction_detail
+cog_payable_invoice_detail_rejected
+cog_gross_used_warning
+cog_variance_above_tolerance
+cog_unassigned_category
+cog_unassigned_subcategory_review
+unit_driver_missing
+unit_driver_zero_units
+unit_driver_zero_revenue
+unit_driver_allocation_incomplete
+unit_driver_labels_missing
+supplier_normalisation_review_required
+supplier_normalisation_ambiguous
+supplier_summary_total_mismatch
+supplier_category_total_mismatch
+supplier_split_total_mismatch
+supplier_category_unassigned
+supplier_subcategory_review
+revenue_cogs_preview_only
+
+---
+
+# 66. DOWNSTREAM OUTPUT CONTRACT
+
+Revenue / COGS should expose:
+
+{
+  total_revenue,
+  total_direct_costs,
+  total_cogs,
+  margin_pool,
+  gross_margin_percent,
+  revenue_lines,
+  raw_cog_account_lines,
+  cog_categories,
+  cog_subcategories,
+  cog_category_assignments,
+  supplier_normalisation_rules,
+  supplier_summary_rows,
+  supplier_split_overrides,
+  cog_category_totals,
+  xero_account_transactions_import_id,
+  cog_import_source_system,
+  cog_import_source_file_name,
+  cog_imported_at,
+  cog_import_period_start,
+  cog_import_period_end,
+  cog_import_report_name,
+  cog_import_report_type,
+  cog_account_transaction_rows,
+  cog_account_summaries,
+  cog_reconciliation_status,
+  cog_reconciliation_difference,
+  cog_reconciliation_variance_percent,
+  cog_reconciliation_checks,
+  cog_reconciliation_warnings,
+  commercial_driver_mode,
+  unit_driver_rows,
+  total_unit_revenue,
+  total_unit_direct_cost,
+  total_unit_margin_pool,
+  total_derived_units_annual,
+  primary_unit_label,
+  primary_unit_type,
+  primary_unit_type_label,
+  weighted_average_margin_per_unit,
+  unit_recovery_ready,
+  unit_recovery_warnings,
+  revenue_cogs_ready,
+  revenue_cogs_status,
+  revenue_cogs_warnings,
+  revenue_cogs_warning_count,
+  revenue_cogs_model_trust_state
+}
+
+---
+
+# 67. OUTPUT TO MODULE RECONCILIATION
+
+Module Reconciliation should receive:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- cog_reconciliation_status
+- cog_reconciliation_difference
+- cog_reconciliation_variance_percent
+- cog_reconciliation_checks
+- supplier_summary_total_mismatch status
+- supplier_category_total_mismatch status
+- revenue_cogs_status
+- revenue_cogs_model_trust_state
+
+Module Reconciliation may surface COG reconciliation status.
+
+Revenue / COGS owns the COG reconciliation calculation.
+
+---
+
+# 68. OUTPUT TO MODEL READINESS
+
+Model Readiness should receive:
+
+- revenue_cogs_status
+- revenue_cogs_model_trust_state
+- cog_reconciliation_status
+- cog_reconciliation_warnings
+- supplier_summary/category warning state
+- unit_recovery_ready
+- unit_recovery_warnings
+
+If COG is leak_detected or blocked, Model Readiness must block COG-dependent downstream modules.
+
+---
+
+# 69. OUTPUT TO BUSINESS SUMMARY
+
+Business Summary should receive:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- commercial_driver_mode
+- unit_driver_rows
+- total_derived_units_annual
+- weighted_average_margin_per_unit
+- revenue_cogs_model_trust_state
+
+Business Summary calculates activity driver values and forward proof.
+
+Business Summary must not recalculate COG detail reconciliation.
+
+---
+
+# 70. OUTPUT TO REVENUE REALITY
+
+Revenue Reality should receive:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- revenue_cogs_model_trust_state
+
+Revenue Reality stress-tests margin after labour.
+
+It does not own Revenue / COGS source values.
+
+---
+
+# 71. OUTPUT TO COST ALLOCATION
+
+Cost Allocation should receive:
+
+- unit_driver_rows as suggested group labels only
+- commercial_driver_mode
+- revenue_cogs_model_trust_state
+
+Cost Allocation may create operational group suggestions from unit labels.
+
+Revenue / COGS does not create Cost Allocation group identity.
+
+Cost Allocation should not consume COG supplier/category data as asset/labour/overhead assignment unless explicitly briefed later.
+
+---
+
+# 72. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary should receive:
+
+- commercial_driver_mode
+- margin_pool
+- weighted_average_margin_per_unit
+- unit_driver_rows
+- cog_reconciliation_status
+- revenue_cogs_model_trust_state
+
+Recovery Summary uses this context to test recovery by mode.
+
+Recovery Summary must not use unreconciled COG as trusted input.
+
+---
+
+# 73. OUTPUT TO RATE BUILDER
+
+Rate Builder should receive:
+
+- cog_reconciliation_status
+- cog_categories
+- cog_subcategories
+- cog_category_assignments
+- supplier_summary_rows
+- cog_category_totals
+- cog_account_summaries
+- unit_driver_rows
+- weighted_average_margin_per_unit
+- commercial_driver_mode
+- revenue_cogs_model_trust_state
+
+Rate Builder must not use COG if:
+
+cog_reconciliation_status = leak_detected
+
+or:
+
+cog_reconciliation_status = blocked
+
+Rate Builder may display preview only where appropriate.
+
+---
+
+# 74. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive Revenue / COGS status and consequences through:
+
+- Business Summary
+- Revenue Reality
+- Recovery Summary
+- Rate Builder
+- Model Readiness
+
+Business Outcome must not recalculate Revenue / COGS.
+
+---
+
+# 75. UI STRUCTURE
+
+Recommended Revenue / COGS UI structure:
+
+1. Revenue / COGS Status Strip
+2. Commercial Mode Panel
+3. Revenue Summary Panel
+4. COGS Summary Panel
+5. Margin Pool Panel
+6. Raw P&L COG Accounts Panel
+7. Operational COG Category / Subcategory Setup Panel
+8. Account Transactions COG Import Panel
+9. COG Reconciliation Panel
+10. Xero Export Instructions Collapsible Panel
+11. Supplier Cleanup / Normalisation Panel
+12. Supplier Spend Summary Panel
+13. Supplier Category Assignment Panel
+14. Category / Subcategory Totals Panel
+15. Unit Driver Panel
+16. Product / Unit Margin Panel
+17. Review Required Panel
+18. Help Panel
+
+Existing UI may be retained if it supports these concepts.
+
+---
+
+# 76. STATUS STRIP
+
+The status strip should show:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- cog_reconciliation_status
+- supplier_summary_status
+- revenue_cogs_status
+- warning count
+- trust state
+
+If COG reconciliation leaks, show clear blocked/leak status.
+
+If supplier/category totals do not reconcile, show clear blocked/leak status.
+
+---
+
+# 77. COMMERCIAL MODE PANEL
+
+This panel should show:
+
+- business_type from Business Setup
+- commercial_driver_mode
+- explanation of mode-dependent COG treatment
+
+Hours-based wording:
+
+COGS creates material margin. Labour and assets still need to recover themselves.
+
+Product/unit wording:
+
+COGS is consumed by the product. Margin after COGS must recover labour, assets, overheads, and profit.
+
+---
+
+# 78. RAW P&L COG ACCOUNTS PANEL
+
+This panel should show:
+
+- original account name
+- P&L amount
+- assigned COG category
+- assigned COG subcategory where applicable
+- status
+
+It should preserve source names.
+
+It should not pretend assignment changes the original accounting account.
+
+---
+
+# 79. OPERATIONAL COG CATEGORY / SUBCATEGORY SETUP PANEL
+
+This panel should allow:
+
+- default categories from P&L account names
+- user-created COG categories
+- optional user-created COG subcategories
+- assignment of raw COG accounts to categories
+- review of unassigned accounts
+
+Default:
+
+each P&L COG account assigned to a matching category.
+
+User may reassign.
+
+No COG account may disappear.
+
+Subcategories are optional.
+
+---
+
+# 80. ACCOUNT TRANSACTIONS COG IMPORT PANEL
+
+This panel should allow importing the correct Account Transactions COG Excel file.
+
+It should show:
+
+- file name
+- report name
+- source period
+- transaction count
+- account count
+- supplier count
+- import status
+- rejected report type warnings
+
+If the imported file appears to be Payable Invoice Detail, reject or warn clearly.
+
+---
+
+# 81. COG RECONCILIATION PANEL
+
+This panel should show:
+
+- P&L COG total
+- Account Transactions COG total
+- difference
+- variance percent
+- status
+- period match status
+- unmatched accounts
+- missing P&L accounts
+- review action
+
+If balanced:
+
+show clear confirmation.
+
+If leak_detected:
+
+show clear warning:
+
+COG import does not reconcile to the P&L Cost of Sales total. Resolve this before using COG downstream.
+
+---
+
+# 82. XERO EXPORT INSTRUCTIONS COLLAPSIBLE PANEL
+
+Use the existing collapsible section component where available.
+
+Panel should contain the step-by-step instructions from Section 48.
+
+It should be clear enough that a user can set up and save the correct custom report in Xero.
+
+---
+
+# 83. SUPPLIER CLEANUP / NORMALISATION PANEL
+
+This panel should show:
+
+- raw supplier/contact names
+- suggested clean supplier name
+- transaction count
+- total net cost
+- assigned category
+- assigned subcategory
+- review status
+
+The user should be able to:
+
+- accept suggested clean supplier name
+- edit clean supplier name
+- merge raw supplier variants into one clean supplier
+- create saved normalisation rule
+- mark supplier as review required
+- keep supplier separate if it is genuinely different
+
+Supplier cleanup must not change source transaction values.
+
+---
+
+# 84. SUPPLIER SPEND SUMMARY PANEL
+
+This panel should show supplier-level spend across COG.
+
+Default columns:
+
+- Supplier
+- Total net spend
+- % of total COG
+- Transaction count
+- Source types
+- First transaction date
+- Last transaction date
+- Assigned category
+- Assigned subcategory
+- Review status
+
+Default sort:
+
+Total net spend high to low
+
+Purpose:
+
+Give users a fast way to see who they spend money with, without digging into each supplier in accounting software.
+
+This panel is a core reporting tool, not just an import helper.
+
+---
+
+# 85. SUPPLIER CATEGORY ASSIGNMENT PANEL
+
+This panel should allow category and optional subcategory assignment at supplier summary level.
+
+Default workflow:
+
+Supplier → Category → Optional Subcategory
+
+The user should not need to classify line by line.
+
+If supplier has messy source names, normalise first, then categorise.
+
+Examples:
+
+K & C Building
+→ Subcontracting General
+→ Block Laying
+
+NZ Diamond Cutters
+→ Subcontracting General
+→ Concrete Cutting
+
+Bunnings
+→ Materials
+→ Misc / Review
+
+---
+
+# 86. CATEGORY / SUBCATEGORY TOTALS PANEL
+
+This panel should show:
+
+- category total
+- optional subcategory totals
+- supplier count
+- transaction count
+- percent of COG
+- review status
+
+This gives a high-level and drill-down view.
+
+The panel must work even if no subcategories exist.
+
+---
+
+# 87. UNIT DRIVER PANEL
+
+This panel appears for product/unit mode.
+
+It should allow:
+
+- adding unit driver rows
+- editing unit labels
+- selecting unit type
+- entering annual units
+- entering average sale rate per unit where relevant
+- assigning revenue share where needed
+- reviewing derived units
+
+It must not infer units without user input or clear source.
+
+---
+
+# 88. PRODUCT / UNIT MARGIN PANEL
+
+This panel should show:
+
+- annual units
+- margin pool
+- margin per unit
+- weighted average margin per unit
+- unit driver readiness
+
+This is not the full unit cost stack.
+
+Rate Builder owns fully burdened unit rate.
+
+---
+
+# 89. REVIEW REQUIRED PANEL
+
+This panel should show:
+
+- missing COG import
+- COG reconciliation leak
+- period mismatch
+- unassigned COG category
+- unmatched transaction account
+- missing P&L account
+- supplier normalisation review required
+- ambiguous supplier normalisation
+- supplier summary total mismatch
+- supplier category total mismatch
+- supplier split mismatch
+- missing unit drivers
+- zero annual units
+- zero revenue
+- negative margin
+- preview-only source
+
+No review item should be hidden.
+
+---
+
+# 90. HELP PANEL
+
+The help panel should explain:
+
+- Revenue / COGS is the commercial selling layer
+- P&L supplies raw revenue and COG account lines
+- Account Transactions is the correct COG control report
+- Payable Invoice Detail is not the control report
+- COG must reconcile to P&L before downstream use
+- supplier spend summary shows where COG money actually goes
+- supplier cleanup groups messy source names without changing accounting values
+- category and optional subcategory structure is high-level by default and detailed only when useful
+- hours-based and product/unit businesses treat COGS differently
+- Rate Builder later turns this into rates where the required source data exists
+
+---
+
+# 91. DO NOT CHANGE
+
+Do not change:
+
+- P&L source classifications from inside Revenue / COGS
+- Labour calculations
+- Assets calculations
+- General Overheads calculations
+- Cost Summary aggregation
+- Module Reconciliation ownership of evidence display
+- Cost Allocation group assignment logic
+- Recovery Summary test calculations
+- Rate Builder rate calculations
+- Business Outcome verdicts
+
+Do not use Payable Invoice Detail as COG control source.
+
+Do not infer unit volumes.
+
+Do not infer sale values.
+
+Do not infer product consumption from supplier spend.
+
+Do not silently month-shift reports.
+
+Do not treat gross GST-inclusive totals as COG net cost.
+
+Do not drop Debit/Credit as calculation basis.
+
+Do not require line-by-line transaction categorisation.
+
+Do not overwrite raw supplier/contact text.
+
+Do not allow supplier cleanup to change total COG value.
+
+Do not let unreconciled COG flow downstream as trusted.
+
+---
+
+# 92. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+app/revenue-cogs/page.jsx
+hooks/useRevenueCogs.js
+lib/calculations/revenueCogsCalculations.js
+lib/selectors/revenueCogsSelectors.js
+lib/storage/revenueCogsStorage.js
+lib/imports/xeroCogImporter.js
+components/revenue-cogs/*.jsx
+
+Possible related files:
+
+hooks/useProfitAndLoss.js
+hooks/useBusinessSetup.js
+hooks/useBusinessSummary.js
+hooks/useModuleReconciliation.js
+hooks/useModelReadiness.js
+hooks/useCostAllocation.js
+hooks/useRecoverySummary.js
+hooks/useRateBuilder.js later
+
+Do not modify unrelated modules unless required to consume updated Revenue / COGS contract safely.
+
+---
+
+# 93. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect current Revenue / COGS state.
+2. Preserve existing revenue/cog totals if correct.
+3. Consume raw P&L COG account lines.
+4. Create default COG categories from P&L account names.
+5. Allow user-created COG categories.
+6. Allow optional user-created COG subcategories.
+7. Preserve original P&L account names.
+8. Keep category assignment separate from source account identity.
+9. Update Account Transactions COG importer.
+10. Use Debit - Credit for net COG value.
+11. Store Gross and GST but do not use them as net COG.
+12. Store Date for future analysis.
+13. Store Source for invoice/spend money/credit note/journal visibility.
+14. Reject or warn against Payable Invoice Detail.
+15. Add period match validation.
+16. Reconcile Account Transactions net total to P&L COG total.
+17. Add supplier normalisation.
+18. Preserve raw supplier/source text.
+19. Add supplier spend summary grouped by clean supplier name.
+20. Add supplier-level category assignment.
+21. Add optional supplier-level subcategory assignment.
+22. Ensure supplier summary totals reconcile to transaction totals.
+23. Ensure category totals reconcile to supplier summary totals.
+24. Add optional supplier split override as future/advanced if required.
+25. Add collapsible Xero export instruction panel.
+26. Add unit driver rows for product/unit mode.
+27. Expose unit labels to Cost Allocation as suggestions only.
+28. Add structured warnings.
+29. Add trust state.
+30. Run build.
+31. Verify with a known balanced P&L and Account Transactions export.
+32. Confirm no COG leak flows downstream as trusted.
+
+---
+
+# 94. ACCEPTANCE CRITERIA
+
+Revenue / COGS v4.0 is accepted when:
+
+1. Revenue / COGS consumes P&L revenue lines.
+2. Revenue / COGS consumes raw P&L COG account lines.
+3. Original COG account names are preserved.
+4. Default COG categories are created from P&L account names.
+5. User can create new COG categories.
+6. User can create optional COG subcategories.
+7. Subcategories are optional and not required for operation.
+8. User can assign COG accounts to operational COG categories.
+9. COG assignment does not overwrite P&L source names.
+10. Account Transactions COG import is supported.
+11. Payable Invoice Detail is rejected or clearly warned against.
+12. Debit - Credit is used for COG net value.
+13. Credit notes are handled through Debit - Credit net calculation.
+14. Gross is stored but not used as net COG.
+15. GST is stored but not used as operating cost.
+16. Date is stored for future analysis.
+17. Source is stored for invoice/spend money/credit note/journal visibility.
+18. Import period is preserved.
+19. Import period must match P&L period.
+20. Account Transactions COG total reconciles to P&L COG total.
+21. Reconciliation difference is shown.
+22. Variance percent is shown.
+23. Above-tolerance difference becomes leak_detected.
+24. COG leak blocks trusted downstream use.
+25. Supplier name normalisation exists.
+26. Raw supplier/contact/source text is preserved.
+27. Clean supplier name is used for supplier summary.
+28. Supplier Spend Summary exists.
+29. Supplier Spend Summary is sorted by total spend by default.
+30. Supplier summary totals reconcile to transaction totals.
+31. Supplier-level category assignment exists.
+32. Supplier-level optional subcategory assignment exists.
+33. Supplier/category totals reconcile to supplier summary totals.
+34. The system does not require line-by-line categorisation.
+35. Transaction-level detail remains available for audit/drill-down.
+36. Xero export instruction panel is clear and step-by-step.
+37. Business mode controls COG interpretation.
+38. Hours-based mode treats COG as material margin / review layer.
+39. Product/unit mode treats COG as consumed by product/unit.
+40. Unit driver rows exist for product/unit mode.
+41. Unit labels can be passed to Cost Allocation as group suggestions.
+42. Unit labels do not automatically assign labour/assets/overheads.
+43. Revenue / COGS exposes stable downstream contract.
+44. Structured warnings are exposed.
+45. Build passes.
+
+---
+
+# 95. FINAL PRINCIPLE
+
+Revenue / COGS defines the commercial selling layer.
+
+It preserves what the P&L says.
+
+It reconciles COG detail to the accounting COG total.
+
+It lets the user assign operational COG categories and optional subcategories without changing source accounting names.
+
+It creates a supplier spend summary so the user can see where COG money actually goes.
+
+It cleans supplier names for reporting while preserving raw source text.
+
+It supports simple high-level categorisation by default and deeper detail only when useful.
+
+It decides whether the business is dealing with COG as material margin or product/unit consumption based on Business Setup mode.
+
+It does not build the final recovery model.
+
+It does not build rates.
+
+It does not issue the business verdict.
+
+No assumptions.
+No Payable Invoice Detail as COG control.
+No silent period shifting.
+No GST-inclusive gross used as net COG.
+No dropped Debit/Credit calculation basis.
+No forced line-by-line categorisation.
+No overwritten supplier source text.
+No hidden COG categories.
+No required over-detail.
+No unreconciled COG downstream.
+No leaks.

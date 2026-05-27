@@ -1,0 +1,1603 @@
+# Mirra — Recovery Summary Brief
+
+## v4.0 — AUTOMATIC MODE-DEPENDENT RECOVERY TEST, GROUP RECOVERY PROOF, NO USER INPUT, AND NO-RATE / NO-VERDICT BOUNDARY
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 18
+
+REPLACES:
+- QS Tools Recovery Summary briefs where naming has changed
+- older Recovery Summary logic that asks the user to choose recovery method
+- older Recovery Summary logic that blends allocation setup with recovery testing
+- older Recovery Summary logic that builds final rates
+- older Recovery Summary logic that depends on Business Summary negative results as readiness failure
+- older Recovery Summary logic that ignores Revenue Reality and Asset Reality diagnostic context
+- older Recovery Summary logic that does not clearly separate hours-based and product/unit-based recovery models
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+12_MIRRA_BUSINESS_SETUP_v4.0_LOCKED.txt
+13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
+14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+15_MIRRA_REVENUE_REALITY_v4.0_LOCKED.txt
+16_MIRRA_ASSET_REALITY_v4.0_LOCKED.txt
+17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Recovery Summary is a zero-input, automatic, mode-dependent recovery test layer. It tests whether the allocated operating structure can recover its cost burden. It does not create source costs, assign costs, ask the user to choose recovery method, build sell rates, or issue the final business verdict.
+
+---
+
+# 1. PURPOSE
+
+Recovery Summary is the automatic recovery testing layer.
+
+It answers:
+
+Does the allocated business structure recover its cost burden?
+Does each working group recover its assigned labour, productive assets, and overhead burden?
+Is the business recovering by hours, product/unit, or mixed group logic?
+Where is the recovery shortfall or surplus?
+Which groups are under-recovered?
+Which costs remain unassigned or unrecovered?
+Does the recovery model respect Revenue Reality and Asset Reality pressure signals?
+
+Recovery Summary does not build the operating structure.
+
+Cost Allocation builds the structure.
+
+Recovery Summary tests it automatically.
+
+Rate Builder turns recovery requirements into sellable rates.
+
+Business Outcome explains the final consequence.
+
+---
+
+# 2. MODULE ROLE
+
+Recovery Summary owns:
+
+- automatic recovery model test
+- mode-dependent recovery interpretation
+- group recovery proof
+- recovered vs unrecovered cost where recoverable value exists
+- required recovery amount
+- recovery shortfall / surplus
+- recovery coverage percentage
+- group recovery status
+- recovery warnings
+- recovery model trust state
+- diagnostic display of Revenue Reality and Asset Reality pressure
+- handoff to Rate Builder and Business Outcome
+
+Recovery Summary does not own:
+
+- P&L source values
+- Revenue / COGS source values
+- COG reconciliation
+- labour source cost
+- asset source cost
+- asset utilisation source truth
+- General Overheads source truth
+- Cost Allocation group creation
+- Cost Allocation assignment logic
+- user-selected recovery method
+- user-entered recovery driver
+- final sell rates
+- margin-added rates
+- market rate comparisons
+- Business Outcome verdict
+- scenario modelling
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Recovery Summary sits after Cost Allocation and before Rate Builder and Business Outcome.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Recovery Summary consumes the allocated structure from Cost Allocation.
+
+It does not create that structure.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Recovery Summary answers one question:
+
+Does this structure recover?
+
+It is not a setup page.
+
+It is not an allocation page.
+
+It is not a pricing page.
+
+It is not an outcome page.
+
+The user should not need to input anything on this page.
+
+Recovery Summary should calculate automatically from upstream mode, groups, drivers, and source values.
+
+---
+
+# 5. ZERO USER INPUT RULE
+
+Recovery Summary has no user inputs.
+
+The user must not be asked to:
+
+- choose recovery method
+- choose recovery basis
+- choose hybrid mode
+- enter recovery driver
+- enter hours
+- enter units
+- enter sell rates
+- enter margin
+- create groups
+- assign labour
+- assign assets
+- distribute overheads
+
+All required setup must come from upstream modules.
+
+If required source values are missing, Recovery Summary should show:
+
+not_available
+review_required
+or blocked
+
+It must not ask the user to fix the missing source inside Recovery Summary.
+
+The review action should send the user back to the correct upstream module.
+
+---
+
+# 6. MODE-DEPENDENT RULE
+
+Recovery Summary is controlled by Business Setup mode.
+
+Business Setup owns business mode.
+
+Recovery Summary must consume:
+
+business_type
+is_labour_based
+is_product_based
+
+If business_type = labour_based:
+
+Recovery Summary uses hours-based recovery logic.
+
+If business_type = product_based:
+
+Recovery Summary uses product/unit-based recovery logic.
+
+If Cost Allocation groups contain different valid recovery drivers:
+
+Recovery Summary may display mixed group recovery.
+
+Do not ask the user to choose the recovery mode here.
+
+Do not infer the business mode from group labels, supplier names, asset names, or account names.
+
+---
+
+# 7. STRICT MODULE BOUNDARY
+
+Recovery Summary may calculate:
+
+- required recovery amount
+- required recovery per driver
+- recovered cost where source exists
+- unrecovered cost
+- recovery shortfall
+- recovery surplus
+- recovery coverage %
+- group recovery status
+- model recovery status
+
+Recovery Summary must not calculate:
+
+- final sell rate
+- charge-out rate
+- margin-added rate
+- recommended rate
+- market comparison
+- final business verdict
+- final action plan
+
+Those belong to:
+
+Rate Builder:
+Creates sellable rates.
+
+Business Outcome:
+Explains consequence and action.
+
+---
+
+# 8. INPUTS FROM BUSINESS SETUP
+
+Recovery Summary consumes:
+
+business_type
+is_labour_based
+is_product_based
+business_setup_status
+business_setup_model_trust_state
+
+Business Setup owns business mode.
+
+Recovery Summary uses business mode to auto-configure its test.
+
+No user input is required.
+
+---
+
+# 9. INPUTS FROM REVENUE / COGS
+
+Recovery Summary consumes:
+
+total_revenue
+total_direct_costs
+total_cogs
+margin_pool
+gross_margin_percent
+commercial_driver_mode
+unit_driver_rows
+total_derived_units_annual
+weighted_average_margin_per_unit
+revenue_cogs_status
+revenue_cogs_model_trust_state
+cog_reconciliation_status
+
+Revenue / COGS owns revenue and COGS source values.
+
+Recovery Summary must not recalculate COG reconciliation.
+
+---
+
+# 10. INPUTS FROM BUSINESS SUMMARY
+
+Recovery Summary consumes:
+
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+residual_margin_after_labour
+business_summary_status
+business_summary_model_trust_state
+
+Business Summary provides macro business context.
+
+Recovery Summary owns recovery testing.
+
+---
+
+# 11. INPUTS FROM REVENUE REALITY
+
+Recovery Summary consumes:
+
+revenue_reality_status
+margin_after_labour
+labour_consumption_of_margin_percent
+labour_shortfall_against_margin
+margin_surplus_after_labour
+margin_after_labour_per_driver
+revenue_reality_model_trust_state
+
+Revenue Reality owns the labour/margin stress test.
+
+Recovery Summary must not recalculate Revenue Reality.
+
+Recovery Summary must respect it as diagnostic context.
+
+If margin_after_labour is negative, Recovery Summary must not hide that by showing a superficially positive group recovery result without warning.
+
+---
+
+# 12. INPUTS FROM ASSET REALITY
+
+Recovery Summary consumes:
+
+asset_reality_status
+weighted_required_asset_recovery_rate
+total_productive_asset_burden
+total_productive_asset_utilisation_hours
+highest_pressure_asset
+lowest_utilisation_asset
+asset_underutilisation_flags
+asset_recovery_pressure_summary
+asset_reality_model_trust_state
+
+Asset Reality owns the asset pressure test.
+
+Recovery Summary must not recalculate Asset Reality.
+
+Recovery Summary must preserve its signal.
+
+If Asset Reality shows high asset recovery pressure, Recovery Summary must keep that visible.
+
+---
+
+# 13. INPUTS FROM COST ALLOCATION
+
+Recovery Summary consumes:
+
+cost_allocation_status
+cost_allocation_model_trust_state
+working_groups
+group_cost_stacks
+productive_labour_pool status
+productive_asset_pool status
+general_overheads_pool status
+allocation_reconciliation_checks
+unassigned pool values
+revenue_reality_context
+asset_reality_context
+
+Cost Allocation owns:
+
+- working groups
+- assignments
+- group cost stacks
+- pool reconciliation
+
+Recovery Summary owns:
+
+- recovery testing of those group cost stacks
+
+---
+
+# 14. INPUTS FROM MODEL READINESS
+
+Recovery Summary consumes:
+
+model_ready
+model_readiness_status
+model_trust_state
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+downstream_readiness_contract
+
+If Model Readiness is blocked, Recovery Summary may show preview calculations but must not present them as trusted.
+
+---
+
+# 15. RECOVERY MODEL TYPES
+
+Allowed recovery_model_type values:
+
+hours_based
+unit_based
+mixed_group_based
+preview_only
+not_available
+
+Rules:
+
+If business_type = labour_based:
+
+recovery_model_type = hours_based
+
+If business_type = product_based:
+
+recovery_model_type = unit_based
+
+If Cost Allocation provides groups with different valid drivers:
+
+recovery_model_type = mixed_group_based
+
+If required mode source is missing:
+
+recovery_model_type = not_available or preview_only
+
+Do not ask the user to select the type.
+
+---
+
+# 16. HOURS-BASED RECOVERY INTERPRETATION
+
+In labour-based mode, Recovery Summary automatically tests whether available productive hour recovery can cover:
+
+- assigned labour burden
+- assigned productive asset burden
+- assigned overhead burden
+
+Group recovery basis may come from:
+
+- assigned labour hours
+- assigned asset hours
+- productive hours from Labour
+- group driver values from Cost Allocation
+- future production/quote hours if supplied upstream
+
+Hours-based recovery must show:
+
+- required recovery per hour
+- group cost per hour where driver exists
+- recovery gap if recoverable value exists
+- not_available where actual recoverable value is not known
+
+Recovery Summary does not create final hourly rates.
+
+Rate Builder does.
+
+---
+
+# 17. PRODUCT / UNIT-BASED RECOVERY INTERPRETATION
+
+In product/unit mode, Recovery Summary automatically tests whether product/unit margin and assigned group structure can recover:
+
+- assigned labour burden
+- assigned productive asset burden
+- assigned overhead burden
+- COG burden where mapped later
+
+Unit-based recovery basis may come from:
+
+- unit_driver_rows from Revenue / COGS
+- group unit drivers from Cost Allocation
+- future quote/production data if supplied upstream
+
+Recovery Summary may test whether current unit margin can carry assigned burden.
+
+It must not infer product consumption without user input upstream.
+
+It must not ask for new unit input on this page.
+
+Rate Builder owns final product/unit rate construction.
+
+---
+
+# 18. MIXED GROUP RECOVERY INTERPRETATION
+
+Mixed group recovery applies when different working groups recover through different drivers.
+
+Example:
+
+Group A:
+Digger Crew → hourly
+
+Group B:
+Concrete Pumping → m3
+
+Group C:
+Kitchen → meals / covers
+
+Recovery Summary must allow group-level recovery display where valid group drivers already exist.
+
+It should not force the whole business into one recovery driver if upstream structure supports multiple valid drivers.
+
+It must not ask the user to choose those drivers here.
+
+---
+
+# 19. GROUP RECOVERY ROW CONTRACT
+
+Recovery Summary should create:
+
+group_recovery_rows[]
+
+Each row:
+
+{
+  group_id,
+  group_name,
+  group_cost_stack,
+  recovery_driver_type,
+  recovery_driver_label,
+  recovery_driver_value,
+  recoverable_value_available,
+  required_recovery_amount,
+  required_recovery_per_driver,
+  recovered_cost,
+  unrecovered_cost,
+  recovery_surplus,
+  recovery_coverage_percent,
+  recovery_status,
+  warnings
+}
+
+Rules:
+
+- group_id comes from Cost Allocation.
+- group cost comes from Cost Allocation.
+- recovery driver comes from upstream mode / Cost Allocation / Revenue COGS / Labour / Assets as applicable.
+- if no driver exists, recovery result is not_available or review_required.
+- do not invent driver values.
+- do not ask for driver values here.
+- do not build final sell rates.
+
+---
+
+# 20. GROUP COST INPUT
+
+Recovery Summary consumes group_cost_stack from Cost Allocation.
+
+Required group cost fields:
+
+assigned_labour_cost
+assigned_labour_hours
+assigned_asset_burden
+assigned_asset_hours
+assigned_overhead_amount
+total_group_cost
+allocation_status
+
+Recovery Summary must not recalculate group cost stack from source modules.
+
+If Cost Allocation group stack is blocked, Recovery Summary must be blocked or preview_only.
+
+---
+
+# 21. RECOVERY DRIVER RULE
+
+Every group recovery test requires a recovery driver.
+
+Possible upstream recovery drivers:
+
+- labour hours
+- asset hours
+- productive hours
+- unit volume
+- m2
+- m3
+- tonnes
+- item count
+- covers / meals
+- custom units
+- future quote/production data
+
+If recovery_driver_value is missing or zero:
+
+recovered_cost = 0 where applicable
+unrecovered_cost = total_group_cost where applicable
+recovery_status = review_required or not_available
+
+Do not divide by zero.
+
+Do not invent driver values.
+
+Do not ask for the value here.
+
+---
+
+# 22. REQUIRED RECOVERY AMOUNT
+
+Recovery Summary must calculate:
+
+required_recovery_amount =
+total_group_cost
+
+At group level.
+
+Also:
+
+total_required_recovery_amount =
+sum group total_group_cost
+
+This is the cost burden that must be recovered.
+
+This is not the sell rate.
+
+This is the amount that Rate Builder must cover.
+
+---
+
+# 23. REQUIRED RECOVERY PER DRIVER
+
+Recovery Summary may calculate required recovery per driver:
+
+required_recovery_per_driver =
+total_group_cost / recovery_driver_value
+
+If recovery_driver_value = 0:
+
+required_recovery_per_driver = 0
+status = review_required or not_available
+
+This is a required recovery signal only.
+
+It is not a final Rate Builder sell rate.
+
+Rate Builder owns final rate construction.
+
+---
+
+# 24. RECOVERABLE VALUE SOURCE RULE
+
+Recovery Summary must clearly show where recoverable_value_available comes from.
+
+Possible sources:
+
+- current margin pool
+- margin after labour
+- unit margin
+- current revenue allocation
+- future Rate Builder output
+- not_available
+
+For v4.0, if sell rates have not yet been built, Recovery Summary may show:
+
+- structure recovery requirement
+- required recovery amount
+- required recovery per driver
+- not_available actual recovery
+
+Do not pretend actual recovery exists if rates have not been created.
+
+Do not ask the user to enter rates here.
+
+---
+
+# 25. RECOVERY TEST FORMULA
+
+Where recoverable_value_available exists:
+
+recovered_cost =
+recoverable_value_available
+
+unrecovered_cost =
+max(0, total_group_cost - recovered_cost)
+
+recovery_surplus =
+max(0, recovered_cost - total_group_cost)
+
+recovery_coverage_percent =
+recovered_cost / total_group_cost
+
+If total_group_cost = 0:
+
+recovery_coverage_percent = 0
+status = review_required or not_available
+
+If recoverable_value_available is not available:
+
+recovered_cost = not_available
+unrecovered_cost = not_available or total_group_cost depending display choice
+recovery_coverage_percent = not_available
+status = not_available or review_required
+
+Do not divide by zero.
+
+Do not invent recovered values.
+
+---
+
+# 26. RECOVERY COVERAGE STATUS
+
+Allowed group_recovery_status values:
+
+covered
+under_recovered
+over_recovered
+review_required
+blocked
+preview_only
+not_available
+
+Definitions:
+
+covered:
+recovered_cost >= total_group_cost within tolerance
+
+under_recovered:
+recovered_cost < total_group_cost
+
+over_recovered:
+recovered_cost > total_group_cost
+
+review_required:
+driver or source requires review
+
+blocked:
+source structure blocked or invalid
+
+preview_only:
+calculation displays but is not trusted
+
+not_available:
+not enough information to calculate actual recovery
+
+---
+
+# 27. WHOLE MODEL RECOVERY SUMMARY
+
+Recovery Summary must calculate:
+
+total_required_recovery_amount
+total_recovered_cost
+total_unrecovered_cost
+total_recovery_surplus
+overall_recovery_coverage_percent
+overall_recovery_status
+
+Formula:
+
+total_required_recovery_amount =
+sum group total_group_cost
+
+total_recovered_cost =
+sum group recovered_cost where available
+
+total_unrecovered_cost =
+sum group unrecovered_cost where available
+
+total_recovery_surplus =
+sum group recovery_surplus where available
+
+overall_recovery_coverage_percent =
+total_recovered_cost / total_required_recovery_amount
+
+If total_required_recovery_amount = 0:
+
+overall_recovery_coverage_percent = 0
+status = review_required or not_available
+
+If recovered values are not available:
+
+overall_recovery_status = not_available
+show required recovery only
+
+---
+
+# 28. RECOVERY STATUS VALUES
+
+Allowed recovery_summary_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+under_recovered
+covered
+not_available
+not_ready
+
+Status rules:
+
+ready:
+Recovery test can run and no blocking warnings exist.
+
+covered:
+Recovery test shows costs are covered.
+
+under_recovered:
+Recovery test shows unrecovered cost remains, but source data is trusted.
+
+ready_with_warnings:
+Recovery test is usable but warnings remain visible.
+
+review_required:
+Values calculate but source/driver review is required.
+
+blocked:
+Upstream source or allocation is blocked.
+
+preview_only:
+Values display but should not be trusted.
+
+not_available:
+Required actual recovery value is not yet available.
+
+not_ready:
+Required recovery inputs are missing.
+
+Under-recovered is not a data failure if source data is trusted.
+
+Not_available is not a data failure if Rate Builder has not yet created rates.
+
+---
+
+# 29. TRUST STATE
+
+Recovery Summary must expose:
+
+recovery_summary_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+If model_trust_state = blocked:
+recovery_summary_model_trust_state = blocked
+
+If cost_allocation_model_trust_state = blocked:
+recovery_summary_model_trust_state = blocked
+
+If recovery_summary_status = blocked or not_ready:
+recovery_summary_model_trust_state = blocked
+
+If recovery_summary_status = preview_only:
+recovery_summary_model_trust_state = preview_only
+
+If recovery_summary_status = ready_with_warnings, review_required, under_recovered, or not_available:
+recovery_summary_model_trust_state = warning
+
+If recovery_summary_status = ready or covered:
+recovery_summary_model_trust_state = ready
+
+---
+
+# 30. READINESS CONDITIONS
+
+Recovery Summary is ready when:
+
+- Business Setup mode exists
+- Revenue / COGS context exists
+- Business Summary context exists
+- Cost Allocation groups exist
+- group cost stacks exist
+- Cost Allocation source pools are not over-allocated
+- required recovery drivers exist upstream where required
+- Model Readiness is not blocked
+- no blocking Recovery Summary warning exists
+
+Recovery Summary is blocked when:
+
+- Cost Allocation is blocked
+- source pool reconciliation failed
+- group cost stack is invalid
+- required upstream driver is missing where required
+- recovery calculation cannot be performed
+- Model Readiness blocks trusted output
+
+Recovery Summary may be ready_with_warnings when:
+
+- groups are under-recovered
+- Revenue Reality shows labour/margin pressure
+- Asset Reality shows asset pressure
+- overheads were under-allocated but accepted for review
+- unassigned pools remain but are visible and intentionally reviewed
+
+Recovery Summary may be not_available when:
+
+- required recovery amounts can be shown
+- but actual recoverable value does not exist yet because Rate Builder has not built rates
+
+---
+
+# 31. REQUIRED WARNINGS
+
+Recovery Summary must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+recovery_summary_missing_business_setup
+recovery_summary_missing_revenue_cogs
+recovery_summary_missing_business_summary
+recovery_summary_missing_cost_allocation
+recovery_summary_cost_allocation_blocked
+recovery_summary_no_groups
+recovery_summary_missing_group_cost_stack
+recovery_summary_missing_upstream_recovery_driver
+recovery_summary_zero_recovery_driver
+recovery_summary_no_recoverable_value
+recovery_summary_group_under_recovered
+recovery_summary_model_under_recovered
+recovery_summary_revenue_reality_pressure
+recovery_summary_asset_reality_pressure
+recovery_summary_unassigned_labour_pool
+recovery_summary_unassigned_asset_pool
+recovery_summary_unassigned_overhead_pool
+recovery_summary_preview_only
+recovery_summary_not_available
+recovery_summary_upstream_blocked
+
+---
+
+# 32. WARNING MEANINGS
+
+## recovery_summary_cost_allocation_blocked
+
+Use when Cost Allocation is blocked or leaking.
+
+Blocking:
+
+true.
+
+## recovery_summary_missing_upstream_recovery_driver
+
+Use when a group has cost but no upstream recovery driver.
+
+Blocking:
+
+true for trusted recovery result.
+
+Review action:
+
+Return to Business Setup, Revenue / COGS, Labour, Assets, or Cost Allocation depending missing source.
+
+## recovery_summary_zero_recovery_driver
+
+Use when a recovery driver is zero.
+
+Blocking:
+
+true for per-driver recovery result.
+
+## recovery_summary_no_recoverable_value
+
+Use when required recovery can be calculated but actual recovered value is unavailable.
+
+Blocking:
+
+false.
+
+Meaning:
+
+Rate Builder or future revenue/rate source has not yet provided recoverable value.
+
+## recovery_summary_group_under_recovered
+
+Use when one group is under-recovered.
+
+Blocking:
+
+false if source data is trusted.
+
+## recovery_summary_model_under_recovered
+
+Use when total model recovery is under-recovered.
+
+Blocking:
+
+false if source data is trusted.
+
+## recovery_summary_revenue_reality_pressure
+
+Use when Revenue Reality shows labour/margin pressure.
+
+Blocking:
+
+false if source data is trusted.
+
+## recovery_summary_asset_reality_pressure
+
+Use when Asset Reality shows asset pressure.
+
+Blocking:
+
+false if source data is trusted.
+
+## recovery_summary_unassigned_labour_pool
+
+Use when productive labour remains unassigned in Cost Allocation.
+
+Blocking:
+
+false by default if visible and intentionally reviewed; true if workflow requires full allocation.
+
+## recovery_summary_unassigned_asset_pool
+
+Use when productive asset burden remains unassigned.
+
+Blocking:
+
+false by default if visible and intentionally reviewed; true if workflow requires full allocation.
+
+## recovery_summary_unassigned_overhead_pool
+
+Use when overhead remains unassigned.
+
+Blocking:
+
+false by default if visible and intentionally reviewed; true if workflow requires full allocation.
+
+---
+
+# 33. SOURCE TRACE REQUIREMENT
+
+Recovery Summary key outputs must include source trace.
+
+Required source trace for:
+
+- recovery_model_type
+- group_recovery_rows
+- total_required_recovery_amount
+- total_recovered_cost
+- total_unrecovered_cost
+- overall_recovery_coverage_percent
+- required_recovery_per_driver
+- recovery drivers
+- recovery status
+- Revenue Reality context
+- Asset Reality context
+- Cost Allocation source
+
+Each trace should show:
+
+- output_variable
+- source_module
+- source_variable
+- calculation_rule
+- source_status
+- trust_state
+
+---
+
+# 34. OUTPUT CONTRACT
+
+Recovery Summary should expose:
+
+{
+  recovery_summary_ready,
+  recovery_summary_status,
+  recovery_summary_warnings,
+  recovery_summary_warning_count,
+  recovery_summary_model_trust_state,
+
+  recovery_model_type,
+
+  group_recovery_rows,
+
+  total_required_recovery_amount,
+  total_recovered_cost,
+  total_unrecovered_cost,
+  total_recovery_surplus,
+  overall_recovery_coverage_percent,
+  overall_recovery_status,
+
+  revenue_reality_context,
+  asset_reality_context,
+  cost_allocation_context,
+
+  recovery_summary_cards,
+  recovery_summary_source_trace
+}
+
+---
+
+# 35. OUTPUT TO RATE BUILDER
+
+Rate Builder should receive:
+
+- recovery_summary_status
+- recovery_summary_model_trust_state
+- recovery_model_type
+- group_recovery_rows
+- total_required_recovery_amount
+- total_unrecovered_cost
+- required_recovery_per_driver
+- group cost stacks from Cost Allocation
+- recovery drivers
+- Revenue Reality context
+- Asset Reality context
+
+Rate Builder uses this to create sellable rates.
+
+Recovery Summary does not build rates.
+
+---
+
+# 36. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive:
+
+- recovery_summary_status
+- overall_recovery_status
+- total_required_recovery_amount
+- total_recovered_cost
+- total_unrecovered_cost
+- overall_recovery_coverage_percent
+- group_recovery_rows
+- recovery warnings
+- Revenue Reality context
+- Asset Reality context
+- recovery_summary_model_trust_state
+
+Business Outcome uses this as diagnostic evidence.
+
+Recovery Summary does not issue final verdict.
+
+---
+
+# 37. UI STRUCTURE
+
+Recommended Recovery Summary UI structure:
+
+1. Recovery Summary Status Strip
+2. Automatic Mode Context Panel
+3. Diagnostic Context Panel
+4. Group Recovery Test Panel
+5. Required Recovery Panel
+6. Recovered / Unrecovered Panel
+7. Recovery Coverage Panel
+8. Source Trust / Warning Panel
+9. Handoff to Rate Builder Panel
+10. Help Panel
+
+No user input panel is required.
+
+Existing UI may be retained only if it supports this zero-input boundary.
+
+---
+
+# 38. STATUS STRIP
+
+The status strip should show:
+
+- recovery_summary_status
+- recovery_summary_model_trust_state
+- recovery model type
+- total required recovery
+- total recovered cost if available
+- total unrecovered cost if available
+- overall recovery coverage % if available
+- warning count
+- blocking count
+
+If under-recovered but source data is trusted, status should not imply data failure.
+
+Suggested display:
+
+Under-recovered
+Source data trusted
+
+or:
+
+Required recovery known
+Rates not built yet
+
+---
+
+# 39. AUTOMATIC MODE CONTEXT PANEL
+
+This panel should show:
+
+- Business Setup mode
+- recovery model type
+- driver source
+- group recovery drivers
+- whether the model is hours-based, unit-based, or mixed
+
+This panel explains the automatic recovery lens.
+
+It must not let the user choose recovery mode.
+
+---
+
+# 40. DIAGNOSTIC CONTEXT PANEL
+
+This panel should show read-only context from prior diagnostics.
+
+Revenue Reality:
+
+- margin after Labour
+- Labour consumption of margin
+- status
+
+Asset Reality:
+
+- weighted required asset recovery rate
+- highest pressure asset
+- status
+
+Cost Allocation:
+
+- groups
+- pool reconciliation status
+- unassigned pools
+
+Purpose:
+
+Show what recovery is being tested against.
+
+Do not recalculate upstream diagnostics.
+
+---
+
+# 41. GROUP RECOVERY TEST PANEL
+
+This panel should show each group:
+
+- group name
+- assigned labour cost
+- assigned asset burden
+- assigned overhead
+- total group cost
+- automatic recovery driver
+- required recovery
+- recovered cost if available
+- unrecovered cost if available
+- coverage % if available
+- status
+
+This is the core Recovery Summary table.
+
+There should be no manual recovery method selector.
+
+---
+
+# 42. REQUIRED RECOVERY PANEL
+
+This panel should show:
+
+- total required recovery
+- required recovery by group
+- required recovery per driver where available
+
+This is the amount that needs to be recovered.
+
+It is not the final rate.
+
+---
+
+# 43. RECOVERED / UNRECOVERED PANEL
+
+This panel should show:
+
+- recovered cost where source exists
+- unrecovered cost where source exists
+- recovery surplus where source exists
+- group gaps
+- total model gap
+
+If actual recoverable value is not yet available:
+
+show not_available
+
+Do not invent recovered values.
+
+Do not ask the user to enter rates here.
+
+---
+
+# 44. RECOVERY COVERAGE PANEL
+
+This panel should show:
+
+- coverage % where available
+- covered groups
+- under-recovered groups
+- groups requiring review
+
+Example wording:
+
+This structure currently recovers X% of the assigned cost burden.
+
+or:
+
+Actual recovered value is not available until rates or revenue allocation are provided.
+
+---
+
+# 45. SOURCE TRUST / WARNING PANEL
+
+This panel should show:
+
+- Model Readiness status
+- Cost Allocation status
+- Revenue Reality status
+- Asset Reality status
+- Revenue / COGS status
+- Business Setup mode status
+- blocking warnings
+- non-blocking warnings
+
+Warnings must not be hidden behind only a count.
+
+---
+
+# 46. HANDOFF TO RATE BUILDER PANEL
+
+This panel should explain:
+
+Recovery Summary has tested what must be recovered.
+
+Rate Builder now turns the required recovery into sellable rates.
+
+Suggested wording:
+
+This page shows the recovery requirement created by the allocated structure. Rate Builder creates the rates required to recover these costs.
+
+Do not build rates here.
+
+---
+
+# 47. HELP PANEL
+
+The help panel should explain:
+
+- Recovery Summary is automatic
+- Business Setup defines the recovery mode
+- Cost Allocation supplies the structure
+- Revenue Reality and Asset Reality show earlier pressure points
+- Recovery Summary tests whether the structure recovers
+- Rate Builder creates charge-out rates
+- Business Outcome explains what the result means
+- under-recovery is not a data failure if source data is trusted
+- missing upstream drivers or blocked allocations are setup issues
+
+---
+
+# 48. WHAT TO MOVE IN FROM CURRENT COST ALLOCATION
+
+If current Cost Allocation implementation contains any of the following, they belong in Recovery Summary:
+
+- recovery plan display
+- recovery basis display
+- hybrid recovery display
+- recovered cost
+- unrecovered cost
+- recovery gap
+- recovery coverage %
+- does this recovery model work?
+- working unit recovery check
+- recovery method test
+
+However, these must be converted into automatic, mode-dependent display.
+
+Do not preserve user-driven recovery method selectors.
+
+---
+
+# 49. WHAT TO KEEP OUT
+
+Keep these out of Recovery Summary:
+
+- group creation
+- labour assignment
+- asset assignment
+- shared asset assignment
+- overhead distribution
+- source pool assignment
+- recovery method selection
+- driver selection
+- final sell rates
+- market pricing
+- final recommendation
+- final outcome verdict
+
+Those belong elsewhere.
+
+---
+
+# 50. DO NOT CHANGE
+
+Do not change:
+
+- P&L source values
+- Revenue / COGS source values
+- Labour calculations
+- Assets calculations
+- General Overheads calculations
+- Cost Summary aggregation
+- Business Summary bridge
+- Revenue Reality calculations
+- Asset Reality calculations
+- Cost Allocation assignments
+- Business Setup mode
+- Model Readiness gate logic
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not build rates.
+
+Do not create group assignments.
+
+Do not mutate Cost Allocation.
+
+Do not ask for user input.
+
+Do not let the user choose recovery mode.
+
+Do not treat under-recovery as a data failure.
+
+Do not hide Revenue Reality or Asset Reality pressure.
+
+Do not issue final verdict.
+
+---
+
+# 51. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useRecoverySummary.js
+lib/calculations/recoverySummaryCalculations.js
+lib/selectors/recoverySummarySelectors.js
+components/recovery-summary/*.jsx
+app/recovery-summary/page.jsx
+
+Possible related files:
+
+hooks/useCostAllocation.js
+hooks/useRevenueReality.js
+hooks/useAssetReality.js
+hooks/useBusinessSummary.js
+hooks/useBusinessSetup.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+
+Do not modify unrelated modules unless required to consume Recovery Summary safely.
+
+---
+
+# 52. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Remove user input from Recovery Summary.
+2. Remove recovery method selection.
+3. Remove driver selection.
+4. Consume Business Setup mode.
+5. Automatically set recovery_model_type from business mode.
+6. Consume Cost Allocation group cost stacks.
+7. Consume Cost Allocation pool reconciliation status.
+8. Consume Revenue Reality context.
+9. Consume Asset Reality context.
+10. Consume Revenue / COGS and Business Summary macro context.
+11. Create group_recovery_rows.
+12. Identify recovery driver automatically from upstream sources.
+13. Guard missing or zero drivers.
+14. Calculate required recovery amount by group.
+15. Calculate required recovery per driver where valid.
+16. Calculate recovered / unrecovered only where recoverable value exists.
+17. If recoverable value does not exist, show not_available rather than guessing.
+18. Calculate coverage percentages where valid.
+19. Show under-recovery as commercial result, not data failure.
+20. Move recovery plan / recovered-unrecovered logic out of Cost Allocation if currently there.
+21. Do not build final rates.
+22. Add structured warnings.
+23. Add source trace.
+24. Add trust state.
+25. Run build.
+
+---
+
+# 53. ACCEPTANCE CRITERIA
+
+Recovery Summary v4.0 is accepted when:
+
+1. Recovery Summary has no user input.
+2. Recovery Summary does not ask the user to choose recovery method.
+3. Recovery Summary does not ask the user to choose recovery driver.
+4. Recovery Summary consumes Business Setup mode.
+5. Recovery Summary auto-selects recovery model type.
+6. Recovery Summary consumes Cost Allocation group cost stacks.
+7. Recovery Summary does not create working groups.
+8. Recovery Summary does not assign labour.
+9. Recovery Summary does not assign assets.
+10. Recovery Summary does not distribute overheads.
+11. Recovery Summary consumes Revenue Reality context.
+12. Recovery Summary consumes Asset Reality context.
+13. Recovery Summary shows automatic recovery model type.
+14. Recovery Summary supports hours-based recovery interpretation.
+15. Recovery Summary supports unit-based recovery interpretation.
+16. Recovery Summary supports mixed group recovery interpretation where upstream group drivers exist.
+17. Recovery Summary creates group recovery rows.
+18. Recovery Summary shows required recovery by group.
+19. Recovery Summary shows required recovery per driver where valid.
+20. Recovery Summary shows recovered / unrecovered cost where recoverable value exists.
+21. Recovery Summary shows not_available instead of guessing when recoverable value does not exist.
+22. Recovery Summary calculates recovery coverage % safely.
+23. Recovery Summary guards missing upstream drivers.
+24. Recovery Summary guards zero drivers.
+25. Under-recovery does not automatically create data failure.
+26. Not_available does not automatically create data failure before Rate Builder creates rates.
+27. Cost Allocation blocked state blocks trusted Recovery Summary output.
+28. Recovery Summary does not calculate final sell rates.
+29. Recovery Summary does not issue Business Outcome verdict.
+30. Recovery Summary exposes structured warnings.
+31. Recovery Summary exposes trust state.
+32. Build passes.
+
+---
+
+# 54. FINAL PRINCIPLE
+
+Recovery Summary is automatic.
+
+It tests recovery.
+
+It asks:
+
+Does the allocated structure recover its cost burden?
+
+It consumes:
+
+Business Setup
+Cost Allocation
+Revenue Reality
+Asset Reality
+Business Summary
+Revenue / COGS
+
+It does not create source costs.
+
+It does not assign costs.
+
+It does not ask for user input.
+
+It does not choose recovery mode manually.
+
+It does not build rates.
+
+It does not issue the final verdict.
+
+It shows the recovery requirement and recovery gap clearly so Rate Builder can create rates and Business Outcome can explain the consequence.
+
+No assumptions.
+No source mutation.
+No allocation editing.
+No manual recovery selection.
+No invented recovery values.
+No hidden under-recovery.
+No rates.
+No verdict.
+No leaks.

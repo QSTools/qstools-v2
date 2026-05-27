@@ -1,0 +1,1180 @@
+# Mirra — Business Outcome Brief
+
+## v4.0 — BUSINESS DIAGNOSIS, FIRST MODELLING LAYER, SUPPLIER / MATERIAL SENSITIVITY, RATE IMPACT, AND QUOTE CHECKER HANDOFF
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 20
+
+REPLACES:
+- older QS Tools Business Outcome assumptions
+- older logic where Business Outcome is only a static summary
+- older logic where modelling is deferred entirely to a later page
+- older logic that does not connect supplier/material pressure to outcome
+- older logic that does not consume Rate Builder outputs
+- older logic that does not prepare Quote Checker targets
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Business Outcome is the first modelling layer. It explains what is happening, why it is happening, what levers can change it, and what target rates / assumptions should flow to Quote Checker. It does not create source truth, assign costs, or rebuild rates.
+
+---
+
+# 1. PURPOSE
+
+Business Outcome answers:
+
+What is the result of the business model?
+Where is the pressure coming from?
+What needs to change?
+Which levers move the result?
+What happens if supplier prices increase or decrease?
+What happens if labour recovery improves?
+What happens if asset utilisation improves?
+What happens if charge-out rates change?
+What targets should flow into Quote Checker?
+
+Business Outcome is not just a report.
+
+It is the first modelling layer.
+
+It converts all upstream diagnostics into practical business decisions.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Active flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Business Outcome receives the result of the full model.
+
+Quote Checker later enforces it against actual quotes.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Business Outcome answers:
+
+What does this mean, and what can we do about it?
+
+It consumes:
+
+- financial truth
+- cost structure
+- recovery test
+- required rates
+- supplier/material context
+- margin pressure
+- asset pressure
+- labour pressure
+
+Then it lets the user model changes.
+
+It must not hide bad results.
+
+It must not treat commercial failure as data failure.
+
+It must not mutate upstream source data.
+
+---
+
+# 4. MODULE ROLE
+
+Business Outcome owns:
+
+- final diagnostic summary
+- current outcome position
+- pressure source explanation
+- margin / recovery / rate interpretation
+- supplier/material sensitivity modelling
+- labour sensitivity modelling
+- asset utilisation sensitivity modelling
+- overhead sensitivity modelling
+- rate sensitivity modelling
+- business improvement levers
+- modelled outcome comparison
+- Quote Checker target handoff
+- outcome warnings
+- outcome trust state
+
+Business Outcome does not own:
+
+- P&L import
+- Revenue / COG import
+- Labour source calculations
+- Asset source calculations
+- General Overheads source calculations
+- Cost Allocation assignments
+- Recovery Summary recovery tests
+- Rate Builder rate construction
+- source pool reconciliation
+- quote-level checking
+
+---
+
+# 5. BUSINESS OUTCOME IS A MODELLING PAGE
+
+Business Outcome must not be treated as a passive final summary only.
+
+It must allow modelling of key levers.
+
+The user should be able to ask:
+
+If this changes, what happens?
+
+Examples:
+
+- supplier cost increases 5%
+- supplier cost reduces 1%
+- labour rate increases
+- productive hours increase
+- asset utilisation improves
+- overheads reduce
+- charge-out rate increases
+- material markup improves
+
+Business Outcome shows the effect on:
+
+- COG
+- gross margin
+- margin after labour
+- recovery gap
+- required rates
+- net position
+- quote checker targets
+
+---
+
+# 6. INPUTS FROM BUSINESS SUMMARY
+
+Business Outcome consumes:
+
+- total_revenue
+- total_cogs
+- margin_pool
+- gross_margin_percent
+- total_labour_cost
+- total_asset_cost
+- total_overheads
+- net_position
+- business_summary_status
+- business_summary_model_trust_state
+
+Business Summary provides current business result.
+
+Business Outcome explains it and models changes.
+
+---
+
+# 7. INPUTS FROM REVENUE REALITY
+
+Business Outcome consumes:
+
+- margin_after_labour
+- labour_consumption_of_margin_percent
+- labour_shortfall_against_margin
+- margin_surplus_after_labour
+- margin_after_labour_per_driver
+- revenue_reality_status
+- revenue_reality_model_trust_state
+
+Revenue Reality explains whether margin survives Labour.
+
+Business Outcome uses this to identify labour/margin pressure.
+
+---
+
+# 8. INPUTS FROM ASSET REALITY
+
+Business Outcome consumes:
+
+- weighted_required_asset_recovery_rate
+- highest_pressure_asset
+- lowest_utilisation_asset
+- asset_underutilisation_flags
+- asset_recovery_pressure_summary
+- asset_reality_status
+- asset_reality_model_trust_state
+
+Asset Reality explains asset pressure.
+
+Business Outcome uses this to model asset utilisation and recovery improvement.
+
+---
+
+# 9. INPUTS FROM COST ALLOCATION
+
+Business Outcome consumes:
+
+- working_groups
+- group_cost_stacks
+- unassigned_labour_cost
+- unassigned_asset_cost
+- unassigned_overhead_cost
+- allocation_reconciliation_checks
+- cost_allocation_status
+- cost_allocation_model_trust_state
+
+Cost Allocation explains operating structure.
+
+Business Outcome uses this as diagnostic evidence.
+
+Business Outcome must not mutate Cost Allocation.
+
+---
+
+# 10. INPUTS FROM RECOVERY SUMMARY
+
+Business Outcome consumes:
+
+- recovery_summary_status
+- overall_recovery_status
+- total_required_recovery_amount
+- total_recovered_cost
+- total_unrecovered_cost
+- overall_recovery_coverage_percent
+- group_recovery_rows
+- recovery warnings
+- recovery_summary_model_trust_state
+
+Recovery Summary explains whether structure recovers.
+
+Business Outcome uses this to identify recovery failure and required improvement.
+
+---
+
+# 11. INPUTS FROM RATE BUILDER
+
+Business Outcome consumes:
+
+- rate_builder_status
+- rate_builder_model_trust_state
+- rate_builder_rows
+- minimum_recoverable_rate by rate
+- fully_burdened_cost_rate by rate
+- suggested_sell_rate by rate
+- current rate
+- target rate
+- market rate where supplied
+- under-recovering rates
+- margin shortfall rates
+- selected components
+- rate warnings
+- quote checker handoff values
+
+Rate Builder explains what rates are required.
+
+Business Outcome uses those rates as the base for modelling and final target setting.
+
+---
+
+# 12. INPUTS FROM REVENUE / COGS
+
+Business Outcome consumes:
+
+- total_cogs
+- total_revenue
+- gross_margin_percent
+- margin_pool
+- supplier/category COG detail
+- top supplier spend
+- top category spend
+- blended material markup
+- COG reconciliation status
+- revenue_cogs_status
+- revenue_cogs_model_trust_state
+
+Revenue / COGS provides supplier and category detail.
+
+Business Outcome uses this for supplier/material modelling and sensitivity.
+
+---
+
+# 13. MATERIAL MARKUP RULE
+
+Business Outcome may calculate and display one blended material markup.
+
+There is one blended material markup at the model level.
+
+The system must not pretend there is a true supplier-level markup unless source data supports that.
+
+Supplier/category detail shows contribution to the blended markup result.
+
+It does not create a separate true markup per supplier.
+
+Correct interpretation:
+
+- material markup = one blended result
+- supplier spend = contribution / influence on that result
+- category spend = contribution / influence on that result
+
+---
+
+# 14. SUPPLIER / CATEGORY CONTRIBUTION RULE
+
+Business Outcome should show supplier/category influence.
+
+It may show:
+
+- supplier spend amount
+- supplier % of total COG
+- supplier % of selected category
+- category spend amount
+- category % of total COG
+- rank by spend
+- rank by sensitivity impact
+
+Purpose:
+
+Show which suppliers/categories move the business result the most.
+
+Example:
+
+Concrete purchases are $191,000.
+
+If this is a large share of total COG, small price movement has meaningful outcome impact.
+
+---
+
+# 15. SUPPLIER SENSITIVITY MODELLING
+
+Business Outcome must support supplier sensitivity modelling.
+
+User may model:
+
+- supplier cost increase %
+- supplier cost decrease %
+- category cost increase %
+- category cost decrease %
+- total COG increase %
+- total COG decrease %
+
+Example:
+
+Supplier cost reduction = 1%
+
+Model should calculate:
+
+- COG reduction
+- new total COG
+- new gross margin
+- new margin pool
+- new material markup
+- recovery pressure change
+- required rate impact
+- net position impact
+
+---
+
+# 16. SUPPLIER SENSITIVITY FORMULA
+
+For selected supplier:
+
+supplier_adjustment_amount =
+supplier_spend × adjustment_percent
+
+new_supplier_spend =
+supplier_spend + supplier_adjustment_amount
+
+new_total_cog =
+current_total_cog + supplier_adjustment_amount
+
+If adjustment_percent is negative:
+
+COG reduces.
+
+If adjustment_percent is positive:
+
+COG increases.
+
+new_margin_pool =
+total_revenue - new_total_cog
+
+new_gross_margin_percent =
+new_margin_pool / total_revenue
+
+Do not divide by zero.
+
+---
+
+# 17. CATEGORY SENSITIVITY FORMULA
+
+For selected COG category:
+
+category_adjustment_amount =
+category_spend × adjustment_percent
+
+new_total_cog =
+current_total_cog + category_adjustment_amount
+
+new_margin_pool =
+total_revenue - new_total_cog
+
+new_gross_margin_percent =
+new_margin_pool / total_revenue
+
+This allows modelling:
+
+- concrete purchases up/down
+- pumping up/down
+- subcontracting up/down
+- purchases other up/down
+
+---
+
+# 18. MATERIAL MARKUP SENSITIVITY
+
+Business Outcome may show:
+
+current_blended_material_markup
+
+modelled_blended_material_markup
+
+markup_change
+
+Because markup is blended, the modelled result should apply to the total COG / revenue relationship.
+
+Do not display false supplier-level markups.
+
+Display supplier impact as:
+
+- contribution to COG
+- contribution to markup movement
+- sensitivity impact
+
+---
+
+# 19. LABOUR SENSITIVITY MODELLING
+
+Business Outcome should support labour modelling.
+
+Possible inputs:
+
+- labour cost increase %
+- labour cost decrease %
+- productive hours increase %
+- productive hours decrease %
+- labour efficiency improvement %
+- selected rate increase %
+
+Outputs:
+
+- new labour cost
+- new cost per productive hour
+- new margin after labour
+- new recovery requirement
+- new required rate
+- net position impact
+
+Business Outcome does not rewrite Labour source data.
+
+It creates modelled scenario values.
+
+---
+
+# 20. ASSET SENSITIVITY MODELLING
+
+Business Outcome should support asset modelling.
+
+Possible inputs:
+
+- asset utilisation increase %
+- asset utilisation decrease %
+- asset cost increase %
+- asset cost decrease %
+- fuel/running cost increase %
+- fuel/running cost decrease %
+- selected asset recovery change
+
+Outputs:
+
+- new required asset recovery rate
+- asset pressure change
+- required rate change
+- net position impact
+
+Business Outcome does not rewrite Assets source data.
+
+It creates modelled scenario values.
+
+---
+
+# 21. OVERHEAD SENSITIVITY MODELLING
+
+Business Outcome should support overhead modelling.
+
+Possible inputs:
+
+- overhead increase %
+- overhead decrease %
+- selected overhead category adjustment
+- fixed overhead removal
+- added overhead burden
+
+Outputs:
+
+- new overhead pool
+- new recovery burden
+- new rate requirement
+- net position impact
+
+Business Outcome does not rewrite General Overheads source data.
+
+It creates modelled scenario values.
+
+---
+
+# 22. RATE SENSITIVITY MODELLING
+
+Business Outcome should support rate modelling.
+
+Inputs may include:
+
+- increase all rates %
+- increase selected rate %
+- target rate override
+- current rate comparison
+- margin target change
+- markup target change
+
+Outputs:
+
+- modelled revenue
+- modelled recovery
+- modelled margin
+- under-recovery resolved/not resolved
+- Quote Checker target rate
+
+Business Outcome does not rebuild rate formulas.
+
+It uses Rate Builder output as base.
+
+---
+
+# 23. MODELLED SCENARIO CONTRACT
+
+Business Outcome should expose:
+
+modelled_scenarios[]
+
+Each row:
+
+{
+  scenario_id,
+  scenario_name,
+  scenario_type,
+  adjustment_target,
+  adjustment_basis,
+  adjustment_percent,
+  adjustment_amount,
+  current_value,
+  modelled_value,
+  impact_on_cog,
+  impact_on_margin_pool,
+  impact_on_margin_after_labour,
+  impact_on_recovery_requirement,
+  impact_on_required_rate,
+  impact_on_net_position,
+  quote_checker_target_change,
+  status,
+  warnings
+}
+
+Allowed scenario_type values:
+
+supplier_cost
+category_cost
+total_cog
+labour_cost
+labour_efficiency
+asset_cost
+asset_utilisation
+overhead_cost
+rate_change
+combined
+
+---
+
+# 24. CURRENT VS MODELLED OUTCOME
+
+Business Outcome must show:
+
+Current Outcome:
+- current revenue
+- current COG
+- current margin pool
+- current labour burden
+- current asset burden
+- current overhead burden
+- current net position
+- current required rates
+
+Modelled Outcome:
+- modelled COG
+- modelled margin pool
+- modelled labour result
+- modelled asset result
+- modelled overhead result
+- modelled net position
+- modelled required rates
+
+Difference:
+- improvement / deterioration
+- rate change required
+- recovery gap change
+- quote checker target change
+
+---
+
+# 25. PROBLEM SOURCE CLASSIFICATION
+
+Business Outcome should classify the main pressure source.
+
+Allowed pressure_source values:
+
+- revenue_shortfall
+- cog_pressure
+- labour_pressure
+- asset_pressure
+- overhead_pressure
+- recovery_gap
+- rate_under_recovery
+- mixed_pressure
+- source_data_blocked
+- not_available
+
+This classification should be evidence-based.
+
+Do not guess.
+
+---
+
+# 26. DIAGNOSTIC STATEMENT RULE
+
+Business Outcome should create a clear diagnostic statement.
+
+Examples:
+
+COG pressure:
+Material / COG costs are compressing margin. Supplier/category spend shows where changes would move the result most.
+
+Labour pressure:
+Labour consumes too much of available margin. Required rates need to increase or productive recovery must improve.
+
+Asset pressure:
+Productive assets require higher recovery than current utilisation supports.
+
+Rate pressure:
+Current rates are below minimum recoverable rates.
+
+Mixed pressure:
+Multiple pressure points exist. Model each lever separately before relying on one fix.
+
+---
+
+# 27. BUSINESS OUTCOME STATUS VALUES
+
+Allowed business_outcome_status values:
+
+- ready
+- ready_with_warnings
+- review_required
+- blocked
+- preview_only
+- negative_outcome
+- modelled_improvement
+- not_ready
+
+Status rules:
+
+ready:
+Outcome is calculated and source trust is good.
+
+ready_with_warnings:
+Outcome is calculated but warnings remain.
+
+negative_outcome:
+Current model shows deficit or under-recovery but source data is trusted.
+
+modelled_improvement:
+A modelled scenario improves outcome.
+
+review_required:
+Inputs are valid but need review.
+
+blocked:
+Upstream source blocks trusted output.
+
+preview_only:
+Values display but are not trusted final output.
+
+not_ready:
+Required upstream values are missing.
+
+A negative outcome is not a data failure.
+
+---
+
+# 28. TRUST STATE
+
+Business Outcome must expose:
+
+business_outcome_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+If Model Readiness is blocked:
+business_outcome_model_trust_state = blocked
+
+If Cost Allocation / Recovery Summary / Rate Builder is blocked:
+business_outcome_model_trust_state = blocked
+
+If outcome is negative but source data is trusted:
+business_outcome_model_trust_state = warning
+
+If modelled scenario is preview-only:
+business_outcome_model_trust_state = preview_only
+
+If outcome is calculated and no warnings:
+business_outcome_model_trust_state = ready
+
+---
+
+# 29. OUTPUT CONTRACT
+
+Business Outcome should expose:
+
+{
+  business_outcome_ready,
+  business_outcome_status,
+  business_outcome_warnings,
+  business_outcome_warning_count,
+  business_outcome_model_trust_state,
+
+  current_outcome_summary,
+  modelled_outcome_summary,
+
+  pressure_source,
+  pressure_source_breakdown,
+
+  supplier_sensitivity_rows,
+  category_sensitivity_rows,
+  material_markup_context,
+
+  modelled_scenarios,
+
+  rate_impact_rows,
+  quote_checker_targets,
+
+  business_outcome_cards,
+  business_outcome_source_trace
+}
+
+---
+
+# 30. QUOTE CHECKER TARGETS
+
+Business Outcome must prepare targets for Quote Checker.
+
+quote_checker_targets should include:
+
+- approved minimum recoverable rates
+- approved suggested sell rates
+- required margin
+- required markup
+- material markup assumption
+- labour recovery assumption
+- asset recovery assumption
+- overhead recovery assumption
+- supplier / COG scenario assumptions if active
+- modelled target rates if scenario selected
+- source scenario ID
+- trust state
+
+Quote Checker uses these to test whether a quote aligns with the business model.
+
+---
+
+# 31. OUTPUT TO QUOTE CHECKER
+
+Quote Checker should receive:
+
+- quote_checker_targets
+- rate_builder_rows
+- selected modelled scenario
+- target rates
+- minimum recoverable rates
+- margin targets
+- COG assumptions
+- labour assumptions
+- asset assumptions
+- overhead assumptions
+- trust state
+- warning state
+
+Quote Checker must not recreate Business Outcome modelling.
+
+It consumes the selected targets.
+
+---
+
+# 32. UI STRUCTURE
+
+Recommended Business Outcome UI:
+
+1. Business Outcome Status Strip
+2. Current Outcome Summary
+3. Pressure Source Panel
+4. Rate Gap Panel
+5. Material Markup / Supplier Influence Panel
+6. Modelling Controls Panel
+7. Scenario Impact Panel
+8. Quote Checker Target Panel
+9. Source Trust / Warning Panel
+10. Help Panel
+
+---
+
+# 33. STATUS STRIP
+
+Show:
+
+- business_outcome_status
+- trust state
+- current net position
+- recovery gap
+- under-recovering rates count
+- modelled improvement / deterioration
+- warning count
+
+---
+
+# 34. CURRENT OUTCOME SUMMARY
+
+Show:
+
+- current revenue
+- current COG
+- current margin pool
+- current labour burden
+- current asset burden
+- current overhead burden
+- current net position
+- current required rates
+
+This is the “as-is” business result.
+
+---
+
+# 35. PRESSURE SOURCE PANEL
+
+Show which pressure source is driving the result:
+
+- COG
+- Labour
+- Assets
+- Overheads
+- Rates
+- Mixed
+
+Include short evidence.
+
+Example:
+
+COG pressure detected because material spend is compressing margin and concrete purchases are the largest contributor.
+
+---
+
+# 36. RATE GAP PANEL
+
+Show:
+
+- minimum recoverable rates
+- suggested rates
+- current rates
+- gap
+- under-recovering rates
+- margin shortfall rates
+
+This uses Rate Builder outputs.
+
+---
+
+# 37. MATERIAL MARKUP / SUPPLIER INFLUENCE PANEL
+
+Show:
+
+- blended material markup
+- total COG
+- top COG categories
+- top suppliers
+- contribution to total COG
+- sensitivity impact
+
+Important:
+
+Do not show fake supplier-level markup.
+
+Show supplier/category contribution to the blended result.
+
+---
+
+# 38. MODELLING CONTROLS PANEL
+
+Allow controlled modelling inputs:
+
+- supplier/category cost change %
+- total COG change %
+- labour cost / productivity change %
+- asset utilisation / cost change %
+- overhead change %
+- selected rate change %
+- combined scenario
+
+This is the first place where the user changes scenario values.
+
+These changes do not mutate upstream modules.
+
+---
+
+# 39. SCENARIO IMPACT PANEL
+
+Show:
+
+- current vs modelled COG
+- current vs modelled margin
+- current vs modelled recovery gap
+- current vs modelled required rate
+- current vs modelled net position
+- improvement / deterioration
+
+This panel must make the onflow effect obvious.
+
+---
+
+# 40. QUOTE CHECKER TARGET PANEL
+
+Show:
+
+- selected target rates
+- minimum recoverable rates
+- margin targets
+- modelling assumptions
+- whether targets are ready for Quote Checker
+
+Example:
+
+This model assumes concrete costs reduce by 1% and digger rate increases to $X/hr. Quote Checker will use these targets when validating future quotes.
+
+---
+
+# 41. SOURCE TRUST / WARNING PANEL
+
+Show:
+
+- Model Readiness status
+- Cost Allocation status
+- Recovery Summary status
+- Rate Builder status
+- Revenue / COGS status
+- blocking warnings
+- non-blocking warnings
+
+Warnings must not be hidden behind only a count.
+
+---
+
+# 42. HELP PANEL
+
+Explain:
+
+- Business Outcome shows the result
+- Business Outcome is also the first modelling layer
+- modelling changes do not alter source modules
+- supplier/category modelling shows sensitivity
+- material markup is blended, not supplier-specific
+- Rate Builder supplies rates
+- Quote Checker later enforces selected targets
+
+---
+
+# 43. WHAT TO KEEP OUT
+
+Keep out:
+
+- P&L import editing
+- Revenue / COG categorisation editing
+- Labour source editing
+- Asset source editing
+- Overhead source editing
+- Cost Allocation group editing
+- Recovery Summary test editing
+- Rate Builder component building
+- Quote-level checking
+
+Those belong elsewhere.
+
+---
+
+# 44. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useBusinessOutcome.js
+lib/calculations/businessOutcomeCalculations.js
+lib/selectors/businessOutcomeSelectors.js
+components/business-outcome/*.jsx
+app/business-outcome/page.jsx
+
+Possible related files:
+
+hooks/useRateBuilder.js
+hooks/useRecoverySummary.js
+hooks/useCostAllocation.js
+hooks/useRevenueCogs.js
+hooks/useBusinessSummary.js
+
+Future downstream:
+
+hooks/useQuoteChecker.js
+components/quote-checker/*.jsx
+app/quote-checker/page.jsx
+
+---
+
+# 45. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Business Summary output.
+2. Consume Revenue Reality output.
+3. Consume Asset Reality output.
+4. Consume Cost Allocation output.
+5. Consume Recovery Summary output.
+6. Consume Rate Builder output.
+7. Consume Revenue / COG supplier/category detail.
+8. Calculate current outcome summary.
+9. Classify pressure source.
+10. Calculate blended material markup context.
+11. Build supplier/category contribution rows.
+12. Add supplier/category sensitivity modelling.
+13. Add labour sensitivity modelling.
+14. Add asset sensitivity modelling.
+15. Add overhead sensitivity modelling.
+16. Add rate sensitivity modelling.
+17. Compare current vs modelled outcome.
+18. Create Quote Checker target contract.
+19. Do not mutate upstream source data.
+20. Do not rebuild Rate Builder rates.
+21. Add warnings and trust state.
+22. Run build.
+
+---
+
+# 46. ACCEPTANCE CRITERIA
+
+Business Outcome v4.0 is accepted when:
+
+1. It consumes all upstream outcomes.
+2. It explains the current result.
+3. It classifies pressure source.
+4. It shows rate gaps from Rate Builder.
+5. It shows blended material markup.
+6. It does not show fake supplier-level markups.
+7. It shows supplier/category contribution.
+8. It models supplier/category price changes.
+9. It models labour changes.
+10. It models asset utilisation/cost changes.
+11. It models overhead changes.
+12. It models rate changes.
+13. It shows current vs modelled outcome.
+14. It shows impact on COG.
+15. It shows impact on margin.
+16. It shows impact on recovery.
+17. It shows impact on required rates.
+18. It shows impact on net position.
+19. It prepares Quote Checker targets.
+20. It does not mutate source modules.
+21. It does not rebuild Rate Builder rates.
+22. It does not edit Cost Allocation.
+23. It exposes warnings and trust state.
+24. Build passes.
+
+---
+
+# 47. FINAL PRINCIPLE
+
+Business Outcome is where the system becomes actionable.
+
+It shows:
+
+what is happening
+why it is happening
+what levers can change it
+what targets should be used next
+
+It is the first modelling layer.
+
+It connects:
+
+supplier pressure
+material markup
+labour pressure
+asset utilisation
+overheads
+rates
+net position
+
+Then it hands the selected targets to Quote Checker.
+
+No source mutation.
+No fake supplier markups.
+No hidden pressure.
+No untraceable modelling.
+No quote checking here.
+No leaks.

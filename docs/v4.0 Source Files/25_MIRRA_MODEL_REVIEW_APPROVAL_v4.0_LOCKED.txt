@@ -1,0 +1,1023 @@
+# Mirra — Model Review / Approval Brief
+
+## v4.0 — CONTROLLED MODEL UPDATES, APPROVAL WORKFLOW, RATE REVIEW, SCENARIO ACCEPTANCE, SOURCE TRACE, AND NO-SILENT-CHANGE BOUNDARY
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 25
+
+REPLACES:
+- older assumptions that feedback automatically updates rates
+- older assumptions that model changes can be applied without review
+- older logic where actual job feedback silently changes future assumptions
+- older logic with no approval workflow between feedback and model updates
+- older logic that does not preserve prior approved model versions
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Model Review / Approval is the controlled change layer. It lets the user review feedback, accept or reject model changes, approve new target rates or assumptions, and create a new approved model version. It never silently changes source modules or approved rates.
+
+---
+
+# 1. PURPOSE
+
+Model Review / Approval answers:
+
+Which feedback signals should change the model?
+Which rate reviews should be accepted?
+Which supplier assumptions should be modelled or approved?
+Which labour productivity assumptions need review?
+Which asset utilisation assumptions need review?
+Which Business Outcome scenario should become the approved target?
+Which Rate Builder rates should become approved rates?
+What model version should Quote Checker use next?
+
+This layer converts feedback into approved model changes.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Main model flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Operational feedback flow:
+
+SOQ / Job / PO Layer
+↓
+Job Costing / Profitability
+↓
+Model Feedback Loop
+↓
+Model Review / Approval
+↓
+Approved Model Version
+↓
+Rate Builder / Business Outcome / Quote Checker
+
+Model Feedback creates signals.
+
+Model Review approves changes.
+
+---
+
+# 3. CORE PRINCIPLE
+
+No model value changes without approval.
+
+Feedback is evidence.
+
+Approval is decision.
+
+A rate review signal does not become a new rate until approved.
+
+A supplier pressure signal does not become a new assumption until approved.
+
+A Business Outcome scenario does not become the target model until approved.
+
+Quote Checker must use approved targets only.
+
+---
+
+# 4. MODULE ROLE
+
+Model Review / Approval owns:
+
+- feedback review queue
+- approval workflow
+- reject / defer / accept decisions
+- approved model version creation
+- approved rate set creation
+- approved scenario selection
+- approved quote checker target set
+- decision notes
+- reviewer identity where available
+- effective date
+- rollback reference
+- model version status
+- approval warnings
+- approval trust state
+
+Model Review / Approval does not own:
+
+- original P&L source values
+- raw Revenue / COG values
+- Labour source calculations
+- Asset source calculations
+- General Overheads source values
+- Cost Allocation assignments
+- Recovery Summary tests
+- Rate Builder calculations
+- Business Outcome scenario calculations
+- Quote Checker checks
+- Job Costing actuals
+- Model Feedback signal generation
+
+---
+
+# 5. INPUTS FROM MODEL FEEDBACK LOOP
+
+Model Review consumes:
+
+- feedback_signal_rows
+- rate_review_signal_rows
+- supplier_feedback_rows
+- material_category_feedback_rows
+- labour_feedback_rows
+- asset_feedback_rows
+- overhead_feedback_rows
+- quote_alignment_feedback_rows
+- positive_feedback_rows
+- repeated_issue_rows
+- data_quality_feedback_rows
+- model_update_recommendation_rows
+- rate_review_handoff_rows
+- business_outcome_handoff_rows
+- model_feedback_status
+- model_feedback_trust_state
+
+Model Feedback provides recommendations.
+
+Model Review decides whether to accept them.
+
+---
+
+# 6. INPUTS FROM RATE BUILDER
+
+Model Review consumes:
+
+- rate_builder_rows
+- current approved rates
+- minimum recoverable rates
+- suggested sell rates
+- under-recovering rates
+- margin shortfall rates
+- rate_builder_model_trust_state
+
+Rate Builder provides candidate rates.
+
+Model Review may approve a rate set.
+
+Model Review must not rebuild rates.
+
+---
+
+# 7. INPUTS FROM BUSINESS OUTCOME
+
+Model Review consumes:
+
+- current outcome summary
+- modelled outcome summary
+- modelled_scenarios
+- selected scenario
+- supplier sensitivity rows
+- category sensitivity rows
+- rate impact rows
+- quote checker targets
+- business_outcome_model_trust_state
+
+Business Outcome provides modelled fixes.
+
+Model Review may approve one scenario as the active target.
+
+---
+
+# 8. INPUTS FROM QUOTE CHECKER
+
+Model Review may consume:
+
+- quote_checker_targets
+- quote_checker_status
+- quote line failures
+- quote alignment results
+
+Purpose:
+
+Check whether existing approved targets are producing quote failures or require review.
+
+---
+
+# 9. APPROVAL ITEM TYPES
+
+Allowed approval_item_type values:
+
+- rate_update
+- scenario_approval
+- supplier_assumption
+- category_assumption
+- labour_assumption
+- asset_assumption
+- overhead_assumption
+- quote_checker_target_set
+- data_quality_fix_required
+- model_version_release
+- rollback
+- no_action
+
+---
+
+# 10. APPROVAL STATUS VALUES
+
+Allowed approval_status values:
+
+- pending_review
+- approved
+- rejected
+- deferred
+- requires_more_data
+- applied
+- rolled_back
+- blocked
+
+Definitions:
+
+pending_review:
+Item awaits decision.
+
+approved:
+User approved item.
+
+rejected:
+User rejected item.
+
+deferred:
+Valid item, not actioned yet.
+
+requires_more_data:
+More jobs or cleaner data required.
+
+applied:
+Approved item has been applied to a new model version or target set.
+
+rolled_back:
+Previously approved item was reversed.
+
+blocked:
+Item cannot be approved due to source trust issue.
+
+---
+
+# 11. REVIEW QUEUE CONTRACT
+
+model_review_queue_rows[]
+
+Each row:
+
+{
+  review_item_id,
+  approval_item_type,
+  source_feedback_signal_id,
+  source_module,
+  affected_module,
+  affected_variable,
+  current_value,
+  proposed_value,
+  proposed_change_amount,
+  proposed_change_percent,
+  evidence_count,
+  jobs_affected_count,
+  total_value_affected,
+  confidence_level,
+  approval_status,
+  recommended_action,
+  reviewer_notes,
+  source_trace,
+  warnings
+}
+
+---
+
+# 12. RATE APPROVAL CONTRACT
+
+approved_rate_set_rows[]
+
+Each row:
+
+{
+  approved_rate_set_id,
+  rate_id,
+  rate_name,
+  rate_type,
+  previous_minimum_recoverable_rate,
+  approved_minimum_recoverable_rate,
+  previous_suggested_sell_rate,
+  approved_suggested_sell_rate,
+  margin_method,
+  approved_margin_percent,
+  approved_markup_percent,
+  effective_from,
+  source_rate_builder_row_id,
+  source_feedback_signal_ids,
+  approval_status,
+  notes
+}
+
+Rules:
+
+- approved rates must come from Rate Builder.
+- approved changes must preserve previous values.
+- approved rates must have effective date.
+- no rate is overwritten without history.
+
+---
+
+# 13. SCENARIO APPROVAL CONTRACT
+
+approved_scenario_rows[]
+
+Each row:
+
+{
+  approved_scenario_id,
+  scenario_name,
+  scenario_type,
+  source_business_outcome_scenario_id,
+  adjustment_summary,
+  current_outcome,
+  approved_modelled_outcome,
+  net_position_change,
+  recovery_gap_change,
+  rate_impact_summary,
+  effective_from,
+  approval_status,
+  notes
+}
+
+Rules:
+
+- scenario must come from Business Outcome.
+- approved scenario becomes available to Quote Checker targets.
+- source scenario must remain traceable.
+
+---
+
+# 14. QUOTE CHECKER TARGET SET CONTRACT
+
+quote_checker_target_sets[]
+
+Each row:
+
+{
+  target_set_id,
+  target_set_name,
+  approved_model_version_id,
+  approved_rate_set_id,
+  approved_scenario_id,
+  minimum_recoverable_rates,
+  suggested_sell_rates,
+  required_margin,
+  required_markup,
+  material_markup_assumption,
+  labour_recovery_assumption,
+  asset_recovery_assumption,
+  overhead_recovery_assumption,
+  supplier_assumptions,
+  category_assumptions,
+  effective_from,
+  target_set_status,
+  source_trace
+}
+
+Quote Checker must use approved target sets.
+
+---
+
+# 15. MODEL VERSION CONTRACT
+
+approved_model_versions[]
+
+Each row:
+
+{
+  approved_model_version_id,
+  version_label,
+  version_number,
+  created_at,
+  effective_from,
+  source_business_outcome_id,
+  source_rate_builder_id,
+  source_feedback_batch_id,
+  approved_rate_set_id,
+  approved_scenario_id,
+  quote_checker_target_set_id,
+  model_version_status,
+  reviewer_notes,
+  rollback_to_version_id,
+  source_trace
+}
+
+Allowed model_version_status values:
+
+- draft
+- pending_review
+- approved
+- active
+- archived
+- rolled_back
+- blocked
+
+Only one model version should be active at a time unless multi-scenario mode is later supported.
+
+---
+
+# 16. APPROVAL DECISION RULE
+
+Every approval item must have a decision.
+
+Allowed decisions:
+
+- approve
+- reject
+- defer
+- request_more_data
+- mark_as_one_off
+- send_to_data_quality
+- create_rate_review
+- create_business_outcome_scenario
+- create_quote_checker_target
+
+No silent approval.
+
+No automatic approval from feedback alone.
+
+---
+
+# 17. EFFECTIVE DATE RULE
+
+Approved changes must have an effective date.
+
+Effective date controls:
+
+- which Quote Checker target applies
+- which rate set applies
+- which Business Outcome scenario applies
+- which future jobs are checked against the new model
+
+Past quotes and jobs must preserve the model version they were checked against.
+
+---
+
+# 18. ROLLBACK RULE
+
+Model Review must support rollback.
+
+Rollback should preserve:
+
+- old approved model version
+- new approved model version
+- rollback reason
+- rollback date
+- affected targets
+- source trace
+
+Rollback must not delete history.
+
+It should create a new active version pointing back to the prior approved state.
+
+---
+
+# 19. AUDIT TRAIL RULE
+
+Every approved, rejected, deferred, or rolled-back decision must be auditable.
+
+Audit trail should include:
+
+- review_item_id
+- decision
+- decision_date
+- reviewer
+- source evidence
+- current value
+- proposed value
+- approved value
+- notes
+
+No model change without audit trail.
+
+---
+
+# 20. DATA QUALITY BLOCK RULE
+
+If feedback is data-quality related, it should not directly update the model.
+
+Examples:
+
+- unmapped invoice
+- missing quantity
+- missing labour hours
+- duplicate cost
+- unmatched quote line
+
+These should create:
+
+data_quality_fix_required
+
+They must not create approved rate or scenario changes until resolved.
+
+---
+
+# 21. ONE-OFF EXCEPTION RULE
+
+The user may mark feedback as one-off.
+
+Examples:
+
+- bad weather
+- unusual site condition
+- customer scope change
+- staff absence
+- supplier mistake
+- one-off rework
+
+One-off feedback should remain in history but not drive model changes unless repeated later.
+
+---
+
+# 22. REPEATED ISSUE ESCALATION RULE
+
+Repeated issues should be prioritised.
+
+If a feedback signal repeats across multiple jobs, the review queue should elevate:
+
+- severity
+- confidence
+- review priority
+
+Repeated issue threshold should default to 3 jobs unless later configured.
+
+---
+
+# 23. POSITIVE SIGNAL APPROVAL RULE
+
+Positive feedback can also support approval.
+
+Examples:
+
+- rate consistently exceeds target
+- supplier consistently under allowance
+- labour productivity better than model
+- asset recovery above target
+
+Positive feedback may support:
+
+- model confidence
+- no change decision
+- optional target tightening
+
+Do not ignore positive evidence.
+
+---
+
+# 24. APPROVAL WARNING IDS
+
+Required warning IDs:
+
+model_review_missing_feedback
+model_review_missing_rate_builder
+model_review_missing_business_outcome
+model_review_low_confidence
+model_review_data_quality_block
+model_review_missing_effective_date
+model_review_no_active_target_set
+model_review_duplicate_active_version
+model_review_pending_items
+model_review_rollback_available
+model_review_source_trace_missing
+model_review_upstream_blocked
+
+---
+
+# 25. OUTPUT CONTRACT
+
+Model Review / Approval should expose:
+
+{
+  model_review_ready,
+  model_review_status,
+  model_review_warnings,
+  model_review_warning_count,
+  model_review_trust_state,
+
+  model_review_queue_rows,
+
+  approved_rate_set_rows,
+  approved_scenario_rows,
+  quote_checker_target_sets,
+  approved_model_versions,
+
+  active_model_version,
+  active_quote_checker_target_set,
+
+  approval_audit_trail_rows,
+
+  deferred_review_items,
+  rejected_review_items,
+  blocked_review_items,
+
+  model_review_cards,
+  model_review_source_trace
+}
+
+---
+
+# 26. STATUS VALUES
+
+Allowed model_review_status values:
+
+- ready
+- ready_with_warnings
+- pending_review
+- approved
+- active
+- blocked
+- preview_only
+- not_ready
+
+Definitions:
+
+ready:
+Review queue is available and no blocking source issue exists.
+
+ready_with_warnings:
+Review available but warnings remain.
+
+pending_review:
+Items require decision.
+
+approved:
+A model version or target set has been approved.
+
+active:
+An approved model version is active.
+
+blocked:
+Approval cannot proceed due to source trust or missing required values.
+
+preview_only:
+Review values display but should not be applied.
+
+not_ready:
+No feedback or candidate model exists.
+
+---
+
+# 27. TRUST STATE
+
+Model Review must expose:
+
+model_review_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If feedback source is blocked:
+model_review_trust_state = blocked
+
+If Rate Builder or Business Outcome is blocked:
+model_review_trust_state = blocked
+
+If pending review items exist:
+model_review_trust_state = warning
+
+If active model version exists and sources are trusted:
+model_review_trust_state = ready
+
+If values are preview-only:
+model_review_trust_state = preview_only
+
+---
+
+# 28. UI STRUCTURE
+
+Recommended UI:
+
+1. Model Review Status Strip
+2. Pending Review Queue
+3. Rate Approval Panel
+4. Business Outcome Scenario Approval Panel
+5. Quote Checker Target Set Panel
+6. Active Model Version Panel
+7. Decision History / Audit Trail Panel
+8. Rollback Panel
+9. Data Quality Blocks Panel
+10. Help Panel
+
+---
+
+# 29. STATUS STRIP
+
+Show:
+
+- model_review_status
+- trust state
+- pending items
+- approved items
+- active model version
+- active target set
+- blocked items
+- warning count
+
+---
+
+# 30. PENDING REVIEW QUEUE
+
+Show each pending item:
+
+- issue
+- source
+- evidence count
+- financial impact
+- current value
+- proposed value
+- confidence
+- recommended action
+
+Allow:
+
+- approve
+- reject
+- defer
+- request more data
+- mark one-off
+
+---
+
+# 31. RATE APPROVAL PANEL
+
+Show:
+
+- current approved rate
+- proposed rate
+- evidence
+- jobs affected
+- impact
+- effective date
+- approval action
+
+No rate should update without explicit approval.
+
+---
+
+# 32. SCENARIO APPROVAL PANEL
+
+Show:
+
+- current business outcome
+- modelled outcome
+- selected scenario
+- impact on margin
+- impact on recovery
+- impact on rates
+- whether to approve as target
+
+---
+
+# 33. QUOTE CHECKER TARGET SET PANEL
+
+Show:
+
+- approved rates
+- approved scenario
+- minimum recoverable rates
+- suggested sell rates
+- margin targets
+- model assumptions
+- target status
+
+This is what Quote Checker will enforce.
+
+---
+
+# 34. ACTIVE MODEL VERSION PANEL
+
+Show:
+
+- active model version
+- effective date
+- approved rate set
+- approved scenario
+- target set
+- source trace
+- notes
+
+---
+
+# 35. AUDIT TRAIL PANEL
+
+Show:
+
+- decisions made
+- when
+- by whom if available
+- evidence
+- prior value
+- approved value
+- notes
+
+---
+
+# 36. ROLLBACK PANEL
+
+Allow rollback to prior approved version.
+
+Show:
+
+- prior versions
+- active version
+- rollback impact
+- rollback reason
+
+Rollback must create history, not delete history.
+
+---
+
+# 37. DATA QUALITY BLOCKS PANEL
+
+Show items that cannot be approved because source data is unreliable.
+
+Examples:
+
+- missing actuals
+- unmapped supplier
+- missing quantity
+- unmatched quote line
+
+These must be fixed upstream.
+
+---
+
+# 38. HELP PANEL
+
+Explain:
+
+- feedback is not automatically applied
+- approval creates a new model version
+- Quote Checker uses approved targets
+- source history is preserved
+- rollback is available
+- data quality issues must be fixed before approval
+
+---
+
+# 39. WHAT TO KEEP OUT
+
+Keep out:
+
+- source P&L editing
+- direct Labour editing
+- direct Asset editing
+- Cost Allocation editing
+- Recovery Summary editing
+- Rate Builder formula editing
+- Business Outcome scenario creation calculations
+- Quote Checker line checking
+- Job Costing calculations
+
+Model Review approves changes.
+
+It does not create the underlying calculations.
+
+---
+
+# 40. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useModelReview.js
+lib/calculations/modelReviewCalculations.js
+lib/selectors/modelReviewSelectors.js
+components/model-review/*.jsx
+app/model-review/page.jsx
+
+Possible related files:
+
+hooks/useModelFeedback.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+hooks/useQuoteChecker.js
+
+Future storage:
+
+model version storage
+approval audit storage
+target set storage
+rollback storage
+
+---
+
+# 41. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Model Feedback outputs.
+2. Consume Rate Builder candidate rates.
+3. Consume Business Outcome scenarios.
+4. Create review queue.
+5. Add approval decisions.
+6. Add rejected / deferred / more-data decisions.
+7. Create approved rate sets.
+8. Create approved scenario rows.
+9. Create quote checker target sets.
+10. Create model version rows.
+11. Add active version handling.
+12. Add effective date handling.
+13. Add rollback support.
+14. Add audit trail.
+15. Block data quality items from direct approval.
+16. Preserve source trace.
+17. Do not mutate upstream source modules.
+18. Add warnings and trust state.
+19. Run build.
+
+---
+
+# 42. ACCEPTANCE CRITERIA
+
+Model Review / Approval v4.0 is accepted when:
+
+1. It consumes Model Feedback outputs.
+2. It consumes Rate Builder rows.
+3. It consumes Business Outcome scenarios.
+4. It creates a review queue.
+5. It supports approve / reject / defer / request-more-data decisions.
+6. It requires explicit approval before model changes.
+7. It creates approved rate sets.
+8. It creates approved scenario rows.
+9. It creates Quote Checker target sets.
+10. It creates approved model versions.
+11. It supports effective dates.
+12. It preserves previous approved values.
+13. It supports rollback.
+14. It records audit trail.
+15. It blocks data quality items from becoming model updates.
+16. It allows one-off exceptions.
+17. It does not silently mutate source modules.
+18. It exposes warnings and trust state.
+19. Build passes.
+
+---
+
+# 43. FINAL PRINCIPLE
+
+Model Review / Approval is the control layer.
+
+It turns feedback into approved model changes only after review.
+
+It protects:
+
+source truth
+approved rates
+business outcome targets
+quote checker assumptions
+model version history
+
+It allows improvement without silent mutation.
+
+No automatic overwrites.
+No hidden approvals.
+No lost history.
+No source mutation.
+No untraceable target changes.
+No leaks.
