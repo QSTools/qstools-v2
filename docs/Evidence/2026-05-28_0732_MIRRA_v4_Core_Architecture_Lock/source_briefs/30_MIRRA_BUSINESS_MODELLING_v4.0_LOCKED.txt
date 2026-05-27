@@ -1,0 +1,1229 @@
+# Mirra — Business Modelling Brief
+
+## v4.0 — TARGET MODEL CREATION, SCENARIO LEVERS, SUPPLIER / MATERIAL SENSITIVITY, RATE TARGET SELECTION, AND QUOTE CHECKER BRIDGE
+
+STATUS: ACTIVE / BRIDGE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 30
+
+REPLACES:
+- older assumptions that Business Outcome directly feeds Quote Checker
+- older assumptions that Business Outcome is the modelling page
+- older assumptions that Quote Checker consumes unapproved or unstructured scenario values
+- older logic where modelling changes are mixed into Rate Builder
+- older logic where supplier/material sensitivity has no target handoff
+- older logic where quote checking has no selected business model target
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Business Modelling is the bridge between Business Outcome and Quote Checker. It turns diagnosed business problems into selected target assumptions, modelled rates, recovery targets, and quote-checking rules. It does not create source truth, rebuild source modules, or check quotes.
+
+---
+
+# 1. PURPOSE
+
+Business Modelling answers:
+
+What are we going to change?
+What target model should the business use?
+Which rate changes are required?
+Which supplier/category assumptions are being modelled?
+Which labour productivity assumptions are being modelled?
+Which asset utilisation assumptions are being modelled?
+Which overhead assumptions are being modelled?
+What is the expected result if those changes are applied?
+What targets should Quote Checker enforce?
+
+Business Outcome says:
+
+This is the problem.
+
+Business Modelling says:
+
+This is the selected fix.
+
+Quote Checker says:
+
+Does this quote follow the selected fix?
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Correct active flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Checker
+
+Business Modelling sits after Business Outcome and before Quote Checker.
+
+It is the decision bridge.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Business Modelling is not source editing.
+
+It creates modelled assumptions.
+
+It must never silently mutate:
+
+- P&L source values
+- Revenue / COG source values
+- Labour source values
+- Asset source values
+- General Overheads values
+- Cost Allocation assignments
+- Recovery Summary results
+- Rate Builder source rates
+
+It creates:
+
+- scenario values
+- target model values
+- quote checker targets
+- selected assumptions
+
+---
+
+# 4. MODULE ROLE
+
+Business Modelling owns:
+
+- scenario creation
+- selected target model
+- supplier cost sensitivity
+- category cost sensitivity
+- total COG sensitivity
+- labour cost / productivity sensitivity
+- asset cost / utilisation sensitivity
+- overhead sensitivity
+- rate target sensitivity
+- combined scenario modelling
+- current vs modelled comparison
+- modelled recovery gap
+- modelled margin result
+- modelled rate impact
+- selected quote checker target set
+- scenario warnings
+- modelling trust state
+
+Business Modelling does not own:
+
+- source imports
+- Revenue / COG categorisation
+- Labour source calculations
+- Assets source calculations
+- General Overheads source calculations
+- Cost Allocation assignments
+- Recovery Summary recovery tests
+- Rate Builder rate construction formulas
+- Business Outcome diagnosis
+- Quote Checker validation
+- Job Costing actuals
+
+---
+
+# 5. RELATIONSHIP TO BUSINESS OUTCOME
+
+Business Outcome diagnoses.
+
+Business Modelling acts on that diagnosis.
+
+Business Outcome should provide:
+
+- pressure source
+- current net position
+- current recovery gap
+- current rate gap
+- current material markup context
+- supplier/category influence
+- labour pressure
+- asset pressure
+- overhead pressure
+- rate pressure
+
+Business Modelling consumes those and lets the user test:
+
+- supplier cost changes
+- category cost changes
+- rate changes
+- labour productivity changes
+- asset utilisation changes
+- overhead changes
+
+Business Outcome should not become overloaded with modelling controls.
+
+---
+
+# 6. RELATIONSHIP TO RATE BUILDER
+
+Rate Builder creates base rates.
+
+Business Modelling may adjust or target those rates.
+
+Example:
+
+Rate Builder says:
+
+Digger + Operator minimum recoverable rate = $105/hr
+Suggested sell rate = $120/hr
+
+Business Modelling may test:
+
+- increase current rate to $125/hr
+- increase all labour rates by 5%
+- increase selected asset/operator rate
+- accept Rate Builder suggested rates
+- set a custom target rate
+
+Business Modelling must not rebuild the rate component formula.
+
+It uses Rate Builder outputs as the base.
+
+---
+
+# 7. RELATIONSHIP TO QUOTE CHECKER
+
+Quote Checker consumes the selected Business Modelling target.
+
+Business Modelling must output:
+
+- selected target rates
+- minimum recoverable rates
+- suggested sell rates
+- selected margin / markup assumptions
+- supplier/category assumptions
+- labour assumptions
+- asset assumptions
+- overhead assumptions
+- scenario ID
+- target model ID
+- trust state
+
+Quote Checker does not decide the target.
+
+It checks quotes against the target.
+
+---
+
+# 8. INPUTS FROM BUSINESS OUTCOME
+
+Business Modelling consumes:
+
+- business_outcome_status
+- business_outcome_model_trust_state
+- current_outcome_summary
+- pressure_source
+- pressure_source_breakdown
+- material_markup_context
+- supplier_sensitivity_rows
+- category_sensitivity_rows
+- rate_impact_rows
+- business_outcome_cards
+- business_outcome_source_trace
+
+Business Outcome provides the diagnosed current state.
+
+Business Modelling creates modelled future / target state.
+
+---
+
+# 9. INPUTS FROM RATE BUILDER
+
+Business Modelling consumes:
+
+- rate_builder_status
+- rate_builder_model_trust_state
+- rate_builder_rows
+- minimum_recoverable_rate by rate
+- fully_burdened_cost_rate by rate
+- suggested_sell_rate by rate
+- current rate
+- target rate
+- market rate where supplied
+- under-recovering rates
+- margin shortfall rates
+- selected components
+- quote checker handoff values
+
+Rate Builder provides rate facts.
+
+Business Modelling decides selected target rates.
+
+---
+
+# 10. INPUTS FROM RECOVERY SUMMARY
+
+Business Modelling consumes:
+
+- total_required_recovery_amount
+- total_recovered_cost
+- total_unrecovered_cost
+- overall_recovery_coverage_percent
+- group_recovery_rows
+- recovery_summary_status
+- recovery_summary_model_trust_state
+
+Recovery Summary provides recovery gap evidence.
+
+Business Modelling models whether selected changes close that gap.
+
+---
+
+# 11. INPUTS FROM REVENUE / COGS
+
+Business Modelling consumes:
+
+- total_revenue
+- total_cogs
+- gross_margin_percent
+- margin_pool
+- supplier/category COG detail
+- top supplier spend
+- top category spend
+- blended material markup
+- revenue_cogs_status
+- revenue_cogs_model_trust_state
+
+Revenue / COGS provides supplier/category detail for sensitivity modelling.
+
+---
+
+# 12. INPUTS FROM REVENUE REALITY
+
+Business Modelling consumes:
+
+- margin_after_labour
+- labour_consumption_of_margin_percent
+- labour_shortfall_against_margin
+- margin_surplus_after_labour
+- revenue_reality_status
+- revenue_reality_model_trust_state
+
+Revenue Reality provides labour/margin pressure.
+
+Business Modelling shows whether scenario changes improve that pressure.
+
+---
+
+# 13. INPUTS FROM ASSET REALITY
+
+Business Modelling consumes:
+
+- weighted_required_asset_recovery_rate
+- highest_pressure_asset
+- lowest_utilisation_asset
+- asset_underutilisation_flags
+- asset_recovery_pressure_summary
+- asset_reality_status
+- asset_reality_model_trust_state
+
+Asset Reality provides asset pressure.
+
+Business Modelling models utilisation or cost changes.
+
+---
+
+# 14. SCENARIO TYPES
+
+Allowed scenario_type values:
+
+- supplier_cost_change
+- category_cost_change
+- total_cog_change
+- labour_cost_change
+- labour_productivity_change
+- asset_cost_change
+- asset_utilisation_change
+- overhead_cost_change
+- selected_rate_change
+- all_rates_change
+- margin_target_change
+- markup_target_change
+- combined_scenario
+
+---
+
+# 15. SUPPLIER / CATEGORY MODELLING
+
+Business Modelling must support supplier and category cost adjustments.
+
+Examples:
+
+- Allied Concrete cost down 1%
+- Firth Concrete cost up 5%
+- Concrete purchases down 2%
+- Purchases other cleaned/reduced 3%
+- total COG up 5%
+
+Outputs:
+
+- modelled supplier spend
+- modelled category spend
+- modelled total COG
+- modelled margin pool
+- modelled material markup
+- modelled recovery gap
+- modelled rate impact
+- modelled net position
+
+---
+
+# 16. SUPPLIER MODELLING FORMULA
+
+supplier_adjustment_amount =
+supplier_spend × adjustment_percent
+
+modelled_supplier_spend =
+supplier_spend + supplier_adjustment_amount
+
+modelled_total_cog =
+current_total_cog + supplier_adjustment_amount
+
+modelled_margin_pool =
+total_revenue - modelled_total_cog
+
+modelled_gross_margin_percent =
+modelled_margin_pool / total_revenue
+
+If total_revenue = 0:
+
+modelled_gross_margin_percent = 0
+status = review_required or blocked
+
+Negative adjustment percent means supplier cost reduction.
+
+Positive adjustment percent means supplier cost increase.
+
+---
+
+# 17. CATEGORY MODELLING FORMULA
+
+category_adjustment_amount =
+category_spend × adjustment_percent
+
+modelled_total_cog =
+current_total_cog + category_adjustment_amount
+
+modelled_margin_pool =
+total_revenue - modelled_total_cog
+
+modelled_gross_margin_percent =
+modelled_margin_pool / total_revenue
+
+This shows the effect of category-level movement.
+
+---
+
+# 18. MATERIAL MARKUP MODELLING RULE
+
+Business Modelling may show:
+
+- current blended material markup
+- modelled blended material markup
+- markup change
+- COG impact
+- margin impact
+
+It must not create fake supplier-level markup.
+
+Supplier/category rows show contribution to the blended result.
+
+There is one blended material markup.
+
+---
+
+# 19. RATE MODELLING
+
+Business Modelling must allow rate target modelling.
+
+Examples:
+
+- accept all Rate Builder suggested rates
+- increase selected rate by 5%
+- increase all rates by 3%
+- set digger + operator target to $125/hr
+- set labourer target to $70/hr
+
+Outputs:
+
+- modelled rate revenue
+- modelled recovery gap
+- modelled margin
+- modelled quote checker targets
+
+Business Modelling uses Rate Builder rates as base.
+
+It does not rebuild component formulas.
+
+---
+
+# 20. LABOUR MODELLING
+
+Business Modelling may model:
+
+- labour cost increase %
+- labour cost decrease %
+- productive hours increase %
+- labour productivity improvement %
+- labour productivity decline %
+
+Outputs:
+
+- modelled labour cost
+- modelled productive hour cost
+- modelled margin after labour
+- modelled recovery requirement
+- modelled rate pressure
+
+---
+
+# 21. ASSET MODELLING
+
+Business Modelling may model:
+
+- asset utilisation increase %
+- asset utilisation decrease %
+- asset cost increase %
+- asset running cost increase %
+- asset running cost decrease %
+
+Outputs:
+
+- modelled required asset recovery rate
+- modelled asset pressure
+- modelled group recovery requirement
+- modelled rate impact
+
+---
+
+# 22. OVERHEAD MODELLING
+
+Business Modelling may model:
+
+- total overhead increase %
+- total overhead decrease %
+- selected overhead category change
+- overhead recovery target change
+
+Outputs:
+
+- modelled overhead pool
+- modelled required recovery
+- modelled rate pressure
+- modelled net position
+
+---
+
+# 23. COMBINED SCENARIO RULE
+
+Business Modelling must support combined scenarios.
+
+Example:
+
+Scenario:
+- concrete supplier cost down 1%
+- digger + operator rate up 5%
+- productive hours up 3%
+
+The system should show:
+
+- combined modelled COG
+- combined modelled margin
+- combined modelled recovery gap
+- combined modelled required rates
+- combined modelled net position
+
+Each change must remain traceable.
+
+---
+
+# 24. CURRENT VS MODELLED COMPARISON
+
+Business Modelling must show:
+
+Current:
+- revenue
+- COG
+- gross margin
+- margin after labour
+- recovery gap
+- required rates
+- net position
+
+Modelled:
+- modelled COG
+- modelled gross margin
+- modelled margin after labour
+- modelled recovery gap
+- modelled required rates
+- modelled net position
+
+Difference:
+- improvement / deterioration
+- amount
+- percent
+- status
+
+---
+
+# 25. TARGET MODEL CONTRACT
+
+target_model_rows[]
+
+Each row:
+
+{
+  target_model_id,
+  scenario_id,
+  scenario_name,
+  scenario_type,
+  base_model_version_id,
+  target_model_status,
+  current_outcome_summary,
+  modelled_outcome_summary,
+  selected_rate_targets,
+  supplier_assumptions,
+  category_assumptions,
+  labour_assumptions,
+  asset_assumptions,
+  overhead_assumptions,
+  margin_assumptions,
+  quote_checker_target_set,
+  source_trace,
+  warnings
+}
+
+---
+
+# 26. SCENARIO ROW CONTRACT
+
+business_modelling_scenario_rows[]
+
+Each row:
+
+{
+  scenario_id,
+  scenario_name,
+  scenario_type,
+  adjustment_target,
+  adjustment_basis,
+  adjustment_percent,
+  adjustment_amount,
+  current_value,
+  modelled_value,
+  impact_on_cog,
+  impact_on_margin_pool,
+  impact_on_margin_after_labour,
+  impact_on_recovery_requirement,
+  impact_on_required_rate,
+  impact_on_net_position,
+  quote_checker_target_change,
+  scenario_status,
+  warnings
+}
+
+---
+
+# 27. QUOTE CHECKER TARGET CONTRACT
+
+Business Modelling must create:
+
+quote_checker_target_set
+
+{
+  target_set_id,
+  target_model_id,
+  scenario_id,
+  target_set_name,
+  selected_minimum_recoverable_rates,
+  selected_suggested_sell_rates,
+  selected_margin_targets,
+  selected_markup_targets,
+  selected_material_markup_assumption,
+  selected_supplier_assumptions,
+  selected_category_assumptions,
+  selected_labour_assumptions,
+  selected_asset_assumptions,
+  selected_overhead_assumptions,
+  effective_from,
+  target_set_status,
+  source_trace
+}
+
+This is the bridge into Quote Checker.
+
+---
+
+# 28. MODEL STATUS VALUES
+
+Allowed business_modelling_status values:
+
+- ready
+- ready_with_warnings
+- review_required
+- blocked
+- preview_only
+- target_selected
+- not_ready
+
+Definitions:
+
+ready:
+Scenarios can be modelled.
+
+target_selected:
+A target model has been selected for Quote Checker.
+
+ready_with_warnings:
+Modelling works but warnings remain.
+
+review_required:
+Scenario values need review.
+
+blocked:
+Required upstream values are blocked.
+
+preview_only:
+Scenario displays but is not trusted.
+
+not_ready:
+Required upstream outputs are missing.
+
+---
+
+# 29. TRUST STATE
+
+Business Modelling must expose:
+
+business_modelling_model_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If Business Outcome is blocked:
+trust_state = blocked
+
+If Rate Builder is blocked:
+trust_state = blocked
+
+If key upstream source is preview-only:
+trust_state = preview_only
+
+If scenario values require review:
+trust_state = warning
+
+If target model selected with trusted source:
+trust_state = ready
+
+---
+
+# 30. WARNINGS
+
+Required warning IDs:
+
+business_modelling_missing_business_outcome
+business_modelling_missing_rate_builder
+business_modelling_missing_recovery_summary
+business_modelling_missing_revenue_cogs
+business_modelling_zero_revenue
+business_modelling_invalid_adjustment
+business_modelling_supplier_markup_not_individual
+business_modelling_product_unit_requires_soq
+business_modelling_rate_target_below_minimum
+business_modelling_target_not_selected
+business_modelling_target_preview_only
+business_modelling_upstream_blocked
+
+---
+
+# 31. WARNING MEANINGS
+
+## business_modelling_supplier_markup_not_individual
+
+Use when supplier rows are shown but user may interpret them as supplier-specific markups.
+
+Blocking:
+
+false.
+
+Meaning:
+
+Supplier/category rows show contribution to blended material markup, not true supplier-level markup.
+
+## business_modelling_product_unit_requires_soq
+
+Use when a labour-based business tries to model product/unit costs without manual components or SOQ/job data.
+
+Blocking:
+
+false or true depending attempted output.
+
+Meaning:
+
+True product/unit modelling needs physical quantity data.
+
+## business_modelling_rate_target_below_minimum
+
+Use when a selected target rate is below minimum recoverable rate.
+
+Blocking:
+
+false by default, but target must be clearly marked under-recovering.
+
+## business_modelling_target_not_selected
+
+Use when modelling scenarios exist but no target model has been selected for Quote Checker.
+
+Blocking:
+
+true for Quote Checker handoff.
+
+---
+
+# 32. OUTPUT CONTRACT
+
+Business Modelling should expose:
+
+{
+  business_modelling_ready,
+  business_modelling_status,
+  business_modelling_warnings,
+  business_modelling_warning_count,
+  business_modelling_model_trust_state,
+
+  business_modelling_scenario_rows,
+  target_model_rows,
+  selected_target_model,
+
+  current_outcome_summary,
+  modelled_outcome_summary,
+  current_vs_modelled_summary,
+
+  supplier_modelling_rows,
+  category_modelling_rows,
+  rate_target_rows,
+  labour_modelling_rows,
+  asset_modelling_rows,
+  overhead_modelling_rows,
+
+  quote_checker_target_set,
+
+  business_modelling_cards,
+  business_modelling_source_trace
+}
+
+---
+
+# 33. OUTPUT TO QUOTE CHECKER
+
+Quote Checker should receive:
+
+- selected_target_model
+- quote_checker_target_set
+- selected minimum recoverable rates
+- selected suggested sell rates
+- selected margin targets
+- selected markup targets
+- selected material markup assumption
+- selected supplier assumptions
+- selected category assumptions
+- selected labour assumptions
+- selected asset assumptions
+- selected overhead assumptions
+- scenario ID
+- target model ID
+- source trace
+- trust state
+
+Quote Checker must not use unselected scenarios.
+
+---
+
+# 34. OUTPUT TO MODEL REVIEW / APPROVAL
+
+Model Review / Approval may later consume:
+
+- selected_target_model
+- scenario rows
+- modelling assumptions
+- quote checker target set
+- source trace
+- target status
+
+If approval workflow is enabled, selected target models may require approval before becoming active.
+
+---
+
+# 35. UI STRUCTURE
+
+Recommended Business Modelling UI:
+
+1. Business Modelling Status Strip
+2. Current Outcome Reference Panel
+3. Scenario Builder Panel
+4. Supplier / Category Modelling Panel
+5. Rate Target Modelling Panel
+6. Labour / Asset / Overhead Modelling Panel
+7. Current vs Modelled Outcome Panel
+8. Target Model Selection Panel
+9. Quote Checker Target Handoff Panel
+10. Source Trust / Warning Panel
+11. Help Panel
+
+---
+
+# 36. STATUS STRIP
+
+Show:
+
+- business_modelling_status
+- trust state
+- active scenario
+- current net position
+- modelled net position
+- recovery gap change
+- target selected yes/no
+- warning count
+
+---
+
+# 37. CURRENT OUTCOME REFERENCE PANEL
+
+Show the Business Outcome diagnosis:
+
+- current pressure source
+- current net position
+- current recovery gap
+- current rate gap
+- current material markup
+- top pressure contributors
+
+This gives context for modelling.
+
+---
+
+# 38. SCENARIO BUILDER PANEL
+
+Allows creating scenarios:
+
+- supplier/category cost change
+- total COG change
+- labour change
+- asset change
+- overhead change
+- rate change
+- combined scenario
+
+Scenario inputs must not mutate upstream data.
+
+---
+
+# 39. SUPPLIER / CATEGORY MODELLING PANEL
+
+Show:
+
+- top suppliers
+- top COG categories
+- spend amount
+- share of COG
+- adjustment %
+- modelled impact
+
+This is where supplier negotiation scenarios live.
+
+Do not show fake supplier-level markups.
+
+---
+
+# 40. RATE TARGET MODELLING PANEL
+
+Show:
+
+- Rate Builder rates
+- minimum recoverable rates
+- suggested sell rates
+- current rates
+- proposed target rates
+- gap to minimum
+- gap to suggested
+- quote checker target output
+
+---
+
+# 41. LABOUR / ASSET / OVERHEAD MODELLING PANEL
+
+Allow controlled modelling of:
+
+- productive labour efficiency
+- labour cost
+- asset utilisation
+- asset running cost
+- overhead reduction/increase
+
+Show impact on recovery and rates.
+
+---
+
+# 42. CURRENT VS MODELLED OUTCOME PANEL
+
+Show:
+
+- current result
+- modelled result
+- improvement / deterioration
+- recovery gap movement
+- net position movement
+- rate impact
+
+This must make the onflow effect obvious.
+
+---
+
+# 43. TARGET MODEL SELECTION PANEL
+
+Allows user to select:
+
+- baseline model
+- modelled scenario
+- selected target rates
+- target set for Quote Checker
+
+The selected target must be explicit.
+
+No silent target selection.
+
+---
+
+# 44. QUOTE CHECKER HANDOFF PANEL
+
+Show:
+
+Quote Checker will enforce:
+
+- selected minimum recoverable rates
+- selected sell rates
+- selected margin/markup assumptions
+- selected supplier/category assumptions
+- selected scenario ID
+
+This confirms what will flow downstream.
+
+---
+
+# 45. SOURCE TRUST / WARNING PANEL
+
+Show:
+
+- Business Outcome status
+- Rate Builder status
+- Recovery Summary status
+- Revenue / COGS status
+- Revenue Reality status
+- Asset Reality status
+- blocking warnings
+- non-blocking warnings
+
+Warnings must not be hidden behind only a count.
+
+---
+
+# 46. HELP PANEL
+
+Explain:
+
+- Business Outcome diagnoses the issue
+- Business Modelling tests fixes
+- Business Modelling does not edit source data
+- supplier/category modelling shows sensitivity
+- material markup is blended
+- selected targets flow to Quote Checker
+- Quote Checker enforces the selected model
+
+---
+
+# 47. WHAT TO KEEP OUT
+
+Keep out:
+
+- P&L editing
+- Revenue / COG categorisation editing
+- Labour source editing
+- Asset source editing
+- General Overheads editing
+- Cost Allocation group editing
+- Recovery Summary recovery testing
+- Rate Builder component building
+- Business Outcome diagnosis creation
+- Quote Checker validation
+- Job Costing actuals
+
+Business Modelling models selected changes.
+
+It does not rebuild upstream modules.
+
+---
+
+# 48. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useBusinessModelling.js
+lib/calculations/businessModellingCalculations.js
+lib/selectors/businessModellingSelectors.js
+components/business-modelling/*.jsx
+app/business-modelling/page.jsx
+
+Possible related files:
+
+hooks/useBusinessOutcome.js
+hooks/useRateBuilder.js
+hooks/useRecoverySummary.js
+hooks/useRevenueCogs.js
+hooks/useQuoteChecker.js
+
+Do not modify unrelated source modules unless required to consume Business Modelling safely.
+
+---
+
+# 49. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Business Outcome output.
+2. Consume Rate Builder output.
+3. Consume Recovery Summary output.
+4. Consume Revenue / COGS supplier/category detail.
+5. Consume Revenue Reality context.
+6. Consume Asset Reality context.
+7. Build scenario rows.
+8. Add supplier/category modelling.
+9. Add rate target modelling.
+10. Add labour modelling.
+11. Add asset modelling.
+12. Add overhead modelling.
+13. Add combined scenarios.
+14. Calculate current vs modelled outcome.
+15. Create selected target model.
+16. Create Quote Checker target set.
+17. Prevent unselected scenarios from flowing to Quote Checker.
+18. Preserve source trace.
+19. Do not mutate upstream sources.
+20. Add warnings and trust state.
+21. Run build.
+
+---
+
+# 50. ACCEPTANCE CRITERIA
+
+Business Modelling v4.0 is accepted when:
+
+1. It sits between Business Outcome and Quote Checker.
+2. It consumes Business Outcome diagnosis.
+3. It consumes Rate Builder rates.
+4. It consumes Recovery Summary recovery gap.
+5. It consumes Revenue / COGS supplier/category detail.
+6. It supports supplier cost scenarios.
+7. It supports category cost scenarios.
+8. It supports total COG scenarios.
+9. It supports labour scenarios.
+10. It supports asset scenarios.
+11. It supports overhead scenarios.
+12. It supports rate target scenarios.
+13. It supports combined scenarios.
+14. It shows current vs modelled outcome.
+15. It shows modelled COG impact.
+16. It shows modelled margin impact.
+17. It shows modelled recovery impact.
+18. It shows modelled rate impact.
+19. It shows modelled net position impact.
+20. It creates a selected target model.
+21. It creates a Quote Checker target set.
+22. It does not allow unselected scenarios to flow to Quote Checker.
+23. It does not mutate source modules.
+24. It does not rebuild Rate Builder formulas.
+25. It does not check quotes.
+26. It exposes warnings and trust state.
+27. Build passes.
+
+---
+
+# 51. FINAL PRINCIPLE
+
+Business Modelling is the selected-fix layer.
+
+It takes:
+
+Business Outcome diagnosis
+Rate Builder rates
+Recovery Summary gaps
+Revenue / COG supplier detail
+Revenue Reality pressure
+Asset Reality pressure
+
+and creates:
+
+scenario models
+target model
+selected rate targets
+quote checker targets
+
+It is the bridge between knowing the problem and enforcing the solution.
+
+Business Outcome diagnoses.
+
+Business Modelling chooses the target.
+
+Quote Checker enforces the target.
+
+No source mutation.
+No silent target selection.
+No fake supplier markups.
+No product/unit assumptions without valid data.
+No unselected scenario handoff.
+No quote checking here.
+No leaks.
