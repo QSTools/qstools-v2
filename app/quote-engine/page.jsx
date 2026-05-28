@@ -13,8 +13,20 @@ export default function QuoteEnginePage() {
   const {
     quote_state,
     repair_state,
+
+    saved_quote_jobs,
+    saved_quote_versions,
+    selected_quote_job_id,
+
     update_field,
     update_repair_field,
+
+    start_new_quote,
+    save_current_quote,
+    update_selected_quote_job_id,
+    create_new_quote_version_from_selected_job,
+    load_quote_version,
+
     status,
     build_up,
     repair,
@@ -37,6 +49,16 @@ export default function QuoteEnginePage() {
         <QuoteEngineMainCard
           quote_state={quote_state}
           update_field={update_field}
+          saved_quote_jobs={saved_quote_jobs}
+          saved_quote_versions={saved_quote_versions}
+          selected_quote_job_id={selected_quote_job_id}
+          update_selected_quote_job_id={update_selected_quote_job_id}
+          create_new_quote_version_from_selected_job={
+            create_new_quote_version_from_selected_job
+          }
+          start_new_quote={start_new_quote}
+          save_current_quote={save_current_quote}
+          load_quote_version={load_quote_version}
         />
 
         <QuoteEngineSideCard

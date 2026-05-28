@@ -1,0 +1,1184 @@
+Yes. Below are two cut-and-paste future build briefs.
+
+The first brief locks the **Layer 2 tracking loop**. The second locks the **Procore / job-system integration pathway**.
+
+---
+
+# QS Tools — Future Build Brief
+
+## Layer 2 Tracking Loop / Business Model Control Layer v1.0
+
+STATUS: FUTURE BUILD BRIEF
+PURPOSE: Define the second-layer monthly tracking system that measures actual business performance against the locked Layer 1 baseline.
+
+---
+
+## 1. Purpose
+
+Layer 2 is the **business model tracking loop**.
+
+It exists to answer:
+
+* Are we tracking against the business model we set?
+* Is our target net profit still being achieved?
+* Where is pressure building?
+* Are costs, recovery, productivity, or pricing drifting?
+* What now has to happen to stay inside the model?
+
+Layer 2 does **not** replace Layer 1.
+
+Layer 1 builds the baseline.
+Layer 2 tests reality against that baseline.
+
+---
+
+## 2. System Role
+
+Layer 2 is a:
+
+**monthly actuals + pressure tracking layer**
+
+It sits above the locked baseline and uses the same engine structure without overwriting Layer 1.
+
+The existing active architecture already separates cost, recovery, structure, and decision logic: Cost Summary defines what the business costs, Recovery Summary defines how cost is recovered, Cost Allocation defines whether it can be delivered, and Recovery Outcome defines whether it should be run. 
+
+Layer 2 extends that architecture by adding:
+
+```txt
+Baseline Pipeline
+↓
+Monthly Actual Pipeline
+↓
+Comparison / Pressure Layer
+↓
+Business Outcome
+```
+
+---
+
+## 3. Core Principle
+
+```txt
+Layer 1 = design the business
+Layer 2 = measure the business
+Comparison = reveal the pressure
+Outcome = tell the user what to do
+```
+
+Layer 2 must not silently update the baseline.
+
+It must:
+
+* reuse the same engines
+* run them against monthly actuals
+* compare monthly actuals to the locked baseline
+* show pressure, drift, and required adjustment
+
+---
+
+## 4. Baseline Lock Rule
+
+Once the user reaches the approved Layer 1 Business Outcome, they must be able to lock the baseline.
+
+Locking baseline means:
+
+* current Layer 1 outputs are frozen as the active business model
+* target profit settings are preserved
+* recovery assumptions are preserved
+* labour, asset, overhead, recovery, allocation, and outcome outputs are snapshotted
+* Layer 2 can now compare against them
+
+Locking does **not** mean the model can never change.
+
+It means the model cannot change automatically.
+
+Future changes must create a new baseline version.
+
+---
+
+## 5. Baseline Versioning
+
+Required future states:
+
+```js
+baseline_version_id
+baseline_name
+baseline_locked_at
+baseline_period_start
+baseline_period_end
+is_active_baseline
+created_at
+updated_at
+```
+
+Only one baseline may be active for tracking at a time.
+
+Historical baselines must remain available for audit and comparison.
+
+---
+
+## 6. Layer 2 Pipeline
+
+Layer 2 uses the same structural pipeline as Layer 1, but with monthly data.
+
+```txt
+Monthly P&L
+↓
+Monthly Revenue / COGS
+↓
+Monthly Cost Summary
+↓
+Monthly Recovery Summary
+↓
+Monthly Business Summary
+↓
+Monthly Business Outcome
+```
+
+This is not a new business model.
+
+It is an actual-state version of the same model.
+
+---
+
+## 7. Reuse Rule
+
+Layer 2 must reuse the same engines wherever possible.
+
+Allowed:
+
+* same P&L classification engine
+* same Revenue / COGS grouping logic
+* same Cost Summary calculation engine
+* same Recovery Summary calculation engine
+* same selectors and display structures where practical
+
+Not allowed:
+
+* duplicate formulas
+* separate monthly-only calculation logic unless strictly needed
+* different category rules
+* different grouping rules
+* hidden monthly shortcuts
+* overwriting Layer 1 state
+
+---
+
+## 8. Required Layer 2 Inputs
+
+### From Xero / accounting import
+
+Required:
+
+* monthly P&L
+* monthly revenue lines
+* monthly COGS lines
+* monthly operating expenses
+* monthly wage / labour cost lines
+* monthly asset / vehicle / equipment operating costs where present
+
+Optional:
+
+* balance sheet later
+* cashflow later
+* accounts receivable / payable later
+
+---
+
+## 9. Required Layer 2 Operational Inputs
+
+Minimum operational input:
+
+* productive labour hours for the period
+
+Optional:
+
+* job cost actuals
+* committed costs
+* asset usage
+* production quantities
+* job revenue by job
+* budget vs actual by job
+
+The minimum required operational input for true recovery testing is productive time or output.
+
+Without hours or output, Layer 2 can still show financial drift, but cannot accurately prove labour recovery performance.
+
+---
+
+## 10. Layer 2 Cost Summary Behaviour
+
+Layer 2 must run a monthly actual Cost Summary.
+
+This actual Cost Summary should use the same Cost Summary output concepts:
+
+* total_people_cost_annual or period-adjusted equivalent
+* total_asset_cost_annual or period-adjusted equivalent
+* total_business_overheads or period-adjusted equivalent
+* total_cost_burden
+* required_revenue
+* required_recovery_rate
+
+The locked Cost Summary contract already defines the required cost burden and recovery outputs, including total_cost_burden, required_revenue, required_recovery_rate, and total_productive_output. 
+
+Layer 2 may need period-normalised names later, but must not casually rename locked contract variables.
+
+Preferred future pattern:
+
+```js
+baseline_total_cost_burden
+actual_total_cost_burden
+
+baseline_required_recovery_rate
+actual_required_recovery_rate
+```
+
+---
+
+## 11. Target Profit Rule
+
+Layer 1 defines the target business model.
+
+Example:
+
+```txt
+target_net_profit_percent = 20
+```
+
+Layer 2 must keep this target as the benchmark.
+
+Layer 2 must show:
+
+* target net profit %
+* actual net profit %
+* variance %
+* dollar gap
+* required recovery to return to target
+
+Layer 2 must not automatically lower or change the target.
+
+---
+
+## 12. Pressure Layer
+
+Layer 2 must expose pressure categories.
+
+Required pressure types:
+
+### Cost Pressure
+
+Examples:
+
+* fuel increase
+* insurance increase
+* wage increase
+* overhead increase
+* asset running cost increase
+
+### Recovery Pressure
+
+Examples:
+
+* required recovery rate increased
+* actual recovery below required recovery
+* recovery model no longer supports margin target
+
+### Productivity Pressure
+
+Examples:
+
+* productive hours below baseline
+* labour output below required level
+* staff time not generating expected recovery
+
+### Margin Pressure
+
+Examples:
+
+* actual net profit below target
+* gross margin compression
+* COGS increase reducing available margin
+
+### Structural Pressure
+
+Examples:
+
+* new staff added
+* asset base changed
+* operating structure no longer matches baseline
+
+---
+
+## 13. Business Outcome Role in Layer 2
+
+Layer 2 Business Outcome should answer:
+
+* Are we inside the target corridor?
+* Are we drifting?
+* Is pressure temporary or structural?
+* What is the main cause?
+* What should happen next?
+
+Business Outcome must show:
+
+```js
+tracking_status
+target_net_profit_percent
+actual_net_profit_percent
+net_profit_variance_percent
+baseline_required_recovery_rate
+actual_required_recovery_rate
+recovery_rate_gap
+primary_pressure_key
+primary_pressure_title
+primary_pressure_message
+recommended_action
+```
+
+---
+
+## 14. Tracking Status
+
+Allowed states:
+
+```js
+"on_track"
+"pressure_building"
+"off_track"
+"baseline_review_required"
+```
+
+Meaning:
+
+### on_track
+
+Actuals are within target corridor.
+
+### pressure_building
+
+Actuals are still viable, but pressure is increasing.
+
+### off_track
+
+Actuals are outside target corridor.
+
+### baseline_review_required
+
+The business has materially changed and the old baseline may no longer represent reality.
+
+---
+
+## 15. Operating Corridor
+
+Layer 2 should support tolerance bands.
+
+Example:
+
+```js
+target_net_profit_percent = 20
+warning_tolerance_percent = 2
+critical_tolerance_percent = 5
+```
+
+Example behaviour:
+
+* 20% target, actual 19% → on_track
+* 20% target, actual 17% → pressure_building
+* 20% target, actual 13% → off_track
+* repeated off_track due to structural costs → baseline_review_required
+
+---
+
+## 16. Structural vs Temporary Drift
+
+Layer 2 must distinguish:
+
+### Temporary Drift
+
+Examples:
+
+* one bad job
+* one-off repair
+* short productivity dip
+* timing mismatch
+
+Recommended action:
+
+* monitor
+* correct execution
+* review job performance
+
+### Structural Drift
+
+Examples:
+
+* permanent wage rise
+* new staff member
+* sustained fuel increase
+* new asset
+* insurance premium increase
+* overhead base permanently higher
+
+Recommended action:
+
+* update rates
+* review recovery settings
+* create new baseline version if required
+
+---
+
+## 17. Rate Builder Integration
+
+Layer 2 must be able to inform Rates Builder.
+
+It should not automatically overwrite rates.
+
+It should produce required adjustments such as:
+
+```js
+current_rate
+required_rate_to_target
+rate_gap
+recommended_rate_increase
+target_margin_percent
+actual_margin_percent
+```
+
+Example message:
+
+```txt
+Fuel and operating cost pressure has increased the required digger recovery rate.
+Current rate: $120/hr
+Required rate to maintain model: $136/hr
+Recommended action: review digger charge-out rate.
+```
+
+---
+
+## 18. Not Allowed
+
+Layer 2 must not:
+
+* overwrite baseline
+* silently update Labour
+* silently update Assets
+* silently update Cost Summary baseline
+* rename locked variables casually
+* duplicate business logic
+* mix actual monthly data into baseline records
+* treat actual drift as a baseline change without user action
+
+---
+
+## 19. UX Requirement
+
+Layer 2 should feel simple.
+
+User flow:
+
+```txt
+Lock baseline
+↓
+Import this month
+↓
+See tracking result
+```
+
+The user should not need to understand the internal layer structure.
+
+Suggested UX labels:
+
+* “Set up your business”
+* “Lock baseline”
+* “Track this month”
+* “See pressure”
+* “Review action”
+
+---
+
+## 20. Definition of Done
+
+Layer 2 is complete when:
+
+* baseline can be locked
+* monthly P&L can be imported separately
+* monthly Revenue / COGS can be run through the same classification
+* monthly Cost Summary can be calculated without touching baseline
+* actual vs baseline comparison is visible
+* target profit variance is visible
+* primary pressure source is identified
+* Business Outcome shows clear action
+* baseline review can be recommended without automatic overwrite
+
+---
+
+# QS Tools — Future Build Brief
+
+## Procore / Job-System Integration Layer v1.0
+
+STATUS: FUTURE BUILD BRIEF
+PURPOSE: Define how QS Tools can consume Procore or similar job-management data to measure operational reality against the business model.
+
+---
+
+## 1. Purpose
+
+The Procore / Job-System Integration Layer imports operational reality into QS Tools.
+
+It exists to answer:
+
+* What productive work actually happened?
+* How many productive hours were used?
+* What job costs were incurred?
+* Is labour recovering labour?
+* Are assets recovering assets?
+* Are materials recovering materials?
+* Where is the leak?
+
+This layer is not a Procore replacement.
+
+It is the bridge between:
+
+```txt
+Xero = financial reality
+Procore = operational reality
+QS Tools = business model control
+```
+
+---
+
+## 2. System Role
+
+This layer is an:
+
+**operational actuals import and normalisation layer**
+
+It feeds Layer 2.
+
+It does not feed Layer 1 baseline unless the user deliberately uses imported data to build a new baseline version.
+
+---
+
+## 3. Core Principle
+
+```txt
+Do not replace Procore.
+Do not rebuild Procore.
+Import only the economic signal needed to test the model.
+```
+
+QS Tools should consume the smallest useful operational dataset.
+
+---
+
+## 4. Required Minimum Procore Reports
+
+For the first useful version, only two reports are essential.
+
+### 1. Labour Hours / Timesheet Report
+
+Purpose:
+
+* provide actual productive time
+* allow recovery per hour to be measured
+* allow labour recovery pressure to be tested
+
+Required fields:
+
+```js
+period_start
+period_end
+job_id
+job_name
+staff_name
+staff_external_id
+labour_class
+hours_worked
+cost_code
+date
+```
+
+Minimum acceptable fields:
+
+```js
+period
+job_id
+staff_name
+hours_worked
+```
+
+---
+
+### 2. Job Cost Report
+
+Purpose:
+
+* provide actual job cost behaviour
+* compare job cost to financial reality
+* identify cost leakage by category
+
+Required fields:
+
+```js
+period_start
+period_end
+job_id
+job_name
+cost_code
+cost_type
+cost_category
+actual_cost_to_date
+actual_cost_period
+committed_cost
+forecast_cost
+budget_cost
+```
+
+Minimum acceptable fields:
+
+```js
+period
+job_id
+cost_type
+actual_cost
+```
+
+---
+
+## 5. Useful Optional Reports
+
+### 3. Budget / Estimate Breakdown
+
+Purpose:
+
+* compare planned vs actual
+* detect estimating drift
+
+Fields:
+
+```js
+job_id
+cost_code
+budget_cost
+budget_hours
+budget_quantity
+budget_rate
+```
+
+### 4. Commitments / Purchase Orders / Subcontracts
+
+Purpose:
+
+* identify locked-in future cost pressure
+
+Fields:
+
+```js
+job_id
+supplier_name
+commitment_type
+committed_value
+remaining_committed_value
+cost_code
+status
+```
+
+### 5. Variations / Change Orders
+
+Purpose:
+
+* detect whether margin is being rescued by variations
+
+Fields:
+
+```js
+job_id
+variation_id
+variation_status
+approved_value
+pending_value
+cost_impact
+revenue_impact
+```
+
+### 6. Asset / Equipment Usage
+
+Purpose:
+
+* test whether assets are recovering asset cost
+
+Fields:
+
+```js
+job_id
+asset_name
+asset_external_id
+hours_used
+days_used
+cost_code
+date
+```
+
+This should be optional because many businesses may not track equipment cleanly in Procore.
+
+---
+
+## 6. Reports Not Needed for MVP
+
+Do not import initially:
+
+* RFIs
+* drawings
+* submittals
+* site diaries unless used as time source
+* document registers
+* photos
+* safety records
+* general correspondence
+
+These may matter operationally, but they are not required to detect economic leakage.
+
+---
+
+## 7. Data Normalisation Rule
+
+Procore data must be normalised into QS Tools import contracts.
+
+Do not let Procore field names leak into downstream modules.
+
+Preferred internal tables:
+
+```js
+operational_labour_hours[]
+operational_job_costs[]
+operational_commitments[]
+operational_variations[]
+operational_asset_usage[]
+```
+
+---
+
+## 8. Labour Hours Contract
+
+```js
+operational_labour_hours = {
+  operational_hours_id,
+  source_system,
+  source_record_id,
+  import_batch_id,
+
+  period_start,
+  period_end,
+  date,
+
+  job_id,
+  job_name,
+
+  staff_external_id,
+  staff_name,
+  mapped_staff_id,
+
+  labour_class,
+  cost_code,
+
+  hours_worked,
+  productive_hours_flag,
+
+  created_at
+}
+```
+
+Mapping rule:
+
+* `staff_name` is display only
+* `mapped_staff_id` must be used once mapped
+* never join permanently by name
+
+This preserves the existing identity rule that staff_id is owned by Labour.
+
+---
+
+## 9. Job Cost Contract
+
+```js
+operational_job_costs = {
+  operational_job_cost_id,
+  source_system,
+  source_record_id,
+  import_batch_id,
+
+  period_start,
+  period_end,
+
+  job_id,
+  job_name,
+
+  cost_code,
+  cost_type,
+  cost_category,
+
+  actual_cost_period,
+  actual_cost_to_date,
+  committed_cost,
+  forecast_cost,
+  budget_cost,
+
+  created_at
+}
+```
+
+---
+
+## 10. Asset Usage Contract
+
+```js
+operational_asset_usage = {
+  operational_asset_usage_id,
+  source_system,
+  source_record_id,
+  import_batch_id,
+
+  period_start,
+  period_end,
+  date,
+
+  job_id,
+  job_name,
+
+  asset_external_id,
+  asset_name,
+  mapped_asset_id,
+
+  hours_used,
+  days_used,
+  cost_code,
+
+  created_at
+}
+```
+
+Mapping rule:
+
+* `asset_name` is display only
+* `mapped_asset_id` must be used once mapped
+* never join permanently by asset name
+
+This aligns with the existing rule that Assets owns asset identity.
+
+---
+
+## 11. Import Batch Model
+
+Each Procore import must create an import batch.
+
+```js
+import_batch = {
+  import_batch_id,
+  source_system,
+  import_type,
+  period_start,
+  period_end,
+  imported_at,
+  imported_by,
+  status,
+  warnings[]
+}
+```
+
+This allows auditability and rollback.
+
+---
+
+## 12. Mapping Layer
+
+The Procore integration must include a mapping screen.
+
+Required mappings:
+
+```txt
+Procore staff → QS Tools staff_id
+Procore asset → QS Tools asset_id
+Procore cost type → QS Tools cost category
+Procore job → QS Tools job_id or external job reference
+```
+
+Mapping must be explicit.
+
+Allowed:
+
+* suggested matching
+* fuzzy matching
+* manual confirmation
+
+Not allowed:
+
+* silent permanent matching by display name
+* overwriting QS Tools identity records
+* creating staff_id or asset_id from Procore without user confirmation
+
+---
+
+## 13. What Procore Unlocks
+
+With Procore labour time, QS Tools can move from aggregate recovery to operational recovery.
+
+### Without Procore / time data
+
+QS Tools can say:
+
+```txt
+The business requires $X/hr recovery.
+Actual financial performance is below target.
+```
+
+### With Procore / time data
+
+QS Tools can say:
+
+```txt
+Labour recovered $Y/hr against a required $X/hr.
+The gap is caused by lower productive output, not just overhead increase.
+```
+
+---
+
+## 14. Recovery Metrics Unlocked
+
+Required future metrics:
+
+```js
+actual_productive_hours
+baseline_productive_hours
+productive_hours_variance
+
+actual_recovery_per_hour
+required_recovery_per_hour
+recovery_gap_per_hour
+
+labour_recovery_cost
+actual_labour_recovery
+labour_recovery_gap
+
+actual_cost_per_productive_hour
+target_cost_per_productive_hour
+
+cost_leakage_amount
+cost_leakage_percent
+```
+
+---
+
+## 15. Material / Labour / Asset Recovery Separation
+
+Layer 1 cannot fully prove:
+
+```txt
+labour recovers labour
+materials recover materials
+assets recover assets
+```
+
+because Layer 1 only has financial baseline data.
+
+Procore/job-system data adds the operational dimension.
+
+Future separation rules:
+
+### Labour Recovery
+
+Requires:
+
+* productive staff hours
+* labour cost
+* labour recovery target
+* revenue or recovery allocation logic
+
+### Asset Recovery
+
+Requires:
+
+* asset cost
+* asset usage
+* asset recovery target
+* asset-linked job activity
+
+### Material Recovery
+
+Requires:
+
+* material COGS
+* material revenue or markup structure
+* job cost classification
+
+---
+
+## 16. Layer 2 Integration Flow
+
+```txt
+Xero monthly P&L
+↓
+Monthly financial actuals
+
+Procore labour/job data
+↓
+Monthly operational actuals
+
+QS Tools Layer 2
+↓
+Compare actuals to baseline
+
+Business Outcome
+↓
+Show pressure, leakage, and required action
+```
+
+---
+
+## 17. Procore Data Should Not Enter Baseline Directly
+
+Procore actuals must not automatically update:
+
+* Labour module
+* Assets module
+* Cost Summary baseline
+* Recovery baseline
+* Cost Allocation baseline
+
+They may only:
+
+* feed Layer 2 actuals
+* inform recommended action
+* support a future “create new baseline version” workflow
+
+---
+
+## 18. UX Requirement
+
+User-facing import should be simple.
+
+Suggested flow:
+
+```txt
+Import Procore data
+1. Upload Labour Hours
+2. Upload Job Cost
+3. Confirm mappings
+4. Run leakage check
+```
+
+The user should not need to understand the Procore data model.
+
+The system should show:
+
+```txt
+Imported:
+- 1,240 labour hours
+- 8 active jobs
+- $418,000 job cost
+- 3 unmapped staff
+- 2 unmapped assets
+```
+
+---
+
+## 19. First MVP Scope
+
+Build only:
+
+### Import 1
+
+```txt
+Labour Hours / Timesheets
+```
+
+### Import 2
+
+```txt
+Job Cost Report
+```
+
+### Output
+
+```txt
+Actual productive hours
+Actual cost by job
+Recovery gap per hour
+Primary leakage source
+```
+
+Do not build commitments, variations, or asset usage first.
+
+Those are Phase 2.
+
+---
+
+## 20. Phase 2 Scope
+
+Add:
+
+* commitments
+* variations
+* budget vs actual
+* asset usage
+* job-level leakage ranking
+
+---
+
+## 21. Phase 3 Scope
+
+Add:
+
+* API integration
+* scheduled imports
+* multi-month trend analysis
+* job-level recovery modelling
+* rate-builder recommendations
+* asset-specific recovery pressure
+* labour class recovery analysis
+
+---
+
+## 22. Not Allowed
+
+The Procore Integration Layer must not:
+
+* replace Procore
+* become a job management system
+* manage RFIs or site documents
+* create purchase orders
+* approve variations
+* become a time tracking app unless explicitly built as a separate optional lightweight module
+* overwrite baseline
+* use display names as permanent keys
+* duplicate Cost Summary or Recovery Summary calculations
+
+---
+
+## 23. Definition of Done
+
+The Procore / Job-System Integration Layer is complete when:
+
+* labour hours can be imported
+* job costs can be imported
+* staff can be mapped to QS Tools staff_id
+* assets can be mapped where available
+* actual productive hours can be calculated
+* job cost can be normalised by period
+* Layer 2 can calculate actual recovery pressure
+* Business Outcome can show leakage source
+* no baseline data is overwritten
+
+---
+
+# Implementation Note
+
+These two briefs should sit **after Recovery Outcome**, because the current active system already defines Recovery Outcome as the decision layer after Cost Summary, Recovery Summary, and Cost Allocation. 
+
+The important rule is:
+
+```txt
+Layer 1 locks the model.
+Layer 2 tests the model.
+Procore adds operational truth.
+Business Outcome shows the pressure.
+```

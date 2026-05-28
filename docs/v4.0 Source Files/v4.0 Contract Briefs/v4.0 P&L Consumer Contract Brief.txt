@@ -1,0 +1,506 @@
+````txt
+# MIRRA / QS Tools v4.0
+# P&L Consumer Contract Brief
+# General Overheads + Upstream Module Cleanup
+
+Status: FUTURE BUILD / CONTRACT CLEANUP
+Purpose: Define how General Overheads and other setup modules consume P&L outputs after the v4.0 P&L Excel import rebuild.
+
+---
+
+## 1. Purpose
+
+This brief defines the contract between the P&L page and any module that consumes P&L-derived accounting lines.
+
+The P&L page has now been updated so Excel imports preserve actual accounting source line names.
+
+The next cleanup is to make sure downstream/setup modules consume those P&L lines consistently without rebuilding P&L logic or making assumptions based on old hardcoded categories.
+
+Primary target:
+
+- General Overheads
+
+Secondary targets:
+
+- Assets
+- Labour benchmark / labour reconciliation
+- Revenue / COGS
+- Future Business Summary / Recovery / Rate Builder pages
+
+---
+
+## 2. Core Principle
+
+P&L owns accounting source truth.
+
+Consumer modules must not reinterpret the raw accounting report directly.
+
+Consumer modules must consume the P&L output contract only.
+
+---
+
+## 3. Current P&L Role
+
+The P&L page is responsible for:
+
+- importing accounting report lines
+- preserving original account names
+- preserving actual accounting section placement
+- preserving actual accounting values
+- assigning broad QS/Mirra model categories
+- exposing benchmark totals
+- exposing source line groups for downstream comparison
+
+The P&L page is not responsible for:
+
+- pricing
+- recovery rates
+- operational cost allocation
+- commercial COGS classification
+- labour rate calculation
+- asset utilisation
+- overhead recovery strategy
+
+---
+
+## 4. P&L Output Contract
+
+Consumer modules should read only from the P&L output contract.
+
+Required P&L source fields per line:
+
+```js
+{
+  pnl_line_id: "",
+  line_name: "",
+  amount: 0,
+  section: "",
+  category: "",
+  review_subcategory: "",
+  direct_cost_category_id: "",
+  source_type: "",
+  import_source: ""
+}
+````
+
+Valid `section` values currently in live implementation:
+
+```txt
+trading_income
+cost_of_sales
+other_income
+operating_expenses
+```
+
+Important:
+
+`trading_income` is currently the live internal key for revenue.
+
+Do not rename it to `revenue` yet without a migration plan.
+
+---
+
+## 5. P&L Category Contract
+
+Valid broad `category` values include:
+
+```txt
+revenue
+cogs
+labour
+assets
+general_overheads
+excluded
+unassigned
+review_required
+```
+
+Consumer modules must use these broad categories.
+
+They must not depend on old hardcoded COGS category IDs such as:
+
+```txt
+materials
+subcontract_labour
+hired_equipment_plant
+freight_cartage
+waste_tipping
+direct_consumables
+other_direct_costs
+review_required
+```
+
+Those were removed from the P&L benchmark as default placeholders.
+
+If those names exist, they must only exist because they came from the actual P&L or an explicit user/import classification.
+
+---
+
+## 6. General Overheads Contract
+
+General Overheads must consume only P&L lines where:
+
+```js
+section === "operating_expenses"
+category === "general_overheads"
+```
+
+General Overheads may optionally group by:
+
+```js
+review_subcategory
+```
+
+Examples:
+
+```txt
+vehicle_running_costs
+insurance_compliance
+finance_interest
+staff_overheads
+general_admin
+```
+
+General Overheads must not directly parse:
+
+```txt
+line_name
+raw Excel rows
+raw PDF text
+Cost of Sales lines
+Revenue lines
+Other income lines
+Asset finance lines
+Labour lines
+```
+
+unless the P&L page has already classified them into `general_overheads`.
+
+---
+
+## 7. General Overheads Classification Cleanup
+
+The following operating expense lines should normally flow to General Overheads:
+
+```txt
+Accounting Fees
+Administration Fees
+Advertising
+Bank Fees
+Cleaning
+Computer Expenses
+Insurance
+Legal Expenses
+Office Expenses
+Printing & Stationery
+Storage Fees
+Subscriptions
+Telephone & Internet
+Travel - National
+Motor Vehicle Expenses
+Licences & Registrations
+Repairs and Maintenance
+Fuel
+```
+
+Vehicle running costs should not automatically be treated as Assets.
+
+Correct default:
+
+```js
+{
+  section: "operating_expenses",
+  category: "general_overheads",
+  review_subcategory: "vehicle_running_costs"
+}
+```
+
+Only true finance/lease lines should go to Assets:
+
+```txt
+Asset Finance
+Equipment Finance
+Finance Lease
+Hire Purchase Interest
+Asset Loan Interest
+```
+
+Correct default:
+
+```js
+{
+  section: "operating_expenses",
+  category: "assets",
+  review_subcategory: "asset_finance"
+}
+```
+
+---
+
+## 8. Assets Contract
+
+Assets must consume P&L benchmark lines only when P&L has classified them as:
+
+```js
+section === "operating_expenses"
+category === "assets"
+```
+
+Assets must not pull all vehicle-related lines by name.
+
+Do not treat ordinary running costs as asset ownership cost unless explicitly classified that way.
+
+Examples that may belong in Assets:
+
+```txt
+Asset Finance
+Equipment Finance
+Finance Lease
+Plant Finance
+Vehicle Finance
+Depreciation
+Asset Insurance if explicitly classified as asset-specific
+```
+
+Examples that should usually stay in General Overheads unless explicitly moved:
+
+```txt
+Fuel
+Motor Vehicle Expenses
+Repairs and Maintenance
+Registration
+Licences
+Travel
+```
+
+---
+
+## 9. Labour Contract
+
+Labour benchmark/reconciliation must consume P&L lines only when:
+
+```js
+section === "operating_expenses"
+category === "labour"
+```
+
+Examples:
+
+```txt
+Salary & Wages
+Wages
+Payroll
+KiwiSaver Employer Contributions
+ACC Levy
+Staff Expenses if explicitly classified as labour
+```
+
+Labour module calculations remain owned by Labour.
+
+P&L labour benchmark is for reconciliation only.
+
+P&L must not calculate labour rates.
+
+Labour must not rebuild P&L parsing logic.
+
+---
+
+## 10. Revenue / COGS Contract
+
+Revenue / COGS consumes:
+
+```js
+section === "trading_income"
+```
+
+and:
+
+```js
+section === "cost_of_sales"
+```
+
+Revenue / COGS is responsible for commercial interpretation.
+
+P&L must preserve source line names.
+
+Revenue / COGS may later assign imported COGS lines into commercial groups such as:
+
+```txt
+Materials
+Subcontractors
+Plant Hire
+Freight
+Waste
+Direct Consumables
+Other Direct Costs
+```
+
+But this must happen in Revenue / COGS, not P&L.
+
+Important:
+
+P&L `direct_cost_category_id` should not be treated as the final commercial category.
+
+It is only a P&L-side grouping/helper for source line display.
+
+---
+
+## 11. Review / Unassigned Contract
+
+Any consumer module must respect P&L review state.
+
+Lines with:
+
+```js
+category === "unassigned"
+category === "review_required"
+```
+
+or review-style subcategories must not silently flow into downstream calculations as trusted costs.
+
+They should be surfaced as review warnings.
+
+Future structured warning shape:
+
+```js
+{
+  warning_id: "",
+  source_module: "p_and_l",
+  severity: "info" | "warning" | "error",
+  message: "",
+  affected_variable: "",
+  blocking: false,
+  review_action: ""
+}
+```
+
+---
+
+## 12. Do Not Rebuild P&L Logic
+
+Consumer modules must not contain their own rules such as:
+
+```js
+if line_name includes "vehicle" then assets
+if line_name includes "insurance" then overheads
+if line_name includes "wages" then labour
+```
+
+That logic belongs in P&L classification or a shared classification utility.
+
+Consumer modules should receive already-classified lines.
+
+---
+
+## 13. Recommended Cleanup Order
+
+### Step 1 — General Overheads Audit
+
+Audit General Overheads and confirm it reads from:
+
+```js
+category === "general_overheads"
+```
+
+not from raw line-name matching.
+
+Confirm vehicle running costs flow correctly.
+
+### Step 2 — Assets Audit
+
+Confirm Assets only receives true asset/finance/depreciation P&L lines.
+
+Vehicle running costs should not automatically enter Assets.
+
+### Step 3 — Labour Audit
+
+Confirm Labour benchmark consumes only P&L labour category lines.
+
+No Labour module maths should be rebuilt from P&L.
+
+### Step 4 — Revenue / COGS Contract Prep
+
+Confirm Revenue / COGS consumes source COGS lines from P&L and applies commercial classification later.
+
+### Step 5 — Shared Contract Helper
+
+Consider adding a shared selector/helper:
+
+```js
+getPnlLinesForModule(pnl_output, module_key)
+```
+
+Example outputs:
+
+```js
+getPnlLinesForModule(pnl, "general_overheads")
+getPnlLinesForModule(pnl, "assets")
+getPnlLinesForModule(pnl, "labour")
+getPnlLinesForModule(pnl, "revenue_cogs")
+```
+
+This avoids every module re-implementing P&L filtering.
+
+---
+
+## 14. Files Likely Involved
+
+```txt
+hooks/useProfitAndLoss.js
+lib/calculations/profitAndLossCalculations.js
+lib/selectors/profitAndLossSelectors.js
+
+hooks/useGeneralOverheads.js
+lib/calculations/generalOverheadsCalculations.js
+lib/selectors/generalOverheadsSelectors.js
+components/general-overheads/
+
+hooks/useAssets.js
+lib/calculations/assetsCalculations.js
+lib/selectors/assetsSelectors.js
+components/assets/
+
+hooks/useLabour.js
+lib/calculations/labourCalculations.js
+lib/selectors/labourSelectors.js
+
+future:
+hooks/useRevenueCogs.js
+lib/calculations/revenueCogsCalculations.js
+lib/selectors/revenueCogsSelectors.js
+```
+
+---
+
+## 15. Non-Goals
+
+Do not:
+
+* rename `trading_income` yet
+* rebuild P&L importer
+* add default COGS categories back to P&L
+* move Revenue / COGS classification into P&L
+* let General Overheads parse raw Excel lines
+* let Assets pull vehicle running costs by keyword
+* let Labour calculate from raw P&L rows
+* alter Cost Allocation, Recovery Summary, or Rate Builder during this cleanup
+
+---
+
+## 16. Definition of Done
+
+This cleanup is complete when:
+
+* General Overheads consumes only P&L lines classified as `general_overheads`
+* Vehicle running costs correctly appear in General Overheads
+* True asset finance/depreciation remains available to Assets
+* Labour benchmark consumes only labour-classified P&L lines
+* Revenue / COGS can consume raw source COGS lines later
+* no consumer module relies on raw P&L line-name parsing
+* no old default COGS placeholders return to the P&L page
+* P&L totals still balance
+* build passes
+* evidence pack is created
+
+```
+```

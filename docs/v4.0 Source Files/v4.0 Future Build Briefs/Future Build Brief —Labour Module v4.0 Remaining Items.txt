@@ -1,0 +1,434 @@
+# Mirra — Future Build Brief
+
+## Labour Module v4.0 Remaining Items
+
+STATUS: FUTURE BUILD BRIEF
+MODULE: Labour
+VERSION CONTEXT: v4.0
+CURRENT STATE: Staff Type system and Productive Staff Type Rates implemented
+DATE: 2026-05-28
+
+---
+
+## 1. Purpose
+
+This brief captures Labour Module items that are **not required for the current Labour v4.0 source-truth pass**, but should be considered for future builds.
+
+The current Labour module now has the core v4.0 foundations:
+
+* reusable user-controlled staff types
+* custom staff type creation
+* `staff_type_id`
+* `staff_type_name`
+* compatibility alias through `staff_role`
+* productive / non-productive Labour class separation
+* `productive_staff_type_rates[]`
+* `weighted_all_productive_labour_rate`
+* zero-hour / zero-cost / unassigned staff type warnings
+* Productive Staff Type Rates panel
+
+This brief prevents unfinished ideas from being lost while keeping the current Labour build from expanding beyond its correct source-module role.
+
+---
+
+## 2. Current Labour Build Position
+
+Labour is now sufficiently complete for downstream v4.0 use.
+
+It can provide:
+
+* `staff_rows`
+* `staff_types`
+* `total_labour_cost_annual`
+* `total_people_cost_annual`
+* `total_productive_labour_cost`
+* `total_non_productive_labour_cost`
+* `total_productive_labour_hours`
+* `total_productive_output`
+* `weighted_all_productive_labour_rate`
+* `productive_staff_type_rates[]`
+* `labour_status`
+* `labour_warnings`
+* `labour_model_trust_state`
+
+These outputs are enough for:
+
+* Cost Summary
+* Business Summary
+* Cost Allocation
+* Recovery Summary
+* Rate Builder
+
+No further Labour expansion is required before moving to Cost Allocation cleanup.
+
+---
+
+## 3. What Is Intentionally Not Being Done Now
+
+The following items are **future only** and should not block the current v4.0 flow.
+
+---
+
+## 4. Future Item A — Staff Type Management Panel
+
+### Purpose
+
+Create a dedicated Staff Type Management panel so users can manage staff types separately from creating or editing individual staff.
+
+### Current state
+
+Staff types can be created from the Labour profile/staff form.
+
+### Future improvement
+
+Add a panel that allows users to:
+
+* view all staff types
+* create staff types
+* rename custom staff types
+* deactivate custom staff types
+* see whether a staff type is system-created or user-created
+* see how many staff are currently assigned to each staff type
+
+### Rules
+
+* Do not allow deleting a staff type currently used by staff.
+* Do not use `staff_type_name` as a key.
+* Do not infer productivity from staff type.
+* Labour class remains the productive / non-productive control.
+* System default staff types may be renamed only if a migration/alias strategy is defined.
+
+### Likely files
+
+* `components/labour/StaffTypeManagementPanel.jsx`
+* `hooks/useLabour.js`
+* `lib/storage/labourStorage.js`
+* `lib/selectors/labourSelectors.js`
+* `app/labour/page.jsx`
+
+---
+
+## 5. Future Item B — Staff Type Rename / Migration Handling
+
+### Purpose
+
+Allow safe renaming of custom staff types without breaking historical staff records or downstream grouping.
+
+### Required behaviour
+
+When a custom staff type is renamed:
+
+* keep the same `staff_type_id`
+* update `staff_type_name`
+* update display only
+* preserve historical staff records where required
+* avoid creating duplicate staff type IDs
+* avoid merging similar names automatically
+
+### Rules
+
+* `staff_type_id` remains stable.
+* `staff_type_name` may change.
+* Do not rewrite historical accepted snapshots unless explicitly approved by a future snapshot/migration brief.
+
+---
+
+## 6. Future Item C — Staff Profile History / Versioning
+
+### Purpose
+
+Introduce proper staff history so changes to staff cost, productive hours, role, or status are auditable over time.
+
+### Future fields
+
+Possible future fields:
+
+* `staff_profile_version`
+* `effective_from`
+* `effective_to`
+* `is_current_version`
+* `change_reason`
+* `created_at`
+* `updated_at`
+
+### Use cases
+
+* wage increase
+* staff moves from non-productive to productive
+* productive hours change
+* staff type changes
+* staff becomes inactive
+* owner wage treatment changes
+
+### Rules
+
+* Historical staff versions must not be silently overwritten.
+* Downstream active calculations should use current active versions only.
+* Future reporting may use historical versions for period comparisons.
+
+---
+
+## 7. Future Item D — Labour Reconciliation Context Display
+
+### Purpose
+
+Show Labour vs P&L reconciliation context inside Labour without making Labour responsible for reconciliation.
+
+### Current rule
+
+Module Reconciliation owns Labour vs P&L comparison.
+
+Labour should not force itself to match the P&L.
+
+### Future improvement
+
+Add a read-only reconciliation context panel showing:
+
+* Labour module total
+* P&L labour benchmark
+* variance amount
+* variance percent
+* reconciliation status
+* review action
+
+### Rules
+
+* Labour must not calculate this reconciliation internally.
+* Labour must receive reconciliation context from Module Reconciliation.
+* Labour must not overwrite Labour totals with P&L values.
+* Labour must not overwrite P&L values with Labour totals.
+* Always show variance where relevant.
+
+---
+
+## 8. Future Item E — Labour Source Trace Display
+
+### Purpose
+
+Expose traceability for key Labour outputs.
+
+### Possible trace fields
+
+For key outputs, show:
+
+* output variable
+* source module
+* source variable
+* calculation rule
+* source status
+* trust state
+* last updated
+
+### Key outputs needing trace
+
+* `total_labour_cost_annual`
+* `total_people_cost_annual`
+* `total_productive_labour_cost`
+* `total_productive_labour_hours`
+* `total_productive_output`
+* `weighted_all_productive_labour_rate`
+* `productive_staff_type_rates[]`
+
+### Rules
+
+* This is an audit/visibility improvement only.
+* Do not change formulas.
+* Do not move downstream logic into Labour.
+
+---
+
+## 9. Future Item F — Advanced Staff Cost Build
+
+### Purpose
+
+Improve staff cost entry where users need more detailed people-cost modelling.
+
+### Possible future fields
+
+* base wage / salary
+* employer contributions
+* payroll on-costs
+* leave allowance
+* ACC / workers compensation
+* payroll tax where regionally relevant
+* other employment on-costs
+* owner/director wage treatment
+
+### Rules
+
+* Keep this regional and configurable.
+* Do not hardcode one country’s payroll system as universal.
+* Do not bring employee overheads back as a separate module unless a future active brief explicitly changes the model.
+* Do not mix staff employment cost with general overheads.
+
+---
+
+## 10. Future Item G — Productive Capacity Detail
+
+### Purpose
+
+Improve how productive hours are built and explained.
+
+### Possible future features
+
+* paid hours per year
+* annual leave / public holidays / sick leave assumptions
+* non-productive allowance
+* productivity percentage
+* calculated productive hours
+* manual override with explanation
+* review warning when productive hours are zero or unrealistic
+
+### Rules
+
+* Do not infer productivity.
+* Do not use expected hours where actual productive hours are required.
+* Do not divide by zero.
+* Keep manual overrides visible and traceable.
+
+---
+
+## 11. Future Item H — Import / Bulk Entry Support
+
+### Purpose
+
+Allow faster setup for businesses with many staff.
+
+### Possible import types
+
+* CSV staff import
+* Excel staff import
+* payroll export import
+* template-based staff setup
+
+### Required behaviour
+
+Imported staff rows must still require:
+
+* `staff_id`
+* `staff_name`
+* `staff_type_id`
+* `staff_type_name`
+* productive / non-productive classification
+* annual labour cost
+* productive hours where productive
+
+### Rules
+
+* Import must not infer staff type from staff name.
+* Import may suggest staff types, but user must confirm.
+* Import must not silently create duplicates.
+* Import must preserve source trace.
+
+---
+
+## 12. Future Item I — Labour Data Quality Checks
+
+### Purpose
+
+Add stronger Labour-specific data quality warnings.
+
+### Future checks
+
+* duplicate staff names
+* missing annual labour cost
+* missing productive hours
+* productive staff with zero productive hours
+* non-productive staff with productive hours
+* staff type unused
+* custom staff type duplicate/similar name
+* inactive staff still contributing to totals
+* cost entered but staff inactive
+
+### Rules
+
+* Warnings should be structured.
+* Warnings should explain consequence.
+* Do not overclaim.
+* Use “review required” wording where cause is uncertain.
+
+---
+
+## 13. Future Item J — Crew Mix Preparation
+
+### Purpose
+
+Prepare Labour outputs for future Rate Builder crew mix models.
+
+### Future use
+
+Rate Builder may later build:
+
+* one operator
+* two labourers
+* foreman + labourer
+* machine + operator
+* crew rate per hour
+* crew cost per unit
+
+### Labour responsibility
+
+Labour only provides:
+
+* productive staff type rates
+* weighted all-productive labour rate
+* staff type identities
+* productive labour hours
+* labour trust state
+
+### Not Labour responsibility
+
+Labour must not create:
+
+* crew mix
+* charge-out rates
+* sell rates
+* Cost Allocation groups
+* Rate Builder rate rows
+
+---
+
+## 14. Not Allowed In Future Labour Builds
+
+Future Labour work must not:
+
+* create Cost Allocation groups
+* allocate labour to assets
+* calculate recovery tests
+* calculate Rate Builder rates
+* calculate Business Outcome verdicts
+* consume Revenue / COGS
+* consume material COGS
+* use P&L labour as Labour source truth
+* infer staff type from staff name
+* infer productivity from staff type
+* show or request `staff_id`
+* show or request `staff_type_id`
+* use display names as keys
+
+---
+
+## 15. Future Acceptance Criteria
+
+A future Labour enhancement is acceptable only if:
+
+1. Labour remains a source module.
+2. Staff identity remains system-controlled and hidden.
+3. Staff type identity remains system-controlled and hidden.
+4. User-facing names remain editable/display only.
+5. Productive / non-productive classification remains explicit.
+6. Productive staff type rates remain weighted by productive hours.
+7. Labour does not create allocation, recovery, rate, or outcome logic.
+8. Downstream modules consume Labour outputs instead of rebuilding them.
+9. Warnings are structured and visible.
+10. Build passes.
+
+---
+
+## 16. Final Note
+
+Do not continue expanding Labour unless the improvement strengthens Labour as a source-truth module.
+
+The next active build should move downstream to Cost Allocation cleanup.
+
+Labour should now be treated as stable enough for downstream v4.0 integration.

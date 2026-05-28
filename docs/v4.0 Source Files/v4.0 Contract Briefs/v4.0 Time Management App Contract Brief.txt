@@ -1,0 +1,663 @@
+# QS Tools — Time Management App Contract Brief v1.0
+
+## Build Target
+
+Build the first Layer 2 **Time Management App** for QS Tools.
+
+This module sits under the new Layer 2 job-control direction and must eventually connect to:
+
+```txt
+Quote / Job Intake
+→ Live Job
+→ Work Orders
+→ Purchase Orders
+→ Time Tracking
+→ Actual Labour Cost
+→ Job Profitability
+```
+
+The first build should focus only on clean time capture, staff/job/task assignment, and reusable data structure.
+
+---
+
+## Purpose
+
+The Time Management App records actual labour time against live jobs.
+
+It answers:
+
+```txt
+Who worked?
+On what job?
+On what task?
+For how long?
+Was the time productive, travel, admin, rework, or other?
+Can this time later compare against the quoted labour allowance?
+```
+
+This is the first practical live-job data layer.
+
+---
+
+## Core Principle
+
+The time app must not be just a timesheet.
+
+It must become the bridge between:
+
+```txt
+Quoted labour allowance
+Actual labour hours
+Actual labour cost
+Work order tracking
+Job profitability
+```
+
+---
+
+## Current System Context
+
+We have started Layer 2 with Quote / Job Intake.
+
+The Quote Engine now captures:
+
+```txt
+Job number
+Job name
+Client details
+Job type
+Quote version
+Quote price
+COG cost
+COG markup
+Labour hours allowed
+Labour hourly cost rate
+Calculated labour charge
+Calculated labour margin
+Recovery surplus / shortfall
+Minimum model price
+Quote buffer above minimum
+```
+
+The Time Management App should eventually consume live job records created from winning quotes.
+
+For the first build, mock/local storage is acceptable.
+
+---
+
+## Required MVP Behaviour
+
+User must be able to create a time entry with:
+
+```txt
+Job number
+Job name
+Staff member
+Date
+Start time
+Finish time
+Break duration
+Calculated hours
+Task
+Work category
+Notes
+```
+
+The system must calculate:
+
+```txt
+Gross hours = finish time - start time
+Net hours = gross hours - break
+```
+
+The system must store time entries locally for now.
+
+---
+
+## Required Fields
+
+### Time Entry Identity
+
+```txt
+time_entry_id
+job_id
+quote_job_id
+live_job_id
+staff_id
+task_id
+created_at
+updated_at
+```
+
+For MVP, IDs can be local generated IDs.
+
+---
+
+### Job Fields
+
+```txt
+job_number
+job_name
+client_name
+job_type_name
+```
+
+If a live job/job intake record exists later, these should be selected from stored job data instead of typed manually.
+
+For MVP, allow manual entry or selection from available quote jobs if already available.
+
+---
+
+### Staff Fields
+
+```txt
+staff_name
+staff_role
+staff_hourly_cost_rate
+```
+
+For MVP, staff can be entered manually or selected from a simple reusable list.
+
+Later this should connect to Labour module staff records.
+
+---
+
+### Time Fields
+
+```txt
+work_date
+start_time
+finish_time
+break_minutes
+gross_hours
+net_hours
+```
+
+Rules:
+
+```txt
+gross_hours = finish_time - start_time
+net_hours = gross_hours - break_minutes / 60
+```
+
+Net hours must never be negative.
+
+---
+
+### Task Fields
+
+```txt
+task_name
+work_category
+notes
+```
+
+Recommended work categories:
+
+```txt
+Productive
+Travel
+Setup
+Admin
+Delay
+Rework
+Variation
+Other
+```
+
+Only `Productive` should count toward quoted production comparison by default.
+
+---
+
+## Time Cost Calculation
+
+For MVP:
+
+```txt
+labour_cost_total = net_hours × staff_hourly_cost_rate
+```
+
+Later, staff hourly cost should come from the Labour module.
+
+---
+
+## Quote Comparison Direction
+
+If linked to a quote/live job, the app should eventually compare:
+
+```txt
+quoted_labour_hours_allowed
+actual_productive_hours
+remaining_labour_hours
+labour_hours_variance
+actual_labour_cost
+quoted_labour_cost
+labour_cost_variance
+```
+
+But this does not need to be fully built in the first pass.
+
+---
+
+## Data Model
+
+### `time_entries`
+
+```js
+{
+  time_entry_id: "",
+  quote_job_id: "",
+  live_job_id: "",
+
+  job_number: "",
+  job_name: "",
+  client_name: "",
+  job_type_name: "",
+
+  staff_id: "",
+  staff_name: "",
+  staff_role: "",
+  staff_hourly_cost_rate: 0,
+
+  work_date: "",
+  start_time: "",
+  finish_time: "",
+  break_minutes: 0,
+
+  gross_hours: 0,
+  net_hours: 0,
+
+  task_id: "",
+  task_name: "",
+  work_category: "Productive",
+
+  labour_cost_total: 0,
+
+  notes: "",
+
+  created_at: "",
+  updated_at: ""
+}
+```
+
+---
+
+### `staff_list`
+
+```js
+{
+  staff_id: "",
+  staff_name: "",
+  staff_role: "",
+  staff_hourly_cost_rate: 0,
+  is_active: true
+}
+```
+
+---
+
+### `task_list`
+
+```js
+{
+  task_id: "",
+  task_name: "",
+  default_work_category: "Productive",
+  is_active: true
+}
+```
+
+---
+
+## Hook Structure
+
+Create:
+
+```txt
+hooks/useTimeManagement.js
+```
+
+The hook should own:
+
+```txt
+time_entry_state
+saved_time_entries
+saved_staff
+saved_tasks
+
+update_time_entry_field()
+save_time_entry()
+start_new_time_entry()
+delete_time_entry()
+load_time_entry()
+```
+
+It should calculate:
+
+```txt
+gross_hours
+net_hours
+labour_cost_total
+```
+
+---
+
+## Calculation File
+
+Create:
+
+```txt
+lib/calculations/timeManagementCalculations.js
+```
+
+Required functions:
+
+```js
+calculateTimeEntry()
+calculateTimeSummary()
+```
+
+`calculateTimeEntry()` should return:
+
+```js
+{
+  gross_hours,
+  net_hours,
+  labour_cost_total,
+  is_valid_time_entry,
+  warnings
+}
+```
+
+`calculateTimeSummary()` should group totals by:
+
+```txt
+job
+staff
+task
+work_category
+date
+```
+
+---
+
+## Selector File
+
+Create:
+
+```txt
+lib/selectors/timeManagementSelectors.js
+```
+
+Selectors should format:
+
+```txt
+hours
+currency
+dates
+status messages
+warnings
+summary rows
+```
+
+No raw calculation logic should live in React components.
+
+---
+
+## Storage File
+
+Create:
+
+```txt
+lib/storage/timeManagementStorage.js
+```
+
+Use localStorage for MVP.
+
+Suggested storage key:
+
+```txt
+qs_tools_time_management_store_v1
+```
+
+Storage shape:
+
+```js
+{
+  current_time_entry: {},
+  time_entries: [],
+  staff_list: [],
+  task_list: []
+}
+```
+
+Must include hydration-safe default store to avoid Next.js hydration mismatch.
+
+---
+
+## Page Structure
+
+Create:
+
+```txt
+app/time-management/page.jsx
+```
+
+The page must be orchestration only.
+
+It should call `useTimeManagement()` and pass data/actions into components.
+
+No calculations, storage, or business logic should live in `page.jsx`.
+
+---
+
+## Component Structure
+
+Create:
+
+```txt
+components/time-management/TimeManagementStatusStrip.jsx
+components/time-management/TimeEntryMainCard.jsx
+components/time-management/TimeEntryResultCard.jsx
+components/time-management/TimeEntriesListCard.jsx
+components/time-management/TimeManagementHelpPanel.jsx
+```
+
+Optional later:
+
+```txt
+StaffListCard.jsx
+TaskListCard.jsx
+JobTimeSummaryCard.jsx
+```
+
+---
+
+## First Page Layout
+
+Recommended MVP layout:
+
+```txt
+TimeManagementStatusStrip
+TimeEntryMainCard
+TimeEntryResultCard
+TimeEntriesListCard
+TimeManagementHelpPanel
+```
+
+---
+
+## TimeEntryMainCard Inputs
+
+```txt
+Job number
+Job name
+Client name
+Staff name
+Staff hourly cost rate
+Work date
+Start time
+Finish time
+Break minutes
+Task
+Work category
+Notes
+Save time entry
+Start new entry
+```
+
+---
+
+## TimeEntryResultCard Outputs
+
+```txt
+Gross hours
+Break
+Net hours
+Labour cost total
+Entry status
+Warnings
+```
+
+---
+
+## TimeEntriesListCard
+
+Show saved entries with:
+
+```txt
+Date
+Job
+Staff
+Task
+Category
+Net hours
+Labour cost
+```
+
+Include totals:
+
+```txt
+Total net hours
+Total labour cost
+Productive hours
+Non-productive hours
+```
+
+---
+
+## Validation Rules
+
+Warnings should be shown for:
+
+```txt
+Missing job name / job number
+Missing staff name
+Missing work date
+Missing start time
+Missing finish time
+Finish time before start time
+Net hours <= 0
+Missing hourly cost rate
+Missing task
+```
+
+Do not block saving everything at first, but clearly warn when entries are incomplete.
+
+---
+
+## Work Category Rules
+
+Default category:
+
+```txt
+Productive
+```
+
+Only Productive time should count toward quoted labour comparison later.
+
+Other categories should be stored but separated:
+
+```txt
+Travel
+Setup
+Admin
+Delay
+Rework
+Variation
+Other
+```
+
+---
+
+## Future Integration
+
+Later this module should connect to:
+
+```txt
+Quote Engine / Quote Intake
+Live Jobs
+Labour module
+Cost Allocation operational groups
+Work Orders
+Purchase Orders
+Job Profitability
+```
+
+But the MVP should stay simple and local.
+
+---
+
+## Non-Negotiable Architecture Rules
+
+```txt
+page.jsx = orchestration only
+hook = state/actions
+calculation file = maths
+selector file = formatted outputs/status
+storage file = local persistence
+components = UI only
+```
+
+No calculations inside the page or components except harmless display formatting.
+
+No direct localStorage inside components.
+
+No importing upstream modules directly into components.
+
+---
+
+## First Build Goal
+
+Build a working local Time Management page that can:
+
+```txt
+1. Create a time entry
+2. Calculate net hours
+3. Calculate labour cost
+4. Save the entry
+5. List saved entries
+6. Show total hours and labour cost
+```
+
+Once this works, the next build can connect the time entries to Quote / Job Intake and compare actual labour against quoted labour allowance.
+
+---
+
+## Suggested First Instruction for Next Chat
+
+Build the QS Tools Time Management App MVP from this contract brief.
+
+Start with:
+
+```txt
+lib/storage/timeManagementStorage.js
+lib/calculations/timeManagementCalculations.js
+lib/selectors/timeManagementSelectors.js
+hooks/useTimeManagement.js
+app/time-management/page.jsx
+components/time-management/*
+```
+
+Keep it localStorage-based and hydration-safe.
+Do not connect to Procore, Xero, or a database yet.

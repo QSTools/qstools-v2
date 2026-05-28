@@ -1,0 +1,718 @@
+# Mirra — Labour Output Contract Brief
+
+## v4.0 — Upstream Contract for Downstream Modules
+
+STATUS: ACTIVE CONTRACT BRIEF
+MODULE: Labour
+VERSION CONTEXT: v4.0
+PURPOSE: Defines the Labour outputs available for downstream modules
+CURRENT BUILD STATE: Staff Type system and Productive Staff Type Rates implemented
+
+---
+
+## 1. Purpose
+
+This brief defines the Labour Module output contract for downstream Mirra modules.
+
+Labour is the source of truth for:
+
+* staff identity
+* staff type identity
+* productive / non-productive labour classification
+* annual people cost
+* productive labour hours
+* weighted productive labour rates
+* productive staff type rates
+* Labour readiness
+* Labour trust state
+
+Downstream modules may consume Labour outputs.
+
+Downstream modules must not recreate Labour calculations.
+
+---
+
+## 2. Core Rule
+
+Labour owns people cost and productive capacity.
+
+No downstream module may infer:
+
+* labour cost
+* staff type
+* productive status
+* productive hours
+* weighted labour rates
+* productive staff type rates
+
+Downstream modules must consume the Labour contract outputs exactly as exposed.
+
+---
+
+## 3. Labour-Owned Identity Fields
+
+Labour owns the following identity fields:
+
+```txt
+staff_id
+staff_name
+staff_type_id
+staff_type_name
+```
+
+Rules:
+
+* `staff_id` is system-generated and hidden from the user.
+* `staff_name` is user-facing display text.
+* `staff_type_id` is system-generated and hidden from the user.
+* `staff_type_name` is user-facing display text.
+* Downstream modules must use IDs for joins.
+* Display names must never be used as keys.
+
+---
+
+## 4. Staff Type Contract
+
+Labour owns the reusable Staff Type system.
+
+Each staff type record should use:
+
+```js
+{
+  staff_type_id,
+  staff_type_name,
+  is_system_type,
+  is_active,
+  created_at,
+  updated_at
+}
+```
+
+Rules:
+
+* Users may create custom staff types.
+* Custom staff types must appear in the dropdown for future staff.
+* `staff_type_id` remains the stable key.
+* `staff_type_name` is display only.
+* Staff type does not determine productivity.
+* Labour class determines productive / non-productive status.
+
+---
+
+## 5. Staff Row Contract
+
+Each Labour staff row should expose:
+
+```js
+{
+  staff_id,
+  staff_name,
+  staff_type_id,
+  staff_type_name,
+  staff_role,
+  labour_class,
+  is_productive,
+  is_active,
+  employment_type,
+  annual_base_cost,
+  annual_on_costs,
+  annual_labour_cost,
+  productive_hours_annual,
+  non_productive_hours_annual,
+  total_hours_annual,
+  labour_status
+}
+```
+
+Compatibility note:
+
+`staff_role` may remain as a temporary display alias for `staff_type_name`.
+
+Preferred v4.0 fields are:
+
+```txt
+staff_type_id
+staff_type_name
+```
+
+---
+
+## 6. Productive / Non-Productive Rule
+
+Labour class remains the source of productive status.
+
+Allowed user-facing Labour class values:
+
+```txt
+Productive
+Non-productive
+```
+
+Internal interpretation:
+
+```txt
+Productive     → is_productive = true
+Non-productive → is_productive = false
+```
+
+Rules:
+
+* Do not infer productivity from staff type.
+* Do not infer productivity from staff name.
+* Productive staff contribute to productive labour hours and productive rate calculations.
+* Non-productive staff still contribute to Labour cost, but do not contribute productive hours to productive staff type rates.
+
+---
+
+## 7. Labour Aggregate Output Contract
+
+Labour should expose:
+
+```js
+{
+  total_labour_cost_annual,
+  total_people_cost_annual,
+  total_productive_labour_cost,
+  total_non_productive_labour_cost,
+  total_productive_labour_hours,
+  total_productive_output,
+  total_staff_count,
+  productive_staff_count,
+  non_productive_staff_count,
+  productive_labour_cost_rate,
+  weighted_all_productive_labour_rate
+}
+```
+
+Definitions:
+
+```txt
+total_labour_cost_annual
+= sum annual_labour_cost for active staff
+
+total_people_cost_annual
+= compatibility name for total labour / people cost
+
+total_productive_labour_cost
+= sum annual_labour_cost for active productive staff
+
+total_non_productive_labour_cost
+= sum annual_labour_cost for active non-productive staff
+
+total_productive_labour_hours
+= sum productive_hours_annual for active productive staff
+
+total_productive_output
+= compatibility output for Cost Summary and downstream recovery logic
+
+weighted_all_productive_labour_rate
+= total_productive_labour_cost / total_productive_labour_hours
+```
+
+If `total_productive_labour_hours = 0`:
+
+```txt
+weighted_all_productive_labour_rate = 0
+```
+
+Do not divide by zero.
+
+---
+
+## 8. Productive Staff Type Rates Contract
+
+Labour must expose:
+
+```js
+productive_staff_type_rates[]
+```
+
+Each row must use:
+
+```js
+{
+  staff_type_id,
+  staff_type_name,
+  staff_count,
+  total_annual_cost,
+  total_productive_hours,
+  weighted_productive_hourly_rate,
+  productive_share_percent,
+  is_productive,
+  rate_status,
+  source
+}
+```
+
+Rules:
+
+* Include active productive staff only.
+* Group by `staff_type_id`.
+* Display `staff_type_name`.
+* Do not display `staff_type_id`.
+* Do not include non-productive staff in productive staff type rate rows.
+* Do not infer staff type from staff name.
+* Do not infer productive status from staff type.
+
+---
+
+## 9. Productive Staff Type Rate Formula
+
+For each productive staff type:
+
+```txt
+total_annual_cost =
+sum annual_labour_cost for active productive staff assigned to that staff_type_id
+
+total_productive_hours =
+sum productive_hours_annual for active productive staff assigned to that staff_type_id
+
+weighted_productive_hourly_rate =
+total_annual_cost / total_productive_hours
+
+productive_share_percent =
+total_productive_hours / total_productive_labour_hours
+```
+
+This is a weighted rate.
+
+It is not a simple average of individual hourly rates.
+
+If `total_productive_hours = 0`:
+
+```txt
+weighted_productive_hourly_rate = 0
+```
+
+---
+
+## 10. Productive Staff Type Rate Status Values
+
+Allowed `rate_status` values:
+
+```txt
+ready
+invalid_zero_productive_hours
+review_zero_cost
+review_unassigned_staff_type
+```
+
+Meaning:
+
+```txt
+ready
+= staff type has productive staff, annual cost, and productive hours
+
+invalid_zero_productive_hours
+= staff type has annual cost but zero productive hours
+
+review_zero_cost
+= staff type has productive hours but zero annual cost
+
+review_unassigned_staff_type
+= productive staff exists without a valid staff type assignment
+```
+
+---
+
+## 11. Unassigned Productive Staff Contract
+
+If active productive staff have no valid `staff_type_id`, Labour must expose them in a review bucket.
+
+Required review bucket:
+
+```txt
+staff_type_id = "unassigned_productive_review"
+staff_type_name = "Unassigned / Review required"
+rate_status = "review_unassigned_staff_type"
+```
+
+Labour should also expose:
+
+```js
+{
+  unassigned_productive_staff,
+  unassigned_productive_staff_cost,
+  unassigned_productive_staff_hours
+}
+```
+
+Rules:
+
+* Do not silently exclude unassigned productive staff.
+* Do not guess staff type.
+* Downstream modules must treat this as review-required.
+
+---
+
+## 12. Labour Warning Contract
+
+Labour should expose:
+
+```js
+labour_warnings[]
+labour_warning_count
+```
+
+Warnings should use the standard object shape:
+
+```js
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+```
+
+Required warning IDs:
+
+```txt
+no_labour_data
+labour_invalid_staff_cost
+labour_missing_staff_type
+labour_missing_productive_hours
+labour_zero_productive_hours
+productive_staff_type_zero_hours
+productive_staff_type_zero_cost
+productive_staff_type_unassigned
+total_productive_hours_zero
+labour_data_missing
+labour_reconciliation_variance
+labour_preview_only
+```
+
+---
+
+## 13. Labour Readiness Contract
+
+Labour should expose:
+
+```js
+{
+  labour_ready,
+  labour_status,
+  labour_model_trust_state
+}
+```
+
+Allowed `labour_status` values:
+
+```txt
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+not_ready
+```
+
+Allowed `labour_model_trust_state` values:
+
+```txt
+ready
+warning
+blocked
+preview_only
+```
+
+Mapping:
+
+```txt
+labour_status = ready
+→ labour_model_trust_state = ready
+
+labour_status = ready_with_warnings or review_required
+→ labour_model_trust_state = warning
+
+labour_status = blocked or not_ready
+→ labour_model_trust_state = blocked
+
+labour_status = preview_only
+→ labour_model_trust_state = preview_only
+```
+
+Downstream modules must inherit Labour trust state.
+
+---
+
+## 14. Output To Cost Summary
+
+Cost Summary may consume:
+
+```txt
+total_people_cost_annual
+total_labour_cost_annual
+total_productive_output
+labour_status
+labour_model_trust_state
+```
+
+Rules:
+
+* Cost Summary must use `total_people_cost_annual` as Labour’s people cost contribution.
+* Cost Summary must not rebuild Labour cost.
+* Cost Summary must not infer productive hours.
+* Cost Summary must not use staff names as keys.
+
+---
+
+## 15. Output To Business Summary
+
+Business Summary may consume Labour outputs through Cost Summary.
+
+Revenue Reality may consume:
+
+```txt
+total_labour_cost_annual
+total_people_cost_annual
+```
+
+Rules:
+
+* Business Summary must not recreate Labour rates.
+* Revenue Reality may stress-test margin after Labour.
+* Neither module may overwrite Labour source truth.
+
+---
+
+## 16. Output To Cost Allocation
+
+Cost Allocation may consume:
+
+```txt
+productive_staff_type_rates[]
+total_productive_labour_cost
+total_productive_labour_hours
+weighted_all_productive_labour_rate
+labour_model_trust_state
+```
+
+Use cases:
+
+* Productive Labour default pool
+* labour group assignment options
+* labour pull-out calculations
+* labour source pool reconciliation
+* labour group cost stacks
+
+Rules:
+
+* Cost Allocation must not infer missing staff type.
+* Cost Allocation must not create Labour source rates.
+* Cost Allocation must not recreate productive staff type rates.
+* Cost Allocation must use Labour outputs as source truth.
+
+---
+
+## 17. Output To Recovery Summary
+
+Recovery Summary may consume Labour recovery context through:
+
+```txt
+Business Summary
+Cost Allocation
+Labour weighted rates where required
+```
+
+Rules:
+
+* Recovery Summary tests whether Labour is recovered.
+* Recovery Summary must not recalculate Labour source cost.
+* Recovery Summary must not infer productive hours.
+
+---
+
+## 18. Output To Rate Builder
+
+Rate Builder may consume:
+
+```txt
+productive_staff_type_rates[]
+weighted_all_productive_labour_rate
+Cost Allocation group labour burden
+Cost Allocation group productive hours
+```
+
+Use cases:
+
+* labour rate construction
+* crew mix calculations
+* group rate calculations
+* quote checker target values later
+
+Rules:
+
+* Rate Builder must not recreate productive staff type rates.
+* Rate Builder must not infer crew mix.
+* Rate Builder must not create staff identities.
+* Rate Builder must not mutate Labour.
+
+---
+
+## 19. Output To Business Outcome
+
+Business Outcome may consume Labour consequences through:
+
+```txt
+Business Summary
+Revenue Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+```
+
+Rules:
+
+* Business Outcome must not calculate Labour source totals.
+* Business Outcome must not rebuild Labour evidence.
+* Business Outcome must not change Labour data.
+
+---
+
+## 20. Output To Module Reconciliation
+
+Module Reconciliation may consume:
+
+```txt
+total_labour_cost_annual
+total_people_cost_annual
+labour_status
+labour_model_trust_state
+labour_warnings
+```
+
+Purpose:
+
+Compare Labour module output to P&L labour benchmark.
+
+Rules:
+
+* Module Reconciliation does not change Labour.
+* Labour does not force itself to match the P&L.
+* Do not overwrite Labour with P&L.
+* Do not overwrite P&L with Labour.
+* Always show variance.
+* Never silent overwrite.
+
+---
+
+## 21. Source Trace Requirements
+
+Labour outputs should be traceable.
+
+Required source trace for:
+
+```txt
+total_labour_cost_annual
+total_people_cost_annual
+total_productive_labour_cost
+total_productive_labour_hours
+total_productive_output
+weighted_all_productive_labour_rate
+productive_staff_type_rates[]
+```
+
+Each trace should identify:
+
+```txt
+source_module = labour
+source_variable
+calculation_rule
+source_status
+trust_state
+```
+
+---
+
+## 22. Do Not Consume From Labour
+
+Downstream modules must not consume or depend on:
+
+```txt
+staff_name as key
+staff_type_name as key
+staff_role as primary contract
+UI dropdown labels as IDs
+raw form state where output contract exists
+```
+
+Preferred contract fields are:
+
+```txt
+staff_id
+staff_type_id
+staff_type_name
+total_people_cost_annual
+total_productive_output
+productive_staff_type_rates[]
+weighted_all_productive_labour_rate
+labour_model_trust_state
+```
+
+---
+
+## 23. Not Allowed
+
+No downstream module may:
+
+* recreate Labour cost
+* infer staff type
+* infer productive status
+* infer productive hours
+* use staff names as keys
+* use staff type names as keys
+* show or request `staff_id`
+* show or request `staff_type_id`
+* overwrite Labour with P&L
+* overwrite P&L with Labour
+* create Cost Allocation groups inside Labour
+* create Rate Builder rates inside Labour
+* calculate Recovery Summary tests inside Labour
+* calculate Business Outcome verdicts inside Labour
+
+---
+
+## 24. Current Build Acceptance State
+
+The Labour upstream contract is considered usable when:
+
+1. Staff types are user-controlled.
+2. Custom staff types persist and are reusable.
+3. Staff records store `staff_type_id` and `staff_type_name`.
+4. `staff_role` remains as compatibility alias only.
+5. Labour class remains separate.
+6. Productive status is explicit.
+7. Productive staff type rates are calculated.
+8. Weighted all-productive labour rate is calculated.
+9. Non-productive staff are excluded from productive rate rows.
+10. Unassigned productive staff are surfaced for review.
+11. Zero-hour and zero-cost guardrails are visible.
+12. Labour status and trust state are exposed.
+13. Downstream modules can consume Labour outputs without rebuilding Labour logic.
+
+---
+
+## 25. Final Contract Principle
+
+Labour gives downstream modules the people-cost truth.
+
+It does not decide recovery.
+
+It does not allocate work.
+
+It does not build rates.
+
+It does not issue the business verdict.
+
+Downstream modules must consume the Labour contract, not recreate it.
+
+No inferred staff types.
+No hidden labour averaging.
+No zero-hour division.
+No display-name joins.
+No P&L overwrite.
+No downstream labour guesses.

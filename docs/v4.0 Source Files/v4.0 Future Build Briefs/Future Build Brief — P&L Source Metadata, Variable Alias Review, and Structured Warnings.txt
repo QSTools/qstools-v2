@@ -1,0 +1,75 @@
+# Future Build Brief — P&L Source Metadata, Variable Alias Review, and Structured Warnings
+# MIRRA / QS Tools v4.0
+
+Status: FUTURE BUILD
+Priority: Medium
+Do not implement during current P&L Excel importer patch.
+
+---
+
+## 1. Purpose
+
+This future build cleans up the P&L module after the v4.0 Excel import work.
+
+The current P&L Excel importer now works and correctly preserves accounting source line names.
+
+This future brief covers the remaining non-urgent architecture cleanup:
+
+1. Add full P&L source/report metadata.
+2. Review the existing `trading_income` variable name against the v4.0 contract.
+3. Convert P&L warnings from simple strings into structured warning objects.
+
+---
+
+## 2. Current Locked Behaviour
+
+The P&L page is now the accounting source-truth layer.
+
+It must:
+
+- import P&L accounting lines
+- preserve original source line names
+- preserve actual accounting totals
+- show accounting benchmark totals
+- feed downstream modules with clean source-truth outputs
+
+It must not:
+
+- commercially reinterpret Cost of Sales
+- force COGS lines into fixed Mirra categories
+- become the Revenue / COGS commercial classification page
+- calculate recovery, pricing, or operational truth
+
+---
+
+## 3. Future Build Item A — P&L Source Metadata
+
+### Objective
+
+Add a proper source/report metadata object to P&L imports.
+
+This should allow the system to know:
+
+- what file was imported
+- when it was imported
+- what accounting report period it covers
+- whether it came from Excel, CSV, PDF, manual entry, or future Xero/API import
+
+### Required metadata fields
+
+Add or standardise:
+
+```js
+{
+  pnl_source_type,
+  pnl_source_file_name,
+  pnl_source_report_name,
+  pnl_source_report_type,
+  pnl_imported_at,
+
+  pnl_period_start,
+  pnl_period_end,
+  pnl_period_label,
+  pnl_financial_year,
+  pnl_period_month
+}
