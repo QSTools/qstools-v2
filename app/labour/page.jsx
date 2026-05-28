@@ -11,6 +11,7 @@ import EmployerContributionsCard from "@/components/labour/EmployerContributions
 
 import LabourStatusStrip from "@/components/labour/LabourStatusStrip";
 import LabourSummaryCard from "@/components/labour/LabourSummaryCard";
+import ProductiveStaffTypeRatesPanel from "@/components/labour/ProductiveStaffTypeRatesPanel";
 import TopDriverCard from "@/components/labour/TopDriverCard";
 import LabourFlowCard from "@/components/labour/LabourFlowCard";
 import ScenarioModelCard from "@/components/labour/ScenarioModelCard";
@@ -141,6 +142,24 @@ export default function LabourPage() {
                   has_profile={labour.has_profile}
                   save_profile={labour.save_profile}
                   start_new_profile={labour.start_new_profile}
+                />
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Productive Staff Type Rates"
+                summary="Weighted productive rates by staff type"
+                defaultOpen={false}
+              >
+                <ProductiveStaffTypeRatesPanel
+                  productive_staff_type_rates={
+                    labour.output_contract.productive_staff_type_rates
+                  }
+                  weighted_all_productive_labour_rate={
+                    labour.output_contract.weighted_all_productive_labour_rate
+                  }
+                  productive_staff_type_rate_warnings={
+                    labour.output_contract.productive_staff_type_rate_warnings
+                  }
                 />
               </CollapsibleSection>
 

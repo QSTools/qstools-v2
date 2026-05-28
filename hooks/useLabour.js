@@ -75,7 +75,14 @@ export function useLabour() {
           labour_class: data.labour_class ?? "",
           contributes_to_recovery_hours:
             data.contributes_to_recovery_hours !== false,
+          is_productive:
+            data.is_productive === true || data.labour_class === "productive",
           is_active: true,
+          annual_labour_cost: calculated.total_labour_cost_annual,
+          productive_hours_annual: calculated.recovery_hours,
+          total_hours_annual: calculated.paid_hours_per_year,
+          non_productive_hours_annual:
+            calculated.paid_hours_per_year - calculated.recovery_hours,
           ...calculated,
         };
       });
