@@ -13,6 +13,9 @@ import {
   updateLabourProfileRecord,
   deleteLabourProfileRecord,
   findLabourProfileById,
+  getStoredStaffTypes,
+  setStoredStaffTypes,
+  addStaffType,
 } from "@/lib/storage/labourProfileStorage";
 import {
   buildLabourStatus,
@@ -25,12 +28,15 @@ import {
 export function useLabour() {
   const [state, setState] = useState(getDefaultLabourState);
   const [profiles, setProfiles] = useState([]);
+  const [staff_types, setStaffTypes] = useState([]);
   const [active_profile_id, setActiveProfileId] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const stored_profiles = getStoredLabourProfiles();
+    const stored_types = getStoredStaffTypes();
     setProfiles(stored_profiles);
+    setStaffTypes(stored_types);
     setHydrated(true);
   }, []);
 
@@ -38,6 +44,11 @@ export function useLabour() {
     if (!hydrated) return;
     setStoredLabourProfiles(profiles);
   }, [profiles, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setStoredStaffTypes(staff_types);
+  }, [staff_types, hydrated]);
 
   const outputs = useMemo(() => {
     return calculateLabourOutputs(state);
@@ -58,6 +69,8 @@ export function useLabour() {
           staff_id: data.staff_id ?? "",
           staff_name: data.staff_name ?? "",
           staff_role: data.staff_role ?? "",
+          staff_type_id: data.staff_type_id ?? "",
+          staff_type_name: data.staff_type_name ?? "",
           staff_type: data.staff_type ?? "",
           labour_class: data.labour_class ?? "",
           contributes_to_recovery_hours:
@@ -77,17 +90,24 @@ export function useLabour() {
 
   function create_profile() {
     const staff_name = String(state.staff_name || "").trim();
-    const staff_role = String(state.staff_role || "").trim();
+    const staff_type_id = String(state.staff_type_id || "").trim();
     const labour_class = String(state.labour_class || "").trim();
 
-    if (!staff_name || !staff_role || !labour_class) {
+    if (!staff_name || !staff_type_id || !labour_class) {
       return false;
     }
+
+    const selected_type = staff_types.find(
+      (t) => t.staff_type_id === staff_type_id
+    );
+    const staff_type_name = selected_type?.staff_type_name || "";
 
     const profile_record = createLabourProfileRecord({
       ...state,
       staff_name,
-      staff_role,
+      staff_type_id,
+      staff_type_name,
+      staff_role: staff_type_name,
       labour_class,
     });
 
@@ -96,6 +116,16 @@ export function useLabour() {
     setActiveProfileId(profile_record.profile_id);
 
     return true;
+  }
+
+  function create_staff_type(staff_type_name) {
+    const new_type = addStaffType(staff_type_name);
+    if (!new_type) {
+      return null;
+    }
+
+    setStaffTypes((previous) => [...previous, new_type]);
+    return new_type;
   }
 
   function save_profile() {
@@ -185,6 +215,7 @@ export function useLabour() {
   return {
     state,
     profiles,
+    staff_types,
     active_profile_id,
     outputs,
     active_staff,
@@ -193,6 +224,7 @@ export function useLabour() {
 
     update_field,
     create_profile,
+    create_staff_type,
     save_profile,
     load_profile,
     start_new_profile,

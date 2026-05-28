@@ -51,9 +51,11 @@ export default function LabourPage() {
               >
                 <LabourProfileCard
                   state={labour.state}
+                  staff_types={labour.staff_types}
                   has_profile={labour.has_profile}
                   update_field={labour.update_field}
                   create_profile={labour.create_profile}
+                  create_staff_type={labour.create_staff_type}
                 />
               </CollapsibleSection>
 
