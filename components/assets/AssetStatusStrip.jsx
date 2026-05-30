@@ -1,16 +1,8 @@
 function SummaryRow({ label, value }) {
   return (
-    <div
-      className="labour-summary-row"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "16px",
-      }}
-    >
-      <span className="labour-summary-label">{label}</span>
-      <span className="labour-summary-value">{value}</span>
+    <div className="labour-summary-table-row">
+      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-value">{value}</div>
     </div>
   );
 }
@@ -37,7 +29,8 @@ export default function AssetStatusStrip({
           <div className="ui-kicker">Reconciliation</div>
           <div className="ui-display">Asset position</div>
           <div className="ui-help">
-            As you enter assets, your position moves closer to your P&amp;L benchmark.
+            As you enter assets, your position moves closer to your P&amp;L
+            benchmark.
           </div>
         </div>
 

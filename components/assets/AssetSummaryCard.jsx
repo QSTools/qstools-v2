@@ -73,43 +73,105 @@ function AssetOverheadPoolAssignmentCard({
         </p>
 
         <div className="ui-stack-sm">
-          {pool_summary.map((pool) => (
-            <div key={pool.pool_key} className="ui-readonly">
-              <div className="ui-stack-sm">
-                <div className="ui-row-between">
-                  <div>
-                    <div className="ui-label">{pool.label}</div>
-                    <div className="ui-help">
-                      Available {pool.available_amount_label} · Remaining{" "}
-                      {pool.remaining_amount_label}
+          {pool_summary.map((pool) => {
+            const assigned_to_current_asset = Number(
+              pool.assigned_to_current_asset || 0
+            );
+
+            const max_assignable_to_current_asset = Number(
+              pool.max_assignable_to_current_asset || 0
+            );
+
+            const is_over_allocated =
+              pool.allocation_status === "over_allocated";
+
+            return (
+              <div key={pool.pool_key} className="ui-readonly">
+                <div className="ui-stack-sm">
+                  <div className="ui-row-between">
+                    <div>
+                      <div className="ui-label">{pool.label}</div>
+                      <div className="ui-help">
+                        Available {pool.available_amount_label} · Remaining{" "}
+                        {pool.remaining_amount_label} · Max this asset{" "}
+                        {pool.max_assignable_to_current_asset_label}
+                      </div>
+
+                      {is_over_allocated ? (
+                        <div className="ui-help">
+                          This pool is over-allocated by{" "}
+                          {pool.over_allocated_amount_label}. Reduce the
+                          assigned amount before using this asset downstream.
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="labour-summary-table-value">
+                      {pool.assigned_total_label}
                     </div>
                   </div>
 
-                  <div className="text-sm font-semibold text-[var(--text-primary)]">
-                    {pool.assigned_total_label}
+                  <label className="ui-field">
+                    <span className="ui-label">Assigned to this asset</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="ui-input"
+                      value={format_number_with_commas(
+                        assigned_to_current_asset
+                      )}
+                      onChange={(event) => {
+                        const next_value = Math.max(
+                          0,
+                          parse_number_string(event.target.value)
+                        );
+
+                        const safe_value = Math.min(
+                          next_value,
+                          max_assignable_to_current_asset
+                        );
+
+                        on_change_asset_overhead_pool_assignment(
+                          pool.pool_key,
+                          safe_value
+                        );
+                      }}
+                    />
+                  </label>
+
+                  <div className="labour-summary-table">
+                    <SummaryRow
+                      label="Available Pool"
+                      value={pool.available_amount_label}
+                    />
+                    <SummaryRow
+                      label="Assigned to Other Assets"
+                      value={pool.assigned_to_other_assets_label}
+                    />
+                    <SummaryRow
+                      label="Assigned Total"
+                      value={pool.assigned_total_label}
+                    />
+                    <SummaryRow
+                      label="Remaining Pool"
+                      value={pool.remaining_amount_label}
+                    />
+                    <SummaryRow
+                      label="Maximum For This Asset"
+                      value={pool.max_assignable_to_current_asset_label}
+                    />
+                    {is_over_allocated ? (
+                      <SummaryRow
+                        label="Over Allocated"
+                        value={pool.over_allocated_amount_label}
+                        strong
+                      />
+                    ) : null}
                   </div>
                 </div>
-
-                <label className="ui-field">
-                  <span className="ui-label">Assigned to this asset</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="ui-input"
-                    value={format_number_with_commas(
-                      pool.assigned_to_current_asset
-                    )}
-                    onChange={(event) =>
-                      on_change_asset_overhead_pool_assignment(
-                        pool.pool_key,
-                        parse_number_string(event.target.value)
-                      )
-                    }
-                  />
-                </label>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
