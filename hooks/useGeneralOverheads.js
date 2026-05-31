@@ -43,6 +43,12 @@ function to_number(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function round_allocation_amount(value) {
+  const rounded = Number(to_number(value).toFixed(2));
+
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
 function normalise_name(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -527,9 +533,9 @@ export default function useGeneralOverheads() {
       custom_overhead_items: (current.custom_overhead_items ?? []).map((item) =>
         item.custom_overhead_id === custom_overhead_id
           ? {
-            ...item,
-            [field]: value,
-          }
+              ...item,
+              [field]: value,
+            }
           : item
       ),
       overhead_category_overrides: current.overhead_category_overrides ?? {},
@@ -632,7 +638,7 @@ export default function useGeneralOverheads() {
         current.system_allocation_overrides ?? {},
       system_allocation_amount_overrides: {
         ...(current.system_allocation_amount_overrides ?? {}),
-        [row_key]: allocation_amount,
+        [row_key]: round_allocation_amount(allocation_amount),
       },
       updated_at: new Date().toISOString(),
     }));
