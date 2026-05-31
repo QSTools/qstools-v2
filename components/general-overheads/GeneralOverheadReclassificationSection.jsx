@@ -15,6 +15,22 @@ function resolve_row_amount_change(form, row, value) {
   form.update_field(row.key, value);
 }
 
+function get_group_help_text(group) {
+  switch (group.category_key) {
+    case "finance_interest":
+      return "Finance / Interest stays in General Overheads unless it includes asset finance. Enter only the asset finance portion that relates to vehicles, plant, equipment, or financed assets. The remaining balance stays as business finance overhead.";
+
+    case "vehicles_running":
+      return "Redistribute the fixed P&L vehicle running cost pool into fuel, repairs / maintenance, and registration / compliance. The total remains locked to the P&L source amount.";
+
+    case "insurance_compliance":
+      return "Redistribute the fixed P&L insurance / compliance pool into business insurance, vehicle / asset insurance, professional indemnity, and compliance / H&S. Compliance / H&S auto-balances.";
+
+    default:
+      return "";
+  }
+}
+
 export default function GeneralOverheadReclassificationSection({
   reclassification,
   form,
@@ -46,17 +62,29 @@ export default function GeneralOverheadReclassificationSection({
       <p className="ui-help">{reclassification.help_text}</p>
 
       <div className="ui-stack">
-        {reclassification.grouped_overhead_rows?.map((group) => (
-          <GeneralOverheadReclassificationGroup
-            key={group.category_key}
-            group={group}
-            on_move_row={handle_move_row}
-            on_change_row_amount={handle_change_row_amount}
-            on_change_system_allocation_type={
-              handle_change_system_allocation_type
-            }
-          />
-        ))}
+        {reclassification.grouped_overhead_rows?.map((group) => {
+          const group_help_text = get_group_help_text(group);
+
+          return (
+            <div key={group.category_key} className="ui-stack-sm">
+              {group_help_text ? (
+                <div className="ui-readonly">
+                  <div className="ui-label">{group.category_label} Review</div>
+                  <div className="ui-help">{group_help_text}</div>
+                </div>
+              ) : null}
+
+              <GeneralOverheadReclassificationGroup
+                group={group}
+                on_move_row={handle_move_row}
+                on_change_row_amount={handle_change_row_amount}
+                on_change_system_allocation_type={
+                  handle_change_system_allocation_type
+                }
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
