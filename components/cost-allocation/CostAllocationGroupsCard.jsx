@@ -51,23 +51,8 @@ function getLabourGroupName(row) {
     row?.staff_type_name ||
     row?.labour_type_label ||
     row?.labour_type_key ||
+    row?.staff_type ||
     "Unclassified productive labour group"
-  );
-}
-
-function getLabourAssignmentDisplayName(assignment) {
-  const has_no_calculated_value =
-    Number(assignment?.assigned_hours || 0) <= 0 &&
-    Number(assignment?.assigned_cost || 0) <= 0;
-
-  if (has_no_calculated_value) {
-    return "Old / unmatched labour group — remove and re-add";
-  }
-
-  return (
-    assignment?.staff_type_name ||
-    assignment?.labour_type_label ||
-    "Productive labour group"
   );
 }
 
@@ -109,6 +94,147 @@ function getAssetRows(asset_assignment) {
   return Array.isArray(rows) ? rows : [];
 }
 
+function findLabourRowById(labour_assignment, labour_group_id) {
+  const rows = getLabourRows(labour_assignment);
+
+  return rows.find((row) => getLabourGroupId(row) === labour_group_id) || null;
+}
+
+function getLabourRowHours(row) {
+  return Number(
+    row?.total_productive_hours ??
+      row?.available_hours ??
+      row?.available_labour_hours ??
+      row?.productive_hours ??
+      row?.total_available_labour_hours ??
+      0
+  );
+}
+
+function getLabourRowCost(row) {
+  return Number(
+    row?.total_labour_cost ??
+      row?.total_annual_cost ??
+      row?.available_cost ??
+      row?.available_labour_cost ??
+      row?.total_productive_labour_cost ??
+      row?.total_available_labour_cost ??
+      0
+  );
+}
+
+function getResolvedLabourAssignment({ assignment, labour_assignment }) {
+  const staff_type_id =
+    assignment?.staff_type_id ||
+    assignment?.labour_type_id ||
+    assignment?.labour_type_key ||
+    "";
+
+  const labour_row = findLabourRowById(labour_assignment, staff_type_id);
+
+  const assignment_percent = Math.round(
+    Number(assignment?.assignment_percent || 0)
+  );
+
+  const stored_assigned_hours = Number(
+    assignment?.assigned_hours ??
+      assignment?.assigned_labour_hours ??
+      assignment?.productive_hours ??
+      0
+  );
+
+  const stored_assigned_cost = Number(
+    assignment?.assigned_cost ??
+      assignment?.assigned_labour_cost ??
+      assignment?.labour_cost ??
+      0
+  );
+
+  const assigned_hours =
+    stored_assigned_hours ||
+    (labour_row
+      ? getLabourRowHours(labour_row) * (assignment_percent / 100)
+      : 0);
+
+  const assigned_cost =
+    stored_assigned_cost ||
+    (labour_row
+      ? getLabourRowCost(labour_row) * (assignment_percent / 100)
+      : 0);
+
+  const display_name = labour_row
+    ? getLabourGroupName(labour_row)
+    : assignment?.staff_type_name ||
+      assignment?.labour_type_label ||
+      "Old / unmatched labour group — remove and re-add";
+
+  return {
+    staff_type_id,
+    labour_row,
+    display_name,
+    assignment_percent,
+    assigned_hours,
+    assigned_cost,
+    is_unmatched: !labour_row,
+  };
+}
+
+function findAssetRowById(asset_assignment, asset_id) {
+  const rows = getAssetRows(asset_assignment);
+
+  return rows.find((row) => getAssetId(row) === asset_id) || null;
+}
+
+function getAssetRowCost(row) {
+  return Number(
+    row?.asset_recovery_cost_annual ??
+      row?.total_asset_cost_annual ??
+      row?.cost_allocation_asset_cost_annual ??
+      row?.available_asset_cost ??
+      row?.total_available_asset_cost ??
+      row?.asset_cost_annual ??
+      row?.annual_asset_cost ??
+      row?.total_annual_cost ??
+      0
+  );
+}
+
+function getResolvedAssetAssignment({ assignment, asset_assignment }) {
+  const asset_id = assignment?.asset_id || "";
+
+  const asset_row = findAssetRowById(asset_assignment, asset_id);
+
+  const assignment_percent = Math.round(
+    Number(assignment?.assignment_percent || 0)
+  );
+
+  const stored_assigned_cost = Number(
+    assignment?.assigned_asset_cost ??
+      assignment?.assigned_cost ??
+      assignment?.asset_cost ??
+      0
+  );
+
+  const assigned_asset_cost =
+    stored_assigned_cost ||
+    (asset_row
+      ? getAssetRowCost(asset_row) * (assignment_percent / 100)
+      : 0);
+
+  const display_name = asset_row
+    ? getAssetName(asset_row)
+    : assignment?.asset_name || "Old / unmatched asset — remove and re-add";
+
+  return {
+    asset_id,
+    asset_row,
+    display_name,
+    assignment_percent,
+    assigned_asset_cost,
+    is_unmatched: !asset_row,
+  };
+}
+
 function getAllLabourAssignments(labour_assignment) {
   const rows =
     labour_assignment?.assignments ||
@@ -123,7 +249,13 @@ function getAllLabourAssignments(labour_assignment) {
 function getLabourGroupAllocatedPercent(labour_assignment, labour_group_id) {
   return getAllLabourAssignments(labour_assignment).reduce(
     (sum, assignment) => {
-      if (assignment?.staff_type_id !== labour_group_id) {
+      const assigned_staff_type_id =
+        assignment?.staff_type_id ||
+        assignment?.labour_type_id ||
+        assignment?.labour_type_key ||
+        "";
+
+      if (assigned_staff_type_id !== labour_group_id) {
         return sum;
       }
 
@@ -526,9 +658,14 @@ function GroupLabourBuilder({
         ) : (
           <div className="ui-stack-sm">
             {assignments.map((assignment) => {
+              const resolved_assignment = getResolvedLabourAssignment({
+                assignment,
+                labour_assignment,
+              });
+
               const id = getAssignmentId(
                 assignment,
-                `${group_id}-${assignment.staff_type_id}`
+                `${group_id}-${resolved_assignment.staff_type_id}`
               );
 
               return (
@@ -536,13 +673,23 @@ function GroupLabourBuilder({
                   <div className="ui-actions">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {getLabourAssignmentDisplayName(assignment)}
+                        {resolved_assignment.display_name}
                       </p>
                       <p className="ui-help">
-                        {formatWholePercent(assignment.assignment_percent)} ·{" "}
-                        {formatNumber(assignment.assigned_hours)} productive hrs
-                        · {formatMoney(assignment.assigned_cost)}
+                        {formatWholePercent(
+                          resolved_assignment.assignment_percent
+                        )}{" "}
+                        · {formatNumber(resolved_assignment.assigned_hours)}{" "}
+                        productive hrs ·{" "}
+                        {formatMoney(resolved_assignment.assigned_cost)}
                       </p>
+
+                      {resolved_assignment.is_unmatched ? (
+                        <p className="ui-help">
+                          This saved assignment no longer matches a current
+                          Labour staff type. Remove and re-add it.
+                        </p>
+                      ) : null}
                     </div>
 
                     <button
@@ -714,9 +861,14 @@ function GroupAssetBuilder({
         ) : (
           <div className="ui-stack-sm">
             {assignments.map((assignment) => {
+              const resolved_assignment = getResolvedAssetAssignment({
+                assignment,
+                asset_assignment,
+              });
+
               const id = getAssignmentId(
                 assignment,
-                `${group_id}-${assignment.asset_id}`
+                `${group_id}-${resolved_assignment.asset_id}`
               );
 
               return (
@@ -724,12 +876,21 @@ function GroupAssetBuilder({
                   <div className="ui-actions">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {assignment.asset_name || "Productive asset"}
+                        {resolved_assignment.display_name}
                       </p>
                       <p className="ui-help">
-                        {formatWholePercent(assignment.assignment_percent)} ·{" "}
-                        {formatMoney(assignment.assigned_asset_cost)}
+                        {formatWholePercent(
+                          resolved_assignment.assignment_percent
+                        )}{" "}
+                        · {formatMoney(resolved_assignment.assigned_asset_cost)}
                       </p>
+
+                      {resolved_assignment.is_unmatched ? (
+                        <p className="ui-help">
+                          This saved assignment no longer matches a current
+                          Asset row. Remove and re-add it.
+                        </p>
+                      ) : null}
                     </div>
 
                     <button
