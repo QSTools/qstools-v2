@@ -5,10 +5,10 @@ import { useMemo, useState } from "react";
 import CostAllocationEvidenceBreakdown from "@/components/cost-allocation/CostAllocationEvidenceBreakdown";
 
 const STATUS_LABELS = {
-  ready: "Supported internally",
-  ready_with_dependency: "Supported with dependency",
-  strained: "Structurally strained",
-  not_supported: "Not currently supported",
+  ready: "Ready",
+  ready_with_dependency: "Ready with dependency",
+  strained: "Structure strained",
+  not_supported: "Not supported",
   blocked: "Blocked",
   incomplete: "Incomplete",
   review: "Review required",
@@ -77,9 +77,7 @@ function getDependencyLabel(value) {
 }
 
 function getBusinessModeLabel(value) {
-  return value === "product_based"
-    ? "Product / unit-based"
-    : "Hours-based";
+  return value === "product_based" ? "Product / unit-based" : "Hours-based";
 }
 
 function getBusinessModeHelp(value) {
@@ -88,6 +86,26 @@ function getBusinessModeHelp(value) {
   }
 
   return "Cost Allocation builds labour, asset, and overhead operating groups. Recovery testing happens downstream.";
+}
+
+function getStatusTone(value) {
+  if (value === "ready" || value === "ready_with_dependency") {
+    return "Ready for review";
+  }
+
+  if (value === "blocked") {
+    return "Blocked";
+  }
+
+  if (value === "not_supported") {
+    return "Not supported";
+  }
+
+  if (value === "strained") {
+    return "Structure strained";
+  }
+
+  return "Needs review";
 }
 
 function MetricCard({ label, value, help }) {
@@ -427,6 +445,11 @@ export default function CostAllocationMainCard({
     ? evidence.structural_warnings.length
     : Number(outcome?.structural_warnings_count || 0);
 
+  const allocation_warnings = Number(outcome?.allocation_warnings_count || 0);
+
+  const warning_count =
+    setup_warnings + structural_warnings + allocation_warnings;
+
   const groups_count = groups?.rows?.length ?? 0;
   const links_count = links?.rows?.filter((row) => row?.is_active)?.length ?? 0;
   const business_type = recovery_plan?.business_type || "labour_based";
@@ -498,61 +521,84 @@ export default function CostAllocationMainCard({
       <div className="ui-stack">
         <section className="ui-panel">
           <div className="ui-stack">
-            <div>
-              <p className="ui-kicker">Cost allocation builder</p>
-              <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-                Build each operating group in one place
-              </h2>
-              <p className="ui-help">
-                Create a working unit, then assign its labour, productive
-                assets, and overhead inside the same group card.
-              </p>
-              <p className="ui-help">
-                Recovery testing, rate building, pricing, and business outcome
-                decisions happen downstream.
-              </p>
+            <div className="ui-actions">
+              <div>
+                <p className="ui-kicker">Cost allocation builder</p>
+                <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
+                  Operating structure and source-pool check
+                </h2>
+                <p className="ui-help">
+                  Create each working unit, assign productive labour and
+                  productive assets, then let overhead distribute automatically
+                  from the operating structure.
+                </p>
+                <p className="ui-help">
+                  Recovery testing, rate building, pricing, and business
+                  outcome decisions happen downstream.
+                </p>
+              </div>
+
+              <div className="ui-readonly min-w-[180px]">
+                <span className="ui-label">Current result</span>
+                <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+                  {getStatusTone(allocation_status)}
+                </p>
+                <p className="mt-1 ui-help">
+                  {getDependencyLabel(allocation_dependency_type)}
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
               <MetricCard
-                label="Business mode"
-                value={getBusinessModeLabel(business_type)}
+                label="Status"
+                value={getStatusLabel(allocation_status, outcome?.status_label)}
                 help={getBusinessModeHelp(business_type)}
               />
 
               <MetricCard
-                label="Allocation status"
-                value={getStatusLabel(allocation_status, outcome?.status_label)}
-                help={getStatusHelp(allocation_status)}
-              />
-
-              <MetricCard
-                label="Dependency type"
-                value={getDependencyLabel(allocation_dependency_type)}
-                help="Shortfall is shown as dependency, not automatic failure."
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <MetricCard
-                label="Operating groups"
+                label="Groups"
                 value={`${formatCount(ready_groups)} / ${formatCount(
                   groups_count
                 )}`}
-                help="Ready groups compared with total groups created."
+                help="Ready / created."
               />
 
               <MetricCard
-                label="Assigned source pools"
+                label="Assigned"
                 value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
-                help="Current assigned labour, productive asset, and overhead cost."
+                help="Cost inside groups."
               />
 
               <MetricCard
-                label="Remaining source pools"
+                label="Remaining"
                 value={formatMoney(recovery_plan?.total_unassigned_cost)}
-                help="Cost still outside operating groups."
+                help="Cost outside groups."
               />
+
+              <MetricCard
+                label="Warnings"
+                value={formatCount(warning_count)}
+                help="Review items."
+              />
+            </div>
+
+            <div className="ui-readonly">
+              <div className="ui-actions">
+                <div>
+                  <span className="ui-label">Recovery context</span>
+                  <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+                    {recovery_plan?.active_recovery_model_label ||
+                      recovery_plan?.active_recovery_model ||
+                      getBusinessModeLabel(business_type)}
+                  </p>
+                </div>
+
+                <p className="ui-help max-w-xl">
+                  Recovery Summary owns the recovery model. Cost Allocation only
+                  builds the operating structure and source-pool distribution.
+                </p>
+              </div>
             </div>
           </div>
         </section>

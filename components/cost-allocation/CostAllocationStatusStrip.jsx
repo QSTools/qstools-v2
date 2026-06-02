@@ -25,18 +25,24 @@ function getStatusLabel(value) {
   return label_map[value] || value || "Review required";
 }
 
-function getDependencyLabel(value) {
-  const label_map = {
-    none: "No major dependency",
-    internal_capacity: "Internal capacity",
-    external_delivery: "External delivery",
-    asset_structure: "Asset structure",
-    operational_groups: "Operating groups",
-    mixed: "Mixed dependency",
-    unknown: "Unknown dependency",
-  };
+function getStatusTone(value) {
+  if (value === "ready" || value === "ready_with_dependency") {
+    return "Ready for review";
+  }
 
-  return label_map[value] || value || "Not classified";
+  if (value === "blocked" || value === "leak_detected") {
+    return "Blocked";
+  }
+
+  if (value === "not_supported") {
+    return "Not supported";
+  }
+
+  if (value === "strained") {
+    return "Structure strained";
+  }
+
+  return "Needs review";
 }
 
 function StatusMetric({ label, value, help }) {
@@ -102,27 +108,24 @@ export default function CostAllocationStatusStrip({
     groups?.valid_operational_groups ||
     0;
 
-  const staff_in_operating_groups_count =
-    status?.staff_in_operating_groups_count ||
-    status?.staff_in_working_units_count ||
-    delivery_summary?.staff_in_operating_groups_count ||
-    delivery_summary?.staff_in_working_units_count ||
-    delivery_summary?.linked_staff_count ||
-    0;
+  const setup_warning_count = Array.isArray(outcome?.setup_warnings)
+    ? outcome.setup_warnings.length
+    : Array.isArray(status?.setup_warnings)
+      ? status.setup_warnings.length
+      : 0;
 
-  const assets_in_operating_groups_count =
-    status?.assets_in_operating_groups_count ||
-    status?.assets_in_working_units_count ||
-    delivery_summary?.assets_in_operating_groups_count ||
-    delivery_summary?.assets_in_working_units_count ||
-    delivery_summary?.linked_asset_count ||
-    0;
+  const structural_warning_count = Array.isArray(outcome?.structural_warnings)
+    ? outcome.structural_warnings.length
+    : Array.isArray(status?.structural_warnings)
+      ? status.structural_warnings.length
+      : 0;
 
   const warning_count =
     flat_warnings_count ||
     status?.warnings_count ||
     outcome?.warning_count ||
     outcome?.warnings_count ||
+    setup_warning_count + structural_warning_count ||
     0;
 
   const assigned_source_pool =
@@ -147,86 +150,90 @@ export default function CostAllocationStatusStrip({
     recovery_plan?.active_recovery_model ||
     "Recovery context not available";
 
+  const has_remaining_source_pool = Number(remaining_source_pool || 0) > 1;
+  const has_warnings = Number(warning_count || 0) > 0;
+
+  const dependency_note =
+    allocation_dependency_type === "none"
+      ? "No major dependency"
+      : allocation_dependency_type || "Dependency not classified";
+
   return (
     <section className="ui-panel">
       <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Cost allocation status</p>
-          <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-            Operating structure and source-pool check
-          </h2>
-          <p className="ui-help">
-            This page assigns productive labour, productive assets, and remaining
-            overheads into operating groups. It does not test recovery, build
-            rates, or set prices.
-          </p>
+        <div className="ui-actions">
+          <div>
+            <p className="ui-kicker">Cost allocation status</p>
+            <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+              Operating structure and source-pool check
+            </h2>
+            <p className="ui-help">
+              Assign productive labour, productive assets, and automatically
+              distributed overhead into operating groups.
+            </p>
+          </div>
+
+          <div className="ui-readonly min-w-[180px]">
+            <span className="ui-label">Current result</span>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+              {getStatusTone(allocation_status)}
+            </p>
+            <p className="mt-1 ui-help">{dependency_note}</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <StatusMetric
-            label="Allocation status"
+            label="Status"
             value={getStatusLabel(allocation_status)}
-            help="Whether the current operating structure is ready for downstream use."
+            help="Ready for downstream use?"
           />
 
           <StatusMetric
-            label="Dependency type"
-            value={getDependencyLabel(allocation_dependency_type)}
-            help="Dependency is a review signal, not an automatic failure."
-          />
-
-          <StatusMetric
-            label="Operating groups"
+            label="Groups"
             value={`${formatCount(ready_operating_groups_count)} / ${formatCount(
               operating_groups_count
             )}`}
-            help="Ready groups compared with total groups created."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          <StatusMetric
-            label="Staff assigned"
-            value={formatCount(staff_in_operating_groups_count)}
-            help="Productive staff assigned to operating groups."
+            help="Ready / created."
           />
 
           <StatusMetric
-            label="Assets assigned"
-            value={formatCount(assets_in_operating_groups_count)}
-            help="Productive assets assigned to operating groups."
+            label="Assigned"
+            value={formatMoney(assigned_source_pool)}
+            help="Cost inside groups."
+          />
+
+          <StatusMetric
+            label="Remaining"
+            value={formatMoney(remaining_source_pool)}
+            help={
+              has_remaining_source_pool
+                ? "Still outside groups."
+                : "No source-pool leakage."
+            }
           />
 
           <StatusMetric
             label="Warnings"
             value={formatCount(warning_count)}
-            help="Items to review before relying on this structure."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          <StatusMetric
-            label="Assigned source pools"
-            value={formatMoney(assigned_source_pool)}
-            help="Labour, productive asset, and overhead source values currently assigned."
-          />
-
-          <StatusMetric
-            label="Remaining source pools"
-            value={formatMoney(remaining_source_pool)}
-            help="Source values still outside operating groups."
+            help={has_warnings ? "Review before relying." : "No active warnings."}
           />
         </div>
 
         <div className="ui-readonly">
-          <span className="ui-label">Recovery context</span>
-          <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
-            {recovery_context_label}
-          </p>
-          <p className="mt-1 ui-help">
-            Recovery Summary owns the recovery model. Cost Allocation consumes
-            it as read-only context only.
-          </p>
+          <div className="ui-actions">
+            <div>
+              <span className="ui-label">Recovery context</span>
+              <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+                {recovery_context_label}
+              </p>
+            </div>
+
+            <p className="ui-help max-w-xl">
+              Recovery Summary owns the recovery model. Cost Allocation only
+              builds the operating structure and source-pool distribution.
+            </p>
+          </div>
         </div>
       </div>
     </section>
