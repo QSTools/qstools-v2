@@ -3,28 +3,30 @@
 import { useMemo, useState } from "react";
 
 import CostAllocationEvidenceBreakdown from "@/components/cost-allocation/CostAllocationEvidenceBreakdown";
-import CostAllocationProfilesCard from "@/components/cost-allocation/CostAllocationProfilesCard";
 
 const STATUS_LABELS = {
   ready: "Supported internally",
   ready_with_dependency: "Supported with dependency",
   strained: "Structurally strained",
   not_supported: "Not currently supported",
+  blocked: "Blocked",
   incomplete: "Incomplete",
   review: "Review required",
 };
 
 const STATUS_HELP = {
-  ready: "The current working units appear to support the selected recovery plan.",
+  ready: "The current operating structure appears ready for downstream recovery testing.",
   ready_with_dependency:
-    "The plan may work, but it depends on external or scalable delivery capacity.",
+    "The structure may work, but it depends on external or scalable delivery capacity.",
   strained:
-    "The plan may be possible, but the current working units are under pressure.",
+    "The structure may be possible, but current operating groups are under pressure.",
   not_supported:
-    "The current working units do not yet support the selected recovery plan.",
+    "The current operating groups do not yet support the selected structure.",
+  blocked:
+    "One or more source pools is over-allocated or structurally invalid.",
   incomplete:
-    "More setup is required before this recovery plan can be properly tested.",
-  review: "Review the working units and minimum recoverable rate.",
+    "More setup is required before this structure can be relied on downstream.",
+  review: "Review the operating groups, assignments, and reconciliation checks.",
 };
 
 const DEPENDENCY_LABELS = {
@@ -32,23 +34,28 @@ const DEPENDENCY_LABELS = {
   internal_capacity: "Internal capacity",
   external_delivery: "External delivery",
   asset_structure: "Asset structure",
-  operational_groups: "Working units",
+  operational_groups: "Operating groups",
   mixed: "Mixed dependency",
   unknown: "Unknown dependency",
 };
 
-const INPUT_SECTION_KEYS = ["recovery_plan", "profile", "groups"];
+const BUILD_SECTION_KEYS = ["groups", "links"];
 
-const REVIEW_SECTION_KEYS = [
-  "running_cost",
-  "overhead_burden",
-  "operational_recovery",
-  "evidence",
+const CHECK_SECTION_KEYS = [
+  "group_cost_stacks",
+  "pool_reconciliation",
+  "structural_warnings",
   "setup_checklist",
 ];
 
 function formatCount(value) {
   return Number(value || 0).toLocaleString("en-NZ");
+}
+
+function formatMoney(value) {
+  return `$${Number(value || 0).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  })}`;
 }
 
 function formatPercent(value) {
@@ -60,7 +67,9 @@ function getStatusLabel(value, fallback) {
 }
 
 function getStatusHelp(value) {
-  return STATUS_HELP[value] || "Review the working units and supporting structure.";
+  return (
+    STATUS_HELP[value] || "Review the operating groups and supporting structure."
+  );
 }
 
 function getDependencyLabel(value) {
@@ -75,10 +84,10 @@ function getBusinessModeLabel(value) {
 
 function getBusinessModeHelp(value) {
   if (value === "product_based") {
-    return "Cost Allocation builds the operating cost base. Recovery Summary tests whether unit margin can carry this cost.";
+    return "Cost Allocation builds the operating structure. Recovery Summary tests whether unit margin can carry this structure.";
   }
 
-  return "Cost Allocation builds labour and asset operating groups. Recovery Summary tests labour and assets as separate streams.";
+  return "Cost Allocation builds labour, asset, and overhead operating groups. Recovery testing happens downstream.";
 }
 
 function MetricCard({ label, value, help }) {
@@ -137,7 +146,7 @@ function SectionGroup({
           <p className="ui-help">{description}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2">
           {sections.map((section) => (
             <SectionTile
               key={section.key}
@@ -147,44 +156,6 @@ function SectionGroup({
             />
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function ProfileSection({
-  profile,
-  set_field,
-  save_profile,
-  load_profile,
-  delete_profile,
-  new_profile,
-}) {
-  return (
-    <section className="ui-panel">
-      <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Allocation profile</p>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Save or select this delivery setup
-          </h3>
-          <p className="ui-help">
-            This profile is the macro container for the working units you are
-            testing. Start with one simple profile called Current setup.
-          </p>
-        </div>
-
-        <CostAllocationProfilesCard
-          allocation_profile_name={profile?.allocation_profile_name}
-          effective_from={profile?.effective_from}
-          set_field={set_field}
-          on_save_profile={save_profile}
-          on_new_profile={new_profile}
-          profiles={profile?.profiles}
-          active_profile_id={profile?.active_profile_id}
-          on_load_profile={load_profile}
-          on_delete_profile={delete_profile}
-        />
       </div>
     </section>
   );
@@ -240,12 +211,12 @@ function ReadinessRail({
     groups?.valid_operational_groups ??
     0;
 
-  const staff_in_working_units =
+  const staff_in_operating_groups =
     delivery_summary?.staff_in_working_units_count ??
     delivery_summary?.linked_staff_count ??
     0;
 
-  const assets_in_working_units =
+  const assets_in_operating_groups =
     delivery_summary?.assets_in_working_units_count ??
     delivery_summary?.linked_asset_count ??
     0;
@@ -254,7 +225,7 @@ function ReadinessRail({
     problems?.recommended_action ||
     problems?.next_action ||
     outcome?.recommended_check ||
-    "Create working units, then review running cost, overhead burden, and minimum recoverable rate.";
+    "Create operating groups, assign source pools, then review reconciliation.";
 
   return (
     <aside className="ui-panel">
@@ -262,11 +233,11 @@ function ReadinessRail({
         <div>
           <p className="ui-kicker">Allocation readiness</p>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Current support check
+            Current structure check
           </h3>
           <p className="ui-help">
-            This is a working-unit recovery check. Business Outcome owns the
-            final decision.
+            This is an operating-structure check. Recovery Summary tests
+            recovery, and Business Outcome owns the final decision.
           </p>
         </div>
 
@@ -286,21 +257,25 @@ function ReadinessRail({
           <MetricCard
             label="Staff coverage"
             value={formatPercent(staff_coverage)}
-            help={`${formatCount(staff_in_working_units)} staff in working units`}
+            help={`${formatCount(
+              staff_in_operating_groups
+            )} staff assigned to operating groups`}
           />
 
           <MetricCard
             label="Asset coverage"
             value={formatPercent(asset_coverage)}
-            help={`${formatCount(assets_in_working_units)} assets in working units`}
+            help={`${formatCount(
+              assets_in_operating_groups
+            )} assets assigned to operating groups`}
           />
 
           <MetricCard
-            label="Working unit coverage"
+            label="Operating group coverage"
             value={formatPercent(group_coverage)}
             help={`${formatCount(ready_groups)} of ${formatCount(
               active_groups
-            )} working units ready`}
+            )} operating groups ready`}
           />
         </div>
 
@@ -312,13 +287,13 @@ function ReadinessRail({
         />
 
         <MetricCard
-          label="Recovery plan"
+          label="Recovery context"
           value={
             recovery_plan?.active_recovery_model_label ||
             recovery_plan?.active_recovery_model ||
             "Not available"
           }
-          help="Change recovery strategy in Recovery Summary, not here."
+          help="Recovery Summary owns the recovery model. Cost Allocation consumes it as read-only context."
         />
 
         <div className="ui-readonly">
@@ -332,46 +307,30 @@ function ReadinessRail({
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("profile")}
-          >
-            Review profile
-          </button>
-
-          <button
-            type="button"
-            className="ui-button-secondary"
             onClick={() => on_select_section("groups")}
           >
-            Review working units
+            Build operating groups
           </button>
 
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("running_cost")}
+            onClick={() => on_select_section("pool_reconciliation")}
           >
-            Review running cost
+            Review reconciliation
           </button>
 
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("overhead_burden")}
+            onClick={() => on_select_section("structural_warnings")}
           >
-            Review overhead burden
-          </button>
-
-          <button
-            type="button"
-            className="ui-button-secondary"
-            onClick={() => on_select_section("operational_recovery")}
-          >
-            Review minimum recoverable rate
+            Review warnings
           </button>
         </div>
 
         <p className="ui-help">
-          Minimum recoverable rate is a recovery benchmark, not a sale price.
+          Cost Allocation does not set prices or produce sell rates.
         </p>
       </div>
     </aside>
@@ -380,7 +339,6 @@ function ReadinessRail({
 
 function SelectedSection({
   active_section,
-  profile,
   recovery_plan,
   allocation_tests,
   delivery_summary,
@@ -388,30 +346,21 @@ function SelectedSection({
   links,
   groups,
   problems,
-  set_field,
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
   update_operational_group,
   remove_operational_group,
-  save_profile,
-  load_profile,
-  delete_profile,
-  new_profile,
+  add_labour_assignment,
+  remove_labour_assignment,
+  add_asset_assignment,
+  remove_asset_assignment,
+  add_overhead_assignment,
+  remove_overhead_assignment,
 }) {
-  if (active_section === "profile") {
-    return (
-      <ProfileSection
-        profile={profile}
-        set_field={set_field}
-        save_profile={save_profile}
-        load_profile={load_profile}
-        delete_profile={delete_profile}
-        new_profile={new_profile}
-      />
-    );
-  }
-
   return (
     <CostAllocationEvidenceBreakdown
       active_section={active_section}
@@ -422,17 +371,25 @@ function SelectedSection({
       links={links}
       groups={groups}
       problems={problems}
+      labour_assignment={labour_assignment}
+      asset_assignment={asset_assignment}
+      overhead_assignment={overhead_assignment}
       add_asset_labour_link={add_asset_labour_link}
       remove_asset_labour_link={remove_asset_labour_link}
       add_operational_group={add_operational_group}
       update_operational_group={update_operational_group}
       remove_operational_group={remove_operational_group}
+      add_labour_assignment={add_labour_assignment}
+      remove_labour_assignment={remove_labour_assignment}
+      add_asset_assignment={add_asset_assignment}
+      remove_asset_assignment={remove_asset_assignment}
+      add_overhead_assignment={add_overhead_assignment}
+      remove_overhead_assignment={remove_overhead_assignment}
     />
   );
 }
 
 export default function CostAllocationMainCard({
-  profile,
   outcome,
   recovery_plan,
   allocation_tests,
@@ -441,18 +398,22 @@ export default function CostAllocationMainCard({
   links,
   groups,
   problems,
-  set_field,
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
   update_operational_group,
   remove_operational_group,
-  save_profile,
-  load_profile,
-  delete_profile,
-  new_profile,
+  add_labour_assignment,
+  remove_labour_assignment,
+  add_asset_assignment,
+  remove_asset_assignment,
+  add_overhead_assignment,
+  remove_overhead_assignment,
 }) {
-  const [active_section, set_active_section] = useState("recovery_plan");
+  const [active_section, set_active_section] = useState("groups");
 
   const allocation_status = outcome?.allocation_status || outcome?.status;
   const allocation_dependency_type =
@@ -462,7 +423,12 @@ export default function CostAllocationMainCard({
     ? evidence.setup_warnings.length
     : Number(outcome?.setup_warnings_count || 0);
 
+  const structural_warnings = Array.isArray(evidence?.structural_warnings)
+    ? evidence.structural_warnings.length
+    : Number(outcome?.structural_warnings_count || 0);
+
   const groups_count = groups?.rows?.length ?? 0;
+  const links_count = links?.rows?.filter((row) => row?.is_active)?.length ?? 0;
   const business_type = recovery_plan?.business_type || "labour_based";
 
   const ready_groups =
@@ -472,66 +438,45 @@ export default function CostAllocationMainCard({
     groups?.valid_operational_groups ??
     0;
 
-  const operational_recovery_count = Array.isArray(
-    recovery_plan?.operational_group_recovery_rows
-  )
-    ? recovery_plan.operational_group_recovery_rows.length
-    : 0;
-
-  const input_sections = useMemo(
+  const build_sections = useMemo(
     () => [
-      {
-        key: "recovery_plan",
-        label: "Recovery plan",
-        meta:
-          recovery_plan?.active_recovery_model_label ||
-          recovery_plan?.active_recovery_model ||
-          "Read-only",
-        help: "Confirm the plan being tested. Edit it in Recovery Summary.",
-      },
-      {
-        key: "profile",
-        label: "Allocation profile",
-        meta: profile?.allocation_profile_name || "Current setup",
-        help: "Name and save this delivery structure.",
-      },
       {
         key: "groups",
-        label: "Working units",
+        label: "Operating groups",
         meta: `${formatCount(groups_count)} active`,
-        help: "Create the real crews or setups that produce revenue.",
+        help: "Create each crew, team, or working unit, then add labour, assets, and overhead inside it.",
+      },
+      {
+        key: "links",
+        label: "Capability links",
+        meta: `${formatCount(links_count)} active`,
+        help: "Optional: link assets to staff where capability matters.",
       },
     ],
-    [recovery_plan, profile, groups_count]
+    [groups_count, links_count]
   );
 
-  const review_sections = useMemo(
+  const check_sections = useMemo(
     () => [
       {
-        key: "running_cost",
-        label: "Running cost",
-        meta: "Cost to run",
-        help: "Direct productive labour and asset cost inside the unit.",
+        key: "group_cost_stacks",
+        label: "Group cost stacks",
+        meta: "Assigned cost stacks",
+        help: "Review assigned labour, asset, and overhead cost by operating group.",
       },
       {
-        key: "overhead_burden",
-        label: "Overhead burden",
-        meta: "Cost to carry",
-        help: "Non-productive and general business costs the unit must recover.",
+        key: "pool_reconciliation",
+        label: "Pool reconciliation",
+        meta: "No-leak checks",
+        help: "Check assigned, remaining, and over-assigned source pools.",
       },
       {
-        key: "operational_recovery",
-        label: "Minimum recoverable rate",
-        meta: `${formatCount(operational_recovery_count)} unit${
-          operational_recovery_count === 1 ? "" : "s"
+        key: "structural_warnings",
+        label: "Structural warnings",
+        meta: `${formatCount(structural_warnings)} item${
+          structural_warnings === 1 ? "" : "s"
         }`,
-        help: "Running cost + overhead burden. Not a sale price.",
-      },
-      {
-        key: "evidence",
-        label: "What needs attention",
-        meta: "Review",
-        help: "Plain-English checks before moving to revenue.",
+        help: "Review structure, capacity, or dependency warnings.",
       },
       {
         key: "setup_checklist",
@@ -542,11 +487,11 @@ export default function CostAllocationMainCard({
         help: "Review missing setup items.",
       },
     ],
-    [operational_recovery_count, setup_warnings]
+    [setup_warnings, structural_warnings]
   );
 
-  const active_is_input = INPUT_SECTION_KEYS.includes(active_section);
-  const active_is_review = REVIEW_SECTION_KEYS.includes(active_section);
+  const active_is_build = BUILD_SECTION_KEYS.includes(active_section);
+  const active_is_check = CHECK_SECTION_KEYS.includes(active_section);
 
   return (
     <section className="ui-section">
@@ -556,20 +501,19 @@ export default function CostAllocationMainCard({
             <div>
               <p className="ui-kicker">Cost allocation builder</p>
               <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-                Build working units and show what each one must recover
+                Build each operating group in one place
               </h2>
               <p className="ui-help">
-                Cost Allocation builds the operating structure: labour drivers,
-                productive assets, overhead burden, and operational group cost.
+                Create a working unit, then assign its labour, productive
+                assets, and overhead inside the same group card.
               </p>
               <p className="ui-help">
-                Materials / COGS stay in Revenue / COGS. This page does not
-                prove recovery or set price; Recovery Summary and Business
-                Outcome use this structure downstream.
+                Recovery testing, rate building, pricing, and business outcome
+                decisions happen downstream.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3">
               <MetricCard
                 label="Business mode"
                 value={getBusinessModeLabel(business_type)}
@@ -587,30 +531,27 @@ export default function CostAllocationMainCard({
                 value={getDependencyLabel(allocation_dependency_type)}
                 help="Shortfall is shown as dependency, not automatic failure."
               />
-
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3">
               <MetricCard
-                label="Working units"
+                label="Operating groups"
                 value={`${formatCount(ready_groups)} / ${formatCount(
                   groups_count
                 )}`}
-                help="Ready units compared with total units created."
+                help="Ready groups compared with total groups created."
               />
 
               <MetricCard
-                label="Grouped operating cost"
-                value={`$${formatCount(
-                  recovery_plan?.total_grouped_operating_cost
-                )}`}
-                help="Labour, productive assets, and overhead currently assigned."
+                label="Assigned source pools"
+                value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+                help="Current assigned labour, productive asset, and overhead cost."
               />
 
               <MetricCard
-                label="Unassigned cost"
-                value={`$${formatCount(recovery_plan?.total_unassigned_cost)}`}
-                help="Cost still outside operational groups."
+                label="Remaining source pools"
+                value={formatMoney(recovery_plan?.total_unassigned_cost)}
+                help="Cost still outside operating groups."
               />
             </div>
           </div>
@@ -619,17 +560,16 @@ export default function CostAllocationMainCard({
         <div className="ui-split">
           <div className="ui-stack">
             <SectionGroup
-              title="Inputs"
-              description="Set up the delivery structure in this order: confirm the recovery plan, save the profile, then create working units."
-              sections={input_sections}
+              title="Build"
+              description="Create each operating group, then build that group in one place."
+              sections={build_sections}
               active_section={active_section}
               on_select={set_active_section}
             />
 
-            {active_is_input ? (
+            {active_is_build ? (
               <SelectedSection
                 active_section={active_section}
-                profile={profile}
                 recovery_plan={recovery_plan}
                 allocation_tests={allocation_tests}
                 delivery_summary={delivery_summary}
@@ -637,31 +577,34 @@ export default function CostAllocationMainCard({
                 links={links}
                 groups={groups}
                 problems={problems}
-                set_field={set_field}
+                labour_assignment={labour_assignment}
+                asset_assignment={asset_assignment}
+                overhead_assignment={overhead_assignment}
                 add_asset_labour_link={add_asset_labour_link}
                 remove_asset_labour_link={remove_asset_labour_link}
                 add_operational_group={add_operational_group}
                 update_operational_group={update_operational_group}
                 remove_operational_group={remove_operational_group}
-                save_profile={save_profile}
-                load_profile={load_profile}
-                delete_profile={delete_profile}
-                new_profile={new_profile}
+                add_labour_assignment={add_labour_assignment}
+                remove_labour_assignment={remove_labour_assignment}
+                add_asset_assignment={add_asset_assignment}
+                remove_asset_assignment={remove_asset_assignment}
+                add_overhead_assignment={add_overhead_assignment}
+                remove_overhead_assignment={remove_overhead_assignment}
               />
             ) : null}
 
             <SectionGroup
-              title="Review"
-              description="Review what each working unit costs to run, what business burden it must carry, and the minimum recoverable rate before pricing."
-              sections={review_sections}
+              title="Checks"
+              description="Review reconciliation and warnings after building the groups."
+              sections={check_sections}
               active_section={active_section}
               on_select={set_active_section}
             />
 
-            {active_is_review ? (
+            {active_is_check ? (
               <SelectedSection
                 active_section={active_section}
-                profile={profile}
                 recovery_plan={recovery_plan}
                 allocation_tests={allocation_tests}
                 delivery_summary={delivery_summary}
@@ -669,16 +612,20 @@ export default function CostAllocationMainCard({
                 links={links}
                 groups={groups}
                 problems={problems}
-                set_field={set_field}
+                labour_assignment={labour_assignment}
+                asset_assignment={asset_assignment}
+                overhead_assignment={overhead_assignment}
                 add_asset_labour_link={add_asset_labour_link}
                 remove_asset_labour_link={remove_asset_labour_link}
                 add_operational_group={add_operational_group}
                 update_operational_group={update_operational_group}
                 remove_operational_group={remove_operational_group}
-                save_profile={save_profile}
-                load_profile={load_profile}
-                delete_profile={delete_profile}
-                new_profile={new_profile}
+                add_labour_assignment={add_labour_assignment}
+                remove_labour_assignment={remove_labour_assignment}
+                add_asset_assignment={add_asset_assignment}
+                remove_asset_assignment={remove_asset_assignment}
+                add_overhead_assignment={add_overhead_assignment}
+                remove_overhead_assignment={remove_overhead_assignment}
               />
             ) : null}
           </div>

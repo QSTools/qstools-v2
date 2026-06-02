@@ -6,232 +6,228 @@ function formatCount(value) {
   return Number(value || 0).toLocaleString("en-NZ");
 }
 
+function formatMoney(value) {
+  return `$${Number(value || 0).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  })}`;
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatPercent(value) {
+  return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatWholePercent(value) {
+  return `${Math.round(Number(value || 0))}%`;
+}
+
 function getGroupId(group) {
-  return group?.group_id || group?.operational_group_id || group?.id;
+  return group?.group_id || group?.operational_group_id || group?.id || "";
 }
 
-function getStaffId(staff) {
+function getAssignmentId(assignment, fallback = "") {
   return (
-    staff?.labour_type_id ||
-    staff?.labour_type_key ||
-    staff?.staff_id ||
-    staff?.id ||
-    staff?.value
+    assignment?.assignment_id ||
+    assignment?.labour_assignment_id ||
+    assignment?.asset_assignment_id ||
+    assignment?.overhead_assignment_id ||
+    fallback
   );
 }
 
-function getAssetId(asset) {
-  return asset?.asset_id || asset?.id || asset?.value;
-}
-
-function getStaffLabel(staff) {
+function getLabourGroupId(row) {
   return (
-    staff?.staff_name ||
-    staff?.name ||
-    staff?.label ||
-    staff?.labour_type_label ||
-    staff?.staff_role ||
-    "Unnamed staff"
+    row?.staff_type_id ||
+    row?.labour_type_id ||
+    row?.labour_type_key ||
+    row?.id ||
+    ""
   );
 }
 
-function getAssetLabel(asset) {
-  return asset?.asset_name || asset?.name || asset?.label || "Unnamed asset";
+function getLabourGroupName(row) {
+  return (
+    row?.staff_type_name ||
+    row?.labour_type_label ||
+    row?.labour_type_key ||
+    "Unclassified productive labour group"
+  );
 }
 
-function uniqueById(rows, getId) {
-  const seen = new Set();
+function getLabourAssignmentDisplayName(assignment) {
+  const has_no_calculated_value =
+    Number(assignment?.assigned_hours || 0) <= 0 &&
+    Number(assignment?.assigned_cost || 0) <= 0;
 
-  return rows.filter((row) => {
-    const id = getId(row);
-    if (!id || seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  });
-}
-
-function normaliseStaffOptions(groups) {
-  const raw_rows = [
-    ...(groups?.staff_options || []),
-    ...(groups?.active_staff || []),
-    ...(groups?.available_staff || []),
-    ...(groups?.staff_rows || []),
-    ...(groups?.productive_labour_type_rows || []),
-  ];
-
-  return uniqueById(raw_rows, getStaffId).map((staff) => ({
-    ...staff,
-    staff_id: getStaffId(staff),
-    staff_name: getStaffLabel(staff),
-    is_labour_driver:
-      Boolean(staff?.labour_type_id || staff?.labour_type_key) ||
-      staff?.is_labour_driver === true,
-  }));
-}
-
-function normaliseAssetOptions(groups) {
-  const raw_rows = [
-    ...(groups?.asset_options || []),
-    ...(groups?.active_assets || []),
-    ...(groups?.available_assets || []),
-    ...(groups?.asset_rows || []),
-    ...(groups?.productive_assets || []),
-  ];
-
-  return uniqueById(raw_rows, getAssetId).map((asset) => ({
-    ...asset,
-    asset_id: getAssetId(asset),
-    asset_name: getAssetLabel(asset),
-  }));
-}
-
-function getGroupStaffIds(group) {
-  if (Array.isArray(group?.required_staff_ids)) return group.required_staff_ids;
-  if (Array.isArray(group?.staff_ids)) return group.staff_ids;
-  if (Array.isArray(group?.selected_staff_ids)) return group.selected_staff_ids;
-
-  if (Array.isArray(group?.staff_recovery_rows)) {
-    return group.staff_recovery_rows.map((staff) => staff.staff_id).filter(Boolean);
+  if (has_no_calculated_value) {
+    return "Old / unmatched labour group — remove and re-add";
   }
 
-  return [];
+  return (
+    assignment?.staff_type_name ||
+    assignment?.labour_type_label ||
+    "Productive labour group"
+  );
 }
 
-function getGroupAssetIds(group) {
-  if (Array.isArray(group?.required_asset_ids)) return group.required_asset_ids;
-  if (Array.isArray(group?.asset_ids)) return group.asset_ids;
-  if (Array.isArray(group?.selected_asset_ids)) return group.selected_asset_ids;
-
-  if (Array.isArray(group?.asset_recovery_rows)) {
-    return group.asset_recovery_rows.map((asset) => asset.asset_id).filter(Boolean);
-  }
-
-  return [];
+function getAssetId(row) {
+  return row?.asset_id || row?.id || "";
 }
 
-function getSelectedStaffRows(group, staff_options) {
-  if (Array.isArray(group?.selected_staff_rows)) return group.selected_staff_rows;
-  if (Array.isArray(group?.staff_rows)) return group.staff_rows;
-  if (Array.isArray(group?.staff_recovery_rows)) return group.staff_recovery_rows;
+function getAssetName(row) {
+  return row?.asset_name || row?.name || "Productive asset";
+}
 
-  const ids = getGroupStaffIds(group);
+function getGroupRows(groups) {
+  return Array.isArray(groups?.rows)
+    ? groups.rows.filter((group) => group?.is_active !== false)
+    : [];
+}
 
-  return ids.map((staff_id) => {
-    return (
-      staff_options.find((staff) => staff.staff_id === staff_id) || {
-        staff_id,
-        staff_name: staff_id,
+function getGroupCostRows(groups) {
+  return Array.isArray(groups?.operational_group_cost_rows)
+    ? groups.operational_group_cost_rows
+    : [];
+}
+
+function getLabourRows(labour_assignment) {
+  const rows =
+    labour_assignment?.productive_labour_rows ||
+    labour_assignment?.productive_staff_type_rates ||
+    [];
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+function getAssetRows(asset_assignment) {
+  const rows =
+    asset_assignment?.productive_asset_rows ||
+    asset_assignment?.asset_rows ||
+    [];
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+function getAllLabourAssignments(labour_assignment) {
+  const rows =
+    labour_assignment?.assignments ||
+    labour_assignment?.labour_group_assignments ||
+    [];
+
+  return Array.isArray(rows)
+    ? rows.filter((assignment) => assignment?.is_active !== false)
+    : [];
+}
+
+function getLabourGroupAllocatedPercent(labour_assignment, labour_group_id) {
+  return getAllLabourAssignments(labour_assignment).reduce(
+    (sum, assignment) => {
+      if (assignment?.staff_type_id !== labour_group_id) {
+        return sum;
       }
-    );
-  });
+
+      return sum + Math.round(Number(assignment?.assignment_percent || 0));
+    },
+    0
+  );
 }
 
-function getSelectedAssetRows(group, asset_options) {
-  if (Array.isArray(group?.selected_asset_rows)) return group.selected_asset_rows;
-  if (Array.isArray(group?.asset_rows)) return group.asset_rows;
-  if (Array.isArray(group?.asset_recovery_rows)) return group.asset_recovery_rows;
+function getLabourGroupRemainingPercent(labour_assignment, labour_group_id) {
+  const allocated_percent = getLabourGroupAllocatedPercent(
+    labour_assignment,
+    labour_group_id
+  );
 
-  const ids = getGroupAssetIds(group);
-
-  return ids.map((asset_id) => {
-    return (
-      asset_options.find((asset) => asset.asset_id === asset_id) || {
-        asset_id,
-        asset_name: asset_id,
-      }
-    );
-  });
+  return Math.max(0, 100 - allocated_percent);
 }
 
-function StatusPill({ children }) {
-  return <span className="ui-pill">{children}</span>;
+function getLabourAssignments(labour_assignment, group_id) {
+  return getAllLabourAssignments(labour_assignment).filter(
+    (assignment) => assignment?.group_id === group_id
+  );
+}
+
+function getAssetAssignments(asset_assignment, group_id) {
+  const rows =
+    asset_assignment?.assignments ||
+    asset_assignment?.asset_group_assignments ||
+    [];
+
+  return Array.isArray(rows)
+    ? rows.filter(
+        (assignment) =>
+          assignment?.is_active !== false && assignment?.group_id === group_id
+      )
+    : [];
+}
+
+function getOverheadAssignments(overhead_assignment, group_id) {
+  const rows =
+    overhead_assignment?.assignments ||
+    overhead_assignment?.overhead_group_assignments ||
+    [];
+
+  return Array.isArray(rows)
+    ? rows.filter(
+        (assignment) =>
+          assignment?.is_active !== false && assignment?.group_id === group_id
+      )
+    : [];
 }
 
 function EmptyState() {
   return (
     <div className="ui-readonly">
       <p className="text-sm font-semibold text-[var(--text-primary)]">
-        No working units created yet
+        No operating groups created yet.
       </p>
       <p className="mt-1 ui-help">
-        Create one working unit for each real crew, setup, or operating unit
-        that produces revenue.
+        Create the first crew, team, or working unit. Then add productive labour
+        groups, assets, and overhead directly inside that group.
       </p>
     </div>
   );
 }
 
-function WorkingUnitSummary({ groups }) {
-  const rows = Array.isArray(groups?.rows) ? groups.rows : [];
-  const valid_groups = Number(groups?.valid_operational_groups || 0);
-  const invalid_groups = Number(groups?.invalid_operational_groups || 0);
-
-  return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-      <div className="ui-readonly">
-        <span className="ui-label">Working units</span>
-        <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-          {formatCount(rows.length)}
-        </div>
-      </div>
-
-      <div className="ui-readonly">
-        <span className="ui-label">Ready units</span>
-        <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-          {formatCount(valid_groups)}
-        </div>
-      </div>
-
-      <div className="ui-readonly">
-        <span className="ui-label">Units needing review</span>
-        <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-          {formatCount(invalid_groups)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CreateWorkingUnitForm({ add_operational_group }) {
+function CreateOperatingGroupForm({ add_operational_group }) {
   const [group_name, set_group_name] = useState("");
 
   function handleCreate() {
     const cleaned_name = group_name.trim();
 
-    if (!cleaned_name || !add_operational_group) return;
+    if (!cleaned_name || !add_operational_group) {
+      return;
+    }
 
-    add_operational_group({
-      group_name: cleaned_name,
-      required_staff_ids: [],
-      required_asset_ids: [],
-      is_active: true,
-    });
-
+    add_operational_group(cleaned_name);
     set_group_name("");
   }
 
   return (
-    <div className="ui-panel">
-      <div className="ui-stack">
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
         <div>
-          <p className="ui-kicker">Create working unit</p>
-          <h4 className="text-base font-semibold text-[var(--text-primary)]">
-            Build one real crew or setup
-          </h4>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Create operating group
+          </p>
           <p className="ui-help">
-            A working unit is what actually produces revenue. It might be a pump
-            crew, a gib fixing crew, a coffee truck setup, a retail floor setup,
-            or a production station.
+            Start with the real working unit, then build its productive labour
+            groups, assets, and overhead below.
           </p>
         </div>
 
         <label className="ui-stack-sm">
-          <span className="ui-label">Working unit name</span>
+          <span className="ui-label">Operating group name</span>
           <input
             className="ui-input"
             value={group_name}
             onChange={(event) => set_group_name(event.target.value)}
-            placeholder="Example: Boom pump crew"
+            placeholder="Example: Pump crew"
           />
         </label>
 
@@ -241,282 +237,646 @@ function CreateWorkingUnitForm({ add_operational_group }) {
           onClick={handleCreate}
           disabled={!group_name.trim()}
         >
-          Create working unit
+          Create operating group
         </button>
-
-        <p className="ui-help">
-          Do not add owner, admin, office, or non-productive support here unless
-          they are actually doing the productive work. Those costs are carried
-          through overhead burden.
-        </p>
       </div>
     </div>
   );
 }
 
-function WorkingUnitEditor({
+function GroupHeader({
   group,
-  staff_options,
-  asset_options,
   update_operational_group,
   remove_operational_group,
 }) {
   const group_id = getGroupId(group);
-  const staff_ids = getGroupStaffIds(group);
-  const asset_ids = getGroupAssetIds(group);
 
-  const selected_staff_rows = getSelectedStaffRows(group, staff_options);
-  const selected_asset_rows = getSelectedAssetRows(group, asset_options);
+  function updateName(value) {
+    if (!update_operational_group || !group_id) {
+      return;
+    }
 
-  const [selected_staff_id, set_selected_staff_id] = useState("");
-  const [selected_asset_id, set_selected_asset_id] = useState("");
-
-  function updateGroup(patch) {
-    if (!update_operational_group || !group_id) return;
-    update_operational_group(group_id, patch);
-  }
-
-  function handleNameChange(value) {
-    updateGroup({ group_name: value });
-  }
-
-  function addStaff(staff_id) {
-    if (!staff_id) return;
-
-    const next_staff_ids = Array.from(new Set([...staff_ids, staff_id]));
-
-    updateGroup({
-      required_staff_ids: next_staff_ids,
-    });
-
-    set_selected_staff_id("");
-  }
-
-  function removeStaff(staff_id) {
-    const next_staff_ids = staff_ids.filter((id) => id !== staff_id);
-
-    updateGroup({
-      required_staff_ids: next_staff_ids,
+    update_operational_group(group_id, {
+      group_name: value,
     });
   }
 
-  function addAsset(asset_id) {
-    if (!asset_id) return;
+  function removeGroup() {
+    if (!remove_operational_group || !group_id) {
+      return;
+    }
 
-    const next_asset_ids = Array.from(new Set([...asset_ids, asset_id]));
-
-    updateGroup({
-      required_asset_ids: next_asset_ids,
-    });
-
-    set_selected_asset_id("");
-  }
-
-  function removeAsset(asset_id) {
-    const next_asset_ids = asset_ids.filter((id) => id !== asset_id);
-
-    updateGroup({
-      required_asset_ids: next_asset_ids,
-    });
-  }
-
-  function handleRemoveGroup() {
-    if (!remove_operational_group || !group_id) return;
     remove_operational_group(group_id);
   }
 
-  const has_labour = staff_ids.length > 0;
-  const has_assets = asset_ids.length > 0;
-  const is_ready = has_labour || has_assets;
+  return (
+    <div className="ui-actions">
+      <div className="ui-stack-sm">
+        <label className="ui-stack-sm">
+          <span className="ui-label">Operating group name</span>
+          <input
+            className="ui-input"
+            value={group?.group_name || ""}
+            onChange={(event) => updateName(event.target.value)}
+            placeholder="Unnamed operating group"
+          />
+        </label>
+
+        <p className="ui-help">
+          Build this group by adding productive labour groups, assets, and
+          overhead below.
+        </p>
+      </div>
+
+      <button type="button" className="ui-button-danger" onClick={removeGroup}>
+        Delete group
+      </button>
+    </div>
+  );
+}
+
+function GroupCostSummary({ group_cost_row }) {
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Group cost summary
+          </p>
+          <p className="ui-help">
+            This is the cost currently assigned into this operating group.
+          </p>
+        </div>
+
+        <div className="labour-summary-table">
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              <div>Productive labour</div>
+              <div className="ui-help">
+                Assigned productive labour group cost.
+              </div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.assigned_labour_cost)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              <div>Assets</div>
+              <div className="ui-help">Assigned productive asset burden.</div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.assigned_asset_burden)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              <div>Overhead</div>
+              <div className="ui-help">Assigned overhead distribution.</div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.assigned_overhead_amount)}
+            </div>
+          </div>
+
+          <div className="labour-summary-table-row total">
+            <div className="labour-summary-table-label">
+              <div>Total group cost</div>
+              <div className="ui-help">
+                Productive labour + assets + overhead.
+              </div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.total_group_cost)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupLabourBuilder({
+  group_id,
+  labour_assignment,
+  add_labour_assignment,
+  remove_labour_assignment,
+}) {
+  const [labour_group_id, set_labour_group_id] = useState("");
+  const [assignment_percent, set_assignment_percent] = useState("");
+
+  const labour_rows = getLabourRows(labour_assignment);
+  const assignments = getLabourAssignments(labour_assignment, group_id);
+
+  const selected_remaining_percent = labour_group_id
+    ? getLabourGroupRemainingPercent(labour_assignment, labour_group_id)
+    : 0;
+
+  function handleAdd() {
+    if (!add_labour_assignment || !group_id || !labour_group_id) {
+      return;
+    }
+
+    const percent = Math.round(Number(assignment_percent || 0));
+    const remaining_percent = getLabourGroupRemainingPercent(
+      labour_assignment,
+      labour_group_id
+    );
+
+    if (percent <= 0 || remaining_percent <= 0) {
+      return;
+    }
+
+    const capped_percent = Math.min(percent, remaining_percent);
+
+    add_labour_assignment({
+      group_id,
+      staff_type_id: labour_group_id,
+      assignment_percent: capped_percent,
+    });
+
+    set_labour_group_id("");
+    set_assignment_percent("");
+  }
+
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Productive labour group / crew
+          </p>
+          <p className="ui-help">
+            Select the labour group or crew from the Labour module. Each labour
+            group can only be allocated up to 100% across all operating groups.
+          </p>
+        </div>
+
+        <label className="ui-stack-sm">
+          <span className="ui-label">Crew / labour type</span>
+          <select
+            className="ui-input"
+            value={labour_group_id}
+            onChange={(event) => {
+              set_labour_group_id(event.target.value);
+              set_assignment_percent("");
+            }}
+          >
+            <option value="">Select crew / labour type</option>
+            {labour_rows.map((row) => {
+              const id = getLabourGroupId(row);
+              const remaining_percent = getLabourGroupRemainingPercent(
+                labour_assignment,
+                id
+              );
+              const is_fully_allocated = remaining_percent <= 0;
+
+              return (
+                <option key={id} value={id} disabled={is_fully_allocated}>
+                  {getLabourGroupName(row)}
+                  {is_fully_allocated
+                    ? " — fully allocated"
+                    : ` — ${remaining_percent}% remaining`}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+
+        {labour_group_id ? (
+          <div className="ui-readonly">
+            <span className="ui-label">Available allocation</span>
+            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+              {selected_remaining_percent}% remaining
+            </p>
+            <p className="mt-1 ui-help">
+              You cannot assign more than the remaining percentage for this
+              labour group.
+            </p>
+          </div>
+        ) : null}
+
+        <label className="ui-stack-sm">
+          <span className="ui-label">Allocation percent</span>
+          <input
+            className="ui-input"
+            type="number"
+            min="1"
+            max={selected_remaining_percent || 100}
+            step="1"
+            value={assignment_percent}
+            onChange={(event) => {
+              const next_value = Math.round(Number(event.target.value || 0));
+              const capped_value =
+                selected_remaining_percent > 0
+                  ? Math.min(next_value, selected_remaining_percent)
+                  : next_value;
+
+              set_assignment_percent(
+                capped_value > 0 ? String(capped_value) : ""
+              );
+            }}
+            placeholder={
+              selected_remaining_percent > 0
+                ? `Max: ${selected_remaining_percent}`
+                : "Example: 100"
+            }
+            disabled={!labour_group_id || selected_remaining_percent <= 0}
+          />
+          <p className="ui-help">
+            Use whole numbers only. Example: 100 means this operating group uses
+            all remaining capacity for this labour group.
+          </p>
+        </label>
+
+        <button
+          type="button"
+          className="ui-button-primary"
+          onClick={handleAdd}
+          disabled={
+            !labour_group_id ||
+            selected_remaining_percent <= 0 ||
+            Number(assignment_percent || 0) <= 0
+          }
+        >
+          Add labour group
+        </button>
+
+        {assignments.length === 0 ? (
+          <p className="ui-help">
+            No productive labour group assigned to this operating group yet.
+          </p>
+        ) : (
+          <div className="ui-stack-sm">
+            {assignments.map((assignment) => {
+              const id = getAssignmentId(
+                assignment,
+                `${group_id}-${assignment.staff_type_id}`
+              );
+
+              return (
+                <div key={id} className="ui-readonly">
+                  <div className="ui-actions">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {getLabourAssignmentDisplayName(assignment)}
+                      </p>
+                      <p className="ui-help">
+                        {formatWholePercent(assignment.assignment_percent)} ·{" "}
+                        {formatNumber(assignment.assigned_hours)} productive hrs
+                        · {formatMoney(assignment.assigned_cost)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="ui-button-danger"
+                      onClick={() => remove_labour_assignment?.(id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GroupAssetBuilder({
+  group_id,
+  asset_assignment,
+  add_asset_assignment,
+  remove_asset_assignment,
+}) {
+  const [asset_id, set_asset_id] = useState("");
+  const [assignment_percent, set_assignment_percent] = useState("");
+
+  const asset_rows = getAssetRows(asset_assignment);
+  const assignments = getAssetAssignments(asset_assignment, group_id);
+
+  function handleAdd() {
+    if (!add_asset_assignment || !group_id || !asset_id) {
+      return;
+    }
+
+    if (Number(assignment_percent || 0) <= 0) {
+      return;
+    }
+
+    add_asset_assignment({
+      group_id,
+      asset_id,
+      assignment_percent: Number(assignment_percent || 0),
+    });
+
+    set_asset_id("");
+    set_assignment_percent("");
+  }
+
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Productive assets
+          </p>
+          <p className="ui-help">
+            Add productive asset allocation into this group.
+          </p>
+        </div>
+
+        <label className="ui-stack-sm">
+          <span className="ui-label">Productive asset</span>
+          <select
+            className="ui-input"
+            value={asset_id}
+            onChange={(event) => set_asset_id(event.target.value)}
+          >
+            <option value="">Select asset</option>
+            {asset_rows.map((row) => {
+              const id = getAssetId(row);
+
+              return (
+                <option key={id} value={id}>
+                  {getAssetName(row)}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+
+        <label className="ui-stack-sm">
+          <span className="ui-label">Assignment percent</span>
+          <input
+            className="ui-input"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={assignment_percent}
+            onChange={(event) => set_assignment_percent(event.target.value)}
+            placeholder="Example: 100"
+          />
+        </label>
+
+        <button
+          type="button"
+          className="ui-button-primary"
+          onClick={handleAdd}
+          disabled={!asset_id || Number(assignment_percent || 0) <= 0}
+        >
+          Add asset
+        </button>
+
+        {assignments.length === 0 ? (
+          <p className="ui-help">No assets assigned to this group yet.</p>
+        ) : (
+          <div className="ui-stack-sm">
+            {assignments.map((assignment) => {
+              const id = getAssignmentId(
+                assignment,
+                `${group_id}-${assignment.asset_id}`
+              );
+
+              return (
+                <div key={id} className="ui-readonly">
+                  <div className="ui-actions">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {assignment.asset_name || "Productive asset"}
+                      </p>
+                      <p className="ui-help">
+                        {formatPercent(assignment.assignment_percent)} ·{" "}
+                        {formatMoney(assignment.assigned_asset_cost)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="ui-button-danger"
+                      onClick={() => remove_asset_assignment?.(id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GroupOverheadBuilder({
+  group_id,
+  overhead_assignment,
+  add_overhead_assignment,
+  remove_overhead_assignment,
+}) {
+  const [allocation_method, set_allocation_method] = useState("manual_amount");
+  const [assigned_amount, set_assigned_amount] = useState("");
+  const [assignment_percent, set_assignment_percent] = useState("");
+
+  const assignments = getOverheadAssignments(overhead_assignment, group_id);
+
+  const is_manual_amount = allocation_method === "manual_amount";
+  const is_manual_percent = allocation_method === "manual_percent";
+
+  function handleAdd() {
+    if (!add_overhead_assignment || !group_id || !allocation_method) {
+      return;
+    }
+
+    if (is_manual_amount && Number(assigned_amount || 0) <= 0) {
+      return;
+    }
+
+    if (is_manual_percent && Number(assignment_percent || 0) <= 0) {
+      return;
+    }
+
+    add_overhead_assignment({
+      group_id,
+      allocation_method,
+      assigned_amount: Number(assigned_amount || 0),
+      assignment_percent: Number(assignment_percent || 0),
+    });
+
+    set_allocation_method("manual_amount");
+    set_assigned_amount("");
+    set_assignment_percent("");
+  }
+
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Overhead
+          </p>
+          <p className="ui-help">
+            Add overhead distribution into this group.
+          </p>
+        </div>
+
+        <label className="ui-stack-sm">
+          <span className="ui-label">Allocation method</span>
+          <select
+            className="ui-input"
+            value={allocation_method}
+            onChange={(event) => set_allocation_method(event.target.value)}
+          >
+            <option value="manual_amount">Manual amount</option>
+            <option value="manual_percent">Manual percent</option>
+            <option value="labour_cost_weighted">Labour cost weighted</option>
+            <option value="labour_hours_weighted">Labour hours weighted</option>
+            <option value="asset_burden_weighted">Asset burden weighted</option>
+            <option value="equal_split">Equal split</option>
+          </select>
+        </label>
+
+        {is_manual_amount ? (
+          <label className="ui-stack-sm">
+            <span className="ui-label">Assigned amount</span>
+            <input
+              className="ui-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={assigned_amount}
+              onChange={(event) => set_assigned_amount(event.target.value)}
+              placeholder="Example: 25000"
+            />
+          </label>
+        ) : null}
+
+        {is_manual_percent ? (
+          <label className="ui-stack-sm">
+            <span className="ui-label">Assignment percent</span>
+            <input
+              className="ui-input"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={assignment_percent}
+              onChange={(event) => set_assignment_percent(event.target.value)}
+              placeholder="Example: 25"
+            />
+          </label>
+        ) : null}
+
+        <button
+          type="button"
+          className="ui-button-primary"
+          onClick={handleAdd}
+          disabled={
+            (is_manual_amount && Number(assigned_amount || 0) <= 0) ||
+            (is_manual_percent && Number(assignment_percent || 0) <= 0)
+          }
+        >
+          Add overhead
+        </button>
+
+        {assignments.length === 0 ? (
+          <p className="ui-help">No overhead assigned to this group yet.</p>
+        ) : (
+          <div className="ui-stack-sm">
+            {assignments.map((assignment) => {
+              const id = getAssignmentId(
+                assignment,
+                `${group_id}-${assignment.allocation_method}`
+              );
+
+              return (
+                <div key={id} className="ui-readonly">
+                  <div className="ui-actions">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {assignment.allocation_method || "Overhead"}
+                      </p>
+                      <p className="ui-help">
+                        {formatMoney(assignment.assigned_overhead_amount)}
+                        {assignment.assignment_percent !== undefined
+                          ? ` · ${formatPercent(assignment.assignment_percent)}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="ui-button-danger"
+                      onClick={() => remove_overhead_assignment?.(id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OperatingGroupBuilder({
+  group,
+  group_cost_row,
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
+  update_operational_group,
+  remove_operational_group,
+  add_labour_assignment,
+  remove_labour_assignment,
+  add_asset_assignment,
+  remove_asset_assignment,
+  add_overhead_assignment,
+  remove_overhead_assignment,
+}) {
+  const group_id = getGroupId(group);
 
   return (
     <div className="ui-panel">
       <div className="ui-stack">
-        <div className="ui-actions">
-          <div>
-            <p className="ui-kicker">Working unit</p>
-            <h4 className="text-base font-semibold text-[var(--text-primary)]">
-              {group?.group_name || "Unnamed working unit"}
-            </h4>
-            <p className="ui-help">
-              This is one real crew or setup that will be reviewed for running
-              cost, overhead burden, and minimum recoverable rate.
-            </p>
-          </div>
+        <GroupHeader
+          group={group}
+          update_operational_group={update_operational_group}
+          remove_operational_group={remove_operational_group}
+        />
 
-          <StatusPill>{is_ready ? "Ready for review" : "Needs setup"}</StatusPill>
-        </div>
+        <GroupCostSummary group_cost_row={group_cost_row} />
 
-        <label className="ui-stack-sm">
-          <span className="ui-label">Working unit name</span>
-          <input
-            className="ui-input"
-            value={group?.group_name || ""}
-            onChange={(event) => handleNameChange(event.target.value)}
-            placeholder="Example: Trailer pump crew"
-          />
-        </label>
+        <GroupLabourBuilder
+          group_id={group_id}
+          labour_assignment={labour_assignment}
+          add_labour_assignment={add_labour_assignment}
+          remove_labour_assignment={remove_labour_assignment}
+        />
 
-        <div className="ui-readonly">
-          <div className="ui-stack-sm">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                Productive labour
-              </p>
-                <p className="ui-help">
-                  Select the productive labour driver that actually does the
-                  work for this unit.
-                </p>
-            </div>
+        <GroupAssetBuilder
+          group_id={group_id}
+          asset_assignment={asset_assignment}
+          add_asset_assignment={add_asset_assignment}
+          remove_asset_assignment={remove_asset_assignment}
+        />
 
-            <div className="ui-actions">
-              <select
-                className="ui-input"
-                value={selected_staff_id}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  set_selected_staff_id(value);
-                  addStaff(value);
-                }}
-              >
-                <option value="">Add productive labour driver...</option>
-                {staff_options
-                  .filter((staff) => !staff_ids.includes(staff.staff_id))
-                  .map((staff) => (
-                    <option key={staff.staff_id} value={staff.staff_id}>
-                      {staff.staff_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {selected_staff_rows.length === 0 ? (
-              <p className="ui-help">No productive labour selected yet.</p>
-            ) : (
-              <div className="ui-stack-sm">
-                {selected_staff_rows.map((staff) => {
-                  const staff_id = getStaffId(staff);
-
-                  return (
-                    <div key={staff_id} className="ui-readonly">
-                      <div className="ui-actions">
-                        <div>
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
-                            {getStaffLabel(staff)}
-                          </p>
-                          {staff?.labour_type_label || staff?.staff_role ? (
-                            <p className="ui-help">
-                              {staff.labour_type_label ||
-                                staff.staff_role ||
-                                "Productive labour driver"}
-                            </p>
-                          ) : null}
-                        </div>
-
-                        <button
-                          type="button"
-                          className="ui-button-secondary"
-                          onClick={() => removeStaff(staff_id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="ui-readonly">
-          <div className="ui-stack-sm">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                Productive assets
-              </p>
-              <p className="ui-help">
-                Select the assets used by this unit to produce revenue.
-              </p>
-            </div>
-
-            <div className="ui-actions">
-              <select
-                className="ui-input"
-                value={selected_asset_id}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  set_selected_asset_id(value);
-                  addAsset(value);
-                }}
-              >
-                <option value="">Add productive asset...</option>
-                {asset_options
-                  .filter((asset) => !asset_ids.includes(asset.asset_id))
-                  .map((asset) => (
-                    <option key={asset.asset_id} value={asset.asset_id}>
-                      {asset.asset_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {selected_asset_rows.length === 0 ? (
-              <p className="ui-help">
-                No productive assets selected. This is fine for labour-only
-                businesses.
-              </p>
-            ) : (
-              <div className="ui-stack-sm">
-                {selected_asset_rows.map((asset) => {
-                  const asset_id = getAssetId(asset);
-
-                  return (
-                    <div key={asset_id} className="ui-readonly">
-                      <div className="ui-actions">
-                        <div>
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
-                            {getAssetLabel(asset)}
-                          </p>
-                          {asset?.asset_type ? (
-                            <p className="ui-help">{asset.asset_type}</p>
-                          ) : null}
-                        </div>
-
-                        <button
-                          type="button"
-                          className="ui-button-secondary"
-                          onClick={() => removeAsset(asset_id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="ui-readonly">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
-            What happens next?
-          </p>
-          <p className="mt-1 ui-help">
-            After this unit is created, the Review section will show the running
-            cost, overhead burden, and minimum recoverable rate for this working
-            unit.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="ui-button-danger"
-          onClick={handleRemoveGroup}
-        >
-          Delete working unit
-        </button>
+        <GroupOverheadBuilder
+          group_id={group_id}
+          overhead_assignment={overhead_assignment}
+          add_overhead_assignment={add_overhead_assignment}
+          remove_overhead_assignment={remove_overhead_assignment}
+        />
       </div>
     </div>
   );
@@ -524,62 +884,92 @@ function WorkingUnitEditor({
 
 export default function CostAllocationGroupsCard({
   groups,
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
   add_operational_group,
   update_operational_group,
   remove_operational_group,
+  add_labour_assignment,
+  remove_labour_assignment,
+  add_asset_assignment,
+  remove_asset_assignment,
+  add_overhead_assignment,
+  remove_overhead_assignment,
 }) {
-  const rows = Array.isArray(groups?.rows) ? groups.rows : [];
+  const rows = getGroupRows(groups);
 
-  const staff_options = useMemo(() => normaliseStaffOptions(groups), [groups]);
-  const asset_options = useMemo(() => normaliseAssetOptions(groups), [groups]);
+  const group_cost_rows = useMemo(() => getGroupCostRows(groups), [groups]);
+
+  function getGroupCostRow(group_id) {
+    return (
+      group_cost_rows.find((row) => row?.group_id === group_id) || {
+        group_id,
+        assigned_labour_cost: 0,
+        assigned_asset_burden: 0,
+        assigned_overhead_amount: 0,
+        total_group_cost: 0,
+      }
+    );
+  }
 
   return (
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">Working units</p>
+          <p className="ui-kicker">Operating groups</p>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Create the crews or setups that produce revenue
+            Build each operating group in one place
           </h3>
           <p className="ui-help">
-            A working unit is the real combination of productive labour and
-            productive assets used to deliver work or operate the business.
-          </p>
-          <p className="ui-help">
-            This is not a price. This defines what Cost Allocation will calculate
-            a minimum recoverable rate for.
+            Create a group, then add its productive labour groups, assets, and
+            overhead directly inside the same card.
           </p>
         </div>
 
-        <div className="ui-readonly">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Simple examples
-          </p>
-          <p className="mt-1 ui-help">
-            Pump crew = operator + pump + ute if required. Gib fixing crew =
-            productive staff. Coffee truck unit = operator + truck + machine +
-            oven.
-          </p>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="ui-readonly">
+            <span className="ui-label">Active operating groups</span>
+            <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              {formatCount(rows.length)}
+            </div>
+            <p className="mt-1 ui-help">
+              Each group should represent a real crew, team, machine setup, or
+              working unit.
+            </p>
+          </div>
         </div>
 
-        <WorkingUnitSummary groups={groups} />
-
-        <CreateWorkingUnitForm add_operational_group={add_operational_group} />
+        <CreateOperatingGroupForm
+          add_operational_group={add_operational_group}
+        />
 
         {rows.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="ui-stack">
-            {rows.map((group) => (
-              <WorkingUnitEditor
-                key={getGroupId(group) || group.group_name}
-                group={group}
-                staff_options={staff_options}
-                asset_options={asset_options}
-                update_operational_group={update_operational_group}
-                remove_operational_group={remove_operational_group}
-              />
-            ))}
+            {rows.map((group) => {
+              const group_id = getGroupId(group);
+
+              return (
+                <OperatingGroupBuilder
+                  key={group_id}
+                  group={group}
+                  group_cost_row={getGroupCostRow(group_id)}
+                  labour_assignment={labour_assignment}
+                  asset_assignment={asset_assignment}
+                  overhead_assignment={overhead_assignment}
+                  update_operational_group={update_operational_group}
+                  remove_operational_group={remove_operational_group}
+                  add_labour_assignment={add_labour_assignment}
+                  remove_labour_assignment={remove_labour_assignment}
+                  add_asset_assignment={add_asset_assignment}
+                  remove_asset_assignment={remove_asset_assignment}
+                  add_overhead_assignment={add_overhead_assignment}
+                  remove_overhead_assignment={remove_overhead_assignment}
+                />
+              );
+            })}
           </div>
         )}
       </div>

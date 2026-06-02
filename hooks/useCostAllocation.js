@@ -8,85 +8,40 @@ import useRecoverySummary from "@/hooks/useRecoverySummary";
 
 import {
   build_cost_allocation_inputs,
-  calculate_cost_allocation,
-} from "@/lib/calculations/costAllocationRules";
+  safe_array,
+  safe_number,
+} from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
+
 import {
-  build_cost_allocation_status,
+  build_productive_labour_type_rows,
+  find_labour_type_for_staff,
+  get_staff_label,
+  get_staff_labour_type_key,
+} from "@/lib/calculations/cost-allocation/costAllocationLabourAdapter";
+
+import { calculate_cost_allocation } from "@/lib/calculations/costAllocationRules";
+
+import {
   build_cost_allocation_card,
+  build_cost_allocation_status,
 } from "@/lib/selectors/costAllocationSelectors";
+
 import { useCostAllocationStorage } from "@/lib/storage/costAllocationStorage";
-import { useCostAllocationProfileStorage } from "@/lib/storage/costAllocationProfileStorage";
 
-function safe_number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+function generate_local_id(prefix) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
 
-function safe_array(value) {
-  return Array.isArray(value) ? value : [];
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function normalise_asset_type(value) {
   return value === "support" ? "support" : "productive";
 }
 
-function normalise_key(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/-/g, "_");
-}
-
 function get_asset_name(asset = {}) {
   return asset.asset_name || asset.name || "Unnamed Asset";
-}
-
-function get_labour_type_key(item = {}) {
-  return normalise_key(
-    item.labour_type_key ||
-      item.labour_type_id ||
-      item.staff_type ||
-      item.staff_role ||
-      item.labour_class ||
-      item.label ||
-      item.name ||
-      ""
-  );
-}
-
-function get_labour_type_label(item = {}) {
-  return (
-    item.labour_type_label ||
-    item.label ||
-    item.staff_type ||
-    item.staff_role ||
-    item.labour_class ||
-    "Unclassified productive labour"
-  );
-}
-
-function get_staff_labour_type_key(staff = {}) {
-  return normalise_key(
-    staff.labour_type_key ||
-      staff.labour_type_id ||
-      staff.staff_type ||
-      staff.staff_role ||
-      staff.labour_class ||
-      staff.role ||
-      ""
-  );
-}
-
-function get_staff_label(staff = {}) {
-  return (
-    staff.staff_name ||
-    staff.name ||
-    staff.staff_role ||
-    staff.staff_type ||
-    staff.labour_class ||
-    "Selected staff"
-  );
 }
 
 function get_group_asset_ids(group = {}) {
@@ -139,50 +94,6 @@ function get_group_staff_ids(group = {}) {
   }
 
   return [];
-}
-
-function build_productive_labour_type_rows(labour_output_contract = {}) {
-  const productive_labour_types = safe_array(
-    labour_output_contract?.productive_labour_types
-  );
-
-  return productive_labour_types.map((item) => {
-    const labour_type_key = get_labour_type_key(item);
-
-    const weighted_recovery_rate = safe_number(
-      item.weighted_recovery_rate ??
-        item.weighted_recovery_rate_per_hour ??
-        item.real_cost_per_productive_hour ??
-        item.minimum_recovery_rate ??
-        0
-    );
-
-    const highest_recovery_rate = safe_number(
-      item.highest_recovery_rate ??
-        item.highest_recovery_rate_per_hour ??
-        weighted_recovery_rate
-    );
-
-    return {
-      ...item,
-      labour_type_id: item.labour_type_id ?? labour_type_key,
-      labour_type_key,
-      labour_type_label: get_labour_type_label(item),
-      labour_class: item.labour_class ?? "",
-      staff_role: item.staff_role ?? "",
-      staff_type: item.staff_type ?? "",
-      staff_count: safe_number(item.staff_count ?? item.count ?? 0),
-      total_productive_hours: safe_number(
-        item.total_productive_hours ?? item.productive_hours ?? 0
-      ),
-      total_labour_cost: safe_number(
-        item.total_labour_cost ?? item.labour_cost ?? 0
-      ),
-      weighted_recovery_rate,
-      highest_recovery_rate,
-      source_staff_ids: safe_array(item.source_staff_ids),
-    };
-  });
 }
 
 function build_asset_recovery_overlay({
@@ -301,60 +212,6 @@ function build_asset_recovery_overlay({
   };
 }
 
-function find_labour_type_for_staff(staff = {}, productive_labour_type_rows = []) {
-  const rows = safe_array(productive_labour_type_rows);
-
-  if (rows.length === 0) {
-    return null;
-  }
-
-  const staff_key = get_staff_labour_type_key(staff);
-
-  const direct_match = rows.find((row) => {
-    return (
-      row.labour_type_key === staff_key ||
-      normalise_key(row.labour_type_label) === staff_key ||
-      normalise_key(row.staff_type) === staff_key ||
-      normalise_key(row.staff_role) === staff_key ||
-      normalise_key(row.labour_class) === staff_key
-    );
-  });
-
-  if (direct_match) {
-    return direct_match;
-  }
-
-  const staff_role_key = normalise_key(staff.staff_role);
-  const staff_type_key = normalise_key(staff.staff_type);
-  const labour_class_key = normalise_key(staff.labour_class);
-
-  const loose_match = rows.find((row) => {
-    const row_values = [
-      row.labour_type_key,
-      row.labour_type_label,
-      row.staff_type,
-      row.staff_role,
-      row.labour_class,
-    ].map(normalise_key);
-
-    return (
-      row_values.includes(staff_role_key) ||
-      row_values.includes(staff_type_key) ||
-      row_values.includes(labour_class_key)
-    );
-  });
-
-  if (loose_match) {
-    return loose_match;
-  }
-
-  if (rows.length === 1) {
-    return rows[0];
-  }
-
-  return null;
-}
-
 function get_overhead_burden_rate_for_group({
   working_unit_recovery_rate = 0,
   running_cost_rate_per_hour = 0,
@@ -384,7 +241,7 @@ function build_operational_group_recovery_rows({
 
   const labour_driver_map = new Map(
     safe_array(productive_labour_type_rows).map((row) => [
-      row.labour_type_id || row.labour_type_key,
+      row.labour_type_id || row.labour_type_key || row.staff_type_id,
       row,
     ])
   );
@@ -403,8 +260,13 @@ function build_operational_group_recovery_rows({
 
         if (labour_driver) {
           return {
-            staff_id: labour_driver.labour_type_id || labour_driver.labour_type_key,
-            staff_name: labour_driver.labour_type_label,
+            staff_id:
+              labour_driver.labour_type_id ||
+              labour_driver.labour_type_key ||
+              labour_driver.staff_type_id,
+            staff_name:
+              labour_driver.labour_type_label ||
+              labour_driver.staff_type_name,
             labour_type_key: labour_driver.labour_type_key,
             labour_type_label: labour_driver.labour_type_label,
             staff_type: labour_driver.staff_type,
@@ -412,7 +274,9 @@ function build_operational_group_recovery_rows({
             labour_class: labour_driver.labour_class,
             productive_hours: labour_driver.total_productive_hours,
             total_labour_cost_annual: labour_driver.total_labour_cost,
-            weighted_recovery_rate: labour_driver.weighted_recovery_rate,
+            weighted_recovery_rate:
+              labour_driver.weighted_recovery_rate ||
+              labour_driver.weighted_productive_hourly_rate,
             source_staff_ids: labour_driver.source_staff_ids,
             is_labour_driver: true,
           };
@@ -429,6 +293,7 @@ function build_operational_group_recovery_rows({
 
       const labour_recovery_rate_per_hour = safe_number(
         labour_type?.weighted_recovery_rate ??
+          labour_type?.weighted_productive_hourly_rate ??
           staff.weighted_recovery_rate ??
           staff.productive_labour_cost_rate ??
           staff.labour_cost_rate ??
@@ -492,7 +357,7 @@ function build_operational_group_recovery_rows({
       group_id:
         group.group_id || group.operational_group_id || `group-${index}`,
       group_name:
-        group.group_name || group.name || `Working Unit ${index + 1}`,
+        group.group_name || group.name || `Operating Group ${index + 1}`,
 
       required_staff_count: safe_number(group.required_staff_count),
       selected_staff_count: group_staff.length,
@@ -524,6 +389,184 @@ function build_operational_group_recovery_rows({
   });
 }
 
+function build_labour_assignment_card({
+  productive_labour_type_rows,
+  labour_group_assignments,
+  calculated,
+}) {
+  const active_assignments = safe_array(labour_group_assignments).filter(
+    (assignment) => assignment?.is_active !== false
+  );
+
+  return {
+    productive_staff_type_rates: productive_labour_type_rows,
+    productive_labour_rows: productive_labour_type_rows,
+    labour_group_assignments: active_assignments,
+    assignments: active_assignments,
+
+    available_labour_cost:
+      calculated?.productive_labour_pool?.available_labour_cost ??
+      calculated?.available_labour_cost ??
+      calculated?.total_productive_labour_cost ??
+      0,
+
+    available_labour_hours:
+      calculated?.productive_labour_pool?.available_labour_hours ??
+      calculated?.available_labour_hours ??
+      calculated?.total_productive_labour_hours ??
+      0,
+
+    assigned_labour_cost:
+      calculated?.productive_labour_pool?.assigned_labour_cost ??
+      calculated?.assigned_labour_cost ??
+      0,
+
+    assigned_labour_hours:
+      calculated?.productive_labour_pool?.assigned_labour_hours ??
+      calculated?.assigned_labour_hours ??
+      0,
+
+    remaining_labour_cost:
+      calculated?.productive_labour_pool?.remaining_labour_cost ??
+      calculated?.remaining_labour_cost ??
+      calculated?.unassigned_labour_cost ??
+      0,
+
+    remaining_labour_hours:
+      calculated?.productive_labour_pool?.remaining_labour_hours ??
+      calculated?.remaining_labour_hours ??
+      0,
+
+    over_allocated_labour_cost:
+      calculated?.productive_labour_pool?.over_allocated_labour_cost ??
+      calculated?.over_allocated_labour_cost ??
+      0,
+
+    over_allocated_labour_hours:
+      calculated?.productive_labour_pool?.over_allocated_labour_hours ??
+      calculated?.over_allocated_labour_hours ??
+      0,
+
+    allocation_status:
+      calculated?.productive_labour_pool?.allocation_status ||
+      calculated?.labour_pool_status ||
+      "review_required",
+  };
+}
+
+function build_asset_assignment_card({
+  asset_recovery_rows,
+  asset_group_assignments,
+  calculated,
+}) {
+  const active_assignments = safe_array(asset_group_assignments).filter(
+    (assignment) => assignment?.is_active !== false
+  );
+
+  const productive_asset_rows = safe_array(asset_recovery_rows).filter(
+    (asset) => asset?.asset_type !== "support"
+  );
+
+  return {
+    productive_asset_rows,
+    asset_rows: productive_asset_rows,
+    asset_group_assignments: active_assignments,
+    assignments: active_assignments,
+
+    productive_asset_pool: calculated?.productive_asset_pool ?? null,
+
+    available_asset_cost:
+      calculated?.productive_asset_pool?.available_asset_cost ??
+      calculated?.total_available_asset_cost ??
+      calculated?.productive_asset_cost ??
+      0,
+
+    assigned_asset_cost:
+      calculated?.productive_asset_pool?.assigned_asset_cost ??
+      calculated?.total_assigned_asset_cost ??
+      0,
+
+    remaining_asset_cost:
+      calculated?.productive_asset_pool?.remaining_asset_cost ??
+      calculated?.total_remaining_asset_cost ??
+      calculated?.unassigned_asset_cost ??
+      0,
+
+    over_allocated_asset_cost:
+      calculated?.productive_asset_pool?.over_allocated_asset_cost ??
+      calculated?.total_over_allocated_asset_cost ??
+      0,
+
+    available_asset_hours:
+      calculated?.productive_asset_pool?.available_asset_hours ??
+      calculated?.total_available_asset_hours ??
+      0,
+
+    assigned_asset_hours:
+      calculated?.productive_asset_pool?.assigned_asset_hours ??
+      calculated?.total_assigned_asset_hours ??
+      0,
+
+    remaining_asset_hours:
+      calculated?.productive_asset_pool?.remaining_asset_hours ??
+      calculated?.total_remaining_asset_hours ??
+      0,
+
+    over_allocated_asset_hours:
+      calculated?.productive_asset_pool?.over_allocated_asset_hours ??
+      calculated?.total_over_allocated_asset_hours ??
+      0,
+
+    allocation_status:
+      calculated?.productive_asset_pool?.allocation_status ||
+      calculated?.asset_pool_status ||
+      "review_required",
+  };
+}
+
+function build_overhead_assignment_card({
+  overhead_group_assignments,
+  calculated,
+}) {
+  const active_assignments = safe_array(overhead_group_assignments).filter(
+    (assignment) => assignment?.is_active !== false
+  );
+
+  return {
+    overhead_group_assignments: active_assignments,
+    assignments: active_assignments,
+
+    overhead_pool: calculated?.overhead_pool ?? null,
+
+    available_overhead_cost:
+      calculated?.overhead_pool?.available_overhead_cost ??
+      calculated?.total_available_overhead_cost ??
+      calculated?.overhead_absorbed_cost ??
+      0,
+
+    assigned_overhead_cost:
+      calculated?.overhead_pool?.assigned_overhead_cost ??
+      calculated?.total_assigned_overhead_cost ??
+      0,
+
+    remaining_overhead_cost:
+      calculated?.overhead_pool?.remaining_overhead_cost ??
+      calculated?.total_remaining_overhead_cost ??
+      calculated?.unassigned_overhead_cost ??
+      0,
+
+    over_allocated_overhead_cost:
+      calculated?.overhead_pool?.over_allocated_overhead_cost ??
+      calculated?.total_over_allocated_overhead_cost ??
+      0,
+
+    allocation_status:
+      calculated?.overhead_pool?.allocation_status ||
+      calculated?.overhead_pool_status ||
+      "review_required",
+  };
+}
+
 export default function useCostAllocation(inputs = {}) {
   const labour = useLabour();
   const assets = useAssets();
@@ -539,19 +582,10 @@ export default function useCostAllocation(inputs = {}) {
     set_field,
     add_asset_labour_link,
     remove_asset_labour_link,
-    add_operational_group,
     update_operational_group,
     remove_operational_group,
     reset_state,
   } = useCostAllocationStorage();
-
-  const {
-    profiles,
-    active_profile,
-    save_profile,
-    load_profile,
-    delete_profile,
-  } = useCostAllocationProfileStorage();
 
   const base_calculation_inputs = useMemo(() => {
     return build_cost_allocation_inputs({
@@ -603,6 +637,9 @@ export default function useCostAllocation(inputs = {}) {
       asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
 
       productive_labour_type_rows,
+      labour_group_assignments: safe_array(state?.labour_group_assignments),
+      asset_group_assignments: safe_array(state?.asset_group_assignments),
+      overhead_group_assignments: safe_array(state?.overhead_group_assignments),
       operational_group_recovery_rows,
 
       productive_asset_base_cost:
@@ -630,6 +667,9 @@ export default function useCostAllocation(inputs = {}) {
     base_calculation_inputs,
     asset_recovery_overlay,
     productive_labour_type_rows,
+    state?.labour_group_assignments,
+    state?.asset_group_assignments,
+    state?.overhead_group_assignments,
     operational_group_recovery_rows,
   ]);
 
@@ -645,48 +685,234 @@ export default function useCostAllocation(inputs = {}) {
     return build_cost_allocation_card(calculated);
   }, [calculated]);
 
-  function handle_save_profile() {
-    save_profile({
-      active_allocation_profile_id:
-        state?.active_allocation_profile_id || "live",
-      allocation_profile_name: state?.allocation_profile_name,
-      effective_from: state?.effective_from,
-      active_recovery_model: calculated?.active_recovery_model,
-      asset_labour_links: state?.asset_labour_links ?? [],
-      operational_groups: state?.operational_groups ?? [],
-    });
-  }
+  function handle_add_operational_group(group_input = {}) {
+    const timestamp = new Date().toISOString();
 
-  function handle_load_profile(active_allocation_profile_id) {
-    const loaded = load_profile(active_allocation_profile_id);
+    const group =
+      typeof group_input === "string"
+        ? {
+            group_name: group_input,
+          }
+        : group_input || {};
 
-    if (!loaded) {
+    const next_group = {
+      group_id: group.group_id || generate_local_id("group"),
+      group_name: String(group.group_name || "").trim(),
+      required_asset_ids: safe_array(group.required_asset_ids),
+      required_staff_ids: safe_array(group.required_staff_ids),
+      required_staff_count: safe_number(group.required_staff_count),
+      is_active: group.is_active !== false,
+      created_at: group.created_at || timestamp,
+      updated_at: timestamp,
+    };
+
+    if (!next_group.group_name) {
       return;
     }
 
-    set_field(
-      "active_allocation_profile_id",
-      loaded.active_allocation_profile_id ?? "live"
-    );
-    set_field(
-      "allocation_profile_name",
-      loaded.allocation_profile_name ?? "Default Allocation Profile"
-    );
-    set_field("effective_from", loaded.effective_from ?? "");
-    set_field("asset_labour_links", loaded.asset_labour_links ?? []);
-    set_field("operational_groups", loaded.operational_groups ?? []);
+    set_field("operational_groups", [
+      ...safe_array(state?.operational_groups),
+      next_group,
+    ]);
   }
 
-  function handle_delete_profile(active_allocation_profile_id) {
-    delete_profile(active_allocation_profile_id);
+  function add_labour_assignment({
+  group_id,
+  staff_type_id,
+  assignment_percent,
+}) {
+  const percent = Math.round(safe_number(assignment_percent));
+
+  if (!group_id || !staff_type_id || percent <= 0) {
+    return;
   }
 
-  function handle_new_profile() {
-    reset_state();
+  const clamped_percent = Math.min(percent, 100);
+
+  const timestamp = new Date().toISOString();
+
+  const next_assignment = {
+    assignment_id: generate_local_id("labour_assignment"),
+    group_id,
+    staff_type_id,
+    assignment_percent: clamped_percent,
+    is_active: true,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+
+  set_field("labour_group_assignments", [
+    ...safe_array(state?.labour_group_assignments),
+    next_assignment,
+  ]);
+}
+
+  function remove_labour_assignment(assignment_id) {
+    if (!assignment_id) {
+      return;
+    }
+
+    const next_assignments = safe_array(state?.labour_group_assignments).map(
+      (assignment) => {
+        const current_assignment_id =
+          assignment.assignment_id || assignment.labour_assignment_id;
+
+        if (current_assignment_id !== assignment_id) {
+          return assignment;
+        }
+
+        return {
+          ...assignment,
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        };
+      }
+    );
+
+    set_field("labour_group_assignments", next_assignments);
   }
+
+  function add_asset_assignment({
+    group_id,
+    asset_id,
+    assignment_percent,
+  }) {
+    if (!group_id || !asset_id || safe_number(assignment_percent) <= 0) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+
+    const next_assignment = {
+      assignment_id: generate_local_id("asset_assignment"),
+      group_id,
+      asset_id,
+      assignment_percent: safe_number(assignment_percent),
+      is_active: true,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    set_field("asset_group_assignments", [
+      ...safe_array(state?.asset_group_assignments),
+      next_assignment,
+    ]);
+  }
+
+  function remove_asset_assignment(assignment_id) {
+    if (!assignment_id) {
+      return;
+    }
+
+    const next_assignments = safe_array(state?.asset_group_assignments).map(
+      (assignment) => {
+        const current_assignment_id =
+          assignment.assignment_id || assignment.asset_assignment_id;
+
+        if (current_assignment_id !== assignment_id) {
+          return assignment;
+        }
+
+        return {
+          ...assignment,
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        };
+      }
+    );
+
+    set_field("asset_group_assignments", next_assignments);
+  }
+
+  function add_overhead_assignment({
+    group_id,
+    allocation_method,
+    assigned_amount,
+    assignment_percent,
+  }) {
+    if (!group_id || !allocation_method) {
+      return;
+    }
+
+    const is_manual_amount = allocation_method === "manual_amount";
+    const is_manual_percent = allocation_method === "manual_percent";
+
+    if (is_manual_amount && safe_number(assigned_amount) <= 0) {
+      return;
+    }
+
+    if (is_manual_percent && safe_number(assignment_percent) <= 0) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+
+    const next_assignment = {
+      assignment_id: generate_local_id("overhead_assignment"),
+      group_id,
+      allocation_method,
+      assigned_amount: safe_number(assigned_amount),
+      assignment_percent: safe_number(assignment_percent),
+      is_active: true,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    set_field("overhead_group_assignments", [
+      ...safe_array(state?.overhead_group_assignments),
+      next_assignment,
+    ]);
+  }
+
+  function remove_overhead_assignment(assignment_id) {
+    if (!assignment_id) {
+      return;
+    }
+
+    const next_assignments = safe_array(state?.overhead_group_assignments).map(
+      (assignment) => {
+        const current_assignment_id =
+          assignment.assignment_id || assignment.overhead_assignment_id;
+
+        if (current_assignment_id !== assignment_id) {
+          return assignment;
+        }
+
+        return {
+          ...assignment,
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        };
+      }
+    );
+
+    set_field("overhead_group_assignments", next_assignments);
+  }
+
+  const labour_assignment = build_labour_assignment_card({
+    productive_labour_type_rows,
+    labour_group_assignments: state?.labour_group_assignments,
+    calculated,
+  });
+
+  const asset_assignment = build_asset_assignment_card({
+    asset_recovery_rows: calculated?.asset_recovery_rows,
+    asset_group_assignments: state?.asset_group_assignments,
+    calculated,
+  });
+
+  const overhead_assignment = build_overhead_assignment_card({
+    overhead_group_assignments: state?.overhead_group_assignments,
+    calculated,
+  });
 
   const card = {
     ...base_card,
+
+    labour_assignment,
+    asset_assignment,
+    overhead_assignment,
+
     recovery_plan: {
       ...(base_card?.recovery_plan ?? {}),
       productive_asset_base_cost: calculated.productive_asset_base_cost,
@@ -718,33 +944,22 @@ export default function useCostAllocation(inputs = {}) {
       group_recovery_basis_label: calculated.group_recovery_basis_label,
       group_required_recovery_rate: calculated.group_required_recovery_rate,
     },
-    profile: {
-      allocation_profile_name: state?.allocation_profile_name ?? "",
-      effective_from: state?.effective_from ?? "",
-      profiles,
-      active_profile_id:
-        active_profile?.active_allocation_profile_id ??
-        state?.active_allocation_profile_id ??
-        "",
-      active_profile_name:
-        active_profile?.allocation_profile_name ??
-        state?.allocation_profile_name ??
-        "",
-    },
   };
 
   const actions = {
     set_field,
     add_asset_labour_link,
     remove_asset_labour_link,
-    add_operational_group,
+    add_operational_group: handle_add_operational_group,
     update_operational_group,
     remove_operational_group,
+    add_labour_assignment,
+    remove_labour_assignment,
+    add_asset_assignment,
+    remove_asset_assignment,
+    add_overhead_assignment,
+    remove_overhead_assignment,
     reset_state,
-    save_profile: handle_save_profile,
-    load_profile: handle_load_profile,
-    delete_profile: handle_delete_profile,
-    new_profile: handle_new_profile,
   };
 
   const output_contract = {
@@ -804,10 +1019,19 @@ export default function useCostAllocation(inputs = {}) {
       calculated.operational_group_recovery_rows,
     operational_group_cost_rows: calculated.operational_group_cost_rows,
 
+    labour_group_assignments: safe_array(state?.labour_group_assignments),
+    asset_group_assignments: safe_array(state?.asset_group_assignments),
+    overhead_group_assignments: safe_array(state?.overhead_group_assignments),
+
+    productive_labour_pool: calculated.productive_labour_pool,
+    productive_asset_pool: calculated.productive_asset_pool,
+    overhead_pool: calculated.overhead_pool,
+
     cost_allocation_ready:
       calculated.allocation_status === "ready" ||
       calculated.allocation_status === "ready_with_dependency",
     cost_allocation_warnings: calculated.allocation_warnings,
+
     operational_groups: calculated.active_operational_groups,
     total_grouped_labour_cost: calculated.total_grouped_labour_cost,
     total_grouped_asset_cost: calculated.total_grouped_asset_cost,

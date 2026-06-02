@@ -28,13 +28,18 @@ export default function CostAllocationLinkTable({
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">C. Link management</p>
+          <p className="ui-kicker">Capability links</p>
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
             Asset ↔ labour capability links
           </h3>
           <p className="ui-help">
-            Create active structural links only. Duplicate active pairs will be
-            warned in the calculation layer.
+            Create structural links only. These show which productive staff can
+            work with which productive assets.
+          </p>
+          <p className="ui-help">
+            Links do not create cost, assign cost, calculate recovery, or build
+            rates. Duplicate active pairs are blocked or warned by the
+            validation layer.
           </p>
         </div>
 
@@ -76,36 +81,44 @@ export default function CostAllocationLinkTable({
               type="button"
               className="ui-button-primary"
               onClick={handle_add_link}
+              disabled={!selected_asset_id || !selected_staff_id}
             >
-              Add link
+              Add capability link
             </button>
           </div>
         </div>
 
         <div className="ui-stack">
           {active_rows.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">
-              No active links yet.
-            </p>
+            <div className="ui-readonly">
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                No active capability links yet.
+              </p>
+              <p className="mt-1 ui-help">
+                Links are optional for labour-only structures, but useful where
+                asset-supported delivery needs to be validated.
+              </p>
+            </div>
           ) : (
             active_rows.map((row) => {
               const asset = (links?.asset_rows ?? []).find(
-                (item) => item.asset_id === row.asset_id,
+                (item) => item.asset_id === row.asset_id
               );
+
               const staff = (links?.staff_rows ?? []).find(
-                (item) => item.staff_id === row.staff_id,
+                (item) => item.staff_id === row.staff_id
               );
 
               return (
                 <div key={row.asset_labour_link_id} className="ui-readonly">
                   <div className="ui-actions">
                     <div>
-                      <div className="text-sm text-[var(--text-primary)]">
+                      <div className="text-sm font-medium text-[var(--text-primary)]">
                         {asset?.asset_name ?? row.asset_id} ↔{" "}
                         {staff?.staff_name ?? row.staff_id}
                       </div>
-                      <div className="text-sm text-[var(--text-secondary)]">
-                        Active structural link
+                      <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                        Active capability link
                       </div>
                     </div>
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import useCostAllocation from "@/hooks/useCostAllocation";
-import CostAllocationNoticeBanner from "@/components/cost-allocation/CostAllocationNoticeBanner";
 import CostAllocationStatusStrip from "@/components/cost-allocation/CostAllocationStatusStrip";
 import CostAllocationMainCard from "@/components/cost-allocation/CostAllocationMainCard";
 import CostAllocationHelpPanel from "@/components/cost-allocation/CostAllocationHelpPanel";
@@ -25,7 +25,7 @@ export default function CostAllocationPage() {
                 <div className="ui-kicker">Cost allocation</div>
                 <div className="ui-display">Loading allocation model...</div>
                 <div className="ui-help">
-                  Preparing the recovery plan and structure summary.
+                  Preparing the operating structure and source-pool summary.
                 </div>
               </div>
             </div>
@@ -38,13 +38,16 @@ export default function CostAllocationPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
-        <CostAllocationStatusStrip {...status} />
+        <CostAllocationStatusStrip
+          {...status}
+          status={status}
+          outcome={card?.outcome}
+          delivery_summary={card?.delivery_summary}
+          groups={card?.groups}
+          recovery_plan={card?.recovery_plan}
+        />
 
         <CostAllocationMainCard {...card} {...actions} />
-
-        <CostAllocationNoticeBanner
-          active_profile_name={card?.profile?.active_profile_name}
-        />
 
         <CostAllocationHelpPanel />
       </div>
