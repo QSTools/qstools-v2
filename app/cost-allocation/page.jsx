@@ -16,7 +16,7 @@ export default function CostAllocationPage() {
 
   if (!is_client_ready) {
     return (
-      <main className="ui-page">
+      <main className="ui-page cost-allocation-page">
         <div className="ui-page-stack">
           <section className="ui-section">
             <div className="ui-panel">
@@ -35,7 +35,7 @@ export default function CostAllocationPage() {
   }
 
   return (
-    <main className="ui-page">
+    <main className="ui-page cost-allocation-page">
       <div className="ui-page-stack">
         <CostAllocationMainCard {...card} {...actions} />
 

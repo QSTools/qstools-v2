@@ -189,9 +189,9 @@ function getOverheadAssignments(overhead_assignment, group_id) {
 
   return Array.isArray(rows)
     ? rows.filter(
-      (assignment) =>
-        assignment?.is_active !== false && assignment?.group_id === group_id
-    )
+        (assignment) =>
+          assignment?.is_active !== false && assignment?.group_id === group_id
+      )
     : [];
 }
 
@@ -285,7 +285,7 @@ function GroupHeader({
   }
 
   return (
-    <div className="ui-actions">
+    <div className="cost-allocation-group-header">
       <div className="ui-stack-sm">
         <label className="ui-stack-sm">
           <span className="ui-label">Operating group name</span>
@@ -312,7 +312,7 @@ function GroupHeader({
 
 function GroupCostSummary({ group_cost_row }) {
   return (
-    <div className="ui-readonly">
+    <div className="ui-readonly cost-allocation-group-summary">
       <div className="ui-stack-sm">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -349,7 +349,7 @@ function GroupCostSummary({ group_cost_row }) {
           <div className="labour-summary-table-row">
             <div className="labour-summary-table-label">
               <div>Overhead</div>
-              <div className="ui-help">Assigned overhead distribution.</div>
+              <div className="ui-help">Automatic overhead distribution.</div>
             </div>
             <div className="labour-summary-table-value">
               {formatMoney(group_cost_row?.assigned_overhead_amount)}
@@ -417,13 +417,13 @@ function GroupLabourBuilder({
   }
 
   return (
-    <div className="ui-readonly">
+    <div className="cost-allocation-assignment-block">
       <div className="ui-stack-sm">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <p className="cost-allocation-assignment-title">
             Productive labour group / crew
           </p>
-          <p className="ui-help">
+          <p className="cost-allocation-assignment-help">
             Select the labour group or crew from the Labour module. Each labour
             group can only be allocated up to 100% across all operating groups.
           </p>
@@ -532,7 +532,7 @@ function GroupLabourBuilder({
               );
 
               return (
-                <div key={id} className="ui-readonly">
+                <div key={id} className="cost-allocation-assignment-row">
                   <div className="ui-actions">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
@@ -607,13 +607,13 @@ function GroupAssetBuilder({
   }
 
   return (
-    <div className="ui-readonly">
+    <div className="cost-allocation-assignment-block">
       <div className="ui-stack-sm">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <p className="cost-allocation-assignment-title">
             Productive assets
           </p>
-          <p className="ui-help">
+          <p className="cost-allocation-assignment-help">
             Add productive asset allocation into this group. Each asset can only
             be allocated up to 100% across all operating groups.
           </p>
@@ -720,7 +720,7 @@ function GroupAssetBuilder({
               );
 
               return (
-                <div key={id} className="ui-readonly">
+                <div key={id} className="cost-allocation-assignment-row">
                   <div className="ui-actions">
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">
@@ -755,13 +755,11 @@ function GroupOverheadBuilder({ group_id, overhead_assignment }) {
   const assignment = assignments[0] || null;
 
   return (
-    <div className="ui-readonly">
+    <div className="cost-allocation-assignment-block">
       <div className="ui-stack-sm">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Overhead
-          </p>
-          <p className="ui-help">
+          <p className="cost-allocation-assignment-title">Overhead</p>
+          <p className="cost-allocation-assignment-help">
             Overhead is distributed automatically from the operating structure.
             It is not manually assigned here.
           </p>
@@ -773,7 +771,7 @@ function GroupOverheadBuilder({ group_id, overhead_assignment }) {
             assets first, then the system will calculate the split.
           </p>
         ) : (
-          <div className="ui-readonly">
+          <div className="cost-allocation-assignment-row">
             <div className="ui-stack-sm">
               <div>
                 <p className="text-sm font-medium text-[var(--text-primary)]">
@@ -813,13 +811,11 @@ function OperatingGroupBuilder({
   remove_labour_assignment,
   add_asset_assignment,
   remove_asset_assignment,
-  add_overhead_assignment,
-  remove_overhead_assignment,
 }) {
   const group_id = getGroupId(group);
 
   return (
-    <div className="ui-panel">
+    <div className="cost-allocation-operating-group-card">
       <div className="ui-stack">
         <GroupHeader
           group={group}
@@ -864,8 +860,6 @@ export default function CostAllocationGroupsCard({
   remove_labour_assignment,
   add_asset_assignment,
   remove_asset_assignment,
-  add_overhead_assignment,
-  remove_overhead_assignment,
 }) {
   const rows = getGroupRows(groups);
 
@@ -935,8 +929,6 @@ export default function CostAllocationGroupsCard({
                   remove_labour_assignment={remove_labour_assignment}
                   add_asset_assignment={add_asset_assignment}
                   remove_asset_assignment={remove_asset_assignment}
-                  add_overhead_assignment={add_overhead_assignment}
-                  remove_overhead_assignment={remove_overhead_assignment}
                 />
               );
             })}

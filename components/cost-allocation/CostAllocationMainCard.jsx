@@ -39,7 +39,7 @@ const DEPENDENCY_LABELS = {
   unknown: "Unknown dependency",
 };
 
-const BUILD_SECTION_KEYS = ["groups", "links"];
+const BUILD_SECTION_KEYS = ["groups"];
 
 const CHECK_SECTION_KEYS = [
   "group_cost_stacks",
@@ -125,8 +125,9 @@ function SectionTile({ section, is_active, on_click }) {
     <button
       type="button"
       onClick={on_click}
-      className={`ui-panel text-left transition ${
-        is_active ? "border border-[var(--accent)]" : ""
+      aria-pressed={is_active}
+      className={`ui-panel cost-allocation-section-card text-left transition ${
+        is_active ? "is-active" : ""
       }`}
     >
       <div className="ui-stack-sm">
@@ -246,7 +247,7 @@ function ReadinessRail({
     "Create operating groups, assign source pools, then review reconciliation.";
 
   return (
-    <aside className="ui-panel">
+    <aside className="ui-panel cost-allocation-readiness-rail">
       <div className="ui-stack">
         <div>
           <p className="ui-kicker">Allocation readiness</p>
@@ -451,7 +452,6 @@ export default function CostAllocationMainCard({
     setup_warnings + structural_warnings + allocation_warnings;
 
   const groups_count = groups?.rows?.length ?? 0;
-  const links_count = links?.rows?.filter((row) => row?.is_active)?.length ?? 0;
   const business_type = recovery_plan?.business_type || "labour_based";
 
   const ready_groups =
@@ -469,14 +469,8 @@ export default function CostAllocationMainCard({
         meta: `${formatCount(groups_count)} active`,
         help: "Create each crew, team, or working unit, then add labour, assets, and overhead inside it.",
       },
-      {
-        key: "links",
-        label: "Capability links",
-        meta: `${formatCount(links_count)} active`,
-        help: "Optional: link assets to staff where capability matters.",
-      },
     ],
-    [groups_count, links_count]
+    [groups_count]
   );
 
   const check_sections = useMemo(
@@ -519,9 +513,9 @@ export default function CostAllocationMainCard({
   return (
     <section className="ui-section">
       <div className="ui-stack">
-        <section className="ui-panel">
+        <section className="ui-panel cost-allocation-hero-panel">
           <div className="ui-stack">
-            <div className="ui-actions">
+            <div className="cost-allocation-hero-header">
               <div>
                 <p className="ui-kicker">Cost allocation builder</p>
                 <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
@@ -538,7 +532,7 @@ export default function CostAllocationMainCard({
                 </p>
               </div>
 
-              <div className="ui-readonly min-w-[180px]">
+              <div className="ui-readonly cost-allocation-current-result">
                 <span className="ui-label">Current result</span>
                 <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
                   {getStatusTone(allocation_status)}
@@ -549,7 +543,7 @@ export default function CostAllocationMainCard({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <div className="cost-allocation-status-grid">
               <MetricCard
                 label="Status"
                 value={getStatusLabel(allocation_status, outcome?.status_label)}
@@ -583,7 +577,7 @@ export default function CostAllocationMainCard({
               />
             </div>
 
-            <div className="ui-readonly">
+            <div className="ui-readonly cost-allocation-recovery-context">
               <div className="ui-actions">
                 <div>
                   <span className="ui-label">Recovery context</span>
@@ -603,7 +597,7 @@ export default function CostAllocationMainCard({
           </div>
         </section>
 
-        <div className="ui-split">
+        <div className="cost-allocation-layout">
           <div className="ui-stack">
             <SectionGroup
               title="Build"
