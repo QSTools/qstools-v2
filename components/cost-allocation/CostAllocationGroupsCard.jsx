@@ -18,10 +18,6 @@ function formatNumber(value) {
   });
 }
 
-function formatPercent(value) {
-  return `${Number(value || 0).toFixed(1)}%`;
-}
-
 function formatWholePercent(value) {
   return `${Math.round(Number(value || 0))}%`;
 }
@@ -152,18 +148,37 @@ function getLabourAssignments(labour_assignment, group_id) {
   );
 }
 
-function getAssetAssignments(asset_assignment, group_id) {
+function getAllAssetAssignments(asset_assignment) {
   const rows =
     asset_assignment?.assignments ||
     asset_assignment?.asset_group_assignments ||
     [];
 
   return Array.isArray(rows)
-    ? rows.filter(
-        (assignment) =>
-          assignment?.is_active !== false && assignment?.group_id === group_id
-      )
+    ? rows.filter((assignment) => assignment?.is_active !== false)
     : [];
+}
+
+function getAssetAllocatedPercent(asset_assignment, asset_id) {
+  return getAllAssetAssignments(asset_assignment).reduce((sum, assignment) => {
+    if (assignment?.asset_id !== asset_id) {
+      return sum;
+    }
+
+    return sum + Math.round(Number(assignment?.assignment_percent || 0));
+  }, 0);
+}
+
+function getAssetRemainingPercent(asset_assignment, asset_id) {
+  const allocated_percent = getAssetAllocatedPercent(asset_assignment, asset_id);
+
+  return Math.max(0, 100 - allocated_percent);
+}
+
+function getAssetAssignments(asset_assignment, group_id) {
+  return getAllAssetAssignments(asset_assignment).filter(
+    (assignment) => assignment?.group_id === group_id
+  );
 }
 
 function getOverheadAssignments(overhead_assignment, group_id) {
@@ -174,9 +189,9 @@ function getOverheadAssignments(overhead_assignment, group_id) {
 
   return Array.isArray(rows)
     ? rows.filter(
-        (assignment) =>
-          assignment?.is_active !== false && assignment?.group_id === group_id
-      )
+      (assignment) =>
+        assignment?.is_active !== false && assignment?.group_id === group_id
+    )
     : [];
 }
 
@@ -560,19 +575,31 @@ function GroupAssetBuilder({
   const asset_rows = getAssetRows(asset_assignment);
   const assignments = getAssetAssignments(asset_assignment, group_id);
 
+  const selected_remaining_percent = asset_id
+    ? getAssetRemainingPercent(asset_assignment, asset_id)
+    : 0;
+
   function handleAdd() {
     if (!add_asset_assignment || !group_id || !asset_id) {
       return;
     }
 
-    if (Number(assignment_percent || 0) <= 0) {
+    const percent = Math.round(Number(assignment_percent || 0));
+    const remaining_percent = getAssetRemainingPercent(
+      asset_assignment,
+      asset_id
+    );
+
+    if (percent <= 0 || remaining_percent <= 0) {
       return;
     }
+
+    const capped_percent = Math.min(percent, remaining_percent);
 
     add_asset_assignment({
       group_id,
       asset_id,
-      assignment_percent: Number(assignment_percent || 0),
+      assignment_percent: capped_percent,
     });
 
     set_asset_id("");
@@ -587,7 +614,8 @@ function GroupAssetBuilder({
             Productive assets
           </p>
           <p className="ui-help">
-            Add productive asset allocation into this group.
+            Add productive asset allocation into this group. Each asset can only
+            be allocated up to 100% across all operating groups.
           </p>
         </div>
 
@@ -596,40 +624,87 @@ function GroupAssetBuilder({
           <select
             className="ui-input"
             value={asset_id}
-            onChange={(event) => set_asset_id(event.target.value)}
+            onChange={(event) => {
+              set_asset_id(event.target.value);
+              set_assignment_percent("");
+            }}
           >
             <option value="">Select asset</option>
             {asset_rows.map((row) => {
               const id = getAssetId(row);
+              const remaining_percent = getAssetRemainingPercent(
+                asset_assignment,
+                id
+              );
+              const is_fully_allocated = remaining_percent <= 0;
 
               return (
-                <option key={id} value={id}>
+                <option key={id} value={id} disabled={is_fully_allocated}>
                   {getAssetName(row)}
+                  {is_fully_allocated
+                    ? " — fully allocated"
+                    : ` — ${remaining_percent}% remaining`}
                 </option>
               );
             })}
           </select>
         </label>
 
+        {asset_id ? (
+          <div className="ui-readonly">
+            <span className="ui-label">Available allocation</span>
+            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+              {selected_remaining_percent}% remaining
+            </p>
+            <p className="mt-1 ui-help">
+              You cannot assign more than the remaining percentage for this
+              asset.
+            </p>
+          </div>
+        ) : null}
+
         <label className="ui-stack-sm">
           <span className="ui-label">Assignment percent</span>
           <input
             className="ui-input"
             type="number"
-            min="0"
-            max="100"
-            step="0.01"
+            min="1"
+            max={selected_remaining_percent || 100}
+            step="1"
             value={assignment_percent}
-            onChange={(event) => set_assignment_percent(event.target.value)}
-            placeholder="Example: 100"
+            onChange={(event) => {
+              const next_value = Math.round(Number(event.target.value || 0));
+              const capped_value =
+                selected_remaining_percent > 0
+                  ? Math.min(next_value, selected_remaining_percent)
+                  : next_value;
+
+              set_assignment_percent(
+                capped_value > 0 ? String(capped_value) : ""
+              );
+            }}
+            placeholder={
+              selected_remaining_percent > 0
+                ? `Max: ${selected_remaining_percent}`
+                : "Example: 100"
+            }
+            disabled={!asset_id || selected_remaining_percent <= 0}
           />
+          <p className="ui-help">
+            Use whole numbers only. Example: 100 means this operating group uses
+            all remaining allocation for this asset.
+          </p>
         </label>
 
         <button
           type="button"
           className="ui-button-primary"
           onClick={handleAdd}
-          disabled={!asset_id || Number(assignment_percent || 0) <= 0}
+          disabled={
+            !asset_id ||
+            selected_remaining_percent <= 0 ||
+            Number(assignment_percent || 0) <= 0
+          }
         >
           Add asset
         </button>
@@ -652,7 +727,7 @@ function GroupAssetBuilder({
                         {assignment.asset_name || "Productive asset"}
                       </p>
                       <p className="ui-help">
-                        {formatPercent(assignment.assignment_percent)} ·{" "}
+                        {formatWholePercent(assignment.assignment_percent)} ·{" "}
                         {formatMoney(assignment.assigned_asset_cost)}
                       </p>
                     </div>
@@ -675,45 +750,9 @@ function GroupAssetBuilder({
   );
 }
 
-function GroupOverheadBuilder({
-  group_id,
-  overhead_assignment,
-  add_overhead_assignment,
-  remove_overhead_assignment,
-}) {
-  const [allocation_method, set_allocation_method] = useState("manual_amount");
-  const [assigned_amount, set_assigned_amount] = useState("");
-  const [assignment_percent, set_assignment_percent] = useState("");
-
+function GroupOverheadBuilder({ group_id, overhead_assignment }) {
   const assignments = getOverheadAssignments(overhead_assignment, group_id);
-
-  const is_manual_amount = allocation_method === "manual_amount";
-  const is_manual_percent = allocation_method === "manual_percent";
-
-  function handleAdd() {
-    if (!add_overhead_assignment || !group_id || !allocation_method) {
-      return;
-    }
-
-    if (is_manual_amount && Number(assigned_amount || 0) <= 0) {
-      return;
-    }
-
-    if (is_manual_percent && Number(assignment_percent || 0) <= 0) {
-      return;
-    }
-
-    add_overhead_assignment({
-      group_id,
-      allocation_method,
-      assigned_amount: Number(assigned_amount || 0),
-      assignment_percent: Number(assignment_percent || 0),
-    });
-
-    set_allocation_method("manual_amount");
-    set_assigned_amount("");
-    set_assignment_percent("");
-  }
+  const assignment = assignments[0] || null;
 
   return (
     <div className="ui-readonly">
@@ -723,105 +762,38 @@ function GroupOverheadBuilder({
             Overhead
           </p>
           <p className="ui-help">
-            Add overhead distribution into this group.
+            Overhead is distributed automatically from the operating structure.
+            It is not manually assigned here.
           </p>
         </div>
 
-        <label className="ui-stack-sm">
-          <span className="ui-label">Allocation method</span>
-          <select
-            className="ui-input"
-            value={allocation_method}
-            onChange={(event) => set_allocation_method(event.target.value)}
-          >
-            <option value="manual_amount">Manual amount</option>
-            <option value="manual_percent">Manual percent</option>
-            <option value="labour_cost_weighted">Labour cost weighted</option>
-            <option value="labour_hours_weighted">Labour hours weighted</option>
-            <option value="asset_burden_weighted">Asset burden weighted</option>
-            <option value="equal_split">Equal split</option>
-          </select>
-        </label>
-
-        {is_manual_amount ? (
-          <label className="ui-stack-sm">
-            <span className="ui-label">Assigned amount</span>
-            <input
-              className="ui-input"
-              type="number"
-              min="0"
-              step="0.01"
-              value={assigned_amount}
-              onChange={(event) => set_assigned_amount(event.target.value)}
-              placeholder="Example: 25000"
-            />
-          </label>
-        ) : null}
-
-        {is_manual_percent ? (
-          <label className="ui-stack-sm">
-            <span className="ui-label">Assignment percent</span>
-            <input
-              className="ui-input"
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              value={assignment_percent}
-              onChange={(event) => set_assignment_percent(event.target.value)}
-              placeholder="Example: 25"
-            />
-          </label>
-        ) : null}
-
-        <button
-          type="button"
-          className="ui-button-primary"
-          onClick={handleAdd}
-          disabled={
-            (is_manual_amount && Number(assigned_amount || 0) <= 0) ||
-            (is_manual_percent && Number(assignment_percent || 0) <= 0)
-          }
-        >
-          Add overhead
-        </button>
-
-        {assignments.length === 0 ? (
-          <p className="ui-help">No overhead assigned to this group yet.</p>
+        {!assignment ? (
+          <p className="ui-help">
+            No overhead has been distributed to this group yet. Add labour or
+            assets first, then the system will calculate the split.
+          </p>
         ) : (
-          <div className="ui-stack-sm">
-            {assignments.map((assignment) => {
-              const id = getAssignmentId(
-                assignment,
-                `${group_id}-${assignment.allocation_method}`
-              );
+          <div className="ui-readonly">
+            <div className="ui-stack-sm">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Automatic overhead distribution
+                </p>
+                <p className="ui-help">
+                  {formatWholePercent(assignment.assignment_percent)} ·{" "}
+                  {formatMoney(assignment.assigned_overhead_amount)}
+                </p>
+              </div>
 
-              return (
-                <div key={id} className="ui-readonly">
-                  <div className="ui-actions">
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {assignment.allocation_method || "Overhead"}
-                      </p>
-                      <p className="ui-help">
-                        {formatMoney(assignment.assigned_overhead_amount)}
-                        {assignment.assignment_percent !== undefined
-                          ? ` · ${formatPercent(assignment.assignment_percent)}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="ui-button-danger"
-                      onClick={() => remove_overhead_assignment?.(id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+              <p className="ui-help">
+                Method:{" "}
+                {assignment.allocation_method === "labour_cost_weighted"
+                  ? "Labour cost weighted"
+                  : assignment.allocation_method === "asset_burden_weighted"
+                    ? "Asset burden weighted"
+                    : "Equal split"}
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -874,8 +846,6 @@ function OperatingGroupBuilder({
         <GroupOverheadBuilder
           group_id={group_id}
           overhead_assignment={overhead_assignment}
-          add_overhead_assignment={add_overhead_assignment}
-          remove_overhead_assignment={remove_overhead_assignment}
         />
       </div>
     </div>

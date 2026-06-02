@@ -773,31 +773,35 @@ export default function useCostAllocation(inputs = {}) {
   }
 
   function add_asset_assignment({
+  group_id,
+  asset_id,
+  assignment_percent,
+}) {
+  const percent = Math.round(safe_number(assignment_percent));
+
+  if (!group_id || !asset_id || percent <= 0) {
+    return;
+  }
+
+  const clamped_percent = Math.min(percent, 100);
+
+  const timestamp = new Date().toISOString();
+
+  const next_assignment = {
+    assignment_id: generate_local_id("asset_assignment"),
     group_id,
     asset_id,
-    assignment_percent,
-  }) {
-    if (!group_id || !asset_id || safe_number(assignment_percent) <= 0) {
-      return;
-    }
+    assignment_percent: clamped_percent,
+    is_active: true,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
 
-    const timestamp = new Date().toISOString();
-
-    const next_assignment = {
-      assignment_id: generate_local_id("asset_assignment"),
-      group_id,
-      asset_id,
-      assignment_percent: safe_number(assignment_percent),
-      is_active: true,
-      created_at: timestamp,
-      updated_at: timestamp,
-    };
-
-    set_field("asset_group_assignments", [
-      ...safe_array(state?.asset_group_assignments),
-      next_assignment,
-    ]);
-  }
+  set_field("asset_group_assignments", [
+    ...safe_array(state?.asset_group_assignments),
+    next_assignment,
+  ]);
+}
 
   function remove_asset_assignment(assignment_id) {
     if (!assignment_id) {
