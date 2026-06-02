@@ -1,10 +1,19 @@
 "use client";
 
-import CostAllocationAssetAssignmentCard from "@/components/cost-allocation/CostAllocationAssetAssignmentCard";
 import CostAllocationGroupsCard from "@/components/cost-allocation/CostAllocationGroupsCard";
-import CostAllocationLabourAssignmentCard from "@/components/cost-allocation/CostAllocationLabourAssignmentCard";
 import CostAllocationLinkTable from "@/components/cost-allocation/CostAllocationLinkTable";
-import CostAllocationOverheadAssignmentCard from "@/components/cost-allocation/CostAllocationOverheadAssignmentCard";
+
+function formatMoney(value) {
+  return `$${Number(value || 0).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  })}`;
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("en-NZ", {
+    maximumFractionDigits: 0,
+  });
+}
 
 function formatPercent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
@@ -62,11 +71,15 @@ function WarningList({ warnings = [], empty_message }) {
       {warnings.map((warning, index) => (
         <div key={`warning-${index}`} className="ui-readonly">
           <div className="text-sm font-medium text-[var(--text-primary)]">
-            {warning?.title || warning?.label || warning?.key || "Warning"}
+            {warning?.title ||
+              warning?.label ||
+              warning?.warning_key ||
+              warning?.key ||
+              "Warning"}
           </div>
 
           <div className="mt-1 text-sm text-[var(--text-secondary)]">
-            {warning?.message || warning?.description || warning}
+            {warning?.message || warning?.description || String(warning)}
           </div>
         </div>
       ))}
@@ -91,9 +104,9 @@ function PlaceholderSection({ kicker, title, help_text }) {
             Component route is ready.
           </p>
           <p className="mt-1 ui-help">
-            This section has been separated from the old recovery/rate logic.
-            The dedicated component can now be added without changing the page
-            routing again.
+            This section is now separated from the old assignment tabs. The
+            group-first builder is the main place to assign labour, assets, and
+            overhead.
           </p>
         </div>
       </div>
@@ -205,8 +218,190 @@ function WhatNeedsAttentionSection({ delivery_summary, problems }) {
   );
 }
 
+function GroupCostStacksSection({ recovery_plan }) {
+  const rows = Array.isArray(recovery_plan?.operational_group_cost_rows)
+    ? recovery_plan.operational_group_cost_rows
+    : [];
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Group cost stacks</p>
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+            Review assigned operating group cost stacks
+          </h3>
+          <p className="ui-help">
+            This shows the labour, asset, overhead, and total cost currently
+            assigned to each operating group.
+          </p>
+        </div>
+
+        {rows.length === 0 ? (
+          <div className="ui-readonly">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              No group cost stacks yet.
+            </p>
+            <p className="mt-1 ui-help">
+              Create an operating group and assign labour, assets, or overhead
+              before this section has values.
+            </p>
+          </div>
+        ) : (
+          <div className="ui-stack-sm">
+            {rows.map((row) => (
+              <div key={row.group_id} className="ui-readonly">
+                <div className="ui-stack-sm">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      {row.group_name || "Unnamed operating group"}
+                    </p>
+                    <p className="ui-help">
+                      {row.allocation_status || "review_required"}
+                    </p>
+                  </div>
+
+                  <div className="labour-summary-table">
+                    <TableRow
+                      label="Productive labour"
+                      value={formatMoney(row.assigned_labour_cost)}
+                    />
+                    <TableRow
+                      label="Productive labour hours"
+                      value={formatNumber(row.assigned_labour_hours)}
+                    />
+                    <TableRow
+                      label="Productive assets"
+                      value={formatMoney(row.assigned_asset_burden)}
+                    />
+                    <TableRow
+                      label="Overhead"
+                      value={formatMoney(row.assigned_overhead_amount)}
+                    />
+                    <TableRow
+                      label="Total group cost"
+                      value={formatMoney(row.total_group_cost)}
+                      total
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PoolReconciliationSection({ recovery_plan }) {
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Pool reconciliation</p>
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+            Check assigned, remaining, and over-allocated source pools
+          </h3>
+          <p className="ui-help">
+            This confirms that Cost Allocation is distributing existing source
+            pools rather than creating new cost.
+          </p>
+        </div>
+
+        <TableBlock
+          title="Productive labour pool"
+          help_text="Labour module owns the source hours and cost. Cost Allocation only allocates percentages into operating groups."
+        >
+          <TableRow
+            label="Available labour cost"
+            value={formatMoney(recovery_plan?.total_available_labour_cost)}
+          />
+          <TableRow
+            label="Assigned labour cost"
+            value={formatMoney(recovery_plan?.total_assigned_labour_cost)}
+          />
+          <TableRow
+            label="Remaining labour cost"
+            value={formatMoney(recovery_plan?.total_remaining_labour_cost)}
+          />
+          <TableRow
+            label="Over-allocated labour cost"
+            value={formatMoney(recovery_plan?.total_over_allocated_labour_cost)}
+            total
+          />
+        </TableBlock>
+
+        <TableBlock
+          title="Productive asset pool"
+          help_text="Assets are assigned into groups by allocation percentage."
+        >
+          <TableRow
+            label="Available asset cost"
+            value={formatMoney(recovery_plan?.total_available_asset_cost)}
+          />
+          <TableRow
+            label="Assigned asset cost"
+            value={formatMoney(recovery_plan?.total_assigned_asset_cost)}
+          />
+          <TableRow
+            label="Remaining asset cost"
+            value={formatMoney(recovery_plan?.total_remaining_asset_cost)}
+          />
+          <TableRow
+            label="Over-allocated asset cost"
+            value={formatMoney(recovery_plan?.total_over_allocated_asset_cost)}
+            total
+          />
+        </TableBlock>
+
+        <TableBlock
+          title="Overhead pool"
+          help_text="Overhead is distributed into operating groups after labour and asset assignments are known."
+        >
+          <TableRow
+            label="Available overhead"
+            value={formatMoney(recovery_plan?.total_available_overhead_cost)}
+          />
+          <TableRow
+            label="Assigned overhead"
+            value={formatMoney(recovery_plan?.total_assigned_overhead_cost)}
+          />
+          <TableRow
+            label="Remaining overhead"
+            value={formatMoney(recovery_plan?.total_remaining_overhead_cost)}
+          />
+          <TableRow
+            label="Over-allocated overhead"
+            value={formatMoney(
+              recovery_plan?.total_over_allocated_overhead_cost
+            )}
+            total
+          />
+        </TableBlock>
+
+        <TableBlock
+          title="Total assigned / remaining"
+          help_text="This is the combined operating cost currently inside and outside operating groups."
+        >
+          <TableRow
+            label="Grouped operating cost"
+            value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+          />
+          <TableRow
+            label="Unassigned operating cost"
+            value={formatMoney(recovery_plan?.total_unassigned_cost)}
+            total
+          />
+        </TableBlock>
+      </div>
+    </section>
+  );
+}
+
 export default function CostAllocationEvidenceBreakdown({
   active_section,
+  recovery_plan,
   delivery_summary,
   evidence,
   links,
@@ -228,24 +423,24 @@ export default function CostAllocationEvidenceBreakdown({
   remove_overhead_assignment,
 }) {
   if (active_section === "groups") {
-  return (
-    <CostAllocationGroupsCard
-      groups={groups}
-      labour_assignment={labour_assignment}
-      asset_assignment={asset_assignment}
-      overhead_assignment={overhead_assignment}
-      add_operational_group={add_operational_group}
-      update_operational_group={update_operational_group}
-      remove_operational_group={remove_operational_group}
-      add_labour_assignment={add_labour_assignment}
-      remove_labour_assignment={remove_labour_assignment}
-      add_asset_assignment={add_asset_assignment}
-      remove_asset_assignment={remove_asset_assignment}
-      add_overhead_assignment={add_overhead_assignment}
-      remove_overhead_assignment={remove_overhead_assignment}
-    />
-  );
-}
+    return (
+      <CostAllocationGroupsCard
+        groups={groups}
+        labour_assignment={labour_assignment}
+        asset_assignment={asset_assignment}
+        overhead_assignment={overhead_assignment}
+        add_operational_group={add_operational_group}
+        update_operational_group={update_operational_group}
+        remove_operational_group={remove_operational_group}
+        add_labour_assignment={add_labour_assignment}
+        remove_labour_assignment={remove_labour_assignment}
+        add_asset_assignment={add_asset_assignment}
+        remove_asset_assignment={remove_asset_assignment}
+        add_overhead_assignment={add_overhead_assignment}
+        remove_overhead_assignment={remove_overhead_assignment}
+      />
+    );
+  }
 
   if (active_section === "links") {
     return (
@@ -257,57 +452,12 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "labour_assignment") {
-    return (
-      <CostAllocationLabourAssignmentCard
-        labour_assignment={labour_assignment}
-        groups={groups}
-        add_labour_assignment={add_labour_assignment}
-        remove_labour_assignment={remove_labour_assignment}
-      />
-    );
-  }
-
-  if (active_section === "asset_assignment") {
-    return (
-      <CostAllocationAssetAssignmentCard
-        asset_assignment={asset_assignment}
-        groups={groups}
-        add_asset_assignment={add_asset_assignment}
-        remove_asset_assignment={remove_asset_assignment}
-      />
-    );
-  }
-
-  if (active_section === "overhead_assignment") {
-    return (
-      <CostAllocationOverheadAssignmentCard
-        overhead_assignment={overhead_assignment}
-        groups={groups}
-        add_overhead_assignment={add_overhead_assignment}
-        remove_overhead_assignment={remove_overhead_assignment}
-      />
-    );
-  }
-
   if (active_section === "group_cost_stacks") {
-    return (
-      <PlaceholderSection
-        kicker="Group cost stacks"
-        title="Review assigned operating group cost stacks"
-        help_text="This section will show assigned labour cost, assigned asset burden, assigned overhead amount, and total group cost for each operating group."
-      />
-    );
+    return <GroupCostStacksSection recovery_plan={recovery_plan} />;
   }
 
   if (active_section === "pool_reconciliation") {
-    return (
-      <PlaceholderSection
-        kicker="Pool reconciliation"
-        title="Check source pool assignment and remaining balances"
-        help_text="This section will confirm assigned plus remaining equals available for labour, assets, and overheads. Over-allocation will block downstream trust."
-      />
-    );
+    return <PoolReconciliationSection recovery_plan={recovery_plan} />;
   }
 
   if (active_section === "setup_checklist") {
