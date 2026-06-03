@@ -172,25 +172,22 @@ function WhatNeedsAttentionSection({ delivery_summary, problems }) {
         >
           <TableRow
             label="Linked / unlinked staff"
-            value={`${delivery_summary?.linked_staff_count ?? 0} / ${
-              delivery_summary?.unlinked_staff_count ??
+            value={`${delivery_summary?.linked_staff_count ?? 0} / ${delivery_summary?.unlinked_staff_count ??
               problems?.unlinked_staff_count ??
               0
-            }`}
+              }`}
           />
           <TableRow
             label="Linked / unlinked assets"
-            value={`${delivery_summary?.linked_asset_count ?? 0} / ${
-              delivery_summary?.unlinked_asset_count ??
+            value={`${delivery_summary?.linked_asset_count ?? 0} / ${delivery_summary?.unlinked_asset_count ??
               problems?.unlinked_asset_count ??
               0
-            }`}
+              }`}
           />
           <TableRow
             label="Ready / incomplete operating groups"
-            value={`${delivery_summary?.valid_operational_groups ?? 0} / ${
-              delivery_summary?.invalid_operational_groups ?? 0
-            }`}
+            value={`${delivery_summary?.valid_operational_groups ?? 0} / ${delivery_summary?.invalid_operational_groups ?? 0
+              }`}
             total
           />
         </TableBlock>
@@ -476,8 +473,8 @@ export default function CostAllocationEvidenceBreakdown({
     return (
       <ChecklistSection
         kicker="Structure warnings"
-        title="Structure, capacity, and dependency warnings"
-        help_text="These are structure, capacity, or dependency issues that may prevent the operating structure from being relied on downstream."
+        title="Operating group and source-pool warnings"
+        help_text="These are operating group, productive source-pool, or recovery dependency issues that may prevent the structure from being relied on downstream."
         warnings={evidence?.structural_warnings}
         empty_message="No structural warnings are currently active."
       />
