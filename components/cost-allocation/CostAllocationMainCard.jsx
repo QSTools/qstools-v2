@@ -126,9 +126,8 @@ function SectionTile({ section, is_active, on_click }) {
       type="button"
       onClick={on_click}
       aria-pressed={is_active}
-      className={`ui-panel cost-allocation-section-card text-left transition ${
-        is_active ? "is-active" : ""
-      }`}
+      className={`ui-panel cost-allocation-section-card text-left transition ${is_active ? "is-active" : ""
+        }`}
     >
       <div className="ui-stack-sm">
         <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -230,14 +229,24 @@ function ReadinessRail({
     groups?.valid_operational_groups ??
     0;
 
-  const staff_in_operating_groups =
-    delivery_summary?.staff_in_working_units_count ??
-    delivery_summary?.linked_staff_count ??
+  const productive_labour_group_count =
+    delivery_summary?.productive_labour_group_count ??
+    outcome?.productive_labour_group_count ??
     0;
 
-  const assets_in_operating_groups =
-    delivery_summary?.assets_in_working_units_count ??
-    delivery_summary?.linked_asset_count ??
+  const assigned_labour_group_count =
+    delivery_summary?.assigned_labour_group_count ??
+    outcome?.assigned_labour_group_count ??
+    0;
+
+  const productive_asset_count =
+    delivery_summary?.productive_asset_count ??
+    outcome?.productive_asset_count ??
+    0;
+
+  const assigned_productive_asset_count =
+    delivery_summary?.assigned_productive_asset_count ??
+    outcome?.assigned_productive_asset_count ??
     0;
 
   const next_action =
@@ -274,19 +283,23 @@ function ReadinessRail({
 
         <div className="grid grid-cols-1 gap-2">
           <MetricCard
-            label="Staff coverage"
+            label="Productive labour coverage"
             value={formatPercent(staff_coverage)}
             help={`${formatCount(
-              staff_in_operating_groups
-            )} staff assigned to operating groups`}
+              assigned_labour_group_count
+            )} of ${formatCount(
+              productive_labour_group_count
+            )} productive labour groups assigned`}
           />
 
           <MetricCard
-            label="Asset coverage"
+            label="Productive asset coverage"
             value={formatPercent(asset_coverage)}
             help={`${formatCount(
-              assets_in_operating_groups
-            )} assets assigned to operating groups`}
+              assigned_productive_asset_count
+            )} of ${formatCount(
+              productive_asset_count
+            )} productive assets assigned`}
           />
 
           <MetricCard
@@ -300,9 +313,8 @@ function ReadinessRail({
 
         <MetricCard
           label="Warnings"
-          value={`${formatCount(warning_count)} warning${
-            warning_count === 1 ? "" : "s"
-          }`}
+          value={`${formatCount(warning_count)} warning${warning_count === 1 ? "" : "s"
+            }`}
         />
 
         <MetricCard
@@ -490,17 +502,15 @@ export default function CostAllocationMainCard({
       {
         key: "structural_warnings",
         label: "Structural warnings",
-        meta: `${formatCount(structural_warnings)} item${
-          structural_warnings === 1 ? "" : "s"
-        }`,
+        meta: `${formatCount(structural_warnings)} item${structural_warnings === 1 ? "" : "s"
+          }`,
         help: "Review structure, capacity, or dependency warnings.",
       },
       {
         key: "setup_checklist",
         label: "Setup checklist",
-        meta: `${formatCount(setup_warnings)} item${
-          setup_warnings === 1 ? "" : "s"
-        }`,
+        meta: `${formatCount(setup_warnings)} item${setup_warnings === 1 ? "" : "s"
+          }`,
         help: "Review missing setup items.",
       },
     ],
