@@ -6,6 +6,10 @@ import { useLabour } from "@/hooks/useLabour";
 import useAssets from "@/hooks/useAssets";
 import useRecoverySummary from "@/hooks/useRecoverySummary";
 
+import { useCostAllocationAssetOverlay } from "@/hooks/cost-allocation/useCostAllocationAssetOverlay";
+import { build_cost_allocation_assignment_cards } from "@/hooks/cost-allocation/useCostAllocationAssignmentCards";
+import { build_cost_allocation_output_contract } from "@/hooks/cost-allocation/useCostAllocationOutputContract";
+
 import {
   build_cost_allocation_inputs,
   safe_array,
@@ -34,14 +38,6 @@ function generate_local_id(prefix) {
   }
 
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function normalise_asset_type(value) {
-  return value === "support" ? "support" : "productive";
-}
-
-function get_asset_name(asset = {}) {
-  return asset.asset_name || asset.name || "Unnamed Asset";
 }
 
 function get_group_asset_ids(group = {}) {
@@ -94,122 +90,6 @@ function get_group_staff_ids(group = {}) {
   }
 
   return [];
-}
-
-function build_asset_recovery_overlay({
-  asset_output_contract = {},
-  recovery_hours_used = 0,
-}) {
-  const active_assets = safe_array(asset_output_contract.active_assets);
-  const default_recovery_hours = safe_number(recovery_hours_used);
-
-  const recovery_assets = active_assets.map((asset) => {
-    const base_asset_cost_annual = safe_number(asset.total_asset_cost_annual);
-    const allocated_asset_overhead_cost_annual = safe_number(
-      asset.allocated_asset_overhead_cost_annual
-    );
-
-    const asset_recovery_cost_annual =
-      asset.asset_recovery_cost_annual !== undefined
-        ? safe_number(asset.asset_recovery_cost_annual)
-        : base_asset_cost_annual + allocated_asset_overhead_cost_annual;
-
-    const asset_recovery_rate_per_hour =
-      default_recovery_hours > 0
-        ? asset_recovery_cost_annual / default_recovery_hours
-        : 0;
-
-    return {
-      ...asset,
-      asset_type: normalise_asset_type(asset.asset_type),
-      asset_name: get_asset_name(asset),
-      base_asset_cost_annual,
-      allocated_asset_overhead_cost_annual,
-      asset_recovery_cost_annual,
-      asset_recovery_hours_used: default_recovery_hours,
-      asset_recovery_rate_per_hour,
-      cost_allocation_asset_cost_annual: asset_recovery_cost_annual,
-    };
-  });
-
-  const asset_recovery_rows = recovery_assets.map((asset) => ({
-    asset_id: asset.asset_id ?? "",
-    asset_name: asset.asset_name ?? "Unnamed Asset",
-    asset_type: asset.asset_type,
-    base_asset_cost_annual: safe_number(asset.base_asset_cost_annual),
-    allocated_asset_overhead_cost_annual: safe_number(
-      asset.allocated_asset_overhead_cost_annual
-    ),
-    asset_recovery_cost_annual: safe_number(asset.asset_recovery_cost_annual),
-    asset_recovery_hours_used: safe_number(asset.asset_recovery_hours_used),
-    asset_recovery_rate_per_hour: safe_number(
-      asset.asset_recovery_rate_per_hour
-    ),
-  }));
-
-  const productive_assets = recovery_assets.filter(
-    (asset) => asset.asset_type === "productive"
-  );
-
-  const support_assets = recovery_assets.filter(
-    (asset) => asset.asset_type === "support"
-  );
-
-  const productive_asset_base_cost = productive_assets.reduce(
-    (sum, asset) => sum + safe_number(asset.base_asset_cost_annual),
-    0
-  );
-
-  const support_asset_base_cost = support_assets.reduce(
-    (sum, asset) => sum + safe_number(asset.base_asset_cost_annual),
-    0
-  );
-
-  const productive_asset_allocated_overhead_cost = productive_assets.reduce(
-    (sum, asset) =>
-      sum + safe_number(asset.allocated_asset_overhead_cost_annual),
-    0
-  );
-
-  const support_asset_allocated_overhead_cost = support_assets.reduce(
-    (sum, asset) =>
-      sum + safe_number(asset.allocated_asset_overhead_cost_annual),
-    0
-  );
-
-  const productive_asset_recovery_cost = productive_assets.reduce(
-    (sum, asset) => sum + safe_number(asset.asset_recovery_cost_annual),
-    0
-  );
-
-  const support_asset_recovery_cost = support_assets.reduce(
-    (sum, asset) => sum + safe_number(asset.asset_recovery_cost_annual),
-    0
-  );
-
-  return {
-    active_assets: recovery_assets,
-    asset_recovery_rows,
-
-    productive_asset_base_cost,
-    support_asset_base_cost,
-
-    productive_asset_allocated_overhead_cost,
-    support_asset_allocated_overhead_cost,
-
-    productive_asset_recovery_cost,
-    support_asset_recovery_cost,
-
-    productive_asset_cost: productive_asset_recovery_cost,
-    support_asset_cost: support_asset_recovery_cost,
-
-    total_allocated_asset_overhead_cost:
-      productive_asset_allocated_overhead_cost +
-      support_asset_allocated_overhead_cost,
-
-    total_asset_recovery_cost:
-      productive_asset_recovery_cost + support_asset_recovery_cost,
-  };
 }
 
 function get_overhead_burden_rate_for_group({
@@ -389,184 +269,6 @@ function build_operational_group_recovery_rows({
   });
 }
 
-function build_labour_assignment_card({
-  productive_labour_type_rows,
-  labour_group_assignments,
-  calculated,
-}) {
-  const active_assignments = safe_array(labour_group_assignments).filter(
-    (assignment) => assignment?.is_active !== false
-  );
-
-  return {
-    productive_staff_type_rates: productive_labour_type_rows,
-    productive_labour_rows: productive_labour_type_rows,
-    labour_group_assignments: active_assignments,
-    assignments: active_assignments,
-
-    available_labour_cost:
-      calculated?.productive_labour_pool?.available_labour_cost ??
-      calculated?.available_labour_cost ??
-      calculated?.total_productive_labour_cost ??
-      0,
-
-    available_labour_hours:
-      calculated?.productive_labour_pool?.available_labour_hours ??
-      calculated?.available_labour_hours ??
-      calculated?.total_productive_labour_hours ??
-      0,
-
-    assigned_labour_cost:
-      calculated?.productive_labour_pool?.assigned_labour_cost ??
-      calculated?.assigned_labour_cost ??
-      0,
-
-    assigned_labour_hours:
-      calculated?.productive_labour_pool?.assigned_labour_hours ??
-      calculated?.assigned_labour_hours ??
-      0,
-
-    remaining_labour_cost:
-      calculated?.productive_labour_pool?.remaining_labour_cost ??
-      calculated?.remaining_labour_cost ??
-      calculated?.unassigned_labour_cost ??
-      0,
-
-    remaining_labour_hours:
-      calculated?.productive_labour_pool?.remaining_labour_hours ??
-      calculated?.remaining_labour_hours ??
-      0,
-
-    over_allocated_labour_cost:
-      calculated?.productive_labour_pool?.over_allocated_labour_cost ??
-      calculated?.over_allocated_labour_cost ??
-      0,
-
-    over_allocated_labour_hours:
-      calculated?.productive_labour_pool?.over_allocated_labour_hours ??
-      calculated?.over_allocated_labour_hours ??
-      0,
-
-    allocation_status:
-      calculated?.productive_labour_pool?.allocation_status ||
-      calculated?.labour_pool_status ||
-      "review_required",
-  };
-}
-
-function build_asset_assignment_card({
-  asset_recovery_rows,
-  asset_group_assignments,
-  calculated,
-}) {
-  const active_assignments = safe_array(asset_group_assignments).filter(
-    (assignment) => assignment?.is_active !== false
-  );
-
-  const productive_asset_rows = safe_array(asset_recovery_rows).filter(
-    (asset) => asset?.asset_type !== "support"
-  );
-
-  return {
-    productive_asset_rows,
-    asset_rows: productive_asset_rows,
-    asset_group_assignments: active_assignments,
-    assignments: active_assignments,
-
-    productive_asset_pool: calculated?.productive_asset_pool ?? null,
-
-    available_asset_cost:
-      calculated?.productive_asset_pool?.available_asset_cost ??
-      calculated?.total_available_asset_cost ??
-      calculated?.productive_asset_cost ??
-      0,
-
-    assigned_asset_cost:
-      calculated?.productive_asset_pool?.assigned_asset_cost ??
-      calculated?.total_assigned_asset_cost ??
-      0,
-
-    remaining_asset_cost:
-      calculated?.productive_asset_pool?.remaining_asset_cost ??
-      calculated?.total_remaining_asset_cost ??
-      calculated?.unassigned_asset_cost ??
-      0,
-
-    over_allocated_asset_cost:
-      calculated?.productive_asset_pool?.over_allocated_asset_cost ??
-      calculated?.total_over_allocated_asset_cost ??
-      0,
-
-    available_asset_hours:
-      calculated?.productive_asset_pool?.available_asset_hours ??
-      calculated?.total_available_asset_hours ??
-      0,
-
-    assigned_asset_hours:
-      calculated?.productive_asset_pool?.assigned_asset_hours ??
-      calculated?.total_assigned_asset_hours ??
-      0,
-
-    remaining_asset_hours:
-      calculated?.productive_asset_pool?.remaining_asset_hours ??
-      calculated?.total_remaining_asset_hours ??
-      0,
-
-    over_allocated_asset_hours:
-      calculated?.productive_asset_pool?.over_allocated_asset_hours ??
-      calculated?.total_over_allocated_asset_hours ??
-      0,
-
-    allocation_status:
-      calculated?.productive_asset_pool?.allocation_status ||
-      calculated?.asset_pool_status ||
-      "review_required",
-  };
-}
-
-function build_overhead_assignment_card({
-  overhead_group_assignments,
-  calculated,
-}) {
-  const active_assignments = safe_array(overhead_group_assignments).filter(
-    (assignment) => assignment?.is_active !== false
-  );
-
-  return {
-    overhead_group_assignments: active_assignments,
-    assignments: active_assignments,
-
-    overhead_pool: calculated?.overhead_pool ?? null,
-
-    available_overhead_cost:
-      calculated?.overhead_pool?.available_overhead_cost ??
-      calculated?.total_available_overhead_cost ??
-      calculated?.overhead_absorbed_cost ??
-      0,
-
-    assigned_overhead_cost:
-      calculated?.overhead_pool?.assigned_overhead_cost ??
-      calculated?.total_assigned_overhead_cost ??
-      0,
-
-    remaining_overhead_cost:
-      calculated?.overhead_pool?.remaining_overhead_cost ??
-      calculated?.total_remaining_overhead_cost ??
-      calculated?.unassigned_overhead_cost ??
-      0,
-
-    over_allocated_overhead_cost:
-      calculated?.overhead_pool?.over_allocated_overhead_cost ??
-      calculated?.total_over_allocated_overhead_cost ??
-      0,
-
-    allocation_status:
-      calculated?.overhead_pool?.allocation_status ||
-      calculated?.overhead_pool_status ||
-      "review_required",
-  };
-}
-
 export default function useCostAllocation(inputs = {}) {
   const labour = useLabour();
   const assets = useAssets();
@@ -600,12 +302,10 @@ export default function useCostAllocation(inputs = {}) {
     return build_productive_labour_type_rows(labour?.output_contract ?? {});
   }, [labour?.output_contract]);
 
-  const asset_recovery_overlay = useMemo(() => {
-    return build_asset_recovery_overlay({
-      asset_output_contract: assets?.output_contract ?? {},
-      recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
-    });
-  }, [assets?.output_contract, base_calculation_inputs?.recovery_hours_used]);
+  const asset_recovery_overlay = useCostAllocationAssetOverlay({
+    asset_output_contract: assets?.output_contract ?? {},
+    recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
+  });
 
   const operational_group_recovery_rows = useMemo(() => {
     return build_operational_group_recovery_rows({
@@ -633,6 +333,7 @@ export default function useCostAllocation(inputs = {}) {
   const calculation_inputs = useMemo(() => {
     return {
       ...base_calculation_inputs,
+
       active_assets: asset_recovery_overlay.active_assets,
       asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
 
@@ -698,6 +399,7 @@ export default function useCostAllocation(inputs = {}) {
     const next_group = {
       group_id: group.group_id || generate_local_id("group"),
       group_name: String(group.group_name || "").trim(),
+      group_description: String(group.group_description || "").trim(),
       required_asset_ids: safe_array(group.required_asset_ids),
       required_staff_ids: safe_array(group.required_staff_ids),
       required_staff_count: safe_number(group.required_staff_count),
@@ -717,35 +419,35 @@ export default function useCostAllocation(inputs = {}) {
   }
 
   function add_labour_assignment({
-  group_id,
-  staff_type_id,
-  assignment_percent,
-}) {
-  const percent = Math.round(safe_number(assignment_percent));
-
-  if (!group_id || !staff_type_id || percent <= 0) {
-    return;
-  }
-
-  const clamped_percent = Math.min(percent, 100);
-
-  const timestamp = new Date().toISOString();
-
-  const next_assignment = {
-    assignment_id: generate_local_id("labour_assignment"),
     group_id,
     staff_type_id,
-    assignment_percent: clamped_percent,
-    is_active: true,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
+    assignment_percent,
+  }) {
+    const percent = Math.round(safe_number(assignment_percent));
 
-  set_field("labour_group_assignments", [
-    ...safe_array(state?.labour_group_assignments),
-    next_assignment,
-  ]);
-}
+    if (!group_id || !staff_type_id || percent <= 0) {
+      return;
+    }
+
+    const clamped_percent = Math.min(percent, 100);
+
+    const timestamp = new Date().toISOString();
+
+    const next_assignment = {
+      assignment_id: generate_local_id("labour_assignment"),
+      group_id,
+      staff_type_id,
+      assignment_percent: clamped_percent,
+      is_active: true,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    set_field("labour_group_assignments", [
+      ...safe_array(state?.labour_group_assignments),
+      next_assignment,
+    ]);
+  }
 
   function remove_labour_assignment(assignment_id) {
     if (!assignment_id) {
@@ -772,36 +474,32 @@ export default function useCostAllocation(inputs = {}) {
     set_field("labour_group_assignments", next_assignments);
   }
 
-  function add_asset_assignment({
-  group_id,
-  asset_id,
-  assignment_percent,
-}) {
-  const percent = Math.round(safe_number(assignment_percent));
+  function add_asset_assignment({ group_id, asset_id, assignment_percent }) {
+    const percent = Math.round(safe_number(assignment_percent));
 
-  if (!group_id || !asset_id || percent <= 0) {
-    return;
+    if (!group_id || !asset_id || percent <= 0) {
+      return;
+    }
+
+    const clamped_percent = Math.min(percent, 100);
+
+    const timestamp = new Date().toISOString();
+
+    const next_assignment = {
+      assignment_id: generate_local_id("asset_assignment"),
+      group_id,
+      asset_id,
+      assignment_percent: clamped_percent,
+      is_active: true,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    set_field("asset_group_assignments", [
+      ...safe_array(state?.asset_group_assignments),
+      next_assignment,
+    ]);
   }
-
-  const clamped_percent = Math.min(percent, 100);
-
-  const timestamp = new Date().toISOString();
-
-  const next_assignment = {
-    assignment_id: generate_local_id("asset_assignment"),
-    group_id,
-    asset_id,
-    assignment_percent: clamped_percent,
-    is_active: true,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
-
-  set_field("asset_group_assignments", [
-    ...safe_array(state?.asset_group_assignments),
-    next_assignment,
-  ]);
-}
 
   function remove_asset_assignment(assignment_id) {
     if (!assignment_id) {
@@ -893,19 +591,15 @@ export default function useCostAllocation(inputs = {}) {
     set_field("overhead_group_assignments", next_assignments);
   }
 
-  const labour_assignment = build_labour_assignment_card({
+  const {
+    labour_assignment,
+    asset_assignment,
+    overhead_assignment,
+  } = build_cost_allocation_assignment_cards({
     productive_labour_type_rows,
     labour_group_assignments: state?.labour_group_assignments,
-    calculated,
-  });
-
-  const asset_assignment = build_asset_assignment_card({
     asset_recovery_rows: calculated?.asset_recovery_rows,
     asset_group_assignments: state?.asset_group_assignments,
-    calculated,
-  });
-
-  const overhead_assignment = build_overhead_assignment_card({
     overhead_group_assignments: state?.overhead_group_assignments,
     calculated,
   });
@@ -966,119 +660,10 @@ export default function useCostAllocation(inputs = {}) {
     reset_state,
   };
 
-  const output_contract = {
-    allocation_status: calculated.allocation_status,
-    allocation_dependency_type: calculated.allocation_dependency_type,
-    setup_warnings: calculated.setup_warnings,
-    structural_warnings: calculated.structural_warnings,
-    allocation_warnings: calculated.allocation_warnings,
-
-    active_recovery_model: calculated.active_recovery_model,
-    recovery_plan_target_per_driver:
-      calculated.recovery_plan_target_per_driver,
-    recovery_plan_split: calculated.recovery_plan_split,
-    component_required_recovery: calculated.component_required_recovery,
-
-    labour_share_percent: calculated.labour_share_percent,
-    asset_share_percent: calculated.asset_share_percent,
-    material_share_percent: calculated.material_share_percent,
-    overhead_absorbed_percent: calculated.overhead_absorbed_percent,
-
-    labour_recovery_cost: calculated.labour_recovery_cost,
-    asset_recovery_cost: calculated.asset_recovery_cost,
-    material_recovery_cost: calculated.material_recovery_cost,
-    overhead_absorbed_cost: calculated.overhead_absorbed_cost,
-
-    recovery_hours_used: calculated.recovery_hours_used,
-    required_recovery_rate: calculated.required_recovery_rate,
-    actual_recovery_rate: calculated.actual_recovery_rate,
-    profit_or_deficit_per_recovery_hour:
-      calculated.profit_or_deficit_per_recovery_hour,
-
-    material_recovery_included: calculated.material_recovery_included,
-    asset_recovery_included: calculated.asset_recovery_included,
-    material_margin_status: calculated.material_margin_status,
-    asset_utilisation_status: calculated.asset_utilisation_status,
-
-    has_productive_asset_recovery_base:
-      calculated.has_productive_asset_recovery_base,
-    productive_asset_count: calculated.productive_asset_count,
-    support_asset_count: calculated.support_asset_count,
-
-    productive_asset_base_cost: calculated.productive_asset_base_cost,
-    support_asset_base_cost: calculated.support_asset_base_cost,
-    productive_asset_allocated_overhead_cost:
-      calculated.productive_asset_allocated_overhead_cost,
-    support_asset_allocated_overhead_cost:
-      calculated.support_asset_allocated_overhead_cost,
-    productive_asset_recovery_cost: calculated.productive_asset_recovery_cost,
-    support_asset_recovery_cost: calculated.support_asset_recovery_cost,
-    total_allocated_asset_overhead_cost:
-      calculated.total_allocated_asset_overhead_cost,
-    total_asset_recovery_cost: calculated.total_asset_recovery_cost,
-
-    asset_recovery_rows: calculated.asset_recovery_rows,
-    productive_labour_type_rows: calculated.productive_labour_type_rows,
-    operational_group_recovery_rows:
-      calculated.operational_group_recovery_rows,
-    operational_group_cost_rows: calculated.operational_group_cost_rows,
-
-    labour_group_assignments: safe_array(state?.labour_group_assignments),
-    asset_group_assignments: safe_array(state?.asset_group_assignments),
-    overhead_group_assignments: safe_array(state?.overhead_group_assignments),
-
-    productive_labour_pool: calculated.productive_labour_pool,
-    productive_asset_pool: calculated.productive_asset_pool,
-    overhead_pool: calculated.overhead_pool,
-
-    cost_allocation_ready:
-      calculated.allocation_status === "ready" ||
-      calculated.allocation_status === "ready_with_dependency",
-    cost_allocation_warnings: calculated.allocation_warnings,
-
-    operational_groups: calculated.active_operational_groups,
-    total_grouped_labour_cost: calculated.total_grouped_labour_cost,
-    total_grouped_asset_cost: calculated.total_grouped_asset_cost,
-    total_grouped_overhead_cost: calculated.total_grouped_overhead_cost,
-    total_grouped_operating_cost: calculated.total_grouped_operating_cost,
-    unassigned_labour_cost: calculated.unassigned_labour_cost,
-    unassigned_asset_cost: calculated.unassigned_asset_cost,
-    unassigned_overhead_cost: calculated.unassigned_overhead_cost,
-    total_unassigned_cost: calculated.total_unassigned_cost,
-    productive_asset_utilisation_hours_annual:
-      calculated.productive_asset_utilisation_hours_annual,
-    group_recovery_basis_label: calculated.group_recovery_basis_label,
-    group_required_recovery_rate: calculated.group_required_recovery_rate,
-
-    productive_asset_cost: calculated.productive_asset_cost,
-    support_asset_cost: calculated.support_asset_cost,
-
-    active_allocation_profile_id: calculated.active_allocation_profile_id,
-    active_asset_labour_links: calculated.active_asset_labour_links,
-    active_operational_groups: calculated.active_operational_groups,
-
-    linked_staff_count: calculated.linked_staff_count,
-    unlinked_staff_count: calculated.unlinked_staff_count,
-    linked_asset_count: calculated.linked_asset_count,
-    unlinked_asset_count: calculated.unlinked_asset_count,
-
-    total_operational_groups: calculated.total_operational_groups,
-    valid_operational_groups: calculated.valid_operational_groups,
-    invalid_operational_groups: calculated.invalid_operational_groups,
-
-    duplicate_link_warnings: calculated.duplicate_link_warnings,
-    orphan_warnings: calculated.orphan_warnings,
-    group_validation_warnings: calculated.group_validation_warnings,
-
-    structure_valid: calculated.structure_valid,
-    staff_coverage_percent: calculated.staff_coverage_percent,
-    asset_coverage_percent: calculated.asset_coverage_percent,
-    group_coverage_percent: calculated.group_coverage_percent,
-
-    external_delivery_enabled: calculated.external_delivery_enabled,
-    external_delivery_required: calculated.external_delivery_required,
-    internal_capacity_shortfall: calculated.internal_capacity_shortfall,
-  };
+  const output_contract = build_cost_allocation_output_contract({
+    calculated,
+    state,
+  });
 
   return {
     status,
