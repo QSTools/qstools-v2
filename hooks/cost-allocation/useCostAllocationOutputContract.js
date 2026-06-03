@@ -73,7 +73,19 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
       calculated.allocation_status === "ready_with_dependency",
     cost_allocation_warnings: calculated.allocation_warnings,
 
+    divisions: safe_array(state?.divisions),
+    active_divisions: calculated.active_divisions,
+    division_cost_rows: calculated.division_cost_rows,
+
+    total_divisions: calculated.total_divisions,
+    valid_divisions: calculated.valid_divisions,
+    invalid_divisions: calculated.invalid_divisions,
+    division_coverage_percent: calculated.division_coverage_percent,
+
     operational_groups: calculated.active_operational_groups,
+    active_operating_groups: calculated.active_operating_groups,
+    active_operational_groups: calculated.active_operational_groups,
+
     total_grouped_labour_cost: calculated.total_grouped_labour_cost,
     total_grouped_asset_cost: calculated.total_grouped_asset_cost,
     total_grouped_overhead_cost: calculated.total_grouped_overhead_cost,
@@ -92,7 +104,6 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
 
     active_allocation_profile_id: calculated.active_allocation_profile_id,
     active_asset_labour_links: calculated.active_asset_labour_links,
-    active_operational_groups: calculated.active_operational_groups,
 
     linked_staff_count: calculated.linked_staff_count,
     unlinked_staff_count: calculated.unlinked_staff_count,

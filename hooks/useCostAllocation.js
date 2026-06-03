@@ -49,6 +49,9 @@ export default function useCostAllocation(inputs = {}) {
   const {
     state,
     set_field,
+    add_division,
+    update_division,
+    remove_division,
     add_asset_labour_link,
     remove_asset_labour_link,
     update_operational_group,
@@ -90,6 +93,8 @@ export default function useCostAllocation(inputs = {}) {
     return {
       ...base_calculation_inputs,
 
+      divisions: safe_array(state?.divisions),
+
       active_assets: asset_recovery_overlay.active_assets,
       asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
 
@@ -124,6 +129,7 @@ export default function useCostAllocation(inputs = {}) {
     base_calculation_inputs,
     asset_recovery_overlay,
     productive_labour_type_rows,
+    state?.divisions,
     state?.labour_group_assignments,
     state?.asset_group_assignments,
     state?.overhead_group_assignments,
@@ -154,6 +160,7 @@ export default function useCostAllocation(inputs = {}) {
 
     const next_group = {
       group_id: group.group_id || generate_local_id("group"),
+      division_id: group.division_id || "main_operations",
       group_name: String(group.group_name || "").trim(),
       group_description: String(group.group_description || "").trim(),
       required_asset_ids: safe_array(group.required_asset_ids),
@@ -347,18 +354,15 @@ export default function useCostAllocation(inputs = {}) {
     set_field("overhead_group_assignments", next_assignments);
   }
 
-  const {
-    labour_assignment,
-    asset_assignment,
-    overhead_assignment,
-  } = build_cost_allocation_assignment_cards({
-    productive_labour_type_rows,
-    labour_group_assignments: state?.labour_group_assignments,
-    asset_recovery_rows: calculated?.asset_recovery_rows,
-    asset_group_assignments: state?.asset_group_assignments,
-    overhead_group_assignments: state?.overhead_group_assignments,
-    calculated,
-  });
+  const { labour_assignment, asset_assignment, overhead_assignment } =
+    build_cost_allocation_assignment_cards({
+      productive_labour_type_rows,
+      labour_group_assignments: state?.labour_group_assignments,
+      asset_recovery_rows: calculated?.asset_recovery_rows,
+      asset_group_assignments: state?.asset_group_assignments,
+      overhead_group_assignments: state?.overhead_group_assignments,
+      calculated,
+    });
 
   const card = {
     ...base_card,
@@ -369,6 +373,14 @@ export default function useCostAllocation(inputs = {}) {
 
     recovery_plan: {
       ...(base_card?.recovery_plan ?? {}),
+
+      active_divisions: calculated.active_divisions,
+      division_cost_rows: calculated.division_cost_rows,
+      total_divisions: calculated.total_divisions,
+      valid_divisions: calculated.valid_divisions,
+      invalid_divisions: calculated.invalid_divisions,
+      division_coverage_percent: calculated.division_coverage_percent,
+
       productive_asset_base_cost: calculated.productive_asset_base_cost,
       support_asset_base_cost: calculated.support_asset_base_cost,
       productive_asset_allocated_overhead_cost:
@@ -402,6 +414,9 @@ export default function useCostAllocation(inputs = {}) {
 
   const actions = {
     set_field,
+    add_division,
+    update_division,
+    remove_division,
     add_asset_labour_link,
     remove_asset_labour_link,
     add_operational_group: handle_add_operational_group,
