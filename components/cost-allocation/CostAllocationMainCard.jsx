@@ -15,18 +15,19 @@ const STATUS_LABELS = {
 };
 
 const STATUS_HELP = {
-  ready: "The current operating structure appears ready for downstream recovery testing.",
+  ready: "The current division and operating group structure appears ready for downstream recovery testing.",
   ready_with_dependency:
     "The structure may work, but it depends on external or scalable delivery capacity.",
   strained:
-    "The structure may be possible, but current operating groups are under pressure.",
+    "The structure may be possible, but current divisions or operating groups are under pressure.",
   not_supported:
-    "The current operating groups do not yet support the selected structure.",
+    "The current divisions and operating groups do not yet support the selected structure.",
   blocked:
     "One or more source pools is over-allocated or structurally invalid.",
   incomplete:
     "More setup is required before this structure can be relied on downstream.",
-  review: "Review the operating groups, assignments, and reconciliation checks.",
+  review:
+    "Review the divisions, operating groups, assignments, and reconciliation checks.",
 };
 
 const DEPENDENCY_LABELS = {
@@ -68,7 +69,8 @@ function getStatusLabel(value, fallback) {
 
 function getStatusHelp(value) {
   return (
-    STATUS_HELP[value] || "Review the operating groups and supporting structure."
+    STATUS_HELP[value] ||
+    "Review the divisions, operating groups, and supporting structure."
   );
 }
 
@@ -126,8 +128,9 @@ function SectionTile({ section, is_active, on_click }) {
       type="button"
       onClick={on_click}
       aria-pressed={is_active}
-      className={`ui-panel cost-allocation-section-card text-left transition ${is_active ? "is-active" : ""
-        }`}
+      className={`ui-panel cost-allocation-section-card text-left transition ${
+        is_active ? "is-active" : ""
+      }`}
     >
       <div className="ui-stack-sm">
         <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -184,6 +187,7 @@ function ReadinessRail({
   delivery_summary,
   recovery_plan,
   evidence,
+  divisions,
   groups,
   problems,
   on_select_section,
@@ -191,6 +195,11 @@ function ReadinessRail({
   const allocation_status = outcome?.allocation_status || outcome?.status;
   const allocation_dependency_type =
     outcome?.allocation_dependency_type || outcome?.dependency_type;
+
+  const division_coverage =
+    delivery_summary?.division_coverage_percent ??
+    outcome?.division_coverage_percent ??
+    0;
 
   const staff_coverage =
     delivery_summary?.staff_coverage_percent ??
@@ -219,6 +228,15 @@ function ReadinessRail({
 
   const warning_count =
     setup_warnings + structural_warnings + allocation_warnings;
+
+  const active_divisions =
+    divisions?.rows?.length ??
+    delivery_summary?.total_divisions ??
+    outcome?.total_divisions ??
+    0;
+
+  const ready_divisions =
+    delivery_summary?.valid_divisions ?? outcome?.valid_divisions ?? 0;
 
   const active_groups = groups?.rows?.length ?? 0;
 
@@ -253,7 +271,7 @@ function ReadinessRail({
     problems?.recommended_action ||
     problems?.next_action ||
     outcome?.recommended_check ||
-    "Create operating groups, assign source pools, then review reconciliation.";
+    "Create divisions and operating groups, assign source pools, then review reconciliation.";
 
   return (
     <aside className="ui-panel cost-allocation-readiness-rail">
@@ -282,6 +300,14 @@ function ReadinessRail({
         />
 
         <div className="grid grid-cols-1 gap-2">
+          <MetricCard
+            label="Division coverage"
+            value={formatPercent(division_coverage)}
+            help={`${formatCount(ready_divisions)} of ${formatCount(
+              active_divisions
+            )} divisions ready`}
+          />
+
           <MetricCard
             label="Productive labour coverage"
             value={formatPercent(staff_coverage)}
@@ -313,8 +339,9 @@ function ReadinessRail({
 
         <MetricCard
           label="Warnings"
-          value={`${formatCount(warning_count)} warning${warning_count === 1 ? "" : "s"
-            }`}
+          value={`${formatCount(warning_count)} warning${
+            warning_count === 1 ? "" : "s"
+          }`}
         />
 
         <MetricCard
@@ -340,7 +367,7 @@ function ReadinessRail({
             className="ui-button-secondary"
             onClick={() => on_select_section("groups")}
           >
-            Build operating groups
+            Build divisions and groups
           </button>
 
           <button
@@ -375,11 +402,15 @@ function SelectedSection({
   delivery_summary,
   evidence,
   links,
+  divisions,
   groups,
   problems,
   labour_assignment,
   asset_assignment,
   overhead_assignment,
+  add_division,
+  update_division,
+  remove_division,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
@@ -400,11 +431,15 @@ function SelectedSection({
       delivery_summary={delivery_summary}
       evidence={evidence}
       links={links}
+      divisions={divisions}
       groups={groups}
       problems={problems}
       labour_assignment={labour_assignment}
       asset_assignment={asset_assignment}
       overhead_assignment={overhead_assignment}
+      add_division={add_division}
+      update_division={update_division}
+      remove_division={remove_division}
       add_asset_labour_link={add_asset_labour_link}
       remove_asset_labour_link={remove_asset_labour_link}
       add_operational_group={add_operational_group}
@@ -427,11 +462,15 @@ export default function CostAllocationMainCard({
   delivery_summary,
   evidence,
   links,
+  divisions,
   groups,
   problems,
   labour_assignment,
   asset_assignment,
   overhead_assignment,
+  add_division,
+  update_division,
+  remove_division,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
@@ -463,6 +502,15 @@ export default function CostAllocationMainCard({
   const warning_count =
     setup_warnings + structural_warnings + allocation_warnings;
 
+  const divisions_count =
+    divisions?.rows?.length ??
+    delivery_summary?.total_divisions ??
+    outcome?.total_divisions ??
+    0;
+
+  const ready_divisions =
+    delivery_summary?.valid_divisions ?? outcome?.valid_divisions ?? 0;
+
   const groups_count = groups?.rows?.length ?? 0;
   const business_type = recovery_plan?.business_type || "labour_based";
 
@@ -477,12 +525,16 @@ export default function CostAllocationMainCard({
     () => [
       {
         key: "groups",
-        label: "Operating groups",
-        meta: `${formatCount(groups_count)} active`,
-        help: "Create each crew, team, or working unit, then add labour, assets, and overhead inside it.",
+        label: "Divisions and operating groups",
+        meta: `${formatCount(divisions_count)} division${
+          divisions_count === 1 ? "" : "s"
+        } / ${formatCount(groups_count)} group${
+          groups_count === 1 ? "" : "s"
+        }`,
+        help: "Create divisions, then create each crew, team, or working unit inside the correct division.",
       },
     ],
-    [groups_count]
+    [divisions_count, groups_count]
   );
 
   const check_sections = useMemo(
@@ -502,15 +554,17 @@ export default function CostAllocationMainCard({
       {
         key: "structural_warnings",
         label: "Structural warnings",
-        meta: `${formatCount(structural_warnings)} item${structural_warnings === 1 ? "" : "s"
-          }`,
+        meta: `${formatCount(structural_warnings)} item${
+          structural_warnings === 1 ? "" : "s"
+        }`,
         help: "Review structure, capacity, or dependency warnings.",
       },
       {
         key: "setup_checklist",
         label: "Setup checklist",
-        meta: `${formatCount(setup_warnings)} item${setup_warnings === 1 ? "" : "s"
-          }`,
+        meta: `${formatCount(setup_warnings)} item${
+          setup_warnings === 1 ? "" : "s"
+        }`,
         help: "Review missing setup items.",
       },
     ],
@@ -529,12 +583,13 @@ export default function CostAllocationMainCard({
               <div>
                 <p className="ui-kicker">Cost allocation builder</p>
                 <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-                  Operating structure and source-pool check
+                  Division and operating structure check
                 </h2>
                 <p className="ui-help">
-                  Create each working unit, assign productive labour and
-                  productive assets, then let overhead distribute automatically
-                  from the operating structure.
+                  Create divisions, create working units inside those divisions,
+                  assign productive labour and productive assets, then let
+                  overhead distribute automatically from the operating
+                  structure.
                 </p>
                 <p className="ui-help">
                   Recovery testing, rate building, pricing, and business
@@ -561,6 +616,14 @@ export default function CostAllocationMainCard({
               />
 
               <MetricCard
+                label="Divisions"
+                value={`${formatCount(ready_divisions)} / ${formatCount(
+                  divisions_count
+                )}`}
+                help="Ready / created."
+              />
+
+              <MetricCard
                 label="Groups"
                 value={`${formatCount(ready_groups)} / ${formatCount(
                   groups_count
@@ -572,12 +635,6 @@ export default function CostAllocationMainCard({
                 label="Assigned"
                 value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
                 help="Cost inside groups."
-              />
-
-              <MetricCard
-                label="Remaining"
-                value={formatMoney(recovery_plan?.total_unassigned_cost)}
-                help="Cost outside groups."
               />
 
               <MetricCard
@@ -611,7 +668,7 @@ export default function CostAllocationMainCard({
           <div className="ui-stack">
             <SectionGroup
               title="Build"
-              description="Create each operating group, then build that group in one place."
+              description="Create divisions, then build each operating group inside the correct division."
               sections={build_sections}
               active_section={active_section}
               on_select={set_active_section}
@@ -625,11 +682,15 @@ export default function CostAllocationMainCard({
                 delivery_summary={delivery_summary}
                 evidence={evidence}
                 links={links}
+                divisions={divisions}
                 groups={groups}
                 problems={problems}
                 labour_assignment={labour_assignment}
                 asset_assignment={asset_assignment}
                 overhead_assignment={overhead_assignment}
+                add_division={add_division}
+                update_division={update_division}
+                remove_division={remove_division}
                 add_asset_labour_link={add_asset_labour_link}
                 remove_asset_labour_link={remove_asset_labour_link}
                 add_operational_group={add_operational_group}
@@ -646,7 +707,7 @@ export default function CostAllocationMainCard({
 
             <SectionGroup
               title="Checks"
-              description="Review reconciliation and warnings after building the groups."
+              description="Review reconciliation and warnings after building the divisions and groups."
               sections={check_sections}
               active_section={active_section}
               on_select={set_active_section}
@@ -660,11 +721,15 @@ export default function CostAllocationMainCard({
                 delivery_summary={delivery_summary}
                 evidence={evidence}
                 links={links}
+                divisions={divisions}
                 groups={groups}
                 problems={problems}
                 labour_assignment={labour_assignment}
                 asset_assignment={asset_assignment}
                 overhead_assignment={overhead_assignment}
+                add_division={add_division}
+                update_division={update_division}
+                remove_division={remove_division}
                 add_asset_labour_link={add_asset_labour_link}
                 remove_asset_labour_link={remove_asset_labour_link}
                 add_operational_group={add_operational_group}
@@ -685,6 +750,7 @@ export default function CostAllocationMainCard({
             delivery_summary={delivery_summary}
             recovery_plan={recovery_plan}
             evidence={evidence}
+            divisions={divisions}
             groups={groups}
             problems={problems}
             on_select_section={set_active_section}

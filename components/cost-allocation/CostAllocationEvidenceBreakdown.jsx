@@ -105,8 +105,8 @@ function PlaceholderSection({ kicker, title, help_text }) {
           </p>
           <p className="mt-1 ui-help">
             This section is now separated from the old assignment tabs. The
-            group-first builder is the main place to assign labour, assets, and
-            overhead.
+            division and group builder is the main place to assign labour,
+            assets, and overhead.
           </p>
         </div>
       </div>
@@ -149,45 +149,42 @@ function WhatNeedsAttentionSection({ delivery_summary, problems }) {
 
         <TableBlock
           title="Structure coverage"
-          help_text="Coverage shows whether productive labour, productive assets, and operating groups are properly assigned."
+          help_text="Coverage shows whether divisions, productive labour, productive assets, and operating groups are properly assigned."
         >
           <TableRow
-            label="Staff coverage"
+            label="Division coverage"
+            value={formatPercent(delivery_summary?.division_coverage_percent)}
+          />
+          <TableRow
+            label="Productive labour coverage"
             value={formatPercent(delivery_summary?.staff_coverage_percent)}
           />
           <TableRow
-            label="Asset coverage"
+            label="Productive asset coverage"
             value={formatPercent(delivery_summary?.asset_coverage_percent)}
           />
           <TableRow
-            label="Group coverage"
+            label="Operating group coverage"
             value={formatPercent(delivery_summary?.group_coverage_percent)}
             total
           />
         </TableBlock>
 
         <TableBlock
-          title="Linked structure"
-          help_text="These counts show which people, assets, and operating groups still need review."
+          title="Division and group structure"
+          help_text="These counts show whether the active divisions and operating groups are ready."
         >
           <TableRow
-            label="Linked / unlinked staff"
-            value={`${delivery_summary?.linked_staff_count ?? 0} / ${delivery_summary?.unlinked_staff_count ??
-              problems?.unlinked_staff_count ??
-              0
-              }`}
-          />
-          <TableRow
-            label="Linked / unlinked assets"
-            value={`${delivery_summary?.linked_asset_count ?? 0} / ${delivery_summary?.unlinked_asset_count ??
-              problems?.unlinked_asset_count ??
-              0
-              }`}
+            label="Ready / incomplete divisions"
+            value={`${delivery_summary?.valid_divisions ?? 0} / ${
+              delivery_summary?.invalid_divisions ?? 0
+            }`}
           />
           <TableRow
             label="Ready / incomplete operating groups"
-            value={`${delivery_summary?.valid_operational_groups ?? 0} / ${delivery_summary?.invalid_operational_groups ?? 0
-              }`}
+            value={`${delivery_summary?.valid_operational_groups ?? 0} / ${
+              delivery_summary?.invalid_operational_groups ?? 0
+            }`}
             total
           />
         </TableBlock>
@@ -402,11 +399,15 @@ export default function CostAllocationEvidenceBreakdown({
   delivery_summary,
   evidence,
   links,
+  divisions,
   groups,
   problems,
   labour_assignment,
   asset_assignment,
   overhead_assignment,
+  add_division,
+  update_division,
+  remove_division,
   add_asset_labour_link,
   remove_asset_labour_link,
   add_operational_group,
@@ -419,13 +420,19 @@ export default function CostAllocationEvidenceBreakdown({
   add_overhead_assignment,
   remove_overhead_assignment,
 }) {
-  if (active_section === "groups") {
+  const current_section = active_section || "groups";
+
+  if (current_section === "groups") {
     return (
       <CostAllocationGroupsCard
+        divisions={divisions}
         groups={groups}
         labour_assignment={labour_assignment}
         asset_assignment={asset_assignment}
         overhead_assignment={overhead_assignment}
+        add_division={add_division}
+        update_division={update_division}
+        remove_division={remove_division}
         add_operational_group={add_operational_group}
         update_operational_group={update_operational_group}
         remove_operational_group={remove_operational_group}
@@ -439,7 +446,7 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "links") {
+  if (current_section === "links") {
     return (
       <CostAllocationLinkTable
         links={links}
@@ -449,15 +456,15 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "group_cost_stacks") {
+  if (current_section === "group_cost_stacks") {
     return <GroupCostStacksSection recovery_plan={recovery_plan} />;
   }
 
-  if (active_section === "pool_reconciliation") {
+  if (current_section === "pool_reconciliation") {
     return <PoolReconciliationSection recovery_plan={recovery_plan} />;
   }
 
-  if (active_section === "setup_checklist") {
+  if (current_section === "setup_checklist") {
     return (
       <ChecklistSection
         kicker="Setup checklist"
@@ -469,7 +476,7 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "structural_warnings") {
+  if (current_section === "structural_warnings") {
     return (
       <ChecklistSection
         kicker="Structure warnings"
@@ -481,7 +488,7 @@ export default function CostAllocationEvidenceBreakdown({
     );
   }
 
-  if (active_section === "evidence") {
+  if (current_section === "evidence") {
     return (
       <WhatNeedsAttentionSection
         delivery_summary={delivery_summary}
@@ -494,7 +501,7 @@ export default function CostAllocationEvidenceBreakdown({
     <PlaceholderSection
       kicker="Section not connected"
       title="This section is not wired yet"
-      help_text={`No component is currently connected for active_section: ${active_section}`}
+      help_text={`No component is currently connected for active_section: ${current_section}`}
     />
   );
 }

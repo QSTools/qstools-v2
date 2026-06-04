@@ -128,8 +128,10 @@ export default function CostAllocationGroupsCard({
           </div>
         </div>
 
-        <CostAllocationCreateDivisionForm add_division={add_division} />
-
+        <CostAllocationCreateDivisionForm
+          add_division={add_division}
+          add_operational_group={add_operational_group}
+        />
         {division_rows.length === 0 ? (
           <EmptyState />
         ) : (
