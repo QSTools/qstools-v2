@@ -39,12 +39,13 @@ function calculateShare(part, total) {
   return (safePart / safeTotal) * 100;
 }
 
-function scaleAnnualValue(annualValue, timeScale, totalRecoveryHours) {
+function scaleAnnualValue(annualValue, timeScale, totalRecoveryHours, openHours = 0) {
   const value = toNumber(annualValue);
   const recoveryHours = toNumber(totalRecoveryHours);
+  const hours = toNumber(openHours);
 
   if (timeScale === "hour") {
-    return recoveryHours > 0 ? value / recoveryHours : 0;
+    return hours > 0 ? value / hours : 0;
   }
 
   if (timeScale === "day") return value / 260;
@@ -84,6 +85,7 @@ function CostBar({
   total,
   timeScale,
   totalRecoveryHours,
+  openHours = 0,
   hoveredItemKey,
   onHoverItem,
   onClearHover,
@@ -113,7 +115,8 @@ function CostBar({
         const scaledValue = scaleAnnualValue(
           item.amount,
           timeScale,
-          totalRecoveryHours
+          totalRecoveryHours,
+          openHours
         );
         const isActive = hoveredItemKey === item.key;
         const isMuted = Boolean(hoveredItemKey) && !isActive;
@@ -168,6 +171,7 @@ function DrillRow({
   total_cost_burden,
   timeScale,
   totalRecoveryHours,
+  openHours = 0,
   hoveredItemKey,
   onHoverItem,
   onClearHover,
@@ -177,7 +181,8 @@ function DrillRow({
   const scaledValue = scaleAnnualValue(
     item.amount,
     timeScale,
-    totalRecoveryHours
+    totalRecoveryHours,
+    openHours
   );
 
   const shareOfParent = calculateShare(item.amount, parentTotal);
@@ -294,9 +299,9 @@ export default function CostSummaryCard({
   total_asset_interest_annual = 0,
   general_overheads_total = 0,
   total_cost_burden,
-  required_revenue,
-  required_recovery_rate,
   total_recovery_hours = 0,
+  macro_required_operating_hour_rate = 0,
+  net_annual_business_open_hours = 0,
   labour_detail = {},
   asset_detail = {},
   overhead_detail = {},
@@ -312,8 +317,6 @@ export default function CostSummaryCard({
   const total_asset_interest = toNumber(total_asset_interest_annual);
   const total_business_overheads = toNumber(general_overheads_total);
   const total_cost_burden_annual = toNumber(total_cost_burden);
-  const required_revenue_annual = toNumber(required_revenue);
-  const required_recovery_rate_hourly = toNumber(required_recovery_rate);
   const recovery_hours_total = toNumber(total_recovery_hours);
 
   const hierarchy = useMemo(() => {
@@ -502,12 +505,15 @@ export default function CostSummaryCard({
 
   const headlineValue =
     timeScale === "hour"
-      ? required_recovery_rate_hourly
-      : scaleAnnualValue(
-          required_revenue_annual,
-          timeScale,
-          recovery_hours_total
-        );
+      ? macro_required_operating_hour_rate
+      : timeScale === "year"
+        ? total_cost_burden_annual
+        : scaleAnnualValue(
+            total_cost_burden_annual,
+            timeScale,
+            recovery_hours_total,
+            net_annual_business_open_hours
+          );
 
   const insight =
     highlight_insight ||
@@ -539,17 +545,24 @@ export default function CostSummaryCard({
           <div className="cost-summary-hero">
             <div className="ui-stack-sm">
               <div className="ui-kicker">
-                Required Recovery {getTimeScaleSuffix(timeScale)}
+                {timeScale === "hour" ? "Operating cost per open hour" : "Total cost burden"}
               </div>
               <div className="ui-display">
                 {formatMoney(headlineValue)}
-                <span className="ui-help"> {getTimeScaleSuffix(timeScale)}</span>
               </div>
-              <div className="ui-help">
+              <div className="ui-help" style={{ fontSize: "0.9em", marginTop: "-4px" }}>
+                {timeScale === "hour" ? "per open hr" : getTimeScaleSuffix(timeScale)}
+              </div>
+              <div className="ui-help" style={{ marginTop: "12px" }}>
                 {timeScale === "hour"
-                  ? "This is the cost your business must recover for each recovery hour."
-                  : "This is the same cost baseline scaled to the selected period."}
+                  ? "Total business cost burden divided by net annual business open hours."
+                  : "This is the business cost baseline scaled to the selected period."}
               </div>
+              {timeScale === "hour" && (
+                <div className="ui-help" style={{ marginTop: "8px", fontSize: "0.85em" }}>
+                  Based on {formatNumber(net_annual_business_open_hours)} net annual business open hours.
+                </div>
+              )}
             </div>
 
             <div className="cost-summary-toggle" aria-label="Time scale">
@@ -580,8 +593,8 @@ export default function CostSummaryCard({
               <div className="ui-card-title-sm">{activeLevel.title}</div>
               <div className="ui-help">
                 {activeLevel.key === "people"
-                  ? "Only selected productive staff generate recovery hours. All staff costs are carried by those hours."
-                  : "Click a section to explore. Values stay tied back to the total recovery baseline."}
+                  ? "All staff costs are divided across the net annual business open hours."
+                  : "Click a section to explore. Values stay tied back to the total operating cost baseline."}
               </div>
             </div>
 
@@ -592,7 +605,8 @@ export default function CostSummaryCard({
                   scaleAnnualValue(
                     activeLevel.total,
                     timeScale,
-                    recovery_hours_total
+                    recovery_hours_total,
+                    net_annual_business_open_hours
                   )
                 )}
                 <span className="cost-summary-level-total-suffix">
@@ -607,6 +621,7 @@ export default function CostSummaryCard({
             total={activeLevel.total}
             timeScale={timeScale}
             totalRecoveryHours={recovery_hours_total}
+            openHours={net_annual_business_open_hours}
             hoveredItemKey={hoveredItemKey}
             onHoverItem={setHoveredItemKey}
             onClearHover={() => setHoveredItemKey("")}
@@ -622,6 +637,7 @@ export default function CostSummaryCard({
                 total_cost_burden={total_cost_burden_annual}
                 timeScale={timeScale}
                 totalRecoveryHours={recovery_hours_total}
+                openHours={net_annual_business_open_hours}
                 hoveredItemKey={hoveredItemKey}
                 onHoverItem={setHoveredItemKey}
                 onClearHover={() => setHoveredItemKey("")}
@@ -652,27 +668,27 @@ export default function CostSummaryCard({
 
             <div className="labour-summary-table-row">
               <div className="labour-summary-table-label">
-                Operating Recovery Hours
+                Net annual business open hours
               </div>
               <div className="labour-summary-table-value">
-                {formatNumber(recovery_hours_total)} hrs
+                {formatNumber(net_annual_business_open_hours)} hrs
               </div>
             </div>
 
             <div className="labour-summary-table-row total">
               <div className="labour-summary-table-label">
-                Required Recovery Rate
+                Operating cost per open hour
               </div>
               <div className="labour-summary-table-value">
-                {formatMoney(required_recovery_rate_hourly)} / hr
+                {formatMoney(macro_required_operating_hour_rate)} / open hr
               </div>
             </div>
           </div>
 
           <div className="ui-help">
             The selected period changes the display scale only. The baseline is
-            still built from total operating cost and operating recovery hours.
-            This is your break-even cost baseline. Materials and profit sit on
+            still built from total operating cost and net annual business open
+            hours. This is your break-even cost baseline. Materials and profit sit on
             top.
           </div>
         </div>

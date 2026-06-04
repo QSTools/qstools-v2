@@ -13,6 +13,12 @@ export default function useCostSummary(inputs = {}) {
   return useMemo(() => {
     const labour_data = selectCostSummaryLabour(inputs.labour);
 
+    const opening_hours_module = inputs.opening_hours ?? {};
+    const opening_hours_data =
+      opening_hours_module.calculated ??
+      opening_hours_module.output_contract ??
+      opening_hours_module;
+
     const labour_output_contract = inputs.labour?.output_contract ?? {};
     const asset_output_contract = inputs.assets?.output_contract ?? {};
     const general_overheads_output_contract =
@@ -83,6 +89,7 @@ export default function useCostSummary(inputs = {}) {
       labour_data,
       asset_data,
       general_overhead_data,
+      opening_hours_data,
     });
 
     const status = buildCostSummaryStatus({
@@ -150,6 +157,12 @@ export default function useCostSummary(inputs = {}) {
       total_business_cost_annual:
         calculations.total_business_cost_annual ?? 0,
       total_cost_burden: calculations.total_cost_burden ?? 0,
+      required_labour_burden_rate:
+        calculations.required_labour_burden_rate ?? 0,
+      macro_required_operating_hour_rate:
+        calculations.macro_required_operating_hour_rate ?? 0,
+      net_annual_business_open_hours:
+        calculations.net_annual_business_open_hours ?? 0,
 
       required_revenue: calculations.required_revenue ?? 0,
       required_recovery_rate: calculations.required_recovery_rate ?? 0,

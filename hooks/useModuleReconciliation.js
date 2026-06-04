@@ -5,6 +5,7 @@ import useProfitAndLoss from "@/hooks/useProfitAndLoss";
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import useLabour from "@/hooks/useLabour";
 import useAssets from "@/hooks/useAssets";
+import useOpeningHours from "@/hooks/useOpeningHours";
 import { calculateModuleReconciliation } from "@/lib/reconciliation/moduleReconciliation";
 
 export default function useModuleReconciliation() {
@@ -12,6 +13,7 @@ export default function useModuleReconciliation() {
   const generalOverheads = useGeneralOverheads();
   const labour = useLabour();
   const assets = useAssets();
+  const openingHours = useOpeningHours();
 
   const status = useMemo(() => {
     return calculateModuleReconciliation({
@@ -30,6 +32,8 @@ export default function useModuleReconciliation() {
     assets.output_contract,
     generalOverheads.status,
     generalOverheads.output_contract,
+    openingHours.status,
+    openingHours.calculated,
   ]);
 
   return {
@@ -39,6 +43,7 @@ export default function useModuleReconciliation() {
       generalOverheads,
       labour,
       assets,
+      openingHours,
     },
   };
 }

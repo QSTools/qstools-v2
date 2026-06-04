@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_OPENING_HOURS_STATE,
   get_opening_hours_state,
   set_opening_hours_state,
   reset_opening_hours_state,
@@ -13,9 +14,13 @@ import {
 } from "@/lib/selectors/openingHoursSelectors";
 
 export default function useOpeningHours() {
-  const [state, setState] = useState(() => get_opening_hours_state());
+  const [state, setState] = useState(DEFAULT_OPENING_HOURS_STATE);
+  const [has_loaded_storage, setHasLoadedStorage] = useState(false);
 
   useEffect(() => {
+    setState(get_opening_hours_state());
+    setHasLoadedStorage(true);
+
     function handleStorageUpdate() {
       setState(get_opening_hours_state());
     }
@@ -142,6 +147,7 @@ export default function useOpeningHours() {
     calculated,
     status,
     card,
+    has_loaded_storage,
     actions: {
       update_field,
       update_day,

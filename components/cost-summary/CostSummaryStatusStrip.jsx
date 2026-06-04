@@ -45,14 +45,19 @@ export default function CostSummaryStatusStrip({
   warning_modules = [],
   blocking_checks = [],
   warning_checks = [],
-  required_recovery_rate = 0,
-  total_recovery_hours = 0,
+  macro_required_operating_hour_rate = 0,
+  net_annual_business_open_hours = 0,
+  total_cost_burden = 0,
   total_people_cost_annual = 0,
   total_asset_cost_annual = 0,
   total_business_overheads = 0,
 }) {
-  const pressure_value = formatCurrency(required_recovery_rate);
-  const output_value = formatHours(total_recovery_hours);
+  const macro_pressure_value = formatCurrency(
+    macro_required_operating_hour_rate
+  );
+  const macro_hours_value = Number(net_annual_business_open_hours || 0)
+    .toFixed(1)
+    .toString();
   const insight = getLargestCostDriver({
     total_people_cost_annual,
     total_asset_cost_annual,
@@ -112,15 +117,17 @@ export default function CostSummaryStatusStrip({
           </p>
         ) : null}
 
-        <div className="ui-kicker">Required Recovery Rate</div>
+        <div className="ui-kicker">Operating Cost Baseline</div>
 
         <div className="ui-card-title-sm">
-          {pressure_value} / hr
+          {macro_pressure_value} / open hr
         </div>
 
         <p className="ui-help">
-          Based on Labour's {output_value} operating recovery hours.
+          Total business cost burden divided by net annual business open hours.
         </p>
+
+        <p className="ui-help">Based on {macro_hours_value} net annual business open hours.</p>
 
         {!model_ready ? (
           <p className="ui-help">

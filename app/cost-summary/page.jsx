@@ -15,6 +15,7 @@ export default function CostSummaryPage() {
     labour: model_readiness.modules.labour,
     assets: model_readiness.modules.assets,
     general_overheads: model_readiness.modules.generalOverheads,
+    opening_hours: model_readiness.modules.openingHours,
     model_readiness: model_readiness.status,
   });
 
@@ -28,8 +29,9 @@ export default function CostSummaryPage() {
           warning_modules={status.warning_modules}
           blocking_checks={status.blocking_checks}
           warning_checks={status.warning_checks}
-          required_recovery_rate={card.required_recovery_rate}
-          total_recovery_hours={card.total_recovery_hours}
+          macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+          net_annual_business_open_hours={card.net_annual_business_open_hours}
+          total_cost_burden={card.total_cost_burden}
           total_people_cost_annual={card.people_cost_total}
           total_asset_cost_annual={card.asset_cost_total}
           total_business_overheads={card.general_overheads_total}
@@ -42,9 +44,9 @@ export default function CostSummaryPage() {
           total_asset_interest_annual={card.total_asset_interest_annual}
           general_overheads_total={card.general_overheads_total}
           total_cost_burden={card.total_cost_burden}
-          required_revenue={card.required_revenue}
-          required_recovery_rate={card.required_recovery_rate}
           total_recovery_hours={card.total_recovery_hours}
+          macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+          net_annual_business_open_hours={card.net_annual_business_open_hours}
           labour_detail={card.labour_detail}
           asset_detail={card.asset_detail}
           overhead_detail={card.overhead_detail}
