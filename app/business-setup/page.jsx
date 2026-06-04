@@ -23,8 +23,8 @@ export default function BusinessSetupPage() {
     saveBusinessSetup();
   }
 
-  function handleContinueToLabour() {
-    router.push("/labour");
+  function handleContinueToOpeningHours() {
+    router.push("/opening-hours");
   }
 
   return (
@@ -56,7 +56,7 @@ export default function BusinessSetupPage() {
           updateBusinessSetupField={updateBusinessSetupField}
           saveBusinessSetup={handleSaveBusinessSetup}
           resetBusinessSetup={resetBusinessSetup}
-          continueToNextStep={handleContinueToLabour}
+          continueToNextStep={handleContinueToOpeningHours}
         />
 
         <BusinessSetupHelpPanel />
