@@ -10,42 +10,44 @@ export default function OpeningHoursStatusStrip({
   return (
     <section className="ui-section">
       <div className="ui-panel">
-        <div className="ui-split">
-          <div>
-            <p className="ui-kicker">Opening Hours</p>
-            <h1 className="ui-heading">Operating Calendar</h1>
-            <p className="ui-help">
-              Defines when the business is normally available to operate. This
-              is not the same as productive Labour hours or Asset utilisation.
-            </p>
+        <p className="ui-kicker">Opening hours progress</p>
+        <h2 className="ui-card-title-sm">Calendar readiness</h2>
+
+        <p className="ui-help">
+          Use this checkpoint to confirm whether the operating calendar is ready
+          to flow into later Mirra setup pages.
+        </p>
+
+        <div className="ui-stack-sm">
+          <div className="ui-row-between">
+            <span className="ui-help">Status</span>
+            <span className="ui-pill">{opening_hours_status || "not_ready"}</span>
           </div>
 
-          <div className="ui-stack">
+          <div className="ui-row-between">
+            <span className="ui-help">Trust</span>
             <span className="ui-pill">
-              Status: {opening_hours_status || "not_ready"}
-            </span>
-            <span className="ui-pill">
-              Trust: {opening_hours_model_trust_state || "blocked"}
-            </span>
-            <span className="ui-pill">
-              Warnings: {warning_count || 0}
+              {opening_hours_model_trust_state || "blocked"}
             </span>
           </div>
-        </div>
 
-        <div className="ui-grid ui-grid-3">
-          <div className="ui-readonly">
-            <span className="ui-label">Weekly open hours</span>
+          <div className="ui-row-between">
+            <span className="ui-help">Warnings</span>
+            <strong>{warning_count || 0}</strong>
+          </div>
+
+          <div className="ui-row-between">
+            <span className="ui-help">Weekly open hours</span>
             <strong>{Number(standard_weekly_open_hours || 0).toFixed(2)}</strong>
           </div>
 
-          <div className="ui-readonly">
-            <span className="ui-label">Annual open weeks</span>
+          <div className="ui-row-between">
+            <span className="ui-help">Annual open weeks</span>
             <strong>{Number(annual_open_weeks || 0).toFixed(2)}</strong>
           </div>
 
-          <div className="ui-readonly">
-            <span className="ui-label">Net annual open hours</span>
+          <div className="ui-row-between">
+            <span className="ui-help">Net annual open hours</span>
             <strong>
               {Number(net_annual_business_open_hours || 0).toFixed(2)}
             </strong>
@@ -54,8 +56,8 @@ export default function OpeningHoursStatusStrip({
 
         {!opening_hours_ready && (
           <p className="ui-help">
-            Opening Hours has blocking issues. Review the weekly pattern and
-            annual calendar before using this context downstream.
+            Blocking issues exist. Review the weekly pattern and annual calendar
+            before relying on this context.
           </p>
         )}
       </div>
