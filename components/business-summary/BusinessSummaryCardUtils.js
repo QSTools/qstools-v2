@@ -34,10 +34,20 @@ export function formatNumber(value) {
   }).format(number);
 }
 
-export function scaleAnnualValue(annualValue, timeScale, hourlyValue = 0) {
+export function scaleAnnualValue(
+  annualValue,
+  timeScale,
+  hourlyValue = 0,
+  openHours = 0
+) {
   const value = Number(annualValue) || 0;
+  const recoveryHours = Number(hourlyValue) || 0;
+  const hours = Number(openHours) || 0;
 
-  if (timeScale === "hour") return Number(hourlyValue) || 0;
+  if (timeScale === "hour") {
+    if (hours > 0) return value / hours;
+    return 0;
+  }
   if (timeScale === "day") return value / 260;
   if (timeScale === "week") return value / 52;
   if (timeScale === "month") return value / 12;
@@ -46,12 +56,16 @@ export function scaleAnnualValue(annualValue, timeScale, hourlyValue = 0) {
   return value;
 }
 
-export function scalePeriodValue(annualValue, timeScale, recoveryHoursUsed = 0) {
+export function scalePeriodValue(
+  annualValue,
+  timeScale,
+  openHoursUsed = 0
+) {
   const value = Number(annualValue) || 0;
-  const recoveryHours = Number(recoveryHoursUsed) || 0;
+  const hours = Number(openHoursUsed) || 0;
 
   if (timeScale === "hour") {
-    return recoveryHours > 0 ? value / recoveryHours : 0;
+    return hours > 0 ? value / hours : 0;
   }
 
   if (timeScale === "day") return value / 260;

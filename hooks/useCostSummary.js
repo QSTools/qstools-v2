@@ -291,6 +291,7 @@ export default function useCostSummary(inputs = {}) {
     inputs.labour,
     inputs.assets,
     inputs.general_overheads,
+    inputs.opening_hours,
     inputs.model_readiness,
   ]);
 }

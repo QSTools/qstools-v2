@@ -63,6 +63,10 @@ export default function BusinessSummaryPage() {
           required_recovery_unit_label={status.required_recovery_unit_label}
           warning_count={status.warning_count}
           business_summary_warnings={status.business_summary_warnings}
+          required_labour_burden_rate={card.required_labour_burden_rate}
+          macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+          net_annual_business_open_hours={card.net_annual_business_open_hours}
+          total_productive_output={card.total_productive_output}
         />
 
         <BusinessSummaryCard
@@ -118,6 +122,10 @@ export default function BusinessSummaryPage() {
           }
           net_position={card.net_position}
           cost_burden_breakdown={card.cost_burden_breakdown}
+          required_labour_burden_rate={card.required_labour_burden_rate}
+          macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+          net_annual_business_open_hours={card.net_annual_business_open_hours}
+          total_productive_output={card.total_productive_output}
         />
 
         <BusinessSummaryMacroPositionCard

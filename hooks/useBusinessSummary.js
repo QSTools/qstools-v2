@@ -19,6 +19,7 @@ export default function useBusinessSummary() {
     labour: model_readiness.modules.labour,
     assets: model_readiness.modules.assets,
     general_overheads: model_readiness.modules.generalOverheads,
+    opening_hours: model_readiness.modules.openingHours,
     model_readiness: model_readiness.status,
   });
 
@@ -72,6 +73,12 @@ export default function useBusinessSummary() {
 
       required_recovery_rate:
         cost_summary_output_contract.required_recovery_rate ?? 0,
+      required_labour_burden_rate:
+        cost_summary_output_contract.required_labour_burden_rate ?? 0,
+      macro_required_operating_hour_rate:
+        cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+      net_annual_business_open_hours:
+        cost_summary_output_contract.net_annual_business_open_hours ?? 0,
     });
 
     const model_trust_state =
@@ -112,6 +119,13 @@ export default function useBusinessSummary() {
 
       total_business_overheads:
         cost_summary_output_contract.total_business_overheads ?? 0,
+
+      // Pass through Cost Summary macro/open-hour metrics so the Business
+      // Summary card receives the same authoritative values.
+      macro_required_operating_hour_rate:
+        cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+      net_annual_business_open_hours:
+        cost_summary_output_contract.net_annual_business_open_hours ?? 0,
 
       cost_burden_breakdown:
         cost_summary_output_contract.cost_burden_breakdown ?? {

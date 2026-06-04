@@ -54,6 +54,7 @@ export function buildBusinessSummaryHierarchyState({
   margin_after_labour_per_recovery_hour = 0,
   non_people_cost_burden_per_recovery_hour = 0,
   recovery_hours_used = 0,
+  net_annual_business_open_hours = 0,
   units_sold_annual = 0,
   business_type = "labour_based",
   is_product_based = false,
@@ -87,16 +88,23 @@ export function buildBusinessSummaryHierarchyState({
   const active_time_scale =
     product_mode_active && timeScale === "hour" ? "day" : timeScale;
 
+  const open_hours_used = Number(net_annual_business_open_hours) || 0;
+
   function scaleDisplayAnnualValue(annualValue, hourlyValue = 0) {
     return product_mode_active
       ? scaleProductAnnualValue(annualValue, active_time_scale)
-      : scaleAnnualValue(annualValue, active_time_scale, hourlyValue);
+      : scaleAnnualValue(
+          annualValue,
+          active_time_scale,
+          hourlyValue,
+          open_hours_used
+        );
   }
 
   function scaleDisplayPeriodValue(annualValue) {
     return product_mode_active
       ? scaleProductAnnualValue(annualValue, active_time_scale)
-      : scalePeriodValue(annualValue, active_time_scale, recovery_hours_used);
+      : scalePeriodValue(annualValue, active_time_scale, open_hours_used);
   }
 
   const scaled_required_recovery = scaleDisplayAnnualValue(
@@ -114,7 +122,7 @@ export function buildBusinessSummaryHierarchyState({
   const recovery_result_abs = Math.abs(scaled_recovery_result);
   const scale_label = getTimeScaleName(active_time_scale);
   const result_scale_label =
-    active_time_scale === "hour" ? "Recovery Hour" : scale_label;
+    active_time_scale === "hour" ? "Open Hour" : scale_label;
   const scale_suffix = product_mode_active
     ? `/${active_time_scale}`
     : getTimeScaleSuffix(active_time_scale);

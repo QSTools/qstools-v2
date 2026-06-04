@@ -11,6 +11,8 @@ import {
   getBreadcrumbNodes,
   getNodeChildren,
   hasAvailableChildren,
+  formatCurrency,
+  formatNumber,
 } from "@/components/business-summary/BusinessSummaryCardUtils";
 
 export default function BusinessSummaryCard({
@@ -62,6 +64,9 @@ export default function BusinessSummaryCard({
     assets: {},
     business_overheads: {},
   },
+  required_labour_burden_rate = 0,
+  macro_required_operating_hour_rate = 0,
+  net_annual_business_open_hours = 0,
 }) {
   const [timeScale, setTimeScale] = useState("hour");
   const [hoveredItemKey, setHoveredItemKey] = useState("");
@@ -100,6 +105,7 @@ export default function BusinessSummaryCard({
     profit_or_deficit_per_recovery_hour,
     net_position,
     cost_burden_breakdown,
+    net_annual_business_open_hours,
     timeScale,
   });
 
@@ -180,7 +186,27 @@ export default function BusinessSummaryCard({
             product_mode_active={product_mode_active}
             result_table={result_table}
             timeScale={timeScale}
+            activity_driver_type={activity_driver_type}
+            total_productive_output={total_productive_output}
           />
+
+          <div style={{ height: 12 }} />
+
+          <div className="ui-kicker">Operating calendar pressure</div>
+          <div className="labour-summary-table">
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">Operating calendar pressure</div>
+              <div className="labour-summary-table-value">
+                {formatCurrency(macro_required_operating_hour_rate)} $/open hr
+              </div>
+            </div>
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">Based on</div>
+              <div className="labour-summary-table-value">
+                {Number(net_annual_business_open_hours || 0).toFixed(1)} net annual business open hours
+              </div>
+            </div>
+          </div>
 
           <BusinessSummaryGraphSection
             active_bar_items={active_bar_items}

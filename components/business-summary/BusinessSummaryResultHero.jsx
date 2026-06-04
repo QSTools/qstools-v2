@@ -23,6 +23,8 @@ export default function BusinessSummaryResultHero({
   product_mode_active = false,
   result_table,
   timeScale = "hour",
+  activity_driver_type = "hours",
+  total_productive_output = 0,
 }) {
   const scaleOptions = product_mode_active ? PRODUCT_TIME_SCALES : TIME_SCALES;
 
@@ -118,8 +120,8 @@ export default function BusinessSummaryResultHero({
           <TableRow
             label={
               timeScale === "hour"
-                ? "Required Recovery Rate"
-                : `Required Recovery per ${result_table.scale_label}`
+                ? "Required operating cost per open hour"
+                : `Required operating cost per ${result_table.scale_label}`
             }
             value={`${formatCurrency(
               result_table.scaled_required_recovery
@@ -128,8 +130,8 @@ export default function BusinessSummaryResultHero({
           <TableRow
             label={
               timeScale === "hour"
-                ? "Actual Recovery Rate"
-                : `Actual Recovery per ${result_table.scale_label}`
+                ? "Actual recovery per open hour"
+                : `Actual recovery per ${result_table.scale_label}`
             }
             value={`${formatCurrency(
               result_table.scaled_actual_recovery
@@ -141,10 +143,6 @@ export default function BusinessSummaryResultHero({
               result_table.scaled_recovery_result
             )} ${result_table.scale_suffix}`}
             total
-          />
-          <TableRow
-            label="Recovery Hours Used"
-            value={`${formatNumber(result_table.recovery_hours_used)} hrs`}
           />
         </div>
       )}
