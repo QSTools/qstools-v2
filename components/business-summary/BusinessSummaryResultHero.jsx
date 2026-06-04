@@ -16,6 +16,16 @@ function TableRow({ label, value, total = false }) {
   );
 }
 
+function getResultRowLabel(timeScale, resultLabel) {
+  if (timeScale !== "hour") {
+    return resultLabel;
+  }
+
+  return resultLabel?.includes("Surplus")
+    ? "Surplus per open hour"
+    : "Deficit per open hour";
+}
+
 export default function BusinessSummaryResultHero({
   active_time_scale = "hour",
   hero,
@@ -23,8 +33,6 @@ export default function BusinessSummaryResultHero({
   product_mode_active = false,
   result_table,
   timeScale = "hour",
-  activity_driver_type = "hours",
-  total_productive_output = 0,
 }) {
   const scaleOptions = product_mode_active ? PRODUCT_TIME_SCALES : TIME_SCALES;
 
@@ -36,6 +44,7 @@ export default function BusinessSummaryResultHero({
           ? hero.product_position_title
           : hero.recovery_result_label}
       </div>
+
       <div className="ui-display">
         {product_mode_active
           ? hero.product_hero_value
@@ -46,11 +55,13 @@ export default function BusinessSummaryResultHero({
             : ` ${result_table.scale_suffix}`}
         </span>
       </div>
+
       <p className="ui-help">
         {product_mode_active
           ? hero.product_helper_text
           : hero.recovery_headline}
       </p>
+
       {product_mode_active ? (
         <p className="ui-help">{hero.product_secondary_result}</p>
       ) : (
@@ -61,7 +72,7 @@ export default function BusinessSummaryResultHero({
           </p>
           <p className="ui-help">
             This compares your actual Gross Profit / Margin Pool against the
-            Cost Summary recovery baseline.
+            Cost Summary operating cost baseline.
           </p>
         </>
       )}
@@ -130,15 +141,15 @@ export default function BusinessSummaryResultHero({
           <TableRow
             label={
               timeScale === "hour"
-                ? "Actual recovery per open hour"
-                : `Actual recovery per ${result_table.scale_label}`
+                ? "Actual margin per open hour"
+                : `Actual margin per ${result_table.scale_label}`
             }
             value={`${formatCurrency(
               result_table.scaled_actual_recovery
             )} ${result_table.scale_suffix}`}
           />
           <TableRow
-            label={hero.recovery_result_label}
+            label={getResultRowLabel(timeScale, hero.recovery_result_label)}
             value={`${formatCurrency(
               result_table.scaled_recovery_result
             )} ${result_table.scale_suffix}`}

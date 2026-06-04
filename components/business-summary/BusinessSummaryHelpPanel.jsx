@@ -61,13 +61,10 @@ export default function BusinessSummaryHelpPanel() {
                 body="Margin Pool minus Operating Costs equals Net Position."
               />
               <HelpRow
-                title="Current Margin per Hour"
-                body="Current margin per hour compares trading output against operating recovery hours."
+                title="Current Margin per Open Hour"
+                body="Current margin per open hour compares trading margin against net annual business open hours."
               />
-              <HelpRow
-                title="No Modelling"
-                body="This page is not modelling."
-              />
+              <HelpRow title="No Modelling" body="This page is not modelling." />
               <HelpRow
                 title="No Cash Flow"
                 body="This page does not include principal or cash flow."
