@@ -1,0 +1,533 @@
+# QS Tools — Implementation Brief
+
+## Shop Opening Hours / Business Trading Hours Layer
+
+## 1. Purpose
+
+The Shop Opening Hours layer defines when the business is open and available to trade.
+
+It is not a labour cost module, not a recovery module, and not a pricing module.
+
+Its purpose is to answer:
+
+```txt
+When is the business open?
+How many trading hours exist per week?
+How many trading days exist per week?
+How many annual trading hours are available?
+How does this compare to productive labour capacity later?
+```
+
+This becomes important for businesses such as:
+
+```txt
+retail shops
+cafes
+restaurants
+salons
+workshops
+service counters
+showrooms
+clinics
+hire businesses
+```
+
+## 2. System Role
+
+Shop Opening Hours is a **business availability input layer**.
+
+It should sit upstream of later business modelling and recovery interpretation.
+
+Suggested position:
+
+```txt
+Business Setup
+↓
+Shop Opening Hours
+↓
+Labour
+↓
+Cost Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Recovery Outcome
+```
+
+It defines business trading availability, not staff productivity.
+
+## 3. Core Distinction
+
+Do not confuse:
+
+```txt
+Shop opening hours = when the business can trade
+Labour hours = when staff are paid / productive
+Productive hours = usable labour output
+Recovery hours = hours used to recover business cost
+```
+
+Example:
+
+```txt
+Shop open: 50 hours/week
+Staff paid: 120 hours/week total
+Productive labour: 95 hours/week
+```
+
+These are related but not the same thing.
+
+## 4. Module Ownership
+
+Shop Opening Hours owns:
+
+```txt
+opening profile
+days open
+open / close time per day
+weekly trading hours
+annual trading hours
+public holiday / closed-day assumptions
+```
+
+It does not own:
+
+```txt
+staff_id
+labour cost
+asset cost
+general overheads
+recovery strategy
+operating groups
+pricing
+sales forecasts
+```
+
+## 5. Suggested File Structure
+
+If built as its own page:
+
+```txt
+app/shop-opening-hours/page.jsx
+hooks/useShopOpeningHours.js
+lib/calculations/shopOpeningHoursCalculations.js
+lib/selectors/shopOpeningHoursSelectors.js
+lib/storage/shopOpeningHoursStorage.js
+lib/storage/shopOpeningHoursProfileStorage.js
+components/shop-opening-hours/
+  ShopOpeningHoursStatusStrip.jsx
+  ShopOpeningHoursMainCard.jsx
+  ShopOpeningHoursHelpPanel.jsx
+  ShopOpeningHoursWeeklyScheduleForm.jsx
+  ShopOpeningHoursSummaryCard.jsx
+```
+
+If built inside Business Setup first, keep the logic split into the same calculation/storage files anyway.
+
+Do not bury the logic directly inside `page.jsx`.
+
+## 6. Data Model
+
+### Opening Profile
+
+```js
+{
+  opening_profile_id,
+  opening_profile_name,
+  effective_from,
+  is_active,
+  created_at,
+  updated_at
+}
+```
+
+### Weekly Opening Schedule
+
+```js
+{
+  monday: {
+    is_open: true,
+    open_time: "08:00",
+    close_time: "17:00",
+    break_minutes: 0
+  },
+  tuesday: {
+    is_open: true,
+    open_time: "08:00",
+    close_time: "17:00",
+    break_minutes: 0
+  },
+  wednesday: {
+    is_open: true,
+    open_time: "08:00",
+    close_time: "17:00",
+    break_minutes: 0
+  },
+  thursday: {
+    is_open: true,
+    open_time: "08:00",
+    close_time: "17:00",
+    break_minutes: 0
+  },
+  friday: {
+    is_open: true,
+    open_time: "08:00",
+    close_time: "17:00",
+    break_minutes: 0
+  },
+  saturday: {
+    is_open: false,
+    open_time: "",
+    close_time: "",
+    break_minutes: 0
+  },
+  sunday: {
+    is_open: false,
+    open_time: "",
+    close_time: "",
+    break_minutes: 0
+  }
+}
+```
+
+### Annual Assumptions
+
+```js
+{
+  trading_weeks_per_year: 52,
+  closed_public_holiday_days: 0,
+  planned_closed_days: 0
+}
+```
+
+## 7. Calculations
+
+### Daily Trading Hours
+
+```txt
+daily_trading_hours =
+(close_time - open_time) - break_minutes
+```
+
+If the day is closed:
+
+```txt
+daily_trading_hours = 0
+```
+
+### Weekly Trading Hours
+
+```txt
+weekly_trading_hours =
+sum(daily_trading_hours for all open days)
+```
+
+### Weekly Trading Days
+
+```txt
+weekly_trading_days =
+count(days where is_open = true)
+```
+
+### Annual Trading Hours Before Closures
+
+```txt
+annual_trading_hours_before_closures =
+weekly_trading_hours × trading_weeks_per_year
+```
+
+### Average Daily Trading Hours
+
+```txt
+average_daily_trading_hours =
+weekly_trading_hours / weekly_trading_days
+```
+
+If weekly_trading_days is zero:
+
+```txt
+average_daily_trading_hours = 0
+```
+
+### Closure Hours
+
+```txt
+closure_hours =
+(closed_public_holiday_days + planned_closed_days)
+× average_daily_trading_hours
+```
+
+### Net Annual Trading Hours
+
+```txt
+net_annual_trading_hours =
+annual_trading_hours_before_closures - closure_hours
+```
+
+Never allow negative output:
+
+```txt
+net_annual_trading_hours = max(0, calculated value)
+```
+
+## 8. Output Contract
+
+The module should expose:
+
+```txt
+opening_profile_id
+opening_profile_name
+weekly_trading_days
+weekly_trading_hours
+trading_weeks_per_year
+closed_public_holiday_days
+planned_closed_days
+annual_trading_hours_before_closures
+closure_hours
+net_annual_trading_hours
+average_daily_trading_hours
+is_opening_profile_ready
+opening_hours_warnings[]
+```
+
+Optional display outputs:
+
+```txt
+longest_trading_day_hours
+shortest_trading_day_hours
+weekend_open
+evening_trade
+```
+
+## 9. Status / Warning Rules
+
+Warnings:
+
+```txt
+no_open_days
+invalid_open_close_time
+close_time_before_open_time
+zero_weekly_trading_hours
+high_closure_days
+profile_not_saved
+```
+
+Readiness:
+
+```txt
+is_opening_profile_ready = true when:
+- at least one day is open
+- weekly_trading_hours > 0
+- all open days have valid open and close times
+- net_annual_trading_hours > 0
+```
+
+## 10. UI Requirements
+
+The page should be simple and mobile-first.
+
+Main sections:
+
+```txt
+1. Status strip
+2. Weekly opening schedule
+3. Annual closure assumptions
+4. Trading hours summary
+5. Help panel
+```
+
+### Weekly Schedule UI
+
+Each day should show:
+
+```txt
+Day name
+Open / closed toggle
+Open time
+Close time
+Break minutes
+Daily trading hours
+```
+
+### Summary UI
+
+Show:
+
+```txt
+Trading days/week
+Trading hours/week
+Trading weeks/year
+Closure hours/year
+Net annual trading hours
+```
+
+## 11. Important UX Rule
+
+Use normal business language.
+
+Do not call this:
+
+```txt
+capacity model
+availability engine
+trading abstraction
+```
+
+Use:
+
+```txt
+Shop opening hours
+Trading hours
+Days open
+Closed days
+Annual opening hours
+```
+
+## 12. Downstream Use
+
+This layer can later support:
+
+```txt
+Revenue Reality
+Revenue Summary
+Recovery Outcome
+Business Outcome
+shop-based recovery models
+sales per trading hour
+labour coverage vs opening hours
+minimum staff coverage checks
+```
+
+But V1 should only expose opening hours cleanly.
+
+Do not force downstream integration in the first build.
+
+## 13. Future Comparison Logic
+
+Later, the system can compare:
+
+```txt
+net_annual_trading_hours
+vs
+productive_labour_hours
+```
+
+Useful warnings later:
+
+```txt
+shop_open_more_hours_than_labour_can_cover
+labour_capacity_exceeds_opening_hours
+weekend_trade_without_weekend_labour
+evening_trade_without_staff_cover
+```
+
+These should not be built in V1 unless the Labour contract is already ready to support it.
+
+## 14. Not Allowed
+
+Do not:
+
+```txt
+calculate wages here
+calculate recovery rates here
+assign staff here
+create staff_id here
+calculate pricing here
+duplicate Labour productive hours
+duplicate Cost Summary recovery
+hide formulas in components
+use page.jsx for calculations
+```
+
+## 15. Build Order
+
+Recommended implementation order:
+
+```txt
+1. Create calculation file
+2. Create storage file
+3. Create selector file
+4. Create hook
+5. Build weekly schedule form
+6. Build summary card
+7. Build status strip
+8. Build help panel
+9. Add route/page
+10. Run build
+11. Commit
+```
+
+## 16. Test Cases
+
+### Standard 5-day shop
+
+```txt
+Mon–Fri
+8:00–17:00
+Expected:
+45 weekly trading hours if no breaks
+40 weekly trading hours if 60 min break per day
+```
+
+### 7-day shop
+
+```txt
+Open every day
+Different weekend hours
+Expected:
+correct weekly trading hours
+weekend_open = true
+```
+
+### Closed profile
+
+```txt
+All days closed
+Expected:
+weekly_trading_hours = 0
+is_opening_profile_ready = false
+warning = no_open_days
+```
+
+### Invalid time
+
+```txt
+Open 17:00
+Close 08:00
+Expected:
+warning = close_time_before_open_time
+daily hours = 0
+```
+
+### Annual closures
+
+```txt
+weekly_trading_hours = 50
+trading_weeks_per_year = 52
+planned_closed_days = 5
+average_daily_trading_hours = 10
+Expected:
+annual before closures = 2600
+closure hours = 50
+net annual trading hours = 2550
+```
+
+## 17. Commit Message
+
+Suggested commit:
+
+```txt
+Add shop opening hours module
+```
+
+If built inside Business Setup first:
+
+```txt
+Add shop opening hours setup layer
+```
+
+## 18. Final Definition
+
+Shop Opening Hours is a business availability input layer that defines when the business is open to trade, calculates weekly and annual trading hours, and provides a clean output contract for later revenue, labour coverage, and recovery analysis without owning labour cost, recovery, pricing, or operating group logic.

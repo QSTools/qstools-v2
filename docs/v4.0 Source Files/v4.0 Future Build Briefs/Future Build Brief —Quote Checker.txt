@@ -1,0 +1,534 @@
+# QS Tools — Future Build Brief
+
+## Quote Engine to Time Management / Live Job Control Layer
+
+## Purpose
+
+This future build extends the Quote Engine into the first practical Layer 2 live-job control system.
+
+The Quote Engine now creates structured quote/job records with:
+
+```txt
+Job number
+Job name
+Client details
+Job type
+Quote version
+Quote price
+COG cost
+COG markup
+Labour hours allowed
+Labour hourly cost rate
+Calculated labour charge
+Calculated labour cost
+Calculated labour margin
+Recovery surplus / shortfall
+Minimum model price
+Quote buffer above minimum
+```
+
+The next step is to turn a winning quote into a live job and use that live job as the base record for time tracking, works orders, purchase orders, and actual-vs-quoted labour tracking.
+
+---
+
+## Current Completed Direction
+
+The Quote Engine has been changed from a simple quote checker into a quote/job intake and versioning layer.
+
+Completed logic includes:
+
+```txt
+New job quote creation
+Existing job selection
+Automatic quote versioning
+Reusable job/client identity
+Quote date storage
+Winning quote flag
+Live job flag
+Balanced quote calculation
+```
+
+The balanced quote model is now:
+
+```txt
+Quote price total
+- COG sell total
+= Labour charge total
+```
+
+And:
+
+```txt
+Labour hours allowed
+× Labour hourly cost rate
+= Labour cost total
+```
+
+COG sell is derived from:
+
+```txt
+COG cost total
+× COG markup %
+= COG sell total
+```
+
+The main model test is:
+
+```txt
+Quote price
+- COG cost
+- labour cost
+= margin left after job costs
+```
+
+Then:
+
+```txt
+Labour hours allowed
+× Cost Summary recovery rate
+= Cost Summary recovery required
+```
+
+Then:
+
+```txt
+Margin left after job costs
+- Cost Summary recovery required
+= Recovery surplus / shortfall
+```
+
+---
+
+## Key Current Labels
+
+The Quote Result card should use plain-English labels:
+
+```txt
+Direct cost total
+→ Estimated job cost
+
+Quote margin pool
+→ Margin left after job costs
+
+Business recovery required
+→ Cost Summary recovery required
+
+Quote gap
+→ Recovery surplus / shortfall
+
+Hourly gap
+→ Hourly recovery surplus / shortfall
+
+Required recovery rate
+→ Cost Summary recovery rate
+
+Required price at allowed hours
+→ Minimum model price
+
+Price gap
+→ Quote buffer above minimum
+
+Max viable hours
+→ Max hours before recovery fails
+```
+
+Important meaning:
+
+```txt
+Recovery surplus / shortfall
+= the main good/bad number
+
+Positive = good quote
+Negative = quote is short
+
+Quote buffer above minimum
+= how much the quote sits above the minimum model price
+```
+
+---
+
+## Future Build Objective
+
+Build the next Layer 2 flow:
+
+```txt
+Winning quote
+→ Live job
+→ Time management
+→ Actual labour tracking
+→ Quote labour comparison
+→ Job profitability
+```
+
+The first future module should be the **Time Management App**.
+
+---
+
+## Time Management App Purpose
+
+The Time Management App records actual labour time against live jobs.
+
+It answers:
+
+```txt
+Who worked?
+On which job?
+On which task?
+For how long?
+Was the time productive, travel, admin, delay, rework, variation, or other?
+How much did the time cost?
+How does actual time compare against quoted labour hours?
+```
+
+---
+
+## Required MVP Behaviour
+
+The first Time Management build should allow manual time entry.
+
+Required fields:
+
+```txt
+Job number
+Job name
+Client name
+Staff name
+Staff role
+Staff hourly cost rate
+Work date
+Start time
+Finish time
+Break minutes
+Task
+Work category
+Notes
+```
+
+Calculated fields:
+
+```txt
+Gross hours
+Net hours
+Labour cost total
+```
+
+Formula:
+
+```txt
+Gross hours = finish time - start time
+Net hours = gross hours - break minutes / 60
+Labour cost total = net hours × staff hourly cost rate
+```
+
+Net hours must never be negative.
+
+---
+
+## Work Categories
+
+Use these categories:
+
+```txt
+Productive
+Travel
+Setup
+Admin
+Delay
+Rework
+Variation
+Other
+```
+
+Only `Productive` should count toward quoted labour hour comparison by default.
+
+Non-productive time should still be stored and shown separately.
+
+---
+
+## Future Quote Comparison
+
+Once time entries are linked to a live job, compare:
+
+```txt
+Quoted labour hours allowed
+Actual productive labour hours
+Remaining labour hours
+Labour hour variance
+Quoted labour cost
+Actual labour cost
+Labour cost variance
+```
+
+This is the key bridge between quoting and live job performance.
+
+---
+
+## Data Model Direction
+
+### `live_jobs`
+
+Created from winning quote version.
+
+```js
+{
+  live_job_id: "",
+  quote_job_id: "",
+  quote_version_id: "",
+
+  job_number: "",
+  job_name: "",
+  client_name: "",
+  job_type_name: "",
+
+  winning_quote_price_total: 0,
+  quoted_cog_cost_total: 0,
+  quoted_cog_sell_total: 0,
+  quoted_labour_hours_allowed: 0,
+  quoted_labour_hourly_cost_rate: 0,
+  quoted_labour_cost_total: 0,
+  quoted_labour_charge_total: 0,
+  quoted_recovery_surplus_shortfall: 0,
+
+  status: "live",
+
+  created_at: "",
+  updated_at: ""
+}
+```
+
+---
+
+### `time_entries`
+
+```js
+{
+  time_entry_id: "",
+  live_job_id: "",
+  quote_job_id: "",
+  quote_version_id: "",
+
+  job_number: "",
+  job_name: "",
+  client_name: "",
+
+  staff_id: "",
+  staff_name: "",
+  staff_role: "",
+  staff_hourly_cost_rate: 0,
+
+  work_date: "",
+  start_time: "",
+  finish_time: "",
+  break_minutes: 0,
+
+  gross_hours: 0,
+  net_hours: 0,
+
+  task_id: "",
+  task_name: "",
+  work_category: "Productive",
+
+  labour_cost_total: 0,
+
+  notes: "",
+
+  created_at: "",
+  updated_at: ""
+}
+```
+
+---
+
+### `staff_list`
+
+```js
+{
+  staff_id: "",
+  staff_name: "",
+  staff_role: "",
+  staff_hourly_cost_rate: 0,
+  is_active: true
+}
+```
+
+---
+
+### `task_list`
+
+```js
+{
+  task_id: "",
+  task_name: "",
+  default_work_category: "Productive",
+  is_active: true
+}
+```
+
+---
+
+## Required File Structure
+
+Create:
+
+```txt
+app/time-management/page.jsx
+
+hooks/useTimeManagement.js
+
+lib/storage/timeManagementStorage.js
+lib/calculations/timeManagementCalculations.js
+lib/selectors/timeManagementSelectors.js
+
+components/time-management/TimeManagementStatusStrip.jsx
+components/time-management/TimeEntryMainCard.jsx
+components/time-management/TimeEntryResultCard.jsx
+components/time-management/TimeEntriesListCard.jsx
+components/time-management/TimeManagementHelpPanel.jsx
+```
+
+Optional later:
+
+```txt
+components/time-management/StaffListCard.jsx
+components/time-management/TaskListCard.jsx
+components/time-management/JobTimeSummaryCard.jsx
+```
+
+---
+
+## Architecture Rules
+
+Follow the locked QS Tools structure:
+
+```txt
+page.jsx = orchestration only
+hook = state/actions
+storage file = local persistence
+calculation file = maths
+selector file = formatted output/status
+components = UI only
+```
+
+Do not put calculations inside `page.jsx`.
+
+Do not put localStorage inside components.
+
+Do not connect to Procore, Xero, database, or external APIs yet.
+
+Use localStorage for MVP and make it hydration-safe.
+
+---
+
+## Storage Requirement
+
+Create:
+
+```txt
+qs_tools_time_management_store_v1
+```
+
+Storage shape:
+
+```js
+{
+  current_time_entry: {},
+  time_entries: [],
+  staff_list: [],
+  task_list: []
+}
+```
+
+Must include hydration-safe blank defaults to avoid Next.js hydration mismatch.
+
+---
+
+## Time Entry Validation
+
+Warnings should show for:
+
+```txt
+Missing job number
+Missing job name
+Missing staff name
+Missing staff hourly cost rate
+Missing work date
+Missing start time
+Missing finish time
+Finish time before start time
+Net hours <= 0
+Missing task
+```
+
+Do not block saving in MVP unless the time calculation is impossible.
+
+---
+
+## Time Summary Outputs
+
+The first summary should show:
+
+```txt
+Total net hours
+Total labour cost
+Productive hours
+Non-productive hours
+Entries count
+```
+
+Later summaries should group by:
+
+```txt
+Job
+Staff
+Task
+Work category
+Date
+```
+
+---
+
+## Integration With Quote Engine
+
+In a future step, Time Management should consume live jobs created from the Quote Engine.
+
+The Quote Engine already has:
+
+```txt
+quote_job_id
+quote_version_id
+job_number
+job_name
+client_name
+job_type_name
+is_winning_quote
+is_live_job
+```
+
+The next integration step should create a live job from the selected winning quote version.
+
+---
+
+## First Build Instruction
+
+Build the Time Management App MVP from this brief.
+
+Start with localStorage and manual job/staff/task entry.
+
+Do not build Procore import yet.
+
+Do not build purchase orders yet.
+
+Do not build work orders yet.
+
+The first goal is:
+
+```txt
+Create time entry
+Calculate net hours
+Calculate labour cost
+Save entry
+List saved entries
+Show basic totals
+```
+
+Once that is stable, connect it to Quote Engine live jobs and compare actual productive hours against quoted labour hours.

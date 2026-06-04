@@ -1,0 +1,485 @@
+# Mirra v4.0 — Future Build Brief
+
+## General Overheads Follow-Up Improvements
+
+## Status
+
+Future build / not required for current acceptance.
+
+General Overheads is currently functioning and accepted under the v4.0 contract. This brief records non-blocking improvements identified during the cleanup of redistribution pools, asset-related overhead flow, finance / interest handling, and downstream validation.
+
+Do not treat this brief as a current bug list. These are future refinements to improve clarity, auditability, and user control.
+
+---
+
+## 1. Current Accepted State
+
+General Overheads now supports controlled redistribution for:
+
+```txt
+Vehicle Running Costs
+Insurance / Compliance
+Finance / Interest
+```
+
+The current model is accepted:
+
+```txt
+P&L source pool remains fixed.
+Manual rows allow controlled redistribution.
+Auto-balance rows preserve the source total.
+Asset-related portions flow to Assets.
+Cost Summary does not double count redistribution rows.
+Finance / Interest remains conservative by default.
+```
+
+The main selector file has been split into smaller files under:
+
+```txt
+lib/selectors/general-overheads/
+```
+
+The public selector entry point remains:
+
+```txt
+lib/selectors/generalOverheadSelectors.js
+```
+
+---
+
+## 2. Purpose of Future Work
+
+The purpose of future work is to improve the user experience and evidence trail around General Overheads redistribution without changing the core contract.
+
+Future work should focus on:
+
+```txt
+clarity
+traceability
+warnings
+review states
+evidence
+workflow guidance
+```
+
+Future work must not change the agreed accounting / modelling flow unless a new contract brief is created.
+
+---
+
+## 3. Future Item 1 — Dedicated Finance / Interest Review Control
+
+## Current State
+
+Finance / Interest currently works through redistribution rows:
+
+```txt
+Includes Asset Finance Portion — manual
+No Asset Finance / Business Finance Balance — auto-balance
+```
+
+This is logically correct.
+
+However, the UI still presents it as a redistribution row pattern rather than a clear review question.
+
+## Future Improvement
+
+Create a dedicated Finance / Interest review control that asks:
+
+```txt
+Does Finance / Interest include asset finance?
+```
+
+Suggested options:
+
+```txt
+No — keep all finance / interest as business overhead
+Yes — enter asset finance portion
+```
+
+If “Yes” is selected, show:
+
+```txt
+Asset finance portion
+Business finance balance
+```
+
+The business finance balance remains calculated.
+
+## Required Behaviour
+
+```txt
+No / blank:
+  asset_finance_interest_pool = 0
+  full Finance / Interest balance stays in General Overheads
+
+Yes:
+  entered asset finance portion flows to asset_finance_interest_pool
+  remaining balance stays in General Overheads
+```
+
+## Do Not Break
+
+Do not automatically move all Finance / Interest into Assets.
+
+Asset finance must remain explicitly entered.
+
+---
+
+## 4. Future Item 2 — Clear Auto-Balance Row Styling
+
+## Current State
+
+Auto-balance rows are working, but they can visually resemble editable rows.
+
+Auto-balance rows currently include:
+
+```txt
+Vehicle Running Costs:
+  Registration / Compliance
+
+Insurance / Compliance:
+  Compliance / H&S
+
+Finance / Interest:
+  No Asset Finance / Business Finance Balance
+```
+
+## Future Improvement
+
+Style auto-balance rows differently from manual rows.
+
+Suggested display:
+
+```txt
+Auto balance
+Calculated
+Read-only
+```
+
+The user should immediately understand:
+
+```txt
+This amount is calculated from the source pool minus manual rows.
+```
+
+## Acceptance Criteria
+
+```txt
+Manual rows are visibly editable.
+Auto-balance rows are visibly calculated.
+Auto-balance rows cannot be mistaken for independent source costs.
+```
+
+---
+
+## 5. Future Item 3 — Improved Duplication Warning for Asset Finance Interest
+
+## Current State
+
+The system already has a duplication guard for asset finance interest.
+
+This protects against inconsistent states where P&L asset finance interest and General Overheads redistribution could both affect the same cost.
+
+## Future Improvement
+
+Make the warning more explicit and user-facing.
+
+Suggested warning:
+
+```txt
+Asset finance interest may be duplicated. Review the P&L interest treatment and the General Overheads asset finance portion. Only one pathway should introduce the asset finance cost into Assets.
+```
+
+## Acceptance Criteria
+
+The warning should clearly explain:
+
+```txt
+where the conflict is
+what the user needs to review
+which pathway should be used
+```
+
+---
+
+## 6. Future Item 4 — Redistribution Source Trace Panel
+
+## Current State
+
+Redistribution rows preserve source pool totals internally, but the UI could make the source relationship clearer.
+
+## Future Improvement
+
+Add a small trace panel for redistributed pools.
+
+For each redistributed pool, show:
+
+```txt
+P&L source pool
+Manual assigned total
+Auto-balance amount
+Asset-related amount
+Business overhead retained
+```
+
+Example for Vehicle Running Costs:
+
+```txt
+Source pool: $38,700
+Fuel: $20,000
+Repairs / Maintenance: $11,500
+Registration / Compliance: $7,200
+Total assigned: $38,700
+Difference: $0
+```
+
+## Acceptance Criteria
+
+The user can see that redistribution has not created or lost cost.
+
+---
+
+## 7. Future Item 5 — Evidence Screenshots for Pool States
+
+## Current State
+
+An evidence pack exists for the General Overheads / Asset Pool Redistribution milestone.
+
+## Future Improvement
+
+Create a fuller evidence set showing each redistribution state.
+
+Required screenshots:
+
+```txt
+Vehicle Running Costs — fully allocated
+Vehicle Running Costs — partially allocated
+Vehicle Running Costs — over allocated
+Insurance / Compliance — fully allocated
+Finance / Interest — no asset finance
+Finance / Interest — includes asset finance
+Assets page — asset pools received
+Assets page — asset pool assigned to asset
+Assets page — over-allocation guardrail
+Cost Summary — overhead total unchanged
+```
+
+## Acceptance Criteria
+
+Evidence should demonstrate:
+
+```txt
+P&L source totals remain fixed.
+Redistribution does not create cost.
+Asset pools flow to Assets.
+Cost Summary does not double count.
+```
+
+---
+
+## 8. Future Item 6 — Saved Override Rounding / Input Hygiene
+
+## Current State
+
+General Overheads allocation override amounts are now rounded to two decimals when saved.
+
+## Future Improvement
+
+Add input hygiene across all redistribution inputs.
+
+Potential additions:
+
+```txt
+strip commas before saving
+prevent negative values
+show two decimal places consistently
+prevent long floating values in UI
+optionally clamp manual rows if they exceed source pool
+```
+
+## Acceptance Criteria
+
+User inputs remain stable and readable while typing.
+
+Saved state should not contain long floating point values.
+
+---
+
+## 9. Future Item 7 — Optional Pool-Level Reset Buttons
+
+## Current State
+
+Redistribution values are stored in:
+
+```txt
+system_allocation_amount_overrides
+```
+
+The user can edit values manually, but resetting a single pool is not obvious.
+
+## Future Improvement
+
+Add a reset action per redistribution pool.
+
+Examples:
+
+```txt
+Reset Vehicle Running Costs split
+Reset Insurance / Compliance split
+Reset Finance / Interest split
+```
+
+Reset should clear only the relevant redistribution overrides.
+
+## Acceptance Criteria
+
+Resetting one pool must not clear unrelated General Overheads data.
+
+---
+
+## 10. Future Item 8 — Review Status Per Pool
+
+## Current State
+
+The module has warnings and allocation status, but no explicit “reviewed” marker per redistributed pool.
+
+## Future Improvement
+
+Add a review state per pool:
+
+```txt
+Not reviewed
+Reviewed
+Needs attention
+Over allocated
+```
+
+This would help future users understand which overhead pools have been intentionally confirmed.
+
+## Acceptance Criteria
+
+A pool should not appear fully trusted just because the maths balances.
+
+The user should be able to confirm that the split has been reviewed.
+
+---
+
+## 11. Future Item 9 — Better Source Classification Audit
+
+## Current State
+
+General Overheads consumes P&L operating expense lines and places them into stable Mirra buckets.
+
+Some fallback matching remains for source category placement.
+
+## Future Improvement
+
+Add a source classification audit view.
+
+Show:
+
+```txt
+P&L account name
+P&L category / review subcategory
+General Overheads bucket
+Reason / source of classification
+User override status
+```
+
+## Purpose
+
+This would make it easier to detect source classification issues before they flow downstream.
+
+## Acceptance Criteria
+
+The user can identify whether a line came from:
+
+```txt
+P&L review subcategory
+default system mapping
+keyword fallback
+manual override
+```
+
+---
+
+## 12. Future Item 10 — Cost Summary / Assets Contract Test
+
+## Current State
+
+Codex audit confirmed that Cost Summary and Assets consume General Overheads correctly.
+
+## Future Improvement
+
+Create a lightweight automated contract test or audit script.
+
+The test should confirm:
+
+```txt
+Cost Summary consumes fixed total_general_overheads only.
+Asset pools do not create extra overhead cost.
+Assets consumes asset_overhead_pools.
+Assigned asset pools affect asset recovery.
+Finance / Interest does not flow to Assets unless manually entered.
+```
+
+## Acceptance Criteria
+
+Running the audit should produce a simple pass/fail report.
+
+---
+
+## 13. Do Not Change Without New Contract
+
+Future builds must not change these rules without a new contract brief:
+
+```txt
+General Overheads source totals remain tied to P&L.
+Redistribution must not create new cost.
+Cost Summary must not consume redistribution rows as extra costs.
+Assets must consume only asset-related pools.
+Finance / Interest must stay conservative by default.
+Asset finance must be explicitly entered.
+Auto-balance rows must preserve the source pool total.
+```
+
+---
+
+## 14. Recommended Future Build Order
+
+Suggested order:
+
+```txt
+1. Add clearer auto-balance row styling.
+2. Add dedicated Finance / Interest review control.
+3. Add pool-level source trace panel.
+4. Add per-pool reset buttons.
+5. Add reviewed / needs attention state.
+6. Add fuller evidence screenshots.
+7. Add automated General Overheads downstream contract audit.
+```
+
+---
+
+## 15. Current Priority
+
+None of these items are blocking.
+
+The current General Overheads module can be considered:
+
+```txt
+working
+contract-aligned
+downstream-safe
+ready to move forward
+```
+
+Future work should only be started if the next downstream validation shows confusion, misuse, or a need for stronger auditability.
+
+---
+
+## Recommended Filename
+
+```txt
+MIRRA_v4.0_General_Overheads_Future_Build_Brief.txt
+```
