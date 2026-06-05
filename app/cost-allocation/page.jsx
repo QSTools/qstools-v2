@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import useCostAllocation from "@/hooks/useCostAllocation";
 import CostAllocationMainCard from "@/components/cost-allocation/CostAllocationMainCard";
-import CostAllocationNoticeBanner from "@/components/cost-allocation/CostAllocationNoticeBanner";
 import CostAllocationHelpPanel from "@/components/cost-allocation/CostAllocationHelpPanel";
 
 export default function CostAllocationPage() {
@@ -38,10 +38,6 @@ export default function CostAllocationPage() {
     <main className="ui-page cost-allocation-page">
       <div className="ui-page-stack">
         <CostAllocationMainCard {...card} {...actions} />
-
-        <CostAllocationNoticeBanner
-          active_profile_name={card?.profile?.active_profile_name}
-        />
 
         <CostAllocationHelpPanel />
       </div>

@@ -1,13 +1,122 @@
 "use client";
 
-import { safe_array } from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
+import {
+  safe_array,
+} from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
+
+function safe_number(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function get_active_assignment_rows(rows = []) {
   return safe_array(rows).filter((row) => row?.is_active !== false);
 }
 
+function find_labour_row(rows = [], assignment = {}) {
+  const target_id =
+    assignment?.staff_type_id ||
+    assignment?.labour_type_id ||
+    assignment?.labour_type_key ||
+    "";
+
+  return safe_array(rows).find((row) => {
+    return (
+      row?.staff_type_id === target_id ||
+      row?.labour_type_id === target_id ||
+      row?.labour_type_key === target_id
+    );
+  });
+}
+
+function get_assignment_ratio(row = {}, assignment = {}) {
+  const assigned_staff_count = safe_number(assignment?.assigned_staff_count);
+
+  const row_staff_count = safe_number(
+    row?.staff_count ??
+      row?.productive_staff_count ??
+      row?.support_staff_count ??
+      0
+  );
+
+  if (assigned_staff_count > 0 && row_staff_count > 0) {
+    return Math.min(assigned_staff_count / row_staff_count, 1);
+  }
+
+  return Math.min(safe_number(assignment?.assignment_percent) / 100, 1);
+}
+
+function is_productive_labour_row(row = {}) {
+  return row?.is_productive === true || row?.labour_class === "productive";
+}
+
+function get_labour_row_cost(row = {}) {
+  return safe_number(row?.total_labour_cost ?? row?.total_annual_cost);
+}
+
+function build_labour_pool_from_rows({ all_labour_rows, active_assignments }) {
+  const available_labour_cost = safe_array(all_labour_rows).reduce(
+    (total, row) => total + get_labour_row_cost(row),
+    0
+  );
+
+  const available_labour_hours = safe_array(all_labour_rows).reduce(
+    (total, row) => total + safe_number(row?.total_productive_hours),
+    0
+  );
+
+  const assigned_labour_cost = safe_array(active_assignments).reduce(
+    (total, assignment) => {
+      const row = find_labour_row(all_labour_rows, assignment);
+      const ratio = get_assignment_ratio(row, assignment);
+
+      return total + get_labour_row_cost(row) * ratio;
+    },
+    0
+  );
+
+  const assigned_labour_hours = safe_array(active_assignments).reduce(
+    (total, assignment) => {
+      const row = find_labour_row(all_labour_rows, assignment);
+      const ratio = get_assignment_ratio(row, assignment);
+
+      if (!is_productive_labour_row(row)) {
+        return total;
+      }
+
+      return total + safe_number(row?.total_productive_hours) * ratio;
+    },
+    0
+  );
+
+  return {
+    available_labour_cost,
+    available_labour_hours,
+    assigned_labour_cost,
+    assigned_labour_hours,
+    remaining_labour_cost: Math.max(
+      available_labour_cost - assigned_labour_cost,
+      0
+    ),
+    remaining_labour_hours: Math.max(
+      available_labour_hours - assigned_labour_hours,
+      0
+    ),
+    over_allocated_labour_cost: Math.max(
+      assigned_labour_cost - available_labour_cost,
+      0
+    ),
+    over_allocated_labour_hours: Math.max(
+      assigned_labour_hours - available_labour_hours,
+      0
+    ),
+  };
+}
+
 function build_labour_assignment_card({
   productive_labour_type_rows,
+  support_labour_type_rows,
+  all_labour_type_rows,
   labour_group_assignments,
   calculated,
 }) {
@@ -15,56 +124,49 @@ function build_labour_assignment_card({
     labour_group_assignments
   );
 
+  const all_labour_rows =
+    safe_array(all_labour_type_rows).length > 0
+      ? safe_array(all_labour_type_rows)
+      : [
+          ...safe_array(productive_labour_type_rows),
+          ...safe_array(support_labour_type_rows),
+        ];
+
+  const full_labour_pool = build_labour_pool_from_rows({
+    all_labour_rows,
+    active_assignments,
+  });
+
   return {
-    productive_staff_type_rates: productive_labour_type_rows,
-    productive_labour_rows: productive_labour_type_rows,
+    productive_staff_type_rates: safe_array(productive_labour_type_rows),
+    productive_labour_rows: all_labour_rows,
+    support_labour_rows: safe_array(support_labour_type_rows),
+    all_labour_rows,
+
     labour_group_assignments: active_assignments,
     assignments: active_assignments,
 
-    available_labour_cost:
-      calculated?.productive_labour_pool?.available_labour_cost ??
-      calculated?.available_labour_cost ??
-      calculated?.total_productive_labour_cost ??
-      0,
+    available_labour_cost: full_labour_pool.available_labour_cost,
+    available_labour_hours: full_labour_pool.available_labour_hours,
 
-    available_labour_hours:
-      calculated?.productive_labour_pool?.available_labour_hours ??
-      calculated?.available_labour_hours ??
-      calculated?.total_productive_labour_hours ??
-      0,
+    assigned_labour_cost: full_labour_pool.assigned_labour_cost,
+    assigned_labour_hours: full_labour_pool.assigned_labour_hours,
 
-    assigned_labour_cost:
-      calculated?.productive_labour_pool?.assigned_labour_cost ??
-      calculated?.assigned_labour_cost ??
-      0,
+    remaining_labour_cost: full_labour_pool.remaining_labour_cost,
+    remaining_labour_hours: full_labour_pool.remaining_labour_hours,
 
-    assigned_labour_hours:
-      calculated?.productive_labour_pool?.assigned_labour_hours ??
-      calculated?.assigned_labour_hours ??
-      0,
+    over_allocated_labour_cost: full_labour_pool.over_allocated_labour_cost,
+    over_allocated_labour_hours: full_labour_pool.over_allocated_labour_hours,
 
-    remaining_labour_cost:
-      calculated?.productive_labour_pool?.remaining_labour_cost ??
-      calculated?.remaining_labour_cost ??
-      calculated?.unassigned_labour_cost ??
-      0,
-
-    remaining_labour_hours:
-      calculated?.productive_labour_pool?.remaining_labour_hours ??
-      calculated?.remaining_labour_hours ??
-      0,
-
-    over_allocated_labour_cost:
-      calculated?.productive_labour_pool?.over_allocated_labour_cost ??
-      calculated?.over_allocated_labour_cost ??
-      0,
-
-    over_allocated_labour_hours:
-      calculated?.productive_labour_pool?.over_allocated_labour_hours ??
-      calculated?.over_allocated_labour_hours ??
-      0,
+    productive_labour_pool: calculated?.productive_labour_pool ?? null,
+    labour_pool_status:
+      calculated?.labour_pool?.allocation_status ||
+      calculated?.productive_labour_pool?.allocation_status ||
+      calculated?.labour_pool_status ||
+      "review_required",
 
     allocation_status:
+      calculated?.labour_pool?.allocation_status ||
       calculated?.productive_labour_pool?.allocation_status ||
       calculated?.labour_pool_status ||
       "review_required",
@@ -184,6 +286,8 @@ function build_overhead_assignment_card({
 
 export function build_cost_allocation_assignment_cards({
   productive_labour_type_rows,
+  support_labour_type_rows,
+  all_labour_type_rows,
   labour_group_assignments,
   asset_recovery_rows,
   asset_group_assignments,
@@ -193,6 +297,8 @@ export function build_cost_allocation_assignment_cards({
   return {
     labour_assignment: build_labour_assignment_card({
       productive_labour_type_rows,
+      support_labour_type_rows,
+      all_labour_type_rows,
       labour_group_assignments,
       calculated,
     }),

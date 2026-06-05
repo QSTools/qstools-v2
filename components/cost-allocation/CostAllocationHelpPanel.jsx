@@ -1,34 +1,15 @@
 "use client";
 
-function HelpStep({ number, title, children }) {
+function GuidanceStep({ number, title, text }) {
   return (
-    <div className="ui-readonly">
-      <div className="ui-stack-sm">
-        <div className="flex items-start gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)]">
-            {number}
-          </div>
+    <div className="cost-allocation-guidance-step">
+      <div className="cost-allocation-guidance-step-number">{number}</div>
 
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
-              {title}
-            </p>
-            <p className="mt-1 ui-help">{children}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ExampleBlock({ title, children }) {
-  return (
-    <div className="ui-readonly">
-      <div className="ui-stack-sm">
+      <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
           {title}
         </p>
-        <p className="ui-help">{children}</p>
+        <p className="ui-help">{text}</p>
       </div>
     </div>
   );
@@ -36,100 +17,60 @@ function ExampleBlock({ title, children }) {
 
 export default function CostAllocationHelpPanel() {
   return (
-    <section className="ui-panel">
+    <section className="ui-panel cost-allocation-guidance-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">How Cost Allocation works</p>
+          <p className="ui-kicker">Cost allocation guidance</p>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Build working units, then review what each one must recover
+            Build working units before pricing
           </h3>
           <p className="ui-help">
-            Cost Allocation does not set prices. It shows the minimum recovery
-            benchmark each working unit must achieve before pricing decisions are
-            made.
+            Cost Allocation is an input page. It assigns labour and asset pools
+            into divisions and operating groups. It does not set prices.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <HelpStep number="1" title="Confirm the recovery plan">
-            The recovery plan comes from Recovery Summary. You do not choose the
-            strategy here. This page tests what the working units must carry.
-          </HelpStep>
+        <div className="cost-allocation-guidance-flow">
+          <GuidanceStep
+            number="1"
+            title="Create division"
+            text="Create the major operating area first."
+          />
 
-          <HelpStep number="2" title="Create a working unit">
-            A working unit is a real crew, setup, or operating unit that
-            produces revenue. Examples include a pump crew, gib fixing crew,
-            coffee truck unit, retail floor setup, or production station.
-          </HelpStep>
+          <GuidanceStep
+            number="2"
+            title="Create operating group"
+            text="Create the crew, team, or working unit inside the division."
+          />
 
-          <HelpStep number="3" title="Select productive labour and assets">
-            Add the productive labour driver and productive assets that actually
-            do the work. Do not add owner, admin, office, or support costs
-            unless they are directly doing the work.
-          </HelpStep>
+          <GuidanceStep
+            number="3"
+            title="Assign labour"
+            text="Assign the staff or labour group used by that working unit."
+          />
 
-          <HelpStep number="4" title="Review running cost">
-            Running cost is the direct cost to operate the working unit. It is
-            made up of productive labour plus productive assets used by that
-            unit.
-          </HelpStep>
+          <GuidanceStep
+            number="4"
+            title="Assign assets"
+            text="Assign the productive assets used by that working unit."
+          />
 
-          <HelpStep number="5" title="Review overhead burden">
-            Overhead burden is the cost outside the working unit that it still
-            has to carry. This can include owner/admin, non-productive labour,
-            support assets, general overheads, and remaining business cost.
-          </HelpStep>
-
-          <HelpStep number="6" title="Use the minimum recoverable rate">
-            Running cost plus overhead burden gives the minimum recoverable
-            rate. The next revenue/pricing layer compares this benchmark against
-            charge-out rates, product margin, sales volume, or revenue units.
-          </HelpStep>
+          <GuidanceStep
+            number="5"
+            title="Review pool position"
+            text="Check what is assigned and what is still left to assign."
+          />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <ExampleBlock title="Asset-driven service">
-            Pump crew = operator + pump + ute if required. The unit shows what
-            each hour of pumping must recover.
-          </ExampleBlock>
-
-          <ExampleBlock title="Labour-only trade">
-            Gib fixing crew = productive staff. The unit shows what the crew
-            must recover per hour before converting to m², lm, item, or job
-            pricing later.
-          </ExampleBlock>
-
-          <ExampleBlock title="Product or retail business">
-            Store or production unit = the staff/assets that enable sales. Cost
-            Allocation shows cost per hour; the revenue layer converts that into
-            required sales or product margin.
-          </ExampleBlock>
-        </div>
-
-        <div className="ui-readonly">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Simple rule
+        <div className="ui-readonly cost-allocation-guidance-next">
+          <span className="ui-label">Next step</span>
+          <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+            Use Recovery Summary and Rate Builder after the operating structure
+            is built.
           </p>
           <p className="mt-1 ui-help">
-            The working unit is what does the work. The overhead burden is what
-            the working unit has to carry. The minimum recoverable rate is the
-            benchmark before pricing.
-          </p>
-        </div>
-
-        <div className="ui-readonly">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Important guardrail
-          </p>
-          <p className="mt-1 ui-help">
-            Cost Allocation does not rebuild Labour, Assets, General Overheads,
-            Cost Summary, or Recovery Summary. It takes the cost truth already
-            built upstream and shows what each working unit has to recover.
-          </p>
-          <p className="mt-1 ui-help">
-            Materials, products, and COGS do not belong in Cost Allocation.
-            They stay in Revenue / COGS and are tested downstream through the
-            active recovery mode.
+            Recovery testing, rate building, pricing, and business outcome
+            decisions happen downstream.
           </p>
         </div>
       </div>

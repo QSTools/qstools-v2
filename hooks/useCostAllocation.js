@@ -17,7 +17,11 @@ import {
   safe_number,
 } from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
 
-import { build_productive_labour_type_rows } from "@/lib/calculations/cost-allocation/costAllocationLabourAdapter";
+import {
+  build_all_labour_type_rows,
+  build_productive_labour_type_rows,
+  build_support_labour_type_rows,
+} from "@/lib/calculations/cost-allocation/costAllocationLabourAdapter";
 
 import { calculate_cost_allocation } from "@/lib/calculations/costAllocationRules";
 
@@ -72,6 +76,14 @@ export default function useCostAllocation(inputs = {}) {
     return build_productive_labour_type_rows(labour?.output_contract ?? {});
   }, [labour?.output_contract]);
 
+  const support_labour_type_rows = useMemo(() => {
+    return build_support_labour_type_rows(labour?.output_contract ?? {});
+  }, [labour?.output_contract]);
+
+  const all_labour_type_rows = useMemo(() => {
+    return build_all_labour_type_rows(labour?.output_contract ?? {});
+  }, [labour?.output_contract]);
+
   const asset_recovery_overlay = useCostAllocationAssetOverlay({
     asset_output_contract: assets?.output_contract ?? {},
     recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
@@ -99,6 +111,9 @@ export default function useCostAllocation(inputs = {}) {
       asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
 
       productive_labour_type_rows,
+      support_labour_type_rows,
+      all_labour_type_rows,
+
       labour_group_assignments: safe_array(state?.labour_group_assignments),
       asset_group_assignments: safe_array(state?.asset_group_assignments),
       overhead_group_assignments: safe_array(state?.overhead_group_assignments),
@@ -129,6 +144,8 @@ export default function useCostAllocation(inputs = {}) {
     base_calculation_inputs,
     asset_recovery_overlay,
     productive_labour_type_rows,
+    support_labour_type_rows,
+    all_labour_type_rows,
     state?.divisions,
     state?.labour_group_assignments,
     state?.asset_group_assignments,
@@ -181,6 +198,16 @@ export default function useCostAllocation(inputs = {}) {
     ]);
   }
 
+  function find_labour_type(staff_type_id) {
+    return safe_array(all_labour_type_rows).find((row) => {
+      return (
+        row?.staff_type_id === staff_type_id ||
+        row?.labour_type_id === staff_type_id ||
+        row?.labour_type_key === staff_type_id
+      );
+    });
+  }
+
   function add_labour_assignment({
     group_id,
     staff_type_id,
@@ -197,6 +224,7 @@ export default function useCostAllocation(inputs = {}) {
       return;
     }
 
+    const labour_type = find_labour_type(staff_type_id);
     const clamped_percent = Math.min(percent, 100);
     const timestamp = new Date().toISOString();
     const assignment_id = generate_local_id("labour_assignment");
@@ -206,6 +234,16 @@ export default function useCostAllocation(inputs = {}) {
       labour_group_assignment_id: assignment_id,
       group_id,
       staff_type_id,
+      labour_type_id: labour_type?.labour_type_id ?? staff_type_id,
+      labour_type_key: labour_type?.labour_type_key ?? staff_type_id,
+      labour_type_label:
+        labour_type?.labour_type_label ||
+        labour_type?.staff_type_name ||
+        staff_type_id,
+      labour_class: labour_type?.labour_class ?? "productive",
+      is_productive: labour_type?.is_productive === true,
+      contributes_to_recovery_hours:
+        labour_type?.contributes_to_recovery_hours === true,
       assigned_staff_count: staff_count,
       assignment_percent: clamped_percent,
       is_active: true,
@@ -365,6 +403,8 @@ export default function useCostAllocation(inputs = {}) {
   const { labour_assignment, asset_assignment, overhead_assignment } =
     build_cost_allocation_assignment_cards({
       productive_labour_type_rows,
+      support_labour_type_rows,
+      all_labour_type_rows,
       labour_group_assignments: state?.labour_group_assignments,
       asset_recovery_rows: calculated?.asset_recovery_rows,
       asset_group_assignments: state?.asset_group_assignments,
@@ -401,7 +441,11 @@ export default function useCostAllocation(inputs = {}) {
         calculated.total_allocated_asset_overhead_cost,
       total_asset_recovery_cost: calculated.total_asset_recovery_cost,
       asset_recovery_rows: calculated.asset_recovery_rows,
+
       productive_labour_type_rows: calculated.productive_labour_type_rows,
+      support_labour_type_rows: calculated.support_labour_type_rows,
+      all_labour_type_rows: calculated.all_labour_type_rows,
+
       operational_group_recovery_rows:
         calculated.operational_group_recovery_rows,
       operational_group_cost_rows: calculated.operational_group_cost_rows,

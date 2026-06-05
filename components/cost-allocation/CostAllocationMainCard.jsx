@@ -15,18 +15,6 @@ function formatMoney(value) {
   })}`;
 }
 
-function getRows(value) {
-  if (Array.isArray(value?.rows)) {
-    return value.rows.filter((row) => row?.is_active !== false);
-  }
-
-  if (Array.isArray(value)) {
-    return value.filter((row) => row?.is_active !== false);
-  }
-
-  return [];
-}
-
 function PoolSummaryRow({ title, available, assigned, remaining }) {
   return (
     <div className="cost-allocation-pool-table-row">
@@ -149,64 +137,14 @@ function PoolPositionCard({
   );
 }
 
-function AllocationPositionRow({ label, value }) {
-  return (
-    <div className="cost-allocation-build-table-row">
-      <p className="text-sm font-semibold text-[var(--text-primary)]">
-        {label}
-      </p>
-
-      <p className="cost-allocation-build-table-value">{value}</p>
-    </div>
-  );
-}
-
-function AllocationPositionCard({ divisions, groups, recovery_plan }) {
-  const division_rows = getRows(divisions);
-  const group_rows = getRows(groups);
-
-  return (
-    <section className="ui-panel cost-allocation-build-position-card">
-      <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Allocation build</p>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Current setup
-          </h3>
-          <p className="ui-help">Current build position.</p>
-        </div>
-
-        <div className="cost-allocation-build-table">
-          <AllocationPositionRow
-            label="Divisions"
-            value={formatCount(division_rows.length)}
-          />
-
-          <AllocationPositionRow
-            label="Operating groups"
-            value={formatCount(group_rows.length)}
-          />
-
-          <AllocationPositionRow
-            label="Assigned cost"
-            value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
-          />
-
-          <AllocationPositionRow
-            label="Remaining cost"
-            value={formatMoney(recovery_plan?.total_unassigned_cost)}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function CollapsedChecks({
   recovery_plan,
   delivery_summary,
   evidence,
   problems,
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
 }) {
   const [is_open, set_is_open] = useState(false);
   const [active_check, set_active_check] = useState("pool_reconciliation");
@@ -275,7 +213,11 @@ function CollapsedChecks({
         <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
           <button
             type="button"
-            className="ui-button-secondary"
+            className={
+              active_check === "pool_reconciliation"
+                ? "ui-button cost-allocation-check-tab is-active"
+                : "ui-button-secondary cost-allocation-check-tab"
+            }
             onClick={() => set_active_check("pool_reconciliation")}
           >
             Reconciliation
@@ -283,7 +225,11 @@ function CollapsedChecks({
 
           <button
             type="button"
-            className="ui-button-secondary"
+            className={
+              active_check === "group_cost_stacks"
+                ? "ui-button cost-allocation-check-tab is-active"
+                : "ui-button-secondary cost-allocation-check-tab"
+            }
             onClick={() => set_active_check("group_cost_stacks")}
           >
             Group costs
@@ -291,7 +237,11 @@ function CollapsedChecks({
 
           <button
             type="button"
-            className="ui-button-secondary"
+            className={
+              active_check === "structural_warnings"
+                ? "ui-button cost-allocation-check-tab is-active"
+                : "ui-button-secondary cost-allocation-check-tab"
+            }
             onClick={() => set_active_check("structural_warnings")}
           >
             Warnings
@@ -299,7 +249,11 @@ function CollapsedChecks({
 
           <button
             type="button"
-            className="ui-button-secondary"
+            className={
+              active_check === "setup_checklist"
+                ? "ui-button cost-allocation-check-tab is-active"
+                : "ui-button-secondary cost-allocation-check-tab"
+            }
             onClick={() => set_active_check("setup_checklist")}
           >
             Setup
@@ -312,6 +266,9 @@ function CollapsedChecks({
           delivery_summary={delivery_summary}
           evidence={evidence}
           problems={problems}
+          labour_assignment={labour_assignment}
+          asset_assignment={asset_assignment}
+          overhead_assignment={overhead_assignment}
         />
       </div>
     </section>
@@ -415,6 +372,9 @@ export default function CostAllocationMainCard({
               delivery_summary={delivery_summary}
               evidence={evidence}
               problems={problems}
+              labour_assignment={labour_assignment}
+              asset_assignment={asset_assignment}
+              overhead_assignment={overhead_assignment}
             />
           </div>
 
@@ -423,12 +383,6 @@ export default function CostAllocationMainCard({
               labour_assignment={labour_assignment}
               asset_assignment={asset_assignment}
               overhead_assignment={overhead_assignment}
-              recovery_plan={recovery_plan}
-            />
-
-            <AllocationPositionCard
-              divisions={divisions}
-              groups={groups}
               recovery_plan={recovery_plan}
             />
           </div>
