@@ -27,75 +27,26 @@ function getRows(value) {
   return [];
 }
 
-function getPoolStatus({ available = 0, assigned = 0, remaining = 0 }) {
-  const available_value = Number(available || 0);
-  const assigned_value = Number(assigned || 0);
-  const remaining_value = Number(remaining || 0);
-
-  if (available_value <= 0) {
-    return "No pool";
-  }
-
-  if (remaining_value <= 0 && assigned_value > 0) {
-    return "Fully assigned";
-  }
-
-  if (assigned_value > 0) {
-    return "Part assigned";
-  }
-
-  return "Not assigned";
-}
-
-function PoolSummaryRow({ title, available, assigned, remaining, help }) {
-  const status = getPoolStatus({
-    available,
-    assigned,
-    remaining,
-  });
-
+function PoolSummaryRow({ title, available, assigned, remaining }) {
   return (
-    <div className="ui-readonly">
-      <div className="ui-stack-sm">
-        <div className="ui-actions">
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
-              {title}
-            </p>
-            <p className="ui-help">{help}</p>
-          </div>
-
-          <div className="text-right">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
-              {status}
-            </p>
-            <p className="ui-help">Status</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-          <div>
-            <span className="ui-label">Available</span>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
-              {formatMoney(available)}
-            </p>
-          </div>
-
-          <div>
-            <span className="ui-label">Assigned</span>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
-              {formatMoney(assigned)}
-            </p>
-          </div>
-
-          <div>
-            <span className="ui-label">Remaining</span>
-            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
-              {formatMoney(remaining)}
-            </p>
-          </div>
-        </div>
+    <div className="cost-allocation-pool-table-row">
+      <div className="cost-allocation-pool-table-label">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          {title}
+        </p>
       </div>
+
+      <p className="cost-allocation-pool-table-value">
+        {formatMoney(available)}
+      </p>
+
+      <p className="cost-allocation-pool-table-value">
+        {formatMoney(assigned)}
+      </p>
+
+      <p className="cost-allocation-pool-table-value">
+        {formatMoney(remaining)}
+      </p>
     </div>
   );
 }
@@ -152,7 +103,7 @@ function PoolPositionCard({
     0;
 
   return (
-    <section className="ui-panel">
+    <section className="ui-panel cost-allocation-pool-position-card">
       <div className="ui-stack">
         <div>
           <p className="ui-kicker">Cost to allocate</p>
@@ -160,36 +111,53 @@ function PoolPositionCard({
             Pool position
           </h3>
           <p className="ui-help">
-            This shows what is available, what has been assigned, and what is
-            left to assign.
+            Cost available, assigned, and left to assign.
           </p>
         </div>
 
-        <PoolSummaryRow
-          title="Labour pool"
-          available={labour_available}
-          assigned={labour_assigned}
-          remaining={labour_remaining}
-          help="Productive labour cost available for operating groups."
-        />
+        <div className="cost-allocation-pool-table">
+          <div className="cost-allocation-pool-table-header">
+            <span></span>
+            <span>Available</span>
+            <span>Assigned</span>
+            <span>Remaining</span>
+          </div>
 
-        <PoolSummaryRow
-          title="Asset pool"
-          available={asset_available}
-          assigned={asset_assigned}
-          remaining={asset_remaining}
-          help="Productive asset cost available for operating groups."
-        />
+          <PoolSummaryRow
+            title="Labour"
+            available={labour_available}
+            assigned={labour_assigned}
+            remaining={labour_remaining}
+          />
 
-        <PoolSummaryRow
-          title="Overhead pool"
-          available={overhead_available}
-          assigned={overhead_assigned}
-          remaining={overhead_remaining}
-          help="Overhead cost available to distribute."
-        />
+          <PoolSummaryRow
+            title="Assets"
+            available={asset_available}
+            assigned={asset_assigned}
+            remaining={asset_remaining}
+          />
+
+          <PoolSummaryRow
+            title="Overhead"
+            available={overhead_available}
+            assigned={overhead_assigned}
+            remaining={overhead_remaining}
+          />
+        </div>
       </div>
     </section>
+  );
+}
+
+function AllocationPositionRow({ label, value }) {
+  return (
+    <div className="cost-allocation-build-table-row">
+      <p className="text-sm font-semibold text-[var(--text-primary)]">
+        {label}
+      </p>
+
+      <p className="cost-allocation-build-table-value">{value}</p>
+    </div>
   );
 }
 
@@ -198,53 +166,36 @@ function AllocationPositionCard({ divisions, groups, recovery_plan }) {
   const group_rows = getRows(groups);
 
   return (
-    <section className="ui-panel">
+    <section className="ui-panel cost-allocation-build-position-card">
       <div className="ui-stack">
         <div>
           <p className="ui-kicker">Allocation build</p>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             Current setup
           </h3>
-          <p className="ui-help">
-            Create a division, create operating groups, then assign labour,
-            assets, and overhead.
-          </p>
+          <p className="ui-help">Current build position.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          <div className="ui-readonly">
-            <span className="ui-label">Divisions</span>
-            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-              {formatCount(division_rows.length)}
-            </p>
-            <p className="mt-1 ui-help">Major operating areas.</p>
-          </div>
+        <div className="cost-allocation-build-table">
+          <AllocationPositionRow
+            label="Divisions"
+            value={formatCount(division_rows.length)}
+          />
 
-          <div className="ui-readonly">
-            <span className="ui-label">Operating groups</span>
-            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-              {formatCount(group_rows.length)}
-            </p>
-            <p className="mt-1 ui-help">Crews, teams, or working units.</p>
-          </div>
+          <AllocationPositionRow
+            label="Operating groups"
+            value={formatCount(group_rows.length)}
+          />
 
-          <div className="ui-readonly">
-            <span className="ui-label">Assigned cost</span>
-            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-              {formatMoney(recovery_plan?.total_grouped_operating_cost)}
-            </p>
-            <p className="mt-1 ui-help">
-              Total labour, asset, and overhead assigned into groups.
-            </p>
-          </div>
+          <AllocationPositionRow
+            label="Assigned cost"
+            value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+          />
 
-          <div className="ui-readonly">
-            <span className="ui-label">Remaining cost</span>
-            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-              {formatMoney(recovery_plan?.total_unassigned_cost)}
-            </p>
-            <p className="mt-1 ui-help">Cost still left to assign.</p>
-          </div>
+          <AllocationPositionRow
+            label="Remaining cost"
+            value={formatMoney(recovery_plan?.total_unassigned_cost)}
+          />
         </div>
       </div>
     </section>
@@ -393,11 +344,12 @@ export default function CostAllocationMainCard({
   remove_asset_assignment,
   add_overhead_assignment,
   remove_overhead_assignment,
+  reset_state,
 }) {
   return (
     <section className="ui-section">
       <div className="ui-stack">
-        <section className="ui-panel">
+        <section className="ui-panel cost-allocation-hero-panel">
           <div className="ui-stack">
             <div>
               <p className="ui-kicker">Cost allocation</p>
@@ -410,6 +362,20 @@ export default function CostAllocationMainCard({
                 This is an input page. Recovery testing, rates, business
                 outcome, and quote checking happen downstream.
               </p>
+
+              <div className="mt-4 ui-actions">
+                <button
+                  type="button"
+                  className="ui-button-secondary"
+                  onClick={() => {
+                    if (typeof reset_state === "function") {
+                      reset_state();
+                    }
+                  }}
+                >
+                  Clear cost allocation inputs
+                </button>
+              </div>
             </div>
           </div>
         </section>
