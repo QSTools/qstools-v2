@@ -14,9 +14,21 @@ export default function CostAllocationCreateDivisionForm({
   add_division,
   add_operational_group,
 }) {
+  const [is_open, set_is_open] = useState(false);
   const [division_name, set_division_name] = useState("");
   const [division_description, set_division_description] = useState("");
   const [first_group_name, set_first_group_name] = useState("");
+
+  function reset_form() {
+    set_division_name("");
+    set_division_description("");
+    set_first_group_name("");
+  }
+
+  function handle_cancel() {
+    reset_form();
+    set_is_open(false);
+  }
 
   function handle_submit(event) {
     event.preventDefault();
@@ -43,9 +55,34 @@ export default function CostAllocationCreateDivisionForm({
       });
     }
 
-    set_division_name("");
-    set_division_description("");
-    set_first_group_name("");
+    reset_form();
+    set_is_open(false);
+  }
+
+  if (!is_open) {
+    return (
+      <div className="ui-readonly">
+        <div className="ui-actions">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Add another division
+            </p>
+            <p className="ui-help">
+              Build the current division first. Add another division only when
+              the next major operating area is ready to be built.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="ui-button"
+            onClick={() => set_is_open(true)}
+          >
+            Add division
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -53,11 +90,11 @@ export default function CostAllocationCreateDivisionForm({
       <div className="ui-stack-sm">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Create division and first operating group
+            Create division
           </p>
           <p className="ui-help">
-            Create the division, then immediately create the first crew, team,
-            machine setup, or working unit inside it.
+            Create one division, then complete its operating groups before
+            moving to the next division.
           </p>
         </div>
 
@@ -95,15 +132,19 @@ export default function CostAllocationCreateDivisionForm({
           </label>
         </div>
 
-        <div>
+        <div className="ui-actions">
           <button type="submit" className="ui-button">
-            Create division and group
+            Create division and start group
+          </button>
+
+          <button
+            type="button"
+            className="ui-button-secondary"
+            onClick={handle_cancel}
+          >
+            Cancel
           </button>
         </div>
-
-        <p className="ui-help">
-          You can add more groups inside the division after it has been created.
-        </p>
       </div>
     </form>
   );

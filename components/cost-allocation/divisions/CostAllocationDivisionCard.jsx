@@ -8,9 +8,35 @@ import CostAllocationOperatingGroupBuilder from "@/components/cost-allocation/gr
 import CostAllocationDivisionCostSummary from "@/components/cost-allocation/divisions/CostAllocationDivisionCostSummary";
 import CostAllocationDivisionHeader from "@/components/cost-allocation/divisions/CostAllocationDivisionHeader";
 
-import {
-  getGroupId,
-} from "@/components/cost-allocation/groups/costAllocationGroupHelpers";
+import { getGroupId } from "@/components/cost-allocation/groups/costAllocationGroupHelpers";
+
+function DivisionNextStep({ has_groups }) {
+  if (has_groups) {
+    return (
+      <div className="ui-readonly">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          Continue building this division
+        </p>
+        <p className="mt-1 ui-help">
+          Add another operating group only if this division has another real
+          crew, team, machine setup, or working unit.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ui-readonly">
+      <p className="text-sm font-semibold text-[var(--text-primary)]">
+        Next step: create the first operating group
+      </p>
+      <p className="mt-1 ui-help">
+        An operating group is the real working unit inside this division. Create
+        the group, then add labour, assets, and overhead inside that group.
+      </p>
+    </div>
+  );
+}
 
 function DivisionEmptyState() {
   return (
@@ -19,7 +45,7 @@ function DivisionEmptyState() {
         No operating groups in this division yet.
       </p>
       <p className="mt-1 ui-help">
-        Create a crew, team, machine setup, or working unit inside this
+        Create the first crew, team, machine setup, or working unit for this
         division.
       </p>
     </div>
@@ -102,13 +128,15 @@ export default function CostAllocationDivisionCard({
           remove_division={remove_division}
         />
 
-        <CostAllocationDivisionCostSummary
-          division_cost_row={division_cost_row}
-        />
+        <DivisionNextStep has_groups={division_groups.length > 0} />
 
         <CostAllocationCreateGroupForm
           add_operational_group={handle_add_group}
-          button_label="Add operating group to this division"
+          button_label={
+            division_groups.length > 0
+              ? "Add another operating group"
+              : "Create first operating group"
+          }
         />
 
         {division_groups.length === 0 ? (
@@ -139,6 +167,10 @@ export default function CostAllocationDivisionCard({
             })}
           </div>
         )}
+
+        <CostAllocationDivisionCostSummary
+          division_cost_row={division_cost_row}
+        />
       </div>
     </div>
   );

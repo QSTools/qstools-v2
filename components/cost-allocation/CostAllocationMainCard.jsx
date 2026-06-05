@@ -1,53 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import CostAllocationEvidenceBreakdown from "@/components/cost-allocation/CostAllocationEvidenceBreakdown";
-
-const STATUS_LABELS = {
-  ready: "Ready",
-  ready_with_dependency: "Ready with dependency",
-  strained: "Structure strained",
-  not_supported: "Not supported",
-  blocked: "Blocked",
-  incomplete: "Incomplete",
-  review: "Review required",
-};
-
-const STATUS_HELP = {
-  ready: "The current division and operating group structure appears ready for downstream recovery testing.",
-  ready_with_dependency:
-    "The structure may work, but it depends on external or scalable delivery capacity.",
-  strained:
-    "The structure may be possible, but current divisions or operating groups are under pressure.",
-  not_supported:
-    "The current divisions and operating groups do not yet support the selected structure.",
-  blocked:
-    "One or more source pools is over-allocated or structurally invalid.",
-  incomplete:
-    "More setup is required before this structure can be relied on downstream.",
-  review:
-    "Review the divisions, operating groups, assignments, and reconciliation checks.",
-};
-
-const DEPENDENCY_LABELS = {
-  none: "No major dependency",
-  internal_capacity: "Internal capacity",
-  external_delivery: "External delivery",
-  asset_structure: "Asset structure",
-  operational_groups: "Operating groups",
-  mixed: "Mixed dependency",
-  unknown: "Unknown dependency",
-};
-
-const BUILD_SECTION_KEYS = ["groups"];
-
-const CHECK_SECTION_KEYS = [
-  "group_cost_stacks",
-  "pool_reconciliation",
-  "structural_warnings",
-  "setup_checklist",
-];
+import CostAllocationStepBuilder from "@/components/cost-allocation/CostAllocationStepBuilder";
 
 function formatCount(value) {
   return Number(value || 0).toLocaleString("en-NZ");
@@ -59,404 +15,359 @@ function formatMoney(value) {
   })}`;
 }
 
-function formatPercent(value) {
-  return `${Number(value || 0).toFixed(1)}%`;
-}
-
-function getStatusLabel(value, fallback) {
-  return STATUS_LABELS[value] || fallback || value || "Review required";
-}
-
-function getStatusHelp(value) {
-  return (
-    STATUS_HELP[value] ||
-    "Review the divisions, operating groups, and supporting structure."
-  );
-}
-
-function getDependencyLabel(value) {
-  return DEPENDENCY_LABELS[value] || value || "Not classified";
-}
-
-function getBusinessModeLabel(value) {
-  return value === "product_based" ? "Product / unit-based" : "Hours-based";
-}
-
-function getBusinessModeHelp(value) {
-  if (value === "product_based") {
-    return "Cost Allocation builds the operating structure. Recovery Summary tests whether unit margin can carry this structure.";
+function getRows(value) {
+  if (Array.isArray(value?.rows)) {
+    return value.rows.filter((row) => row?.is_active !== false);
   }
 
-  return "Cost Allocation builds labour, asset, and overhead operating groups. Recovery testing happens downstream.";
+  if (Array.isArray(value)) {
+    return value.filter((row) => row?.is_active !== false);
+  }
+
+  return [];
 }
 
-function getStatusTone(value) {
-  if (value === "ready" || value === "ready_with_dependency") {
-    return "Ready for review";
+function getPoolStatus({ available = 0, assigned = 0, remaining = 0 }) {
+  const available_value = Number(available || 0);
+  const assigned_value = Number(assigned || 0);
+  const remaining_value = Number(remaining || 0);
+
+  if (available_value <= 0) {
+    return "No pool";
   }
 
-  if (value === "blocked") {
-    return "Blocked";
+  if (remaining_value <= 0 && assigned_value > 0) {
+    return "Fully assigned";
   }
 
-  if (value === "not_supported") {
-    return "Not supported";
+  if (assigned_value > 0) {
+    return "Part assigned";
   }
 
-  if (value === "strained") {
-    return "Structure strained";
-  }
-
-  return "Needs review";
+  return "Not assigned";
 }
 
-function MetricCard({ label, value, help }) {
+function PoolSummaryRow({ title, available, assigned, remaining, help }) {
+  const status = getPoolStatus({
+    available,
+    assigned,
+    remaining,
+  });
+
   return (
     <div className="ui-readonly">
-      <span className="ui-label">{label}</span>
-      <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-        {value ?? "Not available"}
+      <div className="ui-stack-sm">
+        <div className="ui-actions">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {title}
+            </p>
+            <p className="ui-help">{help}</p>
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {status}
+            </p>
+            <p className="ui-help">Status</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <div>
+            <span className="ui-label">Available</span>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+              {formatMoney(available)}
+            </p>
+          </div>
+
+          <div>
+            <span className="ui-label">Assigned</span>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+              {formatMoney(assigned)}
+            </p>
+          </div>
+
+          <div>
+            <span className="ui-label">Remaining</span>
+            <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+              {formatMoney(remaining)}
+            </p>
+          </div>
+        </div>
       </div>
-      {help ? <p className="mt-1 ui-help">{help}</p> : null}
     </div>
   );
 }
 
-function SectionTile({ section, is_active, on_click }) {
-  return (
-    <button
-      type="button"
-      onClick={on_click}
-      aria-pressed={is_active}
-      className={`ui-panel cost-allocation-section-card text-left transition ${
-        is_active ? "is-active" : ""
-      }`}
-    >
-      <div className="ui-stack-sm">
-        <div className="text-sm font-semibold text-[var(--text-primary)]">
-          {section.label}
-        </div>
-
-        <div className="text-xs font-medium text-[var(--text-secondary)]">
-          {section.meta}
-        </div>
-
-        <div className="text-xs text-[var(--text-secondary)]">
-          {section.help}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function SectionGroup({
-  title,
-  description,
-  sections,
-  active_section,
-  on_select,
+function PoolPositionCard({
+  labour_assignment,
+  asset_assignment,
+  overhead_assignment,
+  recovery_plan,
 }) {
+  const labour_available =
+    labour_assignment?.available_labour_cost ??
+    recovery_plan?.total_available_labour_cost ??
+    0;
+
+  const labour_assigned =
+    labour_assignment?.assigned_labour_cost ??
+    recovery_plan?.total_assigned_labour_cost ??
+    0;
+
+  const labour_remaining =
+    labour_assignment?.remaining_labour_cost ??
+    recovery_plan?.total_remaining_labour_cost ??
+    0;
+
+  const asset_available =
+    asset_assignment?.available_asset_cost ??
+    recovery_plan?.total_available_asset_cost ??
+    0;
+
+  const asset_assigned =
+    asset_assignment?.assigned_asset_cost ??
+    recovery_plan?.total_assigned_asset_cost ??
+    0;
+
+  const asset_remaining =
+    asset_assignment?.remaining_asset_cost ??
+    recovery_plan?.total_remaining_asset_cost ??
+    0;
+
+  const overhead_available =
+    overhead_assignment?.available_overhead_cost ??
+    recovery_plan?.total_available_overhead_cost ??
+    0;
+
+  const overhead_assigned =
+    overhead_assignment?.assigned_overhead_cost ??
+    recovery_plan?.total_assigned_overhead_cost ??
+    0;
+
+  const overhead_remaining =
+    overhead_assignment?.remaining_overhead_cost ??
+    recovery_plan?.total_remaining_overhead_cost ??
+    0;
+
   return (
     <section className="ui-panel">
       <div className="ui-stack">
         <div>
-          <p className="ui-kicker">{title}</p>
+          <p className="ui-kicker">Cost to allocate</p>
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            {title}
+            Pool position
           </h3>
-          <p className="ui-help">{description}</p>
+          <p className="ui-help">
+            This shows what is available, what has been assigned, and what is
+            left to assign.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-          {sections.map((section) => (
-            <SectionTile
-              key={section.key}
-              section={section}
-              is_active={active_section === section.key}
-              on_click={() => on_select(section.key)}
-            />
-          ))}
+        <PoolSummaryRow
+          title="Labour pool"
+          available={labour_available}
+          assigned={labour_assigned}
+          remaining={labour_remaining}
+          help="Productive labour cost available for operating groups."
+        />
+
+        <PoolSummaryRow
+          title="Asset pool"
+          available={asset_available}
+          assigned={asset_assigned}
+          remaining={asset_remaining}
+          help="Productive asset cost available for operating groups."
+        />
+
+        <PoolSummaryRow
+          title="Overhead pool"
+          available={overhead_available}
+          assigned={overhead_assigned}
+          remaining={overhead_remaining}
+          help="Overhead cost available to distribute."
+        />
+      </div>
+    </section>
+  );
+}
+
+function AllocationPositionCard({ divisions, groups, recovery_plan }) {
+  const division_rows = getRows(divisions);
+  const group_rows = getRows(groups);
+
+  return (
+    <section className="ui-panel">
+      <div className="ui-stack">
+        <div>
+          <p className="ui-kicker">Allocation build</p>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+            Current setup
+          </h3>
+          <p className="ui-help">
+            Create a division, create operating groups, then assign labour,
+            assets, and overhead.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <div className="ui-readonly">
+            <span className="ui-label">Divisions</span>
+            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              {formatCount(division_rows.length)}
+            </p>
+            <p className="mt-1 ui-help">Major operating areas.</p>
+          </div>
+
+          <div className="ui-readonly">
+            <span className="ui-label">Operating groups</span>
+            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              {formatCount(group_rows.length)}
+            </p>
+            <p className="mt-1 ui-help">Crews, teams, or working units.</p>
+          </div>
+
+          <div className="ui-readonly">
+            <span className="ui-label">Assigned cost</span>
+            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              {formatMoney(recovery_plan?.total_grouped_operating_cost)}
+            </p>
+            <p className="mt-1 ui-help">
+              Total labour, asset, and overhead assigned into groups.
+            </p>
+          </div>
+
+          <div className="ui-readonly">
+            <span className="ui-label">Remaining cost</span>
+            <p className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              {formatMoney(recovery_plan?.total_unassigned_cost)}
+            </p>
+            <p className="mt-1 ui-help">Cost still left to assign.</p>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function ReadinessRail({
-  outcome,
-  delivery_summary,
+function CollapsedChecks({
   recovery_plan,
+  delivery_summary,
   evidence,
-  divisions,
-  groups,
   problems,
-  on_select_section,
 }) {
-  const allocation_status = outcome?.allocation_status || outcome?.status;
-  const allocation_dependency_type =
-    outcome?.allocation_dependency_type || outcome?.dependency_type;
+  const [is_open, set_is_open] = useState(false);
+  const [active_check, set_active_check] = useState("pool_reconciliation");
 
-  const division_coverage =
-    delivery_summary?.division_coverage_percent ??
-    outcome?.division_coverage_percent ??
-    0;
-
-  const staff_coverage =
-    delivery_summary?.staff_coverage_percent ??
-    outcome?.staff_coverage_percent ??
-    0;
-
-  const asset_coverage =
-    delivery_summary?.asset_coverage_percent ??
-    outcome?.asset_coverage_percent ??
-    0;
-
-  const group_coverage =
-    delivery_summary?.group_coverage_percent ??
-    outcome?.group_coverage_percent ??
-    0;
-
-  const setup_warnings = Array.isArray(evidence?.setup_warnings)
+  const setup_count = Array.isArray(evidence?.setup_warnings)
     ? evidence.setup_warnings.length
-    : Number(outcome?.setup_warnings_count || 0);
+    : 0;
 
-  const structural_warnings = Array.isArray(evidence?.structural_warnings)
+  const structural_count = Array.isArray(evidence?.structural_warnings)
     ? evidence.structural_warnings.length
-    : Number(outcome?.structural_warnings_count || 0);
+    : 0;
 
-  const allocation_warnings = Number(outcome?.allocation_warnings_count || 0);
+  const warning_count = setup_count + structural_count;
 
-  const warning_count =
-    setup_warnings + structural_warnings + allocation_warnings;
+  if (!is_open) {
+    return (
+      <section className="ui-panel">
+        <div className="ui-actions">
+          <div>
+            <p className="ui-kicker">Allocation checks</p>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+              Checks hidden
+            </h3>
+            <p className="ui-help">
+              Open only when you need to review reconciliation, group cost
+              stacks, or warning details.
+            </p>
+          </div>
 
-  const active_divisions =
-    divisions?.rows?.length ??
-    delivery_summary?.total_divisions ??
-    outcome?.total_divisions ??
-    0;
-
-  const ready_divisions =
-    delivery_summary?.valid_divisions ?? outcome?.valid_divisions ?? 0;
-
-  const active_groups = groups?.rows?.length ?? 0;
-
-  const ready_groups =
-    delivery_summary?.ready_working_units_count ??
-    delivery_summary?.valid_operational_groups ??
-    groups?.ready_working_units_count ??
-    groups?.valid_operational_groups ??
-    0;
-
-  const productive_labour_group_count =
-    delivery_summary?.productive_labour_group_count ??
-    outcome?.productive_labour_group_count ??
-    0;
-
-  const assigned_labour_group_count =
-    delivery_summary?.assigned_labour_group_count ??
-    outcome?.assigned_labour_group_count ??
-    0;
-
-  const productive_asset_count =
-    delivery_summary?.productive_asset_count ??
-    outcome?.productive_asset_count ??
-    0;
-
-  const assigned_productive_asset_count =
-    delivery_summary?.assigned_productive_asset_count ??
-    outcome?.assigned_productive_asset_count ??
-    0;
-
-  const next_action =
-    problems?.recommended_action ||
-    problems?.next_action ||
-    outcome?.recommended_check ||
-    "Create divisions and operating groups, assign source pools, then review reconciliation.";
+          <button
+            type="button"
+            className="ui-button-secondary"
+            onClick={() => set_is_open(true)}
+          >
+            Show checks ({formatCount(warning_count)})
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <aside className="ui-panel cost-allocation-readiness-rail">
+    <section className="ui-panel">
       <div className="ui-stack">
-        <div>
-          <p className="ui-kicker">Allocation readiness</p>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Current structure check
-          </h3>
-          <p className="ui-help">
-            This is an operating-structure check. Recovery Summary tests
-            recovery, and Business Outcome owns the final decision.
-          </p>
-        </div>
+        <div className="ui-actions">
+          <div>
+            <p className="ui-kicker">Allocation checks</p>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+              Review allocation checks
+            </h3>
+            <p className="ui-help">
+              These are secondary checks. The main page remains an input and
+              assignment builder.
+            </p>
+          </div>
 
-        <MetricCard
-          label="Allocation status"
-          value={getStatusLabel(allocation_status, outcome?.status_label)}
-          help={getStatusHelp(allocation_status)}
-        />
-
-        <MetricCard
-          label="Dependency type"
-          value={getDependencyLabel(allocation_dependency_type)}
-          help="Shortfall is shown as dependency, not automatic failure."
-        />
-
-        <div className="grid grid-cols-1 gap-2">
-          <MetricCard
-            label="Division coverage"
-            value={formatPercent(division_coverage)}
-            help={`${formatCount(ready_divisions)} of ${formatCount(
-              active_divisions
-            )} divisions ready`}
-          />
-
-          <MetricCard
-            label="Productive labour coverage"
-            value={formatPercent(staff_coverage)}
-            help={`${formatCount(
-              assigned_labour_group_count
-            )} of ${formatCount(
-              productive_labour_group_count
-            )} productive labour groups assigned`}
-          />
-
-          <MetricCard
-            label="Productive asset coverage"
-            value={formatPercent(asset_coverage)}
-            help={`${formatCount(
-              assigned_productive_asset_count
-            )} of ${formatCount(
-              productive_asset_count
-            )} productive assets assigned`}
-          />
-
-          <MetricCard
-            label="Operating group coverage"
-            value={formatPercent(group_coverage)}
-            help={`${formatCount(ready_groups)} of ${formatCount(
-              active_groups
-            )} operating groups ready`}
-          />
-        </div>
-
-        <MetricCard
-          label="Warnings"
-          value={`${formatCount(warning_count)} warning${
-            warning_count === 1 ? "" : "s"
-          }`}
-        />
-
-        <MetricCard
-          label="Recovery context"
-          value={
-            recovery_plan?.active_recovery_model_label ||
-            recovery_plan?.active_recovery_model ||
-            "Not available"
-          }
-          help="Recovery Summary owns the recovery model. Cost Allocation consumes it as read-only context."
-        />
-
-        <div className="ui-readonly">
-          <span className="ui-label">Next action</span>
-          <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
-            {next_action}
-          </p>
-        </div>
-
-        <div className="ui-stack-sm">
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("groups")}
+            onClick={() => set_is_open(false)}
           >
-            Build divisions and groups
+            Hide checks
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+          <button
+            type="button"
+            className="ui-button-secondary"
+            onClick={() => set_active_check("pool_reconciliation")}
+          >
+            Reconciliation
           </button>
 
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("pool_reconciliation")}
+            onClick={() => set_active_check("group_cost_stacks")}
           >
-            Review reconciliation
+            Group costs
           </button>
 
           <button
             type="button"
             className="ui-button-secondary"
-            onClick={() => on_select_section("structural_warnings")}
+            onClick={() => set_active_check("structural_warnings")}
           >
-            Review warnings
+            Warnings
+          </button>
+
+          <button
+            type="button"
+            className="ui-button-secondary"
+            onClick={() => set_active_check("setup_checklist")}
+          >
+            Setup
           </button>
         </div>
 
-        <p className="ui-help">
-          Cost Allocation does not set prices or produce sell rates.
-        </p>
+        <CostAllocationEvidenceBreakdown
+          active_section={active_check}
+          recovery_plan={recovery_plan}
+          delivery_summary={delivery_summary}
+          evidence={evidence}
+          problems={problems}
+        />
       </div>
-    </aside>
-  );
-}
-
-function SelectedSection({
-  active_section,
-  recovery_plan,
-  allocation_tests,
-  delivery_summary,
-  evidence,
-  links,
-  divisions,
-  groups,
-  problems,
-  labour_assignment,
-  asset_assignment,
-  overhead_assignment,
-  add_division,
-  update_division,
-  remove_division,
-  add_asset_labour_link,
-  remove_asset_labour_link,
-  add_operational_group,
-  update_operational_group,
-  remove_operational_group,
-  add_labour_assignment,
-  remove_labour_assignment,
-  add_asset_assignment,
-  remove_asset_assignment,
-  add_overhead_assignment,
-  remove_overhead_assignment,
-}) {
-  return (
-    <CostAllocationEvidenceBreakdown
-      active_section={active_section}
-      recovery_plan={recovery_plan}
-      allocation_tests={allocation_tests}
-      delivery_summary={delivery_summary}
-      evidence={evidence}
-      links={links}
-      divisions={divisions}
-      groups={groups}
-      problems={problems}
-      labour_assignment={labour_assignment}
-      asset_assignment={asset_assignment}
-      overhead_assignment={overhead_assignment}
-      add_division={add_division}
-      update_division={update_division}
-      remove_division={remove_division}
-      add_asset_labour_link={add_asset_labour_link}
-      remove_asset_labour_link={remove_asset_labour_link}
-      add_operational_group={add_operational_group}
-      update_operational_group={update_operational_group}
-      remove_operational_group={remove_operational_group}
-      add_labour_assignment={add_labour_assignment}
-      remove_labour_assignment={remove_labour_assignment}
-      add_asset_assignment={add_asset_assignment}
-      remove_asset_assignment={remove_asset_assignment}
-      add_overhead_assignment={add_overhead_assignment}
-      remove_overhead_assignment={remove_overhead_assignment}
-    />
+    </section>
   );
 }
 
 export default function CostAllocationMainCard({
-  outcome,
   recovery_plan,
   allocation_tests,
   delivery_summary,
@@ -483,278 +394,78 @@ export default function CostAllocationMainCard({
   add_overhead_assignment,
   remove_overhead_assignment,
 }) {
-  const [active_section, set_active_section] = useState("groups");
-
-  const allocation_status = outcome?.allocation_status || outcome?.status;
-  const allocation_dependency_type =
-    outcome?.allocation_dependency_type || outcome?.dependency_type;
-
-  const setup_warnings = Array.isArray(evidence?.setup_warnings)
-    ? evidence.setup_warnings.length
-    : Number(outcome?.setup_warnings_count || 0);
-
-  const structural_warnings = Array.isArray(evidence?.structural_warnings)
-    ? evidence.structural_warnings.length
-    : Number(outcome?.structural_warnings_count || 0);
-
-  const allocation_warnings = Number(outcome?.allocation_warnings_count || 0);
-
-  const warning_count =
-    setup_warnings + structural_warnings + allocation_warnings;
-
-  const divisions_count =
-    divisions?.rows?.length ??
-    delivery_summary?.total_divisions ??
-    outcome?.total_divisions ??
-    0;
-
-  const ready_divisions =
-    delivery_summary?.valid_divisions ?? outcome?.valid_divisions ?? 0;
-
-  const groups_count = groups?.rows?.length ?? 0;
-  const business_type = recovery_plan?.business_type || "labour_based";
-
-  const ready_groups =
-    delivery_summary?.ready_working_units_count ??
-    delivery_summary?.valid_operational_groups ??
-    groups?.ready_working_units_count ??
-    groups?.valid_operational_groups ??
-    0;
-
-  const build_sections = useMemo(
-    () => [
-      {
-        key: "groups",
-        label: "Divisions and operating groups",
-        meta: `${formatCount(divisions_count)} division${
-          divisions_count === 1 ? "" : "s"
-        } / ${formatCount(groups_count)} group${
-          groups_count === 1 ? "" : "s"
-        }`,
-        help: "Create divisions, then create each crew, team, or working unit inside the correct division.",
-      },
-    ],
-    [divisions_count, groups_count]
-  );
-
-  const check_sections = useMemo(
-    () => [
-      {
-        key: "group_cost_stacks",
-        label: "Group cost stacks",
-        meta: "Assigned cost stacks",
-        help: "Review assigned labour, asset, and overhead cost by operating group.",
-      },
-      {
-        key: "pool_reconciliation",
-        label: "Pool reconciliation",
-        meta: "No-leak checks",
-        help: "Check assigned, remaining, and over-assigned source pools.",
-      },
-      {
-        key: "structural_warnings",
-        label: "Structural warnings",
-        meta: `${formatCount(structural_warnings)} item${
-          structural_warnings === 1 ? "" : "s"
-        }`,
-        help: "Review structure, capacity, or dependency warnings.",
-      },
-      {
-        key: "setup_checklist",
-        label: "Setup checklist",
-        meta: `${formatCount(setup_warnings)} item${
-          setup_warnings === 1 ? "" : "s"
-        }`,
-        help: "Review missing setup items.",
-      },
-    ],
-    [setup_warnings, structural_warnings]
-  );
-
-  const active_is_build = BUILD_SECTION_KEYS.includes(active_section);
-  const active_is_check = CHECK_SECTION_KEYS.includes(active_section);
-
   return (
     <section className="ui-section">
       <div className="ui-stack">
-        <section className="ui-panel cost-allocation-hero-panel">
+        <section className="ui-panel">
           <div className="ui-stack">
-            <div className="cost-allocation-hero-header">
-              <div>
-                <p className="ui-kicker">Cost allocation builder</p>
-                <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-                  Division and operating structure check
-                </h2>
-                <p className="ui-help">
-                  Create divisions, create working units inside those divisions,
-                  assign productive labour and productive assets, then let
-                  overhead distribute automatically from the operating
-                  structure.
-                </p>
-                <p className="ui-help">
-                  Recovery testing, rate building, pricing, and business
-                  outcome decisions happen downstream.
-                </p>
-              </div>
-
-              <div className="ui-readonly cost-allocation-current-result">
-                <span className="ui-label">Current result</span>
-                <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
-                  {getStatusTone(allocation_status)}
-                </p>
-                <p className="mt-1 ui-help">
-                  {getDependencyLabel(allocation_dependency_type)}
-                </p>
-              </div>
-            </div>
-
-            <div className="cost-allocation-status-grid">
-              <MetricCard
-                label="Status"
-                value={getStatusLabel(allocation_status, outcome?.status_label)}
-                help={getBusinessModeHelp(business_type)}
-              />
-
-              <MetricCard
-                label="Divisions"
-                value={`${formatCount(ready_divisions)} / ${formatCount(
-                  divisions_count
-                )}`}
-                help="Ready / created."
-              />
-
-              <MetricCard
-                label="Groups"
-                value={`${formatCount(ready_groups)} / ${formatCount(
-                  groups_count
-                )}`}
-                help="Ready / created."
-              />
-
-              <MetricCard
-                label="Assigned"
-                value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
-                help="Cost inside groups."
-              />
-
-              <MetricCard
-                label="Warnings"
-                value={formatCount(warning_count)}
-                help="Review items."
-              />
-            </div>
-
-            <div className="ui-readonly cost-allocation-recovery-context">
-              <div className="ui-actions">
-                <div>
-                  <span className="ui-label">Recovery context</span>
-                  <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
-                    {recovery_plan?.active_recovery_model_label ||
-                      recovery_plan?.active_recovery_model ||
-                      getBusinessModeLabel(business_type)}
-                  </p>
-                </div>
-
-                <p className="ui-help max-w-xl">
-                  Recovery Summary owns the recovery model. Cost Allocation only
-                  builds the operating structure and source-pool distribution.
-                </p>
-              </div>
+            <div>
+              <p className="ui-kicker">Cost allocation</p>
+              <h2 className="ui-display">Cost allocation builder</h2>
+              <p className="ui-help">
+                Assign labour, asset, and overhead pools into divisions and
+                operating groups.
+              </p>
+              <p className="ui-help">
+                This is an input page. Recovery testing, rates, business
+                outcome, and quote checking happen downstream.
+              </p>
             </div>
           </div>
         </section>
 
         <div className="cost-allocation-layout">
           <div className="ui-stack">
-            <SectionGroup
-              title="Build"
-              description="Create divisions, then build each operating group inside the correct division."
-              sections={build_sections}
-              active_section={active_section}
-              on_select={set_active_section}
+            <CostAllocationStepBuilder
+              recovery_plan={recovery_plan}
+              allocation_tests={allocation_tests}
+              delivery_summary={delivery_summary}
+              evidence={evidence}
+              links={links}
+              divisions={divisions}
+              groups={groups}
+              problems={problems}
+              labour_assignment={labour_assignment}
+              asset_assignment={asset_assignment}
+              overhead_assignment={overhead_assignment}
+              add_division={add_division}
+              update_division={update_division}
+              remove_division={remove_division}
+              add_asset_labour_link={add_asset_labour_link}
+              remove_asset_labour_link={remove_asset_labour_link}
+              add_operational_group={add_operational_group}
+              update_operational_group={update_operational_group}
+              remove_operational_group={remove_operational_group}
+              add_labour_assignment={add_labour_assignment}
+              remove_labour_assignment={remove_labour_assignment}
+              add_asset_assignment={add_asset_assignment}
+              remove_asset_assignment={remove_asset_assignment}
+              add_overhead_assignment={add_overhead_assignment}
+              remove_overhead_assignment={remove_overhead_assignment}
             />
 
-            {active_is_build ? (
-              <SelectedSection
-                active_section={active_section}
-                recovery_plan={recovery_plan}
-                allocation_tests={allocation_tests}
-                delivery_summary={delivery_summary}
-                evidence={evidence}
-                links={links}
-                divisions={divisions}
-                groups={groups}
-                problems={problems}
-                labour_assignment={labour_assignment}
-                asset_assignment={asset_assignment}
-                overhead_assignment={overhead_assignment}
-                add_division={add_division}
-                update_division={update_division}
-                remove_division={remove_division}
-                add_asset_labour_link={add_asset_labour_link}
-                remove_asset_labour_link={remove_asset_labour_link}
-                add_operational_group={add_operational_group}
-                update_operational_group={update_operational_group}
-                remove_operational_group={remove_operational_group}
-                add_labour_assignment={add_labour_assignment}
-                remove_labour_assignment={remove_labour_assignment}
-                add_asset_assignment={add_asset_assignment}
-                remove_asset_assignment={remove_asset_assignment}
-                add_overhead_assignment={add_overhead_assignment}
-                remove_overhead_assignment={remove_overhead_assignment}
-              />
-            ) : null}
-
-            <SectionGroup
-              title="Checks"
-              description="Review reconciliation and warnings after building the divisions and groups."
-              sections={check_sections}
-              active_section={active_section}
-              on_select={set_active_section}
+            <CollapsedChecks
+              recovery_plan={recovery_plan}
+              delivery_summary={delivery_summary}
+              evidence={evidence}
+              problems={problems}
             />
-
-            {active_is_check ? (
-              <SelectedSection
-                active_section={active_section}
-                recovery_plan={recovery_plan}
-                allocation_tests={allocation_tests}
-                delivery_summary={delivery_summary}
-                evidence={evidence}
-                links={links}
-                divisions={divisions}
-                groups={groups}
-                problems={problems}
-                labour_assignment={labour_assignment}
-                asset_assignment={asset_assignment}
-                overhead_assignment={overhead_assignment}
-                add_division={add_division}
-                update_division={update_division}
-                remove_division={remove_division}
-                add_asset_labour_link={add_asset_labour_link}
-                remove_asset_labour_link={remove_asset_labour_link}
-                add_operational_group={add_operational_group}
-                update_operational_group={update_operational_group}
-                remove_operational_group={remove_operational_group}
-                add_labour_assignment={add_labour_assignment}
-                remove_labour_assignment={remove_labour_assignment}
-                add_asset_assignment={add_asset_assignment}
-                remove_asset_assignment={remove_asset_assignment}
-                add_overhead_assignment={add_overhead_assignment}
-                remove_overhead_assignment={remove_overhead_assignment}
-              />
-            ) : null}
           </div>
 
-          <ReadinessRail
-            outcome={outcome}
-            delivery_summary={delivery_summary}
-            recovery_plan={recovery_plan}
-            evidence={evidence}
-            divisions={divisions}
-            groups={groups}
-            problems={problems}
-            on_select_section={set_active_section}
-          />
+          <div className="ui-stack">
+            <PoolPositionCard
+              labour_assignment={labour_assignment}
+              asset_assignment={asset_assignment}
+              overhead_assignment={overhead_assignment}
+              recovery_plan={recovery_plan}
+            />
+
+            <AllocationPositionCard
+              divisions={divisions}
+              groups={groups}
+              recovery_plan={recovery_plan}
+            />
+          </div>
         </div>
       </div>
     </section>
