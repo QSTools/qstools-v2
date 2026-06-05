@@ -184,22 +184,29 @@ export default function useCostAllocation(inputs = {}) {
   function add_labour_assignment({
     group_id,
     staff_type_id,
+    assigned_staff_count,
     assignment_percent,
   }) {
     const percent = Math.round(safe_number(assignment_percent));
+    const staff_count = Math.max(
+      0,
+      Math.round(safe_number(assigned_staff_count))
+    );
 
     if (!group_id || !staff_type_id || percent <= 0) {
       return;
     }
 
     const clamped_percent = Math.min(percent, 100);
-
     const timestamp = new Date().toISOString();
+    const assignment_id = generate_local_id("labour_assignment");
 
     const next_assignment = {
-      assignment_id: generate_local_id("labour_assignment"),
+      assignment_id,
+      labour_group_assignment_id: assignment_id,
       group_id,
       staff_type_id,
+      assigned_staff_count: staff_count,
       assignment_percent: clamped_percent,
       is_active: true,
       created_at: timestamp,
@@ -220,7 +227,9 @@ export default function useCostAllocation(inputs = {}) {
     const next_assignments = safe_array(state?.labour_group_assignments).map(
       (assignment) => {
         const current_assignment_id =
-          assignment.assignment_id || assignment.labour_assignment_id;
+          assignment.assignment_id ||
+          assignment.labour_assignment_id ||
+          assignment.labour_group_assignment_id;
 
         if (current_assignment_id !== assignment_id) {
           return assignment;
@@ -245,7 +254,6 @@ export default function useCostAllocation(inputs = {}) {
     }
 
     const clamped_percent = Math.min(percent, 100);
-
     const timestamp = new Date().toISOString();
 
     const next_assignment = {
