@@ -140,10 +140,10 @@ export default function BusinessSetupMainCard({
                 pages.
               </p>
               <p className="ui-help">
-                You can now continue to Labour. The first thing we will do is
-                enter your staff and their pay rates so QS Tools can work out
-                the true labour cost, productive labour cost rate, and
-                charge-out recovery position.
+                You can now continue to Opening Hours. The first thing we will
+                do is set the business operating calendar so QS Tools can work
+                out the net annual business open hours before labour, assets,
+                cost summary, and business summary calculations use the model.
               </p>
 
               <div className="ui-actions">
@@ -152,7 +152,7 @@ export default function BusinessSetupMainCard({
                   className="ui-button-primary"
                   onClick={continueToNextStep}
                 >
-                  Continue to Labour
+                  Continue to Opening Hours
                 </button>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function BusinessSetupMainCard({
               <strong>Save the business profile to continue.</strong>
               <p className="ui-help">
                 Enter a business name and choose a recovery driver before
-                moving to the Labour page.
+                moving to the Opening Hours page.
               </p>
             </div>
           )}
