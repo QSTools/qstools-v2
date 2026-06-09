@@ -15,7 +15,7 @@ function is_public_path(pathname) {
   );
 }
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (is_public_path(pathname)) {
