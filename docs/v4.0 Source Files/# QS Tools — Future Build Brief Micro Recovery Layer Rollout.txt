@@ -1,0 +1,951 @@
+# QS Tools — Future Build Brief
+
+## Micro Recovery Layer Rollout
+
+## Cost Allocation → Recovery Summary → Rate Builder → Business Outcome → Quote Checker
+
+STATUS: ACTIVE FUTURE BUILD BRIEF
+VERSION: v4.0
+SCOPE: Micro recovery strategy layer and downstream operational tools
+
+---
+
+# 1. Purpose
+
+This brief defines the next build phase after the macro operating-hour upgrade.
+
+The macro layer is now defined as:
+
+```txt
+Opening Hours
+→ Cost Summary
+→ Business Summary
+```
+
+The macro layer answers:
+
+```txt
+What does the business cost to operate?
+What does it cost per open business hour?
+Does trading margin cover that cost?
+```
+
+The next phase is the micro recovery layer.
+
+The micro layer answers:
+
+```txt
+How will the business recover that burden operationally?
+Which cost streams carry the recovery responsibility?
+Which labour, asset, material, overhead, division, or group driver carries each share?
+What rates or quote checks are required to stop recovery leakage?
+```
+
+The build flow from here should be:
+
+```txt
+Cost Allocation
+→ Recovery Summary
+→ Rate Builder
+→ Business Outcome
+→ Quote Checker
+```
+
+---
+
+# 2. Locked Macro / Micro Principle
+
+The locked system rule is:
+
+```txt
+Macro shows what the business costs to be open.
+Micro shows how the business recovers that cost.
+```
+
+This means:
+
+```txt
+Macro denominator:
+net annual business open hours
+
+Micro denominators:
+selected recovery drivers
+```
+
+Micro recovery drivers may include:
+
+```txt
+selected recovery hours
+productive labour hours
+asset utilisation hours
+material margin
+unit sales
+operating groups
+divisions
+quote-specific drivers
+```
+
+The micro layer must not overwrite the macro layer.
+
+Cost Summary’s macro result remains:
+
+```txt
+Operating cost per open hour
+= total operating cost / net annual business open hours
+```
+
+Recovery Summary and downstream tools then test how that burden is recovered.
+
+---
+
+# 3. Current System Position
+
+## 3.1 Macro layer completed
+
+The following is now implemented:
+
+```txt
+Opening Hours calculates net annual business open hours.
+Cost Summary calculates operating cost per open hour.
+Business Summary compares trading margin against operating cost per open hour.
+```
+
+Example current macro state:
+
+```txt
+Net annual business open hours:   2,182.4 hrs
+Total operating cost burden:      $705,680
+Operating cost per open hour:     $323/open hr
+Margin Pool:                      $332,382
+Deficit per open hour:            -$171/open hr
+```
+
+## 3.2 Model Readiness state
+
+Model Readiness is currently blocked, correctly, because test Labour inputs have created a variance against the P&L benchmark.
+
+This should not be bypassed.
+
+Model Readiness remains a trust gate.
+
+## 3.3 Recovery Summary state
+
+Recovery Summary currently still uses selected recovery hours.
+
+This is not automatically wrong.
+
+Recovery Summary belongs to the micro layer and should test recovery strategy, not redefine the macro open-hour baseline.
+
+---
+
+# 4. Build Order From Here
+
+The correct build order is:
+
+```txt
+1. Finish Cost Allocation UI cleanup.
+2. Confirm Cost Allocation output contracts.
+3. Update Recovery Summary to consume Cost Allocation structure.
+4. Build Rate Builder from Recovery Summary / Cost Allocation outputs.
+5. Build Business Outcome using macro + micro recovery outputs.
+6. Build Quote Checker using Rate Builder and recovery warnings.
+```
+
+Recovery Summary should come **after Cost Allocation**, because Cost Allocation defines the operational recovery structure.
+
+---
+
+# 5. Cost Allocation Build Scope
+
+## 5.1 Role
+
+Cost Allocation is the bridge between macro cost burden and micro recovery strategy.
+
+It answers:
+
+```txt
+How is the cost burden split across operational groups?
+Which groups carry labour?
+Which groups carry assets?
+Which groups carry overheads?
+Which groups are productive, non-productive, support, admin, or recovery-related?
+```
+
+## 5.2 Cost Allocation should consume
+
+Cost Allocation should consume:
+
+```txt
+total_cost_burden
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+macro operating context from Cost Summary
+labour groups
+asset groups
+overhead groups
+division/group setup
+operating group setup
+```
+
+## 5.3 Cost Allocation should produce
+
+Cost Allocation should produce a structured recovery map:
+
+```txt
+allocation_groups
+allocation_divisions
+group_cost_burden
+division_cost_burden
+labour_allocated_cost
+asset_allocated_cost
+overhead_allocated_cost
+selected_recovery_driver
+selected_recovery_quantity
+group_required_recovery_rate
+division_required_recovery_rate
+allocation_share_percent
+allocation_warning_state
+```
+
+## 5.4 Cost Allocation must not do
+
+Cost Allocation must not:
+
+```txt
+replace Cost Summary’s operating cost per open hour
+recalculate macro open hours
+silently use labour hours as a macro denominator
+hide unallocated costs
+force all cost into labour
+```
+
+## 5.5 Current priority
+
+Cost Allocation is mostly a UI cleanup now.
+
+Priority cleanup areas:
+
+```txt
+clear group/division layout
+clear productive vs non-productive guidance
+clear operational group builder
+clear cost allocation summary
+clear warnings for unallocated or over-allocated cost
+clear bridge into Recovery Summary
+```
+
+---
+
+# 6. Recovery Summary Build Scope
+
+## 6.1 Role
+
+Recovery Summary comes after Cost Allocation.
+
+It answers:
+
+```txt
+Given the allocated cost burden, can the selected recovery drivers recover it?
+```
+
+Recovery Summary is not the macro layer.
+
+It should explain:
+
+```txt
+Cost Summary tells us the business cost per open hour.
+Cost Allocation tells us where the burden sits operationally.
+Recovery Summary tests whether selected recovery drivers can carry that burden.
+```
+
+## 6.2 Recovery Summary should consume
+
+Recovery Summary should consume:
+
+```txt
+Cost Summary macro baseline
+Business Summary margin position
+Cost Allocation group/division recovery map
+selected recovery drivers
+selected recovery shares
+selected recovery quantities
+actual recovery assumptions
+```
+
+## 6.3 Recovery Summary should produce
+
+Recovery Summary should produce:
+
+```txt
+required_recovery_per_selected_driver
+actual_recovery_per_selected_driver
+recovery_gap_per_selected_driver
+group_recovery_status
+division_recovery_status
+labour_recovery_status
+asset_recovery_status
+material_recovery_status
+overhead_absorption_status
+recovery_share_warnings
+```
+
+## 6.4 Recovery Summary wording rule
+
+Recovery Summary may use recovery-hour wording, but it must be explicit:
+
+Use:
+
+```txt
+selected recovery hours
+required recovery per selected recovery hour
+actual recovery per selected recovery hour
+recovery gap per selected recovery hour
+```
+
+Avoid vague labels:
+
+```txt
+Required Recovery Rate
+Recovery Hours
+Operating Recovery Hours
+```
+
+## 6.5 Recovery Summary interpretation
+
+Recovery Summary may show:
+
+```txt
+Whole-business burden through selected recovery hours
+```
+
+Example:
+
+```txt
+Total burden:                   $705,680
+Selected recovery hours:         2,213 hrs
+Required recovery per selected hour:
+$705,680 / 2,213 = about $319/hr
+```
+
+This is valid because it is a micro recovery strategy test.
+
+It is not the same as:
+
+```txt
+Operating cost per open hour = $323/open hr
+```
+
+Both can exist, but they answer different questions.
+
+---
+
+# 7. Share Warning System
+
+## 7.1 Purpose
+
+The share warning system is required to prevent false confidence when costs are split across recovery streams.
+
+It should identify when recovery share assumptions are incomplete, overloaded, or structurally unsafe.
+
+## 7.2 Share types
+
+The system should support recovery share types such as:
+
+```txt
+labour recovery share
+asset recovery share
+material recovery share
+overhead absorption share
+unit/product recovery share
+group recovery share
+division recovery share
+```
+
+## 7.3 Required share checks
+
+The warning system should check:
+
+```txt
+total share equals 100%
+total share below 100%
+total share above 100%
+missing share
+zero share assigned to active cost stream
+cost stream has value but no recovery share
+recovery share assigned but no recovery driver exists
+driver quantity is zero
+actual recovery is below required recovery
+overhead share is being hidden or absorbed without a driver
+```
+
+## 7.4 Warning categories
+
+Recommended warning categories:
+
+```txt
+blocking
+review
+info
+```
+
+## 7.5 Blocking warnings
+
+Blocking warnings should stop the model from being trusted.
+
+Examples:
+
+```txt
+Recovery shares total more than 100%.
+Recovery shares total less than 100%.
+Labour recovery selected but selected recovery hours are zero.
+Asset recovery selected but asset utilisation driver is zero.
+Material recovery selected but no material margin driver exists.
+Overhead absorption selected but no absorption driver exists.
+```
+
+## 7.6 Review warnings
+
+Review warnings should allow preview but flag risk.
+
+Examples:
+
+```txt
+Labour is carrying more than expected recovery share.
+Overheads are heavily absorbed through labour.
+Asset cost exists but is not allocated to an asset recovery stream.
+Material margin is expected to carry overhead but margin data is weak.
+One recovery group carries a disproportionate share of burden.
+```
+
+## 7.7 Info warnings
+
+Info warnings explain context.
+
+Examples:
+
+```txt
+Recovery Summary is using selected recovery hours.
+Cost Summary macro baseline uses open business hours.
+This rate is not a quote sell rate.
+This rate excludes profit target unless specifically added downstream.
+```
+
+## 7.8 Share warning output contract
+
+Recovery Summary / Cost Allocation should expose:
+
+```txt
+share_warning_count
+blocking_share_warning_count
+review_share_warning_count
+share_warning_rows
+recovery_share_total_percent
+unallocated_share_percent
+over_allocated_share_percent
+```
+
+Each warning row should include:
+
+```txt
+warning_id
+severity
+module
+cost_stream
+driver
+message
+review_action
+```
+
+---
+
+# 8. Rate Builder Build Scope
+
+## 8.1 Role
+
+Rate Builder comes after Recovery Summary.
+
+It answers:
+
+```txt
+What rate should be used if this recovery strategy is trusted?
+```
+
+Rate Builder should not create the recovery strategy. It should consume it.
+
+## 8.2 Rate Builder should consume
+
+Rate Builder should consume:
+
+```txt
+Cost Allocation output
+Recovery Summary required recovery rates
+selected recovery drivers
+labour rates
+asset recovery rates
+material/unit margins
+overhead absorption rates
+target profit settings
+risk allowances
+```
+
+## 8.3 Rate Builder should produce
+
+Rate Builder should produce:
+
+```txt
+labour charge-out rate
+asset charge-out rate
+material margin requirement
+unit recovery rate
+group blended rate
+division blended rate
+minimum viable rate
+target rate
+warning-adjusted rate
+```
+
+## 8.4 Rate Builder should distinguish
+
+Rate Builder must distinguish:
+
+```txt
+cost recovery rate
+break-even rate
+target profit rate
+market sell rate
+quote-specific adjusted rate
+```
+
+## 8.5 Rate Builder warnings
+
+Rate Builder should warn when:
+
+```txt
+rate is below required recovery
+rate covers cost but not profit
+rate depends on weak driver data
+rate uses untrusted Cost Allocation
+rate is based on blocked Recovery Summary
+rate is below historical actual recovery
+```
+
+---
+
+# 9. Business Outcome Build Scope
+
+## 9.1 Role
+
+Business Outcome comes after Rate Builder and Recovery Summary.
+
+It answers:
+
+```txt
+If the selected recovery strategy and rates are used, what is the business outcome?
+```
+
+Business Outcome is where the system converts operational recovery decisions back into whole-business result.
+
+## 9.2 Business Outcome should consume
+
+Business Outcome should consume:
+
+```txt
+Business Summary macro result
+Recovery Summary recovery strategy
+Cost Allocation cost split
+Rate Builder rates
+actual or forecast volumes
+target profit
+risk allowances
+```
+
+## 9.3 Business Outcome should produce
+
+Business Outcome should produce:
+
+```txt
+forecast revenue
+forecast gross margin
+forecast recovery amount
+forecast operating surplus or deficit
+profit target gap
+cost stream under-recovery
+group recovery gap
+division recovery gap
+business outcome status
+```
+
+## 9.4 Business Outcome should compare
+
+Business Outcome should compare:
+
+```txt
+current business position
+required recovery outcome
+target recovery outcome
+forecast recovery outcome
+```
+
+It should show:
+
+```txt
+Are we still short?
+Have we closed the deficit?
+Which recovery stream is still weak?
+What rate/driver needs to change?
+```
+
+## 9.5 Business Outcome warning system
+
+Business Outcome should warn when:
+
+```txt
+forecast still does not cover operating cost
+profit target is not achieved
+one stream is carrying too much recovery
+forecast relies on unrealistic utilisation
+forecast relies on unrealistic labour productivity
+quote/rate assumptions are below required recovery
+```
+
+---
+
+# 10. Quote Checker Build Scope
+
+## 10.1 Role
+
+Quote Checker comes after Rate Builder and Business Outcome.
+
+It answers:
+
+```txt
+Does this quote support the recovery model?
+Does this quote protect the business outcome?
+Does this quote create under-recovery risk?
+```
+
+## 10.2 Quote Checker should consume
+
+Quote Checker should consume:
+
+```txt
+Rate Builder rates
+Recovery Summary recovery requirements
+Cost Allocation group/division burden
+Business Outcome targets
+Opening Hours calendar context
+job duration
+labour hours
+asset usage
+material costs
+COGS/direct costs
+quote margin
+site constraints
+after-hours/weekend/shutdown flags
+```
+
+## 10.3 Quote Checker should produce
+
+Quote Checker should produce:
+
+```txt
+quote recovery status
+quote margin status
+labour recovery status
+asset recovery status
+material recovery status
+overhead absorption status
+calendar/capacity warning status
+recommended adjustment
+minimum viable quote value
+target quote value
+```
+
+## 10.4 Quote Checker must support both macro and micro context
+
+Quote Checker may need:
+
+```txt
+macro open-hour pressure
+selected recovery-driver pressure
+rate-builder minimums
+calendar constraints
+```
+
+Example:
+
+```txt
+Macro warning:
+This quote consumes scarce open-hour capacity.
+
+Micro warning:
+This quote does not recover the labour/asset/material burden assigned to it.
+```
+
+## 10.5 Quote Checker warning examples
+
+Quote Checker should warn when:
+
+```txt
+quote margin is below required recovery
+labour hours are under-priced
+asset usage is not recovered
+material margin is too low
+overhead absorption is missing
+job duration overlaps shutdown/opening constraints
+work is outside standard opening hours
+quote uses untrusted recovery model
+quote uses blocked Model Readiness baseline
+quote may worsen business deficit
+```
+
+---
+
+# 11. Share Warning System Across Downstream Pages
+
+The share warning system should eventually flow through:
+
+```txt
+Cost Allocation
+→ Recovery Summary
+→ Rate Builder
+→ Business Outcome
+→ Quote Checker
+```
+
+## 11.1 Cost Allocation share warnings
+
+Cost Allocation warns:
+
+```txt
+cost not allocated
+cost over-allocated
+group/division share mismatch
+cost stream has no driver
+```
+
+## 11.2 Recovery Summary share warnings
+
+Recovery Summary warns:
+
+```txt
+recovery share does not total 100%
+selected driver cannot carry assigned cost
+actual recovery below required recovery
+```
+
+## 11.3 Rate Builder share warnings
+
+Rate Builder warns:
+
+```txt
+rate does not recover assigned share
+rate is below break-even
+target profit is missing
+```
+
+## 11.4 Business Outcome share warnings
+
+Business Outcome warns:
+
+```txt
+forecast still under-recovers
+profit target not met
+one stream is overburdened
+```
+
+## 11.5 Quote Checker share warnings
+
+Quote Checker warns:
+
+```txt
+quote does not recover allocated burden
+quote uses unsupported assumptions
+quote consumes capacity without enough margin
+```
+
+---
+
+# 12. Required Build Discipline
+
+## 12.1 Do not patch formulas blindly
+
+Before changing formulas, identify whether the page belongs to:
+
+```txt
+macro layer
+micro recovery layer
+pricing/rate layer
+outcome layer
+quote checking layer
+```
+
+## 12.2 No silent denominator fallback
+
+Macro pages must not silently fall back from open hours to recovery hours.
+
+Micro pages must not silently fall back from selected recovery drivers to open hours.
+
+If denominator is missing:
+
+```txt
+show zero / warning state
+do not silently substitute another basis
+```
+
+## 12.3 UI labels must expose the denominator
+
+Every key rate should clearly identify its basis:
+
+```txt
+/open hr
+/selected recovery hr
+/productive labour hr
+/asset utilisation hr
+/unit
+/group driver
+```
+
+## 12.4 Components should not calculate formulas
+
+Maintain architecture:
+
+```txt
+hooks = orchestration
+lib/calculations = formulas
+lib/selectors = display shaping
+components = rendering only
+```
+
+---
+
+# 13. Recommended Implementation Sequence
+
+## Phase 1 — Finish Cost Allocation UI cleanup
+
+Tasks:
+
+```txt
+clean group/division panels
+clean allocation summary
+clean productive/non-productive guidance
+clean warnings
+confirm output contract
+```
+
+Acceptance:
+
+```txt
+Cost Allocation clearly shows what cost is assigned, unassigned, or over-assigned.
+```
+
+## Phase 2 — Add share warning system to Cost Allocation
+
+Tasks:
+
+```txt
+calculate allocation share totals
+identify unallocated costs
+identify over-allocated costs
+identify missing drivers
+surface blocking/review/info warnings
+```
+
+Acceptance:
+
+```txt
+Cost Allocation cannot look trusted if recovery shares are incomplete.
+```
+
+## Phase 3 — Recovery Summary boundary cleanup
+
+Tasks:
+
+```txt
+keep formulas stable
+rename ambiguous labels
+show selected recovery driver clearly
+consume Cost Allocation recovery structure
+add share warning display
+```
+
+Acceptance:
+
+```txt
+Recovery Summary clearly reads as recovery strategy, not macro baseline.
+```
+
+## Phase 4 — Rate Builder
+
+Tasks:
+
+```txt
+consume Recovery Summary required rates
+build cost recovery / break-even / target rates
+include share warnings
+separate cost rate from sell rate
+```
+
+Acceptance:
+
+```txt
+Rate Builder produces defensible rates from selected recovery strategy.
+```
+
+## Phase 5 — Business Outcome
+
+Tasks:
+
+```txt
+forecast business result using selected rates/drivers
+compare to Business Summary deficit
+show whether recovery strategy closes the gap
+```
+
+Acceptance:
+
+```txt
+Business Outcome shows whether the selected operating model actually fixes the business result.
+```
+
+## Phase 6 — Quote Checker
+
+Tasks:
+
+```txt
+test quote against Rate Builder and Recovery Summary
+check margin, cost recovery, calendar constraints, and share warnings
+show minimum and target quote position
+```
+
+Acceptance:
+
+```txt
+Quote Checker flags under-recovery before work is accepted.
+```
+
+---
+
+# 14. Final Build Principle
+
+The future build must preserve this structure:
+
+```txt
+Macro:
+What does the business cost to be open?
+
+Micro:
+How will the business recover that cost?
+
+Rates:
+What rate is required to recover it?
+
+Outcome:
+Will the selected recovery strategy fix the business?
+
+Quote Checker:
+Does this quote support the selected recovery strategy?
+```
+
+This is the system path from business truth to operational control.

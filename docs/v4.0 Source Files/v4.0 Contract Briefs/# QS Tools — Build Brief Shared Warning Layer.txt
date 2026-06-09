@@ -1,0 +1,566 @@
+# QS Tools — Build Brief
+
+## Shared Recovery Risk Warning System
+
+## Neutral Warning Engine for Recovery Summary, Business Outcome, and Quote Checker
+
+STATUS: READY FOR BUILD
+VERSION: v1.0
+SCOPE: Shared micro-layer recovery risk warning engine
+
+---
+
+## 1. Purpose
+
+Build a shared warning system for the QS Tools micro recovery layer.
+
+This system must be a neutral reusable engine that accepts clean recovery input rows and returns structured warning rows, warning counts, and warning status.
+
+It must not be wired into Cost Allocation, Recovery Summary, Business Outcome, or Quote Checker during the first build.
+
+The first build creates the shared system only.
+
+---
+
+## 2. Core Rule
+
+```txt
+The shared warning system checks recovery risk.
+It does not calculate recovery formulas.
+It does not own Cost Allocation.
+It does not own Recovery Summary.
+It does not own Business Outcome.
+It does not own Quote Checker.
+```
+
+The system receives clean inputs and returns warnings.
+
+---
+
+## 3. File to Create
+
+Create:
+
+```txt
+lib/recovery/recoveryRiskWarningSystem.js
+```
+
+The file must contain pure JavaScript helper functions only.
+
+It must not:
+
+```txt
+import React
+use hooks
+read localStorage
+import page components
+depend directly on Cost Allocation
+depend directly on Recovery Summary
+depend directly on Business Outcome
+depend directly on Quote Checker
+```
+
+---
+
+## 4. System Position
+
+The macro layer is now:
+
+```txt
+Opening Hours
+→ Cost Summary
+→ Business Summary
+```
+
+The micro layer is:
+
+```txt
+Cost Allocation
+→ Recovery Summary
+→ Rate Builder
+→ Business Outcome
+→ Quote Checker
+```
+
+The shared recovery warning system belongs to the micro layer.
+
+It supports future consumers:
+
+```txt
+Recovery Summary
+Business Outcome
+Quote Checker
+```
+
+Cost Allocation may later provide clean input rows, but Cost Allocation is not the first wired consumer.
+
+---
+
+## 5. Input Contract
+
+The warning system should accept generic rows.
+
+### 5.1 Share rows
+
+A share row represents a percentage share of recovery responsibility.
+
+Expected shape:
+
+```js
+{
+  row_id: "labour_share",
+  module: "recovery_summary",
+  cost_stream: "labour",
+  share_percent: 60,
+  cost_value: 350000,
+  driver: "selected_recovery_hours",
+  driver_quantity: 2213,
+  driver_enabled: true
+}
+```
+
+Required:
+
+```txt
+cost_stream
+share_percent
+```
+
+Optional:
+
+```txt
+row_id
+module
+cost_value
+driver
+driver_quantity
+driver_enabled
+group_id
+division_id
+notes
+```
+
+---
+
+### 5.2 Driver rows
+
+A driver row represents whether a selected recovery driver is usable.
+
+Expected shape:
+
+```js
+{
+  row_id: "labour_driver",
+  module: "recovery_summary",
+  cost_stream: "labour",
+  driver: "selected_recovery_hours",
+  driver_quantity: 2213,
+  driver_enabled: true,
+  share_percent: 60,
+  cost_value: 350000
+}
+```
+
+Required:
+
+```txt
+cost_stream
+driver
+driver_quantity
+```
+
+Optional:
+
+```txt
+row_id
+module
+share_percent
+cost_value
+driver_enabled
+group_id
+division_id
+notes
+```
+
+---
+
+### 5.3 Recovery rows
+
+A recovery row represents required vs actual recovery performance.
+
+Expected shape:
+
+```js
+{
+  row_id: "labour_recovery",
+  module: "recovery_summary",
+  cost_stream: "labour",
+  required_recovery_rate: 268.23,
+  actual_recovery_rate: 150.17,
+  recovery_gap: -118.06,
+  driver: "selected_recovery_hours",
+  driver_quantity: 2213
+}
+```
+
+Optional:
+
+```txt
+row_id
+module
+cost_stream
+required_recovery_rate
+actual_recovery_rate
+recovery_gap
+cost_value
+driver
+driver_quantity
+share_percent
+```
+
+---
+
+## 6. Output Contract
+
+The main function should return:
+
+```js
+{
+  module: "recovery_summary",
+  warning_rows: [],
+  warning_count: 0,
+  blocking_warning_count: 0,
+  review_warning_count: 0,
+  info_warning_count: 0,
+  has_blocking_warnings: false,
+  has_review_warnings: false,
+  recovery_share_total_percent: 100,
+  unallocated_share_percent: 0,
+  over_allocated_share_percent: 0
+}
+```
+
+Each warning row should follow this shape:
+
+```js
+{
+  warning_id: "recovery_share_below_100",
+  severity: "blocking",
+  module: "recovery_summary",
+  cost_stream: "all",
+  driver: "share_percent",
+  message: "Recovery shares total 80%, leaving 20% unallocated.",
+  review_action: "Allocate the remaining recovery share before trusting the recovery model.",
+  context: {}
+}
+```
+
+---
+
+## 7. Severity Levels
+
+Allowed severities:
+
+```txt
+blocking
+review
+info
+```
+
+### Blocking
+
+Blocking means the model should not be trusted.
+
+Examples:
+
+```txt
+Recovery shares total below 100%.
+Recovery shares total above 100%.
+Recovery share exists but driver is disabled.
+Recovery share exists but driver quantity is zero.
+Required recovery cannot be calculated.
+```
+
+### Review
+
+Review means preview may continue, but the assumption needs attention.
+
+Examples:
+
+```txt
+Cost exists but no share is assigned.
+One stream carries a high recovery share.
+Actual recovery is below required recovery.
+Overhead is absorbed without clear driver support.
+```
+
+### Info
+
+Info means contextual explanation.
+
+Examples:
+
+```txt
+Recovery shares total 100%.
+This rate is based on selected recovery driver.
+This is not the macro open-hour baseline.
+```
+
+---
+
+## 8. Required Checks
+
+### 8.1 Share total checks
+
+Check:
+
+```txt
+share total below 100%
+share total above 100%
+share total equals 100%
+```
+
+Return:
+
+```txt
+recovery_share_total_percent
+unallocated_share_percent
+over_allocated_share_percent
+```
+
+### 8.2 Missing share checks
+
+Check:
+
+```txt
+cost stream has cost but no recovery share
+share assigned but cost value is zero
+share assigned to inactive or unsupported stream
+```
+
+### 8.3 Driver checks
+
+Check:
+
+```txt
+share assigned but driver missing
+share assigned but driver disabled
+share assigned but driver quantity is zero
+driver quantity exists but no share assigned
+```
+
+### 8.4 Recovery result checks
+
+Check:
+
+```txt
+actual recovery below required recovery
+actual recovery equals required recovery
+actual recovery above required recovery
+required recovery is zero
+actual recovery is zero
+```
+
+### 8.5 Concentration checks
+
+Check:
+
+```txt
+single stream carries high recovery share
+single group carries high recovery share
+single division carries high recovery share
+```
+
+Default concentration review threshold:
+
+```txt
+75%
+```
+
+This should be configurable.
+
+---
+
+## 9. Required Exports
+
+The file should export:
+
+```js
+WARNING_SEVERITY
+build_recovery_risk_warning
+build_recovery_warning_summary
+check_recovery_share_total
+check_recovery_driver_rows
+check_recovery_result_rows
+check_recovery_concentration
+build_recovery_risk_warning_system
+```
+
+---
+
+## 10. Function Responsibilities
+
+### `build_recovery_risk_warning`
+
+Creates a single standard warning row.
+
+### `build_recovery_warning_summary`
+
+Counts warnings by severity and returns summary status.
+
+### `check_recovery_share_total`
+
+Checks whether recovery shares total to 100%.
+
+### `check_recovery_driver_rows`
+
+Checks whether drivers are enabled and have valid quantities.
+
+### `check_recovery_result_rows`
+
+Checks required vs actual recovery results.
+
+### `check_recovery_concentration`
+
+Checks whether a single stream/group/division carries too much recovery burden.
+
+### `build_recovery_risk_warning_system`
+
+Main orchestrator function.
+
+It should accept:
+
+```js
+{
+  module,
+  share_rows,
+  driver_rows,
+  recovery_rows,
+  tolerance_percent,
+  concentration_threshold_percent
+}
+```
+
+And return the full warning summary.
+
+---
+
+## 11. No Wiring Rule
+
+Do not wire this file into any page yet.
+
+Do not modify:
+
+```txt
+Cost Allocation
+Recovery Summary
+Business Outcome
+Quote Checker
+Rate Builder
+```
+
+The first build is shared-system only.
+
+---
+
+## 12. Future Consumer Plan
+
+### Recovery Summary
+
+Will later pass:
+
+```txt
+recovery share rows
+driver rows
+required vs actual recovery rows
+```
+
+The system will warn if recovery strategy assumptions are unsafe.
+
+### Business Outcome
+
+Will later pass:
+
+```txt
+forecast recovery rows
+outcome recovery share rows
+forecast driver rows
+```
+
+The system will warn if the selected strategy still does not fix the business outcome.
+
+### Quote Checker
+
+Will later pass:
+
+```txt
+quote recovery assumptions
+quote driver rows
+quote margin/recovery rows
+```
+
+The system will warn if a quote under-recovers its required burden.
+
+### Cost Allocation
+
+May later provide clean allocation rows, but is not the first wired consumer.
+
+---
+
+## 13. Architecture Rules
+
+Do not calculate formulas in components.
+
+Maintain:
+
+```txt
+hooks = orchestration
+lib/calculations = formulas
+lib/selectors = display shaping
+components = rendering only
+```
+
+This shared file belongs in `lib/recovery` because it is reusable recovery-domain logic.
+
+---
+
+## 14. Build Acceptance Criteria
+
+The build is accepted when:
+
+```txt
+1. lib/recovery/recoveryRiskWarningSystem.js exists.
+2. It exports reusable pure helper functions.
+3. It accepts generic share, driver, and recovery rows.
+4. It returns standard warning rows and summary counts.
+5. It has no React import.
+6. It has no page-specific dependency.
+7. It is not wired into Cost Allocation.
+8. It is not wired into Recovery Summary.
+9. It is not wired into Business Outcome.
+10. It is not wired into Quote Checker.
+11. npm run build passes.
+```
+
+---
+
+## 15. Suggested Build Command
+
+After creating the file, run:
+
+```powershell
+npm run build
+```
+
+Do not stage or commit until the build passes.
+
+---
+
+## 16. Locked Principle
+
+```txt
+The shared warning system is a neutral risk engine.
+Pages provide clean inputs.
+The engine returns warnings.
+Pages decide how to display or act on them.
+```

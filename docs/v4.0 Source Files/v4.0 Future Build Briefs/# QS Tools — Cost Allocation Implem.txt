@@ -1,0 +1,443 @@
+# QS Tools — Cost Allocation Implementation Brief
+
+## Work Completed in Current Chat
+
+## 1. Major Direction Change
+
+Cost Allocation was changed from a multi-tab assignment model into a **group-first operating model**.
+
+Previous confusing flow:
+
+```txt
+Allocation profile
+Operating groups
+Capability links
+Labour assignment
+Asset assignment
+Overhead distribution
+Checks
+```
+
+New intended flow:
+
+```txt
+Operating groups
+→ labour / assets / overhead inside each group
+→ checks
+```
+
+The user should build each operating group in one place.
+
+## 2. Allocation Profile Removed from Visible Flow
+
+The Allocation Profile concept was considered confusing and unnecessary for the current default build.
+
+Decision:
+
+```txt
+Allocation profile is not where users test scenarios.
+Default/current setup is assumed.
+Scenario testing belongs later.
+```
+
+The visible user flow now starts with **Operating groups**.
+
+## 3. Operating Groups Became the Main Builder
+
+Operating groups now represent real working units, such as:
+
+```txt
+Site Labour
+Pump Crew
+Install Crew
+Total Crew
+```
+
+Each operating group contains:
+
+```txt
+Group name
+Group cost summary
+Productive labour group / crew
+Productive assets
+Automatic overhead
+```
+
+## 4. Labour Assignment Fixed
+
+### Before
+
+Labour assignment was awkward and appeared to use individual staff or unclear productive/non-productive concepts.
+
+### After
+
+Labour assignment uses productive staff type / labour group from the Labour module.
+
+Example:
+
+```txt
+Site Crew
+Junior / Trainee
+site_foreman
+```
+
+The user assigns a whole-number percentage.
+
+Example:
+
+```txt
+Site Crew → 100%
+```
+
+### Capacity Guard Added
+
+Each labour group can only be used up to 100% total across all operating groups.
+
+The UI now:
+
+```txt
+shows remaining %
+caps input to remaining %
+disables fully allocated labour groups
+shows "fully allocated"
+```
+
+## 5. Labour Assignment Display Fixed
+
+A wiring issue appeared where assigned labour rows showed:
+
+```txt
+Old / unmatched labour group — remove and re-add
+0 productive hrs
+$0
+```
+
+This was caused by display logic checking assigned values instead of resolving saved `staff_type_id` back to the active Labour module rows.
+
+Fix added:
+
+```txt
+resolve saved assignment ID
+find matching labour row
+derive display name
+derive assigned hours
+derive assigned cost
+only show old/unmatched if no source row matches
+```
+
+Current confirmed behaviour:
+
+```txt
+Site Crew resolves correctly
+Junior / Trainee resolves correctly
+site_foreman resolves correctly
+hours and costs display correctly
+```
+
+## 6. Asset Assignment Fixed
+
+Assets were given the same capacity guard as labour.
+
+Each productive asset can only be assigned up to 100% total across all operating groups.
+
+The UI now:
+
+```txt
+shows remaining %
+caps input to remaining %
+disables fully allocated assets
+shows "fully allocated"
+```
+
+### Asset Display Fix
+
+Asset assignment had the same display issue as labour.
+
+Rows showed:
+
+```txt
+Productive asset
+100% · $0
+```
+
+Fix direction added:
+
+```txt
+resolve saved asset_id back to active asset row
+display real asset name
+derive assigned asset cost from asset source row if stored assigned cost is missing
+show old/unmatched only if no matching asset row exists
+```
+
+## 7. Overhead Assignment Simplified
+
+Manual overhead assignment was removed from the default group builder.
+
+Reason:
+
+```txt
+Labour = capacity, assigned manually
+Assets = capacity, assigned manually
+Overhead = burden, distributed automatically
+```
+
+### New Overhead Rule
+
+Overhead auto-distributes by:
+
+```txt
+1. Labour cost weighted
+2. Asset burden weighted
+3. Equal split fallback
+```
+
+Implemented in:
+
+```txt
+lib/calculations/costAllocationRules.js
+```
+
+The UI now shows overhead as read-only:
+
+```txt
+Automatic overhead distribution
+% split
+$ amount
+method
+```
+
+## 8. Standalone Assignment Routes Removed
+
+Standalone route components were removed from the active visible flow:
+
+```txt
+CostAllocationLabourAssignmentCard.jsx
+CostAllocationAssetAssignmentCard.jsx
+CostAllocationOverheadAssignmentCard.jsx
+```
+
+`CostAllocationEvidenceBreakdown.jsx` was cleaned so it routes to:
+
+```txt
+groups
+links
+group_cost_stacks
+pool_reconciliation
+structural_warnings
+setup_checklist
+evidence
+```
+
+Later, `links` was hidden from visible Build navigation.
+
+## 9. Capability Links Hidden
+
+Capability Links were discussed.
+
+Purpose:
+
+```txt
+Asset capability check
+Asset → required labour type / operator capability
+```
+
+Decision:
+
+```txt
+Hide from main Build flow for now.
+Operating groups are enough for current Cost Allocation structure.
+Capability Links can return later as an advanced validation layer.
+```
+
+In `CostAllocationMainCard.jsx`:
+
+```txt
+BUILD_SECTION_KEYS = ["groups"]
+```
+
+Build section now only shows:
+
+```txt
+Operating groups
+```
+
+## 10. Status and Builder Cards Consolidated
+
+There was duplicated status content between:
+
+```txt
+CostAllocationStatusStrip
+CostAllocationMainCard
+```
+
+Decision:
+
+```txt
+Make CostAllocationMainCard the single top status/builder card.
+Remove CostAllocationStatusStrip from page flow.
+```
+
+`app/cost-allocation/page.jsx` now renders:
+
+```txt
+CostAllocationMainCard
+CostAllocationNoticeBanner
+CostAllocationHelpPanel
+```
+
+The top card now shows:
+
+```txt
+Status
+Groups
+Assigned
+Remaining
+Warnings
+Recovery context
+```
+
+## 11. Cost Allocation CSS Added
+
+A new module stylesheet was created:
+
+```txt
+styles/modules/cost-allocation.css
+```
+
+It provides Cost Allocation-specific layout and visual styling.
+
+`app/globals.css` imports it with the other module CSS files:
+
+```css
+@import "../styles/modules/cost-allocation.css";
+```
+
+The page root uses:
+
+```jsx
+<main className="ui-page cost-allocation-page">
+```
+
+Important classes added / used:
+
+```txt
+cost-allocation-page
+cost-allocation-hero-panel
+cost-allocation-hero-header
+cost-allocation-current-result
+cost-allocation-status-grid
+cost-allocation-recovery-context
+cost-allocation-layout
+cost-allocation-section-card
+cost-allocation-readiness-rail
+cost-allocation-operating-group-card
+cost-allocation-group-header
+cost-allocation-group-summary
+cost-allocation-assignment-block
+cost-allocation-assignment-title
+cost-allocation-assignment-help
+cost-allocation-assignment-row
+```
+
+Active section cards now use:
+
+```txt
+cost-allocation-section-card is-active
+```
+
+and visually highlight.
+
+## 12. Current Refactor In Progress
+
+`CostAllocationGroupsCard.jsx` became too long.
+
+Decision:
+
+```txt
+Split the group builder into child files before adding collapse/expand UI.
+```
+
+Folder created:
+
+```txt
+components/cost-allocation/groups/
+```
+
+Expected files now present or being created:
+
+```txt
+costAllocationGroupHelpers.js
+CostAllocationCreateGroupForm.jsx
+CostAllocationGroupHeader.jsx
+CostAllocationGroupCostSummary.jsx
+CostAllocationGroupLabourBuilder.jsx
+CostAllocationGroupAssetBuilder.jsx
+CostAllocationGroupOverheadBuilder.jsx
+CostAllocationOperatingGroupBuilder.jsx
+```
+
+The final parent `CostAllocationGroupsCard.jsx` should be a small coordinator only.
+
+## 13. Most Recent Build Issue
+
+A build error occurred:
+
+```txt
+Module not found: Can't resolve './CostAllocationGroupAssetBuilder'
+```
+
+Then `git status --untracked-files=all` confirmed the file exists:
+
+```txt
+components/cost-allocation/groups/CostAllocationGroupAssetBuilder.jsx
+```
+
+Likely causes to check next:
+
+```txt
+filename typo / case mismatch
+file not saved before build
+import path typo
+stale .next cache
+```
+
+Run:
+
+```powershell
+Get-ChildItem .\components\cost-allocation\groups\ | Select-Object Name, Length
+Test-Path .\components\cost-allocation\groups\CostAllocationGroupAssetBuilder.jsx
+npm run build
+```
+
+If necessary:
+
+```powershell
+Remove-Item -Recurse -Force .\.next
+npm run build
+```
+
+## 14. Suggested Commit Boundaries
+
+Already completed commits included:
+
+```txt
+Refactor cost allocation to group-first operating model
+Remove standalone cost allocation assignment routes
+Automate overhead distribution in cost allocation
+Align cost allocation UI with module system
+```
+
+Current in-progress commit should be:
+
+```txt
+Split cost allocation group builder components
+```
+
+Stage only:
+
+```powershell
+git add components/cost-allocation/CostAllocationGroupsCard.jsx
+git add components/cost-allocation/groups/
+```
+
+Do not stage unrelated docs/evidence.

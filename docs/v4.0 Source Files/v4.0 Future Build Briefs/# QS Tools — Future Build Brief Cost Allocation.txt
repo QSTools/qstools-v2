@@ -1,0 +1,303 @@
+# QS Tools — Future Build Brief
+
+## Next Chat: Cost Allocation Group Builder Refactor and Compression
+
+## 1. Starting Context
+
+The current Cost Allocation page has been substantially improved and should be kept.
+
+The new direction is correct:
+
+```txt
+Group-first Cost Allocation
+Operating groups own labour, assets, and automatic overhead
+Checks happen after groups are built
+```
+
+Do not revert the group-first model.
+
+## 2. Immediate Goal
+
+The next chat should finish reducing and stabilising `CostAllocationGroupsCard.jsx`.
+
+Current issue:
+
+```txt
+CostAllocationGroupsCard.jsx became too large.
+A child component folder was started.
+Need to finish the split, confirm build, then commit.
+```
+
+## 3. Existing / Intended Child Folder
+
+Folder:
+
+```txt
+components/cost-allocation/groups/
+```
+
+Files expected:
+
+```txt
+costAllocationGroupHelpers.js
+CostAllocationCreateGroupForm.jsx
+CostAllocationGroupHeader.jsx
+CostAllocationGroupCostSummary.jsx
+CostAllocationGroupLabourBuilder.jsx
+CostAllocationGroupAssetBuilder.jsx
+CostAllocationGroupOverheadBuilder.jsx
+CostAllocationOperatingGroupBuilder.jsx
+```
+
+## 4. First Task in New Chat
+
+Verify the files exist and build.
+
+Run:
+
+```powershell
+git status --untracked-files=all
+Get-ChildItem .\components\cost-allocation\groups\ | Select-Object Name, Length
+Test-Path .\components\cost-allocation\groups\CostAllocationGroupAssetBuilder.jsx
+npm run build
+```
+
+If build fails with module not found, check filename and import casing.
+
+Expected import in `CostAllocationOperatingGroupBuilder.jsx`:
+
+```jsx
+import CostAllocationGroupAssetBuilder from "./CostAllocationGroupAssetBuilder";
+```
+
+Expected filename:
+
+```txt
+CostAllocationGroupAssetBuilder.jsx
+```
+
+Case must match.
+
+If the file exists and the error persists:
+
+```powershell
+Remove-Item -Recurse -Force .\.next
+npm run build
+```
+
+## 5. Parent File Target
+
+Final `CostAllocationGroupsCard.jsx` should only coordinate the section.
+
+It should:
+
+```txt
+import CreateGroupForm
+import OperatingGroupBuilder
+import helper functions
+get group rows
+get group cost rows
+render create form
+render each group builder
+```
+
+It should not contain:
+
+```txt
+labour builder logic
+asset builder logic
+overhead builder logic
+display resolver helpers
+cost summary table
+group header form
+```
+
+Those belong in child files.
+
+## 6. After Refactor Passes Build
+
+Stage only the group split:
+
+```powershell
+git add components/cost-allocation/CostAllocationGroupsCard.jsx
+git add components/cost-allocation/groups/
+```
+
+Commit:
+
+```powershell
+git commit -m "Split cost allocation group builder components"
+```
+
+Leave unrelated docs/evidence out.
+
+## 7. Next UX Compression Build
+
+After the split is committed, then compress the group cards.
+
+Current issue:
+
+```txt
+Each operating group card is too tall.
+It shows all inputs and summaries at once.
+```
+
+Future UI target:
+
+```txt
+Operating group card collapsed by default
+Header summary always visible
+Details open only when editing
+```
+
+Collapsed card should show:
+
+```txt
+Group name
+Labour total
+Asset total
+Overhead total
+Total group cost
+Edit group button
+Delete button
+```
+
+Expanded card should show:
+
+```txt
+Group name editor
+Group cost summary
+Productive labour group builder
+Productive asset builder
+Automatic overhead display
+Done button
+```
+
+Implementation direction:
+
+```txt
+local expanded_group_ids state in CostAllocationGroupsCard
+pass is_expanded and on_toggle into OperatingGroupBuilder
+OperatingGroupBuilder renders compact summary always
+details render only when expanded
+```
+
+Add CSS to:
+
+```txt
+styles/modules/cost-allocation.css
+```
+
+Suggested classes:
+
+```txt
+cost-allocation-group-compact
+cost-allocation-group-compact-main
+cost-allocation-group-compact-total
+cost-allocation-group-compact-actions
+```
+
+## 8. Do Not Change Calculation Logic During Compression
+
+The next UX compression should not alter:
+
+```txt
+labour allocation rules
+asset allocation rules
+overhead distribution rules
+costAllocationRules.js
+useCostAllocation.js
+storage format
+selectors
+```
+
+It should only change component structure and visual rendering.
+
+## 9. Functional Rules to Preserve
+
+### Labour
+
+```txt
+Use productive labour group / crew
+Whole-number %
+Max 100% total across all operating groups
+Disable fully allocated labour groups
+Resolve assigned row display from Labour source rows
+```
+
+### Assets
+
+```txt
+Use productive asset rows
+Whole-number %
+Max 100% total across all operating groups
+Disable fully allocated assets
+Resolve assigned row display from Asset source rows
+```
+
+### Overhead
+
+```txt
+Read-only in UI
+Auto-distributed
+Labour cost weighted first
+Asset burden weighted second
+Equal split fallback
+```
+
+### Capability Links
+
+```txt
+Hidden from main Build flow for now
+May return later as advanced validation
+```
+
+## 10. Final Checks for New Chat
+
+After each patch:
+
+```powershell
+npm run build
+git status
+```
+
+Before commit:
+
+```powershell
+git status --untracked-files=all
+```
+
+Only stage intentional Cost Allocation files.
+
+Do not stage:
+
+```txt
+docs/Evidence/
+docs/Excel Imports/
+docs/v4.0 Source Files/
+```
+
+unless the user explicitly requests a docs/evidence commit.
+
+## 11. Recommended Next Commit Sequence
+
+```txt
+1. Split cost allocation group builder components
+2. Compress operating group cards
+3. Clean unused imports / dead links route if needed
+4. Create evidence pack if required
+5. Push branch
+```
+
+## 12. Current Desired Outcome
+
+The Cost Allocation page should end up:
+
+```txt
+easy to understand
+mobile-friendly
+group-first
+not visually overwhelming
+calculation-safe
+consistent with other QS Tools modules
+```

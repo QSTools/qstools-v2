@@ -1,0 +1,694 @@
+# QS Tools — Cost Allocation v4.0 Contract Brief
+
+## Division + Operating Groups Model
+
+## 1. Purpose
+
+Cost Allocation defines the operating structure of the business.
+
+It answers:
+
+```txt
+Which divisions exist?
+Which operating groups belong to each division?
+Which productive labour groups are assigned to each operating group?
+Which productive assets are assigned to each operating group?
+How is overhead automatically distributed?
+Is the business operating structure complete enough to support the recovery strategy?
+```
+
+Cost Allocation does not calculate prices, set recovery rates, or decide whether the business should proceed. Those remain downstream responsibilities.
+
+## 2. Core System Position
+
+```txt
+Cost Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Recovery Outcome
+```
+
+The separation remains:
+
+```txt
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = HOW the business is structured to deliver it
+Recovery Outcome = SHOULD you run it
+```
+
+## 3. Locked Model
+
+Cost Allocation v4.0 is now:
+
+```txt
+Division
+↓
+Operating Group
+↓
+Productive Labour Groups
+Productive Assets
+Automatic Overhead
+```
+
+This replaces the old visible link-first model.
+
+## 4. Deprecated Active Flow
+
+The following concepts are no longer part of the active visible Cost Allocation flow:
+
+```txt
+Capability Links
+asset_labour_links as the main structure
+linked_staff_count as the main coverage metric
+linked_asset_count as the main coverage metric
+unlinked_staff_count as the main problem metric
+unlinked_asset_count as the main problem metric
+```
+
+These may remain temporarily for backwards compatibility, but they must not drive:
+
+```txt
+structure_valid
+coverage
+warnings
+side cards
+setup checklist
+Recovery Outcome
+```
+
+## 5. Division Definition
+
+A Division is a high-level operating area of the business.
+
+Examples:
+
+```txt
+Concrete Pumping
+Placing Crew
+Workshop
+Retail Shop
+Front of House
+Kitchen
+Delivery
+Admin Support
+```
+
+A Division groups one or more operating groups.
+
+A Division is not a pricing package and not a recovery model.
+
+## 6. Operating Group Definition
+
+An Operating Group is a real working unit inside a Division.
+
+Examples:
+
+```txt
+Pump Crew
+Site Labour Crew
+Install Crew
+Shop Counter Team
+Kitchen Shift
+Delivery Unit
+Workshop Bay
+```
+
+An Operating Group is where productive labour groups and productive assets are assigned.
+
+## 7. Data Model
+
+### Division Record
+
+```js
+{
+  division_id,
+  division_name,
+  division_description,
+  is_active,
+  sort_order,
+  created_at,
+  updated_at
+}
+```
+
+Rules:
+
+```txt
+division_id is system-generated
+division_name is display only
+division_id is the key
+inactive divisions remain in history
+```
+
+### Operating Group Record
+
+```js
+{
+  group_id,
+  division_id,
+  group_name,
+  group_description,
+  is_active,
+  sort_order,
+  created_at,
+  updated_at
+}
+```
+
+Rules:
+
+```txt
+group_id is system-generated
+division_id links the group to a division
+group_name is display only
+group_id is the key
+an operating group must belong to one active division
+```
+
+### Labour Group Assignment
+
+```js
+{
+  assignment_id,
+  group_id,
+  staff_type_id,
+  assignment_percent,
+  is_active,
+  created_at,
+  updated_at
+}
+```
+
+Rules:
+
+```txt
+staff_type_id comes from Labour productive labour groups
+Cost Allocation does not create staff_id
+Cost Allocation does not calculate Labour cost
+Each productive labour group can be assigned up to 100% total across all operating groups
+```
+
+### Asset Assignment
+
+```js
+{
+  assignment_id,
+  group_id,
+  asset_id,
+  assignment_percent,
+  is_active,
+  created_at,
+  updated_at
+}
+```
+
+Rules:
+
+```txt
+asset_id comes from Assets productive asset rows
+Cost Allocation does not create asset_id
+Cost Allocation does not calculate Asset cost
+Each productive asset can be assigned up to 100% total across all operating groups
+```
+
+### Overhead Assignment
+
+Overhead is automatic.
+
+```js
+{
+  assignment_id,
+  group_id,
+  allocation_method,
+  assignment_percent,
+  assigned_overhead_amount,
+  is_active,
+  is_automatic
+}
+```
+
+Distribution priority:
+
+```txt
+1. Labour cost weighted
+2. Asset burden weighted
+3. Equal split fallback
+```
+
+Manual overhead assignment is not part of the default flow.
+
+## 8. Inputs Consumed
+
+### From Recovery Summary
+
+```txt
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+```
+
+### From Labour
+
+```txt
+productive_labour_type_rows[]
+```
+
+Each row may include:
+
+```txt
+staff_type_id
+staff_type_name
+total_productive_hours
+weighted_productive_hourly_rate
+total_annual_cost
+```
+
+### From Assets
+
+```txt
+asset_recovery_rows[]
+```
+
+Each row may include:
+
+```txt
+asset_id
+asset_name
+asset_type
+available_asset_cost
+available_asset_hours
+total_asset_cost_annual
+asset_recovery_cost_annual
+```
+
+### Local Cost Allocation State
+
+```txt
+divisions[]
+operational_groups[]
+labour_group_assignments[]
+asset_group_assignments[]
+```
+
+## 9. Outputs
+
+Cost Allocation v4.0 must expose:
+
+```txt
+active_divisions[]
+active_operating_groups[]
+
+division_cost_rows[]
+operational_group_cost_rows[]
+
+total_divisions
+valid_divisions
+invalid_divisions
+
+total_operating_groups
+valid_operating_groups
+invalid_operating_groups
+
+productive_labour_group_count
+assigned_labour_group_count
+
+productive_asset_count
+assigned_productive_asset_count
+
+division_coverage_percent
+group_coverage_percent
+staff_coverage_percent
+asset_coverage_percent
+
+total_grouped_labour_cost
+total_grouped_asset_cost
+total_grouped_overhead_cost
+total_grouped_operating_cost
+
+unassigned_labour_cost
+unassigned_asset_cost
+unassigned_overhead_cost
+total_unassigned_cost
+
+structure_valid
+allocation_status
+allocation_warnings[]
+```
+
+## 10. Compatibility Outputs
+
+For now, keep old outputs where existing downstream files still expect them:
+
+```txt
+linked_staff_count
+linked_asset_count
+unlinked_staff_count
+unlinked_asset_count
+active_asset_labour_links[]
+duplicate_link_warnings[]
+```
+
+But these are compatibility-only.
+
+They must not drive the new visible Cost Allocation flow or Recovery Outcome once the v4.0 rollout is complete.
+
+## 11. Division Cost Rows
+
+Each division should produce a cost row:
+
+```js
+{
+  division_id,
+  division_name,
+  operating_group_count,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  assigned_asset_burden,
+  assigned_asset_hours,
+  assigned_overhead_amount,
+  total_division_cost,
+  division_cost_per_hour,
+  group_ids[],
+  is_valid
+}
+```
+
+Division rows are aggregated from their operating groups.
+
+## 12. Operating Group Cost Rows
+
+Each operating group should produce:
+
+```js
+{
+  group_id,
+  division_id,
+  group_name,
+  assigned_labour_cost,
+  assigned_labour_hours,
+  assigned_asset_burden,
+  assigned_asset_hours,
+  assigned_overhead_amount,
+  total_group_cost,
+  group_cost_per_hour,
+  labour_group_assignments[],
+  asset_group_assignments[],
+  overhead_group_assignments[],
+  allocation_status
+}
+```
+
+## 13. Validation Rules
+
+### Division Validation
+
+A Division is valid when:
+
+```txt
+division_id exists
+division is active
+division has at least one active operating group
+all child operating groups are valid
+```
+
+### Operating Group Validation
+
+An Operating Group is valid when:
+
+```txt
+group_id exists
+division_id links to an active division
+group is active
+group has a valid cost stack or valid assignment state
+```
+
+A group may be incomplete if:
+
+```txt
+no productive labour assigned
+no productive asset assigned
+no cost stack exists
+```
+
+### Source Pool Validation
+
+Source pools are valid when:
+
+```txt
+no productive labour group exceeds 100% assignment
+no productive asset exceeds 100% assignment
+overhead is fully distributed automatically
+```
+
+## 14. Coverage Rules
+
+### Labour Coverage
+
+```txt
+staff_coverage_percent =
+assigned productive labour groups / available productive labour groups
+```
+
+### Asset Coverage
+
+```txt
+asset_coverage_percent =
+assigned productive assets / available productive assets
+```
+
+### Group Coverage
+
+```txt
+group_coverage_percent =
+valid operating groups / total operating groups
+```
+
+### Division Coverage
+
+```txt
+division_coverage_percent =
+valid divisions / total divisions
+```
+
+## 15. Structure Valid Rule
+
+`structure_valid` should be true when:
+
+```txt
+at least one active division exists
+at least one active operating group exists
+no invalid operating groups
+no invalid divisions
+no productive labour pool over-allocation
+no productive asset pool over-allocation
+no overhead pool over-allocation
+recovery model source requirements are supported
+```
+
+It must not require:
+
+```txt
+asset_labour_links
+linked_staff_count
+linked_asset_count
+```
+
+## 16. Warning Rules
+
+Visible warnings should focus on:
+
+```txt
+no divisions created
+no operating groups created
+division has no groups
+invalid operating groups
+productive labour group coverage low
+productive asset coverage low
+unassigned labour cost
+unassigned asset cost
+unassigned overhead cost
+productive labour pool over-allocated
+productive asset pool over-allocated
+asset recovery selected but no productive asset assigned
+```
+
+Do not show old main-flow warnings like:
+
+```txt
+staff is not linked to asset
+asset is not linked to staff
+```
+
+Those belong only to future advanced capability validation.
+
+## 17. UI Flow
+
+The visible Cost Allocation Build flow should be:
+
+```txt
+1. Create Division
+2. Create Operating Group inside Division
+3. Assign Productive Labour Groups
+4. Assign Productive Assets
+5. Review Automatic Overhead
+6. Review Division Cost Stack
+7. Review Total Structure
+```
+
+## 18. UI Structure
+
+Main visible sections:
+
+```txt
+Build
+- Divisions and Operating Groups
+
+Checks
+- Division cost stacks
+- Operating group cost stacks
+- Pool reconciliation
+- Structure warnings
+- Setup checklist
+```
+
+## 19. Component Direction
+
+Expected components:
+
+```txt
+components/cost-allocation/divisions/
+  CostAllocationCreateDivisionForm.jsx
+  CostAllocationDivisionCard.jsx
+  CostAllocationDivisionHeader.jsx
+  CostAllocationDivisionCostSummary.jsx
+
+components/cost-allocation/groups/
+  CostAllocationCreateGroupForm.jsx
+  CostAllocationOperatingGroupBuilder.jsx
+  CostAllocationGroupHeader.jsx
+  CostAllocationGroupCostSummary.jsx
+  CostAllocationGroupLabourBuilder.jsx
+  CostAllocationGroupAssetBuilder.jsx
+  CostAllocationGroupOverheadBuilder.jsx
+```
+
+`CostAllocationGroupsCard.jsx` may become:
+
+```txt
+CostAllocationDivisionsCard.jsx
+```
+
+or remain as a wrapper temporarily while division support is rolled in.
+
+## 20. Calculation File Direction
+
+Keep calculation files split:
+
+```txt
+lib/calculations/costAllocationRules.js
+lib/calculations/cost-allocation/costAllocationPoolBuilders.js
+lib/calculations/cost-allocation/costAllocationCoverage.js
+lib/calculations/cost-allocation/costAllocationDivisionBuilders.js
+lib/calculations/cost-allocation/costAllocationValidation.js
+lib/calculations/cost-allocation/costAllocationWarnings.js
+lib/calculations/cost-allocation/costAllocationStatus.js
+```
+
+## 21. Storage Direction
+
+Storage must support:
+
+```txt
+divisions[]
+operational_groups[] with division_id
+labour_group_assignments[]
+asset_group_assignments[]
+```
+
+Old operational groups without `division_id` should be handled safely during transition.
+
+Options:
+
+```txt
+A. Auto-place old groups into a default division
+B. Treat groups without division_id as unassigned and show setup warning
+```
+
+Preferred transition:
+
+```txt
+Auto-place old groups into a default division named "Main Operations" for compatibility.
+```
+
+## 22. Recovery Outcome Handoff
+
+Recovery Outcome should eventually consume:
+
+```txt
+structure_valid
+allocation_status
+active_divisions[]
+active_operating_groups[]
+division_cost_rows[]
+operational_group_cost_rows[]
+division_coverage_percent
+group_coverage_percent
+staff_coverage_percent
+asset_coverage_percent
+productive_labour_group_count
+assigned_labour_group_count
+productive_asset_count
+assigned_productive_asset_count
+valid_divisions
+invalid_divisions
+valid_operating_groups
+invalid_operating_groups
+allocation_warnings[]
+```
+
+Recovery Outcome should not use old `linked_*` counts to decide viability.
+
+## 23. Rollout Order
+
+Implement in phases:
+
+```txt
+Phase 1 — Lock this contract brief
+Phase 2 — Add division storage/default division support
+Phase 3 — Add division builders/calculations
+Phase 4 — Update selectors to expose divisions
+Phase 5 — Update UI to render divisions containing groups
+Phase 6 — Update warnings/status for divisions
+Phase 7 — Update Recovery Outcome handoff
+Phase 8 — Remove old visible link assumptions
+```
+
+## 24. Not Allowed
+
+Do not:
+
+```txt
+rebuild Labour maths
+rebuild Asset maths
+change Recovery Summary maths
+change Cost Summary maths
+use display names as keys
+make capability links active in the main flow
+make overhead manually assigned by default
+rename existing contract outputs without migration
+rip out compatibility fields in one pass
+```
+
+## 25. Final Definition
+
+Cost Allocation v4.0 is a Division + Operating Groups structural model. It defines how the business is operationally organised, assigns productive labour and productive assets into real operating groups, automatically distributes overhead, aggregates group cost into division cost, and exposes a clean structure-valid output for Recovery Outcome without relying on old capability-link coverage.

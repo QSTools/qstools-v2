@@ -96,8 +96,8 @@ export default function CostSummaryHelpPanel() {
               />
 
               <HelpRow
-                title="Required Recovery Rate"
-                body="Required Recovery Rate converts annual operating cost into a per-recovery-hour baseline using Labour's operating recovery hours."
+                title="Operating cost per open hour"
+                body="Operating cost per open hour converts annual operating cost into a per-open-hour baseline using Opening Hours' net annual business open hours."
               />
             </div>
           ) : null}

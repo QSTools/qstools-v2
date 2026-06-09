@@ -1,0 +1,257 @@
+# QS Tools — Cost Allocation Contract Brief
+
+## v4.0 Group-First Operating Model
+
+## 1. Purpose
+
+The Cost Allocation page defines the operating structure of the business.
+
+It does not set sell rates, test recovery, create pricing, or make final business outcome decisions.
+
+Its job is to answer:
+
+```txt
+What real operating groups exist?
+What productive labour belongs to each group?
+What productive assets belong to each group?
+How should overhead be distributed across those groups?
+Is any source pool over-used, under-used, or still outside the operating model?
+```
+
+## 2. Locked Operating Principle
+
+Cost Allocation is now **group-first**.
+
+The core flow is:
+
+```txt
+Create operating group
+→ assign productive labour group / crew
+→ assign productive asset
+→ overhead distributes automatically
+→ review group cost stack and pool reconciliation
+```
+
+The user should not bounce between separate Labour Assignment, Asset Assignment, or Overhead Assignment tabs.
+
+## 3. Source Pool Rules
+
+### Labour
+
+Labour comes from the Labour module only.
+
+Cost Allocation does not create labour cost. It consumes productive labour groups / staff types already calculated upstream.
+
+Labour is assigned by:
+
+```txt
+productive labour group / crew
+assignment percent
+```
+
+Not by individual staff member.
+
+Each productive labour group can only be allocated up to **100% total across all operating groups**.
+
+Example:
+
+```txt
+Site Crew → 60% → Site Labour
+Site Crew → 40% → Pump Crew
+Valid total = 100%
+```
+
+Invalid:
+
+```txt
+Site Crew → 100% → Site Labour
+Site Crew → 50% → Pump Crew
+Invalid total = 150%
+```
+
+The UI must show remaining labour capacity and disable fully allocated labour groups.
+
+### Assets
+
+Assets come from the Assets module only.
+
+Cost Allocation does not create asset cost. It consumes productive asset rows already calculated upstream.
+
+Each productive asset can only be allocated up to **100% total across all operating groups**.
+
+The UI must show remaining asset allocation and disable fully allocated assets.
+
+### Overhead
+
+Overhead is not manually assigned by the user by default.
+
+Overhead is a burden, not a capacity item.
+
+Overhead must be distributed automatically from the operating structure.
+
+Distribution priority:
+
+```txt
+1. Labour cost weighted
+2. Asset burden weighted
+3. Equal split fallback
+```
+
+If there is one operating group, 100% of overhead goes to that group.
+
+If there are multiple operating groups with labour, overhead is split by each group’s share of total assigned labour cost.
+
+If there is no labour but assets exist, overhead is split by asset burden.
+
+If there is neither labour nor assets, overhead is split equally across active operating groups.
+
+## 4. Removed / Hidden User Flow
+
+The following standalone routes were removed from the visible flow:
+
+```txt
+Labour Assignment
+Asset Assignment
+Overhead Distribution
+```
+
+Capability Links were also hidden from the main Build flow for now.
+
+Capability Links may return later as an advanced validation layer:
+
+```txt
+Asset → required labour type / capability
+```
+
+But they are not required for the current Cost Allocation build.
+
+## 5. Current Visible Sections
+
+The Cost Allocation page now has:
+
+```txt
+Build
+- Operating groups
+
+Checks
+- Group cost stacks
+- Pool reconciliation
+- Structural warnings
+- Setup checklist
+```
+
+## 6. UI Contract
+
+Cost Allocation now uses a module-specific stylesheet:
+
+```txt
+styles/modules/cost-allocation.css
+```
+
+This is imported from:
+
+```txt
+app/globals.css
+```
+
+The page wrapper uses:
+
+```jsx
+<main className="ui-page cost-allocation-page">
+```
+
+The Cost Allocation UI must use existing QS Tools UI primitives:
+
+```txt
+ui-page
+ui-section
+ui-panel
+ui-readonly
+ui-stack
+ui-stack-sm
+ui-actions
+ui-button-primary
+ui-button-secondary
+ui-button-danger
+ui-input
+ui-label
+ui-help
+ui-kicker
+```
+
+Module-specific classes should only control Cost Allocation layout and visual grouping, not replace the shared UI system.
+
+## 7. Current Refactor Direction
+
+`CostAllocationGroupsCard.jsx` was becoming too large and is now being split into child components under:
+
+```txt
+components/cost-allocation/groups/
+```
+
+The parent card should become a coordinator only.
+
+It should:
+
+```txt
+get active groups
+get group cost rows
+render create group form
+map each group into an operating group builder
+```
+
+It should not contain all labour, asset, overhead, and helper logic directly.
+
+## 8. Files Involved
+
+Primary current files:
+
+```txt
+app/cost-allocation/page.jsx
+app/globals.css
+components/cost-allocation/CostAllocationMainCard.jsx
+components/cost-allocation/CostAllocationGroupsCard.jsx
+components/cost-allocation/CostAllocationEvidenceBreakdown.jsx
+hooks/useCostAllocation.js
+lib/calculations/costAllocationRules.js
+lib/selectors/costAllocationSelectors.js
+lib/storage/costAllocationStorage.js
+styles/modules/cost-allocation.css
+```
+
+New child folder:
+
+```txt
+components/cost-allocation/groups/
+```
+
+Expected child files:
+
+```txt
+costAllocationGroupHelpers.js
+CostAllocationCreateGroupForm.jsx
+CostAllocationGroupHeader.jsx
+CostAllocationGroupCostSummary.jsx
+CostAllocationGroupLabourBuilder.jsx
+CostAllocationGroupAssetBuilder.jsx
+CostAllocationGroupOverheadBuilder.jsx
+CostAllocationOperatingGroupBuilder.jsx
+```
+
+## 9. Current Git State / Caution
+
+At the time of this brief, the branch is ahead of origin by several commits.
+
+There are unrelated untracked docs/evidence files that should not be staged with Cost Allocation code unless intentionally doing a docs commit.
+
+Unrelated untracked examples:
+
+```txt
+docs/Evidence/2026-05-31_0859_General_Overheads_Asset_Pool_Redistribution/
+docs/Excel Imports/
+docs/v4.0 Source Files/v4.0 Contract Briefs/v4.4 General Overheads Contract Brief.txt
+docs/v4.0 Source Files/v4.0 Future Build Briefs/Future Build Brief —General Overheads.txt
+docs/v4.0 Source Files/v4.0 Future Build Briefs/Future Build Brief —Quote Checker.txt
+```
+
+Do not stage those as part of Cost Allocation refactor work.

@@ -1,0 +1,915 @@
+# QS Tools — System Upgrade Brief
+
+## Opening Hours Macro Baseline, Cost Summary Hourly Basis, Business Summary Open-Hour View, and Recovery Layer Boundary
+
+## 1. Upgrade Summary
+
+This upgrade introduced a major system-wide clarification between the **macro business operating layer** and the **micro recovery strategy layer**.
+
+The key system change is:
+
+```txt
+Macro layer uses net annual business open hours.
+Micro recovery layer uses selected recovery drivers.
+```
+
+Before this upgrade, several macro pages were still using old Labour/recovery-hour concepts as the denominator for business-wide hourly metrics. That caused confusion because productive Labour hours were being treated like business operating hours.
+
+This upgrade separates those concepts cleanly:
+
+```txt
+Opening Hours
+→ defines when the business is available to operate.
+
+Cost Summary
+→ shows what the business costs to operate annually and per open business hour.
+
+Business Summary
+→ compares actual trading margin against the operating cost baseline using open business hours.
+
+Recovery Summary
+→ remains the micro strategy layer that tests how the business will recover the burden operationally.
+```
+
+The result is a much clearer system model:
+
+```txt
+Business open hours = macro availability / operating calendar.
+Productive labour hours = micro recovery / labour capacity.
+Selected recovery hours = strategy driver used downstream in Recovery Summary and Cost Allocation.
+```
+
+---
+
+# 2. New Opening Hours Module
+
+## 2.1 Purpose
+
+The new Opening Hours module defines the business operating calendar.
+
+It answers:
+
+```txt
+When is the business normally open?
+How many open hours exist in a standard week?
+How many annual open hours remain after shutdowns and public holidays?
+```
+
+It does **not** calculate productive Labour hours or Asset utilisation.
+
+## 2.2 Key outputs
+
+Opening Hours now exposes:
+
+```txt
+standard_weekly_open_hours
+annual_open_weeks
+annual_business_open_hours
+public_holiday_closed_hours
+additional_closed_hours
+net_annual_business_open_hours
+```
+
+Current example:
+
+```txt
+Standard weekly open hours:       44.0 hrs
+Annual open weeks:                50.0
+Gross annual open hours:          2,200.0 hrs
+Public holiday closed hours:      17.6 hrs
+Net annual business open hours:   2,182.4 hrs
+```
+
+## 2.3 Important rule
+
+Opening Hours creates **calendar context only**.
+
+It must not be treated as:
+
+```txt
+productive Labour hours
+recoverable Labour hours
+Asset utilisation hours
+chargeable hours
+```
+
+It is the macro denominator for business open-hour reporting.
+
+---
+
+# 3. Cost Summary Upgrade
+
+## 3.1 Previous issue
+
+Cost Summary previously used old recovery-hour/Labour-hour language for the main hourly baseline. That made it look like the business-wide cost per hour was based on Labour productive/recovery hours.
+
+This was wrong for the macro layer.
+
+## 3.2 New Cost Summary meaning
+
+Cost Summary now answers:
+
+```txt
+What does the business cost to operate?
+What does that cost per open business hour?
+Where does the cost burden come from?
+```
+
+## 3.3 Correct hourly formula
+
+Cost Summary now uses:
+
+```txt
+Operating cost per open hour
+= total operating cost burden / net annual business open hours
+```
+
+Current example:
+
+```txt
+Total operating cost burden:       $705,680
+Net annual business open hours:    2,182.4 hrs
+
+Operating cost per open hour:
+$705,680 / 2,182.4 = $323.34/open hr
+```
+
+Displayed as:
+
+```txt
+$323 / open hr
+```
+
+## 3.4 Cost Summary UI changes
+
+Cost Summary now shows:
+
+```txt
+Operating cost baseline
+$323 / open hr
+
+Based on 2,182.4 net annual business open hours.
+```
+
+The main Cost Summary card now displays:
+
+```txt
+Hour selected:
+Operating cost per open hour
+
+Day / Week / Month / Quarter / Year selected:
+Total cost burden scaled to the selected period
+```
+
+Cost composition in hour view now uses the same open-hour denominator:
+
+```txt
+People Cost per open hr
+Assets per open hr
+General Overheads per open hr
+Total operating cost per open hr
+```
+
+## 3.5 Removed from Cost Summary visible UI
+
+The following old macro wording was removed from Cost Summary:
+
+```txt
+Required Recovery Rate
+Operating Recovery Hours
+Labour burden pressure
+productive labour hr
+productive labour hours
+```
+
+Those concepts may still exist downstream, but they no longer drive the Cost Summary macro display.
+
+## 3.6 Compatibility retained
+
+Some compatibility fields remain in the output contract for downstream modules, including old recovery-hour fields. These were not removed because downstream modules still rely on them.
+
+The important rule is:
+
+```txt
+Compatibility fields may exist.
+They must not drive the macro Cost Summary headline.
+```
+
+---
+
+# 4. Business Summary Upgrade
+
+## 4.1 Previous issue
+
+Business Summary was still showing hourly results using old recovery-hour logic and wording such as:
+
+```txt
+Required Recovery Rate
+Actual Recovery Rate
+Recovery Hours Used
+```
+
+That was not correct for the macro business result view.
+
+## 4.2 New Business Summary meaning
+
+Business Summary now answers:
+
+```txt
+Is the trading margin pool enough to cover the operating cost baseline?
+```
+
+It compares:
+
+```txt
+Margin Pool
+vs
+Total Operating Cost
+```
+
+And in hourly view it spreads that comparison over:
+
+```txt
+net annual business open hours
+```
+
+## 4.3 Correct hourly formulas
+
+```txt
+Required operating cost per open hour
+= total operating cost burden / net annual business open hours
+
+Actual margin per open hour
+= margin pool / net annual business open hours
+
+Deficit/surplus per open hour
+= actual margin per open hour - required operating cost per open hour
+```
+
+Current example:
+
+```txt
+Revenue:                         $1,572,473
+COGS / Direct Costs:             $1,240,091
+Margin Pool:                     $332,382
+Total Operating Cost:            $705,680
+Net Position:                    -$373,298
+Net annual business open hours:  2,182.4 hrs
+```
+
+Hourly:
+
+```txt
+Revenue per open hr:
+$1,572,473 / 2,182.4 = $721/open hr
+
+COGS per open hr:
+$1,240,091 / 2,182.4 = $568/open hr
+
+Margin Pool per open hr:
+$332,382 / 2,182.4 = $152/open hr
+
+Operating Cost per open hr:
+$705,680 / 2,182.4 = $323/open hr
+
+Deficit per open hr:
+$152 - $323 = -$171/open hr
+```
+
+So Business Summary now correctly displays:
+
+```txt
+Deficit per Open Hour
+$171 / open hr
+```
+
+## 4.4 Business Summary wording updates
+
+The Business Summary page now uses macro open-hour wording:
+
+```txt
+Required operating cost per open hour
+Actual margin per open hour
+Deficit per open hour
+Net annual business open hours
+```
+
+The following old visible wording was removed or targeted for cleanup:
+
+```txt
+Required Recovery Rate
+Actual Recovery Rate
+Recovery Hours Used
+Operating Recovery Hours
+productive labour hours
+```
+
+## 4.5 Data wiring fix
+
+A key wiring issue was fixed:
+
+```txt
+Business Summary was not receiving the open-hour values correctly.
+```
+
+The missing pieces were:
+
+```txt
+useCostSummary needed Opening Hours in its memo dependency path.
+useBusinessSummary needed to pass through Cost Summary macro fields.
+```
+
+The required values now flow through:
+
+```txt
+Opening Hours
+→ Cost Summary output contract
+→ Business Summary hook
+→ Business Summary selector/card
+→ Business Summary display
+```
+
+The important values are:
+
+```txt
+total_cost_burden
+macro_required_operating_hour_rate
+net_annual_business_open_hours
+margin_pool
+```
+
+---
+
+# 5. Recovery Summary Boundary
+
+## 5.1 Decision
+
+Recovery Summary is being left alone for now.
+
+This is intentional.
+
+## 5.2 Reason
+
+Recovery Summary belongs to the **micro recovery strategy layer**, not the macro open-hour layer.
+
+It answers:
+
+```txt
+How will the business recover the burden operationally?
+```
+
+That may legitimately use:
+
+```txt
+selected recovery hours
+productive labour recovery hours
+asset utilisation drivers
+material margin
+unit margin
+group/division allocation drivers
+```
+
+## 5.3 Current Recovery Summary interpretation
+
+The Recovery Summary top block currently compares the selected recovery strategy against the cost burden using selected recovery hours.
+
+Example from current screen:
+
+```txt
+Actual recovery per recovery hour:     $150.17/hr
+Required recovery per recovery hour:   $318.82/hr
+Recovery gap per recovery hour:       -$168.65/hr
+```
+
+This is approximately:
+
+```txt
+$705,680 / 2,213 selected recovery hours = $319/hr
+```
+
+That is valid if the block means:
+
+```txt
+Whole-business burden through selected recovery hours
+```
+
+It should not be described as the macro Cost Summary open-hour baseline.
+
+## 5.4 Future Recovery Summary cleanup
+
+When Recovery Summary is rebuilt, labels should make the layer distinction clearer:
+
+```txt
+Macro baseline:
+Operating cost per open hour
+
+Micro recovery test:
+Required recovery per selected recovery hour
+```
+
+This makes the logic clear:
+
+```txt
+The business costs $323 for every hour it is open.
+
+But if only 2,213 selected recovery hours are available to recover the burden,
+each selected recovery hour must recover about $319.
+```
+
+That is not the same metric, and both can exist.
+
+---
+
+# 6. Model Readiness Impact
+
+## 6.1 Current status
+
+Model Readiness is currently blocked.
+
+This is correct.
+
+It is not blocked because of Opening Hours. It is blocked because the current module totals do not reconcile to the P&L benchmark.
+
+Current example:
+
+```txt
+P&L business cost benchmark:     $428,946
+QS Tools module total:           $705,680
+Variance:                        $276,734
+Variance %:                      64.6%
+```
+
+Main drivers:
+
+```txt
+Labour P&L benchmark:            $331,343
+Labour module total:             $593,693
+Labour variance:                 $262,350
+
+Asset finance P&L benchmark:     $0
+Asset finance / interest cost:   $14,384
+Asset variance:                  $14,384
+```
+
+## 6.2 Why this is acceptable
+
+Extra Labour was added for testing other system items, so the current Labour variance is expected.
+
+Therefore:
+
+```txt
+Model Readiness should remain blocked.
+Cost Summary can be used as a preview.
+Business Summary can be used as a preview.
+Downstream decisions should not be trusted until the variance is resolved or accepted.
+```
+
+## 6.3 Model Readiness wording still to clean
+
+Model Readiness still contains old wording in places:
+
+```txt
+Operating Recovery Hours
+Required Recovery Rate
+```
+
+For macro baseline display, that should eventually become:
+
+```txt
+Net annual business open hours
+Operating cost per open hour
+```
+
+But the pass/fail logic should not be changed.
+
+---
+
+# 7. System Layer Rules After Upgrade
+
+## 7.1 Macro layer
+
+Pages:
+
+```txt
+Opening Hours
+Cost Summary
+Business Summary
+Model Readiness
+```
+
+Primary denominator:
+
+```txt
+net annual business open hours
+```
+
+Used for:
+
+```txt
+operating cost per open hour
+actual margin per open hour
+deficit/surplus per open hour
+business availability pressure
+macro business baseline
+```
+
+Do not use:
+
+```txt
+productive labour hours
+selected recovery hours
+operating recovery hours
+```
+
+as the macro denominator.
+
+## 7.2 Micro recovery layer
+
+Pages:
+
+```txt
+Recovery Summary
+Cost Allocation
+Recovery Outcome
+Quote Engine
+Business Modelling
+Rate Builder later
+```
+
+May use:
+
+```txt
+selected recovery hours
+productive labour hours
+asset utilisation hours
+unit drivers
+material margin drivers
+group allocation drivers
+```
+
+Used for:
+
+```txt
+how the business recovers the burden
+which stream carries cost
+whether labour/assets/materials can support recovery
+quote/rate strategy
+cost allocation by division/group
+```
+
+## 7.3 Labour layer
+
+Labour keeps:
+
+```txt
+productive hours
+productive labour hours
+recovery-hour contribution flags
+productive staff rates
+non-productive staff classification
+```
+
+Those are still correct inside Labour and downstream recovery strategy logic.
+
+They are not the macro business open-hour denominator.
+
+---
+
+# 8. Critical Formula Split
+
+## 8.1 Opening Hours
+
+```txt
+net_annual_business_open_hours
+= annual_business_open_hours
+  - public_holiday_closed_hours
+  - additional_closed_hours
+```
+
+## 8.2 Cost Summary
+
+```txt
+total_cost_burden
+= total_people_cost_annual
+  + total_asset_cost_annual
+  + total_business_overheads
+```
+
+```txt
+operating_cost_per_open_hour
+= total_cost_burden / net_annual_business_open_hours
+```
+
+## 8.3 Business Summary
+
+```txt
+margin_pool
+= revenue - COGS / direct costs
+```
+
+```txt
+net_position
+= margin_pool - total_cost_burden
+```
+
+```txt
+actual_margin_per_open_hour
+= margin_pool / net_annual_business_open_hours
+```
+
+```txt
+deficit_or_surplus_per_open_hour
+= actual_margin_per_open_hour - operating_cost_per_open_hour
+```
+
+## 8.4 Recovery Summary
+
+For selected recovery hours:
+
+```txt
+required_recovery_per_selected_recovery_hour
+= selected_cost_burden / selected_recovery_hours
+```
+
+This is micro-layer strategy logic, not the macro open-hour baseline.
+
+---
+
+# 9. Flow-On Effects
+
+## 9.1 Cost Summary
+
+Cost Summary is now a cleaner macro baseline.
+
+It should no longer be interpreted as:
+
+```txt
+how much Labour must recover per productive hour
+```
+
+It now means:
+
+```txt
+what the business costs per open business hour
+```
+
+## 9.2 Business Summary
+
+Business Summary now produces a much more intuitive open-hour result.
+
+Instead of asking:
+
+```txt
+Are we recovering enough per Labour/recovery hour?
+```
+
+It asks:
+
+```txt
+For every hour the business is open, does trading margin cover the business cost baseline?
+```
+
+## 9.3 Recovery Summary
+
+Recovery Summary becomes more clearly downstream.
+
+It should not be forced to use open hours everywhere.
+
+Its job is to test:
+
+```txt
+how the burden will be recovered
+```
+
+not:
+
+```txt
+what the business costs per open hour
+```
+
+## 9.4 Cost Allocation
+
+Cost Allocation remains downstream of Recovery Summary.
+
+The upgrade clarifies that Cost Allocation should allocate the recovery burden according to operational drivers, not redefine the macro business open-hour baseline.
+
+## 9.5 Quote Engine
+
+Quote Engine still likely contains old required recovery rate wording.
+
+This should be reviewed later because Quote Engine may need both:
+
+```txt
+macro open-hour pressure
+selected recovery driver pressure
+```
+
+depending on quote type.
+
+No Quote Engine changes should be made until its role is deliberately reviewed.
+
+## 9.6 Business Modelling
+
+Business Modelling still likely uses old `required_recovery_rate` and productive-hour assumptions.
+
+That should be reviewed later as part of a modelling-layer upgrade.
+
+No blind replacement should happen.
+
+## 9.7 Model Readiness
+
+Model Readiness still correctly blocks when module totals do not reconcile to the P&L benchmark.
+
+The wording should eventually align with the macro open-hour baseline, but the readiness logic should remain strict.
+
+---
+
+# 10. Files Touched / Affected
+
+## 10.1 Opening Hours
+
+```txt
+app/opening-hours/page.jsx
+components/opening-hours/OpeningHoursMainCard.jsx
+components/opening-hours/OpeningHoursStatusStrip.jsx
+components/opening-hours/OpeningHoursHelpPanel.jsx
+hooks/useOpeningHours.js
+lib/calculations/openingHoursCalculations.js
+lib/selectors/openingHoursSelectors.js
+lib/storage/openingHoursStorage.js
+lib/storage/openingHoursProfileStorage.js
+```
+
+## 10.2 Cost Summary
+
+```txt
+app/cost-summary/page.jsx
+components/cost-summary/CostSummaryCard.jsx
+components/cost-summary/CostSummaryStatusStrip.jsx
+components/cost-summary/CostSummaryHelpPanel.jsx
+hooks/useCostSummary.js
+lib/calculations/costSummaryCalculations.js
+lib/selectors/costSummarySelectors.js
+```
+
+## 10.3 Business Summary
+
+```txt
+app/business-summary/page.jsx
+components/business-summary/BusinessSummaryCard.jsx
+components/business-summary/BusinessSummaryCardUtils.js
+components/business-summary/BusinessSummaryHierarchyBuilder.js
+components/business-summary/BusinessSummaryResultHero.jsx
+components/business-summary/BusinessSummaryStatusStrip.jsx
+components/business-summary/BusinessSummaryHelpPanel.jsx
+components/business-summary/BusinessSummaryModePanel.jsx
+hooks/useBusinessSummary.js
+lib/selectors/businessSummarySelectors.js
+```
+
+## 10.4 Shared Orchestration
+
+```txt
+hooks/useModuleReconciliation.js
+hooks/useModelReadiness.js
+```
+
+Model Readiness may need display wording cleanup later, but should not have its pass/fail logic changed as part of this upgrade.
+
+---
+
+# 11. Current Known State
+
+## 11.1 Opening Hours
+
+Working.
+
+Current values:
+
+```txt
+Standard weekly open hours:      44.0 hrs
+Annual open weeks:               50.0
+Net annual business open hours:  2,182.4 hrs
+```
+
+## 11.2 Cost Summary
+
+Working.
+
+Current values:
+
+```txt
+Total operating cost:            $705,680
+Operating cost per open hour:    $323/open hr
+```
+
+## 11.3 Business Summary
+
+Working.
+
+Current values:
+
+```txt
+Revenue:                         $1,572,473
+COGS / Direct Costs:             $1,240,091
+Margin Pool:                     $332,382
+Operating cost:                  $705,680
+Net Position:                   -$373,298
+Deficit per open hour:          -$171/open hr
+```
+
+## 11.4 Model Readiness
+
+Blocked, correctly.
+
+Reason:
+
+```txt
+QS Tools module total does not reconcile to P&L business cost benchmark.
+```
+
+This is expected because extra Labour has been added for testing.
+
+## 11.5 Recovery Summary
+
+Left unchanged intentionally.
+
+It remains the micro recovery strategy layer.
+
+---
+
+# 12. What Not To Do Next
+
+Do not blindly replace every `recovery_hours` or `required_recovery_rate` reference across the system.
+
+Some are still valid in downstream recovery strategy modules.
+
+Do not make Model Readiness pass by weakening reconciliation.
+
+Do not convert Recovery Summary entirely to open hours.
+
+Do not use Opening Hours as productive Labour hours.
+
+Do not use productive Labour hours as macro business open hours.
+
+---
+
+# 13. Recommended Next Steps
+
+## Immediate
+
+1. Commit and push the completed macro-hour upgrade.
+2. Leave Recovery Summary unchanged for now.
+3. Keep Model Readiness blocked while test Labour data is in place.
+
+## Near-term cleanup
+
+1. Clean Model Readiness display wording:
+
+   * `Operating Recovery Hours` → `Net annual business open hours`
+   * `Required Recovery Rate` → `Operating cost per open hour`
+
+2. Run a visible wording audit on Business Summary and Cost Summary to ensure no old macro wording remains.
+
+3. Create evidence pack for this upgrade.
+
+## Later build phase
+
+1. Recovery Summary wording refinement:
+
+   * distinguish macro baseline from selected recovery strategy.
+
+2. Cost Allocation review:
+
+   * ensure it consumes Recovery Summary strategy outputs, not macro open-hour baseline directly unless intentionally required.
+
+3. Quote Engine review:
+
+   * decide whether quote tests use open-hour pressure, selected recovery-hour pressure, or both.
+
+4. Business Modelling review:
+
+   * separate macro business pressure from recovery strategy modelling.
+
+---
+
+# 14. Final System Rule
+
+The upgrade establishes the following locked principle:
+
+```txt
+Opening Hours defines the business operating calendar.
+Cost Summary converts annual operating cost into cost per open business hour.
+Business Summary compares trading margin against that open-hour cost baseline.
+Recovery Summary and Cost Allocation decide how the burden is recovered operationally.
+```
+
+This prevents the system from confusing:
+
+```txt
+business availability
+productive labour capacity
+selected recovery strategy
+```
+
+and creates a cleaner foundation for downstream allocation, modelling, quote checking, and recovery strategy.

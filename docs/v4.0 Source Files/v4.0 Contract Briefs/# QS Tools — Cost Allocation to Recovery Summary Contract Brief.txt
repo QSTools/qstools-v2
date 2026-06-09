@@ -1,0 +1,307 @@
+# QS Tools — Cost Allocation to Recovery Summary Contract Brief
+
+## v4.1 — Support Labour, Operating Structure, and Recovery Summary Handoff
+
+## 1. Purpose
+
+This brief locks the current Cost Allocation contract so Recovery Summary can be built against a stable source.
+
+Cost Allocation is now an **input and allocation page**, not a diagnostic or pricing page.
+
+It answers:
+
+* What divisions does the business operate through?
+* What operating groups / working units exist inside those divisions?
+* Which labour pools are assigned to each group?
+* Which asset pools are assigned to each group?
+* What labour, asset, and overhead cost remains unassigned?
+* What cost stack exists inside each operating group?
+
+Recovery Summary must consume this operating structure and test whether the business can recover the assigned cost through the selected recovery model.
+
+---
+
+## 2. Locked System Role
+
+### Cost Allocation owns:
+
+* Divisions
+* Operating groups
+* Labour assignment into groups
+* Asset assignment into groups
+* Automatic overhead allocation view
+* Pool position:
+
+  * available
+  * assigned
+  * remaining
+* Reconciliation checks
+* Group cost stacks
+
+### Cost Allocation does not own:
+
+* Sell rates
+* Pricing decisions
+* Recovery model selection
+* Business outcome pass/fail
+* Quote check decisions
+* Final margin interpretation
+
+---
+
+## 3. Current Build State
+
+Cost Allocation has been simplified into a Labour-style input flow:
+
+1. Create division
+2. Create operating group
+3. Assign labour
+4. Assign assets
+5. Review pool position
+6. Open checks only when needed
+
+The old diagnostic-style panels have been removed or collapsed.
+
+The page now shows:
+
+* A simple builder flow
+* Right-side Pool Position card
+* Collapsed checks section
+* Simple guidance panel
+
+The duplicate “Current setup” side card has been removed because it duplicated pool and reconciliation values.
+
+---
+
+## 4. Labour Contract
+
+Cost Allocation now recognises two labour classes:
+
+### Productive labour
+
+Productive labour:
+
+* contributes to productive recovery hours
+* can be assigned into operating groups
+* carries labour cost
+* contributes to recovery capacity
+* appears in the labour assignment dropdown
+
+Examples:
+
+* Site Crew
+* Junior / Trainee
+* Foreman if classified productive
+
+### Support / non-productive labour
+
+Support labour:
+
+* is assignable into operating groups or management/admin divisions
+* carries cost
+* does not add productive recovery hours
+* must be recoverable downstream
+* appears in the labour assignment dropdown
+
+Examples:
+
+* Owner / Director
+* Project Manager
+* Admin
+* Management
+* Non-productive supervisor time
+
+### Locked rule
+
+Support labour must add cost but must not add productive recovery hours.
+
+---
+
+## 5. Labour Pool Contract
+
+Cost Allocation side cards and reconciliation must use the full labour pool:
+
+```txt
+Full labour pool = productive labour + support / non-productive labour
+```
+
+The Pool Position card must show:
+
+```txt
+Labour available = all labour cost
+Labour assigned  = assigned productive labour + assigned support labour
+Labour remaining = unassigned productive/support labour
+```
+
+Productive hours must only come from productive labour rows.
+
+---
+
+## 6. Asset Contract
+
+Asset assignment remains productive-asset focused.
+
+Assets are assigned by percentage into operating groups.
+
+Current rule:
+
+```txt
+Productive assets are assignable to operating groups.
+Support assets remain outside this assignment path unless explicitly brought into the model later.
+```
+
+Recovery Summary should consume assigned asset cost from Cost Allocation, but must not assume Cost Allocation sets asset recovery rates.
+
+---
+
+## 7. Overhead Contract
+
+Overhead is now automatic in the Cost Allocation flow.
+
+The user does not manually assign overhead in the operating group builder.
+
+Current rule:
+
+```txt
+Overhead is distributed automatically from the operating structure after labour and asset assignments are known.
+```
+
+The manual overhead step has been removed from the user flow.
+
+Recovery Summary must treat overhead as a cost pool to recover, not as a user-entered group input.
+
+---
+
+## 8. Reconciliation Contract
+
+The Cost Allocation checks section now includes:
+
+* Reconciliation
+* Group costs
+* Warnings
+* Setup
+
+Reconciliation now shows:
+
+* Labour pool
+* Productive asset pool
+* Overhead pool
+* Total assigned / remaining
+
+Over-allocated rows have been removed because over-allocation is blocked by the scripts.
+
+Locked rule:
+
+```txt
+Reconciliation should show assigned and remaining source pools only.
+```
+
+---
+
+## 9. Group Cost Stack Contract
+
+Group cost stack rows expose assigned cost at operating group level.
+
+Each operating group may contain:
+
+* Assigned labour cost
+* Assigned productive labour hours
+* Assigned asset burden
+* Assigned overhead
+* Total group cost
+
+Recovery Summary should consume these rows as the operating structure source.
+
+---
+
+## 10. Division Contract
+
+Divisions group operating groups.
+
+A Management / Admin division must be possible.
+
+The reason for this change is that support / non-productive labour must be assignable somewhere visible instead of being stranded outside Cost Allocation.
+
+Example structure:
+
+```txt
+Division: Field Operations
+  Group: Site Crew
+    Labour: Site Crew
+    Assets: Truck, plant, equipment
+
+Division: Management
+  Group: Admin / Management
+    Labour: Owner / Director, Project Manager
+    Assets: none or support assets if later enabled
+```
+
+---
+
+## 11. Recovery Summary Consumption Rules
+
+Recovery Summary should consume Cost Allocation as follows:
+
+### Inputs from Cost Allocation
+
+* divisions
+* operating groups
+* group cost stacks
+* full labour pool
+* productive labour hours
+* support labour cost
+* productive asset cost
+* overhead cost
+* assigned / remaining pool state
+
+### Recovery Summary must calculate / test:
+
+* required recovery per selected recovery model
+* whether productive recovery drivers can carry assigned cost
+* whether support labour and overhead are being recovered
+* whether the business has unrecovered cost remaining
+* whether recovery depends on internal capacity, external delivery, unit margin, or pricing uplift
+
+### Recovery Summary must not:
+
+* mutate Cost Allocation inputs
+* invent labour rows
+* treat support labour as productive hours
+* set final sell prices
+* make final business outcome decisions
+
+---
+
+## 12. Recovery Summary Next Build Direction
+
+The next build should focus on connecting Recovery Summary to the cleaned Cost Allocation contract.
+
+Priority build order:
+
+1. Confirm Recovery Summary reads Cost Allocation output contract.
+2. Add full labour pool awareness.
+3. Separate productive labour hours from support labour cost.
+4. Pull operating group cost stacks into Recovery Summary.
+5. Show required recovery by source:
+
+   * labour
+   * assets
+   * overhead
+   * support labour
+6. Expose recovery pressure:
+
+   * cost assigned
+   * productive recovery driver available
+   * required recovery per driver
+   * remaining unrecovered cost
+7. Keep final business judgement for Business Outcome.
+
+---
+
+## 13. Locked Principle
+
+Cost Allocation builds the operating structure.
+
+Recovery Summary tests whether that operating structure can be recovered.
+
+Business Outcome decides what it means commercially.
