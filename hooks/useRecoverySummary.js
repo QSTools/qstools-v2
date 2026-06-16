@@ -222,6 +222,18 @@ export default function useRecoverySummary(inputs = {}) {
       product_unit_suffix: calculated.product_unit_suffix,
       product_rate_suffix: calculated.product_rate_suffix,
 
+      recovery_warning_rows: card.recovery_warning_rows,
+      primary_recovery_warning: card.primary_recovery_warning,
+      cascade_recovery_warnings: card.cascade_recovery_warnings,
+      recovery_failure_path: card.recovery_failure_path,
+      has_primary_recovery_warning: card.has_primary_recovery_warning,
+      has_blocking_recovery_warning: card.has_blocking_recovery_warning,
+      has_review_recovery_warning: card.has_review_recovery_warning,
+      blocking_recovery_warning_count: card.blocking_recovery_warning_count,
+      review_recovery_warning_count: card.review_recovery_warning_count,
+      info_recovery_warning_count: card.info_recovery_warning_count,
+      recovery_warning_count: card.recovery_warning_count,
+
       warnings: calculated.warnings,
       share_not_balanced: calculated.share_not_balanced,
       no_productive_output: calculated.no_productive_output,
@@ -229,7 +241,7 @@ export default function useRecoverySummary(inputs = {}) {
       asset_recovery_without_assets: calculated.asset_recovery_without_assets,
       labour_recovery_without_labour: calculated.labour_recovery_without_labour,
     };
-  }, [calculated, status]);
+  }, [calculated, status, card]);
 
   return {
     status,

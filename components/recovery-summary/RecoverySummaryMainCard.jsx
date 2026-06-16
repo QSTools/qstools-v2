@@ -1,361 +1,283 @@
 "use client";
 
-import RecoverySummaryHandoffBlock from "@/components/recovery-summary/RecoverySummaryHandoffBlock";
+import { useState } from "react";
+
+import RecoverySummaryNoteDrilldown from "@/components/recovery-summary/RecoverySummaryNoteDrilldown";
+import RecoveryDriverDetail from "@/components/recovery-summary/main-card/RecoveryDriverDetail";
+import RecoveryOutcomeDetail from "@/components/recovery-summary/main-card/RecoveryOutcomeDetail";
+import RecoverySummaryMetricButton from "@/components/recovery-summary/main-card/RecoverySummaryMetricButton";
+import RecoverySupportingEvidenceDetail from "@/components/recovery-summary/main-card/RecoverySupportingEvidenceDetail";
 import {
-  format_currency,
-  format_number,
-} from "@/components/recovery-summary/recoverySummaryFormatters";
+  get_business_type_label,
+  get_commercial_failure_path,
+  get_model_confidence_warnings,
+  get_primary_commercial_warning,
+  get_recovery_driver_label,
+  get_status_label,
+} from "@/components/recovery-summary/main-card/recoverySummaryWarningHelpers";
 
-function ProductRecoveryRequirementBlock({
-  total_cost_burden = 0,
-  total_units = 0,
-  margin_per_unit = 0,
-  required_cost_per_unit = 0,
-  unit_surplus_or_gap = 0,
-  total_annual_surplus_or_gap = 0,
-  required_units_if_margin_fixed = 0,
-  required_margin_if_units_fixed = 0,
-  product_unit_recovery_status = "not_recoverable",
-  product_unit_margin_label = "Margin per unit",
-  product_required_cost_label = "Required cost per unit",
-  product_surplus_gap_label = "Surplus / gap per unit",
-  product_total_units_label = "Total units",
-  product_unit_suffix = "units",
-  product_rate_suffix = "/unit",
+function RecoveryDetailPanel({
+  active_detail,
+  status_label,
+  business_type_label,
+  recovery_driver_label,
+  warning_count,
+  warning_items,
+  values,
+  primary_recovery_warning,
+  recovery_failure_path,
+  model_confidence_warnings,
+  product_mode_active,
+  card,
 }) {
-  const status_message =
-    product_unit_recovery_status === "not_recoverable"
-      ? "Product margin is not positive, so unit volume cannot recover the business cost burden."
-      : product_unit_recovery_status === "shortfall"
-        ? `Unit margin is below the required business cost per ${product_unit_suffix}.`
-        : `Unit margin currently covers the business cost per ${product_unit_suffix}.`;
-
-  return (
-    <div className="ui-panel">
-      <div className="ui-stack-sm">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            Product Recovery Requirement
-          </h2>
-          <p className="ui-help">
-            Product mode tests whether trading margin per unit and expected
-            unit volume can recover the full business cost burden. COGS is
-            consumed before recovery begins.
-          </p>
-        </div>
-
-        <div className="labour-summary-table">
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">Total Cost Burden</div>
-            <div className="labour-summary-table-value">
-              {format_currency(total_cost_burden)}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              {product_unit_margin_label}
-            </div>
-            <div className="labour-summary-table-value">
-              {format_currency(margin_per_unit)} {product_rate_suffix}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              {product_required_cost_label}
-            </div>
-            <div className="labour-summary-table-value">
-              {format_currency(required_cost_per_unit)} {product_rate_suffix}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              {product_total_units_label}
-            </div>
-            <div className="labour-summary-table-value">
-              {format_number(total_units, ` ${product_unit_suffix}`)}
-            </div>
-          </div>
-          <div className="labour-summary-table-row total">
-            <div className="labour-summary-table-label">
-              {product_surplus_gap_label}
-            </div>
-            <div className="labour-summary-table-value">
-              {format_currency(unit_surplus_or_gap)} {product_rate_suffix}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              Annual Surplus / Gap
-            </div>
-            <div className="labour-summary-table-value">
-              {format_currency(total_annual_surplus_or_gap)}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              Required Units if Margin Fixed
-            </div>
-            <div className="labour-summary-table-value">
-              {format_number(
-                required_units_if_margin_fixed,
-                ` ${product_unit_suffix}`
-              )}
-            </div>
-          </div>
-          <div className="labour-summary-table-row">
-            <div className="labour-summary-table-label">
-              Required Margin if Units Fixed
-            </div>
-            <div className="labour-summary-table-value">
-              {format_currency(required_margin_if_units_fixed)}{" "}
-              {product_rate_suffix}
-            </div>
-          </div>
-        </div>
-
-        <div className="ui-readonly">
-          <p className="text-sm font-medium text-[var(--text-primary)]">
-            {status_message}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatusPill({ status }) {
-  const label_map = {
-    ready: "Ready",
-    margin_available: "Margin available",
-    no_direct_costs: "No direct costs",
-    not_recoverable: "Not recoverable",
-    missing_labour_cost: "Missing labour cost",
-    missing_recovery_hours: "Missing recovery hours",
-    missing_utilisation: "Missing utilisation",
-    no_productive_assets: "No productive assets",
-  };
-
-  return <span className="ui-pill">{label_map[status] || status}</span>;
-}
-
-function RecoveryTestPanel({ title, question, status, rows = [], note }) {
-  return (
-    <div className="ui-panel">
-      <div className="ui-stack-sm">
-        <div className="ui-row-between">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              {title}
-            </h2>
-            <p className="ui-help">{question}</p>
-          </div>
-          <StatusPill status={status} />
-        </div>
-
-        <div className="labour-summary-table">
-          {rows.map((row) => (
-            <div
-              key={row.label}
-              className={`labour-summary-table-row ${
-                row.total ? "total" : ""
-              }`}
-            >
-              <div className="labour-summary-table-label">{row.label}</div>
-              <div className="labour-summary-table-value">{row.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {note ? (
-          <div className="ui-readonly">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              {note}
-            </p>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function HoursBasedRecoveryTests({
-  labour_recovery_cost = 0,
-  labour_recovery_hours = 0,
-  required_labour_recovery_rate = 0,
-  labour_recovery_status = "ready",
-  asset_recovery_cost = 0,
-  asset_utilisation_hours_annual = 0,
-  required_asset_recovery_rate = 0,
-  asset_recovery_status = "ready",
-  material_margin_pool = 0,
-  material_margin_percent = 0,
-  material_margin_status = "margin_available",
-}) {
-  return (
-    <div className="ui-stack">
-      <RecoveryTestPanel
-        title="Labour Recovery"
-        question="Is labour recovering labour?"
-        status={labour_recovery_status}
-        rows={[
-          {
-            label: "Annual Labour Cost",
-            value: format_currency(labour_recovery_cost),
-          },
-          {
-            label: "Recovery Hours",
-            value: format_number(labour_recovery_hours, " hrs"),
-          },
-          {
-            label: "Required Labour Recovery Rate",
-            value: `${format_currency(required_labour_recovery_rate)} /hr`,
-            total: true,
-          },
-        ]}
-        note="Labour must stand on its own. Material margin is not used to reduce this labour recovery requirement."
+  if (active_detail === "status") {
+    return (
+      <RecoveryOutcomeDetail
+        status_label={status_label}
+        margin_pool={values.margin_pool}
+        total_cost_burden={values.total_cost_burden}
+        primary_recovery_warning={primary_recovery_warning}
+        model_confidence_warnings={model_confidence_warnings}
       />
+    );
+  }
 
-      <RecoveryTestPanel
-        title="Asset Recovery"
-        question="Are productive assets recovering their own cost?"
-        status={asset_recovery_status}
-        rows={[
-          {
-            label: "Productive Asset Cost",
-            value: format_currency(asset_recovery_cost),
-          },
-          {
-            label: "Annual Asset Utilisation",
-            value: format_number(asset_utilisation_hours_annual, " hrs"),
-          },
-          {
-            label: "Required Asset Recovery Rate",
-            value: `${format_currency(required_asset_recovery_rate)} /hr`,
-            total: true,
-          },
-        ]}
-        note="Asset recovery is tested separately. Labour recovery must not hide asset under-recovery."
+  if (active_detail === "driver") {
+    return (
+      <RecoveryDriverDetail
+        business_type_label={business_type_label}
+        recovery_driver_label={recovery_driver_label}
+        product_mode_active={product_mode_active}
+        actual_recovery_rate={card.actual_recovery_rate}
+        required_recovery_rate={card.required_recovery_rate}
+        profit_or_deficit_per_recovery_hour={
+          card.profit_or_deficit_per_recovery_hour
+        }
       />
+    );
+  }
 
-      <RecoveryTestPanel
-        title="Material Margin"
-        question="Are materials covering their own cost and generating margin?"
-        status={material_margin_status}
-        rows={[
-          {
-            label: "Material / Trading Margin Pool",
-            value: format_currency(material_margin_pool),
-          },
-          {
-            label: "Material / Trading Margin %",
-            value: `${Number(material_margin_percent || 0).toFixed(1)}%`,
-            total: true,
-          },
-        ]}
-        note="Materials cover themselves and create margin. In hours-based mode, material margin is not used to recover labour or productive assets."
+  if (active_detail === "evidence") {
+    return (
+      <RecoverySupportingEvidenceDetail
+        product_mode_active={product_mode_active}
+        material_recovery_included={card.material_recovery_included}
+        asset_recovery_included={card.asset_recovery_included}
+        labour_recovery_cost={card.labour_recovery_cost}
+        labour_recovery_hours={card.labour_recovery_hours}
+        labour_recovery_status={card.labour_recovery_status}
+        required_labour_recovery_rate={card.required_labour_recovery_rate}
+        asset_recovery_cost={card.asset_recovery_cost}
+        asset_utilisation_hours_annual={card.asset_utilisation_hours_annual}
+        required_asset_recovery_rate={card.required_asset_recovery_rate}
+        asset_recovery_status={card.asset_recovery_status}
+        material_margin_pool={card.material_margin_pool}
+        material_margin_percent={card.material_margin_percent}
+        material_margin_status={card.material_margin_status}
+        total_cost_burden={card.total_cost_burden}
+        total_units={card.total_units}
+        margin_per_unit={card.margin_per_unit}
+        required_cost_per_unit={card.required_cost_per_unit}
+        unit_surplus_or_gap={card.unit_surplus_or_gap}
+        total_annual_surplus_or_gap={card.total_annual_surplus_or_gap}
+        required_units_if_margin_fixed={card.required_units_if_margin_fixed}
+        required_margin_if_units_fixed={card.required_margin_if_units_fixed}
+        product_unit_recovery_status={card.product_unit_recovery_status}
+        product_unit_margin_label={card.product_unit_margin_label}
+        product_required_cost_label={card.product_required_cost_label}
+        product_surplus_gap_label={card.product_surplus_gap_label}
+        product_total_units_label={card.product_total_units_label}
+        product_unit_suffix={card.product_unit_suffix}
+        product_rate_suffix={card.product_rate_suffix}
       />
-    </div>
-  );
+    );
+  }
+
+  if (active_detail === "notes") {
+    return (
+      <RecoverySummaryNoteDrilldown
+        warning_count={warning_count}
+        warning_items={warning_items}
+        values={values}
+        primary_recovery_warning={primary_recovery_warning}
+        recovery_failure_path={recovery_failure_path}
+      />
+    );
+  }
+
+  return null;
 }
 
 export default function RecoverySummaryMainCard({
+  recovery_ready,
+  warning_count,
+  warning_items = [],
+
+  recovery_warning_count,
+  primary_recovery_warning,
+  recovery_failure_path = [],
+
   business_type,
-  is_product_based,
   recovery_mode,
+  is_product_based,
+  activity_driver_type,
+  activity_driver_label,
 
-  labour_recovery_cost,
-  labour_recovery_hours,
-  labour_recovery_status,
-  required_labour_recovery_rate,
-  asset_recovery_cost,
-  asset_utilisation_hours_annual,
-  required_asset_recovery_rate,
-  asset_recovery_status,
-  material_margin_pool,
-  material_margin_percent,
-  material_margin_status,
-
-  material_recovery_included,
-  asset_recovery_included,
-
+  margin_pool,
   total_cost_burden,
-  total_units,
-  margin_per_unit,
-  required_cost_per_unit,
-  unit_surplus_or_gap,
-  total_annual_surplus_or_gap,
-  required_units_if_margin_fixed,
-  required_margin_if_units_fixed,
-  product_unit_recovery_status,
-  product_unit_margin_label,
-  product_required_cost_label,
-  product_surplus_gap_label,
-  product_total_units_label,
-  product_unit_suffix,
-  product_rate_suffix,
+  net_position,
+  current_margin_per_driver,
+  required_recovery_per_driver,
+  recovery_gap_per_driver,
+
+  total_revenue,
+  total_direct_costs,
+  total_people_cost_annual,
+  total_asset_cost_annual,
+  total_business_overheads,
+
+  ...card
 }) {
+  const [active_detail, set_active_detail] = useState("status");
+
+  const commercial_failure_path =
+    get_commercial_failure_path(recovery_failure_path);
+
+  const model_confidence_warnings =
+    get_model_confidence_warnings(recovery_failure_path);
+
+  const primary_commercial_warning = get_primary_commercial_warning({
+    primary_recovery_warning,
+    recovery_failure_path,
+  });
+
+  const effective_warning_count =
+    recovery_warning_count ?? warning_count ?? recovery_failure_path.length ?? 0;
+
+  const should_show_failure_path = commercial_failure_path.length > 0;
+
+  const effective_failure_path =
+    should_show_failure_path ? commercial_failure_path : [];
+
+  const status_label = get_status_label({
+    recovery_ready,
+    warning_count: effective_warning_count,
+    primary_commercial_warning,
+    recovery_failure_path,
+  });
+
+  const business_type_label = get_business_type_label(business_type);
+
+  const recovery_driver_label = get_recovery_driver_label(
+    activity_driver_type,
+    activity_driver_label
+  );
+
   const product_mode_active =
     is_product_based === true ||
     business_type === "product_based" ||
     recovery_mode === "product_unit";
 
+  const values = {
+    business_type,
+    margin_pool,
+    total_cost_burden,
+    net_position,
+    current_margin_per_driver,
+    required_recovery_per_driver,
+    recovery_gap_per_driver,
+    total_revenue,
+    total_direct_costs,
+    total_people_cost_annual,
+    total_asset_cost_annual,
+    total_business_overheads,
+  };
+
+  const detail_card = {
+    ...card,
+    business_type,
+    recovery_mode,
+    is_product_based,
+    activity_driver_type,
+    activity_driver_label,
+    margin_pool,
+    total_cost_burden,
+  };
+
   return (
     <section className="ui-section">
       <div className="ui-panel">
         <div className="ui-stack">
-          <div className="ui-panel">
-            <div className="ui-stack-sm">
-              <div className="ui-kicker">Active recovery mode</div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                {product_mode_active
-                  ? "Product / unit recovery"
-                  : "Hours-based separate stream recovery"}
-              </h2>
-              <p className="ui-help">
-                {product_mode_active
-                  ? "The unit carries the whole business. Margin after COGS must recover labour, assets, overheads, and profit."
-                  : "Each recovery stream stands on its own. Labour, productive assets, and material margin are tested separately."}
-              </p>
-            </div>
+          <div>
+            <p className="ui-kicker">Recovery summary</p>
+
+            <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+              Does the business recover?
+            </h2>
+
+            <p className="ui-help">
+              Open each card to see the recovery outcome, driver, evidence, and
+              failure path.
+            </p>
           </div>
 
-          {product_mode_active ? (
-            <ProductRecoveryRequirementBlock
-              total_cost_burden={total_cost_burden}
-              total_units={total_units}
-              margin_per_unit={margin_per_unit}
-              required_cost_per_unit={required_cost_per_unit}
-              unit_surplus_or_gap={unit_surplus_or_gap}
-              total_annual_surplus_or_gap={total_annual_surplus_or_gap}
-              required_units_if_margin_fixed={required_units_if_margin_fixed}
-              required_margin_if_units_fixed={required_margin_if_units_fixed}
-              product_unit_recovery_status={product_unit_recovery_status}
-              product_unit_margin_label={product_unit_margin_label}
-              product_required_cost_label={product_required_cost_label}
-              product_surplus_gap_label={product_surplus_gap_label}
-              product_total_units_label={product_total_units_label}
-              product_unit_suffix={product_unit_suffix}
-              product_rate_suffix={product_rate_suffix}
+          <div className="ui-split-2">
+            <RecoverySummaryMetricButton
+              id="status"
+              label="Recovery outcome"
+              value={status_label}
+              active={active_detail === "status"}
+              onClick={set_active_detail}
             />
-          ) : (
-            <HoursBasedRecoveryTests
-              labour_recovery_cost={labour_recovery_cost}
-              labour_recovery_hours={labour_recovery_hours}
-              required_labour_recovery_rate={required_labour_recovery_rate}
-              labour_recovery_status={labour_recovery_status}
-              asset_recovery_cost={asset_recovery_cost}
-              asset_utilisation_hours_annual={asset_utilisation_hours_annual}
-              required_asset_recovery_rate={required_asset_recovery_rate}
-              asset_recovery_status={asset_recovery_status}
-              material_margin_pool={material_margin_pool}
-              material_margin_percent={material_margin_percent}
-              material_margin_status={material_margin_status}
-            />
-          )}
 
-          <RecoverySummaryHandoffBlock
-            material_recovery_included={material_recovery_included}
-            asset_recovery_included={asset_recovery_included}
+            <RecoverySummaryMetricButton
+              id="driver"
+              label="Recovery driver"
+              value={
+                product_mode_active ? "Units and margin" : recovery_driver_label
+              }
+              active={active_detail === "driver"}
+              onClick={set_active_detail}
+            />
+
+            <RecoverySummaryMetricButton
+              id="evidence"
+              label="Supporting evidence"
+              value={
+                product_mode_active
+                  ? "Product margin"
+                  : "Labour / assets / margin"
+              }
+              active={active_detail === "evidence"}
+              onClick={set_active_detail}
+            />
+
+            {should_show_failure_path ? (
+              <RecoverySummaryMetricButton
+                id="notes"
+                label="Failure path"
+                value={String(effective_failure_path.length)}
+                active={active_detail === "notes"}
+                onClick={set_active_detail}
+              />
+            ) : null}
+          </div>
+
+          <RecoveryDetailPanel
+            active_detail={active_detail}
+            status_label={status_label}
+            business_type_label={business_type_label}
+            recovery_driver_label={
+              product_mode_active ? "Units and margin" : recovery_driver_label
+            }
+            warning_count={effective_failure_path.length}
+            warning_items={warning_items}
+            values={values}
+            primary_recovery_warning={primary_commercial_warning}
+            recovery_failure_path={effective_failure_path}
+            model_confidence_warnings={model_confidence_warnings}
+            product_mode_active={product_mode_active}
+            card={detail_card}
           />
         </div>
       </div>
