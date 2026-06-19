@@ -1,0 +1,684 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  calculateRateBuilderQuotePreview,
+  formatCurrency,
+  formatRate,
+} from "@/lib/calculations/rateBuilderCalculations";
+
+import {
+  loadRateBuilderCalculators,
+  saveRateBuilderCalculators,
+} from "@/lib/storage/rateBuilderStorage";
+
+const RATE_TYPES = [
+  { value: "setup", label: "Setup / call-out" },
+  { value: "time", label: "Time based" },
+  { value: "output", label: "Output unit" },
+  { value: "material", label: "Material" },
+  { value: "subcontractor", label: "Subcontractor" },
+  { value: "custom", label: "Custom" },
+];
+
+const UNIT_OPTIONS = [
+  { value: "each", label: "Each" },
+  { value: "hr", label: "Hour" },
+  { value: "day", label: "Day" },
+  { value: "m3", label: "m³" },
+  { value: "m2", label: "m²" },
+  { value: "lm", label: "Lineal metre" },
+  { value: "tonne", label: "Tonne" },
+  { value: "item", label: "Item" },
+  { value: "custom", label: "Custom" },
+];
+
+const DEFAULT_CALCULATOR = {
+  id: "two_inch_line_pump",
+  name: "2-inch line pump calculator",
+  lines: [
+    {
+      id: "setup_fee",
+      name: "Setup Fee",
+      type: "setup",
+      unit: "each",
+      rate: 135,
+      quantity: 1,
+      is_output_driver: false,
+    },
+    {
+      id: "m3_rate",
+      name: "m3 Rate",
+      type: "output",
+      unit: "m3",
+      rate: 13,
+      quantity: 15,
+      is_output_driver: true,
+    },
+    {
+      id: "pump_hire_2inc",
+      name: "2inc Line Pump Hire",
+      type: "time",
+      unit: "hr",
+      rate: 135,
+      quantity: 4,
+      is_output_driver: false,
+    },
+  ],
+};
+
+const EMPTY_LINE = {
+  name: "",
+  type: "custom",
+  unit: "each",
+  rate: "",
+};
+
+function get_unit_label(unit_value) {
+  const match = UNIT_OPTIONS.find((unit) => unit.value === unit_value);
+  return match ? match.label : unit_value || "unit";
+}
+
+function build_id(name) {
+  const base_id = String(name || "item")
+    .toLowerCase()
+    .trim()
+    .replaceAll(" ", "_")
+    .replace(/[^a-z0-9_]/g, "");
+
+  return `${base_id || "item"}_${Date.now()}`;
+}
+
+function get_default_calculators() {
+  return [DEFAULT_CALCULATOR];
+}
+
+export default function RateBuilderLineCalculator() {
+  const [calculators, set_calculators] = useState(get_default_calculators);
+  const [active_calculator_id, set_active_calculator_id] = useState(
+    DEFAULT_CALCULATOR.id
+  );
+  const [draft_line, set_draft_line] = useState(EMPTY_LINE);
+  const [has_loaded_storage, set_has_loaded_storage] = useState(false);
+
+  useEffect(() => {
+    const stored_calculators = loadRateBuilderCalculators(
+      get_default_calculators()
+    );
+
+    set_calculators(stored_calculators);
+
+    const first_calculator = stored_calculators[0];
+
+    if (first_calculator?.id) {
+      set_active_calculator_id(first_calculator.id);
+    }
+
+    set_has_loaded_storage(true);
+  }, []);
+
+  useEffect(() => {
+    if (!has_loaded_storage) {
+      return;
+    }
+
+    saveRateBuilderCalculators(calculators);
+  }, [calculators, has_loaded_storage]);
+
+  const active_calculator = useMemo(() => {
+    return (
+      calculators.find(
+        (calculator) => calculator.id === active_calculator_id
+      ) || calculators[0]
+    );
+  }, [calculators, active_calculator_id]);
+
+  const rate_lines = active_calculator?.lines || [];
+
+  const preview = useMemo(() => {
+    return calculateRateBuilderQuotePreview(rate_lines);
+  }, [rate_lines]);
+
+  const display_calculator_name =
+    String(active_calculator?.name || "").trim() || "Unnamed calculator";
+
+  function updateDraftField(field, value) {
+    set_draft_line((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function updateActiveCalculator(updater) {
+    set_calculators((current) =>
+      current.map((calculator) =>
+        calculator.id === active_calculator?.id
+          ? updater(calculator)
+          : calculator
+      )
+    );
+  }
+
+  function updateCalculatorName(value) {
+    updateActiveCalculator((calculator) => ({
+      ...calculator,
+      name: value,
+    }));
+  }
+
+  function createNewCalculator() {
+    const next_calculator = {
+      id: build_id("new_calculator"),
+      name: "New rate calculator",
+      lines: [],
+    };
+
+    set_calculators((current) => [...current, next_calculator]);
+    set_active_calculator_id(next_calculator.id);
+    set_draft_line(EMPTY_LINE);
+  }
+
+  function deleteActiveCalculator() {
+    if (!active_calculator) {
+      return;
+    }
+
+    set_calculators((current) => {
+      const filtered_calculators = current.filter(
+        (calculator) => calculator.id !== active_calculator.id
+      );
+
+      if (filtered_calculators.length === 0) {
+        const fallback_calculators = get_default_calculators();
+        set_active_calculator_id(fallback_calculators[0].id);
+        return fallback_calculators;
+      }
+
+      set_active_calculator_id(filtered_calculators[0].id);
+      return filtered_calculators;
+    });
+  }
+
+  function duplicateActiveCalculator() {
+    if (!active_calculator) {
+      return;
+    }
+
+    const duplicated_calculator = {
+      ...active_calculator,
+      id: build_id(active_calculator.name),
+      name: `${active_calculator.name} copy`,
+      lines: active_calculator.lines.map((line) => ({
+        ...line,
+        id: build_id(line.name),
+      })),
+    };
+
+    set_calculators((current) => [...current, duplicated_calculator]);
+    set_active_calculator_id(duplicated_calculator.id);
+  }
+
+  function addRateLine() {
+    const name = String(draft_line.name || "").trim();
+
+    if (!name || !active_calculator) {
+      return;
+    }
+
+    const next_line = {
+      id: build_id(name),
+      name,
+      type: draft_line.type,
+      unit: draft_line.unit,
+      rate: Number(draft_line.rate) || 0,
+      quantity: 0,
+      is_output_driver: rate_lines.length === 0,
+    };
+
+    updateActiveCalculator((calculator) => ({
+      ...calculator,
+      lines: [...calculator.lines, next_line],
+    }));
+
+    set_draft_line(EMPTY_LINE);
+  }
+
+  function updateRateLine(id, field, value) {
+    updateActiveCalculator((calculator) => ({
+      ...calculator,
+      lines: calculator.lines.map((line) =>
+        line.id === id
+          ? {
+              ...line,
+              [field]: value,
+            }
+          : line
+      ),
+    }));
+  }
+
+  function setOutputDriver(id) {
+    updateActiveCalculator((calculator) => ({
+      ...calculator,
+      lines: calculator.lines.map((line) => ({
+        ...line,
+        is_output_driver: line.id === id,
+      })),
+    }));
+  }
+
+  function deleteRateLine(id) {
+    updateActiveCalculator((calculator) => {
+      const filtered_lines = calculator.lines.filter((line) => line.id !== id);
+
+      if (filtered_lines.length === 0) {
+        return {
+          ...calculator,
+          lines: [],
+        };
+      }
+
+      if (filtered_lines.some((line) => line.is_output_driver)) {
+        return {
+          ...calculator,
+          lines: filtered_lines,
+        };
+      }
+
+      return {
+        ...calculator,
+        lines: filtered_lines.map((line, index) => ({
+          ...line,
+          is_output_driver: index === 0,
+        })),
+      };
+    });
+  }
+
+  return (
+    <section className="rate-builder-calculator">
+      <div className="rate-builder-calculator__left ui-stack">
+        <article className="ui-section">
+          <p className="ui-kicker">Calculator setup</p>
+
+          <h2 className="ui-section-title">Saved rate calculators</h2>
+
+          <p className="ui-help">
+            Create separate calculators for different parts of the business.
+            Each calculator stores its own charge lines, output driver, rates,
+            and example quantities.
+          </p>
+
+          <div className="mt-5 grid gap-4">
+            <label className="ui-field">
+              <span className="ui-label">Select calculator</span>
+
+              <select
+                value={active_calculator?.id || ""}
+                onChange={(event) =>
+                  set_active_calculator_id(event.target.value)
+                }
+                className="ui-select"
+              >
+                {calculators.map((calculator) => (
+                  <option key={calculator.id} value={calculator.id}>
+                    {calculator.name || "Unnamed calculator"}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ui-field">
+              <span className="ui-label">Calculator name</span>
+
+              <input
+                type="text"
+                value={active_calculator?.name || ""}
+                onChange={(event) => updateCalculatorName(event.target.value)}
+                placeholder="Example: 2-inch line pump calculator"
+                className="ui-input"
+              />
+            </label>
+
+            <div className="ui-actions">
+              <button
+                type="button"
+                onClick={createNewCalculator}
+                className="ui-button-primary"
+              >
+                New calculator
+              </button>
+
+              <button
+                type="button"
+                onClick={duplicateActiveCalculator}
+                className="ui-button-secondary"
+              >
+                Duplicate
+              </button>
+
+              <button
+                type="button"
+                onClick={deleteActiveCalculator}
+                className="ui-button-danger"
+              >
+                Delete calculator
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article className="ui-section">
+          <p className="ui-kicker">Rate setup</p>
+
+          <h2 className="ui-section-title">Add customer charge line</h2>
+
+          <p className="ui-help">
+            Create the charge lines this calculator uses. Each line has a name,
+            unit, rate, and example quantity.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="ui-field sm:col-span-2">
+              <span className="ui-label">Line item name</span>
+
+              <input
+                type="text"
+                value={draft_line.name}
+                onChange={(event) =>
+                  updateDraftField("name", event.target.value)
+                }
+                placeholder="Example: Setup fee"
+                className="ui-input"
+              />
+            </label>
+
+            <label className="ui-field">
+              <span className="ui-label">Charge type</span>
+
+              <select
+                value={draft_line.type}
+                onChange={(event) =>
+                  updateDraftField("type", event.target.value)
+                }
+                className="ui-select"
+              >
+                {RATE_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ui-field">
+              <span className="ui-label">Unit</span>
+
+              <select
+                value={draft_line.unit}
+                onChange={(event) =>
+                  updateDraftField("unit", event.target.value)
+                }
+                className="ui-select"
+              >
+                {UNIT_OPTIONS.map((unit) => (
+                  <option key={unit.value} value={unit.value}>
+                    {unit.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ui-field sm:col-span-2">
+              <span className="ui-label">Rate</span>
+
+              <input
+                type="number"
+                value={draft_line.rate}
+                onChange={(event) =>
+                  updateDraftField("rate", event.target.value)
+                }
+                placeholder="Example: 135"
+                className="ui-input"
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={addRateLine}
+            className="ui-button-primary mt-5"
+          >
+            Add line item
+          </button>
+        </article>
+
+        <article className="ui-section">
+          <p className="ui-kicker">Calculator result</p>
+
+          <h2 className="ui-section-title">
+            Example charge total — {display_calculator_name}
+          </h2>
+
+          <p className="ui-help">
+            The total charge is divided by the selected output driver quantity
+            to show the effective rate per output unit.
+          </p>
+
+          <div className="mt-5 grid gap-3">
+            <div className="rate-builder-result-card">
+              <p className="rate-builder-result-label">Total charge</p>
+
+              <p className="rate-builder-result-value">
+                {formatCurrency(preview.total_charge)}
+              </p>
+            </div>
+
+            <div className="rate-builder-result-card">
+              <p className="rate-builder-result-label">
+                Primary output driver
+              </p>
+
+              <p className="rate-builder-driver-name">
+                {preview.output_driver_name}
+              </p>
+
+              <p className="rate-builder-driver-quantity">
+                {preview.output_driver_quantity}{" "}
+                {get_unit_label(preview.output_driver_unit)}
+              </p>
+            </div>
+
+            <div className="rate-builder-effective-card">
+              <p className="rate-builder-effective-label">Effective rate</p>
+
+              <p className="rate-builder-result-value">
+                {formatRate(
+                  preview.effective_rate_per_output_unit,
+                  get_unit_label(preview.output_driver_unit)
+                )}
+              </p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <article className="rate-builder-calculator__right ui-section">
+        <p className="ui-kicker">Charge lines</p>
+
+        <h2 className="ui-section-title">{display_calculator_name}</h2>
+
+        <p className="ui-help">
+          Select one line as the primary output driver. The total charge will be
+          divided by that line quantity to calculate the effective rate.
+        </p>
+
+        <div className="rate-builder-charge-list mt-5">
+          {rate_lines.map((line) => (
+            <button
+              key={line.id}
+              type="button"
+              onClick={() => setOutputDriver(line.id)}
+              className={`rate-builder-charge-card ${
+                line.is_output_driver
+                  ? "rate-builder-charge-card--selected"
+                  : ""
+              }`}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Output driver
+                  </p>
+
+                  <span
+                    className={`rate-builder-output-pill mt-2 ${
+                      line.is_output_driver
+                        ? "rate-builder-output-pill--selected"
+                        : ""
+                    }`}
+                  >
+                    {line.is_output_driver
+                      ? "Selected output driver"
+                      : "Click card to use as output driver"}
+                  </span>
+                </div>
+
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    deleteRateLine(line.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      deleteRateLine(line.id);
+                    }
+                  }}
+                  className="rate-builder-delete-action"
+                >
+                  Delete
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1.2fr_0.8fr_0.8fr]">
+                <label
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Line item</span>
+
+                  <input
+                    type="text"
+                    value={line.name}
+                    onChange={(event) =>
+                      updateRateLine(line.id, "name", event.target.value)
+                    }
+                    className="ui-input"
+                  />
+                </label>
+
+                <label
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Unit</span>
+
+                  <select
+                    value={line.unit}
+                    onChange={(event) =>
+                      updateRateLine(line.id, "unit", event.target.value)
+                    }
+                    className="ui-select"
+                  >
+                    {UNIT_OPTIONS.map((unit) => (
+                      <option key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Type</span>
+
+                  <select
+                    value={line.type}
+                    onChange={(event) =>
+                      updateRateLine(line.id, "type", event.target.value)
+                    }
+                    className="ui-select"
+                  >
+                    {RATE_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
+                <label
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Rate</span>
+
+                  <input
+                    type="number"
+                    value={line.rate}
+                    onChange={(event) =>
+                      updateRateLine(line.id, "rate", event.target.value)
+                    }
+                    className="ui-input"
+                  />
+                </label>
+
+                <label
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Example quantity</span>
+
+                  <input
+                    type="number"
+                    value={line.quantity}
+                    onChange={(event) =>
+                      updateRateLine(line.id, "quantity", event.target.value)
+                    }
+                    className="ui-input"
+                  />
+                </label>
+
+                <div
+                  className="ui-field"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="ui-label">Line total</span>
+
+                  <div className="ui-readonly">
+                    {formatCurrency(Number(line.rate) * Number(line.quantity))}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+
+          {rate_lines.length === 0 ? (
+            <div className="ui-panel text-sm text-slate-400">
+              No charge lines have been added yet.
+            </div>
+          ) : null}
+        </div>
+      </article>
+    </section>
+  );
+}

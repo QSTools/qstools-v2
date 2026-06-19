@@ -41,6 +41,7 @@ const nav_groups = [
     items: [
       { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/cost-allocation", label: "Cost Allocation" },
+      { href: "/rate-builder", label: "Rate Builder" },
       { href: "/recovery-outcome", label: "Business Outcome" },
     ],
   },
@@ -67,6 +68,7 @@ const SETUP_FLOW_ORDER = [
   "/model-readiness",
   "/recovery-summary",
   "/cost-allocation",
+  "/rate-builder",
   "/recovery-outcome",
   "/business-modelling",
   "/quote-engine",
@@ -84,6 +86,7 @@ const setup_progress = {
   "/model-readiness": false,
   "/recovery-summary": false,
   "/cost-allocation": false,
+  "/rate-builder": false,
   "/recovery-outcome": false,
   "/business-modelling": false,
   "/quote-engine": false,
@@ -126,6 +129,8 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/recovery-summary/") ||
       pathname === "/cost-allocation" ||
       pathname.startsWith("/cost-allocation/") ||
+      pathname === "/rate-builder" ||
+      pathname.startsWith("/rate-builder/") ||
       pathname === "/recovery-outcome" ||
       pathname.startsWith("/recovery-outcome/"),
 
