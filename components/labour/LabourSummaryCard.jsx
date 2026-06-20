@@ -39,7 +39,9 @@ function SummaryTable({ rows = [] }) {
 }
 
 function DecisionTile({ row = {}, index = 0 }) {
-  const is_primary = row.is_total || index === 4;
+  const is_primary = row.is_total || index === 0;
+  const has_breakdown =
+    Array.isArray(row.breakdown_rows) && row.breakdown_rows.length > 0;
 
   return (
     <div className={`ui-panel ${is_primary ? "ui-panel-strong" : ""}`}>
@@ -47,6 +49,18 @@ function DecisionTile({ row = {}, index = 0 }) {
         <div className="ui-help">{row.label}</div>
         <div className="ui-card-title-sm">{row.value}</div>
         {row.helper ? <p className="ui-help">{row.helper}</p> : null}
+
+        {has_breakdown ? (
+          <details className="ui-panel">
+            <summary className="ui-label">
+              {row.breakdown_title || "Show breakdown"}
+            </summary>
+
+            <div className="ui-stack-sm labour-summary-breakdown">
+              <SummaryTable rows={row.breakdown_rows} />
+            </div>
+          </details>
+        ) : null}
       </div>
     </div>
   );
