@@ -1,12 +1,23 @@
+/* =========================================================
+   Rate Builder Module
+========================================================= */
+
 .rate-builder-calculator {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 1.25rem;
+  align-items: start;
 }
 
 .rate-builder-calculator__left,
 .rate-builder-calculator__right {
   min-width: 0;
+}
+
+.rate-builder-calculator__left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .rate-builder-charge-list {
@@ -89,8 +100,236 @@
   font-weight: 600;
 }
 
+.rate-builder-result-card {
+  border: 1px solid var(--border-primary);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.rate-builder-result-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.rate-builder-result-value {
+  margin-top: 0.5rem;
+  color: var(--text-primary);
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+}
+
+.rate-builder-driver-name {
+  margin-top: 0.5rem;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.rate-builder-driver-quantity {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* =========================================================
+   Rate Builder Tabs and Page Shell
+========================================================= */
+
+.rate-builder-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 1.25rem;
+  background: var(--bg-card);
+}
+
+.rate-builder-tab {
+  min-height: 42px;
+  border: 1px solid var(--border-primary);
+  border-radius: 999px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rate-builder-tab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.rate-builder-tab--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.rate-builder-overview-card,
+.rate-builder-placeholder-card {
+  border: 1px solid var(--border-primary);
+  border-radius: 1rem;
+  background: var(--bg-input);
+  padding: 1rem;
+}
+
+.rate-builder-overview-card__label,
+.rate-builder-placeholder-card__label {
+  color: var(--info);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rate-builder-overview-card__title,
+.rate-builder-placeholder-card__title,
+.rate-builder-help-title {
+  margin-top: 0.5rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rate-builder-overview-card__body,
+.rate-builder-placeholder-card__body {
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.rate-builder-recovery-note {
+  border: 1px solid var(--warning);
+  border-radius: 1rem;
+  background: var(--warning-soft);
+  padding: 1rem;
+}
+
+.rate-builder-recovery-note__title {
+  color: var(--warning);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.rate-builder-recovery-note__body {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+/* =========================================================
+   Desktop Layout
+========================================================= */
+
 @media (min-width: 1024px) {
   .rate-builder-calculator {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .rate-builder-calculator__right {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.rate-builder-labour {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.rate-builder-labour__left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rate-builder-labour__right {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rate-builder-effective-value {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.rate-builder-status-card {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  background: var(--bg-card);
+}
+
+.rate-builder-status-card--good {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, var(--bg-card));
+}
+
+.rate-builder-status-card--bad {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-card));
+}
+
+.rate-builder-labour-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  background: var(--bg-card);
+}
+
+.rate-builder-labour-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rate-builder-labour-breakdown__row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rate-builder-labour-breakdown__row strong {
+  color: var(--text-primary);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .rate-builder-labour {
+    grid-template-columns: 1fr;
+  }
+
+  .rate-builder-labour__right {
+    position: static;
   }
 }

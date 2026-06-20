@@ -1,28 +1,61 @@
 "use client";
 
+import { useState } from "react";
+
+import RateBuilderTabs from "@/components/rate-builder/RateBuilderTabs";
+import RateBuilderOverview from "@/components/rate-builder/RateBuilderOverview";
 import RateBuilderLineCalculator from "@/components/rate-builder/RateBuilderLineCalculator";
+import RateBuilderLabourRatesBuilder from "@/components/rate-builder/RateBuilderLabourRatesBuilder";
+import RateBuilderRecoveryLink from "@/components/rate-builder/RateBuilderRecoveryLink";
+import RateBuilderHelpPanel from "@/components/rate-builder/RateBuilderHelpPanel";
+
+const RATE_BUILDER_TABS = [
+  {
+    id: "overview",
+    label: "Overview",
+  },
+  {
+    id: "customer_charge_calculator",
+    label: "Customer Charge Calculator",
+  },
+  {
+    id: "labour_rates_builder",
+    label: "Labour Rates Builder",
+  },
+  {
+    id: "recovery_link",
+    label: "Recovery Link",
+  },
+  {
+    id: "help",
+    label: "Help",
+  },
+];
 
 export default function RateBuilderMainCard() {
+  const [active_tab, set_active_tab] = useState("overview");
+
   return (
-    <section className="flex flex-col gap-5">
-      <RateBuilderLineCalculator />
+    <section className="ui-stack">
+      <RateBuilderTabs
+        tabs={RATE_BUILDER_TABS}
+        active_tab={active_tab}
+        on_change={set_active_tab}
+      />
 
-      <section className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-          Coming later
-        </p>
+      {active_tab === "overview" ? <RateBuilderOverview /> : null}
 
-        <h2 className="mt-2 text-lg font-semibold text-white">
-          Recovery comparison and saved rate models
-        </h2>
+      {active_tab === "customer_charge_calculator" ? (
+        <RateBuilderLineCalculator />
+      ) : null}
 
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-          This area will later compare the calculated effective rate against the
-          recovery target, saved business templates, and business outcome
-          requirements. The first build is focused only on defining charge
-          lines and calculating the effective output-unit rate.
-        </p>
-      </section>
+      {active_tab === "labour_rates_builder" ? (
+        <RateBuilderLabourRatesBuilder />
+      ) : null}
+
+      {active_tab === "recovery_link" ? <RateBuilderRecoveryLink /> : null}
+
+      {active_tab === "help" ? <RateBuilderHelpPanel /> : null}
     </section>
   );
 }
