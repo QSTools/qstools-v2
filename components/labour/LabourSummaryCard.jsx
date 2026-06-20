@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 function SummaryTable({ rows = [] }) {
@@ -19,47 +21,111 @@ function SummaryTable({ rows = [] }) {
           );
         }
 
+        const has_child_rows =
+          Array.isArray(row.child_rows) && row.child_rows.length > 0;
+
         return (
-          <div
+          <NestedSummaryRow
             key={`${row.label}-${index}`}
-            className={`labour-summary-table-row ${
-              row.is_total ? "total" : ""
-            }`}
-          >
-            <div className="labour-summary-table-label">
-              <div>{row.label}</div>
-              {row.helper ? <div className="ui-help">{row.helper}</div> : null}
-            </div>
-            <div className="labour-summary-table-value">{row.value}</div>
-          </div>
+            row={row}
+            has_child_rows={has_child_rows}
+          />
         );
       })}
     </div>
   );
 }
 
+function NestedSummaryRow({ row = {}, has_child_rows = false }) {
+  const [is_open, set_is_open] = useState(false);
+
+  return (
+    <div
+      className={`labour-summary-table-row ${row.is_total ? "total" : ""}`}
+      onClick={
+        has_child_rows
+          ? (event) => {
+              event.stopPropagation();
+              set_is_open((current) => !current);
+            }
+          : undefined
+      }
+      style={has_child_rows ? { cursor: "pointer" } : undefined}
+    >
+      <div className="labour-summary-table-label">
+        <div>{row.label}</div>
+        {row.helper ? <div className="ui-help">{row.helper}</div> : null}
+
+        {has_child_rows && is_open ? (
+          <div className="ui-panel labour-summary-breakdown">
+            <SummaryTable rows={row.child_rows} />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="labour-summary-table-value">
+        <div>{row.value}</div>
+        {has_child_rows ? (
+          <div className="ui-help">{is_open ? "Hide" : "Drill down"}</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function DecisionTile({ row = {}, index = 0 }) {
+  const [is_open, set_is_open] = useState(false);
+
   const is_primary = row.is_total || index === 0;
   const has_breakdown =
     Array.isArray(row.breakdown_rows) && row.breakdown_rows.length > 0;
 
+  function toggle_breakdown() {
+    if (!has_breakdown) return;
+    set_is_open((current) => !current);
+  }
+
   return (
-    <div className={`ui-panel ${is_primary ? "ui-panel-strong" : ""}`}>
+    <div
+      className={`ui-panel ${is_primary ? "ui-panel-strong" : ""}`}
+      role={has_breakdown ? "button" : undefined}
+      tabIndex={has_breakdown ? 0 : undefined}
+      onClick={toggle_breakdown}
+      onKeyDown={(event) => {
+        if (!has_breakdown) return;
+
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggle_breakdown();
+        }
+      }}
+      style={has_breakdown ? { cursor: "pointer" } : undefined}
+    >
       <div className="ui-stack-sm">
-        <div className="ui-help">{row.label}</div>
-        <div className="ui-card-title-sm">{row.value}</div>
-        {row.helper ? <p className="ui-help">{row.helper}</p> : null}
+        <div className="ui-split">
+          <div className="ui-stack-sm">
+            <div className="ui-help">{row.label}</div>
+            <div className="ui-card-title-sm">{row.value}</div>
+            {row.helper ? <p className="ui-help">{row.helper}</p> : null}
+          </div>
 
-        {has_breakdown ? (
-          <details className="ui-panel">
-            <summary className="ui-label">
-              {row.breakdown_title || "Show breakdown"}
-            </summary>
+          {has_breakdown ? (
+            <div className="ui-pill">{is_open ? "Hide" : "Drill down"}</div>
+          ) : null}
+        </div>
 
-            <div className="ui-stack-sm labour-summary-breakdown">
+        {has_breakdown && is_open ? (
+          <div
+            className="ui-panel labour-summary-breakdown"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">
+                {row.breakdown_title || "Breakdown"}
+              </div>
               <SummaryTable rows={row.breakdown_rows} />
             </div>
-          </details>
+          </div>
         ) : null}
       </div>
     </div>
