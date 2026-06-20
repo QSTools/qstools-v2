@@ -20,8 +20,6 @@ export default function LabourStatusStrip({
   saved_profiles_label = "0 saved",
   active_profile_label = "0 active",
   productive_hours_label = "0 hrs",
-  minimum_charge_out_label = "$0",
-  margin_health_label = "Under recovery",
 
   labour_ready = false,
   labour_status = "red",
@@ -45,10 +43,8 @@ export default function LabourStatusStrip({
           <div className="ui-split">
             <div className="ui-stack-sm">
               <div className="ui-kicker">Labour status</div>
-              <h2 className="ui-display" style={{ margin: 0 }}>
-                {status_title}
-              </h2>
-              <p className="ui-help" style={{ margin: 0 }}>
+              <h2 className="ui-display">{status_title}</h2>
+              <p className="ui-help">
                 Reconciliation strip is diagnostic only. Labour remains the
                 labour cost engine.
               </p>
@@ -96,7 +92,7 @@ export default function LabourStatusStrip({
 
             <div className="ui-panel">
               <div className="ui-stack-sm">
-                <div className="ui-kicker">Live position</div>
+                <div className="ui-kicker">Live labour position</div>
 
                 <div className="ui-split-2">
                   <div>
@@ -105,14 +101,14 @@ export default function LabourStatusStrip({
                   </div>
 
                   <div>
-                    <div className="ui-label">Minimum charge-out</div>
-                    <div>{minimum_charge_out_label}</div>
+                    <div className="ui-label">Annual labour cost</div>
+                    <div>{module_total_label}</div>
                   </div>
                 </div>
 
                 <div>
-                  <div className="ui-label">Margin health</div>
-                  <div>{margin_health_label}</div>
+                  <div className="ui-label">Labour readiness</div>
+                  <div>{labour_ready ? "Ready for downstream use" : "Needs review"}</div>
                 </div>
               </div>
             </div>
@@ -146,7 +142,7 @@ export default function LabourStatusStrip({
                 </div>
               </div>
 
-              <p className="ui-help" style={{ margin: 0 }}>
+              <p className="ui-help">
                 Green = ready. Amber = explanation required. Red = blocked.
               </p>
             </div>
@@ -156,7 +152,7 @@ export default function LabourStatusStrip({
             <div className="ui-panel">
               <div className="ui-stack-sm">
                 <div className="ui-kicker">Warnings</div>
-                <p className="ui-help" style={{ margin: 0 }}>
+                <p className="ui-help">
                   {warning_count} issue{warning_count === 1 ? "" : "s"} detected.
                 </p>
 

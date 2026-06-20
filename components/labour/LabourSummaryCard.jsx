@@ -26,7 +26,10 @@ function SummaryTable({ rows = [] }) {
               row.is_total ? "total" : ""
             }`}
           >
-            <div className="labour-summary-table-label">{row.label}</div>
+            <div className="labour-summary-table-label">
+              <div>{row.label}</div>
+              {row.helper ? <div className="ui-help">{row.helper}</div> : null}
+            </div>
             <div className="labour-summary-table-value">{row.value}</div>
           </div>
         );
@@ -63,40 +66,6 @@ function DecisionGrid({ rows = [] }) {
           index={index}
         />
       ))}
-    </div>
-  );
-}
-
-function ChargeOutResultCard({ rows = [] }) {
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-
-  return (
-    <div className="ui-panel labour-charge-out-result">
-      <div className="ui-stack-sm">
-        <div className="ui-kicker">Current charge-out result</div>
-        <h3 className="ui-card-title-sm">What this rate produces</h3>
-        <p className="ui-help">
-          Labour-only result from the current charge-out. Wider business
-          overhead and asset recovery are handled downstream.
-        </p>
-
-        <div className="labour-summary-table">
-          {rows.map((row, index) => (
-            <div
-              key={`${row.label}-${index}`}
-              className={`labour-summary-table-row ${
-                row.is_total ? "total" : ""
-              }`}
-            >
-              <div className="labour-summary-table-label">
-                <div>{row.label}</div>
-                {row.helper ? <div className="ui-help">{row.helper}</div> : null}
-              </div>
-              <div className="labour-summary-table-value">{row.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -150,7 +119,6 @@ export default function LabourSummaryCard({
   meta = {},
   decision_status = {},
   decision_rows = [],
-  charge_out_result_rows = [],
   sections = [],
   has_profile = false,
   save_profile,
@@ -165,10 +133,11 @@ export default function LabourSummaryCard({
       <div className="ui-stack">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Labour Summary</div>
-          <h2 className="ui-card-title">Current labour position</h2>
+          <h2 className="ui-card-title">Current labour cost position</h2>
           <p className="ui-help">
             Paid hours are not productive hours. Productive hours are what the
-            business actually has available to recover labour cost.
+            business actually has available before Rate Builder applies customer
+            charge-out logic.
           </p>
         </div>
 
@@ -186,20 +155,18 @@ export default function LabourSummaryCard({
           <>
             <div className="ui-panel">
               <div className="ui-stack-sm">
-                <div className="ui-kicker">Decision view</div>
+                <div className="ui-kicker">Cost view</div>
                 <h3 className="ui-card-title-sm">
-                  {decision_status.status_label || "Labour recovery position"}
+                  {decision_status.status_label || "Labour cost position"}
                 </h3>
                 <p className="ui-help">
                   {decision_status.message ||
-                    "This view shows the smallest set of values needed to understand the current labour recovery position."}
+                    "This view shows the smallest set of values needed to understand the current labour cost position."}
                 </p>
               </div>
             </div>
 
             <DecisionGrid rows={decision_rows} />
-
-            <ChargeOutResultCard rows={charge_out_result_rows} />
 
             <div className="ui-stack-sm">
               <ProfileContext meta={meta} />
@@ -217,8 +184,8 @@ export default function LabourSummaryCard({
                 <div className="ui-stack-sm">
                   <div className="ui-kicker">Next step</div>
                   <p className="ui-help">
-                    Check this labour summary, save the profile, then continue
-                    to the next setup module.
+                    Check this labour summary, save the profile, then use Rate
+                    Builder for customer charge-out and margin testing.
                   </p>
 
                   <div className="ui-actions">
@@ -239,8 +206,8 @@ export default function LabourSummaryCard({
                       Create new profile
                     </button>
 
-                    <a className="ui-button-secondary" href="/assets">
-                      Next module
+                    <a className="ui-button-secondary" href="/rate-builder">
+                      Go to Rate Builder
                     </a>
                   </div>
                 </div>

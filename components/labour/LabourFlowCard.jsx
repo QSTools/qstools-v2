@@ -1,37 +1,49 @@
 "use client";
 
+function to_number(value) {
+  if (value === "" || value === null || value === undefined) return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function format_currency(value) {
   return new Intl.NumberFormat("en-NZ", {
     style: "currency",
     currency: "NZD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+  }).format(to_number(value));
 }
 
-function SummaryRow({ label, value, is_total = false }) {
+function format_number(value) {
+  return new Intl.NumberFormat("en-NZ", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(to_number(value));
+}
+
+function SummaryRow({ label, value, helper = "", is_total = false }) {
   return (
     <div className={`labour-summary-table-row ${is_total ? "total" : ""}`}>
-      <div className="labour-summary-table-label">{label}</div>
+      <div className="labour-summary-table-label">
+        <div>{label}</div>
+        {helper ? <div className="ui-help">{helper}</div> : null}
+      </div>
       <div className="labour-summary-table-value">{value}</div>
     </div>
   );
 }
 
-export default function LabourFlowCard({
-  outputs = {},
-  state = {},
-  has_profile = false,
-}) {
+export default function LabourFlowCard({ outputs = {}, has_profile = false }) {
   if (!has_profile) {
     return (
       <section className="ui-section">
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Rate Builder</div>
-          <h2 className="ui-card-title-sm">Live rate position</h2>
+          <div className="ui-kicker">Labour cost</div>
+          <h2 className="ui-card-title-sm">Live labour cost position</h2>
           <p className="ui-help">
-            Create or load a Labour profile first to see the live Labour-only
-            rate build.
+            Create or load a Labour profile first to see the live labour cost
+            build.
           </p>
         </div>
       </section>
@@ -42,49 +54,62 @@ export default function LabourFlowCard({
     <section className="ui-section">
       <div className="ui-stack">
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Rate Builder</div>
-          <h2 className="ui-card-title-sm">Live rate position</h2>
+          <div className="ui-kicker">Labour cost</div>
+          <h2 className="ui-card-title-sm">Live labour cost position</h2>
           <p className="ui-help">
-            Labour-only build. Staff overheads and wider business overheads are
-            added later.
+            Labour-only cost build before Rate Builder applies customer
+            charge-out and margin logic.
           </p>
         </div>
 
         <div className="ui-panel">
           <div className="ui-stack-sm">
-            <div className="ui-kicker">Rates</div>
+            <div className="ui-kicker">Hours</div>
 
             <div className="labour-summary-table">
               <SummaryRow
-                label="Loaded Cost Rate"
-                value={format_currency(outputs.loaded_labour_cost_rate)}
+                label="Paid hours per year"
+                value={`${format_number(outputs.paid_hours_per_year)} hrs`}
+                helper="Total paid working hours before entitlements and productivity."
               />
 
               <SummaryRow
-                label="Productive Cost Rate"
-                value={format_currency(outputs.productive_labour_cost_rate)}
+                label="Non-productive paid hours"
+                value={`${format_number(outputs.non_productive_paid_hours)} hrs`}
+                helper="Leave, public holidays, sick leave and other paid non-productive time."
+              />
+
+              <SummaryRow
+                label="Productive hours"
+                value={`${format_number(outputs.productive_hours)} hrs`}
+                helper="Paid hours left after entitlements and productivity."
                 is_total={true}
               />
+            </div>
+          </div>
+        </div>
 
+        <div className="ui-panel">
+          <div className="ui-stack-sm">
+            <div className="ui-kicker">Cost rates</div>
+
+            <div className="labour-summary-table">
               <SummaryRow
-                label="Minimum Charge-Out"
-                value={format_currency(outputs.minimum_charge_out_rate)}
-                is_total={true}
+                label="Annual labour cost"
+                value={format_currency(outputs.total_labour_cost_annual)}
+                helper="Wages plus employer contributions."
               />
 
               <SummaryRow
-                label="Current Charge-Out"
-                value={format_currency(state.charge_out_rate)}
+                label="Loaded labour cost rate"
+                value={`${format_currency(outputs.loaded_labour_cost_rate)}/hr`}
+                helper="Annual labour cost spread across paid hours."
               />
 
               <SummaryRow
-                label="Profit per Hour"
-                value={format_currency(outputs.profit_per_hour)}
-              />
-
-              <SummaryRow
-                label="Above Recovery"
-                value={format_currency(outputs.above_recovery)}
+                label="Productive labour cost rate"
+                value={`${format_currency(outputs.productive_labour_cost_rate)}/hr`}
+                helper="Annual labour cost spread across productive hours."
                 is_total={true}
               />
             </div>
