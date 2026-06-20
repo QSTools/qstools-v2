@@ -29,14 +29,14 @@ export default function LabourPage() {
           <div className="ui-panel">
             <div className="ui-stack-sm">
               <div className="ui-kicker">Labour</div>
-              <h1 className="ui-display">Labour charge-out builder</h1>
+              <h1 className="ui-display">Labour cost builder</h1>
               <p className="ui-lead">
                 Build your live labour cost position from working hours, wages,
-                entitlements, employer contributions, and commercial settings.
+                entitlements, employer contributions, and productivity.
               </p>
               <p className="ui-help">
-                Use the Scenario Modeller separately to test changes without
-                altering your live Labour inputs.
+                Labour now owns cost truth. Rate Builder owns customer
+                charge-out and margin testing.
               </p>
             </div>
           </div>
@@ -62,7 +62,7 @@ export default function LabourPage() {
 
               <CollapsibleSection
                 title="Pay"
-                summary="Hours, wage and charge-out"
+                summary="Hours and wage cost"
                 defaultOpen={false}
               >
                 <PayCard
@@ -74,8 +74,8 @@ export default function LabourPage() {
               </CollapsibleSection>
 
               <CollapsibleSection
-                title="Commercial"
-                summary="Productivity and margin settings"
+                title="Productivity"
+                summary="Productive capacity settings"
                 defaultOpen={false}
               >
                 <CommercialCard
@@ -117,8 +117,8 @@ export default function LabourPage() {
           <aside className="labour-layout__right">
             <div className="labour-layout__right-stack">
               <CollapsibleSection
-                title="Charge-Out Build"
-                summary="Cost to charge-out flow"
+                title="Labour Cost Build"
+                summary="Cost to productive-hour flow"
                 defaultOpen={true}
               >
                 <LabourFlowCard
@@ -156,6 +156,19 @@ export default function LabourPage() {
                   }
                   weighted_all_productive_labour_rate={
                     labour.output_contract.weighted_all_productive_labour_rate
+                  }
+                  weighted_all_productive_productivity_percent={
+                    labour.output_contract
+                      .weighted_all_productive_productivity_percent
+                  }
+                  total_productive_labour_hours={
+                    labour.output_contract.total_productive_labour_hours
+                  }
+                  total_productive_labour_cost={
+                    labour.output_contract.total_productive_labour_cost
+                  }
+                  total_productive_paid_hours={
+                    labour.output_contract.total_productive_paid_hours
                   }
                   productive_staff_type_rate_warnings={
                     labour.output_contract.productive_staff_type_rate_warnings
@@ -196,8 +209,8 @@ export default function LabourPage() {
               </CollapsibleSection>
 
               <CollapsibleSection
-                title="Scenario Modeller"
-                summary="What-if pricing and productivity testing"
+                title="Legacy Labour Commercial Scenario"
+                summary="Temporary what-if testing before full Rate Builder migration"
                 defaultOpen={false}
               >
                 <ScenarioModelCard

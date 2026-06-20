@@ -11,11 +11,12 @@ export default function CommercialCard({
     <section className="ui-section">
       <div className="ui-stack">
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Commercial</div>
-          <h2 className="ui-card-title">Recovery assumptions</h2>
+          <div className="ui-kicker">Productivity</div>
+          <h2 className="ui-card-title">Productive capacity assumptions</h2>
           <p className="ui-help">
-            Set the productivity and target margin assumptions used to convert
-            Labour cost into the live rate position shown elsewhere on the page.
+            Set the productivity assumption used to convert paid time into true
+            productive labour cost. Margin and charge-out testing now belongs in
+            Rate Builder.
           </p>
         </div>
 
@@ -26,23 +27,11 @@ export default function CommercialCard({
               className="ui-input"
               type="number"
               inputMode="decimal"
+              min="0"
+              max="100"
               value={state.productivity_percent ?? ""}
               onChange={(event) =>
                 update_field?.("productivity_percent", event.target.value)
-              }
-              disabled={disabled}
-            />
-          </label>
-
-          <label className="ui-stack-sm">
-            <span className="ui-label">Margin target (%)</span>
-            <input
-              className="ui-input"
-              type="number"
-              inputMode="decimal"
-              value={state.margin_target_percent ?? ""}
-              onChange={(event) =>
-                update_field?.("margin_target_percent", event.target.value)
               }
               disabled={disabled}
             />
@@ -52,7 +41,7 @@ export default function CommercialCard({
         {!has_profile ? (
           <div className="ui-panel">
             <p className="ui-help">
-              Create a Labour profile first to unlock commercial inputs.
+              Create a Labour profile first to unlock productivity inputs.
             </p>
           </div>
         ) : null}

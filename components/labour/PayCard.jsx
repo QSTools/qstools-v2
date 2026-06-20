@@ -12,37 +12,39 @@ export default function PayCard({
       <div className="ui-stack">
         <div className="ui-stack-sm">
           <div className="ui-kicker">Pay</div>
-          <h2 className="ui-card-title">Wage and charge-out</h2>
+          <h2 className="ui-card-title">Hours and wage cost</h2>
           <p className="ui-help">
-            Enter the hourly wage and the current Labour-only charge-out rate
-            for this profile.
+            Enter the weekly hours and hourly wage cost for this Labour profile.
+            Customer charge-out rates now belong in Rate Builder.
           </p>
         </div>
 
-        <div className="ui-stack-sm">
+        <div className="ui-grid-2">
           <label className="ui-stack-sm">
-            <span className="ui-label">Labour rate</span>
+            <span className="ui-label">Hrs per week</span>
             <input
               className="ui-input"
               type="number"
               inputMode="decimal"
-              value={state.labour_rate ?? ""}
+              min="0"
+              value={state.hours_per_week ?? ""}
               onChange={(event) =>
-                update_field?.("labour_rate", event.target.value)
+                update_field?.("hours_per_week", event.target.value)
               }
               disabled={disabled}
             />
           </label>
 
           <label className="ui-stack-sm">
-            <span className="ui-label">Charge-out rate</span>
+            <span className="ui-label">Labour rate</span>
             <input
               className="ui-input"
               type="number"
               inputMode="decimal"
-              value={state.charge_out_rate ?? ""}
+              min="0"
+              value={state.labour_rate ?? ""}
               onChange={(event) =>
-                update_field?.("charge_out_rate", event.target.value)
+                update_field?.("labour_rate", event.target.value)
               }
               disabled={disabled}
             />
@@ -52,7 +54,7 @@ export default function PayCard({
         {!has_profile ? (
           <div className="ui-panel">
             <p className="ui-help">
-              Create a Labour profile first to unlock pay inputs.
+              Create a Labour profile first to unlock hours and pay inputs.
             </p>
           </div>
         ) : null}
