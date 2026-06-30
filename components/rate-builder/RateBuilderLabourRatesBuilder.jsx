@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import useLabour from "@/hooks/useLabour";
+import useProfitAndLoss from "@/hooks/useProfitAndLoss";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import RateBuilderPnlLabourBenchmarkCard from "@/components/rate-builder/RateBuilderPnlLabourBenchmarkCard";
 
 import {
   calculate_labour_rate_result,
@@ -67,6 +70,22 @@ function build_labour_source_options(labour_output) {
     labour_output?.weighted_all_productive_labour_rate
   );
 
+  const pnl_derived_recovered_labour_rate = to_number(
+    labour_output?.pnl_derived_recovered_labour_rate
+  );
+
+  const gross_profit = to_number(labour_output?.gross_profit);
+  const labour_recovery_pool = to_number(labour_output?.labour_recovery_pool);
+  const pnl_labour_recovery_multiplier = to_number(
+    labour_output?.pnl_labour_recovery_multiplier
+  );
+  const total_productive_labour_cost = to_number(
+    labour_output?.total_productive_labour_cost
+  );
+  const total_productive_labour_hours = to_number(
+    labour_output?.total_productive_labour_hours
+  );
+
   const labour_status =
     labour_output?.labour_status ||
     labour_output?.labour_model_trust_state ||
@@ -80,6 +99,14 @@ function build_labour_source_options(labour_output) {
       labour_source_type_name: "All productive labour weighted rate",
       labour_source_kind: "all_productive",
       labour_cost_rate: weighted_all_productive_labour_rate,
+      pnl_implied_recovered_rate: pnl_derived_recovered_labour_rate,
+      pnl_recovery_gap_to_cost_rate:
+        pnl_derived_recovered_labour_rate - weighted_all_productive_labour_rate,
+      gross_profit,
+      labour_recovery_pool,
+      pnl_labour_recovery_multiplier,
+      total_productive_labour_cost,
+      total_productive_labour_hours,
       rate_status: labour_status,
       source: "labour",
     });
@@ -97,6 +124,15 @@ function build_labour_source_options(labour_output) {
       labour_source_type_name: rate.staff_type_name,
       labour_source_kind: "staff_type",
       labour_cost_rate,
+      pnl_implied_recovered_rate: to_number(rate.pnl_implied_recovered_rate),
+      pnl_recovery_gap_to_cost_rate: to_number(
+        rate.pnl_recovery_gap_to_cost_rate
+      ),
+      gross_profit,
+      labour_recovery_pool,
+      pnl_labour_recovery_multiplier,
+      total_productive_labour_cost,
+      total_productive_labour_hours,
       staff_count: rate.staff_count,
       total_annual_cost: rate.total_annual_cost,
       total_productive_hours: rate.total_productive_hours,
@@ -112,6 +148,13 @@ function build_labour_source_options(labour_output) {
       labour_source_type_name: "Manual preview rate",
       labour_source_kind: "manual",
       labour_cost_rate: 45,
+      pnl_implied_recovered_rate: 0,
+      pnl_recovery_gap_to_cost_rate: 0,
+      gross_profit: 0,
+      labour_recovery_pool: 0,
+      pnl_labour_recovery_multiplier: 0,
+      total_productive_labour_cost: 0,
+      total_productive_labour_hours: 0,
       rate_status: "preview_only",
       source: "rate_builder",
     });
@@ -130,7 +173,47 @@ function get_selected_labour_source(labour_source_options, active_model) {
 }
 
 export default function RateBuilderLabourRatesBuilder() {
-  const labour = useLabour();
+  const profit_and_loss = useProfitAndLoss();
+  const general_overheads = useGeneralOverheads();
+
+  const pnl_output_contract = profit_and_loss?.output_contract ?? {};
+  const general_overheads_output_contract =
+    general_overheads?.output_contract ?? {};
+
+  const pnl_recovery_inputs = useMemo(() => {
+    return {
+      revenue:
+        pnl_output_contract.total_revenue ??
+        pnl_output_contract.total_trading_income ??
+        0,
+
+      cog:
+        pnl_output_contract.total_cogs ??
+        pnl_output_contract.total_direct_costs ??
+        pnl_output_contract.total_cost_of_sales ??
+        0,
+
+      net_profit: pnl_output_contract.net_profit ?? 0,
+
+      non_labour_overheads:
+        general_overheads_output_contract.total_general_overheads ??
+        pnl_output_contract.general_overheads_benchmark_total ??
+        0,
+    };
+  }, [
+    pnl_output_contract.total_revenue,
+    pnl_output_contract.total_trading_income,
+    pnl_output_contract.total_cogs,
+    pnl_output_contract.total_direct_costs,
+    pnl_output_contract.total_cost_of_sales,
+    pnl_output_contract.net_profit,
+    pnl_output_contract.general_overheads_benchmark_total,
+    general_overheads_output_contract.total_general_overheads,
+  ]);
+
+  const labour = useLabour({
+    pnl_recovery_inputs,
+  });
 
   const [labour_rate_models, set_labour_rate_models] = useState([]);
   const [active_labour_rate_model_id, set_active_labour_rate_model_id] =
@@ -187,6 +270,10 @@ export default function RateBuilderLabourRatesBuilder() {
       labour_source_type_name: selected_labour_source.labour_source_type_name,
       labour_source_kind: selected_labour_source.labour_source_kind,
       labour_group_name: selected_labour_source.labour_source_type_name,
+      pnl_implied_recovered_rate:
+        selected_labour_source.pnl_implied_recovered_rate,
+      pnl_recovery_gap_to_cost_rate:
+        selected_labour_source.pnl_recovery_gap_to_cost_rate,
     };
   }, [active_model, selected_labour_source]);
 
@@ -236,6 +323,10 @@ export default function RateBuilderLabourRatesBuilder() {
           labour_source_kind: selected_source.labour_source_kind,
           labour_group_name: selected_source.labour_source_type_name,
           labour_cost_rate: selected_source.labour_cost_rate,
+          pnl_implied_recovered_rate:
+            selected_source.pnl_implied_recovered_rate,
+          pnl_recovery_gap_to_cost_rate:
+            selected_source.pnl_recovery_gap_to_cost_rate,
           productive_efficiency_percent: 100,
           updated_at: new Date().toISOString(),
         };
@@ -259,6 +350,10 @@ export default function RateBuilderLabourRatesBuilder() {
         first_source?.labour_source_type_name ||
         "All productive labour weighted rate",
       labour_cost_rate: first_source?.labour_cost_rate || 45,
+      pnl_implied_recovered_rate:
+        first_source?.pnl_implied_recovered_rate || 0,
+      pnl_recovery_gap_to_cost_rate:
+        first_source?.pnl_recovery_gap_to_cost_rate || 0,
       productive_efficiency_percent: 100,
     });
 
@@ -468,7 +563,10 @@ export default function RateBuilderLabourRatesBuilder() {
                     className="ui-input"
                     value={active_model.labour_unit_label}
                     onChange={(event) =>
-                      update_active_model("labour_unit_label", event.target.value)
+                      update_active_model(
+                        "labour_unit_label",
+                        event.target.value
+                      )
                     }
                   />
                 </div>
@@ -605,9 +703,7 @@ export default function RateBuilderLabourRatesBuilder() {
             </div>
 
             <div className="rate-builder-result-card">
-              <p className="rate-builder-result-label">
-                Labour source
-              </p>
+              <p className="rate-builder-result-label">Labour source</p>
               <p className="rate-builder-result-value">
                 {selected_labour_source?.labour_source_type_name ||
                   active_model.labour_source_type_name ||
@@ -620,6 +716,12 @@ export default function RateBuilderLabourRatesBuilder() {
                   "ready"}
               </p>
             </div>
+
+            <RateBuilderPnlLabourBenchmarkCard
+              selected_labour_source={selected_labour_source}
+              result={result}
+              labour_unit_label={active_model.labour_unit_label}
+            />
 
             <div className="rate-builder-result-card">
               <p className="rate-builder-result-label">
@@ -652,9 +754,7 @@ export default function RateBuilderLabourRatesBuilder() {
                   : "rate-builder-status-card rate-builder-status-card--bad"
               }
             >
-              <p className="rate-builder-result-label">
-                Rate position
-              </p>
+              <p className="rate-builder-result-label">Rate position</p>
               <p className="rate-builder-result-value">
                 {result.above_target ? "Above target" : "Below target"}
               </p>

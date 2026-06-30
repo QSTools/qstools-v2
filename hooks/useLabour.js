@@ -25,7 +25,7 @@ import {
   buildLabourOutputContract,
 } from "@/lib/selectors/labourSelectors";
 
-export function useLabour() {
+export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   const [state, setState] = useState(getDefaultLabourState);
   const [profiles, setProfiles] = useState([]);
   const [staff_types, setStaffTypes] = useState([]);
@@ -87,6 +87,20 @@ export function useLabour() {
         };
       });
   }, [profiles]);
+
+  const resolved_pnl_recovery_inputs = useMemo(() => {
+    return {
+      revenue: pnl_recovery_inputs?.revenue ?? 0,
+      cog: pnl_recovery_inputs?.cog ?? 0,
+      net_profit: pnl_recovery_inputs?.net_profit ?? 0,
+      non_labour_overheads: pnl_recovery_inputs?.non_labour_overheads ?? 0,
+    };
+  }, [
+    pnl_recovery_inputs?.revenue,
+    pnl_recovery_inputs?.cog,
+    pnl_recovery_inputs?.net_profit,
+    pnl_recovery_inputs?.non_labour_overheads,
+  ]);
 
   function update_field(field, value) {
     setState((previous) => ({
@@ -216,8 +230,9 @@ export function useLabour() {
       active_staff,
       outputs,
       state,
+      pnl_recovery_inputs: resolved_pnl_recovery_inputs,
     });
-  }, [active_staff, outputs, state]);
+  }, [active_staff, outputs, state, resolved_pnl_recovery_inputs]);
 
   return {
     state,
