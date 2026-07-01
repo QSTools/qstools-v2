@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   calculateRateBuilderQuotePreview,
+  calculateRateBuilderRecoveryPreview,
   formatCurrency,
   formatRate,
+  formatPercent,
 } from "@/lib/calculations/rateBuilderCalculations";
 
 import {
@@ -100,6 +102,7 @@ export default function RateBuilderLineCalculator() {
     DEFAULT_CALCULATOR.id
   );
   const [draft_line, set_draft_line] = useState(EMPTY_LINE);
+  const [selected_recovery_cost, set_selected_recovery_cost] = useState(0);
   const [has_loaded_storage, set_has_loaded_storage] = useState(false);
 
   useEffect(() => {
@@ -139,6 +142,18 @@ export default function RateBuilderLineCalculator() {
   const preview = useMemo(() => {
     return calculateRateBuilderQuotePreview(rate_lines);
   }, [rate_lines]);
+
+  const recovery_preview = useMemo(() => {
+    return calculateRateBuilderRecoveryPreview({
+      total_charge: preview.total_charge,
+      selected_recovery_cost,
+      output_driver_quantity: preview.output_driver_quantity,
+    });
+  }, [
+    preview.total_charge,
+    preview.output_driver_quantity,
+    selected_recovery_cost,
+  ]);
 
   const display_calculator_name =
     String(active_calculator?.name || "").trim() || "Unnamed calculator";
@@ -488,6 +503,56 @@ export default function RateBuilderLineCalculator() {
                 {preview.output_driver_quantity}{" "}
                 {get_unit_label(preview.output_driver_unit)}
               </p>
+
+            <div className="rate-builder-result-card">
+              <label className="ui-field">
+                <span className="ui-label">Selected recovery cost</span>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={selected_recovery_cost}
+                  onChange={(event) =>
+                    set_selected_recovery_cost(Number(event.target.value) || 0)
+                  }
+                  className="ui-input"
+                />
+              </label>
+
+              <p className="ui-help mt-2">
+                First pass only. This will later be filled from selected labour,
+                asset, and overhead recovery components.
+              </p>
+            </div>
+
+            <div className="rate-builder-result-card">
+              <p className="rate-builder-result-label">Profit / shortfall</p>
+
+              <p className="rate-builder-result-value">
+                {formatCurrency(recovery_preview.profit_amount)}
+              </p>
+
+              <p className="ui-help mt-2">
+                Margin: {formatPercent(recovery_preview.profit_margin_percent)}
+              </p>
+
+              <p className="ui-help">
+                Profit per {get_unit_label(preview.output_driver_unit)}:{" "}
+                {formatCurrency(recovery_preview.profit_per_output_unit)}
+              </p>
+
+              <p className="ui-help">
+                Recovery cost per {get_unit_label(preview.output_driver_unit)}:{" "}
+                {formatCurrency(
+                  recovery_preview.recovery_cost_per_output_unit
+                )}
+              </p>
+
+              <p className="ui-help">
+                Status: {recovery_preview.recovery_status}
+              </p>
+            </div>
             </div>
 
             <div className="rate-builder-effective-card">
@@ -682,3 +747,8 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
+
+
