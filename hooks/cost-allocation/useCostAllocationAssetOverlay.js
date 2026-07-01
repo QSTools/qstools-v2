@@ -15,6 +15,16 @@ function get_asset_name(asset = {}) {
   return asset.asset_name || asset.name || "Unnamed Asset";
 }
 
+function get_asset_recovery_hours(asset = {}, default_recovery_hours = 0) {
+  return (
+    safe_number(asset.utilisation_hours_annual) ||
+    safe_number(asset.asset_utilisation_hours_annual) ||
+    safe_number(asset.recovery_hours_annual) ||
+    safe_number(asset.asset_recovery_hours_used) ||
+    safe_number(default_recovery_hours)
+  );
+}
+
 function build_asset_recovery_overlay({
   asset_output_contract = {},
   recovery_hours_used = 0,
@@ -33,20 +43,45 @@ function build_asset_recovery_overlay({
         ? safe_number(asset.asset_recovery_cost_annual)
         : base_asset_cost_annual + allocated_asset_overhead_cost_annual;
 
+    const asset_recovery_hours_used = get_asset_recovery_hours(
+      asset,
+      default_recovery_hours
+    );
+
+    const asset_base_recovery_rate_per_hour =
+      asset_recovery_hours_used > 0
+        ? base_asset_cost_annual / asset_recovery_hours_used
+        : 0;
+
+    const allocated_asset_overhead_recovery_rate =
+      asset_recovery_hours_used > 0
+        ? allocated_asset_overhead_cost_annual / asset_recovery_hours_used
+        : 0;
+
     const asset_recovery_rate_per_hour =
-      default_recovery_hours > 0
-        ? asset_recovery_cost_annual / default_recovery_hours
+      asset_recovery_hours_used > 0
+        ? asset_recovery_cost_annual / asset_recovery_hours_used
         : 0;
 
     return {
       ...asset,
       asset_type: normalise_asset_type(asset.asset_type),
       asset_name: get_asset_name(asset),
+
       base_asset_cost_annual,
       allocated_asset_overhead_cost_annual,
       asset_recovery_cost_annual,
-      asset_recovery_hours_used: default_recovery_hours,
+
+      utilisation_hours_annual: asset_recovery_hours_used,
+      asset_recovery_hours_used,
+
+      asset_base_recovery_rate_per_hour,
+      allocated_asset_overhead_recovery_rate,
       asset_recovery_rate_per_hour,
+
+      minimum_recoverable_asset_rate: asset_recovery_rate_per_hour,
+      fully_loaded_asset_recovery_rate: asset_recovery_rate_per_hour,
+
       cost_allocation_asset_cost_annual: asset_recovery_cost_annual,
     };
   });
@@ -55,14 +90,31 @@ function build_asset_recovery_overlay({
     asset_id: asset.asset_id ?? "",
     asset_name: asset.asset_name ?? "Unnamed Asset",
     asset_type: asset.asset_type,
+
     base_asset_cost_annual: safe_number(asset.base_asset_cost_annual),
     allocated_asset_overhead_cost_annual: safe_number(
       asset.allocated_asset_overhead_cost_annual
     ),
     asset_recovery_cost_annual: safe_number(asset.asset_recovery_cost_annual),
+
+    utilisation_hours_annual: safe_number(asset.utilisation_hours_annual),
     asset_recovery_hours_used: safe_number(asset.asset_recovery_hours_used),
+
+    asset_base_recovery_rate_per_hour: safe_number(
+      asset.asset_base_recovery_rate_per_hour
+    ),
+    allocated_asset_overhead_recovery_rate: safe_number(
+      asset.allocated_asset_overhead_recovery_rate
+    ),
     asset_recovery_rate_per_hour: safe_number(
       asset.asset_recovery_rate_per_hour
+    ),
+
+    minimum_recoverable_asset_rate: safe_number(
+      asset.minimum_recoverable_asset_rate
+    ),
+    fully_loaded_asset_recovery_rate: safe_number(
+      asset.fully_loaded_asset_recovery_rate
     ),
   }));
 
