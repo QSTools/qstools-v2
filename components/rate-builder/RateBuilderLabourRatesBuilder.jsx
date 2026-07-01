@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import useLabour from "@/hooks/useLabour";
-import useProfitAndLoss from "@/hooks/useProfitAndLoss";
-import useGeneralOverheads from "@/hooks/useGeneralOverheads";
-import useRecoverySummary from "@/hooks/useRecoverySummary";
+import useCostAllocation from "@/hooks/useCostAllocation";
 
 import RateBuilderMinimumRecoveryCard from "@/components/rate-builder/RateBuilderMinimumRecoveryCard";
 
@@ -122,50 +120,14 @@ function calculate_weighted_summary_charge_out_rate({
 }
 
 export default function RateBuilderLabourRatesBuilder() {
-  const profit_and_loss = useProfitAndLoss();
-  const general_overheads = useGeneralOverheads();
-  const recovery_summary = useRecoverySummary();
+  const labour = useLabour();
+  const cost_allocation = useCostAllocation();
 
-  const pnl_output_contract = profit_and_loss?.output_contract ?? {};
-  const general_overheads_output_contract =
-    general_overheads?.output_contract ?? {};
-  const recovery_summary_output_contract =
-    recovery_summary?.output_contract ?? {};
-
-  const pnl_recovery_inputs = useMemo(() => {
-    return {
-      revenue:
-        pnl_output_contract.total_revenue ??
-        pnl_output_contract.total_trading_income ??
-        0,
-
-      cog:
-        pnl_output_contract.total_cogs ??
-        pnl_output_contract.total_direct_costs ??
-        pnl_output_contract.total_cost_of_sales ??
-        0,
-
-      net_profit: pnl_output_contract.net_profit ?? 0,
-
-      non_labour_overheads:
-        general_overheads_output_contract.total_general_overheads ??
-        pnl_output_contract.general_overheads_benchmark_total ??
-        0,
-    };
-  }, [
-    pnl_output_contract.total_revenue,
-    pnl_output_contract.total_trading_income,
-    pnl_output_contract.total_cogs,
-    pnl_output_contract.total_direct_costs,
-    pnl_output_contract.total_cost_of_sales,
-    pnl_output_contract.net_profit,
-    pnl_output_contract.general_overheads_benchmark_total,
-    general_overheads_output_contract.total_general_overheads,
-  ]);
-
-  const labour = useLabour({
-    pnl_recovery_inputs,
-  });
+  const cost_allocation_output_contract = {
+    ...(cost_allocation?.output_contract ?? {}),
+    recovery_plan: cost_allocation?.card?.recovery_plan ?? {},
+    card: cost_allocation?.card ?? {},
+  };
 
   const [labour_rate_models, set_labour_rate_models] = useState([]);
   const [active_labour_rate_model_id, set_active_labour_rate_model_id] =
@@ -180,9 +142,9 @@ export default function RateBuilderLabourRatesBuilder() {
   const labour_source_options = useMemo(() => {
     return build_labour_source_options(
       labour_output,
-      recovery_summary_output_contract
+      cost_allocation_output_contract
     );
-  }, [labour_output, recovery_summary_output_contract]);
+  }, [labour_output, cost_allocation_output_contract]);
 
   useEffect(() => {
     const saved_labour_source_rates = readRateBuilderLabourSourceRates();
@@ -369,45 +331,45 @@ export default function RateBuilderLabourRatesBuilder() {
   }
 
   function save_selected_labour_source_charge_out_rate() {
-  if (!active_model || !selected_labour_source || is_all_productive_summary) {
-    return;
+    if (!active_model || !selected_labour_source || is_all_productive_summary) {
+      return;
+    }
+
+    const source_id = selected_labour_source.labour_source_type_id;
+
+    if (!source_id) {
+      return;
+    }
+
+    const saved_rate = Number(selected_source_charge_out_rate || 0);
+
+    saveRateBuilderLabourSourceRate(source_id, saved_rate);
+
+    set_labour_rate_models((current_models) =>
+      current_models.map((model) => {
+        if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
+          return model;
+        }
+
+        const next_rate_map = {
+          ...get_rate_map(model),
+          [source_id]: saved_rate,
+        };
+
+        return {
+          ...model,
+          current_charge_out_rate: saved_rate,
+          charge_out_rates_by_labour_source: next_rate_map,
+          labour_unit_label: LABOUR_UNIT_LABEL,
+          productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+          recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+          updated_at: new Date().toISOString(),
+        };
+      })
+    );
+
+    set_labour_source_rate_save_status("Saved");
   }
-
-  const source_id = selected_labour_source.labour_source_type_id;
-
-  if (!source_id) {
-    return;
-  }
-
-  const saved_rate = Number(selected_source_charge_out_rate || 0);
-
-  saveRateBuilderLabourSourceRate(source_id, saved_rate);
-
-  set_labour_rate_models((current_models) =>
-    current_models.map((model) => {
-      if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
-        return model;
-      }
-
-      const next_rate_map = {
-        ...get_rate_map(model),
-        [source_id]: saved_rate,
-      };
-
-      return {
-        ...model,
-        current_charge_out_rate: saved_rate,
-        charge_out_rates_by_labour_source: next_rate_map,
-        labour_unit_label: LABOUR_UNIT_LABEL,
-        productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
-        recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
-        updated_at: new Date().toISOString(),
-      };
-    })
-  );
-
-  set_labour_source_rate_save_status("Saved");
-}
 
   function handle_labour_source_change(labour_source_type_id) {
     const selected_source = labour_source_options.find(

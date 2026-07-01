@@ -461,6 +461,9 @@ export default function useCostAllocation(inputs = {}) {
         calculated.productive_asset_utilisation_hours_annual,
       group_recovery_basis_label: calculated.group_recovery_basis_label,
       group_required_recovery_rate: calculated.group_required_recovery_rate,
+
+      rate_builder_labour_recovery_rows:
+        base_card?.recovery_plan?.rate_builder_labour_recovery_rows ?? [],
     },
   };
 
@@ -483,10 +486,18 @@ export default function useCostAllocation(inputs = {}) {
     reset_state,
   };
 
-  const output_contract = build_cost_allocation_output_contract({
-    calculated,
-    state,
-  });
+  const output_contract = {
+    ...build_cost_allocation_output_contract({
+      calculated,
+      state,
+    }),
+    rate_builder_labour_recovery_rows:
+      card?.recovery_plan?.rate_builder_labour_recovery_rows ?? [],
+    operational_group_cost_rows: calculated?.operational_group_cost_rows ?? [],
+    total_available_overhead_cost: calculated?.total_available_overhead_cost ?? 0,
+    total_grouped_overhead_cost: calculated?.total_grouped_overhead_cost ?? 0,
+    overhead_allocation_method: calculated?.overhead_allocation_method ?? "",
+  };
 
   return {
     status,
