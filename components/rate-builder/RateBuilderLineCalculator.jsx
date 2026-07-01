@@ -78,6 +78,7 @@ const EMPTY_LINE = {
   type: "custom",
   unit: "each",
   rate: "",
+  quantity: "",
 };
 
 function get_unit_label(unit_value) {
@@ -197,10 +198,41 @@ export default function RateBuilderLineCalculator() {
   }
 
   function updateLinkedCostAllocationGroup(value) {
-    updateActiveCalculator((calculator) => ({
-      ...calculator,
+    if (!value) {
+      updateActiveCalculator((calculator) => ({
+        ...calculator,
+        linked_cost_allocation_group_id: "",
+      }));
+
+      return;
+    }
+
+    const selected_group = asset_backed_group_options.find(
+      (group) => group.group_id === value
+    );
+
+    const existing_calculator = calculators.find(
+      (calculator) => calculator.linked_cost_allocation_group_id === value
+    );
+
+    if (existing_calculator?.id) {
+      set_active_calculator_id(existing_calculator.id);
+      set_draft_line(EMPTY_LINE);
+      return;
+    }
+
+    const next_calculator = {
+      id: build_id(selected_group?.group_name || "asset_group_calculator"),
+      name: selected_group?.group_name
+        ? `${selected_group.group_name} calculator`
+        : "Asset group calculator",
       linked_cost_allocation_group_id: value,
-    }));
+      lines: [],
+    };
+
+    set_calculators((current) => [...current, next_calculator]);
+    set_active_calculator_id(next_calculator.id);
+    set_draft_line(EMPTY_LINE);
   }
 
   function createNewCalculator() {
@@ -268,7 +300,7 @@ export default function RateBuilderLineCalculator() {
       type: draft_line.type,
       unit: draft_line.unit,
       rate: Number(draft_line.rate) || 0,
-      quantity: 0,
+      quantity: Number(draft_line.quantity) || 0,
       is_output_driver: rate_lines.length === 0,
     };
 
@@ -429,7 +461,7 @@ export default function RateBuilderLineCalculator() {
               </select>
             </label>
 
-            <label className="ui-field sm:col-span-2">
+            <label className="ui-field">
               <span className="ui-label">Rate</span>
 
               <input
@@ -439,6 +471,20 @@ export default function RateBuilderLineCalculator() {
                   updateDraftField("rate", event.target.value)
                 }
                 placeholder="Example: 135"
+                className="ui-input"
+              />
+            </label>
+
+            <label className="ui-field">
+              <span className="ui-label">Example job quantity</span>
+
+              <input
+                type="number"
+                value={draft_line.quantity ?? ""}
+                onChange={(event) =>
+                  updateDraftField("quantity", event.target.value)
+                }
+                placeholder="Example: 3"
                 className="ui-input"
               />
             </label>
@@ -565,10 +611,8 @@ export default function RateBuilderLineCalculator() {
 
         <div className="rate-builder-charge-list mt-5">
           {rate_lines.map((line) => (
-            <button
+            <div
               key={line.id}
-              type="button"
-              onClick={() => setOutputDriver(line.id)}
               className={`rate-builder-charge-card ${
                 line.is_output_driver
                   ? "rate-builder-charge-card--selected"
@@ -581,7 +625,9 @@ export default function RateBuilderLineCalculator() {
                     Output driver
                   </p>
 
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => setOutputDriver(line.id)}
                     className={`rate-builder-output-pill mt-2 ${
                       line.is_output_driver
                         ? "rate-builder-output-pill--selected"
@@ -590,8 +636,8 @@ export default function RateBuilderLineCalculator() {
                   >
                     {line.is_output_driver
                       ? "Selected output driver"
-                      : "Click card to use as output driver"}
-                  </span>
+                      : "Click to use as output driver"}
+                  </button>
                 </div>
 
                 <span
@@ -695,7 +741,7 @@ export default function RateBuilderLineCalculator() {
                   className="ui-field"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <span className="ui-label">Example quantity</span>
+                  <span className="ui-label">Example job quantity</span>
 
                   <input
                     type="number"
@@ -718,7 +764,7 @@ export default function RateBuilderLineCalculator() {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
 
           {rate_lines.length === 0 ? (
@@ -731,6 +777,20 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
