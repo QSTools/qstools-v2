@@ -15,6 +15,8 @@ import {
   saveRateBuilderCalculators,
 } from "@/lib/storage/rateBuilderStorage";
 
+import useCostAllocation from "@/hooks/useCostAllocation";
+
 const RATE_TYPES = [
   { value: "setup", label: "Setup / call-out" },
   { value: "time", label: "Time based" },
@@ -39,6 +41,7 @@ const UNIT_OPTIONS = [
 const DEFAULT_CALCULATOR = {
   id: "two_inch_line_pump",
   name: "2-inch line pump calculator",
+  linked_cost_allocation_group_id: "",
   lines: [
     {
       id: "setup_fee",
@@ -97,12 +100,23 @@ function get_default_calculators() {
 }
 
 export default function RateBuilderLineCalculator() {
+  const cost_allocation = useCostAllocation();
+
+  const asset_backed_group_options = useMemo(() => {
+    const group_rows =
+      cost_allocation?.output_contract?.operational_group_cost_rows ?? [];
+
+    return group_rows.filter(
+      (group) => Number(group?.assigned_asset_burden) > 0
+    );
+  }, [cost_allocation?.output_contract?.operational_group_cost_rows]);
+
   const [calculators, set_calculators] = useState(get_default_calculators);
   const [active_calculator_id, set_active_calculator_id] = useState(
     DEFAULT_CALCULATOR.id
   );
   const [draft_line, set_draft_line] = useState(EMPTY_LINE);
-  const [selected_recovery_cost, set_selected_recovery_cost] = useState(0);
+  const [selected_recovery_rate, set_selected_recovery_rate] = useState(0);
   const [has_loaded_storage, set_has_loaded_storage] = useState(false);
 
   useEffect(() => {
@@ -146,13 +160,13 @@ export default function RateBuilderLineCalculator() {
   const recovery_preview = useMemo(() => {
     return calculateRateBuilderRecoveryPreview({
       total_charge: preview.total_charge,
-      selected_recovery_cost,
+      selected_recovery_rate,
       output_driver_quantity: preview.output_driver_quantity,
     });
   }, [
     preview.total_charge,
     preview.output_driver_quantity,
-    selected_recovery_cost,
+    selected_recovery_rate,
   ]);
 
   const display_calculator_name =
@@ -179,6 +193,13 @@ export default function RateBuilderLineCalculator() {
     updateActiveCalculator((calculator) => ({
       ...calculator,
       name: value,
+    }));
+  }
+
+  function updateLinkedCostAllocationGroup(value) {
+    updateActiveCalculator((calculator) => ({
+      ...calculator,
+      linked_cost_allocation_group_id: value,
     }));
   }
 
@@ -317,70 +338,33 @@ export default function RateBuilderLineCalculator() {
         <article className="ui-section">
           <p className="ui-kicker">Calculator setup</p>
 
-          <h2 className="ui-section-title">Saved rate calculators</h2>
+          <h2 className="ui-section-title">Asset-backed pricing group</h2>
 
           <p className="ui-help">
-            Create separate calculators for different parts of the business.
-            Each calculator stores its own charge lines, output driver, rates,
-            and example quantities.
+            Select the Cost Allocation group this calculator is pricing. Only
+            asset-backed operational groups are shown here.
           </p>
 
           <div className="mt-5 grid gap-4">
             <label className="ui-field">
-              <span className="ui-label">Select calculator</span>
+              <span className="ui-label">Select cost allocation group</span>
 
               <select
-                value={active_calculator?.id || ""}
+                value={active_calculator?.linked_cost_allocation_group_id || ""}
                 onChange={(event) =>
-                  set_active_calculator_id(event.target.value)
+                  updateLinkedCostAllocationGroup(event.target.value)
                 }
                 className="ui-select"
               >
-                {calculators.map((calculator) => (
-                  <option key={calculator.id} value={calculator.id}>
-                    {calculator.name || "Unnamed calculator"}
+                <option value="">Select asset-backed group</option>
+
+                {asset_backed_group_options.map((group) => (
+                  <option key={group.group_id} value={group.group_id}>
+                    {group.group_name}
                   </option>
                 ))}
               </select>
             </label>
-
-            <label className="ui-field">
-              <span className="ui-label">Calculator name</span>
-
-              <input
-                type="text"
-                value={active_calculator?.name || ""}
-                onChange={(event) => updateCalculatorName(event.target.value)}
-                placeholder="Example: 2-inch line pump calculator"
-                className="ui-input"
-              />
-            </label>
-
-            <div className="ui-actions">
-              <button
-                type="button"
-                onClick={createNewCalculator}
-                className="ui-button-primary"
-              >
-                New calculator
-              </button>
-
-              <button
-                type="button"
-                onClick={duplicateActiveCalculator}
-                className="ui-button-secondary"
-              >
-                Duplicate
-              </button>
-
-              <button
-                type="button"
-                onClick={deleteActiveCalculator}
-                className="ui-button-danger"
-              >
-                Delete calculator
-              </button>
-            </div>
           </div>
         </article>
 
@@ -473,7 +457,7 @@ export default function RateBuilderLineCalculator() {
           <p className="ui-kicker">Calculator result</p>
 
           <h2 className="ui-section-title">
-            Example charge total — {display_calculator_name}
+            Example charge total - {display_calculator_name}
           </h2>
 
           <p className="ui-help">
@@ -503,18 +487,30 @@ export default function RateBuilderLineCalculator() {
                 {preview.output_driver_quantity}{" "}
                 {get_unit_label(preview.output_driver_unit)}
               </p>
+            </div>
+
+            <div className="rate-builder-effective-card">
+              <p className="rate-builder-effective-label">Effective rate</p>
+
+              <p className="rate-builder-result-value">
+                {formatRate(
+                  preview.effective_rate_per_output_unit,
+                  get_unit_label(preview.output_driver_unit)
+                )}
+              </p>
+            </div>
 
             <div className="rate-builder-result-card">
               <label className="ui-field">
-                <span className="ui-label">Selected recovery cost</span>
+                <span className="ui-label">Selected recovery rate</span>
 
                 <input
                   type="number"
                   min="0"
                   step="0.01"
-                  value={selected_recovery_cost}
+                  value={selected_recovery_rate}
                   onChange={(event) =>
-                    set_selected_recovery_cost(Number(event.target.value) || 0)
+                    set_selected_recovery_rate(Number(event.target.value) || 0)
                   }
                   className="ui-input"
                 />
@@ -551,18 +547,6 @@ export default function RateBuilderLineCalculator() {
 
               <p className="ui-help">
                 Status: {recovery_preview.recovery_status}
-              </p>
-            </div>
-            </div>
-
-            <div className="rate-builder-effective-card">
-              <p className="rate-builder-effective-label">Effective rate</p>
-
-              <p className="rate-builder-result-value">
-                {formatRate(
-                  preview.effective_rate_per_output_unit,
-                  get_unit_label(preview.output_driver_unit)
-                )}
               </p>
             </div>
           </div>
@@ -747,6 +731,29 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
