@@ -171,17 +171,29 @@ export default function RateBuilderLineCalculator() {
     asset_backed_group_options,
   ]);
 
+  const selected_group_recovery_hours =
+    Number(selected_cost_allocation_group?.group_recovery_hours) || 0;
+
   const selected_group_labour_rate =
-    Number(selected_cost_allocation_group?.assigned_labour_hours) > 0
-      ? Number(selected_cost_allocation_group.assigned_labour_cost) /
-        Number(selected_cost_allocation_group.assigned_labour_hours)
-      : 0;
+    Number(selected_cost_allocation_group?.labour_recovery_rate) ||
+    (selected_group_recovery_hours > 0
+      ? Number(selected_cost_allocation_group?.assigned_labour_cost || 0) /
+        selected_group_recovery_hours
+      : 0);
 
   const selected_group_asset_rate =
-    Number(selected_cost_allocation_group?.assigned_asset_hours) > 0
-      ? Number(selected_cost_allocation_group.assigned_asset_burden) /
-        Number(selected_cost_allocation_group.assigned_asset_hours)
-      : 0;
+    Number(selected_cost_allocation_group?.asset_recovery_rate) ||
+    (selected_group_recovery_hours > 0
+      ? Number(selected_cost_allocation_group?.assigned_asset_burden || 0) /
+        selected_group_recovery_hours
+      : 0);
+
+  const selected_group_overhead_rate =
+    Number(selected_cost_allocation_group?.overhead_recovery_rate) ||
+    (selected_group_recovery_hours > 0
+      ? Number(selected_cost_allocation_group?.assigned_overhead_amount || 0) /
+        selected_group_recovery_hours
+      : 0);
 
   const selected_group_recovery_rate =
     Number(selected_cost_allocation_group?.group_cost_per_hour) || 0;
@@ -614,7 +626,7 @@ export default function RateBuilderLineCalculator() {
                 </p>
 
                 <p className="ui-help">
-                  Labour cost rate:{" "}
+                  Labour recovery rate:{" "}
                   {formatRate(selected_group_labour_rate, "hr")}
                 </p>
 
@@ -633,7 +645,7 @@ export default function RateBuilderLineCalculator() {
                 </p>
 
                 <p className="ui-help">
-                  Asset cost rate: {formatRate(selected_group_asset_rate, "hr")}
+                  Asset recovery rate: {formatRate(selected_group_asset_rate, "hr")}
                 </p>
 
                 <p className="ui-help">
@@ -644,10 +656,31 @@ export default function RateBuilderLineCalculator() {
                 </p>
 
                 <p className="ui-help">
+                  Overhead recovery rate:{" "}
+                  {formatRate(selected_group_overhead_rate, "hr")}
+                </p>
+
+                <p className="ui-help">
                   Total group cost:{" "}
                   {formatCurrency(
                     selected_cost_allocation_group?.total_group_cost || 0
                   )}
+                </p>                <p className="ui-help">
+                  Recovery basis:{" "}
+                  {selected_cost_allocation_group?.group_recovery_hour_source ===
+                  "asset_hours"
+                    ? "Asset hours"
+                    : selected_cost_allocation_group?.group_recovery_hour_source ===
+                        "manual_hours"
+                      ? "Manual hours"
+                      : "Labour hours"}
+                </p>
+
+                <p className="ui-help">
+                  Recovery hours used:{" "}
+                  {Number(
+                    selected_cost_allocation_group?.group_recovery_hours || 0
+                  ).toFixed(2)}
                 </p>
 
                 <p className="ui-help sm:col-span-2">
@@ -866,6 +899,14 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
 
 
 

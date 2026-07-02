@@ -265,6 +265,36 @@ function GroupCostStacksSection({ recovery_plan }) {
                       value={formatNumber(row.assigned_labour_hours)}
                     />
                     <TableRow
+                      label="Recovery basis"
+                      value={
+                        row.group_recovery_hour_source === "asset_hours"
+                          ? "Asset hours"
+                          : row.group_recovery_hour_source === "manual_hours"
+                            ? "Manual hours"
+                            : "Labour hours"
+                      }
+                    />
+                    <TableRow
+                      label="Active recovery hours"
+                      value={formatNumber(row.group_recovery_hours)}
+                    />
+                    <TableRow
+                      label="Labour recovery rate"
+                      value={`${formatMoney(row.labour_recovery_rate)}/hr`}
+                    />
+                    <TableRow
+                      label="Asset recovery rate"
+                      value={`${formatMoney(row.asset_recovery_rate)}/hr`}
+                    />
+                    <TableRow
+                      label="Overhead recovery rate"
+                      value={`${formatMoney(row.overhead_recovery_rate)}/hr`}
+                    />
+                    <TableRow
+                      label="Group recovery rate"
+                      value={`${formatMoney(row.group_cost_per_hour)}/hr`}
+                    />
+                    <TableRow
                       label="Productive assets"
                       value={formatMoney(row.assigned_asset_burden)}
                     />
@@ -548,3 +578,5 @@ export default function CostAllocationEvidenceBreakdown({
     />
   );
 }
+
+
