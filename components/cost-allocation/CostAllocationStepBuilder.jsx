@@ -136,6 +136,81 @@ function SelectedContext({ selected_division, selected_group }) {
   );
 }
 
+function CurrentSelectionCard({
+  division_rows,
+  groups_for_selected_division,
+  selected_division_id,
+  selected_group_id,
+  selected_division,
+  selected_group,
+  set_selected_division_id,
+  set_selected_group_id,
+  set_open_section,
+}) {
+  return (
+    <div className="ui-readonly">
+      <div className="ui-stack-sm">
+        <div>
+          <p className="ui-kicker">Current selection</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Choose the operating area and working unit you are currently building.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <label className="ui-field">
+            <span className="ui-label">Operating area</span>
+            <select
+              className="ui-input"
+              value={selected_division_id}
+              onChange={(event) => {
+                set_selected_division_id(event.target.value);
+                set_selected_group_id("");
+                set_open_section("group");
+              }}
+            >
+              <option value="">Select operating area</option>
+              {division_rows.map((division) => (
+                <option key={division.division_id} value={division.division_id}>
+                  {division.division_name || "Unnamed operating area"}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 ui-help">
+              {selected_division?.division_name || "No operating area selected"}
+            </p>
+          </label>
+
+          <label className="ui-field">
+            <span className="ui-label">Working unit</span>
+            <select
+              className="ui-input"
+              value={selected_group_id}
+              onChange={(event) => {
+                set_selected_group_id(event.target.value);
+
+                if (event.target.value) {
+                  set_open_section("labour");
+                }
+              }}
+              disabled={!selected_division_id}
+            >
+              <option value="">Select working unit</option>
+              {groups_for_selected_division.map((group) => (
+                <option key={group.group_id} value={group.group_id}>
+                  {group.group_name || "Unnamed working unit"}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 ui-help">
+              {selected_group?.group_name || "No working unit selected"}
+            </p>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
 function AutomaticOverheadNote() {
   return (
     <div className="ui-readonly">
@@ -265,68 +340,61 @@ export default function CostAllocationStepBuilder({
 
   return (
     <div className="ui-stack">
+      <CurrentSelectionCard
+        division_rows={division_rows}
+        groups_for_selected_division={groups_for_selected_division}
+        selected_division_id={selected_division_id}
+        selected_group_id={selected_group_id}
+        selected_division={selected_division}
+        selected_group={selected_group}
+        set_selected_division_id={set_selected_division_id}
+        set_selected_group_id={set_selected_group_id}
+        set_open_section={set_open_section}
+      />
+
       <AccordionCard
-        title="Division"
-        subtitle="Create or select operating area"
-        kicker="Division setup"
+        title="Step 1"
+        subtitle="Choose operating area"
+        kicker="Operating area setup"
         is_open={open_section === "division"}
         on_toggle={() => toggle_section("division")}
       >
         <p className="ui-help">
-          Create one division first, then create operating groups inside it.
+          Create or select the operating area you want to build. The selected area controls the working units shown in the next step.
         </p>
 
         <form onSubmit={handle_create_division} className="ui-stack-sm">
           <TextField
-            label="Division name"
+            label="Operating area name"
             value={division_name}
             onChange={set_division_name}
             placeholder="Main Operations"
           />
 
           <TextField
-            label="Division description"
+            label="Operating area description"
             value={division_description}
             onChange={set_division_description}
             placeholder="Optional"
           />
 
           <button type="submit" className="ui-button">
-            Create division
+            Create operating area
           </button>
         </form>
-
-        {division_rows.length > 0 ? (
-          <SelectField
-            label="Selected division"
-            value={selected_division_id}
-            onChange={(value) => {
-              set_selected_division_id(value);
-              set_selected_group_id("");
-              set_open_section("group");
-            }}
-          >
-            <option value="">Select division</option>
-            {division_rows.map((division) => (
-              <option key={division.division_id} value={division.division_id}>
-                {division.division_name || "Unnamed division"}
-              </option>
-            ))}
-          </SelectField>
-        ) : null}
       </AccordionCard>
 
       <AccordionCard
-        title="Operating Group"
-        subtitle="Create working unit"
-        kicker="Operating group setup"
+        title="Step 2"
+        subtitle="Choose working unit"
+        kicker="Selected operating area workspace"
         is_open={open_section === "group"}
         on_toggle={() => toggle_section("group")}
       >
         {!selected_division ? (
           <div className="ui-readonly">
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Create or select a division first.
+              Create or select an operating area first.
             </p>
           </div>
         ) : (
@@ -338,48 +406,30 @@ export default function CostAllocationStepBuilder({
 
             <form onSubmit={handle_create_group} className="ui-stack-sm">
               <TextField
-                label="Operating group name"
+                label="Working unit name"
                 value={group_name}
                 onChange={set_group_name}
                 placeholder="Pump crew 1"
               />
 
               <TextField
-                label="Operating group description"
+                label="Working unit description"
                 value={group_description}
                 onChange={set_group_description}
                 placeholder="Optional"
               />
 
               <button type="submit" className="ui-button">
-                Create operating group
+                Create working unit
               </button>
             </form>
-
-            {groups_for_selected_division.length > 0 ? (
-              <SelectField
-                label="Selected operating group"
-                value={selected_group_id}
-                onChange={(value) => {
-                  set_selected_group_id(value);
-                  set_open_section("labour");
-                }}
-              >
-                <option value="">Select operating group</option>
-                {groups_for_selected_division.map((group) => (
-                  <option key={group.group_id} value={group.group_id}>
-                    {group.group_name || "Unnamed operating group"}
-                  </option>
-                ))}
-              </SelectField>
-            ) : null}
           </>
         )}
       </AccordionCard>
 
       <AccordionCard
-        title="Labour"
-        subtitle="Assign labour pool"
+        title="Step 3"
+        subtitle="Assign labour"
         kicker="Labour allocation"
         is_open={open_section === "labour"}
         on_toggle={() => toggle_section("labour")}
@@ -387,7 +437,7 @@ export default function CostAllocationStepBuilder({
         {!selected_group ? (
           <div className="ui-readonly">
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Create or select an operating group first.
+              Create or select a working unit first.
             </p>
           </div>
         ) : (
@@ -418,8 +468,8 @@ export default function CostAllocationStepBuilder({
       </AccordionCard>
 
       <AccordionCard
-        title="Assets"
-        subtitle="Assign asset pool"
+        title="Step 4"
+        subtitle="Assign assets"
         kicker="Asset allocation"
         is_open={open_section === "assets"}
         on_toggle={() => toggle_section("assets")}
@@ -427,7 +477,7 @@ export default function CostAllocationStepBuilder({
         {!selected_group ? (
           <div className="ui-readonly">
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Create or select an operating group first.
+              Create or select a working unit first.
             </p>
           </div>
         ) : (
@@ -476,3 +526,22 @@ export default function CostAllocationStepBuilder({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
