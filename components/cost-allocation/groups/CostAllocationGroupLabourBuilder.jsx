@@ -218,7 +218,7 @@ export default function CostAllocationGroupLabourBuilder({
             }}
           >
             <option value="">Select crew / labour type</option>
-            {labour_rows.map((row) => {
+            {labour_rows.map((row, index) => {
               const id = getLabourGroupId(row);
               const staff_count = getLabourGroupStaffCount(row);
               const remaining_staff_count = getRemainingStaffCount({
@@ -234,7 +234,7 @@ export default function CostAllocationGroupLabourBuilder({
                 remaining_staff_count <= 0 || remaining_percent <= 0;
 
               return (
-                <option key={id} value={id} disabled={is_fully_allocated}>
+                <option key={`${id}-${index}`} value={id} disabled={is_fully_allocated}>
                   {getLabourGroupName(row)}
                   {is_fully_allocated
                     ? " — fully allocated"
@@ -382,3 +382,6 @@ export default function CostAllocationGroupLabourBuilder({
     </div>
   );
 }
+
+
+

@@ -117,7 +117,6 @@ export default function RateBuilderLineCalculator() {
     DEFAULT_CALCULATOR.id
   );
   const [draft_line, set_draft_line] = useState(EMPTY_LINE);
-  const [selected_recovery_rate, set_selected_recovery_rate] = useState(0);
   const [has_loaded_storage, set_has_loaded_storage] = useState(false);
 
   useEffect(() => {
@@ -158,16 +157,59 @@ export default function RateBuilderLineCalculator() {
     return calculateRateBuilderQuotePreview(rate_lines);
   }, [rate_lines]);
 
+  const selected_cost_allocation_group = useMemo(() => {
+    const selected_group_id =
+      active_calculator?.linked_cost_allocation_group_id || "";
+
+    return (
+      asset_backed_group_options.find(
+        (group) => group.group_id === selected_group_id
+      ) || null
+    );
+  }, [
+    active_calculator?.linked_cost_allocation_group_id,
+    asset_backed_group_options,
+  ]);
+
+  const selected_group_labour_rate =
+    Number(selected_cost_allocation_group?.assigned_labour_hours) > 0
+      ? Number(selected_cost_allocation_group.assigned_labour_cost) /
+        Number(selected_cost_allocation_group.assigned_labour_hours)
+      : 0;
+
+  const selected_group_asset_rate =
+    Number(selected_cost_allocation_group?.assigned_asset_hours) > 0
+      ? Number(selected_cost_allocation_group.assigned_asset_burden) /
+        Number(selected_cost_allocation_group.assigned_asset_hours)
+      : 0;
+
+  const selected_group_recovery_rate =
+    Number(selected_cost_allocation_group?.group_cost_per_hour) || 0;
+
+  const recovery_driver_quantity = useMemo(() => {
+    const time_line_quantity = preview.line_totals
+      .filter((line) => line.type === "time")
+      .reduce((total, line) => total + Number(line.quantity || 0), 0);
+
+    if (time_line_quantity > 0) {
+      return time_line_quantity;
+    }
+
+    return preview.output_driver_quantity;
+  }, [preview.line_totals, preview.output_driver_quantity]);
+
   const recovery_preview = useMemo(() => {
     return calculateRateBuilderRecoveryPreview({
       total_charge: preview.total_charge,
-      selected_recovery_rate,
+      selected_recovery_rate: selected_group_recovery_rate,
+      recovery_driver_quantity,
       output_driver_quantity: preview.output_driver_quantity,
     });
   }, [
     preview.total_charge,
     preview.output_driver_quantity,
-    selected_recovery_rate,
+    recovery_driver_quantity,
+    selected_group_recovery_rate,
   ]);
 
   const display_calculator_name =
@@ -547,25 +589,72 @@ export default function RateBuilderLineCalculator() {
             </div>
 
             <div className="rate-builder-result-card">
-              <label className="ui-field">
-                <span className="ui-label">Selected recovery rate</span>
-
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={selected_recovery_rate}
-                  onChange={(event) =>
-                    set_selected_recovery_rate(Number(event.target.value) || 0)
-                  }
-                  className="ui-input"
-                />
-              </label>
-
-              <p className="ui-help mt-2">
-                First pass only. This will later be filled from selected labour,
-                asset, and overhead recovery components.
+              <p className="rate-builder-result-label">
+                Cost Allocation source
               </p>
+
+              <p className="rate-builder-driver-name">
+                {selected_cost_allocation_group?.group_name ||
+                  "No cost group selected"}
+              </p>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <p className="ui-help">
+                  Labour cost:{" "}
+                  {formatCurrency(
+                    selected_cost_allocation_group?.assigned_labour_cost || 0
+                  )}
+                </p>
+
+                <p className="ui-help">
+                  Labour hours:{" "}
+                  {Number(
+                    selected_cost_allocation_group?.assigned_labour_hours || 0
+                  ).toFixed(2)}
+                </p>
+
+                <p className="ui-help">
+                  Labour cost rate:{" "}
+                  {formatRate(selected_group_labour_rate, "hr")}
+                </p>
+
+                <p className="ui-help">
+                  Asset cost:{" "}
+                  {formatCurrency(
+                    selected_cost_allocation_group?.assigned_asset_burden || 0
+                  )}
+                </p>
+
+                <p className="ui-help">
+                  Asset hours:{" "}
+                  {Number(
+                    selected_cost_allocation_group?.assigned_asset_hours || 0
+                  ).toFixed(2)}
+                </p>
+
+                <p className="ui-help">
+                  Asset cost rate: {formatRate(selected_group_asset_rate, "hr")}
+                </p>
+
+                <p className="ui-help">
+                  Overhead allocation:{" "}
+                  {formatCurrency(
+                    selected_cost_allocation_group?.assigned_overhead_amount || 0
+                  )}
+                </p>
+
+                <p className="ui-help">
+                  Total group cost:{" "}
+                  {formatCurrency(
+                    selected_cost_allocation_group?.total_group_cost || 0
+                  )}
+                </p>
+
+                <p className="ui-help sm:col-span-2">
+                  Group recovery rate:{" "}
+                  {formatRate(selected_group_recovery_rate, "hr")}
+                </p>
+              </div>
             </div>
 
             <div className="rate-builder-result-card">
@@ -777,6 +866,18 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
