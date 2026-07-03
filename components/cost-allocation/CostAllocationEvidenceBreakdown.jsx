@@ -23,15 +23,34 @@ function yesNo(value) {
   return value ? "Yes" : "No";
 }
 
-function TableRow({ label, value, help, total = false }) {
+function TableSectionHeading({ label }) {
   return (
-    <div className={`labour-summary-table-row ${total ? "total" : ""}`}>
+    <div className="labour-summary-table-row total">
+      <div className="labour-summary-table-label">
+        <div>{label}</div>
+      </div>
+      <div className="labour-summary-table-value" />
+    </div>
+  );
+}
+
+function TableRow({ label, value, help, total = false, highlight = false }) {
+  return (
+    <div
+      className={`labour-summary-table-row ${total ? "total" : ""} ${
+        highlight ? "highlight" : ""
+      }`}
+    >
       <div className="labour-summary-table-label">
         <div>{label}</div>
         {help ? <div className="ui-help">{help}</div> : null}
       </div>
 
-      <div className="labour-summary-table-value">
+      <div
+        className={`labour-summary-table-value ${
+          highlight ? "text-cyan-300 font-semibold" : ""
+        }`}
+      >
         {value ?? "Not available"}
       </div>
     </div>
@@ -226,8 +245,8 @@ function GroupCostStacksSection({ recovery_plan }) {
             Review assigned operating group cost stacks
           </h3>
           <p className="ui-help">
-            This shows the labour, asset, overhead, and total cost currently
-            assigned to each operating group.
+            This shows the selected recovery basis, component recovery rates,
+            and total assigned operating cost for each operating group.
           </p>
         </div>
 
@@ -256,16 +275,9 @@ function GroupCostStacksSection({ recovery_plan }) {
                   </div>
 
                   <div className="labour-summary-table">
+                    <TableSectionHeading label="Recovery basis" />
                     <TableRow
-                      label="Productive labour"
-                      value={formatMoney(row.assigned_labour_cost)}
-                    />
-                    <TableRow
-                      label="Productive labour hours"
-                      value={formatNumber(row.assigned_labour_hours)}
-                    />
-                    <TableRow
-                      label="Recovery basis"
+                      label="Basis selected"
                       value={
                         row.group_recovery_hour_source === "asset_hours"
                           ? "Asset hours"
@@ -279,33 +291,74 @@ function GroupCostStacksSection({ recovery_plan }) {
                       value={formatNumber(row.group_recovery_hours)}
                     />
                     <TableRow
+                      label="Group recovery rate"
+                      value={`${formatMoney(row.group_cost_per_hour)}/hr`}
+                      highlight
+                    />
+
+                    <TableSectionHeading label="Labour recovery" />
+                    <TableRow
+                      label="Labour recovery cost"
+                      value={formatMoney(row.labour_recovery_cost ?? row.assigned_labour_cost)}
+                    />
+                    <TableRow
+                      label="Labour recovery hours"
+                      value={formatNumber(row.group_recovery_hours)}
+                    />
+                    <TableRow
                       label="Labour recovery rate"
                       value={`${formatMoney(row.labour_recovery_rate)}/hr`}
+                      highlight
+                    />
+
+                    <TableSectionHeading label="Asset recovery" />
+                    <TableRow
+                      label="Asset cost"
+                      value={formatMoney(row.asset_recovery_cost ?? row.assigned_asset_burden)}
+                    />
+                    <TableRow
+                      label="Asset recovery hours"
+                      value={formatNumber(row.group_recovery_hours)}
                     />
                     <TableRow
                       label="Asset recovery rate"
                       value={`${formatMoney(row.asset_recovery_rate)}/hr`}
+                      highlight
+                    />
+
+                    <TableSectionHeading label="Overhead recovery" />
+                    <TableRow
+                      label="Overhead cost"
+                      value={formatMoney(row.overhead_recovery_cost ?? row.assigned_overhead_amount)}
+                    />
+                    <TableRow
+                      label="Overhead recovery hours"
+                      value={formatNumber(row.group_recovery_hours)}
                     />
                     <TableRow
                       label="Overhead recovery rate"
                       value={`${formatMoney(row.overhead_recovery_rate)}/hr`}
+                      highlight
                     />
+
+                    <TableSectionHeading label="Total cost summary" />
                     <TableRow
-                      label="Group recovery rate"
-                      value={`${formatMoney(row.group_cost_per_hour)}/hr`}
+                      label="Productive labour"
+                      value={formatMoney(row.labour_recovery_cost ?? row.assigned_labour_cost)}
                     />
                     <TableRow
                       label="Productive assets"
-                      value={formatMoney(row.assigned_asset_burden)}
+                      value={formatMoney(row.asset_recovery_cost ?? row.assigned_asset_burden)}
                     />
                     <TableRow
                       label="Overhead"
-                      value={formatMoney(row.assigned_overhead_amount)}
+                      value={formatMoney(row.overhead_recovery_cost ?? row.assigned_overhead_amount)}
                     />
                     <TableRow
                       label="Total group cost"
                       value={formatMoney(row.total_group_cost)}
                       total
+                      highlight
                     />
                   </div>
                 </div>
@@ -578,5 +631,9 @@ export default function CostAllocationEvidenceBreakdown({
     />
   );
 }
+
+
+
+
 
 
