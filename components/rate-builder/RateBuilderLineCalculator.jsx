@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -30,8 +30,8 @@ const UNIT_OPTIONS = [
   { value: "each", label: "Each" },
   { value: "hr", label: "Hour" },
   { value: "day", label: "Day" },
-  { value: "m3", label: "m³" },
-  { value: "m2", label: "m²" },
+  { value: "m3", label: "mÂ³" },
+  { value: "m2", label: "mÂ²" },
   { value: "lm", label: "Lineal metre" },
   { value: "tonne", label: "Tonne" },
   { value: "item", label: "Item" },
@@ -100,7 +100,7 @@ function get_default_calculators() {
   return [DEFAULT_CALCULATOR];
 }
 
-export default function RateBuilderLineCalculator() {
+export default function RateBuilderLineCalculator({ labour_rate_context = {} }) {
   const cost_allocation = useCostAllocation();
 
   const asset_backed_group_options = useMemo(() => {
@@ -198,6 +198,13 @@ export default function RateBuilderLineCalculator() {
   const selected_group_recovery_rate =
     Number(selected_cost_allocation_group?.group_cost_per_hour) || 0;
 
+
+  const labour_charge_out_rate =
+    Number(labour_rate_context.current_charge_out_rate) || 0;
+  const labour_minimum_recoverable_rate =
+    Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
+  const has_labour_rate_context = labour_charge_out_rate > 0;
+
   const recovery_driver_quantity = useMemo(() => {
     const time_line_quantity = preview.line_totals
       .filter((line) => line.type === "time")
@@ -223,6 +230,14 @@ export default function RateBuilderLineCalculator() {
     recovery_driver_quantity,
     selected_group_recovery_rate,
   ]);
+
+  const labour_job_charge =
+    labour_charge_out_rate * recovery_driver_quantity;
+  const labour_job_cost =
+    labour_minimum_recoverable_rate * recovery_driver_quantity;
+  const labour_job_profit = labour_job_charge - labour_job_cost;
+  const labour_per_hr_profit =
+    labour_charge_out_rate - labour_minimum_recoverable_rate;
 
   const display_calculator_name =
     String(active_calculator?.name || "").trim() || "Unnamed calculator";
@@ -697,22 +712,135 @@ export default function RateBuilderLineCalculator() {
                 {formatCurrency(recovery_preview.profit_amount)}
               </p>
 
-              <p className="ui-help mt-2">
+              <div className="mt-3 grid gap-1 text-xs text-[var(--text-secondary)] sm:grid-cols-3">
+                <p>
+                  Pricing unit:{" "}
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {get_unit_label(preview.output_driver_unit)}
+                  </span>
+                </p>
+                <p>
+                  Output quantity:{" "}
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {preview.output_driver_quantity}{" "}
+                    {get_unit_label(preview.output_driver_unit)}
+                  </span>
+                </p>
+                <p>
+                  Recovery hours:{" "}
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {recovery_driver_quantity.toFixed(2)} hrs
+                  </span>
+                </p>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+                <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+                  <div className="px-3 py-2">View</div>
+                  <div className="px-3 py-2 text-right">Charge</div>
+                  <div className="px-3 py-2 text-right">Cost</div>
+                  <div className="px-3 py-2 text-right">Profit / Loss</div>
+                </div>
+
+                <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                  <div className="px-3 py-2 font-semibold text-slate-200">
+                    Total job
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-slate-100">
+                    {formatCurrency(preview.total_charge)}
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-slate-100">
+                    {formatCurrency(selected_group_recovery_rate * recovery_driver_quantity)}
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+                    {formatCurrency(recovery_preview.profit_amount)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 text-xs">
+                  <div className="px-3 py-2 font-semibold text-slate-200">
+                    Per {get_unit_label(preview.output_driver_unit)}
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-slate-100">
+                    {formatCurrency(
+                      preview.output_driver_quantity > 0
+                        ? preview.total_charge / preview.output_driver_quantity
+                        : 0
+                    )}
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-slate-100">
+                    {formatCurrency(recovery_preview.recovery_cost_per_output_unit)}
+                  </div>
+                  <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+                    {formatCurrency(recovery_preview.profit_per_output_unit)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+                <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+                  <div className="px-3 py-2">Charge / Cost breakdown</div>
+                  <div className="px-3 py-2 text-right">Charge</div>
+                  <div className="px-3 py-2 text-right">Cost</div>
+                  <div className="px-3 py-2 text-right">Profit / Loss</div>
+                </div>
+
+                {has_labour_rate_context ? (
+                  <>
+                    <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_charge_out_rate)}</div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_minimum_recoverable_rate)}</div>
+                      <div className={`px-3 py-2 text-right font-semibold ${labour_per_hr_profit >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+                        {formatCurrency(labour_per_hr_profit)}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+                      <div className="px-3 py-2 text-right text-slate-100">
+                        {formatCurrency(preview.total_charge - labour_job_charge > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity : 0)}
+                      </div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+                      <div className={`px-3 py-2 text-right font-semibold ${(preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+                        {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate : 0)}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 text-xs">
+                      <div className="px-3 py-2 font-semibold text-cyan-300">Total / hr</div>
+                      <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+                        {formatCurrency(recovery_driver_quantity > 0 ? preview.total_charge / recovery_driver_quantity : 0)}
+                      </div>
+                      <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+                        {formatCurrency(labour_minimum_recoverable_rate + selected_group_asset_rate)}
+                      </div>
+                      <div className={`px-3 py-2 text-right font-semibold ${recovery_driver_quantity > 0 && (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+                        {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) : 0)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+                      <div className="px-3 py-2 text-right text-slate-400">—</div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_labour_rate)}</div>
+                      <div className="px-3 py-2 text-right text-slate-400">—</div>
+                    </div>
+                    <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+                      <div className="px-3 py-2 text-right text-slate-400">—</div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+                      <div className="px-3 py-2 text-right text-slate-400">—</div>
+                    </div>
+                    <div className="grid grid-cols-4 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-400 text-xs">Set a charge-out rate in Labour Rates Builder to see charge / profit breakdown.</div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="ui-help mt-3">
                 Margin: {formatPercent(recovery_preview.profit_margin_percent)}
               </p>
-
-              <p className="ui-help">
-                Profit per {get_unit_label(preview.output_driver_unit)}:{" "}
-                {formatCurrency(recovery_preview.profit_per_output_unit)}
-              </p>
-
-              <p className="ui-help">
-                Recovery cost per {get_unit_label(preview.output_driver_unit)}:{" "}
-                {formatCurrency(
-                  recovery_preview.recovery_cost_per_output_unit
-                )}
-              </p>
-
               <p className="ui-help">
                 Status: {recovery_preview.recovery_status}
               </p>
@@ -720,9 +848,7 @@ export default function RateBuilderLineCalculator() {
           </div>
         </article>
       </div>
-
       <article className="rate-builder-calculator__right ui-section">
-        <p className="ui-kicker">Charge lines</p>
 
         <h2 className="ui-section-title">{display_calculator_name}</h2>
 
@@ -899,6 +1025,9 @@ export default function RateBuilderLineCalculator() {
     </section>
   );
 }
+
+
+
 
 
 

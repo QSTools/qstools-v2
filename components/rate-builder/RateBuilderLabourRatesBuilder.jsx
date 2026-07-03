@@ -1,22 +1,16 @@
-"use client";
-
-import { useRateBuilderLabourRates } from "@/hooks/rate-builder/useRateBuilderLabourRates";
-
+﻿"use client";
 import RateBuilderLabourRatesInputCard from "@/components/rate-builder/RateBuilderLabourRatesInputCard";
 import RateBuilderLabourRatesResultPanel from "@/components/rate-builder/RateBuilderLabourRatesResultPanel";
 import RateBuilderLabourRatesSetupCard from "@/components/rate-builder/RateBuilderLabourRatesSetupCard";
 
-export default function RateBuilderLabourRatesBuilder() {
-  const model = useRateBuilderLabourRates();
-
+export default function RateBuilderLabourRatesBuilder({ model }) {
   if (!model.active_model) {
     return (
       <section className="ui-section">
-        <p className="ui-help">Loading labour rate builder…</p>
+        <p className="ui-help">Loading labour rate builder...</p>
       </section>
     );
   }
-
   return (
     <section className="ui-section">
       <div className="ui-stack">
@@ -30,13 +24,11 @@ export default function RateBuilderLabourRatesBuilder() {
             productive rate is a read-only weighted summary.
           </p>
         </div>
-
         <div className="rate-builder-labour">
           <div className="rate-builder-labour__left">
             <RateBuilderLabourRatesSetupCard model={model} />
             <RateBuilderLabourRatesInputCard model={model} />
           </div>
-
           <RateBuilderLabourRatesResultPanel model={model} />
         </div>
       </div>
