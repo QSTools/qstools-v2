@@ -1,0 +1,1122 @@
+# Mirra — Quote Checker Brief
+
+## v4.0 — QUOTE ALIGNMENT, MODEL TARGET ENFORCEMENT, MINIMUM RECOVERABLE RATE CHECKING, MARGIN VALIDATION, AND NO-SOURCE-MUTATION BOUNDARY
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 21
+
+REPLACES:
+- older QS Tools future quote-checking assumptions
+- older logic where quote checking is disconnected from required recovery rates
+- older logic where quotes are checked only against margin %
+- older logic that does not consume Business Outcome targets
+- older logic that does not check quotes against Rate Builder component rates
+- older logic that lets quote checking rewrite source business model values
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Quote Checker checks whether a quote aligns with the approved business model, minimum recoverable rates, selected Business Outcome targets, and Rate Builder assumptions. It does not create source costs, rebuild rates, change model assumptions, or issue source module corrections.
+
+---
+
+# 1. PURPOSE
+
+Quote Checker answers:
+
+Does this quote align with the business model?
+Does this quote recover the minimum required cost?
+Does this quote use the correct rate?
+Does this quote meet the selected margin / markup target?
+Does this quote align with Business Outcome modelling assumptions?
+Does this quote under-recover labour, assets, overheads, or materials?
+Which quote lines are below minimum recoverable rate?
+Which quote lines are missing required cost coverage?
+Does the full quote pass or fail?
+
+Quote Checker is the enforcement layer.
+
+Business Outcome sets the target.
+
+Quote Checker tests the quote against that target.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Active flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Quote Checker is downstream of the model.
+
+It should not exist before Rate Builder and Business Outcome outputs are available.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Quote Checker does not decide what the business should be.
+
+It checks whether a quote matches what the model says the business needs.
+
+It must compare actual quoted rates and quote line values against:
+
+- minimum recoverable rates
+- suggested sell rates
+- selected Business Outcome targets
+- required margin
+- required markup
+- component cost assumptions
+- material markup assumptions
+- labour recovery assumptions
+- asset recovery assumptions
+- overhead recovery assumptions
+
+Quote Checker should make quote failure obvious.
+
+---
+
+# 4. MODULE ROLE
+
+Quote Checker owns:
+
+- quote import / quote input review
+- quote line classification
+- quote line matching to Rate Builder rates
+- quote line minimum recovery checks
+- quote line margin checks
+- quote line markup checks
+- quote-level recovery check
+- quote-level margin check
+- quote vs model alignment status
+- quote warnings
+- quote checker trust state
+- pass / fail / review result
+
+Quote Checker does not own:
+
+- P&L source values
+- Revenue / COG source values
+- Labour source cost
+- Asset source cost
+- General Overheads source cost
+- Cost Allocation assignments
+- Recovery Summary recovery tests
+- Rate Builder rate construction
+- Business Outcome modelling
+- source business model edits
+- supplier modelling
+- quote acceptance decision by itself
+
+---
+
+# 5. INPUTS FROM BUSINESS OUTCOME
+
+Quote Checker consumes:
+
+- quote_checker_targets
+- selected modelled scenario
+- approved minimum recoverable rates
+- approved suggested sell rates
+- required margin
+- required markup
+- material markup assumption
+- labour recovery assumption
+- asset recovery assumption
+- overhead recovery assumption
+- supplier / COG scenario assumptions if active
+- modelled target rates if scenario selected
+- source scenario ID
+- business_outcome_status
+- business_outcome_model_trust_state
+
+Business Outcome owns target selection.
+
+Quote Checker consumes selected targets.
+
+Quote Checker must not recreate Business Outcome modelling.
+
+---
+
+# 6. INPUTS FROM RATE BUILDER
+
+Quote Checker consumes:
+
+- rate_builder_rows
+- rate_id
+- rate_name
+- rate_type
+- source_group_id
+- rate_driver_type
+- rate_driver_label
+- minimum_recoverable_rate
+- fully_burdened_cost_rate
+- suggested_sell_rate
+- margin_method
+- margin_percent
+- markup_percent
+- fixed_profit_per_driver
+- selected labour components
+- selected asset components
+- selected overhead components
+- selected COG/material components
+- current rate
+- target rate
+- market rate
+- rate_status
+- rate_builder_model_trust_state
+
+Rate Builder owns rate construction.
+
+Quote Checker checks quote lines against those rates.
+
+---
+
+# 7. INPUTS FROM RECOVERY SUMMARY
+
+Quote Checker may consume:
+
+- recovery_summary_status
+- total_required_recovery_amount
+- total_unrecovered_cost
+- group_recovery_rows
+- required_recovery_per_driver
+- overall_recovery_status
+- recovery_summary_model_trust_state
+
+Recovery Summary provides recovery context.
+
+Quote Checker must not rerun recovery tests.
+
+---
+
+# 8. INPUTS FROM COST ALLOCATION
+
+Quote Checker may consume:
+
+- working_groups
+- group_cost_stacks
+- labour_group_assignments
+- asset_group_assignments
+- overhead_group_assignments
+- cost_allocation_status
+- cost_allocation_model_trust_state
+
+Cost Allocation provides source structure context.
+
+Quote Checker must not modify allocations.
+
+---
+
+# 9. INPUTS FROM REVENUE / COGS
+
+Quote Checker may consume:
+
+- COG categories
+- supplier/category detail
+- blended material markup
+- material markup context
+- product/unit categories where valid
+- revenue_cogs_status
+- revenue_cogs_model_trust_state
+
+Purpose:
+
+- validate quote material assumptions where applicable
+- compare material markup assumptions
+- preserve supplier/category context
+- support future SOQ / PO / job tracking linkage
+
+Quote Checker must not infer detailed product composition from high-level supplier totals.
+
+---
+
+# 10. QUOTE INPUT TYPES
+
+Quote Checker may support:
+
+- manual quote entry
+- imported quote lines
+- schedule of quantities later
+- price list export later
+- job/PO linked quote later
+- spreadsheet import later
+- API import later
+
+For v4.0, the important contract is the quote line shape, not the import method.
+
+---
+
+# 11. QUOTE HEADER CONTRACT
+
+quote_header should include:
+
+{
+  quote_id,
+  quote_name,
+  quote_number,
+  customer_name,
+  project_name,
+  quote_date,
+  quote_version,
+  selected_business_outcome_scenario_id,
+  selected_target_set_id,
+  quote_status,
+  notes
+}
+
+Rules:
+
+- quote_id must be stable.
+- quote_version should be tracked.
+- selected target set must come from Business Outcome.
+- Quote Checker must show which model targets are being used.
+
+---
+
+# 12. QUOTE LINE CONTRACT
+
+quote_lines[]
+
+Each row:
+
+{
+  quote_line_id,
+  quote_id,
+  line_type,
+  description,
+  quantity,
+  unit,
+  quoted_unit_rate,
+  quoted_total,
+  matched_rate_id,
+  matched_rate_name,
+  matched_rate_type,
+  matched_component_type,
+  model_minimum_recoverable_rate,
+  model_suggested_sell_rate,
+  required_margin_percent,
+  required_markup_percent,
+  calculated_quote_cost_basis,
+  calculated_quote_margin,
+  calculated_quote_margin_percent,
+  calculated_quote_markup_percent,
+  line_recovery_gap,
+  line_margin_gap,
+  pass_status,
+  warnings
+}
+
+Allowed line_type values:
+
+- labour
+- asset
+- machine_operator
+- full_crew
+- product_unit
+- material
+- subcontractor
+- overhead_recovery
+- manual
+- unknown
+
+---
+
+# 13. RATE MATCHING RULE
+
+Each quote line should be matched to a Rate Builder rate where possible.
+
+Matching may use:
+
+- explicit rate_id
+- rate_name
+- rate_type
+- unit
+- description mapping
+- user-selected match
+- future stored quote template mapping
+
+If no match exists:
+
+line_status = review_required
+
+Do not guess silently.
+
+Do not force a match.
+
+---
+
+# 14. QUOTE LINE CHECK FORMULA
+
+For each quote line:
+
+quoted_unit_rate =
+quoted_total / quantity
+
+If quantity = 0:
+
+quoted_unit_rate = 0
+line_status = blocked or review_required
+
+Minimum recovery check:
+
+line_recovery_gap =
+quoted_unit_rate - model_minimum_recoverable_rate
+
+If line_recovery_gap < 0:
+
+line is under-recovering.
+
+Suggested sell rate check:
+
+line_sell_rate_gap =
+quoted_unit_rate - model_suggested_sell_rate
+
+If line_sell_rate_gap < 0:
+
+line may recover cost but miss target margin.
+
+---
+
+# 15. LINE PASS STATUS VALUES
+
+Allowed quote_line_pass_status values:
+
+- pass
+- pass_with_warning
+- under_recovering
+- margin_shortfall
+- unmatched
+- review_required
+- blocked
+- not_available
+
+Definitions:
+
+pass:
+Line meets or exceeds minimum recoverable and target sell rate.
+
+pass_with_warning:
+Line meets minimum recovery but has non-blocking warnings.
+
+under_recovering:
+Line is below minimum recoverable rate.
+
+margin_shortfall:
+Line is above minimum recoverable rate but below suggested sell rate or margin target.
+
+unmatched:
+No Rate Builder match exists.
+
+review_required:
+Line can be checked only partially.
+
+blocked:
+Calculation cannot run due to missing quantity, invalid input, or blocked upstream target.
+
+not_available:
+Required model target not available.
+
+---
+
+# 16. QUOTE TOTAL CHECKS
+
+Quote Checker must calculate:
+
+quote_total_revenue =
+sum quote_lines.quoted_total
+
+quote_minimum_required_recovery =
+sum line minimum recoverable amount
+
+quote_required_target_revenue =
+sum line suggested target amount
+
+quote_recovery_gap =
+quote_total_revenue - quote_minimum_required_recovery
+
+quote_target_gap =
+quote_total_revenue - quote_required_target_revenue
+
+quote_margin_amount =
+quote_total_revenue - quote_minimum_required_recovery
+
+quote_margin_percent =
+quote_margin_amount / quote_total_revenue
+
+Do not divide by zero.
+
+---
+
+# 17. QUOTE PASS STATUS VALUES
+
+Allowed quote_checker_status values:
+
+- pass
+- pass_with_warnings
+- under_recovering
+- margin_shortfall
+- review_required
+- blocked
+- preview_only
+- not_ready
+
+Definitions:
+
+pass:
+Quote meets minimum recovery and selected target assumptions.
+
+pass_with_warnings:
+Quote passes but warnings remain.
+
+under_recovering:
+Quote total or one or more lines are below minimum recoverable rate.
+
+margin_shortfall:
+Quote recovers cost but misses margin / markup target.
+
+review_required:
+Quote can be checked but needs user review.
+
+blocked:
+Required source target or quote input is invalid.
+
+preview_only:
+Quote check displays but source trust is not final.
+
+not_ready:
+Required quote data is missing.
+
+---
+
+# 18. MINIMUM RECOVERY RULE
+
+Minimum recovery is non-negotiable.
+
+If quoted rate is below minimum recoverable rate:
+
+- flag under_recovering
+- show shortfall
+- show affected line
+- show model minimum
+- show quoted rate
+- show amount required to pass
+
+This is not a data failure.
+
+It is a commercial warning.
+
+---
+
+# 19. TARGET SELL RATE RULE
+
+Suggested sell rate includes margin/profit target.
+
+If quoted rate is above minimum recoverable but below suggested sell rate:
+
+- flag margin_shortfall
+- show target gap
+- show required margin
+- show actual margin
+- show amount needed to meet target
+
+This is less severe than under-recovery but still important.
+
+---
+
+# 20. MATERIAL MARKUP CHECK
+
+Where quote lines include material or product/unit items and a material markup target exists:
+
+Quote Checker should compare:
+
+- quoted material markup
+- target material markup
+- blended material markup assumption
+- modelled supplier / COG scenario assumptions
+
+Important:
+
+If material line detail is not available, show not_available.
+
+Do not infer material line cost from high-level supplier totals.
+
+Do not pretend supplier-specific markup exists unless the quote line has source cost detail.
+
+---
+
+# 21. LABOUR RATE CHECK
+
+For labour lines:
+
+Compare quoted labour rate to:
+
+- labour minimum recoverable rate
+- labour suggested sell rate
+- selected labour rate from Rate Builder
+
+Flag:
+
+- under-recovering labour
+- margin shortfall labour
+- unmatched labour role
+- quantity/hours missing
+
+---
+
+# 22. ASSET / MACHINE RATE CHECK
+
+For asset or machine + operator lines:
+
+Compare quoted rate to:
+
+- asset component recovery
+- operator component recovery where included
+- overhead burden
+- suggested machine/operator rate from Rate Builder
+
+Example:
+
+Digger + Operator quote line must be checked against the approved Digger + Operator rate.
+
+Do not check machine-only if the approved rate includes operator unless line is explicitly machine-only.
+
+---
+
+# 23. FULL CREW RATE CHECK
+
+For full crew quote lines:
+
+Compare against matching full group or crew rate from Rate Builder.
+
+Full crew may include:
+
+- multiple labour roles
+- one or more assets
+- overhead burden
+- margin
+
+If only some crew components are quoted separately, check line by line and total quote level.
+
+---
+
+# 24. PRODUCT / UNIT RATE CHECK
+
+For product/unit lines:
+
+If product-based business or valid SOQ/product structure exists:
+
+Compare against:
+
+- product/unit minimum recoverable rate
+- product/unit suggested sell rate
+- material/COG assumptions
+- labour/unit assumptions
+- asset/unit assumptions
+- overhead/unit assumptions
+
+If labour-based business and no SOQ/product structure exists:
+
+Do not attempt detailed unit validation.
+
+Show review_required or not_available.
+
+---
+
+# 25. MODE-AWARE QUOTE CHECKING
+
+Quote Checker must be mode-aware.
+
+Labour-based business default checks:
+
+- hourly labour rates
+- machine/operator rates
+- crew rates
+- daywork rates
+- product/unit rates only if manually or SOQ validated
+
+Product-based business default checks:
+
+- unit/product rates
+- material markup assumptions
+- unit margin
+- daywork/hourly exception rates where present
+
+Mode guides the default checking behaviour.
+
+It does not prevent exception rates.
+
+---
+
+# 26. BUSINESS OUTCOME SCENARIO RULE
+
+If Business Outcome has selected a modelled scenario, Quote Checker must use that scenario’s targets.
+
+Example:
+
+Business Outcome scenario:
+Concrete supplier cost reduction 1%
+Digger rate target increased to $X/hr
+
+Quote Checker must check against those selected targets.
+
+It must clearly show:
+
+- current baseline target
+- selected modelled target
+- scenario ID
+- scenario assumptions
+
+---
+
+# 27. QUOTE CHECKER OUTPUT CONTRACT
+
+Quote Checker should expose:
+
+{
+  quote_checker_ready,
+  quote_checker_status,
+  quote_checker_warnings,
+  quote_checker_warning_count,
+  quote_checker_model_trust_state,
+
+  quote_header,
+  quote_lines,
+  quote_line_results,
+
+  quote_total_revenue,
+  quote_minimum_required_recovery,
+  quote_required_target_revenue,
+  quote_recovery_gap,
+  quote_target_gap,
+  quote_margin_amount,
+  quote_margin_percent,
+
+  under_recovering_lines,
+  margin_shortfall_lines,
+  unmatched_lines,
+  blocked_lines,
+  passing_lines,
+
+  selected_business_outcome_targets,
+  selected_rate_builder_rows,
+
+  quote_checker_cards,
+  quote_checker_source_trace
+}
+
+---
+
+# 28. WARNINGS
+
+Quote Checker must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+quote_checker_missing_business_outcome_targets
+quote_checker_missing_rate_builder_rows
+quote_checker_missing_quote_lines
+quote_checker_missing_quantity
+quote_checker_zero_quantity
+quote_checker_missing_unit_rate
+quote_checker_unmatched_quote_line
+quote_checker_rate_under_recovering
+quote_checker_margin_shortfall
+quote_checker_material_markup_not_available
+quote_checker_product_unit_not_supported_without_soq
+quote_checker_selected_scenario_missing
+quote_checker_upstream_blocked
+quote_checker_preview_only
+
+---
+
+# 29. SOURCE TRACE REQUIREMENT
+
+Quote Checker key outputs must include source trace.
+
+Required source trace for:
+
+- matched_rate_id
+- model_minimum_recoverable_rate
+- model_suggested_sell_rate
+- quote line rate comparison
+- selected Business Outcome target
+- selected scenario
+- material markup assumption
+- margin target
+- markup target
+- quote pass status
+
+Each trace should show:
+
+- output_variable
+- source_module
+- source_variable
+- calculation_rule
+- source_status
+- trust_state
+
+---
+
+# 30. TRUST STATE
+
+Quote Checker must expose:
+
+quote_checker_model_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If Business Outcome targets are blocked:
+quote_checker_model_trust_state = blocked
+
+If Rate Builder rows are blocked:
+quote_checker_model_trust_state = blocked
+
+If quote lines are invalid:
+quote_checker_model_trust_state = blocked or warning depending severity
+
+If quote under-recovers but source data is trusted:
+quote_checker_model_trust_state = warning
+
+If source data is preview-only:
+quote_checker_model_trust_state = preview_only
+
+If all checks pass:
+quote_checker_model_trust_state = ready
+
+---
+
+# 31. UI STRUCTURE
+
+Recommended Quote Checker UI:
+
+1. Quote Checker Status Strip
+2. Selected Model Target Panel
+3. Quote Summary Panel
+4. Quote Line Check Table
+5. Under-Recovery Panel
+6. Margin Shortfall Panel
+7. Material / Product Check Panel
+8. Scenario Alignment Panel
+9. Source Trust / Warning Panel
+10. Help Panel
+
+---
+
+# 32. STATUS STRIP
+
+Show:
+
+- quote_checker_status
+- trust state
+- quote total
+- minimum required recovery
+- target revenue
+- recovery gap
+- target gap
+- warning count
+- under-recovering line count
+
+---
+
+# 33. SELECTED MODEL TARGET PANEL
+
+Show:
+
+- selected Business Outcome scenario
+- selected target rates
+- minimum recoverable rates
+- suggested sell rates
+- required margin
+- required markup
+- model assumptions
+
+This makes it clear what the quote is being checked against.
+
+---
+
+# 34. QUOTE SUMMARY PANEL
+
+Show:
+
+- quote total
+- minimum required recovery
+- target sell total
+- quote recovery gap
+- quote target gap
+- quote margin
+- quote margin %
+
+---
+
+# 35. QUOTE LINE CHECK TABLE
+
+Each row should show:
+
+- description
+- quantity
+- unit
+- quoted rate
+- matched model rate
+- minimum recoverable rate
+- suggested sell rate
+- recovery gap
+- target gap
+- status
+
+This is the core Quote Checker table.
+
+---
+
+# 36. UNDER-RECOVERY PANEL
+
+Show all lines below minimum recoverable rate.
+
+For each:
+
+- quoted rate
+- minimum required rate
+- shortfall per unit
+- shortfall total
+- required correction
+
+---
+
+# 37. MARGIN SHORTFALL PANEL
+
+Show all lines that recover cost but miss target margin.
+
+For each:
+
+- quoted rate
+- suggested sell rate
+- target gap
+- actual margin
+- required margin
+
+---
+
+# 38. MATERIAL / PRODUCT CHECK PANEL
+
+Show material/product checks where available.
+
+If product/unit structure is missing:
+
+show not_available with clear explanation.
+
+Do not fake material cost detail.
+
+---
+
+# 39. SCENARIO ALIGNMENT PANEL
+
+If Business Outcome scenario is active, show:
+
+- scenario assumptions
+- target changes
+- quote compliance with scenario
+- quote lines affected by scenario
+
+---
+
+# 40. HELP PANEL
+
+Explain:
+
+- Quote Checker checks quotes against the approved model
+- Rate Builder provides rates
+- Business Outcome provides selected targets
+- under-recovery means the quote is below cost recovery
+- margin shortfall means cost is covered but target profit is not
+- product/unit checks require product or SOQ structure
+- Quote Checker does not change the business model
+
+---
+
+# 41. WHAT TO KEEP OUT
+
+Keep out:
+
+- P&L editing
+- Revenue / COG editing
+- Labour editing
+- Asset editing
+- Overhead editing
+- Cost Allocation editing
+- Recovery Summary editing
+- Rate Builder construction
+- Business Outcome modelling
+
+Quote Checker checks.
+
+It does not build.
+
+---
+
+# 42. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useQuoteChecker.js
+lib/calculations/quoteCheckerCalculations.js
+lib/selectors/quoteCheckerSelectors.js
+components/quote-checker/*.jsx
+app/quote-checker/page.jsx
+
+Possible related files:
+
+hooks/useBusinessOutcome.js
+hooks/useRateBuilder.js
+hooks/useRevenueCogs.js
+
+Future:
+
+quote import tools
+SOQ / PO / job tracking modules
+
+---
+
+# 43. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Business Outcome quote checker targets.
+2. Consume Rate Builder rows.
+3. Accept quote header and quote lines.
+4. Match quote lines to Rate Builder rates.
+5. Calculate quoted unit rates.
+6. Compare quoted rates to minimum recoverable rates.
+7. Compare quoted rates to suggested sell rates.
+8. Flag under-recovering lines.
+9. Flag margin shortfall lines.
+10. Flag unmatched lines.
+11. Calculate quote-level totals.
+12. Calculate quote-level recovery gap.
+13. Calculate quote-level target gap.
+14. Apply selected Business Outcome scenario targets where present.
+15. Do not mutate upstream modules.
+16. Do not build rates.
+17. Add warnings and trust state.
+18. Run build.
+
+---
+
+# 44. ACCEPTANCE CRITERIA
+
+Quote Checker v4.0 is accepted when:
+
+1. It consumes Business Outcome targets.
+2. It consumes Rate Builder rows.
+3. It accepts quote header and quote lines.
+4. It matches quote lines to model rates.
+5. It identifies unmatched lines.
+6. It calculates quoted unit rates.
+7. It compares quote lines to minimum recoverable rates.
+8. It compares quote lines to suggested sell rates.
+9. It flags under-recovering lines.
+10. It flags margin shortfall lines.
+11. It calculates quote-level recovery gap.
+12. It calculates quote-level target gap.
+13. It supports selected Business Outcome scenarios.
+14. It is mode-aware.
+15. It handles product/unit checks only when valid data exists.
+16. It does not fake SOQ/product detail.
+17. It does not rebuild rates.
+18. It does not mutate Business Outcome.
+19. It does not mutate source modules.
+20. It exposes structured warnings.
+21. It exposes trust state.
+22. Build passes.
+
+---
+
+# 45. FINAL PRINCIPLE
+
+Quote Checker is the enforcement layer.
+
+It asks:
+
+Does this quote align with the model?
+
+It consumes:
+
+Business Outcome targets
+Rate Builder rates
+Quote lines
+
+It checks:
+
+minimum recovery
+target sell rate
+margin
+markup
+scenario alignment
+
+It does not create rates.
+
+It does not change the business model.
+
+It does not fake product detail.
+
+It exposes whether the quote is safe, under-recovering, or missing target margin.
+
+No source mutation.
+No hidden shortfalls.
+No fake unit costing.
+No invented rates.
+No leaks.

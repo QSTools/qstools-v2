@@ -1,0 +1,919 @@
+# Mirra — SOQ / Job / PO Layer Brief
+
+## v4.0 — QUANTITY-BASED COSTING, JOB-LEVEL CONSUMPTION, PRODUCT RATE VALIDATION, PO LINKAGE, AND FUTURE PHYSICAL COST TRUTH
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 22
+
+REPLACES:
+- older assumptions that product/unit rates can always be derived from P&L totals
+- older assumptions that supplier-level COG totals are enough to build true unit costs
+- older logic that attempts to create product rates without physical quantity data
+- older logic that treats Revenue / COG supplier data as product recipe data
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+The SOQ / Job / PO Layer creates physical cost truth. It links quantities, materials, labour, assets, subcontractors, purchase orders, and job outcomes so true product/unit costs can be calculated and checked against the business model.
+
+---
+
+# 1. PURPOSE
+
+The SOQ / Job / PO Layer answers:
+
+What did this job require?
+What quantities were priced?
+What materials were consumed?
+What labour was consumed?
+What assets were used?
+What subcontractors were used?
+What purchase orders belong to the job?
+What did each unit actually cost?
+Did the job align with the approved model?
+Did the quote recover the required cost?
+Did the actual job match the quote?
+
+This layer is where the system moves from:
+
+financial truth
+
+to:
+
+physical job truth
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Active first-layer flow:
+
+Business Setup
+P&L
+Revenue / COGS
+Labour
+Assets
+General Overheads
+Module Reconciliation
+Model Readiness
+Cost Summary
+Business Summary
+Revenue Reality / Asset Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+Quote Checker
+
+Future operational layer:
+
+SOQ / Job / PO Layer
+Job Costing
+Actual vs Quoted
+Profitability
+Feedback into Rate Builder / Business Outcome
+
+---
+
+# 3. CORE PRINCIPLE
+
+P&L data tells the system what happened financially.
+
+SOQ / Job / PO data tells the system what happened physically.
+
+Both are required for full unit-rate truth.
+
+Without SOQ / job-level data, the system can know:
+
+- total revenue
+- total COG
+- gross margin
+- labour burden
+- asset burden
+- overhead burden
+- required recovery rates
+
+But it cannot know:
+
+- blocks per m²
+- concrete per m³
+- labour hours per m²
+- machine hours per task
+- material consumption per quote item
+- true unit cost per job
+
+The SOQ / Job / PO Layer provides that missing physical link.
+
+---
+
+# 4. MODULE ROLE
+
+This layer owns:
+
+- schedule of quantities
+- quote line quantities
+- job tasks
+- material quantities
+- labour quantities
+- asset usage quantities
+- subcontractor quantities
+- purchase order linkage
+- supplier invoice linkage
+- job-level cost consumption
+- actual vs quoted comparison
+- unit cost validation
+- product/unit rate feedback
+- job profitability feedback
+
+This layer does not own:
+
+- P&L source truth
+- annual business model totals
+- Labour module source rates
+- Assets module source rates
+- General Overheads source values
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder approved rate construction
+- Business Outcome modelling assumptions
+
+---
+
+# 5. WHY THIS LAYER IS REQUIRED
+
+For product/unit costing, annual supplier totals are not enough.
+
+Example:
+
+Supplier spend:
+Concrete purchases = $191,000
+
+This tells the system total spend.
+
+It does not tell the system:
+
+- which jobs used the concrete
+- how many m³ were poured
+- which quote lines consumed it
+- whether the cost relates to block fill, slab, footings, or site works
+- what the cost per quoted unit was
+
+SOQ / Job / PO data creates that link.
+
+---
+
+# 6. LABOUR-BASED BUSINESS RULE
+
+For labour-based businesses, product/unit rates cannot be derived from P&L / COG totals alone.
+
+Product/unit rates become valid only when this layer supplies:
+
+- schedule quantity
+- material quantity
+- labour quantity
+- asset quantity
+- subcontractor quantity
+- cost mapping
+
+Until then:
+
+Rate Builder may build hourly, crew, machine, and recovery-based rates.
+
+True product/unit rates remain manual, preview-only, or not_available.
+
+---
+
+# 7. PRODUCT-BASED BUSINESS RULE
+
+For product-based businesses, top-down unit rates may be valid when the business unit is the primary driver.
+
+Example:
+
+Block supply/install business:
+
+Revenue ÷ m² = revenue per m²  
+COG ÷ m² = COG per m²  
+Margin ÷ m² = margin per m²
+
+However, SOQ / Job / PO data still improves accuracy by proving:
+
+- actual material consumption
+- actual labour consumption
+- actual subcontractor cost
+- actual job margin
+- actual unit profitability
+
+---
+
+# 8. QUOTE CHECKER RELATIONSHIP
+
+Quote Checker checks the quote against the approved model.
+
+SOQ / Job / PO later checks:
+
+- what was quoted
+- what was ordered
+- what was delivered
+- what was invoiced
+- what was actually consumed
+- what profit was actually achieved
+
+Quote Checker is pre-job validation.
+
+SOQ / Job / PO is job execution and actual-cost validation.
+
+---
+
+# 9. RATE BUILDER RELATIONSHIP
+
+Rate Builder creates approved model rates.
+
+SOQ / Job / PO later validates whether those rates were correct.
+
+If actual jobs show:
+
+- labour takes longer than modelled
+- materials cost more than assumed
+- assets are underused
+- subcontractors cost more than expected
+- waste is higher than assumed
+
+then this layer feeds evidence back to:
+
+- Rate Builder
+- Business Outcome
+- future model updates
+
+---
+
+# 10. BUSINESS OUTCOME RELATIONSHIP
+
+Business Outcome models what should change.
+
+SOQ / Job / PO proves whether those changes work in real jobs.
+
+Example:
+
+Business Outcome target:
+
+Increase digger + operator rate to $X/hr.
+
+SOQ / Job / PO checks:
+
+- quoted rate used
+- actual hours used
+- actual asset cost recovered
+- job margin achieved
+
+This creates a feedback loop.
+
+---
+
+# 11. REVENUE / COGS RELATIONSHIP
+
+Revenue / COGS provides supplier/category financial detail.
+
+SOQ / Job / PO provides job-level consumption detail.
+
+Together they allow:
+
+- supplier spend to be mapped to job items
+- COG categories to be linked to quote tasks
+- material spend to be converted into cost per unit
+- supplier pricing to be tested against actual job profitability
+
+Revenue / COGS alone is not enough.
+
+SOQ / Job / PO creates the physical bridge.
+
+---
+
+# 12. PURCHASE ORDER ROLE
+
+Purchase Orders are the control point between quote and actual cost.
+
+POs should link:
+
+- job
+- quote line
+- task
+- supplier
+- material/category
+- quantity
+- unit
+- expected cost
+- actual invoice cost
+- delivery status
+- invoice status
+
+POs allow the system to compare:
+
+quoted allowance  
+vs  
+ordered cost  
+vs  
+invoiced cost  
+vs  
+actual job result
+
+---
+
+# 13. SOQ CONTRACT
+
+schedule_of_quantities_rows[]
+
+Each row:
+
+{
+  soq_line_id,
+  quote_id,
+  job_id,
+  task_id,
+  description,
+  quantity,
+  unit,
+  linked_rate_id,
+  linked_quote_line_id,
+  material_group,
+  labour_group,
+  asset_group,
+  subcontractor_group,
+  expected_unit_cost,
+  expected_total_cost,
+  expected_sell_rate,
+  expected_total_sell,
+  notes
+}
+
+---
+
+# 14. JOB CONTRACT
+
+job_rows[]
+
+Each row:
+
+{
+  job_id,
+  quote_id,
+  job_number,
+  job_name,
+  customer_name,
+  project_name,
+  job_status,
+  start_date,
+  finish_date,
+  selected_business_outcome_scenario_id,
+  selected_quote_checker_target_id,
+  approved_quote_version,
+  notes
+}
+
+---
+
+# 15. QUOTE LINE LINK CONTRACT
+
+job_quote_line_rows[]
+
+Each row:
+
+{
+  job_quote_line_id,
+  job_id,
+  quote_line_id,
+  rate_id,
+  description,
+  quoted_quantity,
+  quoted_unit,
+  quoted_unit_rate,
+  quoted_total,
+  model_minimum_recoverable_rate,
+  model_suggested_sell_rate,
+  quote_checker_status
+}
+
+---
+
+# 16. MATERIAL CONSUMPTION CONTRACT
+
+material_consumption_rows[]
+
+Each row:
+
+{
+  material_consumption_id,
+  job_id,
+  quote_line_id,
+  soq_line_id,
+  po_id,
+  supplier_id,
+  supplier_name,
+  material_category,
+  material_description,
+  quantity,
+  unit,
+  unit_cost,
+  total_cost,
+  invoice_id,
+  invoice_line_id,
+  source_status
+}
+
+---
+
+# 17. LABOUR CONSUMPTION CONTRACT
+
+labour_consumption_rows[]
+
+Each row:
+
+{
+  labour_consumption_id,
+  job_id,
+  quote_line_id,
+  soq_line_id,
+  staff_id,
+  labour_type_id,
+  labour_type_label,
+  hours,
+  cost_rate,
+  total_cost,
+  recovery_rate,
+  recovered_value,
+  source_status
+}
+
+---
+
+# 18. ASSET CONSUMPTION CONTRACT
+
+asset_consumption_rows[]
+
+Each row:
+
+{
+  asset_consumption_id,
+  job_id,
+  quote_line_id,
+  soq_line_id,
+  asset_id,
+  asset_name,
+  asset_type,
+  usage_hours,
+  recovery_rate,
+  recovered_value,
+  actual_cost_basis,
+  source_status
+}
+
+---
+
+# 19. SUBCONTRACTOR CONSUMPTION CONTRACT
+
+subcontractor_consumption_rows[]
+
+Each row:
+
+{
+  subcontractor_consumption_id,
+  job_id,
+  quote_line_id,
+  soq_line_id,
+  supplier_id,
+  supplier_name,
+  subcontract_category,
+  quantity,
+  unit,
+  unit_cost,
+  total_cost,
+  invoice_id,
+  invoice_line_id,
+  source_status
+}
+
+---
+
+# 20. PURCHASE ORDER CONTRACT
+
+purchase_order_rows[]
+
+Each row:
+
+{
+  po_id,
+  po_number,
+  job_id,
+  quote_id,
+  quote_line_id,
+  soq_line_id,
+  supplier_id,
+  supplier_name,
+  po_date,
+  expected_quantity,
+  expected_unit,
+  expected_unit_cost,
+  expected_total_cost,
+  actual_invoice_total,
+  variance_to_expected,
+  po_status,
+  invoice_status,
+  notes
+}
+
+---
+
+# 21. ACTUAL COST SUMMARY CONTRACT
+
+job_actual_cost_summary[]
+
+Each row:
+
+{
+  job_id,
+  quote_id,
+  total_quoted_revenue,
+  total_material_cost,
+  total_labour_cost,
+  total_asset_cost,
+  total_subcontractor_cost,
+  total_overhead_recovery,
+  total_actual_cost,
+  actual_gross_margin,
+  actual_gross_margin_percent,
+  actual_net_margin,
+  actual_net_margin_percent,
+  variance_to_quote,
+  variance_to_model,
+  status
+}
+
+---
+
+# 22. UNIT COST VALIDATION
+
+This layer can calculate true unit cost when quantity exists.
+
+Formula:
+
+actual_unit_cost =
+actual_total_cost / actual_quantity
+
+Where actual_total_cost may include:
+
+- material cost
+- labour cost
+- asset cost
+- subcontractor cost
+- allocated overhead recovery
+
+If actual_quantity = 0:
+
+actual_unit_cost = 0
+status = review_required or blocked
+
+Do not divide by zero.
+
+---
+
+# 23. PRODUCT RATE VALIDATION
+
+For product/unit lines:
+
+actual_unit_margin =
+quoted_unit_rate - actual_unit_cost
+
+actual_unit_margin_percent =
+actual_unit_margin / quoted_unit_rate
+
+This allows the system to validate:
+
+- whether the quoted unit rate was correct
+- whether the product line recovered cost
+- whether material assumptions were accurate
+- whether labour assumptions were accurate
+- whether the rate should be updated
+
+---
+
+# 24. JOB PROFITABILITY CHECK
+
+This layer must compare:
+
+quoted result  
+vs  
+model target  
+vs  
+actual result
+
+Required outputs:
+
+- quoted revenue
+- model minimum required recovery
+- model suggested sell target
+- actual cost
+- actual margin
+- actual margin %
+- variance to quote
+- variance to model
+- pass / fail / review status
+
+---
+
+# 25. FEEDBACK LOOP TO RATE BUILDER
+
+This layer should produce feedback signals:
+
+- rate too low
+- material cost above assumption
+- labour hours above assumption
+- asset hours above assumption
+- subcontractor above allowance
+- overhead recovery missed
+- job profitable
+- job under-recovered
+
+Rate Builder may later use these to update rate assumptions.
+
+But this layer must not automatically overwrite approved rates.
+
+---
+
+# 26. FEEDBACK LOOP TO BUSINESS OUTCOME
+
+Business Outcome may consume aggregated SOQ / Job / PO results to model:
+
+- updated supplier sensitivity
+- actual material inflation
+- actual labour productivity
+- actual asset utilisation
+- actual rate performance
+- actual job margin trend
+
+This creates a real operational feedback system.
+
+---
+
+# 27. SOURCE TRACE REQUIREMENT
+
+Every actual cost row must preserve traceability.
+
+Trace should include:
+
+- source module
+- source file / invoice / PO / timesheet
+- source line ID
+- job ID
+- quote line ID
+- supplier
+- category
+- quantity
+- unit
+- cost
+- import date
+- status
+
+No cost should appear in job actuals without trace.
+
+---
+
+# 28. STATUS VALUES
+
+Allowed soq_job_po_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+not_ready
+
+Status rules:
+
+ready:
+Job/quote/PO data is linked and usable.
+
+ready_with_warnings:
+Usable but warnings remain.
+
+review_required:
+Data exists but mapping or quantity review is needed.
+
+blocked:
+Required job, quote, quantity, or cost data is invalid.
+
+preview_only:
+Data displays but is not trusted.
+
+not_ready:
+Required data is missing.
+
+---
+
+# 29. REQUIRED WARNINGS
+
+Required warning IDs:
+
+soq_missing_job
+soq_missing_quote
+soq_missing_quote_line
+soq_missing_quantity
+soq_zero_quantity
+soq_missing_unit
+soq_missing_rate_link
+soq_missing_po_link
+soq_missing_supplier_link
+soq_invoice_not_matched
+soq_material_unmapped
+soq_labour_unmapped
+soq_asset_unmapped
+soq_subcontractor_unmapped
+soq_actual_cost_missing
+soq_actual_exceeds_quote
+soq_under_recovered
+soq_margin_shortfall
+soq_preview_only
+soq_upstream_blocked
+
+---
+
+# 30. OUTPUT CONTRACT
+
+SOQ / Job / PO Layer should expose:
+
+{
+  soq_job_po_ready,
+  soq_job_po_status,
+  soq_job_po_warnings,
+  soq_job_po_warning_count,
+  soq_job_po_model_trust_state,
+
+  job_rows,
+  schedule_of_quantities_rows,
+  job_quote_line_rows,
+  purchase_order_rows,
+
+  material_consumption_rows,
+  labour_consumption_rows,
+  asset_consumption_rows,
+  subcontractor_consumption_rows,
+
+  job_actual_cost_summary,
+
+  unit_cost_validation_rows,
+  product_rate_validation_rows,
+  quote_vs_actual_rows,
+
+  rate_builder_feedback_rows,
+  business_outcome_feedback_rows,
+
+  source_trace
+}
+
+---
+
+# 31. UI STRUCTURE
+
+Recommended UI:
+
+1. Job / Quote Selector
+2. SOQ Table
+3. Quote Line Link Panel
+4. Purchase Order Panel
+5. Material Consumption Panel
+6. Labour Consumption Panel
+7. Asset Consumption Panel
+8. Subcontractor Consumption Panel
+9. Actual vs Quoted Panel
+10. Unit Cost Validation Panel
+11. Rate Feedback Panel
+12. Source Trust / Warning Panel
+13. Help Panel
+
+---
+
+# 32. WHAT TO KEEP OUT
+
+Keep out:
+
+- P&L editing
+- Business Setup mode editing
+- Labour module rate editing
+- Asset module source editing
+- Cost Allocation group editing
+- Recovery Summary editing
+- Rate Builder construction
+- Business Outcome scenario editing
+- Quote Checker target editing
+
+This layer records and validates job reality.
+
+It does not rewrite the model automatically.
+
+---
+
+# 33. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useSoqJobPo.js
+lib/calculations/soqJobPoCalculations.js
+lib/selectors/soqJobPoSelectors.js
+components/soq-job-po/*.jsx
+app/soq-job-po/page.jsx
+
+Future integrations:
+
+purchase order import
+supplier invoice matching
+timesheet import
+job costing import
+quote import/export
+SQLite / database layer
+Power BI reporting layer
+
+---
+
+# 34. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Create stable job IDs.
+2. Link jobs to quote IDs.
+3. Link SOQ lines to quote lines.
+4. Link PO lines to SOQ / quote lines.
+5. Link supplier invoices to PO lines.
+6. Link labour hours to jobs and quote lines.
+7. Link asset usage to jobs and quote lines.
+8. Build actual cost summary.
+9. Calculate actual unit costs where quantity exists.
+10. Compare quoted vs actual.
+11. Compare actual vs model targets.
+12. Produce feedback rows for Rate Builder.
+13. Produce feedback rows for Business Outcome.
+14. Preserve source trace.
+15. Do not mutate approved model rates automatically.
+16. Run build.
+
+---
+
+# 35. ACCEPTANCE CRITERIA
+
+SOQ / Job / PO Layer v4.0 is accepted when:
+
+1. It supports job records.
+2. It supports SOQ rows.
+3. It links SOQ rows to quote lines.
+4. It links quote lines to Rate Builder rates.
+5. It supports PO rows.
+6. It links POs to jobs, quote lines, and suppliers.
+7. It supports material consumption.
+8. It supports labour consumption.
+9. It supports asset consumption.
+10. It supports subcontractor consumption.
+11. It calculates actual job cost.
+12. It calculates actual unit cost where quantity exists.
+13. It compares actual cost to quote.
+14. It compares actual result to model target.
+15. It produces product/unit validation.
+16. It produces Rate Builder feedback.
+17. It produces Business Outcome feedback.
+18. It does not overwrite source modules automatically.
+19. It preserves source trace.
+20. It exposes warnings and trust state.
+21. Build passes.
+
+---
+
+# 36. FINAL PRINCIPLE
+
+The SOQ / Job / PO Layer is the physical truth layer.
+
+It turns:
+
+quoted quantities
+purchase orders
+supplier invoices
+labour hours
+asset usage
+subcontractor costs
+
+into:
+
+actual job cost
+actual unit cost
+actual profitability
+actual model feedback
+
+It is where product/unit costing becomes real.
+
+No invented quantities.
+No fake product recipes.
+No source mutation.
+No automatic rate overwrites.
+No hidden job cost.
+No leaks.

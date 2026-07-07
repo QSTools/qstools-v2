@@ -1,0 +1,855 @@
+# Mirra — Data Quality Dashboard Brief
+
+## v4.0 — SOURCE TRUST, MAPPING ISSUES, BLOCKING DATA PROBLEMS, WARNING CONTROL, AND NO-COMMERCIAL-RESULT-CONFUSION
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 26
+
+REPLACES:
+- older assumptions that negative commercial results are data failures
+- older logic where data quality warnings are scattered across modules
+- older logic where missing mappings are hidden inside each page
+- older logic where blocked source data is not clearly separated from business underperformance
+- older logic where users cannot see what must be fixed before trusting the model
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+The Data Quality Dashboard identifies source, mapping, reconciliation, missing-data, and trust issues across the whole Mirra system. It must clearly separate data problems from valid commercial results.
+
+---
+
+# 1. PURPOSE
+
+The Data Quality Dashboard answers:
+
+Can the model be trusted?
+Which source data is missing?
+Which mappings are incomplete?
+Which modules are blocked?
+Which warnings are commercial results?
+Which warnings are actual data problems?
+What must be fixed before downstream outputs can be trusted?
+Where did the issue originate?
+Which module owns the fix?
+
+This page is not a business outcome page.
+
+It is a trust and cleanup layer.
+
+---
+
+# 2. CORE PRINCIPLE
+
+Data quality problems are not the same as bad business results.
+
+Examples of data problems:
+
+- missing P&L
+- missing revenue
+- missing COG mapping
+- missing labour hours
+- missing asset utilisation
+- missing overhead source
+- unmatched supplier
+- duplicate cost
+- failed reconciliation
+- zero driver where driver is required
+- quote line unmatched
+- invoice not linked to PO
+
+Examples of commercial results:
+
+- margin is low
+- labour consumes margin
+- asset recovery is high
+- rate is under-recovering
+- quote fails target
+- job loses money
+- supplier costs increased
+
+Commercial results should create warnings or outcome flags.
+
+They should not automatically block the model if source data is trusted.
+
+---
+
+# 3. POSITION IN SYSTEM
+
+The Data Quality Dashboard can sit as a global system page.
+
+It consumes warnings and trust states from every module.
+
+Main source flow:
+
+Business Setup
+P&L
+Revenue / COGS
+Labour
+Assets
+General Overheads
+Module Reconciliation
+Model Readiness
+Cost Summary
+Business Summary
+Revenue Reality
+Asset Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+Quote Checker
+SOQ / Job / PO
+Job Costing
+Model Feedback
+Model Review
+
+The dashboard does not replace each module’s warning panel.
+
+It aggregates them.
+
+---
+
+# 4. MODULE ROLE
+
+Data Quality Dashboard owns:
+
+- global warning aggregation
+- source trust overview
+- blocking issue list
+- mapping issue list
+- reconciliation issue list
+- missing data list
+- duplicate / double count risk list
+- module readiness rollup
+- issue owner mapping
+- recommended fix location
+- issue severity
+- issue status
+- data quality score
+- global trust state
+
+Data Quality Dashboard does not own:
+
+- source imports
+- categorisation edits
+- labour calculations
+- asset calculations
+- overhead calculations
+- cost allocation assignments
+- recovery testing
+- rate building
+- business modelling
+- quote checking
+- job costing calculations
+- model approvals
+
+It points users to the correct module to fix issues.
+
+---
+
+# 5. INPUTS FROM ALL MODULES
+
+Each module should expose:
+
+- module_status
+- module_trust_state
+- warning rows
+- blocking rows
+- source trace rows
+- reconciliation rows where applicable
+- missing data rows
+- review required rows
+
+Data Quality Dashboard consumes these outputs.
+
+It must not recalculate module logic.
+
+---
+
+# 6. GLOBAL ISSUE CONTRACT
+
+global_data_quality_issues[]
+
+Each row:
+
+{
+  issue_id,
+  source_module,
+  affected_module,
+  issue_type,
+  issue_category,
+  severity,
+  blocking,
+  commercial_result,
+  issue_label,
+  issue_message,
+  affected_variable,
+  affected_record_id,
+  current_value,
+  expected_value,
+  recommended_fix_module,
+  recommended_fix_action,
+  source_trace,
+  issue_status
+}
+
+Allowed issue_type values:
+
+- missing_source
+- missing_mapping
+- failed_reconciliation
+- duplicate_cost
+- double_count_risk
+- invalid_driver
+- zero_driver
+- missing_quantity
+- unmatched_record
+- invalid_value
+- stale_source
+- blocked_upstream
+- preview_only
+- commercial_warning
+- review_required
+
+---
+
+# 7. ISSUE CATEGORY VALUES
+
+Allowed issue_category values:
+
+- setup
+- source_import
+- account_mapping
+- supplier_mapping
+- revenue_mapping
+- cog_mapping
+- labour_mapping
+- asset_mapping
+- overhead_mapping
+- allocation_mapping
+- recovery_driver
+- rate_mapping
+- quote_mapping
+- job_mapping
+- po_mapping
+- invoice_mapping
+- source_trace
+- reconciliation
+- commercial_result
+- system
+
+---
+
+# 8. SEVERITY VALUES
+
+Allowed severity values:
+
+- info
+- warning
+- review_required
+- blocking
+- critical
+
+Definitions:
+
+info:
+Useful context, not a problem.
+
+warning:
+Needs attention but does not block.
+
+review_required:
+User should review before relying on output.
+
+blocking:
+Trusted downstream output must be blocked.
+
+critical:
+Major source trust failure or systemic issue.
+
+---
+
+# 9. ISSUE STATUS VALUES
+
+Allowed issue_status values:
+
+- open
+- acknowledged
+- ignored
+- fixed
+- deferred
+- blocked
+- resolved_by_upstream
+- not_applicable
+
+Rules:
+
+open:
+Default state.
+
+acknowledged:
+User has seen it but not fixed.
+
+ignored:
+User intentionally ignores non-blocking issue.
+
+fixed:
+Issue resolved.
+
+deferred:
+Valid issue but not addressed yet.
+
+blocked:
+Cannot resolve because required source is unavailable.
+
+resolved_by_upstream:
+Issue fixed by changing upstream module.
+
+not_applicable:
+Issue does not apply to current mode or setup.
+
+---
+
+# 10. COMMERCIAL RESULT FLAG
+
+Every issue row must include:
+
+commercial_result: true / false
+
+If true:
+
+The issue is not a data problem.
+
+Examples:
+
+- under-recovered rate
+- negative net position
+- low margin
+- job loss
+- quote margin shortfall
+
+If false:
+
+The issue is a data / mapping / trust problem.
+
+This distinction is mandatory.
+
+---
+
+# 11. BLOCKING RULE
+
+A warning blocks only when data cannot be trusted or a required calculation cannot run.
+
+Blocking examples:
+
+- missing P&L
+- missing business mode
+- failed source reconciliation
+- over-allocated source pool
+- zero required driver
+- missing quote target
+- missing job quantity
+- duplicate cost included twice
+- source trace missing for actual cost
+
+Non-blocking examples:
+
+- low margin
+- high labour burden
+- high asset pressure
+- under-recovery
+- supplier cost pressure
+- job loss where actuals are trusted
+
+---
+
+# 12. MODULE TRUST ROLLUP
+
+module_trust_rollup[]
+
+Each row:
+
+{
+  module_id,
+  module_name,
+  module_status,
+  module_trust_state,
+  blocking_issue_count,
+  warning_count,
+  review_required_count,
+  commercial_warning_count,
+  data_issue_count,
+  last_updated,
+  recommended_action
+}
+
+This provides the global health view.
+
+---
+
+# 13. GLOBAL TRUST STATE
+
+Data Quality Dashboard must expose:
+
+global_data_quality_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If any critical source module is blocked:
+global_data_quality_trust_state = blocked
+
+If no blocking issues but review issues exist:
+global_data_quality_trust_state = warning
+
+If source data is preview only:
+global_data_quality_trust_state = preview_only
+
+If no blocking/review issues:
+global_data_quality_trust_state = ready
+
+Commercial warnings alone should not make global trust blocked.
+
+---
+
+# 14. DATA QUALITY SCORE
+
+The dashboard may calculate a data quality score.
+
+data_quality_score =
+0 to 100
+
+Suggested weighting:
+
+- blocking source issues reduce heavily
+- missing mappings reduce moderately
+- review-required issues reduce lightly
+- commercial warnings do not reduce data quality score unless they also indicate missing data
+
+This score is for UX only.
+
+It must not replace trust-state logic.
+
+---
+
+# 15. SOURCE TRACE RULE
+
+All blocking issues must include source trace where possible.
+
+source_trace should identify:
+
+- source module
+- source file
+- source row
+- source variable
+- calculation path
+- affected downstream modules
+
+If source trace is missing for a blocking issue:
+
+raise:
+
+data_quality_source_trace_missing
+
+---
+
+# 16. FIX LOCATION RULE
+
+Every issue must point to the correct place to fix it.
+
+Examples:
+
+Missing business mode:
+Fix in Business Setup
+
+Unmapped supplier:
+Fix in Revenue / COGS
+
+Missing productive hours:
+Fix in Labour
+
+Missing asset utilisation:
+Fix in Assets
+
+Overhead mismatch:
+Fix in General Overheads
+
+Over-allocated labour:
+Fix in Cost Allocation
+
+Missing rate target:
+Fix in Rate Builder or Model Review
+
+Unmatched quote line:
+Fix in Quote Checker
+
+Missing PO link:
+Fix in SOQ / Job / PO
+
+---
+
+# 17. REQUIRED WARNING IDS
+
+Required warning IDs:
+
+data_quality_missing_business_setup
+data_quality_missing_pnl
+data_quality_missing_revenue_cogs
+data_quality_missing_labour
+data_quality_missing_assets
+data_quality_missing_overheads
+data_quality_failed_reconciliation
+data_quality_unmapped_supplier
+data_quality_unmapped_account
+data_quality_unmapped_cog_category
+data_quality_duplicate_cost
+data_quality_double_count_risk
+data_quality_missing_productive_hours
+data_quality_missing_asset_utilisation
+data_quality_over_allocated_pool
+data_quality_missing_recovery_driver
+data_quality_missing_rate_driver
+data_quality_missing_quote_target
+data_quality_unmatched_quote_line
+data_quality_missing_job_quantity
+data_quality_missing_po_link
+data_quality_missing_invoice_link
+data_quality_source_trace_missing
+data_quality_preview_only
+data_quality_upstream_blocked
+
+---
+
+# 18. OUTPUT CONTRACT
+
+Data Quality Dashboard should expose:
+
+{
+  data_quality_ready,
+  data_quality_status,
+  data_quality_warnings,
+  data_quality_warning_count,
+  global_data_quality_trust_state,
+
+  data_quality_score,
+
+  module_trust_rollup,
+  global_data_quality_issues,
+
+  blocking_issues,
+  review_required_issues,
+  commercial_warnings,
+  data_mapping_issues,
+  reconciliation_issues,
+  source_trace_issues,
+
+  fix_queue_rows,
+
+  data_quality_cards,
+  data_quality_source_trace
+}
+
+---
+
+# 19. FIX QUEUE CONTRACT
+
+fix_queue_rows[]
+
+Each row:
+
+{
+  fix_id,
+  issue_id,
+  priority,
+  source_module,
+  recommended_fix_module,
+  recommended_fix_action,
+  blocking,
+  estimated_impact,
+  issue_status,
+  notes
+}
+
+Priority should be based on:
+
+- blocking severity
+- downstream impact
+- number of affected modules
+- value affected
+- user workflow order
+
+---
+
+# 20. UI STRUCTURE
+
+Recommended Data Quality Dashboard UI:
+
+1. Data Quality Status Strip
+2. Module Trust Overview
+3. Blocking Issues Panel
+4. Review Required Panel
+5. Commercial Warnings Panel
+6. Mapping Issues Panel
+7. Reconciliation Issues Panel
+8. Source Trace Issues Panel
+9. Fix Queue Panel
+10. Help Panel
+
+---
+
+# 21. STATUS STRIP
+
+Show:
+
+- global trust state
+- data quality score
+- blocking issue count
+- review issue count
+- mapping issue count
+- commercial warning count
+- modules blocked
+
+---
+
+# 22. MODULE TRUST OVERVIEW
+
+Show each module:
+
+- module name
+- status
+- trust state
+- blocking count
+- warning count
+- fix action
+
+This should let the user see where the model is weak.
+
+---
+
+# 23. BLOCKING ISSUES PANEL
+
+Show only issues that block trusted output.
+
+Each issue should show:
+
+- issue
+- source module
+- affected downstream modules
+- fix location
+- why it blocks
+
+---
+
+# 24. REVIEW REQUIRED PANEL
+
+Show issues that need review but do not block.
+
+Examples:
+
+- unassigned overheads intentionally left
+- low source confidence
+- missing optional market rate
+- supplier category requires review
+
+---
+
+# 25. COMMERCIAL WARNINGS PANEL
+
+Show valid business problems separately.
+
+Examples:
+
+- under-recovered rates
+- negative net position
+- job loss
+- supplier pressure
+- low material markup
+
+Label clearly:
+
+These are business results, not data failures.
+
+---
+
+# 26. MAPPING ISSUES PANEL
+
+Show:
+
+- unmapped suppliers
+- unmapped accounts
+- unmapped COG categories
+- unmatched quote lines
+- missing job/PO mappings
+
+---
+
+# 27. RECONCILIATION ISSUES PANEL
+
+Show:
+
+- P&L mismatch
+- Revenue / COG mismatch
+- Cost Summary mismatch
+- Cost Allocation source pool mismatch
+- Quote total mismatch
+- Job actual mismatch
+
+---
+
+# 28. SOURCE TRACE ISSUES PANEL
+
+Show records missing trace.
+
+Actual job costs and approved model changes must always have trace.
+
+Missing trace should be treated seriously.
+
+---
+
+# 29. FIX QUEUE PANEL
+
+Show recommended order of fixing issues.
+
+Example order:
+
+1. Business Setup missing
+2. P&L missing
+3. Labour productive hours missing
+4. Asset utilisation missing
+5. Cost Allocation over-allocated
+6. Rate Builder target missing
+7. Quote Checker unmatched lines
+
+This helps user avoid random fixing.
+
+---
+
+# 30. HELP PANEL
+
+Explain:
+
+- data quality issues are different from bad commercial outcomes
+- blocked means calculations cannot be trusted
+- warning means review but not necessarily wrong
+- commercial result means the model found a real business issue
+- fix issues in the source module shown
+- the dashboard does not edit source data directly
+
+---
+
+# 31. WHAT TO KEEP OUT
+
+Keep out:
+
+- direct source editing
+- rate editing
+- business scenario modelling
+- quote checking
+- job costing
+- model approval
+- supplier recategorisation controls unless opened through source module link
+
+The dashboard identifies and routes.
+
+It does not fix directly.
+
+---
+
+# 32. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useDataQualityDashboard.js
+lib/calculations/dataQualityCalculations.js
+lib/selectors/dataQualitySelectors.js
+components/data-quality/*.jsx
+app/data-quality/page.jsx
+
+Possible related files:
+
+all module hooks exposing warning/trust contracts
+
+---
+
+# 33. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume warning/status/trust outputs from all modules.
+2. Normalise warnings into global_data_quality_issues.
+3. Add commercial_result flag.
+4. Separate commercial warnings from data problems.
+5. Build module_trust_rollup.
+6. Build blocking issue list.
+7. Build review required list.
+8. Build mapping issue list.
+9. Build reconciliation issue list.
+10. Build fix queue.
+11. Add global trust state.
+12. Add data quality score.
+13. Add source trace display.
+14. Do not mutate source modules.
+15. Add warnings and trust state.
+16. Run build.
+
+---
+
+# 34. ACCEPTANCE CRITERIA
+
+Data Quality Dashboard v4.0 is accepted when:
+
+1. It consumes all module warning/status outputs.
+2. It normalises warnings into a global issue list.
+3. It clearly separates data problems from commercial results.
+4. It identifies blocking issues.
+5. It identifies review-required issues.
+6. It identifies commercial warnings.
+7. It identifies mapping issues.
+8. It identifies reconciliation issues.
+9. It identifies missing source trace.
+10. It points every issue to a fix module.
+11. It creates a fix queue.
+12. It calculates global trust state.
+13. It does not block trusted output for valid negative commercial results.
+14. It does not edit source data directly.
+15. It exposes warnings and trust state.
+16. Build passes.
+
+---
+
+# 35. FINAL PRINCIPLE
+
+The Data Quality Dashboard protects trust.
+
+It tells the user:
+
+what is broken
+what is only a warning
+what is a real business problem
+where to fix each issue
+
+It prevents the system from confusing:
+
+bad data
+
+with
+
+bad business results
+
+No source mutation.
+No hidden blockers.
+No scattered warnings.
+No confusing commercial losses with data failure.
+No leaks.

@@ -1,0 +1,499 @@
+# Mirra — Scenario Layer Decision Brief
+
+## v4.0 — LABOUR SCENARIO MERGED INTO BUSINESS MODELLING
+
+STATUS: ACTIVE SOURCE DECISION BRIEF
+VERSION: v4.0
+FILE NUMBER: 08
+
+REPLACES:
+- standalone QS Tools Labour Scenario assumptions
+- standalone Labour Scenario build direction
+- any plan to create a separate active Labour Scenario module before Business Modelling
+- any scenario logic that mutates source modules directly
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Do not build a separate active Labour Scenario module in v4.0. Scenario testing belongs in Business Modelling.
+
+---
+
+# 1. PURPOSE
+
+This brief records the v4.0 architecture decision for scenario modelling.
+
+The previous concept of a standalone Labour Scenario Layer is not required as an active v4.0 module.
+
+Instead, labour scenario logic will be included later inside the Business Modelling layer.
+
+This keeps the active source chain cleaner and avoids creating isolated scenario modules too early.
+
+---
+
+# 2. DECISION
+
+Do not build:
+
+08_MIRRA_LABOUR_SCENARIO_LAYER_v4.0_ACTIVE.txt
+
+Do not create a separate active Labour Scenario page, hook, storage layer, calculation layer, or selector layer at this point.
+
+Instead:
+
+Labour scenario testing will be handled inside:
+
+20_MIRRA_BUSINESS_MODELLING_v4.0_FUTURE_OR_ACTIVE_AS_DECIDED.txt
+
+when Business Modelling is reached.
+
+---
+
+# 3. WHY THIS DECISION WAS MADE
+
+A labour scenario is not isolated.
+
+Changing labour affects:
+
+- Labour cost
+- Productive hours
+- Staff type rates
+- Cost Summary
+- Business Summary
+- Revenue Reality
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+A user modelling labour will often also want to model:
+
+- adding an operator
+- adding a labourer
+- changing productive hours
+- changing staff role mix
+- increasing wages
+- adding an asset
+- increasing utilisation
+- changing overheads
+- changing unit volume
+- changing sale rates
+- changing recovery strategy
+
+That is not a Labour-only problem.
+
+That is a Business Modelling problem.
+
+---
+
+# 4. ACTIVE MODULE RESPONSIBILITY
+
+Labour remains the active source truth.
+
+Labour owns:
+
+- staff identity
+- staff type identity
+- selected staff role/type
+- productive/non-productive status
+- annual labour cost
+- productive hours
+- weighted productive staff type rates
+- total labour cost
+- total productive labour hours
+- labour readiness
+- labour trust state
+
+Business Modelling will later own:
+
+- scenario staff rows
+- scenario labour cost
+- scenario productive hours
+- scenario staff type mix
+- scenario weighted staff type rates
+- scenario asset changes
+- scenario overhead changes
+- scenario revenue / COGS changes
+- scenario recovery changes
+- scenario rate changes
+- scenario Business Outcome impact
+
+---
+
+# 5. CORRECT SOURCE TRUTH SPLIT
+
+Correct split:
+
+Labour Module
+= current labour truth
+
+Business Modelling
+= what-if labour changes
+
+Cost Allocation
+= assigning current or scenario labour groups to operating structure when the selected model is being tested
+
+Recovery Summary
+= testing whether the selected recovery model works
+
+Rate Builder
+= converting the selected recovery model into required rates
+
+Business Outcome
+= showing the final consequence
+
+---
+
+# 6. WHAT LABOUR MUST STILL CREATE
+
+The Labour module must still create the variables needed for Cost Allocation and Rate Builder.
+
+Required active Labour variables include:
+
+staff_type_id
+staff_type_name
+productive_staff_type_rates[]
+weighted_all_productive_labour_rate
+total_productive_labour_cost
+total_productive_labour_hours
+total_productive_output
+
+The selected staff role/type must be stored on each staff row using:
+
+staff_type_id
+staff_type_name
+
+The weighted productive rate by staff type must be exposed through:
+
+productive_staff_type_rates[]
+
+Each productive_staff_type_rates row must include:
+
+staff_type_id
+staff_type_name
+staff_count
+total_annual_cost
+total_productive_hours
+weighted_productive_hourly_rate
+productive_share_percent
+is_productive
+rate_status
+source
+
+Formula:
+
+weighted_productive_hourly_rate =
+total_annual_cost / total_productive_hours
+
+Cost Allocation must consume staff_type_id as the stable assignment key.
+
+Cost Allocation must not use staff names or display labels as keys.
+
+---
+
+# 7. WHAT BUSINESS MODELLING WILL LATER CREATE
+
+Business Modelling may later create scenario versions of Labour variables.
+
+Future scenario variables may include:
+
+scenario_staff_rows
+scenario_staff_type_id
+scenario_staff_type_name
+scenario_total_labour_cost_annual
+scenario_total_productive_labour_cost
+scenario_total_productive_labour_hours
+scenario_total_productive_output
+scenario_weighted_all_productive_labour_rate
+scenario_productive_staff_type_rates
+
+These must be clearly scoped inside Business Modelling.
+
+They must not overwrite active Labour variables.
+
+---
+
+# 8. FUTURE BUSINESS MODELLING LABOUR SCENARIO ROW
+
+When Business Modelling is built, a scenario labour row may use this shape:
+
+{
+  scenario_staff_row_id,
+  source_staff_id,
+  scenario_staff_name,
+  scenario_staff_type_id,
+  scenario_staff_type_name,
+  scenario_is_productive,
+  scenario_is_active,
+  scenario_employment_type,
+  scenario_annual_base_cost,
+  scenario_annual_on_costs,
+  scenario_annual_labour_cost,
+  scenario_productive_hours_annual,
+  scenario_non_productive_hours_annual,
+  scenario_total_hours_annual,
+  scenario_change_type,
+  scenario_labour_status
+}
+
+source_staff_id links back to the active Labour staff row.
+
+If the scenario adds a new staff member:
+
+source_staff_id = null
+
+---
+
+# 9. FUTURE BUSINESS MODELLING STAFF TYPE RATE OUTPUT
+
+When Business Modelling is built, it may calculate:
+
+scenario_productive_staff_type_rates[]
+
+Each row:
+
+{
+  scenario_staff_type_id,
+  source_staff_type_id,
+  staff_type_name,
+  staff_count,
+  total_annual_cost,
+  total_productive_hours,
+  weighted_productive_hourly_rate,
+  productive_share_percent,
+  is_productive,
+  rate_status,
+  source
+}
+
+source should be:
+
+business_modelling_scenario
+
+Formula:
+
+weighted_productive_hourly_rate =
+total_annual_cost / total_productive_hours
+
+No divide-by-zero.
+
+No hidden assumptions.
+
+---
+
+# 10. FUTURE BUSINESS MODELLING COMPARISON OUTPUTS
+
+Business Modelling should compare scenario labour to active Labour baseline.
+
+Required future comparison variables:
+
+labour_cost_change_amount
+labour_cost_change_percent
+productive_hours_change_amount
+productive_hours_change_percent
+weighted_labour_rate_change_amount
+weighted_labour_rate_change_percent
+productive_staff_count_change
+non_productive_staff_count_change
+staff_type_rate_changes[]
+
+staff_type_rate_changes[] row:
+
+{
+  staff_type_id,
+  staff_type_name,
+  baseline_total_annual_cost,
+  scenario_total_annual_cost,
+  cost_change_amount,
+  baseline_productive_hours,
+  scenario_productive_hours,
+  hours_change_amount,
+  baseline_weighted_rate,
+  scenario_weighted_rate,
+  rate_change_amount,
+  rate_change_percent,
+  change_status
+}
+
+---
+
+# 11. NO ACTIVE FILES REQUIRED FOR 08
+
+No active implementation files are required for this brief.
+
+Do not create:
+
+app/labour-scenario/page.jsx
+hooks/useLabourScenario.js
+lib/calculations/labourScenarioCalculations.js
+lib/selectors/labourScenarioSelectors.js
+lib/storage/labourScenarioStorage.js
+components/labour-scenario/*.jsx
+
+These are not part of the active v4.0 build.
+
+---
+
+# 12. FUTURE MERGE LOCATION
+
+The scenario logic from this decision brief must be merged later into:
+
+20_MIRRA_BUSINESS_MODELLING_v4.0_FUTURE_OR_ACTIVE_AS_DECIDED.txt
+
+That Business Modelling brief must include:
+
+- labour scenario modelling
+- asset scenario modelling
+- overhead scenario modelling
+- revenue / COGS scenario modelling
+- Cost Allocation scenario preview
+- Recovery Summary scenario preview
+- Rate Builder scenario preview
+- Business Outcome scenario preview
+- controlled baseline update rules
+
+---
+
+# 13. ACTIVE BUILD ORDER IMPACT
+
+Because Labour Scenario is not an active module, the active build order continues directly from Labour to Assets.
+
+Active source brief order remains:
+
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+08_MIRRA_SCENARIO_LAYER_DECISION_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+
+This preserves the numbering system without creating an unnecessary active module.
+
+---
+
+# 14. NO-LEAK SCENARIO RULE
+
+No scenario value may become active source truth without explicit user approval.
+
+Future scenario values must never silently overwrite:
+
+- Labour
+- Assets
+- General Overheads
+- Revenue / COGS
+- Cost Summary
+- Business Summary
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+
+Scenario values are preview-only unless accepted through a controlled baseline update process.
+
+---
+
+# 15. FUTURE ACCEPTANCE RULE
+
+When Business Modelling is built, accepting a scenario must require explicit user confirmation.
+
+Correct pattern:
+
+User creates scenario
+↓
+Mirra calculates scenario impact
+↓
+Mirra shows comparison against active baseline
+↓
+User explicitly accepts change
+↓
+Controlled baseline update request is created
+↓
+Source module updates only after approval
+
+Incorrect pattern:
+
+User edits scenario
+↓
+Source module silently changes
+
+That is not allowed.
+
+---
+
+# 16. WHY THIS PREVENTS LEAKS
+
+Keeping scenario logic inside Business Modelling prevents:
+
+- Labour source truth being polluted by what-if values
+- Rate Builder accidentally consuming scenario rates as active rates
+- Cost Summary using scenario labour cost as active cost
+- Cost Allocation assigning scenario staff as if they exist
+- Business Outcome issuing a final verdict from mixed active/scenario inputs
+- multiple scenario modules duplicating logic
+
+One scenario engine is safer than separate scenario modules for every source area.
+
+---
+
+# 17. DO NOT CHANGE
+
+Do not change Labour source truth for scenario purposes.
+
+Do not create a Labour Scenario route.
+
+Do not create a Labour Scenario hook.
+
+Do not create Labour Scenario storage.
+
+Do not let Cost Allocation consume scenario Labour unless Business Modelling has created an explicit scenario preview contract.
+
+Do not let Rate Builder consume scenario Labour unless Business Modelling has created an explicit scenario preview contract.
+
+Do not let Business Outcome show scenario result as active baseline.
+
+---
+
+# 18. ACCEPTANCE CRITERIA
+
+This decision brief is accepted when:
+
+1. No standalone active Labour Scenario module is built.
+2. Labour remains the source truth for active labour data.
+3. Labour still creates staff_type_id and staff_type_name.
+4. Labour still creates productive_staff_type_rates[].
+5. Cost Allocation consumes Labour staff type rates from Labour, not scenario data.
+6. Business Modelling later owns scenario labour changes.
+7. Scenario labour variables are clearly marked as scenario variables.
+8. Scenario values remain preview-only unless accepted.
+9. Scenario acceptance requires explicit user approval.
+10. The active v4.0 build continues to Assets after this decision brief.
+11. No hidden source mutation is allowed.
+12. No scenario value becomes active truth silently.
+
+---
+
+# 19. FINAL PRINCIPLE
+
+Labour is current truth.
+
+Business Modelling is what-if truth.
+
+Scenario values must not pollute source modules.
+
+The selected staff role/type and weighted productive staff type rates are created in Labour for active use.
+
+Scenario staff roles and scenario weighted rates will be created later inside Business Modelling for preview use only.
+
+No assumptions.
+No silent scenario mutation.
+No duplicate scenario modules.
+No active-source contamination.
+No leaks.

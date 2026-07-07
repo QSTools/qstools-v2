@@ -1,0 +1,75 @@
+﻿# MIRRA_OPENING_HOURS_SUPPORTING_MODULE_v5.0
+
+STATUS: SUPPORTING MODULE BRIEF
+VERSION: v5.0
+SOURCE: Implemented source-code contract audit
+
+## Purpose
+
+Opening Hours is a supporting module used by Cost Summary, Business Summary, and recovery calculations to define annual business operating capacity.
+
+It does not currently have a standalone locked v5.0 brief file, but source code exposes opening-hours outputs that must be documented.
+
+## Module Owner
+
+module_name: opening-hours
+
+## Output Contract
+
+The opening-hours module exposes the following implemented output contract fields:
+
+- `macro_required_operating_hour_rate`
+- `net_annual_business_open_hours`
+- `opening_hours_module`
+
+## Field Notes
+
+### `macro_required_operating_hour_rate`
+
+Meaning:
+
+The required business recovery rate per available operating hour before deeper labour/productivity recovery logic is applied.
+
+Status:
+
+- implemented
+- supporting output
+- consumed downstream by Cost Summary / Business Summary style calculations
+
+### `net_annual_business_open_hours`
+
+Meaning:
+
+The annual available business open hours after applying the opening-hours setup.
+
+Status:
+
+- implemented
+- supporting output
+- used as a capacity denominator for recovery logic
+
+### `opening_hours_module`
+
+Meaning:
+
+Wrapper/reference object for the opening-hours supporting module.
+
+Status:
+
+- implemented
+- reference wrapper
+- should not be treated as a direct business metric
+
+## Contract Rule
+
+Opening Hours is a supporting capacity layer.
+
+It must not override Labour productive recovery hours, Cost Allocation recovery hours, or Business Summary recovery hours.
+
+It provides operating-hours context only.
+
+## Downstream Rule
+
+Downstream modules may consume opening-hours outputs only through the documented output contract.
+
+No downstream module should infer opening-hours values directly from localStorage or raw setup state.

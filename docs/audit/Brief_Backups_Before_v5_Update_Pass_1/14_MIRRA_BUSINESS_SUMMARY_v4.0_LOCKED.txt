@@ -1,0 +1,1911 @@
+# Mirra — Business Summary Brief
+
+## v4.0 — CURRENT BUSINESS MIRROR, FORWARD PROOF, P&L-TO-OPERATIONAL BRIDGE, MODE-AWARE OPERATING POSITION, AND TRUSTED RESULT DISPLAY
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 14
+
+REPLACES:
+- QS Tools Business Summary briefs where naming has changed
+- older Business Summary assumptions that treat negative net position as a readiness failure by itself
+- older Business Summary logic that hides the P&L-to-operational bridge
+- older Business Summary logic that does not clearly separate hours-based and product/unit-based interpretation
+- older Business Summary logic where Business Summary acts as the trust gate instead of Model Readiness
+- any Business Summary brief that calculates Cost Allocation, Recovery Summary, Rate Builder, or Business Outcome outputs
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+10_MIRRA_MODULE_RECONCILIATION_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+12_MIRRA_BUSINESS_SETUP_v4.0_LOCKED.txt
+13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
+15_MIRRA_REVENUE_REALITY_v4.0_LOCKED.txt
+16_MIRRA_ASSET_REALITY_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Business Summary mirrors the current business position. It explains the operating position and bridges P&L evidence to Mirra operating truth. It does not create recovery strategy, rates, allocation groups, readiness trust, stress-test ownership, or final outcome verdicts.
+
+---
+
+# 1. PURPOSE
+
+Business Summary is the current business mirror.
+
+It answers:
+
+What is the business doing now?
+What margin does it generate?
+What cost burden must that margin carry?
+What is left after labour, assets, and overheads?
+How does Mirra operating position relate back to the P&L?
+Is the current business position positive, negative, or under pressure?
+
+Business Summary explains the current baseline.
+
+It does not decide what to change.
+
+It does not calculate final required rates.
+
+It does not issue the final Business Outcome verdict.
+
+It does not own the diagnostic stress tests.
+
+Revenue Reality owns the margin-after-labour stress test.
+
+Asset Reality owns the productive asset utilisation stress test.
+
+---
+
+# 2. MODULE ROLE
+
+Business Summary owns:
+
+- current business mirror
+- mode-aware activity driver display
+- forward proof
+- material margin / margin pool display
+- residual margin after labour
+- net position
+- required recovery per driver
+- current margin per driver
+- recovery gap per driver
+- P&L-to-operational bridge
+- Mirra operating position
+- bridge proof display
+- plain-English current position explanation
+- business summary status
+- business summary warnings
+- trust state inheritance from Model Readiness
+
+Business Summary does not own:
+
+- P&L source data
+- COG import reconciliation
+- supplier normalisation
+- labour source cost
+- productive staff type rates
+- asset source cost
+- asset utilisation
+- asset viability stress test
+- overhead source pool
+- Module Reconciliation evidence creation
+- Model Readiness trust gate
+- Revenue Reality stress test ownership
+- Asset Reality stress test ownership
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdict
+- scenario modelling
+- quote-level analysis
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Business Summary sits after Cost Summary and before Revenue Reality, Asset Reality, Cost Allocation, Recovery Summary, Rate Builder, and Business Outcome.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Business Summary consumes upstream source outputs and presents the current operating picture.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Business Summary is not the system trust gate.
+
+Business Summary is not the diagnostic stress-test layer.
+
+A negative result is still a valid result.
+
+A deficit does not automatically mean Business Summary is broken.
+
+A deficit means the business position is negative.
+
+Model Readiness decides whether source data can be trusted.
+
+Business Summary explains what the trusted or preview data currently says.
+
+---
+
+# 5. CRITICAL READINESS RULE
+
+Negative business results must not automatically make Business Summary not ready.
+
+Correct:
+
+net_position < 0
+→ business_summary_status = negative_position, at_risk, or ready_with_warnings
+→ business_summary_ready may remain true if source data is trusted
+
+Incorrect:
+
+net_position < 0
+→ business_summary_ready = false
+→ downstream pages become preview-only solely because the business is losing money
+
+A bad business result is not the same as bad data.
+
+Model Readiness controls data trust.
+
+Business Outcome later diagnoses consequence.
+
+---
+
+# 6. STRESS TEST OWNERSHIP RULE
+
+Business Summary may calculate and display residual_margin_after_labour as part of the forward proof.
+
+But Revenue Reality owns the diagnostic interpretation of:
+
+margin_after_labour
+labour_consumption_of_margin_percent
+labour_shortfall_against_margin
+margin_surplus_after_labour
+
+Business Summary may display asset cost as part of the full chain.
+
+But Asset Reality owns the diagnostic interpretation of:
+
+productive asset burden
+asset utilisation
+required asset recovery rate
+asset pressure
+asset underutilisation
+
+Business Summary must not claim to diagnose whether labour or assets are the root cause.
+
+It shows the current business position.
+
+Revenue Reality and Asset Reality diagnose the first-layer failure points.
+
+---
+
+# 7. INPUTS FROM BUSINESS SETUP
+
+Business Summary consumes:
+
+business_type
+is_labour_based
+is_product_based
+business_setup_status
+business_setup_model_trust_state
+
+Business Setup owns business mode.
+
+Business Summary uses business mode to choose:
+
+- activity driver label
+- recovery unit label
+- interpretation wording
+- hours-based or product/unit display
+
+Business Summary must not infer business mode.
+
+---
+
+# 8. INPUTS FROM REVENUE / COGS
+
+Business Summary consumes:
+
+total_revenue
+total_direct_costs
+total_cogs
+margin_pool
+gross_margin_percent
+commercial_driver_mode
+unit_driver_rows
+total_derived_units_annual
+weighted_average_margin_per_unit
+revenue_cogs_status
+revenue_cogs_model_trust_state
+cog_reconciliation_status
+
+Revenue / COGS owns revenue and COGS source values.
+
+Business Summary must not recalculate COG detail reconciliation.
+
+Business Summary may calculate margin proof using supplied totals.
+
+---
+
+# 9. INPUTS FROM COST SUMMARY
+
+Business Summary consumes:
+
+total_people_cost_annual
+total_labour_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_cost_burden
+total_business_cost_annual
+required_recovery_rate
+total_productive_output
+cost_summary_status
+cost_summary_model_trust_state
+
+Cost Summary owns cost burden aggregation.
+
+Business Summary uses this to show the current operating position.
+
+Business Summary must not rebuild Cost Summary.
+
+---
+
+# 10. INPUTS FROM MODULE RECONCILIATION
+
+Business Summary consumes:
+
+traditional_pnl_net_profit
+pnl_net_profit
+labour_variance_amount
+labour_variance_percent
+asset_finance_variance_amount
+asset_finance_variance_percent
+general_overheads_variance_amount
+general_overheads_variance_percent
+total_business_cost_variance_amount
+total_business_cost_variance_percent
+pnl_business_cost_variance
+pnl_business_cost_variance_percent
+module_total_business_costs
+total_other_income
+module_reconciliation_status
+module_reconciliation_model_trust_state
+normalised_reconciliation_inputs
+reconciliation_checks
+blocking_checks
+warning_checks
+
+Module Reconciliation owns the evidence.
+
+Business Summary owns the bridge explanation.
+
+---
+
+# 11. INPUTS FROM MODEL READINESS
+
+Business Summary consumes:
+
+model_ready
+model_readiness_status
+model_trust_state
+blocking_modules
+warning_modules
+blocking_checks
+warning_checks
+downstream_readiness_contract
+
+If Model Readiness is blocked, Business Summary may show preview calculations but must not present them as trusted final output.
+
+---
+
+# 12. OPTIONAL CONTEXT FROM REVENUE REALITY
+
+Business Summary may receive Revenue Reality outputs for display context only:
+
+margin_after_labour
+labour_consumption_of_margin_percent
+labour_shortfall_against_margin
+margin_surplus_after_labour
+revenue_reality_status
+revenue_reality_model_trust_state
+
+Business Summary must not recalculate Revenue Reality diagnostics.
+
+Business Summary must not override Revenue Reality status.
+
+---
+
+# 13. OPTIONAL CONTEXT FROM ASSET REALITY
+
+Business Summary may receive Asset Reality outputs for display context only:
+
+weighted_required_asset_recovery_rate
+asset_recovery_pressure_summary
+highest_pressure_asset
+lowest_utilisation_asset
+asset_reality_status
+asset_reality_model_trust_state
+
+Business Summary must not recalculate Asset Reality diagnostics.
+
+Business Summary must not override Asset Reality status.
+
+---
+
+# 14. CORE OUTPUT VARIABLES
+
+Business Summary owns and exposes:
+
+business_summary_ready
+business_summary_status
+business_summary_warnings
+business_summary_warning_count
+business_summary_model_trust_state
+
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+
+total_revenue
+total_direct_costs
+total_cogs
+margin_pool
+gross_margin_percent
+
+material_margin
+material_margin_percent
+residual_margin_after_labour
+net_position
+
+total_cost_burden
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+
+pnl_to_operational_bridge
+traditional_pnl_net_profit
+mirra_operating_position
+bridge_difference
+bridge_status
+
+business_summary_cards
+business_summary_source_trace
+
+---
+
+# 15. FORWARD PROOF
+
+Business Summary must show the forward proof:
+
+Revenue
+- COGS
+= Material Margin / Margin Pool
+
+Material Margin / Margin Pool
+- Labour Cost
+= Residual Margin after Labour
+
+Residual Margin after Labour
+- Assets
+- Overheads
+= Net Position
+
+This is the core explanatory chain.
+
+It must be visible in plain language.
+
+This is not the same as the Revenue Reality stress test.
+
+Business Summary shows the full chain.
+
+Revenue Reality isolates the first failure checkpoint.
+
+---
+
+# 16. FORWARD PROOF VARIABLES
+
+Business Summary owns:
+
+material_margin
+material_margin_percent
+residual_margin_after_labour
+margin_after_labour
+post_labour_margin
+net_position
+
+Preferred active variable:
+
+residual_margin_after_labour
+
+Compatibility aliases:
+
+margin_after_labour
+post_labour_margin
+
+Formula:
+
+material_margin =
+total_revenue - total_direct_costs
+
+material_margin_percent =
+material_margin / total_revenue
+
+residual_margin_after_labour =
+material_margin - total_people_cost_annual
+
+net_position =
+residual_margin_after_labour
+- total_asset_cost_annual
+- total_business_overheads
+
+If total_revenue = 0:
+
+material_margin_percent = 0
+
+Do not divide by zero.
+
+---
+
+# 17. TERMINOLOGY RULE
+
+Business Summary may use these terms:
+
+- Margin Pool
+- Material Margin
+- Residual Margin after Labour
+- Post-Labour Margin
+- Net Position
+- Mirra Operating Position
+
+Avoid calling residual margin after labour:
+
+- gross profit
+- accounting GP
+- net profit
+
+Gross Profit belongs to the accounting P&L context.
+
+Business Summary must be clear whether it is showing accounting profit or Mirra operating proof.
+
+---
+
+# 18. NEGATIVE NET POSITION RULE
+
+Negative net_position is a valid calculated result.
+
+It must not automatically make business_summary_ready = false.
+
+Correct:
+
+net_position < 0
+→ business_summary_status = negative_position or at_risk
+→ business_summary_ready may remain true if source data is trusted
+
+Incorrect:
+
+net_position < 0
+→ business_summary_ready = false
+→ downstream pages become preview-only solely because the business is losing money
+
+A bad business result is not the same as bad data.
+
+Model Readiness controls data trust.
+
+Business Outcome later diagnoses consequence.
+
+---
+
+# 19. NEGATIVE RESIDUAL MARGIN AFTER LABOUR RULE
+
+Negative residual_margin_after_labour is also a valid calculated result.
+
+It means:
+
+Margin after COGS is not enough to cover Labour before Assets and Overheads are considered.
+
+It does not mean the calculation is broken.
+
+Correct:
+
+residual_margin_after_labour < 0
+→ warning / at-risk explanation
+→ source trust remains inherited from Model Readiness
+
+Incorrect:
+
+residual_margin_after_labour < 0
+→ data failure
+→ Business Summary not ready
+
+Revenue Reality owns the diagnostic explanation of this failure point.
+
+---
+
+# 20. ACTIVITY DRIVER RULE
+
+Business Summary must be mode-aware.
+
+If business_type = labour_based:
+
+activity_driver_type = hours
+activity_driver_label = productive hours
+activity_driver_value = total_productive_output
+required_recovery_label = Required recovery per productive hour
+required_recovery_unit_label = $/hour
+current_margin_label = Current margin per productive hour
+recovery_gap_label = Recovery gap per productive hour
+
+If business_type = product_based:
+
+activity_driver_type = units
+activity_driver_label = annual units
+activity_driver_value = total_derived_units_annual or units_sold_annual
+required_recovery_label = Required recovery per unit
+required_recovery_unit_label = $/unit
+current_margin_label = Current margin per unit
+recovery_gap_label = Recovery gap per unit
+
+Do not use productive hours as the primary driver in product/unit mode.
+
+Do not use annual units as the primary driver in hours-based mode.
+
+---
+
+# 21. ACTIVITY DRIVER FORMULAS
+
+Business Summary owns:
+
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+
+Formula:
+
+required_recovery_per_driver =
+total_cost_burden / activity_driver_value
+
+current_margin_per_driver =
+margin_pool / activity_driver_value
+
+recovery_gap_per_driver =
+current_margin_per_driver - required_recovery_per_driver
+
+If activity_driver_value = 0:
+
+required_recovery_per_driver = 0
+current_margin_per_driver = 0
+recovery_gap_per_driver = 0
+business_summary_status = review_required or blocked depending mode and source data
+
+Do not divide by zero.
+
+Do not invent driver values.
+
+---
+
+# 22. HOURS-BASED INTERPRETATION
+
+For hours-based businesses, Business Summary should explain:
+
+- annual revenue
+- COGS / direct costs
+- material margin
+- total labour cost
+- asset cost
+- overhead cost
+- cost burden per productive hour
+- current material margin per productive hour
+- gap between margin per hour and required recovery per hour
+
+But Business Summary must not claim that material margin automatically recovers labour or assets.
+
+Revenue Reality tests margin after labour.
+
+Asset Reality tests productive asset recovery pressure.
+
+Recovery Summary later tests separate recovery streams.
+
+---
+
+# 23. PRODUCT / UNIT-BASED INTERPRETATION
+
+For product/unit businesses, Business Summary should explain:
+
+- annual revenue
+- COGS / direct costs
+- margin pool
+- annual units
+- margin per unit
+- total business cost burden
+- required recovery per unit
+- recovery gap per unit
+
+Product/unit interpretation:
+
+COGS is consumed by the product.
+Margin after COGS must recover labour, assets, overheads, and profit.
+
+Business Summary must not build the full product/unit rate stack.
+
+Rate Builder owns fully burdened unit rates.
+
+---
+
+# 24. P&L-TO-OPERATIONAL BRIDGE PURPOSE
+
+Business Summary must show the relationship between traditional P&L net profit and Mirra operating position.
+
+Purpose:
+
+The user must be able to see:
+
+- what the P&L says
+- what Mirra says
+- why they differ
+- which source/module caused the variance
+- whether the difference is classification, timing, accounting treatment, or operating model treatment
+
+This bridge is essential for trust.
+
+---
+
+# 25. P&L-TO-OPERATIONAL BRIDGE VARIABLES
+
+Business Summary owns:
+
+pnl_to_operational_bridge
+traditional_pnl_net_profit
+labour_bridge_variance
+asset_finance_bridge_variance
+general_overheads_bridge_variance
+other_income_excluded
+mirra_operating_position
+bridge_difference
+bridge_status
+
+Suggested bridge object:
+
+{
+  traditional_pnl_net_profit,
+  labour_bridge_variance,
+  asset_finance_bridge_variance,
+  general_overheads_bridge_variance,
+  other_income_excluded,
+  other_adjustments,
+  mirra_operating_position,
+  bridge_difference,
+  bridge_status,
+  bridge_rows
+}
+
+---
+
+# 26. BRIDGE FORMULA CONCEPT
+
+Formula concept:
+
+Traditional P&L Net Profit
+± Labour variance
+± Asset finance variance
+± General overheads variance
+± Other Income treatment
+= Mirra Operating Position
+
+Exact sign treatment must be clearly implemented and tested against Module Reconciliation values.
+
+The bridge must explain movement, not hide it.
+
+If a value is not available:
+
+show not_available
+
+Do not invent bridge values.
+
+---
+
+# 27. P&L-TO-OPERATIONAL BRIDGE DISPLAY DETAIL
+
+Business Summary must show a clear P&L-to-operational bridge section explaining why Mirra operating position differs from traditional P&L net profit.
+
+This section should include separate bridge cards for:
+
+1. Labour variance
+2. Asset finance variance
+3. General Overheads reconciliation
+4. Other Income treatment
+5. Total difference to P&L net profit
+6. Reconciliation proof
+
+Each bridge card should show:
+
+- source explanation
+- P&L benchmark amount
+- Mirra / module amount
+- variance amount
+- review status
+- review action where required
+
+The reconciliation proof should show the bridge from traditional P&L net profit to Mirra operating position.
+
+Required display rows:
+
+Traditional P&L Net Profit
+Less / Add Labour variance
+Less / Add Asset finance variance
+Less / Add General Overheads variance
+Less / Add Other Income excluded
+Mirra Operating Position
+
+The labels may change depending sign direction, but the movement must be clear and traceable.
+
+This bridge is explanatory only.
+
+It must not overwrite P&L values.
+It must not overwrite module values.
+It must not decide readiness by itself.
+It must not turn a negative operating position into a data failure.
+
+---
+
+# 28. LABOUR VARIANCE BRIDGE CARD
+
+Business Summary should show a Labour variance bridge card.
+
+Purpose:
+
+Explain why Labour module cost differs from P&L labour benchmark.
+
+Required display values:
+
+- P&L labour benchmark
+- People Cost from Cost Summary / Labour
+- Labour variance
+- status
+- review action
+
+Suggested wording:
+
+Labour variance is a review signal, not a conclusion. It may reflect current pay assumptions, staff mix, timing, classification differences, or actual labour movement.
+
+Do not call the variance an error automatically.
+
+---
+
+# 29. ASSET FINANCE VARIANCE BRIDGE CARD
+
+Business Summary should show an Asset finance variance bridge card.
+
+Purpose:
+
+Explain why asset finance / ownership cost may differ from P&L asset finance benchmark.
+
+Required display values:
+
+- P&L interest marked as asset finance
+- Assets finance / interest cost
+- variance
+- status
+- review action
+
+Suggested wording:
+
+This highlights asset finance / ownership cost that may not yet be fully visible in the P&L until interest, depreciation, or journal timing is complete.
+
+Do not include principal repayment as operating cost.
+
+Do not call the variance an error automatically.
+
+---
+
+# 30. GENERAL OVERHEADS RECONCILIATION BRIDGE CARD
+
+Business Summary should show a General Overheads reconciliation bridge card.
+
+Purpose:
+
+Explain why General Overheads differs from P&L overhead benchmark.
+
+Required display values:
+
+- adjusted P&L overhead benchmark
+- net General Overheads
+- variance
+- status
+- review action
+
+Suggested wording:
+
+General Overheads are checked after asset finance interest is removed from the P&L overhead benchmark where asset finance is reviewed separately against Assets.
+
+If asset running cost transfers exist, this card should make clear whether General Overheads is gross or net of transferred asset running costs.
+
+---
+
+# 31. OTHER INCOME TREATMENT BRIDGE CARD
+
+Business Summary should show an Other Income treatment bridge card.
+
+Purpose:
+
+Explain whether Other Income is included in P&L net profit and excluded from Mirra core operating performance.
+
+Required display values:
+
+- P&L Other Income
+- Business Summary operating margin treatment
+- bridge impact
+- status
+
+Suggested wording:
+
+Traditional P&L net profit includes Other Income. Business Summary excludes Other Income from the operating margin proof so the recovery model is based on core trading performance.
+
+Do not hide Other Income.
+
+Do not silently include Other Income in operating revenue unless explicitly classified as operating revenue by the user.
+
+---
+
+# 32. TOTAL DIFFERENCE TO P&L NET PROFIT CARD
+
+Business Summary should show the total difference between traditional P&L net profit and Mirra operating position.
+
+Required display values:
+
+- total difference amount
+- explanation
+- status
+
+Suggested wording:
+
+Cost-burden movements and Other Income treatment explain why Mirra operating position differs from traditional P&L net profit.
+
+This card should not imply the P&L is wrong.
+
+It explains the bridge.
+
+---
+
+# 33. RECONCILIATION PROOF CARD
+
+Business Summary should show a reconciliation proof card.
+
+Required rows:
+
+Traditional P&L Net Profit
+Less / Add Labour variance
+Less / Add Asset finance variance
+Less / Add General Overheads variance
+Less / Add Other Income excluded
+Mirra Operating Position
+
+Rules:
+
+- sign direction must be clear
+- amounts must match bridge values
+- bridge total must equal Mirra operating position
+- if rows do not reconcile, bridge_status = review_required or blocked
+- do not hide unreconciled proof differences
+
+---
+
+# 34. OTHER INCOME TREATMENT
+
+Other Income must be visible.
+
+P&L may include Other Income in net profit.
+
+Mirra operating position may exclude Other Income from core operating performance where appropriate.
+
+Business Summary must show this clearly.
+
+Do not hide Other Income.
+
+Do not silently include Other Income in operating revenue unless explicitly classified as operating revenue by the user.
+
+---
+
+# 35. WIP / JOURNAL / ACCOUNTING ADJUSTMENT TREATMENT
+
+Business Summary may show WIP/journal/accounting adjustment context if provided by P&L or Module Reconciliation.
+
+Rules:
+
+- preserve visibility
+- do not assume error
+- do not automatically remove
+- do not silently normalise
+- show bridge/review context where material
+
+WIP can materially affect P&L profitability.
+
+It must remain explainable.
+
+---
+
+# 36. DIAGNOSTIC HANDOFF RULE
+
+Business Summary should hand off diagnostic responsibility clearly.
+
+If residual_margin_after_labour is negative:
+
+Business Summary may show:
+
+The current model is negative after Labour.
+
+But Revenue Reality owns the diagnostic explanation:
+
+Labour consumes more than the available margin pool.
+
+If total_asset_cost_annual is high or net_position becomes negative after assets:
+
+Business Summary may show:
+
+Assets contribute to the operating burden.
+
+But Asset Reality owns the diagnostic explanation:
+
+Productive assets require a high recovery rate or are underutilised.
+
+If net_position is negative after overheads:
+
+Business Summary may show:
+
+The full operating burden exceeds the current margin pool.
+
+But Cost Allocation / Recovery Summary / Business Outcome own the downstream diagnosis.
+
+---
+
+# 37. BUSINESS SUMMARY STATUS VALUES
+
+Allowed business_summary_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+at_risk
+negative_position
+not_ready
+
+Status rules:
+
+ready:
+Trusted source data and no material warnings.
+
+ready_with_warnings:
+Source data is usable but warnings remain visible.
+
+review_required:
+Values calculate, but user review is required.
+
+blocked:
+Source data is missing or upstream Model Readiness blocks trusted output.
+
+preview_only:
+Values display, but not trusted as final.
+
+at_risk:
+Calculated operating position indicates pressure but source data is trusted.
+
+negative_position:
+Net position is negative but source data is trusted.
+
+not_ready:
+Required inputs are missing.
+
+Negative position should not automatically mean blocked.
+
+---
+
+# 38. TRUST STATE
+
+Business Summary must expose:
+
+business_summary_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+If model_trust_state = blocked:
+business_summary_model_trust_state = blocked
+
+If model_trust_state = preview_only:
+business_summary_model_trust_state = preview_only
+
+If model_trust_state = warning:
+business_summary_model_trust_state = warning
+
+If model_trust_state = ready and calculations are valid:
+business_summary_model_trust_state = ready
+
+A negative result may create warning but should not override trusted source state to blocked.
+
+---
+
+# 39. BUSINESS SUMMARY READY CONDITIONS
+
+Business Summary is ready when:
+
+- Business Setup mode exists
+- Revenue / COGS totals exist
+- Cost Summary totals exist
+- activity driver value exists for selected mode
+- forward proof can be calculated
+- P&L-to-operational bridge can be shown or marked not_available
+- Model Readiness is not blocked
+- no blocking Business Summary-specific warning exists
+
+Business Summary may be ready_with_warnings when:
+
+- net_position is negative
+- recovery gap is negative
+- residual margin after labour is negative
+- Other Income exists
+- non-blocking reconciliation variances exist
+- bridge is available but contains review signals
+- COG detail is preview-only but high-level P&L totals exist
+- source data carries warning state
+- Revenue Reality or Asset Reality have pressure signals but trusted source data
+
+Business Summary is blocked when:
+
+- selected mode is missing
+- revenue/cogs totals missing
+- cost burden missing
+- activity driver missing for trusted driver output
+- Model Readiness is blocked
+- upstream source is invalid
+- bridge proof does not reconcile due to calculation error
+
+---
+
+# 40. REQUIRED WARNINGS
+
+Business Summary must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+business_summary_missing_business_setup
+business_summary_missing_revenue_cogs
+business_summary_missing_cost_summary
+business_summary_missing_activity_driver
+business_summary_zero_activity_driver
+business_summary_negative_net_position
+business_summary_negative_margin_pool
+business_summary_negative_residual_margin_after_labour
+business_summary_recovery_gap_negative
+business_summary_other_income_present
+business_summary_bridge_not_available
+business_summary_bridge_variance
+business_summary_bridge_proof_mismatch
+business_summary_revenue_reality_pressure
+business_summary_asset_reality_pressure
+business_summary_upstream_warning
+business_summary_upstream_blocked
+business_summary_preview_only
+
+---
+
+# 41. WARNING MEANINGS
+
+## business_summary_negative_net_position
+
+Use when net_position < 0.
+
+Blocking:
+
+false if source data is trusted.
+
+Meaning:
+
+The business result is negative, but the calculation may still be valid.
+
+## business_summary_negative_residual_margin_after_labour
+
+Use when residual_margin_after_labour < 0.
+
+Blocking:
+
+false if source data is trusted.
+
+Meaning:
+
+Labour consumes more than the margin pool before assets and overheads are recovered.
+
+Revenue Reality owns the diagnostic interpretation.
+
+## business_summary_zero_activity_driver
+
+Use when selected driver denominator is zero.
+
+Blocking:
+
+true for per-driver calculations.
+
+## business_summary_other_income_present
+
+Use when Other Income affects P&L bridge.
+
+Blocking:
+
+false.
+
+## business_summary_bridge_not_available
+
+Use when P&L-to-operational bridge cannot be shown because required reconciliation data is unavailable.
+
+Blocking:
+
+false if forward proof can still display; true only if bridge is required by the current workflow.
+
+## business_summary_bridge_proof_mismatch
+
+Use when bridge proof rows do not reconcile to Mirra operating position.
+
+Blocking:
+
+true until corrected.
+
+## business_summary_revenue_reality_pressure
+
+Use when Revenue Reality reports labour/margin pressure.
+
+Blocking:
+
+false if Revenue Reality source data is trusted.
+
+## business_summary_asset_reality_pressure
+
+Use when Asset Reality reports productive asset pressure.
+
+Blocking:
+
+false if Asset Reality source data is trusted.
+
+## business_summary_upstream_blocked
+
+Use when Model Readiness blocks trusted output.
+
+Blocking:
+
+true.
+
+---
+
+# 42. SOURCE TRACE REQUIREMENT
+
+Business Summary key outputs must include source trace.
+
+Required source trace for:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- total_cost_burden
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- activity_driver_value
+- required_recovery_per_driver
+- current_margin_per_driver
+- net_position
+- mirra_operating_position
+- pnl_to_operational_bridge
+
+Each trace should show:
+
+- output_variable
+- source_module
+- source_variable
+- calculation_rule
+- source_status
+- trust_state
+
+---
+
+# 43. OUTPUT CONTRACT
+
+Business Summary should expose:
+
+{
+  business_summary_ready,
+  business_summary_status,
+  business_summary_warnings,
+  business_summary_warning_count,
+  business_summary_model_trust_state,
+
+  business_type,
+  activity_driver_type,
+  activity_driver_label,
+  activity_driver_value,
+
+  total_revenue,
+  total_direct_costs,
+  total_cogs,
+  margin_pool,
+  gross_margin_percent,
+
+  material_margin,
+  material_margin_percent,
+  total_people_cost_annual,
+  total_labour_cost_annual,
+  residual_margin_after_labour,
+  total_asset_cost_annual,
+  total_business_overheads,
+  total_cost_burden,
+  net_position,
+
+  required_recovery_per_driver,
+  required_recovery_label,
+  required_recovery_unit_label,
+  current_margin_per_driver,
+  current_margin_label,
+  recovery_gap_per_driver,
+  recovery_gap_label,
+
+  pnl_to_operational_bridge,
+  traditional_pnl_net_profit,
+  labour_bridge_variance,
+  asset_finance_bridge_variance,
+  general_overheads_bridge_variance,
+  other_income_excluded,
+  mirra_operating_position,
+  bridge_difference,
+  bridge_status,
+
+  revenue_reality_context,
+  asset_reality_context,
+
+  business_summary_cards,
+  business_summary_source_trace
+}
+
+---
+
+# 44. REVENUE REALITY CONTEXT OBJECT
+
+Optional context object:
+
+revenue_reality_context = {
+  margin_after_labour,
+  labour_consumption_of_margin_percent,
+  labour_shortfall_against_margin,
+  margin_surplus_after_labour,
+  revenue_reality_status,
+  revenue_reality_model_trust_state
+}
+
+This is display/handoff context only.
+
+Business Summary does not own or recalculate Revenue Reality.
+
+---
+
+# 45. ASSET REALITY CONTEXT OBJECT
+
+Optional context object:
+
+asset_reality_context = {
+  weighted_required_asset_recovery_rate,
+  total_productive_asset_burden,
+  total_productive_asset_utilisation_hours,
+  highest_pressure_asset,
+  lowest_utilisation_asset,
+  asset_recovery_pressure_summary,
+  asset_reality_status,
+  asset_reality_model_trust_state
+}
+
+This is display/handoff context only.
+
+Business Summary does not own or recalculate Asset Reality.
+
+---
+
+# 46. OUTPUT TO REVENUE REALITY
+
+Revenue Reality should receive:
+
+- total_revenue
+- total_direct_costs
+- margin_pool
+- gross_margin_percent
+- total_people_cost_annual
+- total_labour_cost_annual
+- residual_margin_after_labour
+- business_summary_model_trust_state
+
+Revenue Reality stress-tests margin after labour.
+
+Business Summary does not own Revenue Reality’s diagnostic display.
+
+---
+
+# 47. OUTPUT TO ASSET REALITY
+
+Asset Reality does not primarily depend on Business Summary.
+
+Asset Reality should consume Assets directly.
+
+Business Summary may provide macro context only:
+
+- total_asset_cost_annual
+- total_cost_burden
+- net_position
+- business_summary_model_trust_state
+
+Asset Reality must not rely on Business Summary as the source of asset utilisation.
+
+---
+
+# 48. OUTPUT TO COST ALLOCATION
+
+Cost Allocation may receive:
+
+- business_type
+- activity_driver_type
+- activity_driver_value
+- total_cost_burden
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- business_summary_model_trust_state
+- revenue_reality_context
+- asset_reality_context
+
+Cost Allocation should primarily consume Labour, Assets, and General Overheads detail from source modules.
+
+Business Summary provides macro context.
+
+Revenue Reality and Asset Reality provide diagnostic context.
+
+Cost Allocation must not use Business Summary to create source pools.
+
+---
+
+# 49. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary should receive:
+
+- business_type
+- activity_driver_type
+- activity_driver_value
+- required_recovery_per_driver
+- current_margin_per_driver
+- recovery_gap_per_driver
+- margin_pool
+- total_cost_burden
+- net_position
+- revenue_reality_context
+- asset_reality_context
+- business_summary_model_trust_state
+
+Recovery Summary owns recovery tests.
+
+Business Summary does not test recovery model viability.
+
+---
+
+# 50. OUTPUT TO RATE BUILDER
+
+Rate Builder may receive:
+
+- business_type
+- activity_driver_type
+- activity_driver_value
+- required_recovery_per_driver
+- current_margin_per_driver
+- recovery_gap_per_driver
+- revenue_reality_context
+- asset_reality_context
+- business_summary_model_trust_state
+
+Rate Builder owns required rate models.
+
+Business Summary does not calculate final rates.
+
+---
+
+# 51. OUTPUT TO BUSINESS OUTCOME
+
+Business Outcome should receive:
+
+- business_summary_status
+- net_position
+- recovery_gap_per_driver
+- residual_margin_after_labour
+- pnl_to_operational_bridge
+- mirra_operating_position
+- revenue_reality_context
+- asset_reality_context
+- business_summary_model_trust_state
+
+Business Outcome uses this as one input into final diagnosis.
+
+Business Outcome must not rebuild Business Summary.
+
+---
+
+# 52. UI STRUCTURE
+
+Recommended Business Summary UI structure:
+
+1. Business Summary Status Strip
+2. Current Business Position Panel
+3. Forward Proof Panel
+4. Activity Driver / Recovery Pressure Panel
+5. P&L-to-Operational Bridge Panel
+6. Bridge Reconciliation Proof Panel
+7. Diagnostic Handoff Panel
+8. Source Trust / Warning Panel
+9. Plain-English Insight Panel
+10. Help Panel
+
+Existing UI may be retained if it supports these concepts.
+
+---
+
+# 53. STATUS STRIP
+
+The status strip should show:
+
+- business_summary_status
+- model trust state
+- total revenue
+- margin pool
+- total cost burden
+- net position
+- warning count
+
+If net_position is negative but source data is trusted, status should not imply data failure.
+
+Suggested display:
+
+Negative position
+Source data trusted
+
+or:
+
+At risk
+Review recovery downstream
+
+---
+
+# 54. CURRENT BUSINESS POSITION PANEL
+
+This panel should show:
+
+- total revenue
+- COGS / direct costs
+- margin pool
+- total cost burden
+- net position
+
+It should clearly show whether the business is currently positive or negative after operating burden.
+
+---
+
+# 55. FORWARD PROOF PANEL
+
+This panel should show the chain:
+
+Revenue
+- COGS
+= Margin Pool
+
+Margin Pool
+- Labour
+= Residual Margin after Labour
+
+Residual Margin after Labour
+- Assets
+- Overheads
+= Net Position
+
+This should be simple and explicit.
+
+The point is to show how the number is derived.
+
+Do not turn this panel into the Revenue Reality or Asset Reality diagnostic.
+
+---
+
+# 56. ACTIVITY DRIVER / RECOVERY PRESSURE PANEL
+
+This panel should show mode-aware driver values.
+
+Hours-based:
+
+- productive hours
+- required recovery per productive hour
+- current margin per productive hour
+- recovery gap per productive hour
+
+Product/unit-based:
+
+- annual units
+- required recovery per unit
+- current margin per unit
+- recovery gap per unit
+
+If driver is missing or zero, show review_required.
+
+---
+
+# 57. P&L-TO-OPERATIONAL BRIDGE PANEL
+
+This panel should show:
+
+- Labour variance
+- Asset finance variance
+- General Overheads reconciliation
+- Other Income treatment
+- Total difference to P&L net profit
+- Mirra operating position
+
+Use cautious wording.
+
+Allowed wording:
+
+- bridge
+- variance
+- treatment difference
+- operating view
+- accounting view
+- review signal
+
+Avoid unsupported wording:
+
+- error
+- wrong
+- bookkeeper mistake
+- accountant mistake
+
+---
+
+# 58. BRIDGE RECONCILIATION PROOF PANEL
+
+This panel should show the final proof:
+
+Traditional P&L Net Profit
+Less / Add Labour variance
+Less / Add Asset finance variance
+Less / Add General Overheads variance
+Less / Add Other Income excluded
+Mirra Operating Position
+
+Rules:
+
+- rows must reconcile
+- sign direction must be clear
+- missing values must show not_available
+- proof mismatch must create warning or blocked state
+- this proof does not change source values
+
+---
+
+# 59. DIAGNOSTIC HANDOFF PANEL
+
+This panel should show where the next diagnostic layers pick up.
+
+Suggested content:
+
+Revenue Reality:
+Tests whether margin after COGS survives Labour.
+
+Asset Reality:
+Tests whether productive assets can justify themselves at entered utilisation.
+
+Recovery Summary:
+Tests whether the full recovery model works.
+
+Business Outcome:
+Explains the final consequence.
+
+Business Summary should not duplicate these modules.
+
+It should point to them.
+
+---
+
+# 60. SOURCE TRUST / WARNING PANEL
+
+This panel should show:
+
+- Revenue / COGS status
+- Cost Summary status
+- Module Reconciliation status
+- Model Readiness status
+- Revenue Reality status where available
+- Asset Reality status where available
+- blocking warnings
+- non-blocking warnings
+
+Warnings must not be hidden behind only a count.
+
+---
+
+# 61. PLAIN-ENGLISH INSIGHT PANEL
+
+This panel should explain what the current result means.
+
+Examples:
+
+If residual_margin_after_labour is negative:
+
+Your margin after COGS is not enough to cover Labour before Assets and Overheads are considered. Revenue Reality shows this stress test in detail.
+
+If net_position is negative:
+
+The current model shows the business is not covering its full operating cost burden.
+
+If positive:
+
+The current model shows a positive operating position before further recovery and rate tests.
+
+Do not provide final recommendation here.
+
+Business Outcome owns final action message.
+
+---
+
+# 62. HELP PANEL
+
+The help panel should explain:
+
+- Business Summary shows the current business mirror
+- it uses Revenue / COGS and Cost Summary
+- it shows how margin is consumed by labour, assets, and overheads
+- it shows how Mirra’s operating position bridges back to the P&L
+- a negative result is not automatically bad data
+- Model Readiness decides whether source data can be trusted
+- Revenue Reality tests margin after Labour
+- Asset Reality tests productive asset recovery pressure
+- Business Summary does not decide what rates to charge
+- Business Summary does not decide whether the business model is viable
+- Recovery Summary, Rate Builder, and Business Outcome handle those later
+
+---
+
+# 63. DO NOT CHANGE
+
+Do not change:
+
+- P&L source values
+- Revenue / COGS calculations
+- COG reconciliation
+- Labour calculations
+- Assets calculations
+- Asset Reality calculations
+- Revenue Reality calculations
+- General Overheads calculations
+- Cost Summary aggregation
+- Module Reconciliation evidence logic
+- Model Readiness gate logic
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder rates
+- Business Outcome verdicts
+
+Do not make negative net position a data readiness failure.
+
+Do not make negative residual margin after labour a data readiness failure.
+
+Do not create recovery strategy.
+
+Do not calculate final rates.
+
+Do not create Business Outcome verdict.
+
+Do not recalculate Revenue Reality diagnostics.
+
+Do not recalculate Asset Reality diagnostics.
+
+---
+
+# 64. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useBusinessSummary.js
+lib/calculations/businessSummaryCalculations.js
+lib/selectors/businessSummarySelectors.js
+components/business-summary/*.jsx
+app/business-summary/page.jsx
+
+Possible related files:
+
+hooks/useRevenueCogs.js
+hooks/useCostSummary.js
+hooks/useModuleReconciliation.js
+hooks/useModelReadiness.js
+hooks/useBusinessSetup.js
+hooks/useRevenueReality.js
+hooks/useAssetReality.js
+
+Do not modify unrelated modules unless required to consume updated Business Summary contract safely.
+
+---
+
+# 65. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect current Business Summary calculations.
+2. Confirm negative net position does not set business_summary_ready = false by itself.
+3. Confirm negative residual margin after labour does not set business_summary_ready = false by itself.
+4. Consume Business Setup mode.
+5. Consume Revenue / COGS totals.
+6. Consume Cost Summary totals.
+7. Consume Module Reconciliation bridge values.
+8. Consume Model Readiness trust state.
+9. Build forward proof.
+10. Build mode-aware activity driver logic.
+11. Build P&L-to-operational bridge.
+12. Build bridge reconciliation proof.
+13. Add Labour variance bridge card.
+14. Add Asset finance variance bridge card.
+15. Add General Overheads reconciliation bridge card.
+16. Add Other Income treatment bridge card.
+17. Add Total Difference to P&L Net Profit card.
+18. Add optional Revenue Reality context.
+19. Add optional Asset Reality context.
+20. Add Diagnostic Handoff Panel.
+21. Add structured warnings.
+22. Add source trace where useful.
+23. Ensure downstream modules can consume stable contract.
+24. Run build.
+25. Confirm Recovery Summary is not preview-only solely because Business Summary net_position is negative.
+26. Confirm bridge proof rows reconcile to Mirra operating position.
+27. Confirm Business Summary does not duplicate Revenue Reality or Asset Reality calculations.
+
+---
+
+# 66. ACCEPTANCE CRITERIA
+
+Business Summary v4.0 is accepted when:
+
+1. Business Summary consumes Business Setup mode.
+2. Business Summary consumes Revenue / COGS totals.
+3. Business Summary consumes Cost Summary totals.
+4. Business Summary consumes Module Reconciliation bridge context.
+5. Business Summary consumes Model Readiness trust state.
+6. Business Summary shows the forward proof.
+7. Business Summary calculates material_margin.
+8. Business Summary calculates residual_margin_after_labour.
+9. Business Summary calculates net_position.
+10. Negative net_position does not automatically make business_summary_ready false.
+11. Negative residual_margin_after_labour does not automatically make business_summary_ready false.
+12. Business Summary creates mode-aware activity driver labels.
+13. Hours-based mode uses productive hours as driver.
+14. Product/unit mode uses annual units as driver.
+15. Business Summary calculates required_recovery_per_driver.
+16. Business Summary calculates current_margin_per_driver.
+17. Business Summary calculates recovery_gap_per_driver.
+18. Business Summary shows P&L-to-operational bridge.
+19. Business Summary shows Labour variance bridge card.
+20. Business Summary shows Asset finance variance bridge card.
+21. Business Summary shows General Overheads reconciliation bridge card.
+22. Business Summary shows Other Income treatment bridge card.
+23. Business Summary shows Total Difference to P&L Net Profit.
+24. Business Summary shows Reconciliation Proof.
+25. Bridge proof rows reconcile to Mirra operating position.
+26. Other Income treatment is visible.
+27. Business Summary can display Revenue Reality context without recalculating it.
+28. Business Summary can display Asset Reality context without recalculating it.
+29. Business Summary clearly hands diagnostics off to Revenue Reality, Asset Reality, Recovery Summary, and Business Outcome.
+30. Warnings are structured.
+31. Trust state is inherited from Model Readiness.
+32. Business Summary does not create Cost Allocation groups.
+33. Business Summary does not run Recovery Summary tests.
+34. Business Summary does not calculate Rate Builder rates.
+35. Business Summary does not issue final Business Outcome verdict.
+36. Build passes.
+
+---
+
+# 67. FINAL PRINCIPLE
+
+Business Summary is the current business mirror.
+
+It shows:
+
+Revenue
+minus COGS
+minus Labour
+minus Assets
+minus Overheads
+
+It explains what is left.
+
+It bridges the P&L view to the Mirra operating view.
+
+It does not hide bad results.
+
+It does not turn a bad result into a data failure.
+
+It does not decide what to change.
+
+It makes the difference between accounting profit and operating reality clear.
+
+It hands off diagnostics to Revenue Reality and Asset Reality.
+
+No assumptions.
+No hidden bridge.
+No source mutation.
+No false readiness failure from negative results.
+No recovery strategy.
+No rates.
+No verdict.
+No duplicate stress-test ownership.
+No leaks.

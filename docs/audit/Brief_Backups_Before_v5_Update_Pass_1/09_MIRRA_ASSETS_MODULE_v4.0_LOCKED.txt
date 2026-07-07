@@ -1,0 +1,1684 @@
+# Mirra — Assets Module Brief
+
+## v4.0 — ASSET COST, PRODUCTIVE ASSET STATUS, UTILISATION, RECOVERY RATE, ASSET REALITY INPUTS, RUNNING COST TRANSFERS, AND SOURCE-POOL GUARDRAILS
+
+STATUS: ACTIVE SOURCE BRIEF
+VERSION: v4.0
+FILE NUMBER: 09
+
+REPLACES:
+- QS Tools Assets Module briefs where naming has changed
+- older Assets briefs that do not include utilisation hours
+- older Assets briefs that do not include source-pool guardrails
+- older Assets briefs that do not separate productive and non-productive assets clearly
+- older assumptions that allow asset running costs to be double-counted between Assets and General Overheads
+- older assumptions that allow asset costs to be assigned twice or consumed without pool validation
+- any brief that allows Cost Allocation to create asset source truth
+- any brief that uses labour hours as the default denominator for asset viability testing
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+CONTROLLING BRIEFS:
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED.txt
+05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+16_MIRRA_ASSET_REALITY_v4.0_LOCKED.txt
+
+PRIMARY RULE:
+Assets owns asset identity, asset cost, productive asset status, utilisation hours, recovery rate, productive asset running cost transfers, and source-pool guardrails. Cost Allocation assigns productive assets to operating groups, but it must not create asset source truth.
+
+---
+
+# 1. PURPOSE
+
+The Assets module defines the business asset cost base and productive asset recovery requirement.
+
+It answers:
+
+What assets does the business rely on?
+Which assets are productive?
+Which assets are non-productive?
+What do those assets cost annually?
+Which asset-related running costs genuinely belong to productive assets?
+How many hours are productive assets actually used?
+What hourly recovery rate is required for each productive asset?
+Are asset-related cost pools over-assigned, under-assigned, or leaking?
+Which productive asset values must pass into Asset Reality?
+
+Assets is a source module.
+
+It does not decide operating group assignment.
+
+It does not pair operators to machines.
+
+It does not define shared assets.
+
+It does not distribute assets across labour groups.
+
+It does not decide whether the recovery model works.
+
+It provides the asset truth that downstream modules consume.
+
+---
+
+# 2. MODULE ROLE
+
+Assets owns:
+
+- asset identity
+- asset type
+- productive/non-productive asset status
+- asset ownership cost
+- asset finance interest where selected as asset-owned
+- asset lease cost where applicable
+- asset depreciation / replacement cost where enabled
+- annual asset cost
+- productive asset burden
+- productive asset running cost transfers
+- non-productive asset visibility
+- utilisation hours per week
+- annual utilisation hours
+- required asset recovery rate
+- asset source-pool guardrails
+- asset readiness
+- asset warnings
+- asset trust state
+- Asset Reality source inputs
+
+Assets does not own:
+
+- labour operators
+- staff identity
+- staff type rates
+- asset/operator pairing
+- operational groups
+- shared asset percentages across groups
+- overhead distribution across operating groups
+- COGS
+- materials
+- revenue
+- unit margin
+- Cost Allocation groups
+- Recovery Summary tests
+- Rate Builder final models
+- Business Outcome verdict
+- scenario modelling
+
+---
+
+# 3. POSITION IN ACTIVE FLOW
+
+Assets sits after Labour and before General Overheads, Module Reconciliation, Cost Summary, Cost Allocation, Recovery Summary, Rate Builder, and Business Outcome.
+
+Active flow position:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+
+Assets provides asset source truth.
+
+Cost Summary consumes the final trusted asset cost output.
+
+Asset Reality consumes productive assets and asset utilisation to test asset viability before Cost Allocation.
+
+Cost Allocation consumes productive assets and assigns them to operational groups.
+
+Rate Builder consumes asset recovery rates and assigned asset burden later.
+
+---
+
+# 4. CORE PRINCIPLE
+
+Assets are real cost.
+
+Mirra must not assume assets are recovered just because revenue or margin exists.
+
+Asset cost must be explicitly visible.
+
+Asset utilisation must be explicit.
+
+Asset recovery must be calculated from asset cost and asset utilisation hours.
+
+Running costs assigned to productive assets must be transferred cleanly from the source pool.
+
+No downstream module may invent asset hours, asset cost, or asset recovery rate.
+
+No downstream module may count the same asset cost twice.
+
+---
+
+# 5. ASSET IDENTITY RULE
+
+Every asset must have a stable identity.
+
+Required fields:
+
+asset_id
+asset_name
+asset_type
+asset_group_id
+asset_group_name
+is_active
+is_productive_asset
+ownership_status
+asset_status
+
+Rules:
+
+- asset_id must be stable.
+- asset_name is display only.
+- asset_type should be selected or user-created.
+- asset_group_id is optional but useful for grouping similar assets.
+- is_productive_asset controls whether the asset enters the productive asset pool.
+- inactive assets should not contribute to active totals.
+- asset identity must not be created downstream.
+- do not use asset_name as a key.
+
+---
+
+# 6. PRODUCTIVE VS NON-PRODUCTIVE ASSET RULE
+
+Assets must clearly separate:
+
+- productive assets
+- non-productive assets
+
+Productive assets are used to deliver work, produce output, or support chargeable activity.
+
+Non-productive assets support the business but do not directly create productive output.
+
+Examples of productive assets:
+
+- excavator used on jobs
+- concrete pump used to produce m3 output
+- truck used in delivery
+- ute used by site crew where required for delivery
+- productive plant
+- production machinery
+- tools or equipment used to produce chargeable work
+
+Examples of non-productive assets:
+
+- personal car
+- commute-only ute
+- admin vehicle
+- office printer
+- admin computer
+- office furniture
+- non-production fitout
+
+Productive assets enter:
+
+productive_asset_rows
+total_productive_asset_burden
+Asset Reality
+Cost Allocation Productive Asset Pool
+asset recovery calculations
+
+Non-productive assets remain visible in Assets but do not enter Productive Asset Pool or Asset Reality unless explicitly reclassified.
+
+---
+
+# 7. NON-PRODUCTIVE ASSET RULE
+
+Non-productive assets must not be treated as productive recovery burden.
+
+If an asset does not directly produce work or support chargeable activity, it should not be included in productive asset recovery.
+
+These costs may remain:
+
+- in General Overheads
+- in non-productive asset visibility
+- in review
+- in future cash flow / business support analysis
+
+But they must not flow into:
+
+- Asset Reality productive asset test
+- Productive Asset Pool
+- productive asset recovery rate
+- productive asset burden
+- Rate Builder productive asset rate
+
+unless the user explicitly changes the asset to productive.
+
+---
+
+# 8. WHAT BELONGS IN ASSETS
+
+Assets may include:
+
+- owned vehicles
+- leased vehicles
+- financed vehicles
+- plant
+- machinery
+- equipment
+- trailers
+- tools where material enough
+- production equipment
+- delivery equipment
+- asset finance interest where treated as asset-owned
+- lease cost where tied to asset use
+- depreciation or replacement allowance where enabled
+- asset insurance where explicitly treated as asset-owned
+- registration where explicitly treated as asset-owned
+- asset-specific ownership costs
+- productive asset running cost transfers where source pools are assigned to productive assets
+
+The key rule:
+
+Assets owns asset ownership/recovery cost and the productive-asset portion of running cost pools that are explicitly transferred into Assets.
+
+---
+
+# 9. WHAT DOES NOT BELONG IN ASSETS
+
+Assets must not include:
+
+- employee labour cost
+- productive labour hours
+- subcontractor COGS
+- material COGS
+- product COGS
+- general rent unless asset-specific
+- general overheads not linked to asset ownership or productive asset running cost transfer
+- fuel unless explicitly modelled as an asset source pool transfer
+- repairs unless explicitly modelled as an asset source pool transfer
+- servicing unless explicitly modelled as an asset source pool transfer
+- GST/tax payable
+- principal repayments as operating cost
+- owner drawings
+- dividends
+- income tax
+- revenue
+- profit target
+
+Fuel, repairs, registration, servicing, tyres, insurance, and consumables may be overheads or asset running cost transfer pools depending setup.
+
+Do not double count them.
+
+---
+
+# 10. OWNERSHIP COST VS RUNNING COST RULE
+
+Assets owns asset ownership cost.
+
+Running costs may sit in General Overheads unless explicitly mapped as asset source pools.
+
+Ownership costs may include:
+
+- finance interest
+- lease cost
+- depreciation / replacement allowance
+- ownership insurance where selected
+- registration where selected
+- other fixed ownership costs
+
+Running costs may include:
+
+- fuel
+- repairs
+- maintenance
+- servicing
+- tyres
+- operating consumables
+- running-related insurance
+- registration / compliance
+
+If running costs are left in General Overheads, they are recovered later through overhead distribution in Cost Allocation.
+
+If running costs are assigned into Assets as productive asset running cost transfers, Assets must apply source-pool guardrails.
+
+No cost can be counted in both General Overheads and Assets without a clear transfer and reconciliation.
+
+---
+
+# 11. PRODUCTIVE ASSET RUNNING COST TRANSFER RULE
+
+Assets may consume asset-related running cost pools only for the portion that genuinely belongs to productive assets.
+
+Examples of asset-related running cost pools:
+
+- asset-related fuel pool
+- asset-related insurance pool
+- asset-related repairs / maintenance pool
+- asset-related registration / compliance pool
+- asset-related consumables pool
+- asset finance / interest pool where asset-related
+- user-created asset-related source pool
+
+These source pools may originate in General Overheads or another traceable source.
+
+The purpose of assigning these pools inside Assets is not to force the whole pool into Assets.
+
+The purpose is to identify the portion of the pool that belongs to productive assets so productive asset recovery is accurate.
+
+---
+
+# 12. PRODUCTIVE ASSET RUNNING COST TRANSFER LOGIC
+
+For each asset-related source pool:
+
+available_pool_amount =
+total source pool available
+
+assigned_to_productive_assets =
+sum assigned to productive assets
+
+remaining_pool_amount =
+available_pool_amount - assigned_to_productive_assets
+
+The assigned portion moves into the productive asset burden.
+
+The remaining portion stays in General Overheads.
+
+Formula:
+
+remaining_pool_amount =
+available_pool_amount - assigned_to_productive_assets
+
+over_allocated_amount =
+max(0, assigned_to_productive_assets - available_pool_amount)
+
+If assigned_to_productive_assets exceeds available_pool_amount:
+
+allocation_status = over_allocated
+asset_pool_guardrail_status = blocked
+
+---
+
+# 13. REMAINING BALANCE RULE
+
+The remaining balance of any running cost pool does not need to be manually moved somewhere else.
+
+It stays in General Overheads.
+
+It is later recovered through overhead distribution in Cost Allocation.
+
+Do not force the remaining balance into Assets.
+
+Do not force 100% assignment of running cost pools to productive assets.
+
+Do not zero out overhead pools just to make Assets appear fully assigned.
+
+The system balances at the total source-pool level, not by forcing every pool into Assets.
+
+---
+
+# 14. NO DOUBLE COUNTING RULE
+
+A transferred running cost amount must not be counted twice.
+
+If $70,000 of fuel is transferred to productive assets, then the General Overheads pool used downstream must be reduced by $70,000 or must clearly mark that $70,000 as transferred to Assets.
+
+Correct:
+
+Fuel source pool = $100,000
+Transferred to productive assets = $70,000
+Remaining overhead fuel = $30,000
+
+Incorrect:
+
+Assets include $70,000 fuel
+General Overheads still include full $100,000 fuel
+Total model counts $170,000 fuel
+
+That is a leak.
+
+---
+
+# 15. GENERAL OVERHEADS TRANSFER RELATIONSHIP
+
+General Overheads owns the original overhead source pool.
+
+Assets may consume a portion of an asset-related overhead pool only through explicit transfer.
+
+Assets must expose the transfer amount so General Overheads / Cost Summary / Cost Allocation can avoid double counting.
+
+Required transfer variables:
+
+asset_running_cost_transfers[]
+total_asset_running_cost_transferred
+remaining_overhead_after_asset_transfers
+
+Each transfer row should include:
+
+{
+  transfer_id,
+  source_pool_id,
+  source_pool_name,
+  source_module,
+  available_pool_amount,
+  assigned_to_productive_assets,
+  remaining_pool_amount,
+  over_allocated_amount,
+  allocation_status
+}
+
+General Overheads remains the owner of the original source pool.
+
+Assets owns the assigned productive-asset portion once transferred.
+
+Cost Summary consumes the net result so the same source cost is not counted twice.
+
+---
+
+# 16. COST SUMMARY BALANCE RULE
+
+Cost Summary must remain balanced.
+
+The correct total operating cost burden is:
+
+Labour
++ Assets
++ General Overheads
+= Total Cost Burden
+
+Where Assets may include:
+
+- asset ownership cost
+- asset finance / lease / depreciation / replacement cost
+- transferred productive asset running costs
+
+And General Overheads must exclude or mark as transferred:
+
+- running cost amounts transferred into Assets
+
+If asset running cost transfers exist, Cost Summary must use:
+
+net_general_overheads =
+gross_general_overheads - total_asset_running_cost_transferred
+
+or an equivalent no-double-counting method.
+
+Do not count transferred productive asset running costs in both Assets and General Overheads.
+
+---
+
+# 17. PRINCIPAL REPAYMENT RULE
+
+Principal repayment is not baseline operating recovery cost.
+
+Principal repayment belongs to future Cash Flow / finance-pressure analysis unless a future active brief explicitly changes this.
+
+Asset finance interest may be operating cost.
+
+Principal must not be included in total_asset_cost_annual.
+
+If users enter loan repayment totals, the system must separate:
+
+- interest
+- principal
+
+Only interest may be included in operating cost unless a future brief says otherwise.
+
+---
+
+# 18. ASSET COST ROW CONTRACT
+
+Each asset row should use this shape:
+
+{
+  asset_id,
+  asset_name,
+  asset_type,
+  asset_group_id,
+  asset_group_name,
+  is_active,
+  is_productive_asset,
+  ownership_status,
+  asset_ownership_cost_annual,
+  asset_finance_interest_annual,
+  asset_lease_cost_annual,
+  asset_depreciation_or_replacement_cost_annual,
+  asset_insurance_cost_annual,
+  asset_registration_cost_annual,
+  asset_other_ownership_cost_annual,
+  assigned_running_cost_transfers_annual,
+  total_asset_cost_annual,
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  required_asset_recovery_rate,
+  asset_recovery_rate_status,
+  asset_status
+}
+
+---
+
+# 19. ASSET COST VARIABLES
+
+Assets owns:
+
+asset_ownership_cost_annual
+asset_finance_interest_annual
+asset_lease_cost_annual
+asset_depreciation_or_replacement_cost_annual
+asset_insurance_cost_annual
+asset_registration_cost_annual
+asset_other_ownership_cost_annual
+assigned_running_cost_transfers_annual
+total_asset_cost_annual
+total_productive_asset_cost_annual
+total_non_productive_asset_cost_annual
+
+Formula per asset:
+
+total_asset_cost_annual =
+asset_ownership_cost_annual
++ asset_finance_interest_annual
++ asset_lease_cost_annual
++ asset_depreciation_or_replacement_cost_annual
++ asset_insurance_cost_annual
++ asset_registration_cost_annual
++ asset_other_ownership_cost_annual
++ assigned_running_cost_transfers_annual
+
+Where a field is not used:
+
+treat as 0
+
+Do not include principal repayment.
+
+Do not include COGS.
+
+Do not include labour.
+
+---
+
+# 20. ASSET TOTALS
+
+Assets owns:
+
+asset_rows
+productive_asset_rows
+non_productive_asset_rows
+total_asset_cost_annual
+total_productive_asset_cost_annual
+total_non_productive_asset_cost_annual
+total_productive_asset_burden
+productive_asset_count
+non_productive_asset_count
+total_asset_running_cost_transferred
+
+Formula:
+
+total_asset_cost_annual =
+sum total_asset_cost_annual for active assets
+
+total_productive_asset_cost_annual =
+sum total_asset_cost_annual for active productive assets
+
+total_non_productive_asset_cost_annual =
+sum total_asset_cost_annual for active non-productive assets
+
+total_productive_asset_burden =
+total_productive_asset_cost_annual
+
+unless a future brief defines a different productive asset burden treatment.
+
+---
+
+# 21. UTILISATION RULE
+
+Every productive asset should have utilisation hours.
+
+Required variables:
+
+utilisation_hours_per_week
+utilisation_hours_annual
+default_utilisation_hours_per_week
+
+Default:
+
+default_utilisation_hours_per_week = 40
+
+Formula:
+
+utilisation_hours_annual =
+utilisation_hours_per_week × 48
+
+Use 48 weeks.
+
+Do not use 52 weeks unless a later active brief changes the rule.
+
+If utilisation_hours_per_week is missing, default to 40 only if the user has not set a value.
+
+Default must be visible.
+
+Do not hide default assumptions.
+
+---
+
+# 22. ASSET REALITY UTILISATION RULE
+
+The utilisation_hours_per_week entered in the Assets module is the required denominator for Asset Reality.
+
+Asset Reality must use:
+
+asset utilisation hours
+
+not:
+
+labour hours
+
+not:
+
+business productive hours
+
+not:
+
+Cost Allocation shared percentages
+
+Reason:
+
+Asset Reality tests whether each productive asset is economically viable at its actual entered usage.
+
+Example:
+
+If a digger is only used 10–15 hours per week, the recovery test must be based on 10–15 hours per week.
+
+Using labour hours would falsely lower the asset recovery rate and hide underutilisation.
+
+---
+
+# 23. SHARED ASSET RULE
+
+Shared assets do not exist in the Assets module.
+
+An asset may later be shared across operating groups in Cost Allocation.
+
+That is not an Assets module concept.
+
+Assets records:
+
+- what the asset is
+- whether it is productive
+- what it costs
+- how many hours per week it is used by the business
+
+Cost Allocation later records:
+
+- which groups use the asset
+- shared percentages
+- assigned asset burden
+
+Therefore:
+
+Assets must not create shared asset percentages.
+
+Asset Reality must not consume shared asset percentages.
+
+---
+
+# 24. ZERO UTILISATION GUARDRAIL
+
+If an active productive asset has annual cost but zero utilisation hours:
+
+required_asset_recovery_rate = 0
+asset_recovery_rate_status = invalid_zero_utilisation_hours
+
+Warning:
+
+This asset has annual cost but no utilisation hours. Enter utilisation hours before using this asset recovery rate.
+
+This warning should block trusted Asset Reality and Rate Builder use for that asset.
+
+Do not divide by zero.
+
+Do not substitute labour hours.
+
+Do not substitute business productive hours.
+
+Asset utilisation belongs to Assets.
+
+---
+
+# 25. ASSET RECOVERY RATE
+
+Assets must calculate:
+
+required_asset_recovery_rate
+
+Formula:
+
+required_asset_recovery_rate =
+total_asset_cost_annual / utilisation_hours_annual
+
+This is the asset’s own required recovery rate.
+
+It is not the group recovery rate.
+
+It is not the final charge-out rate.
+
+It is not the Cost Allocation rate.
+
+Asset Reality may consume this rate as the core asset stress-test value.
+
+Cost Allocation may later assign this asset or a share of its burden to operational groups.
+
+Rate Builder may use the asset recovery rate to show required asset rate.
+
+---
+
+# 26. ASSET RECOVERY RATE STATUS
+
+Allowed asset_recovery_rate_status values:
+
+ready
+invalid_zero_utilisation_hours
+review_zero_cost
+non_productive_asset
+inactive_asset
+review_required
+
+Status rules:
+
+ready:
+asset is active, productive, has cost, and has utilisation hours.
+
+invalid_zero_utilisation_hours:
+asset has cost but zero utilisation hours.
+
+review_zero_cost:
+asset has utilisation hours but zero cost.
+
+non_productive_asset:
+asset is not productive and should not be used for productive asset recovery.
+
+inactive_asset:
+asset is inactive and excluded from active totals.
+
+review_required:
+asset setup is incomplete or unclear.
+
+---
+
+# 27. ASSET SOURCE TRACE
+
+Assets outputs must be traceable.
+
+Required source trace for:
+
+- asset_rows
+- productive_asset_rows
+- non_productive_asset_rows
+- total_asset_cost_annual
+- total_productive_asset_cost_annual
+- total_productive_asset_burden
+- total_asset_running_cost_transferred
+- utilisation_hours_per_week
+- utilisation_hours_annual
+- required_asset_recovery_rate
+- asset_pool_guardrails
+
+Each trace should identify:
+
+- source_module = assets
+- source_variable
+- calculation_rule
+- source_status
+- trust_state
+
+---
+
+# 28. ASSET AND P&L RECONCILIATION
+
+Assets does not force itself to match the P&L.
+
+Module Reconciliation compares Assets outputs to relevant P&L asset finance / asset benchmark lines.
+
+Assets must expose values needed by Module Reconciliation.
+
+Relevant Assets outputs:
+
+total_asset_cost_annual
+asset_finance_interest_annual
+total_productive_asset_cost_annual
+total_asset_running_cost_transferred
+assets_ready
+assets_status
+assets_model_trust_state
+
+If P&L asset finance differs from Assets module, show variance in Module Reconciliation.
+
+Do not overwrite Assets with P&L.
+
+Do not overwrite P&L with Assets.
+
+Always variance.
+
+Never silent overwrite.
+
+---
+
+# 29. ASSET SOURCE-POOL GUARDRAIL PURPOSE
+
+Assets must include guardrails where asset-related source pools are allocated across assets.
+
+This applies when costs such as:
+
+- fuel
+- insurance
+- repairs and maintenance
+- registration
+- servicing
+- tyres
+- consumables
+- depreciation
+- finance / interest
+- lease cost
+- equipment hire where treated as asset cost
+- other user-created asset cost pools
+
+are being assigned from an available source pool to individual assets.
+
+The system must prevent over-allocation.
+
+The system must also preserve the remaining balance as overhead unless explicitly assigned elsewhere.
+
+---
+
+# 30. SOURCE-POOL GUARDRAIL FORMULA
+
+For each asset cost pool:
+
+assigned_pool_amount =
+sum of all asset allocations for that cost type
+
+remaining_pool_amount =
+available_pool_amount - assigned_pool_amount
+
+over_allocated_amount =
+max(0, assigned_pool_amount - available_pool_amount)
+
+Required variables:
+
+available_pool_amount
+assigned_pool_amount
+remaining_pool_amount
+over_allocated_amount
+allocation_status
+
+Do not silently cap.
+
+Do not auto-distribute.
+
+Do not auto-balance.
+
+Do not force 100% assignment.
+
+---
+
+# 31. ASSET POOL GUARDRAIL ROW CONTRACT
+
+asset_pool_guardrails[]
+
+Each row:
+
+{
+  cost_pool_id,
+  cost_pool_name,
+  available_pool_amount,
+  assigned_pool_amount,
+  assigned_to_productive_assets,
+  assigned_to_non_productive_assets,
+  remaining_pool_amount,
+  over_allocated_amount,
+  allocation_status,
+  warning_message,
+  asset_assignment_count
+}
+
+Allowed allocation_status values:
+
+balanced
+under_allocated
+over_allocated
+no_source_pool
+review_required
+
+---
+
+# 32. ASSET POOL STATUS RULES
+
+balanced:
+assigned_pool_amount equals available_pool_amount within rounding tolerance.
+
+under_allocated:
+assigned_pool_amount is less than available_pool_amount.
+
+over_allocated:
+assigned_pool_amount is greater than available_pool_amount.
+
+no_source_pool:
+available_pool_amount is zero or missing but user has assigned costs.
+
+review_required:
+source data is incomplete, uncertain, or mapping is unclear.
+
+Rounding tolerance:
+
+absolute difference <= 1.00
+
+Anything above tolerance is a real variance.
+
+Under-allocated is not a failure.
+
+It means the remaining amount stays in General Overheads unless another source brief explicitly says otherwise.
+
+---
+
+# 33. ASSET POOL SUMMARY
+
+Assets must output:
+
+total_available_asset_cost_pool
+total_assigned_asset_cost_pool
+total_assigned_to_productive_assets
+total_assigned_to_non_productive_assets
+total_remaining_asset_cost_pool
+total_over_allocated_asset_cost_pool
+asset_pool_guardrail_status
+
+Allowed asset_pool_guardrail_status values:
+
+ready
+review_required
+blocked
+
+Logic:
+
+If any pool allocation_status = over_allocated:
+asset_pool_guardrail_status = blocked
+
+Else if any pool allocation_status = under_allocated, no_source_pool, or review_required:
+asset_pool_guardrail_status = review_required
+
+Else:
+asset_pool_guardrail_status = ready
+
+---
+
+# 34. OVER-ALLOCATION HARD RULE
+
+If any asset cost pool is over-allocated:
+
+- show clear warning
+- show available amount
+- show assigned amount
+- show over-allocated amount
+- flag the specific cost type
+- block trusted downstream use
+- do not cap the value
+- do not auto-adjust allocations
+- do not redistribute automatically
+
+The user must correct the allocation.
+
+---
+
+# 35. DOWNSTREAM TRANSFER RULE
+
+Assets passes productive assets and productive asset burden to Cost Allocation.
+
+Cost Allocation receives:
+
+productive_asset_rows[]
+total_productive_asset_burden
+asset_pool_guardrail_status
+
+Cost Allocation creates:
+
+Productive Asset Pool
+
+Only productive assets enter this pool.
+
+The remaining overhead balance stays in General Overheads and enters Cost Allocation through:
+
+General Overheads Pool
+
+---
+
+# 36. ASSET REALITY OUTPUT RULE
+
+Assets must provide stable source outputs for Asset Reality.
+
+Asset Reality consumes:
+
+productive_asset_rows
+non_productive_asset_rows
+total_productive_asset_burden
+productive_asset_count
+non_productive_asset_count
+utilisation_hours_per_week
+utilisation_hours_annual
+required_asset_recovery_rate
+asset_recovery_rate_status
+asset_pool_guardrail_status
+assets_model_trust_state
+
+Asset Reality must not recalculate or replace Assets source truth.
+
+Assets must not depend on Asset Reality.
+
+---
+
+# 37. ASSETS READINESS CONDITIONS
+
+Assets is ready when:
+
+- asset rows exist or user confirms no assets
+- active assets have valid cost values
+- productive assets have utilisation hours
+- required_asset_recovery_rate can be calculated or invalid state is clearly flagged
+- total_asset_cost_annual can be calculated
+- asset source pools are not over-allocated
+- transferred running costs do not exceed source pools
+- transferred running costs are not double counted in General Overheads
+- no blocking warning exists
+
+Assets is not ready when:
+
+- no asset data exists and assets are expected
+- active assets have invalid cost
+- productive assets have cost but zero utilisation
+- source-pool over-allocation exists
+- transferred asset running costs exceed available pool
+- total_asset_cost_annual cannot be calculated
+- saved state is invalid
+
+---
+
+# 38. ASSETS STATUS VALUES
+
+Allowed assets_status values:
+
+ready
+ready_with_warnings
+review_required
+blocked
+preview_only
+not_ready
+
+Status rules:
+
+ready:
+Assets data is complete, utilisation valid, no blocking warnings.
+
+ready_with_warnings:
+Assets can be used, but non-blocking warnings remain.
+
+review_required:
+Assets can calculate, but user review is required before relying downstream.
+
+blocked:
+Assets cannot be trusted due to invalid cost, invalid utilisation, over-allocated source pool, or double-counting risk.
+
+preview_only:
+Assets can display estimated/manual data but should not be trusted as final.
+
+not_ready:
+No valid Assets source exists.
+
+---
+
+# 39. ASSETS TRUST STATE
+
+Assets should expose:
+
+assets_model_trust_state
+
+Allowed values:
+
+ready
+warning
+blocked
+preview_only
+
+Mapping:
+
+assets_status = ready
+→ ready
+
+assets_status = ready_with_warnings or review_required
+→ warning
+
+assets_status = blocked or not_ready
+→ blocked
+
+assets_status = preview_only
+→ preview_only
+
+Downstream modules must inherit this trust state.
+
+---
+
+# 40. REQUIRED ASSET WARNINGS
+
+Assets must produce structured warnings.
+
+Warning object shape:
+
+{
+  warning_id,
+  source_module,
+  severity,
+  message,
+  affected_variable,
+  blocking,
+  review_action
+}
+
+Required warning IDs:
+
+no_assets_data
+asset_invalid_cost
+asset_zero_utilisation_hours
+asset_cost_without_utilisation
+asset_utilisation_default_used
+asset_zero_cost_with_utilisation
+productive_asset_missing_cost
+non_productive_asset_excluded_from_recovery
+asset_pool_over_allocated
+asset_pool_under_allocated
+asset_pool_no_source
+asset_pool_review_required
+asset_running_cost_transfer_over_allocated
+asset_running_cost_transfer_remaining_in_overheads
+asset_running_cost_double_count_risk
+possible_duplicate_overhead_cost
+possible_duplicate_cogs_cost
+asset_reconciliation_variance
+assets_preview_only
+
+---
+
+# 41. ASSETS OUTPUT CONTRACT
+
+Assets should expose:
+
+{
+  asset_rows,
+  productive_asset_rows,
+  non_productive_asset_rows,
+  total_asset_cost_annual,
+  total_productive_asset_cost_annual,
+  total_non_productive_asset_cost_annual,
+  total_productive_asset_burden,
+  productive_asset_count,
+  non_productive_asset_count,
+
+  utilisation_hours_per_week,
+  utilisation_hours_annual,
+  default_utilisation_hours_per_week,
+  required_asset_recovery_rate,
+
+  asset_running_cost_transfers,
+  total_asset_running_cost_transferred,
+  remaining_overhead_after_asset_transfers,
+
+  asset_pool_guardrails,
+  total_available_asset_cost_pool,
+  total_assigned_asset_cost_pool,
+  total_assigned_to_productive_assets,
+  total_assigned_to_non_productive_assets,
+  total_remaining_asset_cost_pool,
+  total_over_allocated_asset_cost_pool,
+  asset_pool_guardrail_status,
+
+  assets_ready,
+  assets_status,
+  assets_warnings,
+  assets_warning_count,
+  assets_model_trust_state
+}
+
+---
+
+# 42. OUTPUT TO MODULE RECONCILIATION
+
+Module Reconciliation should receive:
+
+- total_asset_cost_annual
+- asset_finance_interest_annual where needed
+- total_productive_asset_cost_annual
+- total_asset_running_cost_transferred
+- assets_status
+- assets_model_trust_state
+- assets_warnings
+
+Module Reconciliation compares Assets output to relevant P&L benchmark values.
+
+Module Reconciliation does not change Assets.
+
+---
+
+# 43. OUTPUT TO COST SUMMARY
+
+Cost Summary should receive:
+
+- total_asset_cost_annual
+- total_asset_running_cost_transferred
+- assets_status
+- assets_model_trust_state
+
+Cost Summary uses total_asset_cost_annual as the asset component of total_cost_burden.
+
+If asset running cost transfers exist, Cost Summary must avoid double counting by using the net General Overheads value after transferred running costs are removed or clearly marked as transferred.
+
+Cost Summary must not recalculate Assets.
+
+---
+
+# 44. OUTPUT TO GENERAL OVERHEADS
+
+General Overheads should receive or expose alongside Assets:
+
+- total_asset_running_cost_transferred
+- remaining_overhead_after_asset_transfers
+- asset_running_cost_transfers[]
+
+This allows General Overheads / Cost Summary / Cost Allocation to avoid double counting transferred asset running cost pools.
+
+General Overheads remains the source owner of the original overhead pool.
+
+Assets owns the transferred productive asset portion.
+
+---
+
+# 45. OUTPUT TO ASSET REALITY
+
+Asset Reality should receive:
+
+- productive_asset_rows
+- non_productive_asset_rows
+- total_productive_asset_burden
+- productive_asset_count
+- non_productive_asset_count
+- utilisation_hours_per_week
+- utilisation_hours_annual
+- required_asset_recovery_rate
+- asset_recovery_rate_status
+- asset_pool_guardrail_status
+- assets_status
+- assets_model_trust_state
+- assets_warnings
+
+Asset Reality uses these to test:
+
+Can each productive asset justify itself at entered utilisation?
+
+Asset Reality must not use Labour hours.
+
+Asset Reality must not use Cost Allocation shared percentages.
+
+---
+
+# 46. OUTPUT TO COST ALLOCATION
+
+Cost Allocation should receive:
+
+- productive_asset_rows
+- total_productive_asset_burden
+- productive_asset_count
+- asset_pool_guardrail_status
+- assets_model_trust_state
+
+Cost Allocation uses these to create:
+
+- Productive Asset Pool
+- asset assignment options
+- shared asset allocation
+- asset pull-out calculations
+- asset reconciliation
+
+Cost Allocation must not create asset source cost.
+
+Cost Allocation must not assign more than 100% of an asset.
+
+Cost Allocation must respect asset_pool_guardrail_status.
+
+If asset_pool_guardrail_status = blocked:
+
+Cost Allocation must also show blocked or review state.
+
+---
+
+# 47. OUTPUT TO RECOVERY SUMMARY
+
+Recovery Summary should receive asset recovery context through:
+
+- Business Summary
+- Asset Reality
+- Cost Allocation
+- Assets required recovery rates where required
+
+Recovery Summary tests whether assets are recovered.
+
+It must not recalculate asset source cost.
+
+---
+
+# 48. OUTPUT TO RATE BUILDER
+
+Rate Builder should receive:
+
+- required_asset_recovery_rate
+- utilisation_hours_annual
+- Asset Reality asset pressure context
+- Cost Allocation assigned asset burden
+- Cost Allocation shared asset percentages
+- asset_pool_guardrail_status
+
+Rate Builder uses these to calculate required asset rates and group/unit cost stacks.
+
+Rate Builder must not invent asset utilisation.
+
+Rate Builder must not consume blocked asset pools as trusted output.
+
+---
+
+# 49. UI STRUCTURE
+
+Recommended Assets UI structure:
+
+1. Assets Status Strip
+2. Asset Source / Asset Table
+3. Productive Asset Status Panel
+4. Non-Productive Asset Visibility Panel
+5. Asset Cost Panel
+6. Utilisation Panel
+7. Asset Recovery Rate Panel
+8. Asset Overhead / Running Cost Pool Assignment Panel
+9. Asset Source-Pool Guardrail Panel
+10. Remaining Overhead Balance Panel
+11. Asset Reality Input Readiness Panel
+12. Review Required Panel
+13. Reconciliation Context Panel
+14. Help Panel
+
+Existing UI may be retained if it already supports these concepts.
+
+---
+
+# 50. UTILISATION PANEL
+
+This panel should show:
+
+- utilisation hours per week
+- annual utilisation hours
+- default value if used
+- warning if zero
+- calculation basis
+
+Required wording:
+
+Annual utilisation is calculated as weekly utilisation hours × 48 weeks.
+
+If default 40 hours/week is used, show:
+
+Default 40 hours/week used. Review and adjust if this asset is used more or less.
+
+This utilisation feeds Asset Reality.
+
+It should reflect actual asset use, not labour hours.
+
+---
+
+# 51. ASSET RECOVERY RATE PANEL
+
+This panel should show:
+
+- asset annual cost
+- annual utilisation hours
+- required asset recovery rate
+- rate status
+
+Formula display:
+
+asset annual cost / annual utilisation hours = required asset recovery rate
+
+This panel does not assign the asset to a labour group.
+
+Assignment belongs in Cost Allocation.
+
+This rate feeds Asset Reality.
+
+---
+
+# 52. REVIEW REQUIRED PANEL
+
+This panel should show:
+
+- zero utilisation hours
+- invalid asset costs
+- zero cost with utilisation
+- over-allocated pools
+- no-source pools
+- possible duplicate overhead cost
+- possible duplicate COGS cost
+- running cost double-count risk
+- non-productive asset review
+- Asset Reality input readiness warnings
+- reconciliation warnings
+- preview-only data
+
+No review item should be hidden.
+
+---
+
+# 53. DO NOT CHANGE
+
+Do not change:
+
+- Labour source calculations
+- General Overheads source calculations except to support transfer visibility where required
+- Revenue / COGS logic
+- Cost Summary aggregation except to consume Assets contract and avoid double counting
+- Cost Allocation assignment logic from inside Assets
+- Recovery Summary tests
+- Rate Builder rate calculations
+- Business Outcome verdict logic
+
+Do not pair assets with operators in Assets.
+
+Do not assign assets to operational groups in Assets.
+
+Do not create shared asset percentages in Assets.
+
+Do not distribute shared asset percentages in Assets.
+
+Do not include labour cost in Assets.
+
+Do not use labour hours for asset recovery rate.
+
+Do not include COGS in Assets.
+
+Do not include principal repayments in operating asset cost.
+
+Do not silently duplicate costs between Assets and General Overheads.
+
+Do not force all running cost pools into Assets.
+
+Do not force non-productive assets into productive recovery.
+
+---
+
+# 54. FILE AREAS LIKELY AFFECTED
+
+Likely files:
+
+hooks/useAssets.js
+lib/calculations/assetsCalculations.js
+lib/selectors/assetsSelectors.js
+lib/storage/assetsStorage.js
+components/assets/*.jsx
+app/assets/page.jsx
+
+Possible related files:
+
+hooks/useCostSummary.js
+hooks/useCostAllocation.js
+hooks/useRateBuilder.js later
+hooks/useGeneralOverheads.js
+hooks/useAssetReality.js
+lib/calculations/costSummaryCalculations.js
+lib/calculations/costAllocationRules.js
+lib/calculations/generalOverheadsCalculations.js
+lib/calculations/assetRealityCalculations.js
+
+Do not modify unrelated modules unless required to consume the updated Assets output contract safely.
+
+---
+
+# 55. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Inspect current Assets source state.
+2. Preserve existing asset data.
+3. Add is_productive_asset where missing.
+4. Add non-productive asset visibility where missing.
+5. Add utilisation_hours_per_week where missing.
+6. Add default 40 hours/week where appropriate.
+7. Calculate utilisation_hours_annual using × 48 weeks.
+8. Calculate required_asset_recovery_rate using asset utilisation hours.
+9. Confirm labour hours are not used as the asset denominator.
+10. Add zero utilisation guardrail.
+11. Add zero cost with utilisation guardrail.
+12. Add productive_asset_rows.
+13. Add non_productive_asset_rows.
+14. Add total_productive_asset_burden.
+15. Add Asset Reality source outputs.
+16. Add asset running cost transfer variables.
+17. Add asset_pool_guardrails if not present.
+18. Add asset_pool_guardrail_status.
+19. Ensure running cost transfer cannot exceed available source pool.
+20. Ensure remaining balance stays in General Overheads.
+21. Ensure transferred running costs are not double counted.
+22. Add structured warnings.
+23. Add trust state.
+24. Confirm Cost Summary still consumes total_asset_cost_annual.
+25. Confirm Cost Summary can avoid double counting transferred overhead pools.
+26. Confirm Asset Reality can consume productive asset rows and utilisation.
+27. Confirm Cost Allocation can consume productive asset pool.
+28. Run build.
+29. Confirm no downstream maths moved into Assets.
+
+---
+
+# 56. ACCEPTANCE CRITERIA
+
+The Assets v4.0 build is accepted when:
+
+1. Assets owns asset identity.
+2. Assets owns asset cost.
+3. Assets has explicit productive/non-productive asset status.
+4. Non-productive assets remain visible.
+5. Non-productive assets do not enter Productive Asset Pool unless reclassified.
+6. Non-productive assets do not enter Asset Reality productive recovery unless reclassified.
+7. Assets calculates total_asset_cost_annual.
+8. Assets calculates total_productive_asset_cost_annual.
+9. Assets calculates total_non_productive_asset_cost_annual.
+10. Assets exposes total_productive_asset_burden.
+11. Assets captures utilisation_hours_per_week.
+12. Assets calculates utilisation_hours_annual using × 48 weeks.
+13. Default utilisation is 40 hours/week where no value exists.
+14. Default utilisation is visible to user.
+15. Assets calculates required_asset_recovery_rate using asset utilisation hours.
+16. Assets does not use labour hours as asset recovery denominator.
+17. Zero utilisation hours are guarded.
+18. Zero cost with utilisation is flagged.
+19. Productive assets flow to Asset Reality.
+20. Productive assets flow to Cost Allocation Productive Asset Pool.
+21. Asset running cost source pools can be assigned to productive assets where enabled.
+22. Asset running cost assignment cannot exceed available source pool.
+23. Over-allocated asset pools are blocked.
+24. Under-allocated asset pools are visible.
+25. Remaining running cost pool balance stays in General Overheads.
+26. No-source asset pool assignments are visible.
+27. Transferred running costs are not double counted in General Overheads and Assets.
+28. Assets status and trust state are exposed.
+29. Structured warnings are exposed.
+30. Cost Summary receives stable asset totals.
+31. Cost Summary avoids double counting transferred asset running costs.
+32. Asset Reality receives productive asset utilisation inputs.
+33. Cost Allocation receives productive asset pool inputs.
+34. Rate Builder can later consume asset recovery rates.
+35. Assets does not create Cost Allocation groups.
+36. Assets does not pair operators to assets.
+37. Assets does not create shared asset percentages.
+38. Assets does not consume Labour.
+39. Assets does not consume COGS.
+40. Principal repayments are not included as operating asset cost.
+41. Build passes.
+
+---
+
+# 57. FINAL PRINCIPLE
+
+Assets is the asset cost, productive asset, utilisation, and productive asset running cost transfer source.
+
+It creates the true asset recovery requirement.
+
+It does not assign assets to work groups.
+
+It does not create shared asset allocations.
+
+It does not decide recovery strategy.
+
+It does not build rates.
+
+It does not force all overhead pools into Assets.
+
+It transfers only the portion of running cost pools that genuinely belongs to productive assets.
+
+Anything not consumed by productive assets remains overhead.
+
+It gives Asset Reality the asset utilisation truth needed to test whether assets can justify themselves.
+
+No invented utilisation.
+No labour-hour asset denominator.
+No zero-hour division.
+No duplicated overhead cost.
+No forced running cost assignment.
+No non-productive asset leakage into productive recovery.
+No over-allocated source pools.
+No hidden asset burden.
+No leaks.

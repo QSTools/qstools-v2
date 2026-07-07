@@ -1,0 +1,1046 @@
+# Mirra — Active System Brief
+
+## v4.0 — MODE-AWARE COMMERCIAL MODEL, STRUCTURE / RECOVERY / RATE / OUTCOME / MODELLING / QUOTE CHECKER FLOW
+
+STATUS: ACTIVE SYSTEM BRIEF
+VERSION: v4.0
+FILE NUMBER: 01
+
+REPLACES:
+- QS Tools Active System Brief v3.8
+- older recovery-chain assumptions where Recovery Summary chose strategy
+- older Cost Allocation assumptions where it tested recovery or delivery dependency
+- older Business Outcome assumptions where it was only the final verdict
+- older assumptions where Business Modelling and Quote Checker were deferred without a defined bridge
+- older assumptions where Rate Builder did not exist as the pricing conversion layer
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Mirra is a mode-aware business modelling system. It uses source accounting evidence to build a forward-looking commercial model, then converts that model into recovery requirements, charge-out rates, business targets, and quote-checking rules.
+
+---
+
+# 1. PURPOSE
+
+This brief defines the active Mirra system architecture, build order, module boundaries, and core commercial logic.
+
+It is the central orientation brief for all current and future builds.
+
+All module briefs, implementation briefs, AGENTS.md instructions, Codex tasks, and future build tasks must align with this file.
+
+---
+
+# 2. ACTIVE SOURCE PACK
+
+The active v4.0 source pack now includes:
+
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+01_MIRRA_ACTIVE_SYSTEM_BRIEF_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+
+07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt
+12_MIRRA_BUSINESS_SETUP_v4.0_LOCKED.txt
+13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
+14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+15_MIRRA_REVENUE_REALITY_v4.0_LOCKED.txt
+16_MIRRA_ASSET_REALITY_v4.0_LOCKED.txt
+
+17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt
+18_MIRRA_RECOVERY_SUMMARY_v4.0_LOCKED.txt
+19_MIRRA_RATE_BUILDER_v4.0_LOCKED.txt
+20_MIRRA_BUSINESS_OUTCOME_v4.0_LOCKED.txt
+
+21_MIRRA_QUOTE_CHECKER_v4.0_LOCKED.txt
+22_MIRRA_SOQ_JOB_PO_LAYER_v4.0_LOCKED.txt
+23_MIRRA_JOB_COSTING_PROFITABILITY_v4.0_LOCKED.txt
+24_MIRRA_MODEL_FEEDBACK_LOOP_v4.0_LOCKED.txt
+25_MIRRA_MODEL_REVIEW_APPROVAL_v4.0_LOCKED.txt
+26_MIRRA_DATA_QUALITY_DASHBOARD_v4.0_LOCKED.txt
+27_MIRRA_REPORTING_ANALYTICS_v4.0_LOCKED.txt
+28_MIRRA_DATABASE_STORAGE_EXPORT_LAYER_v4.0_LOCKED.txt
+29_MIRRA_INTEGRATIONS_API_LAYER_v4.0_LOCKED.txt
+30_MIRRA_BUSINESS_MODELLING_v4.0_LOCKED.txt
+
+Older QS Tools briefs remain historical only unless explicitly referenced as still active.
+
+If an older brief conflicts with this v4.0 active system brief, this v4.0 brief wins.
+
+---
+
+# 3. HIGHEST-LEVEL PRINCIPLE
+
+Mirra is built on:
+
+First principles for everything.
+Simple in hindsight. Invisible beforehand.
+
+The system must reveal what was previously hidden in the business.
+
+Every cost must belong to exactly one owner.
+
+Every important output must be traceable, explainable, and defensible.
+
+If a number cannot be defended, it should not be trusted.
+
+Core product question:
+
+Do your assumptions about how your business runs match reality?
+
+---
+
+# 4. CORE SYSTEM PHILOSOPHY
+
+Mirra uses historical accounting data to build a forward-looking commercial model.
+
+The P&L shows what happened.
+
+Mirra uses that information to classify, reconcile, and model what the business needs to recover going forward.
+
+Past accounting data is input evidence.
+
+Forward-looking commercial cost is the decision basis.
+
+Business Setup defines whether the business is primarily interpreted through:
+
+productive hours
+or
+units sold
+
+This allows Mirra to support both:
+
+labour / service businesses
+and
+product / unit businesses
+
+without changing the first-principles model.
+
+---
+
+# 5. CORE MODE-AWARE PRINCIPLE
+
+Mirra uses one universal recovery equation:
+
+Total Business Cost ÷ Activity Driver = Required Recovery Per Output
+
+The activity driver is selected by Business Setup and applied downstream.
+
+labour_based  → productive hours → $/hour
+product_based → units sold       → $/unit
+
+This is not an industry category.
+
+It is the primary output driver used by the system to interpret recovery pressure.
+
+Mode is system-level.
+
+Individual rates may still have different drivers later in Rate Builder.
+
+---
+
+# 6. UPDATED CORE SYSTEM FLOW
+
+The active v4.0 flow is:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+General Overheads / Labour / Assets
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Checker
+↓
+SOQ / Job / PO Layer
+↓
+Job Costing / Profitability
+↓
+Model Feedback Loop
+↓
+Model Review / Approval
+↓
+Data Quality Dashboard
+↓
+Reporting / Analytics
+↓
+Database / Storage / Export
+↓
+Integrations / API
+
+Immediate implementation focus stops at:
+
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+Business Modelling
+Quote Checker contract
+
+SOQ / Job / PO and later layers are future operational layers.
+
+---
+
+# 7. UPDATED CORE ROLE SPLIT
+
+The active v4.0 role split is:
+
+Business Setup = mode and business identity
+P&L = raw financial input and accounting evidence
+Revenue / COGS = commercial selling layer and Margin Pool
+General Overheads = non-labour / non-asset overhead cost source
+Labour = people cost, productive hours, employer obligations
+Assets = productive and non-productive asset ownership cost
+Module Reconciliation = evidence and consistency checks
+Model Readiness = trust gate
+Cost Summary = operating cost burden
+Business Summary = current business mirror
+Revenue Reality = margin-after-labour stress test
+Asset Reality = asset recovery pressure test
+Cost Allocation = working-group builder and source-pool assignment
+Recovery Summary = automatic mode-dependent recovery test
+Rate Builder = charge-out rate construction
+Business Outcome = business diagnosis
+Business Modelling = selected fix / target model / quote-checker bridge
+Quote Checker = quote alignment enforcement
+SOQ / Job / PO = physical quantity and purchase truth
+Job Costing = actual job profitability proof
+Model Feedback = actual performance learning layer
+Model Review = controlled approval layer
+Data Quality Dashboard = global trust and cleanup layer
+Reporting = trend and analytics layer
+Database / Storage / Export = persistence and reporting backbone
+Integrations / API = external data import and normalisation layer
+
+---
+
+# 8. CRITICAL ARCHITECTURE CHANGE
+
+The old chain:
+
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+
+is no longer the full active architecture.
+
+The new commercial chain is:
+
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Checker
+
+The meaning of each page has changed:
+
+Cost Allocation no longer tests recovery strategy.
+Recovery Summary no longer asks the user to choose recovery method.
+Rate Builder now owns charge-out rate construction.
+Business Outcome diagnoses the result.
+Business Modelling creates the selected target model.
+Quote Checker enforces the selected target model.
+
+---
+
+# 9. COST ALLOCATION UPDATED ROLE
+
+Cost Allocation is now the simple working-group builder.
+
+It owns:
+
+working groups
+default holding pools
+productive labour assignment
+productive asset assignment
+shared productive asset percentages
+remaining overhead distribution
+group cost stacks
+pool reconciliation
+assigned / remaining / over-assigned checks
+
+Cost Allocation does not own:
+
+recovery method
+recovery plan
+minimum recoverable rate
+recovered / unrecovered cost
+sell rates
+margin-added rates
+business verdict
+quote checking
+
+Primary rule:
+
+Cost Allocation builds structure.
+
+It does not test recovery.
+
+It does not build rates.
+
+It does not issue the business outcome.
+
+---
+
+# 10. RECOVERY SUMMARY UPDATED ROLE
+
+Recovery Summary is now automatic, mode-dependent, and zero-input.
+
+It consumes:
+
+Business Setup mode
+Revenue / COGS context
+Business Summary context
+Revenue Reality context
+Asset Reality context
+Cost Allocation group cost stacks
+
+It answers:
+
+Does the allocated structure recover its cost burden?
+
+Recovery Summary does not:
+
+create groups
+assign labour
+assign assets
+distribute overheads
+ask the user to choose recovery method
+build rates
+issue final verdict
+
+Primary rule:
+
+Recovery Summary tests recovery.
+
+It does not build structure.
+
+It does not build rates.
+
+It does not ask for user input.
+
+---
+
+# 11. RATE BUILDER NEW ROLE
+
+Rate Builder is the first layer where upstream pressure becomes pricing.
+
+It consumes:
+
+Cost Allocation structure
+Recovery Summary recovery requirements
+Revenue Reality pressure
+Asset Reality pressure
+Revenue / COGS margin context
+Business Setup mode
+
+It builds:
+
+minimum recoverable rates
+fully burdened cost rates
+suggested sell rates
+component rates
+full-group rates
+subset rates
+machine + operator rates
+labour rates
+crew rates
+unit rates where valid
+Quote Checker handoff values
+
+Rate Builder is mode-guided, not mode-restricted.
+
+Labour-based business:
+default rate style = hourly / labour / asset / crew
+
+Product-based business:
+default rate style = unit / product
+
+Exception rates are allowed.
+
+Example:
+
+A labour-based business may still manually build product/unit rates where valid.
+A product-based business may still sell dayworks/hourly rates.
+
+Primary rule:
+
+Rate Builder turns recovery pressure into charge-out rates.
+
+It does not create source costs, assign costs, test recovery again, or issue the final business outcome.
+
+---
+
+# 12. LABOUR-BASED PRODUCT RATE LIMITATION
+
+For labour-based businesses, true product/unit rates cannot be derived from annual supplier COG totals alone.
+
+To build true product/unit rates, Mirra needs:
+
+schedule of quantities
+job-level quantities
+material consumption
+labour consumption
+asset consumption
+subcontractor consumption
+PO/job cost mapping
+
+Until SOQ / Job / PO exists, product/unit rates in labour mode must be:
+
+manual
+template-based
+preview-only
+or not_available
+
+Do not fake product rates from supplier totals.
+
+Do not infer physical quantity consumption from high-level COG detail.
+
+---
+
+# 13. PRODUCT-BASED TOP-DOWN UNIT RULE
+
+For product-based businesses, top-down unit analysis may be valid when the unit is the primary business driver.
+
+Example:
+
+Revenue ÷ m² = revenue per m²
+COG ÷ m² = COG per m²
+Margin ÷ m² = margin per m²
+
+This works only where the unit is the primary driver and the business setup supports it.
+
+Top-down unit derivation is not valid merely because a unit label exists.
+
+---
+
+# 14. REVENUE / COGS DETAIL RULE
+
+Revenue / COGS has two levels of value:
+
+1. P&L / financial truth
+2. supplier/category detail
+
+For labour-based businesses:
+
+Revenue / COGS detail is used for:
+
+margin visibility
+material markup context
+supplier spend concentration
+category spend concentration
+supplier negotiation insight
+future SOQ/job layer preparation
+
+It is not used as a direct product/unit rate construction input unless manual or SOQ data exists.
+
+For product-based businesses:
+
+Revenue / COGS detail may support unit margin and unit COG analysis where the product/unit driver is valid.
+
+---
+
+# 15. MATERIAL MARKUP RULE
+
+Mirra may calculate one blended material markup.
+
+There is one blended material markup at the model level.
+
+The system must not pretend there is a true supplier-level markup unless source data supports that.
+
+Supplier/category detail shows contribution to the blended result.
+
+Correct interpretation:
+
+material markup = one blended result
+supplier spend = contribution / influence on that result
+category spend = contribution / influence on that result
+
+Supplier/category sensitivity belongs in Business Modelling.
+
+---
+
+# 16. BUSINESS OUTCOME UPDATED ROLE
+
+Business Outcome is the diagnosis layer.
+
+It consumes:
+
+Business Summary
+Revenue Reality
+Asset Reality
+Cost Allocation
+Recovery Summary
+Rate Builder
+Revenue / COGS supplier/category context
+
+It answers:
+
+What is wrong?
+Where is pressure coming from?
+What is the current result?
+Which pressure source matters most?
+
+Business Outcome does not:
+
+create scenarios
+select target rates
+feed unapproved values to Quote Checker
+mutate source modules
+rebuild Rate Builder
+check quotes
+
+Primary rule:
+
+Business Outcome diagnoses the business result.
+
+Business Modelling selects the fix.
+
+---
+
+# 17. BUSINESS MODELLING NEW ROLE
+
+Business Modelling is the bridge between Business Outcome and Quote Checker.
+
+It consumes:
+
+Business Outcome diagnosis
+Rate Builder rates
+Recovery Summary recovery gaps
+Revenue / COGS supplier/category detail
+Revenue Reality pressure
+Asset Reality pressure
+
+It owns:
+
+scenario creation
+supplier/category cost modelling
+total COG modelling
+labour productivity modelling
+asset utilisation modelling
+overhead modelling
+rate target modelling
+combined scenarios
+current vs modelled comparison
+selected target model
+Quote Checker target set
+
+It outputs:
+
+selected minimum recoverable rates
+selected suggested sell rates
+selected margin targets
+selected markup targets
+selected material markup assumptions
+selected supplier/category assumptions
+selected labour assumptions
+selected asset assumptions
+selected overhead assumptions
+scenario ID
+target model ID
+trust state
+
+Primary rule:
+
+Business Modelling chooses the selected target.
+
+Quote Checker enforces that target.
+
+Business Modelling must not mutate source modules.
+
+---
+
+# 18. QUOTE CHECKER UPDATED ROLE
+
+Quote Checker is the enforcement layer.
+
+It consumes:
+
+Business Modelling selected target model
+Quote Checker target set
+Rate Builder rate rows
+selected minimum recoverable rates
+selected suggested sell rates
+selected margin / markup assumptions
+
+It checks:
+
+quote lines
+quoted rates
+quoted totals
+matched Rate Builder rates
+minimum recoverable rates
+suggested sell rates
+margin targets
+markup targets
+scenario alignment
+
+Quote Checker does not:
+
+create rates
+create scenarios
+change the model
+mutate Business Modelling
+mutate Rate Builder
+fake SOQ/product detail
+
+Primary rule:
+
+Quote Checker asks:
+
+Does this quote align with the selected model?
+
+---
+
+# 19. SOQ / JOB / PO FUTURE ROLE
+
+The SOQ / Job / PO Layer is the future physical truth layer.
+
+It creates the missing link between:
+
+quoted quantities
+materials
+labour
+assets
+subcontractors
+purchase orders
+supplier invoices
+job actuals
+
+It is required for true product/unit rate validation in labour-based businesses.
+
+It does not exist to replace the first-layer commercial model.
+
+It extends it.
+
+---
+
+# 20. JOB COSTING FUTURE ROLE
+
+Job Costing / Profitability proves whether the model worked on real jobs.
+
+It compares:
+
+quote
+model
+actual
+
+It identifies:
+
+job profit
+job loss
+under-recovery
+margin shortfall
+supplier variance
+labour variance
+asset recovery variance
+task profitability
+
+It feeds evidence to Model Feedback.
+
+It must not automatically overwrite rates.
+
+---
+
+# 21. MODEL FEEDBACK FUTURE ROLE
+
+Model Feedback converts actual job performance into structured review signals.
+
+It identifies:
+
+rate review signals
+supplier pressure
+material category pressure
+labour productivity issues
+asset recovery issues
+overhead recovery issues
+quote alignment failures
+positive model signals
+repeated issues
+
+It does not automatically change the model.
+
+Feedback is evidence.
+
+Approval is decision.
+
+---
+
+# 22. MODEL REVIEW / APPROVAL FUTURE ROLE
+
+Model Review / Approval controls model changes.
+
+It owns:
+
+review queue
+approval workflow
+approved rate sets
+approved scenarios
+approved quote checker target sets
+approved model versions
+audit trail
+rollback
+
+No feedback signal becomes a model change without explicit approval.
+
+---
+
+# 23. DATA QUALITY DASHBOARD FUTURE ROLE
+
+Data Quality Dashboard separates:
+
+data problems
+
+from
+
+commercial results
+
+Data problems include:
+
+missing source
+missing mapping
+failed reconciliation
+duplicate cost
+zero required driver
+missing quote target
+missing job quantity
+
+Commercial results include:
+
+low margin
+under-recovering rate
+negative net position
+supplier pressure
+job loss
+
+Commercial results must not automatically block the model if the source data is trusted.
+
+---
+
+# 24. REPORTING / ANALYTICS FUTURE ROLE
+
+Reporting / Analytics displays historical and model performance.
+
+It reports:
+
+business snapshots
+quote performance
+job profitability
+supplier spend
+COG category spend
+rate performance
+labour performance
+asset performance
+overhead recovery
+model version performance
+data quality trends
+
+Reporting does not mutate source modules, approve rates, build scenarios, or check quotes.
+
+---
+
+# 25. DATABASE / STORAGE / EXPORT FUTURE ROLE
+
+Database / Storage / Export preserves Mirra’s memory.
+
+It stores:
+
+source imports
+approved model versions
+approved rate sets
+Quote Checker target sets
+quote checks
+SOQ rows
+PO rows
+job actuals
+job profitability
+feedback signals
+approval audit trail
+reporting fact tables
+reporting dimension tables
+
+It does not own calculations.
+
+Modules calculate.
+
+Database stores.
+
+Exports publish.
+
+Reporting consumes.
+
+---
+
+# 26. INTEGRATIONS / API FUTURE ROLE
+
+Integrations / API imports, normalises, validates, and syncs external data.
+
+It may connect to:
+
+Xero
+manual CSV
+manual Excel
+future PO systems
+future timesheet systems
+future quote systems
+
+It owns:
+
+connector status
+source imports
+raw payload trace
+normalised import rows
+supplier normalisation
+account normalisation
+duplicate detection
+API sync status
+source handoff rows
+
+It does not own downstream calculations or commercial interpretation.
+
+---
+
+# 27. UPDATED CURRENT IMPLEMENTATION PRIORITY
+
+The immediate implementation priority is:
+
+1. Clean Cost Allocation
+2. Rebuild Recovery Summary
+3. Build / refactor Rate Builder
+4. Adjust Business Outcome
+5. Build Business Modelling
+6. Prepare Quote Checker contract
+
+Do not start SOQ / Job / PO yet.
+
+Do not start Job Costing yet.
+
+Do not start Feedback Loop yet.
+
+Do not start Model Review yet.
+
+Do not start Reporting / Storage / API until the core model is stable.
+
+---
+
+# 28. PHASE 1 IMPLEMENTATION TARGET
+
+The first build target is Cost Allocation cleanup.
+
+Remove from Cost Allocation:
+
+recovery plan logic
+minimum recoverable rate logic
+recovered / unrecovered logic
+rate-style outputs
+business outcome-style recommendations
+
+Keep in Cost Allocation:
+
+working groups
+productive labour pool
+productive asset pool
+default holding pools
+shared asset percentages
+remaining overhead distribution
+group cost stacks
+pool reconciliation
+allocation warnings
+trust state
+
+Cost Allocation should become simple by default.
+
+---
+
+# 29. UPDATED BUILD ORDER
+
+The updated build order is:
+
+Phase 1:
+Cost Allocation cleanup
+
+Phase 2:
+Recovery Summary rebuild as automatic mode-dependent recovery test
+
+Phase 3:
+Rate Builder build/refactor
+
+Phase 4:
+Business Outcome diagnosis alignment
+
+Phase 5:
+Business Modelling target-model bridge
+
+Phase 6:
+Quote Checker contract / page
+
+Phase 7:
+SOQ / Job / PO future layer
+
+Phase 8:
+Job Costing / Profitability future layer
+
+Phase 9:
+Model Feedback future layer
+
+Phase 10:
+Model Review / Approval future layer
+
+Phase 11:
+Data Quality Dashboard future layer
+
+Phase 12:
+Reporting / Analytics future layer
+
+Phase 13:
+Database / Storage / Export future layer
+
+Phase 14:
+Integrations / API future layer
+
+---
+
+# 30. NOT ALLOWED
+
+The system must not:
+
+hide assumptions
+duplicate costs
+create untraceable recovery rates
+treat benchmarks as source-of-truth totals
+rebuild upstream maths downstream
+use display names as join keys
+use raw form state downstream where a contract exists
+use P&L interest as the authority for asset finance interest
+include principal repayments in Cost Summary
+mix cash-flow pressure into operating cost
+reintroduce Employee Overheads as a separate module
+let Revenue / COGS calculate Net Position
+let Revenue / COGS calculate required recovery per unit
+let Business Summary create scenarios
+let Cost Allocation test recovery
+let Cost Allocation build rates
+let Cost Allocation issue business verdict
+let Recovery Summary ask for manual recovery method selection
+let Recovery Summary build rates
+let Rate Builder mutate Cost Allocation
+let Rate Builder fake product/unit rates from COG totals
+let Rate Builder invent supplier-specific markups
+let Business Outcome become the modelling page
+let Business Modelling mutate source modules
+let Business Modelling silently select targets
+let Quote Checker use unselected scenarios
+let Quote Checker rebuild Rate Builder
+let Quote Checker fake SOQ/product detail
+let Job Costing overwrite approved rates
+let Model Feedback automatically update the model
+let Model Review approve changes without audit trail
+let Reporting mutate source data
+let Storage own calculations
+let Integrations bypass source modules
+hide model readiness trust state
+
+---
+
+# 31. FINAL DEFINITION
+
+Mirra v4.0 is a mode-aware commercial modelling system.
+
+It turns accounting evidence into:
+
+current business reality
+recovery pressure
+operating structure
+recovery proof
+charge-out rates
+business diagnosis
+selected target model
+quote checking targets
+future job truth
+feedback
+approved model improvements
+reporting intelligence
+
+The core chain is:
+
+Business Setup
+↓
+Revenue / COGS + Labour + Assets + Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+↓
+Quote Checker
+
+The immediate implementation focus is:
+
+Cost Allocation
+Recovery Summary
+Rate Builder
+Business Outcome
+Business Modelling
+Quote Checker
+
+Everything must remain:
+
+traceable
+mode-aware
+source-owned
+contract-safe
+no-leak
+no-duplication
+no-fake-precision

@@ -1,0 +1,1183 @@
+# Mirra — Database / Storage / Export Layer Brief
+
+## v4.0 — PERSISTENT DATA, MODEL VERSION STORAGE, SOURCE TRACE, REPORTING TABLES, EXPORT CONTRACTS, AND NO-CALCULATION-OWNERSHIP BOUNDARY
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 28
+
+REPLACES:
+- older assumptions that module state is enough for long-term reporting
+- older assumptions that exports can be disconnected from source trace
+- older logic where model versions, quote checks, job actuals, and approvals are not stored consistently
+- older logic where Power BI / external reporting tables are created without stable contracts
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+The Database / Storage / Export Layer stores Mirra outputs, approved model versions, quote checks, job actuals, source trace, and reporting-ready fact/dimension tables. It does not own business calculations, source classification, rate building, modelling, or quote checking logic.
+
+---
+
+# 1. PURPOSE
+
+The Database / Storage / Export Layer answers:
+
+Where is the model stored?
+Where are approved versions stored?
+Where are quote checks stored?
+Where are job actuals stored?
+Where is source trace preserved?
+How do reporting tables get created?
+How does Power BI consume Mirra data?
+How do we avoid losing history?
+How do we keep outputs consistent across modules?
+
+This layer is the persistence and export backbone.
+
+It turns Mirra from a live page system into a durable business data system.
+
+---
+
+# 2. CORE PRINCIPLE
+
+Modules calculate.
+
+The database stores.
+
+Exports publish.
+
+Reporting consumes.
+
+The Database / Storage / Export Layer must not become a hidden calculation engine.
+
+It stores calculated outputs from source modules and preserves their trace.
+
+---
+
+# 3. POSITION IN SYSTEM
+
+The Database / Storage / Export Layer supports the whole system.
+
+It sits underneath:
+
+- Business Setup
+- P&L
+- Revenue / COGS
+- Labour
+- Assets
+- General Overheads
+- Cost Summary
+- Business Summary
+- Revenue Reality
+- Asset Reality
+- Cost Allocation
+- Recovery Summary
+- Rate Builder
+- Business Outcome
+- Quote Checker
+- SOQ / Job / PO
+- Job Costing
+- Model Feedback
+- Model Review
+- Data Quality Dashboard
+- Reporting / Analytics
+
+It is not a user-facing calculation module by itself.
+
+It supports persistence, history, audit, exports, and reporting.
+
+---
+
+# 4. MODULE ROLE
+
+Database / Storage / Export owns:
+
+- persistent storage contracts
+- local storage strategy
+- database schema strategy
+- model version storage
+- approved target storage
+- quote check storage
+- job actual storage
+- source trace storage
+- audit trail storage
+- reporting fact tables
+- reporting dimension tables
+- export file generation
+- Power BI handoff
+- backup / restore strategy
+- migration/versioning strategy
+
+Database / Storage / Export does not own:
+
+- P&L calculations
+- Revenue / COG categorisation logic
+- Labour calculations
+- Asset calculations
+- Overhead calculations
+- Cost Allocation logic
+- Recovery Summary logic
+- Rate Builder logic
+- Business Outcome modelling
+- Quote Checker calculations
+- Job Costing calculations
+- Model Review decisions
+
+---
+
+# 5. STORAGE TYPES
+
+Mirra may use multiple storage layers.
+
+Allowed storage types:
+
+1. Browser/local app state
+2. Local persisted storage
+3. SQLite database
+4. Export files
+5. Power BI-ready tables
+6. Future cloud database/API
+
+Each storage layer must preserve the same source trace principles.
+
+---
+
+# 6. LOCAL STATE RULE
+
+Local state may be used for:
+
+- page drafts
+- temporary user edits
+- unsaved working profiles
+- UI state
+- active selections
+- draft model scenarios
+- draft quote checks
+
+Local state must not be the only storage for:
+
+- approved model versions
+- quote checker targets
+- job actuals
+- model approval audit trail
+- source trace
+- reporting history
+
+Approved or historical data must be persisted.
+
+---
+
+# 7. DATABASE RULE
+
+The database stores approved and historical truth.
+
+It should store:
+
+- source imports
+- cleaned source rows
+- module output snapshots
+- approved model versions
+- approved rate sets
+- approved scenarios
+- quote checker target sets
+- quote checks
+- SOQ rows
+- PO rows
+- job actuals
+- job profitability
+- feedback signals
+- approval decisions
+- reporting facts
+- reporting dimensions
+
+The database should not silently recalculate module logic.
+
+---
+
+# 8. SOURCE TRACE RULE
+
+Every stored calculated output must preserve source trace.
+
+source_trace should include:
+
+- source_module
+- source_record_id
+- source_variable
+- source_file
+- source_import_id
+- calculation_rule
+- model_version_id
+- created_at
+- trust_state
+
+No approved model value should exist without trace.
+
+No job actual cost should exist without trace.
+
+No quote checker target should exist without trace.
+
+---
+
+# 9. MODEL VERSION STORAGE
+
+approved_model_versions table must store:
+
+{
+  approved_model_version_id,
+  version_label,
+  version_number,
+  created_at,
+  effective_from,
+  source_business_outcome_id,
+  source_rate_builder_id,
+  source_feedback_batch_id,
+  approved_rate_set_id,
+  approved_scenario_id,
+  quote_checker_target_set_id,
+  model_version_status,
+  reviewer_notes,
+  rollback_to_version_id,
+  source_trace
+}
+
+Rules:
+
+- version IDs must be stable.
+- only one active version unless future multi-version mode is explicitly enabled.
+- prior versions must not be deleted.
+- rollback creates a new history event.
+- quote checks and jobs must preserve which model version they used.
+
+---
+
+# 10. APPROVED RATE SET STORAGE
+
+approved_rate_sets table must store:
+
+{
+  approved_rate_set_id,
+  approved_model_version_id,
+  rate_id,
+  rate_name,
+  rate_type,
+  minimum_recoverable_rate,
+  fully_burdened_cost_rate,
+  suggested_sell_rate,
+  margin_method,
+  margin_percent,
+  markup_percent,
+  fixed_profit_per_driver,
+  effective_from,
+  source_rate_builder_row_id,
+  approval_status,
+  source_trace
+}
+
+Rules:
+
+- approved rates are immutable once used by a quote or job.
+- changes create a new approved rate set.
+- prior rates remain available for reporting and audit.
+
+---
+
+# 11. QUOTE CHECKER TARGET STORAGE
+
+quote_checker_target_sets table must store:
+
+{
+  target_set_id,
+  approved_model_version_id,
+  approved_rate_set_id,
+  approved_scenario_id,
+  minimum_recoverable_rates,
+  suggested_sell_rates,
+  required_margin,
+  required_markup,
+  material_markup_assumption,
+  labour_recovery_assumption,
+  asset_recovery_assumption,
+  overhead_recovery_assumption,
+  supplier_assumptions,
+  category_assumptions,
+  effective_from,
+  target_set_status,
+  source_trace
+}
+
+Rules:
+
+- Quote Checker must use approved target sets.
+- target sets must preserve model version.
+- scenario assumptions must be traceable.
+
+---
+
+# 12. QUOTE CHECK STORAGE
+
+quote_checks table must store:
+
+{
+  quote_check_id,
+  quote_id,
+  quote_number,
+  quote_version,
+  customer_name,
+  project_name,
+  quote_date,
+  approved_model_version_id,
+  target_set_id,
+  quote_total_revenue,
+  quote_minimum_required_recovery,
+  quote_required_target_revenue,
+  quote_recovery_gap,
+  quote_target_gap,
+  quote_checker_status,
+  trust_state,
+  source_trace
+}
+
+quote_check_lines table must store:
+
+{
+  quote_check_line_id,
+  quote_check_id,
+  quote_line_id,
+  description,
+  quantity,
+  unit,
+  quoted_unit_rate,
+  quoted_total,
+  matched_rate_id,
+  model_minimum_recoverable_rate,
+  model_suggested_sell_rate,
+  line_recovery_gap,
+  line_margin_gap,
+  line_status,
+  warnings,
+  source_trace
+}
+
+---
+
+# 13. JOB / SOQ / PO STORAGE
+
+job_rows table must store:
+
+{
+  job_id,
+  quote_id,
+  job_number,
+  job_name,
+  customer_name,
+  project_name,
+  job_status,
+  start_date,
+  finish_date,
+  approved_model_version_id,
+  target_set_id,
+  approved_quote_version,
+  source_trace
+}
+
+soq_rows table must store:
+
+{
+  soq_line_id,
+  job_id,
+  quote_id,
+  quote_line_id,
+  task_id,
+  description,
+  quantity,
+  unit,
+  linked_rate_id,
+  expected_unit_cost,
+  expected_total_cost,
+  expected_sell_rate,
+  expected_total_sell,
+  source_trace
+}
+
+purchase_order_rows table must store:
+
+{
+  po_id,
+  po_number,
+  job_id,
+  quote_id,
+  quote_line_id,
+  soq_line_id,
+  supplier_id,
+  supplier_name,
+  po_date,
+  expected_quantity,
+  expected_unit,
+  expected_unit_cost,
+  expected_total_cost,
+  actual_invoice_total,
+  variance_to_expected,
+  po_status,
+  invoice_status,
+  source_trace
+}
+
+---
+
+# 14. JOB ACTUAL STORAGE
+
+job_actual_cost_rows table must store:
+
+{
+  actual_cost_id,
+  job_id,
+  quote_id,
+  quote_line_id,
+  soq_line_id,
+  cost_type,
+  supplier_id,
+  supplier_name,
+  labour_type_id,
+  asset_id,
+  description,
+  quantity,
+  unit,
+  unit_cost,
+  total_cost,
+  invoice_id,
+  timesheet_id,
+  asset_usage_id,
+  source_status,
+  source_trace
+}
+
+Allowed cost_type values:
+
+- material
+- labour
+- asset
+- subcontractor
+- overhead
+- adjustment
+
+No actual cost row should exist without source trace.
+
+---
+
+# 15. JOB PROFITABILITY STORAGE
+
+job_profitability table must store:
+
+{
+  job_profitability_id,
+  job_id,
+  quote_id,
+  approved_model_version_id,
+  quoted_revenue,
+  model_minimum_required_recovery,
+  model_target_revenue,
+  actual_material_cost,
+  actual_labour_cost,
+  actual_asset_cost,
+  actual_subcontractor_cost,
+  actual_overhead_recovery,
+  total_actual_cost,
+  actual_gross_margin,
+  actual_gross_margin_percent,
+  actual_net_margin,
+  actual_net_margin_percent,
+  variance_to_quote,
+  variance_to_model_minimum,
+  variance_to_model_target,
+  job_profitability_status,
+  trust_state,
+  source_trace
+}
+
+---
+
+# 16. FEEDBACK STORAGE
+
+model_feedback_signals table must store:
+
+{
+  feedback_signal_id,
+  source_job_id,
+  source_quote_id,
+  source_quote_line_id,
+  source_rate_id,
+  feedback_signal_type,
+  feedback_category,
+  feedback_label,
+  feedback_severity,
+  feedback_status,
+  current_model_value,
+  actual_value,
+  variance_amount,
+  variance_percent,
+  affected_module,
+  affected_variable,
+  recommended_review_action,
+  evidence_summary,
+  source_trace
+}
+
+model_update_recommendations table must store:
+
+{
+  recommendation_id,
+  feedback_signal_id,
+  affected_module,
+  affected_variable,
+  current_model_value,
+  suggested_review_value,
+  evidence_count,
+  jobs_affected_count,
+  total_value_affected,
+  confidence_level,
+  recommended_action,
+  requires_user_approval,
+  status,
+  source_trace
+}
+
+---
+
+# 17. APPROVAL AUDIT STORAGE
+
+approval_audit_trail table must store:
+
+{
+  audit_id,
+  review_item_id,
+  decision,
+  decision_date,
+  reviewer,
+  source_evidence,
+  current_value,
+  proposed_value,
+  approved_value,
+  notes,
+  source_trace
+}
+
+Rules:
+
+- no approved model change without audit trail.
+- rejected/deferred decisions should also be stored.
+- rollback decisions must be stored.
+
+---
+
+# 18. REPORTING FACT TABLES
+
+Required fact tables:
+
+fact_business_snapshot
+fact_quote_check
+fact_job_profitability
+fact_supplier_spend
+fact_cog_category_spend
+fact_rate_performance
+fact_labour_performance
+fact_asset_performance
+fact_overhead_recovery
+fact_model_feedback
+fact_data_quality_issues
+
+These tables are reporting outputs.
+
+They should not be the only source of transactional detail.
+
+---
+
+# 19. REPORTING DIMENSION TABLES
+
+Required dimension tables:
+
+dim_date
+dim_customer
+dim_job
+dim_quote
+dim_supplier
+dim_cog_category
+dim_rate
+dim_labour_type
+dim_asset
+dim_working_group
+dim_task
+dim_model_version
+dim_scenario
+dim_status
+dim_source_module
+
+Dimensions must use stable IDs.
+
+Reporting facts must link to dimensions where possible.
+
+---
+
+# 20. EXPORT CONTRACT
+
+Exports should support:
+
+- JSON export
+- CSV export
+- SQLite export
+- Power BI-ready table export
+- backup export
+- audit export
+
+Each export should include:
+
+{
+  export_id,
+  export_type,
+  created_at,
+  source_model_version_id,
+  table_names,
+  row_counts,
+  warning_count,
+  trust_state,
+  export_path,
+  source_trace
+}
+
+---
+
+# 21. POWER BI HANDOFF RULE
+
+Power BI should consume reporting fact/dimension tables.
+
+Power BI should not consume raw UI state.
+
+Power BI should receive:
+
+- stable table names
+- stable column names
+- stable IDs
+- source trace fields
+- model version fields
+- trust state fields
+
+This prevents reports from breaking when UI changes.
+
+---
+
+# 22. SNAPSHOT RULE
+
+The system should support snapshots.
+
+snapshot rows should include:
+
+{
+  snapshot_id,
+  snapshot_date,
+  snapshot_type,
+  model_version_id,
+  source_module,
+  snapshot_payload,
+  trust_state,
+  source_trace
+}
+
+Snapshots may be used for:
+
+- Business Summary snapshots
+- Cost Summary snapshots
+- Business Outcome snapshots
+- Rate Builder snapshots
+- approved model snapshots
+- reporting snapshots
+
+---
+
+# 23. HISTORY RULE
+
+Historical records must not be overwritten once approved or used.
+
+Immutable once used:
+
+- approved model versions
+- approved rate sets
+- quote checker target sets
+- quote checks
+- job actuals
+- job profitability results
+- approval audit trail
+
+Corrections should create:
+
+- amended rows
+- replacement versions
+- or adjustment rows
+
+Do not silently overwrite history.
+
+---
+
+# 24. MIGRATION RULE
+
+Database schema changes must be versioned.
+
+migration rows should include:
+
+{
+  migration_id,
+  migration_version,
+  migration_name,
+  applied_at,
+  status,
+  notes
+}
+
+Rules:
+
+- migrations must be ordered.
+- migrations must be repeat-safe where possible.
+- schema changes must preserve existing data.
+- breaking changes require explicit migration notes.
+
+---
+
+# 25. ID STRATEGY
+
+Every persisted record must have a stable ID.
+
+ID examples:
+
+- business_setup_id
+- source_import_id
+- model_version_id
+- rate_id
+- quote_id
+- job_id
+- supplier_id
+- asset_id
+- labour_type_id
+- feedback_signal_id
+
+IDs must not depend only on display labels.
+
+Display names can change.
+
+IDs must remain stable.
+
+---
+
+# 26. SOURCE IMPORT STORAGE
+
+source_imports table should store:
+
+{
+  source_import_id,
+  source_type,
+  source_file_name,
+  source_system,
+  imported_at,
+  imported_by,
+  period_start,
+  period_end,
+  row_count,
+  import_status,
+  trust_state,
+  source_trace
+}
+
+Allowed source_type values:
+
+- pnl
+- revenue_cogs
+- supplier_invoice
+- quote
+- soq
+- po
+- timesheet
+- asset_usage
+- job_actual
+- manual_entry
+
+---
+
+# 27. BACKUP / RESTORE RULE
+
+The storage layer should support backup and restore.
+
+Backup should include:
+
+- database file
+- exported tables
+- approved model versions
+- audit trail
+- source trace
+- configuration
+- metadata
+
+Restore should preserve:
+
+- model versions
+- historical quote checks
+- job actuals
+- reporting tables
+- audit trail
+
+Restore must not merge silently without conflict checks.
+
+---
+
+# 28. DATA QUALITY STORAGE
+
+data_quality_issues table should store:
+
+{
+  issue_id,
+  source_module,
+  affected_module,
+  issue_type,
+  issue_category,
+  severity,
+  blocking,
+  commercial_result,
+  issue_label,
+  issue_message,
+  recommended_fix_module,
+  issue_status,
+  created_at,
+  resolved_at,
+  source_trace
+}
+
+This allows issue history and trend reporting.
+
+---
+
+# 29. TRUST STATE STORAGE
+
+Each stored major entity should include:
+
+- status
+- trust_state
+- warning_count
+- blocking_count
+- source_trace
+
+This applies to:
+
+- module snapshots
+- model versions
+- quote checks
+- job actuals
+- profitability rows
+- reporting exports
+
+---
+
+# 30. SECURITY / ACCESS FUTURE RULE
+
+Future access control may be required.
+
+Potential roles:
+
+- owner
+- admin
+- estimator
+- operations
+- accounts
+- viewer
+
+The v4.0 storage design should not hard-code single-user assumptions where avoidable.
+
+However, role enforcement may be future build.
+
+---
+
+# 31. OUTPUT CONTRACT
+
+Database / Storage / Export Layer should expose:
+
+{
+  storage_ready,
+  storage_status,
+  storage_warnings,
+  storage_warning_count,
+  storage_trust_state,
+
+  active_database_path,
+  active_model_version_id,
+  active_target_set_id,
+
+  source_import_rows,
+  approved_model_versions,
+  approved_rate_sets,
+  quote_checker_target_sets,
+  quote_check_rows,
+  job_rows,
+  job_actual_cost_rows,
+  job_profitability_rows,
+
+  reporting_fact_tables,
+  reporting_dimension_tables,
+
+  export_rows,
+  backup_rows,
+  migration_rows,
+
+  storage_source_trace
+}
+
+---
+
+# 32. STATUS VALUES
+
+Allowed storage_status values:
+
+- ready
+- ready_with_warnings
+- blocked
+- preview_only
+- not_ready
+
+Definitions:
+
+ready:
+Storage/export layer is available and trusted.
+
+ready_with_warnings:
+Storage works but warnings exist.
+
+blocked:
+Storage cannot be trusted or export failed.
+
+preview_only:
+Values display but are not persisted.
+
+not_ready:
+Storage layer not configured.
+
+---
+
+# 33. REQUIRED WARNINGS
+
+Required warning IDs:
+
+storage_missing_database
+storage_database_not_configured
+storage_export_failed
+storage_migration_required
+storage_migration_failed
+storage_source_trace_missing
+storage_model_version_missing
+storage_active_target_missing
+storage_duplicate_active_model_version
+storage_quote_check_not_persisted
+storage_job_actual_not_persisted
+storage_backup_missing
+storage_restore_conflict
+storage_powerbi_export_not_ready
+storage_preview_only
+
+---
+
+# 34. UI STRUCTURE
+
+Recommended UI if this becomes visible:
+
+1. Storage Status Strip
+2. Active Database Panel
+3. Model Version Storage Panel
+4. Quote / Job Storage Panel
+5. Reporting Tables Panel
+6. Export Panel
+7. Backup / Restore Panel
+8. Migration Panel
+9. Source Trace Panel
+10. Help Panel
+
+This may also exist as an admin/settings page rather than a core workflow page.
+
+---
+
+# 35. EXPORT PANEL
+
+Show:
+
+- export type
+- last export date
+- export path
+- row counts
+- warning count
+- trust state
+- Power BI readiness
+
+---
+
+# 36. BACKUP PANEL
+
+Show:
+
+- last backup date
+- backup path
+- backup status
+- restore options
+- warnings
+
+---
+
+# 37. MIGRATION PANEL
+
+Show:
+
+- current schema version
+- pending migrations
+- applied migrations
+- migration warnings
+- migration status
+
+---
+
+# 38. WHAT TO KEEP OUT
+
+Keep out:
+
+- business calculations
+- source categorisation controls
+- rate editing
+- scenario modelling
+- quote checking logic
+- job costing calculations
+- approval decision logic
+
+Storage persists.
+
+It does not decide.
+
+---
+
+# 39. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+lib/database/schema.js
+lib/database/migrations.js
+lib/database/storageClient.js
+lib/export/exportTables.js
+lib/export/powerBiExport.js
+hooks/useStorageStatus.js
+components/storage/*.jsx
+app/storage/page.jsx
+
+Possible tooling:
+
+tools/export_reporting_tables.py
+tools/backup_database.py
+tools/migrate_database.py
+
+Future database:
+
+Mirra.db
+MirraReporting.db
+
+---
+
+# 40. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Define stable ID strategy.
+2. Define database schema.
+3. Define source import storage.
+4. Define model version tables.
+5. Define approved rate set tables.
+6. Define quote checker target tables.
+7. Define quote check tables.
+8. Define job actual tables.
+9. Define job profitability tables.
+10. Define feedback tables.
+11. Define approval audit tables.
+12. Define data quality issue tables.
+13. Define reporting fact tables.
+14. Define reporting dimension tables.
+15. Add export contracts.
+16. Add Power BI handoff.
+17. Add migration system.
+18. Add backup / restore strategy.
+19. Preserve source trace.
+20. Do not move calculations into storage.
+21. Add warnings and trust state.
+22. Run build.
+
+---
+
+# 41. ACCEPTANCE CRITERIA
+
+Database / Storage / Export Layer v4.0 is accepted when:
+
+1. It defines stable storage contracts.
+2. It preserves source trace.
+3. It stores approved model versions.
+4. It stores approved rate sets.
+5. It stores Quote Checker target sets.
+6. It stores quote checks.
+7. It stores quote check lines.
+8. It stores job rows.
+9. It stores SOQ rows.
+10. It stores PO rows.
+11. It stores job actual cost rows.
+12. It stores job profitability rows.
+13. It stores feedback signals.
+14. It stores approval audit trail.
+15. It defines reporting fact tables.
+16. It defines reporting dimension tables.
+17. It supports export contracts.
+18. It supports Power BI handoff.
+19. It supports backup / restore planning.
+20. It supports migrations.
+21. It does not own calculations.
+22. It does not mutate source values.
+23. It exposes warnings and trust state.
+24. Build passes.
+
+---
+
+# 42. FINAL PRINCIPLE
+
+The Database / Storage / Export Layer preserves Mirra’s memory.
+
+It stores:
+
+source imports
+model outputs
+approved versions
+quote checks
+job actuals
+feedback
+audit trail
+reporting tables
+
+It protects:
+
+history
+traceability
+approved assumptions
+Power BI reporting
+future audits
+
+It does not calculate.
+
+It does not approve.
+
+It does not model.
+
+It does not check quotes.
+
+No hidden calculations.
+No source mutation.
+No lost history.
+No untraceable exports.
+No broken reporting contracts.
+No leaks.

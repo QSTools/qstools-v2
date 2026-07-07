@@ -1,0 +1,1244 @@
+# Mirra — Job Costing / Profitability Brief
+
+## v4.0 — ACTUAL JOB PROFITABILITY, QUOTED VS ACTUAL, MODEL VARIANCE, RATE FEEDBACK, AND BUSINESS OUTCOME FEEDBACK
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 23
+
+REPLACES:
+- older assumptions that job profitability can be proven from quote totals alone
+- older assumptions that quoted margin equals actual margin
+- older logic that does not compare actual job consumption against model targets
+- older logic that does not feed actual job outcomes back to Rate Builder and Business Outcome
+- older logic that treats PO / invoice / labour / asset usage as disconnected from quote validation
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Job Costing / Profitability compares quoted, modelled, ordered, invoiced, consumed, and actual job results. It proves whether the business model and quote assumptions worked in real jobs. It does not rewrite source modules automatically.
+
+---
+
+# 1. PURPOSE
+
+Job Costing / Profitability answers:
+
+Did the job make money?
+Did the job recover the required cost?
+Did the quote align with the approved model?
+Did actual cost exceed the quote?
+Did labour take longer than expected?
+Did assets recover what they needed to recover?
+Did materials cost more than allowed?
+Did subcontractors exceed allowance?
+Did the job hit the target margin?
+Which quote lines failed?
+Which model assumptions were wrong?
+What should feed back into Rate Builder and Business Outcome?
+
+This layer is where Mirra proves the model against real completed work.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Main business model flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Operational truth flow:
+
+Quote Checker
+↓
+SOQ / Job / PO Layer
+↓
+Job Costing / Profitability
+↓
+Model Feedback
+↓
+Rate Builder / Business Outcome review
+
+Job Costing sits after SOQ / Job / PO.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Quote Checker proves whether the quote was aligned before work starts.
+
+Job Costing proves whether the job actually worked after work happens.
+
+These are different checks.
+
+Quote Checker asks:
+
+Was the quote safe?
+
+Job Costing asks:
+
+Was the job profitable?
+
+A quote can pass and a job can still fail if actual delivery is worse than expected.
+
+A quote can fail and a job can still make money, but that should be treated as risk or luck, not trusted model alignment.
+
+---
+
+# 4. MODULE ROLE
+
+Job Costing / Profitability owns:
+
+- actual job cost summary
+- quoted vs actual comparison
+- model target vs actual comparison
+- quote line profitability
+- task profitability
+- material variance
+- labour variance
+- asset variance
+- subcontractor variance
+- overhead recovery variance
+- actual gross margin
+- actual net margin
+- actual recovery result
+- model feedback rows
+- job profitability warnings
+- profitability trust state
+
+Job Costing / Profitability does not own:
+
+- Business Setup mode
+- P&L import
+- Revenue / COG categorisation
+- Labour source rates
+- Asset source rates
+- General Overhead source values
+- Cost Allocation structure
+- Recovery Summary tests
+- Rate Builder approved rate creation
+- Business Outcome scenario creation
+- Quote Checker target selection
+- PO creation
+- invoice editing
+
+---
+
+# 5. INPUTS FROM QUOTE CHECKER
+
+Job Costing consumes:
+
+- quote_checker_status
+- quote_header
+- quote_lines
+- quote_line_results
+- quote_total_revenue
+- quote_minimum_required_recovery
+- quote_required_target_revenue
+- quote_recovery_gap
+- quote_target_gap
+- under_recovering_lines
+- margin_shortfall_lines
+- selected_business_outcome_targets
+- selected_rate_builder_rows
+- quote_checker_model_trust_state
+
+Quote Checker provides the pre-job model alignment test.
+
+Job Costing compares actual job results against this accepted quote basis.
+
+---
+
+# 6. INPUTS FROM SOQ / JOB / PO LAYER
+
+Job Costing consumes:
+
+- job_rows
+- schedule_of_quantities_rows
+- job_quote_line_rows
+- purchase_order_rows
+- material_consumption_rows
+- labour_consumption_rows
+- asset_consumption_rows
+- subcontractor_consumption_rows
+- job_actual_cost_summary
+- unit_cost_validation_rows
+- product_rate_validation_rows
+- quote_vs_actual_rows
+- source_trace
+- soq_job_po_status
+- soq_job_po_model_trust_state
+
+SOQ / Job / PO provides the physical and actual cost truth.
+
+Job Costing calculates profitability from it.
+
+---
+
+# 7. INPUTS FROM RATE BUILDER
+
+Job Costing consumes:
+
+- rate_builder_rows
+- minimum_recoverable_rate by rate
+- suggested_sell_rate by rate
+- fully_burdened_cost_rate by rate
+- selected labour components
+- selected asset components
+- selected overhead components
+- selected COG/material components
+- rate_status
+- rate_builder_model_trust_state
+
+Rate Builder provides approved model rates.
+
+Job Costing compares actual performance against those rates.
+
+---
+
+# 8. INPUTS FROM BUSINESS OUTCOME
+
+Job Costing consumes:
+
+- quote_checker_targets
+- selected modelled scenario
+- business outcome targets
+- required margin
+- required markup
+- material markup assumption
+- labour recovery assumption
+- asset recovery assumption
+- overhead recovery assumption
+- supplier / COG scenario assumptions
+- business_outcome_model_trust_state
+
+Business Outcome provides selected model assumptions.
+
+Job Costing proves whether those assumptions worked in real job delivery.
+
+---
+
+# 9. INPUTS FROM LABOUR
+
+Job Costing may consume:
+
+- productive_staff_type_rates
+- labour cost rates
+- productive hours
+- labour classification
+- labour_model_trust_state
+
+Purpose:
+
+- validate labour cost applied to job
+- compare actual job labour hours against model assumptions
+- identify productivity variance
+
+Job Costing must not overwrite Labour module source values.
+
+---
+
+# 10. INPUTS FROM ASSETS
+
+Job Costing may consume:
+
+- productive_asset_rows
+- required_asset_recovery_rate
+- asset utilisation hours
+- asset recovery pressure
+- assets_model_trust_state
+
+Purpose:
+
+- validate asset recovery on jobs
+- compare actual usage against modelled usage
+- identify asset under-recovery
+
+Job Costing must not overwrite Assets module source values.
+
+---
+
+# 11. INPUTS FROM REVENUE / COGS
+
+Job Costing may consume:
+
+- supplier/category detail
+- blended material markup
+- material categories
+- supplier names
+- revenue_cogs_model_trust_state
+
+Purpose:
+
+- map actual supplier cost to COG categories
+- compare material cost against quote allowance
+- analyse supplier/category job impact
+- feed actual material performance back to Business Outcome
+
+Job Costing must not infer missing consumption from supplier totals.
+
+---
+
+# 12. JOB PROFITABILITY CONTRACT
+
+job_profitability_rows[]
+
+Each row:
+
+{
+  job_profitability_id,
+  job_id,
+  quote_id,
+  quote_number,
+  job_name,
+  customer_name,
+  quoted_revenue,
+  model_minimum_required_recovery,
+  model_target_revenue,
+  actual_material_cost,
+  actual_labour_cost,
+  actual_asset_cost,
+  actual_subcontractor_cost,
+  actual_overhead_recovery,
+  total_actual_cost,
+  actual_gross_margin,
+  actual_gross_margin_percent,
+  actual_net_margin,
+  actual_net_margin_percent,
+  variance_to_quote,
+  variance_to_model_minimum,
+  variance_to_model_target,
+  job_profitability_status,
+  warnings
+}
+
+---
+
+# 13. QUOTE LINE PROFITABILITY CONTRACT
+
+quote_line_profitability_rows[]
+
+Each row:
+
+{
+  quote_line_profitability_id,
+  job_id,
+  quote_line_id,
+  rate_id,
+  description,
+  quoted_quantity,
+  quoted_unit,
+  quoted_unit_rate,
+  quoted_total,
+  model_minimum_recoverable_rate,
+  model_suggested_sell_rate,
+  actual_quantity,
+  actual_unit_cost,
+  actual_total_cost,
+  actual_recovered_value,
+  actual_margin,
+  actual_margin_percent,
+  variance_to_quote_line,
+  variance_to_model_minimum,
+  variance_to_model_target,
+  line_profitability_status,
+  warnings
+}
+
+---
+
+# 14. MATERIAL VARIANCE CONTRACT
+
+material_variance_rows[]
+
+Each row:
+
+{
+  material_variance_id,
+  job_id,
+  quote_line_id,
+  supplier_id,
+  supplier_name,
+  material_category,
+  material_description,
+  quoted_allowance,
+  po_expected_cost,
+  actual_invoice_cost,
+  variance_to_quote,
+  variance_to_po,
+  variance_percent,
+  material_variance_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether materials were over or under quote allowance.
+
+---
+
+# 15. LABOUR VARIANCE CONTRACT
+
+labour_variance_rows[]
+
+Each row:
+
+{
+  labour_variance_id,
+  job_id,
+  quote_line_id,
+  labour_type_id,
+  labour_type_label,
+  quoted_hours,
+  model_allowed_hours,
+  actual_hours,
+  quoted_labour_cost,
+  model_labour_cost,
+  actual_labour_cost,
+  hours_variance,
+  cost_variance,
+  labour_productivity_variance_percent,
+  labour_variance_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether labour took longer or cost more than expected.
+
+---
+
+# 16. ASSET VARIANCE CONTRACT
+
+asset_variance_rows[]
+
+Each row:
+
+{
+  asset_variance_id,
+  job_id,
+  quote_line_id,
+  asset_id,
+  asset_name,
+  quoted_asset_hours,
+  model_allowed_asset_hours,
+  actual_asset_hours,
+  quoted_asset_recovery,
+  model_asset_recovery,
+  actual_asset_recovery,
+  asset_recovery_gap,
+  utilisation_variance,
+  asset_variance_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether assets recovered what they needed to recover on the job.
+
+---
+
+# 17. SUBCONTRACTOR VARIANCE CONTRACT
+
+subcontractor_variance_rows[]
+
+Each row:
+
+{
+  subcontractor_variance_id,
+  job_id,
+  quote_line_id,
+  supplier_id,
+  supplier_name,
+  subcontract_category,
+  quoted_allowance,
+  po_expected_cost,
+  actual_invoice_cost,
+  variance_to_quote,
+  variance_to_po,
+  variance_percent,
+  subcontractor_variance_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether subcontractor costs exceeded quote allowance.
+
+---
+
+# 18. OVERHEAD RECOVERY VARIANCE CONTRACT
+
+overhead_recovery_variance_rows[]
+
+Each row:
+
+{
+  overhead_recovery_variance_id,
+  job_id,
+  quote_line_id,
+  rate_id,
+  quoted_overhead_recovery,
+  model_required_overhead_recovery,
+  actual_overhead_recovered,
+  overhead_recovery_gap,
+  overhead_recovery_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether the job contributed enough to overhead recovery.
+
+---
+
+# 19. PROFITABILITY FORMULAS
+
+quoted_revenue =
+sum quoted_total
+
+total_actual_cost =
+actual_material_cost
++ actual_labour_cost
++ actual_asset_cost
++ actual_subcontractor_cost
++ actual_overhead_recovery
+
+actual_gross_margin =
+quoted_revenue - actual_material_cost - actual_subcontractor_cost
+
+actual_net_margin =
+quoted_revenue - total_actual_cost
+
+actual_gross_margin_percent =
+actual_gross_margin / quoted_revenue
+
+actual_net_margin_percent =
+actual_net_margin / quoted_revenue
+
+Do not divide by zero.
+
+If quoted_revenue = 0:
+
+margin percentages = 0
+status = review_required or blocked
+
+---
+
+# 20. MODEL VARIANCE FORMULAS
+
+variance_to_quote =
+quoted_revenue - total_actual_cost
+
+variance_to_model_minimum =
+quoted_revenue - model_minimum_required_recovery
+
+variance_to_model_target =
+quoted_revenue - model_target_revenue
+
+If variance_to_model_minimum < 0:
+
+job under-recovered minimum required cost.
+
+If variance_to_model_target < 0:
+
+job may recover cost but missed target.
+
+---
+
+# 21. ACTUAL VS MODEL STATUS
+
+Allowed actual_vs_model_status values:
+
+- passed_model
+- passed_minimum_only
+- under_recovered
+- margin_shortfall
+- review_required
+- blocked
+- not_available
+
+Definitions:
+
+passed_model:
+Actual job result meets or exceeds selected model target.
+
+passed_minimum_only:
+Actual job result meets minimum recovery but misses target margin.
+
+under_recovered:
+Actual job result fails minimum recovery.
+
+margin_shortfall:
+Actual job recovers cost but misses target margin.
+
+review_required:
+Data exists but mapping or quantity review is required.
+
+blocked:
+Required source data is invalid.
+
+not_available:
+Actual data not yet available.
+
+---
+
+# 22. JOB PROFITABILITY STATUS VALUES
+
+Allowed job_profitability_status values:
+
+- profitable
+- profitable_below_target
+- break_even
+- under_recovered
+- loss
+- review_required
+- blocked
+- preview_only
+- not_ready
+
+Definitions:
+
+profitable:
+Actual job net margin is positive and meets target.
+
+profitable_below_target:
+Actual job is profitable but below target.
+
+break_even:
+Actual job approximately equals actual cost.
+
+under_recovered:
+Actual job fails minimum recovery.
+
+loss:
+Actual job net margin is negative.
+
+review_required:
+Actuals need review.
+
+blocked:
+Required actual data is invalid.
+
+preview_only:
+Values display but source trust is not final.
+
+not_ready:
+Job actuals are missing.
+
+---
+
+# 23. BAD RESULT IS NOT DATA FAILURE
+
+A job showing a loss is not automatically bad data.
+
+A job showing under-recovery is not automatically bad data.
+
+These are commercial results if source data is trusted.
+
+Only missing, invalid, unmapped, or inconsistent data should block.
+
+---
+
+# 24. FEEDBACK TO RATE BUILDER
+
+Job Costing should produce:
+
+rate_builder_feedback_rows[]
+
+Each row:
+
+{
+  feedback_id,
+  job_id,
+  rate_id,
+  rate_name,
+  issue_type,
+  quoted_rate,
+  model_rate,
+  actual_cost_rate,
+  actual_margin_rate,
+  variance_to_model_rate,
+  recommended_review_flag,
+  evidence_summary,
+  source_trace
+}
+
+Allowed issue_type values:
+
+- rate_too_low
+- labour_hours_high
+- material_cost_high
+- asset_recovery_low
+- subcontractor_cost_high
+- overhead_not_recovered
+- rate_worked
+- margin_exceeded_target
+
+Rate Builder may consume feedback later.
+
+Do not auto-overwrite approved rates.
+
+---
+
+# 25. FEEDBACK TO BUSINESS OUTCOME
+
+Job Costing should produce:
+
+business_outcome_feedback_rows[]
+
+Each row:
+
+{
+  feedback_id,
+  job_id,
+  feedback_type,
+  pressure_source,
+  actual_result,
+  modelled_result,
+  variance,
+  suggested_modelling_review,
+  evidence_summary,
+  source_trace
+}
+
+Allowed feedback_type values:
+
+- supplier_pressure
+- labour_productivity
+- asset_utilisation
+- overhead_recovery
+- rate_gap
+- quote_alignment
+- mixed_pressure
+
+Business Outcome may use this to improve future modelling.
+
+---
+
+# 26. SUPPLIER PERFORMANCE FEEDBACK
+
+Job Costing should aggregate supplier performance.
+
+supplier_job_performance_rows[]
+
+Each row:
+
+{
+  supplier_id,
+  supplier_name,
+  total_job_spend,
+  quoted_allowance_total,
+  actual_invoice_total,
+  variance_to_quote,
+  variance_percent,
+  jobs_used_count,
+  categories_used,
+  supplier_pressure_status,
+  source_trace
+}
+
+Purpose:
+
+Show whether supplier pricing or usage is affecting job profitability.
+
+This strengthens Business Outcome supplier sensitivity modelling.
+
+---
+
+# 27. TASK PROFITABILITY FEEDBACK
+
+Job Costing should support task-level profitability where SOQ/task data exists.
+
+task_profitability_rows[]
+
+Each row:
+
+{
+  task_id,
+  task_name,
+  job_id,
+  quoted_revenue,
+  actual_material_cost,
+  actual_labour_cost,
+  actual_asset_cost,
+  actual_subcontractor_cost,
+  total_actual_cost,
+  actual_margin,
+  actual_margin_percent,
+  task_profitability_status,
+  source_trace
+}
+
+Purpose:
+
+Show which tasks make or lose money.
+
+---
+
+# 28. SOURCE TRACE REQUIREMENT
+
+Every job costing result must be traceable.
+
+Trace should include:
+
+- job_id
+- quote_id
+- quote_line_id
+- soq_line_id
+- po_id
+- invoice_id
+- invoice_line_id
+- timesheet_id
+- asset_usage_id
+- supplier_id
+- source module
+- source file
+- import date
+- calculation rule
+- trust state
+
+No actual cost should appear without trace.
+
+---
+
+# 29. TRUST STATE
+
+Job Costing must expose:
+
+job_costing_model_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If SOQ / Job / PO source is blocked:
+job_costing_model_trust_state = blocked
+
+If Quote Checker targets are blocked:
+job_costing_model_trust_state = blocked
+
+If actual data is incomplete:
+job_costing_model_trust_state = warning or preview_only
+
+If job result is loss but data is trusted:
+job_costing_model_trust_state = warning
+
+If all actuals are mapped and valid:
+job_costing_model_trust_state = ready
+
+---
+
+# 30. REQUIRED WARNINGS
+
+Required warning IDs:
+
+job_costing_missing_job
+job_costing_missing_quote
+job_costing_missing_quote_checker_target
+job_costing_missing_soq
+job_costing_missing_actuals
+job_costing_missing_po
+job_costing_missing_invoice
+job_costing_unmapped_material
+job_costing_unmapped_labour
+job_costing_unmapped_asset
+job_costing_unmapped_subcontractor
+job_costing_zero_revenue
+job_costing_under_recovered
+job_costing_margin_shortfall
+job_costing_job_loss
+job_costing_actual_exceeds_quote
+job_costing_rate_feedback_required
+job_costing_supplier_pressure
+job_costing_preview_only
+job_costing_upstream_blocked
+
+---
+
+# 31. OUTPUT CONTRACT
+
+Job Costing / Profitability should expose:
+
+{
+  job_costing_ready,
+  job_costing_status,
+  job_costing_warnings,
+  job_costing_warning_count,
+  job_costing_model_trust_state,
+
+  job_profitability_rows,
+  quote_line_profitability_rows,
+
+  material_variance_rows,
+  labour_variance_rows,
+  asset_variance_rows,
+  subcontractor_variance_rows,
+  overhead_recovery_variance_rows,
+
+  supplier_job_performance_rows,
+  task_profitability_rows,
+
+  rate_builder_feedback_rows,
+  business_outcome_feedback_rows,
+
+  job_costing_cards,
+  job_costing_source_trace
+}
+
+---
+
+# 32. UI STRUCTURE
+
+Recommended Job Costing UI:
+
+1. Job Selector
+2. Job Profitability Status Strip
+3. Quote vs Actual Summary
+4. Model Target vs Actual Panel
+5. Quote Line Profitability Table
+6. Material Variance Panel
+7. Labour Variance Panel
+8. Asset Recovery Variance Panel
+9. Subcontractor Variance Panel
+10. Supplier Performance Panel
+11. Task Profitability Panel
+12. Feedback to Model Panel
+13. Source Trust / Warning Panel
+14. Help Panel
+
+---
+
+# 33. JOB PROFITABILITY STATUS STRIP
+
+Show:
+
+- job_profitability_status
+- trust state
+- quoted revenue
+- actual total cost
+- actual net margin
+- actual net margin %
+- variance to quote
+- variance to model target
+- warning count
+
+---
+
+# 34. QUOTE VS ACTUAL SUMMARY
+
+Show:
+
+- quoted revenue
+- quoted cost allowance
+- actual cost
+- quote variance
+- actual margin
+- actual margin %
+
+This is the high-level job result.
+
+---
+
+# 35. MODEL TARGET VS ACTUAL PANEL
+
+Show:
+
+- model minimum required recovery
+- model target revenue
+- actual result
+- variance to minimum
+- variance to target
+
+This proves whether the job met the Mirra model.
+
+---
+
+# 36. QUOTE LINE PROFITABILITY TABLE
+
+Each row should show:
+
+- quote line
+- quantity
+- quoted rate
+- model rate
+- actual unit cost
+- actual total cost
+- actual margin
+- variance
+- status
+
+This shows which quote lines failed.
+
+---
+
+# 37. MATERIAL VARIANCE PANEL
+
+Show:
+
+- quoted material allowance
+- PO expected cost
+- actual invoice cost
+- variance
+- supplier
+- category
+- status
+
+---
+
+# 38. LABOUR VARIANCE PANEL
+
+Show:
+
+- quoted/model hours
+- actual hours
+- labour cost variance
+- productivity variance
+- labour type
+- status
+
+---
+
+# 39. ASSET RECOVERY VARIANCE PANEL
+
+Show:
+
+- model asset recovery
+- actual asset usage
+- actual asset recovery
+- asset recovery gap
+- asset name
+- status
+
+---
+
+# 40. SUBCONTRACTOR VARIANCE PANEL
+
+Show:
+
+- quoted subcontractor allowance
+- PO expected cost
+- actual invoice cost
+- variance
+- supplier
+- category
+- status
+
+---
+
+# 41. SUPPLIER PERFORMANCE PANEL
+
+Show:
+
+- supplier total job spend
+- variance to quote
+- jobs used count
+- pressure status
+- supplier contribution to job losses or margin pressure
+
+This feeds Business Outcome supplier modelling.
+
+---
+
+# 42. FEEDBACK TO MODEL PANEL
+
+Show:
+
+- rates that may need review
+- supplier pressure signals
+- labour productivity signals
+- asset utilisation signals
+- overhead recovery signals
+
+This panel should not auto-change the model.
+
+It should create review evidence.
+
+---
+
+# 43. HELP PANEL
+
+Explain:
+
+- Job Costing compares quote, model, and actual
+- Quote Checker validates before the job
+- Job Costing validates after the job
+- losses are commercial results if data is trusted
+- actual data can feed future model review
+- approved rates are not overwritten automatically
+
+---
+
+# 44. WHAT TO KEEP OUT
+
+Keep out:
+
+- quote building
+- rate building
+- Business Outcome scenario modelling
+- Cost Allocation editing
+- Labour source editing
+- Asset source editing
+- P&L editing
+- invoice editing
+- PO creation/editing unless the PO module is embedded here later
+
+Job Costing analyses actuals.
+
+It does not build the model.
+
+---
+
+# 45. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useJobCosting.js
+lib/calculations/jobCostingCalculations.js
+lib/selectors/jobCostingSelectors.js
+components/job-costing/*.jsx
+app/job-costing/page.jsx
+
+Possible related files:
+
+hooks/useQuoteChecker.js
+hooks/useSoqJobPo.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+
+Future integrations:
+
+timesheet import
+supplier invoice matching
+PO system
+SQLite database
+Power BI reporting
+
+---
+
+# 46. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Quote Checker outputs.
+2. Consume SOQ / Job / PO actuals.
+3. Consume Rate Builder approved rates.
+4. Consume Business Outcome targets.
+5. Build job profitability rows.
+6. Build quote line profitability rows.
+7. Build material variance rows.
+8. Build labour variance rows.
+9. Build asset variance rows.
+10. Build subcontractor variance rows.
+11. Build overhead recovery variance rows.
+12. Compare actual to quote.
+13. Compare actual to model minimum.
+14. Compare actual to model target.
+15. Produce Rate Builder feedback.
+16. Produce Business Outcome feedback.
+17. Preserve source trace.
+18. Do not overwrite approved model rates.
+19. Do not mutate source modules.
+20. Add warnings and trust state.
+21. Run build.
+
+---
+
+# 47. ACCEPTANCE CRITERIA
+
+Job Costing / Profitability v4.0 is accepted when:
+
+1. It consumes Quote Checker outputs.
+2. It consumes SOQ / Job / PO actuals.
+3. It consumes Rate Builder approved rates.
+4. It consumes Business Outcome targets.
+5. It calculates actual job cost.
+6. It calculates actual gross margin.
+7. It calculates actual net margin.
+8. It compares actual to quote.
+9. It compares actual to model minimum.
+10. It compares actual to model target.
+11. It identifies under-recovered jobs.
+12. It identifies margin shortfall jobs.
+13. It identifies job losses.
+14. It shows quote line profitability.
+15. It shows material variance.
+16. It shows labour variance.
+17. It shows asset variance.
+18. It shows subcontractor variance.
+19. It shows supplier performance.
+20. It produces Rate Builder feedback.
+21. It produces Business Outcome feedback.
+22. It preserves source trace.
+23. It does not overwrite approved rates.
+24. It exposes warnings and trust state.
+25. Build passes.
+
+---
+
+# 48. FINAL PRINCIPLE
+
+Job Costing / Profitability proves whether the model worked.
+
+It compares:
+
+quote
+model
+actual
+
+It identifies:
+
+where money was made
+where money was lost
+where assumptions failed
+where rates need review
+where suppliers caused pressure
+where labour or assets underperformed
+
+It feeds evidence back into Rate Builder and Business Outcome.
+
+No source mutation.
+No automatic rate overwrite.
+No hidden actual costs.
+No fake profitability.
+No untraceable variance.
+No leaks.
