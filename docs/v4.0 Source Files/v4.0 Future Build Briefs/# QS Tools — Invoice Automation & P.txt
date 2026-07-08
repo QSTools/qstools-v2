@@ -1,0 +1,802 @@
+# QS Tools — Invoice Automation & PO/Invoice Reconciliation Brief
+
+## 1. Purpose
+
+The invoice automation layer is one of the most important future components of QS Tools.
+
+It is both:
+
+1. a major product feature
+2. a primary revenue engine
+
+Its purpose is to remove the manual pain of invoice processing, clean the data automatically, reconcile invoices against purchase orders, detect variances, and feed actual cost data back into the QS Tools business model.
+
+This layer turns QS Tools from a planning and pricing tool into a live financial control system.
+
+---
+
+## 2. Core Problem
+
+Businesses currently suffer from messy invoice workflows.
+
+Common issues:
+
+* invoices arrive by email
+* PDFs must be opened manually
+* invoice details are entered manually
+* supplier descriptions are inconsistent
+* PO numbers are missing or mistyped
+* invoice lines do not match PO lines exactly
+* quantities vary from what was expected
+* rates change without being noticed
+* data has to be cleaned before reporting
+* Power Automate / Excel / Power BI workflows are fragile
+* Xero shows the accounting result but does not explain operational drift clearly
+
+The user previously attempted an AI Builder / Power Automate / Excel / Power BI workflow and found it expensive, clunky, and unreliable.
+
+QS Tools should solve this properly by building the invoice automation and reconciliation flow directly into the financial control model.
+
+---
+
+## 3. Strategic Role
+
+Invoice automation is not just admin automation.
+
+It is the actual-data engine of QS Tools.
+
+It provides the live evidence needed to compare:
+
+* quoted cost vs actual cost
+* PO cost vs invoice cost
+* expected quantity vs actual quantity
+* expected supplier rate vs actual supplier rate
+* expected margin vs actual margin
+* business model vs reality
+
+This is what completes the loop:
+
+**Plan → Quote → PO → Invoice → Reconcile → Variance → Decision → Future pricing correction**
+
+---
+
+## 4. Revenue Role
+
+Invoice automation is the main scalable revenue driver beyond the base subscription.
+
+The subscription gets the user into the platform.
+
+Invoice processing scales with usage.
+
+This is strong because:
+
+* more active businesses process more invoices
+* higher-volume customers generate more revenue
+* the feature saves real admin time
+* the feature produces better data
+* the feature becomes embedded in daily workflow
+* the user is unlikely to leave once invoice capture, reconciliation, and reporting depend on it
+
+Recommended revenue model:
+
+* base subscription includes limited invoice volume
+* invoice automation sold in bundles
+* overage charged per invoice
+* larger tiers include higher invoice volumes
+* avoid overly fiddly per-invoice pricing at the front end
+
+Possible pricing structures:
+
+* Starter: subscription + small included invoice volume
+* Growth: larger included volume
+* Advanced: high invoice volume + reconciliation workflow
+* Overage: simple per-invoice charge
+
+---
+
+## 5. Core Workflow
+
+### Step 1 — Unique Invoice Email Address
+
+Each customer receives a unique QS Tools invoice email address.
+
+Example:
+
+* [invoices+companyname@qstools.app](mailto:invoices+companyname@qstools.app)
+* [invoices+tenantid@qstools.app](mailto:invoices+tenantid@qstools.app)
+* generated alias tied to the company account
+
+This email address maps incoming invoices to the correct tenant.
+
+Rules:
+
+* every customer has a unique invoice intake address
+* the address must map to tenant/account ID internally
+* no cross-tenant access
+* email aliases must not expose sensitive internal IDs unnecessarily
+* incoming invoice events should be logged
+
+---
+
+### Step 2 — Invoice Email Intake
+
+Supplier invoices are forwarded or sent directly to the QS Tools invoice email address.
+
+Expected formats:
+
+* PDF attachment
+* image attachment later
+* structured e-invoice later
+* Xero-style invoice email with attachment
+
+Important rule:
+
+**No attachment = no automation**
+
+If the email contains only a link to view an invoice, QS Tools should not scrape or open that link.
+
+Reasons:
+
+* login barriers
+* expired links
+* security risk
+* inconsistent supplier portals
+* privacy/compliance risk
+
+The system should instead flag:
+
+* no invoice attachment found
+* manual upload required
+* resend invoice with PDF attachment
+
+---
+
+### Step 3 — Attachment Storage and Logging
+
+When an invoice attachment is received:
+
+* store original email metadata
+* store attachment securely
+* assign invoice intake ID
+* assign tenant ID
+* record sender
+* record received date/time
+* record processing status
+
+Statuses:
+
+* received
+* extraction_pending
+* extraction_failed
+* extracted
+* match_pending
+* matched
+* variance_detected
+* approved_for_xero
+* sent_to_xero
+* rejected/manual_review
+
+The original invoice file should remain available for audit.
+
+---
+
+### Step 4 — AI Invoice Extraction
+
+The invoice PDF is sent through an AI extraction process.
+
+Extract:
+
+* supplier name
+* supplier ABN/NZBN/GST number where available
+* invoice number
+* invoice date
+* due date
+* PO number
+* GST/tax
+* invoice total
+* currency
+* line descriptions
+* product codes
+* quantities
+* unit rates
+* line totals
+
+The extraction output must be structured, validated, and confidence-scored.
+
+Low-confidence fields should be flagged for review.
+
+---
+
+### Step 5 — Duplicate Detection
+
+Before matching, the system checks for duplicate invoices.
+
+Check:
+
+* supplier
+* invoice number
+* invoice total
+* invoice date
+* attachment hash
+* previously processed invoice IDs
+
+If duplicate likely:
+
+* do not create another Xero bill
+* flag for review
+* show previous invoice record
+
+---
+
+### Step 6 — PO Matching
+
+The PO number is the primary matching anchor.
+
+The invoice should match against a PO created or stored inside QS Tools.
+
+Match criteria:
+
+* PO number
+* supplier
+* job/project
+* invoice line items
+* product codes
+* quantities
+* unit rates
+* line totals
+* invoice total
+
+Outcome states:
+
+* clean_match
+* matched_with_minor_variance
+* variance_requires_review
+* no_po_found
+* supplier_mismatch
+* duplicate_invoice
+* extraction_low_confidence
+
+---
+
+## 6. Line Item Matching
+
+Line item matching must not rely only on exact text.
+
+Supplier invoice descriptions are messy.
+
+Example:
+
+* PO item: 252RSS
+* invoice item: 252RSSY
+* description spacing or wording differs
+* supplier uses different product codes
+* invoice line includes extra notes
+
+The system needs a supplier-specific product normalisation layer.
+
+Matching should use:
+
+* product code normalization
+* description normalization
+* supplier-specific learned mappings
+* fuzzy matching
+* prefix/suffix logic
+* quantity and unit-rate context
+* user confirmation
+
+---
+
+## 7. Supplier Mapping / Learning Layer
+
+QS Tools should learn supplier-specific mappings over time.
+
+First time:
+
+* system suggests likely match
+* user confirms or corrects
+* mapping is stored
+
+Next time:
+
+* system auto-matches based on confirmed supplier mapping
+
+Example:
+
+Supplier invoice description:
+
+* “252RSSY”
+
+Internal product identity:
+
+* “252RSS”
+
+Stored mapping:
+
+* supplier_id
+* raw_supplier_code
+* raw_supplier_description
+* internal_product_id
+* confidence
+* confirmed_by_user
+* confirmed_at
+
+Rules:
+
+* supplier descriptions never become the core product identity
+* supplier language maps to internal product identity
+* mappings are supplier-specific
+* user-confirmed mappings carry higher confidence
+* mappings must be auditable
+
+---
+
+## 8. Product / Material Identity Model
+
+The system should separate:
+
+### Internal Product Identity
+
+Clean item controlled by QS Tools/user.
+
+Examples:
+
+* concrete_25mpa
+* timber_h3_90x45
+* reinforcing_mesh_665
+* pump_hire_hour
+
+This is the clean product/material dimension.
+
+---
+
+### Supplier Variant Mapping
+
+Messy supplier-specific descriptions mapped to internal products.
+
+Examples:
+
+* supplier product code
+* supplier description
+* alternate spelling
+* supplier-specific unit wording
+
+---
+
+### Transaction Fact
+
+Every invoice line becomes a transaction fact.
+
+Fields:
+
+* invoice_id
+* invoice_line_id
+* supplier_id
+* internal_product_id
+* raw_supplier_description
+* quantity
+* unit
+* unit_rate
+* total
+* job_id
+* po_id
+* date
+
+The transaction fact is the evidence layer.
+
+Reports and dashboards should be calculated from facts, not manually edited summaries.
+
+---
+
+## 9. Price Context Rule
+
+There is no single “true price” for an item.
+
+Price is contextual.
+
+The same product may have different prices depending on:
+
+* supplier
+* job
+* date
+* contract pricing
+* volume
+* urgency
+* location
+* customer/job agreement
+
+Therefore QS Tools should not treat product identity as having one fixed price.
+
+Instead:
+
+* quote creates expected price
+* PO confirms expected purchase price
+* invoice captures actual price
+* variance is calculated against context
+
+This allows the system to detect:
+
+* supplier price drift
+* quote rates becoming stale
+* job-specific rate changes
+* contract rate mismatch
+* urgent purchase cost increases
+
+---
+
+## 10. Quantity Variance Rule
+
+The system must separate price variance from quantity variance.
+
+Example:
+
+Quoted:
+
+* 10m³ concrete at $180/m³
+
+Actual:
+
+* 13m³ concrete at $185/m³
+
+The system should show:
+
+* quantity variance: +3m³
+* price variance: +$5/m³
+* total cost variance
+* margin impact
+
+This is critical because different problems require different actions.
+
+Quantity variance may mean:
+
+* quoting under-allowance
+* site wastage
+* scope change
+* poor estimating
+
+Price variance may mean:
+
+* supplier price increase
+* outdated quote rates
+* missed contract pricing
+* purchasing issue
+
+---
+
+## 11. Reconciliation Approval
+
+QS Tools should not silently approve invoices.
+
+The system should present the match result to the user.
+
+User actions:
+
+* approve reconciliation
+* reject invoice
+* mark for review
+* manually match to PO
+* correct extracted fields
+* confirm supplier mapping
+* accept variance
+* request credit/adjustment
+
+This approval step is important for:
+
+* trust
+* audit
+* liability control
+* user confidence
+* accounting integrity
+
+---
+
+## 12. Xero Integration
+
+Xero should remain the accounting system of record.
+
+QS Tools should not try to replace Xero.
+
+After QS Tools reconciliation approval:
+
+* create a draft bill in Xero
+* attach supplier invoice PDF
+* attach PO record where relevant
+* include supplier
+* include invoice number
+* include date/due date
+* include line items
+* include coding/tracking where available
+* include PO reference
+
+Recommended rule:
+
+**QS Tools creates draft bills. Xero remains the approval/payment/accounting system.**
+
+Do not auto-approve or auto-pay in Xero in early versions.
+
+Reasons:
+
+* accounting control
+* audit
+* user trust
+* risk reduction
+* simpler liability boundary
+
+---
+
+## 13. Power BI / Data Warehouse Relationship
+
+Invoice automation creates clean structured data.
+
+This becomes valuable for advanced reporting.
+
+Potential downstream datasets:
+
+* invoice line fact table
+* PO fact table
+* supplier price history
+* quote vs actual table
+* product/material usage table
+* job cost variance table
+* supplier performance table
+* margin drift table
+
+This supports future advanced features:
+
+* Power BI connector
+* data warehouse access
+* custom KPI reporting
+* advisor dashboards
+* management reporting
+
+This should be read-only and governed.
+
+---
+
+## 14. Data Security and Compliance
+
+This layer handles commercially sensitive data.
+
+Rules:
+
+* tenant separation is mandatory
+* supplier data cannot be exposed across customers
+* invoice data cannot be used in identifiable benchmarking
+* raw supplier pricing cannot be shared
+* audit logs must be retained
+* user consent and terms must cover processing
+* access controls must be strict
+* data exports must be permissioned
+
+Benchmarking, if used later, must be:
+
+* aggregated
+* anonymised
+* bucketed
+* non-reversible
+* never supplier-specific in a way that identifies another customer
+
+---
+
+## 15. Recommended Build Stages
+
+### Stage 1 — Manual Upload Prototype
+
+Goal:
+
+* prove invoice extraction and matching logic without email complexity
+
+Build:
+
+* manual invoice upload
+* AI extraction
+* structured invoice output
+* basic PO number entry
+* simple match status
+
+Success:
+
+* can read invoice reliably
+* can compare extracted invoice to manually entered PO
+
+---
+
+### Stage 2 — PO Module / PO Register
+
+Goal:
+
+* create expected purchase records inside QS Tools
+
+Build:
+
+* PO creation
+* supplier selection
+* job/project selection
+* line items
+* expected quantities
+* expected unit rates
+* PO status
+
+Success:
+
+* system has something to reconcile invoices against
+
+---
+
+### Stage 3 — Invoice Inbox
+
+Goal:
+
+* move from upload to automated email intake
+
+Build:
+
+* unique tenant invoice email
+* attachment detection
+* file storage
+* processing queue
+* status tracking
+
+Success:
+
+* invoices arrive automatically and enter processing workflow
+
+---
+
+### Stage 4 — PO/Invoice Match Engine
+
+Goal:
+
+* automate reconciliation checks
+
+Build:
+
+* PO number match
+* supplier match
+* line item match
+* quantity variance
+* unit rate variance
+* total variance
+* duplicate detection
+* confidence scoring
+
+Success:
+
+* user can see clean match vs variance clearly
+
+---
+
+### Stage 5 — Supplier Mapping / Learning
+
+Goal:
+
+* reduce manual corrections over time
+
+Build:
+
+* raw supplier description capture
+* suggested internal product match
+* user confirmation
+* supplier-specific mapping table
+* auto-match future lines
+
+Success:
+
+* repeated supplier invoices become faster and cleaner
+
+---
+
+### Stage 6 — Xero Draft Bill Integration
+
+Goal:
+
+* push clean approved invoice data into accounting
+
+Build:
+
+* Xero supplier mapping
+* draft bill creation
+* invoice attachment upload
+* PO attachment/reference
+* account/tracking coding
+* error handling
+
+Success:
+
+* user approves in QS Tools, then draft bill appears in Xero
+
+---
+
+### Stage 7 — Actual vs Expected Feedback Loop
+
+Goal:
+
+* convert invoice actuals into business intelligence
+
+Build:
+
+* quote vs PO vs invoice comparison
+* material quantity drift
+* supplier price drift
+* job margin impact
+* monthly cost drift
+* future quote rate warnings
+
+Success:
+
+* the system tells the user where the business model is drifting
+
+---
+
+### Stage 8 — Advanced Reporting / Data Access
+
+Goal:
+
+* expose cleaned data to advanced users
+
+Build:
+
+* curated warehouse views
+* Power BI connector
+* read-only API
+* export controls
+* KPI dataset
+
+Success:
+
+* customers can build custom reporting without rebuilding the data-cleaning pipeline
+
+---
+
+## 16. Minimum Viable Version
+
+The first viable invoice automation version should include:
+
+* manual invoice upload
+* PDF extraction
+* structured invoice fields
+* PO number field
+* basic invoice-to-PO comparison
+* simple variance output
+* manual approval
+* no Xero writeback initially unless stable
+
+Do not start with full automation.
+
+First prove:
+
+* extraction quality
+* matching logic
+* variance clarity
+* user trust
+
+---
+
+## 17. Strategic Importance
+
+Invoice automation is the feature that makes QS Tools operationally sticky.
+
+Without it, QS Tools is mainly a planning/model tool.
+
+With it, QS Tools becomes a live control layer.
+
+It allows the system to answer:
+
+* did we buy what we expected?
+* did we pay the expected rate?
+* did quantities blow out?
+* did supplier pricing drift?
+* is the quote still valid?
+* did the job margin disappear?
+* is the business plan still on track?
+
+This is the bridge from model to reality.
+
+---
+
+## 18. Final Definition
+
+The invoice automation and PO reconciliation layer is the actual-cost intake engine for QS Tools.
+
+It captures supplier invoices, extracts structured data, reconciles them against purchase orders, detects variance, cleans supplier/product data over time, and feeds actual cost intelligence back into the business model.
+
+It is both a high-value user feature and the strongest scalable revenue driver beyond the base subscription.
