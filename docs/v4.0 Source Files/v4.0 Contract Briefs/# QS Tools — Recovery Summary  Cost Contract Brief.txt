@@ -1,0 +1,503 @@
+# QS Tools — Recovery Summary / Cost Allocation Contract Brief
+
+## 1. Purpose
+
+Recovery Summary is the page that proves whether the business can recover the cost structure created upstream.
+
+It does not assign costs, classify costs, or build operational cost groups. Those responsibilities belong to Cost Allocation and the upstream financial modules.
+
+Recovery Summary answers one question:
+
+**Does the business recover?**
+
+It then explains:
+
+* what recovery model was used
+* what driver was used
+* whether labour, assets, and materials stand on their own
+* whether any recovery stream is hiding pressure in another stream
+* where the recovery model fails, if it fails
+
+---
+
+## 2. Core System Rule
+
+The locked recovery principle is:
+
+```txt
+Labour recovers labour.
+Assets recover assets.
+Materials recover materials / create margin.
+Overheads are absorbed by gross profit.
+```
+
+Recovery Summary must protect this rule.
+
+The page must not allow a business to appear recoverable simply because one stream is hiding another stream’s under-recovery.
+
+Examples:
+
+* Material margin must not hide labour under-recovery.
+* Labour recovery must not hide productive asset under-recovery.
+* Asset recovery must not hide labour under-recovery.
+* Overheads must be carried by the business recovery model, not manually buried inside stream logic.
+
+---
+
+## 3. Relationship to Cost Allocation
+
+Cost Allocation is the source structure.
+
+Recovery Summary is the test result.
+
+Cost Allocation answers:
+
+```txt
+What costs exist?
+Where do they belong?
+Which cost groups are recoverable?
+Which costs form the business burden?
+```
+
+Recovery Summary answers:
+
+```txt
+Can the business recover that cost structure?
+Which recovery stream is under pressure?
+Is the recovery model clean?
+What fails first?
+```
+
+The handoff is:
+
+```txt
+Business Summary / P&L
+        ↓
+Cost Allocation
+        ↓
+Recovery Summary
+```
+
+Recovery Summary must only consume Cost Allocation outputs. It must not rebuild Cost Allocation logic inside the page.
+
+---
+
+## 4. Cost Allocation Outputs Used by Recovery Summary
+
+Recovery Summary may consume the following values from Cost Allocation or derived selector outputs:
+
+```txt
+total_cost_burden
+labour_recovery_cost
+labour_recovery_hours
+required_labour_recovery_rate
+asset_recovery_cost
+asset_utilisation_hours_annual
+required_asset_recovery_rate
+material_margin_pool
+material_margin_percent
+material_recovery_included
+asset_recovery_included
+cost_burden_breakdown
+```
+
+These values are used to explain the recovery model, not to reclassify the costs.
+
+---
+
+## 5. Recovery Summary Outputs
+
+Recovery Summary must produce:
+
+```txt
+recovery outcome
+recovery surplus / gap
+recovery driver
+recovery outcome detail
+supporting recovery evidence
+failure path where applicable
+model confidence warning where applicable
+```
+
+The page must distinguish between:
+
+```txt
+commercial recovery failure
+```
+
+and:
+
+```txt
+model confidence / source trust warning
+```
+
+A source-trust warning must not automatically make the business “not recoverable.”
+
+If the commercial model passes but Business Summary is not trusted, the correct status is:
+
+```txt
+Provisional
+```
+
+not:
+
+```txt
+Not recoverable
+```
+
+---
+
+## 6. Required Page Behaviour
+
+Recovery Summary must be answer-first.
+
+The top-level user experience must be simple:
+
+```txt
+Recovery summary
+Does the business recover?
+
+[Recovery outcome]
+[Recovery surplus / gap]
+[Simple plain-English message]
+```
+
+Detailed evidence must only appear when requested.
+
+The main page card must show clickable options:
+
+```txt
+Recovery outcome
+Recovery driver
+Supporting evidence
+Failure path
+```
+
+Failure path must only appear when there is an actual commercial failure.
+
+Supporting evidence must not be fully exposed by default.
+
+---
+
+## 7. Current Component Contract
+
+The current component responsibility is:
+
+```txt
+RecoverySummaryMainCard.jsx
+```
+
+Acts as the main decision surface and controller.
+
+It should:
+
+* hold the active card state
+* calculate which detail panel is selected
+* calculate whether the failure path should show
+* render the main clickable card layout
+* delegate detailed content to child components
+
+```txt
+components/recovery-summary/main-card/
+```
+
+Contains the detail components.
+
+Required child components:
+
+```txt
+RecoveryDriverDetail.jsx
+RecoveryOutcomeDetail.jsx
+RecoverySummaryMetricButton.jsx
+RecoverySupportingEvidenceDetail.jsx
+recoverySummaryWarningHelpers.js
+```
+
+The helper file contains shared warning/status logic so it is not duplicated across components.
+
+---
+
+## 8. Active Component Responsibilities
+
+### RecoverySummaryMainCard.jsx
+
+Responsible for:
+
+* main Recovery Summary decision surface
+* active card state
+* card switching
+* selecting detail panel
+* passing data into child components
+
+Should remain relatively small.
+
+Target role:
+
+```txt
+controller only
+```
+
+It should not contain:
+
+* full outcome detail markup
+* full driver detail markup
+* full supporting evidence markup
+* full warning helper logic
+
+---
+
+### RecoveryOutcomeDetail.jsx
+
+Responsible for:
+
+* commercial recovery position
+* model confidence
+* margin pool
+* cost burden
+* annual recovery gap
+
+This panel explains the headline result.
+
+---
+
+### RecoveryDriverDetail.jsx
+
+Responsible for:
+
+* business type
+* recovery driver
+* actual recovery rate
+* required recovery rate
+* recovery gap per recovery hour
+
+For hours-based businesses, this explains the denominator.
+
+For product/unit businesses, this explains the unit/margin recovery model.
+
+---
+
+### RecoverySupportingEvidenceDetail.jsx
+
+Responsible for:
+
+* labour recovery evidence
+* asset recovery evidence
+* material margin evidence
+* product/unit recovery evidence
+* Cost Allocation handoff
+
+This is where the page proves that the recovery streams are tested separately.
+
+---
+
+### RecoverySummaryNoteDrilldown.jsx
+
+Responsible for:
+
+* failure path detail
+* warning hierarchy
+* cause/effect/cascade explanation
+* audit location
+* carry-forward message
+
+This should only appear when there is a real commercial failure path.
+
+---
+
+### RecoverySummaryHandoffBlock.jsx
+
+Responsible for:
+
+* showing what Cost Allocation has handed into Recovery Summary
+* explaining whether material recovery and asset recovery are included
+* making the upstream connection clear
+
+It must not perform cost assignment.
+
+---
+
+## 9. Redundant / Legacy Component Rule
+
+Old Recovery Summary components may remain only if actively imported.
+
+If a component is not imported by the current page flow, it should be considered legacy and removed after build verification.
+
+Current likely redundant file:
+
+```txt
+components/recovery-summary/RecoverySummaryStatusStrip.jsx
+```
+
+Reason:
+
+```txt
+RecoverySummaryMainCard now owns the main visible decision surface.
+RecoverySummaryStatusStrip is no longer imported by app/recovery-summary/page.jsx.
+```
+
+Before deleting any file:
+
+```txt
+1. Confirm no imports.
+2. git rm the file.
+3. Run npm run build.
+4. Commit only after build passes.
+```
+
+---
+
+## 10. Required Source Discipline
+
+Recovery Summary must not pull directly from raw P&L names.
+
+It must not duplicate Cost Allocation classification logic.
+
+It must not recalculate Business Summary from scratch.
+
+It must consume prepared selector outputs and show the result.
+
+Correct pattern:
+
+```txt
+Source modules calculate.
+Selectors prepare.
+Recovery Summary displays and tests.
+```
+
+Incorrect pattern:
+
+```txt
+Recovery Summary reclassifies raw financial data.
+Recovery Summary assigns costs.
+Recovery Summary overrides Cost Allocation.
+Recovery Summary hides recovery failures inside aggregate totals.
+```
+
+---
+
+## 11. Status Logic Contract
+
+Recovery Summary status must be based on commercial recovery first, with source trust handled separately.
+
+Valid status examples:
+
+```txt
+Recoverable
+Provisional
+Marginal
+Not recoverable
+Needs attention
+Usable with warnings
+```
+
+Rules:
+
+```txt
+Not recoverable = commercial blocking failure.
+Provisional = commercial model may pass, but source model is not trusted.
+Marginal = recovery is close or review-level pressure exists.
+Recoverable = recovery model passes and no blocking issue exists.
+```
+
+A Business Summary trust warning must not be treated as a commercial failure.
+
+---
+
+## 12. Failure Path Contract
+
+Failure path should only show commercial failures.
+
+Examples of commercial failures:
+
+```txt
+gross profit below cost burden
+required recovery rate not met
+labour recovery under pressure
+asset recovery under pressure
+material margin not available
+recovery stream cross-subsidy risk
+```
+
+Examples of non-commercial confidence warnings:
+
+```txt
+Business Summary not trusted
+upstream model not ready
+source model provisional
+```
+
+Confidence warnings should be shown under Recovery Outcome detail, not as a commercial failure path.
+
+---
+
+## 13. UX Contract
+
+The page must follow this rule:
+
+```txt
+Show the answer first.
+Show the monster only when asked.
+```
+
+Default view should be simple.
+
+Detailed data must sit behind clicks.
+
+Preferred visible structure:
+
+```txt
+Recovery summary
+Does the business recover?
+
+[Recovery outcome] [Recovery driver]
+[Supporting evidence] [Failure path if needed]
+
+[selected detail panel]
+```
+
+Do not expose all evidence panels by default.
+
+---
+
+## 14. Build / Cleanup Contract
+
+After each structural change:
+
+```powershell
+npm run build
+```
+
+Then:
+
+```powershell
+git status
+```
+
+Only commit when:
+
+* build passes
+* no unintended docs are staged
+* only relevant recovery files are staged
+
+Suggested commit message:
+
+```txt
+Refactor recovery summary detail cards
+```
+
+---
+
+## 15. Final Summary
+
+Cost Allocation builds the recovery model.
+
+Recovery Summary tests whether that model works.
+
+The page must remain simple, answer-first, and resistant to hidden cross-subsidy.
+
+The correct relationship is:
+
+```txt
+Cost Allocation = cost structure and recovery burden
+Recovery Summary = recovery proof and failure diagnosis
+```

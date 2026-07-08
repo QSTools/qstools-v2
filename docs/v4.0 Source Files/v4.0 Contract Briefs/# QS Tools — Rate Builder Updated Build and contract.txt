@@ -1,0 +1,327 @@
+# QS Tools — Rate Builder Updated Build Brief + Contract Brief
+
+## Build name
+
+Rate Builder — Recovery Link / Charge Cost Profit Integration
+
+## Purpose
+
+Rate Builder has now moved from a rate-entry tool into a working pricing and profit test engine.
+
+It compares:
+
+* customer charge
+* real Cost Allocation recovery cost
+* profit / shortfall
+* margin
+* profit per selected unit
+
+The main user-facing answer is:
+
+Charge | Cost | Profit / Loss
+
+## Current Rate Builder role
+
+Rate Builder should remain focused on testing one price or rate at a time.
+
+Correct split:
+
+Cost Allocation = what the operating group costs
+Rate Builder = what this price/rate earns against that cost
+Business Outcome = what the whole business looks like
+
+## Current working flow
+
+### 1. Customer Charge Calculator
+
+Purpose: build the customer-facing price.
+
+It owns:
+
+* charge lines
+* quantity
+* unit
+* total charge
+* output driver
+* effective charge rate per selected unit
+
+Example:
+
+20 m³ × $46.75 = $935.00
+
+### 2. Labour Rates Builder
+
+Purpose: define customer-facing labour charge-out rates.
+
+It owns:
+
+* current charge-out rate
+* minimum recoverable charge-out rate
+* labour-only cost
+* margin after full recovery
+
+Example:
+
+Labour charge: $70.00/hr
+Labour cost: $58.91/hr
+Profit/Loss: $11.09/hr
+
+Important rule:
+
+Rate Builder must not invent or infer labour charge rates. Labour charge rates must come from Labour Rates Builder.
+
+### 3. Recovery Link
+
+Purpose: compare customer charge against real Cost Allocation recovery cost.
+
+It owns the review view:
+
+* selected Cost Allocation group
+* selected calculator
+* selected output unit
+* recovery basis
+* recovery hours
+* charge / cost / profit result
+* labour / asset / overhead cost build-up
+
+## Current Recovery Link output
+
+The working card now shows:
+
+Profit / shortfall
+
+Pricing unit
+Output quantity
+Recovery hours
+
+Charge | Cost | Profit / Loss
+
+Total job
+Per selected unit
+
+Cost build-up:
+
+Labour
+Asset
+Overhead
+Total cost
+
+Example:
+
+Pricing unit: m³
+Output quantity: 20 m³
+Recovery hours: 4 hrs
+
+Total job:
+Charge: $935.00
+Cost: $291.30
+Profit: $643.70
+
+Per m³:
+Charge: $46.75
+Cost: $14.57
+Profit: $32.19
+
+Cost build-up:
+
+Labour: $52.49/hr × 4 = $209.96
+Asset: $15.40/hr × 4 = $61.60
+Overhead: $4.94/hr × 4 = $19.76
+Total: $72.83/hr × 4 = $291.30
+
+## Key files involved
+
+components/rate-builder/RateBuilderLineCalculator.jsx
+
+Current responsibilities:
+
+* reads selected Cost Allocation group
+* reads group recovery basis and recovery rates
+* calculates recovery cost using recovery hours
+* shows charge / cost / profit comparison
+* shows cost build-up table
+
+Important variables:
+
+selected_group_labour_rate
+selected_group_asset_rate
+selected_group_overhead_rate
+selected_group_recovery_rate
+recovery_driver_quantity
+preview.total_charge
+preview.output_driver_quantity
+preview.output_driver_unit
+recovery_preview.profit_amount
+recovery_preview.profit_per_output_unit
+recovery_preview.recovery_cost_per_output_unit
+
+Related calculation file:
+
+lib/calculations/rateBuilderCalculations.js
+
+Current role:
+
+* total charge
+* selected recovery cost
+* profit amount
+* margin
+* recovery cost per output unit
+* profit per output unit
+* recovery status
+
+## Rate Builder contract
+
+Rate Builder should output a recovery result object suitable for Business Outcome.
+
+Suggested contract:
+
+{
+rate_builder_result_id,
+calculator_id,
+calculator_name,
+
+operational_group_id,
+operational_group_name,
+operating_area_id,
+operating_area_name,
+
+output_unit,
+output_quantity,
+recovery_driver_quantity,
+
+total_charge,
+charge_per_output_unit,
+
+labour_recovery_rate,
+asset_recovery_rate,
+overhead_recovery_rate,
+group_recovery_rate,
+
+labour_recovery_cost,
+asset_recovery_cost,
+overhead_recovery_cost,
+total_recovery_cost,
+
+recovery_cost_per_output_unit,
+
+profit_amount,
+profit_per_output_unit,
+margin_percent,
+recovery_status,
+
+labour_charge_rate,
+labour_minimum_recoverable_rate,
+labour_charge_profit_per_hour,
+
+created_at,
+updated_at
+}
+
+## Contract rules
+
+### Rule 1 — Rate Builder must not calculate Cost Allocation
+
+Rate Builder consumes Cost Allocation output.
+
+It must not recalculate:
+
+* labour recovery cost
+* asset recovery cost
+* overhead recovery cost
+* group recovery rate
+
+### Rule 2 — Cost Allocation owns cost
+
+Cost Allocation is the source of truth for:
+
+* group_cost_per_hour
+* labour_recovery_rate
+* asset_recovery_rate
+* overhead_recovery_rate
+* total_group_cost
+
+### Rule 3 — Customer Charge Calculator owns charge
+
+Customer Charge Calculator is the source of truth for:
+
+* total_charge
+* output unit
+* output quantity
+* effective customer charge rate
+
+### Rule 4 — Labour Rates Builder owns labour charge
+
+Labour Rates Builder is the source of truth for:
+
+* labour charge-out rate
+* minimum recoverable labour rate
+* labour-only cost
+* labour margin after recovery
+
+### Rule 5 — Recovery Link combines, but does not own, source data
+
+Recovery Link calculates:
+
+charge - cost = profit / shortfall
+
+It should not mutate upstream Cost Allocation, Labour Rates Builder, or Customer Charge Calculator data.
+
+## Remaining Rate Builder work
+
+### 1. Move final profit view into Recovery Link tab
+
+The Customer Charge Calculator tab should stay focused on building the price.
+
+The Recovery Link tab should become the polished review screen:
+
+* selected calculator
+* selected Cost Allocation group
+* selected output unit
+* charge / cost / profit
+* cost build-up
+* labour charge-out check
+
+### 2. Wire Labour Rates Builder into profit view
+
+The Cost Allocation side is working.
+
+The missing next improvement is:
+
+Labour charge rate should come from Labour Rates Builder.
+
+Needed fields:
+
+current_charge_out_rate
+minimum_recoverable_charge_out_rate
+labour_cost_rate
+selected_labour_source
+
+Relevant files to inspect:
+
+components/rate-builder/RateBuilderMainCard.jsx
+components/rate-builder/RateBuilderLabourRatesBuilder.jsx
+components/rate-builder/RateBuilderLabourRatesInputCard.jsx
+components/rate-builder/RateBuilderLabourRatesResultPanel.jsx
+components/rate-builder/RateBuilderMinimumRecoveryCard.jsx
+lib/storage/rateBuilderLabourRatesStorage.js
+lib/storage/rateBuilderLabourSourceRatesStorage.js
+lib/calculations/rateBuilderLabourRateCalculations.js
+
+Desired labour charge-out check:
+
+Labour charge-out check
+
+```
+          Charge      Cost       Profit / Loss
+```
+
+Per hr        $70.00      $58.91     $11.09
+Job labour    $280.00     $235.64    $44.36
+
+## Final Rate Builder position
+
+The current milestone achieved is:
+
+Rate Builder can now show the real profit of an asset-backed operating group by comparing customer charge against labour, asset, and overhead recovery cost.
+
+Next Rate Builder work should focus only on polishing Recovery Link and wiring Labour Rates Builder charge rates.

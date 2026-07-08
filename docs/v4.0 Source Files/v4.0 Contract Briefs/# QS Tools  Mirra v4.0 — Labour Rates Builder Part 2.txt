@@ -1,0 +1,403 @@
+# QS Tools / Mirra v4.0 — Labour Rates Builder Contract Brief
+
+## Current Build State and Locked Decisions
+
+## 1. Purpose of this brief
+
+This brief captures the current agreed state of the **Labour Rates Builder** within the QS Tools / Mirra v4.0 build.
+
+The purpose is to lock the current logic, UI behaviour, storage behaviour, and remaining audit items so the next build step can continue without re-opening decisions that have already been resolved.
+
+---
+
+# 2. Current module status
+
+## Labour Rates Builder status
+
+**Status: Functionally complete for current build stage**
+
+The Labour Rates Builder now supports:
+
+* productive labour source selection
+* individual staff-type charge-out rate entry
+* save button per labour source
+* persistent saved charge-out rates
+* read-only all-productive weighted summary
+* populated staff-type build-up
+* minimum recoverable rate comparison
+* above / below minimum status
+* surplus / leak per hour
+* margin after full recovery
+
+The current UI confirms that all four productive staff-type rates are now saved and included in the weighted summary.
+
+---
+
+# 3. Current confirmed labour rate behaviour
+
+## Productive labour source rates
+
+The user can now enter and save charge-out rates for each productive labour source.
+
+Current productive labour sources are:
+
+* Junior / Trainee
+* Operator / Delivery Staff
+* Senior Operator / Senior Staff
+* Site Crew
+
+Each staff type has its own saved charge-out rate.
+
+The saved rate is stored against the labour source, not just held temporarily in the selected input field.
+
+---
+
+## Save behaviour
+
+The save button now correctly writes the selected labour source rate into:
+
+* the active labour rate model
+* the per-source charge-out rate map
+* the localStorage persistence layer
+
+This fixed the issue where **Operator / Delivery Staff** showed correctly when selected, but still appeared as `$0.00/hr` in the all-productive weighted summary.
+
+The weighted summary now reads the saved per-source map correctly.
+
+---
+
+# 4. All productive labour weighted rate
+
+## Locked behaviour
+
+**All productive labour weighted rate is read-only.**
+
+It is not an editable labour rate input.
+
+It is calculated from the saved staff-type charge-out rates, weighted by productive hours.
+
+The calculation logic is:
+
+* staff-type charge-out rate multiplied by that staff type’s productive hours
+* total modelled productive labour revenue divided by total productive labour hours
+
+This produces the weighted current charge-out rate.
+
+Current confirmed example:
+
+* Junior / Trainee: saved and included
+* Operator / Delivery Staff: saved and included
+* Senior Operator / Senior Staff: saved and included
+* Site Crew: saved and included
+* all-productive weighted rate now shows **$70/hr**
+* no staff type rates are missing
+
+---
+
+# 5. Staff-type build-up
+
+The all-productive summary now shows a correct build-up by staff type.
+
+Each row displays:
+
+* labour source name
+* productive hours
+* saved charge-out rate
+* modelled labour revenue
+
+The summary also shows:
+
+* total modelled productive labour revenue
+* total productive labour hours
+
+This confirms that the all-productive view is now acting as a summary of saved source rates, not as a separate calculator.
+
+---
+
+# 6. Calculator model decision
+
+## Current state
+
+The UI still shows:
+
+* Saved calculator
+* Calculator name
+* New rate
+* Duplicate
+* Delete
+
+## Agreed principle
+
+The user has questioned whether this calculator model is necessary.
+
+The agreed view is:
+
+* multiple calculator types are probably not needed at this stage
+* the system should not imply multiple competing ways of calculating labour rates
+* there should be one correct calculation method
+* different labour sources use the same calculation logic
+
+## Current action
+
+The calculator UI has **not yet been removed**.
+
+It remains in place for now because the immediate priority was to fix staff-type rate saving without disrupting the page.
+
+## Future decision
+
+A future cleanup can simplify this area to remove or hide:
+
+* saved calculator dropdown
+* calculator name
+* duplicate/delete controls
+
+Unless a future reason is found to support deliberate pricing scenarios.
+
+---
+
+# 7. Minimum recoverable labour rate
+
+## Locked concept
+
+The minimum recoverable labour rate shown in the Labour Rates Builder includes:
+
+* true productive labour cost
+* allocated business overhead recovery
+
+It does **not** add non-productive labour directly into the charge-out rate.
+
+Non-productive labour is shown as business recovery pressure, not loaded directly into the minimum recoverable hourly rate.
+
+This preserves the distinction between:
+
+* productive labour cost recovery
+* business recovery pressure
+* full business outcome reconciliation
+
+---
+
+# 8. Current minimum recovery display
+
+The right-side minimum recovery card currently shows:
+
+* minimum recoverable charge-out rate
+* explanatory text confirming it includes productive labour cost and allocated overhead
+* build-up button
+* comparison against current / weighted charge-out rate
+
+Current confirmed example:
+
+* weighted current charge-out rate: **$70/hr**
+* minimum recoverable rate: **$64.92/hr**
+* status: **Above minimum**
+* surplus: **$5.08/hr**
+* margin after full recovery: **7.26%**
+
+This confirms the labour rate comparison is working.
+
+---
+
+# 9. P&L implied labour benchmark card
+
+## Locked decision
+
+The P&L implied labour recovery card should **not** appear inside the Labour Rates Builder.
+
+Reason:
+
+The P&L cannot cleanly prove labour recovery on its own because revenue, COGS, labour, assets, materials, overhead, and margin are blended together.
+
+Showing a P&L implied labour rate inside Rates Builder implies too much accuracy too early.
+
+## Current action
+
+The P&L implied benchmark card has been removed from the Labour Rates Builder UI.
+
+The underlying logic may still exist in the system for later use.
+
+## Future location
+
+This logic belongs later in:
+
+* Business Outcome
+* Recovery Outcome
+* final P&L reconciliation layer
+
+It should not drive or confuse the Labour Rates Builder.
+
+---
+
+# 10. Source-of-truth rule
+
+## Locked rule
+
+Each calculation must have one owner.
+
+For this area:
+
+* Labour module owns labour cost truth
+* Recovery / Cost Allocation should own overhead split truth
+* Rates Builder consumes the result and compares assumed charge-out rates
+* Business Outcome / Recovery Outcome later reconciles actual P&L truth
+
+Rates Builder should not become a business outcome page.
+
+---
+
+# 11. Overhead allocation issue still to audit
+
+The next major audit is overhead allocation.
+
+The question is:
+
+**Has overhead distribution already been done inside Cost Allocation, and does it match what Rates Builder is currently using?**
+
+This still needs to be checked.
+
+## Locked architectural direction
+
+Overhead distribution should ultimately happen in the allocation/recovery layer, not inside Labour or Assets independently.
+
+The desired structure is:
+
+* Cost Allocation / Recovery layer decides the split
+* Labour consumes its allocated overhead share
+* Assets consume their allocated overhead share
+* Rates Builder displays the minimum recoverable rate based on those outputs
+
+---
+
+# 12. Proportional overhead allocation decision
+
+The user confirmed that proportional allocation is the preferred logic.
+
+Overhead should not be split equally across staff types.
+
+Instead, it should follow the weighted labour structure.
+
+Example:
+
+* site crew cost base: 40
+* foreman cost base: 60
+* total cost base: 100
+
+Then:
+
+* site crew carries 40%
+* foreman carries 60%
+
+This is the preferred logic because higher-cost labour should carry proportionally more recovery burden than lower-cost labour.
+
+---
+
+# 13. Productive asset running cost correction
+
+A key unresolved issue remains:
+
+When allocating overhead to labour, productive asset-owned costs must not be included in the labour overhead pool.
+
+Examples:
+
+* productive asset fuel
+* maintenance
+* running costs
+* registration
+* other asset-owned operating costs
+
+These should be recovered through Assets, not Labour.
+
+The corrected distributable overhead pool should be:
+
+**general overhead pool minus productive asset-owned running costs**
+
+This prevents Labour and Assets from both recovering the same cost.
+
+---
+
+# 14. Current files changed
+
+Current `git status` showed the following tracked changes:
+
+* `components/rate-builder/RateBuilderLabourRatesBuilder.jsx`
+* `lib/selectors/rate-builder/rateBuilderLabourSourceSelectors.js`
+
+Current new files:
+
+* `components/rate-builder/RateBuilderMinimumRecoveryCard.jsx`
+* `lib/storage/rateBuilderLabourSourceRatesStorage.js`
+
+There are also unrelated untracked documentation files. These should not be included in the code commit unless intentionally committing docs separately.
+
+---
+
+# 15. Recommended commit scope
+
+The current Labour Rates Builder code commit should include only:
+
+* `components/rate-builder/RateBuilderLabourRatesBuilder.jsx`
+* `components/rate-builder/RateBuilderMinimumRecoveryCard.jsx`
+* `lib/selectors/rate-builder/rateBuilderLabourSourceSelectors.js`
+* `lib/storage/rateBuilderLabourSourceRatesStorage.js`
+
+Suggested commit message:
+
+```text
+Complete labour rate source saving and weighted summary
+```
+
+---
+
+# 16. Current implementation outcome
+
+The Labour Rates Builder now achieves the intended purpose:
+
+## It answers:
+
+* What do we currently charge for each labour source?
+* What is the weighted all-productive labour rate?
+* What is the minimum recoverable labour rate?
+* Are we above or below the required rate?
+* What is the surplus or leak per hour?
+* What is the margin after full recovery?
+
+## It does not answer:
+
+* whether the full business is profitable
+* whether material margin is cross-subsidising labour
+* whether assets are under-recovered
+* whether the P&L proves the assumptions
+* whether the final business outcome is acceptable
+
+Those belong later in Business Outcome / Recovery Outcome.
+
+---
+
+# 17. Next build priority
+
+The next build priority is not more Labour Rates Builder work.
+
+The next priority is the **overhead allocation audit**.
+
+The audit must confirm:
+
+1. Whether Cost Allocation already distributes overhead.
+2. Whether Recovery Summary outputs any labour / asset recovery split.
+3. Whether Rates Builder is currently calculating overhead itself.
+4. Whether the formulas match.
+5. Whether any cost is being allocated twice.
+6. Whether productive asset running costs are being removed from the Labour overhead pool.
+7. Whether Labour and Assets consume allocated overhead rather than deciding allocation independently.
+
+---
+
+# 18. Final current-state conclusion
+
+The Labour Rates Builder is now functionally complete for this stage.
+
+The remaining issue is not the labour rate UI.
+
+The remaining issue is system architecture alignment:
+
+**Where does overhead allocation live, and are Labour, Assets, Cost Allocation, and Rates Builder all consuming the same source of truth?**
+
+That is the next item to resolve.

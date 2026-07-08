@@ -1,0 +1,305 @@
+# QS Tools — Cost Allocation Updated Build Brief + Contract Brief
+
+## Build name
+
+Cost Allocation — Operating Group Recovery Basis and Recovery Cost Model
+
+## Purpose
+
+Cost Allocation now creates recovery-ready operating group outputs for Rate Builder and future Business Outcome reporting.
+
+It answers:
+
+What does this operating group really cost under the selected recovery basis?
+
+## Core outcome achieved
+
+Cost Allocation now supports selected recovery basis per operating group.
+
+Recovery basis options:
+
+* Labour hours
+* Asset hours
+* Manual hours
+
+The selected basis sets:
+
+group_recovery_hours
+
+## Accepted costing model
+
+### Labour
+
+Labour is coverage-based.
+
+labour_source_recovery_rate = assigned_labour_cost / assigned_labour_hours
+
+labour_recovery_cost = labour_source_recovery_rate × selected_recovery_hours
+
+This means:
+
+If selected recovery hours increase, labour recovery cost increases.
+
+Example:
+
+Assigned labour cost: $77,452
+Assigned labour hours: 1,476
+Labour source rate: $52.49/hr
+
+Asset basis hours: 1,920
+
+Labour recovery cost: $52.49 × 1,920 = about $100,778
+
+### Assets
+
+Assets are treated as fixed annual recovery cost for this version.
+
+asset_recovery_cost = assigned_asset_burden
+
+asset_recovery_rate = asset_recovery_cost / selected_recovery_hours
+
+This means:
+
+If selected recovery hours reduce, asset recovery rate increases.
+If selected recovery hours increase, asset recovery rate decreases.
+
+Fuel / variable running-cost split is intentionally deferred.
+
+### Overhead
+
+Overhead is treated as fixed annual allocation.
+
+overhead_recovery_cost = assigned_overhead_amount
+
+overhead_recovery_rate = overhead_recovery_cost / selected_recovery_hours
+
+### Total group cost
+
+total_group_cost =
+labour_recovery_cost
+
+* asset_recovery_cost
+* overhead_recovery_cost
+
+### Group recovery rate
+
+group_cost_per_hour = total_group_cost / group_recovery_hours
+
+## Confirmed examples
+
+### Labour hours mode
+
+Recovery basis: Labour hours
+Recovery hours: 1,476
+
+Labour recovery cost: $77,452
+Asset cost: $29,570
+Overhead: $9,477
+Total group cost: $116,498
+Group recovery rate: $79/hr
+
+### Asset hours mode
+
+Recovery basis: Asset hours
+Recovery hours: 1,920
+
+Labour recovery cost: $100,778
+Asset cost: $29,570
+Overhead: $9,477
+Total group cost: $139,824
+Group recovery rate: $73/hr
+
+This is the accepted model.
+
+## Files changed / involved
+
+Main calculation file:
+
+lib/calculations/cost-allocation/costAllocationPoolBuilders.js
+
+Important calculation area:
+
+operational_group_cost_rows
+
+Important returned fields:
+
+assigned_labour_cost
+assigned_labour_hours
+labour_source_recovery_rate
+labour_recovery_cost
+
+assigned_asset_burden
+assigned_asset_hours
+asset_recovery_cost
+
+assigned_overhead_amount
+overhead_recovery_cost
+
+total_group_cost
+group_recovery_hour_source
+group_recovery_hours
+manual_group_recovery_hours
+
+labour_recovery_rate
+asset_recovery_rate
+overhead_recovery_rate
+asset_utilisation_percent
+labour_utilisation_percent
+group_cost_per_hour
+
+Display file:
+
+components/cost-allocation/CostAllocationEvidenceBreakdown.jsx
+
+Current Group Cost Stack display should show:
+
+Recovery basis
+Basis selected
+Active recovery hours
+Group recovery rate
+
+Labour recovery
+Labour recovery cost
+Labour recovery hours
+Labour recovery rate
+
+Asset recovery
+Asset cost
+Asset recovery hours
+Asset recovery rate
+
+Overhead recovery
+Overhead cost
+Overhead recovery hours
+Overhead recovery rate
+
+Total cost summary
+Productive labour
+Productive assets
+Overhead
+Total group cost
+
+## Cost Allocation output contract
+
+Each operating group cost row should include:
+
+{
+group_id,
+division_id,
+group_name,
+
+assigned_labour_cost,
+assigned_labour_hours,
+labour_source_recovery_rate,
+labour_recovery_cost,
+
+assigned_asset_burden,
+assigned_asset_hours,
+asset_recovery_cost,
+
+assigned_overhead_amount,
+overhead_recovery_cost,
+
+total_group_cost,
+
+group_recovery_hour_source,
+group_recovery_hours,
+manual_group_recovery_hours,
+
+labour_recovery_rate,
+asset_recovery_rate,
+overhead_recovery_rate,
+group_cost_per_hour,
+
+asset_utilisation_percent,
+labour_utilisation_percent,
+
+labour_group_assignments,
+asset_group_assignments,
+overhead_group_assignments,
+
+allocation_status
+}
+
+## Recovery basis contract
+
+### Labour hours
+
+group_recovery_hours = assigned_labour_hours
+
+### Asset hours
+
+group_recovery_hours = assigned_asset_hours
+
+For asset-backed groups with multiple assets operating as one unit, asset hours should use the shared operating hours, not the sum of every asset’s hours.
+
+Current approach:
+
+assigned_asset_hours = max(assigned asset hours)
+
+Example:
+
+Pump: 1,920 hrs
+Landcruiser: 1,920 hrs
+Group asset hours: 1,920 hrs
+
+Not:
+
+3,840 hrs
+
+### Manual hours
+
+group_recovery_hours = manual_group_recovery_hours
+
+## Cost contract rules
+
+### Rule 1 — Labour scales to selected recovery hours
+
+labour_recovery_cost =
+labour_source_recovery_rate × group_recovery_hours
+
+### Rule 2 — Assets remain fixed annual cost
+
+asset_recovery_cost = assigned_asset_burden
+
+### Rule 3 — Overhead remains fixed annual cost
+
+overhead_recovery_cost = assigned_overhead_amount
+
+### Rule 4 — Total group cost uses recovery costs
+
+total_group_cost =
+labour_recovery_cost
+
+* asset_recovery_cost
+* overhead_recovery_cost
+
+### Rule 5 — Group recovery rate uses selected recovery hours
+
+group_cost_per_hour =
+total_group_cost / group_recovery_hours
+
+## Important caution
+
+Do not use broad replacements in:
+
+lib/calculations/cost-allocation/costAllocationPoolBuilders.js
+
+The same field names appear in multiple pool-building functions.
+
+Previous issues happened when these fields were inserted into the wrong return object:
+
+labour_source_recovery_rate
+labour_recovery_cost
+asset_recovery_cost
+overhead_recovery_cost
+
+They belong in operational group cost rows only.
+
+They do not belong in:
+
+build_productive_labour_pool
+build_productive_asset_pool
+build_overhead_pool
+
+Use either full function replacement or small verified line-range patches only.
