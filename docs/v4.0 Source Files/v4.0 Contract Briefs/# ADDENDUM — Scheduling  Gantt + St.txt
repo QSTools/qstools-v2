@@ -1,0 +1,221 @@
+# ADDENDUM — Scheduling / Gantt + Staff Time Portal Alignment
+
+## 1. Purpose
+
+The Scheduling / Gantt module is the planned programme and owner/admin operating control layer.
+
+The Staff Time Portal is the daily site recorder and actual evidence capture layer.
+
+These modules must remain separate, but they must share stable identifiers so actual site data can link back to the planned programme.
+
+Scheduling / Gantt answers:
+
+- What was planned?
+- When was it planned?
+- Who was meant to do it?
+- What contract / VO did it relate to?
+- What labour allowance was planned?
+- What changed and why?
+
+Staff Time Portal answers:
+
+- What actually happened onsite today?
+- Who worked?
+- What hours were used?
+- What work was completed?
+- Were there delays, variations, or site instructions?
+- What photo evidence was captured?
+
+## 2. Core Relationship
+
+Scheduling / Gantt = planned job control layer.
+
+Staff Time Portal = actual daily site record layer.
+
+The Gantt must be able to show actual site evidence against the planned schedule.
+
+The Staff Time Portal must be able to capture daily evidence against a job, schedule row, task, and date.
+
+## 3. Shared Identifiers
+
+The Scheduling / Gantt module must preserve and expose the following identifiers for Staff Time integration:
+
+- job_id
+- schedule_id
+- task_id
+- job_name
+- task description
+- contract / VO reference
+- team
+- role
+- planned date range
+
+The critical shared link is:
+
+schedule_id
+
+This allows a daily time entry, photo, site note, delay, or variation record to attach to a specific Gantt row.
+
+## 4. Gantt to Daily Site Note Link
+
+The Gantt must allow the user to click:
+
+- a task row
+- a task bar
+- a date cell
+- a task/date intersection
+
+and open the related Daily Site Note.
+
+The lookup should use:
+
+- job_id
+- schedule_id
+- task_id
+- selected_date
+
+If a Daily Site Note already exists, open it.
+
+If no Daily Site Note exists, open a pre-filled draft.
+
+The draft should include:
+
+- job_id
+- schedule_id
+- task_id
+- selected_date
+- planned_description
+- team
+- role
+- contract / VO reference
+- planned_start_date
+- planned_end_date
+
+## 5. Daily Site Note Markers on Gantt
+
+The Gantt should eventually show markers where actual site records exist.
+
+Markers may indicate:
+
+- time logged
+- daily note added
+- photo evidence attached
+- delay note recorded
+- variation flag recorded
+- site instruction captured
+- client notice required
+- admin review required
+
+The Gantt should visually show that a planned task/date has actual evidence attached.
+
+## 6. Staff Time Impact Rule
+
+Staff Time Portal entries can flag schedule impact.
+
+They must not silently overwrite the Gantt programme.
+
+Workflow:
+
+Staff submits site note / delay / variation / photo
+↓
+Gantt flags task/date as having actual site evidence
+↓
+Admin reviews the impact
+↓
+Admin accepts or rejects schedule adjustment
+↓
+Accepted adjustment creates schedule change-log entry
+
+## 7. Delay Flow From Staff Time
+
+A delay can originate from Staff Time.
+
+Example:
+
+Staff records:
+- waiting time
+- material delay
+- access issue
+- weather delay
+- client instruction
+- variation work
+- subcontractor delay
+
+Then Scheduling should:
+
+- flag the affected task/date
+- create or update the Daily Site Note
+- mark schedule impact as review_required
+- prompt owner/admin to review the programme
+- create a delay/change record if accepted
+- draft client notice where required
+
+## 8. Schedule Change Protection
+
+Actual site data must not destroy the planned baseline.
+
+Scheduling must preserve:
+
+- original baseline
+- current live programme
+- change history
+- delay reason
+- client notice status
+- evidence links
+
+The Gantt should show both:
+
+- planned programme
+- actual site record overlay
+
+## 9. Future Gantt Overlay
+
+The Gantt should eventually support:
+
+- planned task bar
+- actual labour overlay
+- progress marker
+- delay marker
+- photo/evidence marker
+- variation marker
+- client notice marker
+
+This creates a single owner/admin view of planned vs actual job delivery.
+
+## 10. Scheduling Output Needed By Staff Time
+
+Scheduling should eventually expose a light staff-safe task list for Staff Time Portal use.
+
+Staff-safe task list fields:
+
+- job_id
+- schedule_id
+- task_id
+- job_name
+- task_description
+- planned_date
+- team
+- role
+- row_type
+- contract_scope_type
+
+Do not expose:
+
+- quoted labour cost
+- planned labour cost
+- recovery rates
+- margins
+- claim values
+- business overheads
+- budget data
+
+## 11. Acceptance Rule
+
+The Scheduling / Gantt module is aligned with Staff Time when:
+
+- every Gantt row has a stable schedule_id
+- every Gantt row can be linked to a Daily Site Note
+- the Gantt can open a site note by job/task/date
+- Staff Time evidence can appear as markers on the Gantt
+- Staff Time can flag impact but cannot overwrite the schedule
+- schedule changes preserve history and evidence

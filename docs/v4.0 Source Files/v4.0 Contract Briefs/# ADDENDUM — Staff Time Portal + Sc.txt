@@ -1,0 +1,256 @@
+# ADDENDUM — Staff Time Portal + Scheduling / Gantt Alignment
+
+## 1. Purpose
+
+The Staff Time Portal is the daily site recorder for the Scheduling / Gantt operating system.
+
+It remains a restricted staff-facing capture portal.
+
+It must not expose business costs, recovery, rates, margins, Cost Summary, Recovery Summary, Cost Allocation, Budget, claim values, or owner/admin commercial data.
+
+Its role is to capture actual site information that can later be reviewed by owner/admin inside the Scheduling / Gantt module.
+
+## 2. Relationship To Scheduling / Gantt
+
+Scheduling / Gantt owns:
+
+- planned programme
+- job rows
+- task rows
+- milestone rows
+- dependencies
+- planned dates
+- contract / VO links
+- quoted/planned labour allowance
+- owner/admin programme control
+
+Staff Time Portal owns:
+
+- daily time entries
+- daily site notes
+- staff notes
+- delay notes
+- variation flags
+- site instruction references
+- photo evidence
+- submitted field records
+
+Staff Time feeds actual site evidence back to Scheduling.
+
+## 3. Required Schedule Link Fields
+
+Each time entry should support optional Scheduling / Gantt links.
+
+Add these fields to the Time Entry model:
+
+- job_id
+- schedule_id
+- task_id
+- entry_date
+
+The existing Staff Time model already includes job_id and entry_date.
+
+Add schedule_id and task_id when Scheduling integration is available.
+
+## 4. Updated Time Entry Model
+
+Each submitted Staff Time entry should store:
+
+- time_entry_id
+- entry_date
+- staff_id
+- job_id
+- schedule_id
+- task_id
+- work_type
+- start_time
+- finish_time
+- break_minutes
+- total_hours
+- daily_notes
+- delay_reason
+- variation_flag
+- variation_description
+- site_instruction_reference
+- photo_evidence_ids[]
+- submitted_at
+- approved
+- approved_by
+- approved_at
+- created_at
+- updated_at
+
+Allowed work_type values remain:
+
+- contract
+- variation
+- remedial
+- travel
+- waiting
+- other
+
+V1 required work types remain:
+
+- contract
+- variation
+- other
+
+## 5. Daily Site Note Creation
+
+Each Staff Time entry should contribute to a Daily Site Note.
+
+The Daily Site Note is the shared job/task/date record between Staff Time and Scheduling.
+
+When a staff member submits time, the system should either:
+
+- create a Daily Site Note for the job/task/date
+- or append the entry to the existing Daily Site Note
+
+Lookup fields:
+
+- job_id
+- schedule_id
+- task_id
+- entry_date
+
+## 6. Photo Evidence Link
+
+Photo evidence should link to both the time entry and the schedule row.
+
+Update photo evidence fields to include:
+
+- photo_id
+- time_entry_id
+- staff_id
+- job_id
+- schedule_id
+- task_id
+- entry_date
+- photo_url
+- photo_file_name
+- photo_caption
+- uploaded_at
+
+This allows photos to be opened from:
+
+- Staff Time Portal
+- Daily Site Note
+- Scheduling / Gantt
+- Monthly claim evidence view later
+
+## 7. Delay And Variation Capture
+
+Staff Time should allow staff to flag:
+
+- variation work
+- waiting time
+- delay reason
+- site instruction reference
+- daily notes
+- photo evidence
+
+Staff Time should not decide the commercial outcome.
+
+Staff Time can flag:
+
+- schedule impact possible
+- variation evidence captured
+- delay evidence captured
+- admin review required
+
+Owner/admin review happens outside the staff portal.
+
+## 8. Staff Time Must Not Update The Gantt Directly
+
+Staff Time entries can suggest or flag schedule impact.
+
+They must not directly recalculate or overwrite:
+
+- Auto Start
+- Auto End
+- Work Days
+- dependency logic
+- baseline programme
+- client notice status
+- claim status
+
+Workflow:
+
+Staff submits entry
+↓
+Daily Site Note updated
+↓
+Scheduling shows marker / warning
+↓
+Admin reviews
+↓
+Admin accepts schedule impact if required
+↓
+Scheduling change log records accepted update
+
+## 9. Staff-Safe Scheduling Task List
+
+When Scheduling integration is available, Staff Time can consume a restricted task list.
+
+Allowed fields:
+
+- job_id
+- schedule_id
+- task_id
+- job_name
+- task_description
+- planned_date
+- row_type
+- team
+
+Not allowed fields:
+
+- quoted labour hours if commercially sensitive
+- labour cost
+- charge-out rates
+- recovery rates
+- margin
+- budget values
+- claim values
+- Cost Summary
+- Recovery Summary
+- Cost Allocation
+- owner/admin warnings
+
+## 10. Staff Portal UI Change
+
+The Staff Time Entry Form should eventually include:
+
+- Job selector
+- Task selector from Scheduling / Gantt
+- Date
+- Work type
+- Start time
+- Finish time
+- Break minutes
+- Daily notes
+- Delay reason
+- Variation flag
+- Variation description
+- Site instruction reference
+- Photo evidence
+
+Task selector should show simple staff-safe labels only.
+
+Example:
+
+55 Glencoe Rd — Steel fixing
+55 Glencoe Rd — Concrete pour
+55 Glencoe Rd — Site clean-up
+
+## 11. Acceptance Rule
+
+The Staff Time Portal is aligned with Scheduling when:
+
+- each time entry can store schedule_id and task_id
+- staff can select a scheduled task where available
+- daily notes feed a Daily Site Note
+- photo evidence can link to a schedule row
+- delay/variation flags can trigger admin review
+- staff cannot access owner/admin commercial programme data
+- Staff Time remains capture-only

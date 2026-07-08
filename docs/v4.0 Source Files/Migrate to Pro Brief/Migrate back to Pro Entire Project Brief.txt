@@ -1,0 +1,1670 @@
+Below is the QS Tools rescue/export pack based on the uploaded **QS Tools Project Rescue Brief** and the current active source briefs in this Project. The uploaded rescue brief asks for an external handover pack that can be saved outside ChatGPT and re-uploaded into a new Project if needed. 
+
+---
+
+# 1. Master Handover Brief
+
+## Product Vision
+
+QS Tools is a web-based business analysis, recovery, pricing, and quoting tool for contractors and small businesses.
+
+Its core purpose is to **mirror the real business back to the user** by connecting:
+
+* P&L data
+* cost structure
+* labour cost and productive capacity
+* asset cost
+* general overheads
+* revenue and COGS
+* recovery requirement
+* cost allocation
+* quote checking
+* accepted quote feedback
+
+The system is intended to help a business understand whether its pricing, labour charge-out rates, material margins, and recovery strategy actually cover the real cost of operating.
+
+## Current Product Direction
+
+QS Tools is moving toward a **digital CFO / business decision engine**.
+
+It should help answer:
+
+* What does the business really cost to run?
+* How much revenue is required?
+* What labour rate must be charged?
+* What material or product margin is actually being achieved?
+* Are overheads being recovered?
+* Is a quote profitable before acceptance?
+* Did accepted quotes perform against the model?
+
+## Current Working Name
+
+The current working name is **QS Tools / QSTools**.
+
+Future brand names have been discussed separately, but the codebase, source files, and briefs still use QS Tools.
+
+## Current Locked System Principle
+
+The latest active architecture separates the system into:
+
+```text
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+```
+
+The active v1.17 system brief locks the current architecture as:
+
+```text
+INPUT MODULES
+↓
+COST SUMMARY
+↓
+RECOVERY SUMMARY
+↓
+COST ALLOCATION
+↓
+RECOVERY OUTCOME
+↓
+BUDGET
+```
+
+
+
+---
+
+# 2. Architecture Brief
+
+## Stack
+
+QS Tools is built as a Next.js App Router application using React client components, hooks, selectors, calculation libraries, localStorage, and a token-based CSS/UI system.
+
+## Standard Module Structure
+
+New modules must follow this file structure:
+
+```text
+app/<module>/page.jsx
+hooks/use<Module>.js
+lib/calculations/<module>Calculations.js
+lib/selectors/<module>Selectors.js
+lib/storage/<module>Storage.js
+lib/storage/<module>ProfileStorage.js
+components/<module>/
+  <Module>StatusStrip.jsx
+  <Module>MainCard.jsx
+  <Module>HelpPanel.jsx
+```
+
+This structure is locked in the New Module Build Template. 
+
+## Architecture Separation Rule
+
+The locked separation is:
+
+```text
+page = layout + orchestration only
+hook = integration / orchestration
+selectors = shaping
+calculations = business logic
+components = UI only
+```
+
+No business logic should live in `page.jsx` or UI components. 
+
+## Naming Rules
+
+The naming convention brief locks:
+
+* folder names: `kebab-case`
+* React/module names: `PascalCase`
+* variables: `snake_case`
+* IDs: `_id` format
+* hooks: `use<Module>.js`
+* calculations: `<module>Calculations.js`
+* selectors: `<module>Selectors.js`
+* components must use the module prefix
+
+Examples of locked output contract names include:
+
+```text
+gross_wages_annual
+total_people_cost_annual
+employee_overheads_total_annual
+productive_labour_cost_rate
+minimum_charge_out_rate
+total_cost_burden
+required_recovery_rate
+```
+
+
+
+## Downstream Contract Rule
+
+The most important architectural rule is:
+
+```text
+Upstream modules own inputs, calculations, and output contracts.
+Downstream modules consume outputs only.
+No downstream module may rebuild upstream maths.
+No downstream module may rename contract variables.
+```
+
+This is explicitly locked in the v1.17 active system brief and guardrail brief. 
+
+## UI System
+
+The UI system is token-based and must not drift.
+
+Locked UI rules:
+
+* no inline styles
+* no hardcoded colours
+* no `text-white`
+* no `bg-neutral-*` hacks
+* use CSS tokens
+* use standard UI classes
+* mobile-first layout
+* macro → breakdown → drilldown
+
+The UI system brief locks the token-driven structure and standard UI classes such as `ui-section`, `ui-panel`, `ui-input`, `ui-button-primary`, `ui-pill`, `ui-kicker`, and `ui-stack`. 
+
+---
+
+# 3. Module Status Brief
+
+## P&L Module
+
+### Purpose
+
+The P&L module is mainly an assignment and classification layer.
+
+It should classify imported or entered P&L lines into downstream benchmark buckets.
+
+### Main Buckets
+
+* Revenue
+* COGS / direct costs
+* Labour benchmark
+* Assets benchmark
+* General overheads
+* Other / unassigned items
+
+### Role
+
+The P&L module provides the baseline commercial reality of the business. It is the starting point for identifying cost structure and checking whether module totals reconcile against actual accounts.
+
+### Pending / Risks
+
+* It must remain an assignment layer, not a cost engine.
+* It should continue feeding baseline data downstream.
+* Revenue and COGS treatment still needs to be fully developed for quote checking and business summary logic.
+
+---
+
+## General Overheads Module
+
+### Purpose
+
+General Overheads captures annual business-level operating costs not directly tied to staff, staff overheads, assets, jobs, or revenue generation.
+
+It provides the fixed annual business overhead burden. 
+
+### Architecture
+
+```text
+app/general-overheads/page.jsx
+hooks/useGeneralOverheads.js
+lib/calculations/generalOverheadCalculations.js
+lib/selectors/generalOverheadSelectors.js
+lib/storage/generalOverheadStorage.js
+lib/storage/generalOverheadProfileStorage.js
+components/general-overheads/
+```
+
+
+
+### Inputs
+
+Annual-only categories include:
+
+* public liability insurance
+* professional indemnity insurance
+* accounting fees
+* legal fees
+* software subscriptions
+* office rent
+* power
+* internet
+* phone
+* bank fees
+* marketing
+* office supplies
+* general admin
+* other general overheads
+* custom overhead items
+
+### Output Contract
+
+```text
+total_general_overheads
+```
+
+Cost Summary consumes this as:
+
+```text
+total_business_overheads = total_general_overheads
+```
+
+The General Overheads → Cost Summary wiring brief locks this mapping. 
+
+---
+
+## Labour Module
+
+### Purpose
+
+Labour is the foundation module of QS Tools. It creates and owns `staff_id`, defines working time, calculates full employer labour cost, and produces commercial labour outputs. 
+
+### Architecture
+
+```text
+app/labour/page.jsx
+hooks/useLabour.js
+lib/calculations/labourCalculations.js
+lib/selectors/labourSelectors.js
+lib/storage/labourStorage.js
+lib/storage/labourProfileStorage.js
+lib/identity/staffIdentity.js
+components/labour/
+```
+
+
+
+### Core Inputs
+
+* `staff_name`
+* `staff_role`
+* `labour_class`
+* `hours_per_week`
+* `days_per_week`
+* `labour_rate`
+* `charge_out_rate`
+* `productivity_percent`
+* `margin_target_percent`
+* `annual_leave_weeks`
+* `public_holiday_days`
+* `sick_days`
+* `bereavement_days`
+* `family_violence_days`
+* `employee_kiwisaver_enabled`
+* `employer_kiwisaver_rate`
+
+### Locked Calculation Concepts
+
+```text
+paid_hours_per_year = hours_per_week × 52
+
+daily_hours = hours_per_week / days_per_week
+
+non_productive_paid_hours =
+annual_leave_weeks × hours_per_week
++ public_holiday_days × daily_hours
++ sick_days × daily_hours
++ bereavement_days × daily_hours
++ family_violence_days × daily_hours
+
+productive_hours =
+(paid_hours_per_year - non_productive_paid_hours)
+× productivity_percent / 100
+```
+
+
+
+### Employer Contributions
+
+Labour calculates:
+
+* `employer_kiwisaver_gross`
+* `esct_rate`
+* `esct_amount`
+* `total_employer_contribution_cost`
+
+ESCT must be derived from the employee earnings position and threshold band, not treated as one fixed universal rate. 
+
+### Commercial Outputs
+
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `actual_margin_percent`
+* `margin_gap`
+* `profit_per_hour`
+* `above_recovery`
+
+
+
+### Downstream Output Contract
+
+Labour exposes:
+
+* `staff_id`
+* `paid_hours_per_year`
+* `non_productive_paid_hours`
+* `productive_hours`
+* `labour_cost_rate`
+* `charge_out_rate`
+* `loaded_labour_cost_rate`
+* `productive_labour_cost_rate`
+* `minimum_charge_out_rate`
+* `actual_margin_percent`
+* `margin_gap`
+* `profit_per_hour`
+* `above_recovery`
+* `employer_kiwisaver_gross`
+* `esct_rate`
+* `esct_amount`
+* `total_employer_contribution_cost`
+* `base_labour_cost_annual`
+* `gross_wages_annual`
+* `entitlements_annual`
+
+
+
+### Current State
+
+Labour v1.9 is implemented and exposes the required downstream People Cost outputs. 
+
+---
+
+## Assets Module
+
+### Purpose
+
+Assets is the capital cost register and cost engine. It captures asset financial structure, calculates real cash ownership cost, maintains historical records, and prepares asset data for downstream modules. 
+
+### Architecture
+
+```text
+app/assets/page.jsx
+hooks/useAssets.js
+lib/calculations/assetCalculations.js
+lib/selectors/assetSelectors.js
+lib/storage/assetStorage.js
+lib/storage/assetProfileStorage.js
+components/assets/
+```
+
+
+
+### Inputs
+
+* `purchase_price`
+* `interest_rate`
+* `finance_term_years`
+* `maintenance_cost_monthly`
+* `fuel_cost_monthly`
+* `registration_cost_monthly`
+* `other_running_cost_monthly`
+* `profile_version`
+* `effective_from`
+* `is_active`
+* `is_retired`
+* `created_at`
+* `updated_at`
+
+### Core Calculations
+
+```text
+finance_cost_annual = 0 if no finance
+
+running_cost_annual =
+(maintenance_cost_monthly
++ fuel_cost_monthly
++ registration_cost_monthly
++ other_running_cost_monthly) × 12
+
+total_asset_cost_annual =
+finance_cost_annual + running_cost_annual
+```
+
+
+
+### Locked Rule
+
+Depreciation is excluded because the model is based on real cash cost recovery. 
+
+### Output Contract
+
+* `finance_cost_annual`
+* `running_cost_annual`
+* `total_asset_cost_annual`
+
+### Current State
+
+Assets v2.3 is active and aligned. It must not use `staff_id`, assign assets to staff, perform pricing, recovery, or asset package logic inside the module. 
+
+---
+
+## Cost Summary Module
+
+### Purpose
+
+Cost Summary is the internal cost aggregation engine. It defines **WHAT the business costs**.
+
+It aggregates upstream outputs and produces:
+
+* total cost burden
+* required revenue
+* required recovery baseline
+
+
+
+### Current Architecture
+
+```text
+app/cost-summary/page.jsx
+hooks/useCostSummary.js
+lib/calculations/costSummaryCalculations.js
+lib/selectors/costSummarySelectors.js
+lib/storage/costSummaryStorage.js
+lib/storage/costSummaryProfileStorage.js
+components/cost-summary/
+```
+
+
+
+### Inputs
+
+From Labour:
+
+* `staff_id`
+* `productive_hours`
+* `gross_wages_annual`
+* `entitlements_annual`
+* `employer_kiwisaver_gross`
+* `esct_amount`
+* `total_employer_contribution_cost`
+
+From Employee Overheads:
+
+* `staff_id`
+* `employee_overheads_total_annual`
+* `total_employee_overheads_annual`
+
+From Assets:
+
+* `total_asset_cost_annual`
+
+From General Overheads:
+
+* `total_general_overheads`
+
+
+
+### Removed Dependency
+
+Cost Summary must no longer consume:
+
+* `active_revenue_model`
+* `active_asset_labour_links[]`
+* Cost Allocation outputs
+
+Recovery and structure are now downstream responsibilities. 
+
+### Locked Outputs
+
+* `total_gross_wages_annual`
+* `total_entitlements_annual`
+* `total_employer_kiwisaver_annual`
+* `total_esct_annual`
+* `total_employee_overheads_annual`
+* `total_people_cost_annual`
+* `total_productive_output`
+* `total_asset_cost_annual`
+* `total_business_overheads`
+* `total_business_cost_annual`
+* `total_cost_burden`
+* `required_revenue`
+* `required_recovery_rate`
+
+
+
+### Current Wiring State
+
+Cost Summary Wiring v1.7 is the locked integration contract for Labour, Employee Overheads, Assets, and General Overheads. 
+
+---
+
+## Revenue / COGS Module
+
+### Intended Purpose
+
+The Revenue / COGS layer should separate revenue and direct cost behaviour from internal recovery.
+
+It should help distinguish:
+
+* labour recovery
+* product/material margin
+* subcontract/direct delivery costs
+* gross profit
+* net profit
+* true recovery gap
+
+### Current State
+
+This module is intended but not fully locked in the active source pack shown here.
+
+### Important Direction
+
+Material margin should not be treated as the same thing as business overhead recovery. Recovery Summary explicitly notes that material margin is not recovery. 
+
+---
+
+## Business Summary Module
+
+### Intended Purpose
+
+Business Summary should compare the business reality against the required cost/recovery baseline.
+
+It should consume:
+
+* P&L baseline
+* Cost Summary outputs
+* Revenue / COGS baseline
+* possibly Recovery Summary outputs later
+
+### Intended Outputs
+
+* business reality vs required recovery
+* margin gap
+* revenue sufficiency
+* model pressure
+* summary of whether the business is structurally profitable
+
+### Current State
+
+Not clearly locked in the latest active source pack. It remains an intended layer or future build item.
+
+---
+
+## Recovery Summary Module
+
+### Purpose
+
+Recovery Summary defines **HOW the business recovers cost**.
+
+It sits downstream of Cost Summary and converts total cost into a recovery strategy. 
+
+### Architecture
+
+```text
+app/recovery-summary/page.jsx
+hooks/useRecoverySummary.js
+lib/calculations/recoverySummaryCalculations.js
+lib/selectors/recoverySummarySelectors.js
+lib/storage/recoverySummaryStorage.js
+lib/storage/recoverySummaryProfileStorage.js
+components/recovery-summary/
+```
+
+
+
+### Inputs from Cost Summary
+
+* `total_cost_burden`
+* `required_revenue`
+* `required_recovery_rate`
+* `total_productive_output`
+* `total_people_cost_annual`
+* `total_asset_cost_annual`
+* `total_business_overheads`
+
+### Local Inputs
+
+* `recovery_model`
+* `labour_share_percent`
+* `asset_share_percent`
+* `overhead_share_percent`
+
+Allowed recovery models:
+
+* `labour_only`
+* `asset_driven`
+* `hybrid`
+
+
+
+### Outputs
+
+* `active_recovery_model`
+* `labour_share_percent`
+* `asset_share_percent`
+* `overhead_share_percent`
+* `labour_recovery_cost`
+* `asset_recovery_cost`
+* `overhead_absorbed_cost`
+* `required_labour_recovery_rate`
+* `required_asset_recovery`
+
+
+
+### Current State
+
+Recovery Summary v1.0 is locked and should be treated as stable unless only bug fixes or wording cleanup are needed. 
+
+---
+
+## Cost Allocation Module
+
+### Purpose
+
+Cost Allocation validates whether the business structure can support the selected recovery strategy.
+
+It defines:
+
+* labour-to-asset relationships
+* capability links
+* operational groups
+* structural readiness
+
+
+
+### System Role
+
+Cost Allocation defines **CAN it be delivered**.
+
+It does not calculate costs, recovery rates, or pricing. 
+
+### Inputs
+
+From Recovery Summary:
+
+* `active_recovery_model`
+* `labour_share_percent`
+* `asset_share_percent`
+
+From Labour:
+
+* `staff_id`
+* `staff_name`
+* `is_active`
+
+From Assets:
+
+* `asset_id`
+* `asset_name`
+* `is_active`
+
+
+
+### Data Model
+
+Structural links:
+
+* `asset_labour_link_id`
+* `asset_id`
+* `staff_id`
+* `is_active`
+
+Operational groups:
+
+* `group_id`
+* `group_name`
+* `required_asset_ids[]`
+* `required_staff_count`
+* `is_active`
+
+
+
+### Outputs
+
+* `active_asset_labour_links[]`
+* `active_operational_groups[]`
+* `linked_staff_count`
+* `unlinked_staff_count`
+* `linked_asset_count`
+* `unlinked_asset_count`
+* `total_operational_groups`
+* `valid_operational_groups`
+* `invalid_operational_groups`
+* `structure_valid`
+* `staff_coverage_percent`
+* `asset_coverage_percent`
+* `group_coverage_percent`
+* `duplicate_link_warnings[]`
+* `orphan_warnings[]`
+* `group_validation_warnings[]`
+
+
+
+### Current State
+
+Cost Allocation v2.1 is locked as a structural + operational validation layer.
+
+---
+
+## Business Outcome / Recovery Outcome Module
+
+### Purpose
+
+Recovery Outcome is the first true decision/output layer.
+
+It consumes:
+
+* Recovery Summary outputs
+* Cost Allocation outputs
+
+It produces a business decision:
+
+* Does this model work?
+* What is the main problem?
+* What should change next?
+
+
+
+### System Position
+
+```text
+Cost Summary
+→ Recovery Summary
+→ Cost Allocation
+→ Recovery Outcome
+```
+
+
+
+### Output States
+
+Strict states:
+
+* `viable`
+* `marginal`
+* `not_viable`
+
+Primary constraints:
+
+* `share_model_invalid`
+* `no_recoverable_base`
+* `structure_incomplete`
+* `asset_strategy_without_assets`
+* `weak_structure`
+* `healthy`
+
+
+
+### Current State
+
+Recovery Outcome v1.0 is part of the active v1.17 architecture and is the next decision-layer build target. 
+
+---
+
+## Quote Checker Module
+
+### Intended Future Purpose
+
+Quote Checker should allow the user to test a quote before accepting it.
+
+It should compare:
+
+* labour hours allowed
+* material/product sell price
+* material/product cost
+* required recovery
+* minimum charge-out
+* target margin
+* actual quoted margin
+* whether the quote supports the business model
+
+### Inputs Required
+
+* job name
+* quote status
+* labour hours
+* labour rate / charge-out
+* material/product cost
+* material/product sell price
+* subcontract/direct cost
+* target margin
+* business recovery requirement
+
+### Future Logic
+
+Quote Checker should separate:
+
+* labour recovery
+* material margin
+* product margin
+* direct cost pass-through
+* contribution to overhead recovery
+
+### Feedback Link
+
+Only accepted quotes should feed the feedback loop.
+
+---
+
+## Feedback Loop
+
+### Intended Purpose
+
+The Feedback Loop should compare accepted quote assumptions against actual performance.
+
+### Key Rules
+
+* accepted quotes only
+* monthly roll-up
+* compare actual vs model
+* feed lessons into future pricing decisions
+
+### Intended Outputs
+
+* accepted work margin performance
+* labour hour variance
+* material margin variance
+* recovery variance
+* pricing model correction signals
+
+---
+
+# 4. File / Code Checklist
+
+## App Routes / Pages to Save
+
+Save all active route files, especially:
+
+```text
+app/labour/page.jsx
+app/assets/page.jsx
+app/general-overheads/page.jsx
+app/cost-summary/page.jsx
+app/recovery-summary/page.jsx
+app/cost-allocation/page.jsx
+app/recovery-outcome/page.jsx
+app/business-modelling/page.jsx
+app/revenue-cogs/page.jsx
+app/pnl/page.jsx
+```
+
+Some may not exist yet in final form, but they should be checked.
+
+## Components to Save
+
+```text
+components/labour/
+components/assets/
+components/general-overheads/
+components/cost-summary/
+components/recovery-summary/
+components/cost-allocation/
+components/recovery-outcome/
+components/business-modelling/
+components/revenue-cogs/
+components/pnl/
+components/business-setup/
+components/rate-builder/
+```
+
+## Hooks to Save
+
+```text
+hooks/useLabour.js
+hooks/useAssets.js
+hooks/useGeneralOverheads.js
+hooks/useCostSummary.js
+hooks/useRecoverySummary.js
+hooks/useCostAllocation.js
+hooks/useRecoveryOutcome.js
+hooks/useBusinessSummary.js
+hooks/useBusinessSetup.js
+hooks/rate-builder/
+```
+
+## Calculation Libraries to Save
+
+```text
+lib/calculations/labourCalculations.js
+lib/calculations/labourScenarioCalculations.js
+lib/calculations/assetCalculations.js
+lib/calculations/generalOverheadCalculations.js
+lib/calculations/costSummaryCalculations.js
+lib/calculations/recoverySummaryCalculations.js
+lib/calculations/costAllocationRules.js
+lib/calculations/recoveryOutcomeCalculations.js
+```
+
+## Selectors to Save
+
+```text
+lib/selectors/labourSelectors.js
+lib/selectors/assetSelectors.js
+lib/selectors/generalOverheadSelectors.js
+lib/selectors/costSummarySelectors.js
+lib/selectors/recoverySummarySelectors.js
+lib/selectors/costAllocationSelectors.js
+lib/selectors/recoveryOutcomeSelectors.js
+lib/selectors/rate-builder/
+```
+
+## Storage Files to Save
+
+```text
+lib/storage/labourStorage.js
+lib/storage/labourProfileStorage.js
+lib/storage/assetStorage.js
+lib/storage/assetProfileStorage.js
+lib/storage/generalOverheadStorage.js
+lib/storage/generalOverheadProfileStorage.js
+lib/storage/costSummaryStorage.js
+lib/storage/costSummaryProfileStorage.js
+lib/storage/recoverySummaryStorage.js
+lib/storage/recoverySummaryProfileStorage.js
+lib/storage/costAllocationStorage.js
+lib/storage/costAllocationProfileStorage.js
+```
+
+## Data Files
+
+```text
+data/acc_rates.db
+```
+
+The ACC database is important for Labour ACC lookup behaviour.
+
+## CSS / UI Files
+
+Save:
+
+```text
+app/globals.css
+styles/
+styles/modules/
+tailwind config files if present
+```
+
+The UI system is a locked token-based system and must be preserved.
+
+## Source Briefs / Documentation Files
+
+The v1.16 source pack lists the current authority files after the Recovery layer was introduced. These are especially important: 
+
+```text
+ACTIVE_SYSTEM_BRIEFS_v1.16_UPDATED.txt
+Labour_Module_v1.9_FULL_SOURCE_OF_TRUTH_ALIGNED_2026-04-07.txt
+Cost_Summary_Module_v1.6_FULL_SOURCE_OF_TRUTH.txt
+Cost_Summary_Wiring_v1.7_LOCKED.txt
+Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Recovery_Summary_Page_v1.0_LOCKED.txt
+Cost_Allocation_v2.1_WITH_OPERATIONAL_GROUPS_LOCKED.txt
+QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+QS Tools — New Module Build Template (v1.0 — LOCKED).txt
+QS Tools — New Page Build Checklist (v1.0 — LOCKED).txt
+QS Tools — Recommended Implementation Order (UPDATED).txt
+Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Implementation_Brief_Assets_to_Cost_Summary_v1.0.txt
+Implementation_Brief_General_Overheads_to_Cost_Summary_v1.0.txt
+```
+
+Also save v1.17 active system brief because it adds Recovery Outcome.
+
+## Latest Known Uncommitted / Local Files Mentioned
+
+From recent project context, important changed or untracked files included:
+
+```text
+hooks/rate-builder/useRateBuilderLabourRates.js
+lib/actions/rate-builder/rateBuilderLabourRateModelActions.js
+lib/selectors/rate-builder/rateBuilderLabourModelSelectors.js
+lib/selectors/rate-builder/rateBuilderLabourSourceSelectors.js
+components/rate-builder/RateBuilderLabourRatesBuilder.jsx
+components/rate-builder/RateBuilderMinimumRecoveryCard.jsx
+docs/Business Meetings/
+docs/v4.0 Source Files/v4.0 Contract Briefs/
+docs/v4.0 Source Files/v4.0 Future Build Briefs/
+```
+
+Before changing workspace, run a fresh `git status --short --untracked-files=all`.
+
+---
+
+# 5. Git Protection Checklist
+
+Use this before changing ChatGPT plan/workspace:
+
+```powershell
+git status --short --untracked-files=all
+```
+
+Then:
+
+1. Review all modified files.
+2. Review all untracked files.
+3. Confirm which docs and source briefs are important.
+4. Add important files:
+
+```powershell
+git add <file>
+```
+
+5. Commit completed work:
+
+```powershell
+git commit -m "Save QS Tools current build state"
+```
+
+6. Push to remote:
+
+```powershell
+git push
+```
+
+7. Confirm branch state:
+
+```powershell
+git status
+```
+
+8. Confirm GitHub/remote has the latest commits.
+9. Save source briefs outside ChatGPT.
+10. Save generated Excel files, PDFs, screenshots, and evidence packs outside ChatGPT.
+11. Export or copy any important ChatGPT-generated briefs into `/docs` or `/sources`.
+12. Do not rely on ChatGPT Project history as the only source of truth.
+
+The local repo and GitHub should be treated as the real code source of truth.
+
+---
+
+# 6. Project Instructions Backup
+
+Paste this into a new ChatGPT Project:
+
+```text
+You are helping build QS Tools, a Next.js web application for business cost analysis, recovery modelling, pricing, quote checking, and business decision support.
+
+Current core principle:
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+Current architecture:
+INPUT MODULES
+→ COST SUMMARY
+→ RECOVERY SUMMARY
+→ COST ALLOCATION
+→ RECOVERY OUTCOME
+→ BUDGET
+
+Preserve existing architecture. Do not rename variables or output contracts unless explicitly instructed. Work in small patches. Use existing module patterns. Keep UI simple, readable, and consistent.
+
+Architecture rules:
+- page.jsx = layout and orchestration only
+- hook = integration/orchestration
+- calculations = business logic
+- selectors = shaping/status/warnings
+- components = UI only
+- storage files own persistence
+- no business maths in components
+- no business maths in page.jsx
+
+Downstream contract rules:
+- upstream modules own inputs, calculations, and output contracts
+- downstream modules consume outputs only
+- never rebuild upstream maths downstream
+- never consume raw upstream form state downstream
+- never use display names as keys
+- use IDs only for joins
+- preserve snake_case internal variables
+
+Identity rules:
+- staff_id is owned by Labour
+- asset_id is owned by Assets
+- Cost Allocation consumes IDs only
+- Recovery Summary owns recovery_model
+- Cost Allocation does not define recovery strategy
+- Recovery Outcome owns decision logic only
+
+UI rules:
+- use the existing token-based UI system
+- no inline styles
+- no hardcoded colours
+- no text-white or bg-neutral-* hacks
+- mobile-first layout
+- macro → breakdown → drilldown
+- keep pages low clutter
+- preserve collapsible sections where useful
+
+Business context:
+QS Tools is for NZ contractors and small businesses, especially construction, civil, foundations, labour/material hybrid businesses. The tool should mirror the real business back to the user and help guide pricing, recovery, quoting, and performance review.
+
+Response style:
+Be concise and practical. Explain risks before large structural changes. Prefer clear patch instructions and full file replacements where needed. Avoid broad rewrites unless requested.
+```
+
+---
+
+# 7. Key Business Logic Brief
+
+## P&L Classification
+
+P&L lines should be classified into:
+
+* Revenue
+* COGS / direct costs
+* Labour benchmark
+* Assets benchmark
+* General overheads
+* Other / unassigned
+
+The P&L is the baseline truth check, not the final modelling engine.
+
+## Labour Cost Logic
+
+Core labour logic:
+
+```text
+paid_hours_per_year = hours_per_week × 52
+
+non_productive_paid_hours =
+annual_leave_weeks × hours_per_week
++ public_holiday_days × daily_hours
++ sick_days × daily_hours
++ bereavement_days × daily_hours
++ family_violence_days × daily_hours
+
+productive_hours =
+(paid_hours_per_year - non_productive_paid_hours)
+× productivity_percent / 100
+```
+
+Total employer labour cost includes:
+
+* gross wages
+* employer KiwiSaver
+* ESCT
+
+Labour exposes wage-basis People Cost outputs:
+
+* `gross_wages_annual`
+* `entitlements_annual`
+* `employer_kiwisaver_gross`
+* `esct_amount`
+* `total_employer_contribution_cost`
+* `productive_hours`
+
+Labour v1.9 is implemented and exposes these downstream outputs. 
+
+## Minimum Charge-Out Logic
+
+```text
+productive_labour_cost_rate =
+total_labour_cost_annual / productive_hours
+
+minimum_charge_out_rate =
+productive_labour_cost_rate / (1 - margin_target_percent)
+```
+
+## Asset Finance Logic
+
+Assets use real cash cost recovery. Depreciation is excluded.
+
+Asset outputs:
+
+* `finance_cost_annual`
+* `running_cost_annual`
+* `total_asset_cost_annual`
+
+## General Overheads Logic
+
+General Overheads produce:
+
+```text
+total_general_overheads
+```
+
+Cost Summary maps:
+
+```text
+total_business_overheads = total_general_overheads
+```
+
+## Cost Burden Logic
+
+Cost Summary v1.7 locks:
+
+```text
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+required_revenue =
+total_cost_burden
+
+required_recovery_rate =
+required_revenue / total_productive_output
+```
+
+
+
+## Recovery Logic
+
+Recovery Summary distributes cost burden:
+
+```text
+labour_recovery_cost =
+total_cost_burden × labour_share_percent / 100
+
+asset_recovery_cost =
+total_cost_burden × asset_share_percent / 100
+
+overhead_absorbed_cost =
+total_cost_burden × overhead_share_percent / 100
+
+required_labour_recovery_rate =
+labour_recovery_cost / total_productive_output
+```
+
+
+
+## Cost Allocation Logic
+
+Cost Allocation validates structure:
+
+* links staff to assets
+* defines operational groups
+* detects duplicate links
+* detects orphan staff/assets
+* validates group completeness
+* calculates coverage percentages
+
+It does not calculate cost or recovery.
+
+## Recovery Outcome Logic
+
+Recovery Outcome decision flow:
+
+* invalid share model → `not_viable`
+* no productive/labour base → `not_viable`
+* asset/hybrid strategy with invalid structure → `not_viable`
+* asset strategy without assets → `not_viable` or `marginal`
+* weak coverage → `marginal`
+* no blocking issues → `viable`
+
+
+
+## Quote Checker Logic
+
+Future Quote Checker should test quotes against:
+
+* required labour recovery
+* minimum charge-out
+* material/product margin
+* direct costs
+* target margin
+* business recovery burden
+
+It should not confuse material markup with overhead recovery.
+
+## Feedback Loop Logic
+
+Accepted quotes only should feed actual-vs-model performance:
+
+* labour hours actual vs allowed
+* materials actual margin vs expected
+* total quote margin vs model
+* monthly roll-up
+* pricing improvement signal
+
+---
+
+# 8. Pending Work List
+
+## Completed / Mostly Working
+
+* Labour v1.9 implemented
+* Labour People Cost output contract implemented
+* Labour Scenario Layer v2.1 locked
+* Assets v2.3 source-of-truth aligned
+* General Overheads v2.1 locked
+* Cost Summary architecture updated to v1.6
+* Cost Summary Wiring v1.7 locked
+* Recovery Summary v1.0 locked
+* Cost Allocation v2.1 locked
+* Recovery Outcome v1.0 brief added to active architecture
+* UI system/token rules locked
+* Naming and module template rules locked
+
+## Partly Built / Needs Review
+
+* Cost Summary full live wiring should be verified against current code
+* Employee Overheads → Cost Summary wiring should be checked
+* Assets → Cost Summary wiring should be checked
+* General Overheads → Cost Summary wiring should be checked
+* Recovery Summary implementation status should be confirmed in repo
+* Cost Allocation v2.1 implementation status should be confirmed in repo
+* Recovery Outcome module may be next build target
+* Rate Builder recent changes need current `git status` review
+
+## Not Started / Future Build
+
+* Revenue / COGS module
+* Business Summary module
+* Quote Checker
+* Accepted quote feedback loop
+* Budget expansion
+* Xero / accounting integrations
+* PO / invoice reconciliation automation
+* Power BI connector
+* Timekeeping / staff external data-entry portal
+* Retail/POS version
+* Full digital CFO workflows
+
+## Known Bugs or Risks
+
+* ChatGPT Project history may be lost or inaccessible after workspace/plan changes.
+* Some briefs in the source pack are deprecated and must not be used.
+* Old Cost Allocation v1.3 placed recovery model locally; v2.1 supersedes that.
+* Old Cost Summary v1.5 is archive/history; v1.6/v1.7 are current.
+* Untracked local docs may be lost if not committed or copied.
+* Rate Builder work has modified/untracked files that must be protected.
+* Generated Excel files and PDFs may not exist in the repo unless manually saved.
+
+## Do Not Change Yet
+
+* Labour calculation contract
+* Labour output variable names
+* ESCT treatment
+* Cost Summary v1.7 output names
+* Recovery Summary ownership of recovery model
+* Cost Allocation v2.1 role as structural/operational validation only
+* Recovery Outcome as decision layer only
+* UI token system
+* Naming conventions
+* Downstream contract rule
+
+---
+
+# 9. Important Briefs to Save
+
+## Critical
+
+### Active System Briefs v1.17
+
+Covers the current architecture including Recovery Outcome. Critical because it is the latest active system map.
+
+### QS Tools — Full Aligned Source Pack v1.16
+
+Covers the aligned source-of-truth after introducing the Recovery layer. It also lists deprecated files that should not be used. 
+
+### Source Files Guardrail Brief v1.1
+
+Locks architecture, downstream contracts, ownership, naming, UI rules, and recovery ownership. Critical.
+
+### Naming Convention and Source File Structure Brief v1.0
+
+Critical for preventing naming drift.
+
+### New Module Build Template v1.0
+
+Critical for future module builds.
+
+### New Page Build Checklist v1.0
+
+Critical for pre-build and pre-push checks.
+
+### Labour Module v1.9 Full Source of Truth
+
+Critical because Labour owns `staff_id` and the labour cost engine.
+
+### Cost Summary Module v1.6 Full Source of Truth
+
+Critical because it defines the current Cost Summary role after Recovery architecture.
+
+### Cost Summary Wiring v1.7
+
+Critical because it locks full upstream wiring.
+
+### Recovery Summary Page v1.0
+
+Critical because it owns recovery strategy.
+
+### Cost Allocation v2.1 With Operational Groups
+
+Critical because it supersedes Cost Allocation v1.3.
+
+### Recovery Outcome Locked Build Brief v1.0
+
+Critical because it defines the next decision layer.
+
+## Useful
+
+### UI System & Mobile Conversion Brief
+
+Useful for preserving styling and mobile-first rules.
+
+### Responsive Layout Layer / Desktop Enhancement Brief
+
+Useful for future desktop/tablet layout work.
+
+### Implementation Briefs
+
+Save:
+
+* Employee Overheads → Cost Summary
+* Assets → Cost Summary
+* General Overheads → Cost Summary
+
+These are useful when checking whether Cost Summary wiring is complete.
+
+## Deprecated but Archive
+
+Keep but mark as deprecated:
+
+* Active System Briefs v1.15
+* Cost Allocation v1.3
+* Cost Summary Module v1.5
+* Source Files Guardrail v1.0
+* README_ALIGNED_PACK_2026-04-07
+* README_NEXT_BUILD_PACK_2026-04-05
+
+The v1.16 source pack explicitly marks these as deprecated. 
+
+---
+
+# 10. Files to Download or Save
+
+## Critical Source Briefs
+
+Save externally under:
+
+```text
+QS Tools Backup/source-briefs/current-authority/
+```
+
+Critical files:
+
+```text
+ACTIVE_SYSTEM_BRIEFS_v1.17_UPDATED.txt
+ACTIVE_SYSTEM_BRIEFS_v1.16_UPDATED.txt
+QS Tools — Full Aligned Source Pack (v1.16 — UPDATED).txt
+QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+QS Tools - Naming Convention and Source File Structure Brief (v1.0 - LOCKED).txt
+QS Tools — New Module Build Template (v1.0 — LOCKED).txt
+QS Tools — New Page Build Checklist (v1.0 — LOCKED).txt
+Labour_Module_v1.9_FULL_SOURCE_OF_TRUTH_ALIGNED_2026-04-07.txt
+Cost_Summary_Module_v1.6_FULL_SOURCE_OF_TRUTH.txt
+Cost_Summary_Wiring_v1.7_LOCKED.txt
+Cost_Summary_Page_v1.5_FULL_SOURCE_OF_TRUTH.txt
+Recovery_Summary_Page_v1.0_LOCKED.txt
+Cost_Allocation_v2.1_WITH_OPERATIONAL_GROUPS_LOCKED.txt
+Recovery Outcome — LOCKED BUILD BRIEF (v1.0).txt
+```
+
+## Useful Build Briefs
+
+Save externally under:
+
+```text
+QS Tools Backup/source-briefs/build-briefs/
+```
+
+```text
+Implementation_Brief_Employee_Overheads_to_Cost_Summary_v1.0.txt
+Implementation_Brief_Assets_to_Cost_Summary_v1.0.txt
+Implementation_Brief_General_Overheads_to_Cost_Summary_v1.0.txt
+Implementation_Order_2026-04-08_UPDATED.txt
+Cost Allocation Page — Build Brief v2.1.txt
+Recovery Summary Page — Build Brief v1.0.txt
+```
+
+## Uploaded / Generated Business Files
+
+Save externally under:
+
+```text
+QS Tools Backup/business-files/
+```
+
+Include:
+
+* business growth plan P&L Excel files
+* PO / invoice reconciliation briefs
+* terms and conditions Excel/checklist files
+* employment agreement PDFs
+* redundancy letter drafts
+* screenshots used for branding/name checks
+* quote template terms and conditions workbook
+* any generated evidence packs
+
+## Repo Files
+
+Save by committing and pushing, not just downloading.
+
+External save location:
+
+```text
+GitHub remote
++
+QS Tools Backup/repo-export/
+```
+
+Recommended:
+
+```powershell
+git bundle create qstools-backup.bundle --all
+```
+
+Optional full copy:
+
+```text
+QS Tools Backup/qstools-web-full-folder-copy/
+```
+
+---
+
+# 11. New Project Starter Pack
+
+Paste this as the first message or Project Instructions in a new ChatGPT Project:
+
+```text
+I am building QS Tools, a Next.js web app for business cost analysis, recovery modelling, pricing, quote checking, and business decision support.
+
+Product purpose:
+QS Tools mirrors a business back to the user by connecting P&L data, labour cost, productive capacity, assets, overheads, revenue/COGS, recovery strategy, cost allocation, quote checking, and accepted quote feedback.
+
+Current architecture:
+INPUT MODULES
+→ COST SUMMARY
+→ RECOVERY SUMMARY
+→ COST ALLOCATION
+→ RECOVERY OUTCOME
+→ BUDGET
+
+Core system principle:
+Cost Summary = WHAT it costs
+Recovery Summary = HOW it is recovered
+Cost Allocation = CAN it be delivered
+Recovery Outcome = SHOULD you run it
+
+Current active versions:
+- Labour Module v1.9 implemented
+- Labour Scenario v2.1
+- Employee Overheads v1.6
+- Assets v2.3
+- General Overheads v2.1
+- Cost Summary Module v1.6
+- Cost Summary Wiring v1.7
+- Recovery Summary v1.0
+- Cost Allocation v2.1
+- Recovery Outcome v1.0
+- Budget v1.2
+
+Architecture rules:
+- page.jsx = layout/orchestration only
+- hook = integration/orchestration
+- calculations = business logic
+- selectors = shaping/status/warnings
+- components = UI only
+- storage files own persistence
+- no business maths in components
+- no business maths in page.jsx
+
+Downstream contract rules:
+- upstream modules own inputs, calculations, and output contracts
+- downstream modules consume outputs only
+- do not rebuild upstream maths downstream
+- do not consume raw upstream form state downstream
+- do not rename contract variables
+- use snake_case internal variables
+- use IDs for joins, never display names
+
+Identity rules:
+- staff_id is owned by Labour
+- asset_id is owned by Assets
+- Recovery Summary owns recovery_model
+- Cost Allocation consumes active_recovery_model and validates structure only
+- Recovery Outcome owns decision logic only
+
+UI rules:
+- use token-based CSS/UI system
+- no inline styles
+- no hardcoded colours
+- no text-white or bg-neutral-* hacks
+- mobile-first
+- macro → breakdown → drilldown
+- keep UI simple, readable, and low clutter
+
+Current priority:
+Protect the current repo and source briefs first. Then continue from the latest active architecture:
+1. Confirm Cost Summary v1.7 wiring is implemented.
+2. Confirm Recovery Summary is implemented and consumes Cost Summary only.
+3. Confirm Cost Allocation v2.1 consumes Recovery Summary + Labour + Assets only.
+4. Build or finish Recovery Outcome as the decision layer.
+5. Do not start Budget/Quote Checker until the full flow is validated.
+
+Key files to upload:
+- ACTIVE_SYSTEM_BRIEFS_v1.17_UPDATED.txt
+- QS Tools — Full Aligned Source Pack (v1.16 — UPDATED).txt
+- QS Tools — Source Files Guardrail Brief (v1.1 — LOCKED).txt
+- Naming Convention and Source File Structure Brief
+- New Module Build Template
+- New Page Build Checklist
+- Labour v1.9 full source of truth
+- Cost Summary v1.6 source of truth
+- Cost Summary Wiring v1.7
+- Recovery Summary v1.0
+- Cost Allocation v2.1
+- Recovery Outcome v1.0
+- latest git status output
+- relevant current source files from the repo
+
+Important:
+Do not casually refactor, rename, or restructure. Preserve working modules. Work in small patches. Explain risks before large structural changes.
+```
+
+This pack should be saved outside ChatGPT before changing workspace or plan.
