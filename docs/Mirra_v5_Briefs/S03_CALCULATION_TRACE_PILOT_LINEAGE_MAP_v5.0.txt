@@ -1,0 +1,299 @@
+# Mirra — Calculation Trace Pilot Lineage Map
+
+## v5.0 — MANUAL PILOT MAP FOR REQUIRED REVENUE CHAIN
+
+STATUS: PILOT LINEAGE MAP — MANUAL DRAFT, NOT YET IMPLEMENTED
+VERSION: v5.0
+RELATED BRIEF: S03_MIRRA_CALCULATION_TRACE_SUPPORTING_MODULE_v5.0.txt
+
+---
+
+# 1. PURPOSE
+
+This document defines the first manual lineage pilot for the Calculation Trace supporting module.
+
+The purpose is to prove that a final output number can be traced backward through the system to the raw source values that created it.
+
+This is a manual lineage map only.
+
+It does not calculate values.
+
+It does not change output contracts.
+
+It does not replace owning module formulas.
+
+---
+
+# 2. PILOT CHAIN
+
+The first pilot chain is:
+
+Business Summary / required revenue
+→ Cost Summary
+→ Labour
+→ Employee Overheads
+→ Assets
+→ General Overheads
+→ P&L mapped source values
+
+Business Outcome and Business Modelling are excluded from this pilot because they are not yet sufficiently implemented in code.
+
+---
+
+# 3. TRACE STARTING POINT
+
+Selected final output:
+
+module_name: business-summary
+variable_name: required_revenue
+display_label: Required Revenue
+value_source: output_contract
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+
+Purpose:
+
+Required Revenue is the high-level revenue target required to recover business cost and meet the model's commercial requirement.
+
+---
+
+# 4. NODE REGISTER — DRAFT
+
+Each node must eventually include:
+
+- node_id
+- module_name
+- variable_name
+- display_label
+- value_source
+- formula_text
+- is_root_input
+- brief_reference
+- last_verified_against
+
+---
+
+## 4.1 Business Summary Nodes
+
+node_id: business_summary.required_revenue
+module_name: business-summary
+variable_name: required_revenue
+display_label: Required Revenue
+value_source: output_contract
+formula_text: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: business_summary.total_cost
+module_name: business-summary
+variable_name: total_cost
+display_label: Total Cost
+value_source: output_contract
+formula_text: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+---
+
+## 4.2 Cost Summary Nodes
+
+node_id: cost_summary.total_cost_burden
+module_name: cost-summary
+variable_name: total_cost_burden
+display_label: Total Cost Burden
+value_source: output_contract
+formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+is_root_input: false
+brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: cost_summary.people_cost
+module_name: cost-summary
+variable_name: people_cost
+display_label: People Cost
+value_source: output_contract
+formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+is_root_input: false
+brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: cost_summary.business_cost
+module_name: cost-summary
+variable_name: business_cost
+display_label: Business Cost
+value_source: output_contract
+formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+is_root_input: false
+brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+---
+
+## 4.3 Source Module Nodes
+
+node_id: labour.total_labour_cost
+module_name: labour
+variable_name: total_labour_cost
+display_label: Total Labour Cost
+value_source: output_contract
+formula_text: TO VERIFY FROM LABOUR BRIEF
+is_root_input: false
+brief_reference: 07_MIRRA_LABOUR_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: employee_overheads.total_employee_overheads
+module_name: employee-overheads
+variable_name: total_employee_overheads
+display_label: Total Employee Overheads
+value_source: output_contract
+formula_text: TO VERIFY FROM EMPLOYEE OVERHEADS BRIEF
+is_root_input: false
+brief_reference: TO VERIFY
+last_verified_against: v5.0 pilot draft
+
+node_id: assets.total_asset_cost
+module_name: assets
+variable_name: total_asset_cost
+display_label: Total Asset Cost
+value_source: output_contract
+formula_text: TO VERIFY FROM ASSETS BRIEF
+is_root_input: false
+brief_reference: 09_MIRRA_ASSETS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: general_overheads.total_general_overheads
+module_name: general-overheads
+variable_name: total_general_overheads
+display_label: Total General Overheads
+value_source: output_contract
+formula_text: TO VERIFY FROM GENERAL OVERHEADS BRIEF
+is_root_input: false
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+---
+
+# 5. EDGE REGISTER — DRAFT
+
+Each edge must eventually include:
+
+- edge_id
+- from_node_id
+- to_node_id
+- relationship_type
+- notes
+
+---
+
+## 5.1 Business Summary Edges
+
+edge_id: cost_summary.total_cost_burden__to__business_summary.total_cost
+from_node_id: cost_summary.total_cost_burden
+to_node_id: business_summary.total_cost
+relationship_type: direct_input
+notes: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+
+edge_id: business_summary.total_cost__to__business_summary.required_revenue
+from_node_id: business_summary.total_cost
+to_node_id: business_summary.required_revenue
+relationship_type: direct_input
+notes: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+
+---
+
+## 5.2 Cost Summary Edges
+
+edge_id: cost_summary.people_cost__to__cost_summary.total_cost_burden
+from_node_id: cost_summary.people_cost
+to_node_id: cost_summary.total_cost_burden
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+edge_id: cost_summary.business_cost__to__cost_summary.total_cost_burden
+from_node_id: cost_summary.business_cost
+to_node_id: cost_summary.total_cost_burden
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+edge_id: labour.total_labour_cost__to__cost_summary.people_cost
+from_node_id: labour.total_labour_cost
+to_node_id: cost_summary.people_cost
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+edge_id: employee_overheads.total_employee_overheads__to__cost_summary.people_cost
+from_node_id: employee_overheads.total_employee_overheads
+to_node_id: cost_summary.people_cost
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+edge_id: assets.total_asset_cost__to__cost_summary.business_cost
+from_node_id: assets.total_asset_cost
+to_node_id: cost_summary.business_cost
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+edge_id: general_overheads.total_general_overheads__to__cost_summary.business_cost
+from_node_id: general_overheads.total_general_overheads
+to_node_id: cost_summary.business_cost
+relationship_type: sum_component
+notes: TO VERIFY FROM COST SUMMARY BRIEF
+
+---
+
+# 6. ROOT INPUTS — TO MAP AFTER FORMULA VERIFICATION
+
+Root input mapping must be added only after the owning module formulas are checked.
+
+Examples of likely root sources:
+
+- P&L mapped wages / labour cost lines
+- P&L mapped employee overhead lines
+- P&L mapped asset cost lines
+- P&L mapped general overhead lines
+- Direct business setup inputs where applicable
+
+No root input should be added until confirmed from the owning module brief.
+
+---
+
+# 7. KNOWN GAPS
+
+The following items must be verified before this pilot can be treated as locked:
+
+- exact Business Summary required_revenue formula
+- exact Business Summary total_cost source
+- exact Cost Summary people_cost formula
+- exact Cost Summary business_cost formula
+- exact Cost Summary total_cost_burden formula
+- exact Labour total cost output variable name
+- exact Employee Overheads output variable name and brief filename
+- exact Assets total cost output variable name
+- exact General Overheads total cost output variable name
+- root P&L mapped source variables for each source module
+
+---
+
+# 8. PILOT SUCCESS CRITERIA
+
+This pilot is successful only when:
+
+1. Every node has a verified brief_reference.
+2. Every non-root node has formula_text copied from the owning brief.
+3. Every edge is verified from the owning module formula or output contract.
+4. Every branch either reaches a confirmed root input or is clearly marked incomplete.
+5. A Required Revenue value can be manually re-derived from the trace.
+
+---
+
+# 9. FINAL RULE
+
+This pilot map is allowed to be incomplete.
+
+It is not allowed to be assumed.
+
+A known gap is valid.
+
+An invented edge is not.
