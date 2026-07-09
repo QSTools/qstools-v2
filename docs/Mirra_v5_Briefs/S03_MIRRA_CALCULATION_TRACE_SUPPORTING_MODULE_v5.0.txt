@@ -1,8 +1,8 @@
-# Mirra — Calculation Trace Supporting Module Brief
+﻿# Mirra â€” Calculation Trace Supporting Module Brief
 
-## v5.0 — LINEAGE METADATA, BACKWARD TRACE, FORWARD IMPACT, NO RECALCULATION
+## v5.0 â€” LINEAGE METADATA, BACKWARD TRACE, FORWARD IMPACT, NO RECALCULATION
 
-STATUS: SUPPORTING MODULE BRIEF — DESIGN STAGE, NOT YET BUILT
+STATUS: SUPPORTING MODULE BRIEF â€” DESIGN STAGE, NOT YET BUILT
 VERSION: v5.0
 FILE NUMBER: S03
 
@@ -51,23 +51,23 @@ Calculation Trace is a supporting/diagnostic module. It does not sit inside the 
 It reads from the output_contract of any module in the chain, for example:
 
 P&L
-↓
+â†“
 Revenue / COGS, Labour, Assets, General Overheads
-↓
+â†“
 Cost Summary
-↓
+â†“
 Business Summary
-↓
+â†“
 Revenue Reality / Asset Reality
-↓
+â†“
 Cost Allocation
-↓
+â†“
 Recovery Summary
-↓
+â†“
 Rate Builder
-↓
+â†“
 Business Outcome
-↓
+â†“
 Business Modelling
 
 Calculation Trace sits alongside this chain as an overlay, not inside it.
@@ -114,13 +114,13 @@ If Calculation Trace cannot find a declared lineage relationship, it must show t
 
 Calculation Trace exposes the following output contract fields:
 
-- `trace_lineage_map` — the full registry of nodes and edges (see Section 6)
-- `trace_node_status` — per-node completeness state (see Section 9)
-- `trace_backward_result` — the assembled backward chain for a selected node (see Section 8)
-- `trace_forward_result` — the assembled forward impact set for a selected node (see Section 8)
-- `trace_ready` — whether the lineage map has been built/refreshed and is safe to query
-- `trace_warnings` — list of known gaps, broken links, or unverified formulas
-- `trace_module_coverage` — per-module summary of how many of that module's output_contract fields currently have declared lineage vs. do not
+- `trace_lineage_map` â€” the full registry of nodes and edges (see Section 6)
+- `trace_node_status` â€” per-node completeness state (see Section 9)
+- `trace_backward_result` â€” the assembled backward chain for a selected node (see Section 8)
+- `trace_forward_result` â€” the assembled forward impact set for a selected node (see Section 8)
+- `trace_ready` â€” whether the lineage map has been built/refreshed and is safe to query
+- `trace_warnings` â€” list of known gaps, broken links, or unverified formulas
+- `trace_module_coverage` â€” per-module summary of how many of that module's output_contract fields currently have declared lineage vs. do not
 
 These fields are read-only diagnostic output. No other module should treat them as business input.
 
@@ -137,7 +137,7 @@ trace_lineage_map = {
 }
 ```
 
-The map is additive and can be built incrementally, module by module, matching the Continuous Contract Alignment Workflow's build rhythm. It does not need to be complete to be useful — an incomplete map should show exactly where it is incomplete, per Section 9.
+The map is additive and can be built incrementally, module by module, matching the Continuous Contract Alignment Workflow's build rhythm. It does not need to be complete to be useful â€” an incomplete map should show exactly where it is incomplete, per Section 9.
 
 ---
 
@@ -163,7 +163,7 @@ Rules:
 
 - `formula_text` must be copied from the owning module's brief, not re-derived or paraphrased by Calculation Trace.
 - `is_root_input = true` only for values that originate from P&L-mapped source data or direct user setup entry, with no upstream calculation.
-- A node must not exist without a `brief_reference`. If a code field has no corresponding brief entry, it is not yet eligible to become a trace node — this mirrors the Continuous Contract Alignment Workflow's rule that unclassified fields do not enter formal contracts.
+- A node must not exist without a `brief_reference`. If a code field has no corresponding brief entry, it is not yet eligible to become a trace node â€” this mirrors the Continuous Contract Alignment Workflow's rule that unclassified fields do not enter formal contracts.
 
 ---
 
@@ -195,9 +195,9 @@ Given a selected output node, backward trace assembles the full ancestry:
 
 ```txt
 selected node
-→ all direct input edges
-→ each input node's own direct input edges
-→ continue until every branch reaches a node where is_root_input = true,
+â†’ all direct input edges
+â†’ each input node's own direct input edges
+â†’ continue until every branch reaches a node where is_root_input = true,
   or until a node has no further declared edges
 ```
 
@@ -213,9 +213,9 @@ Given a selected input node, forward impact assembles everything downstream that
 
 ```txt
 selected node
-→ all edges where this node is the "from" side
-→ each resulting output node's own downstream edges
-→ continue until no further consuming edges are found
+â†’ all edges where this node is the "from" side
+â†’ each resulting output node's own downstream edges
+â†’ continue until no further consuming edges are found
 ```
 
 `trace_forward_result` returns the full set of outputs that would be affected if this input changed, grouped by module, so a user can answer "if I change this, what else moves?" without needing to open every downstream module manually.
@@ -238,42 +238,138 @@ Calculation Trace must apply the following checks whenever the lineage map is bu
 
 # 12. FIRST PILOT SCOPE
 
+The first pilot lineage map is documented in:
+
+S03_CALCULATION_TRACE_PILOT_LINEAGE_MAP_v5.0.txt
+
 The first pilot lineage map is limited to the following chain, selected because these modules currently have the highest matched/brief-aligned coverage in the v5.0 audit, and are therefore the most likely to produce a trustworthy pilot rather than tracing into modules that are still largely brief-only:
 
 ```txt
-Business Summary / required revenue
-↑
-Cost Summary
-↑
-Labour, Employee Overheads, Assets, General Overheads
-↑
-P&L mapped source values (root inputs)
+Business Summary / Required Recovery Per Driver
+<- Business Summary / Total Cost Burden
+<- Cost Summary / Total Cost Burden
+<- Cost Summary / Total People Cost Annual
+<- Cost Summary / Total Asset Cost Annual
+<- Cost Summary / Total Business Overheads
+<- Labour / Total People Cost Annual
+<- Assets / Total Asset Cost Annual
+<- General Overheads / Total Business Overheads
 ```
 
 Business Outcome and Business Modelling are explicitly excluded from the first pilot. Per the current audit position, Business Outcome is 19/19 brief-only (0 matched) and Business Modelling is 30/46 brief-only — tracing into either now would produce a lineage map documenting intended design rather than verified working code, which would misrepresent what Calculation Trace is for.
 
-The pilot's success criteria:
+The first pilot chain has now been manually verified against the owning module briefs and the hand-built pilot lineage map.
 
-- Every node in the pilot chain has a `brief_reference`.
-- Every edge in the pilot chain is manually verified against the owning module's actual formula text, not assumed.
-- At least one full backward trace, from a Business Summary required-revenue figure down to root P&L-mapped inputs, can be manually reproduced by hand using only the trace output.
-- Any gap found during the pilot is logged in `trace_warnings` rather than silently closed with a guess.
+Verified source briefs:
 
-Expansion beyond this chain should only happen after the pilot's success criteria are met and reviewed.
+- 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+- 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+- 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+- 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+- 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+
+Verified chain:
+
+```txt
+business_summary.required_recovery_per_driver
+<- business_summary.total_cost_burden
+<- cost_summary.total_cost_burden
+<- cost_summary.total_people_cost_annual
+<- cost_summary.total_asset_cost_annual
+<- cost_summary.total_business_overheads
+<- labour.total_people_cost_annual
+<- assets.total_asset_cost_annual
+<- general_overheads.total_business_overheads
+```
+
+Verified formulas / source relationships:
+
+```txt
+required_recovery_per_driver =
+total_cost_burden / activity_driver_value
+```
+
+```txt
+Business Summary receives total_cost_burden from Cost Summary.
+Cost Summary owns cost burden aggregation.
+```
+
+```txt
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+```
+
+```txt
+total_people_cost_annual =
+total_labour_cost_annual
+```
+
+```txt
+total_labour_cost_annual =
+sum annual_labour_cost for active staff
+```
+
+```txt
+annual_labour_cost =
+annual_base_cost + annual_on_costs
+```
+
+```txt
+total_asset_cost_annual =
+sum total_asset_cost_annual for active assets
+```
+
+```txt
+Per-asset total_asset_cost_annual =
+asset_ownership_cost_annual
++ asset_finance_interest_annual
++ asset_lease_cost_annual
++ asset_depreciation_or_replacement_cost_annual
++ asset_insurance_cost_annual
++ asset_registration_cost_annual
++ asset_other_ownership_cost_annual
++ assigned_running_cost_transfers_annual
+```
+
+```txt
+Cost Summary receives total_general_overheads from General Overheads.
+Cost Summary uses total_general_overheads as total_business_overheads.
+```
+
+Validation completed:
+
+- every edge endpoint has a matching node_id
+- no duplicate node_id values
+- no duplicate edge_id values
+- no stale TO VERIFY placeholders remain in the verified pilot chain
+- no old incorrect Assets filename remains
+- no old incorrect Labour filename remains
+- first complete backward trace can be manually followed from Business Summary required recovery back through Cost Summary, Labour, Assets, and General Overheads
+
+Pilot status:
+
+```txt
+pilot_chain_verified
+```
+
+Remaining known gaps are intentionally recorded in the pilot lineage map and must remain visible until verified. They must not be silently closed with assumptions.
+
+Expansion beyond this chain should only happen after the pilot's success criteria are reviewed and the next chain is selected deliberately.
 
 ---
-
 # 13. CONTINUOUS CONTRACT ALIGNMENT REQUIREMENT
 
 Calculation Trace is subject to the same discipline as every other module under the Mirra v5.0 Continuous Contract Alignment Workflow.
 
 Specifically:
 
-1. Whenever an owning module changes a formula or output_contract field that has a corresponding trace node, the affected trace node(s) and edge(s) must be reviewed and updated in the same alignment pass — not deferred.
+1. Whenever an owning module changes a formula or output_contract field that has a corresponding trace node, the affected trace node(s) and edge(s) must be reviewed and updated in the same alignment pass â€” not deferred.
 2. New trace nodes/edges added during a module build must go through the same accept / document-as-wrapper / reject classification used for any other new field, per the Continuous Contract Alignment Workflow Section 5.
 3. `formula_text` on any node must be re-copied from the owning brief whenever that brief's formula changes. Calculation Trace must never carry a stale formula silently.
 4. A module step is not considered fully aligned (per the Continuous Contract Alignment Workflow's Section 9 acceptance criteria) if it introduces or changes a traceable output without updating the corresponding lineage map, once Calculation Trace is active for that module.
-5. Calculation Trace itself must go through the standard build order: brief reviewed → pilot lineage map hand-built and verified → only then should any generation tooling or UI be built against it.
+5. Calculation Trace itself must go through the standard build order: brief reviewed â†’ pilot lineage map hand-built and verified â†’ only then should any generation tooling or UI be built against it.
 
 ---
 
@@ -281,20 +377,29 @@ Specifically:
 
 This brief does not:
 
-- build the manual pilot lineage map (a separate, later step)
-- specify UI layout or interaction design for the Calculation Trace page
+- build the Calculation Trace UI
+- implement runtime trace generation
 - extend `tools/audit/` to auto-generate lineage data
-- assign a build/implementation status beyond "design stage, not yet built"
+- make Calculation Trace a business source of truth
+- allow Calculation Trace to recalculate Labour, Assets, General Overheads, Cost Summary, Business Summary, or any other module
+- close remaining known gaps with assumptions
+- expand beyond the first verified pilot chain without a separate review step
+- assign full implementation status beyond "supporting module brief — design stage, not yet built"
 
-These are deliberately left for subsequent, separate steps so this brief can be reviewed and locked on its own terms first.
+The manual pilot lineage map now exists as a separate verified artefact:
+
+S03_CALCULATION_TRACE_PILOT_LINEAGE_MAP_v5.0.txt
+
+That pilot map verifies the first trace chain only. It does not mean the Calculation Trace module has been built, nor that every Mirra module has full lineage coverage.
+
+These are deliberately separated so the brief, the manual pilot map, future tooling, and future UI build can each be reviewed and locked on their own terms.
 
 ---
-
 # 15. FINAL PRINCIPLE
 
 Calculation Trace shows how a number was built. It does not decide what the number is.
 
-If the owning module's output changes, Calculation Trace's map must change with it — never the other way around.
+If the owning module's output changes, Calculation Trace's map must change with it â€” never the other way around.
 
 An incomplete or broken trace is honest information. A trace that quietly fills gaps with assumptions is a leak.
 
