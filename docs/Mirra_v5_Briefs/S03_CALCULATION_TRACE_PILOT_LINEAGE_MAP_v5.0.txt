@@ -1,8 +1,8 @@
-# Mirra — Calculation Trace Pilot Lineage Map
+﻿# Mirra â€” Calculation Trace Pilot Lineage Map
 
-## v5.0 — MANUAL PILOT MAP FOR REQUIRED REVENUE CHAIN
+## v5.0 â€” MANUAL PILOT MAP FOR Required Recovery Per Driver CHAIN
 
-STATUS: PILOT LINEAGE MAP — MANUAL DRAFT, NOT YET IMPLEMENTED
+STATUS: PILOT LINEAGE MAP â€” MANUAL DRAFT, NOT YET IMPLEMENTED
 VERSION: v5.0
 RELATED BRIEF: S03_MIRRA_CALCULATION_TRACE_SUPPORTING_MODULE_v5.0.txt
 
@@ -28,13 +28,13 @@ It does not replace owning module formulas.
 
 The first pilot chain is:
 
-Business Summary / required revenue
-→ Cost Summary
-→ Labour
-→ Employee Overheads
-→ Assets
-→ General Overheads
-→ P&L mapped source values
+Business Summary / Required Recovery Per Driver
+â†’ Cost Summary
+â†’ Labour
+â†’ Employee Overheads
+â†’ Assets
+â†’ General Overheads
+â†’ P&L mapped source values
 
 Business Outcome and Business Modelling are excluded from this pilot because they are not yet sufficiently implemented in code.
 
@@ -45,19 +45,19 @@ Business Outcome and Business Modelling are excluded from this pilot because the
 Selected final output:
 
 module_name: business-summary
-variable_name: required_revenue
-display_label: Required Revenue
+variable_name: required_recovery_per_driver
+display_label: Required Recovery Per Driver
 value_source: output_contract
 is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 
 Purpose:
 
-Required Revenue is the high-level revenue target required to recover business cost and meet the model's commercial requirement.
+Required Recovery Per Driver is the high-level revenue target required to recover business cost and meet the model's commercial requirement.
 
 ---
 
-# 4. NODE REGISTER — DRAFT
+# 4. NODE REGISTER â€” DRAFT
 
 Each node must eventually include:
 
@@ -75,20 +75,20 @@ Each node must eventually include:
 
 ## 4.1 Business Summary Nodes
 
-node_id: business_summary.required_revenue
+node_id: business_summary.activity_driver_value
 module_name: business-summary
-variable_name: required_revenue
-display_label: Required Revenue
+variable_name: activity_driver_value
+display_label: Activity Driver Value
 value_source: output_contract
-formula_text: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+formula_text: Direct activity driver value from Business Summary / business setup context
 is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: business_summary.total_cost
+node_id: business_summary.total_cost_burden
 module_name: business-summary
-variable_name: total_cost
-display_label: Total Cost
+variable_name: total_cost_burden
+display_label: Total Cost Burden
 value_source: output_contract
 formula_text: TO VERIFY FROM BUSINESS SUMMARY BRIEF
 is_root_input: false
@@ -175,7 +175,7 @@ last_verified_against: v5.0 pilot draft
 
 ---
 
-# 5. EDGE REGISTER — DRAFT
+# 5. EDGE REGISTER â€” DRAFT
 
 Each edge must eventually include:
 
@@ -189,20 +189,25 @@ Each edge must eventually include:
 
 ## 5.1 Business Summary Edges
 
-edge_id: cost_summary.total_cost_burden__to__business_summary.total_cost
+edge_id: cost_summary.total_cost_burden__to__business_summary.total_cost_burden
 from_node_id: cost_summary.total_cost_burden
-to_node_id: business_summary.total_cost
+to_node_id: business_summary.total_cost_burden
 relationship_type: direct_input
-notes: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+notes: Business Summary receives total_cost_burden from Cost Summary output_contract.
 
-edge_id: business_summary.total_cost__to__business_summary.required_revenue
-from_node_id: business_summary.total_cost
-to_node_id: business_summary.required_revenue
+edge_id: business_summary.total_cost_burden__to__business_summary.required_recovery_per_driver
+from_node_id: business_summary.total_cost_burden
+to_node_id: business_summary.required_recovery_per_driver
 relationship_type: direct_input
-notes: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+notes: Verified from formula: required_recovery_per_driver = total_cost_burden / activity_driver_value
+
+edge_id: business_summary.activity_driver_value__to__business_summary.required_recovery_per_driver
+from_node_id: business_summary.activity_driver_value
+to_node_id: business_summary.required_recovery_per_driver
+relationship_type: direct_input
+notes: Verified from formula: required_recovery_per_driver = total_cost_burden / activity_driver_value
 
 ---
-
 ## 5.2 Cost Summary Edges
 
 edge_id: cost_summary.people_cost__to__cost_summary.total_cost_burden
@@ -243,7 +248,7 @@ notes: TO VERIFY FROM COST SUMMARY BRIEF
 
 ---
 
-# 6. ROOT INPUTS — TO MAP AFTER FORMULA VERIFICATION
+# 6. ROOT INPUTS â€” TO MAP AFTER FORMULA VERIFICATION
 
 Root input mapping must be added only after the owning module formulas are checked.
 
@@ -263,8 +268,8 @@ No root input should be added until confirmed from the owning module brief.
 
 The following items must be verified before this pilot can be treated as locked:
 
-- exact Business Summary required_revenue formula
-- exact Business Summary total_cost source
+- exact Business Summary required_recovery_per_driver formula
+- exact Business Summary total_cost_burden source
 - exact Cost Summary people_cost formula
 - exact Cost Summary business_cost formula
 - exact Cost Summary total_cost_burden formula
@@ -284,7 +289,7 @@ This pilot is successful only when:
 2. Every non-root node has formula_text copied from the owning brief.
 3. Every edge is verified from the owning module formula or output contract.
 4. Every branch either reaches a confirmed root input or is clearly marked incomplete.
-5. A Required Revenue value can be manually re-derived from the trace.
+5. A Required Recovery Per Driver value can be manually re-derived from the trace.
 
 ---
 
