@@ -187,6 +187,26 @@ is_root_input: false
 brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
+node_id: labour.annual_base_cost
+module_name: labour
+variable_name: annual_base_cost
+display_label: Annual Base Cost
+value_source: raw_source_import
+formula_text: Direct Labour staff-row input; Labour must not use P&L labour as operational source truth
+is_root_input: true
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: labour.annual_on_costs
+module_name: labour
+variable_name: annual_on_costs
+display_label: Annual On-Costs
+value_source: raw_source_import
+formula_text: Direct Labour staff-row input for employer contributions, payroll on-costs, leave allowance, ACC / workers compensation, KiwiSaver / superannuation employer cost, and payroll tax where relevant
+is_root_input: true
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
 node_id: assets.total_asset_cost_annual
 module_name: assets
 variable_name: total_asset_cost_annual
@@ -228,7 +248,6 @@ brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 ---
-
 # 5. EDGE REGISTER â€” DRAFT
 
 Each edge must eventually include:
@@ -315,6 +334,18 @@ to_node_id: labour.total_labour_cost_annual
 relationship_type: sum_component
 notes: Verified from Labour formula: total_labour_cost_annual = sum annual_labour_cost for active staff
 
+edge_id: labour.annual_base_cost__to__labour.annual_labour_cost
+from_node_id: labour.annual_base_cost
+to_node_id: labour.annual_labour_cost
+relationship_type: sum_component
+notes: Verified from Labour formula: annual_labour_cost = annual_base_cost + annual_on_costs. annual_base_cost is a direct Labour staff-row input, not P&L source truth.
+
+edge_id: labour.annual_on_costs__to__labour.annual_labour_cost
+from_node_id: labour.annual_on_costs
+to_node_id: labour.annual_labour_cost
+relationship_type: sum_component
+notes: Verified from Labour formula: annual_labour_cost = annual_base_cost + annual_on_costs. annual_on_costs is a direct Labour staff-row input for direct employment on-costs.
+
 ---
 ## 5.4 Assets Source Edges
 
@@ -370,8 +401,6 @@ The following items must be verified before this pilot can be treated as locked:
   Employment-related overheads that are not direct wage/on-cost calculations belong in General Overheads through the overheads pathway.
   No Employee Overheads node or direct Employee Overheads-to-Cost Summary edge is required for this pilot.
 
-- exact Labour root source variables for annual_base_cost and annual_on_costs
-
 - exact Assets root source variables for asset ownership, finance, lease, depreciation/replacement, insurance, registration, other ownership cost, and assigned running cost transfers
 
 - exact General Overheads root source variables for overhead categories, exclusions, adjusted benchmark, and source pool values
@@ -402,6 +431,8 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
+
 
 
 
