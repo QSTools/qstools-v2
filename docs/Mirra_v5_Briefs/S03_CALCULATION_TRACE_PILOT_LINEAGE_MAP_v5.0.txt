@@ -177,9 +177,19 @@ module_name: assets
 variable_name: total_asset_cost_annual
 display_label: Total Asset Cost Annual
 value_source: output_contract
-formula_text: TO VERIFY FROM ASSETS BRIEF
+formula_text: total_asset_cost_annual = sum total_asset_cost_annual for active assets
 is_root_input: false
-brief_reference: 09_MIRRA_ASSETS_v4.0_LOCKED.txt
+brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: assets.asset_total_asset_cost_annual
+module_name: assets
+variable_name: total_asset_cost_annual
+display_label: Per Asset Total Asset Cost Annual
+value_source: output_contract
+formula_text: total_asset_cost_annual = asset_ownership_cost_annual + asset_finance_interest_annual + asset_lease_cost_annual + asset_depreciation_or_replacement_cost_annual + asset_insurance_cost_annual + asset_registration_cost_annual + asset_other_ownership_cost_annual + assigned_running_cost_transfers_annual
+is_root_input: false
+brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 node_id: general_overheads.total_business_overheads
@@ -281,7 +291,15 @@ relationship_type: sum_component
 notes: Verified from Labour formula: total_labour_cost_annual = sum annual_labour_cost for active staff
 
 ---
+## 5.4 Assets Source Edges
 
+edge_id: assets.asset_total_asset_cost_annual__to__assets.total_asset_cost_annual
+from_node_id: assets.asset_total_asset_cost_annual
+to_node_id: assets.total_asset_cost_annual
+relationship_type: sum_component
+notes: Verified from Assets formula: total_asset_cost_annual = sum total_asset_cost_annual for active assets
+
+---
 
 # 6. ROOT INPUTS â€” TO MAP AFTER FORMULA VERIFICATION
 
@@ -308,9 +326,9 @@ The following items must be verified before this pilot can be treated as locked:
 - exact Cost Summary total_people_cost_annual source
 - exact Cost Summary total_asset_cost_annual and total_business_overheads source
 - exact Cost Summary total_cost_burden formula
-- exact Labour total cost output variable name
+- exact Labour root source variables for annual base cost and annual on-costs
 - exact Employee Overheads output variable name and brief filename
-- exact Assets total cost output variable name
+- exact Assets root source variables for asset ownership, finance, lease, depreciation/replacement, insurance, registration, other ownership cost, and assigned running cost transfers
 - exact General Overheads total cost output variable name
 - root P&L mapped source variables for each source module
 
