@@ -1,0 +1,305 @@
+# Mirra — Calculation Trace Supporting Module Brief
+
+## v5.0 — LINEAGE METADATA, BACKWARD TRACE, FORWARD IMPACT, NO RECALCULATION
+
+STATUS: SUPPORTING MODULE BRIEF — DESIGN STAGE, NOT YET BUILT
+VERSION: v5.0
+FILE NUMBER: S03
+
+REPLACES:
+- no prior brief (new module)
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+Calculation Trace is a diagnostic and validation layer. It owns lineage metadata describing how output variables relate to one another. It does not calculate, store, or hold a second copy of any business value. It reads and displays what owning modules have already computed.
+
+---
+
+# 1. PURPOSE
+
+Calculation Trace answers:
+
+Where did this number come from?
+
+What was it built from?
+
+If I change this input, what else changes?
+
+Can I manually verify this formula by hand?
+
+Is this output currently traceable back to raw source data, or does the chain break somewhere?
+
+It exists so a user can click any final output number and walk backward through the calculation chain to raw inputs, in order to manually verify formulas and downstream totals.
+
+It is not a calculation engine.
+
+It is not a second source of truth.
+
+It is a map of a source of truth that already exists elsewhere.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Calculation Trace is a supporting/diagnostic module. It does not sit inside the main model chain.
+
+It reads from the output_contract of any module in the chain, for example:
+
+P&L
+↓
+Revenue / COGS, Labour, Assets, General Overheads
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Business Modelling
+
+Calculation Trace sits alongside this chain as an overlay, not inside it.
+
+No module in the main chain should depend on Calculation Trace to function.
+
+---
+
+# 3. OWNERSHIP
+
+Calculation Trace owns:
+
+- lineage metadata (which output came from which inputs, and by which formula)
+- trace node registry (one entry per traceable variable)
+- trace edge registry (one entry per input-to-output relationship)
+- backward trace assembly (walking from an output to its root inputs)
+- forward impact assembly (walking from an input to everything it affects)
+- trace completeness status (whether a chain is fully traceable or breaks somewhere)
+- trace display formatting for the Calculation Trace page
+
+Calculation Trace does not own any business number itself. It owns the map of where business numbers come from.
+
+---
+
+# 4. NON-OWNERSHIP
+
+Calculation Trace must not:
+
+- recalculate any business value
+- store a duplicate value of any output (it stores a reference, not the number itself, wherever possible)
+- hold its own version of a formula that could drift from the owning module's actual formula
+- become a fallback source if the owning module's output is missing or stale
+- infer a lineage relationship that has not been explicitly declared by the owning module's brief or output contract
+- guess at a formula it has not been given
+- silently "fix" a broken chain by estimating a missing link
+- override, adjust, or annotate an owning module's output
+- become required for any downstream module's calculation to run
+
+If Calculation Trace cannot find a declared lineage relationship, it must show the chain as incomplete. It must not fill the gap with an assumption.
+
+---
+
+# 5. OUTPUT CONTRACT
+
+Calculation Trace exposes the following output contract fields:
+
+- `trace_lineage_map` — the full registry of nodes and edges (see Section 6)
+- `trace_node_status` — per-node completeness state (see Section 9)
+- `trace_backward_result` — the assembled backward chain for a selected node (see Section 8)
+- `trace_forward_result` — the assembled forward impact set for a selected node (see Section 8)
+- `trace_ready` — whether the lineage map has been built/refreshed and is safe to query
+- `trace_warnings` — list of known gaps, broken links, or unverified formulas
+- `trace_module_coverage` — per-module summary of how many of that module's output_contract fields currently have declared lineage vs. do not
+
+These fields are read-only diagnostic output. No other module should treat them as business input.
+
+---
+
+# 6. TRACE_LINEAGE_MAP STRUCTURE
+
+`trace_lineage_map` is a registry made of two collections:
+
+```txt
+trace_lineage_map = {
+  nodes: [ trace_node, ... ],
+  edges: [ trace_edge, ... ]
+}
+```
+
+The map is additive and can be built incrementally, module by module, matching the Continuous Contract Alignment Workflow's build rhythm. It does not need to be complete to be useful — an incomplete map should show exactly where it is incomplete, per Section 9.
+
+---
+
+# 7. TRACE NODE STRUCTURE
+
+Each node represents one traceable variable owned by some module.
+
+```txt
+{
+  node_id,
+  module_name,
+  variable_name,
+  display_label,
+  value_source,        // "output_contract" or "raw_source_import"
+  formula_text,         // human-readable formula, copied verbatim from the owning brief
+  is_root_input,        // true if this is a raw source value with no further upstream calculation
+  brief_reference,      // filename of the owning module brief that defines this field
+  last_verified_against // brief version/date this node was last checked against
+}
+```
+
+Rules:
+
+- `formula_text` must be copied from the owning module's brief, not re-derived or paraphrased by Calculation Trace.
+- `is_root_input = true` only for values that originate from P&L-mapped source data or direct user setup entry, with no upstream calculation.
+- A node must not exist without a `brief_reference`. If a code field has no corresponding brief entry, it is not yet eligible to become a trace node — this mirrors the Continuous Contract Alignment Workflow's rule that unclassified fields do not enter formal contracts.
+
+---
+
+# 8. TRACE EDGE STRUCTURE
+
+Each edge represents one input-to-output relationship between two nodes.
+
+```txt
+{
+  edge_id,
+  from_node_id,   // the input
+  to_node_id,     // the output that consumes it
+  relationship_type,  // "direct_input", "weighted_component", "conditional_input", "sum_component"
+  notes
+}
+```
+
+Rules:
+
+- An edge must connect two nodes that already exist in the registry.
+- `relationship_type` should describe how the input participates in the formula (e.g. a weighted average component vs. a straight sum term), so the trace display can show not just "used" but "used how."
+- Circular edges are not allowed. If a proposed edge would create a cycle, it must be rejected and logged as a warning, not silently accepted.
+
+---
+
+# 9. BACKWARD TRACE BEHAVIOUR
+
+Given a selected output node, backward trace assembles the full ancestry:
+
+```txt
+selected node
+→ all direct input edges
+→ each input node's own direct input edges
+→ continue until every branch reaches a node where is_root_input = true,
+  or until a node has no further declared edges
+```
+
+`trace_backward_result` returns this as an ordered tree, root inputs first, so a user can read it top-down and manually re-derive the final number.
+
+If a branch terminates at a node that is not marked `is_root_input = true` and has no further edges, that branch is incomplete. It must be marked as such, not silently treated as a dead end. This is the "chain breaks somewhere" case described in Section 1.
+
+---
+
+# 10. FORWARD IMPACT BEHAVIOUR
+
+Given a selected input node, forward impact assembles everything downstream that consumes it:
+
+```txt
+selected node
+→ all edges where this node is the "from" side
+→ each resulting output node's own downstream edges
+→ continue until no further consuming edges are found
+```
+
+`trace_forward_result` returns the full set of outputs that would be affected if this input changed, grouped by module, so a user can answer "if I change this, what else moves?" without needing to open every downstream module manually.
+
+---
+
+# 11. VALIDATION RULES
+
+Calculation Trace must apply the following checks whenever the lineage map is built or refreshed:
+
+1. Every node must have a `brief_reference`. No orphan nodes.
+2. Every edge must reference two nodes that exist in the registry. No dangling edges.
+3. No cycles are permitted in the edge graph.
+4. A node marked `is_root_input = true` must not also have inbound edges. A root cannot have upstream dependencies.
+5. `formula_text` must not be blank for any non-root node.
+6. Coverage gaps must be surfaced, not hidden. If a module's output_contract has fields with no corresponding trace node, `trace_module_coverage` must report this explicitly per module.
+7. Calculation Trace must never invent an edge or node to make a chain look complete. An incomplete chain is a valid and expected state, not an error to be papered over.
+
+---
+
+# 12. FIRST PILOT SCOPE
+
+The first pilot lineage map is limited to the following chain, selected because these modules currently have the highest matched/brief-aligned coverage in the v5.0 audit, and are therefore the most likely to produce a trustworthy pilot rather than tracing into modules that are still largely brief-only:
+
+```txt
+Business Summary / required revenue
+↑
+Cost Summary
+↑
+Labour, Employee Overheads, Assets, General Overheads
+↑
+P&L mapped source values (root inputs)
+```
+
+Business Outcome and Business Modelling are explicitly excluded from the first pilot. Per the current audit position, Business Outcome is 19/19 brief-only (0 matched) and Business Modelling is 30/46 brief-only — tracing into either now would produce a lineage map documenting intended design rather than verified working code, which would misrepresent what Calculation Trace is for.
+
+The pilot's success criteria:
+
+- Every node in the pilot chain has a `brief_reference`.
+- Every edge in the pilot chain is manually verified against the owning module's actual formula text, not assumed.
+- At least one full backward trace, from a Business Summary required-revenue figure down to root P&L-mapped inputs, can be manually reproduced by hand using only the trace output.
+- Any gap found during the pilot is logged in `trace_warnings` rather than silently closed with a guess.
+
+Expansion beyond this chain should only happen after the pilot's success criteria are met and reviewed.
+
+---
+
+# 13. CONTINUOUS CONTRACT ALIGNMENT REQUIREMENT
+
+Calculation Trace is subject to the same discipline as every other module under the Mirra v5.0 Continuous Contract Alignment Workflow.
+
+Specifically:
+
+1. Whenever an owning module changes a formula or output_contract field that has a corresponding trace node, the affected trace node(s) and edge(s) must be reviewed and updated in the same alignment pass — not deferred.
+2. New trace nodes/edges added during a module build must go through the same accept / document-as-wrapper / reject classification used for any other new field, per the Continuous Contract Alignment Workflow Section 5.
+3. `formula_text` on any node must be re-copied from the owning brief whenever that brief's formula changes. Calculation Trace must never carry a stale formula silently.
+4. A module step is not considered fully aligned (per the Continuous Contract Alignment Workflow's Section 9 acceptance criteria) if it introduces or changes a traceable output without updating the corresponding lineage map, once Calculation Trace is active for that module.
+5. Calculation Trace itself must go through the standard build order: brief reviewed → pilot lineage map hand-built and verified → only then should any generation tooling or UI be built against it.
+
+---
+
+# 14. WHAT THIS BRIEF DOES NOT DO
+
+This brief does not:
+
+- build the manual pilot lineage map (a separate, later step)
+- specify UI layout or interaction design for the Calculation Trace page
+- extend `tools/audit/` to auto-generate lineage data
+- assign a build/implementation status beyond "design stage, not yet built"
+
+These are deliberately left for subsequent, separate steps so this brief can be reviewed and locked on its own terms first.
+
+---
+
+# 15. FINAL PRINCIPLE
+
+Calculation Trace shows how a number was built. It does not decide what the number is.
+
+If the owning module's output changes, Calculation Trace's map must change with it — never the other way around.
+
+An incomplete or broken trace is honest information. A trace that quietly fills gaps with assumptions is a leak.
+
+No recalculation.
+No duplicate source of truth.
+No invented edges.
+No hidden gaps.
+No leaks.
