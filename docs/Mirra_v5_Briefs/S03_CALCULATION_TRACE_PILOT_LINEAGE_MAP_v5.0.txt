@@ -104,33 +104,42 @@ module_name: cost-summary
 variable_name: total_cost_burden
 display_label: Total Cost Burden
 value_source: output_contract
-formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+formula_text: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads
 is_root_input: false
 brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: cost_summary.people_cost
+node_id: cost_summary.total_people_cost_annual
 module_name: cost-summary
-variable_name: people_cost
-display_label: People Cost
+variable_name: total_people_cost_annual
+display_label: Total People Cost Annual
 value_source: output_contract
-formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+formula_text: Labour source output consumed by Cost Summary
 is_root_input: false
 brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: cost_summary.business_cost
+node_id: cost_summary.total_asset_cost_annual
 module_name: cost-summary
-variable_name: business_cost
-display_label: Business Cost
+variable_name: total_asset_cost_annual
+display_label: Total Asset Cost Annual
 value_source: output_contract
-formula_text: TO VERIFY FROM COST SUMMARY BRIEF
+formula_text: Assets source output consumed by Cost Summary
+is_root_input: false
+brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: cost_summary.total_business_overheads
+module_name: cost-summary
+variable_name: total_business_overheads
+display_label: Total Business Overheads
+value_source: output_contract
+formula_text: General Overheads source output consumed by Cost Summary
 is_root_input: false
 brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 ---
-
 ## 4.3 Source Module Nodes
 
 node_id: labour.total_labour_cost
@@ -210,41 +219,41 @@ notes: Verified from formula: required_recovery_per_driver = total_cost_burden /
 ---
 ## 5.2 Cost Summary Edges
 
-edge_id: cost_summary.people_cost__to__cost_summary.total_cost_burden
-from_node_id: cost_summary.people_cost
+edge_id: cost_summary.total_people_cost_annual__to__cost_summary.total_cost_burden
+from_node_id: cost_summary.total_people_cost_annual
 to_node_id: cost_summary.total_cost_burden
 relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+notes: Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads
 
-edge_id: cost_summary.business_cost__to__cost_summary.total_cost_burden
-from_node_id: cost_summary.business_cost
+edge_id: cost_summary.total_asset_cost_annual__to__cost_summary.total_cost_burden
+from_node_id: cost_summary.total_asset_cost_annual
 to_node_id: cost_summary.total_cost_burden
 relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+notes: Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads
 
-edge_id: labour.total_labour_cost__to__cost_summary.people_cost
-from_node_id: labour.total_labour_cost
-to_node_id: cost_summary.people_cost
+edge_id: cost_summary.total_business_overheads__to__cost_summary.total_cost_burden
+from_node_id: cost_summary.total_business_overheads
+to_node_id: cost_summary.total_cost_burden
 relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+notes: Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads
 
-edge_id: employee_overheads.total_employee_overheads__to__cost_summary.people_cost
-from_node_id: employee_overheads.total_employee_overheads
-to_node_id: cost_summary.people_cost
-relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+edge_id: labour.total_people_cost_annual__to__cost_summary.total_people_cost_annual
+from_node_id: labour.total_people_cost_annual
+to_node_id: cost_summary.total_people_cost_annual
+relationship_type: direct_input
+notes: Cost Summary consumes total_people_cost_annual from Labour.
 
-edge_id: assets.total_asset_cost__to__cost_summary.business_cost
-from_node_id: assets.total_asset_cost
-to_node_id: cost_summary.business_cost
-relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+edge_id: assets.total_asset_cost_annual__to__cost_summary.total_asset_cost_annual
+from_node_id: assets.total_asset_cost_annual
+to_node_id: cost_summary.total_asset_cost_annual
+relationship_type: direct_input
+notes: Cost Summary consumes total_asset_cost_annual from Assets.
 
-edge_id: general_overheads.total_general_overheads__to__cost_summary.business_cost
-from_node_id: general_overheads.total_general_overheads
-to_node_id: cost_summary.business_cost
-relationship_type: sum_component
-notes: TO VERIFY FROM COST SUMMARY BRIEF
+edge_id: general_overheads.total_business_overheads__to__cost_summary.total_business_overheads
+from_node_id: general_overheads.total_business_overheads
+to_node_id: cost_summary.total_business_overheads
+relationship_type: direct_input
+notes: Cost Summary consumes total_business_overheads from General Overheads.
 
 ---
 
@@ -270,8 +279,8 @@ The following items must be verified before this pilot can be treated as locked:
 
 - exact Business Summary required_recovery_per_driver formula
 - exact Business Summary total_cost_burden source
-- exact Cost Summary people_cost formula
-- exact Cost Summary business_cost formula
+- exact Cost Summary total_people_cost_annual source
+- exact Cost Summary total_asset_cost_annual and total_business_overheads source
 - exact Cost Summary total_cost_burden formula
 - exact Labour total cost output variable name
 - exact Employee Overheads output variable name and brief filename
