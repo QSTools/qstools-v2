@@ -1,0 +1,1288 @@
+# Mirra — Model Feedback Loop Brief
+
+## v4.0 — ACTUAL PERFORMANCE FEEDBACK, RATE REVIEW SIGNALS, SUPPLIER PRESSURE FEEDBACK, MODEL UPDATE RECOMMENDATIONS, AND NO-AUTOMATIC-SOURCE-MUTATION BOUNDARY
+
+STATUS: FUTURE BUILD BRIEF
+VERSION: v4.0
+FILE NUMBER: 24
+
+REPLACES:
+- older assumptions that job actuals automatically update the model
+- older assumptions that rates should be overwritten from job results
+- older logic that does not preserve a review step before model changes
+- older logic where job costing feedback is disconnected from Business Outcome
+- older logic where supplier, labour, asset, and rate issues are not fed back into the model
+
+PRODUCT NAME:
+Mirra
+
+FORMER NAME:
+QS Tools
+
+PRIMARY RULE:
+The Model Feedback Loop converts actual job performance into structured review signals for Rate Builder, Business Outcome, Labour, Assets, Revenue / COGS, and future modelling. It does not automatically overwrite approved model values.
+
+---
+
+# 1. PURPOSE
+
+The Model Feedback Loop answers:
+
+What did real job results teach us?
+Which rates may need review?
+Which suppliers are causing cost pressure?
+Which material categories are consistently over allowance?
+Which labour tasks are taking longer than expected?
+Which assets are under-recovering?
+Which overhead assumptions are not being recovered?
+Which quote assumptions failed?
+Which model assumptions should be reviewed?
+What should be flagged before future quotes are checked?
+
+This layer turns actual performance into structured improvement signals.
+
+It is not an automatic correction engine.
+
+It is a review and learning layer.
+
+---
+
+# 2. POSITION IN ACTIVE FLOW
+
+Main model flow:
+
+Business Setup
+↓
+P&L
+↓
+Revenue / COGS
+↓
+Labour
+↓
+Assets
+↓
+General Overheads
+↓
+Module Reconciliation
+↓
+Model Readiness
+↓
+Cost Summary
+↓
+Business Summary
+↓
+Revenue Reality / Asset Reality
+↓
+Cost Allocation
+↓
+Recovery Summary
+↓
+Rate Builder
+↓
+Business Outcome
+↓
+Quote Checker
+
+Operational truth flow:
+
+Quote Checker
+↓
+SOQ / Job / PO Layer
+↓
+Job Costing / Profitability
+↓
+Model Feedback Loop
+↓
+Rate Builder / Business Outcome / Future Model Review
+
+The Model Feedback Loop sits after Job Costing.
+
+---
+
+# 3. CORE PRINCIPLE
+
+Actual job results should influence future model decisions, but they must not automatically rewrite the model.
+
+A single bad job may be:
+
+- bad pricing
+- poor production
+- supplier issue
+- scope issue
+- site issue
+- one-off exception
+- incorrect coding
+- bad source data
+
+Therefore every feedback signal must remain a review signal until accepted.
+
+No automatic rate overwrite.
+
+No automatic supplier adjustment.
+
+No automatic labour productivity change.
+
+No automatic asset utilisation change.
+
+---
+
+# 4. MODULE ROLE
+
+Model Feedback Loop owns:
+
+- feedback signal creation
+- issue classification
+- repeated issue detection
+- supplier pressure signals
+- material category pressure signals
+- labour productivity signals
+- asset utilisation signals
+- asset recovery signals
+- overhead recovery signals
+- quote alignment signals
+- rate review signals
+- scenario suggestion signals
+- model update recommendation rows
+- accepted / rejected / pending feedback state
+- feedback warnings
+- feedback trust state
+
+Model Feedback Loop does not own:
+
+- source P&L values
+- Revenue / COG categorisation
+- Labour module source rates
+- Asset source cost or utilisation
+- Cost Allocation assignments
+- Recovery Summary tests
+- Rate Builder approved rate construction
+- Business Outcome scenario values
+- Quote Checker result calculation
+- Job Costing actual calculations
+
+---
+
+# 5. INPUTS FROM JOB COSTING / PROFITABILITY
+
+Model Feedback Loop consumes:
+
+- job_profitability_rows
+- quote_line_profitability_rows
+- material_variance_rows
+- labour_variance_rows
+- asset_variance_rows
+- subcontractor_variance_rows
+- overhead_recovery_variance_rows
+- supplier_job_performance_rows
+- task_profitability_rows
+- rate_builder_feedback_rows
+- business_outcome_feedback_rows
+- job_costing_status
+- job_costing_model_trust_state
+
+Job Costing provides evidence.
+
+Model Feedback Loop classifies and prioritises that evidence.
+
+---
+
+# 6. INPUTS FROM RATE BUILDER
+
+Model Feedback Loop consumes:
+
+- rate_builder_rows
+- minimum_recoverable_rate
+- suggested_sell_rate
+- current_rate
+- target_rate
+- market_rate where supplied
+- under_recovering_rates
+- margin_shortfall_rates
+- selected components
+- rate_builder_model_trust_state
+
+Purpose:
+
+Compare actual job feedback against approved model rates.
+
+---
+
+# 7. INPUTS FROM BUSINESS OUTCOME
+
+Model Feedback Loop consumes:
+
+- selected modelled scenario
+- quote_checker_targets
+- pressure_source
+- modelled_scenarios
+- supplier_sensitivity_rows
+- category_sensitivity_rows
+- material_markup_context
+- rate_impact_rows
+- business_outcome_model_trust_state
+
+Purpose:
+
+Compare actual job feedback against selected business targets and scenario assumptions.
+
+---
+
+# 8. INPUTS FROM QUOTE CHECKER
+
+Model Feedback Loop consumes:
+
+- quote_checker_status
+- quote_line_results
+- under_recovering_lines
+- margin_shortfall_lines
+- unmatched_lines
+- selected_business_outcome_targets
+- selected_rate_builder_rows
+- quote_checker_model_trust_state
+
+Purpose:
+
+Distinguish whether a job failed because the quote was already misaligned or because actual delivery failed after an aligned quote.
+
+---
+
+# 9. FEEDBACK SIGNAL TYPES
+
+Allowed feedback_signal_type values:
+
+- rate_review
+- supplier_pressure
+- material_category_pressure
+- labour_productivity
+- labour_cost_pressure
+- asset_under_recovery
+- asset_utilisation
+- overhead_under_recovery
+- subcontractor_pressure
+- quote_alignment_failure
+- scope_variance
+- task_margin_issue
+- model_assumption_review
+- data_quality_review
+- positive_signal
+- repeated_issue
+- mixed_signal
+
+---
+
+# 10. FEEDBACK SEVERITY VALUES
+
+Allowed feedback_severity values:
+
+- info
+- watch
+- review
+- high
+- critical
+- blocked
+
+Definitions:
+
+info:
+Useful signal, no immediate action.
+
+watch:
+Monitor across more jobs.
+
+review:
+Requires user review.
+
+high:
+Likely model impact.
+
+critical:
+Major repeated or high-value issue.
+
+blocked:
+Source data cannot be trusted.
+
+---
+
+# 11. FEEDBACK STATUS VALUES
+
+Allowed feedback_status values:
+
+- pending_review
+- accepted
+- rejected
+- deferred
+- applied_to_scenario
+- applied_to_rate_review
+- ignored_as_one_off
+- blocked
+
+Rules:
+
+pending_review:
+Default state for feedback.
+
+accepted:
+User agrees signal should affect future model review.
+
+rejected:
+User decides signal is not valid.
+
+deferred:
+Signal is valid but not acted on yet.
+
+applied_to_scenario:
+Signal has been used in Business Outcome modelling.
+
+applied_to_rate_review:
+Signal has been used to create a Rate Builder review item.
+
+ignored_as_one_off:
+Signal is valid but treated as exceptional.
+
+blocked:
+Signal cannot be used due to bad source data.
+
+---
+
+# 12. FEEDBACK SIGNAL CONTRACT
+
+feedback_signal_rows[]
+
+Each row:
+
+{
+  feedback_signal_id,
+  source_job_id,
+  source_quote_id,
+  source_quote_line_id,
+  source_rate_id,
+  feedback_signal_type,
+  feedback_category,
+  feedback_label,
+  feedback_severity,
+  feedback_status,
+  current_model_value,
+  actual_value,
+  variance_amount,
+  variance_percent,
+  affected_module,
+  affected_variable,
+  recommended_review_action,
+  evidence_summary,
+  source_trace,
+  warnings
+}
+
+---
+
+# 13. RATE REVIEW SIGNALS
+
+Rate review signals are created when actual job results show approved rates may be wrong.
+
+Examples:
+
+- actual cost per hour exceeds minimum recoverable rate
+- actual job margin below target despite Quote Checker pass
+- selected rate regularly produces margin shortfall
+- machine + operator rate under-recovers actual cost
+- labour rate is below actual cost pressure
+
+rate_review_signal_rows[]
+
+{
+  feedback_signal_id,
+  rate_id,
+  rate_name,
+  quoted_rate,
+  approved_minimum_recoverable_rate,
+  approved_suggested_sell_rate,
+  actual_cost_rate,
+  actual_margin_rate,
+  variance_to_minimum,
+  variance_to_suggested,
+  jobs_affected_count,
+  total_revenue_affected,
+  recommended_rate_review,
+  feedback_status
+}
+
+---
+
+# 14. SUPPLIER PRESSURE SIGNALS
+
+Supplier pressure signals are created when supplier costs consistently exceed quote/model assumptions.
+
+Examples:
+
+- concrete supplier costs higher than expected
+- supplier spend dominates COG pressure
+- supplier price increases reduce blended material markup
+- supplier variance appears across multiple jobs
+
+supplier_feedback_rows[]
+
+{
+  feedback_signal_id,
+  supplier_id,
+  supplier_name,
+  category,
+  total_actual_spend,
+  quoted_allowance_total,
+  modelled_allowance_total,
+  variance_to_quote,
+  variance_to_model,
+  variance_percent,
+  jobs_affected_count,
+  supplier_cog_share_percent,
+  recommended_review_action,
+  feedback_status
+}
+
+---
+
+# 15. MATERIAL CATEGORY PRESSURE SIGNALS
+
+Material category pressure signals are created when a COG category repeatedly compresses margin.
+
+Examples:
+
+- concrete purchases
+- pumping
+- purchases other
+- subcontracting
+- block materials
+- fuel / running materials where mapped
+
+material_category_feedback_rows[]
+
+{
+  feedback_signal_id,
+  material_category,
+  total_actual_cost,
+  quoted_allowance_total,
+  variance_to_quote,
+  variance_percent,
+  jobs_affected_count,
+  category_cog_share_percent,
+  pressure_status,
+  recommended_review_action,
+  feedback_status
+}
+
+---
+
+# 16. LABOUR PRODUCTIVITY SIGNALS
+
+Labour productivity signals are created when actual hours exceed modelled or quoted hours.
+
+Examples:
+
+- block laying taking more hours per m²
+- site works crew taking more hours than allowed
+- labourer hours exceeding quote allowance
+- operator time not matching asset use
+
+labour_feedback_rows[]
+
+{
+  feedback_signal_id,
+  labour_type_id,
+  labour_type_label,
+  task_id,
+  task_name,
+  quoted_hours,
+  model_allowed_hours,
+  actual_hours,
+  hours_variance,
+  productivity_variance_percent,
+  cost_variance,
+  jobs_affected_count,
+  recommended_review_action,
+  feedback_status
+}
+
+---
+
+# 17. ASSET UTILISATION / RECOVERY SIGNALS
+
+Asset feedback signals are created when actual usage differs from model assumptions.
+
+Examples:
+
+- digger used more hours than quoted
+- digger recovery below required recovery rate
+- asset underutilised across jobs
+- asset hours not matched with recovery value
+
+asset_feedback_rows[]
+
+{
+  feedback_signal_id,
+  asset_id,
+  asset_name,
+  model_required_recovery_rate,
+  actual_recovery_rate,
+  actual_usage_hours,
+  recovery_gap,
+  utilisation_variance,
+  jobs_affected_count,
+  recommended_review_action,
+  feedback_status
+}
+
+---
+
+# 18. OVERHEAD RECOVERY SIGNALS
+
+Overhead feedback signals are created when jobs fail to recover their overhead burden.
+
+Examples:
+
+- rates recover labour and assets but miss overhead recovery
+- overhead allocation assumptions too low
+- high overhead burden not reflected in quotes
+
+overhead_feedback_rows[]
+
+{
+  feedback_signal_id,
+  overhead_group,
+  model_required_overhead_recovery,
+  actual_overhead_recovered,
+  overhead_recovery_gap,
+  jobs_affected_count,
+  recommended_review_action,
+  feedback_status
+}
+
+---
+
+# 19. QUOTE ALIGNMENT SIGNALS
+
+Quote alignment signals identify whether failure began before or after quote approval.
+
+If Quote Checker failed and Job Costing failed:
+
+The issue likely started at quote stage.
+
+If Quote Checker passed and Job Costing failed:
+
+The issue likely came from execution, supplier variance, productivity, or scope.
+
+quote_alignment_feedback_rows[]
+
+{
+  feedback_signal_id,
+  job_id,
+  quote_id,
+  quote_checker_status,
+  job_profitability_status,
+  failure_origin,
+  evidence_summary,
+  recommended_review_action,
+  feedback_status
+}
+
+Allowed failure_origin values:
+
+- quote_under_recovered
+- quote_margin_shortfall
+- execution_variance
+- supplier_variance
+- labour_productivity_variance
+- asset_variance
+- scope_variance
+- data_quality_issue
+- mixed
+
+---
+
+# 20. REPEATED ISSUE DETECTION
+
+Model Feedback Loop should identify repeated issues.
+
+Repeated issue rules may consider:
+
+- same supplier
+- same material category
+- same rate_id
+- same labour type
+- same asset
+- same task
+- same quote line type
+- same variance type
+
+Minimum default:
+
+If same issue appears on 3 or more jobs, flag repeated_issue.
+
+Repeated issue threshold should be configurable later.
+
+Repeated signals should be elevated in severity.
+
+---
+
+# 21. POSITIVE FEEDBACK SIGNALS
+
+The system should also detect when the model works.
+
+Positive signals include:
+
+- rate consistently meets target
+- supplier costs remain below allowance
+- labour productivity is better than modelled
+- asset recovery is above target
+- jobs exceed margin target
+
+These should not be ignored.
+
+They help validate model confidence.
+
+positive_feedback_rows[]
+
+{
+  feedback_signal_id,
+  signal_type,
+  source_target,
+  actual_result,
+  model_target,
+  positive_variance,
+  jobs_affected_count,
+  confidence_signal,
+  feedback_status
+}
+
+---
+
+# 22. MODEL UPDATE RECOMMENDATION CONTRACT
+
+model_update_recommendation_rows[]
+
+Each row:
+
+{
+  recommendation_id,
+  feedback_signal_id,
+  affected_module,
+  affected_variable,
+  current_model_value,
+  suggested_review_value,
+  evidence_count,
+  jobs_affected_count,
+  total_value_affected,
+  confidence_level,
+  recommended_action,
+  requires_user_approval,
+  status
+}
+
+Allowed affected_module values:
+
+- Rate Builder
+- Business Outcome
+- Labour
+- Assets
+- Revenue / COGS
+- General Overheads
+- Cost Allocation
+- Quote Checker
+- SOQ / Job / PO
+
+Rules:
+
+- recommendations require user approval.
+- recommendations must not auto-apply.
+- recommendations must include evidence count and source trace.
+
+---
+
+# 23. CONFIDENCE LEVELS
+
+Allowed confidence_level values:
+
+- low
+- medium
+- high
+- blocked
+
+Suggested interpretation:
+
+low:
+One job or weak evidence.
+
+medium:
+Multiple jobs or moderate value impact.
+
+high:
+Repeated issue with strong financial impact.
+
+blocked:
+Source data unreliable.
+
+Confidence must be evidence-based.
+
+---
+
+# 24. SCENARIO SUGGESTION RULE
+
+Model Feedback Loop may suggest Business Outcome scenarios.
+
+Examples:
+
+- model supplier increase of 5%
+- model labour productivity reduction of 10%
+- model digger rate increase
+- model overhead recovery increase
+- model COG category increase
+
+These are suggestions only.
+
+Business Outcome owns scenario modelling.
+
+---
+
+# 25. RATE REVIEW HANDOFF
+
+Model Feedback Loop may create rate review handoff rows.
+
+rate_review_handoff_rows[]
+
+{
+  handoff_id,
+  rate_id,
+  rate_name,
+  current_approved_rate,
+  actual_cost_evidence,
+  suggested_review_action,
+  evidence_count,
+  source_jobs,
+  feedback_status
+}
+
+Rate Builder may consume this later.
+
+Rate Builder must not auto-change approved rates.
+
+---
+
+# 26. BUSINESS OUTCOME HANDOFF
+
+Model Feedback Loop may create Business Outcome handoff rows.
+
+business_outcome_handoff_rows[]
+
+{
+  handoff_id,
+  scenario_type,
+  scenario_target,
+  suggested_adjustment_percent,
+  suggested_adjustment_amount,
+  evidence_summary,
+  affected_pressure_source,
+  source_jobs,
+  feedback_status
+}
+
+Business Outcome may use this as scenario seed data.
+
+---
+
+# 27. DATA QUALITY FEEDBACK
+
+Some feedback is about bad data, not business performance.
+
+Examples:
+
+- invoice not matched to PO
+- labour hours missing
+- asset hours missing
+- quote line unmatched
+- supplier unmapped
+- zero quantity
+- duplicate cost
+
+Data quality feedback should be separated from commercial feedback.
+
+Bad data should block or reduce trust.
+
+Commercial failure should not be treated as bad data.
+
+---
+
+# 28. SOURCE TRACE REQUIREMENT
+
+Every feedback signal must preserve source trace.
+
+Trace should include:
+
+- feedback_signal_id
+- source module
+- source job
+- source quote
+- source quote line
+- source PO
+- source invoice
+- source timesheet
+- source asset usage
+- source calculation
+- trust state
+- created date
+
+No feedback signal should exist without evidence.
+
+---
+
+# 29. TRUST STATE
+
+Model Feedback Loop must expose:
+
+model_feedback_trust_state
+
+Allowed values:
+
+- ready
+- warning
+- blocked
+- preview_only
+
+Mapping:
+
+If Job Costing is blocked:
+model_feedback_trust_state = blocked
+
+If source actuals are incomplete:
+model_feedback_trust_state = warning or preview_only
+
+If feedback is based on trusted actuals:
+model_feedback_trust_state = ready
+
+If feedback includes data quality issues:
+model_feedback_trust_state = warning or blocked depending severity
+
+---
+
+# 30. STATUS VALUES
+
+Allowed model_feedback_status values:
+
+- ready
+- ready_with_warnings
+- review_required
+- blocked
+- preview_only
+- not_ready
+
+Definitions:
+
+ready:
+Feedback signals are generated from trusted actual data.
+
+ready_with_warnings:
+Feedback is usable but warnings remain.
+
+review_required:
+Feedback requires user review.
+
+blocked:
+Feedback cannot be trusted due to missing or invalid source data.
+
+preview_only:
+Signals display but should not be treated as final.
+
+not_ready:
+No actual job data exists.
+
+---
+
+# 31. REQUIRED WARNINGS
+
+Required warning IDs:
+
+model_feedback_missing_job_costing
+model_feedback_no_actual_jobs
+model_feedback_source_data_blocked
+model_feedback_low_confidence
+model_feedback_repeated_issue_detected
+model_feedback_rate_review_required
+model_feedback_supplier_pressure
+model_feedback_labour_productivity_issue
+model_feedback_asset_recovery_issue
+model_feedback_overhead_recovery_issue
+model_feedback_data_quality_issue
+model_feedback_preview_only
+model_feedback_upstream_blocked
+
+---
+
+# 32. OUTPUT CONTRACT
+
+Model Feedback Loop should expose:
+
+{
+  model_feedback_ready,
+  model_feedback_status,
+  model_feedback_warnings,
+  model_feedback_warning_count,
+  model_feedback_trust_state,
+
+  feedback_signal_rows,
+
+  rate_review_signal_rows,
+  supplier_feedback_rows,
+  material_category_feedback_rows,
+  labour_feedback_rows,
+  asset_feedback_rows,
+  overhead_feedback_rows,
+  quote_alignment_feedback_rows,
+  positive_feedback_rows,
+
+  repeated_issue_rows,
+  data_quality_feedback_rows,
+
+  model_update_recommendation_rows,
+
+  rate_review_handoff_rows,
+  business_outcome_handoff_rows,
+
+  model_feedback_cards,
+  model_feedback_source_trace
+}
+
+---
+
+# 33. UI STRUCTURE
+
+Recommended UI:
+
+1. Model Feedback Status Strip
+2. Key Feedback Signals Panel
+3. Repeated Issues Panel
+4. Rate Review Signals Panel
+5. Supplier / Material Pressure Panel
+6. Labour Productivity Feedback Panel
+7. Asset Recovery Feedback Panel
+8. Overhead Recovery Feedback Panel
+9. Quote Alignment Feedback Panel
+10. Positive Signals Panel
+11. Model Update Recommendations Panel
+12. Handoff to Business Outcome / Rate Builder Panel
+13. Source Trust / Warning Panel
+14. Help Panel
+
+---
+
+# 34. STATUS STRIP
+
+Show:
+
+- model_feedback_status
+- trust state
+- number of jobs analysed
+- feedback signal count
+- high-severity signal count
+- repeated issue count
+- rate review count
+- supplier pressure count
+- warning count
+
+---
+
+# 35. KEY FEEDBACK SIGNALS PANEL
+
+Show the highest-priority signals first.
+
+Priority should consider:
+
+- severity
+- financial impact
+- repeated issue count
+- confidence level
+- affected module
+
+This panel should not overwhelm the user with every minor issue.
+
+---
+
+# 36. REPEATED ISSUES PANEL
+
+Show:
+
+- repeated supplier issues
+- repeated rate failures
+- repeated labour productivity issues
+- repeated asset recovery issues
+- repeated quote alignment failures
+
+Repeated issues should be stronger than one-off issues.
+
+---
+
+# 37. RATE REVIEW SIGNALS PANEL
+
+Show:
+
+- rates that may need review
+- actual job cost evidence
+- approved minimum recoverable rate
+- suggested sell rate
+- actual cost rate
+- variance
+- evidence count
+
+No automatic update.
+
+---
+
+# 38. SUPPLIER / MATERIAL PRESSURE PANEL
+
+Show:
+
+- supplier pressure rows
+- material category pressure rows
+- actual spend vs allowance
+- variance
+- jobs affected
+- suggested Business Outcome scenario
+
+---
+
+# 39. LABOUR PRODUCTIVITY FEEDBACK PANEL
+
+Show:
+
+- labour types with repeated hour overruns
+- cost variance
+- productivity variance
+- affected jobs
+- possible model review action
+
+---
+
+# 40. ASSET RECOVERY FEEDBACK PANEL
+
+Show:
+
+- assets with recovery gaps
+- usage hours
+- required recovery rate
+- actual recovery result
+- affected jobs
+
+---
+
+# 41. OVERHEAD RECOVERY FEEDBACK PANEL
+
+Show:
+
+- overhead recovery gap
+- jobs affected
+- rate / group connection
+- model review action
+
+---
+
+# 42. QUOTE ALIGNMENT FEEDBACK PANEL
+
+Show whether failures began at:
+
+- Quote Checker stage
+- actual job delivery
+- supplier variance
+- labour productivity
+- asset recovery
+- scope variance
+- data quality
+
+This helps decide whether the issue is pricing, delivery, or data.
+
+---
+
+# 43. POSITIVE SIGNALS PANEL
+
+Show where the model worked.
+
+Examples:
+
+- rates consistently recovered target
+- supplier costs below allowance
+- labour productivity better than model
+- assets recovered above target
+
+This supports model confidence.
+
+---
+
+# 44. MODEL UPDATE RECOMMENDATIONS PANEL
+
+Show recommendations requiring review.
+
+Each recommendation should include:
+
+- affected module
+- affected variable
+- current model value
+- suggested review value
+- evidence count
+- confidence
+- status
+
+User approval is required before changes flow into any model update workflow.
+
+---
+
+# 45. HANDOFF PANEL
+
+Show:
+
+- suggested Rate Builder reviews
+- suggested Business Outcome scenarios
+- data quality fixes required
+
+This is where feedback becomes actionable.
+
+---
+
+# 46. HELP PANEL
+
+Explain:
+
+- feedback comes from actual job results
+- feedback does not automatically change the model
+- repeated issues matter more than one-offs
+- commercial failure is not data failure
+- user approval is required before model assumptions change
+- positive feedback helps validate rates
+
+---
+
+# 47. WHAT TO KEEP OUT
+
+Keep out:
+
+- direct rate editing
+- direct Business Outcome scenario editing
+- source module mutation
+- quote editing
+- PO editing
+- invoice editing
+- labour source editing
+- asset source editing
+- automatic model updates
+
+This layer flags, recommends, and hands off.
+
+It does not rewrite.
+
+---
+
+# 48. FILE AREAS LIKELY AFFECTED
+
+Likely future files:
+
+hooks/useModelFeedback.js
+lib/calculations/modelFeedbackCalculations.js
+lib/selectors/modelFeedbackSelectors.js
+components/model-feedback/*.jsx
+app/model-feedback/page.jsx
+
+Possible related files:
+
+hooks/useJobCosting.js
+hooks/useRateBuilder.js
+hooks/useBusinessOutcome.js
+hooks/useQuoteChecker.js
+
+Future:
+
+model review workflow
+rate approval workflow
+scenario seed workflow
+data quality dashboard
+
+---
+
+# 49. IMPLEMENTATION NOTES
+
+When implementing:
+
+1. Consume Job Costing outputs.
+2. Consume Quote Checker context.
+3. Consume Rate Builder approved rates.
+4. Consume Business Outcome targets.
+5. Classify feedback signals.
+6. Separate commercial feedback from data quality feedback.
+7. Create supplier feedback rows.
+8. Create material category feedback rows.
+9. Create labour feedback rows.
+10. Create asset feedback rows.
+11. Create overhead feedback rows.
+12. Create rate review signals.
+13. Create quote alignment signals.
+14. Detect repeated issues.
+15. Detect positive signals.
+16. Build model update recommendations.
+17. Create Rate Builder handoff rows.
+18. Create Business Outcome handoff rows.
+19. Preserve source trace.
+20. Require user approval before any model update.
+21. Add warnings and trust state.
+22. Run build.
+
+---
+
+# 50. ACCEPTANCE CRITERIA
+
+Model Feedback Loop v4.0 is accepted when:
+
+1. It consumes Job Costing results.
+2. It consumes Quote Checker context.
+3. It consumes Rate Builder rates.
+4. It consumes Business Outcome targets.
+5. It classifies feedback signals.
+6. It separates commercial feedback from data quality feedback.
+7. It detects rate review signals.
+8. It detects supplier pressure.
+9. It detects material category pressure.
+10. It detects labour productivity issues.
+11. It detects asset recovery issues.
+12. It detects overhead recovery issues.
+13. It detects quote alignment failure origin.
+14. It detects repeated issues.
+15. It detects positive signals.
+16. It creates model update recommendations.
+17. It creates Rate Builder handoff rows.
+18. It creates Business Outcome handoff rows.
+19. It does not auto-change approved rates.
+20. It does not mutate source modules.
+21. It requires review before updates.
+22. It preserves source trace.
+23. It exposes warnings and trust state.
+24. Build passes.
+
+---
+
+# 51. FINAL PRINCIPLE
+
+The Model Feedback Loop is the learning layer.
+
+It turns actual job performance into structured evidence.
+
+It tells the business:
+
+which rates need review
+which suppliers create pressure
+which labour assumptions failed
+which assets under-recovered
+which overheads were missed
+which quote checks failed
+which model assumptions worked
+
+It feeds Rate Builder and Business Outcome with review signals.
+
+It never silently changes the model.
+
+No automatic overwrites.
+No source mutation.
+No untraceable feedback.
+No confusing bad performance with bad data.
+No leaks.

@@ -1,0 +1,947 @@
+# QS Tools — Build Brief
+
+## Macro / Micro Layer Architecture
+
+## Opening Hours, Cost Summary, Business Summary, Recovery Summary, and Cost Allocation
+
+STATUS: ACTIVE BUILD BRIEF
+VERSION: v4.0
+SCOPE: System layer separation and downstream build guidance
+
+---
+
+# 1. Purpose
+
+This build brief defines the new macro / micro architecture now established in QS Tools.
+
+The system now has two distinct layers:
+
+```txt
+Macro layer
+= business operating baseline
+
+Micro layer
+= recovery strategy and operational allocation
+```
+
+The purpose of this split is to prevent the system from confusing:
+
+```txt
+business availability
+productive labour capacity
+selected recovery hours
+asset utilisation
+unit recovery
+cost allocation drivers
+```
+
+The macro layer answers:
+
+```txt
+What does the business cost to operate?
+Does the trading margin pool cover that cost?
+What does the business cost per open hour?
+```
+
+The micro layer answers:
+
+```txt
+How will that cost burden be recovered operationally?
+Which driver carries which cost?
+How do labour, assets, materials, units, groups, and divisions recover the burden?
+```
+
+---
+
+# 2. Core System Rule
+
+The locked rule is:
+
+```txt
+Opening Hours defines availability.
+Cost Summary defines cost per open hour.
+Business Summary tests margin against that open-hour cost.
+Recovery Summary decides how the burden is recovered.
+Cost Allocation allocates the recovery strategy.
+```
+
+This means:
+
+```txt
+Macro layer uses net annual business open hours.
+Micro layer uses selected recovery drivers.
+```
+
+Do not replace one with the other.
+
+---
+
+# 3. Layer 1 — Macro Business Operating Layer
+
+## 3.1 Modules in the macro layer
+
+The macro layer includes:
+
+```txt
+Opening Hours
+Cost Summary
+Business Summary
+Model Readiness
+```
+
+These modules define the business-wide operating baseline.
+
+They are not recovery strategy modules.
+
+---
+
+## 3.2 Opening Hours
+
+Opening Hours owns the business operating calendar.
+
+It answers:
+
+```txt
+When is the business normally open?
+How many open hours exist in a standard week?
+How many open hours exist in a year after shutdowns and holidays?
+```
+
+Opening Hours owns:
+
+```txt
+standard_weekly_open_hours
+annual_open_weeks
+annual_business_open_hours
+public_holiday_closed_hours
+additional_closed_hours
+net_annual_business_open_hours
+opening_hours_status
+opening_hours_warnings
+```
+
+Opening Hours does not own:
+
+```txt
+productive labour hours
+asset utilisation hours
+selected recovery hours
+charge-out rates
+cost allocation
+recovery strategy
+pricing
+```
+
+The main output is:
+
+```txt
+net_annual_business_open_hours
+```
+
+This becomes the macro denominator.
+
+---
+
+## 3.3 Cost Summary
+
+Cost Summary owns the internal operating cost burden.
+
+It answers:
+
+```txt
+What does the business cost to operate?
+What does that cost per open business hour?
+Where does the cost burden come from?
+```
+
+Cost Summary owns:
+
+```txt
+total_people_cost_annual
+total_asset_cost_annual
+total_business_overheads
+total_cost_burden
+macro_required_operating_hour_rate
+```
+
+Formula:
+
+```txt
+total_cost_burden
+= total_people_cost_annual
+  + total_asset_cost_annual
+  + total_business_overheads
+```
+
+Formula:
+
+```txt
+macro_required_operating_hour_rate
+= total_cost_burden / net_annual_business_open_hours
+```
+
+User-facing label:
+
+```txt
+Operating cost per open hour
+```
+
+Cost Summary must not use the following as the main macro denominator:
+
+```txt
+productive labour hours
+selected recovery hours
+operating recovery hours
+```
+
+Cost Summary must not use these as macro labels:
+
+```txt
+Required Recovery Rate
+Operating Recovery Hours
+Labour burden pressure
+productive labour hour
+```
+
+---
+
+## 3.4 Business Summary
+
+Business Summary owns the comparison between actual trading margin and the operating cost baseline.
+
+It answers:
+
+```txt
+Is the trading margin pool enough to cover the business operating cost?
+```
+
+Business Summary owns:
+
+```txt
+revenue
+direct_costs
+margin_pool
+total_cost_burden
+net_position
+actual_margin_per_open_hour
+deficit_or_surplus_per_open_hour
+```
+
+Formulas:
+
+```txt
+margin_pool = revenue - direct_costs
+```
+
+```txt
+net_position = margin_pool - total_cost_burden
+```
+
+```txt
+actual_margin_per_open_hour
+= margin_pool / net_annual_business_open_hours
+```
+
+```txt
+deficit_or_surplus_per_open_hour
+= actual_margin_per_open_hour - macro_required_operating_hour_rate
+```
+
+User-facing labels:
+
+```txt
+Required operating cost per open hour
+Actual margin per open hour
+Deficit per open hour
+Surplus per open hour
+Net annual business open hours
+```
+
+Business Summary must not use these as macro labels:
+
+```txt
+Required Recovery Rate
+Actual Recovery Rate
+Recovery Hours Used
+Operating Recovery Hours
+productive labour hours
+```
+
+---
+
+## 3.5 Model Readiness
+
+Model Readiness remains the macro trust gate.
+
+It answers:
+
+```txt
+Can the current model be trusted?
+Do the QS Tools module totals reconcile to the P&L benchmark?
+```
+
+Model Readiness should still block when:
+
+```txt
+QS Tools module total does not reconcile to P&L benchmark.
+```
+
+Model Readiness must not be weakened just because Opening Hours is ready.
+
+Model Readiness may show:
+
+```txt
+Net annual business open hours
+Operating cost per open hour
+```
+
+But its pass/fail logic still depends on reconciliation.
+
+---
+
+# 4. Layer 2 — Micro Recovery Strategy Layer
+
+## 4.1 Modules in the micro layer
+
+The micro layer includes:
+
+```txt
+Recovery Summary
+Cost Allocation
+Recovery Outcome
+Quote Engine
+Business Modelling
+Rate Builder
+Quote Checker
+```
+
+These modules define how the business burden is recovered operationally.
+
+They are downstream of the macro baseline.
+
+---
+
+## 4.2 Recovery Summary
+
+Recovery Summary owns the recovery strategy test.
+
+It answers:
+
+```txt
+How will the business recover the operating burden?
+Which recovery driver is being tested?
+Is the selected recovery driver strong enough?
+```
+
+Recovery Summary may use:
+
+```txt
+selected recovery hours
+productive labour hours
+asset utilisation hours
+unit drivers
+material margin
+labour recovery share
+asset recovery share
+material recovery share
+overhead absorption
+```
+
+Recovery Summary should not redefine the macro Cost Summary baseline.
+
+Recovery Summary may show:
+
+```txt
+Required recovery per selected recovery hour
+Actual recovery per selected recovery hour
+Recovery gap per selected recovery hour
+```
+
+This is valid only if it is clearly positioned as a recovery strategy test.
+
+Correct interpretation:
+
+```txt
+The business costs $323 per open business hour.
+
+But if the selected recovery strategy has only 2,213 recovery hours available,
+then each selected recovery hour may need to carry around $319.
+```
+
+Those are different metrics and must not be confused.
+
+---
+
+## 4.3 Cost Allocation
+
+Cost Allocation owns operational allocation of the recovery burden.
+
+It answers:
+
+```txt
+Which operational groups/divisions carry which cost burden?
+How should recovery pressure be allocated across labour, assets, materials, or units?
+```
+
+Cost Allocation may use:
+
+```txt
+selected recovery strategy
+group recovery drivers
+division recovery drivers
+productive labour hours
+asset utilisation hours
+material/unit drivers
+operational groups
+```
+
+Cost Allocation must not redefine:
+
+```txt
+net_annual_business_open_hours
+```
+
+as the macro denominator.
+
+It consumes downstream recovery strategy information and allocates it operationally.
+
+---
+
+## 4.4 Recovery Outcome
+
+Recovery Outcome should test whether the selected recovery strategy produces a viable result.
+
+It may compare:
+
+```txt
+required recovery rate
+actual achievable recovery
+weighted recovery rate
+productive labour availability
+```
+
+This belongs in the micro layer.
+
+Do not use Recovery Outcome to change the macro Cost Summary open-hour baseline.
+
+---
+
+## 4.5 Quote Engine / Rate Builder / Quote Checker
+
+These future/downstream tools may need both macro and micro information.
+
+They may need:
+
+```txt
+macro open-hour pressure
+selected recovery-hour pressure
+labour recovery rate
+asset utilisation rate
+unit margin requirement
+quote margin
+job duration
+capacity pressure
+```
+
+But they must label which basis is being used.
+
+Example:
+
+```txt
+Macro view:
+This job uses business open-hour capacity.
+
+Micro view:
+This job must recover labour, asset, and material burden through selected recovery drivers.
+```
+
+Quote tools must not silently use productive labour hours when the user is looking at macro operating-hour pressure.
+
+---
+
+# 5. Macro vs Micro Formula Split
+
+## 5.1 Macro formulas
+
+Opening Hours:
+
+```txt
+net_annual_business_open_hours
+= annual_business_open_hours
+  - public_holiday_closed_hours
+  - additional_closed_hours
+```
+
+Cost Summary:
+
+```txt
+operating_cost_per_open_hour
+= total_cost_burden / net_annual_business_open_hours
+```
+
+Business Summary:
+
+```txt
+actual_margin_per_open_hour
+= margin_pool / net_annual_business_open_hours
+```
+
+```txt
+deficit_or_surplus_per_open_hour
+= actual_margin_per_open_hour - operating_cost_per_open_hour
+```
+
+---
+
+## 5.2 Micro formulas
+
+Recovery Summary:
+
+```txt
+required_recovery_per_selected_recovery_hour
+= selected_cost_burden / selected_recovery_hours
+```
+
+Labour recovery:
+
+```txt
+required_labour_recovery_rate
+= labour_recovery_cost / selected_labour_recovery_hours
+```
+
+Asset recovery:
+
+```txt
+required_asset_recovery_rate
+= asset_recovery_cost / selected_asset_recovery_driver
+```
+
+Unit recovery:
+
+```txt
+required_recovery_per_unit
+= selected_cost_burden / selected_units
+```
+
+These are strategy-layer formulas, not macro baseline formulas.
+
+---
+
+# 6. Data Flow
+
+## 6.1 Macro data flow
+
+```txt
+Business Setup
+→ Opening Hours
+→ Cost Summary
+→ Business Summary
+→ Model Readiness
+```
+
+Required macro fields:
+
+```txt
+net_annual_business_open_hours
+total_cost_burden
+macro_required_operating_hour_rate
+margin_pool
+actual_margin_per_open_hour
+deficit_or_surplus_per_open_hour
+```
+
+---
+
+## 6.2 Micro data flow
+
+```txt
+Cost Summary / Business Summary baseline
+→ Recovery Summary
+→ Cost Allocation
+→ Recovery Outcome
+→ Rate Builder / Quote Engine / Quote Checker
+```
+
+Required micro fields may include:
+
+```txt
+selected_recovery_hours
+productive_labour_hours
+asset_utilisation_hours
+recovery_share_percent
+group_recovery_cost
+division_recovery_cost
+required_recovery_rate
+actual_recovery_rate
+recovery_gap
+```
+
+---
+
+# 7. UI Language Rules
+
+## 7.1 Macro layer labels
+
+Use:
+
+```txt
+Operating cost per open hour
+Required operating cost per open hour
+Actual margin per open hour
+Deficit per open hour
+Surplus per open hour
+Net annual business open hours
+Total operating cost
+Margin Pool
+Net Position
+```
+
+Do not use in macro layer:
+
+```txt
+Required Recovery Rate
+Actual Recovery Rate
+Operating Recovery Hours
+Recovery Hours Used
+productive labour hours
+Labour burden pressure
+```
+
+---
+
+## 7.2 Micro layer labels
+
+Allowed when intentional:
+
+```txt
+Selected recovery hours
+Required recovery per selected recovery hour
+Actual recovery per selected recovery hour
+Recovery gap per selected recovery hour
+Productive labour hours
+Asset utilisation hours
+Unit recovery
+Labour recovery rate
+Asset recovery rate
+```
+
+Micro-layer labels must make clear that the user is looking at **recovery strategy**, not business availability.
+
+---
+
+# 8. Current Example
+
+Current macro values:
+
+```txt
+Net annual business open hours:   2,182.4 hrs
+Total operating cost burden:      $705,680
+Operating cost per open hour:     $323/open hr
+Margin Pool:                      $332,382
+Actual margin per open hour:      $152/open hr
+Deficit per open hour:           -$171/open hr
+```
+
+Current micro/recovery example:
+
+```txt
+Selected recovery hours:          2,213 hrs
+Whole burden through recovery hr: $319/recovery hr
+Labour recovery cost:             $593,693
+Labour recovery rate:             $268/recovery hr
+```
+
+These are not duplicates.
+
+They answer different questions:
+
+```txt
+Macro:
+What does the business cost per hour it is open?
+
+Micro:
+If this driver has to recover the burden, what must each driver unit recover?
+```
+
+---
+
+# 9. Build Rules
+
+## 9.1 Do not calculate formulas in UI components
+
+Components display shaped values only.
+
+Calculations belong in:
+
+```txt
+lib/calculations/*
+```
+
+Selectors shape display in:
+
+```txt
+lib/selectors/*
+```
+
+Hooks orchestrate data in:
+
+```txt
+hooks/*
+```
+
+Components display only.
+
+---
+
+## 9.2 No silent fallback between macro and micro denominators
+
+If `net_annual_business_open_hours` is missing:
+
+```txt
+macro hourly values should be 0 or warning state
+```
+
+Do not silently fall back to:
+
+```txt
+productive labour hours
+selected recovery hours
+old recovery hours
+```
+
+If selected recovery hours are missing in Recovery Summary:
+
+```txt
+micro recovery values should be 0 or warning state
+```
+
+Do not silently use open hours unless the recovery strategy explicitly says open hours are the selected driver.
+
+---
+
+## 9.3 Compatibility fields may remain
+
+The following may remain in contracts for downstream compatibility:
+
+```txt
+required_recovery_rate
+total_recovery_hours
+recovery_hours_used
+total_productive_output
+```
+
+But they must not be used as the macro open-hour basis.
+
+---
+
+# 10. Affected Modules and Build Guidance
+
+## 10.1 Opening Hours
+
+Status:
+
+```txt
+Built and active.
+```
+
+Build guidance:
+
+```txt
+Keep as calendar context only.
+Do not add productivity logic.
+Do not add recovery logic.
+```
+
+---
+
+## 10.2 Cost Summary
+
+Status:
+
+```txt
+Macro open-hour baseline implemented.
+```
+
+Build guidance:
+
+```txt
+Use net annual business open hours.
+Display operating cost per open hour.
+Do not display recovery-hour wording in macro sections.
+```
+
+---
+
+## 10.3 Business Summary
+
+Status:
+
+```txt
+Open-hour margin comparison implemented.
+```
+
+Build guidance:
+
+```txt
+Use net annual business open hours for hourly view.
+Compare margin pool against total operating cost.
+Do not show recovery-hour wording in macro sections.
+```
+
+---
+
+## 10.4 Model Readiness
+
+Status:
+
+```txt
+Still uses some old wording.
+Pass/fail logic remains correct.
+```
+
+Build guidance:
+
+```txt
+Clean labels later.
+Do not weaken reconciliation logic.
+```
+
+---
+
+## 10.5 Recovery Summary
+
+Status:
+
+```txt
+Left unchanged intentionally.
+```
+
+Build guidance:
+
+```txt
+Treat as micro recovery strategy layer.
+Selected recovery hours remain valid if clearly labelled.
+Do not convert whole page to open hours.
+```
+
+---
+
+## 10.6 Cost Allocation
+
+Status:
+
+```txt
+Downstream micro allocation layer.
+```
+
+Build guidance:
+
+```txt
+Consume Recovery Summary strategy.
+Allocate burden by group/division/driver.
+Do not redefine macro open-hour baseline.
+```
+
+---
+
+## 10.7 Quote Engine / Business Modelling / Recovery Outcome
+
+Status:
+
+```txt
+Require future review.
+```
+
+Build guidance:
+
+```txt
+Do not patch blindly.
+Decide whether each view is macro pressure, micro recovery strategy, or both.
+Label each denominator clearly.
+```
+
+---
+
+# 11. Acceptance Criteria
+
+The macro / micro architecture is accepted when:
+
+```txt
+1. Opening Hours produces net annual business open hours.
+2. Cost Summary uses open hours for operating cost per open hour.
+3. Business Summary uses open hours for margin vs operating cost.
+4. Recovery Summary remains selected-driver based.
+5. Cost Allocation remains recovery-strategy based.
+6. UI labels clearly distinguish open hours from recovery hours.
+7. No macro page silently falls back to labour/recovery hours.
+8. No micro page is forced to use open hours unless that is the selected driver.
+9. Model Readiness remains strict.
+10. Build passes.
+```
+
+---
+
+# 12. Implementation Order From Here
+
+## Step 1 — Commit current macro upgrade
+
+Commit:
+
+```txt
+Opening Hours
+Cost Summary open-hour baseline
+Business Summary open-hour view
+Macro wording cleanup
+```
+
+## Step 2 — Clean Model Readiness wording
+
+Change only labels:
+
+```txt
+Operating Recovery Hours → Net annual business open hours
+Required Recovery Rate → Operating cost per open hour
+```
+
+Do not change readiness logic.
+
+## Step 3 — Audit Recovery Summary wording
+
+Do not change formulas.
+
+Clarify:
+
+```txt
+Whole-business burden through selected recovery hours
+```
+
+where required.
+
+## Step 4 — Audit Cost Allocation
+
+Confirm it consumes Recovery Summary strategy outputs.
+
+Do not connect it directly to macro open-hour baseline unless specifically needed.
+
+## Step 5 — Future Quote / Rate / Modelling review
+
+Define for each page:
+
+```txt
+macro pressure
+micro recovery strategy
+or both
+```
+
+before patching.
+
+---
+
+# 13. Locked Principle
+
+```txt
+Macro shows what the business costs to be open.
+Micro shows how the business recovers that cost.
+```
+
+This is now the core architecture rule for the next build phase.
