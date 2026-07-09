@@ -140,24 +140,34 @@ is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
+
+node_id: revenue_cogs.unit_driver_rows
+module_name: revenue-cogs
+variable_name: unit_driver_rows
+display_label: Revenue / COGS Unit Driver Rows
+value_source: raw_source_import
+formula_text: Product/unit mode root setup rows; each row includes unit_label, unit_type, annual_revenue, average_sale_rate_per_unit, estimated_units_annual, derived_units_annual, annual_margin_pool, and margin_per_unit. estimated_units_annual may be user-entered; derived_units_annual may be calculated from revenue / average sale rate. Do not invent annual units.
+is_root_input: true
+brief_reference: 13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 node_id: revenue_cogs.total_derived_units_annual
 module_name: revenue-cogs
 variable_name: total_derived_units_annual
 display_label: Revenue / COGS Total Derived Units Annual
 value_source: output_contract
-formula_text: Revenue / COGS owns unit driver rows and annual unit counts consumed by Business Summary
+formula_text: total_derived_units_annual = sum derived_units_annual from unit_driver_rows where product/unit mode requires trusted unit recovery
 is_root_input: false
-brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+brief_reference: 13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 node_id: revenue_cogs.units_sold_annual
 module_name: revenue-cogs
 variable_name: units_sold_annual
 display_label: Revenue / COGS Units Sold Annual
-value_source: output_contract
-formula_text: Revenue / COGS annual unit count source consumed by Business Summary when selected as product/unit activity driver
-is_root_input: false
-brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+value_source: raw_source_import
+formula_text: Legacy compatibility product/unit annual unit field; preferred v4.0 fields are unit_driver_rows and total_derived_units_annual. If both exist, they must not diverge silently.
+is_root_input: true
+brief_reference: 13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 ---
@@ -451,6 +461,12 @@ to_node_id: business_summary.activity_driver_value
 relationship_type: conditional_input
 notes: If business_type = labour_based, activity_driver_value = total_productive_output.
 
+
+edge_id: revenue_cogs.unit_driver_rows__to__revenue_cogs.total_derived_units_annual
+from_node_id: revenue_cogs.unit_driver_rows
+to_node_id: revenue_cogs.total_derived_units_annual
+relationship_type: sum_component
+notes: Revenue / COGS formula source: total_derived_units_annual is derived from unit_driver_rows annual unit setup. estimated_units_annual may be user-entered; derived_units_annual may be calculated from revenue / average sale rate.
 edge_id: revenue_cogs.total_derived_units_annual__to__business_summary.total_derived_units_annual
 from_node_id: revenue_cogs.total_derived_units_annual
 to_node_id: business_summary.total_derived_units_annual
@@ -653,8 +669,6 @@ The following items must be verified before this pilot can be treated as locked:
 
 - exact General Overheads exclusion / adjustment mapping for asset finance exclusions and transfer adjustments
 
-- exact Revenue / COGS root source variables for unit driver rows, total_derived_units_annual, and units_sold_annual
-
 - root P&L mapped source variables for each source module
 
 ---
@@ -679,6 +693,7 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
 
 
 
