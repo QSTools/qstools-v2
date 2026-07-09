@@ -413,12 +413,62 @@ is_root_input: false
 brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
+
+node_id: general_overheads.gross_general_overheads_benchmark
+module_name: general-overheads
+variable_name: gross_general_overheads_benchmark
+display_label: Gross General Overheads Benchmark
+value_source: raw_source_import
+formula_text: P&L / general overhead benchmark before exclusions
+is_root_input: true
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: general_overheads.asset_finance_interest_excluded
+module_name: general-overheads
+variable_name: asset_finance_interest_excluded
+display_label: Asset Finance Interest Excluded
+value_source: raw_source_import
+formula_text: Explicit user/module selection flag where asset finance interest is selected as asset-related and reviewed through the Assets pathway; exclusion must be visible and must not delete the original P&L line
+is_root_input: true
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: general_overheads.asset_finance_interest_excluded_amount
+module_name: general-overheads
+variable_name: asset_finance_interest_excluded_amount
+display_label: Asset Finance Interest Excluded Amount
+value_source: raw_source_import
+formula_text: Explicit amount excluded from General Overheads when asset finance interest is selected as asset-related; excluded amount must remain visible for Module Reconciliation and must prevent double counting
+is_root_input: true
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: general_overheads.adjusted_general_overheads_benchmark
+module_name: general-overheads
+variable_name: adjusted_general_overheads_benchmark
+display_label: Adjusted General Overheads Benchmark
+value_source: output_contract
+formula_text: adjusted_general_overheads_benchmark = gross_general_overheads_benchmark - asset_finance_interest_excluded_amount
+is_root_input: false
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: general_overheads.net_general_overheads
+module_name: general-overheads
+variable_name: net_general_overheads
+display_label: Net General Overheads
+value_source: output_contract
+formula_text: net_general_overheads = overhead total after valid exclusions
+is_root_input: false
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 node_id: general_overheads.total_general_overheads
 module_name: general-overheads
 variable_name: total_general_overheads
 display_label: Total General Overheads
 value_source: output_contract
-formula_text: General Overheads source pool total exposed to Cost Summary
+formula_text: total_general_overheads = sum of active general_overhead_categories annual_amount after exclusions and adjustments defined in this module
 is_root_input: false
 brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
@@ -677,6 +727,36 @@ from_node_id: general_overheads.total_general_overheads
 to_node_id: general_overheads.total_business_overheads
 relationship_type: direct_input
 notes: Verified from General Overheads brief: Cost Summary receives total_general_overheads and uses this as total_business_overheads.
+
+edge_id: general_overheads.gross_general_overheads_benchmark__to__general_overheads.adjusted_general_overheads_benchmark
+from_node_id: general_overheads.gross_general_overheads_benchmark
+to_node_id: general_overheads.adjusted_general_overheads_benchmark
+relationship_type: direct_input
+notes: Verified from General Overheads formula: adjusted_general_overheads_benchmark = gross_general_overheads_benchmark - asset_finance_interest_excluded_amount.
+
+edge_id: general_overheads.asset_finance_interest_excluded_amount__to__general_overheads.adjusted_general_overheads_benchmark
+from_node_id: general_overheads.asset_finance_interest_excluded_amount
+to_node_id: general_overheads.adjusted_general_overheads_benchmark
+relationship_type: conditional_input
+notes: Asset finance exclusion amount is subtracted only where asset finance interest is selected as asset-related and reviewed through the Assets pathway.
+
+edge_id: general_overheads.asset_finance_interest_excluded__to__general_overheads.asset_finance_interest_excluded_amount
+from_node_id: general_overheads.asset_finance_interest_excluded
+to_node_id: general_overheads.asset_finance_interest_excluded_amount
+relationship_type: conditional_input
+notes: Exclusion amount applies only when the asset finance exclusion flag / review selection is explicit.
+
+edge_id: general_overheads.adjusted_general_overheads_benchmark__to__general_overheads.net_general_overheads
+from_node_id: general_overheads.adjusted_general_overheads_benchmark
+to_node_id: general_overheads.net_general_overheads
+relationship_type: direct_input
+notes: net_general_overheads is the overhead total after valid exclusions.
+
+edge_id: general_overheads.net_general_overheads__to__general_overheads.total_general_overheads
+from_node_id: general_overheads.net_general_overheads
+to_node_id: general_overheads.total_general_overheads
+relationship_type: direct_input
+notes: total_general_overheads is the preferred downstream output after valid exclusions and adjustments defined in General Overheads.
 edge_id: general_overheads.general_overhead_categories__to__general_overheads.total_general_overheads
 from_node_id: general_overheads.general_overhead_categories
 to_node_id: general_overheads.total_general_overheads
@@ -719,8 +799,6 @@ The following items must be verified before this pilot can be treated as locked:
   Employment-related overheads that are not direct wage/on-cost calculations belong in General Overheads through the overheads pathway.
   No Employee Overheads node or direct Employee Overheads-to-Cost Summary edge is required for this pilot.
 
-- exact General Overheads exclusion / adjustment mapping for asset finance exclusions and transfer adjustments
-
 - root P&L mapped source variables for each source module
 
 ---
@@ -745,6 +823,7 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
 
 
 
