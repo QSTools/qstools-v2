@@ -192,12 +192,22 @@ is_root_input: false
 brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
+node_id: general_overheads.total_general_overheads
+module_name: general-overheads
+variable_name: total_general_overheads
+display_label: Total General Overheads
+value_source: output_contract
+formula_text: General Overheads source pool total exposed to Cost Summary
+is_root_input: false
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
 node_id: general_overheads.total_business_overheads
 module_name: general-overheads
 variable_name: total_business_overheads
 display_label: Total Business Overheads
 value_source: output_contract
-formula_text: TO VERIFY FROM GENERAL OVERHEADS BRIEF
+formula_text: Cost Summary uses total_general_overheads as total_business_overheads
 is_root_input: false
 brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
@@ -301,6 +311,16 @@ notes: Verified from Assets formula: total_asset_cost_annual = sum total_asset_c
 
 ---
 
+## 5.5 General Overheads Source Edges
+
+edge_id: general_overheads.total_general_overheads__to__general_overheads.total_business_overheads
+from_node_id: general_overheads.total_general_overheads
+to_node_id: general_overheads.total_business_overheads
+relationship_type: direct_input
+notes: Verified from General Overheads brief: Cost Summary receives total_general_overheads and uses this as total_business_overheads.
+
+---
+
 # 6. ROOT INPUTS â€” TO MAP AFTER FORMULA VERIFICATION
 
 Root input mapping must be added only after the owning module formulas are checked.
@@ -327,9 +347,9 @@ The following items must be verified before this pilot can be treated as locked:
 - exact Cost Summary total_asset_cost_annual and total_business_overheads source
 - exact Cost Summary total_cost_burden formula
 - exact Labour root source variables for annual base cost and annual on-costs
-- exact Employee Overheads output variable name and brief filename
+- exact Employee Overheads treatment, if any, now that the General Overheads brief says not to recreate a separate Employee Overheads module
 - exact Assets root source variables for asset ownership, finance, lease, depreciation/replacement, insurance, registration, other ownership cost, and assigned running cost transfers
-- exact General Overheads total cost output variable name
+- exact General Overheads root source variables for overhead categories, exclusions, adjusted benchmark, and source pool values
 - root P&L mapped source variables for each source module
 
 ---
