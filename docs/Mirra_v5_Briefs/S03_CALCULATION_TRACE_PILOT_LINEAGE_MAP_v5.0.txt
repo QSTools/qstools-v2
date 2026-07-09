@@ -142,40 +142,50 @@ last_verified_against: v5.0 pilot draft
 ---
 ## 4.3 Source Module Nodes
 
-node_id: labour.total_labour_cost
+node_id: labour.total_people_cost_annual
 module_name: labour
-variable_name: total_labour_cost
-display_label: Total Labour Cost
+variable_name: total_people_cost_annual
+display_label: Total People Cost Annual
 value_source: output_contract
-formula_text: TO VERIFY FROM LABOUR BRIEF
+formula_text: total_people_cost_annual = total_labour_cost_annual
 is_root_input: false
-brief_reference: 07_MIRRA_LABOUR_v4.0_LOCKED.txt
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: employee_overheads.total_employee_overheads
-module_name: employee-overheads
-variable_name: total_employee_overheads
-display_label: Total Employee Overheads
+node_id: labour.total_labour_cost_annual
+module_name: labour
+variable_name: total_labour_cost_annual
+display_label: Total Labour Cost Annual
 value_source: output_contract
-formula_text: TO VERIFY FROM EMPLOYEE OVERHEADS BRIEF
+formula_text: total_labour_cost_annual = sum annual_labour_cost for active staff
 is_root_input: false
-brief_reference: TO VERIFY
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: assets.total_asset_cost
+node_id: labour.annual_labour_cost
+module_name: labour
+variable_name: annual_labour_cost
+display_label: Annual Labour Cost
+value_source: output_contract
+formula_text: annual_labour_cost = annual_base_cost + annual_on_costs
+is_root_input: false
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: assets.total_asset_cost_annual
 module_name: assets
-variable_name: total_asset_cost
-display_label: Total Asset Cost
+variable_name: total_asset_cost_annual
+display_label: Total Asset Cost Annual
 value_source: output_contract
 formula_text: TO VERIFY FROM ASSETS BRIEF
 is_root_input: false
 brief_reference: 09_MIRRA_ASSETS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
-node_id: general_overheads.total_general_overheads
+node_id: general_overheads.total_business_overheads
 module_name: general-overheads
-variable_name: total_general_overheads
-display_label: Total General Overheads
+variable_name: total_business_overheads
+display_label: Total Business Overheads
 value_source: output_contract
 formula_text: TO VERIFY FROM GENERAL OVERHEADS BRIEF
 is_root_input: false
@@ -256,6 +266,22 @@ relationship_type: direct_input
 notes: Cost Summary consumes total_business_overheads from General Overheads.
 
 ---
+## 5.3 Labour Source Edges
+
+edge_id: labour.total_labour_cost_annual__to__labour.total_people_cost_annual
+from_node_id: labour.total_labour_cost_annual
+to_node_id: labour.total_people_cost_annual
+relationship_type: direct_input
+notes: Verified from Labour formula: total_people_cost_annual = total_labour_cost_annual
+
+edge_id: labour.annual_labour_cost__to__labour.total_labour_cost_annual
+from_node_id: labour.annual_labour_cost
+to_node_id: labour.total_labour_cost_annual
+relationship_type: sum_component
+notes: Verified from Labour formula: total_labour_cost_annual = sum annual_labour_cost for active staff
+
+---
+
 
 # 6. ROOT INPUTS â€” TO MAP AFTER FORMULA VERIFICATION
 
