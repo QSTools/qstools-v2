@@ -373,12 +373,42 @@ is_root_input: true
 brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
+
+node_id: general_overheads.general_overheads_pool_amount
+module_name: general-overheads
+variable_name: general_overheads_pool_amount
+display_label: General Overheads Pool Amount
+value_source: output_contract
+formula_text: general_overheads_pool_amount = total_general_overheads by default; General Overheads owns the original overhead source pool
+is_root_input: false
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: assets.asset_running_cost_transfers
+module_name: assets
+variable_name: asset_running_cost_transfers
+display_label: Asset Running Cost Transfers
+value_source: output_contract
+formula_text: asset_running_cost_transfers[] rows explicitly transfer portions of asset-related source pools into productive assets; each transfer must preserve source pool, assigned amount, remaining pool, over-allocated amount, and allocation status
+is_root_input: false
+brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: assets.total_asset_running_cost_transferred
+module_name: assets
+variable_name: total_asset_running_cost_transferred
+display_label: Total Asset Running Cost Transferred
+value_source: output_contract
+formula_text: total_asset_running_cost_transferred = sum assigned productive-asset running cost transfer amounts from asset_running_cost_transfers[]
+is_root_input: false
+brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 node_id: assets.assigned_running_cost_transfers_annual
 module_name: assets
 variable_name: assigned_running_cost_transfers_annual
 display_label: Assigned Running Cost Transfers Annual
 value_source: output_contract
-formula_text: Productive asset running cost transfers assigned from explicit asset-related source pools; General Overheads remains owner of original source pool
+formula_text: assigned_running_cost_transfers_annual = transferred productive asset running cost portion assigned from explicit asset_running_cost_transfers[] source-pool rows; General Overheads remains owner of the original overhead source pool
 is_root_input: false
 brief_reference: 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
@@ -608,11 +638,35 @@ to_node_id: assets.asset_total_asset_cost_annual
 relationship_type: sum_component
 notes: Verified from Assets formula per asset: total_asset_cost_annual includes asset_other_ownership_cost_annual.
 
+
+edge_id: general_overheads.total_general_overheads__to__general_overheads.general_overheads_pool_amount
+from_node_id: general_overheads.total_general_overheads
+to_node_id: general_overheads.general_overheads_pool_amount
+relationship_type: direct_input
+notes: General Overheads default source-pool rule: general_overheads_pool_amount = total_general_overheads.
+
+edge_id: general_overheads.general_overheads_pool_amount__to__assets.asset_running_cost_transfers
+from_node_id: general_overheads.general_overheads_pool_amount
+to_node_id: assets.asset_running_cost_transfers
+relationship_type: conditional_input
+notes: Asset-related running cost source pools may originate in General Overheads; only explicit transferred portions may move into Assets.
+
+edge_id: assets.asset_running_cost_transfers__to__assets.total_asset_running_cost_transferred
+from_node_id: assets.asset_running_cost_transfers
+to_node_id: assets.total_asset_running_cost_transferred
+relationship_type: sum_component
+notes: total_asset_running_cost_transferred is the sum of assigned productive-asset running cost transfer rows.
+
+edge_id: assets.total_asset_running_cost_transferred__to__assets.assigned_running_cost_transfers_annual
+from_node_id: assets.total_asset_running_cost_transferred
+to_node_id: assets.assigned_running_cost_transfers_annual
+relationship_type: direct_input
+notes: assigned_running_cost_transfers_annual carries the transferred productive-asset running cost amount into each asset cost calculation.
 edge_id: assets.assigned_running_cost_transfers_annual__to__assets.asset_total_asset_cost_annual
 from_node_id: assets.assigned_running_cost_transfers_annual
 to_node_id: assets.asset_total_asset_cost_annual
 relationship_type: sum_component
-notes: Verified from Assets formula per asset: total_asset_cost_annual includes assigned_running_cost_transfers_annual. This is not a root input; source-pool owner remains General Overheads until transfer source mapping is completed.
+notes: Verified from Assets formula per asset: total_asset_cost_annual includes assigned_running_cost_transfers_annual. This is not a root input; the transfer source path is mapped through general_overheads.general_overheads_pool_amount and assets.asset_running_cost_transfers.
 
 ---
 
@@ -665,8 +719,6 @@ The following items must be verified before this pilot can be treated as locked:
   Employment-related overheads that are not direct wage/on-cost calculations belong in General Overheads through the overheads pathway.
   No Employee Overheads node or direct Employee Overheads-to-Cost Summary edge is required for this pilot.
 
-- exact Assets running cost transfer source-pool mapping for assigned_running_cost_transfers_annual
-
 - exact General Overheads exclusion / adjustment mapping for asset finance exclusions and transfer adjustments
 
 - root P&L mapped source variables for each source module
@@ -693,6 +745,8 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
+
 
 
 
