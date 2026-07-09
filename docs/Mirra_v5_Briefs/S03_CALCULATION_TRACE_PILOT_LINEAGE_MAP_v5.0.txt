@@ -315,6 +315,15 @@ formula_text: General Overheads source pool total exposed to Cost Summary
 is_root_input: false
 brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
+node_id: general_overheads.general_overhead_categories
+module_name: general-overheads
+variable_name: general_overhead_categories
+display_label: General Overhead Categories
+value_source: raw_source_import
+formula_text: Root source category container fed by P&L operating expense classifications, manual overhead entries, saved overhead categories, imported operating expense lines, future Xero API import, or future database-backed profile records; each category annual_amount feeds total_general_overheads after exclusions and adjustments
+is_root_input: true
+brief_reference: 05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 
 node_id: general_overheads.total_business_overheads
 module_name: general-overheads
@@ -490,6 +499,11 @@ from_node_id: general_overheads.total_general_overheads
 to_node_id: general_overheads.total_business_overheads
 relationship_type: direct_input
 notes: Verified from General Overheads brief: Cost Summary receives total_general_overheads and uses this as total_business_overheads.
+edge_id: general_overheads.general_overhead_categories__to__general_overheads.total_general_overheads
+from_node_id: general_overheads.general_overhead_categories
+to_node_id: general_overheads.total_general_overheads
+relationship_type: sum_component
+notes: Verified from General Overheads formula: total_general_overheads = sum of active general_overhead_categories annual_amount after exclusions and adjustments defined in this module.
 
 ---
 
@@ -529,7 +543,7 @@ The following items must be verified before this pilot can be treated as locked:
 
 - exact Assets running cost transfer source-pool mapping for assigned_running_cost_transfers_annual
 
-- exact General Overheads root source variables for overhead categories, exclusions, adjusted benchmark, and source pool values
+- exact General Overheads exclusion / adjustment mapping for asset finance exclusions and transfer adjustments
 
 - exact Business Summary root driver source for product/unit mode where activity_driver_value = total_derived_units_annual or units_sold_annual
 
@@ -557,6 +571,7 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
 
 
 
