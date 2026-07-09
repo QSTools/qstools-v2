@@ -110,6 +110,55 @@ formula_text: If business_type = labour_based, activity_driver_value = total_pro
 is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
+node_id: business_summary.total_productive_output
+module_name: business-summary
+variable_name: total_productive_output
+display_label: Total Productive Output
+value_source: output_contract
+formula_text: Business Summary consumes total_productive_output from Cost Summary; labour-based activity_driver_value = total_productive_output
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: business_summary.total_derived_units_annual
+module_name: business-summary
+variable_name: total_derived_units_annual
+display_label: Total Derived Units Annual
+value_source: output_contract
+formula_text: Business Summary consumes total_derived_units_annual from Revenue / COGS; product-based activity_driver_value = total_derived_units_annual or units_sold_annual
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: business_summary.units_sold_annual
+module_name: business-summary
+variable_name: units_sold_annual
+display_label: Units Sold Annual
+value_source: output_contract
+formula_text: Accepted Business Summary output contract field; product-based activity_driver_value may use units_sold_annual where total_derived_units_annual is not the selected annual unit driver
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: revenue_cogs.total_derived_units_annual
+module_name: revenue-cogs
+variable_name: total_derived_units_annual
+display_label: Revenue / COGS Total Derived Units Annual
+value_source: output_contract
+formula_text: Revenue / COGS owns unit driver rows and annual unit counts consumed by Business Summary
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: revenue_cogs.units_sold_annual
+module_name: revenue-cogs
+variable_name: units_sold_annual
+display_label: Revenue / COGS Units Sold Annual
+value_source: output_contract
+formula_text: Revenue / COGS annual unit count source consumed by Business Summary when selected as product/unit activity driver
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 
 ---
 ## 4.2 Cost Summary Nodes
@@ -153,6 +202,15 @@ formula_text: General Overheads source output consumed by Cost Summary
 is_root_input: false
 brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
+node_id: cost_summary.total_productive_output
+module_name: cost-summary
+variable_name: total_productive_output
+display_label: Total Productive Output
+value_source: output_contract
+formula_text: Cost Summary consumes total_productive_output from Labour and passes it downstream; Cost Summary does not own product/unit output
+is_root_input: false
+brief_reference: 06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
 
 ---
 ## 4.3 Source Module Nodes
@@ -163,6 +221,15 @@ variable_name: total_people_cost_annual
 display_label: Total People Cost Annual
 value_source: output_contract
 formula_text: total_people_cost_annual = total_labour_cost_annual
+is_root_input: false
+brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+node_id: labour.total_productive_output
+module_name: labour
+variable_name: total_productive_output
+display_label: Total Productive Output
+value_source: output_contract
+formula_text: Labour source output for total productive labour hours / productive output consumed by Cost Summary and Business Summary
 is_root_input: false
 brief_reference: 07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
@@ -371,6 +438,42 @@ notes: Verified from formula: required_recovery_per_driver = total_cost_burden /
 ---
 ## 5.2 Cost Summary Edges
 
+
+edge_id: cost_summary.total_productive_output__to__business_summary.total_productive_output
+from_node_id: cost_summary.total_productive_output
+to_node_id: business_summary.total_productive_output
+relationship_type: direct_input
+notes: Business Summary consumes total_productive_output from Cost Summary for labour-based activity driver.
+
+edge_id: business_summary.total_productive_output__to__business_summary.activity_driver_value
+from_node_id: business_summary.total_productive_output
+to_node_id: business_summary.activity_driver_value
+relationship_type: conditional_input
+notes: If business_type = labour_based, activity_driver_value = total_productive_output.
+
+edge_id: revenue_cogs.total_derived_units_annual__to__business_summary.total_derived_units_annual
+from_node_id: revenue_cogs.total_derived_units_annual
+to_node_id: business_summary.total_derived_units_annual
+relationship_type: direct_input
+notes: Business Summary consumes total_derived_units_annual from Revenue / COGS for product/unit mode.
+
+edge_id: revenue_cogs.units_sold_annual__to__business_summary.units_sold_annual
+from_node_id: revenue_cogs.units_sold_annual
+to_node_id: business_summary.units_sold_annual
+relationship_type: direct_input
+notes: Business Summary may consume units_sold_annual where selected as the product/unit annual unit driver.
+
+edge_id: business_summary.total_derived_units_annual__to__business_summary.activity_driver_value
+from_node_id: business_summary.total_derived_units_annual
+to_node_id: business_summary.activity_driver_value
+relationship_type: conditional_input
+notes: If business_type = product_based, activity_driver_value = total_derived_units_annual or units_sold_annual.
+
+edge_id: business_summary.units_sold_annual__to__business_summary.activity_driver_value
+from_node_id: business_summary.units_sold_annual
+to_node_id: business_summary.activity_driver_value
+relationship_type: conditional_input
+notes: If business_type = product_based, activity_driver_value may use units_sold_annual where it is the selected annual unit driver.
 edge_id: cost_summary.total_people_cost_annual__to__cost_summary.total_cost_burden
 from_node_id: cost_summary.total_people_cost_annual
 to_node_id: cost_summary.total_cost_burden
@@ -406,6 +509,11 @@ from_node_id: general_overheads.total_business_overheads
 to_node_id: cost_summary.total_business_overheads
 relationship_type: direct_input
 notes: Cost Summary consumes total_business_overheads from General Overheads.
+edge_id: labour.total_productive_output__to__cost_summary.total_productive_output
+from_node_id: labour.total_productive_output
+to_node_id: cost_summary.total_productive_output
+relationship_type: direct_input
+notes: Cost Summary consumes total_productive_output from Labour.
 
 ---
 ## 5.3 Labour Source Edges
@@ -545,7 +653,7 @@ The following items must be verified before this pilot can be treated as locked:
 
 - exact General Overheads exclusion / adjustment mapping for asset finance exclusions and transfer adjustments
 
-- exact Business Summary root driver source for product/unit mode where activity_driver_value = total_derived_units_annual or units_sold_annual
+- exact Revenue / COGS root source variables for unit driver rows, total_derived_units_annual, and units_sold_annual
 
 - root P&L mapped source variables for each source module
 
@@ -571,6 +679,11 @@ It is not allowed to be assumed.
 A known gap is valid.
 
 An invented edge is not.
+
+
+
+
+
 
 
 
