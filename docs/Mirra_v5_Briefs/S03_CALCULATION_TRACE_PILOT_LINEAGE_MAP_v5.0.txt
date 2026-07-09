@@ -75,12 +75,12 @@ Each node must eventually include:
 
 ## 4.1 Business Summary Nodes
 
-node_id: business_summary.activity_driver_value
+node_id: business_summary.required_recovery_per_driver
 module_name: business-summary
-variable_name: activity_driver_value
-display_label: Activity Driver Value
+variable_name: required_recovery_per_driver
+display_label: Required Recovery Per Driver
 value_source: output_contract
-formula_text: Direct activity driver value from Business Summary / business setup context
+formula_text: required_recovery_per_driver = total_cost_burden / activity_driver_value
 is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
@@ -90,13 +90,22 @@ module_name: business-summary
 variable_name: total_cost_burden
 display_label: Total Cost Burden
 value_source: output_contract
-formula_text: TO VERIFY FROM BUSINESS SUMMARY BRIEF
+formula_text: Business Summary receives total_cost_burden from Cost Summary; Cost Summary owns cost burden aggregation
+is_root_input: false
+brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
+last_verified_against: v5.0 pilot draft
+
+node_id: business_summary.activity_driver_value
+module_name: business-summary
+variable_name: activity_driver_value
+display_label: Activity Driver Value
+value_source: output_contract
+formula_text: If business_type = labour_based, activity_driver_value = total_productive_output; if business_type = product_based, activity_driver_value = total_derived_units_annual or units_sold_annual
 is_root_input: false
 brief_reference: 14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt
 last_verified_against: v5.0 pilot draft
 
 ---
-
 ## 4.2 Cost Summary Nodes
 
 node_id: cost_summary.total_cost_burden
@@ -341,8 +350,6 @@ No root input should be added until confirmed from the owning module brief.
 
 The following items must be verified before this pilot can be treated as locked:
 
-- exact Business Summary required_recovery_per_driver formula
-- exact Business Summary total_cost_burden source
 - exact Cost Summary total_people_cost_annual source
 - exact Cost Summary total_asset_cost_annual and total_business_overheads source
 - exact Cost Summary total_cost_burden formula
@@ -350,6 +357,7 @@ The following items must be verified before this pilot can be treated as locked:
 - exact Employee Overheads treatment, if any, now that the General Overheads brief says not to recreate a separate Employee Overheads module
 - exact Assets root source variables for asset ownership, finance, lease, depreciation/replacement, insurance, registration, other ownership cost, and assigned running cost transfers
 - exact General Overheads root source variables for overhead categories, exclusions, adjusted benchmark, and source pool values
+- exact Business Summary root driver source for product/unit mode where activity_driver_value = total_derived_units_annual or units_sold_annual
 - root P&L mapped source variables for each source module
 
 ---
