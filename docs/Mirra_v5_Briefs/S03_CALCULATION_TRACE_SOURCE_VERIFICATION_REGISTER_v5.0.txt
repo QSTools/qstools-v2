@@ -1,0 +1,209 @@
+﻿# Mirra v5.0 - Calculation Trace Source Verification Register
+
+STATUS: SOURCE VERIFICATION REGISTER - FIRST CHAIN STARTED
+VERSION: v5.0
+MODULE TYPE: Supporting / Read-only / Non-calculating
+DATE: 2026-07-15
+
+---
+
+# 1. REGISTER PURPOSE
+
+This register records code-level evidence for Calculation Trace source_file population.
+
+source_file must remain null unless the actual implementation source file is verified.
+
+---
+
+# 2. VERIFICATION STATUS LEGEND
+
+- verified: actual source owner found
+- partial: strong candidate found, but ownership still needs confirmation
+- deferred: source owner not proven yet
+- conflict: multiple possible owners found
+- not_found: no source evidence found
+
+---
+
+# 3. VERIFICATION CLASSIFICATION LEGEND
+
+- source_owned: file directly calculates or derives the value
+- output_contract_passthrough: file returns or passes through the value as an output contract
+- selector_shape: file shapes the value for UI/status but does not own it
+- storage_shape: file stores a value but does not own its calculation
+- deferred: ownership not proven
+
+---
+
+# 4. FIRST CHAIN REGISTER
+
+## 4.1 business_summary.required_recovery_per_driver
+
+node_id: business_summary.required_recovery_per_driver
+current_source_file: null
+proposed_source_file: lib/calculations/businessSummaryCalculations.js
+verification_classification: source_owned
+verification_status: partial
+evidence_summary: Search found required_recovery_per_driver returned by businessSummaryCalculations.js. Need exact formula lines confirmed before marking verified.
+searched_terms: required_recovery_per_driver, activity_driver_value
+notes: Candidate source owner for selected Business Summary output.
+
+---
+
+## 4.2 business_summary.total_cost_burden
+
+node_id: business_summary.total_cost_burden
+current_source_file: null
+proposed_source_file: lib/calculations/businessSummaryCalculations.js
+verification_classification: output_contract_passthrough
+verification_status: partial
+evidence_summary: Business Summary consumes or returns total_cost_burden. Cost Summary appears to own the actual aggregation.
+searched_terms: total_cost_burden
+notes: Candidate passthrough. Actual cost burden aggregation appears owned by Cost Summary.
+
+---
+
+## 4.3 business_summary.activity_driver_value
+
+node_id: business_summary.activity_driver_value
+current_source_file: null
+proposed_source_file: lib/calculations/businessSummaryCalculations.js
+verification_classification: source_owned
+verification_status: partial
+evidence_summary: Search found activity_driver_value returned by businessSummaryCalculations.js. Need exact derivation lines confirmed.
+searched_terms: activity_driver_value
+notes: Candidate source owner for selected driver value.
+
+---
+
+## 4.4 cost_summary.total_cost_burden
+
+node_id: cost_summary.total_cost_burden
+current_source_file: null
+proposed_source_file: lib/calculations/costSummaryCalculations.js
+verification_classification: source_owned
+verification_status: verified
+evidence_summary: Search found total_cost_burden calculated as total_people_cost_annual + total_asset_cost_annual + total_business_overheads and returned by costSummaryCalculations.js.
+searched_terms: total_cost_burden, total_people_cost_annual, total_asset_cost_annual, total_business_overheads
+notes: Verified source owner for Cost Summary cost burden aggregation.
+
+---
+
+## 4.5 cost_summary.total_people_cost_annual
+
+node_id: cost_summary.total_people_cost_annual
+current_source_file: null
+proposed_source_file: lib/calculations/costSummaryCalculations.js
+verification_classification: output_contract_passthrough
+verification_status: verified
+evidence_summary: Search found total_people_cost_annual read from labour_data.total_labour_cost_annual and returned by costSummaryCalculations.js.
+searched_terms: total_people_cost_annual, total_labour_cost_annual
+notes: Cost Summary pass-through from Labour output.
+
+---
+
+## 4.6 cost_summary.total_asset_cost_annual
+
+node_id: cost_summary.total_asset_cost_annual
+current_source_file: null
+proposed_source_file: lib/calculations/costSummaryCalculations.js
+verification_classification: output_contract_passthrough
+verification_status: verified
+evidence_summary: Search found total_asset_cost_annual read from asset_data.total_asset_cost_annual and returned by costSummaryCalculations.js.
+searched_terms: total_asset_cost_annual
+notes: Cost Summary pass-through from Assets output.
+
+---
+
+## 4.7 cost_summary.total_business_overheads
+
+node_id: cost_summary.total_business_overheads
+current_source_file: null
+proposed_source_file: lib/calculations/costSummaryCalculations.js
+verification_classification: output_contract_passthrough
+verification_status: verified
+evidence_summary: Search found total_business_overheads read from general_overhead_data.total_general_overheads and returned by costSummaryCalculations.js.
+searched_terms: total_business_overheads, total_general_overheads
+notes: Cost Summary pass-through from General Overheads output.
+
+---
+
+## 4.8 labour.total_people_cost_annual
+
+node_id: labour.total_people_cost_annual
+current_source_file: null
+proposed_source_file: lib/calculations/labourCalculations.js
+verification_classification: deferred
+verification_status: partial
+evidence_summary: Search found total_people_cost_annual as an accepted or fallback staff field in labourCalculations.js. Need deeper verification of Labour output contract owner.
+searched_terms: total_people_cost_annual, total_labour_cost_annual
+notes: Do not populate source_file yet.
+
+---
+
+## 4.9 assets.asset_total_asset_cost_annual
+
+node_id: assets.asset_total_asset_cost_annual
+current_source_file: null
+proposed_source_file: null
+verification_classification: deferred
+verification_status: partial
+evidence_summary: Search found total_asset_cost_annual in asset selectors and storage. Need deeper verification of calculation owner and output contract owner.
+searched_terms: total_asset_cost_annual, module_total_asset_cost_annual
+notes: Do not populate source_file yet.
+
+---
+
+## 4.10 general_overheads.total_general_overheads
+
+node_id: general_overheads.total_general_overheads
+current_source_file: null
+proposed_source_file: lib/calculations/generalOverheadCalculations.js
+verification_classification: source_owned
+verification_status: verified
+evidence_summary: Search found total_general_overheads calculated from overhead_rows active_amount and returned by generalOverheadCalculations.js.
+searched_terms: total_general_overheads
+notes: Verified source owner for General Overheads aggregate output.
+
+---
+
+# 5. CURRENT SOURCE_FILE POPULATION RECOMMENDATION
+
+Safe to populate source_file for:
+
+- cost_summary.total_cost_burden
+- cost_summary.total_people_cost_annual
+- cost_summary.total_asset_cost_annual
+- cost_summary.total_business_overheads
+- general_overheads.total_general_overheads
+
+Hold as null/deferred for now:
+
+- business_summary.required_recovery_per_driver
+- business_summary.total_cost_burden
+- business_summary.activity_driver_value
+- labour.total_people_cost_annual
+- assets.asset_total_asset_cost_annual
+
+Reason:
+
+Business Summary needs exact derivation lines confirmed.
+Labour and Assets need deeper output contract ownership verification.
+
+---
+
+# 6. NEXT SEARCH TARGETS
+
+Run deeper searches for:
+
+- required_recovery_per_driver formula ownership
+- activity_driver_value derivation ownership
+- total_labour_cost_annual output contract ownership
+- total_asset_cost_annual calculation ownership
+- module_total_asset_cost_annual relationship to total_asset_cost_annual
+
+---
+
+# 7. FINAL PRINCIPLE
+
+Calculation Trace shows how a number was built. It does not decide what the number is.
