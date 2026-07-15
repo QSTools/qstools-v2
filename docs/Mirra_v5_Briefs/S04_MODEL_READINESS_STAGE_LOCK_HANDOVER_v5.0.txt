@@ -1,0 +1,222 @@
+﻿# Mirra v5.0 - Model Readiness / Build Gate Stage Lock Handover
+
+STATUS: STAGE LOCKED - READINESS GATE COMPLETE
+VERSION: v5.0
+MODULE TYPE: Supporting / Read-only / Gatekeeping
+DATE: 2026-07-15
+
+---
+
+# 1. STAGE OUTCOME
+
+Model Readiness / Build Gate has been implemented and locked.
+
+It now acts as the read-only trust gate between source business modules and downstream modelling, dashboard, quote checking, and AI export.
+
+It reports whether the current business model is ready to be trusted.
+
+It does not make the model true.
+
+---
+
+# 2. IMPLEMENTED ROUTES
+
+Implemented and validated routes:
+
+- /model-readiness
+- /dev/model-readiness
+
+The dev route re-exports the main Model Readiness page to prevent drift.
+
+---
+
+# 3. IMPLEMENTED FILES
+
+Implementation files completed in this stage:
+
+- lib/calculations/modelReadinessCalculations.js
+- components/model-readiness/ModelReadinessStatusStrip.jsx
+- components/model-readiness/ModelReadinessReconciliationChecks.jsx
+- app/model-readiness/page.jsx
+- app/dev/model-readiness/page.jsx
+
+Supporting files used by the implementation:
+
+- hooks/useModelReadiness.js
+- hooks/useModuleReconciliation.js
+- lib/reconciliation/moduleReconciliation.js
+- lib/reconciliation/reconciliationRules.js
+
+Documentation files completed:
+
+- docs/Mirra_v5_Briefs/S04_MODEL_READINESS_BUILD_GATE_BRIEF_v5.0.txt
+- docs/Mirra_v5_Briefs/S04_MODEL_READINESS_IMPLEMENTED_STATUS_v5.0.txt
+- docs/Mirra_v5_Briefs/S04_MODEL_READINESS_STAGE_LOCK_HANDOVER_v5.0.txt
+
+---
+
+# 4. LOCKED OUTPUT CONTRACT
+
+Model Readiness exposes a read-only output contract with:
+
+- overall_status
+- model_ready
+- model_readiness_status
+- is_ready_for_modelling
+- is_ready_for_ai_export
+- is_ready_for_dashboard
+- blocking_items
+- warning_items
+- passed_items
+- readiness_groups
+- last_checked_at
+
+It also preserves compatibility with existing reconciliation fields:
+
+- reconciliation_checks
+- blocking_checks
+- warning_checks
+- blocking_modules
+- warning_modules
+- reconciliation_ready
+- normalised_reconciliation_inputs
+
+---
+
+# 5. LOCKED READINESS GROUPS
+
+The following readiness groups are implemented:
+
+- Source Inputs
+- Module Outputs
+- Reconciliation
+- Traceability
+- Modelling Readiness
+
+These groups are displayed on /model-readiness.
+
+---
+
+# 6. VALIDATED BEHAVIOUR
+
+Validated behaviour:
+
+- Model Readiness reads Module Reconciliation output
+- Model Readiness groups readiness checks
+- Model Readiness exposes blocking, warning, and passed items
+- Model Readiness exposes downstream readiness flags
+- Model Readiness does not calculate source business values
+- Model Readiness does not alter source module outputs
+- Model Readiness does not patch missing values
+- Model Readiness does not override reconciliation status
+
+---
+
+# 7. FINAL VALIDATION
+
+Final validation passed:
+
+- Calculation Trace integrity check: passed
+- nodeCount: 41
+- edgeCount: 41
+- selectedOutput: business_summary.required_recovery_per_driver
+- selectedOutputExists: true
+- duplicateNodeIds: []
+- duplicateEdgeIds: []
+- missingEndpoints: []
+- upstreamTraceExists: true
+
+Build validation:
+
+- npm run build: passed
+- /model-readiness: built
+- /dev/model-readiness: built
+
+Git validation before final handover:
+
+- working tree clean
+
+Known unrelated warnings:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+These warnings are not S04 failures.
+
+Do not add "type": "module" to package.json as part of this stage.
+
+---
+
+# 8. LOCKED BOUNDARIES
+
+Model Readiness must not:
+
+- calculate Labour
+- calculate Assets
+- calculate General Overheads
+- calculate Cost Summary
+- calculate Business Summary
+- calculate Revenue Summary
+- create source business values
+- override reconciliation status
+- infer missing values
+- patch missing values
+- become a source module
+
+Model Readiness may only:
+
+- read existing reconciliation output
+- read readiness state
+- group readiness checks
+- report blockers
+- report warnings
+- report passed checks
+- expose downstream readiness flags
+
+---
+
+# 9. DEFERRED WORK
+
+Deferred to future stages:
+
+- Business Modelling implementation
+- AI-readable business state export
+- dashboard integration
+- quote checker integration
+- database persistence of readiness state
+- historical readiness snapshots
+- user-facing drill-through from readiness item to source module
+- automated readiness audit logs
+- full Calculation Trace source verification for all pilot nodes
+
+---
+
+# 10. NEXT RECOMMENDED STAGE
+
+Recommended next stage:
+
+S05 - Business Modelling
+
+Reason:
+
+Business Modelling should consume the readiness gate and allow the user to set actual, minimum, and target business models before AI export or dashboard outputs are finalised.
+
+---
+
+# 11. FINAL LOCK STATEMENT
+
+Model Readiness / Build Gate v5.0 is locked.
+
+It is a supporting read-only gate.
+
+It tells us whether the current business model is ready to be trusted.
+
+It does not make the model true.
+
+---
+
+# 12. FINAL PRINCIPLE
+
+Model Readiness tells us whether the model is ready to be trusted.
+
+It does not make the model true.
