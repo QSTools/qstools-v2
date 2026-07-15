@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
 import useBusinessSummary from "@/hooks/useBusinessSummary";
+import useModelReadiness from "@/hooks/useModelReadiness";
 import {
   buildBusinessModellingState,
   loadBusinessModellingState,
@@ -54,6 +55,7 @@ function isBaselineEmpty(baseline_snapshot) {
 
 export default function useBusinessModelling() {
   const business_summary = useBusinessSummary();
+  const model_readiness = useModelReadiness();
 
   const [business_modelling_state, setBusinessModellingState] = useState(() => {
     return {
@@ -539,3 +541,5 @@ export default function useBusinessModelling() {
     selectModel,
   };
 }
+
+
