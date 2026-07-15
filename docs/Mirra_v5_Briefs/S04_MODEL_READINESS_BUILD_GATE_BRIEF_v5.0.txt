@@ -1,0 +1,241 @@
+﻿# Mirra v5.0 - Model Readiness / Build Gate Brief
+
+STATUS: BUILD BRIEF - READY FOR IMPLEMENTATION
+VERSION: v5.0
+MODULE TYPE: Supporting / Read-only / Gatekeeping
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+Model Readiness is the gatekeeper between completed business truth modules and downstream modelling.
+
+It answers one question:
+
+Is the current business model ready to be trusted for modelling, dashboard outputs, quote checking, and future AI export?
+
+Model Readiness does not calculate source business values.
+
+It reads existing module output contracts and reports readiness only.
+
+---
+
+# 2. POSITION IN SYSTEM
+
+Model Readiness sits after:
+
+- P&L
+- Labour
+- Assets
+- General Overheads
+- Revenue / COGS
+- Cost Summary
+- Revenue Summary
+- Business Summary
+- Calculation Trace
+
+Model Readiness sits before:
+
+- Business Modelling
+- Business Outcome
+- Quote Engine
+- AI-readable business state export
+- dashboard drill-down
+
+---
+
+# 3. CORE RULE
+
+Model Readiness must not become a source of truth.
+
+It may only:
+
+- read module output contracts
+- read reconciliation status
+- read trace metadata
+- show missing items
+- show blocking issues
+- show warnings
+- show ready / not ready status
+
+It must not:
+
+- recalculate Labour
+- recalculate Assets
+- recalculate General Overheads
+- recalculate Cost Summary
+- recalculate Business Summary
+- override reconciliation results
+- patch missing values
+- infer values
+- become a downstream dependency for source calculations
+
+---
+
+# 4. READINESS GROUPS
+
+Model Readiness should group checks into:
+
+## 4.1 Source Inputs
+
+Checks whether required source inputs exist.
+
+Examples:
+
+- P&L import/mapping available
+- Labour profiles available
+- Asset records available or no-active-assets confirmed
+- General Overheads rows available
+- Revenue / COGS drivers available where required
+
+## 4.2 Module Outputs
+
+Checks whether required module output contracts exist.
+
+Examples:
+
+- Labour output_contract exists
+- Assets output_contract exists
+- General Overheads output_contract exists
+- Cost Summary output_contract exists
+- Revenue Summary output_contract exists
+- Business Summary output_contract exists
+
+## 4.3 Reconciliation
+
+Checks whether module totals reconcile against mapped P&L benchmarks.
+
+Examples:
+
+- Labour reconciliation status
+- Assets reconciliation status
+- General Overheads reconciliation status
+- Cost Summary cost burden present
+- Revenue Summary revenue present
+
+## 4.4 Traceability
+
+Checks whether the selected critical chain has trace coverage.
+
+Examples:
+
+- Calculation Trace selected output exists
+- upstream trace exists
+- no duplicate node IDs
+- no duplicate edge IDs
+- no missing endpoints
+- verified source_file values exist for first selected output chain
+
+## 4.5 Modelling Readiness
+
+Checks whether Business Modelling can safely start.
+
+Examples:
+
+- total_cost_burden > 0
+- required_recovery_per_driver > 0
+- activity_driver_value > 0
+- revenue baseline exists
+- cost baseline exists
+- minimum model available
+- target model can be set by user
+
+---
+
+# 5. READINESS STATUS LEVELS
+
+Use simple status levels:
+
+- ready
+- warning
+- blocked
+- not_started
+
+Avoid global red/orange/green language unless already used locally in a source module.
+
+Recommended labels:
+
+- Ready
+- Needs review
+- Blocked
+- Not started
+
+---
+
+# 6. OUTPUT CONTRACT
+
+Model Readiness should expose a read-only output contract:
+
+model_readiness_output_contract = {
+  overall_status,
+  is_ready_for_modelling,
+  is_ready_for_ai_export,
+  is_ready_for_dashboard,
+  blocking_items,
+  warning_items,
+  passed_items,
+  readiness_groups,
+  last_checked_at
+}
+
+---
+
+# 7. UI REQUIREMENTS
+
+Route:
+
+- /model-readiness
+
+UI sections:
+
+- hero status card
+- readiness summary strip
+- source input readiness
+- module output readiness
+- reconciliation readiness
+- traceability readiness
+- modelling readiness
+- blocking items list
+- warning items list
+- next actions list
+
+The UI must be read-only.
+
+---
+
+# 8. FIRST IMPLEMENTATION SCOPE
+
+First implementation should only wire existing local outputs.
+
+Do not create database storage.
+
+Do not create AI export yet.
+
+Do not create modelling calculations.
+
+Do not change source modules.
+
+First scope is a readiness dashboard only.
+
+---
+
+# 9. ACCEPTANCE CRITERIA
+
+The stage is accepted when:
+
+- /model-readiness builds
+- readiness groups display
+- blocking/warning/ready states display
+- no source calculations are changed
+- Calculation Trace integrity still passes
+- npm run build passes
+- git status is clean after commit
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Model Readiness tells us whether the model is ready to be trusted.
+
+It does not make the model true.
