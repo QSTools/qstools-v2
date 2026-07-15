@@ -1,0 +1,241 @@
+﻿# Mirra v5.0 - Business Modelling Build Brief
+
+STATUS: BUILD BRIEF - READY FOR IMPLEMENTATION
+VERSION: v5.0
+MODULE TYPE: Core / Modelling / Read-only Source Consumer
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+Business Modelling is where the user compares the current business against minimum and target models.
+
+It answers:
+
+- What is the business currently doing?
+- What is the minimum required model?
+- What is the target model?
+- What gap exists between actual, minimum, and target?
+- What revenue, margin, recovery, or output movement is required?
+
+Business Modelling does not create source truth.
+
+It consumes verified source outputs and lets the user set modelling assumptions.
+
+---
+
+# 2. POSITION IN SYSTEM
+
+Business Modelling sits after:
+
+- P&L
+- Labour
+- Assets
+- General Overheads
+- Revenue / COGS
+- Cost Summary
+- Revenue Summary
+- Business Summary
+- Calculation Trace
+- Model Readiness
+
+Business Modelling sits before:
+
+- AI-readable business state export
+- Dashboard / landing page
+- Quote checker
+- Business Outcome
+- Scenario planning
+- Target tracking
+
+---
+
+# 3. CORE RULE
+
+Business Modelling must not recalculate source modules.
+
+It may only:
+
+- read existing output contracts
+- read Model Readiness status
+- read Business Summary values
+- read Revenue Summary values
+- compare actual, minimum, and target models
+- calculate modelling-only gaps
+- expose modelling output contract
+
+It must not:
+
+- overwrite Labour
+- overwrite Assets
+- overwrite General Overheads
+- overwrite Cost Summary
+- overwrite Revenue Summary
+- overwrite Business Summary
+- override Model Readiness
+- infer missing source truth
+- silently fix incomplete modules
+
+---
+
+# 4. MODELLING LAYERS
+
+Business Modelling should present three layers:
+
+## 4.1 Actual Model
+
+The actual model reflects the current source outputs.
+
+Examples:
+
+- actual revenue
+- actual direct costs
+- actual margin pool
+- actual business cost burden
+- actual productive output
+- actual recovery per driver
+- actual gross margin
+- actual net position where available
+
+## 4.2 Minimum Model
+
+The minimum model shows the business break-even or required recovery baseline.
+
+Examples:
+
+- minimum required revenue
+- minimum required recovery rate
+- minimum margin pool
+- minimum productive output requirement
+- minimum cost recovery requirement
+
+## 4.3 Target Model
+
+The target model is user-set.
+
+Examples:
+
+- target revenue
+- target margin percent
+- target owner profit
+- target recovery rate
+- target productive output
+- target utilisation
+- target surplus
+
+Target model values are modelling assumptions only.
+
+They must not write back into source modules.
+
+---
+
+# 5. MODEL READINESS GATE
+
+Business Modelling must display Model Readiness status.
+
+If Model Readiness is blocked:
+
+- Business Modelling should still render
+- source values may display
+- downstream trust status must show blocked
+- target inputs may remain available for planning
+- outputs must be clearly marked not trusted
+
+If Model Readiness is ready or warning:
+
+- Business Modelling can display model comparisons
+- warnings remain visible
+
+---
+
+# 6. OUTPUT CONTRACT
+
+Business Modelling should expose:
+
+business_modelling_output_contract = {
+  actual_model,
+  minimum_model,
+  target_model,
+  gap_analysis,
+  readiness_status,
+  is_ready_for_ai_export,
+  is_ready_for_dashboard,
+  is_ready_for_quote_checker,
+  warnings,
+  blockers,
+  last_checked_at
+}
+
+---
+
+# 7. FIRST IMPLEMENTATION SCOPE
+
+First implementation should only align the existing Business Modelling page to v5.0.
+
+Do not create database storage.
+
+Do not create AI export.
+
+Do not build dashboard.
+
+Do not build quote checker.
+
+Do not alter source modules.
+
+First scope:
+
+- inspect existing /business-modelling
+- inspect useBusinessModelling
+- inspect businessModellingSelectors
+- align output contract
+- display actual / minimum / target sections
+- display readiness gate
+- keep target assumptions local only
+
+---
+
+# 8. UI REQUIREMENTS
+
+Route:
+
+- /business-modelling
+
+UI sections:
+
+- hero status card
+- Model Readiness gate card
+- Actual model card
+- Minimum model card
+- Target model card
+- Gap analysis card
+- Warnings / blockers card
+- Developer output snapshot if already present
+
+The page must be clear enough for a user to understand what must improve.
+
+---
+
+# 9. ACCEPTANCE CRITERIA
+
+The stage is accepted when:
+
+- /business-modelling builds
+- Model Readiness gate is visible
+- actual model displays
+- minimum model displays
+- target model displays
+- gap analysis displays
+- output contract exists
+- no source module calculations are changed
+- Calculation Trace integrity still passes
+- npm run build passes
+- git status is clean after commit
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Business Modelling shows what happens if the business target changes.
+
+It does not change the business source truth.
