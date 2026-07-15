@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import useModelReadiness from "@/hooks/useModelReadiness";
 
@@ -128,7 +128,7 @@ export default function Page() {
         />
 
         <ModelReadinessReconciliationChecks
-          checks={status.reconciliation_checks ?? []}
+          checks={status.reconciliation_checks ?? []} readiness_groups={status.readiness_groups ?? []}
         />
 
         <ModelReadinessDiagnosticSection
