@@ -1,0 +1,246 @@
+﻿# Mirra v5.0 - Calculation Trace Source Verification Brief
+
+STATUS: SOURCE VERIFICATION BRIEF - READY FOR VERIFICATION PASS
+VERSION: v5.0
+MODULE TYPE: Supporting / Read-only / Non-calculating
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+This brief defines the code-level verification pass for Calculation Trace.
+
+The pilot shell is complete, but source_file remains intentionally null until each trace node is verified against actual implementation code.
+
+The purpose of this pass is to identify the real source file that owns, derives, passes through, or exports each trace node.
+
+---
+
+# 2. NON-NEGOTIABLE RULE
+
+Do not populate source_file from brief names.
+
+Only populate source_file after finding the actual code file that owns, derives, passes through, or exports the value.
+
+If ownership is unclear, leave source_file as null and mark the node as deferred.
+
+---
+
+# 3. CURRENT IMPLEMENTED STATE
+
+Current implemented files:
+
+- lib/calculation-trace/calculationTracePilotMap.js
+- lib/calculation-trace/calculationTraceSelectors.js
+- scripts/check-calculation-trace-integrity.mjs
+- app/calculation-trace/page.jsx
+- components/layout/SidebarNavigation.jsx
+
+Current trace integrity:
+
+- Nodes: 41
+- Edges: 41
+- Selected output exists: true
+- Missing endpoints: none
+- Duplicate node IDs: none
+- Duplicate edge IDs: none
+- Upstream trace exists: true
+
+---
+
+# 4. FIRST VERIFICATION TARGET
+
+Initial selected output:
+
+business_summary.required_recovery_per_driver
+
+First verification chain:
+
+- business_summary.required_recovery_per_driver
+- business_summary.total_cost_burden
+- business_summary.activity_driver_value
+- cost_summary.total_cost_burden
+- cost_summary.total_people_cost_annual
+- cost_summary.total_asset_cost_annual
+- cost_summary.total_business_overheads
+- labour.total_people_cost_annual
+- assets.asset_total_asset_cost_annual
+- general_overheads.total_general_overheads
+
+---
+
+# 5. INITIAL SOURCE SEARCH FINDINGS
+
+## 5.1 Business Summary
+
+Candidate source file:
+
+lib/calculations/businessSummaryCalculations.js
+
+Observed fields:
+
+- activity_driver_value
+- required_recovery_per_driver
+
+Initial status:
+
+Candidate verified for Business Summary output-level values, pending exact line/register mapping.
+
+## 5.2 Cost Summary
+
+Candidate source file:
+
+lib/calculations/costSummaryCalculations.js
+
+Observed fields:
+
+- total_people_cost_annual
+- total_asset_cost_annual
+- total_business_overheads
+- total_cost_burden
+- required_revenue
+- required_recovery_rate
+- required_labour_burden_rate
+
+Observed formula:
+
+total_cost_burden =
+  total_people_cost_annual +
+  total_asset_cost_annual +
+  total_business_overheads
+
+Initial status:
+
+Candidate verified for Cost Summary cost-burden aggregation, pending exact line/register mapping.
+
+## 5.3 General Overheads
+
+Candidate source file:
+
+lib/calculations/generalOverheadCalculations.js
+
+Observed field:
+
+- total_general_overheads
+
+Initial status:
+
+Candidate verified for General Overheads aggregate output, pending exact line/register mapping.
+
+## 5.4 Labour
+
+Candidate source file:
+
+lib/calculations/labourCalculations.js
+
+Observed candidate field:
+
+- total_people_cost_annual appears as an accepted/fallback staff value
+
+Initial status:
+
+Candidate only. Requires deeper search for total_labour_cost_annual and output contract ownership.
+
+## 5.5 Assets
+
+Candidate source files:
+
+- lib/selectors/assetSelectors.js
+- lib/storage/assetStorage.js
+
+Observed candidate field:
+
+- total_asset_cost_annual
+
+Initial status:
+
+Candidate only. Requires deeper search for calculation ownership and output contract ownership.
+
+---
+
+# 6. SOURCE VERIFICATION CLASSIFICATIONS
+
+Each trace node must be classified as one of:
+
+## 6.1 source_owned
+
+The file directly calculates or derives the value.
+
+## 6.2 output_contract_passthrough
+
+The file passes through a value owned by another module.
+
+## 6.3 selector_shape
+
+The file shapes or formats the value for UI but does not own the calculation.
+
+## 6.4 storage_shape
+
+The file stores a calculated or imported value but does not own the calculation.
+
+## 6.5 deferred
+
+The source owner is not proven yet.
+
+---
+
+# 7. SOURCE_FILE POPULATION RULES
+
+Populate source_file only when one of these is true:
+
+- the value is directly calculated in that source file
+- the value is directly returned from that source file as part of the module output contract
+- the value is clearly consumed from another module and passed through as an output contract value
+- the source file is the highest-confidence owner identified by code inspection
+
+Do not populate source_file when:
+
+- the value only appears in UI formatting
+- the value only appears in a warning message
+- the value only appears in downstream modules
+- the value appears only as a fallback or compatibility alias
+- the source ownership is ambiguous
+
+---
+
+# 8. REQUIRED VERIFICATION REGISTER FIELDS
+
+The verification register should track:
+
+- node_id
+- current_source_file
+- proposed_source_file
+- verification_classification
+- verification_status
+- evidence_summary
+- searched_terms
+- notes
+
+Verification statuses:
+
+- verified
+- partial
+- deferred
+- conflict
+- not_found
+
+---
+
+# 9. ACCEPTANCE CRITERIA
+
+This verification stage is complete when:
+
+- the first selected output chain has been checked against source code
+- each checked node has a verification status
+- source_file is populated only for verified or partial nodes where the file evidence is strong
+- deferred nodes remain null
+- trace integrity still passes
+- npm run build still passes
+- implemented status brief is updated with the verification result
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Calculation Trace shows how a number was built. It does not decide what the number is.
