@@ -1,0 +1,268 @@
+﻿# Mirra v5.0 - Calculation Trace Implemented Status
+
+STATUS: IMPLEMENTED STATUS - PILOT SHELL COMPLETE
+VERSION: v5.0
+MODULE TYPE: Supporting / Read-only / Non-calculating
+DATE: 2026-07-15
+
+---
+
+# 1. IMPLEMENTED SCOPE
+
+The Calculation Trace supporting module has been implemented as a read-only pilot shell for the locked source-module-level trace path.
+
+Initial selected output:
+
+business_summary.required_recovery_per_driver
+
+Implemented purpose:
+
+Calculation Trace shows how a number was built. It does not decide what the number is.
+
+---
+
+# 2. IMPLEMENTED FILES
+
+## 2.1 Static pilot trace map
+
+File:
+
+lib/calculation-trace/calculationTracePilotMap.js
+
+Implemented contents:
+
+- traceNodes
+- traceEdges
+- calculationTracePilotMeta
+- selected_initial_output
+- source_file fields set to null
+- implementation_status fields set to verified_in_brief
+
+Current counts:
+
+- Nodes: 41
+- Edges: 41
+
+Important rule:
+
+The static trace map is read-only support data. It must not calculate, mutate source state, or become a downstream dependency.
+
+---
+
+## 2.2 Pure trace selectors
+
+File:
+
+lib/calculation-trace/calculationTraceSelectors.js
+
+Implemented selectors:
+
+- getTraceNode
+- getIncomingEdges
+- getOutgoingEdges
+- getTraceNodesByModule
+- getUpstreamTrace
+- getDownstreamTrace
+- getMissingTraceEndpoints
+- getDuplicateTraceNodeIds
+- getDuplicateTraceEdgeIds
+- getTraceIntegrityReport
+
+Selector rules:
+
+- selectors read static trace data only
+- selectors do not calculate business values
+- selectors do not call module calculators
+- selectors do not mutate source data
+- selectors do not infer missing lineage
+
+---
+
+## 2.3 Integrity check script
+
+File:
+
+scripts/check-calculation-trace-integrity.mjs
+
+Implemented checks:
+
+- confirms 41 trace nodes
+- confirms 41 trace edges
+- confirms selected output exists
+- confirms no duplicate node IDs
+- confirms no duplicate edge IDs
+- confirms no missing edge endpoints
+- confirms upstream trace exists for selected output
+
+Latest result:
+
+Calculation trace integrity check passed.
+
+Known warning:
+
+Node may show MODULE_TYPELESS_PACKAGE_JSON warning when running the script.
+
+Status of warning:
+
+Safe for now. Do not add type: module to package.json unless the whole project is intentionally converted.
+
+---
+
+## 2.4 Calculation Trace page shell
+
+File:
+
+app/calculation-trace/page.jsx
+
+Implemented page scope:
+
+- read-only page shell
+- selected output node card
+- incoming relationship list
+- upstream trace path
+- manual proof panel
+- integrity summary cards
+- deferred boundary notices
+- code verification deferred notice
+
+Page rules:
+
+- page does not calculate live business values
+- page does not write data
+- page does not replace module source truth
+- page does not become a required downstream dependency
+
+---
+
+## 2.5 Sidebar navigation
+
+File:
+
+components/layout/SidebarNavigation.jsx
+
+Implemented navigation:
+
+- added Calculation Trace under Business Truth
+- added /calculation-trace to setup flow order
+- added /calculation-trace to setup progress map
+- added /calculation-trace to Business Truth open-group path matching
+
+Recovery action completed:
+
+SidebarNavigation.jsx was replaced with a clean file after an earlier patch corrupted the active-path block.
+
+Current expected file state:
+
+- sane file length
+- Calculation Trace appears under Business Truth
+- /calculation-trace appears once in each required navigation/control section
+
+---
+
+# 3. CURRENT VALIDATION STATUS
+
+## 3.1 Trace integrity
+
+Status: PASSED
+
+Result:
+
+- nodeCount: 41
+- edgeCount: 41
+- selectedOutput: business_summary.required_recovery_per_driver
+- selectedOutputExists: true
+- duplicateNodeIds: []
+- duplicateEdgeIds: []
+- missingEndpoints: []
+- upstreamTraceExists: true
+
+## 3.2 Build status
+
+Status:
+
+Build should pass after SidebarNavigation.jsx recovery.
+
+Known unrelated warning:
+
+Turbopack warning from next.config.ts / app/api/pnl-import/route.js may still appear.
+
+This warning is unrelated to Calculation Trace.
+
+---
+
+# 4. LOCKED BOUNDARIES
+
+The following remain deferred:
+
+- code-level source verification
+- source_file population
+- P&L-internal mapped source tracing
+- full Module Reconciliation trace layer
+- Business Outcome trace
+- Business Modelling trace
+- AI explanation layer
+- DB-backed trace storage
+- user-editable trace map
+
+---
+
+# 5. NON-NEGOTIABLE RULES
+
+Calculation Trace must not:
+
+- calculate business outputs
+- own formulas
+- duplicate source-module calculations
+- infer missing lineage
+- silently repair broken chains
+- write back into any module
+- become required by downstream modules
+- override source module output contracts
+
+---
+
+# 6. CURRENT COMPLETION STATUS
+
+Pilot shell status:
+
+COMPLETE
+
+Implementation level:
+
+Static-data implementation with read-only page shell and selector-level integrity check.
+
+Code verification level:
+
+DEFERRED
+
+Source file mapping:
+
+DEFERRED
+
+Production readiness:
+
+NOT YET PRODUCTION-LOCKED
+
+Reason:
+
+The module is structurally implemented, but code-level source verification and source_file mapping are not yet completed.
+
+---
+
+# 7. NEXT RECOMMENDED STEP
+
+Next recommended step:
+
+Run visual review of /calculation-trace and confirm the page displays correctly in the app.
+
+After visual review:
+
+- commit implemented status brief
+- create next build brief for code-level verification pass
+- map source_file values only after actual source-file verification
+
+---
+
+# 8. FINAL PRINCIPLE
+
+Calculation Trace shows how a number was built. It does not decide what the number is.
