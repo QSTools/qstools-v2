@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -33,6 +33,7 @@ const nav_groups = [
       { href: "/revenue-cogs", label: "Revenue / COGS" },
       { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/business-summary", label: "Business Summary" },
+      { href: "/calculation-trace", label: "Calculation Trace" },
       { href: "/model-readiness", label: "Model Readiness" },
     ],
   },
@@ -65,13 +66,13 @@ const SETUP_FLOW_ORDER = [
   "/revenue-cogs",
   "/revenue-reality",
   "/business-summary",
+  "/calculation-trace",
   "/model-readiness",
   "/recovery-summary",
   "/cost-allocation",
   "/rate-builder",
   "/recovery-outcome",
   "/business-modelling",
-  "/quote-engine",
 ];
 
 const setup_progress = {
@@ -83,13 +84,13 @@ const setup_progress = {
   "/revenue-cogs": false,
   "/revenue-reality": false,
   "/business-summary": false,
+  "/calculation-trace": false,
   "/model-readiness": false,
   "/recovery-summary": false,
   "/cost-allocation": false,
   "/rate-builder": false,
   "/recovery-outcome": false,
   "/business-modelling": false,
-  "/quote-engine": false,
 };
 
 function build_initial_open_groups(pathname) {
@@ -121,6 +122,8 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/revenue-reality/") ||
       pathname === "/business-summary" ||
       pathname.startsWith("/business-summary/") ||
+      pathname === "/calculation-trace" ||
+      pathname.startsWith("/calculation-trace/") ||
       pathname === "/model-readiness" ||
       pathname.startsWith("/model-readiness/"),
 
@@ -142,27 +145,40 @@ function build_initial_open_groups(pathname) {
   };
 }
 
-function get_item_classes(active) {
-  return [
-    "block rounded-xl px-4 py-3 no-underline transition-colors",
-    active
-      ? "bg-[var(--bg-card-muted)] font-semibold text-[var(--text-primary)]"
-      : "text-[var(--text-primary)] hover:bg-[var(--bg-card-muted)]",
-  ].join(" ");
+function is_active_path(pathname, href) {
+  if (href === "/") {
+    return pathname === "/";
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function is_setup_route_locked(href) {
-  const is_in_setup_flow = SETUP_FLOW_ORDER.includes(href);
-
   if (!SETUP_NAV_GATING_ENABLED) {
     return false;
   }
 
-  if (!is_in_setup_flow) {
+  const index = SETUP_FLOW_ORDER.indexOf(href);
+
+  if (index <= 0) {
     return false;
   }
 
-  return !setup_progress[href];
+  const previous_href = SETUP_FLOW_ORDER[index - 1];
+
+  return !setup_progress[previous_href];
+}
+
+function get_item_classes(active, locked = false) {
+  if (locked) {
+    return "ui-nav-item ui-nav-item-locked";
+  }
+
+  if (active) {
+    return "ui-nav-item ui-nav-item-active";
+  }
+
+  return "ui-nav-item";
 }
 
 function NavigationItem({ item, active }) {
@@ -172,8 +188,8 @@ function NavigationItem({ item, active }) {
     return (
       <div
         key={item.href}
-        className={`${get_item_classes(false)} cursor-not-allowed opacity-40`}
-        title="Complete the previous setup step before opening this page."
+        className={get_item_classes(false, true)}
+        title="Complete the previous setup step first"
       >
         {item.label}
       </div>
@@ -181,7 +197,7 @@ function NavigationItem({ item, active }) {
   }
 
   return (
-    <Link key={item.href} href={item.href} className={get_item_classes(active)}>
+    <Link href={item.href} className={get_item_classes(active)}>
       {item.label}
     </Link>
   );
@@ -194,20 +210,20 @@ export default function SidebarNavigation() {
     build_initial_open_groups(pathname)
   );
 
-  function toggle_group(group_label) {
-    set_open_groups((prev) => ({
-      ...prev,
-      [group_label]: !prev[group_label],
+  function toggle_group(label) {
+    set_open_groups((current) => ({
+      ...current,
+      [label]: !current[label],
     }));
   }
 
   function is_active(href) {
-    return pathname === href || pathname.startsWith(href + "/");
+    return is_active_path(pathname, href);
   }
 
   return (
-    <aside className="min-h-screen border-r border-[var(--border-primary)] bg-[var(--bg-card)] p-4 text-[var(--text-primary)]">
-      <div className="mb-6 ui-stack-sm">
+    <aside className="ui-sidebar">
+      <div className="ui-stack">
         <div>
           <div className="ui-kicker">QS Tools</div>
           <div className="text-2xl font-semibold text-[var(--text-primary)]">
@@ -218,45 +234,46 @@ export default function SidebarNavigation() {
         <Link href="/" className={get_item_classes(is_active("/"))}>
           Home
         </Link>
-      </div>
 
-      <div className="ui-stack">
-        {nav_groups.map((group) => (
-          <div key={group.label} className="ui-stack">
-            <button
-              type="button"
-              onClick={() => toggle_group(group.label)}
-              className="ui-button-secondary w-full justify-start text-left"
-            >
-              {open_groups[group.label] ? "▾" : "▸"} {group.label}
-            </button>
+        <div className="ui-stack">
+          {nav_groups.map((group) => {
+            const is_open = open_groups[group.label];
 
-            {open_groups[group.label] ? (
-              <div className="ui-stack pl-3">
-                {group.items.map((item) => (
-                  <NavigationItem
-                    key={item.href}
-                    item={item}
-                    active={is_active(item.href)}
-                  />
-                ))}
+            return (
+              <div key={group.label} className="ui-stack-sm">
+                <button
+                  type="button"
+                  className="ui-nav-group-button"
+                  onClick={() => toggle_group(group.label)}
+                >
+                  <span>{group.label}</span>
+                  <span>{is_open ? "−" : "+"}</span>
+                </button>
+
+                {is_open ? (
+                  <div className="ui-stack pl-3">
+                    {group.items.map((item) => (
+                      <NavigationItem
+                        key={item.href}
+                        item={item}
+                        active={is_active(item.href)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        ))}
+            );
+          })}
+        </div>
 
-        <div className="mt-4 border-t border-[var(--border-primary)] pt-4">
-          <div className="mb-3 ui-kicker">Standalone</div>
-
-          <div className="ui-stack">
-            {standalone_items.map((item) => (
-              <NavigationItem
-                key={item.href}
-                item={item}
-                active={is_active(item.href)}
-              />
-            ))}
-          </div>
+        <div className="ui-stack">
+          {standalone_items.map((item) => (
+            <NavigationItem
+              key={item.href}
+              item={item}
+              active={is_active(item.href)}
+            />
+          ))}
         </div>
       </div>
     </aside>
