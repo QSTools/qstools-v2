@@ -43,10 +43,10 @@ node_id: business_summary.required_recovery_per_driver
 current_source_file: null
 proposed_source_file: lib/calculations/businessSummaryCalculations.js
 verification_classification: source_owned
-verification_status: partial
-evidence_summary: Search found required_recovery_per_driver returned by businessSummaryCalculations.js. Need exact formula lines confirmed before marking verified.
-searched_terms: required_recovery_per_driver, activity_driver_value
-notes: Candidate source owner for selected Business Summary output.
+verification_status: verified
+evidence_summary: Exact search confirmed required_recovery_per_driver is calculated with safe_divide(operating_cost_total, activity_driver_value) and returned by calculateBusinessSummary.
+searched_terms: required_recovery_per_driver, activity_driver_value, operating_cost_total, safe_divide
+notes: Verified source owner for selected Business Summary output.
 
 ---
 
@@ -56,10 +56,10 @@ node_id: business_summary.total_cost_burden
 current_source_file: null
 proposed_source_file: lib/calculations/businessSummaryCalculations.js
 verification_classification: output_contract_passthrough
-verification_status: partial
-evidence_summary: Business Summary consumes or returns total_cost_burden. Cost Summary appears to own the actual aggregation.
-searched_terms: total_cost_burden
-notes: Candidate passthrough. Actual cost burden aggregation appears owned by Cost Summary.
+verification_status: verified
+evidence_summary: Exact search confirmed calculateBusinessSummary accepts total_cost_burden, normalises it to operating_cost_total, and returns total_cost_burden as operating_cost_total. Actual aggregation remains owned by Cost Summary.
+searched_terms: total_cost_burden, operating_cost_total
+notes: Verified Business Summary passthrough of Cost Summary burden.
 
 ---
 
@@ -69,10 +69,10 @@ node_id: business_summary.activity_driver_value
 current_source_file: null
 proposed_source_file: lib/calculations/businessSummaryCalculations.js
 verification_classification: source_owned
-verification_status: partial
-evidence_summary: Search found activity_driver_value returned by businessSummaryCalculations.js. Need exact derivation lines confirmed.
-searched_terms: activity_driver_value
-notes: Candidate source owner for selected driver value.
+verification_status: verified
+evidence_summary: Exact search confirmed activity_driver_value is taken from driver_config.activity_driver_value after get_activity_driver_config resolves the driver from business type and available driver totals.
+searched_terms: activity_driver_value, driver_config, get_activity_driver_config
+notes: Verified Business Summary driver value source.
 
 ---
 
@@ -132,12 +132,12 @@ notes: Cost Summary pass-through from General Overheads output.
 
 node_id: labour.total_people_cost_annual
 current_source_file: null
-proposed_source_file: lib/calculations/labourCalculations.js
-verification_classification: deferred
-verification_status: partial
-evidence_summary: Search found total_people_cost_annual as an accepted or fallback staff field in labourCalculations.js. Need deeper verification of Labour output contract owner.
-searched_terms: total_people_cost_annual, total_labour_cost_annual
-notes: Do not populate source_file yet.
+proposed_source_file: lib/selectors/labour/labourOutputContractSelectors.js
+verification_classification: output_contract_passthrough
+verification_status: verified
+evidence_summary: Deeper search found buildLabourOutputContract returning total_labour_cost_annual and aliasing total_people_cost_annual to total_labour_cost_annual. hooks/useLabour.js builds output_contract from buildLabourOutputContract.
+searched_terms: total_people_cost_annual, total_labour_cost_annual, buildLabourOutputContract, output_contract
+notes: Verified Labour output contract source for people cost handoff.
 
 ---
 
@@ -145,12 +145,12 @@ notes: Do not populate source_file yet.
 
 node_id: assets.asset_total_asset_cost_annual
 current_source_file: null
-proposed_source_file: null
-verification_classification: deferred
-verification_status: partial
-evidence_summary: Search found total_asset_cost_annual in asset selectors and storage. Need deeper verification of calculation owner and output contract owner.
-searched_terms: total_asset_cost_annual, module_total_asset_cost_annual
-notes: Do not populate source_file yet.
+proposed_source_file: hooks/useAssets.js
+verification_classification: output_contract_passthrough
+verification_status: verified
+evidence_summary: Deeper search found calculateAssetOutputs directly calculates total_asset_cost_annual in lib/calculations/assetCalculations.js. hooks/useAssets.js then builds the module output_contract and sums asset_rows into total_asset_cost_annual for the Assets module handoff.
+searched_terms: total_asset_cost_annual, module_total_asset_cost_annual, calculateAssetOutputs, output_contract
+notes: Verified output-contract handoff file is hooks/useAssets.js; calculation owner is lib/calculations/assetCalculations.js.
 
 ---
 
@@ -179,31 +179,30 @@ Safe to populate source_file for:
 
 Hold as null/deferred for now:
 
-- business_summary.required_recovery_per_driver
-- business_summary.total_cost_burden
-- business_summary.activity_driver_value
-- labour.total_people_cost_annual
-- assets.asset_total_asset_cost_annual
+None in first selected output chain.
 
 Reason:
 
-Business Summary needs exact derivation lines confirmed.
-Labour and Assets need deeper output contract ownership verification.
+All first selected output chain nodes now have verified source-file evidence.
 
 ---
 
 # 6. NEXT SEARCH TARGETS
 
-Run deeper searches for:
+First selected output chain verification is complete.
 
-- required_recovery_per_driver formula ownership
-- activity_driver_value derivation ownership
-- total_labour_cost_annual output contract ownership
-- total_asset_cost_annual calculation ownership
-- module_total_asset_cost_annual relationship to total_asset_cost_annual
+Next optional search targets:
+
+- expand verification beyond the first selected output chain
+- verify remaining pilot trace nodes outside the selected chain
+- populate source_file values in calculationTracePilotMap.js only for verified nodes
 
 ---
 
 # 7. FINAL PRINCIPLE
 
 Calculation Trace shows how a number was built. It does not decide what the number is.
+
+
+
+
