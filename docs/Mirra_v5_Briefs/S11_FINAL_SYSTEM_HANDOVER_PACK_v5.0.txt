@@ -1,0 +1,501 @@
+﻿# Mirra v5.0 - Final System Handover Pack
+
+STATUS: HANDOVER PACK - MIGRATION BASELINE
+VERSION: v5.0
+MODULE TYPE: System Handover / Migration Control / Source Alignment
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+This handover pack records the current Mirra v5.0 system state before Pro migration.
+
+The goal is to preserve:
+
+- architecture decisions
+- completed stages
+- source truth rules
+- output contract rules
+- route map
+- validation process
+- known warnings
+- deferred work
+- migration-safe next steps
+
+This document is the main continuation brief for a new chat, new project, or developer handover.
+
+---
+
+# 2. CURRENT SYSTEM STATE
+
+Mirra v5.0 now has a connected baseline flow:
+
+1. Source modules produce business data.
+2. Cost and revenue summary layers consolidate source truth.
+3. Model Readiness checks whether the model can be trusted.
+4. Business Modelling creates a selected target/scenario view.
+5. AI-readable Business State Export packages the trusted state.
+6. Business Overview reflects the current business state.
+7. Quote Checker tests proposed quotes against the selected model.
+8. Navigation exposes the current user-facing flow.
+
+The current baseline is handover-ready.
+
+Further product expansion should happen after migration.
+
+---
+
+# 3. COMPLETED STAGES
+
+Completed and locked stages:
+
+- S03 - Calculation Trace
+- S04 - Model Readiness / Build Gate
+- S05 - Business Modelling
+- S06 - AI-readable Business State Export
+- S07 - Dashboard / Business Overview
+- S08 - Quote Checker
+- S09 - Navigation / Route Placement / User Flow Polish
+- S10 - Home Route / Landing Flow Decision
+
+---
+
+# 4. PRIMARY USER FLOW
+
+Primary user-facing flow:
+
+1. Business Inputs
+2. Business Truth
+3. Business Review
+4. Quote Checker
+
+Business Review routes:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+
+Developer / trace routes:
+
+- /ai-business-state
+- /calculation-trace
+
+Legacy / older routes remain available but should not drive new build decisions unless explicitly selected.
+
+---
+
+# 5. CURRENT ROUTE MAP
+
+Core input routes:
+
+- /p-and-l
+- /general-overheads
+- /labour
+- /assets
+- /opening-hours
+
+Business truth routes:
+
+- /cost-summary
+- /revenue-cogs
+- /revenue-reality
+- /revenue-summary
+- /business-summary
+
+Business review routes:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+
+Developer / trace routes:
+
+- /ai-business-state
+- /calculation-trace
+
+Legacy / older routes:
+
+- /recovery-summary
+- /cost-allocation
+- /rate-builder
+- /recovery-outcome
+- /quote-engine
+
+Quick start / demo routes:
+
+- /business-setup
+- /quick-start
+- /labour-rate-reality-check
+- /materials
+- /rates/square-metre
+
+System / other routes:
+
+- /settings
+- /scheduling
+- /demo-login
+
+API routes:
+
+- /api/acc/search
+- /api/demo-login
+- /api/pnl-import
+
+---
+
+# 6. SOURCE TRUTH RULES
+
+Locked source truth rules:
+
+- Source modules own their own input and calculation logic.
+- Downstream pages must consume output contracts.
+- Downstream pages must not read raw inputs directly unless explicitly approved.
+- Calculation helpers belong in lib/calculations.
+- Selectors must remain pure.
+- Hooks may compose output contracts and page state.
+- Supporting pages must not rewrite source truth.
+- Readiness, export, dashboard and quote checker layers must not patch missing source values.
+
+---
+
+# 7. OUTPUT CONTRACT RULES
+
+Downstream consumption must flow through output contracts.
+
+Key output layers:
+
+- Labour output contract
+- Assets output contract
+- General Overheads output contract
+- Cost Summary output contract
+- Revenue Summary output contract
+- Business Summary output contract
+- Model Readiness status
+- Business Modelling output contract
+- AI-readable Business State Export
+
+Quote Checker consumes the AI-readable Business State Export and selected model values.
+
+Dashboard consumes the AI-readable Business State Export.
+
+---
+
+# 8. CALCULATION TRACE STATUS
+
+Calculation Trace is implemented and locked.
+
+Current integrity status:
+
+- nodeCount: 41
+- edgeCount: 41
+- selectedOutput: business_summary.required_recovery_per_driver
+- selectedOutputExists: true
+- duplicateNodeIds: []
+- duplicateEdgeIds: []
+- missingEndpoints: []
+- upstreamTraceExists: true
+
+Integrity command:
+
+node scripts\check-calculation-trace-integrity.mjs
+
+Known warning:
+
+MODULE_TYPELESS_PACKAGE_JSON may appear for calculationTracePilotMap.js.
+
+Do not add "type": "module" to package.json as part of this baseline.
+
+---
+
+# 9. MODEL READINESS STATUS
+
+Model Readiness is implemented and locked.
+
+It exposes:
+
+- overall_status
+- is_ready_for_modelling
+- is_ready_for_ai_export
+- is_ready_for_dashboard
+- blocking_items
+- warning_items
+- passed_items
+- readiness_groups
+- last_checked_at
+
+Model Readiness decides whether the model is ready to be trusted.
+
+It does not make source values true.
+
+---
+
+# 10. BUSINESS MODELLING STATUS
+
+Business Modelling is implemented and locked.
+
+It exposes:
+
+- actual_model
+- minimum_model
+- target_model
+- gap_analysis
+- readiness_status
+- is_ready_for_ai_export
+- is_ready_for_dashboard
+- is_ready_for_quote_checker
+- warnings
+- blockers
+- last_checked_at
+
+Business Modelling shows what happens if the business target changes.
+
+It does not change source truth.
+
+---
+
+# 11. AI-READABLE BUSINESS STATE EXPORT STATUS
+
+AI-readable Business State Export is implemented and locked.
+
+Route:
+
+- /ai-business-state
+
+It exposes:
+
+- export_version
+- generated_at
+- trust_state
+- readiness
+- source_modules
+- business_summary
+- business_modelling
+- selected_model
+- blockers
+- warnings
+- traceability
+- downstream_permissions
+
+AI Export packages the business state for downstream use.
+
+It does not decide whether the business state is true.
+
+---
+
+# 12. BUSINESS OVERVIEW STATUS
+
+Business Overview is implemented and locked.
+
+Route:
+
+- /business-overview
+
+It displays:
+
+- trust state
+- AI export permission
+- dashboard permission
+- quote checker permission
+- selected model summary
+- business revenue
+- net position
+- blockers
+- warnings
+- next action links
+
+Business Overview reflects the current business state.
+
+It does not decide or change the business state.
+
+---
+
+# 13. QUOTE CHECKER STATUS
+
+Quote Checker is implemented and locked.
+
+Route:
+
+- /quote-checker
+
+Files:
+
+- lib/calculations/quoteCheckerCalculations.js
+- hooks/useQuoteChecker.js
+- app/quote-checker/page.jsx
+
+It accepts local-only quote inputs:
+
+- quote name
+- labour hours
+- labour charge total
+- material cost
+- material charge total
+- other direct cost
+- other direct charge total
+
+It calculates quote-specific outputs only:
+
+- total quote charge
+- total direct cost
+- gross profit dollars
+- gross profit percent
+- implied labour charge rate
+- material markup dollars
+- material markup percent
+- other direct markup dollars
+- other direct markup percent
+- required labour recovery
+- target margin percent
+- labour recovery gap
+- quote alignment status
+- quote blockers
+- quote warnings
+
+Quote Checker tests a proposed quote against the selected business model.
+
+It does not change the model.
+
+---
+
+# 14. NAVIGATION STATUS
+
+Navigation placement is implemented and locked.
+
+Updated file:
+
+- components/layout/SidebarNavigation.jsx
+
+Current sidebar groups:
+
+- Quick Start
+- Business Inputs
+- Business Truth
+- Business Review
+- Recovery Chain
+- Developer / Trace
+- Settings
+
+Business Review includes:
+
+- Business Overview
+- Model Readiness
+- Business Modelling
+- Quote Checker
+
+Developer / Trace includes:
+
+- AI Business State
+- Calculation Trace
+
+Navigation guides the user through the model.
+
+It does not change the model.
+
+---
+
+# 15. HOME ROUTE DECISION
+
+S10 decision:
+
+The root route / remains unchanged before migration.
+
+Business Overview is the preferred operational starting point but is not forced as the root route before migration.
+
+No redirect is added before migration.
+
+No home route rewrite is added before migration.
+
+Future options after migration:
+
+- keep / as a separate home page
+- render Business Overview at /
+- redirect / to /business-overview
+
+---
+
+# 16. VALIDATION COMMANDS
+
+Use these commands before and after migration:
+
+node scripts\check-calculation-trace-integrity.mjs
+
+npm run build
+
+git status
+
+Expected:
+
+- Calculation Trace integrity passes
+- npm run build passes
+- git status clean
+
+Known unrelated warnings:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+Do not treat these as migration failures unless behaviour changes.
+
+---
+
+# 17. WHAT NOT TO TOUCH DURING MIGRATION
+
+Do not:
+
+- rewrite working source modules
+- alter output contracts without a brief
+- add "type": "module" to package.json
+- refactor Calculation Trace during migration
+- change Quote Checker into a source module
+- make Dashboard calculate business values
+- hide model blockers or warnings
+- remove legacy routes without a cleanup brief
+- force / to redirect before migration
+- start S14-S19 product upgrades before handover baseline is complete
+
+---
+
+# 18. DEFERRED PRODUCT WORK
+
+Deferred until after migration:
+
+- S14 - Quote Checker UI refinement
+- S15 - Dashboard visual polish
+- S16 - Export API endpoint
+- S17 - Saved quote scenarios
+- S18 - Customer quote PDF/export
+- S19 - AI quote review
+
+These are product expansion stages, not required for migration handover.
+
+---
+
+# 19. REMAINING MIGRATION CONTROL WORK
+
+Remaining before full Pro migration handover:
+
+- S12 - Known Issues / Deprecated Route Cleanup Brief
+- S13 - Pro Migration Brief / Transfer Checklist
+
+No major product code should be added before migration unless required to align with the locked briefs.
+
+---
+
+# 20. FINAL HANDOVER STATEMENT
+
+Mirra v5.0 is handover-ready as a migration baseline.
+
+The current system has a connected flow from source modules to readiness, modelling, export, overview and quote checking.
+
+The next work should preserve this baseline and avoid expanding scope before migration.
+
+---
+
+# 21. FINAL PRINCIPLE
+
+The handover baseline preserves the current model.
+
+It should not expand the model before migration.
