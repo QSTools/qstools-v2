@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 function formatCurrency(value) {
   const number = Number(value) || 0;
@@ -21,6 +21,10 @@ function formatDate(value) {
   });
 }
 
+function formatReady(value) {
+  return value ? "Ready" : "Blocked";
+}
+
 export default function BusinessModellingStatusStrip({
   baseline_date,
   selected_model_name,
@@ -29,7 +33,13 @@ export default function BusinessModellingStatusStrip({
   selected_scenario_modified,
   annual_delta,
   per_hour_delta,
-  modelling_warnings,
+  modelling_warnings = [],
+  model_readiness_gate_status = "blocked",
+  model_readiness_ready_for_modelling = false,
+  model_readiness_ready_for_ai_export = false,
+  model_readiness_ready_for_dashboard = false,
+  model_readiness_blockers = [],
+  model_readiness_warnings = [],
   selectModel,
   selected_model_type_value,
 }) {
@@ -41,6 +51,58 @@ export default function BusinessModellingStatusStrip({
         <p className="ui-help">
           Test upside and downside business scenarios without altering the real model.
         </p>
+
+        <div className="ui-panel ui-stack-sm">
+          <div className="ui-kicker">Model Readiness Gate</div>
+          <div className="labour-summary-table">
+            <div className="labour-summary-table-row total">
+              <div className="labour-summary-table-label">Gate status</div>
+              <div className="labour-summary-table-value">
+                {model_readiness_gate_status}
+              </div>
+            </div>
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">Ready for modelling</div>
+              <div className="labour-summary-table-value">
+                {formatReady(model_readiness_ready_for_modelling)}
+              </div>
+            </div>
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">Ready for AI export</div>
+              <div className="labour-summary-table-value">
+                {formatReady(model_readiness_ready_for_ai_export)}
+              </div>
+            </div>
+            <div className="labour-summary-table-row">
+              <div className="labour-summary-table-label">Ready for dashboard</div>
+              <div className="labour-summary-table-value">
+                {formatReady(model_readiness_ready_for_dashboard)}
+              </div>
+            </div>
+          </div>
+
+          {model_readiness_blockers.length > 0 ? (
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Readiness blockers</div>
+              {model_readiness_blockers.map((blocker, index) => (
+                <p className="ui-help" key={blocker.id || `blocker-${index}`}>
+                  {blocker.message || String(blocker)}
+                </p>
+              ))}
+            </div>
+          ) : null}
+
+          {model_readiness_warnings.length > 0 ? (
+            <div className="ui-stack-sm">
+              <div className="ui-kicker">Readiness warnings</div>
+              {model_readiness_warnings.map((warning, index) => (
+                <p className="ui-help" key={warning.id || `warning-${index}`}>
+                  {warning.message || String(warning)}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className="ui-stack-sm">
           <div className="model-tabs">

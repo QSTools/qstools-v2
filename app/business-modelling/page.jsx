@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import useBusinessModelling from "@/hooks/useBusinessModelling";
@@ -94,3 +94,4 @@ export default function BusinessModellingPage() {
     </main>
   );
 }
+
