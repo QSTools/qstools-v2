@@ -1,0 +1,196 @@
+﻿# Mirra v5.0 - AI-readable Business State Export Build Brief
+
+STATUS: BUILD BRIEF - READY FOR IMPLEMENTATION
+VERSION: v5.0
+MODULE TYPE: Supporting / Export / Read-only Source Consumer
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+AI-readable Business State Export creates a structured business-state object that can be safely consumed by future AI, dashboards, reports, and quote-checking layers.
+
+It answers:
+
+- What is the current trusted business state?
+- Which modules are ready?
+- Which outputs are safe to use?
+- Which blockers or warnings exist?
+- What selected business model should downstream tools consume?
+
+AI Export does not create source truth.
+
+It only packages existing output contracts into a structured, readable export.
+
+---
+
+# 2. POSITION IN SYSTEM
+
+AI Export sits after:
+
+- P&L
+- Labour
+- Assets
+- General Overheads
+- Revenue / COGS
+- Cost Summary
+- Revenue Summary
+- Business Summary
+- Calculation Trace
+- Model Readiness
+- Business Modelling
+
+AI Export sits before:
+
+- AI assistant reasoning
+- dashboard summaries
+- quote checker explanations
+- business reports
+- future API/database export
+
+---
+
+# 3. CORE RULE
+
+AI Export must not calculate source business values.
+
+It may only:
+
+- read existing output contracts
+- read Model Readiness
+- read Business Modelling output contract
+- structure values into an export object
+- include warnings and blockers
+- mark whether the export is trusted
+
+It must not:
+
+- overwrite source modules
+- infer missing source truth
+- patch missing values
+- override readiness status
+- create new business calculations
+- become a dependency for source modules
+
+---
+
+# 4. EXPORT STRUCTURE
+
+AI Export should expose:
+
+ai_business_state_export = {
+  export_version,
+  generated_at,
+  trust_state,
+  readiness,
+  source_modules,
+  business_summary,
+  business_modelling,
+  selected_model,
+  blockers,
+  warnings,
+  traceability,
+  downstream_permissions
+}
+
+---
+
+# 5. TRUST STATE
+
+Trust state should be derived from Model Readiness and Business Modelling.
+
+Allowed trust states:
+
+- trusted
+- warning
+- blocked
+
+Rules:
+
+- blocked if Model Readiness is blocked
+- warning if ready with warnings
+- trusted if ready with no blockers or warnings
+
+---
+
+# 6. DOWNSTREAM PERMISSIONS
+
+The export should expose permission flags:
+
+- can_use_for_ai
+- can_use_for_dashboard
+- can_use_for_quote_checker
+- can_use_for_reporting
+
+These flags must come from readiness and modelling status.
+
+They must not be manually overridden.
+
+---
+
+# 7. FIRST IMPLEMENTATION SCOPE
+
+First implementation should be local and read-only.
+
+Do not create database persistence.
+
+Do not create API endpoint yet.
+
+Do not call external AI services.
+
+Do not alter source modules.
+
+First scope:
+
+- create hook/use export selector if needed
+- create route /ai-business-state
+- display export status
+- display JSON preview
+- expose copy-ready export object
+- validate build
+
+---
+
+# 8. UI REQUIREMENTS
+
+Route:
+
+- /ai-business-state
+
+UI sections:
+
+- hero status card
+- trust state card
+- downstream permissions card
+- blockers and warnings card
+- selected model summary
+- JSON export preview
+- source module snapshot
+
+The page is developer/admin-facing for now.
+
+---
+
+# 9. ACCEPTANCE CRITERIA
+
+The stage is accepted when:
+
+- /ai-business-state builds
+- export object is generated
+- trust state displays
+- downstream permission flags display
+- selected Business Modelling output is included
+- blockers and warnings are included
+- no source module calculations are changed
+- Calculation Trace integrity still passes
+- npm run build passes
+- git status is clean after commit
+
+---
+
+# 10. FINAL PRINCIPLE
+
+AI Export packages the business state for downstream use.
+
+It does not decide whether the business state is true.
