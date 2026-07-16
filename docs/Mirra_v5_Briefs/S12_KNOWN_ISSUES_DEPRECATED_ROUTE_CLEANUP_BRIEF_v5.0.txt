@@ -243,3 +243,71 @@ Legacy routes remain available but should not drive the v5.0 handover baseline.
 Preserve the working baseline before migration.
 
 Do not clean up old routes until the new baseline is safely migrated.
+
+---
+
+# 13. ADDITIONAL KNOWN CONTRACT REVIEW ITEMS
+
+The following items are safe to carry forward as known issues. They do not block migration, but they must not be lost.
+
+## 13.1 required_labour_burden_rate - unclassified Cost Summary field
+
+The field required_labour_burden_rate surfaced during Calculation Trace source verification.
+
+It exists in costSummaryCalculations.js per the verification register, but it is not clearly classified in the locked Cost Summary brief.
+
+Required follow-up:
+
+- classify as approved output, compatibility alias, helper field, or rejected/deprecated field
+- record owner
+- record downstream use if any
+- update contract documentation if retained
+
+This is not a migration blocker.
+
+## 13.2 required_revenue - trace known-gap cross-reference
+
+required_revenue is a documented compatibility alias for total_cost_burden.
+
+It should be added to the Calculation Trace pilot known-gaps list for consistency with the existing total_business_cost_annual alias note.
+
+Required follow-up:
+
+- cross-reference required_revenue in Calculation Trace known gaps
+- confirm no duplicate calculation ownership
+- preserve compatibility where current consumers rely on it
+
+This is not a migration blocker.
+
+## 13.3 selected_model versus target_model relationship
+
+S06 AI-readable Business State Export exposes selected_model.
+
+S05 Business Modelling exposes target_model.
+
+The relationship between these fields must be clarified.
+
+Required follow-up:
+
+- confirm whether selected_model is an alias, fallback, or separate field
+- confirm what S08 Quote Checker reads for target margin and required recovery
+- document whether Quote Checker margin/recovery warning logic currently fires or is deferred because target-specific fields are not yet populated
+
+This is not a migration blocker, but it affects future confidence in quote alignment warnings.
+
+## 13.4 Revenue Summary contract hardening
+
+Revenue Summary exists as an implemented route and supporting module.
+
+A locked brief has now been added:
+
+- S15_REVENUE_SUMMARY_LOCKED_BRIEF_v5.0.txt
+
+Remaining follow-up:
+
+- inspect useRevenueSummary.js
+- confirm the exact formal output_contract shape
+- add Revenue Summary variables to the variable audit register
+- map persistent fields during the S14 database-readiness process
+
+This is not a migration blocker now that the route/module has been confirmed and documented.

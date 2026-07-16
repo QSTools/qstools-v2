@@ -1,0 +1,246 @@
+﻿# Mirra v5.0 - Revenue Summary Locked Brief
+
+STATUS: LOCKED SUPPORTING MODULE BRIEF
+VERSION: v5.0
+MODULE TYPE: Revenue Summary / Revenue and COG Summary Layer
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+Revenue Summary is a real implemented QS Tools module.
+
+It exists as a standalone route and supporting calculation layer.
+
+Its purpose is to summarise revenue, direct cost, material cost, labour-related COG, operating expenses, target profit assumptions, and target mix assumptions before those values are consumed by downstream review, modelling, dashboard, quote checking, and AI export layers.
+
+Revenue Summary is part of the revenue truth side of the system.
+
+It is a peer support layer alongside Cost Summary and Business Summary.
+
+---
+
+# 2. ROUTE
+
+Current route:
+
+- /revenue-summary
+
+Route file:
+
+- app/revenue-summary/page.jsx
+
+---
+
+# 3. IMPLEMENTED SOURCE FILES
+
+Known implemented source files include:
+
+- app/revenue-summary/page.jsx
+- hooks/useRevenueSummary.js
+- components/revenue-summary/RevenueSummaryNoticeBanner.jsx
+- components/revenue-summary/RevenueSummaryStatusStrip.jsx
+- components/revenue-summary/RevenueSummaryMainCard.jsx
+- components/revenue-summary/RevenueSummarySummaryCard.jsx
+- components/revenue-summary/RevenueSummaryHelpPanel.jsx
+- lib/calculations/revenueSummaryCalculations.js
+- lib/selectors/revenueSummarySelectors.js
+- lib/storage/revenueSummaryStorage.js
+- lib/storage/revenueSummaryProfileStorage.js
+
+---
+
+# 4. SYSTEM POSITION
+
+Current intended chain:
+
+Revenue and COG inputs
+→ Revenue Summary
+→ Business Summary / Business Outcome / Business Modelling
+→ AI-readable Business State Export
+→ Business Overview Dashboard
+→ Quote Checker
+
+Revenue Summary must not own Cost Summary calculations.
+
+Revenue Summary must not overwrite source modules.
+
+Revenue Summary must not become the permanent reporting layer.
+
+---
+
+# 5. CURRENT INPUT STATE
+
+Revenue Summary currently uses local/browser state through revenue summary storage.
+
+Known current input fields include:
+
+- sales_revenue
+- pnl_direct_labour
+- subcontract_labour_cost
+- subcontract_general_cost
+- equipment_hire_cost
+- trade_delivery_other_cost
+- material_cost_total
+- operating_expenses_total
+- target_profit_percent
+- target_profit_amount_override
+- target_material_percent
+- target_labour_percent
+
+These fields represent the current implemented local-state version of the module.
+
+Future database work must map these fields through the S14 variable audit process before persistent schema lock.
+
+---
+
+# 6. CURRENT CALCULATION OWNER
+
+Calculation owner:
+
+- lib/calculations/revenueSummaryCalculations.js
+
+Selector owner:
+
+- lib/selectors/revenueSummarySelectors.js
+
+Storage owner:
+
+- lib/storage/revenueSummaryStorage.js
+- lib/storage/revenueSummaryProfileStorage.js
+
+UI owner:
+
+- components/revenue-summary/*
+- app/revenue-summary/page.jsx
+
+---
+
+# 7. CURRENT ROLE IN MODEL READINESS
+
+Model Readiness may treat Revenue Summary as an implemented module dependency.
+
+The relevant readiness concept is:
+
+- Revenue Summary exists
+- Revenue Summary calculation can run
+- Revenue Summary revenue value is present or explicitly empty
+- Revenue Summary can expose a downstream consumable output shape
+
+If the current code does not yet expose a formal named output_contract object, future work must either:
+
+- add a stable output_contract wrapper, or
+- document the current calculated/summary object as the temporary output contract
+
+This is a contract-hardening task, not a migration blocker.
+
+---
+
+# 8. CURRENT DOWNSTREAM CONSUMERS
+
+Revenue Summary is referenced by:
+
+- Model Readiness
+- Business Modelling
+- AI-readable Business State Export
+- Business Overview Dashboard
+- Quote Checker
+- Navigation / route placement
+- Final handover pack
+
+Downstream consumers must consume structured outputs.
+
+They must not directly recalculate Revenue Summary values.
+
+---
+
+# 9. BOUNDARIES
+
+Revenue Summary does not own:
+
+- Cost Summary calculations
+- Labour module calculations
+- Asset module calculations
+- General Overhead calculations
+- Dashboard calculations
+- AI interpretation
+- historical reporting facts
+- permanent database schema
+- scenario calculations
+
+Revenue Summary owns only its own revenue and COG summary calculation layer and its local state until the permanent database is designed.
+
+---
+
+# 10. CURRENT CONTRACT STATUS
+
+Revenue Summary is implemented, but its formal locked output contract still requires hardening.
+
+Current status:
+
+- route exists
+- UI components exist
+- storage exists
+- selectors exist
+- calculation file exists
+- downstream documents reference it
+- formal locked brief was previously missing
+
+This brief resolves the missing brief issue.
+
+Remaining post-migration follow-up:
+
+- inspect useRevenueSummary.js
+- confirm the exact exported output shape
+- define the formal output_contract field names
+- add Revenue Summary to the variable audit register
+- map persistent fields through S14 before database schema work
+
+---
+
+# 11. MIGRATION DECISION
+
+Revenue Summary is real and should remain in the v5.0 handover baseline.
+
+Do not remove Revenue Summary references from S04, S05, S06, S07, S08, S09, S11, S13, or S14.
+
+Do not treat it as documentation drift.
+
+Do not delete /revenue-summary.
+
+---
+
+# 12. POST-MIGRATION WORK REQUIRED
+
+After migration, create a Revenue Summary contract-hardening task to confirm:
+
+- exact output contract fields
+- exact warning fields
+- exact readiness fields
+- relationship to Revenue / COGS
+- relationship to Business Summary
+- relationship to future Business Outcome
+- persistent storage requirements
+- reporting-layer outputs
+- AI structured-context fields
+
+This must happen before permanent database schema lock.
+
+---
+
+# 13. FINAL LOCK STATEMENT
+
+Revenue Summary is an implemented supporting module in Mirra v5.0.
+
+It is safe to reference it in the migration baseline.
+
+The remaining work is not to prove whether it exists, but to harden and document its formal output contract after migration.
+
+---
+
+# 14. FINAL PRINCIPLE
+
+Keep Revenue Summary.
+
+Harden its contract before schema lock.
