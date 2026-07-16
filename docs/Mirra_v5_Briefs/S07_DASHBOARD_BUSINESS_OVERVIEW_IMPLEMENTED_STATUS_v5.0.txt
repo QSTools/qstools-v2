@@ -1,0 +1,170 @@
+﻿# Mirra v5.0 - Dashboard / Business Overview Implemented Status
+
+STATUS: IMPLEMENTED - FIRST BUSINESS OVERVIEW COMPLETE
+VERSION: v5.0
+MODULE TYPE: User-facing / Overview / Read-only Source Consumer
+DATE: 2026-07-15
+
+---
+
+# 1. IMPLEMENTED OUTCOME
+
+Dashboard / Business Overview has been implemented as a read-only top-level business overview.
+
+It consumes the S06 AI-readable Business State Export and displays the current business trust state, downstream permissions, selected model summary, blockers, warnings and next actions.
+
+Dashboard does not calculate source business values.
+
+Dashboard does not change source truth.
+
+---
+
+# 2. IMPLEMENTED ROUTE
+
+Implemented route:
+
+- /business-overview
+
+---
+
+# 3. IMPLEMENTED FILES
+
+Created files:
+
+- app/business-overview/page.jsx
+
+Supporting modules consumed:
+
+- hooks/useAiBusinessState.js
+- lib/selectors/aiBusinessStateSelectors.js
+- S06 AI-readable Business State Export
+- S05 Business Modelling output contract
+- S04 Model Readiness output contract
+
+---
+
+# 4. UI IMPLEMENTATION
+
+The /business-overview page displays:
+
+- hero overview card
+- trust state card
+- AI export permission
+- dashboard permission
+- quote checker permission
+- selected model summary
+- business revenue
+- net position
+- blockers
+- warnings
+- next action links
+
+Next action links:
+
+- /model-readiness
+- /business-modelling
+- /ai-business-state
+
+---
+
+# 5. SOURCE OF TRUTH
+
+Dashboard reads from:
+
+- useAiBusinessState
+- AI business state export object
+- selected model from Business Modelling
+- trust state from Model Readiness / Business Modelling
+- blockers and warnings from export state
+
+Dashboard does not create or modify source values.
+
+---
+
+# 6. LOCKED BOUNDARIES
+
+Dashboard must not:
+
+- calculate Labour
+- calculate Assets
+- calculate General Overheads
+- calculate Cost Summary
+- calculate Revenue Summary
+- calculate Business Summary
+- override Model Readiness
+- override Business Modelling
+- override AI Export trust state
+- infer missing source truth
+- patch missing values
+- write to source modules
+
+Dashboard may only:
+
+- read the AI business state export
+- display trust state
+- display permissions
+- display selected model summary
+- display blockers and warnings
+- link to source review pages
+
+---
+
+# 7. VALIDATION
+
+Validation passed:
+
+- Calculation Trace integrity check: passed
+- nodeCount: 41
+- edgeCount: 41
+- selectedOutput: business_summary.required_recovery_per_driver
+- selectedOutputExists: true
+- duplicateNodeIds: []
+- duplicateEdgeIds: []
+- missingEndpoints: []
+- upstreamTraceExists: true
+
+Build validation:
+
+- npm run build: passed
+- /business-overview: built
+
+Known unrelated warnings:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+These warnings are not S07 failures.
+
+Do not add "type": "module" to package.json as part of this stage.
+
+---
+
+# 8. DEFERRED WORK
+
+Deferred to future stages:
+
+- richer dashboard cards
+- trend charts
+- monthly tracking
+- drill-through summaries
+- quote checker integration
+- report export integration
+- user-facing copy polish
+- dashboard navigation placement
+- dashboard as home route decision
+
+---
+
+# 9. FINAL LOCK STATEMENT
+
+Dashboard / Business Overview v5.0 first implementation is complete.
+
+It reflects the current business state from the AI-readable export layer and does not change source truth.
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Dashboard reflects the current business state.
+
+It does not decide or change the business state.
