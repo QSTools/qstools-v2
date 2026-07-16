@@ -1,0 +1,245 @@
+﻿# Mirra v5.0 - Known Issues / Deprecated Route Cleanup Brief
+
+STATUS: MIGRATION CONTROL BRIEF - READY
+VERSION: v5.0
+MODULE TYPE: Known Issues / Deprecated Route Control / Migration Guardrail
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+This brief records known issues, known warnings, legacy routes, deprecated flows and migration guardrails before Pro migration.
+
+The goal is to prevent future chats or developers from accidentally treating older routes as the current system direction.
+
+This brief does not request code cleanup before migration.
+
+It is a control document.
+
+---
+
+# 2. CURRENT BASELINE
+
+The current migration baseline is:
+
+- Business Inputs
+- Business Truth
+- Business Review
+- Quote Checker
+- Developer / Trace
+
+The current preferred user-facing flow is:
+
+1. /business-overview
+2. /model-readiness
+3. /business-modelling
+4. /quote-checker
+
+Developer / trace routes:
+
+- /ai-business-state
+- /calculation-trace
+
+---
+
+# 3. LEGACY / OLDER ROUTES
+
+The following routes remain in the app but should not drive new build decisions unless explicitly selected:
+
+- /recovery-summary
+- /cost-allocation
+- /rate-builder
+- /recovery-outcome
+- /quote-engine
+
+These routes may still contain useful earlier work.
+
+They should not be deleted before migration.
+
+They should not be treated as the primary v5.0 flow.
+
+---
+
+# 4. CURRENT PREFERRED REPLACEMENTS
+
+Older route / concept:
+
+- Recovery Outcome
+
+Preferred v5.0 flow:
+
+- Business Modelling
+- Business Overview
+- Quote Checker
+
+Older route / concept:
+
+- Quote Engine
+
+Preferred v5.0 route:
+
+- /quote-checker
+
+Older route / concept:
+
+- Calculation inspection mixed into business truth navigation
+
+Preferred v5.0 placement:
+
+- Developer / Trace group
+
+Older route / concept:
+
+- Recovery Chain as main downstream flow
+
+Preferred v5.0 flow:
+
+- Business Review group
+
+---
+
+# 5. KNOWN WARNINGS
+
+Known warning 1:
+
+MODULE_TYPELESS_PACKAGE_JSON warning from:
+
+- lib/calculation-trace/calculationTracePilotMap.js
+
+This warning appears when running:
+
+node scripts\check-calculation-trace-integrity.mjs
+
+Do not add "type": "module" to package.json as part of this migration baseline.
+
+Known warning 2:
+
+Turbopack NFT warning from:
+
+- next.config.ts
+- app/api/pnl-import/route.js
+
+This warning may appear during:
+
+npm run build
+
+It is known and unrelated to S03-S12.
+
+Do not treat it as a migration failure unless build behaviour changes.
+
+---
+
+# 6. KNOWN STRUCTURAL NOTES
+
+The current app uses:
+
+- Next.js App Router
+- React client components
+- localStorage-driven state in existing modules
+- output contracts for downstream consumption
+- read-only supporting layers for readiness, export, dashboard and quote checking
+
+Some future API work may require separating client-only state from server-safe export structures.
+
+This is deferred until after migration.
+
+---
+
+# 7. DO NOT CLEAN UP BEFORE MIGRATION
+
+Before migration, do not:
+
+- delete legacy routes
+- remove Recovery Chain pages
+- remove Quote Engine
+- refactor source modules
+- refactor Calculation Trace
+- add "type": "module" to package.json
+- convert localStorage state to database state
+- add API export endpoint
+- add saved quote scenarios
+- add PDF quote export
+- add AI quote review
+- force / to redirect to /business-overview
+
+Migration priority is preserving the current working baseline.
+
+---
+
+# 8. SAFE POST-MIGRATION CLEANUP OPTIONS
+
+After migration, possible cleanup stages:
+
+- review whether Recovery Chain should be archived
+- review whether Quote Engine should be replaced by Quote Checker
+- decide whether Business Overview should become /
+- add role-based visibility for Developer / Trace routes
+- add route descriptions/tooltips
+- refine mobile navigation
+- polish Business Overview UI
+- polish Quote Checker UI
+
+These are not required before migration.
+
+---
+
+# 9. VALIDATION COMMANDS
+
+Use before and after migration:
+
+node scripts\check-calculation-trace-integrity.mjs
+
+npm run build
+
+git status
+
+Expected:
+
+- Calculation Trace integrity passes
+- npm run build passes
+- git status clean
+
+Known warnings are acceptable if validation still passes.
+
+---
+
+# 10. MIGRATION GUARDRAIL
+
+If a future chat or developer is unsure which route is current, use this rule:
+
+Current v5.0 flow:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+
+Developer / trace support:
+
+- /ai-business-state
+- /calculation-trace
+
+Legacy routes:
+
+- keep available
+- do not expand unless explicitly selected
+- do not delete before migration
+
+---
+
+# 11. FINAL LOCK STATEMENT
+
+Known issues and deprecated route control are documented for migration.
+
+No cleanup code is required before Pro migration.
+
+Legacy routes remain available but should not drive the v5.0 handover baseline.
+
+---
+
+# 12. FINAL PRINCIPLE
+
+Preserve the working baseline before migration.
+
+Do not clean up old routes until the new baseline is safely migrated.
