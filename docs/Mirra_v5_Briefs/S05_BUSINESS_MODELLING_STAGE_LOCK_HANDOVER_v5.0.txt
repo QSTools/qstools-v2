@@ -1,0 +1,213 @@
+﻿# Mirra v5.0 - Business Modelling Stage Lock Handover
+
+STATUS: STAGE LOCKED - FIRST V5.0 ALIGNMENT COMPLETE
+VERSION: v5.0
+MODULE TYPE: Core / Modelling / Read-only Source Consumer
+DATE: 2026-07-15
+
+---
+
+# 1. STAGE OUTCOME
+
+Business Modelling has been aligned to the v5.0 architecture.
+
+It now consumes S04 Model Readiness and exposes a downstream Business Modelling output contract.
+
+The page remains usable even when Model Readiness is blocked, but the trust gate is clearly displayed.
+
+Business Modelling does not change source truth.
+
+---
+
+# 2. IMPLEMENTED ROUTE
+
+Implemented and validated route:
+
+- /business-modelling
+
+---
+
+# 3. IMPLEMENTED FILES
+
+Updated files:
+
+- hooks/useBusinessModelling.js
+- lib/selectors/businessModellingSelectors.js
+- components/business-modelling/BusinessModellingStatusStrip.jsx
+- app/business-modelling/page.jsx
+
+Documentation files completed:
+
+- docs/Mirra_v5_Briefs/S05_BUSINESS_MODELLING_BUILD_BRIEF_v5.0.txt
+- docs/Mirra_v5_Briefs/S05_BUSINESS_MODELLING_IMPLEMENTED_STATUS_v5.0.txt
+- docs/Mirra_v5_Briefs/S05_BUSINESS_MODELLING_STAGE_LOCK_HANDOVER_v5.0.txt
+
+---
+
+# 4. MODEL READINESS GATE
+
+Business Modelling now reads S04 Model Readiness.
+
+Displayed gate values:
+
+- Model Readiness gate status
+- ready for modelling
+- ready for AI export
+- ready for dashboard
+- readiness blockers
+- readiness warnings
+
+If Model Readiness is blocked:
+
+- Business Modelling still renders
+- selected model remains preview only
+- downstream trust state remains blocked
+- source values are not silently corrected
+
+---
+
+# 5. OUTPUT CONTRACT
+
+Business Modelling exposes:
+
+- actual_model
+- minimum_model
+- target_model
+- gap_analysis
+- readiness_status
+- is_ready_for_ai_export
+- is_ready_for_dashboard
+- is_ready_for_quote_checker
+- warnings
+- blockers
+- last_checked_at
+
+The output contract is exposed from:
+
+- hooks/useBusinessModelling.js
+
+---
+
+# 6. CURRENT MODELLING LAYERS
+
+Current first-pass implementation supports:
+
+- baseline / actual model
+- upside scenario
+- downside scenario
+- selected model output
+- scenario delta
+- gap analysis card
+
+Current limitation:
+
+- minimum_model currently maps to baseline_snapshot for first v5.0 alignment
+
+Deferred separation:
+
+- dedicated minimum model
+- target model expansion
+- owner profit target
+- target revenue target
+- target recovery target
+
+---
+
+# 7. LOCKED BOUNDARIES
+
+Business Modelling must not:
+
+- overwrite Labour
+- overwrite Assets
+- overwrite General Overheads
+- overwrite Cost Summary
+- overwrite Revenue Summary
+- overwrite Business Summary
+- override Model Readiness
+- infer missing source truth
+- patch missing source values
+- change source module calculations
+
+Business Modelling may only:
+
+- read source output contracts
+- read Model Readiness
+- store local scenario assumptions
+- calculate modelling-only gaps
+- expose selected model output
+- expose downstream readiness flags
+
+---
+
+# 8. FINAL VALIDATION
+
+Final validation passed:
+
+- Calculation Trace integrity check: passed
+- npm run build: passed
+- /business-modelling: built
+- /model-readiness: built
+- /dev/model-readiness: built
+- git status: clean
+
+Known unrelated warnings:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+These warnings are not S05 failures.
+
+Do not add "type": "module" to package.json as part of this stage.
+
+---
+
+# 9. DEFERRED WORK
+
+Deferred to future stages:
+
+- separate minimum model from baseline
+- add deeper target model controls
+- add owner profit target modelling
+- add target revenue modelling
+- add target margin modelling
+- add target recovery modelling
+- connect Business Modelling to AI export
+- connect Business Modelling to dashboard outputs
+- connect Business Modelling to Quote Checker
+- add historical scenario snapshots
+
+---
+
+# 10. NEXT RECOMMENDED STAGE
+
+Recommended next stage:
+
+S06 - AI-readable Business State Export
+
+Reason:
+
+Business Modelling now exposes a downstream output contract. The next logical step is a structured export layer that can read the completed business state without changing source truth.
+
+Alternative:
+
+S05B - Minimum / Target Model Expansion
+
+Use this if deeper modelling controls are required before AI export.
+
+---
+
+# 11. FINAL LOCK STATEMENT
+
+Business Modelling v5.0 first alignment is locked.
+
+It consumes Model Readiness, exposes a downstream output contract, and displays the trust gate clearly.
+
+It remains a modelling layer only.
+
+---
+
+# 12. FINAL PRINCIPLE
+
+Business Modelling shows what happens if the business target changes.
+
+It does not change the business source truth.
