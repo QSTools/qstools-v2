@@ -33,8 +33,15 @@ const nav_groups = [
       { href: "/revenue-cogs", label: "Revenue / COGS" },
       { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/business-summary", label: "Business Summary" },
-      { href: "/calculation-trace", label: "Calculation Trace" },
+    ],
+  },
+  {
+    label: "Business Review",
+    items: [
+      { href: "/business-overview", label: "Business Overview" },
       { href: "/model-readiness", label: "Model Readiness" },
+      { href: "/business-modelling", label: "Business Modelling" },
+      { href: "/quote-checker", label: "Quote Checker" },
     ],
   },
   {
@@ -44,13 +51,14 @@ const nav_groups = [
       { href: "/cost-allocation", label: "Cost Allocation" },
       { href: "/rate-builder", label: "Rate Builder" },
       { href: "/recovery-outcome", label: "Business Outcome" },
+      { href: "/quote-engine", label: "Quote Engine" },
     ],
   },
   {
-    label: "Business Modelling",
+    label: "Developer / Trace",
     items: [
-      { href: "/business-modelling", label: "Business Modelling" },
-      { href: "/quote-engine", label: "Quote Engine" },
+      { href: "/ai-business-state", label: "AI Business State" },
+      { href: "/calculation-trace", label: "Calculation Trace" },
     ],
   },
 ];
@@ -66,13 +74,10 @@ const SETUP_FLOW_ORDER = [
   "/revenue-cogs",
   "/revenue-reality",
   "/business-summary",
-  "/calculation-trace",
+  "/business-overview",
   "/model-readiness",
-  "/recovery-summary",
-  "/cost-allocation",
-  "/rate-builder",
-  "/recovery-outcome",
   "/business-modelling",
+  "/quote-checker",
 ];
 
 const setup_progress = {
@@ -84,13 +89,10 @@ const setup_progress = {
   "/revenue-cogs": false,
   "/revenue-reality": false,
   "/business-summary": false,
-  "/calculation-trace": false,
+  "/business-overview": false,
   "/model-readiness": false,
-  "/recovery-summary": false,
-  "/cost-allocation": false,
-  "/rate-builder": false,
-  "/recovery-outcome": false,
   "/business-modelling": false,
+  "/quote-checker": false,
 };
 
 function build_initial_open_groups(pathname) {
@@ -121,11 +123,17 @@ function build_initial_open_groups(pathname) {
       pathname === "/revenue-reality" ||
       pathname.startsWith("/revenue-reality/") ||
       pathname === "/business-summary" ||
-      pathname.startsWith("/business-summary/") ||
-      pathname === "/calculation-trace" ||
-      pathname.startsWith("/calculation-trace/") ||
+      pathname.startsWith("/business-summary/"),
+
+    "Business Review":
+      pathname === "/business-overview" ||
+      pathname.startsWith("/business-overview/") ||
       pathname === "/model-readiness" ||
-      pathname.startsWith("/model-readiness/"),
+      pathname.startsWith("/model-readiness/") ||
+      pathname === "/business-modelling" ||
+      pathname.startsWith("/business-modelling/") ||
+      pathname === "/quote-checker" ||
+      pathname.startsWith("/quote-checker/"),
 
     "Recovery Chain":
       pathname === "/recovery-summary" ||
@@ -135,13 +143,15 @@ function build_initial_open_groups(pathname) {
       pathname === "/rate-builder" ||
       pathname.startsWith("/rate-builder/") ||
       pathname === "/recovery-outcome" ||
-      pathname.startsWith("/recovery-outcome/"),
-
-    "Business Modelling":
-      pathname === "/business-modelling" ||
-      pathname.startsWith("/business-modelling/") ||
+      pathname.startsWith("/recovery-outcome/") ||
       pathname === "/quote-engine" ||
       pathname.startsWith("/quote-engine/"),
+
+    "Developer / Trace":
+      pathname === "/ai-business-state" ||
+      pathname.startsWith("/ai-business-state/") ||
+      pathname === "/calculation-trace" ||
+      pathname.startsWith("/calculation-trace/"),
   };
 }
 
