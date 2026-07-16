@@ -1,0 +1,229 @@
+﻿# Mirra v5.0 - Quote Checker Implemented Status
+
+STATUS: IMPLEMENTED - FIRST QUOTE CHECKER COMPLETE
+VERSION: v5.0
+MODULE TYPE: User-facing / Commercial Test / Read-only Model Consumer
+DATE: 2026-07-15
+
+---
+
+# 1. IMPLEMENTED OUTCOME
+
+Quote Checker has been implemented as a local-only commercial test layer.
+
+It tests a proposed quote against the selected business model and current AI-readable Business State Export.
+
+Quote Checker calculates quote-specific test outputs only.
+
+It does not calculate or change source business truth.
+
+---
+
+# 2. IMPLEMENTED ROUTE
+
+Implemented route:
+
+- /quote-checker
+
+---
+
+# 3. IMPLEMENTED FILES
+
+Created files:
+
+- lib/calculations/quoteCheckerCalculations.js
+- hooks/useQuoteChecker.js
+- app/quote-checker/page.jsx
+
+Supporting modules consumed:
+
+- hooks/useAiBusinessState.js
+- S06 AI-readable Business State Export
+- S05 Business Modelling output contract
+- S04 Model Readiness output contract
+
+---
+
+# 4. QUOTE INPUTS
+
+Implemented local-only quote inputs:
+
+- quote name
+- labour hours
+- labour charge total
+- material cost
+- material charge total
+- other direct cost
+- other direct charge total
+
+Inputs are stored in page state only.
+
+No quote data is persisted.
+
+No source module is updated.
+
+---
+
+# 5. QUOTE OUTPUTS
+
+Implemented quote-specific outputs:
+
+- total quote charge
+- total direct cost
+- gross profit dollars
+- gross profit percent
+- implied labour charge rate
+- material markup dollars
+- material markup percent
+- other direct markup dollars
+- other direct markup percent
+- required labour recovery
+- target margin percent
+- labour recovery gap
+- quote alignment status
+- quote blockers
+- quote warnings
+
+---
+
+# 6. TRUST AND GATING
+
+Quote Checker reads:
+
+- model trust state
+- can_use_for_quote_checker
+- export blockers
+- export warnings
+
+If quote checker permission is blocked, the page still displays but clearly reports the blocked state.
+
+Quote Checker does not hide model blockers or warnings.
+
+---
+
+# 7. ALIGNMENT LOGIC
+
+Implemented first-pass alignment:
+
+- blocked if quote checker permission is false
+- blocked if labour hours are zero or negative
+- blocked if total quote charge is zero or negative
+- warning if implied labour charge rate is below selected model required recovery
+- warning if gross profit percent is below selected model target margin where available
+- aligned if no blockers or warnings are present
+
+This is a first commercial test layer only.
+
+It is not a final estimating system.
+
+---
+
+# 8. LOCKED BOUNDARIES
+
+Quote Checker must not:
+
+- calculate Labour
+- calculate Assets
+- calculate General Overheads
+- calculate Cost Summary
+- calculate Revenue Summary
+- calculate Business Summary
+- change Business Modelling
+- override Model Readiness
+- override AI Export trust state
+- infer missing source truth
+- patch missing values
+- write back to source modules
+
+Quote Checker may only:
+
+- read the AI-readable Business State Export
+- accept temporary quote inputs
+- calculate quote-specific test results
+- compare quote outputs against selected model values
+- display alignment, warning, or blocked state
+- display quote pressure drivers
+- display model blockers and warnings
+
+---
+
+# 9. UI IMPLEMENTATION
+
+The /quote-checker page displays:
+
+- hero / status panel
+- model trust state
+- quote checker permission
+- quote alignment status
+- quote input panel
+- quote result summary
+- labour recovery test
+- material recovery test
+- other direct recovery test
+- quote blockers
+- quote warnings
+- model blockers
+- model warnings
+- source review links
+
+Source review links:
+
+- /business-overview
+- /business-modelling
+- /ai-business-state
+- /model-readiness
+
+---
+
+# 10. VALIDATION
+
+Validation passed:
+
+- Calculation Trace integrity check: passed
+- npm run build: passed
+- /quote-checker: built
+
+Known unrelated warnings:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+These warnings are not S08 failures.
+
+Do not add "type": "module" to package.json as part of this stage.
+
+---
+
+# 11. DEFERRED WORK
+
+Deferred to future stages:
+
+- saved quote scenarios
+- customer quote templates
+- quote PDF export
+- AI quote review
+- detailed job type templates
+- labour crew profiles
+- material categories
+- plant and equipment pricing
+- subcontractor pricing
+- quote-to-actual tracking
+- quote history
+- dashboard quote summaries
+- navigation placement
+
+---
+
+# 12. FINAL LOCK STATEMENT
+
+Quote Checker v5.0 first implementation is complete.
+
+It tests proposed quotes against the selected business model without changing source truth.
+
+---
+
+# 13. FINAL PRINCIPLE
+
+Quote Checker tests a proposed quote against the selected business model.
+
+It does not change the model.
