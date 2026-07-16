@@ -1,0 +1,342 @@
+﻿# Mirra v5.0 - Pro Migration Brief / Transfer Checklist
+
+STATUS: MIGRATION CHECKLIST - READY
+VERSION: v5.0
+MODULE TYPE: Pro Migration / Transfer Control / Handover Checklist
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+This checklist controls the migration of Mirra v5.0 into the new Pro environment.
+
+The goal is to preserve the current working baseline and avoid losing context, route decisions, architecture decisions, or locked briefs.
+
+This document should be used before starting work in the new Pro project/chat.
+
+---
+
+# 2. MIGRATION BASELINE NAME
+
+Baseline name:
+
+Mirra v5.0 - Handover Ready Baseline
+
+Current system status:
+
+- source modules exist
+- readiness layer exists
+- modelling layer exists
+- AI-readable export exists
+- business overview exists
+- quote checker exists
+- navigation placement exists
+- home route decision is documented
+- known issues and deprecated route guardrails are documented
+
+---
+
+# 3. MUST MIGRATE
+
+Migrate the full repository.
+
+Do not migrate only selected files.
+
+The new Pro environment must include:
+
+- app
+- components
+- hooks
+- lib
+- scripts
+- docs
+- package files
+- config files
+- public assets if present
+
+The docs folder is critical.
+
+Do not omit:
+
+- docs/Mirra_v5_Briefs
+
+---
+
+# 4. CRITICAL BRIEFS TO CARRY FORWARD
+
+The following briefs are critical for continuation:
+
+- S03_CALCULATION_TRACE_STAGE_LOCK_HANDOVER_v5.0.txt
+- S04_MODEL_READINESS_STAGE_LOCK_HANDOVER_v5.0.txt
+- S05_BUSINESS_MODELLING_STAGE_LOCK_HANDOVER_v5.0.txt
+- S06_AI_READABLE_BUSINESS_STATE_EXPORT_STAGE_LOCK_HANDOVER_v5.0.txt
+- S07_DASHBOARD_BUSINESS_OVERVIEW_STAGE_LOCK_HANDOVER_v5.0.txt
+- S08_QUOTE_CHECKER_STAGE_LOCK_HANDOVER_v5.0.txt
+- S09_NAVIGATION_ROUTE_PLACEMENT_USER_FLOW_STAGE_LOCK_HANDOVER_v5.0.txt
+- S10_HOME_ROUTE_LANDING_FLOW_DECISION_BRIEF_v5.0.txt
+- S11_FINAL_SYSTEM_HANDOVER_PACK_v5.0.txt
+- S12_KNOWN_ISSUES_DEPRECATED_ROUTE_CLEANUP_BRIEF_v5.0.txt
+- S13_PRO_MIGRATION_TRANSFER_CHECKLIST_v5.0.txt
+
+If only one brief can be pasted into a new chat first, use:
+
+- S11_FINAL_SYSTEM_HANDOVER_PACK_v5.0.txt
+
+Then add:
+
+- S12_KNOWN_ISSUES_DEPRECATED_ROUTE_CLEANUP_BRIEF_v5.0.txt
+- S13_PRO_MIGRATION_TRANSFER_CHECKLIST_v5.0.txt
+
+---
+
+# 5. PRE-MIGRATION VALIDATION
+
+Before migration, run:
+
+node scripts\check-calculation-trace-integrity.mjs
+
+npm run build
+
+git status
+
+Expected:
+
+- Calculation Trace integrity passes
+- npm run build passes
+- git status clean
+
+Known warnings are acceptable if validation passes:
+
+- MODULE_TYPELESS_PACKAGE_JSON warning from Calculation Trace script
+- Turbopack NFT warning from next.config.ts / app/api/pnl-import/route.js
+
+Do not add "type": "module" to package.json as a migration fix.
+
+---
+
+# 6. GIT REQUIREMENT
+
+Before migration:
+
+- all work must be committed
+- all work must be pushed
+- git status must be clean
+
+Recommended final commit message:
+
+docs: add pro migration transfer checklist
+
+After that, confirm:
+
+git status
+
+Expected:
+
+On branch main
+Your branch is up to date with origin/main.
+nothing to commit, working tree clean
+
+---
+
+# 7. CURRENT PRIMARY ROUTES
+
+Primary user-facing routes:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+
+Developer / trace routes:
+
+- /ai-business-state
+- /calculation-trace
+
+Current root route decision:
+
+- / remains unchanged before migration
+- Business Overview is preferred operational starting point
+- no redirect to /business-overview has been added
+
+---
+
+# 8. CURRENT SIDEBAR FLOW
+
+Current sidebar groups:
+
+- Quick Start
+- Business Inputs
+- Business Truth
+- Business Review
+- Recovery Chain
+- Developer / Trace
+- Settings
+
+Business Review includes:
+
+- Business Overview
+- Model Readiness
+- Business Modelling
+- Quote Checker
+
+Developer / Trace includes:
+
+- AI Business State
+- Calculation Trace
+
+Legacy Recovery Chain remains available but is not the preferred v5.0 flow.
+
+---
+
+# 9. CURRENT LOCKED ARCHITECTURE RULES
+
+Do not break these rules after migration:
+
+- downstream pages consume output contracts
+- source modules own source values
+- calculations belong in lib/calculations
+- selectors must remain pure
+- supporting layers must not patch missing source truth
+- readiness gates must not be bypassed
+- dashboard must not calculate business values
+- quote checker must not become a source module
+- AI export must not decide source truth
+- navigation must not change the model
+
+---
+
+# 10. WHAT NOT TO DO DURING MIGRATION
+
+Do not:
+
+- start S14-S19 product expansion
+- clean up old routes
+- delete Recovery Chain pages
+- delete Quote Engine
+- refactor Calculation Trace
+- refactor source modules
+- add API export endpoint
+- add saved quote scenarios
+- add PDF quote export
+- add AI quote review
+- force / to redirect
+- add "type": "module" to package.json
+- change package/config files unless required by install
+
+Migration goal is preservation, not expansion.
+
+---
+
+# 11. POST-MIGRATION FIRST CHECKS
+
+After opening the project in Pro/new environment, run:
+
+npm install
+
+node scripts\check-calculation-trace-integrity.mjs
+
+npm run build
+
+git status
+
+Then manually check routes:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+- /ai-business-state
+- /calculation-trace
+
+Confirm sidebar includes:
+
+- Business Review
+- Developer / Trace
+
+---
+
+# 12. POST-MIGRATION CONTINUATION ORDER
+
+After migration, continue in this order:
+
+1. Confirm baseline builds.
+2. Confirm route map.
+3. Confirm sidebar navigation.
+4. Confirm handover briefs exist.
+5. Only then decide next product stage.
+
+Recommended next product stages after migration:
+
+- S14 - Quote Checker UI refinement
+- S15 - Dashboard visual polish
+- S16 - Export API endpoint
+- S17 - Saved quote scenarios
+- S18 - Customer quote PDF/export
+- S19 - AI quote review
+
+Do not start these until migration is confirmed.
+
+---
+
+# 13. FILES CREATED IN RECENT BASELINE STAGES
+
+Recent created/updated files include:
+
+S06:
+
+- lib/selectors/aiBusinessStateSelectors.js
+- hooks/useAiBusinessState.js
+- app/ai-business-state/page.jsx
+
+S07:
+
+- app/business-overview/page.jsx
+
+S08:
+
+- lib/calculations/quoteCheckerCalculations.js
+- hooks/useQuoteChecker.js
+- app/quote-checker/page.jsx
+
+S09:
+
+- components/layout/SidebarNavigation.jsx
+
+S10-S13:
+
+- documentation only
+
+---
+
+# 14. MIGRATION SUCCESS CRITERIA
+
+Migration is successful when:
+
+- repo opens in Pro/new environment
+- npm install completes
+- Calculation Trace integrity passes
+- npm run build passes
+- git status is clean
+- main routes load
+- sidebar navigation shows Business Review and Developer / Trace
+- S11, S12 and S13 briefs are available in docs/Mirra_v5_Briefs
+- no source modules have been rewritten during migration
+
+---
+
+# 15. FINAL MIGRATION HANDOVER STATEMENT
+
+Mirra v5.0 is ready to migrate as a handover-ready baseline.
+
+The system should be moved as-is, validated, then continued from the documented route and architecture decisions.
+
+Do not expand the product before the baseline is safely migrated.
+
+---
+
+# 16. FINAL PRINCIPLE
+
+Migrate the locked baseline first.
+
+Improve the product after the baseline is safe.
