@@ -1,0 +1,596 @@
+﻿# Mirra v5.0 - Project Purpose and Naming Convention Handover
+
+STATUS: FINAL HANDOVER CONTROL BRIEF
+VERSION: v5.0
+MODULE TYPE: Project Purpose / Naming Convention / Source Structure Handover
+DATE: 2026-07-15
+
+---
+
+# 1. PURPOSE
+
+This brief records what QS Tools / Mirra is trying to do and the naming conventions used across the current v5.0 project.
+
+It is intended for use after Pro migration so the next chat or developer can understand the system before touching code.
+
+This brief does not replace the locked naming convention source brief.
+
+It summarises the current working convention used in the v5.0 handover baseline.
+
+---
+
+# 2. PRODUCT PURPOSE
+
+QS Tools / Mirra is a business modelling and commercial clarity tool for contractors, trades, and service businesses.
+
+Its purpose is to help a business owner understand:
+
+- what the business really costs to run
+- whether revenue is recovering true cost
+- what labour, assets, overheads, COG, and productivity are doing to margin
+- what the required recovery rate is
+- how actual performance compares with baseline and target
+- whether a quote is commercially aligned
+- which drivers explain business pressure
+- what should be tested or improved next
+
+The system should reflect the business back to the user in a structured, traceable way.
+
+---
+
+# 3. CURRENT v5.0 SYSTEM PURPOSE
+
+The current v5.0 baseline is not the final database product.
+
+It is a handover-ready architecture baseline.
+
+It currently establishes:
+
+- source module separation
+- Cost Summary / Revenue Summary / Business Summary direction
+- Model Readiness gate
+- Business Modelling first layer
+- AI-readable Business State Export first layer
+- Business Overview first layer
+- Quote Checker first layer
+- Calculation Trace support layer
+- Navigation and route placement
+- Home route decision
+- Revenue Summary lock
+- Business Outcome v5.0 contract direction
+- Ultimate database-readiness sequence
+
+The current baseline is designed to migrate safely before permanent database and AI expansion.
+
+---
+
+# 4. ULTIMATE SYSTEM DIRECTION
+
+The ultimate QS Tools / Mirra system should support:
+
+- persistent multi-user business storage
+- versioned input history
+- locked baseline
+- evolving actual state
+- approved target models
+- scenario modelling
+- historical reconstruction
+- reporting / star schema
+- Dashboard drilldown
+- quote checking
+- AI question orchestration
+- AI recommendation governance
+- traceable calculations
+- controlled schema lock
+
+The permanent database must not be built first.
+
+The system must first follow the S14 sequence:
+
+Business questions
+→ required outputs
+→ required measures and dimensions
+→ variable audit
+→ ownership assignment
+→ missing-variable alignment
+→ output-contract lock
+→ application database entity design
+→ reporting schema design
+→ reconstruction proof
+→ integration proof
+→ schema lock
+→ implementation
+
+---
+
+# 5. CORE ARCHITECTURE RULES
+
+The current project follows these rules:
+
+- source modules own their own inputs
+- calculation files own formulas
+- selectors package outputs
+- hooks compose local state, calculations, and selectors
+- UI components display values and collect input
+- downstream modules consume structured outputs
+- supporting modules do not rewrite source truth
+- Dashboard does not calculate business truth
+- AI does not own authoritative financial calculations
+- Quote Checker tests against the selected business model
+- Business Outcome must use current v5.0 truth contracts, not the legacy Recovery Chain
+- database work must wait until variable and contract alignment is complete
+
+---
+
+# 6. DOCUMENT NAMING CONVENTION
+
+The v5.0 S-series brief pattern is:
+
+S##_MODULE_NAME_BUILD_BRIEF_v5.0.txt
+S##_MODULE_NAME_IMPLEMENTED_STATUS_v5.0.txt
+S##_MODULE_NAME_STAGE_LOCK_HANDOVER_v5.0.txt
+
+Examples:
+
+- S04_MODEL_READINESS_BUILD_GATE_BRIEF_v5.0.txt
+- S04_MODEL_READINESS_IMPLEMENTED_STATUS_v5.0.txt
+- S04_MODEL_READINESS_STAGE_LOCK_HANDOVER_v5.0.txt
+
+- S08_QUOTE_CHECKER_BUILD_BRIEF_v5.0.txt
+- S08_QUOTE_CHECKER_IMPLEMENTED_STATUS_v5.0.txt
+- S08_QUOTE_CHECKER_STAGE_LOCK_HANDOVER_v5.0.txt
+
+- S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5.0.txt
+- S16_BUSINESS_OUTCOME_IMPLEMENTED_STATUS_v5.0.txt
+- S16_BUSINESS_OUTCOME_STAGE_LOCK_HANDOVER_v5.0.txt
+
+Single-control briefs may use one file only where there is no code implementation stage.
+
+Examples:
+
+- S10_HOME_ROUTE_LANDING_FLOW_DECISION_BRIEF_v5.0.txt
+- S13_PRO_MIGRATION_TRANSFER_CHECKLIST_v5.0.txt
+- S14_ULTIMATE_BUILD_DATABASE_READINESS_SEQUENCE_BRIEF_v5.0.txt
+- MIRRA_v5_FINAL_MIGRATION_CLOSEOUT_NOTE_2026-07-15.txt
+
+---
+
+# 7. ROUTE NAMING CONVENTION
+
+Routes use kebab-case.
+
+Pattern:
+
+app/<route-name>/page.jsx
+
+Examples:
+
+- app/business-overview/page.jsx
+- app/model-readiness/page.jsx
+- app/business-modelling/page.jsx
+- app/quote-checker/page.jsx
+- app/ai-business-state/page.jsx
+- app/calculation-trace/page.jsx
+- app/revenue-summary/page.jsx
+- app/recovery-outcome/page.jsx
+
+Route names should be user-readable and stable.
+
+Do not rename routes casually during migration.
+
+---
+
+# 8. COMPONENT NAMING CONVENTION
+
+Components are grouped by module folder using kebab-case.
+
+Pattern:
+
+components/<module-name>/<ModuleNameComponentName>.jsx
+
+Examples:
+
+- components/revenue-summary/RevenueSummaryMainCard.jsx
+- components/revenue-summary/RevenueSummaryStatusStrip.jsx
+- components/model-readiness/ModelReadinessStatusCard.jsx
+- components/business-modelling/BusinessModellingScenarioCard.jsx
+- components/quote-checker/QuoteCheckerSummaryCard.jsx
+
+Component names use PascalCase.
+
+Component files should clearly identify their module owner.
+
+---
+
+# 9. HOOK NAMING CONVENTION
+
+Hooks use camelCase and begin with use.
+
+Pattern:
+
+hooks/use<ModuleName>.js
+
+Examples:
+
+- hooks/useRevenueSummary.js
+- hooks/useModelReadiness.js
+- hooks/useBusinessModelling.js
+- hooks/useAiBusinessState.js
+- hooks/useQuoteChecker.js
+
+Hooks may compose:
+
+- storage
+- calculations
+- selectors
+- readiness status
+- downstream structured outputs
+
+Hooks should not hide unrelated business logic.
+
+---
+
+# 10. CALCULATION FILE NAMING CONVENTION
+
+Calculation files live in:
+
+lib/calculations
+
+Pattern:
+
+lib/calculations/<moduleName>Calculations.js
+
+Examples:
+
+- lib/calculations/costSummaryCalculations.js
+- lib/calculations/revenueSummaryCalculations.js
+- lib/calculations/modelReadinessCalculations.js
+- lib/calculations/businessSummaryCalculations.js
+- lib/calculations/quoteCheckerCalculations.js
+
+Calculation files own formulas.
+
+Do not duplicate formulas in UI components, Dashboard pages, or AI export selectors.
+
+---
+
+# 11. SELECTOR FILE NAMING CONVENTION
+
+Selector files live in:
+
+lib/selectors
+
+Pattern:
+
+lib/selectors/<moduleName>Selectors.js
+
+Examples:
+
+- lib/selectors/revenueSummarySelectors.js
+- lib/selectors/businessModellingSelectors.js
+- lib/selectors/aiBusinessStateSelectors.js
+
+Selector responsibilities:
+
+- package calculated values
+- create display-ready structures
+- create status structures
+- shape output contracts
+- avoid owning formulas that belong in calculations
+
+Selectors should be pure where practical.
+
+---
+
+# 12. STORAGE FILE NAMING CONVENTION
+
+Storage files live in:
+
+lib/storage
+
+Pattern:
+
+lib/storage/<moduleName>Storage.js
+
+Examples:
+
+- lib/storage/revenueSummaryStorage.js
+- lib/storage/revenueSummaryProfileStorage.js
+
+Current storage is local/browser state.
+
+This is acceptable for the current baseline.
+
+It is not the permanent multi-user storage model.
+
+Future database work must follow S14.
+
+---
+
+# 13. CALCULATION TRACE NAMING
+
+Calculation Trace files live in:
+
+lib/calculation-trace
+
+Known file:
+
+- lib/calculation-trace/calculationTracePilotMap.js
+
+Integrity script:
+
+- scripts/check-calculation-trace-integrity.mjs
+
+Known expected output:
+
+- nodeCount: 41
+- edgeCount: 41
+- selectedOutput: business_summary.required_recovery_per_driver
+- selectedOutputExists: true
+- duplicateNodeIds: []
+- duplicateEdgeIds: []
+- missingEndpoints: []
+- upstreamTraceExists: true
+
+Known warning:
+
+- MODULE_TYPELESS_PACKAGE_JSON
+
+Do not add "type": "module" just to silence this warning during migration.
+
+---
+
+# 14. OUTPUT CONTRACT NAMING
+
+Output contracts should use stable snake_case internal field names.
+
+Examples:
+
+- total_cost_burden
+- required_recovery_rate
+- total_productive_output
+- gross_profit
+- gross_margin_percent
+- selected_model
+- target_model
+- output_contract_version
+
+Internal names should not be changed casually.
+
+If a name must change, record:
+
+- old name
+- new name
+- owning module
+- affected consumers
+- migration plan
+- compatibility period
+- contract version change
+
+Display labels may change more freely.
+
+Internal contract names must remain stable.
+
+---
+
+# 15. VARIABLE NAMING STYLE
+
+Internal variable names generally use snake_case.
+
+Examples:
+
+- sales_revenue
+- material_cost_total
+- target_profit_percent
+- total_people_cost_annual
+- total_asset_cost_annual
+- required_revenue
+- productive_output
+- gross_margin_percent
+
+Component and function names use camelCase or PascalCase according to JavaScript/React convention.
+
+Examples:
+
+- calculateRevenueSummary
+- buildRevenueSummaryStatus
+- buildRevenueSummaryCard
+- useRevenueSummary
+- RevenueSummaryMainCard
+
+---
+
+# 16. CURRENT SIDEBAR GROUPING
+
+Current sidebar group pattern:
+
+- Quick Start
+- Business Inputs
+- Business Truth
+- Business Review
+- Recovery Chain
+- Developer / Trace
+- Settings
+
+Business Review contains:
+
+- Business Overview
+- Model Readiness
+- Business Modelling
+- Quote Checker
+
+Developer / Trace contains:
+
+- AI Business State
+- Calculation Trace
+
+Recovery Chain is legacy-visible but not the current v5.0 primary flow.
+
+---
+
+# 17. CURRENT PRIMARY FLOW
+
+Current v5.0 primary review flow:
+
+- /business-overview
+- /model-readiness
+- /business-modelling
+- /quote-checker
+
+Developer / trace support:
+
+- /ai-business-state
+- /calculation-trace
+
+Business truth and supporting layers include:
+
+- /cost-summary
+- /revenue-summary
+- /revenue-cogs
+- /revenue-reality
+- /business-summary
+- /business-outcome where present or future-aligned
+
+---
+
+# 18. LEGACY ROUTE RULE
+
+The following remain legacy or older Recovery Chain routes:
+
+- /recovery-summary
+- /cost-allocation
+- /rate-builder
+- /recovery-outcome
+- /quote-engine
+
+Do not delete these before a cleanup stage.
+
+Do not use them to define the current Business Outcome contract.
+
+Do not expand them unless explicitly selected.
+
+---
+
+# 19. BUSINESS OUTCOME NAMING RULE
+
+Business Outcome is the current commercial truth layer.
+
+It should be named consistently as:
+
+- Business Outcome
+- business_outcome
+- /business-outcome where route exists or is added
+- businessOutcome where camelCase is required
+
+Do not confuse Business Outcome with:
+
+- Recovery Outcome
+- Quote Engine
+- Rate Builder
+- Recovery Summary
+
+Business Outcome sits after business truth and before modelling.
+
+---
+
+# 20. AI EXPORT NAMING RULE
+
+AI-readable exports should use clear structured sections.
+
+Current and future section names may include:
+
+- metadata
+- trust_state
+- readiness
+- source_modules
+- business_summary
+- business_outcome
+- business_modelling
+- selected_model
+- blockers
+- warnings
+- traceability
+- downstream_permissions
+
+AI export must expose structured truth.
+
+It must not calculate authoritative financial values.
+
+---
+
+# 21. BRIEF STATUS WORDING
+
+Use clear status wording.
+
+Common statuses:
+
+- BUILD BRIEF
+- IMPLEMENTED STATUS
+- STAGE LOCK HANDOVER
+- LOCKED SUPPORTING MODULE BRIEF
+- MIGRATION CONTROL BRIEF
+- FUTURE ARCHITECTURE CONTROL BRIEF
+- FINAL HANDOVER CONTROL BRIEF
+- MIGRATION CLOSE-OUT
+
+Status should make clear whether the file describes:
+
+- intended build
+- implemented state
+- locked handover
+- known issue
+- future guardrail
+- migration checklist
+
+---
+
+# 22. DO NOT BREAK BEFORE MIGRATION
+
+Before migration, do not:
+
+- rename routes
+- rename contract fields
+- rename source modules
+- delete legacy routes
+- rewrite source modules
+- start database implementation
+- add AI direct database access
+- make Dashboard calculate business values
+- make Quote Checker a source module
+- force / to redirect
+- clean up warnings that are already documented as acceptable
+
+---
+
+# 23. AFTER MIGRATION
+
+After migration, first confirm:
+
+- repo opens
+- npm install works
+- Calculation Trace integrity passes
+- npm run build passes
+- S03-S17 briefs exist
+- route map is intact
+- sidebar groups are intact
+- future source briefs are preserved
+
+Only then continue with product work.
+
+---
+
+# 24. FINAL HANDOVER STATEMENT
+
+QS Tools / Mirra v5.0 is a handover-ready architecture baseline.
+
+Its purpose is to preserve the current trusted business modelling structure and carry forward the ultimate build sequence without losing naming, ownership, routing, or contract discipline.
+
+The next build should use the existing conventions rather than inventing new naming or structure.
+
+---
+
+# 25. FINAL PRINCIPLE
+
+Names are contracts.
+
+Routes, files, modules, variables, and briefs should make ownership clear before code is changed.
