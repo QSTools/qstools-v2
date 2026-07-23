@@ -50,7 +50,7 @@ const nav_groups = [
       { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/cost-allocation", label: "Cost Allocation" },
       { href: "/rate-builder", label: "Rate Builder" },
-      { href: "/recovery-outcome", label: "Business Outcome" },
+      { href: "/business-outcome", label: "Business Outcome" },
       { href: "/quote-engine", label: "Quote Engine" },
     ],
   },
@@ -142,6 +142,8 @@ function build_initial_open_groups(pathname) {
       pathname.startsWith("/cost-allocation/") ||
       pathname === "/rate-builder" ||
       pathname.startsWith("/rate-builder/") ||
+      pathname === "/business-outcome" ||
+      pathname.startsWith("/business-outcome/") ||
       pathname === "/recovery-outcome" ||
       pathname.startsWith("/recovery-outcome/") ||
       pathname === "/quote-engine" ||

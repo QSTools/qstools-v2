@@ -36,7 +36,7 @@ export default function MaterialsHelpPanel() {
               </p>
 
               <p className="text-sm text-[var(--text-secondary)]">
-                Downstream, Recovery Outcome uses this module as one real recovery
+                Downstream, Business Outcome uses this module as one real recovery
                 stream alongside labour, assets, and production-based rate models.
               </p>
             </div>
