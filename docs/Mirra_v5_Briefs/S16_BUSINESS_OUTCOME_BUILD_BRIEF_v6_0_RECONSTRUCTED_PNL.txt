@@ -1,0 +1,390 @@
+BUSINESS OUTCOME — BUILD BRIEF v6.0
+Reconstructed P&L / Cross-Subsidy Statement
+(Supersedes the "Recovery Pressure Map" framing in S16 v5.0)
+
+=====================================================================
+1. PURPOSE — WHY THIS MODULE EXISTS
+=====================================================================
+
+The accounting P&L is a historical record. Revenue minus expenses,
+full stop. It cannot tell you WHY a number is what it is — only THAT
+it is. The only advice an accounting P&L can ever produce is
+"charge more, reduce overheads," because it has no internal structure
+that separates who earned what.
+
+Business Outcome exists to answer a different question:
+
+  "Given what this business actually costs, and what it's actually
+   charging (via Rate Builder), where does Net Profit really come
+   from — and which part of the business is silently funding another
+   part?"
+
+It is a RECONSTRUCTED P&L, not a new set of numbers. Revenue, General
+Overheads, and Net Profit must always tie back to the same figures as
+the original P&L / Business Summary. What's new is the decomposition:
+each cost stream (Productive Labour, Non-Productive Labour, Productive
+Assets, Non-Productive Assets, General Overheads) is shown standing on
+its own — proven to either fund itself or be carried by material
+margin.
+
+BASELINE ASSUMPTION (Phase 1): the business is assumed to charge 100%
+of labour/asset cost via Rate Builder rates. This is a deliberate
+baseline, not a claim about current reality — the same principle as
+"if you're not charging 100% of what your staff cost, you are by
+definition funding that gap out of material margin, whether you
+intended to or not." Business Outcome makes that funding visible.
+
+PHASE 2 (future, not yet built): once live timekeeping, invoicing, and
+asset utilisation data exist, the same structure gets fed real
+"charged" figures instead of the 100%-baseline assumption. The
+calculation shape does not change — only the inputs upgrade from
+modelled to actual. This is what makes it a CONTROL system rather
+than a report: the structure exists before the data does.
+
+DOWNSTREAM CONSUMER: Business Modelling (useBusinessModelling.js)
+currently models against Business Summary (the accounting-framework
+view). Once Business Outcome is stable, Business Modelling should
+consume Business Outcome instead — so "what if I raise my labour rate
+by $5/hr" can show whether that stops labour cross-subsidising
+material, not just move an abstract P&L line.
+
+
+=====================================================================
+2. WHAT THIS MODULE IS / IS NOT
+=====================================================================
+
+IS:
+- A reconstructed P&L showing where Net Profit actually comes from
+- A cross-subsidy statement: which cost streams are self-funding vs
+  carried by material margin
+- A decision-support / diagnostic layer
+- Honest about what it doesn't know yet (asset utilisation, live
+  actuals) — shows "not available" rather than a fabricated number
+
+IS NOT:
+- Actual performance tracking (that's Phase 2, with real data)
+- Job costing or invoicing
+- A pricing engine
+- Using Cost Allocation for financial totals (Cost Allocation is
+  structure/coverage confidence only — see field map below)
+
+
+=====================================================================
+3. CONFIRMED FIELD MAP (the golden reference — read this before
+   touching any calculation code, to prevent another guess→wrong→
+   trace→fix cycle)
+=====================================================================
+
+--- useRecoverySummary() — PRIMARY SOURCE OF TRUTH ---
+default export from hooks/useRecoverySummary.js
+Returns: { status, card, output_contract }
+
+Confirmed real fields on output_contract (verified from source, not
+guessed):
+  total_revenue
+  total_direct_costs                 (COG)
+  margin_pool                        (accounting GP = revenue - COG)
+  gross_margin_percent
+  total_people_cost_annual           (TOTAL labour cost — productive
+                                       + non-productive combined)
+  total_asset_cost_annual            (RECOVERY-INCLUSIVE — this is
+                                       total_asset_recovery_cost_annual
+                                       under the hood, i.e. it ALREADY
+                                       includes each asset's assigned
+                                       overhead pool share. Do not
+                                       treat it as base cost only.)
+  total_business_overheads           (the genuinely UNASSIGNED
+                                       overhead remainder — any
+                                       overhead already assigned to a
+                                       specific asset via the six pool
+                                       keys has already been excluded
+                                       upstream in Cost Summary. Safe
+                                       to use directly with no
+                                       double-count risk.)
+  total_cost_burden
+  labour_recovery_cost               (Recovery Summary's target for
+                                       labour — confirmed to equal
+                                       total_people_cost_annual, i.e.
+                                       100%-of-cost baseline, not a
+                                       partial split)
+  asset_recovery_cost
+  overhead_absorbed_cost
+  net_position                       (accounting net profit — USE
+                                       THIS to sanity-check any
+                                       reconstructed waterfall)
+  model_trust_state                  ('ready' | 'warning' | 'blocked'
+                                       — this is a straight PASS-
+                                       THROUGH of Business Summary's
+                                       own model_trust_state, which
+                                       itself passes through Cost
+                                       Summary's model_readiness_status.
+                                       It reflects the WHOLE system's
+                                       reconciliation state, not
+                                       anything specific to Recovery
+                                       Summary. See section 5.)
+
+Added this session (v6.0) — pass-through only, no new calculation:
+  productive_asset_cost
+  support_asset_cost
+  productive_asset_assigned_overhead_cost_annual
+  support_asset_assigned_overhead_cost_annual
+  (all four sourced from `asset_outputs`, which useRecoverySummary
+  already receives as an input — see hooks/useRecoverySummary.js)
+
+ARCHITECTURE DECISION: Recovery Summary is the single source of truth
+for Business Outcome. Do not call useCostSummary(), useAssets(), or
+useBusinessSummary() directly from Business Outcome — if a field is
+missing, add it as a pass-through to Recovery Summary's
+output_contract instead. This keeps one hook downstream consumers can
+trust, rather than each one deciding independently which hooks to
+bypass.
+
+--- useLabour() ---
+Named AND default export from hooks/useLabour.js
+Returns: { ..., output_contract }
+
+Confirmed real fields on output_contract:
+  total_people_cost_annual           (= total_labour_cost_annual)
+  total_productive_labour_cost       (productive only)
+  total_non_productive_labour_cost   (= total_labour_cost_annual -
+                                       total_productive_labour_cost)
+  total_productive_labour_hours
+  productive_labour_cost_rate        (COST rate $/hr — NOT a
+                                       charge-out rate. Charge-out
+                                       rate lives in Rate Builder,
+                                       not here.)
+  labour_ready
+
+--- useRateBuilderLabourRates() ---
+Named export from hooks/rate-builder/useRateBuilderLabourRates.js
+Returns: { ..., weighted_summary, ... }
+
+This is the ONLY source of labour charge-out rate data. It is driven
+by whichever Saved Rate Model is currently active in Rate Builder's
+own UI/localStorage (single baseline model confirmed in use as of
+this session — no multiple scenarios yet).
+
+weighted_summary fields (confirmed real):
+  weighted_modelled_labour_revenue   (= sum across productive staff
+                                       types of productive_hours x
+                                       saved_charge_out_rate — this IS
+                                       the labour model recovery
+                                       capacity figure. Do not
+                                       recompute rate x hours
+                                       yourself; use this directly.)
+  weighted_current_charge_out_rate
+  weighted_productive_hours
+  missing_rate_count
+  summary_complete                   (true only if EVERY productive
+                                       staff type has a saved rate —
+                                       GATE labour capacity on this.
+                                       If false, treat capacity as
+                                       "not available", never partial.)
+
+--- useCostAllocation() ---
+Default export from hooks/useCostAllocation.js
+Returns: { status, card, actions, output_contract }
+
+Confirmed real fields on output_contract (from
+hooks/cost-allocation/useCostAllocationOutputContract.js):
+  structure_valid
+  staff_coverage_percent
+  asset_coverage_percent
+  group_coverage_percent
+
+Cost Allocation is STRUCTURE / DELIVERY-CONFIDENCE data only — never
+use it as a source of financial totals. (Note: staff_coverage_percent
+was observed at 125% during this session — over 100% coverage usually
+means double-assignment; flagged as a separate, unresolved item, not
+a Business Outcome bug.)
+
+--- useCostSummary(inputs) ---
+Default export from hooks/useCostSummary.js
+DOES NOT SELF-SOURCE DATA. Takes inputs.labour, inputs.assets,
+inputs.general_overheads, inputs.opening_hours, inputs.model_readiness
+and only SHAPES whatever it's given. Calling useCostSummary() with no
+arguments returns all-zero cost fields — this caused a real bug
+earlier in this build (labour/asset/overhead all showing $0). Do not
+call this hook directly from Business Outcome; use Recovery Summary's
+pass-through instead, which already wires it correctly.
+
+
+=====================================================================
+4. CALCULATION LOGIC
+=====================================================================
+
+--- A. Pressure Map (supporting detail) ---
+
+Labour:
+  model_recovery_capacity = weighted_summary.weighted_modelled_labour_revenue
+                             (only if summary_complete === true)
+  gap = labour_recovery_cost - model_recovery_capacity
+  status = gap > 0 ? 'pressure' : 'sufficient'
+           (or 'rate_builder_incomplete' if capacity unavailable)
+
+Assets:
+  status = 'asset_recovery_pressure' (always — no Asset Rate Builder
+           exists yet, so capacity can never be calculated. This is
+           intentional, not a bug to "fix" until an asset charge-out
+           mechanism exists.)
+
+Overheads:
+  gap = total_business_overheads - overhead_absorbed_cost
+  status = gap > 0 ? 'unrecovered' : 'covered'
+
+--- B. Reconstructed Waterfall (primary output) ---
+
+  Revenue
+  − Productive Labour Charged        (Rate Builder capacity)
+  − COG (total_direct_costs)
+  = Margin
+
+  − Productive Labour Shortfall      (productive_labour_cost - charged
+                                       — CAN BE NEGATIVE, meaning a
+                                       SURPLUS. Label/colour this
+                                       correctly: negative shortfall =
+                                       green "Surplus (adds to
+                                       profit)", not a red deduction.)
+  − Non-Productive Labour Cost       (total_non_productive_labour_cost
+                                       — never chargeable by
+                                       definition, always fully
+                                       carried by margin)
+  − Non-Productive Asset Cost        (support_asset_cost +
+                                       support_asset_assigned_overhead
+                                       _cost_annual — MUST include the
+                                       assigned overhead share, or the
+                                       waterfall will not reconcile)
+  − Productive Asset Cost            (productive_asset_cost +
+                                       productive_asset_assigned_
+                                       overhead_cost_annual — SAME
+                                       overhead-inclusion requirement.
+                                       Shown as full cost, not yet
+                                       split into charged/shortfall,
+                                       because no Asset Rate Builder
+                                       exists to define "charged".)
+  − General Overheads                (total_business_overheads — the
+                                       unassigned remainder only. Cost
+                                       Summary has already excluded
+                                       anything assigned to a specific
+                                       asset, so this is safe to
+                                       subtract directly with no
+                                       double-count.)
+  = Net Profit
+
+GATING: the entire waterfall is unavailable (not a partial/wrong
+number) unless Rate Builder's summary_complete is true. Margin itself
+depends on knowing what's Charged, so there is no safe partial state
+to show.
+
+MANDATORY SANITY CHECK: reconstructed Net Profit must equal Recovery
+Summary's net_position within $1. If it doesn't, DO NOT trust or ship
+the waterfall — treat the variance as a real bug in the reconstruction
+maths, not a rounding footnote. This check caught a real ~$33,700 bug
+during this build (missing productive_asset_assigned_overhead_cost_
+annual) — it is working as intended and should never be removed or
+silenced.
+
+
+=====================================================================
+5. THE "BLOCKED" TRUST-STATE CHAIN (fully traced this session —
+   do not re-trace from scratch next time)
+=====================================================================
+
+model_trust_state flows through this exact chain:
+
+  reconciliationRules.js (buildModuleReconciliationChecks)
+    → checks: P&L ready, Labour ready, General Overheads ready,
+      Assets readiness, Employee overheads still in P&L (blocks if
+      true), Business cost variance vs P&L benchmark (blocks if >1%)
+  → moduleReconciliation.js (calculateModuleReconciliation)
+  → useModuleReconciliation.js
+  → modelReadinessCalculations.js (calculateModelReadiness)
+  → useModelReadiness.js
+  → useCostSummary.js reads model_readiness.modules.* as ITS inputs,
+    sets model_readiness_status on its own output_contract
+  → useBusinessSummary.js sets its own model_trust_state from
+    cost_summary_output_contract.model_readiness_status
+  → useRecoverySummary.js spreads business_summary.output_contract
+    (unmodified) into calculateRecoverySummary, which sets
+    model_trust_state = input.model_trust_state || "blocked"
+  → Business Outcome reads recovery.model_trust_state directly
+
+CONSEQUENCE: "Blocked" on Business Outcome reflects the health of the
+ENTIRE reconciliation chain (P&L import vs Labour/Assets/Overheads
+variance), not anything specific to Business Outcome's own inputs. Do
+not narrow this to a Business-Outcome-specific check — that would hide
+real upstream drift instead of surfacing it. There is a live
+diagnostics page (Model Readiness) that shows exactly which check is
+failing with a human-readable message — check there first, not by
+re-tracing this chain.
+
+Confirmed common cause during this build: Labour and Asset-finance
+figures drifting out of sync with the imported P&L during ordinary
+testing/iteration (self-inflicted, not a system bug). Resolves itself
+once Labour/Assets/P&L are brought back into alignment.
+
+
+=====================================================================
+6. ENVIRONMENT / TOOLING NOTES (avoid repeating these incidents)
+=====================================================================
+
+- PowerShell file writes: ALWAYS use full here-string + Set-Content.
+  NEVER use regex -replace on JSX/JS files — caused one full file wipe
+  and one 4x duplicate-insertion incident earlier in this project.
+- Turbopack dev cache can go stale after a source fix, throwing a
+  runtime error that references a compiled chunk running code that no
+  longer exists in the current source. If an error doesn't match the
+  current file content, stop the dev server, delete .next, and
+  restart clean before debugging further — don't chase a ghost.
+- When asking for file contents from the user's machine: prefer
+  `Get-Content -Raw` printed straight to console over
+  `Tee-Object -FilePath`. Tee'd output has silently returned blank at
+  least once this session for unclear reasons (possibly $PSScriptRoot
+  ambiguity or console buffering) — direct console read is more
+  reliable.
+
+
+=====================================================================
+7. OPEN / DEFERRED ITEMS
+=====================================================================
+
+1. Asset Rate Builder does not exist yet. Until it does, Productive
+   Asset Cost can only be shown in full (cost), never split into
+   charged/shortfall like labour. This is the single biggest gap
+   between this module and full Phase 2 readiness.
+2. Cost Allocation showing 125% labour coverage — flagged, not yet
+   investigated. Likely double-assignment somewhere in Cost
+   Allocation's group assignments. Separate from Business Outcome.
+3. Reference doc for ALL hooks' output_contract shapes (not just the
+   ones Business Outcome touches) — agreed as valuable, not yet built.
+   Would eliminate most future guess→wrong→trace→fix cycles across
+   the whole system, not just this module.
+4. Business Modelling migration from Business Summary to Business
+   Outcome as its source — not started, flagged as the natural next
+   consumer once this module is stable.
+5. Phase 2 data sources (timekeeping, invoicing, asset utilisation) —
+   not built. When they arrive, they should replace the Rate-Builder-
+   baseline assumption as direct inputs to the same waterfall shape,
+   not require a rebuild of the calculation logic itself.
+
+
+=====================================================================
+8. FILE MANIFEST (current, as of this build)
+=====================================================================
+
+app/business-outcome/page.jsx
+hooks/useBusinessOutcome.js
+lib/calculations/businessOutcomeCalculations.js
+lib/selectors/businessOutcomeSelectors.js
+components/business-outcome/BusinessOutcomeStatusStrip.jsx
+components/business-outcome/BusinessOutcomeWaterfall.jsx     (primary
+                                                               output)
+components/business-outcome/BusinessOutcomeMainCard.jsx      (pressure
+                                                               map,
+                                                               supporting
+                                                               detail)
+components/business-outcome/BusinessOutcomeHelpPanel.jsx
+
+Unused / not currently imported (left on disk from an earlier
+scaffold, safe to delete if confirmed no longer needed):
+  components/business-outcome/BusinessOutcomeResultHero.jsx

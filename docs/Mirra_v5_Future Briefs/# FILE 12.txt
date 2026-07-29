@@ -1,0 +1,875 @@
+# FILE 12
+
+# QS Tools — Business Modelling & Scenario Engine Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the Business Modelling and Scenario Engine used to test how changes to the business could affect:
+
+* revenue
+* COG
+* gross profit
+* operating profit
+* margin
+* recovery
+* capacity
+* cash requirement
+* risk
+* target achievement
+
+The engine must calculate scenarios deterministically.
+
+AI may explain scenario results but must not perform the authoritative scenario calculations.
+
+---
+
+## POSITION IN THE SYSTEM
+
+The intended flow is:
+
+Approved baseline
+
+* current actual
+* selected scenario assumptions
+  → deterministic scenario engine
+  → scenario Business Outcome
+  → comparison with actual and target
+  → Dashboard and AI explanation
+
+---
+
+## REQUIRED MODEL STATES
+
+The engine must distinguish:
+
+* baseline
+* current actual
+* approved target
+* working scenario
+* saved scenario
+* archived scenario
+
+---
+
+## SCENARIO CATEGORIES
+
+The engine should support:
+
+### Pricing
+
+* increase price
+* decrease price
+* change markup
+* change margin target
+* change minimum charge
+* change customer or offering mix
+
+### Labour
+
+* wage change
+* staff number change
+* working-hours change
+* productivity change
+* leave and non-productive time change
+* labour-mix change
+* allowance change
+
+### Revenue and COG
+
+* revenue growth or decline
+* volume change
+* revenue-stream mix change
+* supplier cost change
+* COG percentage change
+* purchasing saving
+
+### Assets
+
+* purchase
+* finance
+* lease
+* sell
+* replace
+* outsource
+* employee allowance
+* fuel-card model
+* utilisation change
+
+### Overheads
+
+* add cost
+* remove cost
+* fixed-cost reduction
+* software or service substitution
+* facility change
+
+### Capacity and Growth
+
+* increase productive capacity
+* reduce capacity
+* add operating group
+* change operating mix
+* change utilisation
+* change backlog or demand assumption
+
+---
+
+## VARIABLE CONTROL CLASSES
+
+Every modelling variable must be classified as:
+
+### User-Controlled Lever
+
+A value the user can intentionally change.
+
+### Operating Constraint
+
+A value that cannot be changed freely without operational consequences.
+
+### External Assumption
+
+A market, economic, supplier, or demand assumption.
+
+### Calculated Consequence
+
+An output produced by the scenario engine.
+
+### Locked Actual
+
+A historical or current actual value that remains unchanged inside the scenario.
+
+---
+
+## SCENARIO INPUT RECORD
+
+Each changed assumption must include:
+
+* variable_key
+* owning_module
+* baseline_value
+* actual_value
+* scenario_value
+* unit
+* effective_period
+* reason
+* source_type
+* confidence
+* constraint status
+
+---
+
+## REQUIRED SCENARIO OUTPUTS
+
+Each scenario must produce:
+
+* scenario_revenue
+* scenario_COG
+* scenario_gross_profit
+* scenario_gross_margin
+* scenario_people_cost
+* scenario_asset_cost
+* scenario_overhead_cost
+* scenario_total_cost
+* scenario_required_revenue
+* scenario_required_recovery
+* scenario_productive_capacity
+* scenario_operating_profit
+* change_from_actual
+* change_from_baseline
+* change_from_target
+* required_volume
+* capacity_gap
+* cash-flow effect where supported
+* one-off transition cost
+* recurring annual effect
+* payback period where supported
+* warning state
+* feasibility state
+
+---
+
+## MODEL COMPARISON
+
+The interface and output contract must support side-by-side comparison of:
+
+* baseline
+* actual
+* target
+* selected scenario
+
+Each major measure should show:
+
+* value
+* absolute variance
+* percentage variance
+* direction
+* warning
+* source model version
+
+---
+
+## INTERACTION EFFECTS
+
+The engine must avoid treating all changes as independent.
+
+Examples:
+
+* increasing productivity changes cost per productive hour
+* selling an asset may reduce cost but also capacity
+* increasing price may change demand or win rate
+* reducing staff may reduce cost and output
+* supplier-cost increases may require a price or mix response
+* allowances may affect labour overhead and productivity
+
+Interaction rules must be calculation-owned and visible.
+
+---
+
+## FEASIBILITY CHECK
+
+A scenario should be tested against:
+
+* productive capacity
+* staffing capacity
+* asset capacity
+* working hours
+* demand assumptions
+* recovery requirement
+* cash requirement
+* transition cost
+* logical minimum and maximum values
+
+A scenario must not be marked viable solely because it produces higher accounting profit.
+
+---
+
+## TARGET PROMOTION
+
+A saved scenario may become the approved target only through an explicit promotion action.
+
+Promotion must record:
+
+* source scenario
+* approving user
+* approval date
+* target period
+* model version
+* assumptions
+* warnings
+* feasibility status
+
+---
+
+## NOT ALLOWED
+
+* changing actual data while modelling
+* allowing AI to calculate scenario outputs independently
+* ignoring capacity effects
+* assuming price increases have no demand effect
+* ignoring transition costs
+* treating one-off cash release as recurring profit
+* allowing scenarios to overwrite the baseline
+* hiding unrealistic assumptions
+
+---
+
+## DEFINITION OF DONE
+
+The scenario engine is ready when:
+
+* model states remain separate
+* user-controlled levers are identified
+* constraints are represented
+* scenario calculations reconcile
+* interaction effects are handled
+* Business Outcome can be regenerated
+* actual, target, and scenario can be compared
+* approved scenarios can become targets
+* AI can explain results without owning calculations
+
+---
+
+## FINAL DEFINITION
+
+Business Modelling allows a user to change controlled assumptions, calculate the resulting business state, test feasibility, and compare the result with baseline, actual, and target before making a real-world decision.
+
+============================================================
+END FILE 12
+===========
+
+# FILE 13
+
+# QS Tools — Pricing Optimisation & Controlled Recommendation Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines how QS Tools identifies potential pricing opportunities and produces controlled, evidence-supported pricing recommendations.
+
+The system must not assume that the highest-margin area is automatically the safest area to increase price.
+
+Pricing recommendations must consider:
+
+* cost recovery
+* margin
+* demand
+* capacity
+* quote conversion
+* customer and offering mix
+* historical response
+* strategic importance
+* uncertainty
+
+---
+
+## CORE DECISION
+
+The system is trying to answer:
+
+Where can price be tested upward in a way that is likely to improve total profit without creating an unacceptable reduction in volume, conversion, retention, or capacity utilisation?
+
+---
+
+## REQUIRED DATA
+
+### Minimum Financial Data
+
+* current price or achieved revenue rate
+* true cost
+* minimum recovery
+* gross profit
+* contribution margin
+* margin buffer
+* volume
+* revenue
+
+### Required Operational Data
+
+* productive capacity
+* utilisation
+* backlog where available
+* delivery performance
+* actual hours or units
+* resource constraint
+
+### Required Commercial Behaviour Data
+
+For stronger recommendations:
+
+* quote identity
+* quoted value
+* quoted rate
+* customer or segment
+* offering type
+* quote date
+* accepted or rejected
+* loss reason where available
+* discount
+* final invoiced value
+* repeat purchase
+* cancellation or churn where applicable
+
+---
+
+## PRICING OPPORTUNITY FACTORS
+
+A pricing opportunity may be stronger where:
+
+* achieved margin is above minimum
+* quote conversion remains high
+* demand or backlog is strong
+* capacity is constrained
+* delivery results are stable
+* customer retention is strong
+* price has not changed despite cost inflation
+* comparable offerings tolerate higher rates
+
+A pricing opportunity may be weaker where:
+
+* utilisation is low
+* quote conversion is falling
+* customers are highly concentrated
+* margins depend on unusual one-off conditions
+* demand is weak
+* delivery quality is unstable
+* the offering is strategically important but price-sensitive
+* required data is incomplete
+
+---
+
+## OPPORTUNITY SCORE
+
+The scoring model may include:
+
+* recovery score
+* margin-buffer score
+* demand score
+* capacity-pressure score
+* quote-conversion score
+* retention score
+* delivery-stability score
+* concentration-risk score
+* evidence-quality score
+
+Weights must be documented and configurable.
+
+The score is a prioritisation aid. It is not proof that a price increase will succeed.
+
+---
+
+## RECOMMENDATION OUTPUT
+
+A pricing recommendation should return:
+
+* opportunity identity
+* current price
+* minimum viable price
+* current margin
+* proposed test increase
+* expected financial effect
+* required retained volume
+* risk level
+* evidence level
+* key assumptions
+* monitoring period
+* success measures
+* stop or rollback condition
+
+---
+
+## CONTROLLED PRICE TEST
+
+The recommended approach should normally be a controlled test rather than an immediate universal increase.
+
+A test may specify:
+
+* selected offering
+* selected customer group
+* selected new work only
+* proposed percentage or amount
+* start date
+* review date
+* minimum sample size
+* win-rate threshold
+* contribution threshold
+* volume threshold
+* customer-response monitoring
+
+---
+
+## TOTAL-PROFIT TEST
+
+The system must compare:
+
+Current total contribution
+versus
+New contribution after estimated change in price and volume
+
+A price increase is not beneficial merely because contribution per sale rises.
+
+The system must estimate the maximum volume loss the business can tolerate before total contribution falls.
+
+---
+
+## FEEDBACK LOOP
+
+After implementation, the system should compare:
+
+* price before and after
+* quote conversion before and after
+* achieved volume before and after
+* revenue before and after
+* contribution before and after
+* retention
+* capacity utilisation
+* actual profit effect
+
+Possible outcomes:
+
+* increase absorbed
+* increase partially absorbed
+* profit improved despite lower volume
+* volume loss offset benefit
+* insufficient evidence
+* rollback recommended
+* further controlled increase may be tested
+
+---
+
+## CONFIDENCE LEVEL
+
+Suggested confidence states:
+
+* low
+* moderate
+* strong
+
+Confidence must reflect:
+
+* sample size
+* data completeness
+* stability
+* historical consistency
+* behavioural evidence
+* external evidence where used
+
+---
+
+## NOT ALLOWED
+
+* recommending price increases from margin alone
+* calling a customer price-insensitive without behavioural evidence
+* recommending a precise increase with no supporting model
+* ignoring volume loss
+* ignoring customer concentration
+* presenting a test as a guaranteed outcome
+* allowing AI to invent market tolerance
+* changing rates automatically without user approval
+
+---
+
+## DEFINITION OF DONE
+
+The pricing layer is ready when:
+
+* true cost and recovery are known
+* opportunity factors are defined
+* commercial behaviour can be captured
+* total-profit impact can be modelled
+* recommendations include assumptions and risk
+* controlled tests can be recorded
+* actual results can be compared with predictions
+* AI can explain the recommendation without overstating certainty
+
+---
+
+## FINAL DEFINITION
+
+Pricing optimisation in QS Tools is a controlled process of identifying apparent headroom, testing the commercial evidence, estimating the total-profit effect, recommending a measured change, and validating the result through real-world feedback.
+
+============================================================
+END FILE 13
+===========
+
+# FILE 14
+
+# QS Tools — Asset Ownership, Allowance, Leasing & Outsourcing Scenario Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the scenario model used to compare alternative methods of providing an asset-dependent business function.
+
+It supports comparisons between:
+
+* owning
+* financing
+* leasing
+* selling
+* replacing
+* outsourcing
+* employee allowance
+* mileage reimbursement
+* fuel-card support
+* mixed arrangements
+
+The model must consider cost, capital, productivity, control, risk, and operational capacity.
+
+---
+
+## CORE DECISION
+
+The system must answer:
+
+Which asset-provision structure produces the best sustainable business outcome after considering total cost, capital released, operational effect, risk, and productive output?
+
+---
+
+## SCENARIO OPTIONS
+
+### Existing Owned Asset
+
+Includes:
+
+* finance or capital cost
+* depreciation
+* interest
+* insurance
+* registration
+* maintenance
+* fuel
+* repairs
+* administration
+* downtime
+* resale value
+* capital tied up
+
+### Financed Replacement
+
+Includes:
+
+* purchase price
+* deposit
+* finance term
+* interest
+* residual value
+* running costs
+* capacity change
+* reliability change
+
+### Lease
+
+Includes:
+
+* deposit
+* lease payment
+* term
+* mileage or usage limits
+* servicing inclusions
+* end-of-term obligations
+* tax and accounting treatment where supported
+* capacity and reliability
+
+### Outsourced Service
+
+Includes:
+
+* fixed fee
+* variable usage fee
+* minimum commitment
+* availability
+* lead time
+* service risk
+* lost operational control
+
+### Employee Allowance
+
+Includes:
+
+* allowance value
+* payroll treatment
+* additional employer cost where applicable
+* employee eligibility
+* required vehicle standard
+* insurance obligations
+* business-use requirement
+* productivity effect
+* employment and legal requirements
+
+### Fuel Card or Reimbursement
+
+Includes:
+
+* fuel limit
+* private-use policy
+* card administration
+* misuse controls
+* mileage evidence
+* reimbursement rate
+* tax treatment
+* monitoring requirement
+
+---
+
+## REQUIRED INPUTS
+
+### Existing Asset
+
+* asset identity
+* current market value
+* finance balance
+* finance payment
+* interest
+* remaining term
+* depreciation
+* maintenance
+* insurance
+* registration
+* fuel
+* repairs
+* downtime
+* annual usage
+* productive usage
+* expected sale proceeds
+* disposal cost
+
+### Replacement Model
+
+* allowance or lease amount
+* number of eligible staff
+* fuel cost
+* reimbursement cost
+* administration cost
+* transition cost
+* productivity impact
+* capacity impact
+* reliability impact
+* risk allowance
+* effective period
+
+---
+
+## REQUIRED OUTPUTS
+
+Each scenario should calculate:
+
+* annual recurring cost
+* monthly cash cost
+* one-off transition cost
+* capital released
+* debt reduction
+* finance-cost saving
+* disposal gain or loss where supported
+* productive capacity
+* cost per productive unit
+* cost per staff member
+* cost per operating group
+* cash-flow effect
+* operating-profit effect
+* break-even period
+* payback period where relevant
+* risk score
+* control score
+* reliability score
+* feasibility status
+
+---
+
+## CAPITAL VERSUS PROFIT RULE
+
+Capital released through disposal must be shown separately from recurring operating profit.
+
+The model must distinguish:
+
+* cash released
+* debt repaid
+* accounting gain or loss
+* annual cost saving
+* annual profit effect
+* future replacement obligation
+
+---
+
+## PRODUCTIVITY RULE
+
+The model must not assume that a cheaper arrangement is better.
+
+It must test whether the alternative affects:
+
+* employee arrival reliability
+* transport of equipment or materials
+* scheduling
+* supervision
+* branding
+* health and safety
+* insurance
+* availability
+* downtime
+* productive hours
+
+A small productivity loss may outweigh a visible vehicle-cost saving.
+
+---
+
+## CONTROL AND RISK
+
+The model should assess:
+
+* operational control
+* employee dependence
+* asset availability
+* maintenance responsibility
+* insurance responsibility
+* compliance responsibility
+* private-use disputes
+* staff turnover effect
+* continuity risk
+* reputational effect
+
+---
+
+## LEGAL, TAX, AND EMPLOYMENT CHECK
+
+The scenario must include an explicit review requirement for:
+
+* employment agreements
+* allowance treatment
+* reimbursement rules
+* tax treatment
+* insurance
+* health and safety
+* privacy and monitoring
+* fuel-card policy
+* business-use records
+
+QS Tools may model entered financial assumptions, but it must not present unverified legal or tax treatment as confirmed.
+
+---
+
+## DECISION OUTPUT
+
+The final comparison should present:
+
+* lowest annual cost
+* best cash-flow outcome
+* best productive-cost outcome
+* best capital-efficiency outcome
+* highest operational control
+* lowest risk
+* recommended scenario based on selected priority
+* assumptions
+* unresolved checks
+
+There may be no single universal winner.
+
+The result depends on whether the user prioritises:
+
+* profit
+* cash
+* capital release
+* control
+* reliability
+* flexibility
+* growth capacity
+
+---
+
+## NOT ALLOWED
+
+* deciding from sale proceeds alone
+* treating capital released as recurring profit
+* ignoring productivity changes
+* ignoring future replacement requirements
+* ignoring employment or insurance obligations
+* assuming fuel-card cost is fully business-related
+* assuming employee-owned assets are always available
+* allowing AI to choose a scenario without showing assumptions
+
+---
+
+## DEFINITION OF DONE
+
+The asset scenario model is ready when:
+
+* all major ownership structures can be compared
+* recurring and one-off effects are separated
+* capital release is visible
+* capacity and productivity effects are modelled
+* legal and tax checks are flagged
+* risk and control are displayed
+* the result flows into Business Outcome and Modelling
+* AI can explain the trade-offs
+
+---
+
+## FINAL DEFINITION
+
+The Asset Strategy Model compares the complete business effect of owning, financing, leasing, outsourcing, or transferring asset responsibility. The preferred outcome is the structure that best supports sustainable profit and operations, not automatically the structure with the lowest visible asset cost.
+
+============================================================
+END FILE 14
+===========

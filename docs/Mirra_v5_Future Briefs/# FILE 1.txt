@@ -1,0 +1,887 @@
+# FILE 1
+
+# QS Tools — Data Architecture, Variable Audit & Reporting Readiness Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the data architecture required before QS Tools moves from browser-based storage into a persistent multi-user system.
+
+It ensures the completed platform can:
+
+* store all user inputs safely
+* preserve the original business baseline
+* store evolving actual business states
+* store target and modelling scenarios
+* reconstruct the business at any historical point
+* support Business Outcome
+* support Business Modelling
+* support the Dashboard
+* support historical reporting
+* produce structured AI context
+* answer current, historical, comparative, and strategic business questions
+
+This is a system-design brief. It does not define page styling or individual module calculations.
+
+---
+
+## CORE DATA ARCHITECTURE
+
+QS Tools must use three connected data layers.
+
+### Layer 1 — Application Database
+
+Stores the persistent business state:
+
+* tenants and users
+* all module inputs
+* profiles
+* effective-dated changes
+* baseline versions
+* actual operating versions
+* target models
+* scenario states
+* classifications and identities
+* import records
+* calculation and contract versions
+
+This is the source of truth for rebuilding a business model.
+
+### Layer 2 — Calculation and Structured Output Layer
+
+Uses the existing QS Tools calculation engine to produce:
+
+* current business outputs
+* baseline outputs
+* target outputs
+* variances
+* calculation traces
+* warnings
+* driver outputs
+* AI-readable structured context
+
+This layer is generated from stored data. It is not the primary storage layer.
+
+### Layer 3 — Historical Reporting Layer
+
+Stores historical financial facts and selected calculated outputs in an analytical structure.
+
+This supports:
+
+* month, quarter, and year reporting
+* trend analysis
+* supplier analysis
+* baseline versus actual versus target
+* historical dashboard drilldown
+* historical AI comparisons
+
+---
+
+## CORE PRINCIPLES
+
+### Application data reconstructs the business
+
+All values required to rebuild a user’s business must be persisted outside browser cache.
+
+### Calculations remain owned by the engine
+
+The database must not become a second calculation engine.
+
+### Historical reporting does not replace operational storage
+
+The reporting layer records and analyses what happened. It does not own editable module state.
+
+### Structured AI context is generated on demand
+
+The system must not rely on manually exported or permanently stored JSON files.
+
+### All layers must remain traceable
+
+Historical outputs must be traceable to:
+
+* business
+* period
+* scenario
+* model version
+* calculation version
+* source records
+* input version
+
+---
+
+## REQUIRED PRE-DATABASE CHECKS
+
+Before the database schema is locked, QS Tools must complete:
+
+1. current variable audit
+2. current output-contract audit
+3. Business Outcome variable gap check
+4. Modelling variable gap check
+5. reporting question-to-data matrix
+6. persistent entity map
+7. historical fact and dimension map
+8. structured AI context definition
+9. historical reconstruction rules
+10. calculation-version strategy
+
+---
+
+## VARIABLE CLASSIFICATION
+
+Every current and proposed variable must be classified as one of the following.
+
+### Persistent Input
+
+A user-entered, imported, or system-owned value required to rebuild the model.
+
+### Identity or Classification
+
+A stable ID or categorisation used to link and analyse records.
+
+### Derived Output
+
+A value produced by a calculation module.
+
+### Reporting Measure
+
+A financial or calculated output that must be analysed over time.
+
+### AI Explanation Output
+
+A structured value that helps AI explain or prioritise business results.
+
+### UI-Only Value
+
+Temporary display or interface state that should not become business data.
+
+### Missing Variable
+
+A required value that does not yet exist.
+
+---
+
+## BUSINESS OUTCOME READINESS
+
+Before Business Outcome is locked, the audit must confirm that the system can expose:
+
+* total revenue
+* total COG
+* gross profit
+* gross margin
+* gross-profit split
+* contribution by revenue stream or operating area
+* cost burden
+* recovery requirement
+* productive capacity
+* business overhead burden
+* pricing or recovery gaps
+* major positive and negative drivers
+* material warnings
+* data completeness status
+
+Business Outcome must consume existing contracts wherever possible. Missing variables must be added to their owning module or to the appropriate downstream calculation layer.
+
+---
+
+## MODELLING READINESS
+
+Before the Modelling page is locked, the system must support:
+
+* approved baseline
+* current actual
+* target model
+* baseline-to-actual variance
+* actual-to-target variance
+* target profit
+* target gross margin
+* target revenue
+* target COG
+* target productivity
+* target recovery
+* target capacity
+* realistic operating constraints
+* controllable and uncontrollable variables
+* primary improvement levers
+* scenario identity
+* scenario version
+* effective period
+* model approval status
+
+---
+
+## QUESTION-DRIVEN DESIGN RULE
+
+The database must not be designed around individual hardcoded prompts.
+
+It must be designed around broad question classes:
+
+* revenue
+* profitability
+* cost
+* labour
+* productivity
+* pricing
+* recovery
+* supplier
+* customer
+* revenue stream
+* asset
+* overhead
+* baseline
+* target
+* actual
+* historical comparison
+* risk
+* strategic action
+
+For each class, confirm:
+
+* required measures
+* required dimensions
+* required granularity
+* required source
+* whether historical reconstruction is needed
+* whether the answer uses deterministic calculations or AI explanation
+
+---
+
+## REQUIRED OUTPUTS OF THIS DESIGN PHASE
+
+The following must exist before database implementation begins:
+
+* Variable Audit Register
+* Business Outcome gap list
+* Modelling gap list
+* persistent application entity map
+* reporting fact table map
+* reporting dimension map
+* data lineage map
+* structured output contract
+* historical reconstruction contract
+* question orchestration contract
+* Dashboard Data Contract
+
+---
+
+## NOT ALLOWED
+
+* relying on localStorage or browser cache as permanent storage
+* storing all business data in one unstructured table
+* treating the star schema as the operational database
+* duplicating business formulas inside the database
+* using display names as identity keys
+* losing historical input versions
+* overwriting the original approved baseline
+* allowing AI to create authoritative financial calculations
+* storing historical JSON files as the primary history mechanism
+* designing the database before confirming Business Outcome and Modelling requirements
+
+---
+
+## DEFINITION OF DONE
+
+This brief is complete when:
+
+* every current variable is classified
+* missing variables are identified
+* Business Outcome requirements are confirmed
+* Modelling requirements are confirmed
+* persistent storage requirements are known
+* reporting measures and dimensions are known
+* current and historical AI context can be generated
+* all data can be traced back to its source and version
+
+---
+
+## FINAL DEFINITION
+
+QS Tools must store the complete editable business state in an operational application database, generate calculated business truth through its existing engine, and record selected financial and calculated outputs in a historical reporting layer. These layers must remain connected, versioned, traceable, and capable of supporting the Dashboard and embedded AI without duplicating business logic.
+
+============================================================
+END FILE 1
+==========
+
+# FILE 2
+
+# QS Tools — Application Database & Versioning Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the persistent operational database for QS Tools.
+
+The database must replace browser cache as the permanent system of record and support:
+
+* multiple businesses
+* multiple users
+* complete module persistence
+* version history
+* baseline preservation
+* actual operating changes
+* target modelling
+* historical reconstruction
+* imported accounting data
+* future integrations
+
+---
+
+## SYSTEM ROLE
+
+The application database stores everything required to reconstruct the business.
+
+It does not own calculation formulas.
+
+The flow is:
+
+Stored business state
+→ QS Tools calculation engine
+→ structured outputs
+→ Dashboard, reporting, and AI
+
+---
+
+## MULTI-TENANT OWNERSHIP
+
+Every business-owned record must contain or inherit:
+
+* tenant_id
+* business_id
+* created_by_user_id
+* ownership scope
+* created_at
+* updated_at
+
+Users must only access businesses they are authorised to access.
+
+A user identity and business identity must remain separate.
+
+---
+
+## CORE ENTITY GROUPS
+
+### Tenant and Access
+
+Must support:
+
+* tenant
+* business
+* user
+* business membership
+* role
+* permission
+* access status
+
+### Business Configuration
+
+Must support:
+
+* business settings
+* financial year
+* currency
+* region
+* tax settings where applicable
+* opening hours
+* operating assumptions
+* integration settings
+
+### Module State
+
+Each module must store:
+
+* module identity
+* owner business
+* profile identity
+* version
+* effective_from
+* effective_to where applicable
+* active status
+* approval status
+* input contract values
+* source metadata
+* calculation contract version
+
+### Imported Financial Data
+
+Must support:
+
+* import batch
+* source system
+* source file or connection
+* financial period
+* account
+* supplier
+* customer where available
+* revenue stream
+* amount
+* tax treatment where required
+* mapping state
+* reconciliation state
+* import validation state
+
+### Modelling Data
+
+Must support:
+
+* model_id
+* model_name
+* scenario_type
+* baseline reference
+* target assumptions
+* model version
+* effective period
+* approval status
+* archived status
+
+---
+
+## VERSIONING MODEL
+
+QS Tools must use effective-dated versioning for business-critical module data.
+
+A change must not silently overwrite historical truth.
+
+Each versioned record should support:
+
+* stable entity identity
+* version identity
+* version number
+* effective_from
+* effective_to
+* is_current
+* created_at
+* created_by
+* change_reason
+* source_type
+* contract_version
+* calculation_version
+
+---
+
+## IDENTITY RULE
+
+A person, asset, supplier, customer, model, or operating group must have a stable identity across versions.
+
+Example:
+
+A staff member keeps the same `staff_id`.
+
+Their wage or working pattern changes through a new effective-dated version.
+
+The historical record must remain available.
+
+---
+
+## BASELINE STORAGE
+
+An approved baseline must be stored as a locked model reference.
+
+The baseline must contain references to the exact approved versions of:
+
+* labour
+* employee overheads
+* assets
+* general overheads
+* revenue and COG mapping
+* rate structure
+* operating groups
+* Business Outcome outputs
+* calculation engine version
+* contract versions
+
+The baseline must not be overwritten by later operational changes.
+
+---
+
+## ACTUAL STATE STORAGE
+
+Actual business changes must be stored as new effective-dated versions.
+
+Examples include:
+
+* wage increases
+* changes in working hours
+* new or retired staff
+* asset purchases or disposals
+* overhead changes
+* supplier changes
+* rate changes
+* productivity assumption changes
+* changed operating groups
+
+---
+
+## TARGET AND SCENARIO STORAGE
+
+Target models must remain separate from actual operating data.
+
+Each model must identify:
+
+* source baseline
+* target period
+* assumptions
+* model version
+* status
+* owner
+* approval date
+* whether it is active for dashboard comparison
+
+What-if scenarios must not overwrite the approved target.
+
+---
+
+## CALCULATED OUTPUT STORAGE
+
+The operational database may store calculated outputs for:
+
+* caching
+* audit
+* approved snapshots
+* reconciliation
+* reporting transfer
+* historical “as originally reported” records
+
+However, stored calculated outputs must not replace the calculation engine as the authoritative owner of formulas.
+
+Every stored output snapshot must record:
+
+* input version references
+* calculation version
+* output contract version
+* generation timestamp
+* reconciliation status
+
+---
+
+## CHANGE TYPES
+
+Changes should be classified as:
+
+* user edit
+* accounting import
+* integration update
+* system calculation
+* approved baseline
+* approved target
+* correction
+* migration
+* administrative change
+
+---
+
+## DATA RECOVERY AND AUDIT
+
+The system must support:
+
+* audit history
+* soft deletion where appropriate
+* restoration
+* import rollback
+* version comparison
+* user-action history
+* source traceability
+* backup and recovery
+
+---
+
+## SECURITY REQUIREMENTS
+
+The database design must include:
+
+* tenant isolation
+* role-based access
+* encryption in transit
+* encryption at rest
+* restricted access to sensitive financial data
+* audit logging
+* secrets stored outside business records
+* no AI provider access to the underlying database
+
+The AI layer must receive only the structured context authorised for the current user and question.
+
+---
+
+## NOT ALLOWED
+
+* permanent reliance on browser cache
+* deleting historical versions when a value changes
+* using names as primary identity
+* mixing baseline, actual, and target states in one ambiguous record
+* allowing scenario data to overwrite actual data
+* allowing AI to directly query unrestricted operational tables
+* losing source-system identifiers during import
+* storing unexplained calculated outputs without input and calculation version references
+
+---
+
+## DEFINITION OF DONE
+
+The application database is ready when:
+
+* all module inputs have a persistent home
+* stable identities and versions are defined
+* baseline can be frozen
+* actual changes can be tracked
+* targets and scenarios remain isolated
+* any historical state can be reconstructed
+* accounting imports can be traced and rolled back
+* multi-tenant access is enforced
+* data can safely feed the engine, reporting layer, Dashboard, and AI
+
+---
+
+## FINAL DEFINITION
+
+The QS Tools application database is the complete, version-controlled operational record of each business. It stores every state required to rebuild the business while leaving calculations inside their owning modules.
+
+============================================================
+END FILE 2
+==========
+
+# FILE 3
+
+# QS Tools — Baseline, Actual, Target & Historical Reconstruction Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines how QS Tools separates and compares:
+
+* baseline
+* actual
+* target
+* scenario
+* historical state
+
+It ensures users can understand where the business started, where it is now, where it is trying to go, and what changed over time.
+
+---
+
+## DEFINITIONS
+
+### Baseline
+
+The approved business model established from the initial business setup and reconciled source data.
+
+The baseline is a fixed reference.
+
+### Actual
+
+The real business state and financial performance for a selected period.
+
+Actual data may change over time through imports, operational updates, and versioned inputs.
+
+### Target
+
+The approved future business model that defines the realistic performance objective.
+
+### Scenario
+
+A temporary or saved alternative model used for testing assumptions.
+
+### Historical State
+
+The business model reconstructed for a previous effective period using historical inputs, financial facts, and the appropriate calculation version.
+
+---
+
+## BASELINE RULES
+
+The approved baseline must:
+
+* remain immutable
+* retain its source period
+* retain input-version references
+* retain calculation and contract versions
+* remain available for later comparison
+* be replaceable only through a formal re-baselining process
+
+A new baseline must create a new baseline version. It must not destroy the previous baseline.
+
+---
+
+## ACTUAL RULES
+
+Actual data must:
+
+* reflect real imported financial results
+* reflect real effective-dated operational changes
+* remain traceable to source records
+* be reportable by month, quarter, and year
+* be reconstructable for historical comparison
+
+---
+
+## TARGET RULES
+
+The target model must:
+
+* reference an approved baseline
+* identify a target period
+* contain explicit target assumptions
+* remain separate from actual state
+* identify controllable and constrained assumptions
+* support versions
+* support approval
+* support active/inactive status
+
+---
+
+## SCENARIO RULES
+
+A scenario must:
+
+* remain isolated from actual data
+* remain isolated from the approved target until explicitly promoted
+* identify its source model
+* identify changed assumptions
+* show the resulting differences
+* retain a scenario owner and version
+
+---
+
+## DASHBOARD COMPARISON MODEL
+
+The Dashboard must be capable of displaying:
+
+* baseline
+* actual
+* target
+* baseline-to-actual variance
+* actual-to-target variance
+* trend against baseline
+* trend against target
+* material warnings
+* primary drivers
+
+---
+
+## HISTORICAL RECONSTRUCTION
+
+When a historical model is requested, the system must:
+
+1. identify the business and requested period
+2. identify the input versions effective during that period
+3. retrieve the relevant imported financial facts
+4. retrieve relevant classifications and relationships
+5. identify the calculation and contract versions
+6. run the appropriate calculation engine
+7. produce a structured historical model
+8. validate reconciliation
+9. return the model for reporting, comparison, or AI context
+
+---
+
+## CALCULATION VERSION RULE
+
+Historical reconstruction introduces an important distinction.
+
+### As-Originally-Reported View
+
+Shows the output created using the calculation rules active at the time.
+
+### Restated View
+
+Recalculates historical inputs using the current approved calculation engine.
+
+Both views may be useful, but the system must label them clearly.
+
+Historical comparisons must not silently mix calculation versions.
+
+---
+
+## HISTORICAL COMPARISON
+
+For a comparison such as Q1 2025 versus Q1 2026, the system must provide:
+
+* period A financial facts
+* period B financial facts
+* period A structured model
+* period B structured model
+* calculated differences
+* changed inputs
+* changed classifications
+* data completeness warnings
+* calculation version status
+
+---
+
+## CHANGE TRACEABILITY
+
+A user must be able to drill from a high-level result to:
+
+* the output
+* the calculation
+* the contributing module
+* the relevant entity
+* the effective-dated input
+* the source record
+* the user or integration that changed it
+
+Example:
+
+Lower gross margin
+→ higher labour cost
+→ changed productive cost rate
+→ staff wage increase
+→ wage version effective from selected date
+
+---
+
+## RE-BASELINING
+
+Re-baselining may be required when:
+
+* business structure materially changes
+* a major acquisition or disposal occurs
+* a new financial year is adopted as the operating base
+* accounting mappings materially change
+* the approved calculation model changes substantially
+
+A re-baseline must:
+
+* create a new version
+* preserve the previous baseline
+* record the reason
+* record the effective date
+* retain comparison capability
+
+---
+
+## NOT ALLOWED
+
+* updating the original baseline to match current actuals
+* treating actual and baseline as the same state
+* allowing target assumptions to alter actual data
+* overwriting historical input versions
+* reconstructing history without recording calculation version
+* silently mixing as-reported and restated values
+* presenting a historical AI answer without period and source context
+
+---
+
+## DEFINITION OF DONE
+
+This model is ready when:
+
+* baseline can be locked
+* actual state can evolve
+* targets remain separate
+* scenarios remain isolated
+* historical models can be reconstructed
+* calculation versions are traceable
+* Dashboard comparisons can be produced
+* AI can compare periods accurately
+* every major result can be drilled back to its source
+
+---
+
+## FINAL DEFINITION
+
+Baseline defines the approved starting point. Actual records what happened. Target defines where the business intends to go. Historical reconstruction recreates the business model for any selected period without rewriting or losing the truth of earlier states.
+
+============================================================
+END FILE 3
+==========

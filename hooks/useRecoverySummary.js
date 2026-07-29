@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 
@@ -138,6 +138,20 @@ export default function useRecoverySummary(inputs = {}) {
       material_margin_status: calculated.material_margin_status,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
 
+      // Support/productive asset split, plus each side's assigned share of
+      // the asset overhead pools (fuel, insurance, repairs, registration,
+      // consumables, finance interest). Pass-through from the assets
+      // contract Recovery Summary already receives as an input - not a
+      // new calculation. Needed so downstream consumers (e.g. Business
+      // Outcome) can show the true full cost of non-productive assets
+      // without calling useAssets() directly.
+      productive_asset_cost: asset_outputs.productive_asset_cost ?? 0,
+      support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+      productive_asset_assigned_overhead_cost_annual:
+        asset_outputs.productive_asset_assigned_overhead_cost_annual ?? 0,
+      support_asset_assigned_overhead_cost_annual:
+        asset_outputs.support_asset_assigned_overhead_cost_annual ?? 0,
+
       required_revenue: calculated.required_revenue,
       required_recovery_rate: calculated.required_recovery_rate,
 
@@ -241,7 +255,7 @@ export default function useRecoverySummary(inputs = {}) {
       asset_recovery_without_assets: calculated.asset_recovery_without_assets,
       labour_recovery_without_labour: calculated.labour_recovery_without_labour,
     };
-  }, [calculated, status, card]);
+  }, [calculated, status, card, asset_outputs]);
 
   return {
     status,

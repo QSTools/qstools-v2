@@ -1,0 +1,965 @@
+# FILE 4
+
+# QS Tools — Historical Reporting & Star Schema Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the historical analytical layer used by QS Tools for:
+
+* month, quarter, and year reporting
+* financial trends
+* supplier and customer analysis
+* revenue and COG analysis
+* performance comparisons
+* baseline, actual, and target tracking
+* Dashboard historical drilldown
+* historical AI questions
+
+The star schema is an analytical layer. It is not the application database and does not own editable module state.
+
+---
+
+## CORE PRINCIPLE
+
+Facts store measurable events or results.
+
+Dimensions describe how those facts can be sliced, grouped, filtered, and compared.
+
+The schema must support classes of business questions rather than hardcoded prompts.
+
+---
+
+## REQUIRED FACT TABLES
+
+### Fact Financial Actual
+
+Recommended grain:
+
+One row per:
+
+* business
+* accounting period
+* account
+* supplier/customer where available
+* imported source line or controlled aggregation
+
+Measures may include:
+
+* revenue
+* COG
+* operating expense
+* gross profit
+* net profit
+* quantity where available
+* tax-exclusive amount
+* tax amount where required
+
+### Fact Business Model Snapshot
+
+Recommended grain:
+
+One row per:
+
+* business
+* period
+* scenario
+* model version
+
+Measures may include:
+
+* total revenue
+* total COG
+* gross profit
+* gross margin
+* total people cost
+* total asset cost
+* total overhead cost
+* total cost burden
+* productive output
+* required recovery
+* achieved recovery
+* recovery gap
+* target profit
+* actual profit
+* variance to baseline
+* variance to target
+
+### Fact Cost Component
+
+Recommended grain:
+
+One row per:
+
+* business
+* period
+* scenario
+* cost component
+
+Measures may include:
+
+* component amount
+* percentage of total cost
+* percentage of revenue
+* variance to baseline
+* variance to target
+
+### Fact Labour Performance
+
+Recommended grain:
+
+One row per:
+
+* business
+* period
+* staff/labour type/operating group
+* scenario
+
+Measures may include:
+
+* paid hours
+* productive hours
+* non-productive hours
+* wage cost
+* labour cost
+* productive cost rate
+* achieved revenue per hour
+* recovery gap
+* utilisation
+
+### Fact Asset Performance
+
+Recommended grain:
+
+One row per:
+
+* business
+* period
+* asset or asset group
+* scenario
+
+Measures may include:
+
+* finance cost
+* running cost
+* total asset cost
+* productive usage
+* utilisation
+* cost per productive unit
+* revenue contribution where available
+
+### Fact Revenue and COG Detail
+
+Recommended grain:
+
+One row per:
+
+* business
+* period
+* supplier/customer/revenue stream/account classification
+
+Measures may include:
+
+* revenue amount
+* COG amount
+* spend amount
+* gross profit
+* gross margin
+* percentage of total revenue
+* percentage of total COG
+
+---
+
+## REQUIRED DIMENSIONS
+
+### Dim Date
+
+Must support:
+
+* date
+* week
+* month
+* month name
+* quarter
+* calendar year
+* financial year
+* financial quarter
+* period start
+* period end
+
+### Dim Business
+
+Must support:
+
+* business identity
+* tenant identity
+* business status
+* region
+* currency
+* financial year configuration
+
+### Dim Scenario
+
+Suggested types:
+
+* baseline
+* actual
+* target
+* what_if
+* approved_model
+* archived_model
+
+### Dim Account
+
+Must retain:
+
+* source account code
+* source account name
+* mapped QS Tools category
+* account type
+* revenue/COG/expense classification
+
+### Dim Supplier
+
+Must support:
+
+* stable supplier identity
+* source-system identity
+* supplier category
+* active status
+
+### Dim Customer
+
+Must support customer analysis where source data permits.
+
+### Dim Revenue Stream
+
+Must identify the economic source of revenue independently of accounting account labels.
+
+### Dim Cost Type
+
+Examples:
+
+* direct labour
+* employee overhead
+* assets
+* general overhead
+* materials
+* subcontract
+* other COG
+* other operating cost
+
+### Dim Staff and Labour Type
+
+Must retain stable staff identity while supporting changing role or labour classifications through appropriate versioning.
+
+### Dim Asset
+
+Must support individual asset and asset-group analysis.
+
+### Dim Operating Group
+
+Must support analysis of operational or delivery groups where used.
+
+### Dim Model Version
+
+Must identify:
+
+* baseline/model version
+* contract version
+* calculation version
+* approval state
+
+### Dim Data Source
+
+Examples:
+
+* manual entry
+* CSV import
+* Xero
+* API integration
+* calculated snapshot
+* migration
+
+---
+
+## QUESTION COVERAGE
+
+The schema must support questions such as:
+
+* How has revenue changed by month, quarter, and year?
+* What percentage of COG is associated with each supplier?
+* How has supplier concentration changed?
+* Why was one quarter stronger than another?
+* How has labour productivity changed?
+* Which costs are rising faster than revenue?
+* How is actual tracking against baseline and target?
+* Which business area has the strongest margin?
+* Which assets are becoming more expensive?
+* When did profitability begin to deteriorate?
+
+---
+
+## GRANULARITY RULE
+
+Store facts at the lowest practical grain that supports expected analysis.
+
+Do not store only quarterly totals when monthly or transaction-level detail is available and materially useful.
+
+Aggregations such as month, quarter, and year should normally be calculated from lower-grain facts.
+
+---
+
+## SNAPSHOT RULE
+
+Calculated model outputs may be written to the reporting layer at controlled checkpoints such as:
+
+* approved baseline
+* approved target
+* monthly close
+* quarter close
+* financial year close
+* material model update
+
+Each snapshot must identify:
+
+* source period
+* business
+* scenario
+* calculation version
+* model version
+* generation time
+* reconciliation status
+
+---
+
+## APPLICATION DATABASE LINKAGE
+
+The analytical layer and operational database must share durable business identifiers.
+
+Reporting records must be traceable back to:
+
+* business
+* source import
+* source entity where applicable
+* input version
+* model version
+* calculation version
+
+The star schema must not use display names as linkage keys.
+
+---
+
+## NOT ALLOWED
+
+* using the star schema as the editable application database
+* storing only pre-aggregated totals that prevent later analysis
+* mixing incompatible grains in one fact table
+* using supplier names instead of stable supplier IDs
+* losing source account mappings
+* storing unexplained model outputs without calculation versions
+* creating facts without a clear grain
+* expecting AI to answer questions when required measures or dimensions do not exist
+
+---
+
+## DEFINITION OF DONE
+
+The historical reporting layer is ready when:
+
+* fact grains are defined
+* dimensions are defined
+* source-to-report mappings are defined
+* time aggregation works
+* supplier and revenue analysis work
+* baseline, actual, and target comparisons work
+* historical Dashboard drilldown works
+* historical AI context can be assembled
+* every fact can be traced to its source
+
+---
+
+## FINAL DEFINITION
+
+The QS Tools star schema records financial facts and selected calculated model outputs over time. It provides the historical evidence required for reporting and AI comparison while remaining separate from the operational database and calculation engine.
+
+============================================================
+END FILE 4
+==========
+
+# FILE 5
+
+# QS Tools — AI & Developer Trace Layer Build Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines the shared system layer that provides:
+
+* calculation traceability
+* reconciliation visibility
+* contract inspection
+* known-answer validation
+* structured business output
+* AI-ready context
+* system lineage
+* developer debugging
+
+This layer is foundational to the completed QS Tools platform.
+
+---
+
+## SYSTEM ROLE
+
+The Developer Trace Layer is the internal inspection and validation surface.
+
+The Structured Context Layer is the controlled machine-readable representation used by:
+
+* embedded AI
+* Dashboard selectors
+* exports
+* integrations
+* historical comparisons
+
+The developer interface and user-facing AI interface are separate surfaces, but they use the same underlying structured contracts.
+
+---
+
+## CORE PRINCIPLE
+
+QS Tools calculates.
+
+The Trace Layer proves.
+
+The Structured Context Layer exposes.
+
+AI interprets.
+
+AI must not become an alternative calculation engine.
+
+---
+
+## DEVELOPER TRACE REQUIREMENTS
+
+The developer page must show:
+
+### System State
+
+* business
+* active baseline
+* active actual period
+* active target
+* active scenario
+* contract versions
+* calculation versions
+* data completeness status
+
+### Module Contract Status
+
+For every participating module:
+
+* module name
+* input contract
+* output contract
+* active version
+* calculation status
+* warning status
+* downstream consumers
+
+### Calculation Tree
+
+A user must be able to expand an output and see:
+
+* formula owner
+* contributing values
+* contributing modules
+* source identities
+* calculated result
+* rounding
+* warnings
+* contract name
+
+### Reconciliation
+
+The page must show:
+
+* expected value
+* actual calculated value
+* variance
+* tolerance
+* pass/fail
+* unresolved reason
+
+### Data Lineage
+
+For a selected output, show:
+
+* source record
+* module owner
+* input version
+* effective period
+* calculation version
+* output contract
+* reporting snapshot reference where applicable
+
+### Known-Answer Tests
+
+The page must support controlled test cases containing:
+
+* fixed inputs
+* verified expected outputs
+* actual outputs
+* difference
+* tolerance
+* pass/fail
+* test version
+
+### Structured Context Preview
+
+The page must allow authorised developers to inspect the context that would be supplied to AI.
+
+Sensitive information must be masked where appropriate.
+
+---
+
+## STRUCTURED BUSINESS CONTEXT
+
+The context should be organised into stable sections such as:
+
+* metadata
+* business scope
+* data completeness
+* baseline
+* current actual
+* target model
+* variances
+* revenue
+* COG
+* profitability
+* labour
+* assets
+* overheads
+* pricing and recovery
+* operating structure
+* primary drivers
+* warnings
+* historical comparison
+* data lineage
+
+Only sections relevant to the question should be sent to AI.
+
+---
+
+## OUTPUT CONTRACT RULE
+
+Structured output variables must:
+
+* retain approved internal names
+* include units
+* include period
+* include scenario
+* include source or lineage references
+* include completeness state
+* include calculation version where material
+
+Display labels may be friendlier, but internal contract names must remain stable.
+
+---
+
+## RECONCILIATION RULE
+
+No module or downstream output may be marked ready unless required reconciliation checks pass or an authorised exception is recorded.
+
+Reconciliation should cover:
+
+* module totals
+* cross-module totals
+* imported financial totals
+* baseline totals
+* Business Outcome totals
+* Modelling totals
+* Dashboard headline values
+* reporting snapshots
+
+---
+
+## WARNING RULE
+
+Warnings must remain deterministic system signals.
+
+Warnings should be:
+
+* concise
+* stable
+* machine-readable
+* connected to affected outputs
+
+AI may explain the warning but must not replace or redefine it.
+
+---
+
+## ACCESS RULE
+
+The raw developer trace interface must be restricted to authorised development or administrative roles.
+
+A simplified user-facing explanation surface may reuse trace data without exposing:
+
+* internal IDs
+* raw contracts
+* sensitive personal details
+* security metadata
+* unrestricted source records
+
+---
+
+## AI READINESS
+
+The structured context must support:
+
+* current-state questions
+* structural questions
+* historical questions
+* period comparisons
+* baseline comparisons
+* target comparisons
+* priority and action questions
+* data-quality questions
+
+---
+
+## NOT ALLOWED
+
+* calculations inside the trace UI
+* AI-generated authoritative totals
+* hidden fallback calculations
+* manually maintained duplicate context values
+* exposing unrestricted business records to the AI provider
+* storing API secrets in client code
+* presenting failed reconciliation as valid
+* allowing display labels to replace contract variables
+
+---
+
+## DEFINITION OF DONE
+
+The layer is ready when:
+
+* all core outputs can be traced
+* reconciliations are visible
+* known-answer tests can run
+* current structured context can be generated
+* historical context can be generated
+* context is versioned and scoped
+* AI receives only authorised relevant data
+* Dashboard and AI values match the calculation engine
+* warnings remain deterministic
+
+---
+
+## FINAL DEFINITION
+
+The AI and Developer Trace Layer is the verification and machine-readable interface of QS Tools. It proves how every critical number was produced and supplies controlled structured truth to the Dashboard and embedded AI.
+
+============================================================
+END FILE 5
+==========
+
+# FILE 6
+
+# QS Tools — AI Question Orchestration Brief
+
+## Version: v1.0 — DRAFT FOR LOCK
+
+## PURPOSE
+
+This brief defines how a user’s natural-language business question is converted into an authorised, structured, data-grounded AI request.
+
+The orchestration layer is responsible for determining:
+
+* what the user is asking
+* which business and period apply
+* which data sources are needed
+* whether historical reconstruction is required
+* what structured context should be assembled
+* what the AI may and may not conclude
+
+---
+
+## CORE FLOW
+
+The controlled process is:
+
+User question
+→ scope resolution
+→ question classification
+→ context plan
+→ data retrieval
+→ model reconstruction where required
+→ reconciliation check
+→ structured context assembly
+→ AI request
+→ grounded response
+→ audit record
+
+---
+
+## QUESTION CLASSES
+
+### Current Structural Question
+
+Examples:
+
+* Why is my recovery rate high?
+* What makes up total cost?
+* Where is pricing headroom?
+
+Primary source:
+
+* current calculated model
+
+### Historical Trend Question
+
+Examples:
+
+* How has revenue changed by quarter?
+* How has supplier share changed over time?
+
+Primary source:
+
+* reporting layer
+
+### Historical Diagnostic Question
+
+Examples:
+
+* Why was Q1 2025 better than Q1 2026?
+* What changed when margin started falling?
+
+Sources:
+
+* reporting facts
+* reconstructed period models
+* versioned inputs
+
+### Baseline or Target Comparison
+
+Examples:
+
+* How are we tracking against baseline?
+* Why are we missing target profit?
+
+Sources:
+
+* baseline model
+* actual model
+* target model
+* variance outputs
+
+### Scenario or What-If Question
+
+Examples:
+
+* What happens if wages rise?
+* Would selling an asset improve the model?
+
+Sources:
+
+* approved actual model
+* temporary scenario assumptions
+* deterministic scenario calculation
+
+### Priority or Recommendation Question
+
+Examples:
+
+* What should I fix first?
+* What single change would have the biggest effect?
+
+Sources:
+
+* ranked deterministic drivers
+* constraints
+* current and historical evidence
+
+---
+
+## SCOPE RESOLUTION
+
+Every request must resolve:
+
+* business
+* authorised user
+* question class
+* relevant period
+* comparison period where applicable
+* scenario
+* requested segment or dimension
+* permitted data scope
+
+Where the user selects periods or filters in the interface, those explicit selections should override ambiguous natural-language interpretation.
+
+---
+
+## CONTEXT PLANNER
+
+The context planner determines the smallest complete data package required to answer the question.
+
+It may request:
+
+* current structured output
+* baseline
+* target
+* financial facts
+* supplier detail
+* customer detail
+* labour detail
+* asset detail
+* operating-group detail
+* historical input versions
+* period model reconstruction
+* warnings
+* data-quality status
+
+The entire business model should not be sent when a smaller verified context is sufficient.
+
+---
+
+## HISTORICAL MODEL GENERATION
+
+For historical diagnostic questions, the orchestration layer must:
+
+1. resolve the periods
+2. retrieve historical financial facts
+3. retrieve effective-dated business inputs
+4. select calculation and contract versions
+5. reconstruct each period model
+6. validate each model
+7. calculate comparison deltas
+8. assemble the comparison context
+9. pass the context and question to AI
+
+---
+
+## AI RULES
+
+The AI must be instructed to:
+
+* use only supplied business data
+* distinguish facts from interpretation
+* state when data is missing
+* not invent values
+* not silently calculate authoritative totals
+* use deterministic outputs where available
+* identify the period and scenario being discussed
+* explain major drivers
+* separate evidence from recommendation
+* avoid overstating certainty
+* provide one primary action where the user asks for priority
+
+---
+
+## RESPONSE CONTRACT
+
+A response should be capable of returning:
+
+* direct answer
+* evidence summary
+* primary drivers
+* relevant comparison values
+* warning or data limitation
+* recommended action where requested
+* source periods
+* model version
+* optional follow-up question suggestions
+
+---
+
+## COST AND TOKEN CONTROL
+
+The orchestration layer must record:
+
+* model used
+* input token count
+* output token count
+* estimated cost
+* user
+* business
+* question class
+* timestamp
+* response status
+
+Context should be compacted without removing material evidence.
+
+Repeated stable context may be cached securely where appropriate.
+
+---
+
+## SECURITY
+
+The AI provider must not receive:
+
+* unrestricted database access
+* credentials
+* unrelated tenant data
+* internal security records
+* unnecessary personal information
+
+All context must be assembled server-side under the authenticated user’s permissions.
+
+---
+
+## AUDITABILITY
+
+Each AI interaction should retain:
+
+* original question
+* resolved scope
+* context version or hash
+* model
+* response
+* timestamp
+* data completeness state
+* user feedback where provided
+
+The system should be able to reproduce what information the AI received.
+
+---
+
+## NOT ALLOWED
+
+* direct unrestricted AI querying of the database
+* trusting natural-language period extraction without validation
+* allowing AI to modify baseline or actual data automatically
+* allowing AI to create financial facts
+* sending unrelated full-business context by default
+* hiding data-quality failures
+* presenting recommendations as guaranteed outcomes
+* mixing tenant data
+
+---
+
+## DEFINITION OF DONE
+
+The orchestration layer is ready when:
+
+* current questions route correctly
+* historical questions route correctly
+* comparison periods are validated
+* historical models can be reconstructed
+* context is compact and complete
+* AI answers remain grounded
+* usage and cost are logged
+* tenant security is preserved
+* responses can be audited
+
+---
+
+## FINAL DEFINITION
+
+The AI Question Orchestration Layer converts a user question into a controlled data request, reconstructs the relevant business truth, and supplies the minimum complete context required for AI to explain the business accurately.
+
+============================================================
+END FILE 6
+==========
