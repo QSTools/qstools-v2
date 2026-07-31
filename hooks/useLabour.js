@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateLabourOutputs } from "@/lib/calculations/labourCalculations";
@@ -151,6 +151,20 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
 
   function save_profile() {
     if (!state.staff_id || !active_profile_id) return false;
+
+    // Same validation create_profile() already requires - prevents an
+    // edit from silently overwriting a previously-valid profile with
+    // a blank staff type, name, or labour class. Without this guard,
+    // a profile edited while the staff type dropdown was empty would
+    // permanently wipe out previously-correct data (this is what
+    // happened to the "Paul" / Owner profile).
+    const staff_name = String(state.staff_name || "").trim();
+    const staff_type_id = String(state.staff_type_id || "").trim();
+    const labour_class = String(state.labour_class || "").trim();
+
+    if (!staff_name || !staff_type_id || !labour_class) {
+      return false;
+    }
 
     setProfiles((previous) =>
       previous.map((profile) =>
