@@ -106,12 +106,15 @@ function GroupRow({ row, isExpanded, onToggle }) {
 
 function ReconciliationRow({ row }) {
   return (
-    <div className={`flex items-center justify-between py-1.5 text-sm ${row.isTotal ? 'font-bold border-t border-gray-300 mt-1 pt-2' : ''}`}>
+    <div className={`grid grid-cols-3 gap-3 py-1.5 text-sm ${row.isTotal ? 'font-bold border-t border-gray-300 mt-1 pt-2' : ''}`}>
       <span className={row.isTotal ? 'text-gray-900' : 'text-gray-600'}>
         {row.label}
         {row.note && <span className="text-xs text-gray-400 ml-1">({row.note})</span>}
       </span>
-      <span className={row.isTotal ? 'text-gray-900' : 'text-gray-700'}>{formatCurrency(row.value)}</span>
+      <span className={row.isTotal ? 'text-gray-900' : 'text-gray-700'}>{formatCurrency(row.cost)}</span>
+      <span className={row.isTotal ? 'text-gray-900' : 'text-gray-700'}>
+        {row.charged !== null ? formatCurrency(row.charged) : <span className="text-amber-600 text-xs font-normal">Pending</span>}
+      </span>
     </div>
   );
 }
@@ -124,6 +127,7 @@ export default function BusinessOutcomeLabourSplit({ outcome }) {
     labourChargeOutRateApplied,
     labourReconciliationRows,
     labourReconciles,
+    labourChargedReconciles,
   } = outcome;
 
   const [expandedGroup, setExpandedGroup] = useState(null);
@@ -195,15 +199,33 @@ export default function BusinessOutcomeLabourSplit({ outcome }) {
           <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">
             Full Labour Reconciliation
           </div>
+          <div className="grid grid-cols-3 gap-3 pb-1 text-xs font-semibold text-gray-400 uppercase">
+            <div></div>
+            <div>Cost</div>
+            <div>Charged</div>
+          </div>
           {labourReconciliationRows.map((row) => (
             <ReconciliationRow key={row.id} row={row} />
           ))}
-          <div className="text-xs mt-2">
-            {labourReconciles ? (
-              <span className="text-green-600">✓ Matches the pressure map's total labour cost above.</span>
-            ) : (
-              <span className="text-red-600 font-medium">⚠ Does not match the pressure map's total labour cost - see warnings.</span>
-            )}
+          <div className="text-xs mt-2 space-y-1">
+            <div>
+              {labourReconciles ? (
+                <span className="text-green-600">✓ Cost matches the pressure map's total labour cost above.</span>
+              ) : (
+                <span className="text-red-600 font-medium">⚠ Cost does not match the pressure map's total labour cost - see warnings.</span>
+              )}
+            </div>
+            <div>
+              {labourChargedReconciles === true && (
+                <span className="text-green-600">✓ Total Labour Charged matches Rate Builder's own Model Capacity figure above.</span>
+              )}
+              {labourChargedReconciles === false && (
+                <span className="text-red-600 font-medium">⚠ Total Labour Charged does not match Rate Builder's Model Capacity figure - see warnings.</span>
+              )}
+              {labourChargedReconciles === null && (
+                <span className="text-gray-400">Total Labour Charged cross-check pending - not all groups are priced yet.</span>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -136,8 +136,27 @@ function GroupRow({ row, isExpanded, onToggle }) {
   );
 }
 
+function ReconciliationRow({ row }) {
+  return (
+    <div className={`flex items-center justify-between py-1.5 text-sm ${row.isTotal ? 'font-bold border-t border-gray-300 mt-1 pt-2' : ''}`}>
+      <span className={row.isTotal ? 'text-gray-900' : 'text-gray-600'}>
+        {row.label}
+        {row.note && <span className="text-xs text-gray-400 ml-1">({row.note})</span>}
+      </span>
+      <span className={row.isTotal ? 'text-gray-900' : 'text-gray-700'}>{formatCurrency(row.value)}</span>
+    </div>
+  );
+}
+
 export default function BusinessOutcomeAssetSplit({ outcome }) {
-  const { assetSplitRows, assetSplitTotals, assetSplitAllPriced } = outcome;
+  const {
+    assetSplitRows,
+    assetSplitTotals,
+    assetSplitAllPriced,
+    assetReconciliationRows,
+    assetReconciles,
+  } = outcome;
+
   const [expandedGroup, setExpandedGroup] = useState(null);
 
   if (!assetSplitRows || assetSplitRows.length === 0) {
@@ -194,6 +213,24 @@ export default function BusinessOutcomeAssetSplit({ outcome }) {
       {!assetSplitAllPriced && (
         <div className="mt-3 text-xs text-amber-600">
           Totals exclude groups without a linked Rate Builder calculator.
+        </div>
+      )}
+
+      {assetReconciliationRows.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">
+            Full Asset Cost Reconciliation
+          </div>
+          {assetReconciliationRows.map((row) => (
+            <ReconciliationRow key={row.id} row={row} />
+          ))}
+          <div className="text-xs mt-2">
+            {assetReconciles ? (
+              <span className="text-green-600">✓ Matches the pressure map's total asset cost above.</span>
+            ) : (
+              <span className="text-red-600 font-medium">⚠ Does not match the pressure map's total asset cost - see warnings.</span>
+            )}
+          </div>
         </div>
       )}
     </div>
