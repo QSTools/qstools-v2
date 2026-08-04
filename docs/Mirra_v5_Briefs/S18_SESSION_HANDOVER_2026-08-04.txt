@@ -1,0 +1,146 @@
+====================================================================
+S18 SESSION HANDOVER — COST ALLOCATION MANDATORY LABOUR & ASSET
+COST ACCOUNTABILITY → NEXT SESSION: RATE BUILDER
+====================================================================
+STATUS: SESSION HANDOVER — NOT a stage lock. S18 itself is still
+  in progress (6.4 UI + 6.5 remain). This note exists because the
+  next chat is switching to a different module (Rate Builder), not
+  because Cost Allocation work is finished.
+DATE: 2026-08-04
+FROM: S18 working session (Cost Allocation extension)
+TO: Rate Builder session (new chat)
+
+--------------------------------------------------------------------
+1. WHY A NEW CHAT
+--------------------------------------------------------------------
+
+Rate Builder is a separate module from S18's scope. This session's
+conversation is long and carries a lot of Cost Allocation-specific
+file content that Rate Builder doesn't need. Starting fresh gives
+full room for whatever Rate Builder files come up next.
+
+Nothing is lost by switching: S18's full build history, every
+design decision, and every bug found/fixed lives in the brief at:
+
+  docs\Mirra_v5_Briefs\S18_COST ALLOCATION MANDATORY LABOUR & ASSET
+  COST.txt
+
+Read that before touching Cost Allocation, Business Outcome, or
+Business Summary again — it is the source of truth, not this note.
+This note is a shorter pointer for the transition itself.
+
+--------------------------------------------------------------------
+2. WHAT WAS BUILT THIS SESSION (S18)
+--------------------------------------------------------------------
+
+6.1 Non-Productive Labour — BUILT, full stack (calc + UI).
+6.2 Non-Productive Assets — BUILT, full stack (calc + UI), including
+    an attempted "any asset, either pool" override that was tried,
+    then explicitly reverted per user clarification. See the brief's
+    Section 6.2 "FURTHER REVISION, ATTEMPTED THEN REVERTED" note if
+    this need resurfaces later — it's recorded, not lost.
+6.3 Full Cost Attribution Coverage — BUILT, full stack.
+6.4 Business Outcome Per-Group Non-Productive Breakdown —
+    CALCULATION LAYER BUILT AND VALIDATED with real data (Paul
+    $141,460 + Jonny $97,089, confirmed reconciling correctly).
+    Selector layer (lib/selectors/businessOutcomeSelectors.js) and
+    UI display (BusinessOutcomeLabourSplit.jsx /
+    BusinessOutcomeAssetSplit.jsx) NOT YET TOUCHED — the data exists
+    but nothing renders it on screen yet.
+6.5 Unaccounted Labour/Asset Warning — NOT STARTED.
+
+Three real bugs were found and fixed during this work, not just the
+planned feature:
+- Silent $0 cost for non-productive labour assignments (root cause:
+  productive pool builder matched ALL assignments unfiltered).
+- asset_coverage_percent could exceed 100% once non-productive asset
+  assignments became possible (a dead defensive check that never
+  actually fired until 6.2 made the case reachable).
+- Group Cost Stacks / Group Cost Summary displayed totals that
+  silently included non-productive cost with no visible line item
+  explaining it.
+
+--------------------------------------------------------------------
+3. REPO STATE
+--------------------------------------------------------------------
+
+All S18 6.1-6.4 code changes were committed and pushed to
+origin/main this session. The S18 brief itself was updated and
+written to disk via Update-S18-Brief.ps1 — confirm it was git-added
+and committed separately if that hadn't happened yet at handover
+time, since it was not part of the original push.
+
+Working directory may still contain .bak-<timestamp> files from this
+session's PowerShell scripts. These are gitignored (a *.bak-*
+entry was added to .gitignore this session) but not deleted - they
+remain on disk as a local safety net. Safe to clean up manually
+whenever convenient; not required.
+
+--------------------------------------------------------------------
+4. STILL OPEN — UNRELATED TO RATE BUILDER, DO NOT LOSE TRACK
+--------------------------------------------------------------------
+
+- Two non-productive assets (Ute Holder Colorado, Ford Mondeo) were
+  computing to $0 assigned cost in Cost Allocation. This was never
+  root-caused — the classification confusion (were they productive
+  or non-productive?) got resolved, but the $0 cost itself is still
+  unexplained. Most likely cause: no annual cost value entered for
+  these two assets in the Assets module itself. Next step, if picked
+  back up: check their cost fields directly in Assets.
+- 6.4's selector + UI layer (Section 2 above) is the natural next
+  step in Cost Allocation/Business Outcome work, whenever that
+  resumes.
+- 6.5 (the mandatory warning) has not been started at all.
+
+--------------------------------------------------------------------
+5. WORKING CONVENTIONS ESTABLISHED THIS SESSION
+--------------------------------------------------------------------
+
+These aren't S18-specific — they apply to any future PowerShell-
+delivered code change on this repo, including Rate Builder:
+
+- Every code change delivered as a PowerShell script: full-file
+  overwrite (not a patch/regex), automatic timestamped backup before
+  writing, BOM-less UTF8 encoding.
+- Files only partially viewed are never overwritten wholesale — use
+  an anchored find-and-replace instead (with a match-count safety
+  check that aborts rather than guesses), or go view the rest of the
+  file first.
+- Anchored replaces normalise CRLF/LF before comparing, since a pure
+  line-ending mismatch caused one real false-abort this session.
+- Cross-module joins: prefer a stable, module-owned identity field
+  (like asset_id) over a category-style key (like labour's
+  staff_type_id) where both exist - the former needs no fallback
+  logic, the latter does.
+- When a design change is proposed based on the user's stated intent
+  but the actual UI reveals a different real need once seen, revert
+  cleanly to the last known-good state rather than patching toward
+  the new understanding - this session did that once (Section 2,
+  6.2's reverted override) and it kept the codebase clean.
+
+--------------------------------------------------------------------
+6. NOTE FOR THE RATE BUILDER SESSION SPECIFICALLY
+--------------------------------------------------------------------
+
+Not a blocker, just a known connection point: Business Outcome
+already pulls labourChargeOutRateForCalculator from Rate Builder
+(via useRateBuilderLabourRates(), see
+hooks/cost-allocation/useBusinessOutcome.js if it still exists at
+that path). If Rate Builder work changes that hook's output shape,
+Business Outcome's group-split calculation
+(calculateOperatingGroupSplit in
+lib/calculations/businessOutcomeAssetSplitCalculations.js) is a
+downstream consumer worth checking before assuming it's unaffected.
+
+--------------------------------------------------------------------
+7. FINAL PRINCIPLE
+--------------------------------------------------------------------
+
+S18 is not finished, only paused for a module switch. The brief at
+docs\Mirra_v5_Briefs\S18_COST ALLOCATION MANDATORY LABOUR & ASSET
+COST.txt is authoritative for resuming it - this note is a pointer,
+not a replacement.
+
+====================================================================
+END OF HANDOVER NOTE
+====================================================================

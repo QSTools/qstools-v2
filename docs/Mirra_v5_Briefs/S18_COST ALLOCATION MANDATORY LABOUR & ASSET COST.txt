@@ -2,7 +2,9 @@
 S18 — COST ALLOCATION: MANDATORY LABOUR & ASSET COST ACCOUNTABILITY
 BUILD BRIEF v5.0
 ====================================================================
-STATUS: NOT STARTED — build brief, ready for implementation
+STATUS: IN PROGRESS — 6.1, 6.2, 6.3 fully built (calc + selectors + UI).
+  6.4 calculation layer built; selector/UI layer still pending. 6.5 not
+  started. Code pushed to origin/main as of this session.
 VERSION: v5.0 (extension to existing module — see Section 1)
 MODULE TYPE: Cost Allocation Extension
 OWNING MODULE: Cost Allocation (17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt)
@@ -185,48 +187,234 @@ brief). This is the actual shape of the "assign everything" mandate,
 not a separate feature.
 
 --------------------------------------------------------------------
+5A. IMPLEMENTATION FINDINGS — 6.1 REVISED DESIGN (from code review,
+    supersedes the assignment-mechanism assumption in Section 6.1)
+--------------------------------------------------------------------
+
+Reading the actual source before writing code (per Section 8 standing
+principle) surfaced two things that change how 6.1 is built, not what
+it does:
+
+FINDING 1 — the source-side split already exists and is already
+correct. costAllocationLabourAdapter.js already exports
+build_support_labour_type_rows() and build_all_labour_type_rows()
+alongside build_productive_labour_type_rows(). Non-productive staff
+are already grouped into rows with total_productive_hours forced to
+0 and is_productive: false. useCostAllocation.js already computes
+support_labour_type_rows and passes it into calculation_inputs.
+Nothing was consuming it. No adapter changes were needed for 6.1.
+
+FINDING 2 — the exact root cause of the $141,460 Paul/Owner-Director
+"$0 group cost" bug. add_labour_assignment() in useCostAllocation.js
+already allows any labour type to be assigned (it searches
+all_labour_type_rows, which includes support rows), and already
+correctly stamps is_productive, labour_class, and
+contributes_to_recovery_hours onto the assignment record from the
+matched type. The assignment itself was created correctly. The break
+is in build_productive_labour_pool() (costAllocationPoolBuilders.js):
+its labour_rate_map is built only from productive_labour_type_rows,
+but it then loops over ALL of labour_group_assignments unfiltered.
+A non-productive assignment fails the lookup, available_hours/
+available_cost resolve to 0, and the fallback math computes 0 x 0 -
+a silent $0 that still carries allocation_status: "assigned" and
+never triggers a warning.
+
+REVISED 6.1 DESIGN — because assignments are already created
+correctly and already carry an authoritative is_productive flag, no
+new storage array and no new assignment action are needed. The fix
+is two changes to the calculation layer only:
+
+1. build_productive_labour_pool() now filters
+   labour_group_assignments to is_productive === true before
+   building enriched_assignments (a resolve_is_productive_assignment
+   helper falls back to productive_rate_map membership for any
+   assignment persisted before is_productive existed on the record -
+   this affects zero currently-displayed numbers, since the bogus
+   entries were already contributing $0).
+2. A new sibling build_non_productive_labour_pool() reads the same
+   labour_group_assignments array, takes the assignments the above
+   filter excludes, matches them against support_labour_type_rows,
+   and returns cost only - no hours field, no recovery-rate field,
+   by design.
+
+costAllocationStorage.js requires NO changes. The
+labour_group_assignments array already holds both classes,
+distinguished by the is_productive flag already present on every
+record created through the existing UI action.
+
+This does not change Section 6.1's intent or acceptance criteria -
+only how it is implemented. Section 6.1 below is updated to reflect
+this.
+
+--------------------------------------------------------------------
 6. SCOPE — WHAT NEEDS TO BE BUILT
 --------------------------------------------------------------------
 
 ### 6.1 Cost Allocation — Non-Productive Labour Assignment
-- Allow non-productive labour types to be assigned to a working
-  group.
-- New section on the group cost stack: "Non-Productive Labour" —
-  cost only, no recovery hours, no recovery rate shown or implied.
-- Adds into "Total group cost" alongside Labour recovery / Asset
-  recovery / Overhead recovery.
-- Does NOT enter the Productive Labour Pool or its reconciliation.
+STATUS: BUILT (costAllocationPoolBuilders.js, costAllocationRules.js)
+- Assignment mechanism: unchanged. add_labour_assignment() already
+  allowed non-productive staff types and already stamped
+  is_productive correctly - no new storage field, no new action, per
+  Section 5A finding.
+- build_productive_labour_pool() now filters to is_productive === true
+  only, closing the silent-$0 bug.
+- New build_non_productive_labour_pool() reads the same
+  labour_group_assignments array, matches the non-productive share
+  against support_labour_type_rows, cost only - no recovery hours, no
+  recovery rate field on the pool or its assignments.
+- build_operational_group_cost_rows() gains
+  assigned_non_productive_labour_cost per group - added into
+  total_group_cost as a separate final line, does not participate in
+  group_recovery_hours or any recovery-rate calculation.
+- Still not wired into the group card UI or the Cost Allocation
+  status strip - that is the selector/UI layer (costAllocationSelectors.js,
+  useCostAllocationOutputContract.js, and the group card component),
+  not yet built.
 
 ### 6.2 Cost Allocation — Non-Productive Asset Assignment
-- Per Section 5.1: same assignment mechanism as productive assets —
-  asset-specific, percentage-splittable if needed, cost only.
-- New section on the group cost stack: "Non-Productive Asset Cost" —
-  cost only, no recovery rate shown or implied.
-- Does NOT enter the Productive Asset Pool or its reconciliation.
+STATUS: BUILT at the calculation layer (costAllocationPoolBuilders.js,
+costAllocationRules.js, useCostAllocationAssignmentCards.js,
+useCostAllocation.js). UI picker/group-card component NOT yet touched
+- see note below.
+- Confirmed simpler than labour: asset_recovery_rows already contains
+  both productive and support assets, correctly costed, via
+  useCostAllocationAssetOverlay.js (no filtering there). The gap was
+  purely that build_asset_assignment_card() filtered support assets
+  out of the picker's asset list with no counterpart exposed - not a
+  calculation bug like Paul's, a visibility gap one layer earlier.
+- asset_id is asset-module-owned identity (unlike labour's category-
+  based staff_type_id), so no is_productive-style flag or fallback
+  resolver was needed - assignments are partitioned by asset_id
+  membership in each pool's own asset_map.
+- build_productive_asset_pool() also received the same defensive fix
+  as build_productive_labour_pool() (only match assignments whose
+  asset_id resolves to a productive asset) - pre-emptive, since no
+  non-productive asset assignment could exist yet through the UI.
+- REMAINING GAP: NONE — UI layer now built too. The actual picker
+  component was found via a repo-wide grep for productive_asset_rows /
+  asset_assignment / add_asset_assignment:
+  components/cost-allocation/groups/CostAllocationGroupAssetBuilder.jsx
+  (with components/cost-allocation/groups/costAllocationGroupHelpers.js
+  as its data-resolution layer).
+  findAssetRowById() previously searched productive rows only, so a
+  non-productive assignment would have resolved as "unmatched" even
+  though correctly created - fixed by widening it to search both
+  productive and support rows via a new getAllAssetRows() helper.
+  add_asset_assignment/remove_asset_assignment and the percent-tracking
+  helpers (getAssetAllocatedPercent, getAssetRemainingPercent) needed
+  NO changes - they already key purely off asset_id, which is unique
+  per physical asset regardless of type.
+  Component now renders two sections, "Productive assets" (unchanged)
+  and "Non-productive assets" (new, cost-only copy, only shown once a
+  support asset exists in Assets).
+  6.2 is now fully built end to end: calculation layer, card selectors,
+  and picker UI.
+
+- FURTHER REVISION, ATTEMPTED THEN REVERTED (post-6.4): briefly built
+  and then reverted an "any asset, either pool" mechanism where any
+  asset could be assigned into either picker regardless of its own
+  base type, with the assignment record carrying an explicit
+  is_productive override. User initially confirmed this was wanted
+  (motivating case: a normally-productive asset treated as non-
+  productive for one specific group), but on seeing it in the actual
+  picker UI, clarified the real intent: the two-section split is
+  correct and stays, but each section's list must stay filtered to
+  match its own label (Non-productive shows only support-typed
+  assets, Productive shows only non-support-typed assets) - the same
+  filtering 6.2 originally built. Reverted cleanly to the exact 6.2
+  content rather than patching over the override, since the override
+  touched 5 files (costAllocationPoolBuilders.js, useCostAllocation.js,
+  useCostAllocationAssignmentCards.js, CostAllocationGroupAssetBuilder.jsx,
+  costAllocationGroupHelpers.js) and patching risked drift. Recorded
+  here in case this need resurfaces later with clearer scope (e.g. as
+  a deliberate Business Modelling scenario override rather than a
+  Cost Allocation picker option - see Section 6.6).
+
+- FOLLOW-UP FIX (found while validating 6.4, not a 6.4 item itself):
+  the "Group Cost Stacks" display
+  (CostAllocationEvidenceBreakdown.jsx's GroupCostStacksSection, and
+  CostAllocationGroupCostSummary.jsx which has the identical gap) was
+  showing total_group_cost directly without ever displaying
+  assigned_non_productive_labour_cost / assigned_non_productive_asset_cost
+  as their own lines - so the total silently included cost with no
+  visible line item accounting for it (a Board Members group showed
+  $52,903 of visible line items but a $194,363 total, a $141,460 gap
+  matching Paul's cost exactly). Both components now show
+  "Non-productive labour" and "Non-productive assets" as their own
+  lines before the total, cost only, no rate/hours implied - same
+  treatment as everywhere else non-productive cost is displayed.
 
 ### 6.3 Coverage — Two Metrics, Additive
-- Per Section 5.2: add full_cost_attribution_coverage_percent as a
-  new field. Leave staff_coverage_percent / asset_coverage_percent
-  untouched.
-- Denominator for the new field = all staff + all assets (productive
-  and non-productive). Numerator = all assigned, of either kind.
-- Display both on the Cost Allocation status strip as two distinct
-  numbers, clearly labelled by what each answers.
+STATUS: BUILT (costAllocationCoverage.js, costAllocationRules.js,
+costAllocationCardSections.js, CostAllocationEvidenceBreakdown.jsx).
+- full_cost_attribution_coverage_percent added as a new field.
+  staff_coverage_percent / asset_coverage_percent / group_coverage_percent
+  are completely unchanged in meaning and value - confirmed by tracing
+  every downstream consumer (Recovery Summary, Rate Builder, Business
+  Outcome all still read the old fields untouched).
+- Denominator = every productive AND non-productive labour type group
+  plus every productive AND non-productive asset. Numerator = any of
+  those with an active assignment. Matches the existing "group-first"
+  granularity (counts labour TYPES and individual assets, not literal
+  headcount) for consistency with the pre-existing coverage metrics.
+- Displayed as a new row, "Full cost attribution coverage", in the
+  existing "Structure coverage" table on the Cost Allocation page.
+- BUG FOUND AND FIXED DURING THIS WORK: get_assigned_asset_ids() in
+  costAllocationCoverage.js guarded against double-counting a
+  non-productive asset via `assignment?.asset_type === "support"` -
+  but assignment records never actually carry an asset_type field
+  (asset_id is the join key by design, per 6.2). That guard was dead
+  code from the start. It didn't matter until 6.2's UI made it
+  possible to create a non-productive asset assignment; from that
+  point it could push asset_coverage_percent above 100% - the exact
+  same bug class already found and fixed for staff coverage in the
+  session that produced this brief. Fixed by checking membership in
+  the productive-only available_asset_ids set instead.
 
 ### 6.4 Business Outcome — Per-Group Non-Productive Breakdown
-- Per Section 5.3: extend the existing Full Labour Reconciliation
-  and Full Asset Cost Reconciliation footers so the "Non-Productive
-  Labour" and "Non-Productive Asset Cost" rows break out by group,
-  the same way productive labour-only and asset-backed groups
-  already do.
-- Add a per-group table for each, mirroring the existing Labour
-  Split / Asset Split pattern already built and confirmed reconciled
-  this session.
-- The topline blended pressure figures do not change. Only the
-  breakdown underneath gets the extra level of drill-down.
-- CRITICAL: re-verify the existing Full Labour Reconciliation and
-  Full Asset Cost Reconciliation footers still tie out to the penny
-  after this change. Do not assume — check, per Section 8 below.
+STATUS: CALCULATION LAYER BUILT (businessOutcomeAssetSplitCalculations.js,
+businessOutcomeCalculations.js). Selector and UI display layers NOT yet
+touched - see gap note below.
+- Confirmed this needed no changes to Cost Allocation at all:
+  operational_group_cost_rows already carries
+  assigned_non_productive_labour_cost / assigned_non_productive_asset_cost
+  per group as of 6.1/6.2, and was already being passed into
+  calculateOperatingGroupSplit - just never read.
+- Non-productive cost per group is now exposed on every row returned
+  by calculateOperatingGroupSplit (added to the `base` object so it
+  survives every early-return branch, not just the full calculator
+  path) as nonProductiveLabourCost / nonProductiveAssetCost.
+- DESIGN DECISION: NOT folded into the existing labourGroupRows /
+  assetGroupRows filters (both still require productive cost > 0,
+  completely unchanged). A group with ONLY non-productive cost (e.g.
+  "Management" with just Paul, no productive labour or assets) would
+  never appear in either existing view. Instead, two new arrays
+  (nonProductiveLabourGroupRows, nonProductiveAssetGroupRows) are
+  built directly from all groupSplit rows, and exposed as new
+  top-level sections nonProductiveLabourSplit / nonProductiveAssetSplit,
+  mirroring the existing labourSplit/assetSplit shape.
+- SECOND RECONCILIATION CHECK ADDED (this is what Section 5.3's "the
+  reconciliation math needs to be re-verified, not assumed" required):
+  the new per-group sum (Cost Allocation-sourced) is checked against
+  the existing flat whole-business total (Labour/Recovery-Summary-
+  sourced) - nonProductiveLabourGroupedReconciles /
+  nonProductiveAssetGroupedReconciles. These are genuinely independent
+  sources. A variance here is a real, useful signal (something
+  non-productive exists but isn't assigned to any group) - not a bug,
+  and exactly the condition 6.5's warning is meant to catch. Does NOT
+  change or replace the existing totalLabourAccounted/
+  totalAssetAccounted reconciliation, which stays exactly as it was,
+  still confirmed green - the topline blended pressure figures are
+  untouched, per the original requirement above.
+- REMAINING GAP: lib/selectors/businessOutcomeSelectors.js
+  (selectBusinessOutcomeDisplay) has not been seen or touched yet -
+  it very likely explicitly whitelists fields reaching the UI, the
+  same pattern seen in Cost Allocation's selector layer, so the new
+  nonProductiveLabourSplit/nonProductiveAssetSplit sections will not
+  reach the screen until that file is updated too. Then
+  BusinessOutcomeLabourSplit.jsx / BusinessOutcomeAssetSplit.jsx need
+  the actual display added, matching the existing per-group table
+  pattern shown in the original screenshot that started this brief.
 
 ### 6.5 Business Outcome — New Warning: Unaccounted Labour/Asset
 - Per the user: "Labour and asset must be accounted for in the
@@ -252,37 +440,77 @@ not a separate feature.
    convention Section 14)
 --------------------------------------------------------------------
 
-Cost Allocation output contract gains:
+Cost Allocation output contract gains (fields marked BUILT are live
+in costAllocationRules.js as of this session; the rest are still
+pending per the build order in Section 10):
+
+  non_productive_labour_pool { pool_id, pool_name,
+    available_labour_cost, assigned_labour_cost,
+    remaining_labour_cost, over_allocated_labour_cost,
+    max_assignment_percent, allocation_status } — BUILT
 
   non_productive_labour_group_assignments[]
-    { assignment_id, group_id, staff_id, staff_type_name,
-      assigned_cost, source: "non_productive", allocation_status }
+    { assignment_id, group_id, staff_type_id, staff_type_name,
+      assignment_percent, assigned_cost, allocation_status } — BUILT
+    (reuses the existing assignment record shape already produced by
+    add_labour_assignment - no separate source/origin flag needed,
+    is_productive already distinguishes it)
+
+  total_available_non_productive_labour_cost — BUILT
+  total_assigned_non_productive_labour_cost — BUILT
+  total_remaining_non_productive_labour_cost — BUILT
+  total_over_allocated_non_productive_labour_cost — BUILT
+  non_productive_labour_pool_status — BUILT
+  unassigned_non_productive_labour_cost — BUILT
+  total_grouped_non_productive_labour_cost — BUILT
+
+  operational_group_cost_rows[].assigned_non_productive_labour_cost — BUILT
+  operational_group_cost_rows[].non_productive_labour_group_assignments — BUILT
 
   non_productive_asset_group_assignments[]
     { assignment_id, group_id, asset_id, asset_name,
-      assigned_percent, assigned_cost, source: "non_productive",
-      allocation_status }
+      assignment_percent, assigned_cost, allocation_status } — BUILT
+    (partitioned by asset_id membership in each pool's own asset_map,
+    no separate origin flag needed - see Section 6.2)
 
-  total_non_productive_labour_cost
-  total_assigned_non_productive_labour_cost
-  total_unassigned_non_productive_labour_cost
+  total_available_non_productive_asset_cost — BUILT
+  total_assigned_non_productive_asset_cost — BUILT
+  total_remaining_non_productive_asset_cost — BUILT
+  total_over_allocated_non_productive_asset_cost — BUILT
+  non_productive_asset_pool_status — BUILT
+  unassigned_non_productive_asset_cost — BUILT
+  total_grouped_non_productive_asset_cost — BUILT
 
-  total_non_productive_asset_cost
-  total_assigned_non_productive_asset_cost
-  total_unassigned_non_productive_asset_cost
+  operational_group_cost_rows[].assigned_non_productive_asset_cost — BUILT
+  operational_group_cost_rows[].non_productive_asset_group_assignments — BUILT
 
-  full_cost_attribution_coverage_percent
+  full_cost_attribution_coverage_percent — BUILT
+  total_labour_group_count_all — BUILT
+  assigned_labour_group_count_all — BUILT
+  unassigned_labour_group_count_all — BUILT
+  total_asset_count_all — BUILT
+  assigned_asset_count_all — BUILT
+  unassigned_asset_count_all — BUILT
 
 Unchanged, still productive-only:
   staff_coverage_percent, asset_coverage_percent,
   productive_labour_pool, productive_asset_pool, and all existing
   reconciliation fields.
 
-Business Outcome output contract gains:
-  non_productive_labour_by_group[]
-  non_productive_asset_cost_by_group[]
-  unaccounted_labour_warning
-  unaccounted_asset_warning
+Business Outcome output contract gains (calculation layer only -
+selector/UI layer per Section 6.4's remaining gap):
+  nonProductiveLabourSplit { rows[], totalNonProductiveLabourCost,
+    groupedTotal, variance, reconciles } — BUILT (calc layer)
+  nonProductiveAssetSplit { rows[], totalNonProductiveAssetCost,
+    groupedTotal, variance, reconciles } — BUILT (calc layer)
+  labourSplit.reconciliation.nonProductiveLabourByGroup[] /
+    nonProductiveLabourGroupedTotal / nonProductiveLabourGroupedVariance /
+    nonProductiveLabourGroupedReconciles — BUILT (calc layer)
+  assetSplit.reconciliation.nonProductiveAssetByGroup[] /
+    nonProductiveAssetGroupedTotal / nonProductiveAssetGroupedVariance /
+    nonProductiveAssetGroupedReconciles — BUILT (calc layer)
+  unaccounted_labour_warning — PENDING (6.5)
+  unaccounted_asset_warning — PENDING (6.5)
 
 --------------------------------------------------------------------
 8. STANDING PRINCIPLES CARRIED FORWARD (established in the prior
