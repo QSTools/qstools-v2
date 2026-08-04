@@ -41,6 +41,7 @@ export default function AssetForm({
   on_change,
   on_bulk_change,
   on_reset,
+  default_annual_weeks = 48,
 }) {
   const asset_type = values.asset_type === "support" ? "support" : "productive";
   const asset_status = values.is_retired ? "retired" : "active";
@@ -59,6 +60,11 @@ export default function AssetForm({
 
   function handle_asset_type_change(next_asset_type) {
     if (typeof on_bulk_change === "function") {
+      const effective_annual_weeks =
+        Number(values.asset_annual_weeks_override) > 0
+          ? Number(values.asset_annual_weeks_override)
+          : Number(default_annual_weeks) || 48;
+
       on_bulk_change({
         asset_type: next_asset_type,
         utilisation_hours_per_week:
@@ -67,7 +73,8 @@ export default function AssetForm({
             : 0,
         utilisation_hours_annual:
           next_asset_type === "productive"
-            ? Number(values.utilisation_hours_per_week || 40) * 48
+            ? Number(values.utilisation_hours_per_week || 40) *
+              effective_annual_weeks
             : 0,
       });
       return;
@@ -138,25 +145,66 @@ export default function AssetForm({
           </label>
 
           {asset_type === "productive" ? (
-            <label className="ui-stack-sm">
-              <span className="ui-label">Hours used per week</span>
-              <input
-                className="ui-input"
-                type="text"
-                value={format_number_with_commas(
-                  values.utilisation_hours_per_week ?? 40
-                )}
-                onChange={(event) =>
-                  on_change(
-                    "utilisation_hours_per_week",
-                    parse_number_string(event.target.value)
-                  )
-                }
-              />
-              <span className="ui-help">
-                How many hours per week is this asset actually used?
-              </span>
-            </label>
+            <>
+              <label className="ui-stack-sm">
+                <span className="ui-label">Hours used per week</span>
+                <input
+                  className="ui-input"
+                  type="text"
+                  value={format_number_with_commas(
+                    values.utilisation_hours_per_week ?? 40
+                  )}
+                  onChange={(event) =>
+                    on_change(
+                      "utilisation_hours_per_week",
+                      parse_number_string(event.target.value)
+                    )
+                  }
+                />
+                <span className="ui-help">
+                  How many hours per week is this asset actually used?
+                </span>
+              </label>
+
+              <label className="ui-stack-sm">
+                <span className="ui-label">
+                  Annual weeks operated (optional override)
+                </span>
+                <input
+                  className="ui-input"
+                  type="text"
+                  placeholder={`Default: ${format_number_with_commas(
+                    default_annual_weeks
+                  )} weeks (from Opening Hours)`}
+                  value={
+                    values.asset_annual_weeks_override
+                      ? format_number_with_commas(
+                          values.asset_annual_weeks_override
+                        )
+                      : ""
+                  }
+                  onChange={(event) =>
+                    on_change(
+                      "asset_annual_weeks_override",
+                      parse_number_string(event.target.value)
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.target.blur();
+                    }
+                  }}
+                />
+                <span className="ui-help">
+                  Leave blank to use the business calendar from Opening
+                  Hours ({format_number_with_commas(default_annual_weeks)}{" "}
+                  weeks/year). Set a different number if this asset runs on
+                  its own calendar - e.g. a 24/7 asset that doesn&apos;t take
+                  shutdown weeks.
+                </span>
+              </label>
+            </>
           ) : null}
 
           <label className="ui-stack-sm">

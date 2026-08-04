@@ -13,6 +13,7 @@ import {
 } from "@/lib/selectors/assetSelectors";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import useOpeningHours from "@/hooks/useOpeningHours";
 
 const ASSET_POOL_KEYS = [
   "asset_fuel_pool",
@@ -146,16 +147,37 @@ function sum_asset_pool_assignments(assignments = {}) {
   );
 }
 
-function get_asset_utilisation_fields(asset = {}) {
+function resolve_asset_annual_weeks({
+  asset_annual_weeks_override,
+  business_default_annual_weeks,
+}) {
+  const override_weeks = to_number(asset_annual_weeks_override);
+
+  if (override_weeks > 0) {
+    return override_weeks;
+  }
+
+  const default_weeks = to_number(business_default_annual_weeks);
+
+  return default_weeks > 0 ? default_weeks : 48;
+}
+
+function get_asset_utilisation_fields(
+  asset = {},
+  business_default_annual_weeks = 48
+) {
   const asset_type = normalizeAssetType(asset.asset_type);
   const utilisation_hours_per_week =
     asset_type === "productive"
       ? Math.max(to_number(asset.utilisation_hours_per_week ?? 40), 0)
       : 0;
+  const annual_weeks_used = resolve_asset_annual_weeks({
+    asset_annual_weeks_override: asset.asset_annual_weeks_override,
+    business_default_annual_weeks,
+  });
   const utilisation_hours_annual =
     asset_type === "productive"
-      ? to_number(asset.utilisation_hours_annual) ||
-        utilisation_hours_per_week * 48
+      ? utilisation_hours_per_week * annual_weeks_used
       : 0;
   const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
   const required_asset_recovery_rate =
@@ -167,6 +189,7 @@ function get_asset_utilisation_fields(asset = {}) {
   return {
     utilisation_hours_per_week,
     utilisation_hours_annual,
+    annual_weeks_used,
     required_asset_recovery_rate,
     productive_asset_hours: utilisation_hours_annual,
     true_asset_cost_per_hour: required_asset_recovery_rate,
@@ -201,6 +224,10 @@ export default function useAssets() {
 
   const { output_contract: pnl_output_contract } = useProfitAndLoss();
   const general_overheads = useGeneralOverheads();
+  const opening_hours = useOpeningHours();
+
+  const business_default_annual_weeks =
+    to_number(opening_hours?.calculated?.annual_open_weeks) || 48;
 
   const asset_overhead_pools = useMemo(() => {
     return general_overheads?.output_contract?.asset_overhead_pools ?? {};
@@ -214,9 +241,15 @@ export default function useAssets() {
     return calculateAssetOutputs(
       asset_state,
       saved_assets,
-      assets_benchmark_total
+      assets_benchmark_total,
+      business_default_annual_weeks
     );
-  }, [asset_state, saved_assets, assets_benchmark_total]);
+  }, [
+    asset_state,
+    saved_assets,
+    assets_benchmark_total,
+    business_default_annual_weeks,
+  ]);
 
   const current_asset_recovery_fields = useMemo(() => {
     const current_assignments = get_asset_pool_assignments(asset_state);
@@ -255,11 +288,14 @@ export default function useAssets() {
       allocated_asset_overhead_cost_annual,
       asset_recovery_cost_annual,
     };
-    const utilisation_fields = get_asset_utilisation_fields({
-      ...asset_state,
-      total_asset_cost_annual: base_calculations.total_asset_cost_annual,
-      asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
-    });
+    const utilisation_fields = get_asset_utilisation_fields(
+      {
+        ...asset_state,
+        total_asset_cost_annual: base_calculations.total_asset_cost_annual,
+        asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
+      },
+      business_default_annual_weeks
+    );
 
     return {
       ...recovery_fields,
@@ -272,6 +308,7 @@ export default function useAssets() {
     saved_assets,
     asset_overhead_pools,
     base_calculations.total_asset_cost_annual,
+    business_default_annual_weeks,
   ]);
 
   const calculations = useMemo(() => {
@@ -313,6 +350,7 @@ export default function useAssets() {
       saved_assets,
       active_asset_count,
       asset_overhead_pools,
+      business_default_annual_weeks,
     });
   }, [
     asset_state,
@@ -320,6 +358,7 @@ export default function useAssets() {
     saved_assets,
     active_asset_count,
     asset_overhead_pools,
+    business_default_annual_weeks,
   ]);
 
   const card = useMemo(() => {
@@ -328,6 +367,7 @@ export default function useAssets() {
       calculations,
       saved_assets,
       asset_overhead_pools,
+      business_default_annual_weeks,
       actions: {
         set_asset_field,
         set_asset_fields,
@@ -345,6 +385,7 @@ export default function useAssets() {
     calculations,
     saved_assets,
     asset_overhead_pools,
+    business_default_annual_weeks,
     set_asset_field,
     set_asset_fields,
     reset_asset_state,
@@ -356,11 +397,14 @@ export default function useAssets() {
           .filter((asset) => !asset.is_retired)
           .map((asset) => {
             const recovery_fields = build_asset_recovery_fields(asset);
-            const utilisation_fields = get_asset_utilisation_fields({
-              ...asset,
-              asset_recovery_cost_annual:
-                recovery_fields.asset_recovery_cost_annual,
-            });
+            const utilisation_fields = get_asset_utilisation_fields(
+              {
+                ...asset,
+                asset_recovery_cost_annual:
+                  recovery_fields.asset_recovery_cost_annual,
+              },
+              business_default_annual_weeks
+            );
 
             return {
               asset_id: asset.asset_id ?? "",
@@ -413,7 +457,7 @@ export default function useAssets() {
             };
           })
       : [];
-  }, [saved_assets]);
+  }, [saved_assets, business_default_annual_weeks]);
 
   const output_contract = useMemo(() => {
     const live_assets = Array.isArray(saved_assets)
@@ -432,6 +476,18 @@ export default function useAssets() {
         asset_name: asset.asset_name ?? "Unnamed Asset",
         asset_type: normalizeAssetType(asset.asset_type),
         total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+        utilisation_hours_per_week: Number(
+          asset.utilisation_hours_per_week ?? 0
+        ),
+        utilisation_hours_annual: Number(asset.utilisation_hours_annual ?? 0),
+        asset_annual_weeks_override:
+          asset.asset_annual_weeks_override === null ||
+          asset.asset_annual_weeks_override === undefined ||
+          asset.asset_annual_weeks_override === ""
+            ? null
+            : Number(asset.asset_annual_weeks_override),
+        annual_weeks_used: Number(asset.annual_weeks_used ?? 0),
+        annual_weeks_source: asset.annual_weeks_source ?? "",
         asset_overhead_pool_assignments: get_asset_pool_assignments(asset),
         asset_interest_annual: Number(
           asset.asset_interest_annual ?? asset.interest_annual ?? 0
@@ -475,10 +531,13 @@ export default function useAssets() {
       const asset_recovery_cost_annual =
         Number(asset.total_asset_cost_annual ?? 0) +
         allocated_asset_overhead_cost_annual;
-      const utilisation_fields = get_asset_utilisation_fields({
-        ...asset,
-        asset_recovery_cost_annual,
-      });
+      const utilisation_fields = get_asset_utilisation_fields(
+        {
+          ...asset,
+          asset_recovery_cost_annual,
+        },
+        business_default_annual_weeks
+      );
 
       return {
         ...asset,
@@ -659,6 +718,7 @@ export default function useAssets() {
     saved_assets,
     status.assets_ready,
     asset_overhead_pools,
+    business_default_annual_weeks,
   ]);
 
   return {
@@ -666,5 +726,6 @@ export default function useAssets() {
     card,
     output_contract,
     active_assets,
+    business_default_annual_weeks,
   };
 }

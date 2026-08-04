@@ -17,21 +17,13 @@ import {
 
 import useCostAllocation from "@/hooks/useCostAllocation";
 
-const RATE_TYPES = [
-  { value: "setup", label: "Setup / call-out" },
-  { value: "time", label: "Time based" },
-  { value: "output", label: "Output unit" },
-  { value: "material", label: "Material" },
-  { value: "subcontractor", label: "Subcontractor" },
-  { value: "custom", label: "Custom" },
-];
 
 const UNIT_OPTIONS = [
   { value: "each", label: "Each" },
   { value: "hr", label: "Hour" },
   { value: "day", label: "Day" },
-  { value: "m3", label: "mÂ³" },
-  { value: "m2", label: "mÂ²" },
+  { value: "m3", label: "m³" },
+  { value: "m2", label: "m²" },
   { value: "lm", label: "Lineal metre" },
   { value: "tonne", label: "Tonne" },
   { value: "item", label: "Item" },
@@ -46,7 +38,6 @@ const DEFAULT_CALCULATOR = {
     {
       id: "setup_fee",
       name: "Setup Fee",
-      type: "setup",
       unit: "each",
       rate: 135,
       quantity: 1,
@@ -55,7 +46,6 @@ const DEFAULT_CALCULATOR = {
     {
       id: "m3_rate",
       name: "m3 Rate",
-      type: "output",
       unit: "m3",
       rate: 13,
       quantity: 15,
@@ -64,7 +54,6 @@ const DEFAULT_CALCULATOR = {
     {
       id: "pump_hire_2inc",
       name: "2inc Line Pump Hire",
-      type: "time",
       unit: "hr",
       rate: 135,
       quantity: 4,
@@ -75,7 +64,6 @@ const DEFAULT_CALCULATOR = {
 
 const EMPTY_LINE = {
   name: "",
-  type: "custom",
   unit: "each",
   rate: "",
   quantity: "",
@@ -207,7 +195,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
 
   const recovery_driver_quantity = useMemo(() => {
     const time_line_quantity = preview.line_totals
-      .filter((line) => line.type === "time")
+      .filter((line) => line.unit === "hr")
       .reduce((total, line) => total + Number(line.quantity || 0), 0);
 
     if (time_line_quantity > 0) {
@@ -366,7 +354,6 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
     const next_line = {
       id: build_id(name),
       name,
-      type: draft_line.type,
       unit: draft_line.unit,
       rate: Number(draft_line.rate) || 0,
       quantity: Number(draft_line.quantity) || 0,
@@ -494,23 +481,6 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
               />
             </label>
 
-            <label className="ui-field">
-              <span className="ui-label">Charge type</span>
-
-              <select
-                value={draft_line.type}
-                onChange={(event) =>
-                  updateDraftField("type", event.target.value)
-                }
-                className="ui-select"
-              >
-                {RATE_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </label>
 
             <label className="ui-field">
               <span className="ui-label">Unit</span>
@@ -908,7 +878,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
                 </span>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1.2fr_0.8fr_0.8fr]">
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1.5fr_1fr]">
                 <label
                   className="ui-field"
                   onClick={(event) => event.stopPropagation()}
@@ -941,27 +911,6 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
                     {UNIT_OPTIONS.map((unit) => (
                       <option key={unit.value} value={unit.value}>
                         {unit.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label
-                  className="ui-field"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <span className="ui-label">Type</span>
-
-                  <select
-                    value={line.type}
-                    onChange={(event) =>
-                      updateRateLine(line.id, "type", event.target.value)
-                    }
-                    className="ui-select"
-                  >
-                    {RATE_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
                       </option>
                     ))}
                   </select>

@@ -5,7 +5,7 @@ import AssetMainCard from "@/components/assets/AssetMainCard";
 import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 
 export default function AssetsPage() {
-  const { status, card } = useAssets();
+  const { status, card, business_default_annual_weeks } = useAssets();
 
   return (
     <main className="ui-page">
@@ -21,7 +21,11 @@ export default function AssetsPage() {
           </div>
         </section>
 
-        <AssetMainCard {...card} status={status} />
+        <AssetMainCard
+          {...card}
+          status={status}
+          default_annual_weeks={business_default_annual_weeks}
+        />
         <AssetHelpPanel />
       </div>
     </main>
