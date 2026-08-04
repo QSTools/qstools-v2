@@ -176,6 +176,7 @@ function build_labour_assignment_card({
 function build_asset_assignment_card({
   asset_recovery_rows,
   asset_group_assignments,
+  non_productive_asset_group_assignments,
   calculated,
 }) {
   const active_assignments = get_active_assignment_rows(asset_group_assignments);
@@ -184,11 +185,24 @@ function build_asset_assignment_card({
     (asset) => asset?.asset_type !== "support"
   );
 
+  const support_asset_rows = safe_array(asset_recovery_rows).filter(
+    (asset) => asset?.asset_type === "support"
+  );
+
+  const active_non_productive_assignments = get_active_assignment_rows(
+    non_productive_asset_group_assignments
+  );
+
   return {
     productive_asset_rows,
     asset_rows: productive_asset_rows,
     asset_group_assignments: active_assignments,
     assignments: active_assignments,
+
+    support_asset_rows,
+    non_productive_asset_rows: support_asset_rows,
+    non_productive_asset_group_assignments: active_non_productive_assignments,
+    non_productive_asset_pool: calculated?.non_productive_asset_pool ?? null,
 
     productive_asset_pool: calculated?.productive_asset_pool ?? null,
 
@@ -291,6 +305,7 @@ export function build_cost_allocation_assignment_cards({
   labour_group_assignments,
   asset_recovery_rows,
   asset_group_assignments,
+  non_productive_asset_group_assignments,
   overhead_group_assignments,
   calculated,
 }) {
@@ -306,6 +321,7 @@ export function build_cost_allocation_assignment_cards({
     asset_assignment: build_asset_assignment_card({
       asset_recovery_rows,
       asset_group_assignments,
+      non_productive_asset_group_assignments,
       calculated,
     }),
 

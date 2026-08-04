@@ -1,0 +1,388 @@
+====================================================================
+S18 — COST ALLOCATION: MANDATORY LABOUR & ASSET COST ACCOUNTABILITY
+BUILD BRIEF v5.0
+====================================================================
+STATUS: NOT STARTED — build brief, ready for implementation
+VERSION: v5.0 (extension to existing module — see Section 1)
+MODULE TYPE: Cost Allocation Extension
+OWNING MODULE: Cost Allocation (17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt)
+DATE: 2026-07-31
+
+--------------------------------------------------------------------
+1. RELATIONSHIP TO THE EXISTING COST ALLOCATION BRIEF
+--------------------------------------------------------------------
+
+This is not a new module and not a new system version. It is the
+next version of Cost Allocation itself — the module keeps its
+existing identity, routes, files, and output contract; this brief
+adds to that contract.
+
+17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt remains the base brief for
+everything not addressed here: working groups, the productive labour
+pool, the productive asset pool, shared asset percentage splitting,
+overhead distribution, pool reconciliation, the simple default setup
+flow. None of that changes.
+
+This brief extends it in one direction only: non-productive labour
+and non-productive assets, which the base brief deliberately
+excludes, must now also be assignable — as cost only, never as
+recovery — so every dollar the business spends on people and assets
+lands somewhere visible.
+
+--------------------------------------------------------------------
+2. SUPERSESSION NOTE (required per Section 14/19 of the naming
+   convention brief — locked contract names/rules do not change
+   silently)
+--------------------------------------------------------------------
+
+Two rules in the base brief are overridden by this brief. Everything
+else in the base brief is unchanged and still governs.
+
+RULE 1 — SUPERSEDED
+Old rule: "Productive Labour Only Rule" (base brief, Section 13)
+  "Only productive labour enters Cost Allocation labour assignment
+  ... Non-productive labour must not enter the Productive Labour
+  Pool ... Non-productive labour belongs in overheads / business
+  support cost pathway."
+New rule: Non-productive labour may now be assigned directly to a
+  working group as a cost-only line (Section 4.1 below). It still
+  does not enter the Productive Labour Pool — that pool and its
+  reconciliation stay productive-only and untouched. A parallel,
+  separate pool is added for non-productive labour instead of
+  changing the existing one.
+Owning module: Cost Allocation.
+Affected consumers: Recovery Summary, Rate Builder, Business
+  Outcome (see Section 7).
+Migration plan: additive — see Section 7. No existing field is
+  renamed, removed, or reinterpreted.
+Compatibility period: not applicable — existing productive-only
+  fields keep their exact current meaning indefinitely.
+
+RULE 2 — SUPERSEDED
+Old rule: "Productive Assets Only Rule" (base brief, Section 19)
+  "Only productive assets enter Cost Allocation asset assignment
+  ... Non-productive assets must not enter the Productive Asset
+  Pool ... Non-productive assets remain visible in Assets but do not
+  enter Cost Allocation unless reclassified as productive."
+New rule: Non-productive assets may now be assigned directly to a
+  working group as a cost-only line (Section 4.2 below), using the
+  same assignment mechanism as productive assets. The Productive
+  Asset Pool itself stays productive-only and untouched.
+Owning module: Cost Allocation.
+Affected consumers, migration plan, compatibility: as per Rule 1.
+
+Nothing else in the base brief — working group ownership, the
+labour/asset separation rule, shared asset splitting, overhead
+distribution, or the productive pool reconciliation panels — is
+affected.
+
+--------------------------------------------------------------------
+3. THE REQUIREMENT (user's own words, preserved from prior session)
+--------------------------------------------------------------------
+
+"It has to be mandatory, every staff member of the business has to
+be assigned to a cost otherwise we can't get an accurate picture of
+the business."
+
+"We also need to be able to assign non-productive assets to a group
+too. Say I have a digger and the operator but they have a ute to
+drive to work — very common situation. The ute is unproductive but
+is part of the cost of that group."
+
+"Your regional manager has a car to travel to work in — not creating
+revenue, but is still a cost to the business and needs to be
+accounted for."
+
+"Labour and asset must be accounted for in the business outcome,
+otherwise it should warn."
+
+"This gives us the ability to show how much your management
+structure is costing you, and later on in Business Modelling, what
+would happen if this was restructured."
+
+Later in the same working session, reviewing a live Business Outcome
+screen:
+
+"we should have both — we must assign every cost but we also need to
+see what's productive and non-productive for labour and assets ...
+the user needs to understand that your non-productive labour is a
+drain on your GP ... but I think that assigning everything is
+critical. We have to be able to analyse the business completely and
+if something is missing we can't trust the outcome."
+
+--------------------------------------------------------------------
+4. WHAT DOES NOT CHANGE
+--------------------------------------------------------------------
+
+This is cost attribution only. It does not touch recovery:
+
+- Non-productive labour and non-productive assets still have ZERO
+  recovery hours and are NEVER charged out.
+- The Productive Labour Pool and Productive Asset Pool, and their
+  existing reconciliation footers, keep their current productive-
+  only meaning and math exactly as-is.
+- The topline blended figures (e.g. total labour cost vs model
+  capacity in Business Outcome's "Where is the pressure?" view)
+  stay blended — that is correct and intentional, not something this
+  brief changes. A business owner needs to see total spend pressure
+  before drilling into the split. Confirmed correct this session
+  against a live screen.
+
+What this brief adds is the drill-down layer underneath that
+topline: the productive/non-productive split must be visible not
+just at the whole-business level (already true today) but at every
+group level too, the same way productive labour already breaks out
+by group. Today only the non-productive rows are flat, whole-business
+buckets while everything else is already per-group — this closes
+that one gap, it does not introduce a new pattern.
+
+--------------------------------------------------------------------
+5. DECISIONS SETTLED THIS SESSION (previously open questions —
+   now resolved, build against these)
+--------------------------------------------------------------------
+
+### 5.1 Non-productive asset assignment mechanism — DECIDED
+
+Non-productive assets are assigned using the same mechanism as
+productive assets: asset-specific, cost-only, no recovery fields.
+Not a generic per-group overhead pool.
+
+Reason: Section 4.6 (Business Modelling scenario testing, future
+work) requires swapping a specific non-productive asset for a
+specific allowance and showing the profit delta (e.g. remove the
+ute, add a $X/week vehicle allowance). That only works if the asset
+stays an identifiable, swappable line item. A generic pool would
+bury it and make that future scenario harder to build, not easier.
+
+### 5.2 Coverage metric — DECIDED
+
+Two metrics, additive — the existing productive-only coverage field
+is not touched:
+
+- staff_coverage_percent / asset_coverage_percent (EXISTING, UNCHANGED)
+  Stays productive-only. Keeps feeding Recovery Summary, Rate
+  Builder, and Business Outcome exactly as it does today. Zero
+  downstream risk, zero reinterpretation.
+- full_cost_attribution_coverage_percent (NEW)
+  Denominator = every staff member and every asset, productive and
+  non-productive. Answers "have we assigned everything," not "can we
+  trust the recovery rate." A new, separate field — nothing that
+  already consumes the old field needs to change.
+
+Reason for not blending into one number: the existing field is a
+recovery-trust signal consumed downstream. Folding non-productive
+headcount into that same denominator would make a business look
+"under-covered" in a recovery-trust sense the moment an unassigned
+manager exists, which is a real gap but a different question than
+the one that field currently answers for its downstream consumers.
+
+### 5.3 Split must survive to group level — CONFIRMED REQUIREMENT
+
+Per Section 4 above: productive/non-productive split must be visible
+at every level a business can drill into — topline (blended, already
+correct), and now group level (currently flat, being fixed by this
+brief). This is the actual shape of the "assign everything" mandate,
+not a separate feature.
+
+--------------------------------------------------------------------
+6. SCOPE — WHAT NEEDS TO BE BUILT
+--------------------------------------------------------------------
+
+### 6.1 Cost Allocation — Non-Productive Labour Assignment
+- Allow non-productive labour types to be assigned to a working
+  group.
+- New section on the group cost stack: "Non-Productive Labour" —
+  cost only, no recovery hours, no recovery rate shown or implied.
+- Adds into "Total group cost" alongside Labour recovery / Asset
+  recovery / Overhead recovery.
+- Does NOT enter the Productive Labour Pool or its reconciliation.
+
+### 6.2 Cost Allocation — Non-Productive Asset Assignment
+- Per Section 5.1: same assignment mechanism as productive assets —
+  asset-specific, percentage-splittable if needed, cost only.
+- New section on the group cost stack: "Non-Productive Asset Cost" —
+  cost only, no recovery rate shown or implied.
+- Does NOT enter the Productive Asset Pool or its reconciliation.
+
+### 6.3 Coverage — Two Metrics, Additive
+- Per Section 5.2: add full_cost_attribution_coverage_percent as a
+  new field. Leave staff_coverage_percent / asset_coverage_percent
+  untouched.
+- Denominator for the new field = all staff + all assets (productive
+  and non-productive). Numerator = all assigned, of either kind.
+- Display both on the Cost Allocation status strip as two distinct
+  numbers, clearly labelled by what each answers.
+
+### 6.4 Business Outcome — Per-Group Non-Productive Breakdown
+- Per Section 5.3: extend the existing Full Labour Reconciliation
+  and Full Asset Cost Reconciliation footers so the "Non-Productive
+  Labour" and "Non-Productive Asset Cost" rows break out by group,
+  the same way productive labour-only and asset-backed groups
+  already do.
+- Add a per-group table for each, mirroring the existing Labour
+  Split / Asset Split pattern already built and confirmed reconciled
+  this session.
+- The topline blended pressure figures do not change. Only the
+  breakdown underneath gets the extra level of drill-down.
+- CRITICAL: re-verify the existing Full Labour Reconciliation and
+  Full Asset Cost Reconciliation footers still tie out to the penny
+  after this change. Do not assume — check, per Section 8 below.
+
+### 6.5 Business Outcome — New Warning: Unaccounted Labour/Asset
+- Per the user: "Labour and asset must be accounted for in the
+  business outcome, otherwise it should warn."
+- Follows the exact pattern of the existing unassigned_labour_cost /
+  unassigned_asset_cost warnings, extended to cover productive AND
+  non-productive: any staff member or asset not assigned to a group
+  triggers a warning naming the actual gap amount — never a vague
+  message.
+
+### 6.6 Future — Business Modelling Scenario Testing (not in scope
+    for this brief's build, stated to protect the data model choice)
+- Once non-productive labour/assets are attributed to groups,
+  Business Modelling can support "remove this non-productive asset
+  from Management, replace with a $X/week vehicle allowance" and
+  show the profit impact.
+- The asset-specific assignment decided in 5.1 exists specifically
+  so this stays a clean swap of comparable line items rather than
+  something buried inside an opaque group total.
+
+--------------------------------------------------------------------
+7. OUTPUT CONTRACT CHANGES (additive only — snake_case, per naming
+   convention Section 14)
+--------------------------------------------------------------------
+
+Cost Allocation output contract gains:
+
+  non_productive_labour_group_assignments[]
+    { assignment_id, group_id, staff_id, staff_type_name,
+      assigned_cost, source: "non_productive", allocation_status }
+
+  non_productive_asset_group_assignments[]
+    { assignment_id, group_id, asset_id, asset_name,
+      assigned_percent, assigned_cost, source: "non_productive",
+      allocation_status }
+
+  total_non_productive_labour_cost
+  total_assigned_non_productive_labour_cost
+  total_unassigned_non_productive_labour_cost
+
+  total_non_productive_asset_cost
+  total_assigned_non_productive_asset_cost
+  total_unassigned_non_productive_asset_cost
+
+  full_cost_attribution_coverage_percent
+
+Unchanged, still productive-only:
+  staff_coverage_percent, asset_coverage_percent,
+  productive_labour_pool, productive_asset_pool, and all existing
+  reconciliation fields.
+
+Business Outcome output contract gains:
+  non_productive_labour_by_group[]
+  non_productive_asset_cost_by_group[]
+  unaccounted_labour_warning
+  unaccounted_asset_warning
+
+--------------------------------------------------------------------
+8. STANDING PRINCIPLES CARRIED FORWARD (established in the prior
+   reconciliation session, apply to this build too)
+--------------------------------------------------------------------
+
+- RECONCILIATION DISCIPLINE: every headline figure must be
+  independently re-derivable and checked against a second,
+  independently-sourced calculation of the same thing. Surface
+  disagreements explicitly with actual numbers and variance.
+- Full file overwrites for code changes, not regex/string patches.
+  View the complete file before editing.
+- Cross-module IDs are not reliable joins — join on normalised name
+  where two modules generate IDs independently, as was required
+  fixing labour_type_key vs staff_type_id previously. Check for this
+  same class of bug proactively in the new non-productive assignment
+  paths.
+- Validate before persisting — apply the same required-field guard
+  used in Labour's save_profile()/create_profile() to any new save
+  paths built here.
+- When a live-data question can't be answered from source code
+  alone, check the actual browser localStorage state directly rather
+  than guessing.
+
+--------------------------------------------------------------------
+9. RELEVANT FILES (starting points, from prior session's trace)
+--------------------------------------------------------------------
+
+Cost Allocation:
+- lib/calculations/cost-allocation/costAllocationCoverage.js
+- lib/calculations/cost-allocation/costAllocationLabourAdapter.js
+  (productive-only by design; needs a non-productive equivalent,
+  not a modification)
+- lib/calculations/cost-allocation/costAllocationPoolBuilders.js
+  (needs non-productive equivalents alongside, not instead of,
+  build_productive_labour_pool / build_productive_asset_pool)
+- lib/calculations/costAllocationRules.js
+- lib/storage/costAllocationStorage.js
+  (STORAGE_KEY: "qs_tools_cost_allocation_v2_1")
+
+Business Outcome:
+- lib/calculations/businessOutcomeAssetSplitCalculations.js
+  (calculateOperatingGroupSplit — shared source for Labour Split +
+  Asset Split; extend for non-productive, reuse the name-based
+  staff-type matching fix already applied here)
+- lib/calculations/businessOutcomeCalculations.js
+- lib/selectors/businessOutcomeSelectors.js
+- hooks/useBusinessOutcome.js
+- components/business-outcome/BusinessOutcomeLabourSplit.jsx
+- components/business-outcome/BusinessOutcomeAssetSplit.jsx
+
+--------------------------------------------------------------------
+10. BUILD ORDER
+--------------------------------------------------------------------
+
+1. Confirm current live data state (qs_tools_cost_allocation_v2_1,
+   qs_tools_labour_profiles_v1) before writing code.
+2. Build 6.1 (non-productive labour assignment) — smallest, most
+   isolated, unblocks seeing real non-productive cost on a group
+   card immediately.
+3. Build 6.2 (non-productive asset assignment) — same pattern,
+   asset-specific per Section 5.1.
+4. Build 6.3 (full_cost_attribution_coverage_percent) — additive
+   field, existing coverage fields untouched.
+5. Build 6.4 (Business Outcome per-group breakdown) — re-verify Full
+   Labour Reconciliation and Full Asset Cost Reconciliation still
+   tie out to the penny after this step, per Section 8.
+6. Build 6.5 (new warnings).
+
+--------------------------------------------------------------------
+11. ACCEPTANCE CRITERIA
+--------------------------------------------------------------------
+
+This brief is accepted when:
+
+1. Non-productive labour can be assigned to a working group as a
+   cost-only line.
+2. Non-productive assets can be assigned to a working group using
+   the same mechanism as productive assets, cost-only.
+3. Neither enters the Productive Labour Pool or Productive Asset
+   Pool — those pools and their reconciliation are unchanged.
+4. staff_coverage_percent and asset_coverage_percent are unchanged
+   in meaning and calculation.
+5. full_cost_attribution_coverage_percent exists as a new, separate
+   field covering all labour and assets, productive and non-.
+6. Group cost stacks show non-productive labour and non-productive
+   asset cost as distinct, clearly-labelled sections with no
+   recovery rate implied.
+7. Business Outcome's topline pressure figures remain blended,
+   unchanged.
+8. Business Outcome's Non-Productive Labour and Non-Productive Asset
+   Cost reconciliation rows break out by group.
+9. Full Labour Reconciliation and Full Asset Cost Reconciliation
+   still tie out to the penny after the change.
+10. A new warning fires, naming the actual gap amount, when any
+    staff member or asset (productive or non-productive) is
+    unassigned.
+11. No existing output contract field is renamed, removed, or
+    reinterpreted.
+
+====================================================================
+END OF BRIEF
+====================================================================

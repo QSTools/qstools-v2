@@ -60,6 +60,13 @@ export function getAssetName(row) {
   return row?.asset_name || row?.name || "Productive asset";
 }
 
+// S18 6.2 - which pool an asset row belongs to. Defaults to "productive"
+// so any row missing asset_type (shouldn't happen, but defensive) still
+// renders in the existing, established section rather than vanishing.
+export function getAssetRowType(row) {
+  return row?.asset_type === "support" ? "support" : "productive";
+}
+
 export function getGroupRows(groups) {
   return Array.isArray(groups?.rows)
     ? groups.rows.filter((group) => group?.is_active !== false)
@@ -88,6 +95,27 @@ export function getAssetRows(asset_assignment) {
     [];
 
   return Array.isArray(rows) ? rows : [];
+}
+
+// S18 6.2 - non-productive assets (ute, manager's car). Sourced from the
+// card's support_asset_rows, which useCostAllocationAssignmentCards.js
+// exposes filtered strictly to asset_type === "support" - matching what
+// the "Non-productive assets" section label actually promises.
+export function getSupportAssetRows(asset_assignment) {
+  const rows =
+    asset_assignment?.support_asset_rows ||
+    asset_assignment?.non_productive_asset_rows ||
+    [];
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+// S18 6.2 - combined view used only for resolving an existing assignment
+// back to its source row (see findAssetRowById below). The two picker
+// dropdowns in the UI still use getAssetRows()/getSupportAssetRows()
+// separately so productive and non-productive stay visually distinct.
+export function getAllAssetRows(asset_assignment) {
+  return [...getAssetRows(asset_assignment), ...getSupportAssetRows(asset_assignment)];
 }
 
 export function findLabourRowById(labour_assignment, labour_group_id) {
@@ -176,7 +204,7 @@ export function getResolvedLabourAssignment({ assignment, labour_assignment }) {
 }
 
 export function findAssetRowById(asset_assignment, asset_id) {
-  const rows = getAssetRows(asset_assignment);
+  const rows = getAllAssetRows(asset_assignment);
 
   return rows.find((row) => getAssetId(row) === asset_id) || null;
 }
@@ -220,9 +248,12 @@ export function getResolvedAssetAssignment({ assignment, asset_assignment }) {
     ? getAssetName(asset_row)
     : assignment?.asset_name || "Old / unmatched asset — remove and re-add";
 
+  const asset_type = asset_row ? getAssetRowType(asset_row) : "productive";
+
   return {
     asset_id,
     asset_row,
+    asset_type,
     display_name,
     assignment_percent,
     assigned_asset_cost,
@@ -312,6 +343,23 @@ export function getAssetAssignments(asset_assignment, group_id) {
   return getAllAssetAssignments(asset_assignment).filter(
     (assignment) => assignment?.group_id === group_id
   );
+}
+
+export function splitAssetAssignmentsByType(assignments, asset_assignment) {
+  const productive = [];
+  const support = [];
+
+  (Array.isArray(assignments) ? assignments : []).forEach((assignment) => {
+    const resolved = getResolvedAssetAssignment({ assignment, asset_assignment });
+
+    if (resolved.asset_type === "support") {
+      support.push(assignment);
+    } else {
+      productive.push(assignment);
+    }
+  });
+
+  return { productive, support };
 }
 
 export function getOverheadAssignments(overhead_assignment, group_id) {

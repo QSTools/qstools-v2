@@ -185,6 +185,13 @@ function WhatNeedsAttentionSection({ delivery_summary, problems }) {
           <TableRow
             label="Operating group coverage"
             value={formatPercent(delivery_summary?.group_coverage_percent)}
+          />
+          <TableRow
+            label="Full cost attribution coverage"
+            value={formatPercent(
+              delivery_summary?.full_cost_attribution_coverage_percent
+            )}
+            help="Every staff member and asset - productive and non-productive - assigned to a group. A separate check from the recovery-trust coverage above it."
             total
           />
         </TableBlock>
@@ -353,6 +360,16 @@ function GroupCostStacksSection({ recovery_plan }) {
                     <TableRow
                       label="Overhead"
                       value={formatMoney(row.overhead_recovery_cost ?? row.assigned_overhead_amount)}
+                    />
+                    <TableRow
+                      label="Non-productive labour"
+                      help="Cost only - never charged, never part of recovery hours (e.g. Owner/Director, Management)."
+                      value={formatMoney(row.assigned_non_productive_labour_cost)}
+                    />
+                    <TableRow
+                      label="Non-productive assets"
+                      help="Cost only - never charged, never part of recovery hours (e.g. a support vehicle)."
+                      value={formatMoney(row.assigned_non_productive_asset_cost)}
                     />
                     <TableRow
                       label="Total group cost"

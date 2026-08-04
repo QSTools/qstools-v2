@@ -408,6 +408,8 @@ export default function useCostAllocation(inputs = {}) {
       labour_group_assignments: state?.labour_group_assignments,
       asset_recovery_rows: calculated?.asset_recovery_rows,
       asset_group_assignments: state?.asset_group_assignments,
+      non_productive_asset_group_assignments:
+        calculated?.non_productive_asset_group_assignments,
       overhead_group_assignments: state?.overhead_group_assignments,
       calculated,
     });

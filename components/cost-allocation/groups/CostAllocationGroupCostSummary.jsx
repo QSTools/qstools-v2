@@ -86,6 +86,47 @@ function LabourAssignmentDetail({ assignments }) {
   );
 }
 
+// S18 6.1 - non-productive labour has cost only, deliberately no hours
+// or rate concept (never charged out). Separate renderer from the
+// productive one above so this stays visually honest about that,
+// rather than showing "$0/hr" as if a rate exists.
+function NonProductiveLabourAssignmentDetail({ assignments }) {
+  if (!assignments.length) {
+    return (
+      <p className="ui-help">
+        No non-productive labour assignments are currently attached to this
+        group.
+      </p>
+    );
+  }
+
+  return (
+    <div className="ui-stack-sm">
+      {assignments.map((assignment, index) => {
+        const assigned_cost = Number(assignment.assigned_cost ?? 0);
+
+        return (
+          <div
+            key={`${assignment.staff_type_id || "non-productive-labour"}-${index}`}
+            className="ui-readonly"
+          >
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
+              {assignment.staff_type_name || "Non-productive labour"}
+            </div>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <p className="ui-help">
+                Assignment: {formatNumber(assignment.assignment_percent, 2)}%
+              </p>
+              <p className="ui-help">Cost: {formatMoney(assigned_cost)}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AssetAssignmentDetail({ assignments }) {
   if (!assignments.length) {
     return (
@@ -123,6 +164,45 @@ function AssetAssignmentDetail({ assignments }) {
               <p className="ui-help">
                 Cost rate: {formatMoney(getRate(assigned_cost, assigned_hours))}/hr
               </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// S18 6.2 - non-productive assets have cost only, same reasoning as
+// NonProductiveLabourAssignmentDetail above.
+function NonProductiveAssetAssignmentDetail({ assignments }) {
+  if (!assignments.length) {
+    return (
+      <p className="ui-help">
+        No non-productive asset assignments are currently attached to this
+        group.
+      </p>
+    );
+  }
+
+  return (
+    <div className="ui-stack-sm">
+      {assignments.map((assignment, index) => {
+        const assigned_cost = Number(assignment.assigned_asset_cost ?? 0);
+
+        return (
+          <div
+            key={`${assignment.asset_id || "non-productive-asset"}-${index}`}
+            className="ui-readonly"
+          >
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
+              {assignment.asset_name || assignment.asset_id || "Non-productive asset"}
+            </div>
+
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <p className="ui-help">
+                Assignment: {formatNumber(assignment.assignment_percent, 2)}%
+              </p>
+              <p className="ui-help">Cost: {formatMoney(assigned_cost)}</p>
             </div>
           </div>
         );
@@ -172,8 +252,22 @@ export default function CostAllocationGroupCostSummary({ group_cost_row }) {
     ? group_cost_row.labour_group_assignments
     : [];
 
+  // S18 6.1
+  const non_productive_labour_assignments = Array.isArray(
+    group_cost_row?.non_productive_labour_group_assignments
+  )
+    ? group_cost_row.non_productive_labour_group_assignments
+    : [];
+
   const asset_assignments = Array.isArray(group_cost_row?.asset_group_assignments)
     ? group_cost_row.asset_group_assignments
+    : [];
+
+  // S18 6.2
+  const non_productive_asset_assignments = Array.isArray(
+    group_cost_row?.non_productive_asset_group_assignments
+  )
+    ? group_cost_row.non_productive_asset_group_assignments
     : [];
 
   const overhead_assignments = Array.isArray(
@@ -249,11 +343,39 @@ export default function CostAllocationGroupCostSummary({ group_cost_row }) {
             </div>
           </div>
 
+          {/* S18 6.1 - cost only, no hours field shown, matches the
+              "no recovery hours/rate implied" requirement. */}
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              <div>Non-productive labour</div>
+              <div className="ui-help">
+                Cost only - never charged, never part of recovery hours.
+              </div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.assigned_non_productive_labour_cost)}
+            </div>
+          </div>
+
+          {/* S18 6.2 - same treatment as above. */}
+          <div className="labour-summary-table-row">
+            <div className="labour-summary-table-label">
+              <div>Non-productive assets</div>
+              <div className="ui-help">
+                Cost only - never charged, never part of recovery hours.
+              </div>
+            </div>
+            <div className="labour-summary-table-value">
+              {formatMoney(group_cost_row?.assigned_non_productive_asset_cost)}
+            </div>
+          </div>
+
           <div className="labour-summary-table-row total">
             <div className="labour-summary-table-label">
               <div>Total group cost</div>
               <div className="ui-help">
-                Productive labour + assets + overhead.
+                Productive labour + assets + overhead + non-productive
+                labour + non-productive assets.
               </div>
             </div>
             <div className="labour-summary-table-value">
@@ -267,8 +389,20 @@ export default function CostAllocationGroupCostSummary({ group_cost_row }) {
             <LabourAssignmentDetail assignments={labour_assignments} />
           </AssignmentDetailRow>
 
+          <AssignmentDetailRow label="Non-productive labour assignment detail">
+            <NonProductiveLabourAssignmentDetail
+              assignments={non_productive_labour_assignments}
+            />
+          </AssignmentDetailRow>
+
           <AssignmentDetailRow label="Asset assignment detail">
             <AssetAssignmentDetail assignments={asset_assignments} />
+          </AssignmentDetailRow>
+
+          <AssignmentDetailRow label="Non-productive asset assignment detail">
+            <NonProductiveAssetAssignmentDetail
+              assignments={non_productive_asset_assignments}
+            />
           </AssignmentDetailRow>
 
           <AssignmentDetailRow label="Overhead assignment detail">
