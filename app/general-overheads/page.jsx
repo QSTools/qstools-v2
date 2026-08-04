@@ -1,6 +1,7 @@
 "use client";
 
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import GeneralOverheadMainCard from "@/components/general-overheads/GeneralOverheadMainCard";
 import GeneralOverheadHelpPanel from "@/components/general-overheads/GeneralOverheadHelpPanel";
 
@@ -28,6 +29,10 @@ export default function GeneralOverheadsPage() {
 
         <GeneralOverheadMainCard {...card} />
         <GeneralOverheadHelpPanel />
+        <NextStepFooter
+          nextHref="/cost-summary"
+          nextLabel="Next: Cost Summary"
+        />
       </div>
     </main>
   );

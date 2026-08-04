@@ -1,6 +1,7 @@
 "use client";
 
 import useRevenueSummary from "@/hooks/useRevenueSummary";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import RevenueSummaryNoticeBanner from "@/components/revenue-summary/RevenueSummaryNoticeBanner";
 import RevenueSummaryStatusStrip from "@/components/revenue-summary/RevenueSummaryStatusStrip";
 import RevenueSummaryMainCard from "@/components/revenue-summary/RevenueSummaryMainCard";
@@ -18,6 +19,10 @@ export default function RevenueSummaryPage() {
         <RevenueSummaryMainCard {...card} />
         <RevenueSummarySummaryCard {...summary} />
         <RevenueSummaryHelpPanel />
+        <NextStepFooter
+          nextHref="/business-summary"
+          nextLabel="Next: Business Summary"
+        />
       </div>
     </main>
   );

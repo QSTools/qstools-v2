@@ -2,6 +2,7 @@
 
 import useQuoteEngine from "@/hooks/useQuoteEngine";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import QuoteEngineStatusStrip from "@/components/quote-engine/QuoteEngineStatusStrip";
 import QuoteEngineMainCard from "@/components/quote-engine/QuoteEngineMainCard";
 import QuoteEngineSideCard from "@/components/quote-engine/QuoteEngineSideCard";
@@ -75,6 +76,7 @@ export default function QuoteEnginePage() {
         />
 
         <QuoteEngineHelpPanel />
+        <NextStepFooter nextHref="/materials" nextLabel="Next: Materials" />
       </div>
     </main>
   );

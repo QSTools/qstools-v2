@@ -3,6 +3,7 @@
 import useBusinessSummary from "@/hooks/useBusinessSummary";
 import useModelReadiness from "@/hooks/useModelReadiness";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import BusinessSummaryStatusStrip from "@/components/business-summary/BusinessSummaryStatusStrip";
 import BusinessSummaryCard from "@/components/business-summary/BusinessSummaryCard";
 import BusinessSummaryMacroPositionCard from "@/components/business-summary/BusinessSummaryMacroPositionCard";
@@ -170,6 +171,10 @@ export default function BusinessSummaryPage() {
         />
 
         <BusinessSummaryHelpPanel />
+        <NextStepFooter
+          nextHref="/business-overview"
+          nextLabel="Next: Business Overview"
+        />
       </div>
     </main>
   );

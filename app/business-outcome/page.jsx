@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useBusinessOutcome } from '@/hooks/useBusinessOutcome';
+import NextStepFooter from '@/components/navigation/NextStepFooter';
 import BusinessOutcomeStatusStrip from '@/components/business-outcome/BusinessOutcomeStatusStrip';
 import BusinessOutcomeWaterfall from '@/components/business-outcome/BusinessOutcomeWaterfall';
 import BusinessOutcomeMainCard from '@/components/business-outcome/BusinessOutcomeMainCard';
@@ -15,6 +16,7 @@ export default function BusinessOutcomePage() {
       <BusinessOutcomeWaterfall outcome={businessOutcome} />
       <BusinessOutcomeMainCard outcome={businessOutcome} />
       <BusinessOutcomeHelpPanel />
+      <NextStepFooter nextHref="/quote-engine" nextLabel="Next: Quote Engine" />
     </div>
   );
 }

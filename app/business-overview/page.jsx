@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import useAiBusinessState from "@/hooks/useAiBusinessState";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 
 function StatusCard({ label, value, help }) {
   return (
@@ -162,6 +163,11 @@ export default function BusinessOverviewPage() {
             </div>
           </div>
         </section>
+
+        <NextStepFooter
+          nextHref="/model-readiness"
+          nextLabel="Next: Model Readiness"
+        />
       </div>
     </main>
   );

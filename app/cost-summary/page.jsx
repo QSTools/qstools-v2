@@ -3,6 +3,7 @@
 import useModelReadiness from "@/hooks/useModelReadiness";
 import useCostSummary from "@/hooks/useCostSummary";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import CostSummaryStatusStrip from "@/components/cost-summary/CostSummaryStatusStrip";
 import CostSummaryNoticeBanner from "@/components/cost-summary/CostSummaryNoticeBanner";
 import CostSummaryCard from "@/components/cost-summary/CostSummaryCard";
@@ -55,6 +56,10 @@ export default function CostSummaryPage() {
 
         <CostSummaryNoticeBanner />
         <CostSummaryHelpPanel />
+        <NextStepFooter
+          nextHref="/revenue-reality"
+          nextLabel="Next: Revenue Reality"
+        />
       </div>
     </main>
   );

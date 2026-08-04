@@ -2,6 +2,7 @@
 
 import useModelReadiness from "@/hooks/useModelReadiness";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import ModelReadinessStatusStrip from "@/components/model-readiness/ModelReadinessStatusStrip";
 import ModelReadinessVarianceBreakdown from "@/components/model-readiness/ModelReadinessVarianceBreakdown";
 import ModelReadinessBaselineInputsCard from "@/components/model-readiness/ModelReadinessBaselineInputsCard";
@@ -141,6 +142,11 @@ export default function Page() {
           kicker="Normalised Reconciliation Inputs"
           description="Values after adapter/normalisation inside moduleReconciliation.js."
           rows={normalised_input_rows}
+        />
+
+        <NextStepFooter
+          nextHref="/business-modelling"
+          nextLabel="Next: Business Modelling"
         />
       </div>
     </main>

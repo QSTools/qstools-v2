@@ -1,6 +1,7 @@
 "use client";
 
 import useAssets from "@/hooks/useAssets";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import AssetMainCard from "@/components/assets/AssetMainCard";
 import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 
@@ -27,6 +28,10 @@ export default function AssetsPage() {
           default_annual_weeks={business_default_annual_weeks}
         />
         <AssetHelpPanel />
+        <NextStepFooter
+          nextHref="/opening-hours"
+          nextLabel="Next: Opening Hours"
+        />
       </div>
     </main>
   );

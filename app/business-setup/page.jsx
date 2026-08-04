@@ -1,15 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import useBusinessSetup from "@/hooks/useBusinessSetup";
 import BusinessSetupStatusStrip from "@/components/business-setup/BusinessSetupStatusStrip";
 import BusinessSetupMainCard from "@/components/business-setup/BusinessSetupMainCard";
 import BusinessSetupHelpPanel from "@/components/business-setup/BusinessSetupHelpPanel";
 
 export default function BusinessSetupPage() {
-  const router = useRouter();
-
   const {
     status,
     card,
@@ -21,10 +17,6 @@ export default function BusinessSetupPage() {
 
   function handleSaveBusinessSetup() {
     saveBusinessSetup();
-  }
-
-  function handleContinueToOpeningHours() {
-    router.push("/opening-hours");
   }
 
   return (
@@ -56,7 +48,6 @@ export default function BusinessSetupPage() {
           updateBusinessSetupField={updateBusinessSetupField}
           saveBusinessSetup={handleSaveBusinessSetup}
           resetBusinessSetup={resetBusinessSetup}
-          continueToNextStep={handleContinueToOpeningHours}
         />
 
         <BusinessSetupHelpPanel />

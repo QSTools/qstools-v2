@@ -2,6 +2,7 @@
 
 import useLabour from "@/hooks/useLabour";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import LabourCompactWorkspaceCard from "@/components/labour/LabourCompactWorkspaceCard";
 
 export default function LabourPage() {
@@ -28,6 +29,8 @@ export default function LabourPage() {
         </header>
 
         <LabourCompactWorkspaceCard labour={labour} />
+
+        <NextStepFooter nextHref="/assets" nextLabel="Next: Assets" />
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import useOpeningHours from "@/hooks/useOpeningHours";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import OpeningHoursStatusStrip from "@/components/opening-hours/OpeningHoursStatusStrip";
 import OpeningHoursMainCard from "@/components/opening-hours/OpeningHoursMainCard";
 import OpeningHoursHelpPanel from "@/components/opening-hours/OpeningHoursHelpPanel";
@@ -50,6 +51,11 @@ export default function OpeningHoursPage() {
             </div>
           </div>
         </div>
+
+        <NextStepFooter
+          nextHref="/general-overheads"
+          nextLabel="Next: General Overheads"
+        />
       </div>
     </main>
   );

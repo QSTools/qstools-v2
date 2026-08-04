@@ -1,5 +1,7 @@
 "use client";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
+
 function BusinessTypeOption({ option, onSelect }) {
   const option_classes = option.is_selected
     ? "ui-panel ui-stack-sm business-setup-option business-setup-option--selected"
@@ -45,7 +47,6 @@ export default function BusinessSetupMainCard({
   updateBusinessSetupField,
   saveBusinessSetup,
   resetBusinessSetup,
-  continueToNextStep,
 }) {
   const selected_business_type = getSelectedBusinessType(card);
 
@@ -140,21 +141,9 @@ export default function BusinessSetupMainCard({
                 pages.
               </p>
               <p className="ui-help">
-                You can now continue to Opening Hours. The first thing we will
-                do is set the business operating calendar so QS Tools can work
-                out the net annual business open hours before labour, assets,
-                cost summary, and business summary calculations use the model.
+                You can now continue to P&L. The next step captures the source
+                financial inputs that later pages classify and reconcile.
               </p>
-
-              <div className="ui-actions">
-                <button
-                  type="button"
-                  className="ui-button-primary"
-                  onClick={continueToNextStep}
-                >
-                  Continue to Opening Hours
-                </button>
-              </div>
             </div>
           ) : (
             <div className="ui-panel ui-stack-sm">
@@ -162,28 +151,23 @@ export default function BusinessSetupMainCard({
               <strong>Save the business profile to continue.</strong>
               <p className="ui-help">
                 Enter a business name and choose a recovery driver before
-                moving to the Opening Hours page.
+                moving to the next setup page.
               </p>
             </div>
           )}
 
-          <div className="ui-actions">
-            <button
-              type="button"
-              className="ui-button-primary"
-              onClick={saveBusinessSetup}
-            >
-              Save business profile
-            </button>
-
-            <button
-              type="button"
-              className="ui-button-secondary"
-              onClick={resetBusinessSetup}
-            >
-              Reset Setup
-            </button>
-          </div>
+          <NextStepFooter
+            nextHref="/p-and-l"
+            nextLabel="Next: P&L"
+            primaryAction={{
+              label: "Save business profile",
+              onClick: saveBusinessSetup,
+            }}
+            secondaryAction={{
+              label: "Reset Setup",
+              onClick: resetBusinessSetup,
+            }}
+          />
         </div>
       </div>
     </section>

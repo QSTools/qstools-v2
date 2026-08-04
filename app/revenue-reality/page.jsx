@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import useRevenueReality from "@/hooks/useRevenueReality";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import RevenueRealityStatusStrip from "@/components/revenue-reality/RevenueRealityStatusStrip";
 import RevenueRealityMainCard from "@/components/revenue-reality/RevenueRealityMainCard";
 import RevenueRealityComparisonBlock from "@/components/revenue-reality/RevenueRealityComparisonBlock";
@@ -57,6 +58,10 @@ export default function RevenueRealityPage() {
         <RevenueRealityHandoffBlock />
 
         <RevenueRealityHelpPanel />
+        <NextStepFooter
+          nextHref="/revenue-summary"
+          nextLabel="Next: Revenue Summary"
+        />
       </div>
     </main>
   );

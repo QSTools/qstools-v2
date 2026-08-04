@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import useCostAllocation from "@/hooks/useCostAllocation";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import CostAllocationMainCard from "@/components/cost-allocation/CostAllocationMainCard";
 import CostAllocationHelpPanel from "@/components/cost-allocation/CostAllocationHelpPanel";
 
@@ -40,6 +41,10 @@ export default function CostAllocationPage() {
         <CostAllocationMainCard {...card} {...actions} />
 
         <CostAllocationHelpPanel />
+        <NextStepFooter
+          nextHref="/recovery-summary"
+          nextLabel="Next: Recovery Summary"
+        />
       </div>
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import useBusinessModelling from "@/hooks/useBusinessModelling";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import BusinessModellingStatusStrip from "@/components/business-modelling/BusinessModellingStatusStrip";
 import BusinessModellingBaselineCard from "@/components/business-modelling/BusinessModellingBaselineCard";
 import BusinessModellingScenarioControls from "@/components/business-modelling/BusinessModellingScenarioControls";
@@ -90,6 +91,10 @@ export default function BusinessModellingPage() {
         <BusinessModellingDeltaCard delta={delta} />
 
         <BusinessModellingHelpPanel />
+        <NextStepFooter
+          nextHref="/quote-checker"
+          nextLabel="Next: Quote Checker"
+        />
       </div>
     </main>
   );

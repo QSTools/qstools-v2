@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import useQuoteChecker from "@/hooks/useQuoteChecker";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 
 function NumberInput({ label, value, onChange }) {
   return (
@@ -256,6 +257,11 @@ export default function QuoteCheckerPage() {
             </div>
           </div>
         </section>
+
+        <NextStepFooter
+          nextHref="/cost-allocation"
+          nextLabel="Next: Cost Allocation"
+        />
       </div>
     </main>
   );

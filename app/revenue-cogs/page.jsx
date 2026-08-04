@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import useRevenueCogs from "@/hooks/useRevenueCogs";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import RevenueCogsStatusStrip from "@/components/revenue-cogs/RevenueCogsStatusStrip";
 import RevenueCogsCard from "@/components/revenue-cogs/RevenueCogsCard";
 import RevenueCogsHelpPanel from "@/components/revenue-cogs/RevenueCogsHelpPanel";
@@ -29,7 +28,6 @@ function RevenueCogsPageActions({
   last_manual_saved_at,
   save_status_message,
   saveRevenueCogsPage,
-  onContinue,
 }) {
   return (
     <section className="ui-section">
@@ -50,23 +48,14 @@ function RevenueCogsPageActions({
             ) : null}
           </div>
 
-          <div className="ui-actions">
-            <button
-              type="button"
-              className="ui-button-secondary"
-              onClick={saveRevenueCogsPage}
-            >
-              Save
-            </button>
-
-            <button
-              type="button"
-              className="ui-button-primary"
-              onClick={onContinue}
-            >
-              Continue to Recovery Summary →
-            </button>
-          </div>
+          <NextStepFooter
+            nextHref="/labour"
+            nextLabel="Next: Labour"
+            primaryAction={{
+              label: "Save",
+              onClick: saveRevenueCogsPage,
+            }}
+          />
         </div>
       </div>
     </section>
@@ -74,8 +63,6 @@ function RevenueCogsPageActions({
 }
 
 export default function RevenueCogsPage() {
-  const router = useRouter();
-
   const {
     status,
     card,
@@ -85,10 +72,6 @@ export default function RevenueCogsPage() {
     removeUnitDriverRow,
     saveRevenueCogsPage,
   } = useRevenueCogs();
-
-  function handleContinue() {
-    router.push("/recovery-summary");
-  }
 
   return (
     <main className="ui-page">
@@ -139,7 +122,6 @@ export default function RevenueCogsPage() {
           last_manual_saved_at={status.last_manual_saved_at}
           save_status_message={status.save_status_message}
           saveRevenueCogsPage={saveRevenueCogsPage}
-          onContinue={handleContinue}
         />
 
         <RevenueCogsHelpPanel />

@@ -1,14 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
-import SetupNextButton from "@/components/common/SetupNextButton";
 import ProfitAndLossHeaderPanel from "@/components/p-and-l/ProfitAndLossHeaderPanel";
 import ProfitAndLossProgressPanel from "@/components/p-and-l/ProfitAndLossProgressPanel";
 import ProfitAndLossPeriodPanel from "@/components/p-and-l/ProfitAndLossPeriodPanel";
 import ProfitAndLossQuickImportPanel from "@/components/p-and-l/ProfitAndLossQuickImportPanel";
 import ProfitAndLossSectionBlock from "@/components/p-and-l/ProfitAndLossSectionBlock";
-import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
 function getEditingLabel(state) {
   const financial_year = Number(state?.financial_year) || null;
@@ -161,13 +158,7 @@ function SummaryPanel({
   warnings = [],
   unassigned_details = {},
   save_message = "",
-  on_save,
-  on_continue_to_overheads,
-  gating_enabled = false,
 }) {
-  const can_continue_to_overheads =
-    summary.pnl_ready === "Ready" && warnings.length === 0;
-
   const has_unassigned_details =
     unassigned_details.accounting_adjustments?.length > 0 ||
     unassigned_details.unassigned_operating_expenses?.length > 0 ||
@@ -340,23 +331,6 @@ function SummaryPanel({
             </p>
           ) : null}
 
-          <div className="ui-actions">
-            <button
-              type="button"
-              className="ui-button-primary"
-              onClick={on_save}
-            >
-              Save P&amp;L
-            </button>
-
-            <SetupNextButton
-              label="Next: Overheads →"
-              can_continue={can_continue_to_overheads}
-              gating_enabled={gating_enabled}
-              blocked_message="Resolve warnings before continuing to Overheads."
-              on_click={on_continue_to_overheads}
-            />
-          </div>
         </div>
       </div>
     </CollapsibleSection>
@@ -374,13 +348,7 @@ export default function ProfitAndLossMainCard({
   show_saved_snapshots = false,
   save_message = "",
 }) {
-  const router = useRouter();
   const editing_label = getEditingLabel(state);
-
-  function handle_continue_to_overheads() {
-    actions.on_save?.();
-    router.push("/general-overheads");
-  }
 
   return (
     <section className="ui-section">
@@ -434,9 +402,6 @@ export default function ProfitAndLossMainCard({
                 warnings={warnings}
                 unassigned_details={unassigned_details}
                 save_message={save_message}
-                on_save={actions.on_save}
-                on_continue_to_overheads={handle_continue_to_overheads}
-                gating_enabled={SETUP_NAV_GATING_ENABLED}
               />
 
               <SavedPnlProfilesPanel

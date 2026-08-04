@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import useRecoverySummary from "@/hooks/useRecoverySummary";
 
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 import RecoverySummaryMainCard from "@/components/recovery-summary/RecoverySummaryMainCard";
 import RecoverySummaryHelpPanel from "@/components/recovery-summary/RecoverySummaryHelpPanel";
 
@@ -31,6 +32,10 @@ export default function RecoverySummaryPage() {
         />
 
         <RecoverySummaryHelpPanel />
+        <NextStepFooter
+          nextHref="/rate-builder"
+          nextLabel="Next: Rate Builder"
+        />
       </div>
     </main>
   );
