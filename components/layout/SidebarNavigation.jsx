@@ -7,7 +7,7 @@ import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 
 const nav_groups = [
   {
-    label: "Quick Start",
+    label: "Setup",
     items: [
       { href: "/business-setup", label: "Business Setup" },
       { href: "/quick-start", label: "Quick Start Overview" },
@@ -21,17 +21,19 @@ const nav_groups = [
     label: "Business Inputs",
     items: [
       { href: "/p-and-l", label: "P&L" },
-      { href: "/general-overheads", label: "General Overheads" },
+      { href: "/revenue-cogs", label: "Revenue / COGS" },
       { href: "/labour", label: "Labour" },
       { href: "/assets", label: "Assets" },
+      { href: "/opening-hours", label: "Opening Hours" },
+      { href: "/general-overheads", label: "General Overheads" },
     ],
   },
   {
     label: "Business Truth",
     items: [
       { href: "/cost-summary", label: "Cost Summary" },
-      { href: "/revenue-cogs", label: "Revenue / COGS" },
       { href: "/revenue-reality", label: "Revenue Reality" },
+      { href: "/revenue-summary", label: "Revenue Summary" },
       { href: "/business-summary", label: "Business Summary" },
     ],
   },
@@ -45,13 +47,20 @@ const nav_groups = [
     ],
   },
   {
-    label: "Recovery Chain",
+    label: "Recovery & Pricing",
     items: [
-      { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/cost-allocation", label: "Cost Allocation" },
+      { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/rate-builder", label: "Rate Builder" },
       { href: "/business-outcome", label: "Business Outcome" },
       { href: "/quote-engine", label: "Quote Engine" },
+    ],
+  },
+  {
+    label: "Materials & Rates",
+    items: [
+      { href: "/materials", label: "Materials" },
+      { href: "/rates/square-metre", label: "Square Metre Rate" },
     ],
   },
   {
@@ -95,74 +104,26 @@ const setup_progress = {
   "/quote-checker": false,
 };
 
-function build_initial_open_groups(pathname) {
-  return {
-    "Quick Start":
-      pathname === "/business-setup" ||
-      pathname.startsWith("/business-setup/") ||
-      pathname === "/quick-start" ||
-      pathname.startsWith("/quick-start/") ||
-      pathname === "/labour-rate-reality-check" ||
-      pathname.startsWith("/labour-rate-reality-check/"),
-
-    "Business Inputs":
-      pathname === "/p-and-l" ||
-      pathname.startsWith("/p-and-l/") ||
-      pathname === "/general-overheads" ||
-      pathname.startsWith("/general-overheads/") ||
-      pathname === "/labour" ||
-      pathname.startsWith("/labour/") ||
-      pathname === "/assets" ||
-      pathname.startsWith("/assets/"),
-
-    "Business Truth":
-      pathname === "/cost-summary" ||
-      pathname.startsWith("/cost-summary/") ||
-      pathname === "/revenue-cogs" ||
-      pathname.startsWith("/revenue-cogs/") ||
-      pathname === "/revenue-reality" ||
-      pathname.startsWith("/revenue-reality/") ||
-      pathname === "/business-summary" ||
-      pathname.startsWith("/business-summary/"),
-
-    "Business Review":
-      pathname === "/business-overview" ||
-      pathname.startsWith("/business-overview/") ||
-      pathname === "/model-readiness" ||
-      pathname.startsWith("/model-readiness/") ||
-      pathname === "/business-modelling" ||
-      pathname.startsWith("/business-modelling/") ||
-      pathname === "/quote-checker" ||
-      pathname.startsWith("/quote-checker/"),
-
-    "Recovery Chain":
-      pathname === "/recovery-summary" ||
-      pathname.startsWith("/recovery-summary/") ||
-      pathname === "/cost-allocation" ||
-      pathname.startsWith("/cost-allocation/") ||
-      pathname === "/rate-builder" ||
-      pathname.startsWith("/rate-builder/") ||
-      pathname === "/business-outcome" ||
-      pathname.startsWith("/business-outcome/") ||
-      pathname === "/recovery-outcome" ||
-      pathname.startsWith("/recovery-outcome/") ||
-      pathname === "/quote-engine" ||
-      pathname.startsWith("/quote-engine/"),
-
-    "Developer / Trace":
-      pathname === "/ai-business-state" ||
-      pathname.startsWith("/ai-business-state/") ||
-      pathname === "/calculation-trace" ||
-      pathname.startsWith("/calculation-trace/"),
-  };
-}
-
 function is_active_path(pathname, href) {
   if (href === "/") {
     return pathname === "/";
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function get_initial_open_group_label(pathname) {
+  for (const group of nav_groups) {
+    const has_active_item = group.items.some((item) =>
+      is_active_path(pathname, item.href)
+    );
+
+    if (has_active_item) {
+      return group.label;
+    }
+  }
+
+  return null;
 }
 
 function is_setup_route_locked(href) {
@@ -218,15 +179,12 @@ function NavigationItem({ item, active }) {
 export default function SidebarNavigation() {
   const pathname = usePathname();
 
-  const [open_groups, set_open_groups] = useState(
-    build_initial_open_groups(pathname)
+  const [open_group, set_open_group] = useState(() =>
+    get_initial_open_group_label(pathname)
   );
 
   function toggle_group(label) {
-    set_open_groups((current) => ({
-      ...current,
-      [label]: !current[label],
-    }));
+    set_open_group((current) => (current === label ? null : label));
   }
 
   function is_active(href) {
@@ -247,15 +205,19 @@ export default function SidebarNavigation() {
           Home
         </Link>
 
-        <div className="ui-stack">
+        <div className="ui-nav-group-list">
           {nav_groups.map((group) => {
-            const is_open = open_groups[group.label];
+            const is_open = open_group === group.label;
 
             return (
-              <div key={group.label} className="ui-stack-sm">
+              <div key={group.label} className="ui-nav-group-wrapper">
                 <button
                   type="button"
-                  className="ui-nav-group-button"
+                  className={
+                    is_open
+                      ? "ui-nav-group-button ui-nav-group-button-open"
+                      : "ui-nav-group-button"
+                  }
                   onClick={() => toggle_group(group.label)}
                 >
                   <span>{group.label}</span>
@@ -263,7 +225,7 @@ export default function SidebarNavigation() {
                 </button>
 
                 {is_open ? (
-                  <div className="ui-stack pl-3">
+                  <div className="ui-nav-group-items">
                     {group.items.map((item) => (
                       <NavigationItem
                         key={item.href}
