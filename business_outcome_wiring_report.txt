@@ -1,0 +1,445 @@
+=== MIRRA BUSINESS OUTCOME WIRING DISCOVERY ===
+Run at: 08/05/2026 14:29:26
+
+--- 1. LOCATING BUSINESS OUTCOME FILES ---
+app\business-outcome\page.jsx
+components\business-outcome\BusinessOutcomeAssetSplit.jsx
+components\business-outcome\BusinessOutcomeHelpPanel.jsx
+components\business-outcome\BusinessOutcomeLabourSplit.jsx
+components\business-outcome\BusinessOutcomeMainCard.jsx
+components\business-outcome\BusinessOutcomeResultHero.jsx
+components\business-outcome\BusinessOutcomeStatusStrip.jsx
+components\business-outcome\BusinessOutcomeWaterfall.jsx
+hooks\useBusinessOutcome.js
+lib\calculations\businessOutcomeAssetSplitCalculations.js
+lib\calculations\businessOutcomeCalculations.js
+lib\selectors\businessOutcomeSelectors.js
+
+--- 2. IMPORT STATEMENTS IN EACH FILE ---
+
+### app\business-outcome\page.jsx
+  import { useBusinessOutcome } from '@/hooks/useBusinessOutcome';
+  import NextStepFooter from '@/components/navigation/NextStepFooter';
+  import BusinessOutcomeStatusStrip from '@/components/business-outcome/BusinessOutcomeStatusStrip';
+  import BusinessOutcomeWaterfall from '@/components/business-outcome/BusinessOutcomeWaterfall';
+  import BusinessOutcomeMainCard from '@/components/business-outcome/BusinessOutcomeMainCard';
+  import BusinessOutcomeHelpPanel from '@/components/business-outcome/BusinessOutcomeHelpPanel';
+
+### components\business-outcome\BusinessOutcomeAssetSplit.jsx
+  import { useState } from 'react';
+
+### components\business-outcome\BusinessOutcomeHelpPanel.jsx
+
+### components\business-outcome\BusinessOutcomeLabourSplit.jsx
+  import { useState } from 'react';
+
+### components\business-outcome\BusinessOutcomeMainCard.jsx
+  import { useState } from 'react';
+  import BusinessOutcomeLabourSplit from '@/components/business-outcome/BusinessOutcomeLabourSplit';
+  import BusinessOutcomeAssetSplit from '@/components/business-outcome/BusinessOutcomeAssetSplit';
+
+### components\business-outcome\BusinessOutcomeResultHero.jsx
+
+### components\business-outcome\BusinessOutcomeStatusStrip.jsx
+
+### components\business-outcome\BusinessOutcomeWaterfall.jsx
+
+### hooks\useBusinessOutcome.js
+  import { useEffect, useMemo, useState } from 'react';
+  import useRecoverySummary from './useRecoverySummary';
+  import useLabour from './useLabour';
+  import useCostAllocation from './useCostAllocation';
+  import { useRateBuilderLabourRates } from './rate-builder/useRateBuilderLabourRates';
+  import { loadRateBuilderCalculators } from '@/lib/storage/rateBuilderStorage';
+  import { calculateBusinessOutcome } from '@/lib/calculations/businessOutcomeCalculations';
+  import { selectBusinessOutcomeDisplay } from '@/lib/selectors/businessOutcomeSelectors';
+
+### lib\calculations\businessOutcomeAssetSplitCalculations.js
+  import { calculateRateBuilderQuotePreview } from '@/lib/calculations/rateBuilderCalculations';
+
+### lib\calculations\businessOutcomeCalculations.js
+  import { calculateOperatingGroupSplit } from './businessOutcomeAssetSplitCalculations';
+
+### lib\selectors\businessOutcomeSelectors.js
+
+--- 3. LEGACY RECOVERY CHAIN REFERENCES (should NOT be primary source) ---
+
+### hooks\useBusinessOutcome.js — LEGACY REFERENCES FOUND:
+  Line 4: import useRecoverySummary from './useRecoverySummary';
+  Line 6: import useCostAllocation from './useCostAllocation';
+  Line 7: import { useRateBuilderLabourRates } from './rate-builder/useRateBuilderLabourRates';
+  Line 8: import { loadRateBuilderCalculators } from '@/lib/storage/rateBuilderStorage';
+  Line 13: const recoverySummary = useRecoverySummary();
+  Line 15: const costAllocation = useCostAllocation();
+  Line 16: const rateBuilderLabour = useRateBuilderLabourRates();
+  Line 18: const recovery = recoverySummary.output_contract || {};
+  Line 20: const allocationContract = costAllocation.output_contract || {};
+  Line 21: const weightedSummary = rateBuilderLabour.weighted_summary || {};
+  Line 24: Number(rateBuilderLabour?.current_charge_out_rate) || null;
+  Line 26: const [rateBuilderCalculators, setRateBuilderCalculators] = useState([]);
+  Line 29: setRateBuilderCalculators(loadRateBuilderCalculators([]));
+  Line 67: rateBuilderCalculators,
+  Line 79: rateBuilderCalculators,
+  Line 86: recoverySummaryTrustState: recovery.model_trust_state || 'blocked',
+
+### lib\calculations\businessOutcomeAssetSplitCalculations.js — LEGACY REFERENCES FOUND:
+  Line 1: import { calculateRateBuilderQuotePreview } from '@/lib/calculations/rateBuilderCalculations';
+  Line 21: // costAllocationLabourAdapter.js uses (normalise_key) - lowercase,
+  Line 182: const preview = calculateRateBuilderQuotePreview(calculator.lines);
+
+### lib\calculations\businessOutcomeCalculations.js — LEGACY REFERENCES FOUND:
+  Line 48: rateBuilderCalculators,
+  Line 168: calculators: Array.isArray(rateBuilderCalculators) ? rateBuilderCalculators : [],
+
+### lib\selectors\businessOutcomeSelectors.js — LEGACY REFERENCES FOUND:
+  Line 77: const isTrusted = trustStates.recoverySummaryTrustState !== 'blocked';
+
+--- 4. V5.0 TRUTH CHAIN REFERENCES (should BE the primary source) ---
+
+### components\business-outcome\BusinessOutcomeResultHero.jsx — TRUTH CHAIN REFERENCES FOUND:
+  Line 9: } from "@/components/business-summary/BusinessSummaryCardUtils";
+
+--- 5. OUTPUT CONTRACT FIELD CHECK ---
+
+### app\business-outcome\page.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeAssetSplit.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeHelpPanel.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeLabourSplit.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeMainCard.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeResultHero.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [FOUND]   required_recovery
+  [FOUND]   achieved_recovery
+  [FOUND]   recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeStatusStrip.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### components\business-outcome\BusinessOutcomeWaterfall.jsx
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### hooks\useBusinessOutcome.js
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [FOUND]   total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### lib\calculations\businessOutcomeAssetSplitCalculations.js
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### lib\calculations\businessOutcomeCalculations.js
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+### lib\selectors\businessOutcomeSelectors.js
+  [MISSING] output_contract_version
+  [MISSING] source_period
+  [MISSING] data_status
+  [MISSING] reconciliation_status
+  [MISSING] total_revenue
+  [MISSING] total_COG
+  [MISSING] gross_profit
+  [MISSING] gross_margin_percent
+  [MISSING] total_cost_burden
+  [MISSING] required_revenue
+  [MISSING] revenue_surplus_or_gap
+  [MISSING] required_recovery
+  [MISSING] achieved_recovery
+  [MISSING] recovery_surplus_or_gap
+  [MISSING] operating_profit_before_tax
+  [MISSING] net_operating_margin
+  [MISSING] productive_output
+  [MISSING] cost_absorption_status
+  [MISSING] primary_driver_key
+  [MISSING] primary_driver_title
+  [MISSING] primary_driver_evidence
+  [MISSING] strongest_contribution_area
+  [MISSING] weakest_contribution_area
+  [MISSING] warning_list
+  [MISSING] data_quality_list
+  [MISSING] downstream_ready
+
+--- 6. useBusinessOutcome HOOK CHECK ---
+Found: hooks\useBusinessOutcome.js
+Line count: 91
+
+=== END OF DISCOVERY REPORT ===
+Full report also saved to: business_outcome_wiring_report.txt

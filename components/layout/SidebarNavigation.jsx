@@ -52,7 +52,7 @@ const nav_groups = [
       { href: "/cost-allocation", label: "Cost Allocation" },
       { href: "/recovery-summary", label: "Recovery Summary" },
       { href: "/rate-builder", label: "Rate Builder" },
-      { href: "/business-outcome", label: "Business Outcome" },
+      { href: "/recovery-outcome", label: "Recovery & Rate Justification" },
       { href: "/quote-engine", label: "Quote Engine" },
     ],
   },

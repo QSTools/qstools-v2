@@ -11,7 +11,7 @@ export default function BusinessOutcomeStatusStrip({ outcome }) {
   const statusLabel =
     business_outcome_model_trust_state === 'blocked'
       ? 'Blocked - upstream data not trusted'
-      : 'Modeled Recovery Pressure';
+      : 'Modeled Recovery Pressure (Recovery & Rate Justification)';
 
   return (
     <div className={`rounded-lg border px-4 py-3 flex items-center justify-between ${statusColor}`}>

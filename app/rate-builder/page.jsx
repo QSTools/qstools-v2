@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import RateBuilderMainCard from "@/components/rate-builder/RateBuilderMainCard";
@@ -28,10 +28,12 @@ export default function RateBuilderPage() {
 
         <RateBuilderMainCard />
         <NextStepFooter
-          nextHref="/business-outcome"
-          nextLabel="Next: Business Outcome"
+          nextHref="/recovery-outcome"
+          nextLabel="Next: Recovery & Rate Justification"
         />
       </div>
     </main>
   );
 }
+
+
