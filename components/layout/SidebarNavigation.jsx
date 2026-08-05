@@ -44,6 +44,7 @@ const nav_groups = [
       { href: "/model-readiness", label: "Model Readiness" },
       { href: "/business-modelling", label: "Business Modelling" },
       { href: "/quote-checker", label: "Quote Checker" },
+      { href: "/business-outcome", label: "Business Outcome" },
     ],
   },
   {
@@ -253,3 +254,4 @@ export default function SidebarNavigation() {
     </aside>
   );
 }
+
