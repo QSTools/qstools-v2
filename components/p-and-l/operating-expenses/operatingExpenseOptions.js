@@ -1,0 +1,111 @@
+export const OPERATING_EXPENSE_CLASSIFICATION_OPTIONS = [
+  {
+    value: "salary_wages",
+    category: "labour",
+    review_subcategory: "salary_wages",
+    label: "Salary & Wages → Labour",
+  },
+  {
+    value: "employer_kiwisaver",
+    category: "labour",
+    review_subcategory: "employer_kiwisaver",
+    label: "KiwiSaver → Labour",
+  },
+  {
+    value: "employer_acc",
+    category: "labour",
+    review_subcategory: "employer_acc",
+    label: "ACC Levy → Labour",
+  },
+  {
+    value: "staff_overheads",
+    category: "general_overheads",
+    review_subcategory: "staff_overheads",
+    label: "Staff Overheads → General Overheads",
+  },
+  {
+    value: "entertainment",
+    category: "general_overheads",
+    review_subcategory: "staff_overheads",
+    label: "Entertainment → Staff Overheads",
+  },
+  {
+    value: "vehicle_running_costs",
+    category: "general_overheads",
+    review_subcategory: "vehicle_running_costs",
+    label: "Vehicle Running Costs → General Overheads",
+  },
+  {
+    value: "office_admin",
+    category: "general_overheads",
+    review_subcategory: "office_admin",
+    label: "Office / Admin → General Overheads",
+  },
+  {
+    value: "finance_admin",
+    category: "general_overheads",
+    review_subcategory: "finance_admin",
+    label: "Accounting / Admin → General Overheads",
+  },
+  {
+    value: "finance_interest",
+    category: "general_overheads",
+    review_subcategory: "finance_interest",
+    label: "Finance / Interest → General Overheads",
+  },
+  {
+    value: "asset_finance",
+    category: "assets",
+    review_subcategory: "asset_finance",
+    label: "Asset Finance → Assets",
+  },
+  {
+    value: "mixed_finance",
+    category: "general_overheads",
+    review_subcategory: "finance_interest",
+    label: "Mixed Finance / Assets + Business → General Overheads",
+  },
+  {
+    value: "insurance_compliance",
+    category: "general_overheads",
+    review_subcategory: "insurance_compliance",
+    label: "Insurance / Compliance → General Overheads",
+  },
+  {
+    value: "sales_growth",
+    category: "general_overheads",
+    review_subcategory: "sales_growth",
+    label: "Sales / Growth → General Overheads",
+  },
+  {
+    value: "travel",
+    category: "general_overheads",
+    review_subcategory: "travel",
+    label: "Travel → General Overheads",
+  },
+  {
+    value: "penalties_non_deductible",
+    category: "excluded",
+    review_subcategory: "penalties_non_deductible",
+    label: "Penalties / Non-Deductible → Excluded",
+  },
+  {
+    value: "other_review_required",
+    category: "review_required",
+    review_subcategory: "other_review_required",
+    label: "Other / Review Required",
+  },
+  {
+    value: "excluded_non_qs",
+    category: "excluded",
+    review_subcategory: "excluded_non_qs",
+    label: "Excluded / Non-QS Cost",
+  },
+  {
+    value: "unassigned",
+    category: "unassigned",
+    review_subcategory: "",
+    label: "Unassigned",
+  },
+];
+
