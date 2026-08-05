@@ -1,41 +1,18 @@
 import {
-  TIME_SCALES,
   formatCurrency,
   formatNumber,
   getTimeScaleName,
   getTimeScaleSuffix,
-  scaleAnnualValue,
-  scalePeriodValue,
 } from "@/components/business-summary/BusinessSummaryCardUtils";
+import { buildBusinessSummaryHierarchyChildren } from "@/components/business-summary/hierarchy/businessSummaryHierarchyChildren";
+import {
+  PRODUCT_TIME_SCALES,
+  createDisplayScalers,
+  scaleProductAnnualValue,
+} from "@/components/business-summary/hierarchy/businessSummaryHierarchyScaleUtils";
+import { buildBusinessSummaryHierarchyTrees } from "@/components/business-summary/hierarchy/businessSummaryHierarchyTrees";
 
-export const PRODUCT_TIME_SCALES = TIME_SCALES.filter(
-  (option) => option.key !== "hour"
-);
-
-function scaleProductAnnualValue(value, timeScale) {
-  const number = Number(value) || 0;
-
-  if (timeScale === "day") return number / 365;
-  if (timeScale === "week") return number / 52;
-  if (timeScale === "month") return number / 12;
-  if (timeScale === "quarter") return number / 4;
-
-  return number;
-}
-
-function sumStaffCost(staffRows = []) {
-  return staffRows.reduce(
-    (total, staff) => total + (Number(staff.total_labour_cost_annual) || 0),
-    0
-  );
-}
-
-function sumAssetCost(assetRows = []) {
-  return assetRows.reduce(
-    (total, asset) => total + (Number(asset.total_asset_cost_annual) || 0),
-    0
-  );
-}
+export { PRODUCT_TIME_SCALES };
 
 export function buildBusinessSummaryHierarchyState({
   total_revenue = 0,
@@ -89,23 +66,12 @@ export function buildBusinessSummaryHierarchyState({
     product_mode_active && timeScale === "hour" ? "day" : timeScale;
 
   const open_hours_used = Number(net_annual_business_open_hours) || 0;
-
-  function scaleDisplayAnnualValue(annualValue, hourlyValue = 0) {
-    return product_mode_active
-      ? scaleProductAnnualValue(annualValue, active_time_scale)
-      : scaleAnnualValue(
-          annualValue,
-          active_time_scale,
-          hourlyValue,
-          open_hours_used
-        );
-  }
-
-  function scaleDisplayPeriodValue(annualValue) {
-    return product_mode_active
-      ? scaleProductAnnualValue(annualValue, active_time_scale)
-      : scalePeriodValue(annualValue, active_time_scale, open_hours_used);
-  }
+  const { scaleDisplayAnnualValue, scaleDisplayPeriodValue } =
+    createDisplayScalers({
+      active_time_scale,
+      open_hours_used,
+      product_mode_active,
+    });
 
   const scaled_required_recovery = scaleDisplayAnnualValue(
     total_cost_burden,
@@ -227,461 +193,60 @@ export function buildBusinessSummaryHierarchyState({
   )
     ? overheads_breakdown.category_totals
     : [];
-  const productive_staff = active_staff.filter(
-    (staff) => staff.contributes_to_recovery_hours !== false
-  );
-  const non_productive_staff = active_staff.filter(
-    (staff) => staff.contributes_to_recovery_hours === false
-  );
-  const productive_assets = active_assets.filter(
-    (asset) => asset.asset_type === "productive"
-  );
-  const support_assets = active_assets.filter(
-    (asset) => asset.asset_type !== "productive"
-  );
 
-  function buildStaffRows(staffRows = []) {
-    return staffRows.map((staff, index) => {
-      const staff_cost = scaleDisplayPeriodValue(
-        staff.total_labour_cost_annual
-      );
+  const {
+    direct_cost_children,
+    people_cost_children,
+    pending_contribution_children,
+    product_margin_pool_children,
+    remaining_cost_children,
+  } = buildBusinessSummaryHierarchyChildren({
+    active_assets,
+    active_staff,
+    direct_cost_category_totals,
+    direct_cost_per_unit,
+    margin_per_unit,
+    overhead_category_totals,
+    product_unit_suffix,
+    revenue_per_unit,
+    scaleDisplayPeriodValue,
+    scale_suffix,
+    scaled_asset_cost,
+    scaled_direct_costs,
+    scaled_general_overheads,
+    scaled_margin_pool,
+    scaled_non_people_cost_burden,
+    scaled_people_cost,
+    scaled_revenue,
+    scaled_units_sold,
+  });
 
-      return {
-        key: `${staff.profile_id || staff.staff_id || staff.staff_name || "staff"}-${index}`,
-        label: staff.staff_name || "Unnamed staff",
-        value: staff_cost,
-        amount: Math.abs(staff_cost),
-        referenceTotal: Math.abs(scaled_people_cost),
-        suffix: scale_suffix,
-      };
+  const { labour_business_hierarchy, product_business_hierarchy } =
+    buildBusinessSummaryHierarchyTrees({
+      direct_cost_children,
+      margin_after_labour_note: {
+        labour:
+          "Gross Profit / Margin Pool after People Cost. This shows whether the business is already positive or negative before assets and business overheads.",
+        product:
+          "Trading Margin Pool after People Cost. This shows whether the business is positive or negative before assets and overheads.",
+      },
+      people_cost_children,
+      pending_contribution_children,
+      product_margin_pool_children,
+      remaining_cost_children,
+      revenue_reference_total,
+      scale_suffix,
+      scaled_direct_costs,
+      scaled_general_overheads,
+      scaled_margin_after_labour,
+      scaled_margin_pool,
+      scaled_net_position,
+      scaled_non_people_cost_burden,
+      scaled_people_cost,
+      scaled_revenue,
+      surplus_or_deficit_amount,
+      surplus_or_deficit_label,
     });
-  }
-
-  function buildAssetRows(assetRows = []) {
-    return assetRows.map((asset, index) => {
-      const asset_cost = scaleDisplayPeriodValue(asset.total_asset_cost_annual);
-
-      return {
-        key: `${asset.asset_id || asset.asset_name || "asset"}-${index}`,
-        label: asset.asset_name || "Unnamed asset",
-        value: asset_cost,
-        amount: Math.abs(asset_cost),
-        referenceTotal: Math.abs(scaled_asset_cost),
-        suffix: scale_suffix,
-      };
-    });
-  }
-
-  function buildOverheadCategoryRows(categoryRows = []) {
-    return categoryRows.map((category, index) => {
-      const category_amount = category.total ?? category.amount;
-      const category_value = scaleDisplayPeriodValue(category_amount);
-
-      return {
-        key: `${category.category_id || category.category_name || category.category_label || "overhead-category"}-${index}`,
-        label:
-          category.category_label ||
-          category.category_name ||
-          category.category_id ||
-          "Overhead category",
-        value: category_value,
-        amount: Math.abs(category_value),
-        referenceTotal: Math.abs(scaled_general_overheads),
-        suffix: scale_suffix,
-      };
-    });
-  }
-
-  const productive_staff_cost = scaleDisplayPeriodValue(
-    sumStaffCost(productive_staff)
-  );
-  const non_productive_staff_cost = scaleDisplayPeriodValue(
-    sumStaffCost(non_productive_staff)
-  );
-  const productive_staff_children = buildStaffRows(productive_staff);
-  const non_productive_staff_children = buildStaffRows(non_productive_staff);
-  const productive_asset_cost = scaleDisplayPeriodValue(
-    sumAssetCost(productive_assets)
-  );
-  const support_asset_cost = scaleDisplayPeriodValue(
-    sumAssetCost(support_assets)
-  );
-  const productive_asset_children = buildAssetRows(productive_assets);
-  const support_asset_children = buildAssetRows(support_assets);
-  const overhead_category_children =
-    buildOverheadCategoryRows(overhead_category_totals);
-
-  const direct_cost_children = (
-    Array.isArray(direct_cost_category_totals) ? direct_cost_category_totals : []
-  )
-    .map((category) => {
-      const categoryValue = scaleDisplayPeriodValue(category.amount);
-
-      return {
-        key: `direct-cost-${category.category_id || category.label}`,
-        label: category.label || "Direct cost category",
-        value: categoryValue,
-        amount: Math.abs(categoryValue),
-        referenceTotal: Math.abs(scaled_direct_costs),
-        suffix: scale_suffix,
-      };
-    })
-    .filter((category) => category.amount > 0);
-
-  const remaining_cost_children = [
-    {
-      key: "assets",
-      label: "Asset Cost",
-      value: scaled_asset_cost,
-      amount: Math.abs(scaled_asset_cost),
-      referenceTotal: Math.abs(scaled_non_people_cost_burden),
-      suffix: scale_suffix,
-      note: "Annual asset cost from Cost Summary.",
-      children: [
-        {
-          key: "productive-assets",
-          label: "Productive assets",
-          value: productive_asset_cost,
-          amount: Math.abs(productive_asset_cost),
-          referenceTotal: Math.abs(scaled_asset_cost),
-          suffix: scale_suffix,
-          note: "Assets marked as productive.",
-          children: productive_asset_children,
-        },
-        {
-          key: "support-assets",
-          label: "Support assets",
-          value: support_asset_cost,
-          amount: Math.abs(support_asset_cost),
-          referenceTotal: Math.abs(scaled_asset_cost),
-          suffix: scale_suffix,
-          note: "Support assets remain in the cost burden.",
-          children: support_asset_children,
-        },
-      ],
-    },
-    {
-      key: "general-overheads",
-      label: "Business Overheads",
-      value: scaled_general_overheads,
-      amount: Math.abs(scaled_general_overheads),
-      referenceTotal: Math.abs(scaled_non_people_cost_burden),
-      suffix: scale_suffix,
-      note: "Annual business overheads from Cost Summary.",
-      children: overhead_category_children,
-    },
-  ].filter((item) => item.amount > 0);
-
-  const people_cost_children = [
-    {
-      key: "productive-labour",
-      label: "Productive labour",
-      value: productive_staff_cost,
-      amount: Math.abs(productive_staff_cost),
-      referenceTotal: Math.abs(scaled_people_cost),
-      suffix: scale_suffix,
-      note: "Staff selected to contribute recovery hours.",
-      children: productive_staff_children,
-    },
-    {
-      key: "non-productive-labour",
-      label: "Non-productive labour",
-      value: non_productive_staff_cost,
-      amount: Math.abs(non_productive_staff_cost),
-      referenceTotal: Math.abs(scaled_people_cost),
-      suffix: scale_suffix,
-      note: "Staff that add cost but do not contribute recovery hours.",
-      children: non_productive_staff_children,
-    },
-  ];
-
-  const pending_contribution_children = [
-    {
-      key: "labour-contribution-split",
-      label: "Labour Contribution Split",
-      value: 0,
-      amount: 0,
-      referenceTotal: Math.abs(scaled_margin_pool),
-      suffix: scale_suffix,
-      isPending: true,
-      includeInBar: false,
-      note: "Not yet calculated.",
-      pendingLabel: "Requires claimed labour hours / quote-job data",
-    },
-    {
-      key: "material-contribution-split",
-      label: "Material Contribution Split",
-      value: 0,
-      amount: 0,
-      referenceTotal: Math.abs(scaled_margin_pool),
-      suffix: scale_suffix,
-      isPending: true,
-      includeInBar: false,
-      note: "Not yet calculated.",
-      pendingLabel: "Requires claimed labour hours / quote-job data",
-    },
-    {
-      key: "other-contribution-split",
-      label: "Other Contribution Split",
-      value: 0,
-      amount: 0,
-      referenceTotal: Math.abs(scaled_margin_pool),
-      suffix: scale_suffix,
-      isPending: true,
-      includeInBar: false,
-      note: "Not yet calculated.",
-      pendingLabel: "Requires claimed labour hours / quote-job data",
-    },
-  ];
-
-  const product_margin_pool_children = [
-    {
-      key: "revenue-generated",
-      label: "Revenue",
-      value: scaled_revenue,
-      amount: revenue_reference_total,
-      referenceTotal: revenue_reference_total,
-      suffix: scale_suffix,
-      isReference: true,
-      includeInBar: false,
-      note: "Annual product revenue.",
-    },
-    {
-      key: "direct-costs",
-      label: "COGS / Direct Costs",
-      value: scaled_direct_costs,
-      amount: Math.abs(scaled_direct_costs),
-      referenceTotal: revenue_reference_total,
-      suffix: scale_suffix,
-      note: "Annual COGS / Direct Costs.",
-      children: direct_cost_children,
-    },
-    {
-      key: "units-sold",
-      label: "Units Sold",
-      value: 0,
-      amount: 0,
-      referenceTotal: revenue_reference_total,
-      isPending: true,
-      includeInBar: false,
-      valueLabel: `${formatNumber(scaled_units_sold)} ${product_unit_suffix}`,
-      pendingLabel: "Unit economics evidence",
-    },
-    {
-      key: "revenue-per-unit",
-      label: "Revenue per Unit",
-      value: 0,
-      amount: 0,
-      referenceTotal: revenue_reference_total,
-      isPending: true,
-      includeInBar: false,
-      valueLabel: `${formatCurrency(revenue_per_unit)} /unit`,
-      pendingLabel: "Unit economics evidence",
-    },
-    {
-      key: "direct-cost-per-unit",
-      label: "Direct Cost per Unit",
-      value: 0,
-      amount: 0,
-      referenceTotal: revenue_reference_total,
-      isPending: true,
-      includeInBar: false,
-      valueLabel: `${formatCurrency(direct_cost_per_unit)} /unit`,
-      pendingLabel: "Unit economics evidence",
-    },
-    {
-      key: "margin-per-unit",
-      label: "Margin per Unit",
-      value: 0,
-      amount: 0,
-      referenceTotal: revenue_reference_total,
-      isPending: true,
-      includeInBar: false,
-      valueLabel: `${formatCurrency(margin_per_unit)} /unit`,
-      pendingLabel: "Unit economics evidence",
-    },
-  ];
-
-  const labour_business_hierarchy = {
-    key: "business-result",
-    label: "Business Result",
-    value: scaled_revenue,
-    amount: revenue_reference_total,
-    referenceTotal: revenue_reference_total,
-    suffix: scale_suffix,
-    shareLabel: "revenue",
-    note: "This shows how your revenue is consumed before profit is created.",
-    children: [
-      {
-        key: "revenue-generated",
-        label: "Revenue Generated",
-        value: scaled_revenue,
-        amount: revenue_reference_total,
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        isReference: true,
-        includeInBar: false,
-        note: "This is the income available before direct costs and operating cost baseline are covered.",
-      },
-      {
-        key: "direct-costs",
-        label: "COG / Direct Costs",
-        value: scaled_direct_costs,
-        amount: Math.abs(scaled_direct_costs),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "Direct costs are removed before Gross Profit / Margin Pool is calculated.",
-        shareLabel: "direct costs",
-        children: direct_cost_children,
-      },
-      {
-        key: "margin-pool",
-        label: "Gross Profit / Margin Pool",
-        value: scaled_margin_pool,
-        amount: Math.abs(scaled_margin_pool),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: false,
-        note: "Revenue after COG / Direct Costs.",
-        shareLabel: "margin pool",
-        children: pending_contribution_children,
-      },
-      {
-        key: "people-cost",
-        label: "Less People Cost",
-        value: -Math.abs(scaled_people_cost),
-        amount: Math.abs(scaled_people_cost),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "People Cost deducted from Gross Profit / Margin Pool.",
-        shareLabel: "people cost",
-        children: people_cost_children,
-      },
-      {
-        key: "margin-after-labour",
-        label: "Margin after Labour",
-        value: scaled_margin_after_labour,
-        amount: Math.abs(scaled_margin_after_labour),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: false,
-        note: "Gross Profit / Margin Pool after People Cost. This shows whether the business is already positive or negative before assets and business overheads.",
-      },
-      {
-        key: "remaining-cost-burden",
-        label: "Remaining Cost Burden",
-        value: scaled_non_people_cost_burden,
-        amount: Math.abs(scaled_non_people_cost_burden),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "Asset Cost and Business Overheads still need to be covered after People Cost.",
-        shareLabel: "remaining cost burden",
-        children: remaining_cost_children,
-      },
-      {
-        key: "surplus-deficit",
-        label: surplus_or_deficit_label,
-        value: scaled_net_position,
-        amount: surplus_or_deficit_amount,
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: scaled_net_position >= 0,
-        note:
-          scaled_net_position >= 0
-            ? "Revenue left after direct costs, People Cost, Asset Cost, and Business Overheads."
-            : "Costs exceed revenue by this amount.",
-      },
-    ],
-  };
-
-  const product_business_hierarchy = {
-    key: "business-result",
-    label: "Business Result",
-    value: scaled_revenue,
-    amount: revenue_reference_total,
-    referenceTotal: revenue_reference_total,
-    suffix: scale_suffix,
-    shareLabel: "revenue",
-    note: "This shows how product revenue becomes trading margin, then whether that margin covers the business cost burden.",
-    children: [
-      {
-        key: "revenue-generated",
-        label: "Revenue",
-        value: scaled_revenue,
-        amount: revenue_reference_total,
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        isReference: true,
-        includeInBar: false,
-        note: "Product revenue generated before COGS / Direct Costs.",
-      },
-      {
-        key: "direct-costs",
-        label: "COGS / Direct Costs",
-        value: scaled_direct_costs,
-        amount: Math.abs(scaled_direct_costs),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "Direct costs are removed before Trading Margin Pool is calculated.",
-        shareLabel: "direct costs",
-        children: direct_cost_children,
-      },
-      {
-        key: "margin-pool",
-        label: "Trading Margin Pool",
-        value: scaled_margin_pool,
-        amount: Math.abs(scaled_margin_pool),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: false,
-        note: "Revenue after COGS / Direct Costs.",
-        shareLabel: "trading margin pool",
-        children: product_margin_pool_children,
-      },
-      {
-        key: "people-cost",
-        label: "Less People Cost",
-        value: -Math.abs(scaled_people_cost),
-        amount: Math.abs(scaled_people_cost),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "People Cost deducted from Trading Margin Pool.",
-        shareLabel: "people cost",
-        children: people_cost_children,
-      },
-      {
-        key: "margin-after-labour",
-        label: "Margin after Labour",
-        value: scaled_margin_after_labour,
-        amount: Math.abs(scaled_margin_after_labour),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: false,
-        note: "Trading Margin Pool after People Cost. This shows whether the business is positive or negative before assets and overheads.",
-      },
-      {
-        key: "remaining-cost-burden",
-        label: "Remaining Cost Burden",
-        value: scaled_non_people_cost_burden,
-        amount: Math.abs(scaled_non_people_cost_burden),
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        note: "Asset Cost and Business Overheads still need to be covered after People Cost.",
-        shareLabel: "remaining cost burden",
-        children: remaining_cost_children,
-      },
-      {
-        key: "surplus-deficit",
-        label: "Final Surplus / Deficit",
-        value: scaled_net_position,
-        amount: surplus_or_deficit_amount,
-        referenceTotal: revenue_reference_total,
-        suffix: scale_suffix,
-        includeInBar: scaled_net_position >= 0,
-        note: "Final position after Trading Margin Pool is reduced by People Cost, Asset Cost, and Business Overheads.",
-      },
-    ],
-  };
 
   return {
     active_time_scale,
