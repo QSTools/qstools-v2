@@ -13,6 +13,11 @@ const VARIANCE_CHECK_IDS = [
   "general_overheads_variance",
 ];
 
+// The stable seeded staff_type_id for "Owner / Director" from
+// lib/storage/labourStorage.js. Matching on this ID rather than the
+// editable staff_type_name label, so a rename does not break this.
+const OWNER_DIRECTOR_STAFF_TYPE_ID = "owner_director";
+
 // The older business_cost_variance check uses legacy field names
 // (comparison_total / pnl_business_cost) instead of source_amount /
 // module_amount. Normalise for display only. No change to the
@@ -56,6 +61,19 @@ export default function ModuleReconciliationPage() {
       finance_status: asset.finance_status,
     }));
 
+  // Real Owner/Director staff breakdown, sourced directly from the
+  // Labour module (modules.labour.active_staff). Matches on the stable
+  // staff_type_id, not the editable display label. Read-only display
+  // only; no Labour calculation is touched.
+  const active_staff = modules?.labour?.active_staff || [];
+  const owner_director_breakdown = active_staff
+    .filter((staff) => staff.staff_type_id === OWNER_DIRECTOR_STAFF_TYPE_ID)
+    .map((staff) => ({
+      staff_id: staff.staff_id,
+      staff_name: staff.staff_name || "Unnamed Staff",
+      annual_labour_cost: staff.annual_labour_cost || 0,
+    }));
+
   return (
     <div className="ui-stack">
       <ModuleReconciliationStatusStrip
@@ -67,6 +85,7 @@ export default function ModuleReconciliationPage() {
       <ModuleReconciliationComparisonCard
         checks={comparison_checks}
         asset_finance_breakdown={asset_finance_breakdown}
+        owner_director_breakdown={owner_director_breakdown}
       />
 
       <ModuleReconciliationReadinessChecklist checks={readiness_checks} />

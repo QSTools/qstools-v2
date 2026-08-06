@@ -34,6 +34,7 @@ const nav_groups = [
       { href: "/cost-summary", label: "Cost Summary" },
       { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/revenue-summary", label: "Revenue Summary" },
+      { href: "/module-reconciliation", label: "Module Reconciliation" },
       { href: "/business-summary", label: "Business Summary" },
     ],
   },

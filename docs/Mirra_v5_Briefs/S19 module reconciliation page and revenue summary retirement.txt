@@ -1,0 +1,253 @@
+# Mirra v5.0 - Module Reconciliation Page & Revenue Summary Retirement Brief
+
+STATUS: BUILD BRIEF - NOT YET BUILT
+VERSION: v5.0
+MODULE TYPE: Reconciliation / Diagnostic Layer (replaces Revenue Summary UI)
+DATE: 2026-08-06
+
+CONTROLLING BRIEFS:
+S15_REVENUE_SUMMARY_LOCKED_BRIEF_v5.0.txt
+10_MIRRA_MODULE_RECONCILIATION_v4.0_LOCKED.txt
+S04_MODEL_READINESS_BUILD_GATE_BRIEF_v5.0.txt
+
+---
+
+# 1. WHY THIS BRIEF EXISTS
+
+Revenue Summary (`/revenue-summary`) was reviewed for a layout-only UX cleanup.
+
+That review found the page's real problem is not layout. It is purpose.
+
+Revenue Summary currently asks the user to manually retype Sales Revenue,
+Material Cost, Operating Expenses, Subcontract Costs, and Equipment Hire —
+figures that already exist properly in Revenue / COGS and the P&L. This
+creates a second, manually-typed, easily-out-of-sync copy of numbers the
+system already owns elsewhere.
+
+The one genuinely useful thing Revenue Summary does — comparing what the
+P&L says against what the cost modules calculate (Labour Variance) — is
+not a new idea. It is a smaller, less rigorous, hand-rolled version of a
+system that already exists: Module Reconciliation.
+
+Module Reconciliation (`hooks/useModuleReconciliation.js`,
+`lib/reconciliation/moduleReconciliation.js`,
+`lib/reconciliation/reconciliationRules.js`) is already implemented and
+already feeds Model Readiness's checks. It already pulls P&L benchmark
+figures (labour_benchmark_total, assets_benchmark_total,
+general_overheads_benchmark_total, asset_finance_benchmark_total) and
+module-calculated figures (total_labour_cost_annual,
+total_asset_cost_annual, total_general_overheads) into one object. It has
+no dedicated page and its variance checking is currently a single lumped
+comparison, not the per-module breakdown its own controlling brief (10)
+specifies.
+
+Decision: retire Revenue Summary as a manual-entry page, and complete
+Module Reconciliation into the real "P&L vs modules, and why" page the
+user actually needs.
+
+---
+
+# 2. WHAT THIS BRIEF COVERS
+
+Part A — Retire Revenue Summary
+Part B — Extend Module Reconciliation with per-module variance checks
+Part C — Build the Module Reconciliation page
+
+---
+
+# PART A — RETIRE REVENUE SUMMARY
+
+# A1. WHAT "RETIRE" MEANS
+
+Revenue Summary's route, components, hook, calculations, and storage are
+not deleted in this pass. They are removed from navigation and from the
+active user flow, consistent with the project convention already used
+for Business Outcome's Recovery module rename (do not delete, do not
+silently orphan without a paper trail).
+
+# A2. CHANGES REQUIRED
+
+- Remove `{ href: "/revenue-summary", ... }` from
+  `components/layout/SidebarNavigation.jsx`.
+- Update whichever page currently has `nextHref`/`nextLabel` pointing at
+  `/revenue-summary` (needs confirmation which page this is — likely
+  Revenue / COGS or Cost Summary) to point at the new Module
+  Reconciliation route instead.
+- Update whichever page has `nextHref` pointing away from
+  `/revenue-summary` (its own Next button, currently → `/business-summary`)
+  — this logic moves to the new page.
+- Do NOT delete `app/revenue-summary/*`, `hooks/useRevenueSummary.js`,
+  `lib/calculations/revenueSummaryCalculations.js`,
+  `lib/selectors/revenueSummarySelectors.js`,
+  `lib/storage/revenueSummaryStorage.js`,
+  `lib/storage/revenueSummaryProfileStorage.js`. Leave in place, unrouted,
+  same treatment as other orphaned-but-preserved code in this project.
+- Check Model Readiness, Business Modelling, AI-Readable Business State
+  Export, Business Overview Dashboard, and Quote Checker for any
+  reference to Revenue Summary as a dependency (S15 section 8 lists all
+  of these as downstream consumers) and confirm none of them break if
+  Revenue Summary is unrouted. If any of them read a real value from
+  Revenue Summary's output (not just check that the module exists),
+  that must be flagged before this part proceeds — do not silently
+  swap the dependency.
+
+# A3. OPEN QUESTION FOR USER
+
+Before this part is built: confirm the exact page(s) whose Next button
+currently points to `/revenue-summary`, and confirm nothing downstream
+depends on a live Revenue Summary value (as opposed to just its
+presence/status). This needs a grep pass across the repo, not a guess.
+
+---
+
+# PART B — EXTEND MODULE RECONCILIATION WITH PER-MODULE VARIANCE
+
+# B1. CURRENT STATE (CONFIRMED FROM CODE)
+
+`reconciliationRules.js` currently produces these checks:
+
+- module_ready_checks: binary pass/fail for P&L, Labour, General
+  Overheads readiness
+- assets_readiness_check: binary pass/fail
+- employee_overheads_check: binary — flags legacy employee_overheads
+  still present in P&L
+- legacy_running_cost_check: binary warning — flags legacy
+  running_cost_annual on Assets
+- business_cost_variance_check: ONE lumped variance — compares
+  module_total_business_costs (labour + assets + overheads combined)
+  against setup_module_benchmark_total (or full P&L benchmark if the
+  setup-module benchmark is zero). Has variance_amount and
+  variance_percent. Flags "fail" if variance_percent > 1%.
+
+All the raw inputs needed for a per-module breakdown already exist in
+`normalised_reconciliation_inputs`:
+
+- labour_benchmark_total vs total_labour_cost_annual
+- assets_benchmark_total (and asset_finance_benchmark_total) vs
+  total_asset_cost_annual (and total_asset_interest_annual)
+- general_overheads_benchmark_total vs total_general_overheads
+
+Nothing currently compares these pairs individually. This is the gap.
+
+# B2. WHAT TO ADD
+
+Per controlling brief 10, sections 18-20, add three new check-builder
+functions to `reconciliationRules.js`, following the same shape as the
+existing `getBusinessCostVarianceCheck`:
+
+1. getLabourVarianceCheck
+   - source_amount = labour_benchmark_total
+   - module_amount = total_labour_cost_annual
+   - variance_amount = module_amount - source_amount
+   - variance_percent = abs(variance_amount) / source_amount * 100
+     (guard divide-by-zero)
+   - severity: warning if variance_percent exceeds an agreed threshold,
+     not auto-blocking (brief 10 section 18: "Do not call variance an
+     error automatically")
+   - possible_reasons: fixed list per brief 10 section 18 — timing
+     difference, payroll classification difference, owner/director pay
+     treatment, employee overheads included elsewhere, missing staff,
+     P&L period mismatch, module uses forward/current cost while P&L is
+     historical
+
+2. getAssetFinanceVarianceCheck
+   - source_amount = asset_finance_benchmark_total
+   - module_amount = total_asset_interest_annual
+   - same variance shape
+   - possible_reasons per brief 10 section 19 — end-of-year journal not
+     posted, loan interest timing, principal/interest split issue, asset
+     finance classified elsewhere, asset not entered
+
+3. getGeneralOverheadsVarianceCheck
+   - source_amount = general_overheads_benchmark_total
+   - module_amount = total_general_overheads
+   - same variance shape
+   - possible_reasons per brief 10 section 20 — asset finance excluded,
+     running costs transferred to Assets, staff overheads reclassified,
+     COGS accidentally included in overheads, manual overhead
+     adjustment, operating expense classification issue
+
+Each new check gets added to the `reconciliation_checks` array alongside
+the existing ones. The existing lumped `business_cost_variance_check` is
+kept as-is (it remains useful as the overall combined figure) — these
+three are additive, not a replacement.
+
+# B3. WHAT MUST NOT CHANGE
+
+- No changes to Labour, Assets, General Overheads, or P&L source
+  calculations.
+- No changes to Cost Summary, Business Summary, or any other downstream
+  consumer's own math.
+- No auto-correction of variance. Reconciliation shows the gap; it does
+  not resolve it.
+- No new blocking behaviour unless explicitly agreed — per brief 10,
+  variance is evidence, not automatically an error.
+
+---
+
+# PART C — BUILD THE MODULE RECONCILIATION PAGE
+
+# C1. ROUTE
+
+New route: `/module-reconciliation`
+
+Sidebar placement: needs confirmation — likely under "Business Truth"
+alongside where Revenue Summary previously sat, since it plays a similar
+role in the flow (P&L period truth-check before Business Summary).
+
+# C2. UI STRUCTURE (per brief 10 section 37)
+
+1. Module Reconciliation Status Strip — overall status, warning count,
+   blocking count, trust state
+2. P&L Benchmark Summary — P&L period, revenue, COGS, operating expense
+   benchmark, net profit, other income
+3. Module Totals Summary — Labour, Assets, General Overheads, Cost
+   Summary total cost burden
+4. Reconciliation Checks Table — all checks including the three new
+   per-module variance checks, each showing source amount, module
+   amount, variance amount, variance percent
+5. Variance Explanation Panel — for each variance check with a non-zero
+   material variance, show the possible_reasons list from B2
+6. Blocking Checks Panel
+7. Warning Checks Panel
+8. Help Panel
+
+This is a read-only page. No inputs. All figures are pulled from
+existing module output_contracts via `useModuleReconciliation`.
+
+# C3. ACCEPTANCE CRITERIA
+
+- Page builds clean (npm run build)
+- All three new per-module variance checks display source amount,
+  module amount, variance amount, variance percent, and possible-reason
+  list when variance is material
+- No source module values changed
+- No downstream module (Model Readiness, Business Summary, etc.) breaks
+- Old Revenue Summary route no longer in sidebar; files preserved, not
+  deleted
+- Visual verification via screenshot before commit
+- git status clean after commit, with commit message documenting scope
+
+---
+
+# 3. SEQUENCING
+
+Recommended build order:
+1. Part B first (extend reconciliationRules.js) — verify via a throwaway
+   check page, same technique used for Stage 2/Bug Fix work, before any
+   UI is touched.
+2. Part C (new page) — wire the now-complete reconciliation data.
+3. Part A (retire Revenue Summary) — last, once the replacement page is
+   confirmed working, so there's no gap where neither page is live.
+
+# 4. WHAT THIS BRIEF DOES NOT DECIDE
+
+- Exact sidebar group and position for the new page (open question, C1)
+- Exact variance threshold that flags "warning" vs "pass" for each of
+  the three new checks (open question, B2) — needs a number agreed with
+  user, not assumed
+- Whether the lumped business_cost_variance_check display changes on
+  the new page or stays exactly as-is elsewhere (Model Readiness still
+  uses it)
+
+These require explicit confirmation before build begins.
