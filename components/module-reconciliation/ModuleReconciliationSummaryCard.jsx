@@ -1,6 +1,16 @@
 ﻿"use client";
 
 import { useState } from "react";
+import Link from "next/link";
+
+const CHECK_ID_TO_MODULE_ROUTE = {
+  labour_variance: { href: "/labour", label: "Labour" },
+  asset_finance_variance: { href: "/assets", label: "Assets" },
+  general_overheads_variance: {
+    href: "/general-overheads",
+    label: "General Overheads",
+  },
+};
 
 function format_currency(value) {
   return `$${Math.round(Number(value || 0)).toLocaleString()}`;
@@ -161,6 +171,16 @@ function ComponentRow({
           />
 
           <p className="ui-help">{check.detail}</p>
+
+          {check.status !== "pass" && CHECK_ID_TO_MODULE_ROUTE[check.id] ? (
+            <Link
+              href={CHECK_ID_TO_MODULE_ROUTE[check.id].href}
+              className="ui-button-secondary"
+              style={{ width: "fit-content" }}
+            >
+              Go to {CHECK_ID_TO_MODULE_ROUTE[check.id].label}
+            </Link>
+          ) : null}
 
           {has_asset_breakdown ? (
             <NamedAmountBreakdown
