@@ -13,7 +13,9 @@ const CHECK_ID_TO_MODULE_ROUTE = {
 };
 
 function format_currency(value) {
-  return `$${Math.round(Number(value || 0)).toLocaleString()}`;
+  const rounded = Math.round(Number(value || 0));
+  const sign = rounded < 0 ? "-" : "";
+  return `${sign}$${Math.abs(rounded).toLocaleString()}`;
 }
 
 function format_percent(value) {
@@ -54,12 +56,36 @@ function AmountStack({ source_amount, module_amount }) {
 
 // Real named-item breakdown (per-asset finance, or per-staff
 // owner/director cost), plus how much of the gap it accounts for.
+function get_breakdown_summary_text(breakdown_total, gap_amount) {
+  if (typeof gap_amount !== "number") return null;
+
+  // Module is not currently higher than P&L (gap_amount <= 0), so a
+  // cost-adding factor like this cannot be "explaining" the current
+  // gap - other differences must be offsetting it in the other
+  // direction. Saying otherwise (with a signed subtraction) produces
+  // nonsense like "$-151,526 remains unexplained".
+  if (gap_amount <= 0) {
+    return `This is a real cost of ${format_currency(breakdown_total)}, but the module total is not currently higher than the P&L, so this factor alone does not explain the current gap - other differences are offsetting it.`;
+  }
+
+  const remaining = gap_amount - breakdown_total;
+
+  if (Math.abs(remaining) < 50) {
+    return `This accounts for the full ${format_currency(gap_amount)} gap.`;
+  }
+
+  if (remaining > 0) {
+    return `This accounts for ${format_currency(breakdown_total)} of the ${format_currency(gap_amount)} gap. ${format_currency(remaining)} remains unexplained by this factor alone.`;
+  }
+
+  return `This factor alone (${format_currency(breakdown_total)}) is larger than the full ${format_currency(gap_amount)} gap, meaning other differences are offsetting part of it.`;
+}
+
 function NamedAmountBreakdown({ title, rows = [], note, gap_amount }) {
   if (rows.length === 0) return null;
 
   const breakdown_total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
-  const remaining = gap_amount - breakdown_total;
-  const is_fully_explained = Math.abs(remaining) < 50;
+  const summary_text = get_breakdown_summary_text(breakdown_total, gap_amount);
 
   return (
     <div className="ui-stack-sm">
@@ -77,13 +103,7 @@ function NamedAmountBreakdown({ title, rows = [], note, gap_amount }) {
         ))}
       </div>
       {note ? <p className="ui-help">{note}</p> : null}
-      {typeof gap_amount === "number" ? (
-        <p className="ui-help">
-          {is_fully_explained
-            ? `This accounts for the full ${format_currency(gap_amount)} gap.`
-            : `This accounts for ${format_currency(breakdown_total)} of the ${format_currency(gap_amount)} gap. ${format_currency(remaining)} remains unexplained by this factor alone.`}
-        </p>
-      ) : null}
+      {summary_text ? <p className="ui-help">{summary_text}</p> : null}
     </div>
   );
 }
