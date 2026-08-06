@@ -10,8 +10,16 @@ function format_percent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
-function Pill({ text, tone = "ok" }) {
-  return <span className={`ui-pill ui-pill-${tone}`}>{text}</span>;
+function Pill({ text, tone = "ok", onClick }) {
+  if (!onClick) {
+    return <span className={`ui-pill ui-pill-${tone}`}>{text}</span>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} style={{ all: "unset", cursor: "pointer" }}>
+      <span className={`ui-pill ui-pill-${tone}`}>{text}</span>
+    </button>
+  );
 }
 
 function AmountStack({ source_amount, module_amount }) {
@@ -208,28 +216,69 @@ export default function ModuleReconciliationSummaryCard({
   owner_director_breakdown = [],
 }) {
   // Whole group (Labour / Asset Finance / Overheads) hidden until the
-  // Gap row is clicked - keeps the card compact by default.
+  // Gap row (or a Blocking/Warnings pill) is clicked - keeps the card
+  // compact by default. One shared piece of state, multiple triggers.
   const [group_open, set_group_open] = useState(false);
-  const [open_check_id, set_open_check_id] = useState(null);
+  const [open_check_ids, set_open_check_ids] = useState([]);
   const [hovered_check_id, set_hovered_check_id] = useState(null);
 
   function toggle_check(check_id) {
-    set_open_check_id((current) => (current === check_id ? null : check_id));
+    set_open_check_ids((current) =>
+      current.includes(check_id)
+        ? current.filter((id) => id !== check_id)
+        : [...current, check_id],
+    );
+  }
+
+  const warning_checks = component_checks.filter(
+    (check) => check.is_warning && !check.is_blocking,
+  );
+  const blocking_count = business_cost_check?.is_blocking ? 1 : 0;
+  const warning_count = warning_checks.length;
+
+  // Blocking pill: open the group and show the plain-English blocking
+  // explanation (rendered below regardless, once group is open).
+  function open_for_blocking() {
+    set_group_open(true);
+  }
+
+  // Warnings pill: open the group AND auto-expand every row that is
+  // actually a warning, so the messages are visible immediately rather
+  // than needing a second click per row.
+  function open_for_warnings() {
+    set_group_open(true);
+    set_open_check_ids((current) => {
+      const warning_ids = warning_checks.map((check) => check.id);
+      const merged = new Set([...current, ...warning_ids]);
+      return Array.from(merged);
+    });
   }
 
   return (
-    <section className="ui-section">
+    <div className="ui-stack">
+      <div className="ui-hero">
+        <div className="ui-hero-inner">
+          <p className="ui-kicker">Module Reconciliation</p>
+          <h1 className="ui-hero-title">P&amp;L vs modules</h1>
+          <p className="ui-hero-copy">
+            Compares what your P&amp;L says against what Labour, Assets, and
+            General Overheads independently calculate, and shows where and
+            why they differ.
+          </p>
+        </div>
+      </div>
+
+      <section className="ui-section">
       <div className="ui-panel">
         <div className="ui-stack">
           <div>
-            <p className="ui-kicker">Module Reconciliation</p>
-            <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-              P&amp;L vs modules
-            </h1>
+            <p className="ui-kicker">Reconciliation Summary</p>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Current reconciliation position
+            </h2>
             <p className="text-sm text-[var(--text-secondary)]">
-              Compares what your P&amp;L says against what Labour, Assets,
-              and General Overheads independently calculate, and shows where
-              and why they differ.
+              Read-only comparison of P&amp;L and module-calculated business
+              costs.
             </p>
           </div>
 
@@ -237,6 +286,16 @@ export default function ModuleReconciliationSummaryCard({
             <Pill
               text={reconciliation_ready ? "Reconciled" : "Review required"}
               tone={reconciliation_ready ? "good" : "bad"}
+            />
+            <Pill
+              text={`Blocking: ${blocking_count}`}
+              tone={blocking_count > 0 ? "bad" : "good"}
+              onClick={blocking_count > 0 ? open_for_blocking : undefined}
+            />
+            <Pill
+              text={`Warnings: ${warning_count}`}
+              tone={warning_count > 0 ? "bad" : "good"}
+              onClick={warning_count > 0 ? open_for_warnings : undefined}
             />
           </div>
 
@@ -269,6 +328,17 @@ export default function ModuleReconciliationSummaryCard({
                     : ""}
                 </div>
               </button>
+
+              {group_open && business_cost_check.is_blocking ? (
+                <div className="business-summary-macro-note">
+                  <p className="ui-help">
+                    This gap is blocking - the model is not trusted for
+                    downstream pages until it is explained or corrected.{" "}
+                    {business_cost_check.recommended_action ||
+                      "Review Labour, Assets, General Overheads, and P&L classification below."}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -278,7 +348,7 @@ export default function ModuleReconciliationSummaryCard({
                 <ComponentRow
                   key={check.id}
                   check={check}
-                  is_open={open_check_id === check.id}
+                  is_open={open_check_ids.includes(check.id)}
                   is_hovered={hovered_check_id === check.id}
                   is_muted={
                     Boolean(hovered_check_id) && hovered_check_id !== check.id
@@ -294,6 +364,7 @@ export default function ModuleReconciliationSummaryCard({
           ) : null}
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
