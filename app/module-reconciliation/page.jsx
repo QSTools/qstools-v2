@@ -4,6 +4,7 @@ import useModuleReconciliation from "@/hooks/useModuleReconciliation";
 import ModuleReconciliationSummaryCard from "@/components/module-reconciliation/ModuleReconciliationSummaryCard";
 import ModuleReconciliationReadinessChecklist from "@/components/module-reconciliation/ModuleReconciliationReadinessChecklist";
 import ModuleReconciliationHelpPanel from "@/components/module-reconciliation/ModuleReconciliationHelpPanel";
+import NextStepFooter from "@/components/navigation/NextStepFooter";
 
 const COMPONENT_CHECK_IDS = [
   "labour_variance",
@@ -94,6 +95,11 @@ export default function ModuleReconciliationPage() {
       <ModuleReconciliationReadinessChecklist checks={readiness_checks} />
 
       <ModuleReconciliationHelpPanel />
+
+      <NextStepFooter
+        nextHref="/cost-summary"
+        nextLabel="Next: Cost Summary"
+      />
     </div>
   );
 }

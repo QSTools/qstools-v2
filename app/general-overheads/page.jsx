@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
@@ -30,8 +30,8 @@ export default function GeneralOverheadsPage() {
         <GeneralOverheadMainCard {...card} />
         <GeneralOverheadHelpPanel />
         <NextStepFooter
-          nextHref="/cost-summary"
-          nextLabel="Next: Cost Summary"
+          nextHref="/module-reconciliation"
+          nextLabel="Next: Module Reconciliation"
         />
       </div>
     </main>

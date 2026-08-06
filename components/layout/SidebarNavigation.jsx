@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
+import useModuleReconciliation from "@/hooks/useModuleReconciliation";
 
 const nav_groups = [
   {
@@ -26,6 +27,7 @@ const nav_groups = [
       { href: "/assets", label: "Assets" },
       { href: "/opening-hours", label: "Opening Hours" },
       { href: "/general-overheads", label: "General Overheads" },
+      { href: "/module-reconciliation", label: "Module Reconciliation" },
     ],
   },
   {
@@ -34,7 +36,6 @@ const nav_groups = [
       { href: "/cost-summary", label: "Cost Summary" },
       { href: "/revenue-reality", label: "Revenue Reality" },
       { href: "/revenue-summary", label: "Revenue Summary" },
-      { href: "/module-reconciliation", label: "Module Reconciliation" },
       { href: "/business-summary", label: "Business Summary" },
     ],
   },
@@ -156,7 +157,28 @@ function get_item_classes(active, locked = false) {
   return "ui-nav-item";
 }
 
-function NavigationItem({ item, active }) {
+function StatusDot({ tone }) {
+  if (!tone) return null;
+
+  const color = tone === "good" ? "var(--success)" : "var(--danger)";
+
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-block",
+        width: 8,
+        height: 8,
+        borderRadius: "9999px",
+        backgroundColor: color,
+        marginRight: 8,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+function NavigationItem({ item, active, status_dot_tone }) {
   const is_locked = is_setup_route_locked(item.href);
 
   if (is_locked) {
@@ -166,6 +188,7 @@ function NavigationItem({ item, active }) {
         className={get_item_classes(false, true)}
         title="Complete the previous setup step first"
       >
+        <StatusDot tone={status_dot_tone} />
         {item.label}
       </div>
     );
@@ -173,6 +196,7 @@ function NavigationItem({ item, active }) {
 
   return (
     <Link href={item.href} className={get_item_classes(active)}>
+      <StatusDot tone={status_dot_tone} />
       {item.label}
     </Link>
   );
@@ -185,12 +209,20 @@ export default function SidebarNavigation() {
     get_initial_open_group_label(pathname)
   );
 
+  const { status: reconciliation_status } = useModuleReconciliation();
+  const reconciliation_ready = reconciliation_status?.reconciliation_ready;
+
   function toggle_group(label) {
     set_open_group((current) => (current === label ? null : label));
   }
 
   function is_active(href) {
     return is_active_path(pathname, href);
+  }
+
+  function get_status_dot_tone(href) {
+    if (href !== "/module-reconciliation") return undefined;
+    return reconciliation_ready ? "good" : "bad";
   }
 
   return (
@@ -223,7 +255,7 @@ export default function SidebarNavigation() {
                   onClick={() => toggle_group(group.label)}
                 >
                   <span>{group.label}</span>
-                  <span>{is_open ? "−" : "+"}</span>
+                  <span>{is_open ? "-" : "+"}</span>
                 </button>
 
                 {is_open ? (
@@ -233,6 +265,7 @@ export default function SidebarNavigation() {
                         key={item.href}
                         item={item}
                         active={is_active(item.href)}
+                        status_dot_tone={get_status_dot_tone(item.href)}
                       />
                     ))}
                   </div>
@@ -255,4 +288,3 @@ export default function SidebarNavigation() {
     </aside>
   );
 }
-
