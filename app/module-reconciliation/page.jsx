@@ -1,13 +1,11 @@
 ﻿"use client";
 
 import useModuleReconciliation from "@/hooks/useModuleReconciliation";
-import ModuleReconciliationStatusStrip from "@/components/module-reconciliation/ModuleReconciliationStatusStrip";
-import ModuleReconciliationComparisonCard from "@/components/module-reconciliation/ModuleReconciliationComparisonCard";
+import ModuleReconciliationSummaryCard from "@/components/module-reconciliation/ModuleReconciliationSummaryCard";
 import ModuleReconciliationReadinessChecklist from "@/components/module-reconciliation/ModuleReconciliationReadinessChecklist";
 import ModuleReconciliationHelpPanel from "@/components/module-reconciliation/ModuleReconciliationHelpPanel";
 
-const VARIANCE_CHECK_IDS = [
-  "business_cost_variance",
+const COMPONENT_CHECK_IDS = [
   "labour_variance",
   "asset_finance_variance",
   "general_overheads_variance",
@@ -18,7 +16,7 @@ const VARIANCE_CHECK_IDS = [
 // editable staff_type_name label, so a rename does not break this.
 const OWNER_DIRECTOR_STAFF_TYPE_ID = "owner_director";
 
-// The older business_cost_variance check uses legacy field names
+// The business_cost_variance check uses legacy field names
 // (comparison_total / pnl_business_cost) instead of source_amount /
 // module_amount. Normalise for display only. No change to the
 // underlying calculation in reconciliationRules.js.
@@ -40,12 +38,21 @@ export default function ModuleReconciliationPage() {
 
   const reconciliation_checks = status.reconciliation_checks || [];
 
-  const comparison_checks = reconciliation_checks
-    .filter((check) => VARIANCE_CHECK_IDS.includes(check.id))
-    .map(normalise_check_for_display);
+  const business_cost_check_raw = reconciliation_checks.find(
+    (check) => check.id === "business_cost_variance",
+  );
+  const business_cost_check = business_cost_check_raw
+    ? normalise_check_for_display(business_cost_check_raw)
+    : null;
+
+  const component_checks = reconciliation_checks.filter((check) =>
+    COMPONENT_CHECK_IDS.includes(check.id),
+  );
 
   const readiness_checks = reconciliation_checks.filter(
-    (check) => !VARIANCE_CHECK_IDS.includes(check.id),
+    (check) =>
+      check.id !== "business_cost_variance" &&
+      !COMPONENT_CHECK_IDS.includes(check.id),
   );
 
   // Real per-asset finance breakdown, sourced directly from the Assets
@@ -76,14 +83,10 @@ export default function ModuleReconciliationPage() {
 
   return (
     <div className="ui-stack">
-      <ModuleReconciliationStatusStrip
+      <ModuleReconciliationSummaryCard
         reconciliation_ready={status.reconciliation_ready}
-        blocking_count={(status.blocking_checks || []).length}
-        warning_count={(status.warning_checks || []).length}
-      />
-
-      <ModuleReconciliationComparisonCard
-        checks={comparison_checks}
+        business_cost_check={business_cost_check}
+        component_checks={component_checks}
         asset_finance_breakdown={asset_finance_breakdown}
         owner_director_breakdown={owner_director_breakdown}
       />
