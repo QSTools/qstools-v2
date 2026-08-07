@@ -220,7 +220,6 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
       profiles,
       active_profile_id,
       inputs_enabled,
-      pnl_benchmark_total: 0,
     });
   }, [state, outputs, profiles, active_profile_id, inputs_enabled]);
 
@@ -275,3 +274,4 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
 }
 
 export default useLabour;
+

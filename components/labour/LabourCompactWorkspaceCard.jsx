@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import LabourProfileCard from "@/components/labour/LabourProfileCard";
 import SavedProfilesCard from "@/components/labour/SavedProfilesCard";
@@ -95,11 +96,14 @@ function WorkspaceTile({
   );
 }
 
+// Readiness here is Labour's OWN completeness only (per
+// labourStatusSelectors.js) - staff name, hours, rate, productivity,
+// positive costs. It does NOT reflect P&L variance - that comparison
+// is whole-business, not per-employee, and belongs on the Module
+// Reconciliation page instead (see the link in ReviewDetail below).
 function get_readiness_value(labour = {}) {
   if (!labour.has_profile) return "No profile";
-  if (labour.status?.labour_ready || labour.status?.is_ready) return "Ready";
-  if (labour.status?.labour_status === "amber") return "Review";
-  if (labour.status?.labour_status === "red") return "Blocked";
+  if (labour.status?.is_ready) return "Ready";
   return "Review";
 }
 
@@ -228,22 +232,6 @@ function ReviewDetail({ labour = {} }) {
       label: "Productive hours",
       value: labour.status?.productive_hours_label || "0 hrs",
     },
-    {
-      label: "P&L benchmark",
-      value: labour.status?.pnl_benchmark_total_label || "$0",
-    },
-    {
-      label: "Module total",
-      value: labour.status?.module_total_label || "$0",
-    },
-    {
-      label: "Variance amount",
-      value: labour.status?.labour_variance_amount_label || "$0",
-    },
-    {
-      label: "Variance percent",
-      value: labour.status?.labour_variance_percent_label || "0%",
-    },
   ];
 
   return (
@@ -252,8 +240,8 @@ function ReviewDetail({ labour = {} }) {
         <div className="ui-stack-sm">
           <div className="ui-kicker">Review path detail</div>
           <p className="ui-help">
-            Shows readiness, reconciliation, and warnings that need review
-            before Labour cost truth flows downstream.
+            Shows readiness and warnings for this staff profile before
+            relying on this Labour output.
           </p>
           <SummaryTable rows={review_rows} />
         </div>
@@ -274,6 +262,24 @@ function ReviewDetail({ labour = {} }) {
           ) : (
             <p className="ui-help">No current warnings.</p>
           )}
+        </div>
+      </div>
+
+      <div className="ui-panel">
+        <div className="ui-stack-sm">
+          <div className="ui-kicker">Whole-business comparison</div>
+          <p className="ui-help">
+            Labour vs P&L reconciliation is a whole-business comparison
+            across all staff, not a per-employee figure - it lives on the
+            Module Reconciliation page.
+          </p>
+          <Link
+            href="/module-reconciliation"
+            className="ui-button-secondary"
+            style={{ width: "fit-content" }}
+          >
+            Go to Module Reconciliation
+          </Link>
         </div>
       </div>
     </div>
