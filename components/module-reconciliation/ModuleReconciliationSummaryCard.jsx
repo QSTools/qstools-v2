@@ -22,6 +22,17 @@ function format_percent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
 }
 
+function format_date(iso_string) {
+  if (!iso_string) return "";
+  const date = new Date(iso_string);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-NZ", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function Pill({ text, tone = "ok", onClick }) {
   if (!onClick) {
     return <span className={`ui-pill ui-pill-${tone}`}>{text}</span>;
@@ -32,6 +43,19 @@ function Pill({ text, tone = "ok", onClick }) {
       <span className={`ui-pill ui-pill-${tone}`}>{text}</span>
     </button>
   );
+}
+
+// S20/S21: one pill treatment per check status. timing_expected and
+// accepted are both non-blocking, non-warning states with a specific
+// explanation behind them (system-inferred vs user-confirmed) - both
+// use the "good" tone (no separate CSS tone is confirmed to exist for
+// a third colour) but distinct text, so they're still visually
+// distinguishable from a genuine unresolved "Variance".
+function get_pill_props(check) {
+  if (check.status === "pass") return { text: "Reconciled", tone: "good" };
+  if (check.status === "timing_expected") return { text: "Expected", tone: "good" };
+  if (check.status === "accepted") return { text: "Accepted", tone: "good" };
+  return { text: "Variance", tone: "bad" };
 }
 
 function AmountStack({ source_amount, module_amount }) {
@@ -108,6 +132,95 @@ function NamedAmountBreakdown({ title, rows = [], note, gap_amount }) {
   );
 }
 
+// S20: inline form to accept a specific "warn" check. Reason is
+// required - an acceptance with no reason recorded defeats the point
+// (S20 section 1: "on the record", not "hidden"). Inline styles are
+// used for the textarea rather than a guessed CSS class, since no
+// existing textarea styling convention was confirmed in this codebase.
+function AcceptCheckForm({ check_id, current_variance_amount, on_accept }) {
+  const [reason, set_reason] = useState("");
+  const [submitting, set_submitting] = useState(false);
+
+  function handle_submit(event) {
+    event.preventDefault();
+    const trimmed = reason.trim();
+    if (!trimmed || submitting) return;
+
+    set_submitting(true);
+    on_accept({
+      check_id,
+      accepted_variance_amount: current_variance_amount,
+      reason: trimmed,
+    });
+  }
+
+  return (
+    <form className="ui-stack-sm" onSubmit={handle_submit}>
+      <label className="ui-kicker" htmlFor={`accept-reason-${check_id}`}>
+        Accept this variance - reason (required)
+      </label>
+      <textarea
+        id={`accept-reason-${check_id}`}
+        value={reason}
+        onChange={(event) => set_reason(event.target.value)}
+        placeholder="Why is this number correct as-is?"
+        rows={2}
+        style={{
+          width: "100%",
+          background: "rgba(255,255,255,0.06)",
+          color: "inherit",
+          border: "1px solid rgba(255,255,255,0.18)",
+          borderRadius: "6px",
+          padding: "8px",
+          font: "inherit",
+          resize: "vertical",
+        }}
+      />
+      <button
+        type="submit"
+        className="ui-button-secondary"
+        style={{ width: "fit-content" }}
+        disabled={!reason.trim() || submitting}
+      >
+        Accept
+      </button>
+    </form>
+  );
+}
+
+// S20: shown once a check has been accepted and the number hasn't
+// moved since - the reason and date sit alongside the real numbers,
+// not instead of them (S20 section 11).
+function AcceptedNote({ reason, accepted_at }) {
+  return (
+    <div className="ui-stack-sm">
+      <p className="ui-kicker">Accepted</p>
+      <p className="ui-help">
+        {format_date(accepted_at)} - &quot;{reason}&quot;
+      </p>
+    </div>
+  );
+}
+
+// S20 section 6/9: shown when a check was previously accepted but the
+// underlying source data has since changed - the old acceptance no
+// longer describes what's here, so it doesn't silently apply, but its
+// history stays visible rather than disappearing without a trace.
+function StaleAcceptanceNote({ stale_acceptance }) {
+  if (!stale_acceptance) return null;
+
+  return (
+    <div className="ui-stack-sm">
+      <p className="ui-kicker">Previously accepted</p>
+      <p className="ui-help">
+        Accepted {format_date(stale_acceptance.accepted_at)} - &quot;
+        {stale_acceptance.reason}&quot;. The number has changed since then,
+        so this needs a fresh look.
+      </p>
+    </div>
+  );
+}
+
 // One row for a single component check (Labour, Asset Finance, or
 // General Overheads), or a nested sub-check (Wages, On-costs) drilling
 // down under Labour. depth > 0 renders as an indented child row using
@@ -122,6 +235,7 @@ function ComponentRow({
   hovered_check_id,
   set_hovered_check_id,
   toggle_check,
+  on_accept,
   asset_finance_breakdown = [],
   owner_director_breakdown = [],
 }) {
@@ -154,6 +268,13 @@ function ComponentRow({
   const has_sub_checks =
     Array.isArray(check.sub_checks) && check.sub_checks.length > 0;
 
+  // S20 section 3: only plain "warn", non-blocking checks are eligible
+  // for Accept. pass/timing_expected/accepted/blocking all render no
+  // accept form - nothing to accept, or not eligible.
+  const is_accept_eligible = check.status === "warn" && !check.is_blocking;
+
+  const pill = get_pill_props(check);
+
   const row_className = [
     "cost-summary-drill-row",
     "clickable",
@@ -176,10 +297,7 @@ function ComponentRow({
       >
         <div className="ui-stack-sm">
           <div className="cost-summary-drill-label">{check.label}</div>
-          <Pill
-            text={check.status === "pass" ? "Reconciled" : "Variance"}
-            tone={check.status === "pass" ? "good" : "bad"}
-          />
+          <Pill text={pill.text} tone={pill.tone} />
         </div>
 
         <div className="cost-summary-drill-value">
@@ -254,6 +372,25 @@ function ComponentRow({
             </div>
           ) : null}
 
+          {check.status === "accepted" ? (
+            <AcceptedNote
+              reason={check.accepted_reason}
+              accepted_at={check.accepted_at}
+            />
+          ) : null}
+
+          {check.stale_acceptance ? (
+            <StaleAcceptanceNote stale_acceptance={check.stale_acceptance} />
+          ) : null}
+
+          {is_accept_eligible && on_accept ? (
+            <AcceptCheckForm
+              check_id={check.id}
+              current_variance_amount={check.variance_amount}
+              on_accept={on_accept}
+            />
+          ) : null}
+
           {has_sub_checks ? (
             <div className="ui-stack-sm">
               <p className="ui-kicker">Breakdown</p>
@@ -266,6 +403,7 @@ function ComponentRow({
                   hovered_check_id={hovered_check_id}
                   set_hovered_check_id={set_hovered_check_id}
                   toggle_check={toggle_check}
+                  on_accept={on_accept}
                   asset_finance_breakdown={asset_finance_breakdown}
                   owner_director_breakdown={owner_director_breakdown}
                 />
@@ -281,6 +419,8 @@ function ComponentRow({
 // Every issue that should count toward the Warnings pill and get
 // auto-expanded when it's clicked - a top-level check's own warning,
 // plus any warning among its sub_checks (S21 wages/on-costs split).
+// "accepted" checks are never is_warning (per the reconciliationRules.js
+// overlay), so they're correctly excluded here with no extra logic.
 function get_all_warning_checks(component_checks) {
   return component_checks.flatMap((check) => [
     check,
@@ -317,6 +457,7 @@ export default function ModuleReconciliationSummaryCard({
   component_checks = [],
   asset_finance_breakdown = [],
   owner_director_breakdown = [],
+  accept_check = null,
 }) {
   // Whole group (Labour / Asset Finance / Overheads) hidden until the
   // Gap row (or a Blocking/Warnings pill) is clicked - keeps the card
@@ -454,6 +595,7 @@ export default function ModuleReconciliationSummaryCard({
                   hovered_check_id={hovered_check_id}
                   set_hovered_check_id={set_hovered_check_id}
                   toggle_check={toggle_check}
+                  on_accept={accept_check}
                   asset_finance_breakdown={asset_finance_breakdown}
                   owner_director_breakdown={owner_director_breakdown}
                 />

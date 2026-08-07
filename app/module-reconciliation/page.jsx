@@ -49,7 +49,7 @@ function normalise_check_for_display(check) {
 }
 
 export default function ModuleReconciliationPage() {
-  const { status, modules } = useModuleReconciliation();
+  const { status, modules, accept_check } = useModuleReconciliation();
 
   const reconciliation_checks = status.reconciliation_checks || [];
 
@@ -70,7 +70,10 @@ export default function ModuleReconciliationPage() {
 
   // Attach wages/on-costs to the blended Labour check as sub_checks -
   // the macro layer stays a single card, its components become a
-  // drill-down inside it instead of separate sibling cards.
+  // drill-down inside it instead of separate sibling cards. These
+  // check objects already carry any S20 accepted/stale_acceptance
+  // fields, since that overlay runs inside reconciliationRules.js
+  // before this nesting step ever sees them.
   const component_checks = top_level_checks.map((check) =>
     check.id === "labour_variance"
       ? { ...check, sub_checks: labour_sub_checks }
@@ -117,6 +120,7 @@ export default function ModuleReconciliationPage() {
         component_checks={component_checks}
         asset_finance_breakdown={asset_finance_breakdown}
         owner_director_breakdown={owner_director_breakdown}
+        accept_check={accept_check}
       />
 
       <ModuleReconciliationReadinessChecklist checks={readiness_checks} />

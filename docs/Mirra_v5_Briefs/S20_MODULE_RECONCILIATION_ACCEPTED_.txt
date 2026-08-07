@@ -1,0 +1,206 @@
+S20_MODULE_RECONCILIATION_ACCEPTED_VARIANCE_BASELINE_BRIEF_v5_0
+STATUS: DRAFT - NOT YET BUILT
+DATE: 2026-08-07
+SUPERSEDES: earlier S20 draft (never saved to this repo, delivered as a
+  chat download and since lost - this is a full rewrite, not an edit)
+DEPENDS ON: S21_MODULE_RECONCILIATION_TOLERANCE.txt (LOCKED, IMPLEMENTED)
+
+# 1. PURPOSE
+
+S21 automatically classifies the variance checks that follow a known,
+explainable pattern - timing lags on Asset Finance interest and Labour
+on-costs get timing_expected, wages get treated as a tight-tolerance
+data-quality check. That covers the majority of what used to be one
+undifferentiated pile of "Attention" pills.
+
+What S21 cannot do is cover a genuine one-off - a variance that isn't
+a timing lag and isn't a data error, but is still correct for a reason
+specific to this business that the system has no way to infer (an
+unusual classification choice, a one-off accounting treatment, a
+category that genuinely behaves differently for this business than
+the general pattern assumes).
+
+S20 exists to let the user say, explicitly and on the record: "I've
+looked at this specific number, and it's right, because ___." Nothing
+more than that. It is not a way to make a warning disappear without
+looking at it - it is a way to record that it has been looked at.
+
+# 2. FRAMING - THIS IS BASELINE, NOT LIVE DATA
+
+Important correction from the original design conversation: this is
+not a "drift" or "future actuals" mechanism. Mirra currently reconciles
+against a single, current-state P&L. There is no recurring monthly
+data feed yet - that's a distinct, future capability (Model Feedback
+Loop, brief 24, not active). Every check in Module Reconciliation
+today describes "what this business has been doing," not a moving
+target.
+
+Because of that, there is exactly one thing that can ever change a
+check's variance_amount today: the user editing a source module -
+reclassifying a P&L line, editing an asset, changing a Labour entry.
+S20's reopening rule (section 5) is built entirely around that single
+fact. It should not be extended to cover recurring/monthly data
+without being reviewed first, since a monthly rollover is a
+fundamentally different kind of change to variance_amount than editing
+today's baseline - see section 8.
+
+# 3. SCOPE
+
+Only checks with status "warn" are eligible for manual accept.
+
+- status "pass": nothing to accept, already reconciled.
+- status "timing_expected": already automatically explained by S21,
+  no user action needed or offered.
+- status "warn" AND is_blocking: not eligible. Blocking checks (e.g.
+  employee_overheads still present in P&L) require the underlying
+  issue to actually be fixed, not acknowledged. Accept must never be
+  offered on a blocking check.
+- status "warn" AND NOT is_blocking: eligible. This is the residual
+  category S21 doesn't already explain.
+
+# 4. ACCEPT ACTION
+
+User clicks "Accept" on a specific eligible check (top-level or nested
+sub-check - both labour_wages_variance and labour_on_costs_variance
+are individually eligible, same as any top-level check, since S21's
+nesting is a display grouping, not a scope restriction).
+
+Required input: a short free-text reason. Not optional - an acceptance
+with no reason recorded defeats the purpose (section 1: "on the
+record", not "hidden").
+
+On submit, store:
+
+{
+  check_id,
+  accepted_variance_amount,   // variance_amount at the moment of accept
+  reason,                     // free text, required
+  accepted_at,                // timestamp
+}
+
+# 5. NEW STATUS VALUE: "accepted"
+
+A fourth check status, alongside pass / warn / timing_expected.
+
+- Not counted toward the Warnings pill (same treatment as
+  timing_expected).
+- Not blocking.
+- Visually distinct from all three other states - not the same pill
+  styling as a plain "Variance" warning, and not styled identically to
+  timing_expected either, since the reasoning behind each is different
+  and the user should be able to tell at a glance which is which.
+- Message/detail text should surface the stored reason and accepted_at
+  date directly on the check, not just a generic "accepted" label.
+
+# 6. REOPENING RULE
+
+If the check's CURRENT variance_amount differs from
+accepted_variance_amount by more than $1 (matching the existing
+rounding-tolerance convention used elsewhere in this system - see
+brief 03 section 6, "absolute difference <= 1.00 may be rounding_only"),
+the check automatically reverts to "warn". The old acceptance record is
+NOT deleted - it remains visible as history (who/when/why it was
+accepted, and what the number was then), consistent with the system's
+existing Accepted Snapshot Rule (brief 00 section 31: "Accepted
+snapshots must not be overwritten by later actuals... Actuals do not
+rewrite history").
+
+Per section 2, the only thing that can currently trigger this is the
+user editing a source module. That is intentional and correct: if you
+reclassify a P&L line, edit an asset, or change a Labour entry, the
+baseline itself changed, so the old acceptance no longer describes
+what's actually there and needs a fresh look.
+
+# 7. STORAGE
+
+New file: lib\storage\moduleReconciliationAcceptanceStorage.js
+
+Browser-based storage, same pattern as every other storage file in
+this codebase (e.g. revenueSummaryStorage.js, labourProfileStorage.js).
+Keyed by check_id. One record per check_id (a new Accept overwrites
+the previous acceptance record for that same check, it does not
+append a history list - only one "currently accepted" state exists per
+check at a time, per section 6's reopening behaviour).
+
+# 8. IMPLEMENTATION NOTE - LAYERING (TO CONFIRM DURING BUILD)
+
+reconciliationRules.js is a pure calculation file with no storage
+access, per brief 00 section 33 (file/hook/calculation/selector
+responsibility separation). Reading acceptance records from browser
+storage is a side effect and must not happen inside it.
+
+Proposed structure:
+- reconciliationRules.js stays exactly as S21 left it - produces
+  checks with status pass/warn/timing_expected, unchanged. No
+  knowledge of acceptance at all.
+- A new pure function, also in reconciliationRules.js (still no
+  storage access - it just takes data in, returns data out), applies
+  an acceptance overlay: given the checks array and a set of
+  acceptance records, for each "warn" check with a matching
+  accepted record whose accepted_variance_amount equals the check's
+  current variance_amount (within the $1 tolerance), override its
+  status to "accepted" and attach the reason/accepted_at. Otherwise
+  leave it as "warn".
+- useModuleReconciliation.js (the hook layer) reads acceptance records
+  from the new storage file and calls this overlay function after
+  buildModuleReconciliationChecks - the hook owns the storage read,
+  the calculation file stays pure and testable.
+- The Accept action itself (writing a new record) is a hook-level
+  function exposed from useModuleReconciliation.js or a small
+  dedicated hook, following the same save/update pattern already used
+  elsewhere (e.g. useLabour.js's save_profile).
+
+This is a proposed structure, not yet built or verified against the
+real file - confirm useModuleReconciliation.js's actual shape before
+wiring this in, same discipline used throughout S21's build (verify
+real field names and file structure before writing code, don't assume
+from the brief).
+
+# 9. UI REQUIREMENTS
+
+- Accept button/action only rendered for eligible checks (section 3) -
+  never shown on pass, timing_expected, or blocking checks.
+- Reason input required before Accept can be submitted.
+- Accepted checks show their reason and accepted_at date inline, not
+  hidden behind an extra click - same "no hiding" standard applied
+  throughout this project's reconciliation work.
+- If a check reopens (section 6), the UI should make clear that this
+  was previously accepted and has since changed, not just silently
+  revert to looking like a check that was never touched - the history
+  matters.
+- Exact visual treatment (colour, pill copy, icon) not specified here -
+  to be designed against the real ModuleReconciliationSummaryCard.jsx
+  component during build, matching its existing pill/status patterns
+  (Pill component, tone="good"/"bad" per the existing convention).
+
+# 10. WHAT THIS BRIEF DOES NOT DO
+
+- Does not apply to blocking checks (section 3).
+- Does not apply to timing_expected checks - S21 already explains
+  those, offering Accept on top would be redundant and would blur the
+  distinction between "system explained it" and "user explained it".
+- Does not build any recurring/monthly actuals mechanism - that is
+  Model Feedback Loop (brief 24), explicitly out of scope, and this
+  brief's reopening rule (section 6) is NOT the right mechanism for
+  that future problem. Flagging this now so nobody assumes S20's
+  simple "did the number change" rule is sufficient once monthly
+  actuals exist - it will need review at that point (see section 2).
+- Does not change any source module calculation, per the standing
+  "no auto-correction of variance" rule already established in S19/S21.
+
+# 11. NOT YET DECIDED / TO CONFIRM DURING BUILD
+
+- Exact visual styling for the "accepted" pill/status.
+- Whether accepted checks should still be individually expandable to
+  show the full P&L/Module amount breakdown (recommend yes - the
+  reason a check was accepted should sit alongside the actual numbers,
+  not replace them).
+- Real shape of useModuleReconciliation.js and whether the acceptance
+  overlay is best placed there or in a small dedicated hook - confirm
+  against the live file before writing code.
+- Whether module_reconciliation_status (brief 10 section 28) needs any
+  change given a new non-blocking, non-warning status now exists -
+  likely treated the same as timing_expected (does not push toward
+  review_required), but confirm against the real status roll-up logic.
+
+# 12. END OF BRIEF
