@@ -6,10 +6,24 @@ import ModuleReconciliationReadinessChecklist from "@/components/module-reconcil
 import ModuleReconciliationHelpPanel from "@/components/module-reconciliation/ModuleReconciliationHelpPanel";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 
-const COMPONENT_CHECK_IDS = [
+// Top-level, macro checks shown as the main cards.
+const TOP_LEVEL_CHECK_IDS = [
   "labour_variance",
   "asset_finance_variance",
   "general_overheads_variance",
+];
+
+// labour_variance is the blended macro figure; these two are its
+// components (S21 wages/on-costs split) and are attached as
+// sub_checks under it rather than shown as separate top-level cards.
+const LABOUR_SUB_CHECK_IDS = [
+  "labour_wages_variance",
+  "labour_on_costs_variance",
+];
+
+const ALL_COMPONENT_CHECK_IDS = [
+  ...TOP_LEVEL_CHECK_IDS,
+  ...LABOUR_SUB_CHECK_IDS,
 ];
 
 // The stable seeded staff_type_id for "Owner / Director" from
@@ -46,14 +60,27 @@ export default function ModuleReconciliationPage() {
     ? normalise_check_for_display(business_cost_check_raw)
     : null;
 
-  const component_checks = reconciliation_checks.filter((check) =>
-    COMPONENT_CHECK_IDS.includes(check.id),
+  const top_level_checks = reconciliation_checks.filter((check) =>
+    TOP_LEVEL_CHECK_IDS.includes(check.id),
+  );
+
+  const labour_sub_checks = reconciliation_checks.filter((check) =>
+    LABOUR_SUB_CHECK_IDS.includes(check.id),
+  );
+
+  // Attach wages/on-costs to the blended Labour check as sub_checks -
+  // the macro layer stays a single card, its components become a
+  // drill-down inside it instead of separate sibling cards.
+  const component_checks = top_level_checks.map((check) =>
+    check.id === "labour_variance"
+      ? { ...check, sub_checks: labour_sub_checks }
+      : check,
   );
 
   const readiness_checks = reconciliation_checks.filter(
     (check) =>
       check.id !== "business_cost_variance" &&
-      !COMPONENT_CHECK_IDS.includes(check.id),
+      !ALL_COMPONENT_CHECK_IDS.includes(check.id),
   );
 
   // Real per-asset finance breakdown, sourced directly from the Assets

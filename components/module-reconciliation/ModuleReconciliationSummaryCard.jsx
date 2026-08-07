@@ -108,21 +108,27 @@ function NamedAmountBreakdown({ title, rows = [], note, gap_amount }) {
   );
 }
 
-// One row for a single component (Labour, Asset Finance, or General
-// Overheads) - uses the same cost-summary-drill-row class and
-// active/muted states as the Cost Summary drill list, so hovering and
-// clicking feels identical across the app.
+// One row for a single component check (Labour, Asset Finance, or
+// General Overheads), or a nested sub-check (Wages, On-costs) drilling
+// down under Labour. depth > 0 renders as an indented child row using
+// the same open/hover state lifted from the parent card, so a
+// sub-check behaves identically to a top-level one - same click,
+// hover, and expand behaviour, just visually nested and without its
+// own "Go to X" button (the parent's button already covers it).
 function ComponentRow({
   check,
-  is_open,
-  is_hovered,
-  is_muted,
-  onHover,
-  onClearHover,
-  onToggle,
+  depth = 0,
+  open_check_ids,
+  hovered_check_id,
+  set_hovered_check_id,
+  toggle_check,
   asset_finance_breakdown = [],
   owner_director_breakdown = [],
 }) {
+  const is_open = open_check_ids.includes(check.id);
+  const is_hovered = hovered_check_id === check.id;
+  const is_muted = Boolean(hovered_check_id) && hovered_check_id !== check.id;
+
   const is_asset_finance_check = check.id === "asset_finance_variance";
   const is_labour_check = check.id === "labour_variance";
 
@@ -145,6 +151,9 @@ function ComponentRow({
     );
   }
 
+  const has_sub_checks =
+    Array.isArray(check.sub_checks) && check.sub_checks.length > 0;
+
   const row_className = [
     "cost-summary-drill-row",
     "clickable",
@@ -155,15 +164,15 @@ function ComponentRow({
     .join(" ");
 
   return (
-    <div className="ui-stack-sm">
+    <div className="ui-stack-sm" style={depth > 0 ? { marginLeft: "1.25rem" } : undefined}>
       <button
         type="button"
         className={row_className}
-        onClick={onToggle}
-        onMouseEnter={onHover}
-        onMouseLeave={onClearHover}
-        onFocus={onHover}
-        onBlur={onClearHover}
+        onClick={() => toggle_check(check.id)}
+        onMouseEnter={() => set_hovered_check_id(check.id)}
+        onMouseLeave={() => set_hovered_check_id(null)}
+        onFocus={() => set_hovered_check_id(check.id)}
+        onBlur={() => set_hovered_check_id(null)}
       >
         <div className="ui-stack-sm">
           <div className="cost-summary-drill-label">{check.label}</div>
@@ -192,7 +201,9 @@ function ComponentRow({
 
           <p className="ui-help">{check.detail}</p>
 
-          {check.status !== "pass" && CHECK_ID_TO_MODULE_ROUTE[check.id] ? (
+          {depth === 0 &&
+          check.status !== "pass" &&
+          CHECK_ID_TO_MODULE_ROUTE[check.id] ? (
             <Link
               href={CHECK_ID_TO_MODULE_ROUTE[check.id].href}
               className="ui-button-secondary"
@@ -242,10 +253,62 @@ function ComponentRow({
               </ul>
             </div>
           ) : null}
+
+          {has_sub_checks ? (
+            <div className="ui-stack-sm">
+              <p className="ui-kicker">Breakdown</p>
+              {check.sub_checks.map((sub_check) => (
+                <ComponentRow
+                  key={sub_check.id}
+                  check={sub_check}
+                  depth={depth + 1}
+                  open_check_ids={open_check_ids}
+                  hovered_check_id={hovered_check_id}
+                  set_hovered_check_id={set_hovered_check_id}
+                  toggle_check={toggle_check}
+                  asset_finance_breakdown={asset_finance_breakdown}
+                  owner_director_breakdown={owner_director_breakdown}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
   );
+}
+
+// Every issue that should count toward the Warnings pill and get
+// auto-expanded when it's clicked - a top-level check's own warning,
+// plus any warning among its sub_checks (S21 wages/on-costs split).
+function get_all_warning_checks(component_checks) {
+  return component_checks.flatMap((check) => [
+    check,
+    ...(Array.isArray(check.sub_checks) ? check.sub_checks : []),
+  ]).filter((check) => check.is_warning && !check.is_blocking);
+}
+
+// IDs to auto-open when the Warnings pill is clicked: the parent
+// check id (so the group is visible) plus every warning sub-check id
+// (so the actual issue is expanded, not just its parent).
+function get_warning_open_ids(component_checks) {
+  const ids = [];
+
+  component_checks.forEach((check) => {
+    const sub_checks = Array.isArray(check.sub_checks) ? check.sub_checks : [];
+    const warning_sub_checks = sub_checks.filter(
+      (sub) => sub.is_warning && !sub.is_blocking,
+    );
+    const has_own_warning = check.is_warning && !check.is_blocking;
+
+    if (has_own_warning || warning_sub_checks.length > 0) {
+      ids.push(check.id);
+    }
+
+    warning_sub_checks.forEach((sub) => ids.push(sub.id));
+  });
+
+  return ids;
 }
 
 export default function ModuleReconciliationSummaryCard({
@@ -270,9 +333,7 @@ export default function ModuleReconciliationSummaryCard({
     );
   }
 
-  const warning_checks = component_checks.filter(
-    (check) => check.is_warning && !check.is_blocking,
-  );
+  const warning_checks = get_all_warning_checks(component_checks);
   const blocking_count = business_cost_check?.is_blocking ? 1 : 0;
   const warning_count = warning_checks.length;
 
@@ -283,12 +344,12 @@ export default function ModuleReconciliationSummaryCard({
   }
 
   // Warnings pill: open the group AND auto-expand every row that is
-  // actually a warning, so the messages are visible immediately rather
-  // than needing a second click per row.
+  // actually a warning (including nested sub-checks), so the messages
+  // are visible immediately rather than needing a second click per row.
   function open_for_warnings() {
     set_group_open(true);
     set_open_check_ids((current) => {
-      const warning_ids = warning_checks.map((check) => check.id);
+      const warning_ids = get_warning_open_ids(component_checks);
       const merged = new Set([...current, ...warning_ids]);
       return Array.from(merged);
     });
@@ -388,14 +449,11 @@ export default function ModuleReconciliationSummaryCard({
                 <ComponentRow
                   key={check.id}
                   check={check}
-                  is_open={open_check_ids.includes(check.id)}
-                  is_hovered={hovered_check_id === check.id}
-                  is_muted={
-                    Boolean(hovered_check_id) && hovered_check_id !== check.id
-                  }
-                  onHover={() => set_hovered_check_id(check.id)}
-                  onClearHover={() => set_hovered_check_id(null)}
-                  onToggle={() => toggle_check(check.id)}
+                  depth={0}
+                  open_check_ids={open_check_ids}
+                  hovered_check_id={hovered_check_id}
+                  set_hovered_check_id={set_hovered_check_id}
+                  toggle_check={toggle_check}
                   asset_finance_breakdown={asset_finance_breakdown}
                   owner_director_breakdown={owner_director_breakdown}
                 />
