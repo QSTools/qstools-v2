@@ -1,0 +1,30 @@
+commit 32b2df7a0d62fb37c8e44a890f333e44cb14ccc7
+Author: Paul Davis <your-github-email@example.com>
+Date:   Fri Aug 7 15:33:35 2026 +1200
+
+    Nest Labour wages/on-costs checks under the blended Labour card
+    
+    - labour_wages_variance and labour_on_costs_variance were showing as
+      flat sibling cards next to the blended labour_variance check, which
+      misrepresented the hierarchy - wages/on-costs are components of the
+      blended Labour figure, not independent top-level comparisons.
+    - page.jsx now attaches them as sub_checks on the labour_variance
+      check instead of listing all three as top-level component_checks.
+    - ModuleReconciliationSummaryCard.jsx: ComponentRow now takes lifted
+      state (open_check_ids, hovered_check_id, toggle_check) instead of
+      pre-bound per-row handlers, so it can render itself recursively for
+      sub_checks - indented, same click/hover/expand behaviour as a
+      top-level row, no duplicate 'Go to Labour' button (parent's already
+      covers it).
+    - Warnings pill count and the auto-expand-on-click behaviour both
+      updated to walk into sub_checks, so the count still reflects every
+      real warning (including nested ones) and clicking Warnings opens
+      both the parent and the specific warning sub-check.
+    - Also promoted labour_wages_variance/labour_on_costs_variance into
+      COMPONENT_CHECK_IDS so they get the rich detail-card treatment
+      (P&L $/Module $/variance/possible reasons) instead of only showing
+      in the plain readiness checklist.
+
+ app/module-reconciliation/page.jsx                 |  37 ++++++-
+ .../ModuleReconciliationSummaryCard.jsx            | 122 +++++++++++++++------
+ 2 files changed, 122 insertions(+), 37 deletions(-)

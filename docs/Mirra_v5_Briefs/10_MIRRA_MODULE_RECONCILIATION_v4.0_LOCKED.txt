@@ -1380,3 +1380,126 @@ SOURCE: MIRRA_PASS_4_ACCEPTED_CONTRACT_FIELDS_SMALL_MODULES_v5.0.csv
 
 # END v5.0 PASS 4 MANUAL ACCEPTED OUTPUT CONTRACT - module-reconciliation
 
+
+---
+# v5.0 S21 ACCEPTED SOURCE-CODE CONTRACT ADDENDUM - module-reconciliation
+STATUS: APPENDED TO ACTIVE BRIEF SOURCE
+SOURCE: S21_MODULE_RECONCILIATION_TOLERANCE.txt (docs\Mirra_v5_Briefs)
+BUILT: 2026-08-07
+
+PURPOSE
+
+Document the output fields and new reconciliation_status value added by
+S21 (timing-aware variance classification and Labour wages/on-costs
+split), implemented in lib\reconciliation\reconciliationRules.js.
+
+## New reconciliation check status value
+
+timing_expected
+
+Meaning: variance exists, is outside tolerance, but the module amount
+is higher than the P&L benchmark in a check marked timing_aware - the
+expected shape of a journal-timing lag (e.g. ACC/KiwiSaver/ESCT not yet
+journaled, asset finance interest not yet posted), not a data error.
+Non-blocking, non-warning (is_warning: false). Distinct from a plain
+"warn" status, which is reserved for variances not explained by a known
+timing pattern.
+
+This does NOT replace or narrow the five reconciliation_status values
+in section 14 (balanced, rounding_only, variance_review, leak_detected,
+blocked, not_available) for any check outside the two timing_aware
+checks below - only asset_finance_variance and
+labour_on_costs_variance ever emit timing_expected.
+
+## New per-check fields on the standard reconciliation object
+
+Two additive fields on any check built via buildVarianceCheck:
+
+- is_timing_expected (boolean)
+- tolerance_basis ("percent" | "dollar_floor")
+
+tolerance_basis records whether the check used the normal percentage
+threshold or fell back to a flat dollar tolerance because the P&L
+benchmark denominator was small/zero (see dollar-floor fields below).
+
+## New checks added to reconciliation_checks
+
+labour_wages_variance
+  source_amount: labour_wages_benchmark_total (P&L labour_lines split
+    by name pattern - wages lines only, no on-cost keywords matched)
+  module_amount: total_labour_wages_annual (total_labour_cost_annual
+    minus total_employer_contribution_annual)
+  Tight tolerance (1%, not timing_aware). Any material variance is
+  treated as a genuine data error (missing staff, wrong pay rate), not
+  a timing lag.
+
+labour_on_costs_variance
+  source_amount: labour_on_costs_benchmark_total (P&L labour_lines
+    split by name pattern - lines matching "acc", "kiwisaver",
+    "kiwi saver", "esct", "levy", "on-cost", "on cost")
+  module_amount: total_employer_contribution_annual (already exposed
+    by labourOutputContractSelectors.js - no Labour module change was
+    required)
+  timing_aware: true. Dollar-floor fallback below $300 P&L benchmark,
+  $150 flat tolerance in that case (placeholder values, not yet tuned
+  against a broad data set).
+
+asset_finance_variance (existing check, now extended)
+  timing_aware: true. Dollar-floor fallback below $500 P&L benchmark,
+  $250 flat tolerance in that case (placeholder values, not yet tuned
+  against a broad data set).
+
+## New normalised_reconciliation_inputs fields
+
+- labour_wages_benchmark_total
+- labour_on_costs_benchmark_total
+- total_labour_wages_annual
+- total_employer_contribution_annual
+
+## New top-level convenience fields (additive, existing fields untouched)
+
+- labour_wages_variance_amount
+- labour_wages_variance_percent
+- labour_on_costs_variance_amount
+- labour_on_costs_variance_percent
+
+labour_variance_amount and labour_variance_percent (the original
+blended figures) are unchanged and still populated the same way -
+these are consumed elsewhere (LabourStatusStrip, was orphaned and has
+since been removed from render; LabourCompactWorkspaceCard's Review
+path no longer shows them either, see implementation note below;
+Revenue Summary's own independent calculation in
+revenueSummaryCalculations.js still uses the blended figure).
+
+## Implementation note: dead calculation found and removed
+
+During this build, lib\selectors\labour\labourStatusSelectors.js was
+found to contain its own independent Labour-vs-P&L variance
+calculation, called from useLabour.js with a hardcoded
+pnl_benchmark_total of 0. Since the benchmark was always 0, this
+silently reported "green"/"Ready" on the live Labour page regardless
+of the real numbers - a live bug, not a design choice. This
+calculation has been removed entirely. buildLabourStatus now covers
+only Labour's own completeness (staff name, hours, rate, productivity,
+positive costs), not P&L variance. The single source of truth for
+Labour-vs-P&L variance, in all its forms, is now exclusively
+lib\reconciliation\reconciliationRules.js via useModuleReconciliation.
+
+A related design correction: the Labour page's per-employee Review
+path card does not display labour_benchmark_total or
+total_labour_cost_annual, even correctly, because those are
+whole-business totals (all staff combined) and the card is scoped to
+one employee's profile. That comparison is only shown on the Module
+Reconciliation page; the Labour page links to it instead.
+
+## Implementation note: UI hierarchy
+
+On the Module Reconciliation page, labour_wages_variance and
+labour_on_costs_variance are NOT rendered as separate top-level cards
+alongside labour_variance. They are attached as sub_checks on the
+labour_variance check (in app\module-reconciliation\page.jsx) and
+rendered as an indented drill-down inside the blended Labour card
+(ModuleReconciliationSummaryCard.jsx), reflecting that they are
+components of the macro Labour figure, not independent comparisons.
+
+# END v5.0 S21 ACCEPTED SOURCE-CODE CONTRACT ADDENDUM - module-reconciliation
