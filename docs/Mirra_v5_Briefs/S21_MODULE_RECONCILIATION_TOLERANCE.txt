@@ -1,0 +1,303 @@
+S21_MODULE_RECONCILIATION_TOLERANCE_AND_TIMING_CLASSIFICATION_BRIEF_v5_0
+STATUS: DRAFT — NOT YET LOCKED
+DATE: 2026-08-07
+
+# 1. PURPOSE
+
+Module Reconciliation currently treats every variance the same way: one
+number, one tolerance, one "is this ok or not" judgement per check. This
+brief exists to fix that, because it doesn't match how the underlying
+numbers actually behave.
+
+This brief was produced from a voice-dictated design conversation, not
+from a spec written up front. The conclusions below are the user's own
+reasoning, captured and structured.
+
+# 2. CORE PREMISE
+
+100% reconciliation to the P&L will never happen and is not the goal.
+Perfect reconciliation is a myth even in properly run finance teams.
+
+The real design question Module Reconciliation needs to answer is not
+"does this balance to zero" but:
+
+"Is this variance close enough to trust, or is it actually a problem
+hiding in the numbers?"
+
+Those are two different questions and need two different answers per
+check, not one blended variance percentage.
+
+# 3. TIMING GAPS VS DATA ERRORS — THE CENTRAL DISTINCTION
+
+Every variance Module Reconciliation surfaces falls into one of two
+fundamentally different categories. They must not be shown, scored, or
+worded the same way.
+
+## 3.1 Timing gap
+
+Definition: the module's number is the true, correct cost. The P&L
+simply has not caught up to it yet, because of when the accountant
+journals things.
+
+Examples already anticipated in brief S19 / controlling brief 10's
+possible_reasons lists, but never acted on:
+
+- ACC and KiwiSaver not yet journaled by the accountant
+- Asset finance interest journal not yet posted
+- End-of-year journal not posted at all
+
+User's own reasoning: ACC "doesn't matter because... it's always... has
+to be paid. It's just a timing issue."
+
+Correct system behaviour for a timing gap: tell the user to trust the
+module, not the P&L. Do not present this as a variance the user needs
+to close or resolve. It is not parity that needs to be reached — it is
+an expected, structural lag.
+
+## 3.2 Genuine data error
+
+Definition: something was actually entered wrong or left out. The two
+numbers should reconcile closely, and if they don't, the data is wrong.
+
+Example already found in this project: the trial-staff bug, where a
+staff member was missing from Labour and the numbers diverged for a
+real reason, not a timing reason.
+
+User's own reasoning: "if you haven't entered the correct amount of
+wages... those two numbers should basically reconcile. And if they
+don't, you've either not entered all your staff in or you've put
+somebody's pay rate in wrong."
+
+Correct system behaviour for a data error: no lenient tolerance. Flag
+it, mean it, point the user at what to check.
+
+## 3.3 Why this matters structurally
+
+A single blended variance_percent cannot distinguish these two cases.
+The same 8% variance might be a non-issue (ACC timing) or a real
+problem (missing staff), depending entirely on which sub-component of
+the check it's coming from. The fix is to stop blending, not to tune
+the tolerance number.
+
+# 4. DIRECTION OF VARIANCE MATTERS
+
+A variance is not just a size, it has a direction, and the direction
+changes what it means.
+
+- Module HIGHER than P&L: the module is capturing a real cost that the
+  P&L hasn't recorded yet. Generally the more legitimate, lower-concern
+  situation — this is the normal shape of a timing gap.
+- Module LOWER than P&L: the model may be undercooking something —
+  missing a cost, misclassifying it, or leaving something out. This
+  deserves more scrutiny than the reverse case.
+
+Reconciliation checks should carry this directionality into their
+wording and, where relevant, into their severity — not just report an
+absolute variance_percent.
+
+# 5. PER-CHECK, PER-COMPONENT TOLERANCE DESIGN
+
+This is the concrete change. Each existing check is reassessed below.
+
+## 5.1 Labour — split into two sub-checks
+
+Labour currently produces one blended variance
+(labour_variance_amount / labour_variance_percent) comparing
+labour_benchmark_total to total_labour_cost_annual. This brief replaces
+that with two separate checks, because wages and on-costs behave
+completely differently against the P&L.
+
+### 5.1.1 Wages sub-check
+
+- Source: wages component of labour_benchmark_total (P&L side)
+- Module: sum of annual_base_cost across staff (Labour module already
+  carries this as a distinct field per brief 07 — no new Labour-side
+  data required)
+- Tolerance: tight. Near dollar-for-dollar. This is NOT a timing-prone
+  number — payroll either has the right people and rates in it or it
+  doesn't.
+- Any variance beyond the tight tolerance is treated as a genuine data
+  error per section 3.2, with possible_reasons narrowed to: missing
+  staff, incorrect pay rate, payroll classification difference,
+  P&L period mismatch.
+
+### 5.1.2 On-costs sub-check (ACC / KiwiSaver / employer on-costs)
+
+- Source: on-costs component of labour_benchmark_total (P&L side)
+- Module: sum of annual_on_costs across staff (also already a distinct
+  Labour field per brief 07)
+- Tolerance: loose, timing-aware. This IS the timing-prone number.
+- possible_reasons narrowed to: timing difference (ACC/KiwiSaver not
+  yet journaled), employee overheads included elsewhere, owner/director
+  pay treatment.
+- Wording should lead with "this is expected to lag the P&L" rather
+  than a variance warning, per section 3.1, when module > P&L.
+
+No new Labour module field is required. `annual_base_cost` and
+`annual_on_costs` already exist per staff row (confirmed against brief
+07). This is new reconciliation logic consuming an existing split, not
+a new data requirement.
+
+## 5.2 Asset Finance interest — timing-aware with dollar floor
+
+- Source: asset_finance_benchmark_total (P&L side)
+- Module: total_asset_interest_annual
+- Treated the same as Labour on-costs: timing-prone. If module shows
+  interest and P&L shows less or zero, the likely explanation is an
+  unposted journal, not an error.
+- Structural problem: percentage-based tolerance breaks down here
+  specifically. A small or zero P&L denominator can turn a fully
+  timing-explained gap into a variance_percent reading of 100% or more,
+  which would wrongly read as a severe leak.
+- Fix: dollar-floor tolerance as a fallback alongside the percentage
+  check. If source_amount is small or zero, do not rely on
+  variance_percent alone — use a flat dollar tolerance (in line with
+  the existing default tolerance_amount = 1.00 pattern already used
+  elsewhere in the reconciliation object contract, though this
+  specific check will likely need a larger floor than $1 given typical
+  interest amounts — exact figure to be set during build, not
+  hardcoded here).
+- possible_reasons: end-of-year journal not posted, loan interest
+  timing, principal/interest split issue, asset finance classified
+  elsewhere, asset not entered.
+
+## 5.3 General Overheads — no change
+
+User's own assessment, confirmed: General Overheads likely does not
+need the split/loosened treatment. It pulls fairly directly from P&L
+operating expense lines and doesn't carry the same journal-timing lag
+as ACC or asset finance interest.
+
+User's exact framing: "I think that we might actually have that
+already sorted out, but we definitely need to apply the same logic" —
+meaning: if a timing-driven case is ever found in General Overheads,
+the same conceptual framework from section 3 applies to it, but there
+is no known case today and no change is being made to this check in
+this brief.
+
+Action: note this explicitly in the build so nobody re-opens General
+Overheads unnecessarily. Existing tolerance/status logic in brief 05
+section 26 stands as-is.
+
+# 6. STATUS AND CLASSIFICATION — MAPPING ONTO THE EXISTING CONTRACT
+
+The existing reconciliation_status enum (balanced, rounding_only,
+variance_review, leak_detected, blocked, not_available) does not
+currently distinguish "timing-explained, trust the module" from
+"data error, needs review." Both would currently just show up as
+variance_review or leak_detected with no way to tell them apart at a
+glance.
+
+This brief proposes extending, not replacing, that enum:
+
+Additional reconciliation_status value:
+
+timing_expected
+
+Meaning: variance exists, is outside tolerance, but is explained by a
+known/expected journal-timing lag for this specific sub-check. Not
+blocking. Not a warning to resolve. Distinct from variance_review,
+which should now be reserved for variances that are NOT explained by a
+known timing pattern and do warrant a look.
+
+This keeps the existing five statuses fully intact for every other
+module and check in the system (General Overheads, COGS, Revenue, etc)
+— only the checks identified in section 5 as timing-prone would ever
+emit timing_expected.
+
+Every check must still use the standard reconciliation object shape
+per brief 10 section 14 / brief 03 section 6:
+
+{
+  reconciliation_id,
+  source_module,
+  source_name,
+  source_amount,
+  module_name,
+  module_amount,
+  variance_amount,
+  variance_percent,
+  reconciliation_status,   <- now may be timing_expected
+  tolerance_amount,
+  explanation,
+  blocking,
+  reviewed
+}
+
+explanation should carry the plain-English timing-vs-error distinction
+directly (e.g. "Trust the module — ACC typically lags the P&L by one
+filing cycle" vs "Check payroll — wages should reconcile closely and
+currently don't").
+
+module_reconciliation_status (brief 10 section 28) rules should treat
+timing_expected the same way rounding_only is treated today: it does
+not push the overall status toward review_required or leak_detected on
+its own.
+
+# 7. RELATIONSHIP TO S20 (MANUAL ACCEPT / BASELINE)
+
+S20 (`S20_MODULE_RECONCILIATION_ACCEPTED_VARIANCE_BASELINE_BRIEF_v5_0.txt`)
+proposed a manual "Accept" button / baseline-snapshot mechanism so a
+user could mark a known variance as acknowledged.
+
+This brief (S21) partially supersedes that need, but does not fully
+replace it:
+
+- For the timing-prone sub-checks identified in section 5 (Labour
+  on-costs, Asset Finance interest), S21's automatic timing_expected
+  classification removes the need for a manual accept action — the
+  system already knows these are expected lags and should say so
+  without requiring the user to click anything.
+- Manual accept per S20 still has a role for genuine one-off
+  exceptions that don't fit a known pattern — cases the system cannot
+  classify automatically (e.g. an unusual COGS treatment specific to
+  this business) where the user needs to say "yes, I've looked at
+  this, it's fine" and have that persist.
+- Recommendation: build S21's automatic classification first, since it
+  resolves the majority of currently-noisy variances (ACC, KiwiSaver,
+  asset finance interest) without requiring any user action at all.
+  Revisit S20's manual accept mechanism afterward, scoped down to only
+  the residual cases S21 doesn't cover, rather than building it as a
+  general-purpose button across every check.
+
+# 8. IMPLEMENTATION LOCATION
+
+Builds on `lib/reconciliation/reconciliationRules.js`, which already
+contains the three variance check-builder functions added under S19
+Part J (getLabourVarianceCheck, getAssetFinanceVarianceCheck,
+getGeneralOverheadsVarianceCheck).
+
+Required changes to that file:
+
+- Split getLabourVarianceCheck into getLabourWagesVarianceCheck and
+  getLabourOnCostsVarianceCheck, per section 5.1.
+- Add timing-aware dollar-floor logic to getAssetFinanceVarianceCheck,
+  per section 5.2.
+- Leave getGeneralOverheadsVarianceCheck untouched, per section 5.3.
+- Add timing_expected as an allowed reconciliation_status value
+  wherever the enum is validated/typed, and ensure
+  module_reconciliation_status roll-up logic (wherever that lives —
+  likely useModuleReconciliation.js) treats it as non-blocking, same
+  tier as rounding_only.
+
+No changes required to the Labour module itself — annual_base_cost and
+annual_on_costs already exist per staff row (brief 07).
+
+# 9. NOT YET DECIDED / TO CONFIRM DURING BUILD
+
+- Exact dollar-floor tolerance figure for Asset Finance interest
+  (section 5.2) — needs a sensible default, not specified here.
+- Exact tight-tolerance figure for Labour wages sub-check (section
+  5.1.1) — likely the same $1.00 default as elsewhere, but worth
+  confirming given wages are usually a much larger absolute number
+  than the categories that default currently governs.
+- Whether timing_expected should be visually distinct in the UI (e.g.
+  a neutral/blue indicator rather than the amber/red used for
+  variance_review and leak_detected) — recommended but not specified
+  here, to be confirmed when the Module Reconciliation page UI is
+  touched.
+- Final scope of any retained S20 manual-accept mechanism per section
+  7 — to be revisited once S21 is built and the residual noise (if
+  any) is visible.
+
+# 10. END OF BRIEF
