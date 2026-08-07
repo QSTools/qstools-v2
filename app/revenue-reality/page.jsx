@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -59,10 +59,12 @@ export default function RevenueRealityPage() {
 
         <RevenueRealityHelpPanel />
         <NextStepFooter
-          nextHref="/revenue-summary"
-          nextLabel="Next: Revenue Summary"
+          nextHref="/business-summary"
+          nextLabel="Next: Business Summary"
         />
       </div>
     </main>
   );
 }
+
+
