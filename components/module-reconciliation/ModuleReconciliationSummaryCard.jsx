@@ -304,9 +304,11 @@ function ComponentRow({
         </div>
 
         <div className="cost-summary-drill-value">
-          <div className="ui-card-title-sm">
-            {format_currency(check.variance_amount)}
-          </div>
+          {check.status === "covered" ? null : (
+            <div className="ui-card-title-sm">
+              {format_currency(check.variance_amount)}
+            </div>
+          )}
           <div className="ui-help">
             {is_open ? "Hide" : "Show breakdown"}
           </div>
@@ -615,3 +617,4 @@ export default function ModuleReconciliationSummaryCard({
     </div>
   );
 }
+
