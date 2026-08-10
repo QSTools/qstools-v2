@@ -45,16 +45,19 @@ function Pill({ text, tone = "ok", onClick }) {
   );
 }
 
-// S20/S21: one pill treatment per check status. timing_expected and
-// accepted are both non-blocking, non-warning states with a specific
-// explanation behind them (system-inferred vs user-confirmed) - both
-// use the "good" tone (no separate CSS tone is confirmed to exist for
-// a third colour) but distinct text, so they're still visually
-// distinguishable from a genuine unresolved "Variance".
+// S20/S21/S22: one pill treatment per check status. timing_expected,
+// accepted, and covered are all non-blocking, non-warning states with
+// a specific explanation behind them (system-inferred timing lag,
+// user-confirmed acceptance, or a verified coverage relationship) -
+// all three use the "good" tone (no separate CSS tone is confirmed to
+// exist for further distinct colours) but distinct text, so they
+// remain visually distinguishable from each other and from a genuine
+// unresolved "Variance".
 function get_pill_props(check) {
   if (check.status === "pass") return { text: "Reconciled", tone: "good" };
   if (check.status === "timing_expected") return { text: "Expected", tone: "good" };
   if (check.status === "accepted") return { text: "Accepted", tone: "good" };
+  if (check.status === "covered") return { text: "Covered", tone: "good" };
   return { text: "Variance", tone: "bad" };
 }
 
@@ -339,8 +342,12 @@ function ComponentRow({
                 name: asset.asset_name,
                 amount: asset.asset_interest_annual,
               }))}
-              note="These assets show real finance interest in the Assets module. If the P&L benchmark above is $0, the most likely explanation is a classification or timing difference on the P&L side rather than a missing asset record."
-              gap_amount={check.variance_amount}
+              note={
+                check.is_coverage_check
+                  ? "These assets make up the Assets module's total finance interest, which is being checked for coverage within your P&L's total interest figure above."
+                  : "These assets show real finance interest in the Assets module. If the P&L benchmark above is $0, the most likely explanation is a classification or timing difference on the P&L side rather than a missing asset record."
+              }
+              gap_amount={check.is_coverage_check ? null : check.variance_amount}
             />
           ) : null}
 

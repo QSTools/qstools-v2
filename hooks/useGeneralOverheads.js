@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -30,6 +30,7 @@ import {
 
 import { useProfitAndLossStorage } from "@/lib/storage/profitAndLossStorage";
 import { calculateProfitAndLoss } from "@/lib/calculations/profitAndLossCalculations";
+import { useAssetStorage } from "@/lib/storage/assetStorage";
 
 export default function useGeneralOverheads() {
   const [is_hydrated, set_is_hydrated] = useState(false);
@@ -43,6 +44,29 @@ export default function useGeneralOverheads() {
   const last_pnl_sync_signature_ref = useRef("");
 
   const { profit_and_loss_state } = useProfitAndLossStorage();
+
+  // Read Assets' raw saved records directly from storage - not via the
+  // useAssets hook, because useAssets itself imports useGeneralOverheads
+  // (for asset_overhead_pools). Going through useAssets here would create
+  // a circular hook dependency. Reading storage directly breaks that
+  // cycle: this pulls the same saved asset records Assets itself reads,
+  // with no dependency on Assets' calculated output.
+  const { saved_assets, has_hydrated: assets_has_hydrated } =
+    useAssetStorage();
+
+  const assets_finance_interest_total = useMemo(() => {
+    if (!assets_has_hydrated) {
+      return 0;
+    }
+
+    return (saved_assets ?? [])
+      .filter((asset) => !asset.is_retired)
+      .reduce(
+        (sum, asset) =>
+          sum + Number(asset.asset_interest_annual ?? asset.interest_annual ?? 0),
+        0
+      );
+  }, [saved_assets, assets_has_hydrated]);
 
   const pnl_output_contract = useMemo(() => {
     return calculateProfitAndLoss(profit_and_loss_state);
@@ -97,8 +121,11 @@ export default function useGeneralOverheads() {
   }, [overhead_state, is_hydrated]);
 
   const calculated = useMemo(() => {
-    return calculate_general_overheads(overhead_state);
-  }, [overhead_state]);
+    return calculate_general_overheads(
+      overhead_state,
+      assets_finance_interest_total
+    );
+  }, [overhead_state, assets_finance_interest_total]);
 
   const output_contract = useMemo(() => {
     return build_general_overhead_output_contract({

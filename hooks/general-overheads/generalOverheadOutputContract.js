@@ -1,4 +1,4 @@
-import {
+﻿import {
   build_general_overhead_category_totals,
   build_general_overhead_allocation_outputs,
 } from "@/lib/selectors/generalOverheadSelectors";
@@ -16,11 +16,20 @@ export function build_general_overhead_output_contract({
     overhead_state
   );
 
-  const has_asset_finance_interest_duplication = calculated.overhead_rows.some(
-    (row) =>
-      row.contains_asset_finance_interest === true &&
-      Number(row.active_amount ?? row.amount ?? 0) !== 0
-  );
+  // A flagged row is now expected to carry a partial, nonzero
+  // active_amount (P&L amount minus the Assets module's confirmed real
+  // finance-interest amount) - that is the correct, intended behaviour,
+  // not a duplication problem. The genuine data-quality issue to watch
+  // for instead is: Assets claiming MORE finance interest exists than
+  // the flagged P&L line(s) even show in total. That would mean Assets
+  // has asset finance entries that aren't reflected in the P&L at all.
+  const flagged_pnl_total = calculated.overhead_rows
+    .filter((row) => row.is_asset_finance_interest === true)
+    .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+  const has_asset_finance_interest_duplication =
+    Number(calculated.assets_finance_interest_total ?? 0) >
+    flagged_pnl_total + 0.01;
 
   return {
     total_general_overheads: calculated.total_general_overheads,

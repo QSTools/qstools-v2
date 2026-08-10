@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import {
@@ -133,6 +133,38 @@ export default function useAssets() {
       ...current_asset_recovery_fields,
     };
   }, [base_calculations, current_asset_recovery_fields]);
+
+  // Asset Finance Interest - P&L Match: compares the P&L's flagged
+  // asset-finance interest line(s) against Assets' own confirmed total.
+  // Sourced from the General Overheads hook already imported above -
+  // no new dependency, no circular-import risk (see S22 brief).
+  const asset_finance_pnl_match = useMemo(() => {
+    const flagged_pnl_total = to_number(
+      general_overheads?.calculated?.flagged_asset_finance_pnl_total
+    );
+    const matched_to_assets = to_number(
+      general_overheads?.calculated?.assets_finance_interest_total
+    );
+    const remaining = Math.max(flagged_pnl_total - matched_to_assets, 0);
+    const match_status =
+      flagged_pnl_total <= 0
+        ? matched_to_assets > 0.01
+          ? "unflagged_but_assets_has_interest"
+          : "not_applicable"
+        : remaining <= 0.01
+        ? "fully_matched"
+        : "gap_present";
+
+    return {
+      flagged_pnl_total,
+      matched_to_assets,
+      remaining,
+      match_status,
+    };
+  }, [
+    general_overheads?.calculated?.flagged_asset_finance_pnl_total,
+    general_overheads?.calculated?.assets_finance_interest_total,
+  ]);
 
   function handle_new_asset() {
     replace_asset_state(createEmptyAssetState());
@@ -297,5 +329,9 @@ export default function useAssets() {
     output_contract,
     active_assets,
     business_default_annual_weeks,
+    asset_finance_pnl_match,
   };
 }
+
+
+
