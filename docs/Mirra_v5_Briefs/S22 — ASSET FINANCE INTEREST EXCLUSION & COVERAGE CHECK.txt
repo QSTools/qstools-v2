@@ -1,11 +1,13 @@
 ====================================================================
 S22 — ASSET FINANCE INTEREST EXCLUSION & COVERAGE CHECK
-BUILD BRIEF v5.0
+BUILD BRIEF v6.0
 ====================================================================
-STATUS: FORMULA DECIDED, CARD DESIGN DECIDED — code partially built,
-        card not yet built. See Section 9 for exact remaining work.
-VERSION: v5.0 (extension to General Overheads + Assets)
-OWNING MODULES: General Overheads, Assets
+STATUS: BUILT, LIVE-TESTED, AND COMMITTED (2 commits). See Section 9
+        for exact commit contents. No known open work under S22
+        itself — remaining items are adjacent/out of scope, listed
+        in Section 11.
+VERSION: v6.0 (Round 2 — Model Reconciliation cross-check closed)
+OWNING MODULES: General Overheads, Assets, Model Reconciliation
 DATE: 2026-08-10
 
 --------------------------------------------------------------------
@@ -20,8 +22,8 @@ own interest figure (e.g. $30,183, built up from live assets).
 
 Both numbers are real. Both come from a legitimate, independent
 source. They will not usually match exactly, and the gap between
-them is meaningful — but the system cannot tell, from the two lump
-sums alone, which of two very different things the gap means:
+them is meaningful — but no calculation on the two lump sums alone
+can tell which of two very different things the gap means:
 
   READING A — the gap is genuine, separate business interest (e.g.
   overdraft or business loan interest) that happens to be coded into
@@ -32,35 +34,25 @@ sums alone, which of two very different things the gap means:
   READING B — Assets is under-counting. The true asset finance
   interest is the full P&L amount, but Assets doesn't show it yet
   because a financed asset is missing, or has a wrong interest rate
-  entered. If true, the gap is NOT a separate cost — it is asset
-  finance interest Assets hasn't caught up to, and belongs excluded
-  from General Overheads exactly like the rest of the flagged line.
+  entered. If true, the gap is NOT a separate cost — it belongs
+  excluded from General Overheads exactly like the rest of the
+  flagged line.
 
-Two automatic formulas were tried and rejected as blind guesses in
-either direction:
-
-  - Full zero-out of the flagged line: safe against double-counting,
-    but silently throws away visibility into any genuine non-asset
-    interest blended into that same P&L line (Reading A cost).
-  - Automatic partial subtraction (P&L amount minus Assets amount,
-    remainder silently left in General Overheads): assumes Reading A
-    by default with no way to know if Reading B is actually true —
-    directly recreates the double-count risk this whole project has
-    been built to avoid.
-
-CONCLUSION: this is not a formula problem. It is a missing-
-information problem. No calculation on two lump sums alone can
-correctly resolve which reading is true. The fix is to make the gap
-VISIBLE at the point where the real information lives — Assets data
-entry — and let a human resolve it, instead of guessing anywhere in
-General Overheads.
+CONCLUSION (unchanged from v5.0): this is a missing-information
+problem, not a formula problem. The fix is to make the gap VISIBLE
+at the point where the real information lives — Assets data entry —
+and let a human resolve it, instead of guessing anywhere in General
+Overheads. Round 2 (Section 8) extends this same principle one level
+up, to Model Reconciliation, closing a blind spot where a
+misclassified P&L line could hide the same ambiguity from view
+entirely.
 
 --------------------------------------------------------------------
-2. DECISION — FORMULA (General Overheads side)
+2. DECISION — FORMULA (General Overheads side) — BUILT, COMMITTED
 --------------------------------------------------------------------
 
-KEEP the partial-subtraction formula already built in
-generalOverheadCalculations.js. Do not revert to full zero-out.
+KEPT the partial-subtraction formula in
+generalOverheadCalculations.js.
 
 For each P&L row flagged contains_asset_finance_interest:
 
@@ -72,239 +64,346 @@ For each P&L row flagged contains_asset_finance_interest:
 In the confirmed single-flagged-line case this reduces to:
   active_amount = row_amount - assets_finance_interest_total
 
-This is now understood to be CORRECT, not a compromise — because the
-remainder it leaves in General Overheads is no longer a silent
-guess. It is exactly the same "unmatched" figure the new Assets-side
-card (Section 3) makes visible and asks a human to resolve. The
-formula and the card are one mechanism, not two: the card is what
-makes the formula's assumption checkable instead of hidden.
+This is correct, not a compromise — the remainder it leaves in
+General Overheads is no longer a silent guess. It is exactly the
+same "unmatched" figure the Assets-side card (Section 3) makes
+visible, and the same figure the Round 2 Model Reconciliation check
+(Section 8) now also checks for a specific failure mode. Formula,
+card, and cross-check are one mechanism, not three.
 
 Confirmed by user directly: "what we have done in general overheads
 for the calculation is actually correct — it shouldn't be zero if it
-doesn't balance, as per what we have been doing."
+doesn't balance."
+
+Live-tested and confirmed: Finance/Interest category $35,428 -> net
+$5,245; General Overheads total $100,684 matches P&L; "General
+Overheads vs P&L" benchmark flipped red -> green.
 
 --------------------------------------------------------------------
-3. DECISION — NEW CARD (Assets side)
+3. DECISION — ASSETS MODULE CARD — BUILT, COMMITTED
 --------------------------------------------------------------------
 
 ### 3.1 What it is
 
-A new reconciliation card in the Assets module, reusing the existing
-visual pattern already live in Cost Allocation's "Pool position"
-card (Available / Assigned / Remaining columns).
-
-Purpose: while a user is entering financed assets, show them
-directly whether their entered assets account for the full amount
-of asset finance interest the P&L already shows as flagged. If they
-enter every financed asset and the remaining balance closes to zero,
-Reading B is disproven and the gap really is Reading A (genuine
-other interest, safely left in General Overheads by the formula in
-Section 2). If a gap remains after a genuine, complete entry, that
-gap is now a confirmed, investigated fact rather than a guess.
+AssetFinancePnlMatchCard.jsx, in the Assets module, comparing the
+flagged P&L asset-finance total to what Assets can actually confirm.
 
 ### 3.2 Placement
 
-Assets module, right-hand sidebar, same column and card styling as
-the existing Cost Allocation "Pool position" card.
+Assets module page (app/assets/page.jsx), wired to
+asset_finance_pnl_match from useAssets().
 
-### 3.3 Title
+### 3.3 Fields
 
-"Asset Finance Interest — P&L Match" (wording adjustable at build
-time).
+  P&L Flagged Total     -> flagged_pnl_total
+  Matched to Assets      -> matched_to_assets
+  Remaining (unmatched)  -> remaining
 
-### 3.4 Fields (mirrors Available / Assigned / Remaining)
+All three sourced from calculate_general_overheads()'s existing
+output via the useAssets.js useMemo — no duplicate calculation.
 
-  P&L Flagged Total     -> flagged_asset_finance_pnl_total
-  Matched to Assets      -> assets_finance_interest_total
-  Remaining (unmatched)  -> P&L Flagged Total minus Matched to Assets
+### 3.4 Visibility rule
 
-All three values are already computed and returned by
-calculate_general_overheads() in generalOverheadCalculations.js —
-no new calculation is required, only wiring the existing output into
-a new card in a different module.
+Card renders null (not_applicable) when flagged_pnl_total <= 0 —
+i.e. no P&L line is currently flagged.
 
-### 3.5 Visibility rule
+### 3.5 THREE-STATE STYLING — final, as built (v5.0 specified only
+    two states; the third was added in Round 1.5, see Section 6)
 
-Only render the card if flagged_asset_finance_pnl_total > 0. If no
-P&L line is flagged asset-finance, there is nothing to reconcile and
-the card does not appear (matches user's "obviously 0" comment).
+  FULLY_MATCHED (remaining ~= 0):
+    Neutral styling. "Fully matched." Nothing further needed.
 
-### 3.6 State-dependent styling — DECIDED, not a plain static card
+  GAP_PRESENT (remaining > 0, flagged_pnl_total > 0):
+    Amber / var(--warning). "Check whether all financed assets are
+    entered, or this P&L line includes other interest."
 
-This gap directly determines whether General Overheads might be
-double-counting a real cost. A sidebar card that looks the same
-whether balanced or not risks being ignored exactly when it matters
-most — the same silent-error risk this whole project is designed
-against. So the card's presentation must change with its state:
-
-  BALANCED (remaining = $0, within cent tolerance):
-    Neutral/success styling, same quiet treatment as Cost
-    Allocation's card when everything reconciles. Short label:
-    "Fully matched." Nothing further needed from the user.
-
-  GAP PRESENT (remaining > $0):
-    Warning styling (e.g. amber/highlighted border), visually raised
-    relative to the balanced state. Helper text: "Check whether all
-    financed assets are entered, or this P&L line includes other
-    interest."
-
-This is the same treatment already used for the OTHER direction of
-this same discrepancy in generalOverheadOutputContract.js (Assets
-claiming MORE interest than P&L shows is already a hard flag, not a
-quiet number). This card brings the same discipline to this
-direction of the gap.
+  UNFLAGGED_BUT_ASSETS_HAS_INTEREST (flagged_pnl_total <= 0 AND
+  matched_to_assets > 0.01) — added Round 1.5:
+    Red / var(--danger) — more severe than a simple gap, because
+    General Overheads is counting the FULL P&L amount with no
+    exclusion at all while Assets separately holds real interest
+    cost: an active double-count, not just an unconfirmed one.
+    "Likely misclassified P&L line." / "Check the P&L classification
+    for this line - should it include asset finance / interest?"
 
 --------------------------------------------------------------------
-4. WHAT THIS BRIEF SUPERSEDES FROM EARLIER THIS SESSION
+4. WHAT THIS BRIEF SUPERSEDES
 --------------------------------------------------------------------
+
+(Unchanged from v5.0 — kept for history.)
 
 An earlier in-session direction proposed reverting
 generalOverheadCalculations.js to full zero-out of flagged rows, on
 the reasoning that partial subtraction was an unverifiable guess.
-That direction is SUPERSEDED by this brief. The partial-subtraction
-formula stays. What changes instead is that its assumption is made
-checkable via the Section 3 card, rather than the formula itself
-being replaced.
-
-Full zero-out was separately rejected outright by the user for a
-second, independent reason: it destroys visibility into any real,
-non-asset interest cost blended into the same P&L line, which is
-itself a genuine business cost the user needs to see (Reading A).
+That direction was superseded. The partial-subtraction formula
+stays. Full zero-out was independently rejected for a second reason:
+it destroys visibility into any real, non-asset interest cost
+blended into the same P&L line (Reading A).
 
 --------------------------------------------------------------------
 5. WHAT DOES NOT CHANGE
 --------------------------------------------------------------------
 
-- assets.total_asset_cost_annual (including
-  asset_finance_interest_annual) continues to feed Cost Summary
-  directly, independent of P&L. This was never in question.
-- generalOverheadOutputContract.js's existing check for the OTHER
-  direction (Assets > P&L) is unchanged:
-  assets_finance_interest_total > flagged_pnl_total + 0.01.
-- The multi-flagged-line proportional split rule (row's share of the
-  single Assets total, weighted by that row's share of the flagged
-  P&L total) is unchanged — still correct, still reduces to simple
-  subtraction in the single-line case.
-- has_asset_finance_interest_duplication semantics in
-  generalOverheadOutputContract.js are unchanged from this session's
-  earlier fix.
+- assets.total_asset_cost_annual continues to feed Cost Summary
+  directly, independent of P&L.
+- The multi-flagged-line proportional split rule is unchanged.
+- has_asset_finance_interest_duplication in
+  generalOverheadOutputContract.js: still flags only when
+  assets_finance_interest_total > flagged_pnl_total + 0.01 (genuine
+  over-claim by Assets) — unchanged from Round 1.
 
 --------------------------------------------------------------------
-6. THE "INCLUDES ASSET FINANCE PORTION" FIELD — RESOLVED
+6. ROUND 1.5 — THE MISCLASSIFICATION BLIND SPOT (Assets card level)
 --------------------------------------------------------------------
 
-GeneralOverheadReclassificationGroup.jsx / REDISTRIBUTION_POOL_CONFIGS
-.finance_interest in generalOverheadDefinitions.js contains a manual
-"Includes Asset Finance Portion" field that currently shows $0 and
-does nothing.
+Discovered by direct user testing: unflagging the P&L line (marking
+"does not contain asset finance interest") while Assets still held
+real interest (e.g. $30,183) made the Assets card go silent
+(not_applicable) — but this is an active double-count risk, not a
+non-issue: General Overheads now counts the full $35,000 with zero
+exclusion, while Assets separately, correctly counts its $30,183.
+Nothing warned about it.
 
-DECISION: this field is superseded by the Section 3 card and should
-be left inert / considered for removal in a later cleanup pass. It
-is not wired up, and no build step in this brief revives it — the
-card's Available/Assigned/Remaining pattern replaces the need for a
-manual per-line entry field entirely. Do not build against it.
+FIX: added the third card state (Section 3.5,
+unflagged_but_assets_has_interest), styled red as the most severe of
+the three states.
 
 --------------------------------------------------------------------
-7. OUTPUT CONTRACT CHANGES
+7. OUTPUT CONTRACT — FINAL
 --------------------------------------------------------------------
 
-No new calculation fields required. calculate_general_overheads()
-already returns, from this session's earlier build:
-
+calculate_general_overheads() returns (Round 1):
   flagged_asset_finance_pnl_total
   assets_finance_interest_total
 
-Assets module output contract gains (new — consumed only by the new
-card, not by any downstream calculation):
+useAssets.js asset_finance_pnl_match (Round 1 + 1.5):
+  flagged_pnl_total
+  matched_to_assets
+  remaining
+  match_status: "fully_matched" | "gap_present" |
+                "unflagged_but_assets_has_interest" | "not_applicable"
 
-  asset_finance_pnl_match_remaining
-    = flagged_asset_finance_pnl_total - assets_finance_interest_total
-  asset_finance_pnl_match_status
-    "fully_matched" | "gap_present" | "not_applicable"
-    (not_applicable when flagged_asset_finance_pnl_total = 0)
+profitAndLossCalculations.js gains (Round 2, new):
+  reviewed_non_asset_finance_interest_total
+    = sum of interest lines where
+      normalise_interest_treatment(line.interest_treatment) ===
+      "no_asset_finance_interest"
+    (i.e. actively reviewed and marked NOT asset finance interest —
+    distinct from a line that has simply never been reviewed)
 
 --------------------------------------------------------------------
-8. STANDING PRINCIPLES CARRIED FORWARD
+8. ROUND 2 — MODEL RECONCILIATION CROSS-CHECK GAP (NEW THIS BRIEF)
+--------------------------------------------------------------------
+
+### 8.1 The gap found
+
+User reproduced the same Round 1.5 misclassification scenario, but
+one level up, at Model Reconciliation. The Assets card (Section 6)
+correctly showed red. But Model Reconciliation showed:
+  - General Overheads module: "Fully assigned," no warning.
+  - "General Overheads vs P&L overheads benchmark": green, "$0
+    Reconciled" (trivially — nothing was excluded on either side).
+  - "Asset finance vs P&L asset finance benchmark": green,
+    "Expected" (timing-lag styling).
+
+All three misleadingly implied nothing was wrong.
+
+### 8.2 Root cause
+
+A separate, pre-existing reconciliation system (S19-S21 heritage) in
+reconciliationRules.js computes its own view, independent of the
+Round 1 General Overheads formula:
+  asset_finance_interest_covered_amount =
+    Math.min(excluded_asset_finance_interest_total,
+             total_asset_interest_annual)
+
+getAssetFinanceVarianceCheck only used the strict coverage check
+(Section 8.4 below) when something was actively flagged
+(excluded_asset_finance_interest_total > 0). With nothing flagged,
+it fell back to a timing-aware check that treats "Assets ahead of
+P&L" as an unposted journal, not an error — correct when no interest
+line exists yet, but wrong when a line exists, was actively
+reviewed, and was marked "does not contain asset finance interest."
+The system had no way to distinguish "not yet reviewed" from
+"reviewed and rejected."
+
+### 8.3 Fix — misclassification check at Model Reconciliation level
+
+New function getAssetFinanceMisclassificationCheck(), returning
+status: "warn", is_warning: true, is_timing_expected: false.
+
+getAssetFinanceVarianceCheck extended with a
+reviewed_non_asset_finance_interest_total param (sourced from
+Section 7's new P&L calculation field). New branch: if
+reviewed_non_asset_finance_interest_total > 0 (a genuine reviewed
+rejection has happened) AND total_asset_interest_annual exceeds
+tolerance, returns the misclassification check instead of falling
+through to the timing-aware default.
+
+Live-tested and confirmed by user: the benchmark tile now correctly
+shows a warning instead of "Expected" for this scenario.
+
+### 8.4 Fix — the healthy "Covered" state was ALSO misleading, for a
+    different reason (this is the design discussion this brief
+    closes out)
+
+Separately, even in the CORRECT/healthy state (line properly
+flagged, e.g. $4,817 gap between P&L $35,000 and Assets $30,183),
+getAssetFinanceCoverageCheck's "Covered" tile showed a green pill
+with a bare -$4,817 sitting next to it at the collapsed/headline
+level. User's objection, refined over several turns:
+
+  - A green pill next to a signed dollar figure reads as a *pending
+    variance to chase*, not a *resolved fact* — regardless of what
+    the expandable detail text underneath says. Wording alone can't
+    fix a perception problem created by the number's presence and
+    position.
+  - The critical realisation (from the user, transcribed live):
+    "the four thousand eight hundred and seventeen is actually now
+    in the General Overheads" — i.e. this is NOT an open item at
+    all. The Round 1/2 formula (Section 2) has ALREADY moved that
+    remainder into General Overheads, automatically, as part of the
+    normal calculation that already ran. There is nothing pending
+    and nothing for a human to accept or resolve — the module has
+    already made its decision.
+  - This ruled out Claude's first proposal (route this into the S20
+    manual-accept mechanism, matching the Assets card's amber/accept
+    pattern) — S20 accept is for genuine open residual variances
+    needing a human decision. This is not one. Routing an
+    already-resolved, automatically-applied allocation through an
+    "accept" flow would incorrectly imply a decision is still
+    outstanding.
+  - CONCLUSION (final, as built): status stays "covered" (not
+    "warn"), NOT routed through S20. Two things change instead:
+      (a) WORDING — message rewritten from "...this has not been
+          confirmed, check before trusting this figure" to "...has
+          already been carried into General Overheads as other
+          interest cost - this is already accounted for, nothing
+          further to do here."
+      (b) DISPLAY — the headline dollar figure is hidden entirely
+          for any check with status === "covered" (currently unique
+          to this one check), in
+          ModuleReconciliationSummaryCard.jsx's ComponentRow. Only
+          the pill and "Show breakdown" remain at a glance; the
+          number and its explanation live inside the expanded detail
+          only, where context exists to interpret it correctly.
+
+  Asymmetry confirmed explicitly by user and preserved in the build:
+  this treatment applies ONLY when Assets <= P&L (the remainder has
+  a legitimate home in General Overheads, by design, already
+  applied). When Assets > P&L (module claims MORE interest than
+  P&L accounts for), that direction has no such home to fall into —
+  it remains a real, un-absorbed gap, correctly kept as status:
+  "warn" with the dollar figure shown and the existing S20 accept
+  flow available, unchanged from pre-Round-2 behaviour.
+
+### 8.5 Files touched, Round 2
+
+  lib/calculations/profitAndLossCalculations.js
+    - is_reviewed_non_asset_finance_interest(),
+      sum_reviewed_non_asset_finance_interest() helpers
+    - reviewed_non_asset_finance_interest_total, added to return
+
+  lib/reconciliation/reconciliationRules.js
+    - ASSET_FINANCE_MISCLASSIFICATION_POSSIBLE_REASONS (new const)
+    - getAssetFinanceMisclassificationCheck() (new function)
+    - getAssetFinanceVarianceCheck() extended with
+      reviewed_non_asset_finance_interest_total param + new branch
+    - buildModuleReconciliationChecks() extracts and passes the new
+      param through
+    - getAssetFinanceCoverageCheck() message text reworded (8.4a)
+
+  components/module-reconciliation/ModuleReconciliationSummaryCard.jsx
+    - ComponentRow headline value hidden when check.status ===
+      "covered" (8.4b)
+
+--------------------------------------------------------------------
+9. COMMITS
+--------------------------------------------------------------------
+
+Commit 1 (f55d537) — "S22: asset finance interest exclusion +
+Assets/PnL match card": Round 1 core formula + Assets card (2-state
+at that point) + brief.
+
+Commit 2 — S22 brief correction commit (removed stale duplicate
+brief file, committed the correct v5.0 final brief).
+
+Commit 3 (this brief triggers it) — "S22 round 2: detect
+misclassified asset finance interest at Model Reconciliation level,
+clarify Covered state as already-resolved rather than open":
+  components/module-reconciliation/ModuleReconciliationSummaryCard.jsx
+  lib/calculations/profitAndLossCalculations.js
+  lib/reconciliation/reconciliationRules.js
+
+(Round 1.5's third card state was folded into commit 1 — it landed
+before that commit was made, not as a separate commit.)
+
+--------------------------------------------------------------------
+10. STANDING PRINCIPLES CARRIED FORWARD
 --------------------------------------------------------------------
 
 - Never add Assets' asset-finance number into General Overheads to
-  backfill an unbooked P&L journal — unchanged, still the governing
-  rule; the Section 2 formula only ever subtracts, never adds.
+  backfill an unbooked P&L journal — the Section 2 formula only ever
+  subtracts, never adds.
 - RECONCILIATION DISCIPLINE: every headline figure must be
   independently re-derivable and checked against a second,
   independently-sourced calculation. Surface disagreements
-  explicitly with actual numbers and variance — this is the entire
-  reason the Section 3 card exists.
+  explicitly with actual numbers and variance.
+- Do not silently resolve a genuine ambiguity in either direction —
+  make it visible and let a human decide.
+- NEW this round: distinguish "already resolved by an automatic
+  calculation that has already run" from "a genuine open question
+  needing a human decision." Only the latter belongs behind an
+  accept/warn mechanism (S20) or a red/amber flag. Surfacing an
+  already-applied, automatic allocation as if it were still pending
+  is its own kind of misleading — the fix in Section 8.4 exists
+  specifically because "make it visible" and "imply it's unresolved"
+  are not the same thing, and conflating them caused three rounds of
+  user confusion before landing on the distinction above.
 - Small, isolated fixes to recently-viewed files -> targeted
   -replace patch, verified via Select-String. Larger/uncertain-state
-  changes -> full file. (Session-level working convention, not a
-  system rule.)
-- Do not silently resolve a genuine ambiguity in either direction —
-  make it visible and let a human decide. This is the core lesson of
-  this brief and should be treated as a standing principle for any
-  future cross-module reconciliation gap, not just this one.
+  changes -> full file. (Session-level working convention.)
 
 --------------------------------------------------------------------
-9. REMAINING BUILD WORK (as of this brief)
+11. NOT PART OF S22 — ADJACENT, STILL OUTSTANDING
 --------------------------------------------------------------------
 
-ALREADY DONE (prior in this session, live-tested, not yet committed):
-  1. assetStorage.js — has_hydrated exposed via useAssetStorage().
-  2. generalOverheadCalculations.js — partial-subtraction formula,
-     returns flagged_asset_finance_pnl_total and
-     assets_finance_interest_total. KEEP AS-IS per Section 2.
-  3. useGeneralOverheads.js — reads Assets storage directly (avoids
-     circular hook dependency), computes
-     assets_finance_interest_total gated on hydration.
-  4. generalOverheadOutputContract.js — has_asset_finance_interest_
-     duplication check updated to only flag genuine over-claim by
-     Assets.
-  5. generalOverheadAllocationSelectors.js — source_amount and
-     get_allocation_input_amount now use active_amount consistently.
-
-NOT YET DONE:
-  6. Build the Section 3 card in the Assets module: new component
-     (or extend an existing Assets sidebar component), wired to
-     flagged_asset_finance_pnl_total / assets_finance_interest_total
-     already available from General Overheads' calculation output —
-     confirm exact plumbing path from Assets module to that output
-     before building (Assets does not currently import General
-     Overheads' hook, by original design, to avoid the same circular
-     dependency useGeneralOverheads.js was built around).
-  7. Add asset_finance_pnl_match_remaining and
-     asset_finance_pnl_match_status to the Assets output contract.
-  8. Apply state-dependent styling (Section 3.6).
-  9. git status check, then commit the full change set (items 1-8)
-     together as one S22 change.
-  10. Confirm ModuleReconciliationSummaryCard.jsx still reflects the
-      correct benchmark language given the formula is now confirmed
-      final, not provisional.
+Untouched by S22, noted so they aren't assumed done:
+  - lib/selectors/generalOverheadSelectors.js (flat/camelCase) vs
+    lib/selectors/general-overheads/*.js (subfolder) — layer mapping
+    not yet audited.
+  - Model Readiness page — not yet audited against the Round 2
+    misclassification check (does a misclassified line correctly
+    block/warn on Model Readiness too, or only on Model
+    Reconciliation? Not yet confirmed either way).
+  - Cost Summary cross-check — not yet audited.
 
 --------------------------------------------------------------------
-10. ACCEPTANCE CRITERIA
+12. ACCEPTANCE CRITERIA — FINAL STATE, ALL MET
 --------------------------------------------------------------------
-
-This brief is accepted when:
 
 1. General Overheads excludes, per flagged P&L row, only the portion
    matched to Assets' own confirmed asset finance interest total —
-   never the full line, never zero (unless fully matched).
-2. The Assets module shows a reconciliation card comparing the
-   flagged P&L asset-finance total to Assets' own matched total,
-   using the existing Available/Assigned/Remaining visual pattern.
-3. The card is visually neutral when fully matched and visually
-   flagged as needing review when a gap remains.
-4. The card does not render at all when no P&L line is flagged.
-5. No double-count risk: the only way a remainder gap stays inside
-   General Overheads as counted overhead cost is if Assets data is
-   confirmed complete (card shows fully matched) or the gap has been
-   consciously left after review — never as a silent default.
-6. The "Includes Asset Finance Portion" manual field remains inert;
-   it is not wired into any calculation by this brief.
-7. Module Reconciliation's Asset Finance benchmark and General
-   Overheads vs P&L benchmark both still tie out correctly against
-   the final (unchanged) formula.
-8. Full change set from Section 9 items 1-8 committed together.
+   MET.
+2. Assets module shows a 3-state reconciliation card (fully_matched
+   / gap_present / unflagged_but_assets_has_interest) — MET,
+   live-tested.
+3. Card does not render when no P&L line is flagged — MET.
+4. Misclassification (unflagged P&L line, Assets still holds real
+   interest) is caught both at the Assets card (red) AND at Model
+   Reconciliation (amber warning, not "Expected") — MET, live-tested
+   both.
+5. A genuinely covered gap (Assets <= P&L) reads, at a glance, as
+   resolved rather than pending — no headline dollar figure, wording
+   confirms the amount is already inside General Overheads — MET,
+   live-tested.
+6. A genuine over-claim (Assets > P&L) still shows red "Variance"
+   with the dollar figure and the S20 accept flow available,
+   unchanged — MET, confirmed via screenshot.
+7. No double-count risk in either direction: Assets <= P&L, the
+   remainder has a confirmed home (General Overheads, by formula);
+   Assets > P&L, flagged for human review, not silently absorbed.
+8. Full Round 2 change set committed as one commit (Section 9).
 
 ====================================================================
 END OF BRIEF
