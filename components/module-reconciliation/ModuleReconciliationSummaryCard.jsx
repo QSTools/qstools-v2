@@ -304,7 +304,7 @@ function ComponentRow({
         </div>
 
         <div className="cost-summary-drill-value">
-          {check.status === "covered" ? null : (
+          {check.status === "covered" || (check.id === "labour_variance" && check.status === "pass") ? null : (
             <div className="ui-card-title-sm">
               {format_currency(check.variance_amount)}
             </div>
@@ -617,4 +617,6 @@ export default function ModuleReconciliationSummaryCard({
     </div>
   );
 }
+
+
 
