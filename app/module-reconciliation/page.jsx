@@ -112,6 +112,17 @@ export default function ModuleReconciliationPage() {
       annual_labour_cost: staff.annual_labour_cost || 0,
     }));
 
+  // "Show the maths" layer (this session): per-category P&L vs
+  // General Overheads figures, and the asset-related cost pools
+  // (fuel / insurance / repairs-maintenance / registration-compliance).
+  // Both already exist inside general_overheads.output_contract - read
+  // directly, no new calculation introduced here or anywhere else.
+  const general_overheads_category_totals =
+    modules?.generalOverheads?.output_contract?.category_totals || [];
+
+  const asset_overhead_pools =
+    modules?.generalOverheads?.output_contract?.asset_overhead_pools || {};
+
   return (
     <div className="ui-stack">
       <ModuleReconciliationSummaryCard
@@ -120,6 +131,8 @@ export default function ModuleReconciliationPage() {
         component_checks={component_checks}
         asset_finance_breakdown={asset_finance_breakdown}
         owner_director_breakdown={owner_director_breakdown}
+        general_overheads_category_totals={general_overheads_category_totals}
+        asset_overhead_pools={asset_overhead_pools}
         accept_check={accept_check}
       />
 

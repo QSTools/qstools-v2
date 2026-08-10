@@ -135,6 +135,175 @@ function NamedAmountBreakdown({ title, rows = [], note, gap_amount }) {
   );
 }
 
+// "Show the maths" (this session): the detailed, workpaper-style
+// layer underneath a check's normal breakdown. Hidden behind its own
+// toggle so opening a check still shows the existing clean summary
+// first - this is an optional third click, not a change to what
+// anyone sees by default. Every number rendered here already exists
+// elsewhere in the app (category_totals from General Overheads'
+// output contract, asset_overhead_pools from the same, or the
+// existing Labour sub_checks) - nothing here is calculated fresh.
+
+// General Overheads: per-category P&L vs Module table. Mirrors the
+// "Operating Expenses Reconciliation" table pattern a user brought in
+// from their own external reconciliation workbook.
+function GeneralOverheadsMaths({ category_totals = [] }) {
+  const rows = category_totals.filter(
+    (row) => Math.abs(row.pnl_total || 0) > 0.5 || Math.abs(row.total || 0) > 0.5,
+  );
+
+  if (rows.length === 0) return null;
+
+  const pnl_sum = rows.reduce((sum, row) => sum + (row.pnl_total || 0), 0);
+  const total_sum = rows.reduce((sum, row) => sum + (row.total || 0), 0);
+
+  return (
+    <div className="ui-stack-sm">
+      <p className="ui-kicker">By category</p>
+      <table className="module-reconciliation-maths-table">
+        <thead>
+          <tr>
+            <th align="left">Category</th>
+            <th align="right">P&amp;L</th>
+            <th align="right">Overheads</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.category_id}>
+              <td>{row.category_name}</td>
+              <td align="right">{format_currency(row.pnl_total)}</td>
+              <td align="right">{format_currency(row.total)}</td>
+            </tr>
+          ))}
+          <tr className="module-reconciliation-maths-total-row">
+            <td>Total</td>
+            <td align="right">{format_currency(pnl_sum)}</td>
+            <td align="right">{format_currency(total_sum)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="ui-help">
+        Categories where a P&amp;L line has been flagged as asset finance
+        interest will show a lower Overheads figure than P&amp;L - that
+        difference is the amount excluded and checked separately on the
+        Assets card, not a data error here.
+      </p>
+    </div>
+  );
+}
+
+// Assets: the four asset-related cost pools (fuel, insurance, repairs
+// / maintenance, registration / compliance), alongside the per-asset
+// finance interest rows already shown above this section.
+function AssetsPoolsMaths({ asset_overhead_pools = {} }) {
+  const rows = Object.values(asset_overhead_pools).filter(
+    (pool) => Math.abs(pool?.amount || 0) > 0.5,
+  );
+
+  if (rows.length === 0) return null;
+
+  const pool_total = rows.reduce((sum, pool) => sum + (pool.amount || 0), 0);
+
+  return (
+    <div className="ui-stack-sm">
+      <p className="ui-kicker">Asset-related cost pools</p>
+      <div className="module-reconciliation-amount-stack">
+        {rows.map((pool) => (
+          <div key={pool.label} className="module-reconciliation-amount-row">
+            <span className="module-reconciliation-amount-label">
+              {pool.label}
+            </span>
+            <span className="module-reconciliation-amount-value">
+              {format_currency(pool.amount)}
+            </span>
+          </div>
+        ))}
+        <div className="module-reconciliation-amount-row module-reconciliation-maths-total-row">
+          <span className="module-reconciliation-amount-label">Total</span>
+          <span className="module-reconciliation-amount-value">
+            {format_currency(pool_total)}
+          </span>
+        </div>
+      </div>
+      <p className="ui-help">
+        These are General Overheads costs reclassified as asset-related
+        (running costs, insurance, and similar) - shown here alongside
+        finance interest since your Assets total is made up of both.
+      </p>
+    </div>
+  );
+}
+
+// Labour: reconstructs the wages/on-costs bridge from the existing
+// sub_checks (labour_wages_variance, labour_on_costs_variance) - pure
+// display arithmetic over numbers those checks already calculated.
+function LabourMaths({ sub_checks = [] }) {
+  if (sub_checks.length === 0) return null;
+
+  const module_sum = sub_checks.reduce(
+    (sum, check) => sum + (check.module_amount || 0),
+    0,
+  );
+  const source_sum = sub_checks.reduce(
+    (sum, check) => sum + (check.source_amount || 0),
+    0,
+  );
+
+  return (
+    <div className="ui-stack-sm">
+      <p className="ui-kicker">Wages / on-costs bridge</p>
+      <table className="module-reconciliation-maths-table">
+        <thead>
+          <tr>
+            <th align="left">Component</th>
+            <th align="right">P&amp;L</th>
+            <th align="right">Module</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sub_checks.map((check) => (
+            <tr key={check.id}>
+              <td>{check.label}</td>
+              <td align="right">{format_currency(check.source_amount)}</td>
+              <td align="right">{format_currency(check.module_amount)}</td>
+            </tr>
+          ))}
+          <tr className="module-reconciliation-maths-total-row">
+            <td>Total</td>
+            <td align="right">{format_currency(source_sum)}</td>
+            <td align="right">{format_currency(module_sum)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MathsBreakdown({
+  check,
+  general_overheads_category_totals,
+  asset_overhead_pools,
+}) {
+  if (check.id === "general_overheads_variance") {
+    return (
+      <GeneralOverheadsMaths
+        category_totals={general_overheads_category_totals}
+      />
+    );
+  }
+
+  if (check.id === "asset_finance_variance") {
+    return <AssetsPoolsMaths asset_overhead_pools={asset_overhead_pools} />;
+  }
+
+  if (check.id === "labour_variance") {
+    return <LabourMaths sub_checks={check.sub_checks || []} />;
+  }
+
+  return null;
+}
+
 // S20: inline form to accept a specific "warn" check. Reason is
 // required - an acceptance with no reason recorded defeats the point
 // (S20 section 1: "on the record", not "hidden"). Inline styles are
@@ -241,10 +410,14 @@ function ComponentRow({
   on_accept,
   asset_finance_breakdown = [],
   owner_director_breakdown = [],
+  general_overheads_category_totals = [],
+  asset_overhead_pools = {},
 }) {
   const is_open = open_check_ids.includes(check.id);
   const is_hovered = hovered_check_id === check.id;
   const is_muted = Boolean(hovered_check_id) && hovered_check_id !== check.id;
+
+  const [maths_open, set_maths_open] = useState(false);
 
   const is_asset_finance_check = check.id === "asset_finance_variance";
   const is_labour_check = check.id === "labour_variance";
@@ -270,6 +443,19 @@ function ComponentRow({
 
   const has_sub_checks =
     Array.isArray(check.sub_checks) && check.sub_checks.length > 0;
+
+  // "Show the maths" is only offered at the top level (depth 0) for
+  // the three checks that actually have workpaper-style detail behind
+  // them, and only when that detail has real data to show.
+  const has_maths =
+    depth === 0 &&
+    ((check.id === "general_overheads_variance" &&
+      general_overheads_category_totals.length > 0) ||
+      (check.id === "asset_finance_variance" &&
+        Object.values(asset_overhead_pools).some(
+          (pool) => Math.abs(pool?.amount || 0) > 0.5,
+        )) ||
+      (check.id === "labour_variance" && has_sub_checks));
 
   // S20 section 3: only plain "warn", non-blocking checks are eligible
   // for Accept. pass/timing_expected/accepted/blocking all render no
@@ -400,6 +586,29 @@ function ComponentRow({
             />
           ) : null}
 
+          {has_maths ? (
+            <div className="ui-stack-sm">
+              <button
+                type="button"
+                className="ui-button-secondary"
+                style={{ width: "fit-content" }}
+                onClick={() => set_maths_open((current) => !current)}
+              >
+                {maths_open ? "Hide the maths" : "Show the maths"}
+              </button>
+
+              {maths_open ? (
+                <MathsBreakdown
+                  check={check}
+                  general_overheads_category_totals={
+                    general_overheads_category_totals
+                  }
+                  asset_overhead_pools={asset_overhead_pools}
+                />
+              ) : null}
+            </div>
+          ) : null}
+
           {has_sub_checks ? (
             <div className="ui-stack-sm">
               <p className="ui-kicker">Breakdown</p>
@@ -415,6 +624,10 @@ function ComponentRow({
                   on_accept={on_accept}
                   asset_finance_breakdown={asset_finance_breakdown}
                   owner_director_breakdown={owner_director_breakdown}
+                  general_overheads_category_totals={
+                    general_overheads_category_totals
+                  }
+                  asset_overhead_pools={asset_overhead_pools}
                 />
               ))}
             </div>
@@ -466,6 +679,8 @@ export default function ModuleReconciliationSummaryCard({
   component_checks = [],
   asset_finance_breakdown = [],
   owner_director_breakdown = [],
+  general_overheads_category_totals = [],
+  asset_overhead_pools = {},
   accept_check = null,
 }) {
   // Whole group (Labour / Asset Finance / Overheads) hidden until the
@@ -607,6 +822,10 @@ export default function ModuleReconciliationSummaryCard({
                   on_accept={accept_check}
                   asset_finance_breakdown={asset_finance_breakdown}
                   owner_director_breakdown={owner_director_breakdown}
+                  general_overheads_category_totals={
+                    general_overheads_category_totals
+                  }
+                  asset_overhead_pools={asset_overhead_pools}
                 />
               ))}
             </div>
@@ -617,6 +836,3 @@ export default function ModuleReconciliationSummaryCard({
     </div>
   );
 }
-
-
-
