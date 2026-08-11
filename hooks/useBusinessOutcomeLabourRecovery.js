@@ -150,6 +150,7 @@ export default function useBusinessOutcomeLabourRecovery() {
     return build_overhead_rate_map(rate_builder_labour_recovery_rows);
   }, [rate_builder_labour_recovery_rows]);
 
+
   const labour_recovery_rows = useMemo(() => {
     return build_labour_recovery_rows(
       productive_staff_type_rates,
@@ -210,5 +211,7 @@ export default function useBusinessOutcomeLabourRecovery() {
     data_status: labour_recovery_rows.length > 0 ? "ready" : "no_labour_sources",
   };
 }
+
+
 
 
