@@ -7,6 +7,11 @@ import BusinessOutcomeViewSwitcher from "@/components/navigation/BusinessOutcome
 import BusinessOutcomeTruthStatusStrip from "@/components/business-outcome-truth/BusinessOutcomeTruthStatusStrip";
 import BusinessOutcomeTruthSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthSummaryCard";
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
+import useBusinessOutcomeRevenueSplit from "@/hooks/useBusinessOutcomeRevenueSplit";
+import BusinessOutcomeTruthRevenueSplitCard from "@/components/business-outcome-truth/BusinessOutcomeTruthRevenueSplitCard";
+import useBusinessOutcomeWaterfall from "@/hooks/useBusinessOutcomeWaterfall";
+import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome/businessOutcomeWaterfallSelectors";
+import BusinessOutcomeWaterfallCard from "@/components/business-outcome-truth/BusinessOutcomeWaterfallCard";
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
 
@@ -25,12 +30,17 @@ import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/B
 export default function BusinessOutcomePage() {
   const { output_contract } = useBusinessOutcomeTruth();
   const labour_recovery = useBusinessOutcomeLabourRecovery();
+  const revenue_split = useBusinessOutcomeRevenueSplit();
+  const waterfall_calculation = useBusinessOutcomeWaterfall();
+  const waterfall = selectBusinessOutcomeWaterfall(waterfall_calculation);
 
   return (
     <div className="space-y-6 p-6">
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeTruthStatusStrip output_contract={output_contract} />
       <BusinessOutcomeTruthSummaryCard output_contract={output_contract} />
+      <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
+      <BusinessOutcomeWaterfallCard waterfall={waterfall} />
       <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
       <BusinessOutcomeTruthWarningsPanel output_contract={output_contract} />
       <BusinessOutcomeTruthHelpPanel />
