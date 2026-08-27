@@ -107,8 +107,7 @@ export default function useBusinessOutcomeTruth() {
     const revenue_matches =
       Math.abs((bs.total_revenue ?? 0) - (rc.total_revenue ?? 0)) < 0.01;
     const direct_costs_match =
-      Math.abs((bs.total_direct_costs ?? 0) - (rc.total_direct_costs ?? 0)) 
-      0.01;
+      Math.abs((bs.total_direct_costs ?? 0) - (rc.total_direct_costs ?? 0)) < 0.01;
     const reconciliation_status =
       revenue_matches && direct_costs_match ? "reconciled" : "mismatch";
 
