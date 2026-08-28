@@ -244,6 +244,20 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
   // profitable. Now keyed by (group_id, staff_type_id) - same pattern
   // asset_sources already uses - so a staff type appearing in multiple
   // groups gets a separate, correctly-attributed row per group.
+  //
+  // SEAT-HOURS FIX (confirmed with user): when a group's recovery driver
+  // is asset hours (group_recovery_hour_source === "asset_hours"), the
+  // ASSET defines the seat's real operating hours - labour covers that
+  // seat in shifts/rotation (holidays, sick leave, relief cover), so the
+  // seat earns revenue for its full real running hours regardless of
+  // whose individual hours filled it. If MULTIPLE labour sources share
+  // one seat, each gets a SHARE of the seat's hours proportional to their
+  // own assigned-hours share - never the full seat hours each, which
+  // would double-count revenue (same class of bug already fixed for
+  // co-deployed assets earlier this session). For labour-hours-driven
+  // groups (no asset - e.g. Site Crew, Foreman), there is no seat to
+  // cover - the person themselves is what's being charged out, so their
+  // own real assigned hours remain the correct basis.
   const accumulated = new Map(); // "group_id::staff_type_id" -> row data
 
   operational_group_cost_rows.forEach((group) => {
@@ -261,16 +275,22 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
       0
     );
 
+    const use_seat_hours = group.group_recovery_hour_source === "asset_hours";
+    const group_seat_hours = to_number(group.group_recovery_hours);
+
     labour_assignments.forEach((assignment) => {
       const staff_type_id = assignment.staff_type_id;
       if (!staff_type_id) {
         return;
       }
 
-      const hours = to_number(assignment.assigned_hours);
+      const own_hours = to_number(assignment.assigned_hours);
+      const hours_share = group_labour_hours_sum > 0 ? own_hours / group_labour_hours_sum : 0;
+      const revenue_hours = use_seat_hours ? group_seat_hours * hours_share : own_hours;
+
       const direct_cost = to_number(assignment.assigned_cost);
       const overhead_share =
-        group_labour_hours_sum > 0 ? labour_overhead_pool * (hours / group_labour_hours_sum) : 0;
+        group_labour_hours_sum > 0 ? labour_overhead_pool * hours_share : 0;
 
       const key = `${group.group_id}::${staff_type_id}`;
       const prior = accumulated.get(key) || {
@@ -279,12 +299,14 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
         staff_type_id,
         direct_cost: 0,
         hours: 0,
+        revenue_hours: 0,
         overhead_share: 0,
       };
       accumulated.set(key, {
         ...prior,
         direct_cost: prior.direct_cost + direct_cost,
-        hours: prior.hours + hours,
+        hours: prior.hours + own_hours,
+        revenue_hours: prior.revenue_hours + revenue_hours,
         overhead_share: prior.overhead_share + overhead_share,
       });
     });
@@ -294,7 +316,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
     .map((agg) => {
       const charge_out_rate = to_number(charge_out_rate_by_id.get(agg.staff_type_id));
       const true_cost = agg.direct_cost + agg.overhead_share;
-      const modelled_revenue = charge_out_rate > 0 ? charge_out_rate * agg.hours : null;
+      const modelled_revenue = charge_out_rate > 0 ? charge_out_rate * agg.revenue_hours : null;
       const net_profit = modelled_revenue !== null ? modelled_revenue - true_cost : null;
 
       return {
@@ -302,7 +324,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
         staff_type_name: staff_type_name_by_id.get(agg.staff_type_id) || "Unnamed labour source",
         group_id: agg.group_id,
         group_name: agg.group_name,
-        hours: round_currency(agg.hours),
+        hours: round_currency(agg.revenue_hours),
         direct_cost: round_currency(agg.direct_cost),
         overhead_share: round_currency(agg.overhead_share),
         true_cost: round_currency(true_cost),
@@ -463,6 +485,39 @@ export default function useBusinessOutcomePerSourceRevenue() {
       unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
       residual_overhead: round_currency(residual_overhead),
       total_revenue_reference: round_currency(total_revenue_reference),
+      labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
+      asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
+      // Already computed by costAllocationGroupCostBuilder.js on every
+      // group row - never wired anywhere before now. Different question
+      // from labour_pool_over_allocated above: that checks whether a
+      // staff type exceeds their OWN total hours across all groups this
+      // checks whether the labour assigned WITHIN one group covers the
+      // hours the asset in that same group actually needs to run.
+      // "Two sides of the same coin" (user, this session) - the asset
+      // cannot run without the labour, and the labour hours assigned
+      // may not be enough for the asset's real schedule, even when
+      // neither individual number is itself over 100%.
+      // Only real coverage GAPS - labour assigned but insufficient for
+      // the asset's hours. A group with ZERO labour assigned at all
+      // (e.g. PC15 - single asset, no shared labour) is a different
+      // situation entirely, not a scheduling gap, and must not be
+      // conflated with one. This distinction lives here, not in Cost
+      // Allocation's own labour_coverage_warning logic, deliberately -
+      // that logic is shared by other pages and was not touched.
+      labour_coverage_gaps: operational_group_cost_rows
+        .filter((g) => {
+          const has_labour_assigned =
+            Array.isArray(g.labour_group_assignments) && g.labour_group_assignments.length > 0;
+          return g.labour_coverage_warning && has_labour_assigned;
+        })
+        .map((g) => ({
+          group_id: g.group_id,
+          group_name: g.group_name,
+          gap_hours: round_currency(g.labour_coverage_gap_hours),
+          message: g.labour_coverage_warning.message,
+        })),
+      labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
+      asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
       total_modelled_revenue: round_currency(total_modelled_revenue), // display only, not a reconciliation
       reconciliation: {
         total_true_cost: round_currency(total_true_cost),
@@ -475,6 +530,11 @@ export default function useBusinessOutcomePerSourceRevenue() {
 
   return result;
 }
+
+
+
+
+
 
 
 

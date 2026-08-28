@@ -95,6 +95,8 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     unassigned_overhead_cost: calculated.unassigned_overhead_cost,
     unassigned_non_productive_labour_cost: calculated.unassigned_non_productive_labour_cost,
     unassigned_non_productive_asset_cost: calculated.unassigned_non_productive_asset_cost,
+    labour_pool_over_allocated: calculated.labour_pool_over_allocated,
+    asset_pool_over_allocated: calculated.asset_pool_over_allocated,
     total_unassigned_cost: calculated.total_unassigned_cost,
     productive_asset_utilisation_hours_annual:
       calculated.productive_asset_utilisation_hours_annual,
@@ -130,4 +132,5 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     internal_capacity_shortfall: calculated.internal_capacity_shortfall,
   };
 }
+
 

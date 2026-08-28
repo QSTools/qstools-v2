@@ -290,6 +290,199 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
+// FIX (confirmed live): a real Cost Allocation group like "2inc Line"
+// can carry BOTH labour and asset members (e.g. Senior Operator + pump +
+// Landcruiser, all one group). This used to create TWO separate drill
+// entries sharing the same display name - clicking one hid the other
+// entirely. Now merged by group_id into ONE entry per real group, with
+// both labour and asset children combined.
+function combine_entries(labour_groups, asset_groups, materials) {
+  const by_group_id = new Map();
+
+  function get_or_create(group_id, group_name) {
+    const key = group_id || `unkeyed_${group_name}`;
+    if (!by_group_id.has(key)) {
+      by_group_id.set(key, {
+        key,
+        label: group_name,
+        net_profit: 0,
+        modelled_revenue: 0,
+        children: [],
+        has_unavailable: false,
+      });
+    }
+    return by_group_id.get(key);
+  }
+
+  labour_groups.forEach((g) => {
+    const entry = get_or_create(g.group_id, g.group_name);
+    entry.net_profit += g.group_net_profit ?? 0;
+    entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+    if (g.group_has_unavailable) entry.has_unavailable = true;
+    g.staff.forEach((s) => {
+      entry.children.push({
+        key: s.staff_type_id,
+        label: s.staff_type_name,
+        net_profit: s.net_profit,
+        modelled_revenue: s.modelled_revenue,
+        available: s.available,
+        unavailable_reason: s.unavailable_reason,
+        verdict: s.verdict,
+        verdict_label: s.verdict_label,
+      });
+    });
+  });
+
+  asset_groups.forEach((g) => {
+    const entry = get_or_create(g.group_id, g.group_name);
+    entry.net_profit += g.group_net_profit ?? 0;
+    entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+    if (g.group_has_unavailable) entry.has_unavailable = true;
+    g.assets.forEach((a) => {
+      entry.children.push({
+        key: a.asset_id,
+        label: a.asset_name,
+        net_profit: a.net_profit,
+        modelled_revenue: a.modelled_revenue,
+        available: a.available,
+        unavailable_reason: a.unavailable_reason,
+        verdict: a.verdict,
+        verdict_label: a.verdict_label,
+      });
+    });
+  });
+
+  const merged_entries = Array.from(by_group_id.values()).map((entry) => ({
+    ...entry,
+    verdict: entry.has_unavailable ? null : entry.net_profit >= 0 ? "paying_its_way" : "being_carried",
+    verdict_label: entry.has_unavailable
+      ? "Not available"
+      : entry.net_profit >= 0
+        ? "Paying its way"
+        : "Being carried",
+  }));
+
+  merged_entries.push({
+    key: "materials",
+    label: "Materials / COG",
+    net_profit: materials.net_profit,
+    modelled_revenue: materials.revenue,
+    verdict: materials.verdict,
+    verdict_label: materials.verdict_label,
+    children: [],
+  });
+
+  return merged_entries;
+}
+
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode }) {
+  const [selected_key, set_selected_key] = useState(null);
+  const [hovered_key, set_hovered_key] = useState("");
+
+  const entries = combine_entries(labour_groups, asset_groups, materials);
+  const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
+  const total = view_mode === "profit" ? headline.total_net_profit : headline.total_modelled_revenue;
+
+  const sorted_top_level = [...entries].sort((a, b) => metric(b) - metric(a));
+  const selected_entry = entries.find((e) => e.key === selected_key) || null;
+
+  const active_list = selected_entry
+    ? [...selected_entry.children].sort((a, b) => metric(b) - metric(a))
+    : sorted_top_level;
+
+  const breadcrumbs = selected_entry
+    ? [
+        { key: "root", label: "All operating groups" },
+        { key: selected_entry.key, label: selected_entry.label },
+      ]
+    : [{ key: "root", label: "All operating groups" }];
+
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div className="cost-summary-breadcrumb">
+        {breadcrumbs.map((crumb, index) => (
+          <button
+            key={crumb.key}
+            type="button"
+            className="cost-summary-breadcrumb-item"
+            onClick={() => set_selected_key(index === 0 ? null : selected_key)}
+          >
+            {crumb.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="ui-kicker">
+        {selected_entry ? `${selected_entry.label} - ranked by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
+      </div>
+
+      <div className="cost-summary-drill-list">
+        {active_list.map((item) => {
+          const has_children = !selected_entry && entries.find((e) => e.key === item.key)?.children.length > 0;
+          const is_active = hovered_key === item.key;
+          const is_muted = Boolean(hovered_key) && !is_active;
+          const value = metric(item);
+          const share = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+
+          const row_class = [
+            "cost-summary-drill-row",
+            has_children ? "clickable" : "static",
+            is_active ? "active" : "",
+            is_muted ? "muted" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          const content = (
+            <>
+              <div className="ui-stack-sm">
+                <div className="cost-summary-drill-label">{item.label}</div>
+                {item.available === false && <div className="ui-help">{item.unavailable_reason || "Not available"}</div>}
+              </div>
+              <div className="cost-summary-drill-value">
+                <span className="business-outcome-drill-tags">
+                  <ModelledTag />
+                  {item.verdict && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
+                </span>
+                <div className="ui-card-title-sm">
+                  {format_currency(value)}
+                  <span className="ui-help"> ({share}%)</span>
+                </div>
+              </div>
+            </>
+          );
+
+          if (has_children) {
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={row_class}
+                onMouseEnter={() => set_hovered_key(item.key)}
+                onMouseLeave={() => set_hovered_key("")}
+                onClick={() => set_selected_key(item.key)}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <div
+              key={item.key}
+              className={row_class}
+              onMouseEnter={() => set_hovered_key(item.key)}
+              onMouseLeave={() => set_hovered_key("")}
+            >
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
   const [view_mode, set_view_mode] = useState("revenue");
 
@@ -304,8 +497,97 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
     );
   }
 
+  const total_source_count = per_source.headline.total_group_count;
+  const carried_count = per_source.headline.being_carried_count;
+
   return (
     <div className="business-outcome-waterfall">
+      <div className="business-outcome-headline">
+        <div className="business-outcome-headline-eyebrow">Is your business working?</div>
+        <div className="business-outcome-headline-text">
+          Your business made{" "}
+          <span className={per_source.headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(per_source.headline.total_net_profit)}
+          </span>{" "}
+          in net profit.
+
+        {per_source.headline.all_good ? (
+            <> Every part of your business is paying its way.</>
+          ) : (
+            <>
+              {" "}
+              <span className="value-bad">
+                {carried_count} of {total_source_count}
+              </span>{" "}
+              {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+            </>
+          )}
+        </div>
+
+        {(per_source.headline.labour_capacity_warning || per_source.headline.asset_capacity_warning) && (
+          <div className="business-outcome-capacity-warning">
+            <strong>Some of this revenue may not be deliverable as currently staffed</strong>
+            {per_source.headline.labour_capacity_warning && (
+              <div>
+                One or more staff types are assigned more hours across your operating groups than they
+                actually have available. The revenue figures on this page assume every assigned seat is
+                fully covered - check Cost Allocation for the specific over-allocated staff type.
+              </div>
+            )}
+            {per_source.headline.asset_capacity_warning && (
+              <div>
+                One or more assets are assigned more than 100% across your operating groups. Check Cost
+                Allocation for the specific over-allocated asset.
+              </div>
+            )}
+          </div>
+        )}
+
+        {per_source.headline.labour_coverage_gaps.length > 0 && (
+          <div className="business-outcome-coverage-gap-block">
+            <div className="business-outcome-coverage-gap-title">Scheduling gap - not a profit issue</div>
+            {per_source.headline.labour_coverage_gaps.map((gap) => (
+              <div className="business-outcome-coverage-gap-row" key={gap.group_id}>
+                <strong>{gap.group_name}</strong> - assigned labour covers {gap.gap_hours} fewer
+                hours than this asset runs each year. This is a real scheduling gap worth weighing up in
+                Business Modelling - not something to fix on this page.
+              </div>
+            ))}
+          </div>
+        )}
+
+        {per_source.headline.all_good ? (
+          <div className="business-outcome-all-good-row">
+            Every labour source, asset, and materials is covering its own cost right now - nothing is
+            being carried by the rest of the business.
+          </div>
+        ) : (
+          <div className="business-outcome-attention-list">
+            {per_source.headline.being_carried.map((entry) => (
+              <div className="business-outcome-attention-row" key={entry.name}>
+                <span className="business-outcome-attention-row-name">{entry.name}</span>
+                <span className="business-outcome-attention-row-amount">
+                  {format_currency(entry.net_profit)} / year
+                </span>
+              </div>
+            ))}
+            <div className="business-outcome-attention-footer">
+              {total_source_count - carried_count} other{" "}
+              {total_source_count - carried_count === 1 ? "source is" : "sources are"} performing as
+              expected - see full breakdown below.
+            </div>
+          </div>
+        )}
+      </div>
+
+      <RankedGroupsDrill
+        headline={per_source.headline}
+        labour_groups={per_source.labour_groups}
+        asset_groups={per_source.asset_groups}
+        materials={per_source.materials}
+        view_mode={view_mode}
+      />
+
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
         <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
 
@@ -327,8 +609,6 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
         </div>
 
         <div className="business-outcome-per-source">
-          <LabourGroupsSection labour_groups={per_source.labour_groups} view_mode={view_mode} />
-          <AssetGroupsSection asset_groups={per_source.asset_groups} view_mode={view_mode} />
           <MaterialsSection materials={per_source.materials} view_mode={view_mode} />
         </div>
 
@@ -338,6 +618,18 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
