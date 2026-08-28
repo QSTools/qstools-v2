@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { safe_array } from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
 
@@ -93,6 +93,8 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     unassigned_labour_cost: calculated.unassigned_labour_cost,
     unassigned_asset_cost: calculated.unassigned_asset_cost,
     unassigned_overhead_cost: calculated.unassigned_overhead_cost,
+    unassigned_non_productive_labour_cost: calculated.unassigned_non_productive_labour_cost,
+    unassigned_non_productive_asset_cost: calculated.unassigned_non_productive_asset_cost,
     total_unassigned_cost: calculated.total_unassigned_cost,
     productive_asset_utilisation_hours_annual:
       calculated.productive_asset_utilisation_hours_annual,
@@ -128,3 +130,4 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     internal_capacity_shortfall: calculated.internal_capacity_shortfall,
   };
 }
+

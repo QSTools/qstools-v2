@@ -1,0 +1,219 @@
+# Mirra v5.1 - Per-Source Revenue: Corrected Asset Mechanism & S28 Retirement
+
+STATUS: DECISION NOTE - RETIRES S28, CLOSES ALL OPEN QUESTIONS FROM S26/S27
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-28
+AUTHORITY: Supersedes S28_RATE_BUILDER_PER_SOURCE_LINKING_v5_1.txt in full.
+S28 is not to be built. This note is the final scoping document before
+useBusinessOutcomePerSourceRevenue.js is written.
+
+---
+
+# 1. WHY S28 IS RETIRED
+
+S28 was drafted on the assumption that a Rate Builder calculator needed to
+be linkable to one specific physical asset (linked_asset_id) because two
+assets sharing one calculator ("2inc Line," live data) appeared unable to
+show individual profitability.
+
+That assumption was tested directly against how the calculator is
+actually used (user, this session, with screenshot evidence): "the
+calculator is designed to represent how I would invoice this asset... it
+represents how I would invoice." The "2inc Line calculator"'s three line
+items (Setup / Hourly / m3 Rate) price the JOB TYPE - a 2-inch line
+pumping job - not a specific physical pump. This is correct, intentional,
+and matches real invoicing practice. It is not a data gap.
+
+S28's proposed fix (relink calculators to individual assets) would have
+broken something that already works correctly, to solve a problem that
+has a much simpler real answer - see Section 2.
+
+---
+
+# 2. THE CORRECTED MECHANISM
+
+## 2.1 What already exists, confirmed live this session
+
+- The group's blended rate ($/hr) is already computed correctly:
+  businessOutcomeAssetSplitCalculations.js:
+    blendedRate = preview.total_charge / recoveryDriverQuantity
+  Confirmed against live screenshot: $831.00 / 12 m3 job, decomposing to
+  $207.75/hr total group rate at the group's 1920 recovery hours.
+
+- Each individual physical asset already carries its OWN independent
+  expected-hours figure, not a shared/group value:
+  costAllocationSharedHelpers.js, get_total_asset_hours():
+    row.asset_recovery_hours_used ?? row.utilisation_hours_annual ??
+    row.utilisation_hours ?? row.available_asset_hours ?? 0
+  Sourced per-row from asset_recovery_rows (Assets module), then carried
+  through costAllocationAssetPoolBuilders.js's enriched_assignments as:
+    assigned_asset_hours = available_asset_hours * (assignment_percent / 100)
+  Confirmed live: "2inc Line" group's two real assets
+  (bc1dc072-28f5-4812-885b-5c4033284549 and
+  4b5eff75-3a86-4b52-b39b-111e433ee2fe) each have their own
+  asset_group_assignments row, each independently 100% assigned - the
+  underlying per-asset hours are real, not shared or derived.
+
+- Cost is already fully per-asset: enriched_assignments also carries
+  assigned_asset_cost per asset_id, already summed correctly into group
+  totals by costAllocationGroupCostBuilder.js.
+
+## 2.2 The fix
+
+No calculator changes. No relinking. No migration. Apply the group's
+already-correct blended rate to each asset's own already-correct hours,
+inside the new Business Outcome hook only:
+
+  asset_modelled_revenue (per asset_id) =
+    group.blendedRate * that_asset's_own_assigned_asset_hours
+
+  asset_true_cost (per asset_id) =
+    that_asset's_own assigned_asset_cost (already exists)
+    + that asset's fair share of the group's allocated overhead
+      (assigned_overhead_amount, split by the same hours-share basis,
+      since overhead has no existing per-asset field - see Section 4)
+
+  asset_net_profit (per asset_id) = asset_modelled_revenue - asset_true_cost
+
+This is READ-ONLY composition of numbers that already exist and are
+already independently correct. Nothing upstream changes.
+
+---
+
+# 3. WHAT THIS NUMBER ACTUALLY IS - MANDATORY FRAMING
+
+This is NOT a measurement of actual per-asset revenue. It is a MODEL:
+real charge-out rate x real EXPECTED/TARGET hours (Assets module's
+utilisation assumption), not actual invoiced hours or actual dollars
+collected against that specific asset. This is the exact same category
+of figure as useBusinessOutcomeLabourRecovery's already-existing
+weighted_modelled_labour_revenue - modelled recovery capacity, not
+history.
+
+Confirmed directly by the user this session: "what we expect as
+utilisation from the assets module and what we have from the P&L revenue
+won't align - but that is exactly what we are trying to surface with the
+tool." The gap between modelled and actual is the diagnostic, not an
+error to eliminate. This reframes S23 Section 6's utilisation disclosure
+requirement as applying to every individual per-source figure this new
+view shows, not just the whole-business totals it originally covered.
+
+Every per-asset (and per-labour-source) row in the new view must carry
+the SAME persistent, non-buried disclosure S23 Section 6 already mandates
+at whole-business level, e.g.:
+
+  "Based on expected utilisation. May not match actual P&L revenue for
+  this period - see reconciliation below."
+
+---
+
+# 4. OVERHEAD SPLIT WITHIN A MIXED-ASSET GROUP - NEW DECISION, NOT YET
+   BUILT ANYWHERE
+
+group.assigned_overhead_amount (from costAllocationGroupCostBuilder.js)
+exists only at GROUP level - there is no per-asset overhead field
+anywhere in the codebase, confirmed by every file traced this session.
+
+Decision: split the group's assigned_overhead_amount across its
+individual assets using the SAME basis as revenue - each asset's share of
+total group assigned_asset_hours. Reason for consistency: overhead
+recovery in this system is already hours-driven at the group level
+(group_recovery_hour_source, group_cost_per_hour) - using the same driver
+for the within-group split keeps the method internally consistent rather
+than introducing a second, different allocation basis (e.g. cost-share)
+for no stated reason.
+
+This IS an allocation (unlike revenue and direct cost, which are real
+per-asset numbers) and must be labelled as such wherever shown - e.g. "of
+which $X is this asset's hours-based share of group overhead," not
+presented as a directly-known figure.
+
+---
+
+# 5. RECONCILIATION ANCHOR - HOW THIS FITS S23/S26
+
+Per source (labour and asset):
+  modelled_revenue, true_cost, modelled_net_profit
+
+Rolled up:
+  sum(all sources' modelled_revenue) compared against total_revenue
+    (Business Summary / P&L) - variance surfaced explicitly, per S23
+    Section 3 / S26 Section 5. This variance is EXPECTED to be non-zero
+    and is the actual point of the page, not a defect - see Section 3
+    above. It must never be hidden, forced to zero, or smoothed into one
+    source to appear to reconcile.
+
+  sum(all sources' true_cost) - this side SHOULD reconcile close to
+    total_cost_burden, since cost is real/actual on both sides (unlike
+    revenue, which is modelled on the per-source side and actual on the
+    P&L side). If total_cost does not reconcile, that IS a genuine leak
+    per S23 Section 3 and must be treated as one - unlike the revenue
+    variance, which is expected.
+
+This is a materially important distinction for the build: the revenue
+variance and the cost variance are not the same kind of number and must
+not be displayed identically. One is an expected diagnostic finding: is
+your business achieving what you priced for. The other is a data
+integrity check.
+
+---
+
+# 6. WHAT REMAINS UNCHANGED FROM S26/S27
+
+- Labour: reuse useBusinessOutcomeLabourRecovery's true_cost_per_hour and
+  charge_out_rate directly (already correct, already per-source). Hours
+  for revenue multiplication come from Cost Allocation's
+  labour_group_assignments (assigned_hours per staff_type_id, summed
+  across all groups that staff type appears in), NOT from Labour's
+  productive_staff_type_rates.total_productive_hours - see S27 Section 2
+  nuance, still valid, unaffected by this note.
+- Unassigned labour/asset cost: reuse unassigned_labour_cost /
+  unassigned_asset_cost directly from Cost Allocation's output_contract,
+  confirmed live and load-bearing in businessOutcomeCalculations.js - own
+  explicit reconciliation line, per S27 Decision 2.
+- Residual overhead: totalBusinessOverheads minus the sum of every
+  group's assigned_overhead_amount, computed fresh in the new hook (no
+  existing passthrough field) - lands against materials, per S23 Section
+  7 / S26 Decision 2(b), confirmed in S27.
+- Materials/COG: as originally scoped in S26 Section 4, unchanged.
+
+---
+
+# 7. DEFINITION OF DONE FOR THIS NOTE
+
+All open questions raised across S26, S27, and S28 are now closed:
+
+  S26 Section 4, Q1 (mixed group split mechanism) - CLOSED, S27 + this
+    note.
+  S26 Section 4, Q2 (unassigned/residual placement) - CLOSED, S27.
+  S28 Section 6.1 (calculator migration) - MOOT, calculator does not need
+    to change.
+  S28 Section 6.2 (does labour need equivalent linking) - MOOT, same
+    reason.
+  New: modelled-vs-actual framing for per-source revenue (Section 3) -
+    CLOSED.
+  New: within-group overhead split basis (Section 4) - CLOSED, hours-share,
+    explicitly labelled as an allocation.
+  New: revenue variance vs cost variance are different kinds of finding
+    (Section 5) - CLOSED, must be displayed differently.
+
+Next step: write useBusinessOutcomePerSourceRevenue.js against this note
+plus S26/S27, following the existing build-order and CSS discipline
+already established for this session (S26 handover, Sections 5-6).
+
+---
+
+# 8. FINAL PRINCIPLE
+
+The simplest fix was correct because it didn't try to change something
+that already worked. The calculator prices the job the way the business
+actually invoices it - that was never broken. What was missing was simply
+connecting two numbers that already existed separately: a real rate and
+each asset's own real expected hours. The harder-looking problem (assets
+sharing a calculator) and the easier-looking fix (multiply existing
+numbers together) turned out to be the same problem seen from two
+different angles - the second one just required checking what the data
+actually meant before deciding what to build.
+
+END OF NOTE

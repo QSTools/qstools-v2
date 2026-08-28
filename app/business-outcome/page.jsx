@@ -10,6 +10,9 @@ import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcom
 import useBusinessOutcomeRevenueSplit from "@/hooks/useBusinessOutcomeRevenueSplit";
 import BusinessOutcomeTruthRevenueSplitCard from "@/components/business-outcome-truth/BusinessOutcomeTruthRevenueSplitCard";
 import useBusinessOutcomeWaterfall from "@/hooks/useBusinessOutcomeWaterfall";
+import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
+import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+import BusinessOutcomePerSourceRevenueCard from "@/components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard";
 import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome/businessOutcomeWaterfallSelectors";
 import BusinessOutcomeWaterfallCard from "@/components/business-outcome-truth/BusinessOutcomeWaterfallCard";
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
@@ -33,6 +36,8 @@ export default function BusinessOutcomePage() {
   const revenue_split = useBusinessOutcomeRevenueSplit();
   const waterfall_calculation = useBusinessOutcomeWaterfall();
   const waterfall = selectBusinessOutcomeWaterfall(waterfall_calculation);
+  const per_source_calculation = useBusinessOutcomePerSourceRevenue();
+  const per_source = selectBusinessOutcomePerSourceRevenue(per_source_calculation);
 
   return (
     <div className="space-y-6 p-6">
@@ -41,6 +46,7 @@ export default function BusinessOutcomePage() {
       <BusinessOutcomeTruthSummaryCard output_contract={output_contract} />
       <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
       <BusinessOutcomeWaterfallCard waterfall={waterfall} />
+      <BusinessOutcomePerSourceRevenueCard per_source={per_source} />
       <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
       <BusinessOutcomeTruthWarningsPanel output_contract={output_contract} />
       <BusinessOutcomeTruthHelpPanel />
@@ -48,3 +54,8 @@ export default function BusinessOutcomePage() {
     </div>
   );
 }
+
+
+
+
+
