@@ -485,6 +485,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
       unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
       residual_overhead: round_currency(residual_overhead),
       total_revenue_reference: round_currency(total_revenue_reference),
+      net_annual_business_open_hours: to_number(bs.net_annual_business_open_hours),
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
       asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
       // Already computed by costAllocationGroupCostBuilder.js on every
@@ -530,6 +531,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
 
   return result;
 }
+
 
 
 

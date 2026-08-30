@@ -1,7 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import {
+  TIME_SCALES,
+  scaleAnnualValue,
+  getTimeScaleSuffix,
+} from "@/components/cost-summary/cost-summary-card/costSummaryFormatters";
+import { merge_groups_by_id } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 
 function format_currency(value) {
   const n = Number(value);
@@ -290,96 +296,13 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-// FIX (confirmed live): a real Cost Allocation group like "2inc Line"
-// can carry BOTH labour and asset members (e.g. Senior Operator + pump +
-// Landcruiser, all one group). This used to create TWO separate drill
-// entries sharing the same display name - clicking one hid the other
-// entirely. Now merged by group_id into ONE entry per real group, with
-// both labour and asset children combined.
-function combine_entries(labour_groups, asset_groups, materials) {
-  const by_group_id = new Map();
-
-  function get_or_create(group_id, group_name) {
-    const key = group_id || `unkeyed_${group_name}`;
-    if (!by_group_id.has(key)) {
-      by_group_id.set(key, {
-        key,
-        label: group_name,
-        net_profit: 0,
-        modelled_revenue: 0,
-        children: [],
-        has_unavailable: false,
-      });
-    }
-    return by_group_id.get(key);
-  }
-
-  labour_groups.forEach((g) => {
-    const entry = get_or_create(g.group_id, g.group_name);
-    entry.net_profit += g.group_net_profit ?? 0;
-    entry.modelled_revenue += g.group_modelled_revenue ?? 0;
-    if (g.group_has_unavailable) entry.has_unavailable = true;
-    g.staff.forEach((s) => {
-      entry.children.push({
-        key: s.staff_type_id,
-        label: s.staff_type_name,
-        net_profit: s.net_profit,
-        modelled_revenue: s.modelled_revenue,
-        available: s.available,
-        unavailable_reason: s.unavailable_reason,
-        verdict: s.verdict,
-        verdict_label: s.verdict_label,
-      });
-    });
-  });
-
-  asset_groups.forEach((g) => {
-    const entry = get_or_create(g.group_id, g.group_name);
-    entry.net_profit += g.group_net_profit ?? 0;
-    entry.modelled_revenue += g.group_modelled_revenue ?? 0;
-    if (g.group_has_unavailable) entry.has_unavailable = true;
-    g.assets.forEach((a) => {
-      entry.children.push({
-        key: a.asset_id,
-        label: a.asset_name,
-        net_profit: a.net_profit,
-        modelled_revenue: a.modelled_revenue,
-        available: a.available,
-        unavailable_reason: a.unavailable_reason,
-        verdict: a.verdict,
-        verdict_label: a.verdict_label,
-      });
-    });
-  });
-
-  const merged_entries = Array.from(by_group_id.values()).map((entry) => ({
-    ...entry,
-    verdict: entry.has_unavailable ? null : entry.net_profit >= 0 ? "paying_its_way" : "being_carried",
-    verdict_label: entry.has_unavailable
-      ? "Not available"
-      : entry.net_profit >= 0
-        ? "Paying its way"
-        : "Being carried",
-  }));
-
-  merged_entries.push({
-    key: "materials",
-    label: "Materials / COG",
-    net_profit: materials.net_profit,
-    modelled_revenue: materials.revenue,
-    verdict: materials.verdict,
-    verdict_label: materials.verdict_label,
-    children: [],
-  });
-
-  return merged_entries;
-}
-
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode }) {
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [selected_key, set_selected_key] = useState(null);
   const [hovered_key, set_hovered_key] = useState("");
 
-  const entries = combine_entries(labour_groups, asset_groups, materials);
+  const entries = merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
   const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
   const total = view_mode === "profit" ? headline.total_net_profit : headline.total_modelled_revenue;
 
@@ -416,9 +339,14 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
         {selected_entry ? `${selected_entry.label} - ranked by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
       </div>
 
+      {selected_entry?.key === "materials" ? (
+        <MaterialsSection materials={materials} view_mode={view_mode} />
+      ) : (
       <div className="cost-summary-drill-list">
         {active_list.map((item) => {
-          const has_children = !selected_entry && entries.find((e) => e.key === item.key)?.children.length > 0;
+          const has_children =
+            !selected_entry &&
+            (entries.find((e) => e.key === item.key)?.children.length > 0 || item.key === "materials");
           const is_active = hovered_key === item.key;
           const is_muted = Boolean(hovered_key) && !is_active;
           const value = metric(item);
@@ -445,7 +373,8 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
                   {item.verdict && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
                 </span>
                 <div className="ui-card-title-sm">
-                  {format_currency(value)}
+                  {format_currency(scale(value))}
+                  {suffix}
                   <span className="ui-help"> ({share}%)</span>
                 </div>
               </div>
@@ -479,12 +408,119 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
           );
         })}
       </div>
+      )}
     </div>
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
+function formatCurrencyTruth(value) {
+  if (value === null || value === undefined) return "N/A";
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  return `${sign}${new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    maximumFractionDigits: 0,
+  }).format(abs)}`;
+}
+
+function formatPercentTruth(value) {
+  if (value === null || value === undefined) return "N/A";
+  return `${value.toFixed(1)}%`;
+}
+
+function TruthFieldRow({ label, field, format = formatCurrencyTruth }) {
+  const is_deferred = field?.status === "deferred";
+  return (
+    <div className="business-outcome-truth-summary-row">
+      <div className="business-outcome-truth-summary-row-label">{label}</div>
+      <div>
+        {is_deferred ? (
+          <span className="business-outcome-truth-summary-row-value deferred" title={field.reason}>
+            Not yet available
+          </span>
+        ) : (
+          <span className="business-outcome-truth-summary-row-value">{format(field.value)}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Level 2/3 "see this a different way" view - the original Truth Summary
+// Card content, now nested inside this card rather than sitting as its
+// own separate top-level card. Same numbers, same logic, just moved into
+// the reveal-little-by-little hierarchy per the user's request.
+function TraditionalViabilityView({ output_contract }) {
+  if (!output_contract) return null;
+
+  const {
+    total_revenue,
+    total_COG,
+    gross_profit,
+    gross_margin_percent,
+    total_cost_burden,
+    required_revenue,
+    revenue_surplus_or_gap,
+    required_recovery,
+    achieved_recovery,
+    recovery_surplus_or_gap,
+    operating_profit_before_tax,
+    net_operating_margin,
+    productive_output,
+    cost_absorption_status,
+  } = output_contract;
+
+  return (
+    <div className="business-outcome-truth-summary">
+      <div>
+        <div className="business-outcome-truth-summary-section-title">Revenue &amp; Margin</div>
+        <TruthFieldRow label="Total Revenue" field={total_revenue} />
+        <TruthFieldRow label="Total COG" field={total_COG} />
+        <TruthFieldRow label="Gross Profit" field={gross_profit} />
+        <TruthFieldRow
+          label="Gross Margin %"
+          field={
+            gross_margin_percent?.status === "available"
+              ? { ...gross_margin_percent, value: gross_margin_percent.value * 100 }
+              : gross_margin_percent
+          }
+          format={formatPercentTruth}
+        />
+      </div>
+
+      <div>
+        <div className="business-outcome-truth-summary-section-title">Cost Burden &amp; Recovery</div>
+        <TruthFieldRow label="Total Cost Burden" field={total_cost_burden} />
+        <TruthFieldRow label="Required Revenue" field={required_revenue} />
+        <TruthFieldRow label="Revenue Surplus / (Gap)" field={revenue_surplus_or_gap} />
+        <TruthFieldRow label="Required Recovery" field={required_recovery} />
+        <TruthFieldRow label="Achieved Recovery" field={achieved_recovery} />
+        <TruthFieldRow label="Recovery Surplus / (Gap)" field={recovery_surplus_or_gap} />
+      </div>
+
+      <div>
+        <div className="business-outcome-truth-summary-section-title">Bottom Line</div>
+        <TruthFieldRow label="Operating Profit Before Tax" field={operating_profit_before_tax} />
+        <TruthFieldRow label="Net Operating Margin %" field={net_operating_margin} format={formatPercentTruth} />
+        <TruthFieldRow
+          label="Productive Output (hours)"
+          field={productive_output}
+          format={(v) => v?.toLocaleString?.("en-NZ") ?? "N/A"}
+        />
+        <TruthFieldRow
+          label="Cost Absorption Status"
+          field={cost_absorption_status}
+          format={(v) => (v ? v.replace(/_/g, " ") : "N/A")}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract }) {
   const [view_mode, set_view_mode] = useState("revenue");
+  const [time_scale, set_time_scale] = useState("year");
 
   if (!per_source || !per_source.available) {
     return (
@@ -507,7 +543,15 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
         <div className="business-outcome-headline-text">
           Your business made{" "}
           <span className={per_source.headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
-            {format_currency(per_source.headline.total_net_profit)}
+            {format_currency(
+              scaleAnnualValue(
+                per_source.headline.total_net_profit,
+                time_scale,
+                null,
+                per_source.net_annual_business_open_hours
+              )
+            )}
+            {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
           </span>{" "}
           in net profit.
 
@@ -580,15 +624,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
         )}
       </div>
 
-      <RankedGroupsDrill
-        headline={per_source.headline}
-        labour_groups={per_source.labour_groups}
-        asset_groups={per_source.asset_groups}
-        materials={per_source.materials}
-        view_mode={view_mode}
-      />
-
-      <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
+      <CollapsibleSection title="Ranked by revenue contribution" defaultOpen={true}>
         <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
 
         <div className="business-outcome-view-toggle">
@@ -608,16 +644,68 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source }) {
           </button>
         </div>
 
-        <div className="business-outcome-per-source">
-          <MaterialsSection materials={per_source.materials} view_mode={view_mode} />
+        <div className="cost-summary-toggle" aria-label="Time scale">
+          {TIME_SCALES.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={
+                option.key === time_scale
+                  ? "cost-summary-toggle-button active"
+                  : "cost-summary-toggle-button"
+              }
+              onClick={() => set_time_scale(option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
+
+        <RankedGroupsDrill
+          headline={per_source.headline}
+          labour_groups={per_source.labour_groups}
+          asset_groups={per_source.asset_groups}
+          materials={per_source.materials}
+          view_mode={view_mode}
+          time_scale={time_scale}
+          open_hours={per_source.net_annual_business_open_hours}
+          use_implied={per_source.use_implied}
+        />
+      </CollapsibleSection>
+
+      <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
 
         <UnassignedBlock unassigned={per_source.unassigned} />
         <ReconciliationBanner reconciliation={per_source.reconciliation} />
+
+        <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
+          <TraditionalViabilityView output_contract={output_contract} />
+        </CollapsibleSection>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

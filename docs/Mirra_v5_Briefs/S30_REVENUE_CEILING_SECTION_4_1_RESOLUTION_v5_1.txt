@@ -1,0 +1,168 @@
+# Mirra v5.1 - S30 Revenue Ceiling: Section 4.1 Discrepancy RESOLVED
+
+STATUS: RESOLVED
+DATE: 2026-09-01 (same night as original handover)
+READ FIRST: the original handover this addendum resolves -
+"Mirra v5.1 - Session Handover: S30 Revenue Ceiling Implementation
+(Debugging In Progress)" - Section 4.1 specifically.
+
+---
+
+# 1. WHAT WAS WRONG
+
+NOT a cost-rollup bug. The original handover's working theory (Section
+4.1) - that individual-source true_cost was missing something the
+hand-check's group-level "Total group cost" captured - was WRONG.
+Confirmed by direct console pull from window.__ceiling_debug: summed
+individual-source true_cost matched Cost Allocation's group-level
+figure to the cent, for both PC55 ($100,146.34 vs $100,146) and 2inc
+Line ($136,900.13 vs $136,900).
+
+THE ACTUAL BUG: businessOutcomePerSourceRevenueSelectors.js built
+all_group_level_entries (which drives the headline and the
+being-carried attention list) by spreading labour_groups and
+asset_groups as SEPARATE, UNMERGED entries. A group like PC55, which
+has both a labour source (Site Crew) and an asset source (the
+excavator "Pc55"), produced TWO sibling rows sharing the name "PC55"
+instead of one combined row. The page displayed whichever row existed
+last / was picked up by filtering logic - in practice, the labour-only
+figure - as if it were the whole group's result.
+
+This is why PC55 showed -$28,360 (its labour-only implied net profit)
+instead of the true combined +$50,526, and 2inc Line showed -$5,793
+(labour-only) instead of +$46,127 combined.
+
+Confirmed the fix was needed, not a design question: the exact same
+problem (a real Cost Allocation group having both labour and asset
+members) had ALREADY been solved once tonight, inside
+BusinessOutcomePerSourceRevenueCard.jsx's local combine_entries
+function (comment: "FIX (confirmed live): a real Cost Allocation group
+like '2inc Line' can carry BOTH labour and asset members... This used
+to create TWO separate drill entries sharing the same display name").
+That fix was only ever applied to the drill component's own rendering
+- it was never shared with the selector that builds the headline and
+being-carried list, so the same bug persisted there.
+
+---
+
+# 2. THE FIX
+
+Moved the merge logic into
+lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+as a new exported function, merge_groups_by_id(labour_groups,
+asset_groups, materials, use_implied) - the single source of truth for
+merging a group's labour and asset contributions by group_id, used by
+BOTH the selector (headline/being-carried) and the drill component (no
+more duplicated logic, no more risk of the two drifting again).
+
+Implied-aware: reads group_implied_net_profit / implied_net_profit /
+implied_verdict when use_implied is true (ceiling breached), falls
+back to assumed net_profit / verdict otherwise - same convention
+already established in group_sources_by_group for the Step 4 (S30
+brief) implied-figures rollup.
+
+Also exposed use_implied and revenue_ceiling on
+selectBusinessOutcomePerSourceRevenue's return object - previously
+NEITHER was returned, so the drill component (BusinessOutcomePerSource
+RevenueCard.jsx) had no way to know the ceiling was breached at all.
+This was a second, separate gap: even before tonight's merge fix, the
+drill's own combine_entries only ever read assumed net_profit, never
+implied - because it had no access to breach state to know when it
+should switch. Fixed by threading use_implied as a new prop through
+RankedGroupsDrill.
+
+Files changed:
+- lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+  - group_sources_by_group: unchanged (was already correct)
+  - NEW: exported merge_groups_by_id()
+  - all_group_level_entries: rewired to call merge_groups_by_id()
+    instead of two separate unmerged .map() spreads
+  - return object: added use_implied, revenue_ceiling
+- components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+  - REMOVED local combine_entries() (dead code, replaced by the shared
+    selector export)
+  - RankedGroupsDrill: added use_implied prop, now imports and calls
+    merge_groups_by_id() from the selector
+  - call site: passes use_implied={per_source.use_implied}
+
+---
+
+# 3. VERIFICATION
+
+Confirmed in browser against the same $800k hand-verified test
+scenario from the original handover's Section 4:
+
+Top-level ranked list, Net Profit view, All operating groups:
+  PC15:       +$191,031  (unchanged, was already correct)
+  PC55:       +$50,526   (was -$28,360 pre-fix; hand-check: +$50,527)
+  2inc Line:  +$46,127   (was -$5,793 pre-fix; hand-check: +$46,128)
+  Site Crew:  -$24,097   (unchanged, was already correct)
+  Foreman:    -$67,222   (unchanged, was already correct)
+  Materials:  -$1,240,091 (unchanged, floored correctly)
+
+Drilled into PC55: Pc55 (asset) +$78,887, Site Crew (labour) -$28,360
+- sums to +$50,526, matches merged group figure. Individual-source
+verdicts still visible and correct at the child level - the merge
+combines the group total without hiding the labour/asset split
+underneath, exactly as required (User's Option B decision this
+session: keep labour/asset split visible in drill children, merge only
+at group-level headline/verdict).
+
+Drilled into 2inc Line: pump +$33,846, Landcruiser +$18,074, Senior
+Operator -$5,793 - sums to +$46,127, matches merged group figure.
+
+All six figures now match Section 4's hand-calculated table exactly
+(to the dollar, some to the cent before rounding). Section 4.1 is
+CLOSED - was case (b), a real bug, but not the bug originally
+theorised. The individual-source true_cost approach was correct all
+along.
+
+---
+
+# 4. WHAT THIS MEANS FOR THE REST OF THE ORIGINAL HANDOVER
+
+Section 8 checklist, updated status:
+1. Re-read handover + briefs - DONE (this session)
+2. Resolve 4.1 discrepancy - DONE, see above
+3. Trace/fix if (b) - DONE, see above
+4. Update briefs if (a) - NOT APPLICABLE, was (b) not (a)
+5. Fix Section 5.3 (stale revenue-split bar) - STILL OPEN. Now more
+   tractable: revenue_ceiling and use_implied are finally exposed on
+   the selector's return object, which
+   BusinessOutcomeTruthRevenueSplitCard.jsx (or its data source,
+   useBusinessOutcomeRevenueSplit.js - still flagged as "untracked,
+   unclear origin," still not investigated) can now potentially read.
+6. Remove TEMP window.__ceiling_debug from the hook - STILL OPEN, was
+   used throughout tonight's verification, still useful for 5.3 - do
+   not remove yet if further debugging of 5.3 is planned this session.
+7. Return to real (non-test) live data, confirm page inert when
+   ceiling not breached - STILL OPEN, not yet re-checked since the fix.
+8. git status, stage precisely, commit, push - IN PROGRESS as of this
+   addendum being written.
+
+---
+
+# 5. WORKING-DISCIPLINE NOTE FOR NEXT SESSION
+
+A patch corruption happened again tonight, same class as the original
+handover's Section 6 (though different root cause this time):
+PowerShell's default Set-Content/Get-Content encoding (system ANSI
+codepage) mangled a non-ASCII byte in
+BusinessOutcomePerSourceRevenueCard.jsx on first patch attempt,
+producing "invalid utf-8 sequence" / "failed to convert rope into
+string" at build time. Fixed by switching to explicit
+[System.IO.File]::ReadAllText/WriteAllText with a UTF8Encoding($false)
+(no BOM) instance instead of Get-Content/Set-Content.
+
+Separately, multi-line here-string patches silently failed to match
+(0 matches, no error) due to CRLF-in-file vs LF-in-heredoc mismatch -
+single-line patches were unaffected. Fixed by normalizing both the
+file content and the patch strings to LF-only before matching, then
+restoring CRLF on write.
+
+CARRY FORWARD: for any future patch to a .jsx/.js file in this repo,
+use the ReadAllText/WriteAllText + LF-normalize-then-restore-CRLF
+pattern from the start, rather than Get-Content/Set-Content -replace -
+this would have avoided both failure modes tonight.
+
+END OF ADDENDUM

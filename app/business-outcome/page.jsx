@@ -5,7 +5,7 @@ import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRe
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import BusinessOutcomeViewSwitcher from "@/components/navigation/BusinessOutcomeViewSwitcher";
 import BusinessOutcomeTruthStatusStrip from "@/components/business-outcome-truth/BusinessOutcomeTruthStatusStrip";
-import BusinessOutcomeTruthSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthSummaryCard";
+
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
 import useBusinessOutcomeRevenueSplit from "@/hooks/useBusinessOutcomeRevenueSplit";
 import BusinessOutcomeTruthRevenueSplitCard from "@/components/business-outcome-truth/BusinessOutcomeTruthRevenueSplitCard";
@@ -14,7 +14,7 @@ import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSou
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import BusinessOutcomePerSourceRevenueCard from "@/components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard";
 import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome/businessOutcomeWaterfallSelectors";
-import BusinessOutcomeWaterfallCard from "@/components/business-outcome-truth/BusinessOutcomeWaterfallCard";
+
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
 
@@ -41,12 +41,18 @@ export default function BusinessOutcomePage() {
 
   return (
     <div className="space-y-6 p-6">
+      <div className="ui-panel ui-stack-sm">
+        <div className="ui-kicker">Business Outcome</div>
+        <div className="ui-display">Is your business actually working?</div>
+      </div>
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeTruthStatusStrip output_contract={output_contract} />
-      <BusinessOutcomeTruthSummaryCard output_contract={output_contract} />
       <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
-      <BusinessOutcomeWaterfallCard waterfall={waterfall} />
-      <BusinessOutcomePerSourceRevenueCard per_source={per_source} />
+
+
+
+      <BusinessOutcomePerSourceRevenueCard per_source={per_source} output_contract={output_contract} />
+
       <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
       <BusinessOutcomeTruthWarningsPanel output_contract={output_contract} />
       <BusinessOutcomeTruthHelpPanel />
@@ -54,6 +60,18 @@ export default function BusinessOutcomePage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
