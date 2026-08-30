@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -340,6 +340,75 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
     .sort((a, b) => (b.modelled_revenue ?? -Infinity) - (a.modelled_revenue ?? -Infinity));
 }
 
+// STEP 3/4 (S30 brief, hand-verified against real breach data before
+// this was coded): when labour_modelled_revenue_total +
+// asset_modelled_revenue_total exceeds total_revenue_reference, that is
+// a hard mathematical impossibility - materials revenue can never be
+// negative in reality. This function does NOT change any assumed
+// figure (charge_out_rate, hours, true_cost all stay exactly as
+// modelled elsewhere) - it computes a SECOND, parallel set of figures
+// (implied_revenue, implied_net_profit, implied_verdict) showing what
+// each source would earn if real total revenue is honestly capped and
+// shared out proportional to each source's current assumed share.
+//
+// This is not an instruction to go fix the inputs - the true cost
+// figures are real and correct (wages/asset cost are owed regardless).
+// This is a diagnostic: does this specific labour type or asset still
+// cover its own true cost once real billing capacity is accounted for.
+// Two sources can look identical under assumed-hours net profit and
+// diverge completely here - that divergence is the point.
+//
+// Materials floor = export default function useBusinessOutcomePerSourceRevenue() { when breached (confirmed with user: margin is an
+// OUTPUT of revenue minus cost, not an input - assuming materials
+// retains any margin here would be inventing revenue that was never
+// earned). All real revenue in this state goes to labour+assets.
+function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference) {
+  const labour_total = labour_sources.reduce(
+    (sum, row) => sum + to_number(row.modelled_revenue),
+    0
+  );
+  const asset_total = asset_sources.reduce(
+    (sum, row) => sum + to_number(row.modelled_revenue),
+    0
+  );
+  const combined_total = labour_total + asset_total;
+
+  const is_breached = combined_total > total_revenue_reference;
+
+  if (!is_breached || combined_total <= 0) {
+    return {
+      is_breached: false,
+      overage: 0,
+      labour_asset_modelled_total: round_currency(combined_total),
+    };
+  }
+
+  const overage = round_currency(combined_total - total_revenue_reference);
+  const scale_factor = total_revenue_reference / combined_total;
+
+  [...labour_sources, ...asset_sources].forEach((row) => {
+    if (row.modelled_revenue === null) {
+      row.implied_revenue = null;
+      row.implied_net_profit = null;
+      row.implied_verdict = null;
+      return;
+    }
+
+    const implied_revenue = round_currency(row.modelled_revenue * scale_factor);
+    const implied_net_profit = round_currency(implied_revenue - row.true_cost);
+
+    row.implied_revenue = implied_revenue;
+    row.implied_net_profit = implied_net_profit;
+    row.implied_verdict = verdict_for(implied_net_profit);
+  });
+
+  return {
+    is_breached: true,
+    overage,
+    labour_asset_modelled_total: round_currency(combined_total),
+  };
+}
+
 export default function useBusinessOutcomePerSourceRevenue() {
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const cost_allocation = useCostAllocation();
@@ -415,13 +484,23 @@ export default function useBusinessOutcomePerSourceRevenue() {
       0
     );
 
-    const materials = {
-      revenue: round_currency(
-        total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
-      ),
-      true_cost: round_currency(total_cogs + Math.max(residual_overhead, 0)),
-      is_modelled: true,
-    };
+    const ceiling = apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference);
+
+    const materials = ceiling.is_breached
+      ? {
+          revenue: 0,
+          true_cost: round_currency(total_cogs + Math.max(residual_overhead, 0)),
+          is_modelled: true,
+          is_floored: true,
+        }
+      : {
+          revenue: round_currency(
+            total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
+          ),
+          true_cost: round_currency(total_cogs + Math.max(residual_overhead, 0)),
+          is_modelled: true,
+          is_floored: false,
+        };
     materials.net_profit = round_currency(materials.revenue - materials.true_cost);
     materials.verdict = verdict_for(materials.net_profit);
 
@@ -520,6 +599,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
       asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
       total_modelled_revenue: round_currency(total_modelled_revenue), // display only, not a reconciliation
+      revenue_ceiling: ceiling,
       reconciliation: {
         total_true_cost: round_currency(total_true_cost),
         total_cost_reference: round_currency(total_cost_reference),
@@ -531,6 +611,10 @@ export default function useBusinessOutcomePerSourceRevenue() {
 
   return result;
 }
+
+
+
+
 
 
 
