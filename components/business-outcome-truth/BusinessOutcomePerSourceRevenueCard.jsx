@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import {
   TIME_SCALES,
@@ -296,11 +296,21 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode }) {
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, requested_selection }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [selected_key, set_selected_key] = useState(null);
   const [hovered_key, set_hovered_key] = useState("");
+
+  // Synced from Card 1 (this session): clicking a source there requests
+  // this drill jump straight to that source's own breakdown. Only
+  // re-syncs when the PARENT sends a new request - never fights the
+  // user's own subsequent clicks inside this component.
+  useEffect(() => {
+    if (requested_selection) {
+      set_selected_key(requested_selection);
+    }
+  }, [requested_selection]);
 
   const entries =
     capacity_mode === "real"
@@ -692,7 +702,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned }) {
             {materials_adjustment > 0 ? "+" : ""}
             {format_currency(materials_adjustment)}
           </span>
-          <span className={materials.real_capacity_net_profit >= 0 ? "value-good" : "value-bad"}>
+          <span className={materials.real_capacity_verdict === "being_carried" ? "value-bad" : "value-good"}>
             {format_currency(materials.real_capacity_net_profit)}
           </span>
         </div>
@@ -735,6 +745,25 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // familiar assumed-hours figure. "assumed" keeps today's existing
   // behaviour, completely untouched, one click away.
   const [capacity_mode, set_capacity_mode] = useState("real");
+
+  // Card 1 -> Card 2 click-through (this session): Card 2 starts
+  // collapsed ("hide the monster") - clicking a source in Card 1 opens
+  // it already showing that source's own breakdown, instead of the
+  // page showing everything at once by default.
+  const [detail_open, set_detail_open] = useState(false);
+  const [requested_selection, set_requested_selection] = useState(null);
+  const detail_section_ref = useRef(null);
+
+  function open_source_detail(key) {
+    set_requested_selection(key);
+    set_detail_open(true);
+  }
+
+  useEffect(() => {
+    if (detail_open && detail_section_ref.current) {
+      detail_section_ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [detail_open, requested_selection]);
 
   if (!per_source || !per_source.available) {
     return (
@@ -825,96 +854,119 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         )}
 
-        {active_headline.all_good ? (
+        {active_headline.all_good && (
           <div className="business-outcome-all-good-row">
             Every labour source, asset, and materials is covering its own cost right now - nothing is
             being carried by the rest of the business.
           </div>
-        ) : (
-          <div className="business-outcome-attention-list">
-            {active_headline.being_carried.map((entry) => (
-              <div className="business-outcome-attention-row" key={entry.name}>
-                <span className="business-outcome-attention-row-name">{entry.name}</span>
-                <span className="business-outcome-attention-row-amount">
-                  {format_currency(entry.net_profit)} / year
-                </span>
-              </div>
-            ))}
-            <div className="business-outcome-attention-footer">
-              {total_source_count - carried_count} other{" "}
-              {total_source_count - carried_count === 1 ? "source is" : "sources are"} performing as
-              expected - see full breakdown below.
+        )}
+        <div className="business-outcome-attention-list">
+          {(active_headline.all_sources || []).map((entry) => (
+            <button
+              type="button"
+              className={`business-outcome-attention-row ${entry.verdict === "paying_its_way" ? "paying" : ""}`}
+              key={entry.key || entry.name}
+              onClick={() => open_source_detail(entry.key)}
+            >
+              <span className="business-outcome-attention-row-name">{entry.name}</span>
+              <span className="business-outcome-attention-row-amount">
+                {format_currency(entry.net_profit)} / year
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div
+        ref={detail_section_ref}
+        className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]"
+      >
+        <button
+          type="button"
+          onClick={() => set_detail_open((current) => !current)}
+          className="ui-collapsible-summary flex w-full items-center justify-between px-4 py-4 text-left"
+          aria-expanded={detail_open}
+        >
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="ui-collapsible-title">Ranked by revenue contribution</div>
+          </div>
+          <span className="ml-4 text-sm text-[var(--text-muted)]">{detail_open ? "Hide" : "Show"}</span>
+        </button>
+        {detail_open && (
+          <div className="px-4 pb-4">
+            <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
+
+            <div className="business-outcome-view-toggle" aria-label="Capacity model">
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${capacity_mode === "real" ? "active" : ""}`}
+                onClick={() => set_capacity_mode("real")}
+              >
+                Real capacity
+              </button>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${capacity_mode === "assumed" ? "active" : ""}`}
+                onClick={() => set_capacity_mode("assumed")}
+              >
+                Assumed capacity
+              </button>
+            </div>
+
+            <div className="business-outcome-view-toggle">
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${view_mode === "revenue" ? "active" : ""}`}
+                onClick={() => set_view_mode("revenue")}
+              >
+                Revenue contribution
+              </button>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${view_mode === "profit" ? "active" : ""}`}
+                onClick={() => set_view_mode("profit")}
+              >
+                Net profit contribution
+              </button>
+            </div>
+
+            <div className="cost-summary-toggle" aria-label="Time scale">
+              {TIME_SCALES.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={
+                    option.key === time_scale
+                      ? "cost-summary-toggle-button active"
+                      : "cost-summary-toggle-button"
+                  }
+                  onClick={() => set_time_scale(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <RankedGroupsDrill
+              headline={active_headline}
+              labour_groups={per_source.labour_groups}
+              asset_groups={per_source.asset_groups}
+              materials={per_source.materials}
+              view_mode={view_mode}
+              time_scale={time_scale}
+              open_hours={per_source.net_annual_business_open_hours}
+              use_implied={per_source.use_implied}
+              capacity_mode={capacity_mode}
+              requested_selection={requested_selection}
+            />
+            <div className="mt-4 flex justify-end">
+              <button type="button" className="ui-button-secondary" onClick={() => set_detail_open(false)}>
+                Hide
+              </button>
             </div>
           </div>
         )}
       </div>
-
-      <CollapsibleSection title="Ranked by revenue contribution" defaultOpen={true}>
-        <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
-
-        <div className="business-outcome-view-toggle" aria-label="Capacity model">
-          <button
-            type="button"
-            className={`business-outcome-view-toggle-btn ${capacity_mode === "real" ? "active" : ""}`}
-            onClick={() => set_capacity_mode("real")}
-          >
-            Real capacity
-          </button>
-          <button
-            type="button"
-            className={`business-outcome-view-toggle-btn ${capacity_mode === "assumed" ? "active" : ""}`}
-            onClick={() => set_capacity_mode("assumed")}
-          >
-            Assumed capacity
-          </button>
-        </div>
-
-        <div className="business-outcome-view-toggle">
-          <button
-            type="button"
-            className={`business-outcome-view-toggle-btn ${view_mode === "revenue" ? "active" : ""}`}
-            onClick={() => set_view_mode("revenue")}
-          >
-            Revenue contribution
-          </button>
-          <button
-            type="button"
-            className={`business-outcome-view-toggle-btn ${view_mode === "profit" ? "active" : ""}`}
-            onClick={() => set_view_mode("profit")}
-          >
-            Net profit contribution
-          </button>
-        </div>
-
-        <div className="cost-summary-toggle" aria-label="Time scale">
-          {TIME_SCALES.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={
-                option.key === time_scale
-                  ? "cost-summary-toggle-button active"
-                  : "cost-summary-toggle-button"
-              }
-              onClick={() => set_time_scale(option.key)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <RankedGroupsDrill
-          headline={active_headline}
-          labour_groups={per_source.labour_groups}
-          asset_groups={per_source.asset_groups}
-          materials={per_source.materials}
-          view_mode={view_mode}
-          time_scale={time_scale}
-          open_hours={per_source.net_annual_business_open_hours}
-          use_implied={per_source.use_implied}
-          capacity_mode={capacity_mode}
-        />
-      </CollapsibleSection>
 
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
 

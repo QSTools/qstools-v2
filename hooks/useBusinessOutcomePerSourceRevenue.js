@@ -564,7 +564,15 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
     leftover,
     materials_real_capacity_net_profit,
     materials_real_capacity_naive_revenue: round_currency(materials_naive_revenue),
-    materials_real_capacity_verdict: verdict_for(materials_real_capacity_net_profit),
+    // FIX (confirmed with user): materials floored at exactly $0 net
+    // profit still needed real help to get there - its naive figure
+    // was genuinely negative, and the floor exists precisely to hide
+    // that. That is a "being carried" state, not a healthy "paying its
+    // way" one, even though the displayed number is >= 0. Only
+    // materials that never needed the floor at all (shortfall === 0)
+    // genuinely counts as paying its way.
+    materials_real_capacity_verdict:
+      shortfall > 0 ? "being_carried" : verdict_for(materials_real_capacity_net_profit),
     // Exposed for verification against the spreadsheet - group-level
     // final figures, before the inner per-source split.
     group_real_capacity: groups.map((g) => ({
