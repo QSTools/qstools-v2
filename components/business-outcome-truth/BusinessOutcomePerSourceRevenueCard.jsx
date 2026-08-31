@@ -8,6 +8,8 @@ import {
   getTimeScaleSuffix,
 } from "@/components/cost-summary/cost-summary-card/costSummaryFormatters";
 import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
+import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 
 function format_currency(value) {
   const n = Number(value);
@@ -255,24 +257,40 @@ function MaterialsSection({ materials, view_mode }) {
   );
 }
 
-function UnassignedBlock({ unassigned }) {
-  if (!unassigned || !unassigned.has_gaps) return null;
+// COMBINED (this session): "Not yet assigned" and "Warnings & data
+// quality" now share one collapsed section, so the "Blocked - upstream
+// data not trusted" banner at the top of the page has a single, stable
+// target to open and scroll to. Deliberately does NOT early-return when
+// there are no unassigned gaps - Warnings/Data Quality content is
+// independent of that (real warnings can exist with nothing unassigned)
+// and must never be hidden as a side effect of a different check.
+function UnassignedBlock({ unassigned, output_contract }) {
+  const has_unassigned = unassigned && unassigned.has_gaps;
 
   return (
-    <div className="business-outcome-unassigned-block">
-      <div className="business-outcome-unassigned-title">Not yet assigned</div>
-      {unassigned.lines.map((line) => (
-        <div key={line.label}>
-          <div className="business-outcome-unassigned-line">
-            <span>{line.label}</span>
-            <span className="business-outcome-unassigned-line-amount">
-              {format_currency(line.amount)}
-            </span>
-          </div>
-          <div className="business-outcome-unassigned-hint">{line.hint}</div>
+    <CollapsibleSection
+      id="business-outcome-warnings-section"
+      title="Not yet assigned & data quality"
+      defaultOpen={false}
+    >
+      {has_unassigned && (
+        <div className="business-outcome-unassigned-block">
+          <div className="business-outcome-unassigned-title">Not yet assigned</div>
+          {unassigned.lines.map((line) => (
+            <div key={line.label}>
+              <div className="business-outcome-unassigned-line">
+                <span>{line.label}</span>
+                <span className="business-outcome-unassigned-line-amount">
+                  {format_currency(line.amount)}
+                </span>
+              </div>
+              <div className="business-outcome-unassigned-hint">{line.hint}</div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+      <BusinessOutcomeTruthWarningsPanel output_contract={output_contract} />
+    </CollapsibleSection>
   );
 }
 
@@ -944,7 +962,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
   // Defaults to "real" (Real Capacity) per product decision this session -
@@ -1177,7 +1195,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
 
-        <UnassignedBlock unassigned={per_source.unassigned} />
+        <UnassignedBlock unassigned={per_source.unassigned} output_contract={output_contract} />
+
         <ReconciliationBanner reconciliation={per_source.reconciliation} />
 
         <CollapsibleSection
@@ -1203,6 +1222,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               open_hours={per_source.net_annual_business_open_hours}
             />
           )}
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
+          <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
         </CollapsibleSection>
 
         <CollapsibleSection title="Traditional viability view" defaultOpen={false}>

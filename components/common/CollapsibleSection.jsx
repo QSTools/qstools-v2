@@ -7,6 +7,7 @@ export default function CollapsibleSection({
   summary,
   defaultOpen = true,
   children,
+  id,
 }) {
   const [is_open, set_is_open] = useState(defaultOpen);
 
@@ -19,7 +20,7 @@ export default function CollapsibleSection({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]">
+    <div id={id} className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]">
       <button
         type="button"
         onClick={toggle_section}

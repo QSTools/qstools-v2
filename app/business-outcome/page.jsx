@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import useBusinessOutcomeTruth from "@/hooks/useBusinessOutcomeTruth";
 import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRecovery";
@@ -51,10 +51,12 @@ export default function BusinessOutcomePage() {
 
 
 
-      <BusinessOutcomePerSourceRevenueCard per_source={per_source} output_contract={output_contract} />
+      <BusinessOutcomePerSourceRevenueCard
+        per_source={per_source}
+        output_contract={output_contract}
+        labour_recovery={labour_recovery}
+      />
 
-      <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
-      <BusinessOutcomeTruthWarningsPanel output_contract={output_contract} />
       <BusinessOutcomeTruthHelpPanel />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>
