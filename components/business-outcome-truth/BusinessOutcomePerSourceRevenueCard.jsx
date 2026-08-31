@@ -373,7 +373,17 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
               <div className="cost-summary-drill-value">
                 <span className="business-outcome-drill-tags">
                   <ModelledTag />
-                  {item.verdict && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
+                  {/* FIX (this session): verdict is a profitability
+                      claim, not a revenue-share claim - showing it next
+                      to a dollar figure that never changes between
+                      capacity models produced a real contradiction under
+                      Real Capacity (large revenue figure next to a red
+                      "Being carried" badge). Only meaningful in Net
+                      Profit view, where the figure itself reflects the
+                      selected capacity model. */}
+                  {view_mode === "profit" && item.verdict && (
+                    <VerdictTag verdict={item.verdict} label={item.verdict_label} />
+                  )}
                 </span>
                 <div className="ui-card-title-sm">
                   {format_currency(scale(value))}

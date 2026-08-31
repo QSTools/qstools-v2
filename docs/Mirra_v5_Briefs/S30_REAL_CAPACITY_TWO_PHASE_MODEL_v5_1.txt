@@ -134,25 +134,29 @@ S30_REVENUE_CEILING_SECTION_4_1_RESOLUTION_v5_1.txt's linked workbook.
 
 ---
 
-# 5. KNOWN FOLLOW-UP - NOT FIXED THIS SESSION, FLAGGED BY USER
+# 5. REVENUE-VIEW / VERDICT-BADGE INCONSISTENCY - RESOLVED
 
-The "Ranked by revenue contribution" view (Revenue/Net Profit toggle,
-separate from the Real/Assumed Capacity toggle) shows a real UX
-inconsistency: Revenue view always displays the naive, unadjusted
-modelled_revenue figure (by design - Phase 1/2 only ever touch net
-profit, never revenue, to avoid inventing a fake "implied revenue"
-number). But the verdict badge next to it DOES reflect whichever
-capacity model is selected. Result: under Real Capacity, a source can
-show a large, healthy-looking modelled revenue figure sitting right
-next to a red "Being carried" badge - individually correct, but reads
-as contradictory together.
+Originally flagged: the "Ranked by revenue contribution" view showed a
+real UX inconsistency - Revenue view always displays the naive,
+unadjusted modelled_revenue figure (by design - Phase 1/2 only ever
+touch net profit, never revenue, to avoid inventing a fake "implied
+revenue" number), but the verdict badge next to it DID reflect
+whichever capacity model was selected. Result: under Real Capacity, a
+source could show a large, healthy-looking modelled revenue figure
+sitting right next to a red "Being carried" badge - individually
+correct, but reading as contradictory together.
 
-User's assessment: "that is the interactive part of the page, it
-probably needs to be rebuilt." Not fixed this session - flagged as a
-real design gap for a future session to address properly (e.g. hide
-the verdict badge in Revenue view, or find another way to make what's
-displayed and what's badged tell a consistent story), not something to
-patch quickly.
+RESOLVED (follow-up session, same date): verdict is fundamentally a
+profitability claim, not a revenue-share claim - it never really
+belonged attached to a dollar figure that isn't about profit in the
+first place. Fix: the verdict badge is now only rendered in Net Profit
+Contribution view (components/business-outcome-truth/
+BusinessOutcomePerSourceRevenueCard.jsx, RankedGroupsDrill's ranked-
+list-item rendering - single conditional added: `view_mode === "profit"
+&& item.verdict && <VerdictTag .../>`). Revenue view now shows only the
+MODELLED tag and the dollar/percentage figure, with no profitability
+claim attached, regardless of which capacity model is selected.
+Confirmed working in both Real and Assumed capacity.
 
 ---
 
