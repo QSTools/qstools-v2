@@ -31,6 +31,17 @@ export default function BusinessOutcomeTruthStatusStrip({ output_contract }) {
   // section (simulates a click on its own toggle, same mechanism the user
   // would use) if it's currently collapsed, then scrolls to it.
   function go_to_warnings_section() {
+    // "Not yet assigned & data quality" now lives nested inside the
+    // outer "See the full breakdown behind the numbers" wrapper (this
+    // session) - open that first (its own toggle, a DIRECT child of the
+    // outer wrapper, hence :scope>, so this never accidentally matches
+    // a nested toggle inside it), then find/open the specific inner
+    // section, same mechanism as before.
+    const outer = document.getElementById("business-outcome-breakdown-section");
+    if (outer) {
+      const outer_toggle = outer.querySelector(':scope > button[aria-expanded="false"]');
+      if (outer_toggle) outer_toggle.click();
+    }
     const el = document.getElementById("business-outcome-warnings-section");
     if (!el) return;
     const toggle_btn = el.querySelector('button[aria-expanded="false"]');

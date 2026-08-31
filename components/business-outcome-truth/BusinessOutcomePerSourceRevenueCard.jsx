@@ -264,8 +264,9 @@ function MaterialsSection({ materials, view_mode }) {
 // there are no unassigned gaps - Warnings/Data Quality content is
 // independent of that (real warnings can exist with nothing unassigned)
 // and must never be hidden as a side effect of a different check.
-function UnassignedBlock({ unassigned, output_contract }) {
+function UnassignedBlock({ unassigned, output_contract, labour_coverage_gaps }) {
   const has_unassigned = unassigned && unassigned.has_gaps;
+  const has_coverage_gaps = labour_coverage_gaps && labour_coverage_gaps.length > 0;
 
   return (
     <CollapsibleSection
@@ -285,6 +286,18 @@ function UnassignedBlock({ unassigned, output_contract }) {
                 </span>
               </div>
               <div className="business-outcome-unassigned-hint">{line.hint}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {has_coverage_gaps && (
+        <div className="business-outcome-coverage-gap-block">
+          <div className="business-outcome-coverage-gap-title">Scheduling gap - not a profit issue</div>
+          {labour_coverage_gaps.map((gap) => (
+            <div className="business-outcome-coverage-gap-row" key={gap.group_id}>
+              <strong>{gap.group_name}</strong> - assigned labour covers {gap.gap_hours} fewer
+              hours than this asset runs each year. This is a real scheduling gap worth weighing up in
+              Business Modelling - not something to fix on this page.
             </div>
           ))}
         </div>
@@ -970,6 +983,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // familiar assumed-hours figure. "assumed" keeps today's existing
   // behaviour, completely untouched, one click away.
   const [capacity_mode, set_capacity_mode] = useState("real");
+  // Source list in the headline card (this session) - always starts
+  // collapsed, confirmed with user, regardless of whether anything is
+  // failing. The headline sentence and its stark/normal tone already
+  // carry the "is anything wrong" signal; the list itself is one click
+  // away, consistent with the page's headline -> click -> detail pattern.
+  const [sources_open, set_sources_open] = useState(false);
 
   // Card 1 -> Card 2 click-through (this session): Card 2 starts
   // collapsed ("hide the monster") - clicking a source in Card 1 opens
@@ -978,8 +997,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   const [detail_open, set_detail_open] = useState(false);
   const [requested_selection, set_requested_selection] = useState(null);
   const detail_section_ref = useRef(null);
+  // Outer "See the full breakdown behind the numbers" wrapper (this
+  // session) - Card 2 now lives nested inside it, so opening a source
+  // from Card 1 must open BOTH: the outer wrapper (or Card 2 stays
+  // hidden behind it) and Card 2's own toggle.
+  const [breakdown_open, set_breakdown_open] = useState(false);
 
   function open_source_detail(key) {
+    set_breakdown_open(true);
     set_requested_selection(key);
     set_detail_open(true);
   }
@@ -1066,41 +1091,61 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         )}
 
-        {active_headline.labour_coverage_gaps.length > 0 && (
-          <div className="business-outcome-coverage-gap-block">
-            <div className="business-outcome-coverage-gap-title">Scheduling gap - not a profit issue</div>
-            {active_headline.labour_coverage_gaps.map((gap) => (
-              <div className="business-outcome-coverage-gap-row" key={gap.group_id}>
-                <strong>{gap.group_name}</strong> - assigned labour covers {gap.gap_hours} fewer
-                hours than this asset runs each year. This is a real scheduling gap worth weighing up in
-                Business Modelling - not something to fix on this page.
-              </div>
-            ))}
-          </div>
-        )}
-
         {active_headline.all_good && (
           <div className="business-outcome-all-good-row">
             Every labour source, asset, and materials is covering its own cost right now - nothing is
             being carried by the rest of the business.
           </div>
         )}
-        <div className="business-outcome-attention-list">
-          {(active_headline.all_sources || []).map((entry) => (
-            <button
-              type="button"
-              className={`business-outcome-attention-row ${entry.verdict === "paying_its_way" ? "paying" : ""}`}
-              key={entry.key || entry.name}
-              onClick={() => open_source_detail(entry.key)}
-            >
-              <span className="business-outcome-attention-row-name">{entry.name}</span>
-              <span className="business-outcome-attention-row-amount">
-                {format_currency(entry.net_profit)} / year
-              </span>
-            </button>
-          ))}
-        </div>
+
+        <button
+          type="button"
+          className="ui-button-secondary"
+          onClick={() => set_sources_open((current) => !current)}
+        >
+          {sources_open ? "Hide breakdown" : "Show breakdown"}
+        </button>
+
+        {sources_open && (
+          <div className="business-outcome-attention-list">
+            {(active_headline.all_sources || []).map((entry) => (
+              <button
+                type="button"
+                className={`business-outcome-attention-row ${entry.verdict === "paying_its_way" ? "paying" : ""}`}
+                key={entry.key || entry.name}
+                onClick={() => open_source_detail(entry.key)}
+              >
+                <span className="business-outcome-attention-row-name">{entry.name}</span>
+                <span className="business-outcome-attention-row-amount">
+                  {format_currency(entry.net_profit)} / year
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      <div
+        id="business-outcome-breakdown-section"
+        className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]"
+      >
+        <button
+          type="button"
+          onClick={() => set_breakdown_open((current) => !current)}
+          className="ui-collapsible-summary flex w-full items-center justify-between px-4 py-4 text-left"
+          aria-expanded={breakdown_open}
+        >
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="ui-collapsible-title">See the full breakdown behind the numbers</div>
+          </div>
+          <span className="ml-4 text-sm text-[var(--text-muted)]">{breakdown_open ? "Hide" : "Show"}</span>
+        </button>
+        {/* CSS-display based, not conditional-unmount (this session) -
+            keeps nested content always mounted in the DOM so the two
+            existing click-throughs (Card 1 -> ranked drill, status strip
+            -> not yet assigned) can still find and open their specific
+            targets even while this outer section starts collapsed. */}
+        <div className="px-4 pb-4" style={{ display: breakdown_open ? "block" : "none" }}>
 
       <div
         ref={detail_section_ref}
@@ -1195,7 +1240,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
 
-        <UnassignedBlock unassigned={per_source.unassigned} output_contract={output_contract} />
+        <UnassignedBlock unassigned={per_source.unassigned} output_contract={output_contract} labour_coverage_gaps={active_headline.labour_coverage_gaps} />
 
         <ReconciliationBanner reconciliation={per_source.reconciliation} />
 
@@ -1231,6 +1276,18 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
           <TraditionalViabilityView output_contract={output_contract} />
         </CollapsibleSection>
+      </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => set_breakdown_open(false)}
+            >
+              Hide
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
