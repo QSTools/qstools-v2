@@ -531,6 +531,202 @@ function TraditionalViabilityView({ output_contract }) {
   );
 }
 
+// LEDGER (this session): shows the Real Capacity two-phase cascade
+// step by step, using today's real numbers - no baseline, no what-ifs.
+// Starting point (naive, unscaled) -> cascade metrics -> final
+// allocation, so a group hitting exactly $0 and the next group
+// starting to absorb the remainder is visible, not just implied by
+// the final headline figure.
+function RealCapacityLedger({ real_capacity, materials, unassigned }) {
+  if (!real_capacity) {
+    return <div className="ui-help">Real Capacity data is not available yet.</div>;
+  }
+
+  const groups = real_capacity.group_real_capacity || [];
+  const phase1_pct = ((real_capacity.phase1_factor ?? 0) * 100).toFixed(1);
+  const materials_naive_net_profit =
+    (materials.real_capacity_naive_revenue ?? 0) - (materials.true_cost ?? 0);
+  // Materials' "adjustment" is a GAIN (floored up from a naive loss to $0):
+  // final minus naive, so it comes out POSITIVE - opposite sign to groups'
+  // adjustments (final minus naive too, but a deduction, so negative -
+  // shown with a "-" prefix). FIX: was previously naive minus final,
+  // which flipped the sign and made the total double up instead of
+  // cancel. When both are summed correctly, they net to exactly $0:
+  // everything Materials gains, the groups collectively give up, dollar
+  // for dollar.
+  const materials_adjustment =
+    (materials.real_capacity_net_profit ?? 0) - materials_naive_net_profit;
+
+  const unassigned_total = unassigned?.total ?? 0;
+
+  const total_modelled_revenue =
+    groups.reduce((sum, g) => sum + (g.modelled_revenue ?? 0), 0) +
+    (materials.real_capacity_naive_revenue ?? 0);
+  const total_true_cost =
+    groups.reduce((sum, g) => sum + (g.true_cost ?? 0), 0) + (materials.true_cost ?? 0);
+  const total_naive_net_profit =
+    groups.reduce((sum, g) => sum + (g.naive_net_profit ?? 0), 0) + materials_naive_net_profit;
+  const total_adjustment =
+    groups.reduce((sum, g) => sum + (g.total_adjustment ?? 0), 0) - materials_adjustment;
+  const total_final_net_profit =
+    groups.reduce((sum, g) => sum + (g.final_net_profit ?? 0), 0) +
+    (materials.real_capacity_net_profit ?? 0);
+  // TRUE total - includes unassigned cost (real cost with no source
+  // attached), the same deduction the page headline already applies.
+  // This should always equal the headline's total net profit exactly.
+  const true_total_final_net_profit = total_final_net_profit - unassigned_total;
+
+  return (
+    <div className="business-outcome-ledger">
+      <div className="ui-help">
+        Shows exactly how Real Capacity is calculated from today&apos;s real revenue - each
+        source&apos;s starting position, then the two-phase cascade that follows once
+        Materials can&apos;t cover its own cost from what&apos;s left over.
+      </div>
+
+      <div className="business-outcome-ledger-section-title">Starting point - before any cascade</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Modelled Revenue</span>
+          <span>True Cost</span>
+          <span>Naive Net Profit</span>
+        </div>
+        {groups.map((g) => (
+          <div className="business-outcome-ledger-row" key={g.group_id || g.group_name}>
+            <span>{g.group_name}</span>
+            <span>{format_currency(g.modelled_revenue)}</span>
+            <span>{format_currency(g.true_cost)}</span>
+            <span className={g.naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+              {format_currency(g.naive_net_profit)}
+            </span>
+          </div>
+        ))}
+        <div className="business-outcome-ledger-row">
+          <span>Materials / COG</span>
+          <span>{format_currency(materials.real_capacity_naive_revenue)}</span>
+          <span>{format_currency(materials.true_cost)}</span>
+          <span className={materials_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(materials_naive_net_profit)}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total</span>
+          <span>{format_currency(total_modelled_revenue)}</span>
+          <span>{format_currency(total_true_cost)}</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(total_naive_net_profit)}
+          </span>
+        </div>
+      </div>
+
+      <div className="business-outcome-ledger-section-title">The cascade</div>
+      <div className="business-outcome-ledger-metrics">
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Materials shortfall</span>
+          <span className="business-outcome-ledger-metric-value">
+            {format_currency(real_capacity.shortfall)}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Margin available to absorb it</span>
+          <span className="business-outcome-ledger-metric-value">{format_currency(real_capacity.v0)}</span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Absorbed in Phase 1</span>
+          <span className="business-outcome-ledger-metric-value">
+            {format_currency(real_capacity.phase1_absorbed)} ({phase1_pct}%)
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Left for Phase 2 (fallback)</span>
+          <span className="business-outcome-ledger-metric-value">
+            {format_currency(real_capacity.leftover)}
+          </span>
+        </div>
+      </div>
+      {real_capacity.leftover > 0 && (
+        <div className="ui-help">
+          Every group with spare margin has now been reduced to $0 - the amount above still
+          needed gets spread across all groups by revenue share instead.
+        </div>
+      )}
+
+      <div className="business-outcome-ledger-section-title">Final allocation</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Naive Net Profit</span>
+          <span>Adjustment</span>
+          <span>Final Net Profit</span>
+        </div>
+        {groups.map((g) => {
+          const hit_zero =
+            g.naive_net_profit > 0 && Math.abs(g.final_net_profit) < 1 && real_capacity.leftover <= 0;
+          return (
+            <div className="business-outcome-ledger-row" key={g.group_id || g.group_name}>
+              <span>
+                {g.group_name}
+                {hit_zero && <span className="business-outcome-ledger-zero-tag">reached $0</span>}
+              </span>
+              <span>{format_currency(g.naive_net_profit)}</span>
+              <span className={g.total_adjustment > 0 ? "value-bad" : ""}>
+                {g.total_adjustment > 0 ? "-" : ""}
+                {format_currency(g.total_adjustment)}
+              </span>
+              <span className={g.final_net_profit >= 0 ? "value-good" : "value-bad"}>
+                {format_currency(g.final_net_profit)}
+              </span>
+            </div>
+          );
+        })}
+        <div className="business-outcome-ledger-row">
+          <span>
+            Materials / COG
+            {materials.real_capacity_net_profit === 0 && (
+              <span className="business-outcome-ledger-zero-tag">floored at $0</span>
+            )}
+          </span>
+          <span>{format_currency(materials_naive_net_profit)}</span>
+          <span className={materials_adjustment > 0 ? "value-good" : ""}>
+            {materials_adjustment > 0 ? "+" : ""}
+            {format_currency(materials_adjustment)}
+          </span>
+          <span className={materials.real_capacity_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(materials.real_capacity_net_profit)}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total (6 sources)</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(total_naive_net_profit)}
+          </span>
+          <span>{format_currency(total_adjustment)}</span>
+          <span className={total_final_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(total_final_net_profit)}
+          </span>
+        </div>
+        {unassigned_total > 0 && (
+          <div className="business-outcome-ledger-row">
+            <span>Unassigned cost (not attributed to any source)</span>
+            <span>-</span>
+            <span>-</span>
+            <span className="value-bad">{format_currency(-unassigned_total)}</span>
+          </div>
+        )}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total business-outcome-ledger-true-total">
+          <span>TRUE TOTAL (matches page headline)</span>
+          <span>-</span>
+          <span>-</span>
+          <span className={true_total_final_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {format_currency(true_total_final_net_profit)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
@@ -724,6 +920,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
         <UnassignedBlock unassigned={per_source.unassigned} />
         <ReconciliationBanner reconciliation={per_source.reconciliation} />
+
+        {capacity_mode === "real" && (
+          <CollapsibleSection title="How Real Capacity is calculated" defaultOpen={false}>
+            <RealCapacityLedger real_capacity={per_source.real_capacity} materials={per_source.materials} unassigned={per_source.unassigned} />
+          </CollapsibleSection>
+        )}
 
         <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
           <TraditionalViabilityView output_contract={output_contract} />

@@ -563,12 +563,15 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
     phase1_factor,
     leftover,
     materials_real_capacity_net_profit,
+    materials_real_capacity_naive_revenue: round_currency(materials_naive_revenue),
     materials_real_capacity_verdict: verdict_for(materials_real_capacity_net_profit),
     // Exposed for verification against the spreadsheet - group-level
     // final figures, before the inner per-source split.
     group_real_capacity: groups.map((g) => ({
       group_id: g.group_id,
       group_name: g.group_name,
+      modelled_revenue: round_currency(g.modelled_revenue),
+      true_cost: round_currency(g.true_cost),
       naive_net_profit: round_currency(g.naive_net_profit),
       final_net_profit: g.final_net_profit,
       total_adjustment: g.total_adjustment,
@@ -681,6 +684,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
       materials.true_cost
     );
     materials.real_capacity_net_profit = real_capacity.materials_real_capacity_net_profit;
+    materials.real_capacity_naive_revenue = real_capacity.materials_real_capacity_naive_revenue;
     materials.real_capacity_verdict = real_capacity.materials_real_capacity_verdict;
 
     const total_modelled_revenue =
