@@ -380,6 +380,7 @@ function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_refe
       is_breached: false,
       overage: 0,
       labour_asset_modelled_total: round_currency(combined_total),
+      scale_factor: 1,
     };
   }
 
@@ -406,6 +407,7 @@ function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_refe
     is_breached: true,
     overage,
     labour_asset_modelled_total: round_currency(combined_total),
+    scale_factor,
   };
 }
 
