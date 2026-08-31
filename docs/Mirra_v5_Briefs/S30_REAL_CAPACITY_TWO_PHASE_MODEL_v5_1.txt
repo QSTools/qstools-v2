@@ -1,0 +1,198 @@
+# Mirra v5.1 - Real Capacity: Two-Phase Cascade Model (Business Outcome)
+
+STATUS: LIVE, VERIFIED - two known follow-ups noted below, not yet built
+DATE: 2026-09-01 (same session as S30 Section 4.1/5.3 resolution)
+READ FIRST: S30_REVENUE_CEILING_SECTION_4_1_RESOLUTION_v5_1.txt (same
+session, resolved earlier the same night) and the original S30 brief.
+
+---
+
+# 1. WHAT THIS IS
+
+A new, additive toggle on Business Outcome's per-source revenue page:
+"Real capacity" vs "Assumed capacity". Assumed capacity is exactly
+today's existing behaviour (the S30 ceiling/implied logic), completely
+unchanged. Real capacity is a new, always-on model answering a
+different, more honest question: given what the business has actually
+billed and what it is actually committed to pay, who is genuinely
+covering their own cost right now, and who is being propped up by
+whom.
+
+Confirmed with user this session: Real Capacity defaults on page load
+(leads with the honest number). The headline banner goes visually
+starker (red border/glow, new .business-outcome-headline-stark CSS
+class) only when switching to Real Capacity reveals MORE failure than
+Assumed Capacity already showed (compares being_carried_count between
+the two headlines) - not simply whenever Real Capacity has any carried
+sources at all.
+
+---
+
+# 2. THE MECHANISM - TWO-PHASE CASCADE, GROUP -> INDIVIDUAL HIERARCHY
+
+Materials/COG has a hard floor: it can never show a net loss. Its
+naive (unfloored) revenue share - total_revenue_reference minus
+labour+asset's real modelled revenue - is compared against its real
+true cost. Any shortfall this floor creates must come from somewhere
+else, since real committed cost is real regardless of how it gets
+allocated.
+
+STEP 1 (outer, group-level): the 5 real operating groups + Materials
+go through the cascade first, using each GROUP'S OWN combined
+modelled_revenue/true_cost (not any one individual member) to
+determine naive profitability:
+  - Phase 1: the shortfall is absorbed only by groups currently
+    naively profitable, weighted by CURRENT net_profit - proven
+    (hand-verified in a spreadsheet before this was coded, matched to
+    the cent against a 200,000-step numerical simulation) to mean
+    every eligible group's margin shrinks by the exact same
+    percentage simultaneously.
+  - Phase 2 (fallback): once every eligible group's margin is
+    exhausted, the leftover spreads across ALL FIVE groups
+    proportional to modelled_revenue share.
+
+STEP 2 (inner, individual-source level): whatever total dollar
+adjustment a group received in Step 1 (naive minus final) becomes a
+SECOND, smaller shortfall, pushed down across just that group's own
+individual labour/asset sources via the IDENTICAL two-phase logic -
+a member still individually healthy absorbs more of their group's own
+adjustment, a member already underwater takes less. This guarantees a
+group's children always sum exactly to that group's own Step 1 total,
+at every revenue level, by the same invariant-preserving math proven
+at the outer level.
+
+CONFIRMED WHY TWO LEVELS ARE NEEDED (not optional): the first version
+built tonight ran the cascade at INDIVIDUAL SOURCE level only (flat,
+no group step). This produced numbers that diverged sharply from the
+hand-verified spreadsheet - e.g. Foreman (Owner/Director deeply
+negative + Senior Operator still positive, netting to a group total
+that behaves differently as ONE unit than as two independent
+participants) showed completely different figures depending on
+granularity. User confirmed: run the cascade as a hierarchy, group
+first, then individual - matching how the page's own headline/ranked
+list already presents the story (one line per group).
+
+---
+
+# 3. CRITICAL - WHY LIVE NUMBERS DIFFER FROM THE SPREADSHEET (NOT A BUG)
+
+The Section 4.1/5.3 spreadsheet built earlier this session used an
+explicit "Proportional Scale Factor = Total Revenue Test / Real Total
+Revenue" - i.e. it compared today's test revenue against a REMEMBERED
+BASELINE ($2,500,000), and scaled EVERY source's naive figure
+(including labour/asset groups' own net profit) by that ratio before
+running Phase 1/2. This is a genuine "what if revenue were X instead
+of the real baseline" model - Option 2, described below.
+
+The LIVE APP deliberately does NOT do this (confirmed explicitly with
+user this session: "we arent doing what ifs... that is the only
+number [current real P&L revenue]... We can calc new numbers if we
+need them" - no separate remembered baseline, no scale factor applied
+to labour/asset sources' own naive net_profit). A source's own
+modelled_revenue and true_cost are real, rate/hours-based, and
+genuinely independent of today's total company revenue - they do NOT
+shrink just because total revenue is down this period. This is Option
+1 (confirmed correct and final for this page - see Section 4 below).
+
+CONSEQUENCE: in the live app, ALL of the "revenue is down" pressure
+flows through exactly one channel - Materials' shrinking leftover
+share. Labour/asset groups' own naive profitability never moves. This
+means Real Capacity's live numbers are legitimately, structurally
+different from the spreadsheet's numbers - not an error to keep
+chasing. Confirmed hand-verified example: at $1,225,000 test revenue,
+Foreman's live naive_net_profit is +$30,368 (full, unscaled, real
+baseline value) vs the spreadsheet's -$116,380 (baseline-scaled
+value) - both are "correct" for what they each model, they are simply
+answering different questions.
+
+Do NOT re-open this as a bug in a future session without reading this
+note first.
+
+---
+
+# 4. OPTION 1 (LIVE, CONFIRMED FINAL) vs OPTION 2 (DEFERRED TO BUSINESS
+   MODELLING - NOT THIS PAGE, NOT BUILT)
+
+Option 1 (this page, live now): no baseline, ever. A source's own
+naive figure is always its real, current, unscaled value. Only
+Materials' actual shortfall drives the cascade. Answers: "given what
+we've actually billed and actually committed to pay, who is genuinely
+covering their own cost right now."
+
+Option 2 (explicitly deferred, NOT built anywhere yet): reintroduce
+baseline-relative scaling - "if total company revenue fell from our
+normal baseline to X, how would that proportionally affect every
+group's own naive figure too." User confirmed this belongs in
+Business Modelling as a deliberate, labelled scenario tool where the
+person testing it consciously chooses a baseline and knows they are
+exploring a hypothesis - NOT as silent behaviour on this page's
+regular reporting view. If Business Modelling ever builds this, the
+verified spreadsheet's Phase 0 scale-factor mechanic
+(TestRevenue/RealBaselineRevenue applied to every source before the
+Materials-floor cascade) is the reference implementation - see
+S30_REVENUE_CEILING_SECTION_4_1_RESOLUTION_v5_1.txt's linked workbook.
+
+---
+
+# 5. KNOWN FOLLOW-UP - NOT FIXED THIS SESSION, FLAGGED BY USER
+
+The "Ranked by revenue contribution" view (Revenue/Net Profit toggle,
+separate from the Real/Assumed Capacity toggle) shows a real UX
+inconsistency: Revenue view always displays the naive, unadjusted
+modelled_revenue figure (by design - Phase 1/2 only ever touch net
+profit, never revenue, to avoid inventing a fake "implied revenue"
+number). But the verdict badge next to it DOES reflect whichever
+capacity model is selected. Result: under Real Capacity, a source can
+show a large, healthy-looking modelled revenue figure sitting right
+next to a red "Being carried" badge - individually correct, but reads
+as contradictory together.
+
+User's assessment: "that is the interactive part of the page, it
+probably needs to be rebuilt." Not fixed this session - flagged as a
+real design gap for a future session to address properly (e.g. hide
+the verdict badge in Revenue view, or find another way to make what's
+displayed and what's badged tell a consistent story), not something to
+patch quickly.
+
+---
+
+# 6. FILES CHANGED THIS SESSION (Real Capacity feature)
+
+- hooks/useBusinessOutcomePerSourceRevenue.js
+  - NEW: group_rows_by_group_id() helper
+  - NEW: apply_real_capacity() - group-level cascade (Step 1) then
+    individual-source cascade (Step 2), fully additive, writes
+    real_capacity_net_profit/real_capacity_verdict onto every row and
+    onto materials, alongside (never replacing) the existing
+    implied_* fields
+  - Hook's return object: added real_capacity summary (shortfall, v0,
+    phase1_absorbed, phase1_factor, leftover, group_real_capacity)
+- lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+  - group_sources_by_group: added group_real_capacity_net_profit
+    accumulator (additive, existing group_implied_* untouched)
+  - NEW: merge_groups_by_id_real_capacity() - parallel to the existing
+    merge_groups_by_id, always reads real_capacity_* fields, no
+    boolean toggle needed
+  - NEW: headline_real_capacity - parallel to the existing headline,
+    same construction, reads real_capacity figures
+- components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+  - NEW: capacity_mode state (defaults "real"), active_headline,
+    reveals_more_failure
+  - NEW: Real capacity / Assumed capacity toggle, above the existing
+    Revenue/Net Profit toggle
+  - Headline block reads active_headline instead of per_source.headline
+    directly (existing per_source.headline still fully intact and
+    reachable via the toggle)
+  - RankedGroupsDrill: capacity_mode prop threaded through, chooses
+    merge_groups_by_id vs merge_groups_by_id_real_capacity
+- styles/modules/business-outcome.css
+  - NEW: .business-outcome-headline-stark and its eyebrow variant -
+    reuses existing --danger/--danger-soft pattern already established
+    for .business-outcome-capacity-warning and the reconciliation
+    banner's warning state
+
+TEMP debug globals (window.__real_capacity_debug,
+window.__selector_real_capacity_debug) used for verification tonight -
+both removed before this commit, per working discipline.
+
+END OF NOTE

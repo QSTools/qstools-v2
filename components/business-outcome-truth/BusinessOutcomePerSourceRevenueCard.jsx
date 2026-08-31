@@ -7,7 +7,7 @@ import {
   scaleAnnualValue,
   getTimeScaleSuffix,
 } from "@/components/cost-summary/cost-summary-card/costSummaryFormatters";
-import { merge_groups_by_id } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 
 function format_currency(value) {
   const n = Number(value);
@@ -296,13 +296,16 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied }) {
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [selected_key, set_selected_key] = useState(null);
   const [hovered_key, set_hovered_key] = useState("");
 
-  const entries = merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
+  const entries =
+    capacity_mode === "real"
+      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+      : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
   const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
   const total = view_mode === "profit" ? headline.total_net_profit : headline.total_modelled_revenue;
 
@@ -521,6 +524,11 @@ function TraditionalViabilityView({ output_contract }) {
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
+  // Defaults to "real" (Real Capacity) per product decision this session -
+  // leads with the honest, cross-subsidy-aware number rather than the
+  // familiar assumed-hours figure. "assumed" keeps today's existing
+  // behaviour, completely untouched, one click away.
+  const [capacity_mode, set_capacity_mode] = useState("real");
 
   if (!per_source || !per_source.available) {
     return (
@@ -533,19 +541,30 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     );
   }
 
-  const total_source_count = per_source.headline.total_group_count;
-  const carried_count = per_source.headline.being_carried_count;
+  const active_headline =
+    capacity_mode === "real" ? per_source.headline_real_capacity : per_source.headline;
+
+  const total_source_count = active_headline.total_group_count;
+  const carried_count = active_headline.being_carried_count;
+
+  // Banner tone (confirmed with user): only goes starker when switching to
+  // Real Capacity actually REVEALS more failure than Assumed Capacity
+  // already showed - not simply whenever Real Capacity has any carried
+  // sources at all.
+  const reveals_more_failure =
+    capacity_mode === "real" &&
+    per_source.headline_real_capacity.being_carried_count > per_source.headline.being_carried_count;
 
   return (
     <div className="business-outcome-waterfall">
-      <div className="business-outcome-headline">
+      <div className={`business-outcome-headline${reveals_more_failure ? " business-outcome-headline-stark" : ""}`}>
         <div className="business-outcome-headline-eyebrow">Is your business working?</div>
         <div className="business-outcome-headline-text">
           Your business made{" "}
-          <span className={per_source.headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
+          <span className={active_headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
             {format_currency(
               scaleAnnualValue(
-                per_source.headline.total_net_profit,
+                active_headline.total_net_profit,
                 time_scale,
                 null,
                 per_source.net_annual_business_open_hours
@@ -555,7 +574,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </span>{" "}
           in net profit.
 
-        {per_source.headline.all_good ? (
+        {active_headline.all_good ? (
             <> Every part of your business is paying its way.</>
           ) : (
             <>
@@ -568,17 +587,17 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           )}
         </div>
 
-        {(per_source.headline.labour_capacity_warning || per_source.headline.asset_capacity_warning) && (
+        {(active_headline.labour_capacity_warning || active_headline.asset_capacity_warning) && (
           <div className="business-outcome-capacity-warning">
             <strong>Some of this revenue may not be deliverable as currently staffed</strong>
-            {per_source.headline.labour_capacity_warning && (
+            {active_headline.labour_capacity_warning && (
               <div>
                 One or more staff types are assigned more hours across your operating groups than they
                 actually have available. The revenue figures on this page assume every assigned seat is
                 fully covered - check Cost Allocation for the specific over-allocated staff type.
               </div>
             )}
-            {per_source.headline.asset_capacity_warning && (
+            {active_headline.asset_capacity_warning && (
               <div>
                 One or more assets are assigned more than 100% across your operating groups. Check Cost
                 Allocation for the specific over-allocated asset.
@@ -587,10 +606,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         )}
 
-        {per_source.headline.labour_coverage_gaps.length > 0 && (
+        {active_headline.labour_coverage_gaps.length > 0 && (
           <div className="business-outcome-coverage-gap-block">
             <div className="business-outcome-coverage-gap-title">Scheduling gap - not a profit issue</div>
-            {per_source.headline.labour_coverage_gaps.map((gap) => (
+            {active_headline.labour_coverage_gaps.map((gap) => (
               <div className="business-outcome-coverage-gap-row" key={gap.group_id}>
                 <strong>{gap.group_name}</strong> - assigned labour covers {gap.gap_hours} fewer
                 hours than this asset runs each year. This is a real scheduling gap worth weighing up in
@@ -600,14 +619,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         )}
 
-        {per_source.headline.all_good ? (
+        {active_headline.all_good ? (
           <div className="business-outcome-all-good-row">
             Every labour source, asset, and materials is covering its own cost right now - nothing is
             being carried by the rest of the business.
           </div>
         ) : (
           <div className="business-outcome-attention-list">
-            {per_source.headline.being_carried.map((entry) => (
+            {active_headline.being_carried.map((entry) => (
               <div className="business-outcome-attention-row" key={entry.name}>
                 <span className="business-outcome-attention-row-name">{entry.name}</span>
                 <span className="business-outcome-attention-row-amount">
@@ -626,6 +645,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
       <CollapsibleSection title="Ranked by revenue contribution" defaultOpen={true}>
         <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
+
+        <div className="business-outcome-view-toggle" aria-label="Capacity model">
+          <button
+            type="button"
+            className={`business-outcome-view-toggle-btn ${capacity_mode === "real" ? "active" : ""}`}
+            onClick={() => set_capacity_mode("real")}
+          >
+            Real capacity
+          </button>
+          <button
+            type="button"
+            className={`business-outcome-view-toggle-btn ${capacity_mode === "assumed" ? "active" : ""}`}
+            onClick={() => set_capacity_mode("assumed")}
+          >
+            Assumed capacity
+          </button>
+        </div>
 
         <div className="business-outcome-view-toggle">
           <button
@@ -662,7 +698,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         </div>
 
         <RankedGroupsDrill
-          headline={per_source.headline}
+          headline={active_headline}
           labour_groups={per_source.labour_groups}
           asset_groups={per_source.asset_groups}
           materials={per_source.materials}
@@ -670,6 +706,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           time_scale={time_scale}
           open_hours={per_source.net_annual_business_open_hours}
           use_implied={per_source.use_implied}
+          capacity_mode={capacity_mode}
         />
       </CollapsibleSection>
 

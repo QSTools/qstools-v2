@@ -409,6 +409,173 @@ function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_refe
   };
 }
 
+// REAL CAPACITY MODEL (two-phase cascade, hand-verified in a spreadsheet
+// before this was coded - matched to the cent against a 200,000-step
+// numerical simulation across seven scenarios, plus six exact boundary
+// tests confirmed live). Parallel, ADDITIVE alternative to the ceiling
+// model above - never touches implied_revenue/implied_net_profit/
+// implied_verdict or anything else apply_revenue_ceiling already wrote.
+//
+// Phase 0 (naive): every source's own existing net_profit (already
+// computed above, rate/cost based, revenue-independent) is the
+// starting point. Unlike the spreadsheet's what-if scaling, this page
+// only ever calculates for today's real total_revenue_reference, once
+// - no separate baseline, no scale factor (confirmed with user: this is
+// not a modelling page, that is Business Modelling's job).
+//
+// Materials floor: Materials can never show a loss - its naive
+// (unfloored) revenue share is compared against its true cost; any
+// shortfall this floor creates must come from somewhere else, since
+// real cost is real regardless of how it gets allocated.
+//
+// Phase 1: that shortfall is absorbed only by sources currently
+// naively profitable, weighted by their CURRENT net_profit - proven
+// (spreadsheet, this session) to mean every eligible source's margin
+// shrinks by the exact same percentage simultaneously, so a single
+// phase1_factor captures this for all of them at once.
+//
+// Phase 2 (fallback): if the shortfall exceeds the total margin
+// available among Phase-1-eligible sources, the leftover - meaning
+// every eligible source's margin has now hit exactly zero - spreads
+// across ALL labour and asset sources proportional to modelled_revenue
+// share, since there is no more margin difference left to justify
+// weighting by resilience.
+//
+// Sources have NO floor of their own - unlike Materials, a source's
+// real_capacity_net_profit can go as negative as needed, because
+// nothing stops real cost being incurred even when no revenue is
+// allocated to cover it. Required for the total to always reconcile
+// exactly to total_revenue_reference minus total true cost.
+// GROUP -> INDIVIDUAL HIERARCHY (confirmed with user, this session, after
+// the first individual-source-only version produced numbers that diverged
+// from the hand-verified spreadsheet - group "Foreman" containing both a
+// deeply-negative Owner/Director and a still-positive Senior Operator
+// showed the mismatch clearly). Two nested passes of the identical
+// two-phase cascade:
+//
+// STEP 1 (outer): the 5 real operating groups + Materials go through
+// Phase 1/2 exactly as the spreadsheet did - a group's OWN combined
+// modelled_revenue/true_cost is what determines whether it's naively
+// profitable, not any one of its individual members. This produces each
+// group's correct, verified final net profit.
+//
+// STEP 2 (inner): whatever total dollar adjustment a group received in
+// Step 1 (naive minus final) becomes a SECOND, smaller shortfall, pushed
+// down across just that group's own individual sources via the identical
+// two-phase logic - a member still individually healthy absorbs more of
+// their group's adjustment, a member already underwater takes less. This
+// guarantees a group's children always sum exactly to that group's own
+// Step 1 total, at every revenue level, by the same invariant-preserving
+// math proven at the outer level.
+function group_rows_by_group_id(rows) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = row.group_id || `ungrouped_${row.group_name}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        group_id: row.group_id,
+        group_name: row.group_name,
+        rows: [],
+        modelled_revenue: 0,
+        true_cost: 0,
+      });
+    }
+    const g = map.get(key);
+    g.rows.push(row);
+    g.modelled_revenue += row.modelled_revenue ?? 0;
+    g.true_cost += row.true_cost ?? 0;
+  });
+  return Array.from(map.values());
+}
+
+function apply_real_capacity(labour_sources, asset_sources, materials_naive_revenue, materials_true_cost) {
+  const all_sources = [...labour_sources, ...asset_sources];
+  const groups = group_rows_by_group_id(all_sources);
+
+  groups.forEach((g) => {
+    g.naive_net_profit = g.modelled_revenue - g.true_cost;
+  });
+
+  const shortfall = Math.max(0, materials_true_cost - materials_naive_revenue);
+
+  // STEP 1 - outer cascade across the 5 groups (matches the spreadsheet).
+  const v0 = groups.reduce((sum, g) => (g.naive_net_profit > 0 ? sum + g.naive_net_profit : sum), 0);
+  const phase1_absorbed = Math.min(shortfall, v0);
+  const phase1_factor = v0 > 0 ? phase1_absorbed / v0 : 0;
+  const leftover = round_currency(shortfall - phase1_absorbed);
+
+  const total_group_modelled_revenue = groups.reduce((sum, g) => sum + g.modelled_revenue, 0);
+
+  groups.forEach((g) => {
+    const after_phase1 = g.naive_net_profit > 0 ? g.naive_net_profit * (1 - phase1_factor) : g.naive_net_profit;
+    const phase2_deduction =
+      leftover > 0 && total_group_modelled_revenue > 0
+        ? leftover * (g.modelled_revenue / total_group_modelled_revenue)
+        : 0;
+    g.final_net_profit = round_currency(after_phase1 - phase2_deduction);
+    // Always >= 0 in practice - Real Capacity only ever pulls margin away
+    // from a group relative to its naive figure, never adds to it.
+    g.total_adjustment = round_currency(g.naive_net_profit - g.final_net_profit);
+  });
+
+  // STEP 2 - inner cascade, pushing each group's own total_adjustment down
+  // across just that group's own individual sources.
+  groups.forEach((g) => {
+    const inner_v0 = g.rows.reduce((sum, row) => {
+      if (row.net_profit === null || row.net_profit <= 0) return sum;
+      return sum + row.net_profit;
+    }, 0);
+
+    const inner_absorbed = Math.min(Math.max(g.total_adjustment, 0), inner_v0);
+    const inner_factor = inner_v0 > 0 ? inner_absorbed / inner_v0 : 0;
+    const inner_leftover = round_currency(g.total_adjustment - inner_absorbed);
+
+    const group_row_revenue_total = g.rows.reduce((sum, row) => sum + (row.modelled_revenue ?? 0), 0);
+
+    g.rows.forEach((row) => {
+      if (row.net_profit === null) {
+        row.real_capacity_net_profit = null;
+        row.real_capacity_verdict = null;
+        return;
+      }
+
+      const inner_after_phase1 =
+        row.net_profit > 0 ? row.net_profit * (1 - inner_factor) : row.net_profit;
+
+      const inner_phase2_deduction =
+        inner_leftover > 0 && group_row_revenue_total > 0
+          ? inner_leftover * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+          : 0;
+
+      const real_capacity_net_profit = round_currency(inner_after_phase1 - inner_phase2_deduction);
+      row.real_capacity_net_profit = real_capacity_net_profit;
+      row.real_capacity_verdict = verdict_for(real_capacity_net_profit);
+    });
+  });
+
+  const materials_final_revenue = Math.max(materials_naive_revenue, materials_true_cost);
+  const materials_real_capacity_net_profit = round_currency(materials_final_revenue - materials_true_cost);
+
+  return {
+    shortfall: round_currency(shortfall),
+    v0: round_currency(v0),
+    phase1_absorbed: round_currency(phase1_absorbed),
+    phase1_factor,
+    leftover,
+    materials_real_capacity_net_profit,
+    materials_real_capacity_verdict: verdict_for(materials_real_capacity_net_profit),
+    // Exposed for verification against the spreadsheet - group-level
+    // final figures, before the inner per-source split.
+    group_real_capacity: groups.map((g) => ({
+      group_id: g.group_id,
+      group_name: g.group_name,
+      naive_net_profit: round_currency(g.naive_net_profit),
+      final_net_profit: g.final_net_profit,
+      total_adjustment: g.total_adjustment,
+    })),
+  };
+}
+
 export default function useBusinessOutcomePerSourceRevenue() {
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const cost_allocation = useCostAllocation();
@@ -503,6 +670,18 @@ export default function useBusinessOutcomePerSourceRevenue() {
         };
     materials.net_profit = round_currency(materials.revenue - materials.true_cost);
     materials.verdict = verdict_for(materials.net_profit);
+
+    const materials_naive_revenue = round_currency(
+      total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
+    );
+    const real_capacity = apply_real_capacity(
+      labour_sources,
+      asset_sources,
+      materials_naive_revenue,
+      materials.true_cost
+    );
+    materials.real_capacity_net_profit = real_capacity.materials_real_capacity_net_profit;
+    materials.real_capacity_verdict = real_capacity.materials_real_capacity_verdict;
 
     const total_modelled_revenue =
       labour_sources.reduce((sum, row) => sum + to_number(row.modelled_revenue), 0) +
@@ -600,6 +779,14 @@ export default function useBusinessOutcomePerSourceRevenue() {
       asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
       total_modelled_revenue: round_currency(total_modelled_revenue), // display only, not a reconciliation
       revenue_ceiling: ceiling,
+      real_capacity: {
+        shortfall: real_capacity.shortfall,
+        v0: real_capacity.v0,
+        phase1_absorbed: real_capacity.phase1_absorbed,
+        phase1_factor: real_capacity.phase1_factor,
+        leftover: real_capacity.leftover,
+        group_real_capacity: real_capacity.group_real_capacity,
+      },
       reconciliation: {
         total_true_cost: round_currency(total_true_cost),
         total_cost_reference: round_currency(total_cost_reference),
