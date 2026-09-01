@@ -20,7 +20,7 @@ export default function BusinessOutcomeViewSwitcher() {
   const pathname = usePathname();
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-2 flex gap-2">
+    <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-card)] p-2 flex gap-2">
       {views.map((view) => {
         const is_active = pathname === view.href;
 
@@ -30,8 +30,8 @@ export default function BusinessOutcomeViewSwitcher() {
             href={view.href}
             className={`flex-1 rounded-md px-4 py-2 text-sm transition-colors ${
               is_active
-                ? "bg-gray-900 text-white font-semibold"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[var(--info)] text-white font-semibold"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             }`}
             title={view.description}
           >

@@ -40,7 +40,16 @@ function PressureRow({ row, isDrillable, isExpanded, onToggle }) {
         )}
       </div>
       <div style={{ color: "var(--text-secondary)" }}>
-        {row.gap !== null ? formatCurrency(row.gap) : "-"}
+        {row.gap !== null ? (
+          <>
+            {formatCurrency(row.gap)}
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+              {row.gap < 0 ? `${formatCurrency(Math.abs(row.gap))} of headroom` : row.gap > 0 ? "over capacity" : "exactly on target"}
+            </div>
+          </>
+        ) : (
+          "-"
+        )}
       </div>
       <div style={{ color: statusColor, fontWeight: 600 }}>{row.flag}</div>
     </div>
@@ -73,7 +82,7 @@ export default function BusinessOutcomeMainCard({ outcome }) {
           <div>Stream</div>
           <div>Cost</div>
           <div>Model Capacity / Target</div>
-          <div>Gap</div>
+          <div>Gap (Cost vs Capacity)</div>
           <div>Status</div>
         </div>
         {pressureRows.map((row) => {
