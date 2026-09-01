@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
@@ -142,11 +142,11 @@ function MaterialsBuildUp({ build_up }) {
         <span className="business-outcome-buildup-value">{format_currency(build_up.total_pnl_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>âˆ’ Labour modelled revenue (all sources)</span>
+        <span>− Labour modelled revenue (all sources)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.labour_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>âˆ’ Asset modelled revenue (all groups)</span>
+        <span>− Asset modelled revenue (all groups)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.asset_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
@@ -167,11 +167,11 @@ function MaterialsBuildUp({ build_up }) {
         </span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>âˆ’ COGS (P&L)</span>
+        <span>− COGS (P&L)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.cogs)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>âˆ’ Residual overhead (not distributed to labour/asset groups)</span>
+        <span>− Residual overhead (not distributed to labour/asset groups)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.residual_overhead)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
@@ -235,7 +235,7 @@ function MaterialsSection({ materials, view_mode }) {
 
   return (
     <div className="business-outcome-collapsible-group">
-      <CollapsibleSection title="Materials â€” Adjusted GP after labour & asset revenue removed" summary={summary} defaultOpen={false}>
+      <CollapsibleSection title="Materials — Adjusted GP after labour & asset revenue removed" summary={summary} defaultOpen={false}>
         <div className="business-outcome-source-group-body">
           <div className="business-outcome-source-row" style={{ "--indent-level": 1 }}>
             <span className="business-outcome-source-row-name">
@@ -395,7 +395,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
           const is_active = hovered_key === item.key;
           const is_muted = Boolean(hovered_key) && !is_active;
           const value = metric(item);
-          const share = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+          const share = total !== 0 ? ((value / total) * 100).toFixed(1) : "0.0";
 
           const row_class = [
             "cost-summary-drill-row",
@@ -1229,6 +1229,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 Assumed capacity
               </button>
             </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+              <strong style={{ color: "var(--text-primary)" }}>Real capacity</strong> shares any shortfall out
+              fairly, based on who can actually afford to give something up.
+              <strong style={{ color: "var(--text-primary)" }}> Assumed capacity</strong> shares any shortfall
+              out evenly, the same percentage for everyone, regardless of how much margin they have.
+            </p>
 
             <div className="business-outcome-view-toggle">
               <button
