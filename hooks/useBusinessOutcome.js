@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import useRecoverySummary from './useRecoverySummary';
@@ -89,3 +89,6 @@ export function useBusinessOutcome() {
 
   return output_contract;
 }
+
+
+
