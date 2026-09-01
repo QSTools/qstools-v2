@@ -1,4 +1,5 @@
 ﻿"use client";
+import { useState } from "react";
 import { useBusinessOutcome } from "@/hooks/useBusinessOutcome";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import BusinessOutcomeViewSwitcher from "@/components/navigation/BusinessOutcomeViewSwitcher";
@@ -26,6 +27,7 @@ import BusinessOutcomeRecoveryNarrative from "@/components/business-outcome/Busi
 // CollapsibleSection component that page already uses, so this page
 // starts collapsed instead of showing everything open at once.
 export default function RecoveryOutcomePage() {
+  const [smoothing_mode, set_smoothing_mode] = useState("smoothed");
   const businessOutcome = useBusinessOutcome();
   return (
     <div className="space-y-6 p-6">
@@ -35,6 +37,22 @@ export default function RecoveryOutcomePage() {
       </div>
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeStatusStrip outcome={businessOutcome} />
+      <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.5rem" }}>
+        <button
+          type="button"
+          className={`business-outcome-view-toggle-btn ${smoothing_mode === "smoothed" ? "active" : ""}`}
+          onClick={() => set_smoothing_mode("smoothed")}
+        >
+          Smoothed (cross-subsidised)
+        </button>
+        <button
+          type="button"
+          className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
+          onClick={() => set_smoothing_mode("naive")}
+        >
+          As Priced (no smoothing)
+        </button>
+      </div>
 
       <CollapsibleSection title="Reconstructed P&L" defaultOpen={false}>
         <BusinessOutcomeWaterfall outcome={businessOutcome} />
@@ -43,9 +61,8 @@ export default function RecoveryOutcomePage() {
       <CollapsibleSection title="Where is the pressure?" defaultOpen={false}>
         <BusinessOutcomeMainCard outcome={businessOutcome} />
       </CollapsibleSection>
-
       <CollapsibleSection title="How Net Profit Is Actually Built" defaultOpen={false}>
-        <BusinessOutcomeNetProfitBuildUp />
+        <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
       </CollapsibleSection>
 
       <BusinessOutcomeRecoveryNarrative outcome={businessOutcome} />

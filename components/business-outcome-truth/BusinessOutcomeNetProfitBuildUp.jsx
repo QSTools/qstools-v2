@@ -14,7 +14,7 @@ function contribution_color(net_profit) {
   return net_profit > 0 ? "var(--success)" : "var(--danger)";
 }
 
-export default function BusinessOutcomeNetProfitBuildUp() {
+export default function BusinessOutcomeNetProfitBuildUp({ smoothing_mode = "smoothed" }) {
   const [view_mode, set_view_mode] = useState("revenue");
 
   const per_source_result = useBusinessOutcomePerSourceRevenue();
@@ -65,16 +65,9 @@ export default function BusinessOutcomeNetProfitBuildUp() {
         >
           Net Profit
         </button>
-        <button
-          type="button"
-          className={`business-outcome-view-toggle-btn ${view_mode === "naive" ? "active" : ""}`}
-          onClick={() => set_view_mode("naive")}
-        >
-          As Priced (no smoothing)
-        </button>
       </div>
 
-      {view_mode === "naive" && (
+      {view_mode === "profit" && smoothing_mode === "naive" && (
         <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: "0 0 0.75rem", fontStyle: "italic" }}>
           Each source shown at what it earns on its own, before any group subsidises another. The total
           below is identical either way - this view only changes which line item carries the shortfall,
@@ -115,7 +108,7 @@ export default function BusinessOutcomeNetProfitBuildUp() {
               </div>
             ))}
           </>
-        ) : view_mode === "profit" ? (
+        ) : view_mode === "profit" && smoothing_mode !== "naive" ? (
           <>
             {rows.map((row) => (
               <div key={row.key}>
@@ -177,7 +170,7 @@ export default function BusinessOutcomeNetProfitBuildUp() {
               <span>-{format_currency(total_unassigned)}</span>
             </div>
           </>
-        ) : (
+        ) : view_mode === "profit" ? (
           <>
             {rows.map((row) => (
               <div key={row.key}>
@@ -212,7 +205,7 @@ export default function BusinessOutcomeNetProfitBuildUp() {
               <span>-{format_currency(total_unassigned)}</span>
             </div>
           </>
-        )}
+        ) : null}
 
         <div className="business-outcome-buildup-row contribution" style={{ borderTop: "2px solid var(--info)", color: "var(--info)", fontSize: "0.95rem" }}>
           <span>TOTAL REVENUE</span>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
@@ -142,11 +142,11 @@ function MaterialsBuildUp({ build_up }) {
         <span className="business-outcome-buildup-value">{format_currency(build_up.total_pnl_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>− Labour modelled revenue (all sources)</span>
+        <span>âˆ’ Labour modelled revenue (all sources)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.labour_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>− Asset modelled revenue (all groups)</span>
+        <span>âˆ’ Asset modelled revenue (all groups)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.asset_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
@@ -167,11 +167,11 @@ function MaterialsBuildUp({ build_up }) {
         </span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>− COGS (P&L)</span>
+        <span>âˆ’ COGS (P&L)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.cogs)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
-        <span>− Residual overhead (not distributed to labour/asset groups)</span>
+        <span>âˆ’ Residual overhead (not distributed to labour/asset groups)</span>
         <span className="business-outcome-buildup-value">{format_currency(build_up.residual_overhead)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
@@ -235,7 +235,7 @@ function MaterialsSection({ materials, view_mode }) {
 
   return (
     <div className="business-outcome-collapsible-group">
-      <CollapsibleSection title="Materials — Adjusted GP after labour & asset revenue removed" summary={summary} defaultOpen={false}>
+      <CollapsibleSection title="Materials â€” Adjusted GP after labour & asset revenue removed" summary={summary} defaultOpen={false}>
         <div className="business-outcome-source-group-body">
           <div className="business-outcome-source-row" style={{ "--indent-level": 1 }}>
             <span className="business-outcome-source-row-name">
@@ -976,7 +976,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed" }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
   // Defaults to "real" (Real Capacity) per product decision this session -
@@ -1027,8 +1027,54 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     );
   }
 
+  function build_naive_headline() {
+    const groups = per_source.real_capacity?.group_real_capacity || [];
+    const materials = per_source.materials;
+    const materials_naive_net_profit =
+      (materials?.real_capacity_naive_revenue ?? 0) - (materials?.true_cost ?? 0);
+
+    const materials_entry = {
+      key: "materials",
+      name: "Materials / COG",
+      net_profit: materials_naive_net_profit,
+      modelled_revenue: materials?.real_capacity_naive_revenue ?? 0,
+      verdict: materials_naive_net_profit >= 0 ? "paying_its_way" : "being_carried",
+      type: "materials",
+    };
+
+    const group_entries = groups.map((g) => ({
+      key: g.group_id,
+      name: g.group_name,
+      net_profit: g.naive_net_profit,
+      modelled_revenue: g.modelled_revenue,
+      verdict: g.naive_net_profit >= 0 ? "paying_its_way" : "being_carried",
+      type: "group",
+    }));
+
+    const all_sources = [materials_entry, ...group_entries];
+    const total_net_profit = all_sources.reduce((sum, s) => sum + s.net_profit, 0) - (per_source.unassigned?.total ?? 0);
+    const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
+
+    return {
+      total_net_profit,
+      total_modelled_revenue: all_sources.reduce((sum, s) => sum + s.modelled_revenue, 0),
+      total_group_count: all_sources.length,
+      being_carried_count: being_carried.length,
+      being_carried,
+      all_sources,
+      all_good: being_carried.length === 0,
+      labour_capacity_warning: per_source.headline_real_capacity?.labour_capacity_warning ?? false,
+      asset_capacity_warning: per_source.headline_real_capacity?.asset_capacity_warning ?? false,
+      labour_coverage_gaps: per_source.headline_real_capacity?.labour_coverage_gaps || [],
+    };
+  }
+
   const active_headline =
-    capacity_mode === "real" ? per_source.headline_real_capacity : per_source.headline;
+    capacity_mode === "real"
+      ? smoothing_mode === "naive"
+        ? build_naive_headline()
+        : per_source.headline_real_capacity
+      : per_source.headline;
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
@@ -1300,6 +1346,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     </div>
   );
 }
+
 
 
 

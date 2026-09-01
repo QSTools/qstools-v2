@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { useState } from "react";
 
 import useBusinessOutcomeTruth from "@/hooks/useBusinessOutcomeTruth";
 import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRecovery";
@@ -17,6 +18,8 @@ import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome
 
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This is the new v5.0 truth-chain Business Outcome page, built on top of
@@ -31,6 +34,7 @@ import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/B
 // It compares real cost per labour source (Cost Allocation) against the
 // real saved charge-out rate for that source (Rate Builder).
 export default function BusinessOutcomePage() {
+  const [smoothing_mode, set_smoothing_mode] = useState("smoothed");
   const { output_contract } = useBusinessOutcomeTruth();
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const revenue_split = useBusinessOutcomeRevenueSplit();
@@ -48,36 +52,35 @@ export default function BusinessOutcomePage() {
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeTruthStatusStrip output_contract={output_contract} />
       <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
-
-
+      <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.5rem" }}>
+        <button
+          type="button"
+          className={`business-outcome-view-toggle-btn ${smoothing_mode === "smoothed" ? "active" : ""}`}
+          onClick={() => set_smoothing_mode("smoothed")}
+        >
+          Smoothed (cross-subsidised)
+        </button>
+        <button
+          type="button"
+          className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
+          onClick={() => set_smoothing_mode("naive")}
+        >
+          As Priced (no smoothing)
+        </button>
+      </div>
 
       <BusinessOutcomePerSourceRevenueCard
         per_source={per_source}
         output_contract={output_contract}
         labour_recovery={labour_recovery}
+        smoothing_mode={smoothing_mode}
       />
 
+      <CollapsibleSection title="How Net Profit Is Actually Built" defaultOpen={false}>
+        <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
+      </CollapsibleSection>
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
