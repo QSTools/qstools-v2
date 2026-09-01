@@ -1,0 +1,84 @@
+﻿# Business Outcome — Page-Wide Smoothing Toggle (Real Capacity Naive vs Smoothed)
+
+## STATUS: DESIGN FORK — NOT YET BUILT. Confirm answers below before touching BusinessOutcomePerSourceRevenueCard.jsx.
+
+## WHY THIS EXISTS
+"How Net Profit Is Actually Built" (BusinessOutcomeNetProfitBuildUp.jsx) already has a working, verified
+"As Priced (no smoothing)" toggle - shows each source's naive_net_profit instead of the cascaded figure.
+Confirmed correct: total always reconciles to the same headline Net Profit regardless of view, since the
+cascade only redistributes which source carries a shortfall, never changes the business-wide total.
+
+User wants this to be a PAGE-WIDE toggle (Smoothed vs As-Priced), not scoped to just this one card - because
+having one card show smoothed numbers while another shows naive numbers on the same page is confusing and
+looks like the page disagrees with itself.
+
+## WHY THIS IS BIGGER THAN IT LOOKS
+Card 1 (headline attention list) and Card 2 (ranked drill), both inside
+BusinessOutcomePerSourceRevenueCard.jsx, have verdict language ("Being carried" / "Paying its way")
+that is DEFINED BY the smoothed cascade - "being carried" literally means "the cascade is
+redistributing margin to prop this source up." There is no naive equivalent of that concept - in an
+unsmoothed view, nothing is "carried," sources are simply profitable or not, on their own.
+
+Confirmed locations needing a naive-mode equivalent (from grep, not yet fully audited):
+- Line ~734-735: per-group verdict badge (Real Capacity mode)
+- Line ~750-751: Materials verdict badge (Real Capacity mode)
+- Line ~944: Materials verdict badge (Assumed Capacity mode - real_capacity_verdict)
+- Line ~1115: Card 1 attention-row styling keyed off verdict === "paying_its_way"
+- Headline sentence ("X of 6 sources isn't paying its way") - likely also verdict-derived, not yet located precisely
+- The Ledger itself (RealCapacityLedger / AssumedCapacityLedger) - the ENTIRE Ledger content IS the
+  smoothed cascade story. There is no naive equivalent to show. Needs a decision: hide the Ledger
+  entirely in As-Priced mode, or collapse it to just its already-naive "Starting Point" table.
+
+`capacity_mode` (Real vs Assumed) is currently internal state to BusinessOutcomePerSourceRevenueCard.jsx
+(`useState("real")` at line ~986), threaded down as a prop through RankedGroupsDrill, GroupBlock,
+MaterialsSection, and others. A page-wide smoothing toggle means adding a SECOND, independent piece of
+state (`smoothing_mode`, e.g. "smoothed" | "naive"), lifted up to page.jsx (both /business-outcome AND
+/recovery-outcome, since both render BusinessOutcomeNetProfitBuildUp), threaded down the same way.
+
+## OPEN QUESTIONS - CONFIRMED SO FAR
+- Q1: Does "As Priced" apply to BOTH Real and Assumed Capacity modes (true 2x2: Real-Smoothed,
+  Real-Naive, Assumed-Smoothed, Assumed-Naive)? CONFIRMED YES by user (2026-09-02), though user
+  expressed some uncertainty ("im a little unsure to be honest") - worth re-confirming at the start
+  of the next session with a clear head before building, not just proceeding off this note.
+
+## OPEN QUESTIONS - NOT YET ANSWERED
+- Q2: Exact wording for naive-mode verdict badges, replacing "Being carried" / "Paying its way".
+  Candidate: "Profitable on its own" / "Losing money on its own" - not yet confirmed with user.
+- Q3: Does Assumed Capacity even have a meaningful "naive" state? Per the session handover (S30 doc),
+  Assumed Capacity's mechanism is "one business-wide ceiling check, one uniform scale factor applied
+  to every labour/asset source at once, no per-group cascade" - simpler than Real Capacity's two-phase
+  cascade. Need to check whether Assumed Capacity's underlying data already exposes a naive figure per
+  source (parallel to real_capacity.group_real_capacity's naive_net_profit), or whether "naive" and
+  "assumed-scaled" are actually the same number under Assumed Capacity, making the toggle a no-op in
+  that mode. NOT YET CHECKED - needs live data inspection via debug hook, same discipline as the
+  Real Capacity naive figures were confirmed earlier this session.
+- Q4: What happens to the Ledger in As-Priced mode - hidden entirely, or collapsed to Starting Point only?
+- Q5: Does the headline sentence ("Your business made $X in net profit. Y of 6 sources isn't paying its
+  way.") need its own naive-mode phrasing, given "isn't paying its way" is verdict-derived language?
+
+## RECOMMENDED APPROACH FOR NEXT SESSION
+1. Re-confirm Q1 with a clear head - this was answered late at night with expressed uncertainty.
+2. Answer Q2-Q5 explicitly with the user BEFORE touching BusinessOutcomePerSourceRevenueCard.jsx -
+   per working conventions, this file is the most established, most delicate part of the page and
+   should not be edited off partial understanding.
+3. Pull the FULL file (not grep fragments) before writing any patch - 1,300+ lines, too easy to miss
+   a verdict-branch location via search alone.
+4. Consider hand-verifying the naive-mode numbers for Assumed Capacity in a spreadsheet or via debug
+   console output BEFORE writing code, matching the discipline already used for the original Real
+   Capacity two-phase cascade (see working conventions 3.1) - Q3 above is exactly the kind of thing
+   that needs a real number check, not an assumption.
+5. Once confirmed: add `smoothing_mode` state to BOTH page.jsx files (business-outcome and
+   recovery-outcome), thread down as a new prop into BusinessOutcomePerSourceRevenueCard, add the
+   naive-mode verdict/language branches at each of the 4-5 confirmed locations plus the headline
+   sentence, decide and implement the Ledger's As-Priced behavior, and simplify
+   BusinessOutcomeNetProfitBuildUp's own internal toggle from 3 buttons (Revenue/Net Profit/As Priced)
+   down to 2 (Revenue/Net Profit), since Smoothed-vs-Naive becomes a page-level concern instead of
+   living only inside that one card.
+
+## WHAT'S ALREADY SAFE AND WORKING - DO NOT NEED TO REDO
+- businessOutcomeNetProfitBuildUpSelectors.js already exposes naive_net_profit per source, verified
+  reconciling to the same headline total. This can be reused as-is; no new calculation needed for the
+  data itself, only for wiring the new page-wide toggle and the verdict-language branches.
+- The bug fix in businessOutcomeAssetSplitCalculations.js (group-level labour charged summing real
+  per-assignment figures instead of one blended rate) is separate, already committed, unaffected by
+  this work.
