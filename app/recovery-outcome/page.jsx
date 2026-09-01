@@ -7,6 +7,7 @@ import BusinessOutcomeStatusStrip from '@/components/business-outcome/BusinessOu
 import BusinessOutcomeWaterfall from '@/components/business-outcome/BusinessOutcomeWaterfall';
 import BusinessOutcomeMainCard from '@/components/business-outcome/BusinessOutcomeMainCard';
 import BusinessOutcomeHelpPanel from '@/components/business-outcome/BusinessOutcomeHelpPanel';
+import BusinessOutcomeNetProfitBuildUp from '@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp';
 
 // STAGE 1 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This page was moved here from app/business-outcome/page.jsx.
@@ -27,8 +28,10 @@ export default function RecoveryOutcomePage() {
       <BusinessOutcomeStatusStrip outcome={businessOutcome} />
       <BusinessOutcomeWaterfall outcome={businessOutcome} />
       <BusinessOutcomeMainCard outcome={businessOutcome} />
+      <BusinessOutcomeNetProfitBuildUp />
       <BusinessOutcomeHelpPanel />
       <NextStepFooter nextHref="/quote-engine" nextLabel="Next: Quote Engine" />
     </div>
   );
 }
+
