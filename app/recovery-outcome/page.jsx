@@ -8,6 +8,7 @@ import BusinessOutcomeMainCard from "@/components/business-outcome/BusinessOutco
 import BusinessOutcomeHelpPanel from "@/components/business-outcome/BusinessOutcomeHelpPanel";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import BusinessOutcomeRecoveryNarrative from "@/components/business-outcome/BusinessOutcomeRecoveryNarrative";
 
 // STAGE 1 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This page was moved here from app/business-outcome/page.jsx.
@@ -47,8 +48,11 @@ export default function RecoveryOutcomePage() {
         <BusinessOutcomeNetProfitBuildUp />
       </CollapsibleSection>
 
+      <BusinessOutcomeRecoveryNarrative outcome={businessOutcome} />
       <BusinessOutcomeHelpPanel />
       <NextStepFooter nextHref="/quote-engine" nextLabel="Next: Quote Engine" />
     </div>
   );
 }
+
+
