@@ -1,50 +1,48 @@
-﻿'use client';
+﻿"use client";
 
-import { useState } from 'react';
-import BusinessOutcomeLabourSplit from '@/components/business-outcome/BusinessOutcomeLabourSplit';
-import BusinessOutcomeAssetSplit from '@/components/business-outcome/BusinessOutcomeAssetSplit';
+import { useState } from "react";
+import BusinessOutcomeLabourSplit from "@/components/business-outcome/BusinessOutcomeLabourSplit";
+import BusinessOutcomeAssetSplit from "@/components/business-outcome/BusinessOutcomeAssetSplit";
 
 function formatCurrency(value) {
-  if (value === null || value === undefined) return 'N/A';
-  return new Intl.NumberFormat('en-NZ', {
-    style: 'currency',
-    currency: 'NZD',
+  if (value === null || value === undefined) return "N/A";
+  return new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
     maximumFractionDigits: 0,
   }).format(value);
 }
 
 function PressureRow({ row, isDrillable, isExpanded, onToggle }) {
   const statusColor =
-    row.status === 'pressure' || row.status === 'unrecovered' || row.status === 'asset_recovery_pressure'
-      ? 'text-amber-600'
-      : 'text-green-600';
+    row.status === "pressure" || row.status === "unrecovered" || row.status === "asset_recovery_pressure"
+      ? "var(--warning)"
+      : "var(--success)";
 
   return (
     <div
-      className={`grid grid-cols-5 gap-4 py-3 border-b border-gray-100 items-center ${
-        isDrillable ? 'cursor-pointer hover:bg-gray-50' : ''
-      }`}
+      className={`business-outcome-pressure-row ${isDrillable ? "drillable" : ""}`}
       onClick={isDrillable ? onToggle : undefined}
     >
-      <div className="font-medium text-gray-900 flex items-center gap-1.5">
+      <div style={{ color: "var(--text-primary)", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}>
         {isDrillable && (
-          <span className="text-gray-400 text-xs w-3 inline-block">
-            {isExpanded ? '▾' : '▸'}
+          <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", width: "0.75rem", display: "inline-block" }}>
+            {isExpanded ? "▾" : "▸"}
           </span>
         )}
         {row.stream}
       </div>
-      <div className="text-sm text-gray-600">{formatCurrency(row.cost)}</div>
-      <div className="text-sm text-gray-600">
-        {row.modelCapacity !== null ? formatCurrency(row.modelCapacity) : 'Not available'}
+      <div style={{ color: "var(--text-secondary)" }}>{formatCurrency(row.cost)}</div>
+      <div style={{ color: "var(--text-secondary)" }}>
+        {row.modelCapacity !== null ? formatCurrency(row.modelCapacity) : "Not available"}
         {row.modelCapacityNote && (
-          <div className="text-xs text-gray-400">{row.modelCapacityNote}</div>
+          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{row.modelCapacityNote}</div>
         )}
       </div>
-      <div className="text-sm text-gray-600">
-        {row.gap !== null ? formatCurrency(row.gap) : '-'}
+      <div style={{ color: "var(--text-secondary)" }}>
+        {row.gap !== null ? formatCurrency(row.gap) : "-"}
       </div>
-      <div className={`text-sm font-medium ${statusColor}`}>{row.flag}</div>
+      <div style={{ color: statusColor, fontWeight: 600 }}>{row.flag}</div>
     </div>
   );
 }
@@ -53,30 +51,25 @@ export default function BusinessOutcomeMainCard({ outcome }) {
   const { pressureRows, primaryPressureSource, structureConfidence } = outcome;
   const [expandedStream, setExpandedStream] = useState(null);
 
-  const pressureSourceLabel = {
-    labour: 'Labour',
-    overhead: 'Overheads',
-    asset: 'Assets',
-    combined_labour_overhead: 'Labour & Overheads (combined)',
-  }[primaryPressureSource] || 'None identified';
+  const pressureSourceLabel =
+    {
+      labour: "Labour",
+      overhead: "Overheads",
+      asset: "Assets",
+      combined_labour_overhead: "Labour & Overheads (combined)",
+    }[primaryPressureSource] || "None identified";
 
-  const drillableStreams = ['Labour', 'Assets'];
+  const drillableStreams = ["Labour", "Assets"];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-6">
-      {/* Headline */}
-      <div>
-        <div className="text-sm text-gray-500 uppercase tracking-wide mb-1">
-          Where is the pressure?
-        </div>
-        <div className="text-2xl font-bold text-gray-900">
-          {pressureSourceLabel}
-        </div>
+    <div className="business-outcome-ledger">
+      <div className="business-outcome-ledger-section-title">Where is the pressure?</div>
+      <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "0.75rem" }}>
+        {pressureSourceLabel}
       </div>
 
-      {/* Table header */}
-      <div>
-        <div className="grid grid-cols-5 gap-4 pb-2 border-b-2 border-gray-200 text-xs font-semibold text-gray-500 uppercase">
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-pressure-row header">
           <div>Stream</div>
           <div>Cost</div>
           <div>Model Capacity / Target</div>
@@ -93,18 +86,12 @@ export default function BusinessOutcomeMainCard({ outcome }) {
                 row={row}
                 isDrillable={isDrillable}
                 isExpanded={isExpanded}
-                onToggle={() =>
-                  setExpandedStream(isExpanded ? null : row.stream)
-                }
+                onToggle={() => setExpandedStream(isExpanded ? null : row.stream)}
               />
               {isDrillable && isExpanded && (
-                <div className="pl-6 pr-1 py-4 bg-gray-50 border-b border-gray-100">
-                  {row.stream === 'Labour' && (
-                    <BusinessOutcomeLabourSplit outcome={outcome} />
-                  )}
-                  {row.stream === 'Assets' && (
-                    <BusinessOutcomeAssetSplit outcome={outcome} />
-                  )}
+                <div className="business-outcome-pressure-drill">
+                  {row.stream === "Labour" && <BusinessOutcomeLabourSplit outcome={outcome} />}
+                  {row.stream === "Assets" && <BusinessOutcomeAssetSplit outcome={outcome} />}
                 </div>
               )}
             </div>
@@ -112,19 +99,27 @@ export default function BusinessOutcomeMainCard({ outcome }) {
         })}
       </div>
 
-      {/* Structure confidence */}
-      <div className="pt-4 border-t border-gray-100">
-        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+      <div style={{ marginTop: "1rem" }}>
+        <div className="business-outcome-ledger-section-title" style={{ marginTop: 0 }}>
           Structure Confidence
         </div>
-        <div className="text-sm text-gray-700">{structureConfidence.note}</div>
-        <div className="text-xs text-gray-400 mt-1">
-          Labour coverage: {structureConfidence.staffCoveragePercent}% · Asset coverage: {structureConfidence.assetCoveragePercent}%
+        <div style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>{structureConfidence.note}</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.25rem" }}>
+          Labour coverage: {structureConfidence.staffCoveragePercent}% · Asset coverage:{" "}
+          {structureConfidence.assetCoveragePercent}%
         </div>
       </div>
 
-      {/* Anchor statement */}
-      <div className="pt-4 border-t border-gray-100 text-xs text-gray-400 italic">
+      <div
+        style={{
+          marginTop: "1rem",
+          paddingTop: "0.75rem",
+          borderTop: "1px solid var(--border-primary)",
+          color: "var(--text-muted)",
+          fontSize: "0.78rem",
+          fontStyle: "italic",
+        }}
+      >
         {outcome.business_outcome_note}
       </div>
     </div>
