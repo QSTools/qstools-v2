@@ -57,7 +57,6 @@ export default function BusinessOutcomePage() {
         labour_recovery={labour_recovery}
       />
 
-      <BusinessOutcomeTruthHelpPanel />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>
   );

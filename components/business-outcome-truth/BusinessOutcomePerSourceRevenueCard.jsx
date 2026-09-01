@@ -10,6 +10,7 @@ import {
 import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
+import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
 
 function format_currency(value) {
   const n = Number(value);
@@ -1289,6 +1290,13 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         </div>
       </div>
+
+      <BusinessOutcomeTruthHelpPanel
+        active_headline={active_headline}
+        capacity_mode={capacity_mode}
+        real_capacity={per_source.real_capacity}
+        revenue_ceiling={per_source.revenue_ceiling}
+      />
     </div>
   );
 }
