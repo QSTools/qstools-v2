@@ -70,7 +70,7 @@ export default function BusinessOutcomeWaterfall({ outcome }) {
     );
   }
 
-  const total_row = waterfallRows.find((r) => r.isTotal);
+  const total_row = [...waterfallRows].reverse().find((r) => r.isTotal);
 
   return (
     <div className="business-outcome-ledger">
@@ -105,3 +105,4 @@ export default function BusinessOutcomeWaterfall({ outcome }) {
     </div>
   );
 }
+
