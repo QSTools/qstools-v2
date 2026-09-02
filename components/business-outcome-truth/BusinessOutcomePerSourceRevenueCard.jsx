@@ -131,8 +131,11 @@ function AssetGroupsSection({ asset_groups, view_mode }) {
   );
 }
 
-function MaterialsBuildUp({ build_up }) {
+function MaterialsBuildUp({ build_up, view_mode, time_scale, open_hours }) {
   if (!build_up) return null;
+
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const money = (v) => format_currency(scale(v));
 
   return (
     <div className="business-outcome-buildup">
@@ -140,45 +143,47 @@ function MaterialsBuildUp({ build_up }) {
 
       <div className="business-outcome-buildup-row">
         <span>Total P&L revenue</span>
-        <span className="business-outcome-buildup-value">{format_currency(build_up.total_pnl_revenue)}</span>
+        <span className="business-outcome-buildup-value">{money(build_up.total_pnl_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
         <span>− Labour modelled revenue (all sources)</span>
-        <span className="business-outcome-buildup-value">{format_currency(build_up.labour_modelled_revenue)}</span>
+        <span className="business-outcome-buildup-value">{money(build_up.labour_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
         <span>− Asset modelled revenue (all groups)</span>
-        <span className="business-outcome-buildup-value">{format_currency(build_up.asset_modelled_revenue)}</span>
+        <span className="business-outcome-buildup-value">{money(build_up.asset_modelled_revenue)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
         <span>= Materials revenue share</span>
         <span className="business-outcome-buildup-value">
-          {format_currency(
+          {money(
             build_up.total_pnl_revenue - build_up.labour_modelled_revenue - build_up.asset_modelled_revenue
           )}
         </span>
       </div>
+      {view_mode === "profit" && (
+        <>
 
       <div className="business-outcome-buildup-row" style={{ marginTop: "0.5rem" }}>
         <span>Materials revenue share</span>
         <span className="business-outcome-buildup-value">
-          {format_currency(
+          {money(
             build_up.total_pnl_revenue - build_up.labour_modelled_revenue - build_up.asset_modelled_revenue
           )}
         </span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
         <span>− COGS (P&L)</span>
-        <span className="business-outcome-buildup-value">{format_currency(build_up.cogs)}</span>
+        <span className="business-outcome-buildup-value">{money(build_up.cogs)}</span>
       </div>
       <div className="business-outcome-buildup-row is-subtract">
         <span>− Residual overhead (not distributed to labour/asset groups)</span>
-        <span className="business-outcome-buildup-value">{format_currency(build_up.residual_overhead)}</span>
+        <span className="business-outcome-buildup-value">{money(build_up.residual_overhead)}</span>
       </div>
       <div className="business-outcome-buildup-row is-total">
         <span>= Materials net profit (Adjusted GP)</span>
         <span className="business-outcome-buildup-value">
-          {format_currency(
+          {money(
             build_up.total_pnl_revenue -
               build_up.labour_modelled_revenue -
               build_up.asset_modelled_revenue -
@@ -213,13 +218,17 @@ function MaterialsBuildUp({ build_up }) {
             %
           </span>
         </div>
-      </div>
+        </div>
+        </>
+      )}
     </div>
   );
 }
 
-function MaterialsSection({ materials, view_mode, capacity_mode }) {
+function MaterialsSection({ materials, view_mode, capacity_mode, time_scale, open_hours }) {
   if (!materials) return null;
+
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
 
   const net_profit_value =
     capacity_mode === "real" ? materials.real_capacity_net_profit : materials.net_profit;
@@ -234,9 +243,9 @@ function MaterialsSection({ materials, view_mode, capacity_mode }) {
 
   const summary = (
     <span className="business-outcome-source-group-values">
-      <span className="business-outcome-source-group-total">{format_currency(primary)}</span>
+      <span className="business-outcome-source-group-total">{format_currency(scale(primary))}</span>
       <span className="business-outcome-source-group-secondary-value">
-        {secondary_label}: {format_currency(secondary)}
+        {secondary_label}: {format_currency(scale(secondary))}
       </span>
     </span>
   );
@@ -251,15 +260,15 @@ function MaterialsSection({ materials, view_mode, capacity_mode }) {
             </span>
             <span className="business-outcome-source-row-figures-stack">
               <ModelledTag />
-              <VerdictTag verdict={verdict} label={verdict_label} />
+              {view_mode === "profit" && <VerdictTag verdict={verdict} label={verdict_label} />}
               <span className="business-outcome-source-row-values">
                 <span className="business-outcome-source-row-value">
-                  {format_currency(view_mode === "profit" ? net_profit_value : materials.revenue)}
+                  {format_currency(scale(view_mode === "profit" ? net_profit_value : materials.revenue))}
                 </span>
               </span>
             </span>
           </div>
-          <MaterialsBuildUp build_up={materials.build_up} />
+          <MaterialsBuildUp build_up={materials.build_up} view_mode={view_mode} time_scale={time_scale} open_hours={open_hours} />
         </div>
       </CollapsibleSection>
     </div>
@@ -393,7 +402,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
       </div>
 
       {selected_entry?.key === "materials" ? (
-        <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} />
+        <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} time_scale={time_scale} open_hours={open_hours} />
       ) : (
       <div className="cost-summary-drill-list">
         {active_list.map((item) => {
