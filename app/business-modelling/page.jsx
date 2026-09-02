@@ -10,6 +10,7 @@ import BusinessModellingScenarioResult from "@/components/business-modelling/Bus
 import BusinessModellingDeltaCard from "@/components/business-modelling/BusinessModellingDeltaCard";
 import BusinessModellingHelpPanel from "@/components/business-modelling/BusinessModellingHelpPanel";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import BusinessModellingLeverCard from "@/components/business-modelling/BusinessModellingLeverCard";
 
 export default function BusinessModellingPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -29,6 +30,11 @@ export default function BusinessModellingPage() {
     refreshBaseline,
     resetScenarioToBaseline,
     selectModel,
+    lever_headline,
+    breakeven_summary,
+    lever_rows,
+    rate_target_by_group_id,
+    updateLeverTargetRate,
   } = useBusinessModelling();
 
   // Before mount, render stable placeholder to avoid hydration mismatch
@@ -51,8 +57,13 @@ export default function BusinessModellingPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
-        {/* New Business Modelling cards (S26 brief) will be added here,
-            above the collapsed legacy tools below. */}
+        <BusinessModellingLeverCard
+          headline={lever_headline}
+          breakeven_summary={breakeven_summary}
+          lever_rows={lever_rows}
+          rate_target_by_group_id={rate_target_by_group_id}
+          onTargetRateChange={updateLeverTargetRate}
+        />
 
         <CollapsibleSection
           title="Previous scenario tools"

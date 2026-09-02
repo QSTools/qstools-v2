@@ -1,9 +1,16 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
 import useBusinessSummary from "@/hooks/useBusinessSummary";
 import useModelReadiness from "@/hooks/useModelReadiness";
+import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
+import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+import {
+  buildLeverHeadline,
+  buildBreakevenSummary,
+  buildGroupLeverRows,
+} from "@/lib/selectors/businessModellingLeverSelectors";
 import {
   buildBusinessModellingState,
   loadBusinessModellingState,
@@ -56,6 +63,24 @@ function isBaselineEmpty(baseline_snapshot) {
 export default function useBusinessModelling() {
   const business_summary = useBusinessSummary();
   const model_readiness = useModelReadiness();
+  const per_source_raw = useBusinessOutcomePerSourceRevenue();
+  const per_source = selectBusinessOutcomePerSourceRevenue(per_source_raw);
+
+  const [rate_target_by_group_id, set_rate_target_by_group_id] = useState({});
+
+  function updateLeverTargetRate(group_id, value) {
+    set_rate_target_by_group_id((previous) => ({
+      ...previous,
+      [group_id]: value,
+    }));
+  }
+
+  const lever_headline = useMemo(() => buildLeverHeadline(per_source), [per_source]);
+  const breakeven_summary = useMemo(() => buildBreakevenSummary(per_source), [per_source]);
+  const lever_rows = useMemo(
+    () => buildGroupLeverRows(per_source, rate_target_by_group_id),
+    [per_source, rate_target_by_group_id]
+  );
 
   const [business_modelling_state, setBusinessModellingState] = useState(() => {
     return {
@@ -539,6 +564,11 @@ export default function useBusinessModelling() {
     refreshBaseline,
     resetScenarioToBaseline,
     selectModel,
+    lever_headline,
+    breakeven_summary,
+    lever_rows,
+    rate_target_by_group_id,
+    updateLeverTargetRate,
   };
 }
 
