@@ -1,4 +1,4 @@
-﻿# Mirra v5.1 — Session Handover: Business Outcome Overhaul + Business Modelling Next-Steps
+# Mirra v5.1 — Session Handover: Business Outcome Overhaul + Business Modelling Next-Steps
 
 STATUS: HANDOVER — READ BEFORE STARTING NEXT SESSION
 VERSION: v5.1
@@ -280,3 +280,47 @@ that discipline, not despite moving fast. Carry the same discipline into Busines
 work: no new calculation should be trusted because the build passed or the page looked
 right — check it against a hand-verified reference, the same way Real Capacity's own
 two-phase cascade was originally built and checked in a spreadsheet before any code existed.
+
+---
+
+# 7. ALSO FLAGGED, SEPARATE FROM SECTION 5 — BUSINESS OUTCOME IS NOT YET IN THE AI EXPORT
+
+Checked against the actual locked docs (not assumed): confirmed via
+`S06_AI_READABLE_BUSINESS_STATE_EXPORT_STAGE_LOCK_HANDOVER_v5.0.txt` and
+`S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5.0.txt`.
+
+The S06 AI-readable Business State Export's locked export object
+(`export_version`, `generated_at`, `trust_state`, `readiness`, `source_modules`,
+`business_summary`, `business_modelling`, `selected_model`, `blockers`, `warnings`,
+`traceability`, `downstream_permissions`) does NOT include `business_outcome` as a field.
+
+This is a known, explicitly-documented gap from the original v5.0 lock (2026-07-15), not
+something newly discovered or missed by accident:
+- S16's own "Relationship to AI Export" section states directly: "AI-readable Business
+  State Export should eventually include Business Outcome as a named section... Until this
+  is wired, S06 should be treated as first-layer AI export, not final AI export."
+- S16's own "Definition of Done" for Business Outcome lists "AI Export includes it
+  correctly" as one of the still-unmet criteria for Business Outcome being considered
+  fully finished.
+
+Files not touched this session, relevant when this is picked up:
+- `hooks/useAiBusinessState.js`
+- `lib/selectors/aiBusinessStateSelectors.js`
+- `app/ai-business-state/page.jsx`
+
+**Confirmed with user: deliberately deferred, not forgotten. Come back to this.** Worth
+doing after tonight's Business Outcome work specifically because the source is now far more
+rigorously tested and trustworthy than it was at the original S06 lock — several real
+calculation bugs were found and fixed this session using the "check against a real,
+independently-derivable reference" discipline (Section 1.2, 1.4, 1.7), so wiring Business
+Outcome into the AI export now inherits that higher confidence rather than exporting
+whatever the page happened to show before tonight's fixes.
+
+**This is a separate task from the Business Modelling connection in Section 5** — wiring
+`business_outcome` into the S06 export object is a smaller, more mechanical task (add a
+field, populate it from Business Outcome's own output contract, respect the existing
+`trust_state`/`downstream_permissions` derivation rules already locked in S06). The Business
+Modelling connection in Section 5 is a genuine design question (does Business Modelling
+consume naive vs smoothed Real Capacity figures, and how) that needs a real conversation
+before any code gets written. Don't conflate the two, and don't let the smaller AI-export
+task get bundled into the bigger, undecided Business Modelling one.
