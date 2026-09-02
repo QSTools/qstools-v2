@@ -30,11 +30,13 @@ export default function BusinessModellingPage() {
     refreshBaseline,
     resetScenarioToBaseline,
     selectModel,
-    lever_headline,
+    live_headline,
     breakeven_summary,
     lever_rows,
     rate_target_by_group_id,
     updateLeverTargetRate,
+    proportional_suggestions,
+    applyProportionalSuggestions,
   } = useBusinessModelling();
 
   // Before mount, render stable placeholder to avoid hydration mismatch
@@ -58,11 +60,13 @@ export default function BusinessModellingPage() {
     <main className="ui-page">
       <div className="ui-page-stack">
         <BusinessModellingLeverCard
-          headline={lever_headline}
+          headline={live_headline}
           breakeven_summary={breakeven_summary}
           lever_rows={lever_rows}
           rate_target_by_group_id={rate_target_by_group_id}
           onTargetRateChange={updateLeverTargetRate}
+          proportional_suggestions={proportional_suggestions}
+          onApplyProportional={applyProportionalSuggestions}
         />
 
         <CollapsibleSection

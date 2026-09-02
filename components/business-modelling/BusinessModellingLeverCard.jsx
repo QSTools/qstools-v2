@@ -20,6 +20,8 @@ export default function BusinessModellingLeverCard({
   lever_rows,
   rate_target_by_group_id,
   onTargetRateChange,
+  proportional_suggestions,
+  onApplyProportional,
 }) {
   const [sources_open, set_sources_open] = useState(false);
 
@@ -99,6 +101,23 @@ export default function BusinessModellingLeverCard({
           whole business. Hours stay the same - only the rate changes. Revenue is never typed in
           directly; it only ever moves because a rate moves.
         </p>
+
+        {proportional_suggestions?.available && !proportional_suggestions.already_at_or_above_breakeven && (
+          <div className="ui-section-muted ui-stack-sm">
+            <p className="ui-help">
+              Or, fill in a fix shared across every currently-profitable group at once, weighted
+              the same way Business Outcome's own numbers already weight a shortfall - bigger
+              contributors take a bigger share, all moving together rather than one group alone.
+            </p>
+            <button type="button" className="ui-button-primary" onClick={onApplyProportional}>
+              Fill in a proportional fix
+            </button>
+          </div>
+        )}
+
+        {proportional_suggestions?.available && proportional_suggestions.already_at_or_above_breakeven && (
+          <p className="ui-help">Already at or above breakeven - no fix needed.</p>
+        )}
 
         {(lever_rows || []).map((row) => (
           <div key={row.group_id} className="ui-section-muted ui-stack-sm">

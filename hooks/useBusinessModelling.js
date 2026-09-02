@@ -7,9 +7,10 @@ import useModelReadiness from "@/hooks/useModelReadiness";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import {
-  buildLeverHeadline,
+  buildLiveLeverHeadline,
   buildBreakevenSummary,
   buildGroupLeverRows,
+  buildProportionalSuggestions,
 } from "@/lib/selectors/businessModellingLeverSelectors";
 import {
   buildBusinessModellingState,
@@ -75,12 +76,33 @@ export default function useBusinessModelling() {
     }));
   }
 
-  const lever_headline = useMemo(() => buildLeverHeadline(per_source), [per_source]);
+  const live_headline = useMemo(
+    () => buildLiveLeverHeadline(per_source, rate_target_by_group_id),
+    [per_source, rate_target_by_group_id]
+  );
   const breakeven_summary = useMemo(() => buildBreakevenSummary(per_source), [per_source]);
   const lever_rows = useMemo(
     () => buildGroupLeverRows(per_source, rate_target_by_group_id),
     [per_source, rate_target_by_group_id]
   );
+
+  const proportional_suggestions = useMemo(
+    () => buildProportionalSuggestions(per_source),
+    [per_source]
+  );
+
+  function applyProportionalSuggestions() {
+    if (!proportional_suggestions?.available || proportional_suggestions.targets.length === 0) {
+      return;
+    }
+    const next = {};
+    proportional_suggestions.targets.forEach((t) => {
+      if (t.suggested_target_rate !== null) {
+        next[t.group_id] = t.suggested_target_rate;
+      }
+    });
+    set_rate_target_by_group_id(next);
+  }
 
   const [business_modelling_state, setBusinessModellingState] = useState(() => {
     return {
@@ -564,11 +586,13 @@ export default function useBusinessModelling() {
     refreshBaseline,
     resetScenarioToBaseline,
     selectModel,
-    lever_headline,
+    live_headline,
     breakeven_summary,
     lever_rows,
     rate_target_by_group_id,
     updateLeverTargetRate,
+    proportional_suggestions,
+    applyProportionalSuggestions,
   };
 }
 
