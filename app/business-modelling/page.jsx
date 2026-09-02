@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import useBusinessModelling from "@/hooks/useBusinessModelling";
@@ -9,6 +9,7 @@ import BusinessModellingScenarioControls from "@/components/business-modelling/B
 import BusinessModellingScenarioResult from "@/components/business-modelling/BusinessModellingScenarioResult";
 import BusinessModellingDeltaCard from "@/components/business-modelling/BusinessModellingDeltaCard";
 import BusinessModellingHelpPanel from "@/components/business-modelling/BusinessModellingHelpPanel";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 export default function BusinessModellingPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -50,6 +51,14 @@ export default function BusinessModellingPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        {/* New Business Modelling cards (S26 brief) will be added here,
+            above the collapsed legacy tools below. */}
+
+        <CollapsibleSection
+          title="Previous scenario tools"
+          summary="Legacy baseline / upside / downside controls - being replaced"
+          defaultOpen={false}
+        >
         <BusinessModellingStatusStrip
           baseline_date={status.baseline_date}
           selected_model_name={status.selected_model_name}
@@ -91,6 +100,8 @@ export default function BusinessModellingPage() {
         <BusinessModellingDeltaCard delta={delta} />
 
         <BusinessModellingHelpPanel />
+        </CollapsibleSection>
+
         <NextStepFooter
           nextHref="/quote-checker"
           nextLabel="Next: Quote Checker"

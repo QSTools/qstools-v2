@@ -693,6 +693,20 @@ export default function useBusinessOutcomePerSourceRevenue() {
       materials_naive_revenue,
       materials.true_cost
     );
+
+    // Additive only (S26 Business Modelling rate-lever prep): attach each
+    // group's real recovery hours, sourced from Cost Allocation's own
+    // operational_group_cost_rows - the same figure asset revenue is
+    // already built from (group_asset_revenue = blended_rate *
+    // group.group_recovery_hours, above). Does not change any existing
+    // field or behaviour.
+    const recovery_hours_by_group_id = new Map(
+      operational_group_cost_rows.map((g) => [g.group_id, to_number(g.group_recovery_hours)])
+    );
+    real_capacity.group_real_capacity = real_capacity.group_real_capacity.map((g) => ({
+      ...g,
+      group_recovery_hours: recovery_hours_by_group_id.get(g.group_id) ?? 0,
+    }));
     materials.real_capacity_net_profit = real_capacity.materials_real_capacity_net_profit;
     materials.real_capacity_naive_revenue = real_capacity.materials_real_capacity_naive_revenue;
     materials.real_capacity_verdict = real_capacity.materials_real_capacity_verdict;
