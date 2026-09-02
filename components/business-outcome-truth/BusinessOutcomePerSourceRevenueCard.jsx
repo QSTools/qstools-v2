@@ -218,11 +218,18 @@ function MaterialsBuildUp({ build_up }) {
   );
 }
 
-function MaterialsSection({ materials, view_mode }) {
+function MaterialsSection({ materials, view_mode, capacity_mode }) {
   if (!materials) return null;
 
-  const primary = view_mode === "profit" ? materials.net_profit : materials.revenue;
-  const secondary = view_mode === "profit" ? materials.revenue : materials.net_profit;
+  const net_profit_value =
+    capacity_mode === "real" ? materials.real_capacity_net_profit : materials.net_profit;
+  const verdict =
+    capacity_mode === "real" ? materials.real_capacity_verdict : materials.verdict;
+  const verdict_label =
+    capacity_mode === "real" ? materials.real_capacity_verdict_label : materials.verdict_label;
+
+  const primary = view_mode === "profit" ? net_profit_value : materials.revenue;
+  const secondary = view_mode === "profit" ? materials.revenue : net_profit_value;
   const secondary_label = view_mode === "profit" ? "Revenue" : "Net profit";
 
   const summary = (
@@ -240,14 +247,14 @@ function MaterialsSection({ materials, view_mode }) {
         <div className="business-outcome-source-group-body">
           <div className="business-outcome-source-row" style={{ "--indent-level": 1 }}>
             <span className="business-outcome-source-row-name">
-              {view_mode === "profit" ? "Revenue" : "Net profit"}
+              {view_mode === "profit" ? "Net profit" : "Revenue"}
             </span>
             <span className="business-outcome-source-row-figures-stack">
               <ModelledTag />
-              <VerdictTag verdict={materials.verdict} label={materials.verdict_label} />
+              <VerdictTag verdict={verdict} label={verdict_label} />
               <span className="business-outcome-source-row-values">
                 <span className="business-outcome-source-row-value">
-                  {format_currency(view_mode === "profit" ? materials.revenue : materials.net_profit)}
+                  {format_currency(view_mode === "profit" ? net_profit_value : materials.revenue)}
                 </span>
               </span>
             </span>
@@ -382,11 +389,11 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
       </div>
 
       <div className="ui-kicker">
-        {selected_entry ? `${selected_entry.label} - ranked by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
+        {selected_entry ? `${selected_entry.label} - breakdown by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
       </div>
 
       {selected_entry?.key === "materials" ? (
-        <MaterialsSection materials={materials} view_mode={view_mode} />
+        <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} />
       ) : (
       <div className="cost-summary-drill-list">
         {active_list.map((item) => {
@@ -1013,7 +1020,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
   useEffect(() => {
     if (detail_open && detail_section_ref.current) {
-      detail_section_ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Auto-scroll removed (this session) - clicking a source in Card 1 was forcing an unwanted jump.
     }
   }, [detail_open, requested_selection]);
 
@@ -1205,7 +1212,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           aria-expanded={detail_open}
         >
           <div className="flex w-full items-center justify-between gap-4">
-            <div className="ui-collapsible-title">Ranked by revenue contribution</div>
+            <div className="ui-collapsible-title">Revenue / Profit Breakdown</div>
           </div>
           <span className="ml-4 text-sm text-[var(--text-muted)]">{detail_open ? "Hide" : "Show"}</span>
         </button>
