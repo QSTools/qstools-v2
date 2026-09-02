@@ -1,0 +1,282 @@
+﻿# Mirra v5.1 — Session Handover: Business Outcome Overhaul + Business Modelling Next-Steps
+
+STATUS: HANDOVER — READ BEFORE STARTING NEXT SESSION
+VERSION: v5.1
+DATE: 2026-09-02
+SCOPE: /business-outcome, /recovery-outcome, and their shared components. Business Modelling (/business-modelling) was NOT touched this session — see Section 5 for why it's relevant anyway.
+
+---
+
+# 1. WHAT THIS SESSION ACTUALLY BUILT (in order)
+
+## 1.1 New "How Net Profit Is Actually Built" card
+New files: `components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp.jsx`,
+`lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors.js`.
+
+Source-first cascade layout, reusing the existing Ledger's real, already-verified data
+(`labour_groups`, `asset_groups`, `unassigned`, `headline_real_capacity`). Every number
+independently self-checks against the group's own `group_true_cost` (labour+asset+overhead
+sums must match Cost Allocation's own total, flagged inline if not). Has a two-way toggle:
+Revenue / Net Profit.
+
+Mounted on both `/business-outcome` and `/recovery-outcome`. On `/recovery-outcome`,
+it now sits inside the "How the Numbers Are Calculated" group (see 1.5), not as a
+standalone section — that's the final resting place.
+
+## 1.2 A real, load-bearing bug found and fixed: `calculateOperatingGroupSplit`
+File: `lib/calculations/businessOutcomeAssetSplitCalculations.js`.
+
+The group-level "Labour Charged" figure on the OLD `/recovery-outcome` page (Labour Split /
+Asset Split cards) was being recalculated from one flat blended rate × total group hours,
+throwing away the already-correct per-staff-type figures the same function had just computed
+two lines earlier. This produced a real ~$97,636 discrepancy between "Total Labour Charged"
+and Rate Builder's own "Model Capacity" figure, for any group mixing staff types with
+different rates (e.g. Foreman: Owner/Director $120/hr + Senior Operator $75/hr).
+
+Fixed: group-level labour charged is now summed from the already-correct per-assignment
+figures. Strict rule (confirmed with user): if ANY staff type in a group is missing its own
+saved rate, the group's labour-charged total is `null` (unavailable), never a silently
+partial sum. After the fix, "Total Labour Charged matches Rate Builder's own Model Capacity
+figure" reconciles exactly — confirmed with real numbers, not assumed.
+
+This bug did NOT affect the new `/business-outcome` page's Net Profit figure — that page
+runs entirely on a separate hook (`useBusinessOutcomePerSourceRevenue.js`), which already
+used correct per-source rates throughout. Only the old page's internal reconciliation
+figures were wrong.
+
+## 1.3 Full dark-theme reskin of the old `/recovery-outcome` page
+Files: `BusinessOutcomeWaterfall.jsx`, `BusinessOutcomeMainCard.jsx`,
+`BusinessOutcomeLabourSplit.jsx`, `BusinessOutcomeAssetSplit.jsx`,
+`BusinessOutcomeStatusStrip.jsx`, `BusinessOutcomeViewSwitcher.jsx`.
+
+These were built with raw, hardcoded light-theme Tailwind classes (`bg-white`,
+`text-gray-600`, etc.), completely disconnected from the app's dark CSS-variable system.
+Rewritten to `var(--...)`, matching the pattern already established for the new page's
+components. Also added: a cross-check on the Waterfall card comparing its own Net Profit
+total against the new build-up card's total (initially had a bug — see 1.4).
+
+## 1.4 A bug found in a bug-finding tool
+The cross-check added in 1.3 initially reported a $17,339 discrepancy between the
+Waterfall's Net Profit and the build-up card's Net Profit. Investigated properly (pulled
+real numbers from both paths) rather than assumed either was wrong — turned out the
+cross-check itself was picking the wrong row (`waterfallRows.find(r => r.isTotal)` grabbed
+the first `isTotal` row, which was Margin, not the final Net Profit further down the list).
+Fixed to take the LAST `isTotal` row. Lesson: even a self-check needs its own verification.
+
+## 1.5 Page restructure — "hide the monster," properly this time
+On `/business-outcome`:
+- Split the old single `BusinessOutcomeTruthHelpPanel` into two named exports:
+  `BusinessOutcomeTruthSituationBlurb` (the "Your business, right now" narrative) and
+  `BusinessOutcomeTruthAboutPanel` (the static "About" text). The build-up card now sits
+  between them: headline → blurb → Net Profit Build-Up → About.
+- Merged Card 1's "Show breakdown" button and the separate "See the full breakdown behind
+  the numbers" toggle into ONE action — one click now opens both the attention list and the
+  full detail section together. The old status-strip click-through (which worked by finding
+  and clicking a DOM button that this merge removed) was restored using a custom
+  `window.dispatchEvent(new CustomEvent("business-outcome-open-breakdown"))` /
+  `window.addEventListener(...)` pair instead of DOM button-clicking.
+- Grouped four sections that all explain the same underlying calculation under one new
+  header, "How the Numbers Are Calculated": Revenue/Net Profit (the new build-up card,
+  now first), the Real/Assumed Capacity Ledger, Labour recovery by source, Traditional
+  viability view. "Ranked by revenue contribution" and "Not yet assigned & data quality"
+  stay OUTSIDE this group, at the top level — they're part of "is your business working,"
+  not calculation explanation.
+- Moved the reconciliation banner ("Cost across every source reconciles...") to the bottom
+  of the breakdown section.
+- Removed an unwanted auto-scroll: clicking a source in Card 1 no longer jumps the page
+  down to the drill-down.
+- Renamed "Ranked by revenue contribution" to "Revenue / Profit Breakdown" (static header)
+  and fixed the dynamic per-source label to say "breakdown by revenue" instead of "ranked
+  by revenue" when a single source is selected (a single row isn't a ranking).
+- Fixed `share` percentage always showing 0.0% under Net Profit contribution view whenever
+  the business total was negative (`total > 0` check should have been `total !== 0`).
+
+## 1.6 The page-wide "Smoothed vs As-Priced" toggle — the big one
+This was the deepest design work of the session, and it started as a genuine philosophical
+question from the user: does the Real Capacity cascade (Materials floored at $0, labour/
+asset groups absorbing the shortfall) accurately represent "who's propping up the business,"
+or could a reverse framing ("materials propping up the business") be equally true?
+
+**Resolved with real numbers, not argued in the abstract**: Materials' naive (unsmoothed)
+net profit is deeply negative (~-$950k in test data); labour/asset groups collectively have
+real, positive naive margin (~+$607k) that's insufficient to fully cover the shortfall. So
+"materials propping up the business" is NOT supported by the data — if anything it's the
+reverse, and even reversed, the business is still short by the same fixed amount either way.
+**Key insight, now documented on the page itself**: the cascade direction never changes the
+total — it only changes which line item gets the credit or the blame for a fixed underlying
+result.
+
+Given the user's explicit caveat — "we can't unpick this for sure until we run live data"
+(real PO/utilisation/monthly P&L reconciliation) — this became a permanent, page-wide toggle
+rather than a one-off explanation:
+
+- New state (`smoothing_mode`, "smoothed" | "naive") added to both `/business-outcome` and
+  `/recovery-outcome` at the page level.
+- Confirmed via live data check that this toggle is ONLY meaningful under Real Capacity —
+  Assumed Capacity's own naive and implied figures are already mathematically identical
+  (no cascade to undo, since Assumed Capacity only ever applies one flat scale factor).
+- Buttons relabeled from technical language ("Smoothed (cross-subsidised)" / "As Priced (no
+  smoothing)") to plain language: **"How the Business Runs"** / **"Each Part On Its Own"**,
+  with a permanent, always-visible caption explaining what each answers, agreed word-for-word
+  with the user before building (see file history for the iteration — landed on framing each
+  as answering a different question, not "one is right, one is wrong").
+- Card 1 (headline + attention list) now has a genuine naive-mode headline
+  (`build_naive_headline()` in `BusinessOutcomePerSourceRevenueCard.jsx`), built from
+  `real_capacity.group_real_capacity`'s own `naive_net_profit` field plus materials' naive
+  figure — NOT a new calculation, just a different assembly of already-computed, already-
+  verified numbers. Verdict language reuses the same `paying_its_way`/`being_carried` keys
+  (so existing CSS/styling works), but the underlying number is genuinely different.
+- Fixed the naive headline's total to also subtract unassigned cost, so it reconciles
+  EXACTLY to the same total as the smoothed view (confirmed: -$369,777 both ways in test
+  data) — this was NOT true on the first pass (off by the unassigned amount) until fixed.
+- Added a plain-language caption explaining Real vs Assumed Capacity too, landed after
+  several iterations: **"Real capacity shares any shortfall out fairly, based on who can
+  actually afford to give something up. Assumed capacity shares any shortfall out evenly,
+  the same percentage for everyone, regardless of how much margin they have."**
+
+## 1.7 Materials/COG drill-down — two more real bugs found via the same discipline
+While testing the new toggle against the Materials card specifically, found:
+- `MaterialsSection` never received `capacity_mode` as a prop at all — it always showed the
+  Assumed-Capacity-style figure (`materials.net_profit`) regardless of which capacity toggle
+  was selected. Fixed: now reads `real_capacity_net_profit`/`real_capacity_verdict` when
+  Real Capacity is active.
+- Separately, the label/value pairing on the expanded row was INVERTED relative to its own
+  collapsed summary line above it — profit mode showed the revenue value labelled "Revenue,"
+  not the net profit value. Fixed to match the summary's own (correct) direction.
+- The verdict badge ("Being carried") was showing even in Revenue view, which is a
+  profitability claim next to a number that says nothing about profitability — same class of
+  bug as an already-fixed one elsewhere on this page. Fixed: badge only shows in Net Profit
+  view.
+- `MaterialsSection`/`MaterialsBuildUp` never respected the Hour/Day/Week/Month/Quarter/Year
+  time-scale toggle at all (always showed flat annual figures) while every other card on the
+  page did. Fixed: threaded `time_scale`/`open_hours` through both, using the same
+  `scaleAnnualValue()` helper already used everywhere else.
+
+## 1.8 Mechanical/process notes for whoever touches these files next
+- `BusinessOutcomePerSourceRevenueCard.jsx` and a couple of others had em-dash/minus-sign
+  character corruption occur THREE separate times tonight, every time a plain
+  `Get-Content`/`Set-Content -Encoding utf8` round-trip touched the file. Root cause not
+  fully diagnosed, but the reliable fix each time was:
+  `Get-Content $path -Encoding UTF8` on read, and
+  `[System.IO.File]::WriteAllLines($path, $lines, [System.Text.UTF8Encoding]::new($false))`
+  on write. Use this pattern for any future edit to this specific file.
+- Several PowerShell splice attempts this session had off-by-one indexing bugs (either
+  including the original opening/closing brace of a block being replaced, or leaving a
+  duplicate). The reliable recovery pattern each time: dump the actual current lines with
+  exact 0-based indices via a `for` loop + `Write-Host`, confirm precisely, THEN patch by
+  index — never trust a blind multi-line string `.Replace()` on this codebase; whitespace/
+  line-ending mismatches silently no-op the replace far more often than they succeed.
+- `git config --global core.pager cat` was set partway through the session — without it,
+  `git diff`/`git status` open a pager that appears to "hang" until `q` is pressed.
+
+---
+
+# 2. WHAT IS EXPLICITLY NOT DONE — KNOWN, DOCUMENTED LIMITATIONS
+
+- **Card 2 (the ranked drill-down) and the Ledger do NOT respond to the Smoothed/As-Priced
+  toggle.** Only Card 1 does. Card 2's verdicts come from `merge_groups_by_id_real_capacity()`
+  in `businessOutcomePerSourceRevenueSelectors.js` — a file not touched this session. The
+  Ledger already shows both naive and final figures side-by-side in its own table structure,
+  so arguably doesn't need a toggle at all — but this was a scope decision made under time
+  pressure, not a deliberate final design call. Confirm with user whether Card 2 needs the
+  same treatment before touching that file.
+- **The old "Recovery & Rate Justification" tab (`/recovery-outcome`) has NOT been retired.**
+  It was reskinned dark and had a real calculation bug fixed, but the original plan (build
+  the new card, prove it out, THEN retire the old tab) is still only half-executed — the new
+  card is proven, the old tab is still live. Revisit retiring it now that it's been trusted
+  through a full session of real bug-hunting.
+- **Three known pre-existing dirty files, confirmed by the user as intentional/pre-existing,
+  NOT part of this session's work, still sitting uncommitted:**
+  `components/layout/SidebarNavigation.jsx`,
+  `lib/selectors/general-overheads/generalOverheadCategorySelectors.js`,
+  `docs/Mirra_v5_Briefs/S22 — ASSET FINANCE INTEREST EXCLUSION & COVERAGE CHECK.txt`.
+  These are on the standing "never touch" list from an earlier session's handover. User is
+  aware and says they'll sort separately — worth a nudge if they're still dirty next session,
+  since leaving known-protected files dirty indefinitely risks an accidental sweep into an
+  unrelated commit.
+
+---
+
+# 3. VERIFIED, TRUSTWORTHY AS OF THIS HANDOVER
+
+Confirmed via live data, not assumed:
+- Real Capacity's smoothed Net Profit total and the naive/As-Priced total are IDENTICAL
+  (proven, not coincidental — the cascade is zero-sum by construction).
+- The new build-up card's Net Profit reconciles exactly to the Ledger's own TRUE TOTAL, in
+  both Revenue and Net Profit views, at every capacity mode.
+- The old page's "Total Labour Charged" now reconciles exactly to Rate Builder's "Model
+  Capacity" figure (was off by ~$97,636 before the fix in 1.2).
+- Materials/COG's drill-down now correctly reflects both Real and Assumed Capacity distinctly
+  (was previously frozen on one regardless of toggle).
+
+---
+
+# 4. FOR NEXT SESSION — BUSINESS OUTCOME SIDE
+
+1. Decide whether Card 2 / the Ledger need the Smoothed/As-Priced toggle too, or whether
+   the Ledger's existing side-by-side naive/final columns already cover that need.
+2. Revisit retiring `/recovery-outcome`'s old content now that a full session of testing
+   has passed without finding further issues in the new replacement.
+3. Sort or explicitly re-confirm the three known dirty files from Section 2.
+4. Consider whether the `MaterialsBuildUp` inner "Materials revenue share" repeated row
+   (shown twice in the derivation table — once above the profit-only fold, once below it,
+   both showing the identical figure) is intentional or worth simplifying — noticed but not
+   addressed this session.
+
+---
+
+# 5. WHY THIS MATTERS FOR BUSINESS MODELLING — NOT YET DECIDED, FLAGGING THE CONNECTION
+
+**Business Modelling (`/business-modelling`) was NOT touched this session.** Per its own
+locked stage handover (`S05_BUSINESS_MODELLING_STAGE_LOCK_HANDOVER_v5.0.txt`), it is
+currently stage-locked at "first v5.0 alignment" with an explicit, already-documented
+deferred-work list:
+- separate minimum model from baseline (currently `minimum_model` just maps to
+  `baseline_snapshot` as a placeholder)
+- deeper target model controls (target revenue, target margin, target recovery, owner
+  profit target)
+- connect Business Modelling to Quote Checker and Dashboard outputs
+- historical scenario snapshots
+
+Per the system's own locked build order (`00_MIRRA_SYSTEM_PRINCIPLES` /
+`02_MIRRA_IMPLEMENTATION_ORDER`), the discipline is: stabilise source → cost → reality →
+structure → recovery → rates → **diagnosis (Business Outcome) → modelling (Business
+Modelling)**. Business Outcome just had its most substantial, most rigorously bug-tested
+session yet — Business Modelling is architecturally the very next stage in that chain.
+
+**The specific connection worth having as a live conversation next session, not decided
+here:** tonight's Real Capacity work produced exactly the kind of number Business
+Modelling's deferred "minimum model" and "target model" work will eventually need —
+`real_capacity.group_real_capacity`'s `naive_net_profit` (what each part earns on its own)
+versus `final_net_profit` (what it earns once the business's real cross-subsidy is applied)
+is a genuine candidate feed for "what's the gap between where we are and where we need to
+be," which is Business Modelling's whole stated purpose ("Business Modelling shows what
+happens if the business target changes").
+
+**Also directly relevant**: the S30 doc (referenced in an earlier session's handover, not
+re-read in full this session) already flagged that the verification spreadsheet's "Phase 0
+scale-factor mechanic" — explicitly NOT built into the live Business Outcome app because
+"we aren't doing what-ifs" there — was earmarked as "the reference implementation" if
+Business Modelling ever needs baseline-relative what-if scaling. That deferred decision
+point is now much closer than it was, given how much of Real Capacity's honest, naive-vs-
+smoothed distinction is now live, tested, and trustworthy.
+
+**Recommended concrete first step for next session, if Business Modelling work is chosen
+next:** re-read `S05_BUSINESS_MODELLING_BUILD_BRIEF_v5.0.txt` and
+`S05_BUSINESS_MODELLING_IMPLEMENTED_STATUS_v5.0.txt` in full (not just this handover's
+summary), then have an explicit, un-rushed conversation with the user about whether/how
+Business Modelling's minimum/target model separation should consume Business Outcome's
+naive vs smoothed Real Capacity figures — this is a genuine design fork of the same
+seriousness as tonight's Smoothed/As-Priced toggle decision, and deserves the same
+"confirm before building" discipline, not a rushed extrapolation from this note alone.
+
+---
+
+# 6. FINAL PRINCIPLE FOR THIS HANDOVER
+
+Every number changed or added tonight was checked against a real, independently-derivable
+reference before being trusted — several genuine bugs were found specifically because of
+that discipline, not despite moving fast. Carry the same discipline into Business Modelling
+work: no new calculation should be trusted because the build passed or the page looked
+right — check it against a hand-verified reference, the same way Real Capacity's own
+two-phase cascade was originally built and checked in a spreadsheet before any code existed.
