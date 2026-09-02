@@ -31,23 +31,24 @@ export default function BusinessOutcomeTruthStatusStrip({ output_contract }) {
   // section (simulates a click on its own toggle, same mechanism the user
   // would use) if it's currently collapsed, then scrolls to it.
   function go_to_warnings_section() {
-    // "Not yet assigned & data quality" now lives nested inside the
-    // outer "See the full breakdown behind the numbers" wrapper (this
-    // session) - open that first (its own toggle, a DIRECT child of the
-    // outer wrapper, hence :scope>, so this never accidentally matches
-    // a nested toggle inside it), then find/open the specific inner
-    // section, same mechanism as before.
-    const outer = document.getElementById("business-outcome-breakdown-section");
-    if (outer) {
-      const outer_toggle = outer.querySelector(':scope > button[aria-expanded="false"]');
-      if (outer_toggle) outer_toggle.click();
-    }
-    const el = document.getElementById("business-outcome-warnings-section");
-    if (!el) return;
-    const toggle_btn = el.querySelector('button[aria-expanded="false"]');
-    if (toggle_btn) toggle_btn.click();
+    // "Not yet assigned & data quality" lives nested inside the outer
+    // breakdown wrapper. That wrapper no longer has its own toggle
+    // button (merged into Card 1's "Show breakdown" button this
+    // session) - so this dispatches a custom event the card listens for
+    // to open both states together, then waits a frame for that state
+    // update to actually render before finding and opening the specific
+    // inner section and scrolling to it.
+    window.dispatchEvent(new CustomEvent("business-outcome-open-breakdown"));
     requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        const el = document.getElementById("business-outcome-warnings-section");
+        if (!el) return;
+        const toggle_btn = el.querySelector('button[aria-expanded="false"]');
+        if (toggle_btn) toggle_btn.click();
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
     });
   }
 

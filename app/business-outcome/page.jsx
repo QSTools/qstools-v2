@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 
 import useBusinessOutcomeTruth from "@/hooks/useBusinessOutcomeTruth";
@@ -81,10 +81,6 @@ export default function BusinessOutcomePage() {
         labour_recovery={labour_recovery}
         smoothing_mode={smoothing_mode}
       />
-
-      <CollapsibleSection title="How Net Profit Is Actually Built" defaultOpen={false}>
-        <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
-      </CollapsibleSection>
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>
   );

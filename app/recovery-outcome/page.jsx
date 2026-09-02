@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { useBusinessOutcome } from "@/hooks/useBusinessOutcome";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
@@ -37,22 +37,28 @@ export default function RecoveryOutcomePage() {
       </div>
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeStatusStrip outcome={businessOutcome} />
-      <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.5rem" }}>
+      <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.25rem" }}>
         <button
           type="button"
           className={`business-outcome-view-toggle-btn ${smoothing_mode === "smoothed" ? "active" : ""}`}
           onClick={() => set_smoothing_mode("smoothed")}
         >
-          Smoothed (cross-subsidised)
+          How the Business Runs
         </button>
         <button
           type="button"
           className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
           onClick={() => set_smoothing_mode("naive")}
         >
-          As Priced (no smoothing)
+          Each Part On Its Own
         </button>
       </div>
+      <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
+        <strong style={{ color: "var(--text-primary)" }}>How the Business Runs</strong> answers: is the business
+        making money overall, and who&apos;s carrying who? <strong style={{ color: "var(--text-primary)" }}>Each
+        Part On Its Own</strong> answers: which parts are actually profitable on their own, with no help from
+        anywhere else. Same total either way - this only changes which part gets the credit or the blame.
+      </p>
 
       <CollapsibleSection title="Reconstructed P&L" defaultOpen={false}>
         <BusinessOutcomeWaterfall outcome={businessOutcome} />

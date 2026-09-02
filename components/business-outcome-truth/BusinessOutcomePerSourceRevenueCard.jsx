@@ -10,7 +10,8 @@ import {
 import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
-import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+import { BusinessOutcomeTruthSituationBlurb, BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 
 function format_currency(value) {
   const n = Number(value);
@@ -1016,6 +1017,21 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     }
   }, [detail_open, requested_selection]);
 
+  // Status strip click-through (this session, restored after merging
+  // sources_open/breakdown_open into one action) - the outer wrapper no
+  // longer has its own toggle button to click via DOM query, so the
+  // status strip now dispatches a custom event instead, and this effect
+  // opens both states together, matching the merged "Show breakdown"
+  // button behaviour exactly.
+  useEffect(() => {
+    function handle_open_breakdown() {
+      set_sources_open(true);
+      set_breakdown_open(true);
+    }
+    window.addEventListener("business-outcome-open-breakdown", handle_open_breakdown);
+    return () => window.removeEventListener("business-outcome-open-breakdown", handle_open_breakdown);
+  }, []);
+
   if (!per_source || !per_source.available) {
     return (
       <div className="business-outcome-waterfall">
@@ -1148,7 +1164,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         <button
           type="button"
           className="ui-button-secondary"
-          onClick={() => set_sources_open((current) => !current)}
+          onClick={() => { const next = !sources_open; set_sources_open(next); set_breakdown_open(next); }}
         >
           {sources_open ? "Hide breakdown" : "Show breakdown"}
         </button>
@@ -1176,22 +1192,6 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         id="business-outcome-breakdown-section"
         className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-card)]"
       >
-        <button
-          type="button"
-          onClick={() => set_breakdown_open((current) => !current)}
-          className="ui-collapsible-summary flex w-full items-center justify-between px-4 py-4 text-left"
-          aria-expanded={breakdown_open}
-        >
-          <div className="flex w-full items-center justify-between gap-4">
-            <div className="ui-collapsible-title">See the full breakdown behind the numbers</div>
-          </div>
-          <span className="ml-4 text-sm text-[var(--text-muted)]">{breakdown_open ? "Hide" : "Show"}</span>
-        </button>
-        {/* CSS-display based, not conditional-unmount (this session) -
-            keeps nested content always mounted in the DOM so the two
-            existing click-throughs (Card 1 -> ranked drill, status strip
-            -> not yet assigned) can still find and open their specific
-            targets even while this outer section starts collapsed. */}
         <div className="px-4 pb-4" style={{ display: breakdown_open ? "block" : "none" }}>
 
       <div
@@ -1292,50 +1292,55 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       </div>
 
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
-
         <UnassignedBlock unassigned={per_source.unassigned} output_contract={output_contract} labour_coverage_gaps={active_headline.labour_coverage_gaps} />
 
+        <CollapsibleSection title="How the Numbers Are Calculated" defaultOpen={false}>
+          <CollapsibleSection title="Revenue / Net Profit" defaultOpen={false}>
+            <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title={capacity_mode === "real" ? "How Real Capacity is calculated" : "How Assumed Capacity is calculated"}
+            defaultOpen={false}
+          >
+            {capacity_mode === "real" ? (
+              <RealCapacityLedger
+                real_capacity={per_source.real_capacity}
+                materials={per_source.materials}
+                unassigned={per_source.unassigned}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+              />
+            ) : (
+              <AssumedCapacityLedger
+                revenue_ceiling={per_source.revenue_ceiling}
+                materials={per_source.materials}
+                assumed_ledger_groups={per_source.assumed_ledger_groups}
+                groups_naive={per_source.real_capacity?.group_real_capacity}
+                unassigned={per_source.unassigned}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+              />
+            )}
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
+            <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
+            <TraditionalViabilityView output_contract={output_contract} />
+          </CollapsibleSection>
+        </CollapsibleSection>
+
         <ReconciliationBanner reconciliation={per_source.reconciliation} />
-
-        <CollapsibleSection
-          title={capacity_mode === "real" ? "How Real Capacity is calculated" : "How Assumed Capacity is calculated"}
-          defaultOpen={false}
-        >
-          {capacity_mode === "real" ? (
-            <RealCapacityLedger
-              real_capacity={per_source.real_capacity}
-              materials={per_source.materials}
-              unassigned={per_source.unassigned}
-              time_scale={time_scale}
-              open_hours={per_source.net_annual_business_open_hours}
-            />
-          ) : (
-            <AssumedCapacityLedger
-              revenue_ceiling={per_source.revenue_ceiling}
-              materials={per_source.materials}
-              assumed_ledger_groups={per_source.assumed_ledger_groups}
-              groups_naive={per_source.real_capacity?.group_real_capacity}
-              unassigned={per_source.unassigned}
-              time_scale={time_scale}
-              open_hours={per_source.net_annual_business_open_hours}
-            />
-          )}
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
-          <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
-          <TraditionalViabilityView output_contract={output_contract} />
-        </CollapsibleSection>
       </div>
 
           <div className="mt-4 flex justify-end">
             <button
               type="button"
               className="ui-button-secondary"
-              onClick={() => set_breakdown_open(false)}
+              onClick={() => { set_breakdown_open(false); set_sources_open(false); }}
             >
               Hide
             </button>
@@ -1343,56 +1348,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         </div>
       </div>
 
-      <BusinessOutcomeTruthHelpPanel
+      <BusinessOutcomeTruthSituationBlurb
         active_headline={active_headline}
         capacity_mode={capacity_mode}
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
       />
+
+      <BusinessOutcomeTruthAboutPanel />
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

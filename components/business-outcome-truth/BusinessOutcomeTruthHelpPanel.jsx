@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 function format_currency(value) {
   if (value === null || value === undefined) return "N/A";
@@ -11,13 +11,10 @@ function format_currency(value) {
   }).format(abs)}`;
 }
 
-// SITUATION-DEPENDENT SUMMARY (this session) - a small, rules-based
-// narrative reading the live numbers, not a static paragraph. Covers:
-// overall status, which source has the most/least margin buffer
-// (useful even when everything is fine, as an early-warning signal),
-// and a mechanism-specific note when the current capacity model is
-// actively breached/cascading. Every branch reads real fields already
-// computed elsewhere on this page - no new calculation logic here.
+// SITUATION-DEPENDENT SUMMARY - unchanged logic, split out of the old
+// single HelpPanel component so the blurb and the "About" text can be
+// rendered separately, with other content (the Net Profit build-up
+// card) placed between them.
 function build_situation_summary({ active_headline, capacity_mode, real_capacity, revenue_ceiling }) {
   const paragraphs = [];
 
@@ -33,12 +30,6 @@ function build_situation_summary({ active_headline, capacity_mode, real_capacity
     const count = active_headline.being_carried?.length ?? 0;
     const total = active_headline.total_group_count ?? 0;
     if (worst && count === 1) {
-      // FIX: only Materials can ever be floored to exactly $0 (Real
-      // Capacity's floor mechanism) - "at $0 a year" on its own reads
-      // like breakeven, not "propped up to zero by the rest of the
-      // business". A source genuinely breaking even wouldn't be in
-      // being_carried at all (verdict_for is >= 0), so $0 here always
-      // means floored, never a coincidental real breakeven.
       if (Math.abs(worst.net_profit) < 1) {
         paragraphs.push(
           `${worst.name} is the only part of the business not covering its own cost right now - it's being kept at exactly $0, propped up by the rest of the business rather than genuinely breaking even.`
@@ -67,12 +58,6 @@ function build_situation_summary({ active_headline, capacity_mode, real_capacity
         `${most_resilient.group_name} is your most resilient source, with a ${(most_resilient.margin_pct * 100).toFixed(0)}% margin buffer. ${least_resilient.group_name} has the thinnest buffer, at ${(least_resilient.margin_pct * 100).toFixed(0)}%, so it's the first place to watch if revenue softens.`
       );
 
-      // FIX: bridge the apparent contradiction when the source carrying
-      // the largest DOLLAR shortfall above is also the most resilient
-      // source by MARGIN - both can be true at once (biggest revenue
-      // share takes the biggest dollar share of any spread-out
-      // shortfall, even with the strongest underlying margin), but
-      // reads as a flat contradiction without this explanation.
       if (worst && worst.name === most_resilient.group_name) {
         paragraphs.push(
           `${worst.name}'s large dollar shortfall above is because it also has the biggest revenue share in the business - once a shortfall is spread proportionally, the biggest source takes the biggest dollar hit, even though its underlying margin is still the strongest of any source.`
@@ -95,7 +80,7 @@ function build_situation_summary({ active_headline, capacity_mode, real_capacity
   return paragraphs;
 }
 
-export default function BusinessOutcomeTruthHelpPanel({
+export function BusinessOutcomeTruthSituationBlurb({
   active_headline,
   capacity_mode,
   real_capacity,
@@ -108,17 +93,21 @@ export default function BusinessOutcomeTruthHelpPanel({
     revenue_ceiling,
   });
 
+  if (summary_paragraphs.length === 0) return null;
+
   return (
     <div className="ui-card theme-card-muted business-outcome-help-panel">
-      {summary_paragraphs.length > 0 && (
-        <>
-          <h2>Your business, right now</h2>
-          {summary_paragraphs.map((text, index) => (
-            <p key={index}>{text}</p>
-          ))}
-        </>
-      )}
+      <h2>Your business, right now</h2>
+      {summary_paragraphs.map((text, index) => (
+        <p key={index}>{text}</p>
+      ))}
+    </div>
+  );
+}
 
+export function BusinessOutcomeTruthAboutPanel() {
+  return (
+    <div className="ui-card theme-card-muted business-outcome-help-panel">
       <h2>About Business Outcome</h2>
       <p>
         Business Outcome is the current commercial truth layer. It answers whether the business is
