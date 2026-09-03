@@ -10,6 +10,7 @@ import {
   buildLiveLeverHeadline,
   buildBreakevenSummary,
   buildGroupLeverRows,
+  buildMaterialsLeverRow,
   buildProportionalSuggestions,
 } from "@/lib/selectors/businessModellingLeverSelectors";
 import {
@@ -68,6 +69,7 @@ export default function useBusinessModelling() {
   const per_source = selectBusinessOutcomePerSourceRevenue(per_source_raw);
 
   const [rate_target_by_group_id, set_rate_target_by_group_id] = useState({});
+  const [materials_markup_percent, set_materials_markup_percent] = useState(null);
 
   function updateLeverTargetRate(group_id, value) {
     set_rate_target_by_group_id((previous) => ({
@@ -76,20 +78,38 @@ export default function useBusinessModelling() {
     }));
   }
 
+  function updateMaterialsMarkupPercent(value) {
+    set_materials_markup_percent(value);
+  }
+
   const live_headline = useMemo(
-    () => buildLiveLeverHeadline(per_source, rate_target_by_group_id),
-    [per_source, rate_target_by_group_id]
+    () => buildLiveLeverHeadline(per_source, rate_target_by_group_id, materials_markup_percent),
+    [per_source, rate_target_by_group_id, materials_markup_percent]
   );
   const breakeven_summary = useMemo(() => buildBreakevenSummary(per_source), [per_source]);
   const lever_rows = useMemo(
     () => buildGroupLeverRows(per_source, rate_target_by_group_id),
     [per_source, rate_target_by_group_id]
   );
+  const materials_lever_row = useMemo(
+    () => buildMaterialsLeverRow(per_source, materials_markup_percent),
+    [per_source, materials_markup_percent]
+  );
 
   const proportional_suggestions = useMemo(
     () => buildProportionalSuggestions(per_source),
     [per_source]
   );
+
+  // TEMPORARY - Phase 2 verification only. Remove before final commit.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.__proportional_debug = {
+      group_real_capacity: per_source?.real_capacity?.group_real_capacity,
+      proportional_suggestions,
+      live_headline,
+    };
+  }, [per_source, proportional_suggestions, live_headline]);
 
   function applyProportionalSuggestions() {
     if (!proportional_suggestions?.available || proportional_suggestions.targets.length === 0) {
@@ -591,6 +611,9 @@ export default function useBusinessModelling() {
     lever_rows,
     rate_target_by_group_id,
     updateLeverTargetRate,
+    materials_lever_row,
+    materials_markup_percent,
+    updateMaterialsMarkupPercent,
     proportional_suggestions,
     applyProportionalSuggestions,
   };

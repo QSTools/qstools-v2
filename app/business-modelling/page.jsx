@@ -35,6 +35,9 @@ export default function BusinessModellingPage() {
     lever_rows,
     rate_target_by_group_id,
     updateLeverTargetRate,
+    materials_lever_row,
+    materials_markup_percent,
+    updateMaterialsMarkupPercent,
     proportional_suggestions,
     applyProportionalSuggestions,
   } = useBusinessModelling();
@@ -67,6 +70,9 @@ export default function BusinessModellingPage() {
           onTargetRateChange={updateLeverTargetRate}
           proportional_suggestions={proportional_suggestions}
           onApplyProportional={applyProportionalSuggestions}
+          materials_lever_row={materials_lever_row}
+          materials_markup_percent={materials_markup_percent}
+          onMaterialsMarkupChange={updateMaterialsMarkupPercent}
         />
 
         <CollapsibleSection

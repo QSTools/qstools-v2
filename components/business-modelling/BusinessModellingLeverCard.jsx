@@ -22,6 +22,9 @@ export default function BusinessModellingLeverCard({
   onTargetRateChange,
   proportional_suggestions,
   onApplyProportional,
+  materials_lever_row,
+  materials_markup_percent,
+  onMaterialsMarkupChange,
 }) {
   const [sources_open, set_sources_open] = useState(false);
 
@@ -158,11 +161,11 @@ export default function BusinessModellingLeverCard({
 
                 {row.target_result && (
                   <div className="ui-row-between">
-                    <span className="theme-text-secondary">Resulting whole-business net profit</span>
+                    <span className="theme-text-secondary">Resulting net profit for this group</span>
                     <span
-                      className={row.target_result.total_net_profit >= 0 ? "value-good" : "value-bad"}
+                      className={row.target_result.net_profit >= 0 ? "value-good" : "value-bad"}
                     >
-                      {formatCurrency(row.target_result.total_net_profit)}
+                      {formatCurrency(row.target_result.net_profit)}
                       {row.target_result.is_above_breakeven ? " (above breakeven)" : " (still a loss)"}
                     </span>
                   </div>
@@ -171,6 +174,56 @@ export default function BusinessModellingLeverCard({
             )}
           </div>
         ))}
+
+        {materials_lever_row?.available && (
+          <div className="ui-section-muted ui-stack-sm">
+            <div className="ui-row-between">
+              <div className="ui-card-title-sm">{materials_lever_row.group_name}</div>
+            </div>
+
+            <div className="ui-row-between">
+              <span className="theme-text-secondary">Current markup on cost</span>
+              <span className="ui-collapsible-value">
+                {materials_lever_row.current_markup_percent?.toFixed(2)}%
+              </span>
+            </div>
+            <div className="ui-row-between">
+              <span className="theme-text-secondary">
+                Markup needed to break even (materials alone)
+              </span>
+              <span className="ui-collapsible-value">
+                {materials_lever_row.breakeven_markup_percent?.toFixed(2)}%
+              </span>
+            </div>
+
+            <div className="ui-field">
+              <label className="ui-label" htmlFor="materials-markup-target">
+                Your target markup (%)
+              </label>
+              <input
+                id="materials-markup-target"
+                type="number"
+                step="0.01"
+                className="ui-input number-input"
+                placeholder={materials_lever_row.current_markup_percent?.toFixed(2)}
+                value={materials_markup_percent ?? ""}
+                onChange={(e) => onMaterialsMarkupChange(e.target.value)}
+              />
+            </div>
+
+            {materials_lever_row.target_result && (
+              <div className="ui-row-between">
+                <span className="theme-text-secondary">Resulting net profit for materials</span>
+                <span
+                  className={materials_lever_row.target_result.net_profit >= 0 ? "value-good" : "value-bad"}
+                >
+                  {formatCurrency(materials_lever_row.target_result.net_profit)}
+                  {materials_lever_row.target_result.is_above_breakeven ? " (above breakeven)" : " (still a loss)"}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
