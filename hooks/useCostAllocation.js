@@ -93,6 +93,8 @@ export default function useCostAllocation(inputs = {}) {
     operational_groups: state?.operational_groups ?? [],
     active_assets: asset_recovery_overlay.active_assets,
     active_staff: base_calculation_inputs?.active_staff ?? [],
+    labour_group_assignments: safe_array(state?.labour_group_assignments),
+    asset_group_assignments: safe_array(state?.asset_group_assignments),
     productive_labour_type_rows,
     working_unit_recovery_cost:
       safe_number(base_calculation_inputs?.labour_recovery_cost) +
@@ -152,9 +154,54 @@ export default function useCostAllocation(inputs = {}) {
     state?.overhead_group_assignments,
     operational_group_recovery_rows,
   ]);
-
   const calculated = useMemo(() => {
-    return calculate_cost_allocation(calculation_inputs);
+    const base_calculated = calculate_cost_allocation(calculation_inputs);
+    const cost_rows_by_id = new Map(
+      safe_array(base_calculated?.operational_group_cost_rows).map((row) => [
+        row.group_id,
+        row,
+      ])
+    );
+    const corrected_recovery_rows = safe_array(
+      base_calculated?.operational_group_recovery_rows
+    ).map((row) => {
+      const cost_row = cost_rows_by_id.get(row.group_id);
+      if (!cost_row) {
+        return row;
+      }
+      const labour_recovery_rate_per_hour = safe_number(
+        cost_row.labour_recovery_rate
+      );
+      const asset_recovery_rate_per_hour = safe_number(
+        cost_row.asset_recovery_rate
+      );
+      const overhead_burden_rate_per_hour = safe_number(
+        cost_row.overhead_recovery_rate
+      );
+      const running_cost_rate_per_hour =
+        labour_recovery_rate_per_hour + asset_recovery_rate_per_hour;
+      const minimum_recoverable_rate_per_hour =
+        running_cost_rate_per_hour + overhead_burden_rate_per_hour;
+      return {
+        ...row,
+        labour_recovery_rate_per_hour,
+        asset_recovery_rate_per_hour,
+        running_cost_rate_per_hour,
+        overhead_burden_rate_per_hour,
+        minimum_recoverable_rate_per_hour,
+        operational_group_recovery_rate_per_hour:
+          minimum_recoverable_rate_per_hour,
+        has_labour_rate: labour_recovery_rate_per_hour > 0,
+        has_asset_rate: asset_recovery_rate_per_hour > 0,
+        has_running_cost: running_cost_rate_per_hour > 0,
+        has_overhead_burden: overhead_burden_rate_per_hour > 0,
+        is_rate_ready: minimum_recoverable_rate_per_hour > 0,
+      };
+    });
+    return {
+      ...base_calculated,
+      operational_group_recovery_rows: corrected_recovery_rows,
+    };
   }, [calculation_inputs]);
 
   const status = useMemo(() => {

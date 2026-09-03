@@ -13,56 +13,21 @@ import {
   get_staff_labour_type_key,
 } from "@/lib/calculations/cost-allocation/costAllocationLabourAdapter";
 
-function get_group_asset_ids(group = {}) {
-  const possible_lists = [
-    group.required_asset_ids,
-    group.asset_ids,
-    group.assigned_asset_ids,
-    group.linked_asset_ids,
-    group.assets,
-  ];
-
-  for (const list of possible_lists) {
-    if (Array.isArray(list)) {
-      return list
-        .map((item) =>
-          typeof item === "string" ? item : item?.asset_id || item?.id || ""
-        )
-        .filter(Boolean);
-    }
-  }
-
-  if (group.asset_id) {
-    return [group.asset_id];
-  }
-
-  return [];
+function get_group_asset_ids(group = {}, asset_group_assignments = []) {
+  const group_id = group.group_id || group.operational_group_id;
+  return safe_array(asset_group_assignments)
+    .filter((a) => a.group_id === group_id && a.is_active !== false)
+    .map((a) => a.asset_id)
+    .filter(Boolean);
 }
 
-function get_group_staff_ids(group = {}) {
-  const possible_lists = [
-    group.required_staff_ids,
-    group.staff_ids,
-    group.assigned_staff_ids,
-    group.linked_staff_ids,
-    group.staff,
-  ];
 
-  for (const list of possible_lists) {
-    if (Array.isArray(list)) {
-      return list
-        .map((item) =>
-          typeof item === "string" ? item : item?.staff_id || item?.id || ""
-        )
-        .filter(Boolean);
-    }
-  }
-
-  if (group.staff_id) {
-    return [group.staff_id];
-  }
-
-  return [];
+function get_group_staff_ids(group = {}, labour_group_assignments = []) {
+  const group_id = group.group_id || group.operational_group_id;
+  return safe_array(labour_group_assignments)
+    .filter((a) => a.group_id === group_id && a.is_active !== false)
+    .map((a) => a.labour_type_id || a.staff_type_id)
+    .filter(Boolean);
 }
 
 function get_overhead_burden_rate_for_group({
@@ -80,6 +45,8 @@ function build_operational_group_recovery_rows({
   active_assets = [],
   active_staff = [],
   productive_labour_type_rows = [],
+  labour_group_assignments = [],
+  asset_group_assignments = [],
   working_unit_recovery_cost = 0,
   overhead_absorbed_cost = 0,
   recovery_hours_used = 0,
@@ -100,9 +67,8 @@ function build_operational_group_recovery_rows({
   );
 
   return safe_array(operational_groups).map((group, index) => {
-    const group_asset_ids = get_group_asset_ids(group);
-    const group_staff_ids = get_group_staff_ids(group);
-
+    const group_asset_ids = get_group_asset_ids(group, asset_group_assignments);
+    const group_staff_ids = get_group_staff_ids(group, labour_group_assignments);
     const group_assets = group_asset_ids
       .map((asset_id) => asset_map.get(asset_id))
       .filter(Boolean);
@@ -246,6 +212,8 @@ export function useCostAllocationGroupRecoveryRows({
   operational_groups = [],
   active_assets = [],
   active_staff = [],
+  labour_group_assignments = [],
+  asset_group_assignments = [],
   productive_labour_type_rows = [],
   working_unit_recovery_cost = 0,
   overhead_absorbed_cost = 0,
@@ -256,6 +224,8 @@ export function useCostAllocationGroupRecoveryRows({
       operational_groups,
       active_assets,
       active_staff,
+      labour_group_assignments,
+      asset_group_assignments,
       productive_labour_type_rows,
       working_unit_recovery_cost,
       overhead_absorbed_cost,
@@ -265,6 +235,8 @@ export function useCostAllocationGroupRecoveryRows({
     operational_groups,
     active_assets,
     active_staff,
+    labour_group_assignments,
+    asset_group_assignments,
     productive_labour_type_rows,
     working_unit_recovery_cost,
     overhead_absorbed_cost,
