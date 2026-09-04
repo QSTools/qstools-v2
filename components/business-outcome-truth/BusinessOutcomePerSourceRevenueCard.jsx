@@ -345,6 +345,63 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
+function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, open_hours, use_implied, capacity_mode }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
+  const entries =
+    capacity_mode === "real"
+      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+      : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
+  const rows = entries.filter((e) => e.type === "group");
+  const totals = rows.reduce(
+    (acc, r) => {
+      const overhead = r.overhead_share ?? 0;
+      const full_cost = r.total_cost ?? 0;
+      acc.no_overhead += full_cost - overhead;
+      acc.overhead += overhead;
+      acc.full_cost += full_cost;
+      acc.revenue += r.modelled_revenue ?? 0;
+      acc.net_profit += r.net_profit ?? 0;
+      return acc;
+    },
+    { no_overhead: 0, overhead: 0, full_cost: 0, revenue: 0, net_profit: 0 }
+  );
+  return (
+    <div className="business-outcome-cost-buildup-table">
+      <div className="business-outcome-cost-buildup-row header">
+        <span>Description</span>
+        <span className="value">Min recoverable (no overhead)</span>
+        <span className="value">Overhead pool distribution</span>
+        <span className="value">Min rec (full cost)</span>
+        <span className="value">Revenue</span>
+        <span className="value">Net profit</span>
+      </div>
+      {rows.map((r) => {
+        const overhead = r.overhead_share ?? 0;
+        const no_overhead = (r.total_cost ?? 0) - overhead;
+        const full_cost = r.total_cost ?? 0;
+        return (
+          <div className="business-outcome-cost-buildup-row" key={r.key}>
+            <span className="label">{r.label}</span>
+            <span className="value">{formatCurrencyTruth(scale(no_overhead))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(overhead))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(full_cost))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(r.modelled_revenue ?? 0))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(r.net_profit ?? 0))}{suffix}</span>
+          </div>
+        );
+      })}
+      <div className="business-outcome-cost-buildup-row header">
+        <span>Total</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.no_overhead))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.overhead))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.full_cost))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.revenue))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.net_profit))}{suffix}</span>
+      </div>
+    </div>
+  );
+}
 function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, requested_selection }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
@@ -468,6 +525,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
               <div className="cost-summary-drill-value">
                 <span className="business-outcome-drill-tags">
                   <ModelledTag />
+                  {item.type === "group" && cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
                   {/* FIX (this session): verdict is a profitability
                       claim, not a revenue-share claim - showing it next
                       to a dollar figure that never changes between
@@ -1393,6 +1451,18 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 open_hours={per_source.net_annual_business_open_hours}
               />
             )}
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Cost build-up, by group" defaultOpen={false}>
+            <CostBuildUpTable
+              labour_groups={per_source.labour_groups}
+              asset_groups={per_source.asset_groups}
+              materials={per_source.materials}
+              time_scale={time_scale}
+              open_hours={per_source.net_annual_business_open_hours}
+              use_implied={per_source.use_implied}
+              capacity_mode={capacity_mode}
+            />
           </CollapsibleSection>
 
           <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
