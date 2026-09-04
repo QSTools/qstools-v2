@@ -345,7 +345,7 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, requested_selection }) {
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, requested_selection }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [selected_key, set_selected_key] = useState(null);
@@ -365,11 +365,32 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
     capacity_mode === "real"
       ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
       : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
+
+  // S25: contribution-margin lens - overhead_share removed from each
+  // group cost, added back to net_profit (pure re-attribution, same
+  // totals). Materials/COG is excluded - S25 concerns operating-group
+  // overhead only.
+  const total_group_overhead_share = entries.reduce(
+    (sum, e) => sum + (e.type === "group" ? (e.overhead_share ?? 0) : 0),
+    0
+  );
+  const cost_adjusted_entries =
+    cost_mode === "contribution"
+      ? entries.map((e) =>
+          e.type === "group"
+            ? {
+                ...e,
+                total_cost: (e.total_cost ?? 0) - (e.overhead_share ?? 0),
+                net_profit: (e.net_profit ?? 0) + (e.overhead_share ?? 0),
+              }
+            : e
+        )
+      : entries;
   const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
   const total = view_mode === "profit" ? headline.total_net_profit : headline.total_modelled_revenue;
 
-  const sorted_top_level = [...entries].sort((a, b) => metric(b) - metric(a));
-  const selected_entry = entries.find((e) => e.key === selected_key) || null;
+  const sorted_top_level = [...cost_adjusted_entries].sort((a, b) => metric(b) - metric(a));
+  const selected_entry = cost_adjusted_entries.find((e) => e.key === selected_key) || null;
 
   const active_list = selected_entry
     ? [...selected_entry.children].sort((a, b) => metric(b) - metric(a))
@@ -400,6 +421,16 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
       <div className="ui-kicker">
         {selected_entry ? `${selected_entry.label} - breakdown by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
       </div>
+
+      {cost_mode === "contribution" && (
+        <div className="business-outcome-capacity-warning">
+          <strong>
+            This view excludes overhead. Do not use these figures to set prices or quotes
+            &mdash; switch to Full cost for that. Total overhead not shown per group above:{" "}
+            {formatCurrencyTruth(total_group_overhead_share)}.
+          </strong>
+        </div>
+      )}
 
       {selected_entry?.key === "materials" ? (
         <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} time_scale={time_scale} open_hours={open_hours} />
@@ -1006,6 +1037,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // familiar assumed-hours figure. "assumed" keeps today's existing
   // behaviour, completely untouched, one click away.
   const [capacity_mode, set_capacity_mode] = useState("real");
+  const [cost_mode, set_cost_mode] = useState("absorbed");
   // Source list in the headline card (this session) - always starts
   // collapsed, confirmed with user, regardless of whether anything is
   // failing. The headline sentence and its stark/normal tone already
@@ -1257,6 +1289,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               out evenly, the same percentage for everyone, regardless of how much margin they have.
             </p>
 
+            <div className="business-outcome-view-toggle" aria-label="Cost basis" style={{ marginTop: "0.75rem" }}>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${cost_mode === "absorbed" ? "active" : ""}`}
+                onClick={() => set_cost_mode("absorbed")}
+              >
+                Full cost (with overhead)
+              </button>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${cost_mode === "contribution" ? "active" : ""}`}
+                onClick={() => set_cost_mode("contribution")}
+              >
+                Contribution margin (no overhead)
+              </button>
+            </div>
+
             <div className="business-outcome-view-toggle">
               <button
                 type="button"
@@ -1301,6 +1350,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               open_hours={per_source.net_annual_business_open_hours}
               use_implied={per_source.use_implied}
               capacity_mode={capacity_mode}
+              cost_mode={cost_mode}
               requested_selection={requested_selection}
             />
             <div className="mt-4 flex justify-end">
