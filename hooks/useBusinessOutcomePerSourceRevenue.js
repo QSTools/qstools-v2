@@ -115,8 +115,9 @@ function split_group_overhead(group) {
   };
 }
 
-function build_asset_sources(operational_group_cost_rows, calculators) {
+function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = []) {
   const rows = [];
+  const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
 
   operational_group_cost_rows.forEach((group) => {
     const asset_assignments = Array.isArray(group.asset_group_assignments)
@@ -194,6 +195,7 @@ function build_asset_sources(operational_group_cost_rows, calculators) {
         overhead_share: round_currency(overhead_share),
         true_cost: round_currency(true_cost),
         blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
+        minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
         net_profit: net_profit !== null ? round_currency(net_profit) : null,
         verdict: net_profit !== null ? verdict_for(net_profit) : null,
@@ -228,7 +230,8 @@ function build_asset_sources(operational_group_cost_rows, calculators) {
 // is still reused from useBusinessOutcomeLabourRecovery (that hook
 // remains correct and unchanged for its own purpose - rate recovery,
 // not whole-business cost totalling) - only the COST side changes here.
-function build_labour_sources(operational_group_cost_rows, labour_recovery_rows) {
+function build_labour_sources(operational_group_cost_rows, labour_recovery_rows, operational_group_recovery_rows = []) {
+  const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
   const charge_out_rate_by_id = new Map(
     labour_recovery_rows.map((row) => [row.labour_source_type_id, to_number(row.charge_out_rate)])
   );
@@ -329,6 +332,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows)
         overhead_share: round_currency(agg.overhead_share),
         true_cost: round_currency(true_cost),
         charge_out_rate: round_currency(charge_out_rate),
+        minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(agg.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
         net_profit: net_profit !== null ? round_currency(net_profit) : null,
         verdict: net_profit !== null ? verdict_for(net_profit) : null,
@@ -603,16 +607,19 @@ export default function useBusinessOutcomePerSourceRevenue() {
   const bs = business_summary.output_contract ?? {};
   const allocation_contract = cost_allocation.output_contract ?? {};
   const operational_group_cost_rows = allocation_contract.operational_group_cost_rows ?? [];
+  const operational_group_recovery_rows = allocation_contract.operational_group_recovery_rows ?? [];
 
   const result = useMemo(() => {
     const labour_sources = build_labour_sources(
       operational_group_cost_rows,
-      labour_recovery.labour_recovery_rows ?? []
+      labour_recovery.labour_recovery_rows ?? [],
+      operational_group_recovery_rows
     );
 
     const asset_sources = build_asset_sources(
       operational_group_cost_rows,
-      rate_builder_calculators
+      rate_builder_calculators,
+      operational_group_recovery_rows
     );
 
     const total_assigned_overhead = operational_group_cost_rows.reduce(

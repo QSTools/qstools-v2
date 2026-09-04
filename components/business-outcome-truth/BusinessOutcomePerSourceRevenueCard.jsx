@@ -427,6 +427,11 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
             <>
               <div className="ui-stack-sm">
                 <div className="cost-summary-drill-label">{item.label}</div>
+                {item.type === "group" && (
+                  <div className="ui-help">
+                    Cost {formatCurrencyTruth(item.total_cost)} &middot; Min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
+                  </div>
+                )}
                 {item.available === false && <div className="ui-help">{item.unavailable_reason || "Not available"}</div>}
               </div>
               <div className="cost-summary-drill-value">
