@@ -589,7 +589,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
               <div className="cost-summary-drill-value">
                 <span className="business-outcome-drill-tags">
                   <ModelledTag />
-                  {item.type === "group" && cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
+                  {item.type !== "materials" && cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
                   {/* FIX (this session): verdict is a profitability
                       claim, not a revenue-share claim - showing it next
                       to a dollar figure that never changes between
@@ -602,7 +602,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
                     <VerdictTag verdict={item.verdict} label={item.verdict_label} />
                   )}
                 </span>
-                <div className="ui-card-title-sm">
+                <div style={{ fontSize: "1.2em" }}>
                   {format_currency(scale(value))}
                   {suffix}
                   <span className="ui-help"> ({share}%)</span>
@@ -611,27 +611,13 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
             </>
           );
 
-          if (has_children) {
-            return (
-              <button
-                key={item.key}
-                type="button"
-                className={row_class}
-                onMouseEnter={() => set_hovered_key(item.key)}
-                onMouseLeave={() => set_hovered_key("")}
-                onClick={() => set_selected_key(item.key)}
-              >
-                {content}
-              </button>
-            );
-          }
-
           return (
             <div
               key={item.key}
               className={row_class}
               onMouseEnter={() => set_hovered_key(item.key)}
               onMouseLeave={() => set_hovered_key("")}
+              {...(has_children ? { onClick: () => set_selected_key(item.key), role: "button", tabIndex: 0 } : {})}
             >
               {content}
             </div>
@@ -1106,7 +1092,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
                 {cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
                 {view_mode === "profit" && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
               </span>
-              <div>
+              <div style={{ fontSize: "1.2em" }}>
                 {formatCurrencyTruth(scale(value))} <span className="ui-help">({share}%)</span>
               </div>
             </div>
