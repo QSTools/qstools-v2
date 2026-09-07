@@ -35,6 +35,7 @@ import CollapsibleSection from "@/components/common/CollapsibleSection";
 // real saved charge-out rate for that source (Rate Builder).
 export default function BusinessOutcomePage() {
   const [smoothing_mode, set_smoothing_mode] = useState("smoothed");
+  const [view_mode_ab, set_view_mode_ab] = useState("a");
   const { output_contract } = useBusinessOutcomeTruth();
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const revenue_split = useBusinessOutcomeRevenueSplit();
@@ -64,6 +65,9 @@ export default function BusinessOutcomePage() {
           type="button"
           className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
           onClick={() => set_smoothing_mode("naive")}
+          disabled={view_mode_ab === "b"}
+          title={view_mode_ab === "b" ? "Not available for View B - Outcome only shows real, reconciled figures against actual revenue" : undefined}
+          style={view_mode_ab === "b" ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
         >
           Each Part On Its Own
         </button>
@@ -80,6 +84,8 @@ export default function BusinessOutcomePage() {
         output_contract={output_contract}
         labour_recovery={labour_recovery}
         smoothing_mode={smoothing_mode}
+        view_mode_ab={view_mode_ab}
+        set_view_mode_ab={set_view_mode_ab}
       />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>

@@ -1417,7 +1417,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed" }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
   // Defaults to "real" (Real Capacity) per product decision this session -
@@ -1426,7 +1426,18 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // behaviour, completely untouched, one click away.
   const [capacity_mode, set_capacity_mode] = useState("real");
   const [cost_mode, set_cost_mode] = useState("absorbed");
-  const [view_mode_ab, set_view_mode_ab] = useState("a");
+  // Card 2's own local View A/View B toggle (this session, per user
+  // request): Card 1's toggle at the top of the page is the master
+  // default - scrolling back up while working in Card 2 is a hassle,
+  // so Card 2 gets its own copy that starts synced to whatever Card 1
+  // currently shows. Clicking Card 2's own toggle overrides locally
+  // and sticks - until Card 1's toggle is changed again, at which
+  // point this effect re-syncs Card 2 back to match. Card 1 itself is
+  // untouched by anything in Card 2 - the sync only runs one way.
+  const [card2_view_mode_ab, set_card2_view_mode_ab] = useState(view_mode_ab);
+  useEffect(() => {
+    set_card2_view_mode_ab(view_mode_ab);
+  }, [view_mode_ab]);
   const [view_b_shortfall_mode, set_view_b_shortfall_mode] = useState("rate");
   // Source list in the headline card (this session) - always starts
   // collapsed, confirmed with user, regardless of whether anything is
@@ -1528,12 +1539,57 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     };
   }
 
+  // View B equivalent of build_naive_headline() above - genuinely
+  // simpler, since View B already treats materials as a first-class
+  // member of group_real_capacity, not something bolted on afterward.
+  // mode: "naive" (raw, no cross-subsidy at all) | "real" (cascade-
+  // adjusted, proportional by margin) | "assumed" (flat ceiling,
+  // same % cut for everyone). Subtracts unassigned cost from the total,
+  // same as build_naive_headline() does, so Card 1's headline always
+  // reflects the true P&L bottom line regardless of which view or mode
+  // is active - the per-source cascade total intentionally does not
+  // include unassigned cost (known, flagged gap), but the business-wide
+  // headline figure should.
+  function build_view_b_headline(mode) {
+    if (!per_source.view_b) return null;
+    const merge_mode = mode === "assumed" ? "assumed" : "real";
+    const merged = merge_view_b_groups(per_source.view_b, merge_mode);
+    const all_sources = merged.map((e) => {
+      const net_profit = mode === "naive" ? e.modelled_revenue - e.total_cost : e.net_profit;
+      return {
+        key: e.key,
+        name: e.label,
+        net_profit,
+        modelled_revenue: e.modelled_revenue,
+        verdict: net_profit >= 0 ? "paying_its_way" : "being_carried",
+        type: e.is_materials ? "materials" : "group",
+      };
+    });
+    const total_net_profit =
+      all_sources.reduce((sum, s) => sum + s.net_profit, 0) - (per_source.unassigned?.total ?? 0);
+    const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
+    return {
+      total_net_profit,
+      total_modelled_revenue: all_sources.reduce((sum, s) => sum + s.modelled_revenue, 0),
+      total_group_count: all_sources.length,
+      being_carried_count: being_carried.length,
+      being_carried,
+      all_sources,
+      all_good: being_carried.length === 0,
+      labour_capacity_warning: per_source.headline_real_capacity?.labour_capacity_warning ?? false,
+      asset_capacity_warning: per_source.headline_real_capacity?.asset_capacity_warning ?? false,
+      labour_coverage_gaps: per_source.headline_real_capacity?.labour_coverage_gaps || [],
+    };
+  }
+
   const active_headline =
-    capacity_mode === "real"
-      ? smoothing_mode === "naive"
-        ? build_naive_headline()
-        : per_source.headline_real_capacity
-      : per_source.headline;
+    view_mode_ab === "b"
+      ? build_view_b_headline(capacity_mode === "assumed" ? "assumed" : "real")
+      : capacity_mode === "real"
+        ? smoothing_mode === "naive"
+          ? build_naive_headline()
+          : per_source.headline_real_capacity
+        : per_source.headline;
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
@@ -1548,6 +1604,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
   return (
     <div className="business-outcome-waterfall">
+        <div className="business-outcome-view-toggle" aria-label="Materials model" style={{ marginTop: "0.75rem" }}>
+          <button
+            type="button"
+            className={`business-outcome-view-toggle-btn ${view_mode_ab === "a" ? "active" : ""}`}
+            onClick={() => set_view_mode_ab("a")}
+          >
+            View A (Materials protected)
+          </button>
+          <button
+            type="button"
+            className={`business-outcome-view-toggle-btn ${view_mode_ab === "b" ? "active" : ""}`}
+            onClick={() => set_view_mode_ab("b")}
+          >
+            View B (Materials shares equally)
+          </button>
+        </div>
+
       <div className={`business-outcome-headline${reveals_more_failure ? " business-outcome-headline-stark" : ""}`}>
         <div className="business-outcome-headline-eyebrow">Is your business working?</div>
         <div className="business-outcome-headline-text">
@@ -1577,6 +1650,17 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </>
           )}
         </div>
+
+        {view_mode_ab === "b" && smoothing_mode === "naive" && (
+          <div className="business-outcome-capacity-warning">
+            <strong>
+              &quot;Each Part On Its Own&quot; isn&apos;t offered for View B here - Outcome only
+              shows what&apos;s actually happening against real revenue, not a hypothetical
+              ceiling. Showing the full reconciled picture instead (same as &quot;How the Business
+              Runs&quot;).
+            </strong>
+          </div>
+        )}
 
         {(active_headline.labour_capacity_warning || active_headline.asset_capacity_warning) && (
           <div className="business-outcome-capacity-warning">
@@ -1696,24 +1780,25 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               </button>
             </div>
 
-            <div className="business-outcome-view-toggle" aria-label="Materials model" style={{ marginTop: "0.75rem" }}>
+
+            <div className="business-outcome-view-toggle" aria-label="Materials model (Card 2 override)" style={{ marginTop: "0.75rem" }}>
               <button
                 type="button"
-                className={`business-outcome-view-toggle-btn ${view_mode_ab === "a" ? "active" : ""}`}
-                onClick={() => set_view_mode_ab("a")}
+                className={`business-outcome-view-toggle-btn ${card2_view_mode_ab === "a" ? "active" : ""}`}
+                onClick={() => set_card2_view_mode_ab("a")}
               >
                 View A (Materials protected)
               </button>
               <button
                 type="button"
-                className={`business-outcome-view-toggle-btn ${view_mode_ab === "b" ? "active" : ""}`}
-                onClick={() => set_view_mode_ab("b")}
+                className={`business-outcome-view-toggle-btn ${card2_view_mode_ab === "b" ? "active" : ""}`}
+                onClick={() => set_card2_view_mode_ab("b")}
               >
                 View B (Materials shares equally)
               </button>
             </div>
 
-            {view_mode_ab === "b" && (
+            {card2_view_mode_ab === "b" && (
               <div className="business-outcome-view-toggle" aria-label="Shortfall attribution" style={{ marginTop: "0.5rem" }}>
                 <button
                   type="button"
@@ -1766,7 +1851,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               ))}
             </div>
 
-            {view_mode_ab === "b" ? (
+            {card2_view_mode_ab === "b" ? (
               <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} />
             ) : (
               <RankedGroupsDrill
