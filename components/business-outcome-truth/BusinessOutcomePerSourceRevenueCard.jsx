@@ -522,6 +522,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
         .sort((a, b) => metric(b) - metric(a))
     : sorted_top_level;
 
+  const sum_abs_total = active_list.reduce((sum, e) => sum + Math.abs(metric(e)), 0);
   const breadcrumbs = selected_entry
     ? [
         { key: "root", label: "All operating groups" },
@@ -559,7 +560,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
           const is_active = hovered_key === item.key;
           const is_muted = Boolean(hovered_key) && !is_active;
           const value = metric(item);
-          const share = Math.abs(total) > 0.01 ? ((value / total) * 100).toFixed(1) : "0.0";
+          const share = sum_abs_total > 0 && Math.abs(total) / sum_abs_total > 0.001 ? ((value / total) * 100).toFixed(1) : "N/A";
 
           const row_class = [
             "cost-summary-drill-row",
