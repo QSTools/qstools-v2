@@ -402,6 +402,69 @@ function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, 
     </div>
   );
 }
+// View B equivalent of CostBuildUpTable above. Unlike View A's table -
+// which deliberately excludes materials, per S25's original brief
+// ("Materials/COG NOT included - overhead distribution is
+// operating-group-specific") - View B's table genuinely includes
+// materials as a sixth row, since that is the entire premise of View
+// B: materials is a real peer, not a special case. Uses
+// achieved_revenue (the reconciled figure) rather than raw modelled
+// revenue for the Revenue column, same as ViewBGroupsDrill already
+// does, so this table's totals reconcile to real revenue too.
+function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, capacity_mode }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
+  if (!view_b) return null;
+  const rows = merge_view_b_groups(view_b, capacity_mode);
+  const totals = rows.reduce(
+    (acc, r) => {
+      const overhead = r.overhead_share ?? 0;
+      const full_cost = r.total_cost ?? 0;
+      acc.no_overhead += full_cost - overhead;
+      acc.overhead += overhead;
+      acc.full_cost += full_cost;
+      acc.revenue += r.achieved_revenue ?? 0;
+      acc.net_profit += r.net_profit ?? 0;
+      return acc;
+    },
+    { no_overhead: 0, overhead: 0, full_cost: 0, revenue: 0, net_profit: 0 }
+  );
+  return (
+    <div className="business-outcome-cost-buildup-table">
+      <div className="business-outcome-cost-buildup-row header">
+        <span>Description</span>
+        <span className="value">Min recoverable (no overhead)</span>
+        <span className="value">Overhead pool distribution</span>
+        <span className="value">Min rec (full cost)</span>
+        <span className="value">Revenue</span>
+        <span className="value">Net profit</span>
+      </div>
+      {rows.map((r) => {
+        const overhead = r.overhead_share ?? 0;
+        const no_overhead = (r.total_cost ?? 0) - overhead;
+        const full_cost = r.total_cost ?? 0;
+        return (
+          <div className="business-outcome-cost-buildup-row" key={r.key}>
+            <span className="label">{r.label}</span>
+            <span className="value">{formatCurrencyTruth(scale(no_overhead))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(overhead))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(full_cost))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(r.achieved_revenue ?? 0))}{suffix}</span>
+            <span className="value">{formatCurrencyTruth(scale(r.net_profit ?? 0))}{suffix}</span>
+          </div>
+        );
+      })}
+      <div className="business-outcome-cost-buildup-row header">
+        <span>Total</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.no_overhead))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.overhead))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.full_cost))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.revenue))}{suffix}</span>
+        <span className="value">{formatCurrencyTruth(scale(totals.net_profit))}{suffix}</span>
+      </div>
+    </div>
+  );
+}
 function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, requested_selection }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
@@ -657,6 +720,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
         is_materials: key === "materials",
         assumed_revenue: 0,
         assumed_net_profit: 0,
+        overhead_share: 0,
       });
     }
     return by_group_id.get(key);
@@ -666,6 +730,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
     const entry = get_or_create(row.group_id, row.group_name);
     entry.modelled_revenue += row.modelled_revenue ?? 0;
     entry.total_cost += row.true_cost ?? 0;
+    entry.overhead_share += row.overhead_share ?? 0;
     entry.assumed_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
     entry.assumed_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
     const row_rate = row.blended_rate ?? row.charge_out_rate ?? null;
@@ -684,6 +749,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
     const entry = get_or_create(m.group_id, m.group_name);
     entry.modelled_revenue += m.modelled_revenue ?? 0;
     entry.total_cost += m.true_cost ?? 0;
+    entry.overhead_share += m.overhead_share ?? 0;
     entry.assumed_revenue += m.implied_revenue ?? m.modelled_revenue ?? 0;
     entry.assumed_net_profit += m.implied_net_profit ?? m.net_profit ?? 0;
     entry.current_rate = m.current_markup_percent ?? null;
@@ -1417,6 +1483,168 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
   );
 }
 
+// View B equivalent of RealCapacityLedger above. Genuinely simpler than
+// View A's version - no special floor tag, no sign-flipped materials
+// adjustment - because View B's cascade treats all six peers (five
+// operating groups + materials) through the exact same two-phase math
+// uniformly, with no special-casing at all. Built from
+// merge_view_b_groups(view_b, "real") rather than duplicating any
+// calculation logic - naive_net_profit and total_adjustment are
+// derived client-side from fields that function already returns
+// (modelled_revenue - total_cost, and naive - final, respectively).
+function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours }) {
+  if (!view_b || !view_b.real_capacity) {
+    return <div className="ui-help">Real Capacity data is not available yet.</div>;
+  }
+
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
+  const money = (v) => `${format_currency(scale(v))}${suffix}`;
+
+  const rows = merge_view_b_groups(view_b, "real").map((e) => {
+    const naive_net_profit = e.modelled_revenue - e.total_cost;
+    const total_adjustment = naive_net_profit - e.net_profit;
+    return { ...e, naive_net_profit, total_adjustment };
+  });
+
+  const phase1_pct = ((view_b.real_capacity.phase1_factor ?? 0) * 100).toFixed(1);
+  const unassigned_total = unassigned?.total ?? 0;
+
+  const total_modelled_revenue = rows.reduce((sum, r) => sum + r.modelled_revenue, 0);
+  const total_true_cost = rows.reduce((sum, r) => sum + r.total_cost, 0);
+  const total_naive_net_profit = rows.reduce((sum, r) => sum + r.naive_net_profit, 0);
+  const total_adjustment = rows.reduce((sum, r) => sum + r.total_adjustment, 0);
+  const total_final_net_profit = rows.reduce((sum, r) => sum + r.net_profit, 0);
+  const true_total_final_net_profit = total_final_net_profit - unassigned_total;
+
+  return (
+    <div className="business-outcome-ledger">
+      <div className="ui-help">
+        Shows exactly how Real Capacity is calculated for View B - materials is a genuine sixth
+        peer here, going through the exact same two-phase cascade as every operating group, with
+        no special floor or protection. Shortfall is global (every source&apos;s combined target
+        vs real revenue), shared proportional to who can actually afford to give something up.
+      </div>
+
+      <div className="business-outcome-ledger-section-title">Starting point - before any cascade</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Modelled Revenue</span>
+          <span>True Cost</span>
+          <span>Naive Net Profit</span>
+        </div>
+        {rows.map((r) => (
+          <div className="business-outcome-ledger-row" key={r.key}>
+            <span>{r.label}</span>
+            <span>{money(r.modelled_revenue)}</span>
+            <span>{money(r.total_cost)}</span>
+            <span className={r.naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+              {money(r.naive_net_profit)}
+            </span>
+          </div>
+        ))}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total</span>
+          <span>{money(total_modelled_revenue)}</span>
+          <span>{money(total_true_cost)}</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(total_naive_net_profit)}
+          </span>
+        </div>
+      </div>
+
+      <div className="business-outcome-ledger-section-title">The cascade</div>
+      <div className="business-outcome-ledger-metrics">
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">
+            Global shortfall (all 6 sources vs real revenue)
+          </span>
+          <span className="business-outcome-ledger-metric-value">
+            {money(view_b.real_capacity.shortfall)}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Margin available to absorb it</span>
+          <span className="business-outcome-ledger-metric-value">{money(view_b.real_capacity.v0)}</span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Absorbed in Phase 1</span>
+          <span className="business-outcome-ledger-metric-value">
+            {money(view_b.real_capacity.phase1_absorbed)} ({phase1_pct}%)
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Left for Phase 2 (fallback)</span>
+          <span className="business-outcome-ledger-metric-value">{money(view_b.real_capacity.leftover)}</span>
+        </div>
+      </div>
+      {view_b.real_capacity.leftover > 0 && (
+        <div className="ui-help">
+          Every source with spare margin has now been reduced to $0 - the amount above still
+          needed gets spread across all six sources by revenue share instead.
+        </div>
+      )}
+      {(view_b.real_capacity.surplus ?? 0) > 0 && (
+        <div className="ui-help">
+          Real revenue exceeds every source&apos;s combined target by{" "}
+          {money(view_b.real_capacity.surplus)} - see the Unattributed surplus note above for
+          what this could mean.
+        </div>
+      )}
+
+      <div className="business-outcome-ledger-section-title">Final allocation</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Naive Net Profit</span>
+          <span>Adjustment</span>
+          <span>Final Net Profit</span>
+        </div>
+        {rows.map((r) => (
+          <div className="business-outcome-ledger-row" key={r.key}>
+            <span>{r.label}</span>
+            <span>{money(r.naive_net_profit)}</span>
+            <span className={r.total_adjustment > 0 ? "value-bad" : ""}>
+              {r.total_adjustment > 0 ? "-" : ""}
+              {money(r.total_adjustment)}
+            </span>
+            <span className={r.net_profit >= 0 ? "value-good" : "value-bad"}>
+              {money(r.net_profit)}
+            </span>
+          </div>
+        ))}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total (6 sources)</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(total_naive_net_profit)}
+          </span>
+          <span>{money(total_adjustment)}</span>
+          <span className={total_final_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(total_final_net_profit)}
+          </span>
+        </div>
+        {unassigned_total > 0 && (
+          <div className="business-outcome-ledger-row">
+            <span>Unassigned cost (not attributed to any source)</span>
+            <span>-</span>
+            <span>-</span>
+            <span className="value-bad">{money(-unassigned_total)}</span>
+          </div>
+        )}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total business-outcome-ledger-true-total">
+          <span>TRUE TOTAL (matches page headline)</span>
+          <span>-</span>
+          <span>-</span>
+          <span className={true_total_final_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(true_total_final_net_profit)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab }) {
   const [view_mode, set_view_mode] = useState("revenue");
   const [time_scale, set_time_scale] = useState("year");
@@ -1885,11 +2113,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
           </CollapsibleSection>
 
-          <CollapsibleSection
-            title={capacity_mode === "real" ? "How Real Capacity is calculated" : "How Assumed Capacity is calculated"}
-            defaultOpen={false}
-          >
-            {capacity_mode === "real" ? (
+          <CollapsibleSection title="View A" defaultOpen={false}>
+            <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
               <RealCapacityLedger
                 real_capacity={per_source.real_capacity}
                 materials={per_source.materials}
@@ -1897,7 +2122,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 time_scale={time_scale}
                 open_hours={per_source.net_annual_business_open_hours}
               />
-            ) : (
+            </CollapsibleSection>
+            <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
               <AssumedCapacityLedger
                 revenue_ceiling={per_source.revenue_ceiling}
                 materials={per_source.materials}
@@ -1907,19 +2133,63 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 time_scale={time_scale}
                 open_hours={per_source.net_annual_business_open_hours}
               />
-            )}
+            </CollapsibleSection>
+            <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
+              <CostBuildUpTable
+                labour_groups={per_source.labour_groups}
+                asset_groups={per_source.asset_groups}
+                materials={per_source.materials}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+                use_implied={per_source.use_implied}
+                capacity_mode="real"
+              />
+            </CollapsibleSection>
+            <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
+              <CostBuildUpTable
+                labour_groups={per_source.labour_groups}
+                asset_groups={per_source.asset_groups}
+                materials={per_source.materials}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+                use_implied={per_source.use_implied}
+                capacity_mode="assumed"
+              />
+            </CollapsibleSection>
           </CollapsibleSection>
 
-          <CollapsibleSection title="Cost build-up, by group" defaultOpen={false}>
-            <CostBuildUpTable
-              labour_groups={per_source.labour_groups}
-              asset_groups={per_source.asset_groups}
-              materials={per_source.materials}
-              time_scale={time_scale}
-              open_hours={per_source.net_annual_business_open_hours}
-              use_implied={per_source.use_implied}
-              capacity_mode={capacity_mode}
-            />
+          <CollapsibleSection title="View B" defaultOpen={false}>
+            <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
+              <ViewBRealCapacityLedger
+                view_b={per_source.view_b}
+                unassigned={per_source.unassigned}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+              />
+            </CollapsibleSection>
+            <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
+              <div className="ui-help">
+                The Assumed Capacity ledger for View B hasn&apos;t been built yet - the Cost
+                build-up (Assumed Capacity) table below already reflects Assumed Capacity
+                correctly for View B; only this detailed step-by-step trace is still outstanding.
+              </div>
+            </CollapsibleSection>
+            <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
+              <ViewBCostBuildUpTable
+                view_b={per_source.view_b}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+                capacity_mode="real"
+              />
+            </CollapsibleSection>
+            <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
+              <ViewBCostBuildUpTable
+                view_b={per_source.view_b}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+                capacity_mode="assumed"
+              />
+            </CollapsibleSection>
           </CollapsibleSection>
 
           <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
