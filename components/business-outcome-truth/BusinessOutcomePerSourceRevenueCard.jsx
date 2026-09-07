@@ -583,6 +583,11 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
                     Cost {formatCurrencyTruth(item.total_cost)} &middot; Min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
                   </div>
                 )}
+                {item.type !== "group" && item.type !== "materials" && item.total_cost !== undefined && (
+                  <div className="ui-help">
+                    Cost {formatCurrencyTruth(item.total_cost)} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"} &middot; Achieved rate {item.achieved_rate !== null && item.achieved_rate !== undefined ? `${formatCurrencyTruth(item.achieved_rate)}/hr` : "N/A"}
+                  </div>
+                )}
                 {item.available === false && <div className="ui-help">{item.unavailable_reason || "Not available"}</div>}
               </div>
               <div className="cost-summary-drill-value">
@@ -721,11 +726,17 @@ function merge_view_b_groups(view_b, capacity_mode) {
         assumed_revenue: 0,
         assumed_net_profit: 0,
         overhead_share: 0,
+        children: [],
       });
     }
     return by_group_id.get(key);
   }
 
+  // Per-row children (this session, drill-down support): each
+  // individual labour/asset source within a group, computed the same
+  // way as the group-level figures above but at the row level. Not
+  // pushed for materials - materials has no sub-sources to drill into,
+  // same convention as View A (materials never has children either).
   [...view_b.labour_sources, ...view_b.asset_sources].forEach((row) => {
     const entry = get_or_create(row.group_id, row.group_name);
     entry.modelled_revenue += row.modelled_revenue ?? 0;
@@ -742,6 +753,48 @@ function merge_view_b_groups(view_b, capacity_mode) {
     ) {
       entry.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
     }
+
+    const child_net_profit =
+      capacity_mode === "assumed"
+        ? row.implied_net_profit ?? row.net_profit ?? 0
+        : row.real_capacity_net_profit ?? row.net_profit ?? 0;
+    const child_achieved_revenue =
+      capacity_mode === "assumed"
+        ? row.implied_revenue ?? row.modelled_revenue ?? 0
+        : (row.true_cost ?? 0) + child_net_profit;
+    const child_verdict = child_net_profit >= 0 ? "paying_its_way" : "being_carried";
+    // Labour children get their own genuinely distinct, individually-
+    // set rate (e.g. Owner/Director $120/hr vs Senior Operator $75/hr -
+    // confirmed real, separately-set numbers). Asset children within a
+    // co-deployed group (e.g. a pump + its tow vehicle) share ONE
+    // blended group rate (current_rate is the same number on every
+    // asset in that group) - the rate itself is real, just shared, not
+    // independently set per asset. achieved_rate for assets is still
+    // computed per-asset (own hours, own cost-share-allocated revenue),
+    // same as labour - confirmed with user this session as an accepted
+    // basis, matching the same allocation logic already used for the
+    // group-level asset revenue split elsewhere in this codebase.
+    const is_labour_row = Boolean(row.staff_type_id);
+    const child_hours = row.hours ?? 0;
+    const child_current_rate = row.charge_out_rate ?? row.blended_rate ?? null;
+
+    entry.children.push({
+      key: row.staff_type_id || row.asset_id,
+      label: row.staff_type_name || row.asset_name,
+      net_profit: child_net_profit,
+      modelled_revenue: row.modelled_revenue ?? 0,
+      achieved_revenue: child_achieved_revenue,
+      available: row.available ?? true,
+      unavailable_reason: row.unavailable_reason ?? null,
+      verdict: child_verdict,
+      verdict_label: child_verdict === "being_carried" ? "Being carried" : "Paying its way",
+      is_labour: is_labour_row,
+      total_cost: row.true_cost ?? 0,
+      current_rate: child_current_rate,
+      minimum_recoverable_rate: row.minimum_recoverable_rate_per_hour ?? null,
+      achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+      achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+    });
   });
 
   if (view_b.materials) {
@@ -800,10 +853,23 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // only structural difference from an operating group's row. Also honors
 // the page-wide Real/Assumed capacity toggle, same as View A - this is
 // the whole point of the page (per user, this session): whichever lens
-// is active should apply everywhere, not just to View A. No drill-down
-// into individual labour/asset sources within each group yet - flat
-// list only, following the same pattern as RankedGroupsDrill if that's
-// wanted later.
+// is active should apply everywhere, not just to View A.
+//
+// DRILL-DOWN (this session): clicking a group shows its individual
+// labour/asset sources, mirroring RankedGroupsDrill's selected_key/
+// breadcrumb pattern. Materials has no children (same convention as
+// View A - materials is never drillable). Child rows show label +
+// verdict + value only, no Cost/Rate subtitle - that detail is
+// group-level only, same as View A's own children.
+//
+// KNOWN LIMITATION: the surplus-distribution hypothetical credit
+// (show_surplus_distributed below) only applies at the group level.
+// Drilling into a group while that toggle is active shows each
+// source's REAL, uncredited figures, not a proportional share of the
+// credit - building that correctly needs real design thought on how
+// to split a group-level credit across its own children, not a quick
+// bolt-on, so it is left as an honest, documented gap rather than an
+// unverified guess.
 //
 // UNATTRIBUTED SURPLUS (this session): when real revenue exceeds every
 // source's combined target, that extra money is real but its SOURCE is
@@ -821,6 +887,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // toggle stays internally consistent even in the hypothetical view.
 function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode }) {
   const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
+  const [selected_key, set_selected_key] = useState(null);
 
   if (!view_b || !view_b.real_capacity) return null;
 
@@ -862,27 +929,56 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
       : raw_entries;
 
   const metric = (e) => (view_mode === "profit" ? e.net_profit : e.achieved_revenue);
-  const total = entries.reduce((sum, e) => sum + metric(e), 0);
-  const sum_abs_total = entries.reduce((sum, e) => sum + Math.abs(metric(e)), 0);
-  const sorted = [...entries].sort((a, b) => metric(b) - metric(a));
+
+  const selected_entry = entries.find((e) => e.key === selected_key) || null;
+  const sorted_top_level = [...entries].sort((a, b) => metric(b) - metric(a));
+  const active_list = selected_entry
+    ? [...selected_entry.children].sort((a, b) => metric(b) - metric(a))
+    : sorted_top_level;
+
+  const breadcrumbs = selected_entry
+    ? [
+        { key: "root", label: "All sources" },
+        { key: selected_entry.key, label: selected_entry.label },
+      ]
+    : [{ key: "root", label: "All sources" }];
+
+  const total = active_list.reduce((sum, e) => sum + metric(e), 0);
+  const sum_abs_total = active_list.reduce((sum, e) => sum + Math.abs(metric(e)), 0);
   const being_carried_count = entries.filter((e) => e.verdict === "being_carried").length;
   const total_final_profit = entries.reduce((sum, e) => sum + e.net_profit, 0);
 
   return (
     <div className="ui-panel ui-stack-sm">
-      <div className="ui-kicker">
-        Ranked by {view_mode === "profit" ? "net profit" : "revenue"} - View B (materials shares equally) -{" "}
-        {capacity_mode === "real" ? "Real capacity" : "Assumed capacity"}
+      <div className="cost-summary-breadcrumb">
+        {breadcrumbs.map((crumb, index) => (
+          <button
+            key={crumb.key}
+            type="button"
+            className="cost-summary-breadcrumb-item"
+            onClick={() => set_selected_key(index === 0 ? null : selected_key)}
+          >
+            {crumb.label}
+          </button>
+        ))}
       </div>
-      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
-        Materials is treated as a genuine peer here, not protected - it can fall short or help carry
-        others exactly like any operating group. Your business made{" "}
-        {formatCurrencyTruth(scale(total_final_profit))} in net profit once every source&apos;s target is
-        reconciled against real revenue. {being_carried_count} of {entries.length} source
-        {entries.length === 1 ? "" : "s"}{" "}
-        {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"}.
-      </p>
-      {surplus > 0 && (
+      <div className="ui-kicker">
+        {selected_entry
+          ? `${selected_entry.label} - breakdown by ${view_mode === "profit" ? "net profit" : "revenue"}`
+          : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}{" "}
+        - View B (materials shares equally) - {capacity_mode === "real" ? "Real capacity" : "Assumed capacity"}
+      </div>
+      {!selected_entry && (
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
+          Materials is treated as a genuine peer here, not protected - it can fall short or help carry
+          others exactly like any operating group. Your business made{" "}
+          {formatCurrencyTruth(scale(total_final_profit))} in net profit once every source&apos;s target is
+          reconciled against real revenue. {being_carried_count} of {entries.length} source
+          {entries.length === 1 ? "" : "s"}{" "}
+          {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"}.
+        </p>
+      )}
+      {!selected_entry && surplus > 0 && (
         <div className="business-outcome-unassigned-block">
           <div className="business-outcome-unassigned-title">Unattributed surplus</div>
           <div className="business-outcome-unassigned-line">
@@ -919,45 +1015,51 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
           )}
         </div>
       )}
-      {sorted.map((item) => {
+      {active_list.map((item) => {
         const value = metric(item);
         const share = sum_abs_total > 0 && Math.abs(total) / sum_abs_total > 0.001 ? ((value / total) * 100).toFixed(1) : "N/A";
+        const has_children = !selected_entry && item.children && item.children.length > 0;
         return (
-          <div key={item.key} className="cost-summary-drill-row static">
+          <div
+            key={item.key}
+            className={`cost-summary-drill-row ${has_children ? "clickable" : "static"}`}
+            {...(has_children ? { onClick: () => set_selected_key(item.key), role: "button", tabIndex: 0 } : {})}
+          >
             <div className="ui-stack-sm">
               <div className="cost-summary-drill-label">{item.label}</div>
-              <div className="ui-help">
-                {item.is_materials ? (
-                  <>
-                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Min recoverable markup{" "}
-                    {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined
-                      ? formatPercentTruth(item.minimum_recoverable_rate)
-                      : "N/A"}{" "}
-                    &middot; Current markup{" "}
-                    {item.current_rate !== null && item.current_rate !== undefined
-                      ? formatPercentTruth(item.current_rate)
-                      : "N/A"}
-                  </>
-                ) : shortfall_mode === "hours" ? (
-                  <>
-                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
-                    {item.current_rate !== null && item.current_rate !== undefined
-                      ? `${formatCurrencyTruth(item.current_rate)}/hr`
-                      : "N/A"}{" "}
-                    &middot; Achieved hours{" "}
-                    {item.achieved_hours !== null ? `${item.achieved_hours.toFixed(0)} hrs` : "N/A"}
-                  </>
-                ) : (
-                  <>
-                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
-                    {item.current_rate !== null && item.current_rate !== undefined
-                      ? `${formatCurrencyTruth(item.current_rate)}/hr`
-                      : "N/A"}{" "}
-                    &middot; Achieved rate{" "}
-                    {item.achieved_rate !== null ? `${formatCurrencyTruth(item.achieved_rate)}/hr` : "N/A"}
-                  </>
-                )}
-              </div>
+                <div className="ui-help">
+                  {item.is_materials ? (
+                    <>
+                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Min recoverable markup{" "}
+                      {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined
+                        ? formatPercentTruth(item.minimum_recoverable_rate)
+                        : "N/A"}{" "}
+                      &middot; Current markup{" "}
+                      {item.current_rate !== null && item.current_rate !== undefined
+                        ? formatPercentTruth(item.current_rate)
+                        : "N/A"}
+                    </>
+                  ) : shortfall_mode === "hours" ? (
+                    <>
+                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+                      {item.current_rate !== null && item.current_rate !== undefined
+                        ? `${formatCurrencyTruth(item.current_rate)}/hr`
+                        : "N/A"}{" "}
+                      &middot; Achieved hours{" "}
+                      {item.achieved_hours !== null ? `${item.achieved_hours.toFixed(0)} hrs` : "N/A"}
+                    </>
+                  ) : (
+                    <>
+                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+                      {item.current_rate !== null && item.current_rate !== undefined
+                        ? `${formatCurrencyTruth(item.current_rate)}/hr`
+                        : "N/A"}{" "}
+                      &middot; Achieved rate{" "}
+                      {item.achieved_rate !== null ? `${formatCurrencyTruth(item.achieved_rate)}/hr` : "N/A"}
+                    </>
+                  )}
+                </div>
+              {item.available === false && <div className="ui-help">{item.unavailable_reason || "Not available"}</div>}
             </div>
             <div className="cost-summary-drill-value">
               <span className="business-outcome-drill-tags">
