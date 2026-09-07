@@ -500,7 +500,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
           const is_active = hovered_key === item.key;
           const is_muted = Boolean(hovered_key) && !is_active;
           const value = metric(item);
-          const share = total !== 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+          const share = Math.abs(total) > 0.01 ? ((value / total) * 100).toFixed(1) : "0.0";
 
           const row_class = [
             "cost-summary-drill-row",
@@ -609,7 +609,37 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
 // display toggle (view_b_shortfall_mode) picks which one to show.
 // Materials has no hours at all, so neither applies to it - it keeps
 // its own achieved-markup figure regardless of this toggle.
-function merge_view_b_groups(view_b) {
+// Groups View B's flat labour_sources/asset_sources/materials rows by
+// group_id, mirroring group_sources_by_group's rollup (cost, current
+// rate, min recoverable rate, modelled revenue), then merges in each
+// group's RECONCILED figures from whichever capacity model is active:
+//   - "real": the two-phase real-capacity cascade
+//     (view_b.real_capacity.group_real_capacity) - shortfall shared
+//     proportional to who can actually afford to give something up.
+//   - "assumed": the flat ceiling scale-down
+//     (view_b.revenue_ceiling's implied_revenue/implied_net_profit,
+//     set directly on each row) - shortfall shared evenly, same
+//     percentage cut for everyone regardless of margin. Falls back to
+//     each row's own modelled_revenue/net_profit when no breach
+//     occurred (revenue_ceiling.is_breached === false), matching the
+//     same safe-fallback convention View A's own group_sources_by_group
+//     already uses.
+// Materials included as a genuine peer throughout, same shape as every
+// operating group, with markup % standing in for $/hr rate (materials
+// has no hours to rate against, so it can't carry a $/hr figure).
+//
+// achieved_rate / achieved_hours (this session): the same shortfall can
+// be read two ways - either the rate you were actually able to charge
+// was lower than Rate Builder's stated rate (hours held fixed, since
+// staff/assets are paid/committed regardless of revenue), or the hours
+// that revenue actually covers were fewer than what was worked (rate
+// held fixed at the stated figure). Neither reading is more "correct"
+// than the other - both are genuine, so both are computed here and the
+// display toggle (view_b_shortfall_mode) picks which one to show. Both
+// are derived from whichever capacity model (real/assumed) is active.
+// Materials has no hours at all, so neither applies to it - it keeps
+// its own achieved-markup figure regardless of this toggle.
+function merge_view_b_groups(view_b, capacity_mode) {
   if (!view_b) return [];
 
   const by_group_id = new Map();
@@ -625,6 +655,8 @@ function merge_view_b_groups(view_b) {
         current_rate: null,
         minimum_recoverable_rate: null,
         is_materials: key === "materials",
+        assumed_revenue: 0,
+        assumed_net_profit: 0,
       });
     }
     return by_group_id.get(key);
@@ -634,6 +666,8 @@ function merge_view_b_groups(view_b) {
     const entry = get_or_create(row.group_id, row.group_name);
     entry.modelled_revenue += row.modelled_revenue ?? 0;
     entry.total_cost += row.true_cost ?? 0;
+    entry.assumed_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
+    entry.assumed_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
     const row_rate = row.blended_rate ?? row.charge_out_rate ?? null;
     if (entry.current_rate === null && row_rate !== null && row_rate !== undefined) entry.current_rate = row_rate;
     if (
@@ -650,6 +684,8 @@ function merge_view_b_groups(view_b) {
     const entry = get_or_create(m.group_id, m.group_name);
     entry.modelled_revenue += m.modelled_revenue ?? 0;
     entry.total_cost += m.true_cost ?? 0;
+    entry.assumed_revenue += m.implied_revenue ?? m.modelled_revenue ?? 0;
+    entry.assumed_net_profit += m.implied_net_profit ?? m.net_profit ?? 0;
     entry.current_rate = m.current_markup_percent ?? null;
     entry.minimum_recoverable_rate = m.minimum_recoverable_markup_percent ?? null;
   }
@@ -660,10 +696,16 @@ function merge_view_b_groups(view_b) {
 
   return Array.from(by_group_id.values()).map((entry) => {
     const cascade_entry = cascade_by_group_id.get(entry.key);
-    const net_profit = cascade_entry?.final_net_profit ?? entry.modelled_revenue - entry.total_cost;
-    const verdict = net_profit >= 0 ? "paying_its_way" : "being_carried";
-    const achieved_revenue = entry.total_cost + net_profit;
     const group_recovery_hours = cascade_entry?.group_recovery_hours ?? 0;
+
+    const net_profit =
+      capacity_mode === "assumed"
+        ? entry.assumed_net_profit
+        : cascade_entry?.final_net_profit ?? entry.modelled_revenue - entry.total_cost;
+    const achieved_revenue =
+      capacity_mode === "assumed" ? entry.assumed_revenue : entry.total_cost + net_profit;
+
+    const verdict = net_profit >= 0 ? "paying_its_way" : "being_carried";
 
     const achieved_rate =
       !entry.is_materials && group_recovery_hours > 0 ? achieved_revenue / group_recovery_hours : null;
@@ -677,6 +719,8 @@ function merge_view_b_groups(view_b) {
       verdict_label: verdict === "being_carried" ? "Being carried" : "Paying its way",
       achieved_rate,
       achieved_hours,
+      achieved_revenue,
+      group_recovery_hours,
     };
   });
 }
@@ -687,17 +731,73 @@ function merge_view_b_groups(view_b) {
 // percentage) so switching between View A and View B changes only the
 // underlying numbers, not the visual language. Materials' subtitle shows
 // markup % instead of $/hr, since it has no hours to rate against - the
-// only structural difference from an operating group's row. No
-// drill-down into individual labour/asset sources within each group yet
-// - flat list only, following the same pattern as RankedGroupsDrill if
-// that's wanted later.
-function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode }) {
+// only structural difference from an operating group's row. Also honors
+// the page-wide Real/Assumed capacity toggle, same as View A - this is
+// the whole point of the page (per user, this session): whichever lens
+// is active should apply everywhere, not just to View A. No drill-down
+// into individual labour/asset sources within each group yet - flat
+// list only, following the same pattern as RankedGroupsDrill if that's
+// wanted later.
+//
+// UNATTRIBUTED SURPLUS (this session): when real revenue exceeds every
+// source's combined target, that extra money is real but its SOURCE is
+// unknown - the model has no way to tell whether it came from operating
+// groups running more hours than assumed, or materials achieving a
+// higher real markup than stated. Flagged, never silently distributed,
+// same principle as the existing "Not yet assigned" costs elsewhere on
+// this page (reused CSS classes for visual consistency). An optional,
+// off-by-default toggle lets the user see a HYPOTHETICAL proportional
+// distribution (same proportional logic the shortfall cascade already
+// uses, just crediting instead of debiting) - clearly labelled as a
+// guess, never blended into the real figures silently. achieved_rate/
+// achieved_hours are recomputed under the credited figures too, using
+// each entry's own group_recovery_hours, so the Rate/Hours Shortfall
+// toggle stays internally consistent even in the hypothetical view.
+function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode }) {
+  const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
+
   if (!view_b || !view_b.real_capacity) return null;
 
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
-  const entries = merge_view_b_groups(view_b);
-  const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
+  const surplus = view_b.real_capacity.surplus ?? 0;
+  const raw_entries = merge_view_b_groups(view_b, capacity_mode);
+
+  const total_positive_profit = raw_entries.reduce(
+    (sum, e) => (e.net_profit > 0 ? sum + e.net_profit : sum),
+    0
+  );
+
+  const entries =
+    show_surplus_distributed && surplus > 0
+      ? raw_entries.map((e) => {
+          const credit =
+            total_positive_profit > 0 && e.net_profit > 0
+              ? surplus * (e.net_profit / total_positive_profit)
+              : 0;
+          const credited_net_profit = e.net_profit + credit;
+          const credited_achieved_revenue = e.achieved_revenue + credit;
+          const credited_verdict = credited_net_profit >= 0 ? "paying_its_way" : "being_carried";
+          const credited_achieved_rate =
+            !e.is_materials && e.group_recovery_hours > 0
+              ? credited_achieved_revenue / e.group_recovery_hours
+              : null;
+          const credited_achieved_hours =
+            !e.is_materials && e.current_rate > 0 ? credited_achieved_revenue / e.current_rate : null;
+          return {
+            ...e,
+            net_profit: credited_net_profit,
+            achieved_revenue: credited_achieved_revenue,
+            achieved_rate: credited_achieved_rate,
+            achieved_hours: credited_achieved_hours,
+            verdict: credited_verdict,
+            verdict_label: credited_verdict === "being_carried" ? "Being carried" : "Paying its way",
+          };
+        })
+      : raw_entries;
+
+  const metric = (e) => (view_mode === "profit" ? e.net_profit : e.achieved_revenue);
   const total = entries.reduce((sum, e) => sum + metric(e), 0);
+  const sum_abs_total = entries.reduce((sum, e) => sum + Math.abs(metric(e)), 0);
   const sorted = [...entries].sort((a, b) => metric(b) - metric(a));
   const being_carried_count = entries.filter((e) => e.verdict === "being_carried").length;
   const total_final_profit = entries.reduce((sum, e) => sum + e.net_profit, 0);
@@ -705,7 +805,8 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
   return (
     <div className="ui-panel ui-stack-sm">
       <div className="ui-kicker">
-        Ranked by {view_mode === "profit" ? "net profit" : "revenue"} - View B (materials shares equally)
+        Ranked by {view_mode === "profit" ? "net profit" : "revenue"} - View B (materials shares equally) -{" "}
+        {capacity_mode === "real" ? "Real capacity" : "Assumed capacity"}
       </div>
       <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
         Materials is treated as a genuine peer here, not protected - it can fall short or help carry
@@ -715,9 +816,46 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
         {entries.length === 1 ? "" : "s"}{" "}
         {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"}.
       </p>
+      {surplus > 0 && (
+        <div className="business-outcome-unassigned-block">
+          <div className="business-outcome-unassigned-title">Unattributed surplus</div>
+          <div className="business-outcome-unassigned-line">
+            <span>
+              Real revenue exceeds every source&apos;s combined target (labour + assets + materials)
+            </span>
+            <span className="business-outcome-unassigned-line-amount" style={{ fontSize: "1.05rem", fontWeight: 600 }}>
+              {formatCurrencyTruth(show_surplus_distributed ? 0 : scale(surplus))}
+            </span>
+          </div>
+          <div className="business-outcome-unassigned-hint">
+            This can only mean one of two things: operating groups ran more hours than the system
+            currently assumes, or materials achieved a higher real markup than the{" "}
+            {view_b.materials?.current_markup_percent ?? "?"}% stated here - most often because a
+            job was quoted with more margin on materials/cost rates than what&apos;s recorded. Not
+            distributed to any source until confirmed against real data.
+          </div>
+          <button
+            type="button"
+            className="ui-button-secondary"
+            style={{ marginTop: "0.5rem" }}
+            onClick={() => set_show_surplus_distributed(!show_surplus_distributed)}
+          >
+            {show_surplus_distributed ? "Hide hypothetical distribution" : "Show distributed anyway"}
+          </button>
+          {show_surplus_distributed && (
+            <div className="business-outcome-unassigned-hint" style={{ marginTop: "0.5rem" }}>
+              <strong>Hypothetical only</strong> - the figures below now include a proportional
+              share of the surplus, credited to each source in proportion to its own profit share,
+              the same rule the shortfall cascade uses in reverse. This is a guess about who earned
+              it, not a fact - do not treat it as confirmed until checked against real hours or
+              real materials cost data.
+            </div>
+          )}
+        </div>
+      )}
       {sorted.map((item) => {
         const value = metric(item);
-        const share = total !== 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+        const share = sum_abs_total > 0 && Math.abs(total) / sum_abs_total > 0.001 ? ((value / total) * 100).toFixed(1) : "N/A";
         return (
           <div key={item.key} className="cost-summary-drill-row static">
             <div className="ui-stack-sm">
@@ -1629,7 +1767,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </div>
 
             {view_mode_ab === "b" ? (
-              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} />
+              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} />
             ) : (
               <RankedGroupsDrill
                 headline={active_headline}
