@@ -1976,9 +1976,19 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // Real Capacity actually REVEALS more failure than Assumed Capacity
   // already showed - not simply whenever Real Capacity has any carried
   // sources at all.
+  // FIX (this session): previously always compared View A's own
+  // headline_real_capacity vs headline, regardless of which view was
+  // actually being shown - meaning the banner tone could be driven by
+  // View A's numbers while View B's headline was on screen, completely
+  // disconnected from what the user was looking at. Now uses View B's
+  // own real-vs-assumed comparison when View B is active, reusing
+  // build_view_b_headline for both capacity modes.
   const reveals_more_failure =
     capacity_mode === "real" &&
-    per_source.headline_real_capacity.being_carried_count > per_source.headline.being_carried_count;
+    (view_mode_ab === "b"
+      ? (build_view_b_headline("real")?.being_carried_count ?? 0) >
+        (build_view_b_headline("assumed")?.being_carried_count ?? 0)
+      : per_source.headline_real_capacity.being_carried_count > per_source.headline.being_carried_count);
 
   return (
     <div className="business-outcome-waterfall">
