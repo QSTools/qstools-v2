@@ -7,6 +7,8 @@ import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessSummary from "@/hooks/useBusinessSummary";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
+import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
+import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
 
 // Business Outcome - Per-Source Revenue Attribution (S26/S27/S29).
 //
@@ -29,16 +31,16 @@ import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilder
 // leak, not a diagnostic finding. Do not treat these two variances the
 // same way anywhere downstream of this hook.
 
-function to_number(value) {
+export function to_number(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function round_currency(value) {
+export function round_currency(value) {
   return Number(to_number(value).toFixed(2));
 }
 
-function verdict_for(net_profit) {
+export function verdict_for(net_profit) {
   return net_profit >= 0 ? "paying_its_way" : "being_carried";
 }
 
@@ -473,7 +475,7 @@ function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_refe
 // guarantees a group's children always sum exactly to that group's own
 // Step 1 total, at every revenue level, by the same invariant-preserving
 // math proven at the outer level.
-function group_rows_by_group_id(rows) {
+export function group_rows_by_group_id(rows) {
   const map = new Map();
   rows.forEach((row) => {
     const key = row.group_id || `ungrouped_${row.group_name}`;
@@ -603,6 +605,10 @@ export default function useBusinessOutcomePerSourceRevenue() {
   useEffect(() => {
     set_rate_builder_calculators(loadRateBuilderCalculators([]));
   }, []);
+  const [materials_markup_percent, set_materials_markup_percent] = useState(0);
+  useEffect(() => {
+    set_materials_markup_percent(readRateBuilderMaterialsMarkup().materials_markup_percent ?? 0);
+  }, []);
 
   const bs = business_summary.output_contract ?? {};
   const allocation_contract = cost_allocation.output_contract ?? {};
@@ -648,7 +654,46 @@ export default function useBusinessOutcomePerSourceRevenue() {
 
     const total_revenue_reference = to_number(bs.total_revenue);
     const total_cogs = to_number(bs.total_direct_costs ?? bs.total_cogs);
-
+    // === S26 VIEW B - "Materials shares equally" (additive, parallel to
+    // View A above; nothing above this block is read from or altered) ===
+    const view_b_labour_sources = labour_sources.map((row) => ({ ...row }));
+    const view_b_asset_sources = asset_sources.map((row) => ({ ...row }));
+    const view_b_materials_source = build_materials_source(
+      total_cogs,
+      residual_overhead,
+      materials_markup_percent
+    );
+    const view_b_ceiling = apply_revenue_ceiling_v2(
+      view_b_labour_sources,
+      view_b_asset_sources,
+      view_b_materials_source,
+      total_revenue_reference
+    );
+    const view_b_real_capacity = apply_real_capacity_v2(
+      view_b_labour_sources,
+      view_b_asset_sources,
+      view_b_materials_source,
+      total_revenue_reference
+    );
+    // Additive only (same pattern as View A's own group_recovery_hours
+    // enrichment, further below in this file): attaches each group's
+    // real recovery hours to View B's cascade output too, needed to
+    // derive an "achieved rate" or "achieved hours" figure per group -
+    // see ViewBGroupsDrill / merge_view_b_groups on the display side.
+    const view_b_recovery_hours_by_group_id = new Map(
+      operational_group_cost_rows.map((g) => [g.group_id, to_number(g.group_recovery_hours)])
+    );
+    view_b_real_capacity.group_real_capacity = view_b_real_capacity.group_real_capacity.map((g) => ({
+      ...g,
+      group_recovery_hours: view_b_recovery_hours_by_group_id.get(g.group_id) ?? 0,
+    }));
+    const view_b = {
+      labour_sources: view_b_labour_sources,
+      asset_sources: view_b_asset_sources,
+      materials: view_b_materials_source,
+      revenue_ceiling: view_b_ceiling,
+      real_capacity: view_b_real_capacity,
+    };
     // CONFIRMED (traced to source): bs.total_revenue is
     // profitAndLossCalculations.js's sum_qs_line_amounts(revenue_lines)
     // - every P&L revenue line summed together, unchanged all the way
@@ -828,8 +873,9 @@ export default function useBusinessOutcomePerSourceRevenue() {
         cost_variance,
         cost_reconciles,
       },
+      view_b,
     };
-  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract]);
+  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent]);
 
   return result;
 }

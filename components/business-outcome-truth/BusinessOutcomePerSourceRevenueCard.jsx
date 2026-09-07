@@ -579,6 +579,198 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
   );
 }
 
+// === S26 VIEW B DISPLAY - "Materials shares equally" ===
+// Deliberately NOT routed through merge_groups_by_id/RankedGroupsDrill -
+// View B's data (view_b.real_capacity.group_real_capacity) already
+// contains materials as a genuine flat peer alongside every operating
+// group, computed the same way, no bolt-on merge needed. Routing it
+// through the View A merge machinery (built specifically to bolt
+// materials on afterward) would be fighting the shape of the data
+// rather than using it. Static list only for now - no drill-down into
+// individual labour/asset sources within each group; that can be added
+// later if wanted, following the same pattern as RankedGroupsDrill.
+// Groups View B's flat labour_sources/asset_sources/materials rows by
+// group_id, mirroring group_sources_by_group's rollup (cost, current
+// rate, min recoverable rate, modelled revenue), then merges in each
+// group's RECONCILED final_net_profit from the real-capacity cascade
+// (view_b.real_capacity.group_real_capacity) - the number that actually
+// answers "does what you're charging match what you're achieving".
+// Materials included as a genuine peer, same shape as every operating
+// group, with markup % standing in for $/hr rate (materials has no
+// hours to rate against, so it can't carry a $/hr figure).
+//
+// achieved_rate / achieved_hours (this session): the same shortfall can
+// be read two ways - either the rate you were actually able to charge
+// was lower than Rate Builder's stated rate (hours held fixed, since
+// staff/assets are paid/committed regardless of revenue), or the hours
+// that revenue actually covers were fewer than what was worked (rate
+// held fixed at the stated figure). Neither reading is more "correct"
+// than the other - both are genuine, so both are computed here and the
+// display toggle (view_b_shortfall_mode) picks which one to show.
+// Materials has no hours at all, so neither applies to it - it keeps
+// its own achieved-markup figure regardless of this toggle.
+function merge_view_b_groups(view_b) {
+  if (!view_b) return [];
+
+  const by_group_id = new Map();
+
+  function get_or_create(group_id, group_name) {
+    const key = group_id || `unkeyed_${group_name}`;
+    if (!by_group_id.has(key)) {
+      by_group_id.set(key, {
+        key,
+        label: group_name,
+        modelled_revenue: 0,
+        total_cost: 0,
+        current_rate: null,
+        minimum_recoverable_rate: null,
+        is_materials: key === "materials",
+      });
+    }
+    return by_group_id.get(key);
+  }
+
+  [...view_b.labour_sources, ...view_b.asset_sources].forEach((row) => {
+    const entry = get_or_create(row.group_id, row.group_name);
+    entry.modelled_revenue += row.modelled_revenue ?? 0;
+    entry.total_cost += row.true_cost ?? 0;
+    const row_rate = row.blended_rate ?? row.charge_out_rate ?? null;
+    if (entry.current_rate === null && row_rate !== null && row_rate !== undefined) entry.current_rate = row_rate;
+    if (
+      entry.minimum_recoverable_rate === null &&
+      row.minimum_recoverable_rate_per_hour !== null &&
+      row.minimum_recoverable_rate_per_hour !== undefined
+    ) {
+      entry.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+    }
+  });
+
+  if (view_b.materials) {
+    const m = view_b.materials;
+    const entry = get_or_create(m.group_id, m.group_name);
+    entry.modelled_revenue += m.modelled_revenue ?? 0;
+    entry.total_cost += m.true_cost ?? 0;
+    entry.current_rate = m.current_markup_percent ?? null;
+    entry.minimum_recoverable_rate = m.minimum_recoverable_markup_percent ?? null;
+  }
+
+  const cascade_by_group_id = new Map(
+    (view_b.real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g])
+  );
+
+  return Array.from(by_group_id.values()).map((entry) => {
+    const cascade_entry = cascade_by_group_id.get(entry.key);
+    const net_profit = cascade_entry?.final_net_profit ?? entry.modelled_revenue - entry.total_cost;
+    const verdict = net_profit >= 0 ? "paying_its_way" : "being_carried";
+    const achieved_revenue = entry.total_cost + net_profit;
+    const group_recovery_hours = cascade_entry?.group_recovery_hours ?? 0;
+
+    const achieved_rate =
+      !entry.is_materials && group_recovery_hours > 0 ? achieved_revenue / group_recovery_hours : null;
+    const achieved_hours =
+      !entry.is_materials && entry.current_rate > 0 ? achieved_revenue / entry.current_rate : null;
+
+    return {
+      ...entry,
+      net_profit,
+      verdict,
+      verdict_label: verdict === "being_carried" ? "Being carried" : "Paying its way",
+      achieved_rate,
+      achieved_hours,
+    };
+  });
+}
+
+// === S26 VIEW B DISPLAY - "Materials shares equally" ===
+// Mirrors RankedGroupsDrill's row layout/metadata exactly (Cost / Min
+// rate / Current rate subtitle, MODELLED tag, verdict tag, revenue-share
+// percentage) so switching between View A and View B changes only the
+// underlying numbers, not the visual language. Materials' subtitle shows
+// markup % instead of $/hr, since it has no hours to rate against - the
+// only structural difference from an operating group's row. No
+// drill-down into individual labour/asset sources within each group yet
+// - flat list only, following the same pattern as RankedGroupsDrill if
+// that's wanted later.
+function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode }) {
+  if (!view_b || !view_b.real_capacity) return null;
+
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const entries = merge_view_b_groups(view_b);
+  const metric = (e) => (view_mode === "profit" ? e.net_profit : e.modelled_revenue);
+  const total = entries.reduce((sum, e) => sum + metric(e), 0);
+  const sorted = [...entries].sort((a, b) => metric(b) - metric(a));
+  const being_carried_count = entries.filter((e) => e.verdict === "being_carried").length;
+  const total_final_profit = entries.reduce((sum, e) => sum + e.net_profit, 0);
+
+  return (
+    <div className="ui-panel ui-stack-sm">
+      <div className="ui-kicker">
+        Ranked by {view_mode === "profit" ? "net profit" : "revenue"} - View B (materials shares equally)
+      </div>
+      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
+        Materials is treated as a genuine peer here, not protected - it can fall short or help carry
+        others exactly like any operating group. Your business made{" "}
+        {formatCurrencyTruth(scale(total_final_profit))} in net profit once every source&apos;s target is
+        reconciled against real revenue. {being_carried_count} of {entries.length} source
+        {entries.length === 1 ? "" : "s"}{" "}
+        {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"}.
+      </p>
+      {sorted.map((item) => {
+        const value = metric(item);
+        const share = total !== 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+        return (
+          <div key={item.key} className="cost-summary-drill-row static">
+            <div className="ui-stack-sm">
+              <div className="cost-summary-drill-label">{item.label}</div>
+              <div className="ui-help">
+                {item.is_materials ? (
+                  <>
+                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Min recoverable markup{" "}
+                    {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined
+                      ? formatPercentTruth(item.minimum_recoverable_rate)
+                      : "N/A"}{" "}
+                    &middot; Current markup{" "}
+                    {item.current_rate !== null && item.current_rate !== undefined
+                      ? formatPercentTruth(item.current_rate)
+                      : "N/A"}
+                  </>
+                ) : shortfall_mode === "hours" ? (
+                  <>
+                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+                    {item.current_rate !== null && item.current_rate !== undefined
+                      ? `${formatCurrencyTruth(item.current_rate)}/hr`
+                      : "N/A"}{" "}
+                    &middot; Achieved hours{" "}
+                    {item.achieved_hours !== null ? `${item.achieved_hours.toFixed(0)} hrs` : "N/A"}
+                  </>
+                ) : (
+                  <>
+                    Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+                    {item.current_rate !== null && item.current_rate !== undefined
+                      ? `${formatCurrencyTruth(item.current_rate)}/hr`
+                      : "N/A"}{" "}
+                    &middot; Achieved rate{" "}
+                    {item.achieved_rate !== null ? `${formatCurrencyTruth(item.achieved_rate)}/hr` : "N/A"}
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="cost-summary-drill-value">
+              <span className="business-outcome-drill-tags">
+                <ModelledTag />
+                {view_mode === "profit" && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
+              </span>
+              <div>
+                {formatCurrencyTruth(scale(value))} <span className="ui-help">({share}%)</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function formatCurrencyTruth(value) {
   if (value === null || value === undefined) return "N/A";
   const sign = value < 0 ? "-" : "";
@@ -1096,6 +1288,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // behaviour, completely untouched, one click away.
   const [capacity_mode, set_capacity_mode] = useState("real");
   const [cost_mode, set_cost_mode] = useState("absorbed");
+  const [view_mode_ab, set_view_mode_ab] = useState("a");
+  const [view_b_shortfall_mode, set_view_b_shortfall_mode] = useState("rate");
   // Source list in the headline card (this session) - always starts
   // collapsed, confirmed with user, regardless of whether anything is
   // failing. The headline sentence and its stark/normal tone already
@@ -1364,6 +1558,42 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               </button>
             </div>
 
+            <div className="business-outcome-view-toggle" aria-label="Materials model" style={{ marginTop: "0.75rem" }}>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${view_mode_ab === "a" ? "active" : ""}`}
+                onClick={() => set_view_mode_ab("a")}
+              >
+                View A (Materials protected)
+              </button>
+              <button
+                type="button"
+                className={`business-outcome-view-toggle-btn ${view_mode_ab === "b" ? "active" : ""}`}
+                onClick={() => set_view_mode_ab("b")}
+              >
+                View B (Materials shares equally)
+              </button>
+            </div>
+
+            {view_mode_ab === "b" && (
+              <div className="business-outcome-view-toggle" aria-label="Shortfall attribution" style={{ marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className={`business-outcome-view-toggle-btn ${view_b_shortfall_mode === "rate" ? "active" : ""}`}
+                  onClick={() => set_view_b_shortfall_mode("rate")}
+                >
+                  Rate Shortfall
+                </button>
+                <button
+                  type="button"
+                  className={`business-outcome-view-toggle-btn ${view_b_shortfall_mode === "hours" ? "active" : ""}`}
+                  onClick={() => set_view_b_shortfall_mode("hours")}
+                >
+                  Hours Shortfall
+                </button>
+              </div>
+            )}
+
             <div className="business-outcome-view-toggle">
               <button
                 type="button"
@@ -1398,19 +1628,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               ))}
             </div>
 
-            <RankedGroupsDrill
-              headline={active_headline}
-              labour_groups={per_source.labour_groups}
-              asset_groups={per_source.asset_groups}
-              materials={per_source.materials}
-              view_mode={view_mode}
-              time_scale={time_scale}
-              open_hours={per_source.net_annual_business_open_hours}
-              use_implied={per_source.use_implied}
-              capacity_mode={capacity_mode}
-              cost_mode={cost_mode}
-              requested_selection={requested_selection}
-            />
+            {view_mode_ab === "b" ? (
+              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} />
+            ) : (
+              <RankedGroupsDrill
+                headline={active_headline}
+                labour_groups={per_source.labour_groups}
+                asset_groups={per_source.asset_groups}
+                materials={per_source.materials}
+                view_mode={view_mode}
+                time_scale={time_scale}
+                open_hours={per_source.net_annual_business_open_hours}
+                use_implied={per_source.use_implied}
+                capacity_mode={capacity_mode}
+                cost_mode={cost_mode}
+                requested_selection={requested_selection}
+              />
+            )}
             <div className="mt-4 flex justify-end">
               <button type="button" className="ui-button-secondary" onClick={() => set_detail_open(false)}>
                 Hide
