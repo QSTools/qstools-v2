@@ -465,21 +465,10 @@ function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, capacity_mode }
     </div>
   );
 }
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, requested_selection }) {
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
-  const [selected_key, set_selected_key] = useState(null);
   const [hovered_key, set_hovered_key] = useState("");
-
-  // Synced from Card 1 (this session): clicking a source there requests
-  // this drill jump straight to that source's own breakdown. Only
-  // re-syncs when the PARENT sends a new request - never fights the
-  // user's own subsequent clicks inside this component.
-  useEffect(() => {
-    if (requested_selection) {
-      set_selected_key(requested_selection);
-    }
-  }, [requested_selection]);
 
   const entries =
     capacity_mode === "real"
@@ -885,9 +874,8 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // achieved_hours are recomputed under the credited figures too, using
 // each entry's own group_recovery_hours, so the Rate/Hours Shortfall
 // toggle stays internally consistent even in the hypothetical view.
-function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode }) {
+function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode, selected_key, set_selected_key }) {
   const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
-  const [selected_key, set_selected_key] = useState(null);
 
   if (!view_b || !view_b.real_capacity) return null;
 
@@ -1768,6 +1756,17 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   useEffect(() => {
     set_card2_view_mode_ab(view_mode_ab);
   }, [view_mode_ab]);
+  // Shared drill-down selection (this session, per user request): a
+  // single selected_key, lifted here and passed into BOTH
+  // RankedGroupsDrill and ViewBGroupsDrill, so switching View A/View B
+  // (either the master toggle or Card 2's own override) preserves
+  // which group is currently drilled into, instead of resetting - each
+  // component previously held its own separate local state, so
+  // switching unmounted one and mounted the other, losing the
+  // selection. Safe to share: both views key their groups by the same
+  // real Cost Allocation group_id (and both key materials as the
+  // literal string "materials"), confirmed before this change.
+  const [card2_selected_key, set_card2_selected_key] = useState(null);
   const [view_b_shortfall_mode, set_view_b_shortfall_mode] = useState("rate");
   // Source list in the headline card (this session) - always starts
   // collapsed, confirmed with user, regardless of whether anything is
@@ -1792,6 +1791,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   function open_source_detail(key) {
     set_breakdown_open(true);
     set_requested_selection(key);
+    set_card2_selected_key(key);
     set_detail_open(true);
   }
 
@@ -2182,7 +2182,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </div>
 
             {card2_view_mode_ab === "b" ? (
-              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} />
+              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} />
             ) : (
               <RankedGroupsDrill
                 headline={active_headline}
@@ -2195,7 +2195,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 use_implied={per_source.use_implied}
                 capacity_mode={capacity_mode}
                 cost_mode={cost_mode}
-                requested_selection={requested_selection}
+                selected_key={card2_selected_key}
+                set_selected_key={set_card2_selected_key}
               />
             )}
             <div className="mt-4 flex justify-end">
