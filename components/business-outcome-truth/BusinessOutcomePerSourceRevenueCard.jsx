@@ -501,8 +501,25 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
   const sorted_top_level = [...cost_adjusted_entries].sort((a, b) => metric(b) - metric(a));
   const selected_entry = cost_adjusted_entries.find((e) => e.key === selected_key) || null;
 
+  // FIX (this session): the top-level cost_adjusted_entries mapping
+  // above only ever touched group-level total_cost/net_profit -
+  // .children was carried through unchanged from the original
+  // (unadjusted) entries, so drilling into a group always showed full-
+  // cost figures regardless of the Full cost/Contribution margin
+  // toggle. Same adjustment now applied here, per child, using each
+  // child's own overhead_share.
   const active_list = selected_entry
-    ? [...selected_entry.children].sort((a, b) => metric(b) - metric(a))
+    ? [...selected_entry.children]
+        .map((c) =>
+          cost_mode === "contribution"
+            ? {
+                ...c,
+                total_cost: (c.total_cost ?? 0) - (c.overhead_share ?? 0),
+                net_profit: (c.net_profit ?? 0) + (c.overhead_share ?? 0),
+              }
+            : c
+        )
+        .sort((a, b) => metric(b) - metric(a))
     : sorted_top_level;
 
   const breadcrumbs = selected_entry
@@ -530,16 +547,6 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
       <div className="ui-kicker">
         {selected_entry ? `${selected_entry.label} - breakdown by ${view_mode === "profit" ? "net profit" : "revenue"}` : `Ranked by ${view_mode === "profit" ? "net profit" : "revenue"}`}
       </div>
-
-      {cost_mode === "contribution" && (
-        <div className="business-outcome-capacity-warning">
-          <strong>
-            This view excludes overhead. Do not use these figures to set prices or quotes
-            &mdash; switch to Full cost for that. Total overhead not shown per group above:{" "}
-            {formatCurrencyTruth(total_group_overhead_share)}.
-          </strong>
-        </div>
-      )}
 
       {selected_entry?.key === "materials" ? (
         <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} time_scale={time_scale} open_hours={open_hours} />
@@ -631,6 +638,16 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
           );
         })}
       </div>
+      )}
+
+      {cost_mode === "contribution" && (
+        <div className="business-outcome-capacity-warning">
+          <strong>
+            This view excludes overhead. Do not use these figures to set prices or quotes
+            &mdash; switch to Full cost for that. Total overhead not shown per group above:{" "}
+            {formatCurrencyTruth(total_group_overhead_share)}.
+          </strong>
+        </div>
       )}
     </div>
   );
@@ -783,6 +800,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
       minimum_recoverable_rate: row.minimum_recoverable_rate_per_hour ?? null,
       achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
       achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+      overhead_share: row.overhead_share ?? 0,
     });
   });
 
@@ -874,7 +892,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // achieved_hours are recomputed under the credited figures too, using
 // each entry's own group_recovery_hours, so the Rate/Hours Shortfall
 // toggle stays internally consistent even in the hypothetical view.
-function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode, selected_key, set_selected_key }) {
+function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode, selected_key, set_selected_key, cost_mode }) {
   const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
 
   if (!view_b || !view_b.real_capacity) return null;
@@ -918,10 +936,43 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
 
   const metric = (e) => (view_mode === "profit" ? e.net_profit : e.achieved_revenue);
 
-  const selected_entry = entries.find((e) => e.key === selected_key) || null;
-  const sorted_top_level = [...entries].sort((a, b) => metric(b) - metric(a));
+  // Contribution margin adjustment (S25 pattern, extended to View B
+  // this session - was never wired up here at all before, confirmed
+  // by searching the file for cost_mode and finding nothing near this
+  // function). Subtracts each source's own overhead_share from
+  // total_cost, adds it back to net_profit - pure re-attribution, same
+  // total either way, exactly matching RankedGroupsDrill's version.
+  // Unlike View A (which deliberately excludes materials, since S25
+  // was scoped to operating-group overhead only), View B includes
+  // materials too - consistent with treating it as a genuine peer
+  // everywhere else in this view. In practice this makes almost no
+  // difference, since materials' own overhead_share is confirmed
+  // near-zero (residual_overhead ~ $0), but applying the logic
+  // uniformly is more honest than special-casing it here alone.
+  const total_overhead_share = entries.reduce((sum, e) => sum + (e.overhead_share ?? 0), 0);
+  const cost_adjusted_entries =
+    cost_mode === "contribution"
+      ? entries.map((e) => ({
+          ...e,
+          total_cost: (e.total_cost ?? 0) - (e.overhead_share ?? 0),
+          net_profit: (e.net_profit ?? 0) + (e.overhead_share ?? 0),
+        }))
+      : entries;
+
+  const selected_entry = cost_adjusted_entries.find((e) => e.key === selected_key) || null;
+  const sorted_top_level = [...cost_adjusted_entries].sort((a, b) => metric(b) - metric(a));
   const active_list = selected_entry
-    ? [...selected_entry.children].sort((a, b) => metric(b) - metric(a))
+    ? [...selected_entry.children]
+        .map((c) =>
+          cost_mode === "contribution"
+            ? {
+                ...c,
+                total_cost: (c.total_cost ?? 0) - (c.overhead_share ?? 0),
+                net_profit: (c.net_profit ?? 0) + (c.overhead_share ?? 0),
+              }
+            : c
+        )
+        .sort((a, b) => metric(b) - metric(a))
     : sorted_top_level;
 
   const breadcrumbs = selected_entry
@@ -1052,6 +1103,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
             <div className="cost-summary-drill-value">
               <span className="business-outcome-drill-tags">
                 <ModelledTag />
+                {cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
                 {view_mode === "profit" && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
               </span>
               <div>
@@ -1061,6 +1113,16 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
           </div>
         );
       })}
+
+      {cost_mode === "contribution" && (
+        <div className="business-outcome-capacity-warning">
+          <strong>
+            This view excludes overhead. Do not use these figures to set prices or quotes
+            &mdash; switch to Full cost for that. Total overhead not shown above:{" "}
+            {formatCurrencyTruth(total_overhead_share)}.
+          </strong>
+        </div>
+      )}
     </div>
   );
 }
@@ -2182,7 +2244,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </div>
 
             {card2_view_mode_ab === "b" ? (
-              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} />
+              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
             ) : (
               <RankedGroupsDrill
                 headline={active_headline}
