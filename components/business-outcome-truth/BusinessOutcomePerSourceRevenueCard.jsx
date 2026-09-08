@@ -1785,7 +1785,7 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
 }
 
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab }) {
-  const [view_mode, set_view_mode] = useState("revenue");
+  const [view_mode, set_view_mode] = useState("profit"); // Default changed (this session, per user request): profit is more directly actionable for a casual owner than revenue - "who is actually making money" vs "who brings in the most money". Also surfaces the Being Carried / Paying its way verdict tags by default, since those only render in profit mode.
   const [time_scale, set_time_scale] = useState("year");
   // Defaults to "real" (Real Capacity) per product decision this session -
   // leads with the honest, cross-subsidy-aware number rather than the
@@ -2225,6 +2225,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           <div className="px-4 pb-4">
             <div className="business-outcome-utilisation-note">{per_source.disclosure_text}</div>
 
+            <CollapsibleSection title="Advanced options" defaultOpen={false}>
             <div className="business-outcome-view-toggle" aria-label="Capacity model">
               <button
                 type="button"
@@ -2301,6 +2302,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 </button>
               </div>
             )}
+            </CollapsibleSection>
 
             <div className="business-outcome-view-toggle">
               <button
