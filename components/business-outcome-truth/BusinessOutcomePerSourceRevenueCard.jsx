@@ -2320,14 +2320,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 className={`business-outcome-view-toggle-btn ${view_mode === "revenue" ? "active" : ""}`}
                 onClick={() => set_view_mode("revenue")}
               >
-                Revenue contribution
+                Revenue share
               </button>
               <button
                 type="button"
                 className={`business-outcome-view-toggle-btn ${view_mode === "profit" ? "active" : ""}`}
                 onClick={() => set_view_mode("profit")}
               >
-                Net profit contribution
+                Net profit share
               </button>
             </div>
 
