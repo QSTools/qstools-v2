@@ -2012,6 +2012,31 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
 
+
+  // Display-only rounding fix (this session): rounding each row
+  // independently for display, then summing the rounded whole-dollar
+  // figures, can drift from the headline total by $1-2 when individual
+  // values are tiny (e.g. near breakeven). Uses a largest-remainder
+  // method so the displayed rows always sum exactly to the displayed
+  // headline, without ever showing cents. This is display-only -
+  // active_headline.all_sources itself is untouched, so every other
+  // consumer of active_headline still gets precise, unrounded values.
+  const headline_display_total = Math.round(Number(active_headline.total_net_profit) || 0);
+  const display_rows = (() => {
+    const floored = (active_headline.all_sources || []).map((e) => {
+      const raw = Number(e.net_profit) || 0;
+      const floor_value = Math.floor(raw);
+      return { ...e, floor_value, remainder: raw - floor_value };
+    });
+    const floor_sum = floored.reduce((sum, e) => sum + e.floor_value, 0);
+    const deficit = Math.max(0, headline_display_total - floor_sum);
+    const sorted_by_remainder = [...floored].sort((a, b) => b.remainder - a.remainder);
+    const bump_keys = new Set(sorted_by_remainder.slice(0, deficit).map((e) => e.key || e.name));
+    return floored.map((e) => ({
+      ...e,
+      net_profit: e.floor_value + (bump_keys.has(e.key || e.name) ? 1 : 0),
+    }));
+  })();
   // Banner tone (confirmed with user): only goes starker when switching to
   // Real Capacity actually REVEALS more failure than Assumed Capacity
   // already showed - not simply whenever Real Capacity has any carried
@@ -2183,7 +2208,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
         {sources_open && (
           <div className="business-outcome-attention-list">
-            {(active_headline.all_sources || []).map((entry) => (
+            {display_rows.map((entry) => (
               <button
                 type="button"
                 className={`business-outcome-attention-row ${entry.verdict === "paying_its_way" ? "paying" : ""}`}
