@@ -1,5 +1,7 @@
 "use client";
 
+import CollapsibleSection from "@/components/common/CollapsibleSection";
+
 function format_currency(value) {
   if (value === null || value === undefined) return "N/A";
   const sign = value < 0 ? "-" : "";
@@ -107,8 +109,8 @@ export function BusinessOutcomeTruthSituationBlurb({
 
 export function BusinessOutcomeTruthAboutPanel() {
   return (
-    <div className="ui-card theme-card-muted business-outcome-help-panel">
-      <h2>About Business Outcome</h2>
+    <CollapsibleSection title="About Business Outcome" defaultOpen={false}>
+      <div className="business-outcome-help-panel">
       <p>
         Business Outcome is the current commercial truth layer. It answers whether the business is
         commercially viable right now, using real revenue, cost, and margin data - not a forecast or a
@@ -172,6 +174,7 @@ export function BusinessOutcomeTruthAboutPanel() {
         </a>
         .
       </p>
-    </div>
+      </div>
+    </CollapsibleSection>
   );
 }
