@@ -314,7 +314,7 @@ function UnassignedBlock({ unassigned, output_contract, labour_coverage_gaps }) 
           {labour_coverage_gaps.map((gap) => (
             <div className="business-outcome-coverage-gap-row" key={gap.group_id}>
               <strong>{gap.group_name}</strong> - assigned labour covers {gap.gap_hours} fewer
-              hours than this asset runs each year. This is a real scheduling gap worth weighing up in
+              hours ({gap.gap_days} days) than this asset runs each year. This is a real scheduling gap worth weighing up in
               Business Modelling - not something to fix on this page.
             </div>
           ))}

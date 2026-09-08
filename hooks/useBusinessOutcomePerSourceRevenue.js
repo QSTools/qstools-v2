@@ -855,7 +855,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
           group_id: g.group_id,
           group_name: g.group_name,
           gap_hours: round_currency(g.labour_coverage_gap_hours),
-          gap_days: opening_hours.calculated.standard_daily_open_hours > 0 ? round_currency(g.labour_coverage_gap_hours / opening_hours.calculated.standard_daily_open_hours) : 0,
+          gap_days: opening_hours.calculated.standard_daily_open_hours > 0 ? Math.round(g.labour_coverage_gap_hours / opening_hours.calculated.standard_daily_open_hours) : 0,
           message: g.labour_coverage_warning.message,
         })),
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
