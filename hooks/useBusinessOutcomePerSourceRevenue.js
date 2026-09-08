@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRecovery";
 import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessSummary from "@/hooks/useBusinessSummary";
+import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
@@ -599,6 +600,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const cost_allocation = useCostAllocation();
   const business_summary = useBusinessSummary();
+  const opening_hours = useOpeningHours();
 
   const [rate_builder_calculators, set_rate_builder_calculators] = useState([]);
 
@@ -853,6 +855,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
           group_id: g.group_id,
           group_name: g.group_name,
           gap_hours: round_currency(g.labour_coverage_gap_hours),
+          gap_days: opening_hours.calculated.standard_daily_open_hours > 0 ? round_currency(g.labour_coverage_gap_hours / opening_hours.calculated.standard_daily_open_hours) : 0,
           message: g.labour_coverage_warning.message,
         })),
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
