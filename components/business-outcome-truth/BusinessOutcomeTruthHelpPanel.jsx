@@ -131,6 +131,32 @@ export function BusinessOutcomeTruthAboutPanel() {
         over, it shows exactly which parts of the business are absorbing that shortfall, and by how much.
       </p>
       <p>
+        There are four toggle pairs on this page, tucked under &quot;Advanced options&quot; so the page stays
+        simple by default. Here&apos;s what each one changes:
+      </p>
+      <ul className="business-outcome-help-panel-list">
+        <li>
+          <strong>Real capacity / Assumed capacity</strong> &mdash; how any shortfall gets shared. Real capacity
+          shares it out based on who can afford to give something up; Assumed capacity shares it out evenly,
+          the same percentage for everyone.
+        </li>
+        <li>
+          <strong>Full cost / Contribution margin</strong> &mdash; whether overhead is included. Full cost is the
+          number to use for pricing or quoting; Contribution margin leaves overhead out, useful only for
+          comparing sources against each other.
+        </li>
+        <li>
+          <strong>View A / View B</strong> &mdash; how materials/COG is treated. View A protects materials, giving
+          it whatever&apos;s left after labour and assets are paid. View B treats materials as an equal peer,
+          sharing in both the upside and the downside like everyone else.
+        </li>
+        <li>
+          <strong>Rate Shortfall / Hours Shortfall</strong> (View B only) &mdash; two ways of describing the same
+          gap. Rate Shortfall shows it as a lower effective rate; Hours Shortfall shows it as fewer paid hours.
+          Same number, different framing &mdash; pick whichever makes more sense to your team.
+        </li>
+      </ul>
+      <p>
         <strong>In plain terms:</strong> think of it like a shared lemonade stand jar &mdash; labour and
         equipment get paid first, and materials gets whatever&apos;s left, good or bad. When that leftover
         doesn&apos;t cover what materials actually cost, the app tops it up from whichever part of the
