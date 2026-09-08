@@ -70,7 +70,7 @@ function build_situation_summary({ active_headline, capacity_mode, real_capacity
 
   if (capacity_mode === "real" && (real_capacity?.shortfall ?? 0) > 0) {
     paragraphs.push(
-      `Materials/COG can't cover its real cost from what's left over once labour and assets are paid - the ${format_currency(real_capacity.shortfall)} shortfall is being spread across the rest of the business.`
+      `Materials/COGS can't cover its real cost from what's left over once labour and assets are paid - the ${format_currency(real_capacity.shortfall)} shortfall is being spread across the rest of the business.`
     );
   } else if (capacity_mode === "assumed" && revenue_ceiling?.is_breached) {
     const scale_pct = ((revenue_ceiling.scale_factor ?? 1) * 100).toFixed(0);
@@ -129,7 +129,7 @@ export function BusinessOutcomeTruthAboutPanel() {
         <strong>Real capacity</strong> and <strong>Assumed capacity</strong> are two different, both
         mathematically honest ways of answering the same question. Assumed capacity checks whether
         committed labour and asset costs, taken together, exceed what the business actually billed. Real
-        capacity goes further: if materials/COG can&apos;t cover its own real cost from what&apos;s left
+        capacity goes further: if materials/COGS can&apos;t cover its own real cost from what&apos;s left
         over, it shows exactly which parts of the business are absorbing that shortfall, and by how much.
       </p>
       <p>
@@ -148,7 +148,7 @@ export function BusinessOutcomeTruthAboutPanel() {
           comparing sources against each other.
         </li>
         <li>
-          <strong>View A / View B</strong> &mdash; how materials/COG is treated. View A protects materials, giving
+          <strong>View A / View B</strong> &mdash; how materials/COGS is treated. View A protects materials, giving
           it whatever&apos;s left after labour and assets are paid. View B treats materials as an equal peer,
           sharing in both the upside and the downside like everyone else.
         </li>

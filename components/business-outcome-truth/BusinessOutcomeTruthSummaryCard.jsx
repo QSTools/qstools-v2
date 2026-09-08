@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 function formatCurrency(value) {
   if (value === null || value === undefined) return "N/A";
@@ -66,7 +66,7 @@ export default function BusinessOutcomeTruthSummaryCard({ output_contract }) {
       <div>
         <div className="business-outcome-truth-summary-section-title">Revenue &amp; Margin</div>
         <FieldRow label="Total Revenue" field={total_revenue} />
-        <FieldRow label="Total COG" field={total_COG} />
+        <FieldRow label="Total COGS" field={total_COG} />
         <FieldRow label="Gross Profit" field={gross_profit} />
         <FieldRow
           label="Gross Margin %"

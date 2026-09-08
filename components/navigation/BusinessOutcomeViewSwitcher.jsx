@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -7,7 +7,7 @@ const views = [
   {
     href: "/business-outcome",
     label: "Business Outcome",
-    description: "Is the business commercially viable? (revenue, COG, margin, cost burden)",
+    description: "Is the business commercially viable? (revenue, COGS, margin, cost burden)",
   },
   {
     href: "/recovery-outcome",

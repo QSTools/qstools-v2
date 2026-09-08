@@ -404,7 +404,7 @@ function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, 
 }
 // View B equivalent of CostBuildUpTable above. Unlike View A's table -
 // which deliberately excludes materials, per S25's original brief
-// ("Materials/COG NOT included - overhead distribution is
+// ("Materials/COGS NOT included - overhead distribution is
 // operating-group-specific") - View B's table genuinely includes
 // materials as a sixth row, since that is the entire premise of View
 // B: materials is a real peer, not a special case. Uses
@@ -477,7 +477,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
 
   // S25: contribution-margin lens - overhead_share removed from each
   // group cost, added back to net_profit (pure re-attribution, same
-  // totals). Materials/COG is excluded - S25 concerns operating-group
+  // totals). Materials/COGS is excluded - S25 concerns operating-group
   // overhead only.
   const total_group_overhead_share = entries.reduce(
     (sum, e) => sum + (e.type === "group" ? (e.overhead_share ?? 0) : 0),
@@ -1177,7 +1177,7 @@ function TraditionalViabilityView({ output_contract }) {
       <div>
         <div className="business-outcome-truth-summary-section-title">Revenue &amp; Margin</div>
         <TruthFieldRow label="Total Revenue" field={total_revenue} />
-        <TruthFieldRow label="Total COG" field={total_COG} />
+        <TruthFieldRow label="Total COGS" field={total_COG} />
         <TruthFieldRow label="Gross Profit" field={gross_profit} />
         <TruthFieldRow
           label="Gross Margin %"
@@ -1302,7 +1302,7 @@ function AssumedCapacityLedger({
           </div>
         ))}
         <div className="business-outcome-ledger-row">
-          <span>Materials / COG</span>
+          <span>Materials / COGS</span>
           <span>{money(materials.real_capacity_naive_revenue)}</span>
           <span>{money(materials.true_cost)}</span>
           <span className={materials_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
@@ -1384,7 +1384,7 @@ function AssumedCapacityLedger({
         ))}
         <div className="business-outcome-ledger-row">
           <span>
-            Materials / COG
+            Materials / COGS
             {materials.is_floored && (
               <span className="business-outcome-ledger-zero-tag">floored at $0 revenue</span>
             )}
@@ -1498,7 +1498,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
           </div>
         ))}
         <div className="business-outcome-ledger-row">
-          <span>Materials / COG</span>
+          <span>Materials / COGS</span>
           <span>{money(materials.real_capacity_naive_revenue)}</span>
           <span>{money(materials.true_cost)}</span>
           <span className={materials_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
@@ -1577,7 +1577,7 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
         })}
         <div className="business-outcome-ledger-row">
           <span>
-            Materials / COG
+            Materials / COGS
             {materials.real_capacity_net_profit === 0 && (
               <span className="business-outcome-ledger-zero-tag">floored at $0</span>
             )}
@@ -1884,7 +1884,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
     const materials_entry = {
       key: "materials",
-      name: "Materials / COG",
+      name: "Materials / COGS",
       net_profit: materials_naive_net_profit,
       modelled_revenue: materials?.real_capacity_naive_revenue ?? 0,
       verdict: materials_naive_net_profit >= 0 ? "paying_its_way" : "being_carried",
@@ -2286,7 +2286,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               </button>
             </div>
               <p className="business-outcome-view-toggle-hint">
-                <strong>View A (Materials protected)</strong> treats materials/COG as a residual &mdash; labour and assets get paid first, and materials gets whatever&apos;s left over. <strong>View B (Materials shares equally)</strong> treats materials as a genuine peer, sharing in both the upside and any shortfall the same way every operating group does.
+                <strong>View A (Materials protected)</strong> treats materials/COGS as a residual &mdash; labour and assets get paid first, and materials gets whatever&apos;s left over. <strong>View B (Materials shares equally)</strong> treats materials as a genuine peer, sharing in both the upside and any shortfall the same way every operating group does.
               </p>
 
             {card2_view_mode_ab === "b" && (
