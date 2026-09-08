@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 function format_currency(value) {
   if (value === null || value === undefined) return "N/A";
@@ -130,6 +130,15 @@ export function BusinessOutcomeTruthAboutPanel() {
         capacity goes further: if materials/COG can&apos;t cover its own real cost from what&apos;s left
         over, it shows exactly which parts of the business are absorbing that shortfall, and by how much.
       </p>
+      <p>
+        <strong>In plain terms:</strong> think of it like a shared lemonade stand jar &mdash; labour and
+        equipment get paid first, and materials gets whatever&apos;s left, good or bad. When that leftover
+        doesn&apos;t cover what materials actually cost, the app tops it up from whichever part of the
+        business made the most money that period. It&apos;s not picking on that source &mdash; the numbers
+        you see everywhere on this page already include that top-up, so they show who&apos;s really
+        carrying the business right now.
+      </p>
+
       <p>
         For a view of what rate you need to charge based on labour and asset recovery, see{" "}
         <a href="/recovery-outcome" className="underline">

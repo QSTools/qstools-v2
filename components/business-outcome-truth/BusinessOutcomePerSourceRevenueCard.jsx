@@ -2265,7 +2265,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 Contribution margin (no overhead)
               </button>
             </div>
-
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+                <strong>Full cost (with overhead)</strong> includes each source&apos;s share of overhead &mdash; use this for pricing or quoting. <strong>Contribution margin (no overhead)</strong>{" "}shows what&apos;s left after direct cost only, before overhead is spread &mdash; useful for comparing sources, never for setting a price.
+              </p>
 
             <div className="business-outcome-view-toggle" aria-label="Materials model (Card 2 override)" style={{ marginTop: "0.75rem" }}>
               <button
@@ -2283,8 +2285,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 View B (Materials shares equally)
               </button>
             </div>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+                <strong>View A (Materials protected)</strong> treats materials/COG as a residual &mdash; labour and assets get paid first, and materials gets whatever&apos;s left over. <strong>View B (Materials shares equally)</strong> treats materials as a genuine peer, sharing in both the upside and any shortfall the same way every operating group does.
+              </p>
 
             {card2_view_mode_ab === "b" && (
+              <>
               <div className="business-outcome-view-toggle" aria-label="Shortfall attribution" style={{ marginTop: "0.5rem" }}>
                 <button
                   type="button"
@@ -2301,6 +2307,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   Hours Shortfall
                 </button>
               </div>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+                  <strong>Rate Shortfall</strong> and <strong>Hours Shortfall</strong>{" "}show the same gap two different ways. Rate Shortfall asks: given the hours actually worked, what rate did we effectively get paid? Hours Shortfall asks: given our normal rate, how many hours&apos; worth of revenue did we actually bring in? Pick whichever your team finds clearer.
+                </p>
+              </>
             )}
             </CollapsibleSection>
 
