@@ -2242,10 +2242,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 Assumed capacity
               </button>
             </div>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
-              <strong style={{ color: "var(--text-primary)" }}>Real capacity</strong> shares any shortfall out
+            <p className="business-outcome-view-toggle-hint">
+              <strong>Real capacity</strong> shares any shortfall out
               fairly, based on who can actually afford to give something up.
-              <strong style={{ color: "var(--text-primary)" }}> Assumed capacity</strong> shares any shortfall
+              <strong> Assumed capacity</strong> shares any shortfall
               out evenly, the same percentage for everyone, regardless of how much margin they have.
             </p>
 
@@ -2265,7 +2265,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 Contribution margin (no overhead)
               </button>
             </div>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+              <p className="business-outcome-view-toggle-hint">
                 <strong>Full cost (with overhead)</strong> includes each source&apos;s share of overhead &mdash; use this for pricing or quoting. <strong>Contribution margin (no overhead)</strong>{" "}shows what&apos;s left after direct cost only, before overhead is spread &mdash; useful for comparing sources, never for setting a price.
               </p>
 
@@ -2285,7 +2285,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 View B (Materials shares equally)
               </button>
             </div>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+              <p className="business-outcome-view-toggle-hint">
                 <strong>View A (Materials protected)</strong> treats materials/COG as a residual &mdash; labour and assets get paid first, and materials gets whatever&apos;s left over. <strong>View B (Materials shares equally)</strong> treats materials as a genuine peer, sharing in both the upside and any shortfall the same way every operating group does.
               </p>
 
@@ -2307,7 +2307,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   Hours Shortfall
                 </button>
               </div>
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "0.5rem 0 0", lineHeight: "1.5" }}>
+                <p className="business-outcome-view-toggle-hint">
                   <strong>Rate Shortfall</strong> and <strong>Hours Shortfall</strong>{" "}show the same gap two different ways. Rate Shortfall asks: given the hours actually worked, what rate did we effectively get paid? Hours Shortfall asks: given our normal rate, how many hours&apos; worth of revenue did we actually bring in? Pick whichever your team finds clearer.
                 </p>
               </>
