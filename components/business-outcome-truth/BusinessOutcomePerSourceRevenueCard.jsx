@@ -1961,7 +1961,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     };
   }
 
-  const active_headline =
+  const raw_active_headline =
     view_mode_ab === "b"
       ? build_view_b_headline(capacity_mode === "assumed" ? "assumed" : "real")
       : capacity_mode === "real"
@@ -1969,6 +1969,45 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           ? build_naive_headline()
           : per_source.headline_real_capacity
         : per_source.headline;
+
+  // Unassigned cost as a genuine "blocking flag" row (this session,
+  // per user request): real cost, real money, not attributed to any
+  // source above - previously invisible in this list even though the
+  // headline total already correctly subtracts it. Shown here as a
+  // 7th entry, always verdict "being_carried" (it can never be
+  // positive - it is pure cost with no revenue attached), counted in
+  // the being_carried total so "X of Y sources aren't paying their
+  // way" honestly reflects it as a real, current problem, not just
+  // informational. Applied here (after active_headline is otherwise
+  // finalized) so every mode - naive, real, assumed, View A, View B -
+  // gets this consistently without duplicating the logic per branch.
+  // The math checks out: total_net_profit already equals
+  // sum(6 sources) - unassigned_total, so adding a 7th row valued at
+  // -unassigned_total makes the full 7-row list sum to exactly
+  // total_net_profit - the list is now genuinely transparent, not
+  // just the headline total.
+  const unassigned_total = per_source.unassigned?.total ?? 0;
+  const active_headline =
+    unassigned_total > 0 && raw_active_headline
+      ? (() => {
+          const unassigned_entry = {
+            key: "unassigned",
+            name: "Unassigned cost (not attributed to any source)",
+            net_profit: -unassigned_total,
+            modelled_revenue: 0,
+            verdict: "being_carried",
+            type: "unassigned",
+          };
+          return {
+            ...raw_active_headline,
+            all_sources: [...(raw_active_headline.all_sources || []), unassigned_entry],
+            total_group_count: (raw_active_headline.total_group_count ?? 0) + 1,
+            being_carried_count: (raw_active_headline.being_carried_count ?? 0) + 1,
+            being_carried: [...(raw_active_headline.being_carried || []), unassigned_entry],
+            all_good: false,
+          };
+        })()
+      : raw_active_headline;
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
@@ -1990,6 +2029,25 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       ? (build_view_b_headline("real")?.being_carried_count ?? 0) >
         (build_view_b_headline("assumed")?.being_carried_count ?? 0)
       : per_source.headline_real_capacity.being_carried_count > per_source.headline.being_carried_count);
+
+  // Breakeven revenue (this session, per user request - a CFO/analyst
+  // essential the page was missing). Purely a function of real cost,
+  // which is identical in View A and View B - neither view touches
+  // any actual cost figure, only how modelled revenue gets attributed
+  // across sources - so this is ONE number, not computed per view.
+  // Genuinely independent of Business Modelling's own breakeven/lever
+  // calculations (buildBreakevenSummary in
+  // lib/selectors/businessModellingLeverSelectors.js answers a
+  // different question - "are stated rates/targets sufficient in
+  // principle" - not "what real revenue level actually zeroes real
+  // profit"). Verified against the real, previously-confirmed
+  // $1,869,724 figure from earlier in this project's history.
+  const breakeven_revenue = per_source.reconciliation?.total_true_cost ?? null;
+  const real_total_revenue = per_source.materials?.build_up?.total_pnl_revenue ?? null;
+  const breakeven_gap =
+    breakeven_revenue !== null && real_total_revenue !== null
+      ? breakeven_revenue - real_total_revenue
+      : null;
 
   return (
     <div className="business-outcome-waterfall">
@@ -2036,6 +2094,44 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 {carried_count} of {total_source_count}
               </span>{" "}
               {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+            </>
+          )}
+        </div>
+
+        <div className="ui-help" style={{ margin: "0.5rem 0" }}>
+          Breakeven revenue:{" "}
+          <strong>
+            {breakeven_revenue !== null
+              ? format_currency(
+                  scaleAnnualValue(breakeven_revenue, time_scale, null, per_source.net_annual_business_open_hours)
+                )
+              : "N/A"}
+            {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
+          </strong>
+          {breakeven_gap !== null && (
+            <>
+              {" "}&middot;{" "}
+              {breakeven_gap > 0 ? (
+                <>
+                  Needs{" "}
+                  <strong className="value-bad">
+                    {format_currency(
+                      scaleAnnualValue(breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+                    )}
+                  </strong>{" "}
+                  more revenue to break even
+                </>
+              ) : (
+                <>
+                  Currently{" "}
+                  <strong className="value-good">
+                    {format_currency(
+                      scaleAnnualValue(-breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+                    )}
+                  </strong>{" "}
+                  above breakeven
+                </>
+              )}
             </>
           )}
         </div>
