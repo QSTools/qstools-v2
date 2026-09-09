@@ -5,7 +5,6 @@ import {
   calculateIndependentMaterialsBreakeven,
 } from "@/lib/calculations/businessModellingIndependentCalculations";
 import ScrollToSectionLink from "@/components/common/ScrollToSectionLink";
-import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 
 function format_currency(value) {
   if (value === null || value === undefined) return "N/A";
@@ -31,10 +30,27 @@ function build_situation_summary({
   real_capacity,
   revenue_ceiling,
   labour_coverage_gaps,
+  breakeven_revenue,
 }) {
   const paragraphs = [];
 
   if (!active_headline) return paragraphs;
+
+  // Breakeven revenue - always shown first, regardless of business
+  // health, since it's the single most useful standalone number on
+  // this page (confirmed with user) - the exact revenue level that
+  // covers real cost, no more, no less. Full comparison against actual
+  // (P&L) and modelled (rates x volumes) revenue lives in the Revenue
+  // Snapshot panel below, kept out of the blurb itself to avoid
+  // cluttering it with a full table - this is a "click to see the
+  // numbers" pattern matching the Revenue Claim Test link below.
+  if (Number.isFinite(Number(breakeven_revenue))) {
+    paragraphs.push([
+      { type: "text", text: `Your breakeven revenue is ${format_currency(breakeven_revenue)} a year - the exact amount that covers your real cost, no more, no less. ` },
+      { type: "link", label: "The Revenue Snapshot", target_id: "revenue-snapshot-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+      { type: "text", text: " panel below compares that to what you're actually trading at and what your rates and volumes independently predict." },
+    ]);
+  }
 
   let worst = null;
   let options_added = false;
@@ -189,8 +205,6 @@ export function BusinessOutcomeTruthSituationBlurb({
   real_capacity,
   revenue_ceiling,
   labour_coverage_gaps,
-  pnl_revenue,
-  modelled_revenue,
   breakeven_revenue,
 }) {
   const summary_paragraphs = build_situation_summary({
@@ -199,6 +213,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     real_capacity,
     revenue_ceiling,
     labour_coverage_gaps,
+    breakeven_revenue,
   });
 
   if (summary_paragraphs.length === 0) return null;
@@ -206,11 +221,6 @@ export function BusinessOutcomeTruthSituationBlurb({
   return (
     <div className="ui-card theme-card-muted business-outcome-help-panel">
       <h2>Your business, right now</h2>
-      <BusinessOutcomeRevenueSnapshotTable
-        pnl_revenue={pnl_revenue}
-        modelled_revenue={modelled_revenue}
-        breakeven_revenue={breakeven_revenue}
-      />
       {summary_paragraphs.map((paragraph, index) => (
         <p key={index}>
           {Array.isArray(paragraph)

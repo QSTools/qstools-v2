@@ -14,6 +14,7 @@ import { BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-tr
 import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcome-truth/BusinessOutcomeTruthSituationSummary";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
+import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 
 function format_currency(value) {
   const n = Number(value);
@@ -2411,6 +2412,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
             </CollapsibleSection>
 
+            <CollapsibleSection id="revenue-snapshot-panel" title="Revenue Snapshot" defaultOpen={false}>
+              <BusinessOutcomeRevenueSnapshotTable
+                pnl_revenue={real_total_revenue}
+                modelled_revenue={per_source.headline_real_capacity?.independent_modelled_revenue}
+                breakeven_revenue={breakeven_revenue}
+              />
+            </CollapsibleSection>
+
             <CollapsibleSection id="independent-breakeven-panel" title="Independent Breakeven & Revenue Claim Test" defaultOpen={false}>
               <BusinessOutcomeIndependentBreakevenLedger
                 materials={per_source.real_capacity?.materials}
@@ -2533,8 +2542,6 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
         labour_coverage_gaps={active_headline.labour_coverage_gaps}
-        pnl_revenue={real_total_revenue}
-        modelled_revenue={per_source.headline_real_capacity?.independent_modelled_revenue}
         breakeven_revenue={breakeven_revenue}
       />
 
