@@ -2544,6 +2544,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         labour_coverage_gaps={active_headline.labour_coverage_gaps}
         pnl_revenue={real_total_revenue}
         breakeven_revenue={breakeven_revenue}
+        labour_recovery_summary={labour_recovery}
       />
 
       <BusinessOutcomeTruthAboutPanel />

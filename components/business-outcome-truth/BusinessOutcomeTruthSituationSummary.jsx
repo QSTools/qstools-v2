@@ -32,6 +32,7 @@ function build_situation_summary({
   labour_coverage_gaps,
   pnl_revenue,
   breakeven_revenue,
+  labour_recovery_summary,
 }) {
   const paragraphs = [];
 
@@ -91,11 +92,83 @@ function build_situation_summary({
   // per hour (labour + allocated overhead) against its saved
   // charge-out rate, showing whether that rate actually covers the
   // cost - a rate-setting question, not a whole-group one.
-  paragraphs.push([
+  const labour_recovery_paragraph_segments = [
     { type: "text", text: "The " },
     { type: "link", label: "Labour recovery, by source table", target_id: "labour-recovery-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
     { type: "text", text: " below compares each labour type's true cost per hour against its saved charge-out rate, showing whether that rate actually covers the cost." },
-  ]);
+  ];
+
+  // Labour recovery results - situation-dependent (confirmed with
+  // user): names the weakest source if there's a shortfall, but
+  // also always states the overall weighted markup % (colour-coded
+  // green/red, confirmed with user) regardless of good or bad -
+  // previously this was only shown in the "all good" branch, dropped
+  // entirely in the shortfall branch, which is exactly the situation
+  // where the overall number matters most. Appended to the SAME
+  // paragraph as the table explanation above rather than pushed as
+  // its own paragraph, so there's no visual gap between them.
+  if (labour_recovery_summary && labour_recovery_summary.data_status === "ready") {
+    const {
+      shortfall_row_count = 0,
+      not_ready_row_count = 0,
+      weakest_contribution_area,
+      strongest_contribution_area,
+      weighted_summary: labour_weighted_summary,
+    } = labour_recovery_summary;
+
+    const weakest = weakest_contribution_area?.value;
+    const strongest = strongest_contribution_area?.value;
+    const markup_percent = labour_weighted_summary?.weighted_markup_percent;
+    const has_markup = Number.isFinite(markup_percent);
+    const markup_class = has_markup ? (markup_percent >= 0 ? "value-good" : "value-bad") : "";
+
+    if (shortfall_row_count > 0) {
+      if (weakest) {
+        labour_recovery_paragraph_segments.push({
+          type: "text",
+          text: ` ${weakest.labour_source_type_name} is under-recovering by ${format_currency(Math.abs(weakest.rate_gap))}/hr - worth reviewing that rate.`,
+        });
+      } else {
+        labour_recovery_paragraph_segments.push({
+          type: "text",
+          text: ` ${shortfall_row_count} labour source${shortfall_row_count === 1 ? "" : "s"} aren't recovering their true cost.`,
+        });
+      }
+
+      if (has_markup) {
+        labour_recovery_paragraph_segments.push({ type: "text", text: " Overall labour markup is currently " });
+        labour_recovery_paragraph_segments.push({ type: "text", text: `${markup_percent}%`, class: markup_class });
+        labour_recovery_paragraph_segments.push({ type: "text", text: "." });
+      }
+
+      if (strongest && weakest && strongest.labour_source_type_name !== weakest.labour_source_type_name) {
+        labour_recovery_paragraph_segments.push({
+          type: "text",
+          text: ` ${strongest.labour_source_type_name} is still recovering well, at +${format_currency(strongest.rate_gap)}/hr.`,
+        });
+      }
+    } else if (strongest) {
+      labour_recovery_paragraph_segments.push({ type: "text", text: " Every labour source is recovering its true cost" });
+      if (has_markup) {
+        labour_recovery_paragraph_segments.push({ type: "text", text: ", at an overall labour markup of " });
+        labour_recovery_paragraph_segments.push({ type: "text", text: `${markup_percent}%`, class: markup_class });
+      }
+      labour_recovery_paragraph_segments.push({
+        type: "text",
+        text: ` - ${strongest.labour_source_type_name} has the strongest margin, at +${format_currency(strongest.rate_gap)}/hr.`,
+      });
+    }
+
+    if (not_ready_row_count > 0) {
+      labour_recovery_paragraph_segments.push({
+        type: "text",
+        text: ` ${not_ready_row_count} labour source${not_ready_row_count === 1 ? " has" : "s have"} no saved charge-out rate yet, so ${not_ready_row_count === 1 ? "it" : "they"} can't be checked.`,
+      });
+    }
+  }
+
+  paragraphs.push(labour_recovery_paragraph_segments);
+
 
   let worst = null;
   let options_added = false;
@@ -252,6 +325,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   labour_coverage_gaps,
   pnl_revenue,
   breakeven_revenue,
+  labour_recovery_summary,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -261,6 +335,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     labour_coverage_gaps,
     pnl_revenue,
     breakeven_revenue,
+    labour_recovery_summary,
   });
 
   if (summary_paragraphs.length === 0) return null;
@@ -281,7 +356,7 @@ export function BusinessOutcomeTruthSituationBlurb({
                     pre_toggle_labels={segment.pre_toggle_labels || []}
                   />
                 ) : (
-                  <span key={seg_index}>{segment.text}</span>
+                  <span key={seg_index} className={segment.class || undefined}>{segment.text}</span>
                 )
               )
             : paragraph}
