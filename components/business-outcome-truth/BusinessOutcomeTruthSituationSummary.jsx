@@ -86,6 +86,17 @@ function build_situation_summary({
     ]);
   }
 
+  // Labour recovery, by source - a different lens than group-level
+  // breakeven: this compares each individual labour TYPE's true cost
+  // per hour (labour + allocated overhead) against its saved
+  // charge-out rate, showing whether that rate actually covers the
+  // cost - a rate-setting question, not a whole-group one.
+  paragraphs.push([
+    { type: "text", text: "The " },
+    { type: "link", label: "Labour recovery, by source table", target_id: "labour-recovery-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+    { type: "text", text: " below compares each labour type's true cost per hour against its saved charge-out rate, showing whether that rate actually covers the cost." },
+  ]);
+
   let worst = null;
   let options_added = false;
 

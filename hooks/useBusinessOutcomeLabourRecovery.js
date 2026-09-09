@@ -65,6 +65,14 @@ function build_labour_recovery_rows(
     return {
       labour_source_type_id,
       labour_source_type_name: staff_type.staff_type_name,
+      // NEW (this session, per user request): labour cost and overhead
+      // were always computed separately here but only their sum
+      // (true_cost_per_hour) was ever returned - exposing both so the
+      // display can show a build-up (Labour cost + Overhead = True
+      // cost) instead of a single opaque figure, making the effect of
+      // allocated overhead on margin visible.
+      labour_cost_per_hour: round_currency(labour_cost_rate),
+      overhead_per_hour: round_currency(overhead_rate),
       true_cost_per_hour: round_currency(true_cost_per_hour),
       charge_out_rate: round_currency(charge_out_rate),
       productive_hours,
@@ -88,6 +96,26 @@ function build_weighted_summary(labour_recovery_rows = []) {
     (sum, row) => sum + to_number(row.productive_hours),
     0
   );
+
+  const weighted_labour_cost_per_hour =
+    total_hours > 0
+      ? round_currency(
+          labour_recovery_rows.reduce(
+            (sum, row) => sum + row.labour_cost_per_hour * to_number(row.productive_hours),
+            0
+          ) / total_hours
+        )
+      : 0;
+
+  const weighted_overhead_per_hour =
+    total_hours > 0
+      ? round_currency(
+          labour_recovery_rows.reduce(
+            (sum, row) => sum + row.overhead_per_hour * to_number(row.productive_hours),
+            0
+          ) / total_hours
+        )
+      : 0;
 
   const weighted_true_cost_per_hour =
     total_hours > 0
@@ -119,10 +147,22 @@ function build_weighted_summary(labour_recovery_rows = []) {
         )
       : 0;
 
+  // Markup % - profit over true cost (standard markup definition,
+  // distinct from margin over charged rate) - added this session per
+  // user request to state the overall labour markup explicitly rather
+  // than leaving the reader to work it out from the two $/hr figures.
+  const weighted_markup_percent =
+    weighted_true_cost_per_hour > 0
+      ? round_currency((weighted_profit_per_hour / weighted_true_cost_per_hour) * 100)
+      : 0;
+
   return {
+    weighted_labour_cost_per_hour,
+    weighted_overhead_per_hour,
     weighted_true_cost_per_hour,
     weighted_charge_out_rate,
     weighted_profit_per_hour,
+    weighted_markup_percent,
     hours_covered_by_saved_rate: hours_with_rate,
     total_hours,
     rate_coverage_percent:
@@ -211,7 +251,3 @@ export default function useBusinessOutcomeLabourRecovery() {
     data_status: labour_recovery_rows.length > 0 ? "ready" : "no_labour_sources",
   };
 }
-
-
-
-

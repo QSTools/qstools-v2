@@ -2430,7 +2430,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               />
             </CollapsibleSection>
 
-            <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
+            <CollapsibleSection id="labour-recovery-panel" title="Labour recovery, by source" defaultOpen={false}>
               <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
             </CollapsibleSection>
 
