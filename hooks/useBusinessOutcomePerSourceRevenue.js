@@ -765,10 +765,25 @@ export default function useBusinessOutcomePerSourceRevenue() {
     materials.real_capacity_naive_revenue = real_capacity.materials_real_capacity_naive_revenue;
     materials.real_capacity_verdict = real_capacity.materials_real_capacity_verdict;
 
+    // FIX (confirmed live this session): materials.revenue is a
+    // View-A leftover (total_revenue_reference - labour - assets),
+    // which made total_modelled_revenue below a pure algebraic
+    // identity always equal to total_revenue_reference, no matter
+    // what rates/hours actually were - confirmed by testing at two
+    // different P&L revenue levels and getting an exact match both
+    // times. Genuinely independent materials revenue instead uses
+    // Rate Builder's own stored markup against real COGS, same
+    // formula already used and tested for View B's materials source
+    // (lib/calculations/businessOutcomeViewBCalculations.js
+    // build_materials_source) - zero reference to total_revenue_reference.
+    const materials_independent_revenue = round_currency(
+      total_cogs * (1 + materials_markup_percent / 100)
+    );
+
     const total_modelled_revenue =
       labour_sources.reduce((sum, row) => sum + to_number(row.modelled_revenue), 0) +
       asset_sources.reduce((sum, row) => sum + to_number(row.modelled_revenue), 0) +
-      materials.revenue;
+      materials_independent_revenue;
 
     const total_true_cost =
       labour_sources.reduce((sum, row) => sum + to_number(row.true_cost), 0) +
@@ -885,9 +900,6 @@ export default function useBusinessOutcomePerSourceRevenue() {
 
   return result;
 }
-
-
-
 
 
 

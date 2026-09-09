@@ -2533,6 +2533,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
         labour_coverage_gaps={active_headline.labour_coverage_gaps}
+        pnl_revenue={real_total_revenue}
+        modelled_revenue={per_source.headline_real_capacity?.independent_modelled_revenue}
+        breakeven_revenue={breakeven_revenue}
       />
 
       <BusinessOutcomeTruthAboutPanel />

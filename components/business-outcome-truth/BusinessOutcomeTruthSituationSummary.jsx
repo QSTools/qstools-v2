@@ -5,6 +5,7 @@ import {
   calculateIndependentMaterialsBreakeven,
 } from "@/lib/calculations/businessModellingIndependentCalculations";
 import ScrollToSectionLink from "@/components/common/ScrollToSectionLink";
+import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 
 function format_currency(value) {
   if (value === null || value === undefined) return "N/A";
@@ -120,10 +121,20 @@ function build_situation_summary({
     materials: real_capacity?.materials,
   });
   if (materials_breakeven.available) {
-    if (materials_breakeven.is_at_or_above_breakeven) {
-      paragraphs.push(
-        `Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS still comes out marked up at ${materials_breakeven.current_markup_percent.toFixed(0)}%, earning ${format_currency(materials_breakeven.current_net_profit)} a year - Labour and Assets aren't claiming more than the business can currently support.`
-      );
+    const rounded_markup = Math.round(materials_breakeven.current_markup_percent);
+    if (rounded_markup > 0) {
+      paragraphs.push([
+        { type: "text", text: `Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS still comes out marked up at ${materials_breakeven.current_markup_percent.toFixed(0)}%, earning ${format_currency(materials_breakeven.current_net_profit)} a year - Labour and Assets aren't claiming more than the business can currently support. ` },
+        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " panel below breaks down the full workings." },
+      ]);
+    } else if (rounded_markup === 0) {
+      paragraphs.push([
+        { type: "text", text: `Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS lands exactly at breakeven - covering its true cost with nothing left over. Labour and Assets are claiming exactly as much of total revenue as the business can currently support, with no margin to spare. ` },
+        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " panel below breaks down the full workings." },
+      ]);
+      options_added = true;
     } else {
       paragraphs.push([
         { type: "text", text: `Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS works out to a ${materials_breakeven.current_markup_percent.toFixed(0)}% markup - below the 0% breakeven point. That's a signal that Labour and Assets are currently claiming more of total revenue than the business can support, not that Materials itself is mispriced. ` },
@@ -178,6 +189,9 @@ export function BusinessOutcomeTruthSituationBlurb({
   real_capacity,
   revenue_ceiling,
   labour_coverage_gaps,
+  pnl_revenue,
+  modelled_revenue,
+  breakeven_revenue,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -192,6 +206,11 @@ export function BusinessOutcomeTruthSituationBlurb({
   return (
     <div className="ui-card theme-card-muted business-outcome-help-panel">
       <h2>Your business, right now</h2>
+      <BusinessOutcomeRevenueSnapshotTable
+        pnl_revenue={pnl_revenue}
+        modelled_revenue={modelled_revenue}
+        breakeven_revenue={breakeven_revenue}
+      />
       {summary_paragraphs.map((paragraph, index) => (
         <p key={index}>
           {Array.isArray(paragraph)
