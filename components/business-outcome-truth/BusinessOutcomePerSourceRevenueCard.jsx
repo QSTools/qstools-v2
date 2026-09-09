@@ -2434,7 +2434,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
             </CollapsibleSection>
 
-            <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
+            <CollapsibleSection id="traditional-viability-panel" title="Traditional viability view" defaultOpen={false}>
               <TraditionalViabilityView output_contract={output_contract} />
             </CollapsibleSection>
           </CollapsibleSection>
@@ -2545,6 +2545,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         pnl_revenue={real_total_revenue}
         breakeven_revenue={breakeven_revenue}
         labour_recovery_summary={labour_recovery}
+        traditional_viability_summary={output_contract}
       />
 
       <BusinessOutcomeTruthAboutPanel />
