@@ -825,6 +825,8 @@ export default function useBusinessOutcomePerSourceRevenue() {
       unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
       residual_overhead: round_currency(residual_overhead),
       total_revenue_reference: round_currency(total_revenue_reference),
+      labour_modelled_revenue_total: round_currency(labour_modelled_revenue_total),
+      asset_modelled_revenue_total: round_currency(asset_modelled_revenue_total),
       net_annual_business_open_hours: to_number(bs.net_annual_business_open_hours),
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
       asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
@@ -869,6 +871,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
         phase1_factor: real_capacity.phase1_factor,
         leftover: real_capacity.leftover,
         group_real_capacity: real_capacity.group_real_capacity,
+        materials: { cogs: total_cogs, true_cost: materials.true_cost, modelled_revenue: materials.revenue },
       },
       reconciliation: {
         total_true_cost: round_currency(total_true_cost),

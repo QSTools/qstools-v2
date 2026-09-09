@@ -10,8 +10,10 @@ import {
 import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
-import { BusinessOutcomeTruthSituationBlurb, BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+import { BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcome-truth/BusinessOutcomeTruthSituationSummary";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 
 function format_currency(value) {
   const n = Number(value);
@@ -2403,96 +2405,110 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       <div className="business-outcome-waterfall-inner business-outcome-per-source-wrapper">
         <UnassignedBlock unassigned={per_source.unassigned} output_contract={output_contract} labour_coverage_gaps={active_headline.labour_coverage_gaps} />
 
-        <CollapsibleSection title="How the Numbers Are Calculated" defaultOpen={false}>
-          <CollapsibleSection title="Revenue / Net Profit" defaultOpen={false}>
-            <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
-          </CollapsibleSection>
+        <CollapsibleSection id="how-the-numbers-are-calculated" title="How the Numbers Are Calculated" defaultOpen={false}>
+          <CollapsibleSection id="independent-numbers-folder" title="Independent Numbers" defaultOpen={false}>
+            <CollapsibleSection title="Revenue / Net Profit" defaultOpen={false}>
+              <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
+            </CollapsibleSection>
 
-          <CollapsibleSection title="View A" defaultOpen={false}>
-            <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
-              <RealCapacityLedger
-                real_capacity={per_source.real_capacity}
-                materials={per_source.materials}
-                unassigned={per_source.unassigned}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
+            <CollapsibleSection id="independent-breakeven-panel" title="Independent Breakeven & Revenue Claim Test" defaultOpen={false}>
+              <BusinessOutcomeIndependentBreakevenLedger
+                materials={per_source.real_capacity?.materials}
+                group_real_capacity={per_source.real_capacity?.group_real_capacity}
+                total_revenue_reference={per_source.total_revenue_reference}
+                labour_modelled_revenue_total={per_source.labour_modelled_revenue_total}
+                asset_modelled_revenue_total={per_source.asset_modelled_revenue_total}
               />
             </CollapsibleSection>
-            <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
-              <AssumedCapacityLedger
-                revenue_ceiling={per_source.revenue_ceiling}
-                materials={per_source.materials}
-                assumed_ledger_groups={per_source.assumed_ledger_groups}
-                groups_naive={per_source.real_capacity?.group_real_capacity}
-                unassigned={per_source.unassigned}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-              />
+
+            <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
+              <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
             </CollapsibleSection>
-            <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
-              <CostBuildUpTable
-                labour_groups={per_source.labour_groups}
-                asset_groups={per_source.asset_groups}
-                materials={per_source.materials}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-                use_implied={per_source.use_implied}
-                capacity_mode="real"
-              />
-            </CollapsibleSection>
-            <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
-              <CostBuildUpTable
-                labour_groups={per_source.labour_groups}
-                asset_groups={per_source.asset_groups}
-                materials={per_source.materials}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-                use_implied={per_source.use_implied}
-                capacity_mode="assumed"
-              />
+
+            <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
+              <TraditionalViabilityView output_contract={output_contract} />
             </CollapsibleSection>
           </CollapsibleSection>
 
-          <CollapsibleSection title="View B" defaultOpen={false}>
-            <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
-              <ViewBRealCapacityLedger
-                view_b={per_source.view_b}
-                unassigned={per_source.unassigned}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-              />
+          <CollapsibleSection title="Views" defaultOpen={false}>
+            <CollapsibleSection title="View A" defaultOpen={false}>
+              <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
+                <RealCapacityLedger
+                  real_capacity={per_source.real_capacity}
+                  materials={per_source.materials}
+                  unassigned={per_source.unassigned}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
+                <AssumedCapacityLedger
+                  revenue_ceiling={per_source.revenue_ceiling}
+                  materials={per_source.materials}
+                  assumed_ledger_groups={per_source.assumed_ledger_groups}
+                  groups_naive={per_source.real_capacity?.group_real_capacity}
+                  unassigned={per_source.unassigned}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
+                <CostBuildUpTable
+                  labour_groups={per_source.labour_groups}
+                  asset_groups={per_source.asset_groups}
+                  materials={per_source.materials}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                  use_implied={per_source.use_implied}
+                  capacity_mode="real"
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
+                <CostBuildUpTable
+                  labour_groups={per_source.labour_groups}
+                  asset_groups={per_source.asset_groups}
+                  materials={per_source.materials}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                  use_implied={per_source.use_implied}
+                  capacity_mode="assumed"
+                />
+              </CollapsibleSection>
             </CollapsibleSection>
-            <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
-              <div className="ui-help">
-                The Assumed Capacity ledger for View B hasn&apos;t been built yet - the Cost
-                build-up (Assumed Capacity) table below already reflects Assumed Capacity
-                correctly for View B; only this detailed step-by-step trace is still outstanding.
-              </div>
-            </CollapsibleSection>
-            <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
-              <ViewBCostBuildUpTable
-                view_b={per_source.view_b}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-                capacity_mode="real"
-              />
-            </CollapsibleSection>
-            <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
-              <ViewBCostBuildUpTable
-                view_b={per_source.view_b}
-                time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
-                capacity_mode="assumed"
-              />
-            </CollapsibleSection>
-          </CollapsibleSection>
 
-          <CollapsibleSection title="Labour recovery, by source" defaultOpen={false}>
-            <BusinessOutcomeTruthLabourRecoveryCard labour_recovery={labour_recovery} />
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Traditional viability view" defaultOpen={false}>
-            <TraditionalViabilityView output_contract={output_contract} />
+            <CollapsibleSection title="View B" defaultOpen={false}>
+              <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
+                <ViewBRealCapacityLedger
+                  view_b={per_source.view_b}
+                  unassigned={per_source.unassigned}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
+                <div className="ui-help">
+                  The Assumed Capacity ledger for View B hasn&apos;t been built yet - the Cost
+                  build-up (Assumed Capacity) table below already reflects Assumed Capacity
+                  correctly for View B; only this detailed step-by-step trace is still outstanding.
+                </div>
+              </CollapsibleSection>
+              <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
+                <ViewBCostBuildUpTable
+                  view_b={per_source.view_b}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                  capacity_mode="real"
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
+                <ViewBCostBuildUpTable
+                  view_b={per_source.view_b}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                  capacity_mode="assumed"
+                />
+              </CollapsibleSection>
+            </CollapsibleSection>
           </CollapsibleSection>
         </CollapsibleSection>
 
@@ -2516,6 +2532,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         capacity_mode={capacity_mode}
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
+        labour_coverage_gaps={active_headline.labour_coverage_gaps}
       />
 
       <BusinessOutcomeTruthAboutPanel />
