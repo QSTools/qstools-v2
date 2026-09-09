@@ -2408,7 +2408,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
         <CollapsibleSection id="how-the-numbers-are-calculated" title="How the Numbers Are Calculated" defaultOpen={false}>
           <CollapsibleSection id="independent-numbers-folder" title="Independent Numbers" defaultOpen={false}>
-            <CollapsibleSection title="Revenue / Net Profit" defaultOpen={false}>
+            <CollapsibleSection id="revenue-net-profit-panel" title="Revenue / Net Profit" defaultOpen={false}>
               <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
             </CollapsibleSection>
 

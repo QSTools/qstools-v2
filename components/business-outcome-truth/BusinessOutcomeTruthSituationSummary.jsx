@@ -58,6 +58,18 @@ function build_situation_summary({
     }
   }
 
+  // Revenue / Net Profit table - shows exactly how the net profit
+  // above is actually built, source by source: real revenue
+  // attributed across each source, then each source's real labour,
+  // asset and overhead cost subtracted to show what it actually
+  // contributes to profit. Always shown - this is the mechanical
+  // detail behind the top-line net profit figure above.
+  paragraphs.push([
+    { type: "text", text: "The " },
+    { type: "link", label: "Revenue / Net Profit table", target_id: "revenue-net-profit-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+    { type: "text", text: " below shows exactly how that net profit is actually built - your real revenue attributed across each source, then each source's real labour, asset and overhead cost subtracted to show what it actually contributes to profit." },
+  ]);
+
   // Breakeven revenue - shown next, regardless of business health,
   // since it's the single most useful standalone number on this page
   // (confirmed with user) - the exact revenue level that covers real
