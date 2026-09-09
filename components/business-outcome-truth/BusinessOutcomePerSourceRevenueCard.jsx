@@ -2424,9 +2424,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               <BusinessOutcomeIndependentBreakevenLedger
                 materials={per_source.real_capacity?.materials}
                 group_real_capacity={per_source.real_capacity?.group_real_capacity}
-                total_revenue_reference={per_source.total_revenue_reference}
-                labour_modelled_revenue_total={per_source.labour_modelled_revenue_total}
-                asset_modelled_revenue_total={per_source.asset_modelled_revenue_total}
+                total_revenue_reference={per_source.materials?.build_up?.total_pnl_revenue}
+                labour_modelled_revenue_total={per_source.materials?.build_up?.labour_modelled_revenue}
+                asset_modelled_revenue_total={per_source.materials?.build_up?.asset_modelled_revenue}
               />
             </CollapsibleSection>
 
@@ -2542,6 +2542,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
         labour_coverage_gaps={active_headline.labour_coverage_gaps}
+        pnl_revenue={real_total_revenue}
         breakeven_revenue={breakeven_revenue}
       />
 

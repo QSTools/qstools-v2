@@ -30,20 +30,42 @@ function build_situation_summary({
   real_capacity,
   revenue_ceiling,
   labour_coverage_gaps,
+  pnl_revenue,
   breakeven_revenue,
 }) {
   const paragraphs = [];
 
   if (!active_headline) return paragraphs;
 
-  // Breakeven revenue - always shown first, regardless of business
-  // health, since it's the single most useful standalone number on
-  // this page (confirmed with user) - the exact revenue level that
-  // covers real cost, no more, no less. Full comparison against actual
-  // (P&L) and modelled (rates x volumes) revenue lives in the Revenue
-  // Snapshot panel below, kept out of the blurb itself to avoid
-  // cluttering it with a full table - this is a "click to see the
-  // numbers" pattern matching the Revenue Claim Test link below.
+  // Top-line intro - net profit and revenue together, as a genuine
+  // opening statement of overall health (confirmed with user - the
+  // headline card above this panel shows the same net profit number,
+  // but the blurb itself never actually stated it in a sentence before
+  // jumping into breakeven and per-source detail).
+  if (
+    Number.isFinite(Number(pnl_revenue)) &&
+    Number.isFinite(Number(active_headline.total_net_profit))
+  ) {
+    const net_profit = Number(active_headline.total_net_profit);
+    if (net_profit >= 0) {
+      paragraphs.push(
+        `Your business made ${format_currency(net_profit)} in net profit on ${format_currency(pnl_revenue)} of revenue this year.`
+      );
+    } else {
+      paragraphs.push(
+        `Your business made a net loss of ${format_currency(Math.abs(net_profit))} on ${format_currency(pnl_revenue)} of revenue this year.`
+      );
+    }
+  }
+
+  // Breakeven revenue - shown next, regardless of business health,
+  // since it's the single most useful standalone number on this page
+  // (confirmed with user) - the exact revenue level that covers real
+  // cost, no more, no less. Full comparison against actual (P&L) and
+  // modelled (rates x volumes) revenue lives in the Revenue Snapshot
+  // panel below, kept out of the blurb itself to avoid cluttering it
+  // with a full table - this is a "click to see the numbers" pattern
+  // matching the Revenue Claim Test link below.
   if (Number.isFinite(Number(breakeven_revenue))) {
     paragraphs.push([
       { type: "text", text: `Your breakeven revenue is ${format_currency(breakeven_revenue)} a year - the exact amount that covers your real cost, no more, no less. ` },
@@ -205,6 +227,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   real_capacity,
   revenue_ceiling,
   labour_coverage_gaps,
+  pnl_revenue,
   breakeven_revenue,
 }) {
   const summary_paragraphs = build_situation_summary({
@@ -213,6 +236,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     real_capacity,
     revenue_ceiling,
     labour_coverage_gaps,
+    pnl_revenue,
     breakeven_revenue,
   });
 
