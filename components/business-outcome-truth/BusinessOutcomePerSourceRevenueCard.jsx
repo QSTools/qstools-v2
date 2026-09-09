@@ -15,6 +15,7 @@ import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcom
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
+import useProfitAndLoss from "@/hooks/useProfitAndLoss";
 
 function format_currency(value) {
   const n = Number(value);
@@ -1788,6 +1789,18 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
 }
 
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab }) {
+  // NEW (this session, per user request): the P&L's own genuine
+  // Net Profit and Trading Income, straight from useProfitAndLoss -
+  // a completely separate hook/calculation from everything else on
+  // this page. Used purely as a cross-check in the blurb (comparing
+  // our own cascade-derived net profit % against the P&L's own %) -
+  // deliberately NOT reconciled or forced to match; a difference
+  // here is a genuine, useful signal (already caught in more detail
+  // by Module Reconciliation) that modelled/test data has diverged
+  // from the actual P&L, not a bug to hide.
+  const { output_contract: pnl_output_contract } = useProfitAndLoss();
+  const pnl_net_profit_actual = pnl_output_contract?.net_profit;
+  const pnl_trading_income_actual = pnl_output_contract?.total_trading_income;
   const [view_mode, set_view_mode] = useState("profit"); // Default changed (this session, per user request): profit is more directly actionable for a casual owner than revenue - "who is actually making money" vs "who brings in the most money". Also surfaces the Being Carried / Paying its way verdict tags by default, since those only render in profit mode.
   const [time_scale, set_time_scale] = useState("year");
   // Defaults to "real" (Real Capacity) per product decision this session -
@@ -2546,6 +2559,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         breakeven_revenue={breakeven_revenue}
         labour_recovery_summary={labour_recovery}
         traditional_viability_summary={output_contract}
+        pnl_net_profit_actual={pnl_net_profit_actual}
+        pnl_trading_income_actual={pnl_trading_income_actual}
       />
 
       <BusinessOutcomeTruthAboutPanel />

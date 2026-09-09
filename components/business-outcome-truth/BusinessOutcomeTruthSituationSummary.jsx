@@ -43,31 +43,90 @@ function build_situation_summary({
   breakeven_revenue,
   labour_recovery_summary,
   traditional_viability_summary,
+  pnl_net_profit_actual,
+  pnl_trading_income_actual,
 }) {
   const paragraphs = [];
 
   if (!active_headline) return paragraphs;
 
-  // Top-line intro - net profit and revenue together, as a genuine
-  // opening statement of overall health.
-  if (
-    Number.isFinite(Number(pnl_revenue)) &&
-    Number.isFinite(Number(active_headline.total_net_profit))
-  ) {
+  // Top-line intro - net profit, net profit %, and revenue together,
+  // as a genuine opening statement of overall health. Revenue is
+  // coloured against breakeven (green if at/above, red if below),
+  // since "is my revenue enough" is really a breakeven question, not
+  // a standalone good/bad number on its own.
+  const has_pnl_revenue = Number.isFinite(Number(pnl_revenue));
+  const has_net_profit = Number.isFinite(Number(active_headline.total_net_profit));
+  const has_breakeven = Number.isFinite(Number(breakeven_revenue));
+
+  if (has_pnl_revenue && has_net_profit) {
     const net_profit = Number(active_headline.total_net_profit);
     const net_profit_class = net_profit >= 0 ? "value-good" : "value-bad";
+    const net_profit_percent = Number(pnl_revenue) !== 0 ? (net_profit / Number(pnl_revenue)) * 100 : null;
+    const revenue_class = has_breakeven
+      ? Number(pnl_revenue) >= Number(breakeven_revenue)
+        ? "value-good"
+        : "value-bad"
+      : "";
+
+    const intro_segments = [];
     if (net_profit >= 0) {
-      paragraphs.push([
-        { type: "text", text: "Your business made " },
-        { type: "text", text: format_currency(net_profit), class: net_profit_class },
-        { type: "text", text: ` in net profit on ${format_currency(pnl_revenue)} of revenue this year.` },
-      ]);
+      intro_segments.push({ type: "text", text: "Your business made " });
+      intro_segments.push({ type: "text", text: format_currency(net_profit), class: net_profit_class });
+      intro_segments.push({ type: "text", text: " in net profit" });
     } else {
-      paragraphs.push([
-        { type: "text", text: "Your business made a net loss of " },
-        { type: "text", text: format_currency(Math.abs(net_profit)), class: net_profit_class },
-        { type: "text", text: ` on ${format_currency(pnl_revenue)} of revenue this year.` },
-      ]);
+      intro_segments.push({ type: "text", text: "Your business made a net loss of " });
+      intro_segments.push({ type: "text", text: format_currency(Math.abs(net_profit)), class: net_profit_class });
+    }
+    if (Number.isFinite(net_profit_percent)) {
+      intro_segments.push({ type: "text", text: " (" });
+      intro_segments.push({ type: "text", text: `${net_profit_percent.toFixed(1)}%`, class: net_profit_class });
+      intro_segments.push({ type: "text", text: ")" });
+    }
+    intro_segments.push({ type: "text", text: " on " });
+    intro_segments.push({ type: "text", text: format_currency(pnl_revenue), class: revenue_class || undefined });
+    intro_segments.push({ type: "text", text: " of revenue this year." });
+
+    paragraphs.push(intro_segments);
+
+    // P&L cross-check - deliberately NOT reconciled or forced to
+    // match: a genuine drift here is a useful signal that
+    // modelled/test data has diverged from the actual P&L, already
+    // caught in more detail by Module Reconciliation - not something
+    // to hide or smooth over.
+    if (
+      Number.isFinite(Number(pnl_net_profit_actual)) &&
+      Number.isFinite(Number(pnl_trading_income_actual)) &&
+      Number(pnl_trading_income_actual) !== 0
+    ) {
+      const pnl_actual_profit = Number(pnl_net_profit_actual);
+      const pnl_actual_percent = (pnl_actual_profit / Number(pnl_trading_income_actual)) * 100;
+      const pnl_actual_class = pnl_actual_profit >= 0 ? "value-good" : "value-bad";
+
+      const pnl_segments = [
+        { type: "text", text: "Your P&L reports a net profit of " },
+        { type: "text", text: format_currency(pnl_actual_profit), class: pnl_actual_class },
+        { type: "text", text: " (" },
+        { type: "text", text: `${pnl_actual_percent.toFixed(1)}%`, class: pnl_actual_class },
+        { type: "text", text: ")." },
+      ];
+
+      const percent_diff = Number.isFinite(net_profit_percent)
+        ? Math.abs(net_profit_percent - pnl_actual_percent)
+        : null;
+      if (percent_diff !== null && percent_diff > 0.1) {
+        let severity_text;
+        if (percent_diff <= 3) {
+          severity_text = "a small difference, worth keeping an eye on";
+        } else if (percent_diff <= 10) {
+          severity_text = "a noticeable difference - worth checking Module Reconciliation for what's driving it";
+        } else {
+          severity_text = "a significant difference - worth checking Module Reconciliation for what's driving it";
+        }
+        pnl_segments.push({ type: "text", text: ` That's ${severity_text}.` });
+      }
+
+      paragraphs.push(pnl_segments);
     }
   }
 
@@ -79,10 +138,14 @@ function build_situation_summary({
     { type: "text", text: " below shows exactly how that net profit is actually built - your real revenue attributed across each source, then each source's real labour, asset and overhead cost subtracted to show what it actually contributes to profit." },
   ]);
 
-  // Breakeven revenue - a target, not a verdict, so left uncoloured.
-  if (Number.isFinite(Number(breakeven_revenue))) {
+  // Breakeven revenue - coloured neutral/blue: it's the reference
+  // point everything else is measured against, not itself a good or
+  // bad outcome.
+  if (has_breakeven) {
     paragraphs.push([
-      { type: "text", text: `Your breakeven revenue is ${format_currency(breakeven_revenue)} a year - the exact amount that covers your real cost, no more, no less. ` },
+      { type: "text", text: "Your breakeven revenue is " },
+      { type: "text", text: `${format_currency(breakeven_revenue)} a year`, class: "value-neutral" },
+      { type: "text", text: " - the exact amount that covers your real cost, no more, no less. " },
       { type: "link", label: "The Revenue Snapshot", target_id: "revenue-snapshot-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
       { type: "text", text: " panel below compares that to what you're actually trading at and what your rates and volumes independently predict." },
     ]);
@@ -401,6 +464,8 @@ export function BusinessOutcomeTruthSituationBlurb({
   breakeven_revenue,
   labour_recovery_summary,
   traditional_viability_summary,
+  pnl_net_profit_actual,
+  pnl_trading_income_actual,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -412,6 +477,8 @@ export function BusinessOutcomeTruthSituationBlurb({
     breakeven_revenue,
     labour_recovery_summary,
     traditional_viability_summary,
+    pnl_net_profit_actual,
+    pnl_trading_income_actual,
   });
 
   if (summary_paragraphs.length === 0) return null;
