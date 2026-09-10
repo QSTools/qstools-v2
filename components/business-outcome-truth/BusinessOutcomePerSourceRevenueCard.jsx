@@ -1985,6 +1985,19 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           ? build_naive_headline()
           : per_source.headline_real_capacity
         : per_source.headline;
+
+  // Stable headline for the "Your business, right now" blurb only -
+  // always View A's basis (real P&L revenue), regardless of the
+  // View A/B toggle. The toggle should only affect the page's own
+  // View A/B sections, never silently change the blurb's headline
+  // numbers underneath the reader (2026-09-10 decision).
+  const raw_stable_headline =
+    capacity_mode === "real"
+      ? smoothing_mode === "naive"
+        ? build_naive_headline()
+        : per_source.headline_real_capacity
+      : per_source.headline;
+
   // Unassigned cost as a genuine "blocking flag" row (this session,
   // per user request): real cost, real money, not attributed to any
   // source above - previously invisible in this list even though the
@@ -2002,27 +2015,34 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // total_net_profit - the list is now genuinely transparent, not
   // just the headline total.
   const unassigned_total = per_source.unassigned?.total ?? 0;
-  const active_headline =
-    unassigned_total > 0 && raw_active_headline
-      ? (() => {
-          const unassigned_entry = {
-            key: "unassigned",
-            name: "Unassigned cost (not attributed to any source)",
-            net_profit: -unassigned_total,
-            modelled_revenue: 0,
-            verdict: "being_carried",
-            type: "unassigned",
-          };
-          return {
-            ...raw_active_headline,
-            all_sources: [...(raw_active_headline.all_sources || []), unassigned_entry],
-            total_group_count: (raw_active_headline.total_group_count ?? 0) + 1,
-            being_carried_count: (raw_active_headline.being_carried_count ?? 0) + 1,
-            being_carried: [...(raw_active_headline.being_carried || []), unassigned_entry],
-            all_good: false,
-          };
-        })()
-      : raw_active_headline;
+
+  // Shared helper (2026-09-10): injects the unassigned-cost row into
+  // any raw headline object. Extracted so both the toggle-following
+  // active_headline (used elsewhere on the page) and the toggle-
+  // stable stable_headline (used only by the blurb) get identical
+  // treatment without duplicating this logic.
+  function apply_unassigned_entry(raw_headline) {
+    if (!(unassigned_total > 0 && raw_headline)) return raw_headline;
+    const unassigned_entry = {
+      key: "unassigned",
+      name: "Unassigned cost (not attributed to any source)",
+      net_profit: -unassigned_total,
+      modelled_revenue: 0,
+      verdict: "being_carried",
+      type: "unassigned",
+    };
+    return {
+      ...raw_headline,
+      all_sources: [...(raw_headline.all_sources || []), unassigned_entry],
+      total_group_count: (raw_headline.total_group_count ?? 0) + 1,
+      being_carried_count: (raw_headline.being_carried_count ?? 0) + 1,
+      being_carried: [...(raw_headline.being_carried || []), unassigned_entry],
+      all_good: false,
+    };
+  }
+
+  const active_headline = apply_unassigned_entry(raw_active_headline);
+  const stable_headline = apply_unassigned_entry(raw_stable_headline);
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
@@ -2549,11 +2569,11 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       </div>
 
       <BusinessOutcomeTruthSituationBlurb
-        active_headline={active_headline}
+        active_headline={stable_headline}
         capacity_mode={capacity_mode}
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
-        labour_coverage_gaps={active_headline.labour_coverage_gaps}
+        labour_coverage_gaps={stable_headline.labour_coverage_gaps}
         pnl_revenue={real_total_revenue}
         breakeven_revenue={breakeven_revenue}
         labour_recovery_summary={labour_recovery}
