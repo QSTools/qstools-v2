@@ -14,6 +14,7 @@ import { BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-tr
 import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcome-truth/BusinessOutcomeTruthSituationSummary";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import BusinessOutcomeViewABComparisonTable from "@/components/business-outcome-truth/BusinessOutcomeViewABComparisonTable";
+import BusinessOutcomeCapacityCoverageGapTable from "@/components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
@@ -2472,6 +2473,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </CollapsibleSection>
           </CollapsibleSection>
 
+          <CollapsibleSection id="capacity-coverage-gap-panel" title="Capacity Coverage Gap" defaultOpen={false}>
+            <BusinessOutcomeCapacityCoverageGapTable capacity_coverage_gap={per_source.capacity_coverage_gap} />
+          </CollapsibleSection>
+
           <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>
             <CollapsibleSection id="view-ab-comparison-panel" title="Comparison: View A vs View B" defaultOpen={false}>
               <BusinessOutcomeViewABComparisonTable
@@ -2583,7 +2588,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         capacity_mode={capacity_mode}
         real_capacity={per_source.real_capacity}
         revenue_ceiling={per_source.revenue_ceiling}
-        labour_coverage_gaps={stable_headline.labour_coverage_gaps}
+        capacity_coverage_gap={per_source.capacity_coverage_gap}
         pnl_revenue={real_total_revenue}
         breakeven_revenue={breakeven_revenue}
         labour_recovery_summary={labour_recovery}

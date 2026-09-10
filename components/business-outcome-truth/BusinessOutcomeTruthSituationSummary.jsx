@@ -40,7 +40,7 @@ function build_situation_summary({
   capacity_mode,
   real_capacity,
   revenue_ceiling,
-  labour_coverage_gaps,
+  capacity_coverage_gap,
   pnl_revenue,
   breakeven_revenue,
   labour_recovery_summary,
@@ -492,15 +492,52 @@ function build_situation_summary({
     }
   }
 
-  // Scheduling gaps - deferred to Things to check alongside the
-  // worst-source flag and the P&L cross-check.
-  if (labour_coverage_gaps && labour_coverage_gaps.length > 0) {
-    labour_coverage_gaps.forEach((gap) => {
-      things_to_check.push(
-        `${gap.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${gap.gap_hours} fewer hours (${gap.gap_days} days) than this asset runs each year - a different lever than rate.`
-      );
+  // Capacity coverage gap (2026-09-11, replaces the old labour_coverage_gaps
+  // message - this supersedes it: same underlying hours, but bidirectional
+  // (also catches overstaffing, not just shortfall) and includes a dollar
+  // value, not just hours. Deferred to Things to check, sorted worst-first
+  // by dollar value, with a link to the full per-group table.
+  if (Array.isArray(capacity_coverage_gap)) {
+    const flagged_gaps = capacity_coverage_gap
+      .filter((g) => g.gap_type !== "none" && g.gap_dollar_value !== null)
+      .sort((a, b) => Math.abs(b.gap_dollar_value) - Math.abs(a.gap_dollar_value));
+
+    flagged_gaps.forEach((g) => {
+      const abs_hours = Math.round(Math.abs(g.gap_hours));
+      const abs_dollars = format_currency(Math.abs(g.gap_dollar_value));
+      if (g.gap_type === "revenue_at_risk") {
+        things_to_check.push([
+          { type: "text", text: `${g.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${abs_hours} fewer hours than this asset runs each year, so ` },
+          { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
+          { type: "text", text: " of the revenue counted above is riding on the seat, not on someone actually covering it." },
+        ]);
+      } else if (g.gap_type === "wasted_cost") {
+        things_to_check.push([
+          { type: "text", text: `${g.group_name} is currently overstaffed relative to what it runs: assigned labour exceeds the asset's hours by about ${abs_hours}, costing about ` },
+          { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
+          { type: "text", text: " that current revenue doesn't account for." },
+        ]);
+      } else if (g.gap_type === "opportunity") {
+        things_to_check.push([
+          { type: "text", text: `${g.group_name}'s asset is running about ${abs_hours} more hours than assigned labour, worth ` },
+          { type: "text", text: `${abs_dollars} a year`, class: "value-neutral" },
+          { type: "text", text: " in capacity that isn't currently being converted to revenue." },
+        ]);
+      } else if (g.gap_type === "data_check") {
+        things_to_check.push([
+          { type: "text", text: `${g.group_name}'s assigned labour hours exceed the asset's actual running time by about ${abs_hours} - worth checking whether this is a data or scheduling oddity.` },
+        ]);
+      }
     });
-    options_added = true;
+
+    if (flagged_gaps.length > 0) {
+      things_to_check.push([
+        { type: "text", text: "See the " },
+        { type: "link", label: "capacity coverage table", target_id: "capacity-coverage-gap-panel", ancestor_ids: ["how-the-numbers-are-calculated"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " below for the full breakdown of every source." },
+      ]);
+      options_added = true;
+    }
   }
 
   // === 5. CLOSING ===
@@ -525,7 +562,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   capacity_mode,
   real_capacity,
   revenue_ceiling,
-  labour_coverage_gaps,
+  capacity_coverage_gap,
   pnl_revenue,
   breakeven_revenue,
   labour_recovery_summary,
@@ -539,7 +576,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     capacity_mode,
     real_capacity,
     revenue_ceiling,
-    labour_coverage_gaps,
+    capacity_coverage_gap,
     pnl_revenue,
     breakeven_revenue,
     labour_recovery_summary,
