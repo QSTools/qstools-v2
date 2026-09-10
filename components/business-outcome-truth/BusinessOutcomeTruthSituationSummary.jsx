@@ -20,19 +20,21 @@ function format_currency(value) {
 // SITUATION-DEPENDENT SUMMARY
 // Moved out of BusinessOutcomeTruthHelpPanel.jsx into its own file
 // (this session, Phase 3) so this logic is easier to find and edit on
-// its own as it grows - it's now a materially bigger piece of logic
-// than a "help panel" component, with real calculation calls
-// (calculateIndependentGroupBreakeven, calculateIndependentMaterialsBreakeven)
-// rather than just static explanatory text.
+// its own as it grows.
 //
-// COLOUR CODING (this session, per user request): every number with a
-// clear good/bad direction is wrapped in a coloured segment
-// (value-good/value-bad). Deliberately left uncoloured: breakeven
-// revenue itself (a target, not a verdict), the exact-0% materials
-// markup case (genuinely neutral), margin-buffer comparison
-// percentages (both are positive margins, just compared to each
-// other), and scheduling-gap hours (explicitly framed elsewhere as
-// "not a profit issue").
+// COLOUR CODING: every number with a clear good/bad direction is
+// wrapped in a coloured segment (value-good/value-bad/value-neutral).
+//
+// ORDER (confirmed with user): 1) the headline (net profit,
+// breakeven), 2) how that headline is built (Revenue/Net Profit
+// table, Traditional Viability view), 3) who's healthy (merged with
+// resilience into one paragraph - worst source deliberately NOT here,
+// see below), 4) lever-by-lever deep dives (materials shortfall,
+// Revenue Claim Test, Labour Recovery, worst-group rate gap), 5)
+// closing, 6) "Things to check" - a grouped, headed section at the
+// very end collecting the worst source, scheduling gaps, and the P&L
+// cross-check together, since these are genuine flags to review
+// rather than part of the steady-state narrative above.
 function build_situation_summary({
   active_headline,
   capacity_mode,
@@ -47,22 +49,21 @@ function build_situation_summary({
   pnl_trading_income_actual,
 }) {
   const paragraphs = [];
+  const things_to_check = [];
 
   if (!active_headline) return paragraphs;
 
-  // Top-line intro - net profit, net profit %, and revenue together,
-  // as a genuine opening statement of overall health. Revenue is
-  // coloured against breakeven (green if at/above, red if below),
-  // since "is my revenue enough" is really a breakeven question, not
-  // a standalone good/bad number on its own.
+  // === 1. THE HEADLINE ===
+
   const has_pnl_revenue = Number.isFinite(Number(pnl_revenue));
   const has_net_profit = Number.isFinite(Number(active_headline.total_net_profit));
   const has_breakeven = Number.isFinite(Number(breakeven_revenue));
+  let net_profit_percent = null;
 
   if (has_pnl_revenue && has_net_profit) {
     const net_profit = Number(active_headline.total_net_profit);
     const net_profit_class = net_profit >= 0 ? "value-good" : "value-bad";
-    const net_profit_percent = Number(pnl_revenue) !== 0 ? (net_profit / Number(pnl_revenue)) * 100 : null;
+    net_profit_percent = Number(pnl_revenue) !== 0 ? (net_profit / Number(pnl_revenue)) * 100 : null;
     const revenue_class = has_breakeven
       ? Number(pnl_revenue) >= Number(breakeven_revenue)
         ? "value-good"
@@ -88,55 +89,46 @@ function build_situation_summary({
     intro_segments.push({ type: "text", text: " of revenue this year." });
 
     paragraphs.push(intro_segments);
-
-    // P&L cross-check - deliberately NOT reconciled or forced to
-    // match: a genuine drift here is a useful signal that
-    // modelled/test data has diverged from the actual P&L, already
-    // caught in more detail by Module Reconciliation - not something
-    // to hide or smooth over.
-    if (
-      Number.isFinite(Number(pnl_net_profit_actual)) &&
-      Number.isFinite(Number(pnl_trading_income_actual)) &&
-      Number(pnl_trading_income_actual) !== 0
-    ) {
-      const pnl_actual_profit = Number(pnl_net_profit_actual);
-      const pnl_actual_percent = (pnl_actual_profit / Number(pnl_trading_income_actual)) * 100;
-      const pnl_actual_class = pnl_actual_profit >= 0 ? "value-good" : "value-bad";
-
-      const pnl_segments = [
-        { type: "text", text: "Your P&L reports a net profit of " },
-        { type: "text", text: format_currency(pnl_actual_profit), class: pnl_actual_class },
-        { type: "text", text: " (" },
-        { type: "text", text: `${pnl_actual_percent.toFixed(1)}%`, class: pnl_actual_class },
-        { type: "text", text: ")." },
-      ];
-
-      const percent_diff = Number.isFinite(net_profit_percent)
-        ? Math.abs(net_profit_percent - pnl_actual_percent)
-        : null;
-      if (percent_diff !== null && percent_diff > 0.1) {
-        let severity_text;
-        if (percent_diff <= 3) {
-          severity_text = "a small difference, worth keeping an eye on";
-        } else if (percent_diff <= 10) {
-          severity_text = "a noticeable difference - worth checking Module Reconciliation for what's driving it";
-        } else {
-          severity_text = "a significant difference - worth checking Module Reconciliation for what's driving it";
-        }
-        pnl_segments.push({ type: "text", text: ` That's ${severity_text}.` });
-      }
-
-      paragraphs.push(pnl_segments);
-    }
   }
 
-  // Revenue / Net Profit table - shows exactly how the net profit
-  // above is actually built, source by source.
-  paragraphs.push([
-    { type: "text", text: "The " },
-    { type: "link", label: "Revenue / Net Profit table", target_id: "revenue-net-profit-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-    { type: "text", text: " below shows exactly how that net profit is actually built - your real revenue attributed across each source, then each source's real labour, asset and overhead cost subtracted to show what it actually contributes to profit." },
-  ]);
+  // P&L cross-check - computed here (needs net_profit_percent from
+  // above) but deferred into Things to check at the bottom, since a
+  // drift here is a genuine flag to review, not part of the
+  // steady-state narrative.
+  if (
+    Number.isFinite(Number(pnl_net_profit_actual)) &&
+    Number.isFinite(Number(pnl_trading_income_actual)) &&
+    Number(pnl_trading_income_actual) !== 0
+  ) {
+    const pnl_actual_profit = Number(pnl_net_profit_actual);
+    const pnl_actual_percent = (pnl_actual_profit / Number(pnl_trading_income_actual)) * 100;
+    const pnl_actual_class = pnl_actual_profit >= 0 ? "value-good" : "value-bad";
+
+    const pnl_segments = [
+      { type: "text", text: "Your P&L reports a net profit of " },
+      { type: "text", text: format_currency(pnl_actual_profit), class: pnl_actual_class },
+      { type: "text", text: " (" },
+      { type: "text", text: `${pnl_actual_percent.toFixed(1)}%`, class: pnl_actual_class },
+      { type: "text", text: ")." },
+    ];
+
+    const percent_diff = Number.isFinite(net_profit_percent)
+      ? Math.abs(net_profit_percent - pnl_actual_percent)
+      : null;
+    if (percent_diff !== null && percent_diff > 0.1) {
+      let severity_text;
+      if (percent_diff <= 3) {
+        severity_text = "a small difference, worth keeping an eye on";
+      } else if (percent_diff <= 10) {
+        severity_text = "a noticeable difference - often caused by Labour or Asset module inputs not yet matching the P&L, or an unresolved interest journal adjustment - worth checking Module Reconciliation, and Labour/Assets, for what's driving it";
+      } else {
+        severity_text = "a significant difference - often caused by Labour or Asset module inputs not yet matching the P&L, or an unresolved interest journal adjustment - worth checking Module Reconciliation, and Labour/Assets, for what's driving it";
+      }
+      pnl_segments.push({ type: "text", text: ` That's ${severity_text}.` });
+    }
+
+    things_to_check.push(pnl_segments);
+  }
 
   // Breakeven revenue - coloured neutral/blue: it's the reference
   // point everything else is measured against, not itself a good or
@@ -151,11 +143,227 @@ function build_situation_summary({
     ]);
   }
 
-  // Labour recovery, by source.
+  // === 2. HOW THAT HEADLINE IS BUILT ===
+
+  paragraphs.push([
+    { type: "text", text: "Want to see exactly how that adds up? The " },
+    { type: "link", label: "Revenue / Net Profit table", target_id: "revenue-net-profit-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+    { type: "text", text: " below walks through it source by source - your real revenue attributed across each source, then each source's real labour, asset and overhead cost subtracted to show what it actually contributes to profit." },
+  ]);
+
+  const traditional_viability_paragraph_segments = [
+    { type: "text", text: "Looking at the traditional accounting way instead, the story holds up: the " },
+    { type: "link", label: "Traditional viability view table", target_id: "traditional-viability-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+    { type: "text", text: " below covers revenue, COGS, gross margin, cost burden, and bottom-line operating profit for the whole business - a different lens than the per-source breakdown above." },
+  ];
+
+  if (traditional_viability_summary) {
+    const {
+      operating_profit_before_tax,
+      net_operating_margin,
+      cost_absorption_status,
+      recovery_surplus_or_gap,
+    } = traditional_viability_summary;
+
+    const profit_value = Number(operating_profit_before_tax?.value);
+    const has_profit = Number.isFinite(profit_value);
+    const margin_value = Number(net_operating_margin?.value);
+    const has_margin = Number.isFinite(margin_value);
+
+    if (has_profit) {
+      const profit_class = profit_value >= 0 ? "value-good" : "value-bad";
+
+      traditional_viability_paragraph_segments.push({
+        type: "text",
+        text: ` In standard accounting terms, the business made an operating ${profit_value >= 0 ? "profit" : "loss"} of `,
+      });
+      traditional_viability_paragraph_segments.push({
+        type: "text",
+        text: format_currency(Math.abs(profit_value)),
+        class: profit_class,
+      });
+      if (has_margin) {
+        const margin_class = margin_value >= 0 ? "value-good" : "value-bad";
+        traditional_viability_paragraph_segments.push({ type: "text", text: " before tax " });
+        traditional_viability_paragraph_segments.push({ type: "text", text: `(a ${margin_value.toFixed(1)}% net margin)`, class: margin_class });
+        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
+      } else {
+        traditional_viability_paragraph_segments.push({ type: "text", text: " before tax." });
+      }
+
+      const status = cost_absorption_status?.value;
+      const gap_value = Number(recovery_surplus_or_gap?.value);
+      const has_gap = Number.isFinite(gap_value);
+
+      if (status === "not_absorbed" && has_gap) {
+        traditional_viability_paragraph_segments.push({ type: "text", text: " Costs aren't being fully absorbed by revenue - a " });
+        traditional_viability_paragraph_segments.push({ type: "text", text: `${format_currency(Math.abs(gap_value))} gap`, class: "value-bad" });
+        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
+      } else if (status === "absorbed" && has_gap) {
+        traditional_viability_paragraph_segments.push({ type: "text", text: " All costs are being fully absorbed by revenue, with " });
+        traditional_viability_paragraph_segments.push({ type: "text", text: `${format_currency(gap_value)} to spare`, class: "value-good" });
+        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
+      } else if (status === "unavailable") {
+        traditional_viability_paragraph_segments.push({
+          type: "text",
+          text: " Cost absorption status isn't available yet - Cost Summary data isn't fully trusted, so this label is being held back until that's resolved.",
+        });
+      }
+    }
+  }
+
+  paragraphs.push(traditional_viability_paragraph_segments);
+
+  // === 3. WHO'S HEALTHY (worst source deferred to Things to check) ===
+
+  let worst = null;
+  let options_added = false;
+  let health_segments = null;
+
+  if (active_headline.all_good) {
+    health_segments = [
+      { type: "text", text: "Zooming into individual sources, every part of the business is currently paying its way - no source is being propped up by the rest." },
+    ];
+  } else {
+    const healthy_sources = (active_headline.all_sources || []).filter(
+      (s) => s.verdict === "paying_its_way"
+    );
+    if (healthy_sources.length > 0) {
+      const total_healthy = healthy_sources.reduce((sum, s) => sum + (s.net_profit ?? 0), 0);
+      const best = [...healthy_sources].sort((a, b) => (b.net_profit ?? 0) - (a.net_profit ?? 0))[0];
+      if (healthy_sources.length === 1) {
+        health_segments = [
+          { type: "text", text: `Zooming into individual sources, ${best.name} is fully paying its own way, earning ` },
+          { type: "text", text: `${format_currency(best.net_profit)} a year`, class: "value-good" },
+          { type: "text", text: "." },
+        ];
+      } else {
+        health_segments = [
+          { type: "text", text: `Zooming into individual sources, ${healthy_sources.length} sources are fully paying their own way, together earning ` },
+          { type: "text", text: `${format_currency(total_healthy)} a year`, class: "value-good" },
+          { type: "text", text: `. ${best.name} is the strongest, at ` },
+          { type: "text", text: format_currency(best.net_profit), class: "value-good" },
+          { type: "text", text: "." },
+        ];
+      }
+    }
+
+    worst = active_headline.being_carried?.[0];
+    const count = active_headline.being_carried?.length ?? 0;
+    const total = active_headline.total_group_count ?? 0;
+    if (worst && count === 1) {
+      if (Math.abs(worst.net_profit) < 1) {
+        things_to_check.push([
+          { type: "text", text: `${worst.name} is the only part of the business not covering its own cost right now - it's being kept at exactly $0, propped up by the rest of the business rather than genuinely breaking even.` },
+        ]);
+      } else {
+        things_to_check.push([
+          { type: "text", text: `${worst.name} is the only part of the business not covering its own cost right now, at ` },
+          { type: "text", text: `${format_currency(worst.net_profit)} a year`, class: "value-bad" },
+          { type: "text", text: "." },
+        ]);
+      }
+    } else if (worst) {
+      things_to_check.push([
+        { type: "text", text: `${count} of ${total} sources aren't covering their own cost right now. ${worst.name} is carrying the largest shortfall, at ` },
+        { type: "text", text: `${format_currency(worst.net_profit)} a year`, class: "value-bad" },
+        { type: "text", text: "." },
+      ]);
+    }
+  }
+
+  const groups_with_margin = (real_capacity?.group_real_capacity || [])
+    .filter((g) => (g.modelled_revenue ?? 0) > 0)
+    .map((g) => ({ ...g, margin_pct: (g.modelled_revenue - g.true_cost) / g.modelled_revenue }));
+
+  if (groups_with_margin.length > 1) {
+    const most_resilient = [...groups_with_margin].sort((a, b) => b.margin_pct - a.margin_pct)[0];
+    const least_resilient = [...groups_with_margin].sort((a, b) => a.margin_pct - b.margin_pct)[0];
+    if (most_resilient.group_id !== least_resilient.group_id) {
+      const resilience_segments = [
+        { type: "text", text: `${most_resilient.group_name} is your most resilient source, with a ` },
+        { type: "text", text: `${(most_resilient.margin_pct * 100).toFixed(0)}% margin buffer`, class: "value-neutral" },
+        { type: "text", text: `. ${least_resilient.group_name} has the thinnest buffer, at ` },
+        { type: "text", text: `${(least_resilient.margin_pct * 100).toFixed(0)}%`, class: "value-neutral" },
+        { type: "text", text: `, so it's the first place to watch if revenue softens.` },
+      ];
+
+      if (health_segments) {
+        health_segments.push({ type: "text", text: " " });
+        health_segments.push(...resilience_segments);
+      } else {
+        health_segments = resilience_segments;
+      }
+
+      if (worst && worst.name === most_resilient.group_name && things_to_check.length > 0) {
+        const last_check = things_to_check[things_to_check.length - 1];
+        last_check.push({
+          type: "text",
+          text: ` That's largely because it also has the biggest revenue share in the business - once a shortfall is spread proportionally, the biggest source takes the biggest dollar hit, even though its underlying margin is still the strongest of any source.`,
+        });
+      }
+    }
+  }
+
+  if (health_segments) {
+    paragraphs.push(health_segments);
+  }
+
+  // === 4. LEVER-BY-LEVER DEEP DIVES ===
+
+  if (capacity_mode === "real" && (real_capacity?.shortfall ?? 0) > 0) {
+    paragraphs.push([
+      { type: "text", text: "Materials/COGS can't cover its real cost from what's left over once labour and assets are paid - the " },
+      { type: "text", text: `${format_currency(real_capacity.shortfall)} shortfall`, class: "value-bad" },
+      { type: "text", text: " is being spread across the rest of the business." },
+    ]);
+  } else if (capacity_mode === "assumed" && revenue_ceiling?.is_breached) {
+    const scale_pct = ((revenue_ceiling.scale_factor ?? 1) * 100).toFixed(0);
+    paragraphs.push([
+      { type: "text", text: "Combined labour and asset claims exceed total revenue, so every labour and asset source has been scaled down by " },
+      { type: "text", text: `${scale_pct}%`, class: "value-bad" },
+      { type: "text", text: " at once - Materials absorbs whatever's left over." },
+    ]);
+  }
+
+  const materials_breakeven = calculateIndependentMaterialsBreakeven({
+    materials: real_capacity?.materials,
+  });
+  if (materials_breakeven.available) {
+    const rounded_markup = Math.round(materials_breakeven.current_markup_percent);
+    if (rounded_markup > 0) {
+      paragraphs.push([
+        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS still comes out marked up at " },
+        { type: "text", text: `${materials_breakeven.current_markup_percent.toFixed(0)}%`, class: "value-good" },
+        { type: "text", text: ", earning " },
+        { type: "text", text: `${format_currency(materials_breakeven.current_net_profit)} a year`, class: "value-good" },
+        { type: "text", text: " - Labour and Assets aren't claiming more than the business can currently support. " },
+        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " panel below breaks down the full workings." },
+      ]);
+    } else if (rounded_markup === 0) {
+      paragraphs.push([
+        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS lands exactly at breakeven - covering its true cost with nothing left over. Labour and Assets are claiming exactly as much of total revenue as the business can currently support, with no margin to spare. " },
+        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " panel below breaks down the full workings." },
+      ]);
+      options_added = true;
+    } else {
+      paragraphs.push([
+        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS works out to a " },
+        { type: "text", text: `${materials_breakeven.current_markup_percent.toFixed(0)}%`, class: "value-bad" },
+        { type: "text", text: " markup - below the 0% breakeven point. That's a signal that Labour and Assets are currently claiming more of total revenue than the business can support, not that Materials itself is mispriced. " },
+        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " panel below breaks down the full workings." },
+      ]);
+      options_added = true;
+    }
+  }
+
   const labour_recovery_paragraph_segments = [
-    { type: "text", text: "The " },
+    { type: "text", text: "One lever worth checking on its own is whether your labour rates actually cover cost: the " },
     { type: "link", label: "Labour recovery, by source table", target_id: "labour-recovery-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-    { type: "text", text: " below compares each labour type's true cost per hour against its saved charge-out rate, showing whether that rate actually covers the cost." },
+    { type: "text", text: " below compares each labour type's true cost per hour against its saved charge-out rate." },
   ];
 
   if (labour_recovery_summary && labour_recovery_summary.data_status === "ready") {
@@ -217,206 +425,6 @@ function build_situation_summary({
 
   paragraphs.push(labour_recovery_paragraph_segments);
 
-  // Traditional viability view.
-  const traditional_viability_paragraph_segments = [
-    { type: "text", text: "The " },
-    { type: "link", label: "Traditional viability view table", target_id: "traditional-viability-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-    { type: "text", text: " below shows the whole business in standard accounting terms - revenue, COGS, gross margin, cost burden, and bottom-line operating profit - a different lens than the per-source breakdown above." },
-  ];
-
-  if (traditional_viability_summary) {
-    const {
-      operating_profit_before_tax,
-      net_operating_margin,
-      cost_absorption_status,
-      recovery_surplus_or_gap,
-    } = traditional_viability_summary;
-
-    const profit_value = Number(operating_profit_before_tax?.value);
-    const has_profit = Number.isFinite(profit_value);
-    const margin_value = Number(net_operating_margin?.value);
-    const has_margin = Number.isFinite(margin_value);
-
-    if (has_profit) {
-      const profit_class = profit_value >= 0 ? "value-good" : "value-bad";
-
-      traditional_viability_paragraph_segments.push({
-        type: "text",
-        text: ` In standard accounting terms, the business made an operating ${profit_value >= 0 ? "profit" : "loss"} of `,
-      });
-      traditional_viability_paragraph_segments.push({
-        type: "text",
-        text: format_currency(Math.abs(profit_value)),
-        class: profit_class,
-      });
-      if (has_margin) {
-        const margin_class = margin_value >= 0 ? "value-good" : "value-bad";
-        traditional_viability_paragraph_segments.push({ type: "text", text: " before tax " });
-        traditional_viability_paragraph_segments.push({ type: "text", text: `(a ${margin_value.toFixed(1)}% net margin)`, class: margin_class });
-        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
-      } else {
-        traditional_viability_paragraph_segments.push({ type: "text", text: " before tax." });
-      }
-
-      const status = cost_absorption_status?.value;
-      const gap_value = Number(recovery_surplus_or_gap?.value);
-      const has_gap = Number.isFinite(gap_value);
-
-      if (status === "not_absorbed" && has_gap) {
-        traditional_viability_paragraph_segments.push({ type: "text", text: " Costs aren't being fully absorbed by revenue - a " });
-        traditional_viability_paragraph_segments.push({ type: "text", text: `${format_currency(Math.abs(gap_value))} gap`, class: "value-bad" });
-        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
-      } else if (status === "absorbed" && has_gap) {
-        traditional_viability_paragraph_segments.push({ type: "text", text: " All costs are being fully absorbed by revenue, with " });
-        traditional_viability_paragraph_segments.push({ type: "text", text: `${format_currency(gap_value)} to spare`, class: "value-good" });
-        traditional_viability_paragraph_segments.push({ type: "text", text: "." });
-      } else if (status === "unavailable") {
-        // Genuinely gated, not broken - all 3 upstream sources
-        // (Revenue/COGS, Cost Summary, Business Summary) must each
-        // independently report ready before this label is shown, even
-        // though recovery_surplus_or_gap itself is already correctly
-        // computed underneath.
-        traditional_viability_paragraph_segments.push({
-          type: "text",
-          text: " Cost absorption status isn't available yet - Cost Summary data isn't fully trusted, so this label is being held back until that's resolved.",
-        });
-      }
-    }
-  }
-
-  paragraphs.push(traditional_viability_paragraph_segments);
-
-  let worst = null;
-  let options_added = false;
-
-  if (active_headline.all_good) {
-    paragraphs.push(
-      "Every part of the business is currently paying its way - no source is being propped up by the rest."
-    );
-  } else {
-    // What's working - healthy sources, shown before the shortfall
-    // detail so the picture isn't only what's failing.
-    const healthy_sources = (active_headline.all_sources || []).filter(
-      (s) => s.verdict === "paying_its_way"
-    );
-    if (healthy_sources.length > 0) {
-      const total_healthy = healthy_sources.reduce((sum, s) => sum + (s.net_profit ?? 0), 0);
-      const best = [...healthy_sources].sort((a, b) => (b.net_profit ?? 0) - (a.net_profit ?? 0))[0];
-      if (healthy_sources.length === 1) {
-        paragraphs.push([
-          { type: "text", text: `${best.name} is fully paying its own way, earning ` },
-          { type: "text", text: `${format_currency(best.net_profit)} a year`, class: "value-good" },
-          { type: "text", text: "." },
-        ]);
-      } else {
-        paragraphs.push([
-          { type: "text", text: `${healthy_sources.length} sources are fully paying their own way, together earning ` },
-          { type: "text", text: `${format_currency(total_healthy)} a year`, class: "value-good" },
-          { type: "text", text: `. ${best.name} is the strongest, at ` },
-          { type: "text", text: format_currency(best.net_profit), class: "value-good" },
-          { type: "text", text: "." },
-        ]);
-      }
-    }
-
-    worst = active_headline.being_carried?.[0];
-    const count = active_headline.being_carried?.length ?? 0;
-    const total = active_headline.total_group_count ?? 0;
-    if (worst && count === 1) {
-      if (Math.abs(worst.net_profit) < 1) {
-        paragraphs.push(
-          `${worst.name} is the only part of the business not covering its own cost right now - it's being kept at exactly $0, propped up by the rest of the business rather than genuinely breaking even.`
-        );
-      } else {
-        paragraphs.push([
-          { type: "text", text: `${worst.name} is the only part of the business not covering its own cost right now, at ` },
-          { type: "text", text: `${format_currency(worst.net_profit)} a year`, class: "value-bad" },
-          { type: "text", text: "." },
-        ]);
-      }
-    } else if (worst) {
-      paragraphs.push([
-        { type: "text", text: `${count} of ${total} sources aren't covering their own cost right now. ${worst.name} is carrying the largest shortfall, at ` },
-        { type: "text", text: `${format_currency(worst.net_profit)} a year`, class: "value-bad" },
-        { type: "text", text: "." },
-      ]);
-    }
-  }
-
-  const groups_with_margin = (real_capacity?.group_real_capacity || [])
-    .filter((g) => (g.modelled_revenue ?? 0) > 0)
-    .map((g) => ({ ...g, margin_pct: (g.modelled_revenue - g.true_cost) / g.modelled_revenue }));
-
-  if (groups_with_margin.length > 1) {
-    const most_resilient = [...groups_with_margin].sort((a, b) => b.margin_pct - a.margin_pct)[0];
-    const least_resilient = [...groups_with_margin].sort((a, b) => a.margin_pct - b.margin_pct)[0];
-    if (most_resilient.group_id !== least_resilient.group_id) {
-      paragraphs.push(
-        `${most_resilient.group_name} is your most resilient source, with a ${(most_resilient.margin_pct * 100).toFixed(0)}% margin buffer. ${least_resilient.group_name} has the thinnest buffer, at ${(least_resilient.margin_pct * 100).toFixed(0)}%, so it's the first place to watch if revenue softens.`
-      );
-
-      if (worst && worst.name === most_resilient.group_name) {
-        paragraphs.push(
-          `${worst.name}'s large dollar shortfall above is because it also has the biggest revenue share in the business - once a shortfall is spread proportionally, the biggest source takes the biggest dollar hit, even though its underlying margin is still the strongest of any source.`
-        );
-      }
-    }
-  }
-
-  if (capacity_mode === "real" && (real_capacity?.shortfall ?? 0) > 0) {
-    paragraphs.push([
-      { type: "text", text: "Materials/COGS can't cover its real cost from what's left over once labour and assets are paid - the " },
-      { type: "text", text: `${format_currency(real_capacity.shortfall)} shortfall`, class: "value-bad" },
-      { type: "text", text: " is being spread across the rest of the business." },
-    ]);
-  } else if (capacity_mode === "assumed" && revenue_ceiling?.is_breached) {
-    const scale_pct = ((revenue_ceiling.scale_factor ?? 1) * 100).toFixed(0);
-    paragraphs.push([
-      { type: "text", text: "Combined labour and asset claims exceed total revenue, so every labour and asset source has been scaled down by " },
-      { type: "text", text: `${scale_pct}%`, class: "value-bad" },
-      { type: "text", text: " at once - Materials absorbs whatever's left over." },
-    ]);
-  }
-
-  // Materials markup - always shown, regardless of overall business
-  // health, since it's a genuine, separate lever worth knowing about
-  // either way.
-  const materials_breakeven = calculateIndependentMaterialsBreakeven({
-    materials: real_capacity?.materials,
-  });
-  if (materials_breakeven.available) {
-    const rounded_markup = Math.round(materials_breakeven.current_markup_percent);
-    if (rounded_markup > 0) {
-      paragraphs.push([
-        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS still comes out marked up at " },
-        { type: "text", text: `${materials_breakeven.current_markup_percent.toFixed(0)}%`, class: "value-good" },
-        { type: "text", text: ", earning " },
-        { type: "text", text: `${format_currency(materials_breakeven.current_net_profit)} a year`, class: "value-good" },
-        { type: "text", text: " - Labour and Assets aren't claiming more than the business can currently support. " },
-        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-        { type: "text", text: " panel below breaks down the full workings." },
-      ]);
-    } else if (rounded_markup === 0) {
-      paragraphs.push([
-        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS lands exactly at breakeven - covering its true cost with nothing left over. Labour and Assets are claiming exactly as much of total revenue as the business can currently support, with no margin to spare. " },
-        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-        { type: "text", text: " panel below breaks down the full workings." },
-      ]);
-      options_added = true;
-    } else {
-      paragraphs.push([
-        { type: "text", text: "Under the revenue claim test (Labour and Assets paid their real cost first), Materials/COGS works out to a " },
-        { type: "text", text: `${materials_breakeven.current_markup_percent.toFixed(0)}%`, class: "value-bad" },
-        { type: "text", text: " markup - below the 0% breakeven point. That's a signal that Labour and Assets are currently claiming more of total revenue than the business can support, not that Materials itself is mispriced. " },
-        { type: "link", label: "The Revenue Claim Test", target_id: "independent-breakeven-panel", ancestor_ids: ["how-the-numbers-are-calculated", "independent-numbers-folder"], pre_toggle_labels: ["Show breakdown"] },
-        { type: "text", text: " panel below breaks down the full workings." },
-      ]);
-      options_added = true;
-    }
-  }
-
-  // Options worth knowing about - the worst group (not Materials,
-  // which is always covered above).
   if (worst && worst.type === "group") {
     const group_match = (real_capacity?.group_real_capacity || []).find(
       (g) => g.group_id === worst.key
@@ -434,21 +442,29 @@ function build_situation_summary({
     }
   }
 
-  // Scheduling gaps - hours, not dollars, and explicitly framed
-  // elsewhere as "not a profit issue" - left uncoloured.
+  // Scheduling gaps - deferred to Things to check alongside the
+  // worst-source flag and the P&L cross-check.
   if (labour_coverage_gaps && labour_coverage_gaps.length > 0) {
     labour_coverage_gaps.forEach((gap) => {
-      paragraphs.push(
+      things_to_check.push(
         `${gap.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${gap.gap_hours} fewer hours (${gap.gap_days} days) than this asset runs each year - a different lever than rate.`
       );
     });
     options_added = true;
   }
 
+  // === 5. CLOSING ===
+
   if (options_added) {
     paragraphs.push(
       "It's a picture of where things stand today, and a place to start if you want to explore what changing something would look like. The decisions from here are yours to make - Business Modelling is there when you want to test them out."
     );
+  }
+
+  // === 6. THINGS TO CHECK ===
+  if (things_to_check.length > 0) {
+    paragraphs.push({ is_header: true, text: "Things to check" });
+    things_to_check.forEach((item) => paragraphs.push(item));
   }
 
   return paragraphs;
@@ -486,25 +502,31 @@ export function BusinessOutcomeTruthSituationBlurb({
   return (
     <div className="ui-card theme-card-muted business-outcome-help-panel">
       <h2>Your business, right now</h2>
-      {summary_paragraphs.map((paragraph, index) => (
-        <p key={index}>
-          {Array.isArray(paragraph)
-            ? paragraph.map((segment, seg_index) =>
-                segment.type === "link" ? (
-                  <ScrollToSectionLink
-                    key={seg_index}
-                    label={segment.label}
-                    target_id={segment.target_id}
-                    ancestor_ids={segment.ancestor_ids || []}
-                    pre_toggle_labels={segment.pre_toggle_labels || []}
-                  />
-                ) : (
-                  <span key={seg_index} className={segment.class || undefined}>{segment.text}</span>
+      {summary_paragraphs.map((paragraph, index) =>
+        paragraph && paragraph.is_header ? (
+          <div key={index} className="business-outcome-ledger-section-title" style={{ marginTop: "1.25rem" }}>
+            {paragraph.text}
+          </div>
+        ) : (
+          <p key={index}>
+            {Array.isArray(paragraph)
+              ? paragraph.map((segment, seg_index) =>
+                  segment.type === "link" ? (
+                    <ScrollToSectionLink
+                      key={seg_index}
+                      label={segment.label}
+                      target_id={segment.target_id}
+                      ancestor_ids={segment.ancestor_ids || []}
+                      pre_toggle_labels={segment.pre_toggle_labels || []}
+                    />
+                  ) : (
+                    <span key={seg_index} className={segment.class || undefined}>{segment.text}</span>
+                  )
                 )
-              )
-            : paragraph}
-        </p>
-      ))}
+              : paragraph}
+          </p>
+        )
+      )}
     </div>
   );
 }

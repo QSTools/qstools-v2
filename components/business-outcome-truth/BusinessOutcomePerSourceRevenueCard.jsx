@@ -1985,7 +1985,6 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           ? build_naive_headline()
           : per_source.headline_real_capacity
         : per_source.headline;
-
   // Unassigned cost as a genuine "blocking flag" row (this session,
   // per user request): real cost, real money, not attributed to any
   // source above - previously invisible in this list even though the
