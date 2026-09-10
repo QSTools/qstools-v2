@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   format_number_with_commas,
   parse_number_string,
@@ -52,6 +53,44 @@ export default function AssetForm({
       ? "term_extended"
       : "finance_active";
 
+  const has_scheduled_hours =
+    values.scheduled_hours_per_week !== undefined &&
+    values.scheduled_hours_per_week !== null &&
+    values.scheduled_hours_per_week !== "";
+
+  // Downtime model: guide the user toward the calculated approach by
+  // pre-filling scheduled_hours_per_week from whatever this asset is
+  // already recording, the first time this asset is loaded with no
+  // scheduled hours set. This is a guide only, not a silent bulk
+  // migration - nothing is written to storage until the user saves,
+  // and it never overwrites a value the user has already entered.
+  useEffect(() => {
+    if (asset_type !== "productive") {
+      return;
+    }
+
+    if (has_scheduled_hours) {
+      return;
+    }
+
+    if (typeof on_change !== "function") {
+      return;
+    }
+
+    const guide_value = Number(values.utilisation_hours_per_week || 40);
+    on_change("scheduled_hours_per_week", guide_value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.asset_id, asset_type, has_scheduled_hours]);
+
+  const scheduled_hours_per_week = Number(values.scheduled_hours_per_week || 0);
+  const downtime_hours_per_week = Number(values.downtime_hours_per_week || 0);
+  const calculated_hours_used_per_week = Math.max(
+    scheduled_hours_per_week - downtime_hours_per_week,
+    0
+  );
+  const downtime_exceeds_scheduled =
+    has_scheduled_hours && downtime_hours_per_week > scheduled_hours_per_week;
+
   function handle_asset_status_change(next_status) {
     const is_retired = next_status === "retired";
     on_change("is_active", !is_retired);
@@ -65,16 +104,30 @@ export default function AssetForm({
           ? Number(values.asset_annual_weeks_override)
           : Number(default_annual_weeks) || 48;
 
+      const next_scheduled_hours_per_week =
+        next_asset_type === "productive"
+          ? Number(values.scheduled_hours_per_week || 40)
+          : null;
+      const next_downtime_hours_per_week =
+        next_asset_type === "productive"
+          ? Number(values.downtime_hours_per_week || 0)
+          : 0;
+      const next_utilisation_hours_per_week =
+        next_asset_type === "productive"
+          ? Math.max(
+              next_scheduled_hours_per_week - next_downtime_hours_per_week,
+              0
+            )
+          : 0;
+
       on_bulk_change({
         asset_type: next_asset_type,
-        utilisation_hours_per_week:
-          next_asset_type === "productive"
-            ? Number(values.utilisation_hours_per_week || 40)
-            : 0,
+        scheduled_hours_per_week: next_scheduled_hours_per_week,
+        downtime_hours_per_week: next_downtime_hours_per_week,
+        utilisation_hours_per_week: next_utilisation_hours_per_week,
         utilisation_hours_annual:
           next_asset_type === "productive"
-            ? Number(values.utilisation_hours_per_week || 40) *
-              effective_annual_weeks
+            ? next_utilisation_hours_per_week * effective_annual_weeks
             : 0,
       });
       return;
@@ -147,24 +200,67 @@ export default function AssetForm({
           {asset_type === "productive" ? (
             <>
               <label className="ui-stack-sm">
-                <span className="ui-label">Hours used per week</span>
+                <span className="ui-label">Scheduled hours per week</span>
                 <input
                   className="ui-input"
                   type="text"
-                  value={format_number_with_commas(
-                    values.utilisation_hours_per_week ?? 40
-                  )}
+                  placeholder={`Business opening hours: ${format_number_with_commas(
+                    default_annual_weeks > 0 ? default_annual_weeks : 48
+                  )} weeks/year is used for annual conversion - enter this asset's own weekly schedule`}
+                  value={
+                    has_scheduled_hours
+                      ? format_number_with_commas(values.scheduled_hours_per_week)
+                      : ""
+                  }
                   onChange={(event) =>
                     on_change(
-                      "utilisation_hours_per_week",
+                      "scheduled_hours_per_week",
                       parse_number_string(event.target.value)
                     )
                   }
                 />
                 <span className="ui-help">
-                  How many hours per week is this asset actually used?
+                  The theoretical hours this asset is scheduled to run in a
+                  normal week, before accounting for downtime.
                 </span>
               </label>
+
+              <label className="ui-stack-sm">
+                <span className="ui-label">Downtime hours per week</span>
+                <input
+                  className="ui-input"
+                  type="text"
+                  value={format_number_with_commas(
+                    values.downtime_hours_per_week ?? 0
+                  )}
+                  onChange={(event) =>
+                    on_change(
+                      "downtime_hours_per_week",
+                      parse_number_string(event.target.value)
+                    )
+                  }
+                />
+                <span className="ui-help">
+                  Scheduled maintenance, servicing, or expected breakdown
+                  time. Hours the asset is unavailable even though it is
+                  scheduled to run.
+                </span>
+              </label>
+
+              <div className="ui-readonly">
+                <span className="ui-label">
+                  Hours used per week (calculated)
+                </span>
+                <div className="ui-help">
+                  {format_number_with_commas(calculated_hours_used_per_week)}
+                </div>
+                {downtime_exceeds_scheduled ? (
+                  <div className="ui-help" style={{ color: "var(--danger)" }}>
+                    Downtime exceeds scheduled hours - hours used per week is
+                    floored at zero. Check these two figures.
+                  </div>
+                ) : null}
+              </div>
 
               <label className="ui-stack-sm">
                 <span className="ui-label">
