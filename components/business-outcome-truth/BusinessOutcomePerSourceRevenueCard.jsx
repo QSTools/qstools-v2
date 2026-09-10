@@ -2580,6 +2580,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         traditional_viability_summary={output_contract}
         pnl_net_profit_actual={pnl_net_profit_actual}
         pnl_trading_income_actual={pnl_trading_income_actual}
+        view_b_modelled_revenue={build_view_b_headline("real")?.total_modelled_revenue}
       />
 
       <BusinessOutcomeTruthAboutPanel />

@@ -47,6 +47,7 @@ function build_situation_summary({
   traditional_viability_summary,
   pnl_net_profit_actual,
   pnl_trading_income_actual,
+  view_b_modelled_revenue,
 }) {
   const paragraphs = [];
   const things_to_check = [];
@@ -214,6 +215,44 @@ function build_situation_summary({
 
   paragraphs.push(traditional_viability_paragraph_segments);
 
+  // === 2.5 VIEW A / VIEW B MATERIALS MARKUP VARIANCE ===
+  // View B prices Materials/COGS independently (real COGS x Rate
+  // Builder's markup target) instead of as a leftover, so its total
+  // revenue genuinely differs from the P&L figure above - by design,
+  // not a bug (2026-09-10 decision, see brief). Surfaced here in
+  // "how it's built" so nobody stumbles on View B's own total lower
+  // down the page and assumes something's broken. Sign convention:
+  // positive variance = actual outperforming the markup assumption
+  // (headroom); negative = a signal worth investigating. Deliberately
+  // avoids "budget" language - Mirra has no job-budget concept, only
+  // rates, hours, COGS and markup.
+  if (
+    Number.isFinite(Number(pnl_revenue)) &&
+    Number.isFinite(Number(view_b_modelled_revenue)) &&
+    Number(view_b_modelled_revenue) !== 0
+  ) {
+    const markup_variance = Number(pnl_revenue) - Number(view_b_modelled_revenue);
+    if (Math.abs(markup_variance) > 1) {
+      const variance_segments = [
+        { type: "text", text: "One thing worth knowing: switching to View B further down will show a different total revenue and net profit than the figures above. That's because View B prices Materials/COGS independently, from your real cost of sales and Rate Builder's markup target, rather than as whatever's left over once labour and assets are paid. " },
+      ];
+      if (markup_variance > 0) {
+        variance_segments.push(
+          { type: "text", text: "Right now that shows " },
+          { type: "text", text: `${format_currency(markup_variance)} of headroom`, class: "value-good" },
+          { type: "text", text: " - your real results are outperforming that markup target, so there's room to move on price if the market softens." }
+        );
+      } else {
+        variance_segments.push(
+          { type: "text", text: "Right now that shows a " },
+          { type: "text", text: `${format_currency(Math.abs(markup_variance))} gap`, class: "value-bad" },
+          { type: "text", text: " worth investigating - it could mean your real effective markup differs from what's set, or that actual hours and materials used are running ahead of or behind what your rates and markup would predict." }
+        );
+      }
+      paragraphs.push(variance_segments);
+    }
+  }
+
   // === 3. WHO'S HEALTHY (worst source deferred to Things to check) ===
 
   let worst = null;
@@ -272,6 +311,11 @@ function build_situation_summary({
     }
   }
 
+  // Deliberately always View A's real_capacity here, regardless of
+  // the page's View A/B toggle (2026-09-10 decision: the blurb stays
+  // stable to View A throughout, see stable_headline in the Card and
+  // the variance paragraph above). This is not a bug - do not branch
+  // this on view_mode_ab.
   const groups_with_margin = (real_capacity?.group_real_capacity || [])
     .filter((g) => (g.modelled_revenue ?? 0) > 0)
     .map((g) => ({ ...g, margin_pct: (g.modelled_revenue - g.true_cost) / g.modelled_revenue }));
@@ -326,6 +370,10 @@ function build_situation_summary({
     ]);
   }
 
+  // Deliberately always View A's real_capacity.materials here too,
+  // same stability principle as above - do not branch this on
+  // view_mode_ab. The View A/B variance is already explained
+  // separately, see the paragraph above.
   const materials_breakeven = calculateIndependentMaterialsBreakeven({
     materials: real_capacity?.materials,
   });
@@ -482,6 +530,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   traditional_viability_summary,
   pnl_net_profit_actual,
   pnl_trading_income_actual,
+  view_b_modelled_revenue,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -495,6 +544,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     traditional_viability_summary,
     pnl_net_profit_actual,
     pnl_trading_income_actual,
+    view_b_modelled_revenue,
   });
 
   if (summary_paragraphs.length === 0) return null;
