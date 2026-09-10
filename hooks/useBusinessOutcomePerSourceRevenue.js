@@ -347,6 +347,88 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
     .sort((a, b) => (b.modelled_revenue ?? -Infinity) - (a.modelled_revenue ?? -Infinity));
 }
 
+// CAPACITY COVERAGE GAP (2026-09-11, prerequisite: asset utilisation/
+// downtime fix, commit 6c8995f, confirmed group.group_recovery_hours is
+// now trustworthy). Diagnostic only - does not change any revenue or
+// cost figure used elsewhere. Bidirectional, all groups: compares the
+// asset's seat hours (group.group_recovery_hours) against labour's own
+// raw assigned hours (summed BEFORE the seat-hours override applied in
+// build_labour_sources above, so this never double-counts the seat
+// allowance already built into Real Capacity). Sign and meaning depend
+// on which side actually drives that group's revenue
+// (group_recovery_hour_source === "asset_hours" or not):
+//   asset-driven, gap > 0: revenue already counted is riding on the
+//     seat, not on someone actually covering it (revenue_at_risk).
+//   asset-driven, gap < 0: genuinely overstaffed - extra labour paid,
+//     revenue capped at seat hours regardless of headcount (wasted_cost).
+//   labour-driven, gap > 0: asset capacity not being converted to
+//     revenue - a genuine opportunity (opportunity).
+//   labour-driven, gap < 0: labour logged beyond the asset's actual
+//     running time - a data/scheduling oddity, not a cost claim
+//     (data_check).
+function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators) {
+  return operational_group_cost_rows.map((group) => {
+    const labour_assignments = Array.isArray(group.labour_group_assignments)
+      ? group.labour_group_assignments
+      : [];
+    const labour_hours = labour_assignments.reduce(
+      (sum, a) => sum + to_number(a.assigned_hours),
+      0
+    );
+    const labour_cost = labour_assignments.reduce(
+      (sum, a) => sum + to_number(a.assigned_cost),
+      0
+    );
+    const labour_true_cost_rate = labour_hours > 0 ? labour_cost / labour_hours : null;
+
+    const asset_hours = to_number(group.group_recovery_hours);
+    const { blended_rate } = get_group_blended_rate(group, calculators);
+
+    const is_asset_driven = group.group_recovery_hour_source === "asset_hours";
+    const gap_hours = round_currency(asset_hours - labour_hours);
+
+    let gap_type = "none";
+    let gap_dollar_value = null;
+
+    if (gap_hours !== 0 && blended_rate !== null) {
+      if (is_asset_driven) {
+        if (gap_hours > 0) {
+          gap_type = "revenue_at_risk";
+          gap_dollar_value = round_currency(gap_hours * blended_rate);
+        } else {
+          gap_type = "wasted_cost";
+          gap_dollar_value =
+            labour_true_cost_rate !== null
+              ? round_currency(Math.abs(gap_hours) * labour_true_cost_rate)
+              : null;
+        }
+      } else {
+        if (gap_hours > 0) {
+          gap_type = "opportunity";
+          gap_dollar_value = round_currency(gap_hours * blended_rate);
+        } else {
+          gap_type = "data_check";
+          gap_dollar_value =
+            labour_true_cost_rate !== null
+              ? round_currency(Math.abs(gap_hours) * labour_true_cost_rate)
+              : null;
+        }
+      }
+    }
+
+    return {
+      group_id: group.group_id,
+      group_name: group.group_name,
+      is_asset_driven,
+      asset_hours,
+      labour_hours,
+      gap_hours,
+      gap_type,
+      gap_dollar_value,
+    };
+  });
+}
+
 // STEP 3/4 (S30 brief, hand-verified against real breach data before
 // this was coded): when labour_modelled_revenue_total +
 // asset_modelled_revenue_total exceeds total_revenue_reference, that is
@@ -895,6 +977,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
         cost_reconciles,
       },
       view_b,
+      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
     };
   }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent]);
 
