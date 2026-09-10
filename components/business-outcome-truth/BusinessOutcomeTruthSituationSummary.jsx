@@ -234,7 +234,9 @@ function build_situation_summary({
     const markup_variance = Number(pnl_revenue) - Number(view_b_modelled_revenue);
     if (Math.abs(markup_variance) > 1) {
       const variance_segments = [
-        { type: "text", text: "One thing worth knowing: switching to View B further down will show a different total revenue and net profit than the figures above. That's because View B prices Materials/COGS independently, from your real cost of sales and Rate Builder's markup target, rather than as whatever's left over once labour and assets are paid. " },
+        { type: "text", text: "One thing worth knowing: switching to View B further down will show a different total revenue and net profit than the figures above. That's because View B prices Materials/COGS independently, from your real cost of sales and Rate Builder's markup target, rather than as whatever's left over once labour and assets are paid - see the " },
+        { type: "link", label: "View A vs View B comparison table", target_id: "view-ab-comparison-panel", ancestor_ids: ["how-the-numbers-are-calculated", "views-folder"], pre_toggle_labels: ["Show breakdown"] },
+        { type: "text", text: " below for the full breakdown. " },
       ];
       if (markup_variance > 0) {
         variance_segments.push(

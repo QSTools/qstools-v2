@@ -13,6 +13,7 @@ import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-tru
 import { BusinessOutcomeTruthAboutPanel } from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
 import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcome-truth/BusinessOutcomeTruthSituationSummary";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+import BusinessOutcomeViewABComparisonTable from "@/components/business-outcome-truth/BusinessOutcomeViewABComparisonTable";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
@@ -2471,7 +2472,16 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </CollapsibleSection>
           </CollapsibleSection>
 
-          <CollapsibleSection title="Views" defaultOpen={false}>
+          <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>
+            <CollapsibleSection id="view-ab-comparison-panel" title="Comparison: View A vs View B" defaultOpen={false}>
+              <BusinessOutcomeViewABComparisonTable
+                labour_groups={per_source.labour_groups}
+                asset_groups={per_source.asset_groups}
+                materials={per_source.materials}
+                view_b={per_source.view_b}
+              />
+            </CollapsibleSection>
+
             <CollapsibleSection title="View A" defaultOpen={false}>
               <CollapsibleSection title="Real Capacity ledger" defaultOpen={false}>
                 <RealCapacityLedger
