@@ -10,6 +10,7 @@ import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
 import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
+import { calculateGaugeInput } from "@/lib/calculations/businessModellingIndependentCalculations";
 
 // Business Outcome - Per-Source Revenue Attribution (S26/S27/S29).
 //
@@ -985,6 +986,25 @@ export default function useBusinessOutcomePerSourceRevenue() {
       },
       view_b,
       capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
+      // Health gauge baseline (2026-09-11, moved here from Business Modelling
+      // per user decision - Outcome computes the trusted baseline once,
+      // Modelling consumes it downstream, same "reuse the engine" principle
+      // as the rest of this session). health_ratio = smoothed_net_profit
+      // (the real, cascade-adjusted total, after cross-subsidy) divided by
+      // independent_net_profit_floored (what each source would have earned
+      // on its own, floored at $0, before any subsidy) - a ratio well
+      // below 1 signals heavy cross-subsidy being masked by the smoothed
+      // total. Uses naive_net_profit (pre-cascade) via calculateGaugeInput's
+      // own modelled_revenue - true_cost fallback, NOT final_net_profit.
+      health_gauge: calculateGaugeInput({
+        groups: real_capacity.group_real_capacity,
+        materials: { modelled_revenue: materials.revenue, true_cost: materials.true_cost },
+        smoothed_net_profit: round_currency(
+          (real_capacity.group_real_capacity || []).reduce((sum, g) => sum + (g.final_net_profit ?? 0), 0) +
+          (materials.real_capacity_net_profit ?? 0) -
+          (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost)
+        ),
+      }),
     };
   }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent]);
 
