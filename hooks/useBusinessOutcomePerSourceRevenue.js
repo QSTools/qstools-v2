@@ -367,7 +367,14 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 //     running time - a data/scheduling oddity, not a cost claim
 //     (data_check).
 function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators) {
-  return operational_group_cost_rows.map((group) => {
+  return operational_group_cost_rows
+    .filter((group) => {
+      const asset_assignments = Array.isArray(group.asset_group_assignments)
+        ? group.asset_group_assignments
+        : [];
+      return asset_assignments.length > 0;
+    })
+    .map((group) => {
     const labour_assignments = Array.isArray(group.labour_group_assignments)
       ? group.labour_group_assignments
       : [];

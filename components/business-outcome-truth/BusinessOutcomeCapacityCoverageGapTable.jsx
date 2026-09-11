@@ -62,11 +62,12 @@ export default function BusinessOutcomeCapacityCoverageGapTable({ capacity_cover
       <div className="business-outcome-ledger-section-title">Capacity Coverage Gap</div>
       <div className="ui-help">
         Compares each group&apos;s asset hours against labour&apos;s own real assigned hours (not the
-        seat-adjusted figure used elsewhere, so this never double-counts). Works both directions:
-        labour short of asset hours flags revenue riding on the seat with nobody actually covering
-        it; labour exceeding asset hours flags overstaffing - real cost the revenue doesn&apos;t
-        account for. This is a diagnostic only - it does not change any revenue or cost figure used
-        elsewhere on this page. The fix, if one&apos;s needed, happens in Business Modelling.
+        asset-adjusted figure used elsewhere, so this never double-counts). Works both directions:
+        labour short of asset hours flags revenue that assumes coverage which isn&apos;t actually
+        there; labour exceeding asset hours flags overstaffing - real cost the revenue doesn&apos;t
+        account for. Only asset-driven groups are shown - a pure labour group has no asset hours to
+        compare against. This is a diagnostic only - it does not change any revenue or cost figure
+        used elsewhere on this page. The fix, if one&apos;s needed, happens in Business Modelling.
       </div>
 
       <div className="business-outcome-ledger-table">
