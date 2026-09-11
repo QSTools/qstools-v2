@@ -15,6 +15,7 @@ import { BusinessOutcomeTruthSituationBlurb } from "@/components/business-outcom
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import BusinessOutcomeViewABComparisonTable from "@/components/business-outcome-truth/BusinessOutcomeViewABComparisonTable";
 import BusinessOutcomeCapacityCoverageGapTable from "@/components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable";
+import BusinessOutcomeHealthGauge from "@/components/business-outcome-truth/BusinessOutcomeHealthGauge";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
@@ -2582,6 +2583,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </div>
         </div>
       </div>
+
+      <BusinessOutcomeHealthGauge health_gauge={per_source.health_gauge} />
 
       <BusinessOutcomeTruthSituationBlurb
         active_headline={stable_headline}
