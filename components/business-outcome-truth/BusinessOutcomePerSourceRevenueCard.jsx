@@ -16,6 +16,8 @@ import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth
 import BusinessOutcomeViewABComparisonTable from "@/components/business-outcome-truth/BusinessOutcomeViewABComparisonTable";
 import BusinessOutcomeCapacityCoverageGapTable from "@/components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable";
 import BusinessOutcomeHealthGauge from "@/components/business-outcome-truth/BusinessOutcomeHealthGauge";
+import BusinessOutcomeHealthGaugeExplainer from "@/components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer";
+import { scroll_to_section } from "@/lib/utils/scrollToSection";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
@@ -2478,6 +2480,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             <BusinessOutcomeCapacityCoverageGapTable capacity_coverage_gap={per_source.capacity_coverage_gap} />
           </CollapsibleSection>
 
+          <CollapsibleSection id="health-gauge-explainer-panel" title="Business Health Gauge - explained" defaultOpen={false}>
+            <BusinessOutcomeHealthGaugeExplainer health_gauge={per_source.health_gauge} active_headline={stable_headline} />
+          </CollapsibleSection>
+
           <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>
             <CollapsibleSection id="view-ab-comparison-panel" title="Comparison: View A vs View B" defaultOpen={false}>
               <BusinessOutcomeViewABComparisonTable
@@ -2584,7 +2590,19 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         </div>
       </div>
 
-      <BusinessOutcomeHealthGauge health_gauge={per_source.health_gauge} />
+      <button
+        type="button"
+        className="business-outcome-health-gauge-clickable"
+        onClick={() =>
+          scroll_to_section({
+            target_id: "health-gauge-explainer-panel",
+            ancestor_ids: ["how-the-numbers-are-calculated"],
+            pre_toggle_labels: ["Show breakdown"],
+          })
+        }
+      >
+        <BusinessOutcomeHealthGauge health_gauge={per_source.health_gauge} />
+      </button>
 
       <BusinessOutcomeTruthSituationBlurb
         active_headline={stable_headline}

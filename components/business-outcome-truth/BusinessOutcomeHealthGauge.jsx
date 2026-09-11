@@ -16,8 +16,8 @@ function polar_to_cartesian(cx, cy, r, angle_deg) {
 // bounded at or below 1.0 by construction - independent_net_profit_floored
 // is the best-case sum with underperformers floored to $0, so the real
 // (smoothed) total can only be lower, never higher.
-const SCALE_MIN = -0.5;
-const SCALE_MAX = 1.0;
+export const SCALE_MIN = -0.5;
+export const SCALE_MAX = 1.0;
 
 function ratio_to_angle(ratio) {
   const clamped = clamp(ratio, SCALE_MIN, SCALE_MAX);
@@ -27,7 +27,7 @@ function ratio_to_angle(ratio) {
   return 180 - fraction * 180;
 }
 
-function zone_for_ratio(ratio) {
+export function zone_for_ratio(ratio) {
   if (ratio < 0) return { label: "Unhealthy - real loss despite individual sources being viable on their own", color: "var(--danger)" };
   if (ratio < 0.7) return { label: "Some cross-subsidy drag", color: "var(--warning)" };
   return { label: "Healthy - little drag from underperforming sources", color: "var(--success)" };

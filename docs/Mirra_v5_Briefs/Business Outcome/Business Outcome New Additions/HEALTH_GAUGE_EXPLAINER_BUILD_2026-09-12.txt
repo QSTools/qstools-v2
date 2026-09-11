@@ -1,0 +1,54 @@
+# Health Gauge Explainer + Legend - Build Record (2026-09-12)
+
+## Why this exists
+This session tackled the first of two flagged Health Gauge follow-ups from the prior session brief: the missing legend/explanatory content, and the terminology question (health_ratio is not a named industry metric, but is built from real per-source data). Also fixed a gap where the gauge and the blurb's "N of M sources not paying their way" language told the same story in two disconnected places on the page.
+
+## What shipped
+
+1. lib/utils/scrollToSection.js - NEW. Extracted the async open/scroll navigation logic out of ScrollToSectionLink.jsx into a shared, reusable function: scroll_to_section({ target_id, ancestor_ids, pre_toggle_labels }). Also exports open_if_closed().
+
+2. components/common/ScrollToSectionLink.jsx - REFACTORED. Now delegates its click handler to scroll_to_section() from the new shared util. No behavior change - pure extraction, done specifically so the Health Gauge (a non-text-link consumer) could reuse the exact same navigation engine instead of duplicating it.
+
+3. components/business-outcome-truth/BusinessOutcomeHealthGauge.jsx - PATCHED. SCALE_MIN, SCALE_MAX, and zone_for_ratio() are now exported, so the new explainer/legend can never drift out of sync with the actual gauge's thresholds. Confirmed --warning CSS variable genuinely exists (defined in app/globals.css across all theme variants) - the Working Conventions doc's note that no --warning exists is now outdated, --warning was added since that note was written.
+
+4. components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer.jsx - NEW component. Lives under "How the Numbers Are Calculated" as CollapsibleSection id="health-gauge-explainer-panel", sibling to capacity-coverage-gap-panel. Contains:
+   - Plain-English explanation of what health_ratio measures (no "not a named industry metric" framing - stripped per explicit decision, just explains what it is)
+   - The two headline input numbers (smoothed_net_profit, independent_net_profit_floored) as business-outcome-ledger-metric cards
+   - A link to the real Revenue / Net Profit table (revenue-net-profit-panel) for full per-source proof behind those two numbers
+   - The "N of M sources not paying their way" line, reusing active_headline.being_carried / total_group_count - the SAME View A fields the main blurb already uses, so gauge and blurb now tell one consistent story instead of two disconnected ones
+   - A 3-zone legend table (red/amber/green), built from zone_for_ratio() and SCALE_MIN/SCALE_MAX imported from the gauge file itself
+
+5. styles/modules/business-outcome.css - PATCHED (two additions):
+   - .business-outcome-health-gauge-legend-table / -row / -header / -dot - new 2-column legend classes (scoped new class per convention 2.4, since the existing .business-outcome-ledger-row is fixed at 4 columns)
+   - .business-outcome-health-gauge-clickable / :hover - button-reset styling so the gauge's new click wrapper has no default browser button chrome
+
+6. components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx - PATCHED (three separate patches, each built and verified independently per convention 1.6):
+   - Added imports for BusinessOutcomeHealthGaugeExplainer and scroll_to_section
+   - Inserted the new CollapsibleSection id="health-gauge-explainer-panel" as a sibling right after capacity-coverage-gap-panel
+   - Wrapped the existing <BusinessOutcomeHealthGauge /> render in a <button className="business-outcome-health-gauge-clickable"> that calls scroll_to_section() targeting the new explainer panel, with ancestor_ids: ["how-the-numbers-are-calculated"] and pre_toggle_labels: ["Show breakdown"] (the standard gotcha pattern)
+
+## Methodology notes worth carrying forward
+
+- All JSX/JS/CSS edits after the initial two files were done via the Apply-Patch (IndexOf/Substring) function from the Working Conventions doc, one small anchored patch at a time, build after every single one - not full-file rewrites. The two initial files (before this discipline was re-established mid-session) were done via direct WriteAllText since they didn't exist yet - acceptable for brand-new files, but Apply-Patch is required for anything with existing content.
+- PowerShell here-strings must use single-quoted delimiters (@' ... '@), not double-quoted (@" ... "@), when the content includes JS template literals with ${...} syntax - double-quoted here-strings make PowerShell try to interpret those as its own variable syntax and throw a parser error. This bit once this session (the format_currency helper's template literal) - single-quoted here-strings avoid it entirely and should be the default for any JS/JSX content going forward.
+- A live "0.00 in amber" gauge reading mid-session was NOT a bug - the hook/selector/CSS were all confirmed structurally sound (brace-balanced CSS, correct prop wiring, correct exports) before the actual cause was found: the underlying revenue input was at a value that genuinely produced an undefined/zero ratio at that moment. Changing the input to a realistic value immediately produced a correct 0.96 reading. Lesson: a 0.00 gauge display isn't necessarily a code bug - check the live underlying data/input state first before assuming something broke.
+
+## Verified working
+- Clean npm run build after every patch (multiple times through the session)
+- Live-tested: clicking the gauge opens "How the Numbers Are Calculated", opens the explainer panel, scrolls to it (per screenshot review)
+- Legend renders with correct 3 zones, correct colors, correct text
+- "1 of 8 sources isn't currently covering its own real cost" line renders correctly and matches the live health_ratio of 0.96
+
+## Not yet done (carried forward)
+- The CFO-standard-terminology audit itself (segment reporting / contribution margin / EBITDA-by-unit labeling across the WHOLE page, not just the gauge) - this session addressed the gauge's own explainer, but the full page-wide audit flagged as important by the user in the prior session is still open.
+- Commit to git - git status / staged review / commit has not yet happened as of this document being written. Do this next, following convention 1.8 (explicit named files only, review shared-component diff for ScrollToSectionLink.jsx specifically since it is used elsewhere).
+
+## Files touched this session (for git staging)
+- lib/utils/scrollToSection.js (new)
+- components/common/ScrollToSectionLink.jsx (modified - shared component, review diff carefully)
+- components/business-outcome-truth/BusinessOutcomeHealthGauge.jsx (modified - added exports only)
+- components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer.jsx (new)
+- styles/modules/business-outcome.css (modified - two appended blocks)
+- components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx (modified - three patches)
+- docs/Mirra_v5_Briefs/Business Outcome/BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (new, this session)
+- docs/Mirra_v5_Briefs/Business Outcome/Business Outcome New Additions/HEALTH_GAUGE_EXPLAINER_BUILD_2026-09-12.txt (this file, new)

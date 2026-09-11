@@ -1,5 +1,7 @@
 "use client";
 
+import { scroll_to_section } from "@/lib/utils/scrollToSection";
+
 /**
  * ScrollToSectionLink
  *
@@ -11,14 +13,9 @@
  * CollapsibleSection at all (e.g. a "Show breakdown" button that shows/
  * hides a whole block above the CollapsibleSection tree).
  *
- * CollapsibleSection manages its own open state internally and exposes
- * no imperative API, and children of a closed section are not rendered
- * into the DOM at all (not just hidden) - so a nested target genuinely
- * doesn't exist in the DOM until every ancestor above it is open. This
- * component opens each ancestor in turn (via ancestor_ids, outermost
- * first), waiting a tick after each click for React to render the next
- * level before searching for it, then opens and scrolls to the real
- * target last.
+ * Navigation logic lives in lib/utils/scrollToSection.js (extracted
+ * 2026-09-12 so the same open/scroll engine can be reused by
+ * non-text-link consumers, e.g. the Health Gauge's click-through).
  *
  * ancestor_ids: ordered array of ids, outermost CollapsibleSection first,
  * innermost last, NOT including target_id itself. Pass [] or omit for a
@@ -36,44 +33,8 @@ export default function ScrollToSectionLink({
   ancestor_ids = [],
   pre_toggle_labels = [],
 }) {
-  function open_if_closed(el) {
-    if (!el) return;
-    const toggle_button = el.querySelector(':scope > button[aria-expanded="false"]');
-    if (toggle_button) {
-      toggle_button.click();
-    }
-  }
-
-  function wait_a_tick() {
-    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  }
-
-  async function handle_click() {
-    if (typeof document === "undefined") return;
-
-    for (const button_text of pre_toggle_labels) {
-      const plain_toggle = Array.from(document.querySelectorAll("button")).find(
-        (b) => b.textContent.trim() === button_text
-      );
-      if (plain_toggle) {
-        plain_toggle.click();
-        await wait_a_tick();
-      }
-    }
-
-    for (const ancestor_id of ancestor_ids) {
-      const ancestor_el = document.getElementById(ancestor_id);
-      if (!ancestor_el) return;
-      open_if_closed(ancestor_el);
-      await wait_a_tick();
-    }
-
-    const target = document.getElementById(target_id);
-    if (!target) return;
-
-    open_if_closed(target);
-    await wait_a_tick();
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  function handle_click() {
+    scroll_to_section({ target_id, ancestor_ids, pre_toggle_labels });
   }
 
   return (

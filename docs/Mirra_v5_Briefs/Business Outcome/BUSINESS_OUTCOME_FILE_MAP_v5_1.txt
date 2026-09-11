@@ -1,0 +1,113 @@
+# Business Outcome - File Map & Quick Reference
+**Purpose:** fast lookup, not a narrative. For the story/decisions/commits, see the main running session brief (NOTE: as of 2026-09-12, that brief has only ever existed as chat-pasted content across sessions - it is NOT currently saved as a file in this repo. Recreate it as a real file next session, so it stops being lost between sessions). This document is just: where is everything, and what does it do.
+
+---
+
+## 1. The data flow (read this first)
+
+hooks/useBusinessOutcomePerSourceRevenue.js
+  (raw calculations, returns per_source_result)
+        v
+lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+  selectBusinessOutcomePerSourceRevenue() - RESHAPES the raw result into per_source
+        v
+components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+  (the main page Card - receives per_source as a prop, renders everything)
+        v
+  passes pieces of per_source down as props to sub-components:
+  - BusinessOutcomeTruthSituationSummary.jsx (the blurb)
+  - BusinessOutcomeViewABComparisonTable.jsx
+  - BusinessOutcomeCapacityCoverageGapTable.jsx
+  - BusinessOutcomeHealthGauge.jsx
+  - BusinessOutcomeHealthGaugeExplainer.jsx (NEW 2026-09-12)
+  - RealCapacityLedger, AssumedCapacityLedger, CostBuildUpTable (defined inline in the Card itself)
+  - ViewBRealCapacityLedger, ViewBCostBuildUpTable (View B equivalents, also inline in the Card)
+
+**The #1 rule that bites every time:** a new field added to the hook's return object does NOT automatically reach the Card. It must ALSO be added to the selector's return object (selectBusinessOutcomePerSourceRevenue's own return { ... }, near the existing view_b:, capacity_coverage_gap:, health_gauge: lines). Search per_source_result. in that file to see the existing pattern before adding a new one.
+
+---
+
+## 2. Component files (what renders what)
+
+- components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx - The main page component. Everything else is a child of this. Contains inline: merge_view_b_groups(), build_view_b_headline(), CostBuildUpTable, ViewBCostBuildUpTable, and all the top-level JSX/imports/prop-wiring.
+- components/business-outcome-truth/BusinessOutcomeTruthSituationSummary.jsx - The "Your business, right now" blurb. Two functions: inner build_situation_summary() and exported wrapper BusinessOutcomeTruthSituationBlurb. Two SEPARATE prop lists - see Section 4.
+- components/business-outcome-truth/BusinessOutcomeViewABComparisonTable.jsx - View A vs View B comparison table. Built 2026-09-10.
+- components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable.jsx - The capacity coverage gap table. Built 2026-09-11.
+- components/business-outcome-truth/BusinessOutcomeHealthGauge.jsx - The health gauge visual (arc + needle). Built 2026-09-11. Exports SCALE_MIN, SCALE_MAX, zone_for_ratio (added 2026-09-12). Now wrapped in a clickable button in the Card - clicking navigates to the explainer panel.
+- components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer.jsx - NEW 2026-09-12. Lives under "How the Numbers Are Calculated" as CollapsibleSection id="health-gauge-explainer-panel". Explains health_ratio, shows the two headline inputs (smoothed_net_profit, independent_net_profit_floored) as ledger-metric cards, links to the real Revenue/Net Profit table for full per-source proof, and shows a 3-zone legend built from the gauge's own SCALE_MIN/SCALE_MAX/zone_for_ratio. Also surfaces the "N of M sources not paying their way" line, reusing active_headline.being_carried/total_group_count.
+- components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable.jsx - The 4-metric Revenue Snapshot panel. Contains "Projected Net Profit" - still flagged as needing verification.
+- components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp.jsx - The "Revenue / Net Profit" table, linked from the blurb AND (new 2026-09-12) the Health Gauge explainer.
+- components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger.jsx - The Revenue Claim Test / Independent Breakeven panel.
+- components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard.jsx - Labour recovery, by source.
+- components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel.jsx / BusinessOutcomeTruthHelpPanel.jsx - Warnings and the "About Business Outcome" help panel.
+- components/common/ScrollToSectionLink.jsx - Shared inline text-link component. Refactored 2026-09-12 to delegate to lib/utils/scrollToSection.js.
+
+---
+
+## 3. Core calculation files
+
+- hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge.
+- lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js - Reshapes the hook's raw output into per_source. Key functions: group_sources_by_group(), merge_groups_by_id(), merge_groups_by_id_real_capacity(), selectBusinessOutcomePerSourceRevenue().
+- lib/calculations/businessOutcomeViewBCalculations.js - View B's own cascade: build_materials_source(), apply_revenue_ceiling_v2(), apply_real_capacity_v2().
+- lib/calculations/businessModellingIndependentCalculations.js - ON THE "LEAVE UNTOUCHED" LIST (see Section 7). Contains calculateGaugeInput() and calculateIndependentMaterialsBreakeven(). Do not extend this file - create a new file instead if new gauge calculation is ever needed (confirmed acceptable 2026-09-12).
+- lib/calculations/businessOutcomeNetProfitBuildUpSelectors.js - Feeds BusinessOutcomeNetProfitBuildUp.jsx.
+- lib/utils/scrollToSection.js - NEW 2026-09-12. Extracted from ScrollToSectionLink.jsx - exports scroll_to_section() and open_if_closed(). One shared navigation engine used by both the text-link component AND the Health Gauge's click-through.
+
+---
+
+## 4. The three recurring gotchas
+
+**1. The blurb has two separate prop lists.** File: BusinessOutcomeTruthSituationSummary.jsx. A new prop must be added in three places: the Card's JSX call, the wrapper's destructuring, and the wrapper's forwarding call into build_situation_summary. Miss the middle one and the paragraph silently doesn't render.
+
+**2. The selector explicitly lists every field it returns.** File: businessOutcomePerSourceRevenueSelectors.js, inside selectBusinessOutcomePerSourceRevenue(). A new field on the hook's raw return object will NOT reach the Card unless also added here.
+
+**3. Links into "How the Numbers Are Calculated" need the pre-toggle.** Any ScrollToSectionLink or scroll_to_section() call pointing there needs pre_toggle_labels: ["Show breakdown"] in addition to ancestor_ids.
+
+---
+
+## 5. Field-name traps
+
+- per_source.labour_groups[] / asset_groups[] use .group_modelled_revenue / .group_true_cost, NOT .modelled_revenue/.total_cost.
+- per_source.materials uses .revenue for View A's residual figure, NOT .modelled_revenue.
+- per_source.view_b.labour_sources[] / .asset_sources[] / .materials DO use .modelled_revenue directly.
+- real_capacity.group_real_capacity[] has both naive_net_profit and final_net_profit - pick deliberately.
+- Per-source direct/overhead cost IS tracked separately: direct_cost, overhead_share, summed to true_cost - confirmed in useBusinessOutcomePerSourceRevenue.js and carried through the selector as group_true_cost, group_overhead_share.
+- Always grep for an existing working consumer of a field before writing new code that reads it.
+
+---
+
+## 6. Section Index (searchable anchors, not line numbers - those shift)
+
+- Health gauge zone labels/thresholds -> BusinessOutcomeHealthGauge.jsx -> search "zone_for_ratio"
+- Health gauge scale bounds -> BusinessOutcomeHealthGauge.jsx -> search "SCALE_MIN" / "SCALE_MAX"
+- Health gauge explainer panel -> BusinessOutcomeHealthGaugeExplainer.jsx -> whole file, small
+- Gauge click-through wiring -> BusinessOutcomePerSourceRevenueCard.jsx -> search "business-outcome-health-gauge-clickable"
+- Shared scroll/navigation engine -> lib/utils/scrollToSection.js -> search "scroll_to_section"
+- Blurb "who's healthy" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "WHO'S HEALTHY"
+- Blurb "things to check" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "THINGS TO CHECK"
+- View B "N of M not paying their way" -> BusinessOutcomePerSourceRevenueCard.jsx -> search "isn't paying its way"
+- Capacity coverage gap narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "Capacity coverage gap (2026-09-11"
+- View A/B materials variance narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "MATERIALS MARKUP VARIANCE"
+- CollapsibleSection nesting (all panels) -> BusinessOutcomePerSourceRevenueCard.jsx -> search "how-the-numbers-are-calculated"
+
+---
+
+## 7. Standing conventions & untouchable files
+
+Full detail in "Working_Conventions - PowerShell Patching, CSS, and Numeric Verification" (repo root). Summary:
+- All edits via PowerShell, one command at a time, targeted Apply-Patch (IndexOf/Substring) patches - never full-file rewrites once a file has real content worth preserving.
+- .NET UTF-8-no-BOM file I/O only, never Set-Content/Get-Content for writing.
+- Build after every single patch.
+- Five pre-existing files remain untouched unless specifically working on them (confirm via git status): components/business-modelling/BusinessModellingLeverCard.jsx, components/layout/SidebarNavigation.jsx, docs/Mirra_v5_Briefs/S22 - ASSET FINANCE INTEREST EXCLUSION & COVERAGE CHECK.txt, lib/calculations/businessModellingIndependentCalculations.js, lib/selectors/general-overheads/generalOverheadCategorySelectors.js.
+- CSS: reuse existing classes/variables before inventing new ones; scope new styling to a new class, never modify a shared class.
+
+---
+
+## 8. Brief documents index
+
+- Main running session brief - NOT currently a saved file - has only existed as chat-pasted content. Recreate as a real file next session.
+- ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_2026-09-10.md - Superseded. Detailed Q&A lives in Business Outcome/Business Outcome New Additions/S31 - ASSET UTILISATION_DOWNTIME.txt.
+- OPENING_HOURS_CAPACITY_CHECK_SCOPING_BRIEF_2026-09-11.md - Deleted. Idea investigated and rejected.
+- Working_Conventions - PowerShell Patching, CSS, and Numeric Verification - Repo root. The authoritative process doc.
+
+Run git log --oneline -15 to confirm commit history is current.
