@@ -68,6 +68,34 @@ Read this whole document before doing anything. Also read BUSINESS_OUTCOME_FILE_
 
 ---
 
+## 2A. Business Modelling architecture - MAJOR CORRECTION (found 2026-09-12)
+
+Prior versions of this brief claimed Business Modelling architecture was "decided, nothing built yet" (see old Section 3.4/2.5 language, now corrected below). This was WRONG - confirmed via git log and direct file read 2026-09-12. Do not re-assume "nothing built" without checking this section first.
+
+**Reality: TWO separate, coexisting systems currently feed the Business Modelling page:**
+
+**System 1 - legacy baseline/scenario (older):**
+- Fed from useBusinessSummary() - Business Summary, NOT Business Outcome.
+- Builds baseline_snapshot, upside_scenario, downside_scenario via buildBaselineSnapshot/buildScenarioState (lib/calculations/businessModellingCalculations.js).
+- Persisted to storage (lib/storage/businessModellingStorage.js).
+- Rendered on the page inside a CollapsibleSection explicitly titled "Previous scenario tools", summary text "Legacy baseline / upside / downside controls - being replaced", defaultOpen={false}.
+- Still fully wired and running every render even though visually collapsed - not dead code, genuine ongoing dependency.
+
+**System 2 - live lever architecture (newer, built early September, commit f98b9f3 "S31 Phase 2-3"):**
+- Fed DIRECTLY from useBusinessOutcomePerSourceRevenue() + selectBusinessOutcomePerSourceRevenue() - this IS genuinely the Outcome-to-Modelling handoff.
+- Builds live_headline, lever_rows, materials_lever_row, proportional_suggestions via lib/selectors/businessModellingLeverSelectors.js - real-time, no storage/save-load.
+- Rendered as BusinessModellingLeverCard, the PRIMARY always-visible content at the top of the page.
+- This is what Section 3.4's "reuse the engine" architecture principle actually describes, and what S30's Sections 3-4 ("independent per-group targets", "materials/COG independent target + lever") were building toward - already built, not still-pending as previously assumed.
+- The Health Gauge (built 2026-09-11/12) is very likely S30 Section 12's candidate metric #3 ("ratio between smoothed-zero revenue and independent-standalone revenue... DEPENDS ON Sections 3-4 existing") - buildable specifically because this system already existed.
+
+**What "Outcome -> Modelling handoff fields, confirm/finalize" actually means, now that this is understood:** the handoff itself already works correctly and is live in production (System 2). The real open question is System 1's fate - fully retire it (removing useBusinessSummary dependency, storage, all of businessModellingCalculations.js/businessModellingSelectors.js/businessModellingStorage.js), or does it serve a genuinely separate purpose worth keeping. NOT YET DECIDED - flagged for a future session, not rushed into this one.
+
+**Cleanup done 2026-09-12:** removed a leftover debug artifact (window.__proportional_debug, commented "TEMPORARY - Phase 2 verification only. Remove before final commit.") that had shipped to production since the S31 commit. Commit 5b4be54.
+
+**businessModellingIndependentCalculations.js status clarified:** this file (on the "leave untouched" list) is System 2's actual calculation engine, not a stray/unused file - the "S31 Phase 2-3" commit added 254 lines to it. Its untouched-list status is because it's active, load-bearing, already-verified code, not because it's abandoned.
+
+---
+
 ## 3. View A vs View B - the full resolved picture (carried forward from 2026-09-10/11, still valid)
 
 ### 3.1 The mechanism
