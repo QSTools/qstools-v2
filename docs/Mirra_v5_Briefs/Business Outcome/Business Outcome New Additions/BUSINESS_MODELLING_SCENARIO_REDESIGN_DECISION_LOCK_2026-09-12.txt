@@ -1,0 +1,49 @@
+# Business Modelling Scenario Redesign - Decision Lock (2026-09-12)
+
+## Why this exists
+This session's investigation into "Outcome -> Modelling handoff fields" (session brief Section 2A) surfaced two coexisting, unreconciled systems on the Business Modelling page - the newer live-lever tool (fed from real Business Outcome data) and the older baseline/upside/downside scenario tool (fed from a separate, older Business Summary source, currently collapsed and labeled "being replaced"). This document locks down the actual redesign decision made 2026-09-12, so it can be built correctly whenever that session happens, without re-litigating the decision from scratch.
+
+## The decision
+
+**Keep the three-scenario concept (Baseline / Upside / Downside). Rebuild it to run on the live-lever engine instead of the old Business Summary-fed system. Redefine what each of the three actually means.**
+
+### Baseline
+- NOT editable, NOT a guess. It is "where the business actually is right now" - built from Business Outcome's real, live per-source data (the same engine System 2 / the live-lever tool already uses: useBusinessOutcomePerSourceRevenue -> selectBusinessOutcomePerSourceRevenue -> businessModellingLeverSelectors.js).
+- Locked at a point in time on purpose, so it stops moving under the user while they compare against it - re-locked periodically (user suggested quarterly review as the cadence) rather than continuously drifting with every live change elsewhere in the system.
+- Explicitly replaces the OLD baseline concept, which was built from useBusinessSummary and editable/refreshable at will - the new Baseline is fixed and dated, not a live-refreshing snapshot.
+
+### Upside
+- A genuine target scenario - "where we want to get to." Editable, using the live-lever engine's real levers (rate changes, materials markup, utilisation, etc. - the five lever types already confirmed in session brief Section 3.3/S30 Sections 3-4).
+- SAVED/persisted (not ephemeral like the current live-lever tool) - this is the explicit reason for keeping scenario persistence at all: "if you go back and alter it the goal posts are always moving" (user, 2026-09-12) - an Upside scenario needs to still be there next time the user opens the page.
+
+### Downside
+- COMPLETELY REDEFINED from the old system. No longer a separately-edited pessimistic scenario.
+- It is now simply BREAKEVEN, positioned relative to wherever Baseline currently sits:
+  - If Baseline shows a net profit -> Downside/breakeven sits BELOW Baseline (how far profit could fall before hitting breakeven).
+  - If Baseline shows a net loss -> Downside/breakeven sits ABOVE Baseline (how far the business would need to climb to stop losing money).
+- This makes Downside a CALCULATED REFERENCE LINE, not a user-edited scenario - it has no separate lever inputs of its own, it is derived purely from Baseline's position relative to the business's real breakeven revenue (the same breakeven_revenue figure already used throughout Business Outcome - per_source.reconciliation.total_true_cost, confirmed correct in this session's Projected Net Profit verification, session brief item 2).
+
+## What this replaces / retires
+
+The OLD three-scenario system (useBusinessSummary-fed, businessModellingCalculations.js's buildBaselineSnapshot/buildScenarioState, businessModellingStorage.js's save/load, businessModellingSelectors.js's card-building functions) is superseded by this redesign. Once built, the old system's dependencies can be fully removed - not just visually collapsed as "Previous scenario tools" (its current state as of 2026-09-12).
+
+**Do NOT remove the old system's code before the new one is built and verified working against live data** - the collapsed "Previous scenario tools" section stays as a safety net until the replacement is confirmed correct, same caution this session applied to businessModellingIndependentCalculations.js (verify before touching).
+
+## What survives from the old system, conceptually
+- The idea of three named, comparable positions (not just "here's the current number" like the live-lever tool alone gives you).
+- Persistence - saved scenarios that don't reset on refresh.
+- A delta/comparison view between scenarios (the old system's BusinessModellingDeltaCard concept, though its calculation source needs rebuilding against the new engine).
+
+## What does NOT survive
+- Business Summary as the data source for any of this - all three scenario positions should be built from the same live Business Outcome per-source data the rest of this page (and Business Outcome itself) already trusts.
+- Downside as a manually-edited/guessed scenario - it becomes a calculated line, not an input.
+- Continuous baseline refresh - Baseline becomes a periodic, locked snapshot (quarterly suggested), not a live-updating figure.
+
+## Open questions - NOT yet decided, for next scoping pass when this is actually built
+1. Exact locking/re-lock mechanism for Baseline - is "quarterly" a hard rule, a suggested default, or user-triggered on demand? Not decided, just proposed as a starting cadence.
+2. Where Baseline's locked snapshot is stored, and whether historical Baselines (past quarters) should be kept and comparable to each other - ties into the CFO Requirements Gap document's Period-over-period trend item (CFO_REQUIREMENTS_GAP_2026-09-12.txt, Part 3) - these two pieces of future work likely share the same underlying "store dated snapshots" mechanism and should probably be scoped together, not separately, when the time comes.
+3. Exact UI layout - does Upside remain a single editable scenario, or could there be multiple saved Upside variants? Not raised this session, flagged only so it isn't assumed either way.
+4. Migration path for any data currently sitting in the old system's storage (businessModellingStorage.js) - whether it's safe to discard or needs any carry-forward. Not checked this session.
+
+## Status
+DECISION LOCKED 2026-09-12. NOT YET BUILT. No code has been written for this redesign - this document is the scope for whenever that build happens, likely its own dedicated session given the size (new calculation wiring for Downside-as-breakeven, new persistence layer, retiring old dependencies, new UI for locking/relocking Baseline).
