@@ -1,0 +1,107 @@
+# Business Outcome - Session Brief (Running, updated 2026-09-12)
+**Repo:** D:\QSTools\qstools-web
+**Supersedes:** all prior chat-only versions of this brief - this is the first time it has existed as a real, saved file. Prior sessions (2026-09-10, 2026-09-11) only existed as chat-pasted content and are summarised here from that history.
+**This is the single document to work from next session.**
+
+---
+
+## 0. Quick orientation - start here in a new chat
+
+Read this whole document before doing anything. Also read BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (same folder) for fast file/function lookup - this brief is the narrative, the file map is the reference.
+
+**What's solid and shipped, across all sessions to date (don't re-verify from scratch):**
+- The blurb (headline, View A/B resolution, variance explanation, cross-subsidy naming)
+- Full trace-and-verify pass across the page's core calculation logic (2026-09-10/11, ten calculation patterns, zero bugs found)
+- Capacity Coverage Gap feature (calculation + table + blurb integration)
+- Health Gauge - baseline calculation, visual UI (arc + needle), AND (new 2026-09-12) clickable explainer panel with legend and cross-subsidy naming
+- CFO Requirements Gap document - scoping only, not a build, but a real saved reference for future CFO-readiness work
+
+**What's still open, in priority order:**
+1. Outcome -> Modelling handoff fields - not yet confirmed.
+2. Verify Projected Net Profit (BusinessOutcomeRevenueSnapshotTable.jsx) is genuinely complete - probably is, not double-checked.
+3. Business Modelling implementation itself - the big next phase. Architecture decided (Section 2.5 below), nothing built yet.
+4. card2_view_mode_ab - a second toggle found 2026-09-11, never investigated, still unknown what it does.
+5. Balance sheet import (Xero) - confirmed feasible by user 2026-09-12, unblocks working capital/liquidity ratios. Not started.
+6. Revenue/COGS trend view - buildable now, no blockers, per CFO gap doc.
+7. Labour/Asset historical tracking - needed for full trended profitability. Likely a large change, comparable to the Asset Utilisation/Downtime prerequisite. Not started, not scoped.
+8. EBITDA-by-unit / formal segment reporting - needs its own scoping session, depends on confirming per-source depreciation/amortisation/interest data availability.
+
+**Standing conventions still apply** - see "Working_Conventions - PowerShell Patching, CSS, and Numeric Verification" at repo root: PowerShell one command at a time, targeted Apply-Patch (IndexOf/Substring) patches only, .NET UTF-8-no-BOM file I/O, build after every patch, five specific pre-existing files to leave untouched (see Section 7 of the file map).
+
+---
+
+## 1. Session 2026-09-12 - what shipped (all committed, built, live-tested)
+
+| # | Change | Commit |
+|---|---|---|
+| 1 | lib/utils/scrollToSection.js extracted - shared navigation engine, reused by both ScrollToSectionLink and the new Health Gauge click-through | bd786f4 |
+| 2 | ScrollToSectionLink.jsx refactored to delegate to the shared util - no behavior change | bd786f4 |
+| 3 | BusinessOutcomeHealthGauge.jsx - exports SCALE_MIN, SCALE_MAX, zone_for_ratio so the legend can never drift from the actual gauge | bd786f4 |
+| 4 | New BusinessOutcomeHealthGaugeExplainer.jsx - explanation, two headline numbers as metric cards, link to real per-source proof table, 3-zone legend, cross-subsidy N-of-M line | bd786f4 |
+| 5 | New CSS: legend table/row/header/dot classes + clickable-gauge button reset, in business-outcome.css | bd786f4 |
+| 6 | Gauge wrapped in clickable button, navigates to new explainer panel under "How the Numbers Are Calculated" | bd786f4 |
+| 7 | Cross-subsidy named consistently: View B card, blurb all-healthy line, blurb worst-source line (gauge explainer already had it) | 8871c4f |
+| 8 | CFO Requirements Gap document written and saved - Part 1 (already correct), Part 2 (real but unlabeled), Part 3 (genuinely missing, feasibility-assessed), Part 4 (recommended build order if pursued) | fa54b8e |
+| 9 | File Map saved as a real file for the first time (previously chat-only) | (docs, uncommitted separately from code, see file list) |
+| 10 | This brief saved as a real file for the first time (previously chat-only) | (this commit) |
+
+**Methodology notes from this session, worth carrying forward:**
+- PowerShell here-strings MUST use single-quoted delimiters (@' ... '@) when content includes JS template literals with ${...} - double-quoted here-strings (@" ... "@) make PowerShell misinterpret ${...} as its own variable syntax and throw a parser error. Bit once this session (format_currency helper).
+- A "0.00 in amber" gauge reading mid-session was NOT a bug - confirmed via brace-count check, prop-wiring check, and CSS inspection that everything was structurally sound. Root cause was the live underlying revenue input being at a value that genuinely produced an undefined/zero ratio at that moment - changing the input resolved it immediately to a correct 0.96. Lesson: a 0.00 gauge display isn't automatically a code bug - check live input state first.
+- --warning CSS variable genuinely exists (defined across all theme variants in app/globals.css) - an older note in the Working Conventions doc claiming it doesn't exist is now outdated.
+- businessModellingIndependentCalculations.js remains on the "leave untouched" list - confirmed 2026-09-12 that if new gauge/CFO-related calculation is ever needed, create a NEW file rather than extending this one.
+
+---
+
+## 2. CFO-readiness context (new as of 2026-09-12, see CFO_REQUIREMENTS_GAP_2026-09-12.txt for full detail)
+
+**Why this matters:** Business Outcome is intended for eventual CFO adoption. Correct standard terminology matters for adoption - a CFO needs to recognise real, standard concepts (contribution margin, cross-subsidy, segment reporting) even where Mirra's own numbers are bespoke.
+
+**Confirmed already correct (not just labeled, genuinely built right):** contribution margin toggle, Gross Margin %, Net Operating Margin %, markup-vs-margin distinction, and (as of this session) cross-subsidy naming.
+
+**Confirmed missing, feasibility-assessed:**
+- Working capital / liquidity ratios - BLOCKED until balance sheet import exists. User confirmed 2026-09-12 the import itself is "easy enough" to build - not yet started.
+- Period-over-period trend - PARTIALLY feasible now (Revenue/COGS has 12 months of dated Xero data on every import already). FULLY blocked on Labour/Asset hours getting historical/dated tracking, which they do not have today (current-state snapshots only).
+- EBITDA-by-unit and formal segment reporting - not yet scoped, depends on confirming whether per-source depreciation/amortisation/interest data exists or can be added.
+
+**Live data design lens (user instruction, 2026-09-12):** the system will eventually run on live, continuously-updating Xero feeds rather than periodic manual snapshots. Anything built from here on - especially trend/period work - should be designed so it would naturally extend to a live feed, not hard-assume a one-off annual snapshot that would need unpicking later.
+
+---
+
+## 3. View A vs View B - the full resolved picture (carried forward from 2026-09-10/11, still valid)
+
+### 3.1 The mechanism
+- View A's materials revenue is a residual: total_revenue - labour_modelled - asset_modelled. Forced by construction.
+- View B's materials revenue is independent: total_cogs x (1 + markup%) - anchored to real COGS and Rate Builder's markup.
+- Confirmed intentional, not a bug. Decision: keep View B's independent basis, do not force reconciliation.
+
+### 3.2 Which view feeds Business Modelling - resolved
+View A is the trusted base for all lever math. View B's role is a check-and-balance overlay for the materials lever specifically, not a modelling input.
+
+### 3.3 Confirmed lever set for Business Modelling (five types, all View A)
+1. Overhead cost change
+2. Rate change
+3. Labour cost/productivity change
+4. Asset cost/utilisation change
+5. Material markup sensitivity (View B's check-and-balance role attaches here)
+
+### 3.4 Architecture principle - reuse the engine, don't rebuild it
+Business Modelling should not have its own copy of the calculation chain. A lever input runs back through Business Outcome's SAME chain via a "calculation context" input bundle - real data fills it normally, Modelling fills an identically-shaped bundle with modelled values, same functions run against either. True size unknown until scoped against actual code - a next-session, at-the-computer task. Not yet scoped.
+
+---
+
+## 4. Lessons learned - worth remembering (accumulated across all sessions)
+
+- The blurb has two separate prop lists that must stay in sync (Card JSX call, wrapper destructuring, wrapper's forwarding call into build_situation_summary). Miss the middle step and the paragraph silently doesn't render.
+- Field-name traps: per_source.labour_groups[]/asset_groups[] use .group_modelled_revenue/.group_true_cost, NOT .modelled_revenue/.total_cost. per_source.materials uses .revenue, NOT .modelled_revenue. View B's raw shapes use .modelled_revenue directly - View A and View B are NOT parallel. Always grep for an existing working consumer before writing new code that reads a field.
+- Every ScrollToSectionLink (or direct scroll_to_section() call) into "How the Numbers Are Calculated" needs pre_toggle_labels: ["Show breakdown"] - that whole area is gated behind a plain button first, not just nested CollapsibleSections.
+- The per_source selector explicitly lists every field it returns - a new field on the hook's raw return object will NOT reach the Card unless also added in businessOutcomePerSourceRevenueSelectors.js.
+- Per-source direct/overhead cost IS genuinely tracked separately (direct_cost, overhead_share, summed to true_cost) - confirmed 2026-09-12, this is real data any future CFO-metric work can build on honestly.
+
+---
+
+## 5. Standing conventions (unchanged, reaffirmed)
+
+Full detail: "Working_Conventions - PowerShell Patching, CSS, and Numeric Verification" at repo root. Summary: PowerShell one command at a time, exact Apply-Patch (IndexOf/Substring) targeted edits, .NET UTF-8-no-BOM file I/O only, full build after every single patch, single-quoted PowerShell here-strings for any JS/JSX content, five pre-existing files remain untouched unless specifically working on them (confirm via git status): components/business-modelling/BusinessModellingLeverCard.jsx, components/layout/SidebarNavigation.jsx, docs/Mirra_v5_Briefs/S22 - ASSET FINANCE INTEREST EXCLUSION & COVERAGE CHECK.txt, lib/calculations/businessModellingIndependentCalculations.js, lib/selectors/general-overheads/generalOverheadCategorySelectors.js.
+
+Run git log --oneline -15 to confirm this commit history is current before starting new work.
