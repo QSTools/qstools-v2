@@ -1,0 +1,54 @@
+# CFO Requirements Gap - Business Outcome (2026-09-12)
+
+## Why this exists
+Business Outcome is intended for eventual CFO adoption. This document is a scoping exercise, not a build brief: what standard CFO assessment tools/terminology already exist correctly on this page, what's real but unlabeled, and what's genuinely missing - with honest notes on whether the gap is a labeling fix, a build task, or blocked on data that doesn't exist yet. Written 2026-09-12 alongside the Health Gauge terminology work that triggered this review.
+
+## IMPORTANT - live data context
+Mirra is currently run session-by-session against manually-entered or single-snapshot-imported data (Labour, Assets, current Xero COGS pull). The Revenue/COGS module already imports 12 months of dated, per-supplier Xero data on each import - this is the one area with genuine historical depth today. Labour and Asset hours have NO dated/historical tracking - only current-state snapshots.
+
+The user has confirmed two things are coming, not hypothetical:
+1. Balance sheet import from Xero - confirmed feasible, not yet built.
+2. Live, ongoing data flow (not just periodic manual re-entry) - the system will eventually be fed continuously rather than snapshotted per session.
+
+**Design implication: anything built against "the current snapshot" from here on should be built assuming it will later run against a live, updating feed, not a one-off import.** Where reasonably possible, calculations and any new UI should not hard-assume "this number was computed once and is now static" - prefer designs that would naturally re-compute correctly if the underlying data started updating more frequently, rather than baking in an implicit "annual snapshot" assumption that would need unpicking later. This is a design lens to apply going forward, not a mandate to rebuild anything that already works.
+
+## Part 1 - Already correct, standard terminology (verified 2026-09-12 code search)
+
+| Concept | Where | Status |
+|---|---|---|
+| Contribution margin | cost_mode === "contribution" toggle across BusinessOutcomePerSourceRevenueCard.jsx, explained in BusinessOutcomeTruthHelpPanel.jsx | Correctly implemented, not just named - genuinely excludes overhead when toggled. |
+| Gross Margin % | BusinessOutcomeTruthSummaryCard.jsx, BusinessOutcomePerSourceRevenueCard.jsx (Traditional Viability view) | Standard term, correctly labeled field. |
+| Net Operating Margin % | Same location | Standard term, correctly labeled field. |
+| Markup vs margin | Throughout - materials/labour markup calculations | Consistently kept distinct from margin, not conflated. |
+| Cross-subsidy | Health Gauge explainer (built 2026-09-12), blurb "who's healthy" section, View B card "N of M sources" line | NOW consistently named as of 2026-09-12 (previously the same real concept existed in three places with three different unnamed phrasings - propped up / being carried / paying its way - fixed this session). |
+
+## Part 2 - Real, partially surfaced, not yet a named standard concept
+
+| Concept | Where the real data already is | Gap |
+|---|---|---|
+| Segment-style comparison ("Strongest/Weakest Contribution Area") | BusinessOutcomeTruthLabourRecoveryCard.jsx, BusinessOutcomeTruthWarningsPanel.jsx | Doing real per-area comparison, close in spirit to segment reporting, but never named as such. Labeling-only fix if pursued - no new calculation needed. |
+| Count/% of loss-making sources | being_carried.length / total_group_count, already computed and used in THREE separate prose sentences (View B card, blurb, gauge explainer) | Never surfaced as a standalone labeled KPI/metric card - only ever embedded in a sentence. Would be a small UI addition (a metric card), not a new calculation. |
+| "Segment" as a word | Used throughout the codebase (intro_segments, pnl_segments, business-outcome-revenue-split-segment CSS) | This is UI/code terminology, NOT financial segment-reporting terminology - the two meanings collide. If real segment reporting language is ever wanted in user-facing text, avoid the word "segment" itself (the page already uses "source" and "group" elsewhere, which are safe). |
+
+## Part 3 - Genuinely missing, feasibility assessed
+
+| Concept | Standard CFO use | Feasibility | Notes |
+|---|---|---|---|
+| EBITDA by unit/segment | Standard tool for cross-subsidy/segment analysis - exactly what the Health Gauge is informally approximating | Needs scoping | Confirmed zero hits in codebase. BusinessOutcomeNetProfitBuildUp.jsx is the closest existing analog (per-source net profit) but isn't framed in EBITDA terms. Whether Mirra tracks depreciation/amortisation/interest at a per-source level (required for a true EBITDA-by-unit figure) has NOT been confirmed - needs a data-availability check before this is promised as buildable, not just relabeled. |
+| Formal segment reporting | Standard external/internal reporting format - revenue, cost, profit by business segment, typically with defined criteria for what counts as a reportable segment | Needs scoping | Mirra's "operating group" concept (labour/asset groups) is the closest analog and the data likely supports it, but no work has been done to confirm whether groups map cleanly onto what a CFO would call a "segment," or what criteria would define one. |
+| Working capital ratios (current ratio, quick ratio, etc.) | Standard liquidity assessment | BLOCKED - no balance sheet data imported at all currently. | User confirmed 2026-09-12 the balance sheet import itself is "easy enough" to build - but the import doesn't exist yet, so this is a real, not-yet-started prerequisite, not a data-modeling problem. |
+| Period-over-period / trend analysis | Standard for any CFO review - is the business improving or declining | PARTIALLY feasible today, fully feasible pending live data | Revenue/COGS module already has 12 months of dated, per-supplier Xero data on every import - a revenue/COGS-only trend view could be built today. Labour and Asset hours have no dated/historical tracking at all currently - a full trended profitability view (all three cost legs) is blocked until that exists. This is the single clearest case where "build it in lieu of live data coming" applies: any trend UI built now should be designed to extend naturally once Labour/Assets gain historical tracking, not rebuilt from scratch. |
+| Liquidity ratios generally (current, quick, cash ratio) | Standard CFO toolkit | Same as working capital - blocked on balance sheet import | Same prerequisite as above. |
+
+## Part 4 - Recommended order, if/when this becomes a build
+
+Not a commitment, just a logical sequence given the dependencies above:
+
+1. Balance sheet import (unblocks working capital + liquidity ratios entirely - the single highest-leverage prerequisite, and user-confirmed as feasible).
+2. Revenue/COGS trend view (fully buildable today, no blockers - lowest-risk place to start actual trend UI, and establishes the pattern the fuller trend view will later extend).
+3. Labour/Asset historical tracking (a genuine data-model change - dated snapshots instead of current-state-only - needed before the fuller trended profitability view can exist. Likely comparable in size to the Asset Utilisation/Downtime prerequisite from the 2026-09-10/11 session - i.e. "a huge change in the system," not a quick add).
+4. Full trended profitability view (revenue + labour + asset + materials, all periods) - depends on #3.
+5. EBITDA-by-unit and formal segment reporting - depends on confirming per-source depreciation/amortisation/interest tracking exists or can be added; genuinely needs its own scoping session before any commitment on size.
+
+## What this document is NOT
+Not a commitment to build any of Part 3 or Part 4. Not a statement that the current page is CFO-inadequate - Part 1 shows real, correctly-built standard tools already exist. This is a scoping record so that when CFO-readiness work does happen, it starts from an accurate map instead of guessing what's missing.
