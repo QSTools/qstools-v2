@@ -101,16 +101,6 @@ export default function useBusinessModelling() {
     [per_source]
   );
 
-  // TEMPORARY - Phase 2 verification only. Remove before final commit.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.__proportional_debug = {
-      group_real_capacity: per_source?.real_capacity?.group_real_capacity,
-      proportional_suggestions,
-      live_headline,
-    };
-  }, [per_source, proportional_suggestions, live_headline]);
-
   function applyProportionalSuggestions() {
     if (!proportional_suggestions?.available || proportional_suggestions.targets.length === 0) {
       return;
