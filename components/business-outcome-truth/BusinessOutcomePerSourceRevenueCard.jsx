@@ -1010,7 +1010,8 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall
           {formatCurrencyTruth(scale(total_final_profit))} in net profit once every source&apos;s target is
           reconciled against real revenue. {being_carried_count} of {entries.length} source
           {entries.length === 1 ? "" : "s"}{" "}
-          {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"}.
+          {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"} - the rest of the
+          business is cross-subsidising {being_carried_count === 1 ? "it" : "them"}.
         </p>
       )}
       {!selected_entry && surplus > 0 && (

@@ -263,7 +263,7 @@ function build_situation_summary({
 
   if (active_headline.all_good) {
     health_segments = [
-      { type: "text", text: "Zooming into individual sources, every part of the business is currently paying its way - no source is being propped up by the rest." },
+      { type: "text", text: "Zooming into individual sources, every part of the business is currently paying its way - no source is being propped up by the rest, so there's no cross-subsidy happening beneath the numbers above." },
     ];
   } else {
     const healthy_sources = (active_headline.all_sources || []).filter(
@@ -295,7 +295,7 @@ function build_situation_summary({
     if (worst && count === 1) {
       if (Math.abs(worst.net_profit) < 1) {
         things_to_check.push([
-          { type: "text", text: `${worst.name} is the only part of the business not covering its own cost right now - it's being kept at exactly $0, propped up by the rest of the business rather than genuinely breaking even.` },
+          { type: "text", text: `${worst.name} is the only part of the business not covering its own cost right now - it's being kept at exactly $0, cross-subsidised by the rest of the business rather than genuinely breaking even.` },
         ]);
       } else {
         things_to_check.push([
