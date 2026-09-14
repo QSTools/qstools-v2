@@ -5,6 +5,7 @@ import {
 } from "@/lib/formatters/numberFormatters";
 import useFixedAssetRegister from "@/hooks/useFixedAssetRegister";
 import AssetRegisterNameCombobox from "@/components/assets/AssetRegisterNameCombobox";
+import { estimateAnnualDepreciation } from "@/lib/calculations/fixedAssetRegisterCalculations";
 
 const setup_fields = [];
 
@@ -110,6 +111,15 @@ export default function AssetForm({
       purchase_price: asset.purchase_price,
       purchase_price_locked: true,
       linked_register_asset_number: asset.asset_number,
+      // Stored once at link time (not recomputed live) - see
+      // FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt. null
+      // for non-Diminishing-Value assets, same guard as the /imports
+      // preview - never guesses with the wrong formula.
+      estimated_annual_depreciation: estimateAnnualDepreciation(asset),
+      // Re-picking a different asset does NOT change whether
+      // depreciation was already opted into for this asset record -
+      // deliberately not touched here, only the depreciation VALUE
+      // updates to match the newly-linked asset.
     });
   }
 
