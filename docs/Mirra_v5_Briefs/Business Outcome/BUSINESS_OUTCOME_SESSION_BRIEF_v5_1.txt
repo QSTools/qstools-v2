@@ -118,6 +118,19 @@ Full new module built and live-tested against a real Xero Balance Sheet export, 
 
 ---
 
+## 2C. BUSINESS OUTCOME PAGE - CLOSED OUT (2026-09-12)
+
+As of this session, Business Outcome is considered genuinely complete against every goal set this session. Summary (full detail in commit history bd786f4 through a57c7b2, ~31 commits total):
+- Health Gauge: legend, explainer panel, cross-subsidy naming (consistent across gauge/blurb/View B card).
+- Balance Sheet fully integrated: liquidity ratios shown prominently, Current Year Earnings cross-check, Fixed Assets reconciliation (gross-only, safely detects and bails on net-only Balance Sheets), Cash Ratio (safely reports unavailable when no clean cash account exists).
+- EBIT by Source: real per-asset finance interest (asset_interest_annual, already live on /module-reconciliation) joined to Business Outcome groups via existing asset_group_assignments. Full accounting: Groups + Materials - Unassigned = exact headline net profit match, verified live. Prominent summary card + full per-source table, one shared calculation (businessOutcomeEbitCalculations.js) so they can't drift apart. Confirmed live: View A-stable, same principle as the blurb/gauge.
+- Segment reporting terminology connected to real, already-correct data via the Help Panel.
+- Several real bugs found and fixed along the way: a save-before-load race condition, null-vs-zero in to_number(), a field-name mismatch (asset_name), a cross-file scoping bug (asset_interest_by_id used outside its closure), and a materials field-path mistake (materials.real_capacity_net_profit, not real_capacity.materials_real_capacity_net_profit) - all caught via live verification before being trusted, not assumed correct from a passing build alone.
+
+**Full EBITDA remains the one deliberately deferred piece** - blocked on the Fixed Asset Register import (FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt), not on anything Business Outcome itself needs to do further.
+
+---
+
 ## 3. View A vs View B - the full resolved picture (carried forward from 2026-09-10/11, still valid)
 
 ### 3.1 The mechanism
