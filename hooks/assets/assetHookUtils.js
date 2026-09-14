@@ -165,9 +165,21 @@ export function get_asset_utilisation_fields(
       ? utilisation_hours_per_week * annual_weeks_used
       : 0;
   const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
+  // Added 2026-09-12 for the depreciation-in-true-cost decision - see
+  // FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt. ONLY
+  // added when include_depreciation_in_cost is explicitly true for
+  // THIS asset (default false for every asset, existing or new) - when
+  // false, depreciation_addition is exactly 0, meaning zero change to
+  // this calculation for any asset that hasn't opted in. Purely
+  // additive, matching the confirmed "no migration required"
+  // guarantee.
+  const depreciation_addition =
+    asset.include_depreciation_in_cost === true
+      ? to_number(asset.estimated_annual_depreciation)
+      : 0;
   const required_asset_recovery_rate =
     asset_type === "productive" && utilisation_hours_annual > 0
-      ? to_number(asset.asset_recovery_cost_annual ?? total_asset_cost_annual) /
+      ? (to_number(asset.asset_recovery_cost_annual ?? total_asset_cost_annual) + depreciation_addition) /
         utilisation_hours_annual
       : 0;
 

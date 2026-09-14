@@ -249,6 +249,32 @@ export default function AssetForm({
             ) : null}
           </label>
 
+          {values.purchase_price_locked && Number.isFinite(values.estimated_annual_depreciation) ? (
+            <div className="ui-panel ui-stack-sm">
+              <label className="ui-stack-sm">
+                <input
+                  type="checkbox"
+                  checked={values.include_depreciation_in_cost === true}
+                  onChange={(event) => on_change("include_depreciation_in_cost", event.target.checked)}
+                />
+                <span className="ui-label" style={{ color: "var(--info)" }}>
+                  Include real depreciation ({format_number_with_commas(Math.round(values.estimated_annual_depreciation))}/yr) in this asset&apos;s true cost
+                </span>
+              </label>
+              <span className="ui-help">
+                Off by default. When on, this asset&apos;s cost per hour (used in Cost Summary, Business
+                Summary, Cost Allocation, and Rate Builder) includes real depreciation, not just fuel,
+                insurance, maintenance, and finance interest.
+              </span>
+            </div>
+          ) : values.purchase_price_locked ? (
+            <div className="ui-panel">
+              <p className="ui-help">
+                This asset&apos;s depreciation method doesn&apos;t support a reliable annual estimate - depreciation can&apos;t be included in true cost for this asset.
+              </p>
+            </div>
+          ) : null}
+
           <label className="ui-stack-sm">
             <span className="ui-label">Asset Type</span>
             <select
