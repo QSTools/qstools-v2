@@ -95,5 +95,18 @@ User raised a real, important concern before any Assets-module write-back work b
 
 This is the design guarantee the actual build (Assets-module dropdown, still not built) must honour - confirming it here so a future session doesn't accidentally build a forced-migration version instead.
 
-## Status
-SCOPED, NOT STARTED. Deferred by explicit user decision 2026-09-12. Real sample data (Assets.xlsx) reviewed and structure fully documented above - next session can start directly from this document without re-discovering the file format.
+## SHIPPED - full status update (2026-09-12, same day)
+
+Everything scoped in this document was built and verified against real data in the same session it was deferred, then resumed. Real, complete pipeline now live:
+
+- lib/imports/xeroFixedAssetRegisterImporter.js - verified against real 28-asset export (2 disposed correctly excluded).
+- lib/storage/fixedAssetRegisterStorage.js, hooks/useFixedAssetRegister.js - staging area, has_loaded race-condition fix applied proactively from the start (learned from the earlier Balance Sheet bug).
+- /imports hub page - upload, browsable preview with purchase date + validated annual depreciation estimate per asset, persisted Include checkbox (real bug found and fixed: was local-only React state, didn't survive navigation - now genuinely persisted).
+- components/assets/AssetRegisterNameCombobox.jsx - real, redesigned combobox (not the originally-planned simple dropdown): free text always works, explicit "Browse register" always shows the full list regardless of current text, picking is the ONLY way a link is created (no fragile auto-match-on-typing), re-picking a different asset always works even while already linked (two real bugs fixed: name/price drift, and re-pick requiring manual Unlink first).
+- Matching direction CORRECTED mid-build: register is the source list; Assets module pulls FROM it (not the reverse, as first built).
+- No-migration guarantee CONFIRMED and honoured: purchase_price stays manually editable by default for every asset; linking is entirely opt-in per asset; only a specifically-linked asset's price becomes read-only.
+- lib/calculations/fixedAssetRegisterCalculations.js - shared, validated depreciation estimate formula (Diminishing Value only, honest N/A for other methods), used by both the /imports preview and the Assets-side linking - one formula, not two.
+- Depreciation-in-true-cost: BUILT. include_depreciation_in_cost + estimated_annual_depreciation fields on Asset storage, wired into hooks/assets/assetHookUtils.js's get_asset_utilisation_fields (the single shared function feeding true_asset_cost_per_hour everywhere it's used) - purely additive, zero change for any asset that hasn't opted in, live-verified with real PC55 numbers.
+
+## What this unlocks, not yet built
+Business Outcome's EBIT (lib/calculations/businessOutcomeEbitCalculations.js) can now be genuinely extended to full EBITDA, since real per-asset depreciation is finally live data, not blocked. Not yet built - the interest-join pattern from earlier the same session is the template to follow (same asset_group_assignments linkage, just summing estimated_annual_depreciation instead of/alongside asset_interest_annual).
