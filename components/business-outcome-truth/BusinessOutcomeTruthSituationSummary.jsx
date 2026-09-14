@@ -50,6 +50,7 @@ function build_situation_summary({
   view_b_modelled_revenue,
   balance_sheet_current_year_earnings,
   fixed_assets_reconciliation,
+  balance_sheet_working_capital,
 }) {
   const paragraphs = [];
   const things_to_check = [];
@@ -611,6 +612,27 @@ function build_situation_summary({
       ]);
       options_added = true;
     }
+
+    // Liquidity-as-constraint cross-check (2026-09-12) - connects two
+    // pieces of real data already shown separately on this page:
+    // Balance Sheet's working capital, and a genuine "revenue_at_risk"
+    // coverage gap (where the fix means ADDING labour cost, per Section
+    // 9 of the original session brief - not the simple wasted_cost
+    // case). Only fires when BOTH are real and negative-for-affordability -
+    // a standalone insight, does not require Business Modelling to exist.
+    const revenue_at_risk_gaps = flagged_gaps.filter((g) => g.gap_type === "revenue_at_risk");
+    if (
+      revenue_at_risk_gaps.length > 0 &&
+      Number.isFinite(Number(balance_sheet_working_capital)) &&
+      Number(balance_sheet_working_capital) < 0
+    ) {
+      const worst_gap = revenue_at_risk_gaps[0];
+      things_to_check.push([
+        { type: "text", text: `${worst_gap.group_name}'s coverage gap above would need real added labour cost to fix properly - but your working capital is currently ` },
+        { type: "text", text: format_currency(Math.abs(balance_sheet_working_capital)), class: "value-bad" },
+        { type: "text", text: " negative. Worth confirming this is affordable right now, not just the right long-term call - see the Balance Sheet's working capital and liquidity ratios above." },
+      ]);
+    }
   }
 
   // === 5. CLOSING ===
@@ -645,6 +667,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   view_b_modelled_revenue,
   balance_sheet_current_year_earnings,
   fixed_assets_reconciliation,
+  balance_sheet_working_capital,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -661,6 +684,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     view_b_modelled_revenue,
     balance_sheet_current_year_earnings,
     fixed_assets_reconciliation,
+    balance_sheet_working_capital,
   });
 
   if (summary_paragraphs.length === 0) return null;

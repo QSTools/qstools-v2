@@ -135,6 +135,7 @@ export default function BusinessOutcomePage() {
         set_view_mode_ab={set_view_mode_ab}
         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
         fixed_assets_reconciliation={fixed_assets_reconciliation}
+        balance_sheet_working_capital={has_balance_sheet_data ? balance_sheet_ratios?.working_capital : null}
       />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>

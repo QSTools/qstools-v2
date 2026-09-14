@@ -1795,7 +1795,7 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null }) {
   // NEW (this session, per user request): the P&L's own genuine
   // Net Profit and Trading Income, straight from useProfitAndLoss -
   // a completely separate hook/calculation from everything else on
@@ -2613,6 +2613,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       <BusinessOutcomeTruthSituationBlurb
         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
         fixed_assets_reconciliation={fixed_assets_reconciliation}
+        balance_sheet_working_capital={balance_sheet_working_capital}
         active_headline={stable_headline}
         capacity_mode={capacity_mode}
         real_capacity={per_source.real_capacity}
