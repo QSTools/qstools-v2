@@ -4,6 +4,7 @@ import {
   parse_number_string,
 } from "@/lib/formatters/numberFormatters";
 import useFixedAssetRegister from "@/hooks/useFixedAssetRegister";
+import AssetRegisterNameCombobox from "@/components/assets/AssetRegisterNameCombobox";
 
 const setup_fields = [];
 
@@ -94,23 +95,28 @@ export default function AssetForm({
   const { assets: all_register_assets } = useFixedAssetRegister();
   const register_assets = all_register_assets.filter((a) => a.is_included === true);
 
-  useEffect(() => {
+  // REDESIGNED 2026-09-12: two real bugs were found in the earlier
+  // auto-match-on-typing approach - (1) typing over a locked name left
+  // the price silently linked to the OLD asset (name/price drift), and
+  // (2) picking a genuinely different asset while already locked did
+  // nothing (had to Unlink first). Fixed by making linking an EXPLICIT
+  // pick action only (never inferred from typing), and letting a pick
+  // ALWAYS re-link immediately regardless of current lock state - only
+  // free typing is blocked while locked.
+  function handle_pick_register_asset(asset) {
     if (typeof on_bulk_change !== "function") return;
+    on_bulk_change({
+      asset_name: asset.asset_name,
+      purchase_price: asset.purchase_price,
+      purchase_price_locked: true,
+      linked_register_asset_number: asset.asset_number,
+    });
+  }
+
+  function handle_type_asset_name(next_name) {
     if (values.purchase_price_locked) return;
-
-    const match = register_assets.find(
-      (a) => a.asset_name.trim().toLowerCase() === String(values.asset_name || "").trim().toLowerCase()
-    );
-
-    if (match) {
-      on_bulk_change({
-        purchase_price: match.purchase_price,
-        purchase_price_locked: true,
-        linked_register_asset_number: match.asset_number,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.asset_name, register_assets]);
+    on_change("asset_name", next_name);
+  }
 
   function handle_unlink_register() {
     if (typeof on_bulk_change !== "function") return;
@@ -215,25 +221,20 @@ export default function AssetForm({
 
           <label className="ui-stack-sm">
             <span className="ui-label">Asset Name</span>
-            <input
-              className="ui-input"
-              type="text"
-              list="fixed-asset-register-names"
-              value={values.asset_name ?? ""}
-              onChange={(event) => on_change("asset_name", event.target.value)}
+            <AssetRegisterNameCombobox
+              value={values.asset_name}
+              locked={values.purchase_price_locked === true}
+              register_assets={register_assets}
+              on_pick={handle_pick_register_asset}
+              on_type={handle_type_asset_name}
             />
-            <datalist id="fixed-asset-register-names">
-              {register_assets.map((asset) => (
-                <option key={asset.asset_number} value={asset.asset_name} />
-              ))}
-            </datalist>
             {values.purchase_price_locked ? (
               <span className="ui-help">
-                Purchase Price linked to your imported Fixed Asset Register ({values.linked_register_asset_number}).
+                Linked to your imported Fixed Asset Register ({values.linked_register_asset_number}). Unlink below to type a custom name.
               </span>
             ) : register_assets.length > 0 ? (
               <span className="ui-help">
-                Start typing to see suggestions from your imported Fixed Asset Register, or enter your own name.
+                Type your own name, or click &quot;Browse register&quot; to pick from your imported Fixed Asset Register.
               </span>
             ) : null}
           </label>
