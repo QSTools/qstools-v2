@@ -628,9 +628,9 @@ function build_situation_summary({
     ) {
       const worst_gap = revenue_at_risk_gaps[0];
       things_to_check.push([
-        { type: "text", text: `${worst_gap.group_name}'s coverage gap above would need real added labour cost to fix properly - but your working capital is currently ` },
+        { type: "text", text: `Fixing ${worst_gap.group_name}'s coverage gap the right way means adding real labour cost, before that revenue becomes genuinely achievable. But your working capital is currently ` },
         { type: "text", text: format_currency(Math.abs(balance_sheet_working_capital)), class: "value-bad" },
-        { type: "text", text: " negative. Worth confirming this is affordable right now, not just the right long-term call - see the Balance Sheet's working capital and liquidity ratios above." },
+        { type: "text", text: " negative - meaning short-term bills already exceed what's available to cover them. Adding cost now, before the extra revenue arrives, could genuinely strain cash flow in the meantime, even though it's the right move long-term. Worth checking this is affordable right now, not just correct - see the Balance Sheet's working capital and liquidity ratios above." },
       ]);
     }
   }
