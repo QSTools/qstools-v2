@@ -27,6 +27,7 @@ export default function ImportsPage() {
     is_importing,
     import_error,
     importFile,
+    setAssetIncluded,
   } = useFixedAssetRegister();
 
   return (
@@ -57,7 +58,7 @@ export default function ImportsPage() {
         {has_data && (
           <section className="ui-section">
             <div className="ui-panel">
-              <FixedAssetRegisterPreviewTable assets={assets} />
+              <FixedAssetRegisterPreviewTable assets={assets} onSetIncluded={setAssetIncluded} />
             </div>
           </section>
         )}

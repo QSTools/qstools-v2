@@ -3,11 +3,11 @@ import {
   format_number_with_commas,
   parse_number_string,
 } from "@/lib/formatters/numberFormatters";
+import useFixedAssetRegister from "@/hooks/useFixedAssetRegister";
 
-const setup_fields = [["asset_name", "Asset Name", "text"]];
+const setup_fields = [];
 
 const finance_fields = [
-  ["purchase_price", "Purchase Price", "number"],
   ["interest_rate", "Interest Rate (%)", "number"],
   ["finance_term_years", "Finance Term (Years)", "number"],
 ];
@@ -81,6 +81,44 @@ export default function AssetForm({
     on_change("scheduled_hours_per_week", guide_value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.asset_id, asset_type, has_scheduled_hours]);
+
+  // Fixed Asset Register linking (2026-09-12) - see
+  // FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt. Asset Name
+  // doubles as a searchable dropdown (native HTML datalist - free text
+  // still works exactly as before, register names just show as
+  // suggestions). An EXACT name match to a register asset auto-fills
+  // and locks Purchase Price. Matching is forward-only (typing a match
+  // locks it) - unlinking is an explicit user action (the Unlink
+  // button below), never automatic, so a later rename doesn't silently
+  // unlock a genuinely-sourced number.
+  const { assets: all_register_assets } = useFixedAssetRegister();
+  const register_assets = all_register_assets.filter((a) => a.is_included === true);
+
+  useEffect(() => {
+    if (typeof on_bulk_change !== "function") return;
+    if (values.purchase_price_locked) return;
+
+    const match = register_assets.find(
+      (a) => a.asset_name.trim().toLowerCase() === String(values.asset_name || "").trim().toLowerCase()
+    );
+
+    if (match) {
+      on_bulk_change({
+        purchase_price: match.purchase_price,
+        purchase_price_locked: true,
+        linked_register_asset_number: match.asset_number,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.asset_name, register_assets]);
+
+  function handle_unlink_register() {
+    if (typeof on_bulk_change !== "function") return;
+    on_bulk_change({
+      purchase_price_locked: false,
+      linked_register_asset_number: "",
+    });
+  }
 
   const scheduled_hours_per_week = Number(values.scheduled_hours_per_week || 0);
   const downtime_hours_per_week = Number(values.downtime_hours_per_week || 0);
@@ -175,15 +213,30 @@ export default function AssetForm({
         <div className="ui-stack-sm">
           <div className="ui-kicker">Asset Setup</div>
 
-          {setup_fields.map(([field_name, label, type]) =>
-            render_input({
-              field_name,
-              label,
-              type,
-              value: values[field_name],
-              on_change,
-            })
-          )}
+          <label className="ui-stack-sm">
+            <span className="ui-label">Asset Name</span>
+            <input
+              className="ui-input"
+              type="text"
+              list="fixed-asset-register-names"
+              value={values.asset_name ?? ""}
+              onChange={(event) => on_change("asset_name", event.target.value)}
+            />
+            <datalist id="fixed-asset-register-names">
+              {register_assets.map((asset) => (
+                <option key={asset.asset_number} value={asset.asset_name} />
+              ))}
+            </datalist>
+            {values.purchase_price_locked ? (
+              <span className="ui-help">
+                Purchase Price linked to your imported Fixed Asset Register ({values.linked_register_asset_number}).
+              </span>
+            ) : register_assets.length > 0 ? (
+              <span className="ui-help">
+                Start typing to see suggestions from your imported Fixed Asset Register, or enter your own name.
+              </span>
+            ) : null}
+          </label>
 
           <label className="ui-stack-sm">
             <span className="ui-label">Asset Type</span>
@@ -362,6 +415,24 @@ export default function AssetForm({
 
         <div className="ui-stack-sm">
           <div className="ui-kicker">Finance</div>
+
+          <label className="ui-stack-sm">
+            <span className="ui-label">Purchase Price</span>
+            <input
+              className="ui-input"
+              type="text"
+              value={format_number_with_commas(values.purchase_price)}
+              disabled={values.purchase_price_locked === true}
+              onChange={(event) =>
+                on_change("purchase_price", parse_number_string(event.target.value))
+              }
+            />
+            {values.purchase_price_locked ? (
+              <button type="button" className="ui-button-secondary" onClick={handle_unlink_register}>
+                Unlink from register (allow manual entry)
+              </button>
+            ) : null}
+          </label>
 
           {finance_fields.map(([field_name, label, type]) =>
             render_input({

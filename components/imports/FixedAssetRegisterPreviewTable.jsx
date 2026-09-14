@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 
 function format_currency(value) {
@@ -46,9 +45,7 @@ function estimate_annual_depreciation(asset) {
  * Wrapped in CollapsibleSection per user request, so the full asset
  * list doesn't dominate the page once a large register is imported.
  */
-export default function FixedAssetRegisterPreviewTable({ assets, onSetAvailable }) {
-  const [included, set_included] = useState(() => new Set());
-
+export default function FixedAssetRegisterPreviewTable({ assets, onSetIncluded }) {
   if (!Array.isArray(assets) || assets.length === 0) {
     return (
       <div className="business-outcome-ledger">
@@ -57,22 +54,12 @@ export default function FixedAssetRegisterPreviewTable({ assets, onSetAvailable 
     );
   }
 
-  function toggle_included(asset_number) {
-    set_included((previous) => {
-      const next = new Set(previous);
-      if (next.has(asset_number)) {
-        next.delete(asset_number);
-      } else {
-        next.add(asset_number);
-      }
-      return next;
-    });
-  }
+  const included_count = assets.filter((a) => a.is_included).length;
 
   return (
     <CollapsibleSection
       title={`Imported Assets (${assets.length})`}
-      summary={`${included.size} available`}
+      summary={`${included_count} available`}
       defaultOpen={false}
     >
       <div className="business-outcome-ledger">
@@ -96,8 +83,8 @@ export default function FixedAssetRegisterPreviewTable({ assets, onSetAvailable 
                 <span>
                   <input
                     type="checkbox"
-                    checked={included.has(asset.asset_number)}
-                    onChange={() => toggle_included(asset.asset_number)}
+                    checked={asset.is_included === true}
+                    onChange={() => onSetIncluded(asset.asset_number, !asset.is_included)}
                   />
                 </span>
                 <span>{asset.asset_name}</span>

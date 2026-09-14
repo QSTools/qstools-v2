@@ -63,20 +63,20 @@ export default function useFixedAssetRegister() {
     set_import_error(null);
   }
 
-  function setAssetMatch(asset_number, matched_asset_id) {
+  function setAssetIncluded(asset_number, is_included) {
     setState((previous) =>
       buildFixedAssetRegisterState({
         ...previous,
         assets: previous.assets.map((a) =>
-          a.asset_number === asset_number ? { ...a, matched_asset_id } : a
+          a.asset_number === asset_number ? { ...a, is_included } : a
         ),
       })
     );
   }
 
   const has_data = state.assets.length > 0;
-  const matched_count = useMemo(
-    () => state.assets.filter((a) => a.matched_asset_id).length,
+  const included_count = useMemo(
+    () => state.assets.filter((a) => a.is_included).length,
     [state.assets]
   );
 
@@ -86,11 +86,11 @@ export default function useFixedAssetRegister() {
     source_filename: state.source_filename,
     imported_at: state.imported_at,
     has_data,
-    matched_count,
+    included_count,
     is_importing,
     import_error,
     importFile,
     clearImport,
-    setAssetMatch,
+    setAssetIncluded,
   };
 }
