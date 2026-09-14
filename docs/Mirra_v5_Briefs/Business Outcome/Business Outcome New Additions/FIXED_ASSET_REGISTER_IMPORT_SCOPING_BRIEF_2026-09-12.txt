@@ -43,5 +43,35 @@ Comparable in scope to the Asset Utilisation/Downtime prerequisite from the 2026
 5. Whether the Fixed Asset Register itself is reliably populated for this business, or whether it needs setup/cleanup in Xero first (the Register is a separate, opt-in Xero feature - not guaranteed to be complete or accurate just because it has data in it).
 6. Once built, should the existing gross-only Fixed Assets reconciliation (calculateFixedAssetsReconciliation) be replaced entirely by a net-to-net version, or kept as a fallback for businesses that haven't imported a real register? Likely the latter, matching the same "detect and fall back safely" principle already used in that function.
 
+## Additional scoping (same day, after starting this import) - Depreciation-in-cost decision
+
+Worked through live, using real Komatsu PC55 register data as a concrete test case, before starting the build.
+
+### Real numbers established
+PC55: purchase price $72,000, current net book value $42,789.52 (Diminishing Value, 13%, "Full Month" averaging). A year-by-year schedule simulation cross-validated closely against the register's own reported AccumulatedDepreciation figure (within ~1.2% - close enough to confirm the diminishing-value method, small variance likely from Xero's exact month-counting/rounding convention). Estimated current-year depreciation: 13% x $42,789.52 = approximately $5,563/year for this one asset alone - a real, material number, not trivial. Impact if added to PC55's rate (from a real live screenshot, 1,200 recovery hours): asset-only rate would go from ~$12/hr to ~$17/hr (+37%); the group's TOTAL rate (including labour, overhead) would go from $83/hr to ~$88/hr (+6%).
+
+### Why NOT to fold depreciation into true cost/rates unconditionally
+- Depreciation is a backward-looking, tax-driven number (based on original purchase price and IRD-set diminishing-value rates), not a direct measure of real wear or real replacement cost.
+- A genuinely distorting real example exists in this business's own register: some Office Equipment assets use "Full Depreciation at Purchase" - the ENTIRE cost hits year one, then $0 forever after. If fed unconditionally into rates, this would produce one wildly inflated year followed by an artificially cheap rate for years afterward, with nothing about the asset's real usefulness having changed. PC55 itself (Diminishing Value) doesn't have this problem, but the Assets module needs to handle BOTH depreciation methods safely if this is ever built.
+- Depreciation isn't cash leaving the bank, unlike fuel/insurance/maintenance/finance interest (all already in "true cost"). If "true cost" is meant to answer "what does this actually cost me to own and run right now," depreciation sits somewhat outside that definition by design.
+- User's real motivation ("otherwise you have to mentally say when I have this much I can [replace it] but we haven't budgeted for it in this tool") is a genuine, real need - but accounting depreciation is an imperfect tool for it. A purpose-built REPLACEMENT PROVISION (expected real replacement cost / expected remaining useful life) would answer "am I setting aside enough to replace this" far more accurately than reusing a tax depreciation formula. Flagged as a genuinely separate, different future feature - not to be conflated with this work. NOT scoped further tonight.
+
+### Decision reached - dual-track approach
+
+**1. Assets module gets a real, per-asset OPTIONAL toggle (default OFF)** - "Include depreciation in true cost" - or similar. When on for a given asset, its depreciation (from the imported register, once that exists) is added into the SAME true_asset_cost_per_hour figure everything downstream already reads.
+
+**2. Deliberately NOT built in Rate Builder.** Confirmed during this scoping: true_asset_cost_per_hour (built in hooks/useAssets.js, exposed on every active_assets row) is the actual shared source Cost Summary, Business Summary, Cost Allocation, AND Rate Builder all independently read downstream. Putting the toggle in Rate Builder alone would mean only Rate Builder ever sees the adjusted figure - every other module would silently disagree with it. Putting the toggle at the Assets module's own core output means every downstream consumer inherits the change automatically, with no rewiring needed anywhere else - matches the same "reuse the engine, don't duplicate it" principle used throughout this session (Business Modelling's live-lever architecture, the EBIT interest join reusing existing asset_group_assignments, etc.).
+
+**3. Business Outcome shows BOTH EBIT and EBITDA, always, regardless of the Assets toggle.** The toggle changes what feeds Rate Builder/Cost Summary/etc. for PRICING purposes. Business Outcome's EBIT/EBITDA display is informational, not a pricing decision, and should show both figures side by side (matching the existing pattern of showing both Real Capacity/Assumed Capacity and Full Cost/Contribution Margin as two honest, differently-framed answers rather than picking one). Once real per-source depreciation exists (via the register import), Business Outcome should compute:
+   - EBIT (already built 2026-09-12: net profit + interest)
+   - EBITDA (EBIT + depreciation) - a NEW calculation, independent of whatever the per-asset Assets-module toggle is set to for pricing purposes. EBITDA should always use the REAL depreciation figure regardless of whether any given asset has its "include in true cost" toggle on or off.
+
+### What this means for build order, once the register import itself is done
+1. Register import brings in real per-asset depreciation data (this document's main scope).
+2. Assets module: add the per-asset toggle (default off), wire it into true_asset_cost_per_hour ONLY when on for that asset - additive, opt-in, no default behavior change for any existing user.
+3. Business Outcome: extend the existing EBIT calculation (lib/calculations/businessOutcomeEbitCalculations.js) to also compute EBITDA, using real per-source depreciation independently of the Assets toggle setting - both figures always shown together.
+
+Each of these three is meaningfully separable and should be built/verified independently, same live-data-verification discipline used throughout 2026-09-12's session (build, verify against real numbers, commit, before moving to the next piece).
+
 ## Status
 SCOPED, NOT STARTED. Deferred by explicit user decision 2026-09-12. Real sample data (Assets.xlsx) reviewed and structure fully documented above - next session can start directly from this document without re-discovering the file format.
