@@ -78,6 +78,17 @@ export default function BalanceSheetRatiosCard({ ratios }) {
           </span>
         </div>
         <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Cash Ratio</span>
+          <span className="business-outcome-ledger-metric-value">
+            {ratios.cash_ratio_available ? format_ratio(ratios.cash_ratio) : "N/A"}
+          </span>
+          <span className="business-outcome-ledger-metric-description">
+            {ratios.cash_ratio_available
+              ? "The strictest liquidity measure - cash and bank balances only, divided by current liabilities."
+              : "No cash or bank account was found under Current Assets on this Balance Sheet, so this can't be calculated."}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
           <span className="business-outcome-ledger-metric-label">Debt to Equity</span>
           <span className="business-outcome-ledger-metric-value">
             {format_ratio(ratios.debt_to_equity)}

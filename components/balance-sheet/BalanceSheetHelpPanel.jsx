@@ -36,6 +36,12 @@ export default function BalanceSheetHelpPanel() {
         a bill. A lower Quick Ratio than Current Ratio is expected, not a separate problem.
       </p>
       <p className="ui-help">
+        <strong>Cash Ratio</strong> is the strictest liquidity measure - only cash and bank balances counted as
+        Current Assets, divided by current liabilities. Not every business&apos;s Balance Sheet has a clean cash
+        line under Current Assets (bank accounts sometimes sit under liabilities instead, such as an overdraft) -
+        when that&apos;s the case here, this figure will show as not available rather than a misleading number.
+      </p>
+      <p className="ui-help">
         <strong>Debt to Equity</strong> compares total liabilities to total equity - how much of the
         business is financed by debt versus the owner&apos;s own capital. Higher means more reliance
         on debt. What counts as &quot;high&quot; varies significantly by industry - asset-heavy
