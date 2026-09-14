@@ -20,6 +20,9 @@ import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-tru
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
 import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import useBalanceSheet from "@/hooks/useBalanceSheet";
+import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";
+import Link from "next/link";
 
 // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This is the new v5.0 truth-chain Business Outcome page, built on top of
@@ -43,6 +46,12 @@ export default function BusinessOutcomePage() {
   const waterfall = selectBusinessOutcomeWaterfall(waterfall_calculation);
   const per_source_calculation = useBusinessOutcomePerSourceRevenue();
   const per_source = selectBusinessOutcomePerSourceRevenue(per_source_calculation);
+  const { ratios: balance_sheet_ratios, has_data: has_balance_sheet_data, as_at_date: balance_sheet_as_at_date, accounts: balance_sheet_accounts } = useBalanceSheet();
+  const balance_sheet_current_year_earnings = has_balance_sheet_data
+    ? balance_sheet_accounts.find(
+        (a) => String(a.account_name || "").trim().toLowerCase() === "current year earnings"
+      )?.amount ?? null
+    : null;
 
   return (
     <div className="space-y-6 p-6">
@@ -53,6 +62,22 @@ export default function BusinessOutcomePage() {
       <BusinessOutcomeViewSwitcher />
       <BusinessOutcomeTruthStatusStrip output_contract={output_contract} />
       <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
+
+      <div className="ui-panel">
+        {has_balance_sheet_data ? (
+          <>
+            <p className="ui-help" style={{ marginTop: 0 }}>
+              From your imported Balance Sheet, as at {balance_sheet_as_at_date || "unknown date"}.
+            </p>
+            <BalanceSheetRatiosCard ratios={balance_sheet_ratios} />
+          </>
+        ) : (
+          <p className="ui-help" style={{ marginTop: 0 }}>
+            Import a <Link href="/balance-sheet" className="ui-inline-link">Balance Sheet</Link> to see working
+            capital and liquidity ratios alongside your revenue and profit numbers here.
+          </p>
+        )}
+      </div>
       <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.25rem" }}>
         <button
           type="button"
@@ -86,6 +111,7 @@ export default function BusinessOutcomePage() {
         smoothing_mode={smoothing_mode}
         view_mode_ab={view_mode_ab}
         set_view_mode_ab={set_view_mode_ab}
+        balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
       />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>

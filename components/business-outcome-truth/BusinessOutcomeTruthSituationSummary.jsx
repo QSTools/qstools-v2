@@ -48,6 +48,7 @@ function build_situation_summary({
   pnl_net_profit_actual,
   pnl_trading_income_actual,
   view_b_modelled_revenue,
+  balance_sheet_current_year_earnings,
 }) {
   const paragraphs = [];
   const things_to_check = [];
@@ -129,6 +130,42 @@ function build_situation_summary({
     }
 
     things_to_check.push(pnl_segments);
+  }
+
+  // Balance Sheet Current Year Earnings cross-check (2026-09-12) - same
+  // pattern as the P&L cross-check above: an independently-derived
+  // figure (this time from the Balance Sheet's Equity section, via Xero)
+  // compared against our own cascade-derived net profit. Deliberately
+  // NOT reconciled or forced to match - a difference here is a genuine
+  // signal worth checking (timing differences, unposted journals, or a
+  // stale Balance Sheet import), not a bug to hide. Only shown if a
+  // Balance Sheet has actually been imported (null otherwise).
+  if (
+    Number.isFinite(Number(balance_sheet_current_year_earnings)) &&
+    has_net_profit
+  ) {
+    const bs_earnings = Number(balance_sheet_current_year_earnings);
+    const our_net_profit = Number(active_headline.total_net_profit);
+    const bs_class = bs_earnings >= 0 ? "value-good" : "value-bad";
+
+    const bs_segments = [
+      { type: "text", text: "Your imported Balance Sheet shows Current Year Earnings of " },
+      { type: "text", text: format_currency(bs_earnings), class: bs_class },
+      { type: "text", text: "." },
+    ];
+
+    const dollar_diff = Math.abs(our_net_profit - bs_earnings);
+    if (dollar_diff > 1) {
+      let severity_text;
+      if (dollar_diff <= 1000) {
+        severity_text = "a small difference, worth keeping an eye on";
+      } else {
+        severity_text = "a noticeable difference - often caused by timing (unposted journals, a Balance Sheet imported from a different date than this year's real data), or the two figures genuinely measuring slightly different things - worth checking against your accountant if it persists";
+      }
+      bs_segments.push({ type: "text", text: ` That's ${severity_text}.` });
+    }
+
+    things_to_check.push(bs_segments);
   }
 
   // Breakeven revenue - coloured neutral/blue: it's the reference
@@ -576,6 +613,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   pnl_net_profit_actual,
   pnl_trading_income_actual,
   view_b_modelled_revenue,
+  balance_sheet_current_year_earnings,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -590,6 +628,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     pnl_net_profit_actual,
     pnl_trading_income_actual,
     view_b_modelled_revenue,
+    balance_sheet_current_year_earnings,
   });
 
   if (summary_paragraphs.length === 0) return null;
