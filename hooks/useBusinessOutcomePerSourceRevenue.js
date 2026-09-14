@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRecovery";
 import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessSummary from "@/hooks/useBusinessSummary";
+import useAssets from "@/hooks/useAssets";
 import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
@@ -119,7 +120,7 @@ function split_group_overhead(group) {
   };
 }
 
-function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = []) {
+function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map()) {
   const rows = [];
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
 
@@ -189,6 +190,16 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       const net_profit =
         modelled_revenue !== null ? modelled_revenue - true_cost : null;
 
+      // Added 2026-09-12 for per-source EBIT - a real, already-computed
+      // per-asset figure (see asset_finance_breakdown on
+      // /module-reconciliation), scaled by this assignment's share
+      // (assignment_percent), same basis as assigned_asset_cost above.
+      // Purely additive - not used anywhere in the true_cost/net_profit
+      // math above or below.
+      const assignment_percent_num = to_number(assignment.assignment_percent);
+      const interest_share = Number.isFinite(assignment_percent_num) ? assignment_percent_num / 100 : 1;
+      const asset_interest_annual = (asset_interest_by_id.get(assignment.asset_id) || 0) * interest_share;
+
       rows.push({
         asset_id: assignment.asset_id || "",
         asset_name: assignment.asset_name || "Unnamed asset",
@@ -198,6 +209,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         direct_cost: round_currency(asset_cost),
         overhead_share: round_currency(overhead_share),
         true_cost: round_currency(true_cost),
+        asset_interest_annual: round_currency(asset_interest_annual),
         blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
         minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
@@ -577,12 +589,18 @@ export function group_rows_by_group_id(rows) {
         rows: [],
         modelled_revenue: 0,
         true_cost: 0,
+        // Added 2026-09-12 for per-source EBIT - purely additive, not
+        // read anywhere in the real_capacity cascade below. Labour rows
+        // never have asset_interest_annual, so ?? 0 is always correct
+        // for them, not a fallback masking a real gap.
+        asset_interest_annual: 0,
       });
     }
     const g = map.get(key);
     g.rows.push(row);
     g.modelled_revenue += row.modelled_revenue ?? 0;
     g.true_cost += row.true_cost ?? 0;
+    g.asset_interest_annual += row.asset_interest_annual ?? 0;
   });
   return Array.from(map.values());
 }
@@ -682,6 +700,9 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
       naive_net_profit: round_currency(g.naive_net_profit),
       final_net_profit: g.final_net_profit,
       total_adjustment: g.total_adjustment,
+      // Added 2026-09-12 for per-source EBIT - real per-group interest,
+      // purely additive, not read anywhere in this function's own math.
+      asset_interest_annual: round_currency(g.asset_interest_annual ?? 0),
     })),
   };
 }
@@ -691,6 +712,34 @@ export default function useBusinessOutcomePerSourceRevenue() {
   const cost_allocation = useCostAllocation();
   const business_summary = useBusinessSummary();
   const opening_hours = useOpeningHours();
+
+  // Added 2026-09-12 for per-source EBIT (Earnings Before Interest and
+  // Tax - deliberately NOT EBITDA, since the Assets module has no
+  // depreciation tracking, confirmed during the Balance Sheet Fixed
+  // Assets reconciliation work earlier this session). asset_interest_annual
+  // is a real, already-computed per-asset field (confirmed live on
+  // /module-reconciliation's asset_finance_breakdown), joined here
+  // against each group's existing asset_group_assignments[].asset_id
+  // (confirmed present via costAllocationAssetPoolBuilders.js's
+  // enriched_assignments) to get a real per-source interest figure.
+  // Purely additive - does not touch the real_capacity cascade math.
+  const { active_assets: assets_for_interest } = useAssets();
+  const asset_interest_by_id = useMemo(() => {
+    const map = new Map();
+    (assets_for_interest || []).forEach((asset) => {
+      map.set(asset.asset_id, to_number(asset.asset_interest_annual) || 0);
+    });
+    return map;
+  }, [assets_for_interest]);
+
+  function get_group_asset_interest_annual(asset_assignments) {
+    return (asset_assignments || []).reduce((sum, assignment) => {
+      const asset_interest = asset_interest_by_id.get(assignment.asset_id) || 0;
+      const percent = to_number(assignment.assignment_percent);
+      const share = Number.isFinite(percent) ? percent / 100 : 1;
+      return sum + asset_interest * share;
+    }, 0);
+  }
 
   const [rate_builder_calculators, set_rate_builder_calculators] = useState([]);
 
@@ -717,7 +766,8 @@ export default function useBusinessOutcomePerSourceRevenue() {
     const asset_sources = build_asset_sources(
       operational_group_cost_rows,
       rate_builder_calculators,
-      operational_group_recovery_rows
+      operational_group_recovery_rows,
+      asset_interest_by_id
     );
 
     const total_assigned_overhead = operational_group_cost_rows.reduce(

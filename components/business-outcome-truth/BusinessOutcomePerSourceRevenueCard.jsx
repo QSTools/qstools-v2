@@ -17,6 +17,7 @@ import BusinessOutcomeViewABComparisonTable from "@/components/business-outcome-
 import BusinessOutcomeCapacityCoverageGapTable from "@/components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable";
 import BusinessOutcomeHealthGauge from "@/components/business-outcome-truth/BusinessOutcomeHealthGauge";
 import BusinessOutcomeHealthGaugeExplainer from "@/components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer";
+import BusinessOutcomeEbitByUnitTable from "@/components/business-outcome-truth/BusinessOutcomeEbitByUnitTable";
 import { scroll_to_section } from "@/lib/utils/scrollToSection";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
@@ -2483,6 +2484,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
           <CollapsibleSection id="health-gauge-explainer-panel" title="Business Health Gauge - explained" defaultOpen={false}>
             <BusinessOutcomeHealthGaugeExplainer health_gauge={per_source.health_gauge} active_headline={stable_headline} />
+          </CollapsibleSection>
+
+          <CollapsibleSection id="ebit-by-unit-panel" title="EBIT by Source" defaultOpen={false}>
+            <BusinessOutcomeEbitByUnitTable real_capacity={per_source.real_capacity} />
           </CollapsibleSection>
 
           <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>
