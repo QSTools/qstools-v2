@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 import {
@@ -302,6 +302,12 @@ export default function useAssets() {
               true_asset_cost_per_hour:
                 utilisation_fields.true_asset_cost_per_hour,
               is_active: !asset.is_retired,
+              // Passthrough added 2026-09-12 for the Balance Sheet Fixed
+              // Assets reconciliation (CFO_REQUIREMENTS_GAP_2026-09-12.txt
+              // Part 1B item 2) - purchase_price was already stored per
+              // asset (lib/storage/assetStorage.js) but never flowed
+              // through this hook before now.
+              purchase_price: Number(asset.purchase_price ?? 0),
             };
           })
       : [];
