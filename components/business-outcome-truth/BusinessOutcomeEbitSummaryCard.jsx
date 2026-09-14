@@ -24,11 +24,8 @@ function format_currency(value) {
  * calculation, not two that could drift apart.
  */
 export default function BusinessOutcomeEbitSummaryCard({ real_capacity, materials, unassigned }) {
-  const { available, total_net_profit, total_interest, total_ebit } = calculateEbitByUnit({
-    real_capacity,
-    materials,
-    unassigned,
-  });
+  const { available, total_net_profit, total_interest, total_depreciation, total_ebit, total_ebitda } =
+    calculateEbitByUnit({ real_capacity, materials, unassigned });
 
   if (!available) {
     return null;
@@ -36,7 +33,7 @@ export default function BusinessOutcomeEbitSummaryCard({ real_capacity, material
 
   return (
     <div className="business-outcome-ledger">
-      <div className="business-outcome-ledger-section-title">EBIT (Earnings Before Interest and Tax)</div>
+      <div className="business-outcome-ledger-section-title">EBIT &amp; EBITDA</div>
       <div className="business-outcome-ledger-metrics">
         <div className="business-outcome-ledger-metric">
           <span className="business-outcome-ledger-metric-label">Net Profit</span>
@@ -51,8 +48,20 @@ export default function BusinessOutcomeEbitSummaryCard({ real_capacity, material
         <div className="business-outcome-ledger-metric">
           <span className="business-outcome-ledger-metric-label">= EBIT</span>
           <span className="business-outcome-ledger-metric-value" style={{ fontWeight: 700 }}>{format_currency(total_ebit)}</span>
+          <span className="business-outcome-ledger-metric-description">Earnings before interest and tax.</span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">+ Depreciation</span>
+          <span className="business-outcome-ledger-metric-value">{format_currency(total_depreciation)}</span>
           <span className="business-outcome-ledger-metric-description">
-            Not EBITDA - depreciation isn&apos;t tracked per source yet. See EBIT by Source below for the full breakdown.
+            Real depreciation from your Fixed Asset Register (only for linked assets with a Diminishing Value method).
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">= EBITDA</span>
+          <span className="business-outcome-ledger-metric-value" style={{ fontWeight: 700 }}>{format_currency(total_ebitda)}</span>
+          <span className="business-outcome-ledger-metric-description">
+            Earnings before interest, tax, depreciation and amortisation. See EBIT by Source below for the full breakdown.
           </span>
         </div>
       </div>
