@@ -130,9 +130,17 @@ export default function AssetForm({
 
   function handle_unlink_register() {
     if (typeof on_bulk_change !== "function") return;
+    // FIX (found 2026-09-12, end of session): unlinking previously left
+    // estimated_annual_depreciation and include_depreciation_in_cost
+    // stale - the checkbox controlling depreciation only renders while
+    // linked, so a stale include_depreciation_in_cost=true after
+    // unlinking would silently keep affecting true_asset_cost_per_hour
+    // with no visible way to turn it off. Both cleared explicitly now.
     on_bulk_change({
       purchase_price_locked: false,
       linked_register_asset_number: "",
+      estimated_annual_depreciation: null,
+      include_depreciation_in_cost: false,
     });
   }
 
