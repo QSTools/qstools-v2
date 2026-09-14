@@ -49,6 +49,7 @@ function build_situation_summary({
   pnl_trading_income_actual,
   view_b_modelled_revenue,
   balance_sheet_current_year_earnings,
+  fixed_assets_reconciliation,
 }) {
   const paragraphs = [];
   const things_to_check = [];
@@ -166,6 +167,35 @@ function build_situation_summary({
     }
 
     things_to_check.push(bs_segments);
+  }
+
+  // Fixed Assets reconciliation (2026-09-12) - only rendered when a real
+  // gross-to-gross comparison was possible (comparison_status === "compared").
+  // The other statuses (net_only_cannot_compare, assets_total_not_available,
+  // no_fixed_assets_in_balance_sheet) are non-issues, not flags - deliberately
+  // silent rather than cluttering Things to check with technical status
+  // messages nobody needs to act on. See calculateFixedAssetsReconciliation's
+  // own docstring (lib/calculations/balanceSheetCalculations.js) for why the
+  // gross/net distinction matters here.
+  if (fixed_assets_reconciliation?.comparison_status === "compared") {
+    const { balance_sheet_gross_total, assets_total_purchase_price, dollar_diff, has_meaningful_diff, partial_match } =
+      fixed_assets_reconciliation;
+
+    if (has_meaningful_diff) {
+      const fa_segments = [
+        { type: "text", text: "Your Balance Sheet's gross Fixed Assets total is " },
+        { type: "text", text: format_currency(balance_sheet_gross_total), class: "value-neutral" },
+        { type: "text", text: ", against " },
+        { type: "text", text: format_currency(assets_total_purchase_price), class: "value-neutral" },
+        { type: "text", text: " of purchase price recorded in Assets - a difference of " },
+        { type: "text", text: format_currency(Math.abs(dollar_diff)), class: "value-bad" },
+        { type: "text", text: ". Worth checking whether every asset on the Balance Sheet is also recorded in Assets, and vice versa." },
+      ];
+      if (partial_match) {
+        fa_segments.push({ type: "text", text: " (Note: not every Fixed Assets line had a matching depreciation line, so this comparison may be incomplete.)" });
+      }
+      things_to_check.push(fa_segments);
+    }
   }
 
   // Breakeven revenue - coloured neutral/blue: it's the reference
@@ -614,6 +644,7 @@ export function BusinessOutcomeTruthSituationBlurb({
   pnl_trading_income_actual,
   view_b_modelled_revenue,
   balance_sheet_current_year_earnings,
+  fixed_assets_reconciliation,
 }) {
   const summary_paragraphs = build_situation_summary({
     active_headline,
@@ -629,6 +660,7 @@ export function BusinessOutcomeTruthSituationBlurb({
     pnl_trading_income_actual,
     view_b_modelled_revenue,
     balance_sheet_current_year_earnings,
+    fixed_assets_reconciliation,
   });
 
   if (summary_paragraphs.length === 0) return null;

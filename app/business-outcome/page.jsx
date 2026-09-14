@@ -23,6 +23,8 @@ import CollapsibleSection from "@/components/common/CollapsibleSection";
 import useBalanceSheet from "@/hooks/useBalanceSheet";
 import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";
 import Link from "next/link";
+import useAssets from "@/hooks/useAssets";
+import { calculateFixedAssetsReconciliation } from "@/lib/calculations/balanceSheetCalculations";
 
 // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This is the new v5.0 truth-chain Business Outcome page, built on top of
@@ -51,6 +53,17 @@ export default function BusinessOutcomePage() {
     ? balance_sheet_accounts.find(
         (a) => String(a.account_name || "").trim().toLowerCase() === "current year earnings"
       )?.amount ?? null
+    : null;
+  const { active_assets } = useAssets();
+  const total_asset_purchase_price = (active_assets || []).reduce(
+    (sum, asset) => sum + (Number(asset.purchase_price) || 0),
+    0
+  );
+  const fixed_assets_reconciliation = has_balance_sheet_data
+    ? calculateFixedAssetsReconciliation({
+        accounts: balance_sheet_accounts,
+        total_purchase_price: total_asset_purchase_price,
+      })
     : null;
 
   return (
@@ -112,6 +125,7 @@ export default function BusinessOutcomePage() {
         view_mode_ab={view_mode_ab}
         set_view_mode_ab={set_view_mode_ab}
         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
+        fixed_assets_reconciliation={fixed_assets_reconciliation}
       />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>
