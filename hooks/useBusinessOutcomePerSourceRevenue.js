@@ -120,7 +120,7 @@ function split_group_overhead(group) {
   };
 }
 
-function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map()) {
+function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map()) {
   const rows = [];
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
 
@@ -788,7 +788,8 @@ export default function useBusinessOutcomePerSourceRevenue() {
       operational_group_cost_rows,
       rate_builder_calculators,
       operational_group_recovery_rows,
-      asset_interest_by_id
+      asset_interest_by_id,
+      asset_depreciation_by_id
     );
 
     const total_assigned_overhead = operational_group_cost_rows.reduce(
