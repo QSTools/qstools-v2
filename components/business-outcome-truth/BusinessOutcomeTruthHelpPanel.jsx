@@ -28,6 +28,15 @@ export function BusinessOutcomeTruthAboutPanel() {
         over, it shows exactly which parts of the business are absorbing that shortfall, and by how much.
       </p>
       <p>
+        Added 2026-09-12: the per-source breakdown, EBIT figures, and cross-subsidy findings on this page
+        are this business&apos;s version of what&apos;s more formally called <strong>segment reporting</strong> in
+        standard CFO practice &mdash; revenue, cost, and profit broken out by business unit (here, by
+        labour and asset source) rather than lumped into one company-wide figure. The &quot;N of X sources
+        aren&apos;t covering their own cost&quot; language throughout this page, and the EBIT by Source
+        table, are both genuine segment-level figures, built from real per-source cost data already
+        tracked here &mdash; not a separate, bolted-on report.
+      </p>
+      <p>
         There are four toggle pairs on this page, tucked under &quot;Advanced options&quot; so the page stays
         simple by default. Here&apos;s what each one changes:
       </p>
