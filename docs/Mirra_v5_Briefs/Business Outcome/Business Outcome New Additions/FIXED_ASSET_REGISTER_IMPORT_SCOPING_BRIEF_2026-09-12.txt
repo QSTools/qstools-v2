@@ -73,5 +73,27 @@ PC55: purchase price $72,000, current net book value $42,789.52 (Diminishing Val
 
 Each of these three is meaningfully separable and should be built/verified independently, same live-data-verification discipline used throughout 2026-09-12's session (build, verify against real numbers, commit, before moving to the next piece).
 
+## Confirmed design guarantee (2026-09-12, after /imports hub was built) - no migration, no forced rebuild
+
+User raised a real, important concern before any Assets-module write-back work begins: the Assets module currently has manually-entered (in some cases placeholder/test) data, and not every user will have a Fixed Asset Register at all. Confirmed explicitly:
+
+- purchase_price remains MANUALLY EDITABLE BY DEFAULT for every asset, exactly as today - nothing changes for a user who has no register, or hasn't imported one yet.
+- Register-linking (the eventual Assets-module dropdown, pulling a real purchase_price in from an imported /imports register entry) is ENTIRELY OPT-IN, per individual asset - never automatic, never forced.
+- purchase_price only becomes read-only for a SPECIFIC asset once that asset is deliberately linked to a register entry by the user (matching the earlier "read only, so you can't invent a number" decision) - every other asset, and every asset before it's linked, stays exactly as flexible as it is today.
+- This means NO migration and NO rebuild of existing Assets data is required to ship this feature - it's a purely additive capability sitting alongside the existing manual-entry flow, not a replacement for it.
+
+This is the design guarantee the actual build (Assets-module dropdown, still not built) must honour - confirming it here so a future session doesn't accidentally build a forced-migration version instead.
+
+## Confirmed design guarantee (2026-09-12, after /imports hub was built) - no migration, no forced rebuild
+
+User raised a real, important concern before any Assets-module write-back work begins: the Assets module currently has manually-entered (in some cases placeholder/test) data, and not every user will have a Fixed Asset Register at all. Confirmed explicitly:
+
+- purchase_price remains MANUALLY EDITABLE BY DEFAULT for every asset, exactly as today - nothing changes for a user who has no register, or hasn't imported one yet.
+- Register-linking (the eventual Assets-module dropdown, pulling a real purchase_price in from an imported /imports register entry) is ENTIRELY OPT-IN, per individual asset - never automatic, never forced.
+- purchase_price only becomes read-only for a SPECIFIC asset once that asset is deliberately linked to a register entry by the user (matching the earlier "read only, so you can't invent a number" decision) - every other asset, and every asset before it's linked, stays exactly as flexible as it is today.
+- This means NO migration and NO rebuild of existing Assets data is required to ship this feature - it's a purely additive capability sitting alongside the existing manual-entry flow, not a replacement for it.
+
+This is the design guarantee the actual build (Assets-module dropdown, still not built) must honour - confirming it here so a future session doesn't accidentally build a forced-migration version instead.
+
 ## Status
 SCOPED, NOT STARTED. Deferred by explicit user decision 2026-09-12. Real sample data (Assets.xlsx) reviewed and structure fully documented above - next session can start directly from this document without re-discovering the file format.
