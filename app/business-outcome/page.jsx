@@ -25,6 +25,7 @@ import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatio
 import Link from "next/link";
 import useAssets from "@/hooks/useAssets";
 import { calculateFixedAssetsReconciliation } from "@/lib/calculations/balanceSheetCalculations";
+import BusinessOutcomeEbitSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeEbitSummaryCard";
 
 // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This is the new v5.0 truth-chain Business Outcome page, built on top of
@@ -90,6 +91,14 @@ export default function BusinessOutcomePage() {
             capital and liquidity ratios alongside your revenue and profit numbers here.
           </p>
         )}
+      </div>
+
+      <div className="ui-panel">
+        <BusinessOutcomeEbitSummaryCard
+          real_capacity={per_source.real_capacity}
+          materials={per_source.materials}
+          unassigned={per_source.unassigned}
+        />
       </div>
       <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.25rem" }}>
         <button

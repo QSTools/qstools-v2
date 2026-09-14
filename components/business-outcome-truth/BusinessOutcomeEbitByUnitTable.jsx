@@ -1,5 +1,7 @@
 "use client";
 
+import { calculateEbitByUnit } from "@/lib/calculations/businessOutcomeEbitCalculations";
+
 function format_currency(value) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "N/A";
   const sign = Number(value) < 0 ? "-" : "";
@@ -43,9 +45,13 @@ function format_currency(value) {
  * more complex selector chain for a purely additive display feature.
  */
 export default function BusinessOutcomeEbitByUnitTable({ real_capacity, materials, unassigned }) {
-  const groups = real_capacity?.group_real_capacity;
+  const { available, rows, total_net_profit, total_interest, total_ebit } = calculateEbitByUnit({
+    real_capacity,
+    materials,
+    unassigned,
+  });
 
-  if (!Array.isArray(groups) || groups.length === 0) {
+  if (!available) {
     return (
       <div className="business-outcome-ledger">
         <div className="business-outcome-ledger-section-title">EBIT by Source</div>
@@ -53,54 +59,6 @@ export default function BusinessOutcomeEbitByUnitTable({ real_capacity, material
       </div>
     );
   }
-
-  const rows = groups.map((g) => ({
-    group_name: g.group_name,
-    net_profit: Number(g.final_net_profit) || 0,
-    interest: Number(g.asset_interest_annual) || 0,
-    ebit: (Number(g.final_net_profit) || 0) + (Number(g.asset_interest_annual) || 0),
-  }));
-
-  // Materials has no financed assets, so its interest is genuinely $0
-  // (not a gap being missed - materials/COGS is never asset-financed).
-  // Only added as a row when the figure is actually available, same
-  // guard used throughout this session for optional data.
-  // CORRECTED 2026-09-12: real_capacity.materials_real_capacity_net_profit
-  // does NOT survive to the Card as read - it's copied, during the hook's
-  // own processing, onto a SEPARATE materials object as
-  // materials.real_capacity_net_profit (no "materials_" prefix on this
-  // copy) - confirmed via source trace after the first version of this
-  // component silently showed no Materials row despite real data existing.
-  const materials_net_profit = materials?.real_capacity_net_profit;
-  if (Number.isFinite(Number(materials_net_profit))) {
-    rows.push({
-      group_name: "Materials / COGS",
-      net_profit: Number(materials_net_profit),
-      interest: 0,
-      ebit: Number(materials_net_profit),
-    });
-  }
-
-  // FIX 2026-09-12: without this, our Total silently didn't match the
-  // page's own headline net profit - found via live testing (a real
-  // ~$26k gap). unassigned.total is real cost with no revenue-bearing
-  // source attached (per businessOutcomePerSourceRevenueSelectors.js's
-  // own comment: "total_net_profit ... minus total_unassigned"),
-  // subtracted here as a negative row so this table's total is
-  // mathematically guaranteed to match the headline, not just close.
-  const unassigned_total = unassigned?.total;
-  if (Number.isFinite(Number(unassigned_total)) && Number(unassigned_total) !== 0) {
-    rows.push({
-      group_name: "Unassigned cost (no source)",
-      net_profit: -Number(unassigned_total),
-      interest: 0,
-      ebit: -Number(unassigned_total),
-    });
-  }
-
-  const total_net_profit = rows.reduce((sum, r) => sum + r.net_profit, 0);
-  const total_interest = rows.reduce((sum, r) => sum + r.interest, 0);
-  const total_ebit = rows.reduce((sum, r) => sum + r.ebit, 0);
 
   return (
     <div className="business-outcome-ledger">
