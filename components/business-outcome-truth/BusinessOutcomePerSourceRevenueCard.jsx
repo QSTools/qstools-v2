@@ -2487,7 +2487,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </CollapsibleSection>
 
           <CollapsibleSection id="ebit-by-unit-panel" title="EBIT by Source" defaultOpen={false}>
-            <BusinessOutcomeEbitByUnitTable real_capacity={per_source.real_capacity} />
+            <BusinessOutcomeEbitByUnitTable real_capacity={per_source.real_capacity} materials={per_source.materials} unassigned={per_source.unassigned} />
           </CollapsibleSection>
 
           <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>
