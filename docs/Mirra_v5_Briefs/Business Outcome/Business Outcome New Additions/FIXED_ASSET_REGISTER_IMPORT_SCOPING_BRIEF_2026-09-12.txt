@@ -1,0 +1,47 @@
+# Fixed Asset Register Import - Scoping Brief (2026-09-12)
+
+## Why this exists
+Today's session built a Balance Sheet import and a Fixed Assets reconciliation comparing Balance Sheet totals against the Assets module's manually-entered purchase_price sum (see CFO_REQUIREMENTS_GAP_2026-09-12.txt Part 1B). That comparison found a genuine $386,245 gap. Investigating why led to a real Xero Fixed Asset Register export being reviewed - and it's clear the Assets module's manually-typed purchase_price values are the likely source of that gap, not a real business problem. This document scopes importing the real Fixed Asset Register to replace manual entry, deferred for a dedicated future session per user decision 2026-09-12 ("this needs to be deferred for the moment but its something we should do").
+
+## What was reviewed
+A real Xero Fixed Asset Register export (Assets.xlsx, uploaded 2026-09-12) - NOT the Balance Sheet report, a separate Xero feature entirely (Accounting > Advanced > Fixed Assets, or Accounting > Fixed Assets depending on Xero version - confirmed via web search 2026-09-12, this feature must be explicitly enabled and populated, it is not automatic just because Balance Sheet has asset accounts).
+
+## Real file structure (confirmed 2026-09-12)
+Single sheet, 26 columns, 29 asset rows (2 Disposed, 27 Registered). Columns:
+*AssetName, *AssetNumber, AssetStatus, PurchaseDate, PurchasePrice, AssetType, Description, TrackingCategory1, TrackingOption1, TrackingCategory2, TrackingOption2, SerialNumber, WarrantyExpiry, Book_DepreciationStartDate, Book_CostLimit, Book_ResidualValue, Book_DepreciationMethod, Book_AveragingMethod, Book_Rate, Book_EffectiveLife, Book_OpeningBookAccumulatedDepreciation, Book_BookValue, AccumulatedDepreciation, InvestmentBoost, DepreciationToDate, DisposalDate.
+
+Real AssetType values seen: Motor Vehicles, Plant & Equipment, Office Equipment - these map directly to the Balance Sheet's Fixed Assets subsection categories (confirmed same three categories in the real Balance Sheet export, see xeroBalanceSheetImporter.js).
+
+Real depreciation methods seen: Diminishing Value (most common), Straight Line, Full Depreciation at Purchase.
+
+Key fields for reconciliation: PurchasePrice (gross), Book_BookValue (net, after depreciation), AccumulatedDepreciation - this is the missing data that would let the Fixed Assets reconciliation (built today, currently gross-only) become a genuine net-to-net comparison, using real depreciation instead of the current workaround (see calculateFixedAssetsReconciliation in lib/calculations/balanceSheetCalculations.js).
+
+## What this would unlock
+1. Real purchase prices replacing manually-typed guesses in the Assets module - would likely close most or all of the $386,245 gap found today, since that gap is more plausibly manual-entry drift than a real data problem.
+2. A true net-to-net Fixed Assets reconciliation using real accumulated depreciation, rather than the gross-only comparison built today as a workaround for the Assets module having zero depreciation tracking.
+3. Per-asset depreciation method/rate data the Assets module has never had at all.
+4. Names already exist in the register (AssetName, e.g. "Komatsu PC55 Excavator & 3 x Buckets, wide, rock & spade.") that could plausibly match existing Assets module entries (PC55, PC15, etc.) - user's own idea 2026-09-12: bring register assets in as a selectable dropdown list, matched by name, rather than blind re-import.
+
+## Why this is genuinely complex - NOT a quick add, confirmed by user as "a major rejig"
+
+1. **Matching, not blind import.** Existing Assets module entries (PC55, PC15, 2inc Line, etc.) already carry real operational data - hours, rates, finance details - built up over multiple sessions. Register rows need to be matched against these EXISTING entries by name/selection, not appended as new duplicate assets. User's proposed UX: bring register assets in as a dropdown list to select and assign, rather than automatic matching by name string (safer - avoids silent mismatches from slightly different naming, e.g. "Komatsu PC55 Excavator & 3 x Buckets..." in the register vs "PC55" in Assets).
+
+2. **Disposed assets.** 2 of 29 real rows are AssetStatus: "Disposed" (Toshiba Touch Screen FA-0002, Geforce Computer FA-0012) - needs an explicit decision: skip entirely, show as historical/inactive, or something else. Not yet decided.
+
+3. **purchase_price ownership - a real design decision, not yet made.** Does purchase_price become READ-ONLY once sourced from an imported register match (so it can't silently drift from the real Xero data again), or stay manually editable with the register only supplying a starting value? This materially changes the UX and needs a decision before building, not during.
+
+4. **Depreciation flowing into Assets' calculations is genuinely new territory.** The Assets module (hooks/useAssets.js) currently has NO depreciation logic anywhere - confirmed during today's Fixed Assets reconciliation investigation. Bringing in Book_BookValue/AccumulatedDepreciation raises the question of whether Assets' own calculations (true_asset_cost_per_hour, recovery rates, etc.) should ever reflect depreciation - a separate, larger question from just storing the number for reconciliation purposes. NOT scoped - flagged only so it isn't conflated with the simpler "just store the number" version.
+
+## Sizing comparison
+Comparable in scope to the Asset Utilisation/Downtime prerequisite from the 2026-09-10/11 sessions, which the user at the time called "major... a huge change in the system." This is not a quick add alongside other work - it changes how purchase_price enters and is trusted within the Assets module, likely touches useAssets.js, assetStorage.js, and needs new UI (the dropdown-matching flow) plus a new importer (following the same pattern as xeroBalanceSheetImporter.js and xeroCogImporter.js - a new lib/imports/xeroFixedAssetRegisterImporter.js).
+
+## Open questions - NOT yet decided, for the actual scoping/build session
+1. Exact matching UX - dropdown-select-and-assign per user's idea, or fuzzy name-matching with confirmation, or something else?
+2. purchase_price read-only-once-matched vs always-editable - real decision needed before build.
+3. What happens to disposed assets on import - skip, show inactive, other?
+4. Does depreciation ever feed into Assets' own operating-cost calculations, or does it exist purely for the Balance Sheet reconciliation? Two very different scope sizes depending on the answer.
+5. Whether the Fixed Asset Register itself is reliably populated for this business, or whether it needs setup/cleanup in Xero first (the Register is a separate, opt-in Xero feature - not guaranteed to be complete or accurate just because it has data in it).
+6. Once built, should the existing gross-only Fixed Assets reconciliation (calculateFixedAssetsReconciliation) be replaced entirely by a net-to-net version, or kept as a fallback for businesses that haven't imported a real register? Likely the latter, matching the same "detect and fall back safely" principle already used in that function.
+
+## Status
+SCOPED, NOT STARTED. Deferred by explicit user decision 2026-09-12. Real sample data (Assets.xlsx) reviewed and structure fully documented above - next session can start directly from this document without re-discovering the file format.
