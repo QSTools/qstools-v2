@@ -21,7 +21,7 @@ Read this whole document before doing anything. Also read BUSINESS_OUTCOME_FILE_
 2. [CLOSED 2026-09-12] Verify Projected Net Profit (BusinessOutcomeRevenueSnapshotTable.jsx) is genuinely complete - CONFIRMED complete and correct. Formula is modelled_revenue - breakeven_revenue, both independently-verified inputs. Call-site wiring confirmed correct (modelled_revenue -> per_source.headline_real_capacity.independent_modelled_revenue, NOT the total_modelled_revenue P&L alias; breakeven_revenue -> per_source.reconciliation.total_true_cost, already validated in the original trace-and-verify pass). No code changes needed - verification only.
 3. Business Modelling implementation itself - the big next phase. Architecture decided (Section 2.5 below), nothing built yet.
 4. [CLOSED 2026-09-12] card2_view_mode_ab - RESOLVED, not a bug. This is the "Materials model (Card 2 override)" toggle: a deliberate, independent View A/B selector local to the group-level ranked drill-down section (switches between RankedGroupsDrill and ViewBGroupsDrill), separate from the page-level view_mode_ab toggle used by the blurb/headline. One-way sync: starts matched to the main toggle, decouples once the user clicks it directly, re-syncs if the main toggle changes again. Does NOT need the blurb's View-A-stability treatment - unlike the blurb (a single narrative that shouldn't flicker), this toggle's entire purpose is letting the user choose which view they're looking at in this specific drill-down, including the View-B-only Rate/Hours Shortfall breakdown. Already well-commented in the code (BusinessOutcomePerSourceRevenueCard.jsx, search "Card 2 gets its own copy"). No code change needed - investigation only.
-5. Balance sheet import (Xero) - confirmed feasible by user 2026-09-12, unblocks working capital/liquidity ratios. Not started.
+5. [SHIPPED 2026-09-12] Balance sheet import (Xero) - DONE, see Section 6 below for full build detail.
 6. Revenue/COGS trend view - buildable now, no blockers, per CFO gap doc.
 7. Labour/Asset historical tracking - needed for full trended profitability. Likely a large change, comparable to the Asset Utilisation/Downtime prerequisite. Not started, not scoped.
 8. EBITDA-by-unit / formal segment reporting - needs its own scoping session, depends on confirming per-source depreciation/amortisation/interest data availability.
@@ -60,7 +60,7 @@ Read this whole document before doing anything. Also read BUSINESS_OUTCOME_FILE_
 **Confirmed already correct (not just labeled, genuinely built right):** contribution margin toggle, Gross Margin %, Net Operating Margin %, markup-vs-margin distinction, and (as of this session) cross-subsidy naming.
 
 **Confirmed missing, feasibility-assessed:**
-- Working capital / liquidity ratios - BLOCKED until balance sheet import exists. User confirmed 2026-09-12 the import itself is "easy enough" to build - not yet started.
+- Working capital / liquidity ratios - [SHIPPED 2026-09-12] DONE, see Section 6.
 - Period-over-period trend - PARTIALLY feasible now (Revenue/COGS has 12 months of dated Xero data on every import already). FULLY blocked on Labour/Asset hours getting historical/dated tracking, which they do not have today (current-state snapshots only).
 - EBITDA-by-unit and formal segment reporting - not yet scoped, depends on confirming whether per-source depreciation/amortisation/interest data exists or can be added.
 
@@ -95,6 +95,26 @@ Prior versions of this brief claimed Business Modelling architecture was "decide
 **Cleanup done 2026-09-12:** removed a leftover debug artifact (window.__proportional_debug, commented "TEMPORARY - Phase 2 verification only. Remove before final commit.") that had shipped to production since the S31 commit. Commit 5b4be54.
 
 **businessModellingIndependentCalculations.js status clarified:** this file (on the "leave untouched" list) is System 2's actual calculation engine, not a stray/unused file - the "S31 Phase 2-3" commit added 254 lines to it. Its untouched-list status is because it's active, load-bearing, already-verified code, not because it's abandoned.
+
+---
+
+## 2B. Balance Sheet import - SHIPPED (2026-09-12)
+
+Full new module built and live-tested against a real Xero Balance Sheet export, this session. Closes the "working capital / liquidity ratios" gap flagged in CFO_REQUIREMENTS_GAP_2026-09-12.txt Part 3.
+
+**Seven commits, full stack:**
+- lib/imports/xeroBalanceSheetImporter.js - parses Xero's Balance Sheet Excel export. Verified against a real file: 2 bugs found and fixed (Net Assets/Total Equity misclassified as an account line since they don't start with "Total "; a false warning on the "Business Name" metadata row). Cross-validated correct via Net Assets = Total Equity matching to the penny.
+- lib/storage/balanceSheetStorage.js - localStorage persistence, follows revenueCogsStorage.js pattern.
+- lib/calculations/balanceSheetCalculations.js - working_capital, current_ratio, quick_ratio, debt_to_equity. Verified against real data AND edge cases (empty input, zero-denominator division guard).
+- hooks/useBalanceSheet.js - ties storage/import/calculations together. ONE REAL BUG found and fixed: a save-before-load race condition was silently wiping imported data on every page navigation (the save effect ran before the load effect's setState had flushed, overwriting real data with the empty default) - fixed with a has_loaded guard.
+- components/balance-sheet/ - BalanceSheetImportPanel (file upload), BalanceSheetRatiosCard (4 metric cards), BalanceSheetAccountsTable (full account breakdown, collapsible by subsection via the existing CollapsibleSection component, summary total shown even when collapsed), BalanceSheetHelpPanel (plain-English explanation of what each ratio means, added after user feedback that raw ratios aren't self-explanatory), BalanceSheetSituationSummary (live narrative blurb reacting to the actual computed numbers - matches BusinessOutcomeTruthSituationSummary.jsx's pattern, not a fixed template).
+- app/balance-sheet/page.jsx - full page, added to sidebar nav under "Business Inputs" (same group as P&L and Revenue/COGS).
+
+**Real result against the actual test balance sheet (as at 31 March 2026):** working capital -$54,035, current ratio 0.80, quick ratio 0.75, debt-to-equity 5.35 - a genuine liquidity concern, not a clean test case. The live narrative correctly flags this rather than presenting it neutrally.
+
+**Still Excel-file import, not a live Xero API pull** - API access needs a Xero trial/OAuth app, not yet set up. The importer's output shape was deliberately designed to match what a future live API pull would return, so switching to live data later should mean replacing this file's internals, not reshaping every downstream consumer (same "live data" design lens as CFO_REQUIREMENTS_GAP_2026-09-12.txt's guidance).
+
+**One thing flagged, not yet built:** cash ratio specifically. The real test export didn't have a clean, identifiable "cash and cash equivalents" line - bank account balances appeared under Current Liabilities, not Current Assets, in the actual file (worth investigating real chart-of-accounts conventions before building this, rather than guessing at account-name matching that could be misleading).
 
 ---
 
