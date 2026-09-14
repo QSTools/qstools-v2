@@ -606,6 +606,11 @@ export default function useBusinessModelling() {
     updateMaterialsMarkupPercent,
     proportional_suggestions,
     applyProportionalSuggestions,
+    // Added 2026-09-13 for the Baseline/Upside/Downside scenario
+    // redesign - was computed internally but never exposed, needed so
+    // useBusinessModellingScenario can build a real Baseline snapshot
+    // without duplicating the expensive live-cascade calculation.
+    per_source,
   };
 }
 
