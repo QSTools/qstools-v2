@@ -1,10 +1,19 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
 import useModuleReconciliation from "@/hooks/useModuleReconciliation";
+
+// Quote Manager runs as a separate app for now (see Next.js Migration
+// Design Brief §2 - operationally separate, not merged routes). This is a
+// plain link to wherever it's currently deployed. When it moves behind a
+// reverse proxy (e.g. Mirra's next.config.js rewriting /quote-manager to
+// the separate app), only this one constant needs to change - to
+// "/quote-manager" - nothing else in this file does.
+const QUOTE_MANAGER_URL =
+  process.env.NEXT_PUBLIC_QUOTE_MANAGER_URL || "http://localhost:3001";
 
 const nav_groups = [
   {
@@ -23,6 +32,7 @@ const nav_groups = [
     items: [
       { href: "/p-and-l", label: "P&L" },
       { href: "/revenue-cogs", label: "Revenue / COGS" },
+      { href: "/balance-sheet", label: "Balance Sheet" },
       { href: "/labour", label: "Labour" },
       { href: "/assets", label: "Assets" },
       { href: "/opening-hours", label: "Opening Hours" },
@@ -71,6 +81,10 @@ const nav_groups = [
       { href: "/ai-business-state", label: "AI Business State" },
       { href: "/calculation-trace", label: "Calculation Trace" },
     ],
+  },
+  {
+    label: "Quote Manager",
+    items: [{ href: QUOTE_MANAGER_URL, label: "Quote Manager" }],
   },
 ];
 

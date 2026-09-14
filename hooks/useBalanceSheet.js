@@ -24,15 +24,24 @@ export default function useBalanceSheet() {
   const [state, setState] = useState(() => getDefaultBalanceSheetState());
   const [is_importing, set_is_importing] = useState(false);
   const [import_error, set_import_error] = useState(null);
+  const [has_loaded, set_has_loaded] = useState(false);
 
+  // Load runs once on mount. The save effect below must NOT fire until
+  // this has actually completed - otherwise, on every mount, the save
+  // effect runs first with the still-default state (setState from this
+  // effect hasn't flushed yet in the same pass) and overwrites real
+  // saved data with an empty default. Found live 2026-09-12 (data didn't
+  // persist across navigation) - has_loaded is the guard against this.
   useEffect(() => {
     const stored_state = loadBalanceSheetState();
     setState(stored_state);
+    set_has_loaded(true);
   }, []);
 
   useEffect(() => {
+    if (!has_loaded) return;
     saveBalanceSheetState(state);
-  }, [state]);
+  }, [state, has_loaded]);
 
   async function importFile(file) {
     set_is_importing(true);
