@@ -4,6 +4,8 @@ import useBalanceSheet from "@/hooks/useBalanceSheet";
 import BalanceSheetImportPanel from "@/components/balance-sheet/BalanceSheetImportPanel";
 import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";
 import BalanceSheetAccountsTable from "@/components/balance-sheet/BalanceSheetAccountsTable";
+import { BalanceSheetSituationBlurb } from "@/components/balance-sheet/BalanceSheetSituationSummary";
+import BalanceSheetHelpPanel from "@/components/balance-sheet/BalanceSheetHelpPanel";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 
 export default function BalanceSheetPage() {
@@ -36,6 +38,12 @@ export default function BalanceSheetPage() {
 
         {has_data && (
           <section className="ui-section">
+            <BalanceSheetSituationBlurb ratios={ratios} as_at_date={as_at_date} />
+          </section>
+        )}
+
+        {has_data && (
+          <section className="ui-section">
             <div className="ui-panel">
               <p className="ui-help" style={{ marginTop: 0 }}>
                 As at {as_at_date || "unknown date"}.
@@ -52,6 +60,10 @@ export default function BalanceSheetPage() {
             </div>
           </section>
         )}
+
+        <section className="ui-section">
+          <BalanceSheetHelpPanel />
+        </section>
 
         <NextStepFooter nextHref="/business-outcome" nextLabel="Next: Business Outcome" />
       </div>
