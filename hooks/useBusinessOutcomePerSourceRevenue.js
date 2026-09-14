@@ -199,6 +199,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       const assignment_percent_num = to_number(assignment.assignment_percent);
       const interest_share = Number.isFinite(assignment_percent_num) ? assignment_percent_num / 100 : 1;
       const asset_interest_annual = (asset_interest_by_id.get(assignment.asset_id) || 0) * interest_share;
+      const asset_depreciation_annual = (asset_depreciation_by_id.get(assignment.asset_id) || 0) * interest_share;
 
       rows.push({
         asset_id: assignment.asset_id || "",
@@ -210,6 +211,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         overhead_share: round_currency(overhead_share),
         true_cost: round_currency(true_cost),
         asset_interest_annual: round_currency(asset_interest_annual),
+        asset_depreciation_annual: round_currency(asset_depreciation_annual),
         blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
         minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
@@ -594,6 +596,7 @@ export function group_rows_by_group_id(rows) {
         // never have asset_interest_annual, so ?? 0 is always correct
         // for them, not a fallback masking a real gap.
         asset_interest_annual: 0,
+        asset_depreciation_annual: 0,
       });
     }
     const g = map.get(key);
@@ -601,6 +604,7 @@ export function group_rows_by_group_id(rows) {
     g.modelled_revenue += row.modelled_revenue ?? 0;
     g.true_cost += row.true_cost ?? 0;
     g.asset_interest_annual += row.asset_interest_annual ?? 0;
+    g.asset_depreciation_annual += row.asset_depreciation_annual ?? 0;
   });
   return Array.from(map.values());
 }
@@ -703,6 +707,7 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
       // Added 2026-09-12 for per-source EBIT - real per-group interest,
       // purely additive, not read anywhere in this function's own math.
       asset_interest_annual: round_currency(g.asset_interest_annual ?? 0),
+      asset_depreciation_annual: round_currency(g.asset_depreciation_annual ?? 0),
     })),
   };
 }
@@ -728,6 +733,22 @@ export default function useBusinessOutcomePerSourceRevenue() {
     const map = new Map();
     (assets_for_interest || []).forEach((asset) => {
       map.set(asset.asset_id, to_number(asset.asset_interest_annual) || 0);
+    });
+    return map;
+  }, [assets_for_interest]);
+
+  // Added for EBITDA (2026-09-12, same session as the Include
+  // Depreciation feature and the EBIT interest join) - per scoping
+  // brief decision: EBITDA always uses REAL depreciation regardless of
+  // each asset's own include_depreciation_in_cost toggle (that toggle
+  // only affects pricing/true_cost, not this informational figure).
+  // null when unavailable (unlinked assets, or non-Diminishing-Value
+  // methods) - summed as 0 downstream, same pattern as interest.
+  const asset_depreciation_by_id = useMemo(() => {
+    const map = new Map();
+    (assets_for_interest || []).forEach((asset) => {
+      const dep = to_number(asset.estimated_annual_depreciation);
+      map.set(asset.asset_id, dep === null ? 0 : dep);
     });
     return map;
   }, [assets_for_interest]);
