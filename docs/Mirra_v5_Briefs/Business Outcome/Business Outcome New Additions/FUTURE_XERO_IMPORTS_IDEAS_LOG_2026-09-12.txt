@@ -1,0 +1,45 @@
+# Future Xero Imports - Ideas Log (2026-09-12)
+
+## Why this exists
+End-of-session discussion (same day as the Fixed Asset Register build): what else could be imported from Xero to give a CFO a more complete picture, beyond what /imports and /balance-sheet already cover (P&L, Revenue/COGS, Balance Sheet, Fixed Asset Register). Not scoped in detail - a prioritised ideas log for a future session, written down so it isn't lost.
+
+## Confirmed real Xero API endpoints (verified via web search 2026-09-12)
+Full Accounting API report endpoints: 1099 Report, Aged Payables By Contact, Aged Receivables By Contact, Balance Sheet, Bank Summary, BAS Report (AU), Budget Summary, Executive Summary, GST Report (NZ), Profit And Loss, Trial Balance. Each report is its own endpoint, e.g. https://api.xero.com/api.xro/2.0/Reports/AgedReceivablesByContact.
+
+Also confirmed: Xero has a SEPARATE, dedicated Assets API (distinct from the Accounting API) - this is very likely the real, live equivalent of the Fixed Asset Register we built tonight from a manual Excel export. Worth checking this specifically when live API work starts - may mean the register import becomes a live pull rather than a file upload, using the same data shape we already built around.
+
+Scopes note: as of March 2026, Xero split accounting.reports.read into granular per-report scopes (accounting.reports.aged.read for both Aged Payables/Receivables, accounting.reports.balancesheets.read, accounting.reports.banksummary.read, etc.) - each future import needs its own scope requested, not one blanket permission.
+
+## CRITICAL PRINCIPLE (added 2026-09-12, user instruction - governs everything below)
+
+Do NOT import Xero data just because it exists. Xero already reports plenty of this well on its own - reproducing a native Xero report inside Mirra adds no value and is explicitly NOT the goal. Only pursue an import if EITHER:
+(a) it's genuinely necessary for what Mirra is trying to do (the operational cost/rate/utilisation lens Xero structurally cannot provide), OR
+(b) Mirra can connect it to real operational data and frame it in terms a CFO can act on - not just redisplay the same numbers Xero already shows.
+
+Every idea below is re-evaluated against this test, not just "is this available from the API."
+
+## Ranked ideas, most valuable first - each justified against the principle above, not just availability
+
+### 1. Aged Receivables By Contact - RECOMMENDED FIRST
+PASSES THE TEST: not just "show the aged receivables list" (Xero already does this fine) - the real Mirra-specific value is connecting a specific overdue/at-risk receivable to a specific operational finding already on this page. Example real connection: if a customer's outstanding invoice relates to work done by a group already flagged as "revenue_at_risk" (e.g. PC15's zero-labour-coverage finding from tonight), that's a genuine compounding risk signal Xero's own aged receivables report has no way to make - it doesn't know what PC15 is or that its revenue is already in question.
+
+### 2. Aged Payables By Contact
+PASSES THE TEST, tied to tonight's liquidity-constraint work specifically. Real connection: the blurb already says "fixing PC15's gap needs added labour cost, but working capital is negative" - Aged Payables would let that sentence become genuinely precise: "...and you have $X in payables due within 30 days, competing for the same limited cash." Turns a general liquidity warning into a specific, near-term, actionable one - not something Xero's own payables report alone would ever say.
+
+### 3. Bank Summary
+PASSES THE TEST, but as an IMPROVEMENT to something already built, not a new standalone feature. Working capital (used in tonight's liquidity-constraint cross-check) is a point-in-time Balance Sheet snapshot - real bank cash position could make that same cross-check more accurate/current. Only worth building if it visibly improves an existing Mirra-specific insight, not as "let's also show a cash report."
+
+### 4. Customer concentration (Contacts + Invoices)
+PASSES THE TEST clearly - this is the strongest candidate for "Mirra can frame this better than Xero." Xero would show "70% of revenue from Customer X" as an isolated fact. Mirra could connect it to utilisation/capacity risk already on this page: if a source already flagged as revenue_at_risk (like PC15) ALSO turns out to be concentrated in one customer, that's a materially worse, compounding risk than either fact alone - a connection only possible because Mirra already has the real per-source revenue and capacity data Xero doesn't.
+
+### 5. Debtor days / Creditor days (derived, not a separate import)
+Standard efficiency metrics, calculated FROM items 1-2 once built, not a new import. Genuinely borderline against the principle - these are close to "just reproducing a standard Xero-adjacent metric." Worth building only as a byproduct of 1-2, not as a reason to build them.
+
+### 6. Budget Summary - WEAKEST CASE, re-flagged after applying the principle
+FAILS THE TEST as currently conceived - budget-vs-actual is something Xero (and virtually every accounting tool) already does natively and well; Mirra has no obvious operational-cost/rate/utilisation angle to add to it. The ONLY way this passes the test: if it's compared against a Mirra-BUILT Business Modelling scenario (Xero's official budget vs Mirra's own operationally-derived scenario) rather than Xero's budget vs Xero's own actuals - which depends on Business Modelling existing first. Do not build a plain budget-vs-actual report - that would be pure Xero reproduction with no Mirra-specific value.
+
+## Recommendation
+Items 1, 2, and 4 are the clearest passes of the "necessary or better-framed" test - each one only works because Mirra already has real operational data (capacity coverage gaps, revenue_at_risk findings, per-source revenue) that Xero has no visibility into at all. Item 3 (Bank Summary) is worth doing only as a precision upgrade to the existing liquidity-constraint cross-check, not standalone. Item 6 (Budget Summary) should NOT be built in its plain form - it would just reproduce Xero, which is explicitly the thing to avoid.
+
+## Status
+IDEAS LOGGED, NOT SCOPED IN DETAIL. No design decisions made (import format, UI placement, whether these join the /imports hub or get their own pages). For a future session - deliberately not rushed into tonight, given the scale of what was already built and verified this session.
