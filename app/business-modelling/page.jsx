@@ -11,6 +11,8 @@ import BusinessModellingDeltaCard from "@/components/business-modelling/Business
 import BusinessModellingHelpPanel from "@/components/business-modelling/BusinessModellingHelpPanel";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import BusinessModellingLeverCard from "@/components/business-modelling/BusinessModellingLeverCard";
+import useBusinessModellingScenario from "@/hooks/useBusinessModellingScenario";
+import BusinessModellingScenarioSection from "@/components/business-modelling/BusinessModellingScenarioSection";
 
 export default function BusinessModellingPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -40,7 +42,19 @@ export default function BusinessModellingPage() {
     updateMaterialsMarkupPercent,
     proportional_suggestions,
     applyProportionalSuggestions,
+    per_source,
   } = useBusinessModelling();
+
+  const {
+    current_baseline,
+    downside,
+    upside_scenario,
+    baseline_history,
+    lockNewBaseline,
+    revertToBaseline,
+    saveUpsideScenario,
+    clearUpsideScenario,
+  } = useBusinessModellingScenario(per_source);
 
   // Before mount, render stable placeholder to avoid hydration mismatch
   if (!hasMounted) {
@@ -74,6 +88,24 @@ export default function BusinessModellingPage() {
           materials_markup_percent={materials_markup_percent}
           onMaterialsMarkupChange={updateMaterialsMarkupPercent}
         />
+
+        <section className="ui-section">
+          <div className="ui-panel">
+            <BusinessModellingScenarioSection
+              per_source={per_source}
+              current_baseline={current_baseline}
+              downside={downside}
+              upside_scenario={upside_scenario}
+              baseline_history={baseline_history}
+              lockNewBaseline={lockNewBaseline}
+              revertToBaseline={revertToBaseline}
+              saveUpsideScenario={saveUpsideScenario}
+              clearUpsideScenario={clearUpsideScenario}
+              current_rate_target_by_group_id={rate_target_by_group_id}
+              current_materials_markup_percent={materials_markup_percent}
+            />
+          </div>
+        </section>
 
         <CollapsibleSection
           title="Previous scenario tools"
