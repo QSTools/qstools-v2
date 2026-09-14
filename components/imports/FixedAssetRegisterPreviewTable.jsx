@@ -1,6 +1,7 @@
 "use client";
 
 import CollapsibleSection from "@/components/common/CollapsibleSection";
+import { estimateAnnualDepreciation } from "@/lib/calculations/fixedAssetRegisterCalculations";
 
 function format_currency(value) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "N/A";
@@ -11,25 +12,7 @@ function format_currency(value) {
   }).format(Number(value));
 }
 
-// Estimated current-year depreciation - cross-validated 2026-09-12
-// against a real, full amortisation schedule for PC55 (within ~1.2%
-// of Xero's own reported accumulated figure). Diminishing Value only:
-// rate x current book value. Deliberately does NOT apply this to any
-// other method (Straight Line, Full Depreciation at Purchase) - those
-// need a genuinely different formula, and guessing wrong here would be
-// worse than saying N/A. In this business's real data, non-diminishing-
-// value assets already show $0 book value, so this guard doesn't
-// currently hide anything real - it's here for the next asset that
-// might not work out that way.
-function estimate_annual_depreciation(asset) {
-  if (String(asset.depreciation_method || "").toLowerCase() !== "diminishing value") {
-    return null;
-  }
-  const rate = Number(asset.depreciation_rate);
-  const book_value = Number(asset.book_value);
-  if (!Number.isFinite(rate) || !Number.isFinite(book_value)) return null;
-  return book_value * (rate / 100);
-}
+
 
 /**
  * FixedAssetRegisterPreviewTable
@@ -73,7 +56,7 @@ export default function FixedAssetRegisterPreviewTable({ assets, onSetIncluded }
             <span>Est. Depreciation/yr</span>
           </div>
           {assets.map((asset) => {
-            const est_depreciation = estimate_annual_depreciation(asset);
+            const est_depreciation = estimateAnnualDepreciation(asset);
             return (
               <div
                 className="business-outcome-ledger-row"
