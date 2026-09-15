@@ -192,7 +192,7 @@ export default function BusinessModellingLeverCard({
                       type="number"
                       step="0.01"
                       className="ui-input number-input"
-                      placeholder={detail.current_rate_per_hour !== null ? detail.current_rate_per_hour.toFixed(2) : ""}
+                      placeholder={detail.breakeven_rate_per_hour !== null ? detail.breakeven_rate_per_hour.toFixed(2) : ""}
                       value={rate_target_by_group_id?.[row.id] ?? ""}
                       onChange={(e) => onTargetRateChange(row.id, e.target.value)}
                     />
@@ -234,7 +234,7 @@ export default function BusinessModellingLeverCard({
                       type="number"
                       step="0.01"
                       className="ui-input number-input"
-                      placeholder={detail.current_markup_percent !== null ? detail.current_markup_percent.toFixed(2) : ""}
+                      placeholder={detail.breakeven_markup_percent !== null ? detail.breakeven_markup_percent.toFixed(2) : ""}
                       value={materials_markup_percent ?? ""}
                       onChange={(e) => onMaterialsMarkupChange(e.target.value)}
                     />
