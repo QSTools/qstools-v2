@@ -1,32 +1,29 @@
-# Business Outcome - Session Brief (Running, updated 2026-09-12)
+# Business Outcome - Session Brief (Running, updated 2026-09-14)
 **Repo:** D:\QSTools\qstools-web
-**Supersedes:** all prior chat-only versions of this brief - this is the first time it has existed as a real, saved file. Prior sessions (2026-09-10, 2026-09-11) only existed as chat-pasted content and are summarised here from that history.
-**This is the single document to work from next session.**
+**This is the single document to work from in a new chat.**
 
 ---
 
-## 0. Quick orientation - start here in a new chat
+## 0. Quick orientation - start here in a new chat, read this before anything else
 
-Read this whole document before doing anything. Also read BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (same folder) for fast file/function lookup - this brief is the narrative, the file map is the reference.
+Also read BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (same folder) for fast file/function lookup - this brief is the narrative, the file map is the reference. Standing conventions: Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt at repo root (also loaded automatically via Project custom instructions) - batch independent patches into one PowerShell command, Apply-Patch only, confirm "Patched:" before trusting, build after every batch, live-test against real data before committing.
 
-**What's solid and shipped, across all sessions to date (don't re-verify from scratch):**
-- The blurb (headline, View A/B resolution, variance explanation, cross-subsidy naming)
-- Full trace-and-verify pass across the page's core calculation logic (2026-09-10/11, ten calculation patterns, zero bugs found)
-- Capacity Coverage Gap feature (calculation + table + blurb integration)
-- Health Gauge - baseline calculation, visual UI (arc + needle), AND (new 2026-09-12) clickable explainer panel with legend and cross-subsidy naming
-- CFO Requirements Gap document - scoping only, not a build, but a real saved reference for future CFO-readiness work
+**Fully shipped and closed, don't re-verify from scratch:**
+- Business Outcome page itself: blurb, Health Gauge (calc + UI + explainer), Capacity Coverage Gap, Balance Sheet integration (ratios + three cross-checks), EBIT and EBITDA (real interest and depreciation, prominent summary + detail table)
+- Fixed Asset Register: /imports hub, real combobox linking (Asset Name field), per-asset "Include Depreciation" toggle wired safely into core cost calculations
+- Business Modelling scenario redesign: Baseline (locked, dated, full history)/Upside (saved target)/Downside (calculated breakeven) - live at /business-modelling below the existing live-lever card
+- Two files that showed "modified, uncommitted" across every session since 2026-09-08 are now finally committed (2026-09-14) - see Section 8. The "leave untouched" list is now down to these same two files, PLUS caution around useBusinessOutcomePerSourceRevenue.js (the real_capacity cascade) - not because it's fragile, but because it's the single most load-bearing calculation on the page.
 
-**What's still open, in priority order:**
-1. Outcome -> Modelling handoff fields - not yet confirmed.
-2. [CLOSED 2026-09-12] Verify Projected Net Profit (BusinessOutcomeRevenueSnapshotTable.jsx) is genuinely complete - CONFIRMED complete and correct. Formula is modelled_revenue - breakeven_revenue, both independently-verified inputs. Call-site wiring confirmed correct (modelled_revenue -> per_source.headline_real_capacity.independent_modelled_revenue, NOT the total_modelled_revenue P&L alias; breakeven_revenue -> per_source.reconciliation.total_true_cost, already validated in the original trace-and-verify pass). No code changes needed - verification only.
-3. Business Modelling implementation itself - the big next phase. Architecture decided (Section 2.5 below), nothing built yet.
-4. [CLOSED 2026-09-12] card2_view_mode_ab - RESOLVED, not a bug. This is the "Materials model (Card 2 override)" toggle: a deliberate, independent View A/B selector local to the group-level ranked drill-down section (switches between RankedGroupsDrill and ViewBGroupsDrill), separate from the page-level view_mode_ab toggle used by the blurb/headline. One-way sync: starts matched to the main toggle, decouples once the user clicks it directly, re-syncs if the main toggle changes again. Does NOT need the blurb's View-A-stability treatment - unlike the blurb (a single narrative that shouldn't flicker), this toggle's entire purpose is letting the user choose which view they're looking at in this specific drill-down, including the View-B-only Rate/Hours Shortfall breakdown. Already well-commented in the code (BusinessOutcomePerSourceRevenueCard.jsx, search "Card 2 gets its own copy"). No code change needed - investigation only.
-5. [SHIPPED 2026-09-12] Balance sheet import (Xero) - DONE, see Section 6 below for full build detail.
-6. Revenue/COGS trend view - buildable now, no blockers, per CFO gap doc.
-7. Labour/Asset historical tracking - needed for full trended profitability. Likely a large change, comparable to the Asset Utilisation/Downtime prerequisite. Not started, not scoped.
-8. EBITDA-by-unit / formal segment reporting - needs its own scoping session, depends on confirming per-source depreciation/amortisation/interest data availability.
+**What's still genuinely open, in priority order:**
+1. **View A vs View B for Business Modelling's lever engine** - real, unresolved architecture question. buildBreakevenSummary (lib/selectors/businessModellingLeverSelectors.js) is confirmed View-A only (reads the residual materials figure), even though View B's real, stored 15% markup exists and is confirmed more architecturally honest. The new Baseline/Upside/Downside system inherits this same View-A-only choice. Was mid-investigation when this brief was last updated - pick up here.
+2. Debt-to-equity as Business Modelling scenario context (CFO gap doc item 4) - now unblocked (Business Modelling scenario system exists), not yet scoped.
+3. Revenue/COGS trend view - buildable now, no blockers.
+4. Labour/Asset historical tracking - needed for full trended profitability. Not scoped.
+5. Aged Receivables/Payables, customer concentration (Xero imports) - logged as ideas (FUTURE_XERO_IMPORTS_IDEAS_LOG_2026-09-12.txt), filtered against a "don't just reproduce Xero" principle, not scoped in detail.
+6. Old Business Modelling system (businessModellingStorage.js, "Previous scenario tools" collapsed UI) - still present as a safety net, full retirement is a deliberate future decision.
+7. KNOWN_ISSUE_cost_burden_breakdown_dead_field (same folder) - a real, low-priority dead field, confirmed still unfixed 2026-09-14, logged so it isn't lost again.
 
-**Standing conventions still apply** - see "Working_Conventions - PowerShell Patching, CSS, and Numeric Verification" at repo root: PowerShell one command at a time, targeted Apply-Patch (IndexOf/Substring) patches only, .NET UTF-8-no-BOM file I/O, build after every patch, five specific pre-existing files to leave untouched (see Section 7 of the file map).
+**Docs housekeeping (2026-09-14):** the whole docs/Mirra_v5_Briefs folder was audited and cleaned up this session - 32 v4.0-era files archived, ~15 real historical documents that had never been committed to git are now safely committed, project knowledge (Claude's uploaded files) was fully reset and resynced to match the current repo state. See Section 8 for full detail. End-of-session habit going forward: re-upload any brief that materially changed, remove whatever it superseded - project knowledge does NOT auto-sync with the repo.
 
 ---
 
