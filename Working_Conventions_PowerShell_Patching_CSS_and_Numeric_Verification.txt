@@ -1,0 +1,121 @@
+# Working Conventions - PowerShell Patching, CSS, and Numeric Verification
+
+Created 2026-09-14. This file previously existed only in Claude's project
+knowledge, never in the actual repo - discovered missing when trying to
+append to it. Written fresh here, now the real, current source of truth,
+with today's additions folded in alongside the original conventions.
+
+## Core editing discipline
+
+1. **Batch independent, low-risk steps into ONE PowerShell command** where
+   safe (multiple Apply-Patch calls, or create-file + build, in a single
+   script) rather than one exchange per patch. The person is on a usage-
+   limited plan - minimizing round-trips matters. Still stop for a
+   separate confirmation before anything genuinely risky (core calculation
+   files, first-time storage schema changes, anything touching multiple
+   modules) or before live-testing a real UI change.
+
+2. **Every code edit uses the Apply-Patch PowerShell function**
+   (IndexOf/Substring based), with UTF-8-no-BOM file I/O - never
+   Set-Content, which can introduce a BOM and break things silently.
+
+3. **Require an explicit "Patched:" / "NOT FOUND:" / "AMBIGUOUS"
+   confirmation** for every patch before trusting it landed. A passing
+   build does NOT confirm a patch succeeded, and does NOT catch every
+   runtime bug - see the scoping bug class below, which passed build
+   clean twice while being genuinely broken.
+
+4. **Run `npm run build` after every batch of patches**, before moving to
+   the next piece of work.
+
+5. **View the actual current file content fresh before patching** - files
+   shift between messages (especially after several patches to the same
+   file), and patching against stale context produces silent mismatches
+   or "NOT FOUND" failures.
+
+6. **Single-quoted PowerShell here-strings (`@' '@`) for JS/JSX content** -
+   double-quoted here-strings break on `${}` template literal syntax.
+
+7. **Confirm `git status` before any commit** - check nothing unexpected
+   is staged, and confirm the "leave untouched" files aren't accidentally
+   included.
+
+## Two recurring bug classes to actively watch for
+
+**(a) Closure scoping.** A standalone function defined OUTSIDE a hook
+cannot see that hook's local variables (const/let declared inside the
+hook body), even if the function is called from within the hook. This
+looks fine at a glance and passes `npm run build` clean, but throws a
+runtime ReferenceError the moment the code actually executes. Hit TWICE
+in one session (asset_interest_by_id, then asset_depreciation_by_id) -
+both times the fix was the same: pass the variable in as an explicit
+function parameter, don't rely on it being in scope.
+
+**(b) Storage/selector field-dropping.** A storage or selector layer that
+explicitly rebuilds an object (listing specific fields one by one) rather
+than spreading the original will silently drop any field not in that
+list - including flags like `available: true` that a calculation function
+depends on. Before assuming a new field survives a storage round-trip or
+a selector pass-through, check whether that layer spreads (`...obj`) or
+explicitly rebuilds. When in doubt, make downstream code check the real
+underlying data directly, not a flag that has to survive being kept in
+sync across a boundary.
+
+## File size and structure
+
+New files stay under ~600 lines where practical. When a file is
+approaching that size, or when new logic is genuinely reusable across
+more than one place, extract it into a focused calculation/selector file
+rather than growing the original - this is both cleaner and directly
+reduces the closure-scoping bug class above, since a small, pure
+calculation file has no hook closures to lose scope from in the first
+place. Do NOT retroactively split existing large files (e.g.
+useBusinessOutcomePerSourceRevenue.js, already ~900 lines) without a
+separate, deliberate decision to do so - this is a forward-looking
+guideline, not a retroactive mandate.
+
+## Race conditions in stateful hooks
+
+Any hook with localStorage persistence (load on mount, save on state
+change) needs a `has_loaded` guard around the save effect, applied from
+the start - not discovered as a bug after the fact. Without it: initial
+state is the empty default, and if the save effect fires before the load
+effect has actually run, it silently overwrites real saved data with the
+empty default. Found live in useBalanceSheet.js; applied proactively to
+every hook built since.
+
+## No-reproduction principle for new data imports
+
+Before building any new feature that imports external data (e.g. from
+Xero), check: is this genuinely necessary for the operational cost/rate/
+utilisation lens this tool exists to provide, or can Mirra connect it to
+real operational data in a way the source tool (Xero) structurally
+cannot? Do not import or display data just because it's available - that
+adds no value and isn't the goal. See
+FUTURE_XERO_IMPORTS_IDEAS_LOG_2026-09-12.txt for a worked example of
+applying this test to six candidate ideas.
+
+## Live verification, not just a clean build
+
+Live-test significant changes against real data before committing, not
+just a clean build. A clean build catches syntax errors, not logic
+errors, closure scoping, or a genuinely wrong number. Several real bugs
+this session were only caught by actually checking the rendered page
+against expected real numbers.
+
+## Living docs and cross-session memory
+
+After shipping a real feature, update the relevant brief in
+docs/Mirra_v5_Briefs/ with [SHIPPED] status and what was actually
+verified. These briefs are the only cross-session memory this project
+has - Claude has no persistent memory between chats, and Claude's project
+knowledge (the uploaded documents visible to Claude in a fresh chat) can
+go stale if not resynced.
+
+**End-of-session sync:** at the end of a work session, re-upload whatever
+briefs materially changed that day into Claude's project knowledge, after
+removing whatever they superseded. Claude's project_knowledge_search only
+returns what's actually been uploaded - a repo file being current does
+NOT mean Claude's project knowledge reflects it. This was discovered
+2026-09-14 when project_knowledge_search returned only July-dated docs
+despite two full days of shipped work having happened in between.
