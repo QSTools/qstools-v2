@@ -1,0 +1,69 @@
+# Addendum — Business Setup as the Seam for Operational Modules (Purchase Orders / Quote Manager)
+
+**Status:** Decision recorded, not yet implemented. Deferred until Quote Manager's Purchase Orders port is functionally complete. This is a planning note to pick up in a future session — paste alongside the other continuity docs.
+
+---
+
+## 1. The problem this addresses
+
+Quote Manager (the app being migrated to Next.js across this session) is legitimately **construction/trade-specific** — SOQ, job → lot structure, m²/m² rate, Foreman & Labour split. That was never going to generalize to every business type, and it doesn't need to.
+
+**Purchase Orders is different.** At its core (supplier, line items, PDF, email draft, GST/subtotal/total) it's universal — any business buys things from suppliers. The construction-specific part is only the *attribution layer* on top: splitting a PO line proportionally across a job's lots, and comparing it against a lot-based material budget. A café or a gas station would use POs but has no "lots" to attribute against.
+
+## 2. The decision
+
+Split Purchase Orders into two layers, with a clean seam between them:
+
+**PO Core (universal — works for any business):**
+- `purchase_orders` — Supplier, ContactName, Email, DeliveryAddress, DeliveryDate, Subtotal, Gst, Total, PdfPath
+- `purchase_order_lines` — Description, Qty, Unit, UnitPrice, Total
+- `JobNo` becomes an **optional free-text reference**, not a required link into anything construction-specific (a café could leave it blank, or put "Weekly stock order")
+
+**Lot Attribution (construction/Quote-Manager specific — layered on top):**
+- `purchase_order_line_lots` — only meaningful if a job/lot structure exists at all
+- Material Budget (budgeted vs ordered) — only meaningful because Quote Manager's `fact_material_lines` exists to define "budgeted" in the first place
+
+A business without Quote Manager would just use PO Core standalone, with no lot-attribution or budget layer on top.
+
+## 3. Where the seam actually lives: Business Setup
+
+Every business, regardless of type, already passes through Business Setup first. That's the natural, single place to gate which operational modules apply — not something Quote Manager or Purchase Orders should decide on their own.
+
+**Important distinction — this must be a new, separate concept, not layered onto the existing `business_type` field.**
+
+`business_type` (`labour_based` / `product_based`) answers *"how does this business recover cost — hours or units?"* — a financial-modelling question. Whether a business uses lot-based quoting is a completely different, **operational-tooling** question. A construction business is hours-based *and* uses lots; a subscription business might be hours-based *and* never touch a lot. These must not be conflated.
+
+**Proposed addition to Business Setup** (naming not finalized):
+```
+uses_quote_manager: boolean
+```
+or more generally, to leave room for future operational modules beyond Quote Manager:
+```
+operational_modules: string[]   // e.g. ["quote_manager"]
+```
+
+Everything downstream — sidebar visibility, whether the PO builder shows lot-attribution UI, whether Material Budget appears at all — reads off this flag rather than assuming construction context.
+
+## 4. Why this is deferred, not built now
+
+Business Setup is a **locked v4.0 module** in Mirra (per `00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED`). The same discipline applies here as everywhere else in that codebase: inspect the live source file, don't guess at variable names, don't silently expand a locked contract. The actual `business-setup` page source hasn't been reviewed in this session, so no implementation should happen against it until that inspection happens properly, in its own dedicated pass — not as a side effect of the Quote Manager migration.
+
+## 5. What this means for the current Purchase Orders port (Quote Manager / quote-manager app)
+
+Build Purchase Orders now with the Core / Lot-Attribution seam **already structured correctly in the code** — even though, for now, both layers live in the same `quote-manager` app and Business Setup gating doesn't exist yet. Concretely:
+
+- Keep PO Core logic (supplier, lines, PDF, email draft, totals) free of any hard dependency on `fact_material_lines`, lots, or Quote Manager-specific tables.
+- Keep lot-attribution (`purchase_order_line_lots`) and Material Budget as a clearly separable layer that *consumes* PO Core, rather than something interwoven into it.
+
+This means Purchase Orders can be lifted into its own standalone module later, for any business type, without Quote Manager's lot logic needing to be untangled from the middle of it.
+
+## 6. Next steps (future session)
+
+1. Inspect Business Setup's actual live source file before proposing any real field addition.
+2. Design the `uses_quote_manager` / `operational_modules` field properly against that real file, following Mirra's locked-module discipline (module owner, variables not to rename, upstream/downstream contracts, etc. — per System Principles §38 Codex/Implementation Guardrail).
+3. Wire sidebar and Quote Manager visibility to read from that flag.
+4. Revisit whether other future operational modules (e.g. Works Order, Time Tracking — see companion briefs) should also gate off the same flag or need their own.
+
+---
+
+**For now:** continue the Purchase Orders port in `quote-manager` with the Core / Lot-Attribution split in mind at the code level, but do not implement any Business Setup changes as part of this session.
