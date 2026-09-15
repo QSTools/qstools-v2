@@ -1,0 +1,472 @@
+MIRRA v5 - SESSION HANDOVER / CODEBASE REFERENCE
+DATE: 2026-09-04
+PURPOSE: Everything discovered, built, or verified this session, in one place -
+so a future session (or a search through past chats) doesn't need to re-trawl
+the codebase for file names, function names, storage keys, or line numbers.
+This is a REFERENCE document, not a brief - see S25 (committed) and S26 (in
+docs/Mirra_v5_Briefs/Business Outcome/Business Outcome New Additions/) for
+the actual design decisions and open work.
+
+Repo root: D:\QSTools\qstools-web
+Workflow used all session: PowerShell (not a code editor) for every file
+read/edit, run by the user in their own terminal, output pasted back for
+Claude to read.
+
+===============================================================================
+PART 1 - COST ALLOCATION BUG FIX (fully committed, verified, closed)
+===============================================================================
+
+## THE BUG
+`minimum_recoverable_rate_per_hour` was IDENTICAL across every operating
+group (395.43 for all 7 groups), when it should have been different per
+group (matching each group's real labour+asset+overhead mix).
+
+## ROOT CAUSE (two compounding bugs)
+File: hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js
+
+  1. get_group_asset_ids(group) / get_group_staff_ids(group) looked for
+     asset/staff IDs EMBEDDED directly on the group object
+     (group.asset_ids, group.required_staff_ids, etc.) - fields that never
+     existed. Real linkage is via SEPARATE assignment records:
+     labour_group_assignments / asset_group_assignments, each with its own
+     group_id field, staff_type_id / labour_type_id (labour) or asset_id
+     (asset), and is_active.
+     FIX: rewrote both functions to accept the assignment arrays and filter
+     by group_id, matching a.is_active !== false.
+
+  2. The exported hook `useCostAllocationGroupRecoveryRows` never received
+     or passed through labour_group_assignments/asset_group_assignments to
+     the internal build_operational_group_recovery_rows function at all -
+     silently dropping the data even after fix #1's functions could have
+     used it. FIX: added both params to the hook's destructured signature,
+     its internal useMemo call, and its dependency array.
+
+  3. Even after 1+2, labour/asset rates INSIDE the recovery-rows
+     calculation still didn't always match Cost Allocation's own proven-
+     correct numbers (different staff-matching logic, e.g. stale ID names
+     like "senior_operator_senior_staff" vs "senior_operator_staff").
+     FINAL FIX (in hooks/useCostAllocation.js, not the recovery-rows file):
+     after calculate_cost_allocation() runs, MERGE each
+     operational_group_recovery_rows entry's labour/asset/overhead figures
+     directly from the matching operational_group_cost_rows entry (by
+     group_id) - guaranteeing the two can never diverge again, since one
+     is now literally sourced from the other.
+
+## FILES CHANGED
+  - hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js
+  - hooks/useCostAllocation.js (the merge step, in the `calculated` useMemo)
+
+## VERIFIED (hand-checked against Cost Allocation's own Group Cost Stacks
+   screen, /cost-allocation page, "Group costs" tab):
+     PC55: $83.44/hr   2inc Line: $71.28/hr   Site Crew: $65.89/hr
+     Foreman: $87.21/hr   PC15: $6.23/hr   Senior Crew/Senoir poe: $0
+
+## DEBUGGING TECHNIQUE USED (may be useful again)
+Browser DevTools console + React fiber tree walk, since this app is
+localStorage-driven with no global debug object for most data:
+  1. Click an element in DevTools Elements tab (sets $0)
+  2. `Object.keys($0).find(k => k.startsWith('__reactFiber$'))` gets the
+     fiber key
+  3. Walk `fiber.return` upward checking `fiber.memoizedProps` for the
+     data you want
+  4. Watch for Fast Refresh going stale - $0 goes invalid after any hot
+     reload; must reselect the element in Elements tab and re-run.
+  5. Avoid JSON.stringify on React props (circular refs / Next.js internal
+     Promises throw) - walk the object manually instead, checking for
+     `.then`, `.$$typeof`, `instanceof Node` to skip non-data values.
+
+===============================================================================
+PART 2 - RATE BUILDER: MATERIALS MARKUP (Phase 1 of S24, committed)
+===============================================================================
+
+New, previously-nonexistent concept: a single, business-wide markup %
+applied to total Cost of Sales (materials + subcontractors + everything in
+P&L's direct-cost categories) - "wholesale markup applied to everything."
+
+## FILES (all new)
+  - lib/storage/rateBuilderMaterialsMarkupStorage.js
+      Key: qstools_rate_builder_materials_markup_v1
+      Shape: { materials_markup_percent: number }
+      Fns: readRateBuilderMaterialsMarkup(), writeRateBuilderMaterialsMarkup(state),
+           saveRateBuilderMaterialsMarkupPercent(pct), clearRateBuilderMaterialsMarkup()
+
+  - lib/calculations/rateBuilderMaterialsMarkupCalculations.js
+      convert_markup_to_margin_percent(markup_percent)   [margin% = markup% / (1+markup%)]
+      convert_margin_to_markup_percent(margin_percent)   [markup% = margin% / (1-margin%)]
+      calculate_materials_markup_result({ total_cogs, materials_markup_percent })
+        -> { total_cogs, materials_markup_percent, materials_margin_percent,
+             sell_revenue, profit, has_cogs }
+
+  - hooks/rate-builder/useRateBuilderMaterialsMarkup.js
+      Pulls total_cogs from useProfitAndLoss().output_contract.total_cogs
+      (deliberately NOT useRevenueCogs.js - see Part 5 below)
+
+  - components/rate-builder/RateBuilderMaterialsMarkupCard.jsx
+      New tab in Rate Builder: id "materials_markup", label "Materials Markup"
+      Registered in components/rate-builder/RateBuilderMainCard.jsx's
+      RATE_BUILDER_TABS array and render block.
+
+## KEY SOURCE FIELD
+Total Cost of Sales / COGS, real number, from P&L:
+  hooks/useProfitAndLoss.js -> output_contract.total_cogs
+  (built in lib/calculations/profitAndLossCalculations.js - total_cogs =
+  sum of ALL direct_cost_category_totals, i.e. every category the user has
+  classified under Cost of Sales on the P&L page - materials, subcontract
+  labour, hired equipment, cartage, WIP adjustments, everything)
+
+## VERIFIED
+10% markup on $1,240,090.70 total_cogs -> $1,364,099.77 sell revenue,
+$124,009.07 profit, 9.09% margin. NOTE: 10% is a TEST VALUE, not the real
+intended markup - flagged as an open question in S26 brief.
+
+## CONFIRMED DISCONNECTED FROM BUSINESS OUTCOME
+grep across the whole repo for "materials_markup_percent" and
+"readRateBuilderMaterialsMarkup" outside the above 4 files returns nothing.
+This is the entire subject of the S26 brief.
+
+===============================================================================
+PART 3 - BUSINESS OUTCOME: PER-GROUP COST/RATE/REVENUE/PROFIT (Phase 2 of
+S24, committed)
+===============================================================================
+
+Goal: show Cost, Minimum Recoverable Rate, Current Rate, Revenue, Net
+Profit together per operating group, in Business Outcome's existing
+group-ranking UI ("Card 2").
+
+## KEY FILES
+  - components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+      THE main file for all of Card 2 / the per-source revenue card.
+      Contains, among many functions:
+        RankedGroupsDrill (line ~348-490 as of session end, line numbers
+          shift - re-check) - the actual clickable ranked list of groups
+          you see on screen. Renamed/renumbered several times this session
+          as new code was inserted above it.
+        CostBuildUpTable (new this session, inserted directly BEFORE
+          RankedGroupsDrill in the file) - the summary table, see Part 4.
+        formatCurrencyTruth(value) - the currency formatter used throughout
+          this file (defined near the bottom, ~line 493+ originally,
+          hoists fine since it's a function declaration)
+        ModelledTag() / VerdictTag({verdict, label}) - small reusable tag
+          components, each just a <span className="business-outcome-..."> -
+          follow this pattern for any new tag, do NOT use inline styles.
+
+  - hooks/useBusinessOutcomePerSourceRevenue.js
+      THE main data-building hook. Key functions:
+        build_asset_sources(operational_group_cost_rows, calculators,
+          operational_group_recovery_rows = [])  [line ~118]
+        build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
+          operational_group_recovery_rows = [])  [line ~233]
+        get_group_blended_rate(group, calculators)  [line ~65] - the
+          "Current Rate" for asset groups, read from the linked Rate
+          Builder calculator's charge lines
+        apply_revenue_ceiling(labour_sources, asset_sources,
+          total_revenue_reference)  [line ~369] - see Part 5, CRITICAL for
+          S26 work
+        apply_real_capacity(labour_sources, asset_sources,
+          materials_naive_revenue, materials_true_cost)  [line ~497] - see
+          Part 5, the hand-verified cascade, CRITICAL for S26 work
+        materials residual calculation  [line ~676] - see Part 5
+        useBusinessOutcomePerSourceRevenue() default export [line ~592] -
+          top-level hook, calls useCostAllocation() and extracts
+          allocation_contract.operational_group_cost_rows AND
+          allocation_contract.operational_group_recovery_rows (added this
+          session specifically to thread minimum_recoverable_rate_per_hour
+          through)
+
+  - lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+      group_sources_by_group(sources, member_key)  [line ~40] - builds one
+        row per operating group from the flat list of individual
+        staff/asset source rows. THIS is where group_true_cost,
+        group_overhead_share, current_rate, and minimum_recoverable_rate
+        are summed/set per group (added this session).
+      merge_groups_by_id(labour_groups, asset_groups, materials, use_implied)
+        [line ~106+] - the "Assumed capacity" merge path
+      merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+        [line ~197+ originally, shifted] - the "Real capacity" merge path,
+        DEFAULT/live one Business Outcome actually uses
+      selectBusinessOutcomePerSourceRevenue(per_source_result) [line ~279+]
+        - top-level selector, only used by the CrossCheck reconciliation
+        component (NOT by RankedGroupsDrill, which calls the merge
+        functions directly with raw labour_groups/asset_groups/materials
+        props instead)
+
+## FIELD NAMES ADDED THIS SESSION (exist on both merge_groups_by_id and
+   merge_groups_by_id_real_capacity's output objects, when type === "group"):
+     total_cost           - full absorbed cost (labour+asset+overhead)
+     overhead_share       - just the overhead portion of total_cost
+     current_rate         - averaged blended_rate/charge_out_rate, $/hr
+     minimum_recoverable_rate - from operational_group_recovery_rows, $/hr
+
+## BUG HIT AND FIXED DURING THIS BUILD
+minimum_recoverable_rate showed "N/A" for every group at first, because
+group_sources_by_group's initial group object (line ~51-ish) was missing
+`minimum_recoverable_rate: null` - the null-check that sets it later
+(`if (group.minimum_recoverable_rate === null && ...)`) never fired
+because the field started as `undefined`, not `null`
+(`undefined === null` is false). Fixed by adding the explicit null init.
+LESSON: any new field with a "set once, don't overwrite" pattern needs an
+explicit initial value matching whatever the check compares against.
+
+## VERIFIED (all match Part 1's Cost Allocation numbers exactly)
+PC15 $6/hr, Foreman $87/hr, 2inc Line $71/hr, PC55 $83/hr min recoverable
+rates, cross-checked live in Card 2's UI.
+
+===============================================================================
+PART 4 - S25: CONTRIBUTION-MARGIN TOGGLE + COST BUILD-UP TABLE (committed)
+===============================================================================
+
+Brief: docs/Mirra_v5_Briefs/... S25 - MIRRA BUSINESS OUTCOME No Overheads.txt
+(exact folder path as given by user this session - not yet independently
+confirmed by Claude, take from user's own file listing)
+
+## THE TOGGLE
+New state in BusinessOutcomePerSourceRevenueCard.jsx:
+  const [cost_mode, set_cost_mode] = useState("absorbed");
+  (sits right after the existing `const [capacity_mode, ...]` state)
+
+Values: "absorbed" (default, full cost with overhead) vs "contribution"
+(overhead excluded). Passed down as a prop to RankedGroupsDrill.
+
+Inside RankedGroupsDrill, right after `const entries = ...`:
+  computes `total_group_overhead_share` (sum of overhead_share across all
+  group-type entries) and `cost_adjusted_entries` - when cost_mode is
+  "contribution", each group's total_cost drops by its overhead_share and
+  net_profit rises by the same amount (pure re-attribution - the
+  business-wide total is identical either way, only WHO shows the
+  overhead changes). `sorted_top_level` and `selected_entry` were updated
+  to use `cost_adjusted_entries` instead of raw `entries`.
+
+Persistent warning banner (not a one-time tooltip - shown the whole time
+contribution mode is active), placed right after the breadcrumb/kicker,
+before the materials-vs-groups branch:
+  "This view excludes overhead. Do not use these figures to set prices or
+  quotes - switch to Full cost for that. Total overhead not shown per
+  group above: $X."
+
+Small "EXCL. OVERHEAD" tag added next to each group's headline dollar
+figure (not just the banner - added after user feedback that the banner
+alone was easy to miss, since the eye goes straight to the big number):
+  <span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>
+  shown only when `item.type === "group" && cost_mode === "contribution"`
+
+## CSS ADDED
+styles/modules/business-outcome.css:
+  .business-outcome-overhead-excluded-tag - same shape as the existing
+    .business-outcome-modelled-tag (pill, uppercase, small), warning colors
+    (var(--border-warning), var(--text-warning), var(--bg-warning))
+
+## VERIFIED
+Foreman full cost $257,374 -> contribution margin $233,136 (exact
+difference $24,238.92, matching its real overhead share). Same pattern
+confirmed for every other group. Warning banner total ($51,166) matches
+the business-wide overhead figure confirmed independently earlier in the
+session.
+
+## THE COST BUILD-UP TABLE (added later same session, per user request
+   for a CFO/analyst-style summary)
+New component `CostBuildUpTable`, inserted directly before
+RankedGroupsDrill in BusinessOutcomePerSourceRevenueCard.jsx. Renders a
+6-column table (Description / Min recoverable no-overhead / Overhead pool
+distribution / Min rec full cost / Revenue / Net profit) with a bold
+Total row, one row per operating group (materials/COG NOT included, per
+brief - overhead distribution is operating-group-specific).
+
+Wired into the existing "How the Numbers Are Calculated" collapsible
+section, as a new nested CollapsibleSection titled "Cost build-up, by
+group", placed right before the existing "Labour recovery, by source"
+section.
+
+## CSS PATTERN USED (IMPORTANT - reuse for any future table)
+This codebase does NOT use real HTML <table> elements or inline styles
+for tabular UI. It uses CSS Grid "row" classes:
+  .business-outcome-ledger-row - the original 4-column pattern
+  .business-outcome-pressure-row - a 5-column variant (precedent for
+    adding a new variant when column count doesn't match)
+  .business-outcome-cost-buildup-row - NEW 6-column variant added this
+    session, grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr 1fr
+Each has a `.header` modifier class for the header/total row (bold,
+uppercase, background: var(--bg-input)), and plain rows for data.
+Comment convention: explicitly note "doesn't match the Ledger's N-column
+shape, so a scoped variant is added rather than forcing the mismatched
+grid, per convention 2.4" - this exact phrase appears in the codebase
+already (business-outcome-pressure-row), follow it for consistency.
+
+===============================================================================
+PART 5 - S26 (NOT YET BUILT): MATERIALS/COG AS A REAL PEER - CRITICAL PATH
+===============================================================================
+
+Full brief: docs/Mirra_v5_Briefs/Business Outcome/Business Outcome New
+Additions/S26_-_MIRRA_MATERIALS_COG_TARGET_MARKUP_VARIANCE.txt (already
+updated twice this session with revisions - read the WHOLE file, sections
+build on each other, especially Sections 11 and 12 which supersede
+Section 4.3's original, more conservative recommendation).
+
+## ONE-LINE SUMMARY OF THE DECISION
+Build a NEW, parallel "Materials shares equally" cascade (View B) that
+treats materials as a genuine third peer source alongside labour/asset
+groups - WITHOUT touching the existing, hand-verified "Materials
+protected" cascade (View A, today's live behavior) at all. Once View B is
+built and verified, add a toggle between the two (matching the S25
+pattern) - do not silently replace View A.
+
+## THE TWO CRITICAL FUNCTIONS TO UNDERSTAND FIRST (hooks/useBusinessOutcomePerSourceRevenue.js)
+
+  apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference)
+    Only ever sums labour_total + asset_total. Materials was never part of
+    the ceiling check - it's defined afterward as the pure residual.
+
+  apply_real_capacity(labour_sources, asset_sources, materials_naive_revenue,
+    materials_true_cost)
+    THE hand-verified cascade ("matched to the cent against a 200,000-step
+    numerical simulation across seven scenarios, plus six exact boundary
+    [cases]" - per its own code comment). Two-phase:
+      shortfall = max(0, materials_true_cost - materials_naive_revenue)
+      Phase 1 (outer, across groups): v0 = sum of every group's own
+        positive naive_net_profit; phase1_absorbed = min(shortfall, v0);
+        phase1_factor = phase1_absorbed / v0; every profitable group
+        scaled down proportional to its OWN naive profit share.
+      Phase 2 (inner, within each group, across its individual sources):
+        same proportional logic one level down.
+      Materials is then FLOORED: materials_final_revenue =
+        max(materials_naive_revenue, materials_true_cost) - always ends
+        up >= breakeven by construction. verdict is "being_carried"
+        whenever shortfall > 0, even though the number shown is floored
+        at $0 (an earlier, separate fix this session, confirmed with user).
+
+  CONFIRMED LIVE THIS SESSION: at real revenue, PC15 (currently the single
+  most profitable group) absorbs the largest proportional share of any
+  materials shortfall - not because of anything specific to PC15, purely
+  because it currently has the largest positive naive_net_profit in the
+  v0 pool.
+
+## MATERIALS RESIDUAL CALCULATION (~line 676, hooks/useBusinessOutcomePerSourceRevenue.js)
+  materials.revenue = total_revenue_reference - labour_modelled_revenue_total
+                       - asset_modelled_revenue_total   (the residual)
+  materials.true_cost = total_cogs + max(residual_overhead, 0)
+  materials.net_profit = materials.revenue - materials.true_cost
+
+## WHAT NEEDS TO CHANGE FOR VIEW B (per S26 Section 11/12)
+  - materials needs its own modelled_revenue field = total_cogs * (1 +
+    materials_markup_percent/100), using Part 2's Rate Builder markup
+    number (readRateBuilderMaterialsMarkup())
+  - materials needs to become a real "row" shaped like a labour_sources/
+    asset_sources row (modelled_revenue, true_cost fields) so it can flow
+    through NEW versions of apply_revenue_ceiling and apply_real_capacity
+    as a genuine third array, not read afterward as leftover
+  - Build these as NEW functions (e.g. apply_revenue_ceiling_v2,
+    apply_real_capacity_v2 - exact naming TBD) alongside the existing
+    ones - do NOT edit apply_revenue_ceiling or apply_real_capacity in
+    place. The existing ones must keep working, untouched, indefinitely
+    (or until a much later, separate, explicit decision to retire them).
+  - UI: materials should get the same Current Rate vs Min Recoverable
+    Rate pairing already shown for every operating group in Card 2 and
+    the Cost Build-Up table - one more row in the same visual pattern,
+    not a special separate card.
+
+## REAL NUMBERS TO VERIFY AGAINST (all confirmed this session)
+  Total revenue (real): $1,843,663
+  Total COGS (P&L): $1,240,090.70
+  Total overhead pool: $51,166
+  Materials residual revenue today: $633,071 (34.3% of revenue)
+  Business net profit at real revenue (View A / today's live default):
+    approximately $0 under Real Capacity mode (the cascade tops materials
+    up, absorbing from other groups) vs -$26,061 under Assumed/full
+    absorption without the cascade's help
+  Breakeven revenue: $1,869,724 (confirmed via TWO independent paths -
+    the Business Modelling "needs $X more" message, AND the CrossCheck
+    reconciliation's "real cost across every source" total, landing on
+    the identical figure since at breakeven, revenue = real cost exactly)
+  Full-cost-per-group table (all hand-verified against Cost Allocation's
+    Group Cost Stacks screen):
+      Foreman: no-OH $233,136 / OH $24,239 / full $257,374 / rev $287,742
+        / profit $30,368 / min rate $87/hr
+      2inc Line: no-OH $127,114 / OH $9,749 / full $136,863 / rev $276,960
+        / profit $140,097 / min rate $71/hr
+      Site Crew: no-OH $88,076 / OH $9,157 / full $97,233 / rev $110,670
+        / profit $13,437 / min rate $66/hr
+      PC55: no-OH $92,106 / OH $8,022 / full $100,128 / rev $228,000 /
+        profit $127,872 / min rate $83/hr
+      PC15: no-OH $11,954 / OH $0 / full $11,954 / rev $307,200 / profit
+        $295,246 / min rate $6/hr
+
+===============================================================================
+PART 6 - RELATED CONTEXT / PARKED DECISIONS (not this session's scope,
+but surfaced and worth remembering)
+===============================================================================
+
+## 6.1 useRevenueCogs.js vs P&L as the source of COGS
+useRevenueCogs.js (hooks/useRevenueCogs.js) is a real, separately-built
+module (its own Xero-import step, plus supplier/invoice breakdown data
+not currently displayed anywhere) that FOUR other real modules still
+depend on: useBusinessOutcomeTruth.js, useBusinessSummary.js,
+useRecoverySummary.js, useRevenueReality.js, plus the /revenue-cogs page
+itself. It currently produces IDENTICAL COGS figures to P&L's Cost of
+Sales total (confirmed by the user, since P&L's COGS is fed from the same
+underlying Xero report). This session's Rate Builder markup feature
+(Part 2) deliberately pulls from P&L directly instead, per explicit user
+decision ("i dont need it for this section... we have everything we want
+from the pnl in one import"). The larger question of whether
+useRevenueCogs should be retired/consolidated into P&L entirely across
+the WHOLE app (not just this one new feature) is still open and parked -
+NOT decided, NOT started.
+
+## 6.2 Business Outcome vs Business Modelling ~$20 discrepancy
+Business Modelling maintains its OWN separate, independent calculation
+engine rather than reading Business Outcome as its foundation and
+re-running Outcome's cascade with edited inputs. This produces small
+(~$20 on ~$1.84M revenue) but real discrepancies between the two pages'
+net profit figures. Confirmed NOT caused by anything built this session -
+pre-existing architecture. A genuine, larger architectural question, "not
+yet written up as its own brief" as of this session's end.
+
+## 6.3 Materials markup context panel (v4.0 brief concept, never built)
+The OLD v4.0 Rate Builder brief mentions a "Material Markup Context
+Panel" (blended material markup %, total COG, top COG categories by
+spend) that was apparently planned once but never actually built -
+confirmed via grep this session (blended_material_markup_context,
+top_cog_categories, top_suppliers all return zero matches in the current
+codebase). Not in scope for anything built this session; mentioned here
+only because it surfaced during the search for existing materials-markup
+infrastructure and might be relevant context for the S26 UI design.
+
+===============================================================================
+PART 7 - GENERAL BUILD CONVENTIONS CONFIRMED/REINFORCED THIS SESSION
+===============================================================================
+
+  - PowerShell here-string ($@ ... @$) whole-block string matching is
+    UNRELIABLE for this codebase - repeatedly failed due to invisible
+    whitespace/line-ending differences between what Claude reconstructs
+    from a prior view and the file's actual raw bytes. LINE-INDEX-BASED
+    edits (Get-Content as an array, slice with 0-based indices, rebuild,
+    Set-Content) are far more reliable - but ONLY when the exact line
+    number is reconfirmed via a fresh Select-String or Get-Content call
+    immediately before the edit, since every prior edit in the same file
+    shifts subsequent line numbers.
+  - After ANY multi-line insert or delete, immediately re-view the edited
+    region before moving on - orphaned lines and duplicated closing
+    braces from off-by-one mistakes happened repeatedly this session and
+    caused real build errors each time. Cheap to catch immediately,
+    expensive to trace later.
+  - CSS: dedicated named classes only (e.g. business-outcome-modelled-tag,
+    business-outcome-ledger-row) - never inline style={{...}} objects for
+    anything matching an existing visual pattern. Check
+    styles/modules/business-outcome.css FIRST for an existing class
+    before inventing a new one. New table-shaped UI: CSS Grid row-classes
+    (see Part 4's "convention 2.4" note), not real <table> elements.
+  - Every new number surfaced in a UI this session was hand-verified
+    against an independently-computed real figure BEFORE being trusted -
+    this discipline caught the Part 1 bug and should continue,
+    especially for anything touching apply_real_capacity (Part 5) given
+    its own stated verification standard (200,000-step simulation).
+  - Browser localStorage keys found this session, for reference:
+      qs_tools_rate_builder_calculators_v1 - real, live, Rate Builder
+        calculator lines (2inc Line Pump etc.)
+      qs_tools_rate_builder_v1 - CONFIRMED ORPHANED, no code reads/writes
+        it anymore (contained old "charge_models" data from a previous
+        Rate Builder version)
+      qstools_rate_builder_materials_markup_v1 - NEW this session, Part 2
+      qstools_rate_builder_labour_source_rates_v1 - existing, unrelated
+
+===============================================================================
+END OF HANDOVER DOCUMENT
+===============================================================================

@@ -1,0 +1,110 @@
+# Asset Utilisation / Downtime — Implementation Spec
+**Date:** 2026-09-11
+**Repo:** D:\QSTools\qstools-web
+**Status:** BUILT, LIVE-TESTED, AND COMMITTED (commit 6c8995f, 2026-09-11). Full handover: S31_ASSET_UTILISATION_DOWNTIME_STAGE_LOCK_HANDOVER_v5_1.txt. This spec is retained as the design record. Supersedes ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_2026-09-10.md - all five open questions there were resolved (see Section 0).
+
+---
+
+## 0. Resolution summary (carried forward from scoping)
+
+| # | Question | Resolution |
+|---|---|---|
+| 1 | Scheduled-hours ceiling | Asset-specific, stored blank by default. Business opening hours shown as placeholder/reference text only — never silently populates the stored value. Mirrors the existing `asset_annual_weeks_override` pattern already shipped in `AssetForm.jsx`. |
+| 2 | Downtime entry granularity | Single downtime-hours-per-week figure to start. Matches `utilisation_hours_per_week`'s existing weekly cadence — no unit conversion needed. Categorisation (maintenance vs breakdown) deferred to v-next. |
+| 3 | Migration | Existing `utilisation_hours_per_week` value becomes the new scheduled-hours ceiling, with downtime defaulted to 0, via a one-time explicit migration step — never a silent runtime default. |
+| 4 | Labour-cost-during-downtime flag | No dedicated Assets-module signal. Falls out naturally from the existing (paused) Business Outcome bidirectional gap mechanism once `utilisation_hours_per_week` correctly nets out downtime. |
+| 5 | Downstream consumer trace | Complete — see Section 1. Single safe fix point identified upstream of all known consumers. No snapshot/drift risk found. |
+
+---
+
+## 1. Confirmed architecture (from consumer trace, 2026-09-11)
+
+**Source of truth:** `asset.utilisation_hours_per_week`, stored on the saved asset record, owned by Assets, written only in `AssetForm.jsx`.
+
+**Four independent consumers**, each recomputing `utilisation_hours_annual` locally as `utilisation_hours_per_week × annual_weeks_used`, none storing a separate annual field:
+- `hooks/assets/assetHookUtils.js`
+- `lib/calculations/assetCalculations.js`
+- `lib/calculations/recovery-summary/calculateRecoverySummary.js` (via `asset_contract` — confirmed a live read-through of `model_readiness.modules.assets.output_contract`, not a cached snapshot)
+- `lib/selectors/assets/assetCardSelectors.js` (`live_` variant)
+
+**Design consequence:** because every consumer reads `utilisation_hours_per_week` fresh and recomputes independently, the correct fix point is **upstream, at the moment Assets persists the value** — not four separate patches. Every consumer inherits the corrected figure automatically, with zero changes required in any of the four files above.
+
+**Correction to earlier trace (2026-09-11, deep pass):** `utilisation_hours_annual` **is** persisted to storage — `lib/storage/assetStorage.js`'s `sanitizeSavedAssetRecord()` calls `calculateAssetOutputs()` at save time and freezes the result, including `utilisation_hours_annual`, into the saved asset record in `localStorage`. This is a genuine snapshot, taken once per save, not a live value.
+
+**However — fully traced and confirmed dead for calculation purposes.** Every current consumer overrides this frozen value with a fresh live recompute before it's ever used:
+- `hooks/assets/assetOutputContract.js`'s `asset_rows` (the actual exported `active_assets`) spreads `...asset` first, then explicitly overwrites `utilisation_hours_per_week`/`utilisation_hours_annual` with `utilisation_fields` from `get_asset_utilisation_fields()` — spread order confirmed correct (live values win).
+- `get_asset_utilisation_fields()` (`hooks/assets/assetHookUtils.js`) and `get_live_asset_utilisation_hours_annual()` (`lib/selectors/assets/assetSelectorUtilisation.js`) both read `asset.utilisation_hours_per_week` fresh, live, every call.
+- Full downstream chain confirmed live end-to-end: `useCostAllocation()` → `costAllocationGroupCostBuilder.js` → `costAllocationAssetPoolBuilders.js` → `get_total_asset_hours()` → live asset-row `utilisation_hours_annual` → `get_asset_utilisation_fields()`. Business Outcome's `useBusinessOutcomePerSourceRevenue.js` consumes this same live chain via a live `useCostAllocation()` hook call, not a cached prop.
+- Cost Allocation's recovery overlay (`useCostAllocationAssetOverlay.js` → `get_asset_recovery_hours()`) resolves off `asset_output_contract.active_assets` — same live chain — and is confirmed output-only (no form input, no manual override).
+
+**Conclusion: for the current manual-entry, `localStorage`-based system, the frozen `utilisation_hours_annual` field is inert — written but never read back for calculation.** The single upstream fix (correcting `utilisation_hours_per_week` at save time) is sufficient; no consumer needs patching.
+
+**Rate Builder confirmed (2026-09-11):** `RateBuilderResultPanel.jsx` is display-only; its data traces live through `useRateBuilderLineCalculator.js`'s `selected_cost_allocation_group` (built via `useMemo`, not cached) into the same Cost Allocation chain already verified above. No separate risk found.
+
+**Real, confirmed exclusion — not a bug, needs to be a named limitation of this feature.** Cost Allocation groups have three possible recovery-hour sources (`costAllocationGroupCostBuilder.js`): `asset_hours`, `labour_hours`, or `manual_hours` — chosen once per group and, per an existing code comment, "stored on the group record, and never recalculated downstream." Only groups using `asset_hours` will see any effect from the new downtime deduction (verified live end-to-end, per above). Groups on `manual_hours` read a separately user-entered figure (`manual_group_recovery_hours`, set in `GroupRecoveryBasisCard.jsx`) that has no relationship to `utilisation_hours_per_week` at all — downtime will never reach these groups' recovery numbers unless the business owner manually updates that figure themselves. **This must be communicated to the user when the feature ships** (e.g. in-app copy on the new downtime fields, or release notes) — otherwise a business owner using manual hours for a group may reasonably expect the new downtime tracking to affect that group's numbers, and be confused when it silently doesn't.
+
+**Forward-looking caveat — relevant given this baseline will later run live data through the same system.** This safety currently exists *because* every read path happens to go through React hooks that recompute on render, not because of any explicit architectural guarantee. If a future live-data path (accounting feed, batch import, server-side job) writes asset records directly into storage **without** going through `save_asset()`/`sanitizeAssetState()`/`sanitizeSavedAssetRecord()`, two things must hold for correctness to survive: (1) `utilisation_hours_per_week` itself must be correct on write, since it's the one field every live consumer actually trusts; (2) the write path does not need to bother setting `utilisation_hours_annual` correctly, since it's confirmed unused downstream — but note it will still display literally on saved-asset list views reading directly off the stored record (e.g. `AssetListCard.jsx`), so a wrong frozen value there would be a visible-but-harmless display bug, not a calculation error.
+
+---
+
+## 2. Data model changes — Assets module
+
+### 2.1 New fields on the asset record
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `scheduled_hours_per_week` | number | blank (not auto-filled) | New. The theoretical operating ceiling for this asset. Asset-specific — never silently inherits business opening hours. |
+| `downtime_hours_per_week` | number | 0 | New. Maintenance/servicing/breakdown hours, single figure, no categorisation in v1. |
+| `utilisation_hours_per_week` | number | *(existing field, unchanged name)* | **Becomes a calculated output**, not a directly-editable input, for assets using the new model (see 2.3 migration handling). `utilisation_hours_per_week = max(scheduled_hours_per_week − downtime_hours_per_week, 0)`. |
+
+`utilisation_hours_annual` remains **not stored** — continues to be recomputed independently by each of the four existing consumers, unchanged. This is intentional: the fix lives entirely in what `utilisation_hours_per_week` equals at save time, not in adding a new stored annual figure.
+
+### 2.2 Form changes — `components/assets/AssetForm.jsx`
+
+- Replace the current free-entry "Hours used per week" input (for productive assets) with two new inputs:
+  - **"Scheduled hours per week"** — blank by default. Placeholder text shows business default for reference only, e.g. `Business opening hours: 45 hrs/week (reference only — enter this asset's own schedule)`. Same UX pattern as the existing `asset_annual_weeks_override` field just above it in the form.
+  - **"Downtime hours per week"** — defaults to 0. Help text: *"Scheduled maintenance, servicing, or expected breakdown time. Hours the asset is unavailable even though it's scheduled to run."*
+- Display (read-only, derived, updates live as the two inputs change): **"Hours used per week (calculated): X"** — this is what gets saved as `utilisation_hours_per_week` and is what every downstream consumer continues to read unmodified.
+- Guardrail: if `downtime_hours_per_week > scheduled_hours_per_week`, clamp the calculated result to 0 and show a validation warning inline (do not allow a negative stored value).
+
+### 2.3 Migration handling for existing assets
+
+One-time, explicit — not a silent runtime fallback:
+- For every existing active productive asset: set `scheduled_hours_per_week = utilisation_hours_per_week` (the current value), `downtime_hours_per_week = 0`.
+- Recompute `utilisation_hours_per_week` from the new formula — result is identical to the pre-migration value (since downtime = 0), so **no existing asset's effective hours change on rollout**.
+- Migration should run once, be logged (which assets touched, old/new values), and be idempotent — safe to re-run without double-applying.
+- **Migration must go through the real `save_asset()`/`sanitizeSavedAssetRecord()` path (or explicitly replicate it), not a raw field patch.** Confirmed the frozen `utilisation_hours_annual` field in storage is currently dead/unused (Section 1), but a raw patch that only touches `scheduled_hours_per_week`/`downtime_hours_per_week`/`utilisation_hours_per_week` and leaves the old frozen `utilisation_hours_annual` untouched would leave a stale, wrong-looking number on record-level display views (e.g. `AssetListCard.jsx`) even though nothing downstream calculates from it. Cosmetic-only risk, but avoidable — re-run the full save/sanitize path per asset during migration.
+- Where this migration executes (storage-layer script vs one-time hook-level transform on load) needs a decision at build time — flag for the coding session, not resolved here.
+
+---
+
+## 3. What explicitly does not change
+
+- No new field added to any of the four downstream consumer files.
+- No change to how `utilisation_hours_annual` is calculated in any consumer — still `utilisation_hours_per_week × annual_weeks_used`, computed locally, same as today.
+- No change to asset revenue calculation logic itself — only how `utilisation_hours_per_week` gets its value.
+- No new parallel/diagnostic-only variable anywhere in the chain.
+- No dedicated labour-cost-during-downtime UI in the Assets module (per Q4 resolution — this lives in the future Business Outcome drill-down instead).
+
+---
+
+## 4. Build sequence
+
+1. ~~**Pre-flight:** confirm the "not yet verified" consumers in Section 1 (Cost Allocation / Rate Builder hour fields) trace to the same live source.~~ **Done 2026-09-11** — see Section 1's extended trace. All confirmed live, no snapshot, no manual override found. Optional low-priority follow-up: Rate Builder's own read path, not blocking.
+2. Add `scheduled_hours_per_week` and `downtime_hours_per_week` fields to asset storage/schema.
+3. Update `AssetForm.jsx` per Section 2.2.
+4. Implement the calculated-`utilisation_hours_per_week` logic at save time (wherever the asset record is persisted — likely `useAssets.js` or equivalent hook, per this repo's pattern of hooks owning persistence).
+5. Write and test the migration (Section 2.3) against a copy of real saved-asset data before running on the live store.
+6. Hand-verify: pick 2–3 real assets, compute expected `utilisation_hours_per_week` by hand, compare against live app output after migration — per this session's standing convention (hand-verify before trusting the build).
+7. Confirm all four downstream consumers still produce correct `utilisation_hours_annual` / `required_asset_recovery_rate` post-migration, spot-checked against pre-migration values (should be identical, since downtime = 0 for all migrated assets).
+8. Only then: unblock the paused Real/Assumed Capacity bidirectional drill-down (Business Outcome brief, Section 8), which depends on this work being complete.
+
+---
+
+## 5. Explicitly deferred (not v1 scope)
+
+- **Future live-data write-path guardrail.** Any future accounting-feed/batch-import/API path that writes asset records must go through `save_asset()`/`sanitizeAssetState()` (or guarantee `utilisation_hours_per_week` correctness independently) — see Section 1's forward-looking caveat. Not actionable now (no such path exists yet), but should be a named requirement whenever that integration is scoped, not rediscovered from scratch.
+
+- Downtime categorisation (scheduled maintenance vs unplanned breakdown) as separate fields.
+- Any dedicated Assets-module display of labour-cost-during-downtime (per Q4).
+- Consolidating the four independent `utilisation_hours_annual` recompute sites into one shared function — a good hygiene improvement, genuinely the same drift-risk pattern already fixed twice elsewhere this project, but not required for this feature to be correct. Separate ticket.

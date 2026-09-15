@@ -1,0 +1,571 @@
+S26 - MIRRA MATERIALS/COG: TARGET MARKUP VARIANCE VIEW - BUILD BRIEF
+VERSION: v5.1
+STATUS: DRAFT - CAPTURED FOR FUTURE BUILD, NOT YET IMPLEMENTED
+DATE: 2026-09-04
+ORIGIN: Same voice build session as S24/S25 (2026-09-03/04). Materials markup
+was added to Rate Builder this session (Phase 1 of S24), then discovered to
+be completely disconnected from Business Outcome's Materials/COG figure.
+This brief captures the resulting discussion and the agreed design
+direction, for a fresh session with room to build and re-verify carefully.
+
+---
+
+# 1. THE PROBLEM, IN ONE SENTENCE
+
+Business Outcome's Materials/COG revenue is currently a *residual*
+("whatever's left after Labour and Assets take their share of real revenue"),
+not a modelled figure the way Labour and Asset revenue already are - so the
+new Rate Builder materials markup % built this session has nothing to plug
+into yet.
+
+---
+
+# 2. WHAT ALREADY EXISTS - EXACT FILES AND FIELDS
+
+## 2.1 Rate Builder materials markup (built this session, Phase 1 of S24)
+
+These files exist, are committed, and work correctly today - read from here,
+do not rebuild:
+
+  - lib/storage/rateBuilderMaterialsMarkupStorage.js
+      Key: qstools_rate_builder_materials_markup_v1
+      Shape: { materials_markup_percent: number }
+      Functions: readRateBuilderMaterialsMarkup(),
+      writeRateBuilderMaterialsMarkup(state), saveRateBuilderMaterialsMarkupPercent(pct),
+      clearRateBuilderMaterialsMarkup()
+
+  - lib/calculations/rateBuilderMaterialsMarkupCalculations.js
+      convert_markup_to_margin_percent(markup_percent)
+      convert_margin_to_markup_percent(margin_percent)
+      calculate_materials_markup_result({ total_cogs, materials_markup_percent })
+        returns { total_cogs, materials_markup_percent, materials_margin_percent,
+                  sell_revenue, profit, has_cogs }
+
+  - hooks/rate-builder/useRateBuilderMaterialsMarkup.js
+      Pulls total_cogs from useProfitAndLoss().output_contract.total_cogs
+      (real P&L Cost of Sales total, NOT useRevenueCogs - that module was
+      deliberately bypassed this session per user decision, see Section 6).
+      Persists markup % via the storage functions above.
+      Returns { ...calculate_materials_markup_result(...), actions: { update_markup_percent } }
+
+  - components/rate-builder/RateBuilderMaterialsMarkupCard.jsx
+      Renders on Rate Builder's new "Materials Markup" tab
+      (components/rate-builder/RateBuilderMainCard.jsx - tab id "materials_markup").
+
+CONFIRMED DISCONNECTED: grep across the whole repo for
+"materials_markup_percent" and "readRateBuilderMaterialsMarkup" outside
+these files returns nothing. No other module reads this number.
+
+Current test value entered: 10% markup. NOT calibrated to real historic
+sell prices - see Section 7, open question 1, before treating this as a
+real target.
+
+Hand-verified this session against real P&L data: total_cogs =
+$1,240,090.70 -> 10% markup -> sell_revenue $1,364,099.77, profit
+$124,009.07, margin 9.09%.
+
+## 2.2 Business Outcome's current Materials/COG calculation
+
+File: hooks/useBusinessOutcomePerSourceRevenue.js
+
+Around line 676 (line numbers approximate - re-check before editing, this
+session's line numbers shifted repeatedly as the file was edited):
+
+```
+const labour_modelled_revenue_total = labour_sources.reduce(
+  (sum, row) => sum + to_number(row.modelled_revenue), 0
+);
+const asset_modelled_revenue_total = asset_sources.reduce(
+  (sum, row) => sum + to_number(row.modelled_revenue), 0
+);
+const ceiling = apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference);
+const materials = ceiling.is_breached
+  ? { revenue: 0, true_cost: round_currency(total_cogs + Math.max(residual_overhead, 0)),
+      is_modelled: true, is_floored: true }
+  : { revenue: round_currency(total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total),
+      true_cost: round_currency(total_cogs + Math.max(residual_overhead, 0)),
+      is_modelled: true, is_floored: false };
+materials.net_profit = round_currency(materials.revenue - materials.true_cost);
+materials.verdict = verdict_for(materials.net_profit);
+```
+
+Materials revenue is deliberately defined as "whatever's left of real total
+revenue after Labour and Asset take their own modelled share" - a residual,
+not a rate-based model. This was a genuine design choice at the time (see
+code comment at ~line 655-663: no material-only revenue field exists
+anywhere in the source data, since P&L blends material + labour + asset
+charge-out into one total_revenue figure at source).
+
+## 2.3 apply_revenue_ceiling (line ~369)
+
+Only ever sums labour_total + asset_total and compares to
+total_revenue_reference. Materials is NOT included in this check - it
+cannot itself "breach", because it's defined as the leftover after this
+ceiling is already applied. If labour+asset alone exceed real revenue,
+materials.revenue is floored to $0 and true_cost still applies in full
+(a full loss on materials, absorbing the overshoot).
+
+## 2.4 apply_real_capacity (line ~497) - THE CASCADE, HANDLE WITH CARE
+
+This is the most carefully-verified piece of logic in the app. Per its own
+code comment: "two-phase cascade, hand-verified in a spreadsheet before
+this was coded - matched to the cent against a 200,000-step numerical
+simulation across seven scenarios, plus six exact boundary [cases]."
+
+Mechanism, confirmed by reading the real code this session:
+
+```
+shortfall = max(0, materials_true_cost - materials_naive_revenue)
+```
+
+If materials can't cover its own true cost from its residual revenue, that
+shortfall is NOT just absorbed by materials. It cascades outward:
+
+  STEP 1 (outer, across the 5 operating groups):
+    v0 = sum of every group's own positive naive_net_profit
+    phase1_absorbed = min(shortfall, v0)
+    phase1_factor = phase1_absorbed / v0
+    Every group with positive naive profit gets scaled down by phase1_factor,
+    proportional to its OWN naive profit share - the biggest-profit group
+    absorbs the biggest slice. (This session: confirmed live that PC15,
+    currently the single most profitable group, absorbs the largest share
+    of any materials shortfall under this mechanism.)
+    leftover = shortfall - phase1_absorbed (if v0 wasn't enough to cover it)
+
+  STEP 2 (inner, within each group, across its own individual staff/assets):
+    Same proportional-share logic applied one level down, per group.
+
+  Materials itself is then FLOORED:
+    materials_final_revenue = max(materials_naive_revenue, materials_true_cost)
+    -> materials_real_capacity_net_profit is always >= 0 by construction.
+    -> verdict is "being_carried" (not a genuine "paying its way") whenever
+       shortfall > 0, even though the displayed number is floored at $0,
+       per an explicit fix confirmed with the user earlier this session.
+
+CRITICAL: this mechanism assumes materials is the ONE flexible absorber
+that always gets propped up to breakeven, and that Labour/Assets are the
+ones who might have to give something up to make that happen. This is a
+real, defensible modelling choice - it mirrors how many small businesses
+actually behave under cash pressure (see Section 4).
+
+---
+
+# 3. REAL NUMBERS FROM THIS SESSION (for verification, not to be re-derived)
+
+Confirmed live, at the business's real current revenue ($1,843,663):
+
+  Total revenue (real):        $1,843,663
+  Total COGS (P&L):             $1,240,090.70
+  Total overhead pool:          $51,166
+  Materials residual revenue:   $633,071 (34.3% of total revenue)
+  Business net profit (full
+    absorption / Assumed mode): -$26,061
+  Breakeven revenue needed:     $1,869,724
+    (confirmed via TWO independent paths landing on the identical figure:
+    the "needs $X more revenue" message on Business Modelling, AND the
+    CrossCheck reconciliation's "Real cost across every source" total -
+    not a coincidence, since at breakeven revenue = real cost exactly)
+
+Per-operating-group full-cost build-up (hand-verified against Cost
+Allocation's Group Cost Stacks screen, all confirmed to the cent):
+
+  Group        | No-overhead cost | Overhead share | Full cost  | Revenue   | Net profit | Min rate/hr
+  Foreman      | $233,136         | $24,239         | $257,374   | $287,742  | $30,368    | $87
+  2inc Line    | $127,114         | $9,749          | $136,863   | $276,960  | $140,097   | $71
+  Site Crew    | $88,076          | $9,157           | $97,233   | $110,670  | $13,437    | $66
+  PC55         | $92,106          | $8,022           | $100,128  | $228,000  | $127,872   | $83
+  PC15         | $11,954          | $0               | $11,954   | $307,200  | $295,246   | $6
+  (Senior Crew and "Senoir poe" have no staff/assets assigned - $0 across
+  the board, review_required status in Cost Allocation)
+
+At real revenue, under Real Capacity mode (the app's default), the
+business currently shows as breaking even (~$0 net profit) precisely
+because the cascade in Section 2.4 tops materials up to breakeven by
+quietly taking a proportional slice from every profitable group - largest
+slice from PC15, since it's currently the single most profitable group.
+
+At a hypothetical $2.5M revenue (tested live this session), materials'
+residual is comfortably positive and the cascade never triggers - net
+profit shows as $630,276, "every part of your business is paying its way."
+This was the test that surfaced the underlying mechanism to the user.
+
+---
+
+# 4. THE DESIGN DECISION - AGREED THIS SESSION
+
+Two genuinely different, both-valid questions were identified, matching
+the same "two lenses on the same data" pattern already built in S25
+(Full Cost vs Contribution Margin):
+
+## 4.1 Cash-priority view (EXISTING - Section 2.4's cascade, KEEP AS-IS)
+
+Answers: "Who is actually bearing the pain right now, in real cash terms,
+given that Labour and Assets effectively get paid first?"
+
+This is realistic and valuable on its own terms - confirmed by the user's
+own real-world framing this session: "you pay you staff and then finance
+and fuel, new tyres to keep the ship sailing. Then you start stroking your
+suppliers... This is so typical of so many businesses especially ones
+where the owner is drawing way too much or in reverse not paying
+themselves at all."
+
+DO NOT change this mechanism. It is hand-verified to a high standard (a
+200,000-step simulation) and reflects genuine cash-flow priority. Section
+2.4 is a warning label, not a to-do list - the risk of touching it without
+the same rigor used to originally build it is the primary reason this
+session stopped short of building this feature immediately.
+
+## 4.2 Target-margin view (NEW - to be built)
+
+Answers: "Are we actually hitting the markup we THINK we're hitting on
+materials, independent of how Labour and Assets happened to perform this
+period?"
+
+This is standard cost-variance / budget-vs-actual analysis - the user
+confirmed this is exactly the kind of number a CFO or analyst would
+expect, and named it directly: "this is why im building it."
+
+The owner's mental model, per the user this session: "they are making 10%
+markup on material and maybe nothing on labour and assets especially if
+it's raining every day and we can't work" - i.e. the owner believes
+materials margin is a fixed, controllable target, NOT something that
+should move based on how the rest of the business performed that period.
+
+## 4.3 Recommended build approach - ADDITIVE, NOT A REPLACEMENT
+
+Simplest and safest path, identified this session: this does NOT require
+modifying apply_revenue_ceiling or apply_real_capacity at all. Those stay
+completely untouched - Section 2.4's cascade keeps working exactly as it
+does today for the existing "who's carrying who" story.
+
+Instead, add a new, separate, purely informational calculation:
+
+```
+materials_target_revenue = total_cogs * (1 + materials_markup_percent / 100)
+materials_target_net_profit = materials_target_revenue - materials_true_cost
+materials_target_variance = materials_target_revenue - materials.revenue
+  (i.e. target vs the existing residual "actual" figure)
+```
+
+Where materials_markup_percent comes from
+readRateBuilderMaterialsMarkup().materials_markup_percent (Section 2.1),
+and total_cogs / materials_true_cost are already computed in
+useBusinessOutcomePerSourceRevenue.js exactly as today.
+
+This new figure is displayed ALONGSIDE the existing Materials/COG
+figures, not instead of them - most likely as a new toggle or a
+dedicated small section, following the exact UI pattern already built in
+S25 (Full cost / Contribution margin toggle, persistent labelling of
+which lens is active, a clear warning where the two could be confused).
+
+Rejected alternative (folding materials into apply_revenue_ceiling and
+apply_real_capacity as a full peer group): considered and set aside this
+session specifically because it would require redesigning the cascade's
+core premise (materials as the flexible absorber) rather than adding a
+parallel lens - too large and too risky a change to make without the same
+verification rigor as the original cascade build. If a future session
+still wants this fuller integration, it is a separate, larger, follow-on
+piece of work - not this brief's scope.
+
+---
+
+# 5. WHERE THIS LIVES / UI PATTERN
+
+Suggested: mirror S25's toggle pattern exactly - likely a new toggle
+option or a clearly-labelled card near the existing Materials/COG display
+in Business Outcome (components/business-outcome-truth/
+BusinessOutcomePerSourceRevenueCard.jsx - look for "MaterialsSection"
+function and the "materials" prop threading, already used by
+RankedGroupsDrill and the CostBuildUpTable built this session).
+
+Whichever lens is showing should be unmissably labelled, same standard as
+S25 Section 5 - this data can look contradictory if misread (e.g. "target
+says +$124k profit, cascade says $0 because Labour/Assets propped it up"
+are BOTH correct, answering different questions - exactly the kind of
+mismatch S25 already had to solve for once).
+
+---
+
+# 6. RELATED CONTEXT FROM THIS SESSION (do not re-litigate)
+
+  - useRevenueCogs.js (a separate, real, still-in-use module powering
+    /revenue-cogs, useBusinessSummary, useRecoverySummary, useRevenueReality,
+    useBusinessOutcomeTruth) was deliberately NOT used as the source for
+    Rate Builder's materials markup - total_cogs is pulled from
+    useProfitAndLoss() instead, per explicit user decision this session
+    ("im thinking now that i dont need it for this section... we have
+    everything we want from the pnl in one import"). Both sources are
+    confirmed to produce identical COGS figures currently, so this was a
+    simplification, not a correctness fix. The larger question of whether
+    useRevenueCogs should be retired/consolidated into P&L entirely is
+    still open, parked, NOT this brief's scope.
+
+  - A second, unrelated, already-known ~$20 discrepancy exists between
+    Business Outcome's and Business Modelling's independently-calculated
+    net profit figures (Business Modelling maintains its own separate
+    calculation engine rather than reading Business Outcome as its
+    foundation - a known, documented, larger architectural question, not
+    yet its own brief, not caused by or related to this session's work).
+
+---
+
+# 7. OPEN QUESTIONS FOR NEXT SESSION
+
+  1. The 10% materials markup currently entered is a TEST VALUE, not
+     calibrated to real historic sell prices. Before this number becomes a
+     visible "target" that generates a variance story, confirm with the
+     user what the real, intended materials markup actually is - a wrong
+     target produces a false variance narrative. (This session asked the
+     user directly; they did not yet provide a real number, preferring to
+     defer to next session.)
+
+  2. Exact UI treatment: new toggle vs dedicated card vs inline addition
+     to the existing Materials/COG row - not yet decided, needs a quick
+     mockup-and-confirm step same as S25's process this session (the
+     visualizer mockup step proved useful before building S25's tag).
+
+  3. Wording for the variance figure - "favorable/unfavorable", a plain
+     dollar difference, or a percentage gap - not yet decided.
+
+  4. Should this target-margin view respect the existing time_scale
+     (Hour/Day/Week/Month/Quarter/Year) toggle the same way Card 2 and the
+     Cost Build-Up table do? Likely yes for consistency, but not yet
+     confirmed.
+
+  5. Does Materials/COG's own markup-based target ever need reconciling
+     against the whole-business total the way S25's contribution-margin
+     view did (Section 3 of S25: "the business-wide total must still
+     reconcile... verified to the cent")? Since this is explicitly an
+     ADDITIVE, informational figure (Section 4.3) that does not flow
+     through apply_revenue_ceiling, it likely does NOT need to reconcile
+     to the business-wide total the way S25's toggle did - but this
+     should be confirmed explicitly before building, not assumed.
+
+---
+
+# 8. BUILD DISCIPLINE NOTES (carried over from this session, for whoever
+   builds this)
+
+  - This session used PowerShell for all file edits (not a code editor) -
+    the user's established workflow. Here-string ($@ ... @$) whole-block
+    string matching repeatedly failed due to invisible whitespace/line-
+    ending mismatches; line-index-based edits (Get-Content as array,
+    slice and rebuild) were far more reliable once exact line numbers were
+    confirmed via a preceding Select-String or Get-Content call. Always
+    re-confirm line numbers immediately before an edit that depends on
+    them - they shift after every prior edit in the same file.
+  - Always verify the actual current file content before editing schema -
+    guessed content led to several failed here-string matches this session.
+  - After any multi-line insert/delete, immediately re-view the edited
+    region to confirm no orphaned lines or duplicated closing braces were
+    left behind - this happened repeatedly this session and caused build
+    errors each time.
+  - CSS: this codebase uses dedicated named classes (e.g.
+    business-outcome-modelled-tag, business-outcome-ledger-row), NOT
+    inline styles, for anything matching an existing visual pattern.
+    Check styles/modules/business-outcome.css for an existing class before
+    inventing one. Table-shaped UI uses CSS Grid row-classes (e.g.
+    business-outcome-ledger-row, business-outcome-pressure-row), not real
+    HTML <table> elements - follow "convention 2.4" (a scoped new row-
+    variant class when the column count doesn't match an existing
+    pattern) rather than forcing a mismatched grid or using inline styles.
+  - Every new number added to a UI this session was hand-verified against
+    an independently-computed real figure before being trusted - continue
+    that discipline for this brief's build too, especially since it deals
+    directly with the cascade in Section 2.4, which itself sets the
+    standard (a 200,000-step simulation) that any change nearby should be
+    held to.
+
+---
+
+# 9. FILES TOUCHED THIS SESSION (for context on what changed today,
+   relevant to this brief)
+
+  - hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js (unrelated
+    bug fix, Cost Allocation - minimum recoverable rate was flat/wrong
+    across all groups, now fixed and verified)
+  - hooks/useCostAllocation.js (same fix, merge step)
+  - lib/storage/rateBuilderMaterialsMarkupStorage.js (NEW - Section 2.1)
+  - lib/calculations/rateBuilderMaterialsMarkupCalculations.js (NEW - Section 2.1)
+  - hooks/rate-builder/useRateBuilderMaterialsMarkup.js (NEW - Section 2.1)
+  - components/rate-builder/RateBuilderMaterialsMarkupCard.jsx (NEW - Section 2.1)
+  - components/rate-builder/RateBuilderMainCard.jsx (new tab wired in)
+  - lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+    (Phase 2 of S24 + S25: total_cost, current_rate, minimum_recoverable_rate,
+    overhead_share added to merge_groups_by_id and merge_groups_by_id_real_capacity)
+  - hooks/useBusinessOutcomePerSourceRevenue.js (build_labour_sources/
+    build_asset_sources now attach minimum_recoverable_rate_per_hour per row;
+    THIS is also the file with apply_revenue_ceiling, apply_real_capacity,
+    and the materials residual calculation this brief concerns - Sections
+    2.2-2.4 above)
+  - components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+    (RankedGroupsDrill extended with cost/rate display, cost_mode toggle
+    added per S25, new CostBuildUpTable component + collapsible section)
+  - styles/modules/business-outcome.css (new tag and table row classes)
+
+All of the above are committed (9 commits ahead of origin/main as of this
+session's end - not yet pushed).
+
+---
+
+# 11. REVISION (later same session) - SUPERSEDES SECTION 4.3
+
+On reflection, Section 4.3's "purely additive, do not touch the cascade"
+recommendation was too conservative. The user's refined framing, captured
+here verbatim from the conversation:
+
+  "What is actually happening if you are right on one of those cusp
+  numbers is that you can't actually meet any of the rates you have set
+  hence the cross subsidy and our cascade shows how that effect flows
+  through. This is why I think its critical to have the COG plus margin
+  in Outcome treated just like we do for the operating groups. But now
+  as it tracks down we can say these rates you think your charging are
+  actually more like this."
+
+## 11.1 The actual design (replaces Section 4.3)
+
+Materials should NOT sit outside the cascade with a separate, isolated
+"target" number bolted on next to the real figures. Materials should
+become a genuine THIRD PEER SOURCE inside apply_revenue_ceiling and
+apply_real_capacity, exactly like Labour and Asset groups already are -
+able to genuinely win or lose from cross-subsidy, not floored to always
+land at breakeven-or-better by construction (Section 2.4's current
+"materials_final_revenue = max(naive, true_cost)" flooring goes away
+under this design - materials becomes able to show a genuine loss, or
+genuinely help carry other groups, the same as any operating group can).
+
+The output this produces, per group AND for materials, mirrors exactly
+what Card 2 already shows for operating groups today: Current Rate
+(what you think you're charging - for materials, this is the Rate
+Builder markup-based target) vs Min Recoverable Rate (what the cascade
+says you're actually achieving once cross-subsidy is accounted for).
+Materials gets this same paired display, not a special case.
+
+## 11.2 Technical implication - apply_revenue_ceiling and
+   apply_real_capacity DO need real changes (not left untouched)
+
+This means Section 2.3 and 2.4's functions need materials threaded in
+as a genuine third source array, not read afterward as a residual:
+
+  - materials needs a modelled_revenue field (= total_cogs * (1 +
+    materials_markup_percent/100), from Section 2.1's Rate Builder
+    number) and a true_cost field, shaped the same way a labour_sources
+    or asset_sources row already is, so it can flow through the SAME
+    reduce/forEach logic apply_revenue_ceiling already uses for the
+    other two arrays - not a parallel, separately-computed figure.
+  - apply_real_capacity's outer cascade (v0, phase1_absorbed,
+    phase1_factor) currently treats materials' shortfall as the thing
+    being solved FOR, with labour/asset groups as the only contributors
+    to v0. Once materials is a real peer, it needs to be eligible to
+    contribute to v0 (if profitable) or to genuinely be a shortfall
+    source itself (if not) - the phase-1 formula's shape may not need
+    to change, but which arrays feed it does.
+  - The original cascade was hand-verified against a 200,000-step
+    spreadsheet simulation built around exactly this asymmetric shape
+    (2 real sources + 1 residual). Moving to 3 symmetric peer sources is
+    a big enough structural change that it warrants the SAME rigor to
+    re-verify, not an incremental patch on top of the existing formula.
+    Budget real time for this - do not treat it as a quick extension.
+
+## 11.3 UI implication
+
+Materials/COG should gain the same "Current rate vs Min recoverable
+rate" pairing already shown for every operating group in Card 2
+(RankedGroupsDrill) and the Cost Build-Up table built this session -
+not a separate card, not a separate toggle. It becomes one more row in
+the same table/list, using the same visual language, so a CFO reads
+"what you think you charge" vs "what you're actually achieving" the
+same way for every source, materials included.
+
+## 11.4 What stays true from the original brief
+
+Sections 2.1, 2.2, 2.3, 2.4, and 3 (the exact file/field/function
+references and today's real verified numbers) are all still accurate
+as a description of the CURRENT, unmodified code - they are the
+starting point for this build, not superseded. Only Section 4.3's
+recommended APPROACH is superseded by this section. Section 6's related
+context and Section 8's build-discipline notes still apply in full.
+
+## 11.5 Updated open question
+
+Given 11.2's scope, add to Section 7's list: this is now a genuine
+redesign of the cascade's core math, not an additive feature - it may
+be worth treating as its own multi-step build (re-derive the 3-source
+formula on paper/spreadsheet first, verify against hand-picked test
+cases the way the original was, THEN implement) rather than a single
+session's work. Confirm pacing with the user at the start of the build
+session rather than assuming it fits in one sitting.
+
+# 12. SECOND REVISION (later same session) - HOW TO NAME THE TWO VIEWS,
+   AND HOW TO BUILD SAFELY
+
+## 12.1 The two views are two real policy choices, not "old vs new"
+
+Discussed and agreed: this is not a case of the current cascade being
+wrong and the new design being the fix. Both represent a genuine,
+different business policy - a CFO would want to see both, and the
+choice between them is itself a real decision worth surfacing, not
+defaulting silently to one:
+
+  VIEW A - "Materials protected" (Section 2.4's EXISTING cascade,
+  unchanged): materials/supplier cost is treated as untouchable - the
+  business always finds a way to fully cover it, even if that means the
+  best-performing group is squeezed harder to make it happen. Materials
+  is floored at breakeween-or-better by construction.
+
+  VIEW B - "Shared equally" (the NEW design, Section 11): materials is a
+  genuine peer alongside every operating group. Nobody is protected,
+  nobody is exempt - if materials falls short, it genuinely falls short,
+  the same as any operating group can today. This more closely matches
+  the user's own real-world description earlier this session of how
+  the business actually treats suppliers under pressure (paid late,
+  caught up later) - i.e. View B may be the MORE realistic default, not
+  merely an alternative.
+
+Label these two views by what they represent (e.g. "Materials
+protected" / "Materials shares equally"), NOT as "current" vs "new" or
+"old" vs "improved" - neither is objectively more correct, they answer
+different real questions about business policy.
+
+## 12.2 BUILD STRATEGY - PARALLEL, NOT IN-PLACE (important - changes
+   Section 4.3/11's implementation approach)
+
+Per the user this session: build View B as a NEW, separate, non-live
+calculation path first. Do NOT modify apply_revenue_ceiling or
+apply_real_capacity in place. Existing View A stays exactly as it is,
+fully live and trusted, for the entire duration of building and
+verifying View B.
+
+Concretely, this likely means:
+  - New functions, e.g. apply_revenue_ceiling_v2 / apply_real_capacity_v2
+    (or better names TBD next session), built alongside the existing
+    ones in hooks/useBusinessOutcomePerSourceRevenue.js - NOT edits to
+    the existing apply_revenue_ceiling (line ~369) or apply_real_capacity
+    (line ~497) functions themselves.
+  - A toggle in the UI (matching the existing Real/Assumed capacity and
+    Full-cost/Contribution-margin toggle pattern from S25) to switch
+    between View A and View B, once View B exists and is verified.
+  - Only once View B has been checked, trusted, and the user has
+    explicitly confirmed it should become the default, does a LATER,
+    separate piece of work retire View A's old code path (or simply
+    leave both permanently available as a toggle, per 12.1's "a CFO
+    would want both" conclusion - possibly the two views should just
+    stay as a permanent pair, not a temporary-then-swapped state).
+
+This means Section 11.2's "re-verify with the same rigor" work happens
+in a genuinely safe sandbox - View A cannot be broken by this work,
+since it is never touched until/unless a deliberate later decision is
+made to retire it.
+
+## 12.3 Materials treated as a rate, confirmed
+
+Explicit confirmation from the user this session: "the markup is a rate
+just like our chargeout rates I think it treated the same way." This
+settles Section 4.2's framing precisely - materials should show a
+Current Rate (from the Rate Builder markup, Section 2.1) vs a Min
+Recoverable Rate (what View B's cascade says is actually achievable),
+exactly matching Card 2's existing pairing for every operating group -
+not a special case, not a different shape of number.
+
+
+# 10. END OF BRIEF

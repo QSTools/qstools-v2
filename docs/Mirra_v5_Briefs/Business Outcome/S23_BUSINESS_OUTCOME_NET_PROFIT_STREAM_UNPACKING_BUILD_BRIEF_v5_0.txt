@@ -1,0 +1,354 @@
+# Mirra v5.0 - Business Outcome: Net Profit Stream Unpacking Build Brief
+
+STATUS: BUILD BRIEF - FOR REVIEW
+VERSION: v5.0
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-15
+SUPERSEDES: Nothing removed. Adds to and reconciles S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5.0.
+
+---
+
+# 1. PURPOSE
+
+This brief defines the core diagnostic feature of Business Outcome: the unpacking
+of the single blended P&L Gross Profit and Net Profit figures into three true,
+fully-loaded revenue streams.
+
+It converts Business Outcome from a page that reports totals into a page that
+proves where net profit actually comes from.
+
+---
+
+# 2. RECONCILIATION WITH S16 v5.0 (FLAG FOR REVIEW)
+
+S16 (dated 2026-07-15) classified Cost Allocation, Recovery Summary, and Rate
+Builder as "legacy Recovery Chain" routes and instructed Business Outcome to
+source primarily from Cost Summary, Revenue/COG truth, Revenue Summary, and
+Business Summary instead.
+
+This session's design explicitly REACTIVATES Rate Builder and Cost Allocation
+as required, named inputs to Business Outcome. The three-stream unpacking
+described below is not possible without them.
+
+This is flagged here rather than silently overridden. Before build begins,
+confirm:
+
+- Cost Allocation and Rate Builder are current, trusted, and in active use
+  (not legacy/deprecated) in the present v5.0 build.
+- If they are current, this brief updates S16's source chain accordingly.
+- If they are not current, this feature cannot be built until they are
+  reconciled or rebuilt.
+
+---
+
+# 3. CORE PRINCIPLE - THE RECONCILIATION ANCHOR
+
+Total revenue shown on this page must equal P&L revenue.
+Total net profit shown on this page must equal P&L net profit.
+
+These are non-negotiable anchors, not modelling targets.
+
+Everything else on this page is a re-slicing of those same totals using Rate
+Builder, Cost Allocation, Labour, and Assets as the lens. No new revenue or
+cost is created. No dollar is invented or discarded.
+
+If the three stream figures do not sum back to the P&L totals exactly, this is
+not a modelling choice. It is a leak, and it must be surfaced as an explicit
+remainder. It must never be smoothed over, rounded away, or hidden.
+
+---
+
+# 4. WHY THE BLENDED GP/NET PROFIT NUMBER IS MISLEADING
+
+Standard P&L structure:
+
+Revenue - COGS = Gross Profit
+Gross Profit - Labour Cost - Asset Cost - General Overheads = Net Profit
+
+Labour cost and asset cost sit in operating costs, not COGS. But the revenue
+charged for labour (Rate Builder labour rate) and the revenue charged for
+asset use (Rate Builder / Cost Allocation asset rate) both flow into total
+revenue.
+
+The result: blended revenue is made up of three different things - material
+sales revenue, labour charge-out revenue, and asset charge-out revenue - but
+COGS only nets against the material piece. The blended GP figure therefore
+compares blended revenue against only one-third of the true matching cost.
+It cannot show whether any individual stream is actually profitable.
+
+---
+
+# 5. THE THREE STREAMS
+
+1. Material / COG stream
+   Revenue: material sales revenue
+   Cost: true COGS
+   Margin: standard material margin
+
+2. Labour stream
+   Revenue: labour charge-out revenue (Rate Builder labour rates)
+   Cost: true labour cost (Labour module), plus its allocated share of
+   overhead (Cost Allocation)
+   Margin/Net Profit: fully-loaded labour net profit
+
+3. Asset stream
+   Revenue: asset charge-out revenue (Rate Builder / Cost Allocation asset
+   rates)
+   Cost: true asset cost (Assets module), plus its allocated share of
+   overhead (Cost Allocation)
+   Margin/Net Profit: fully-loaded asset net profit
+
+---
+
+# 6. THE UTILISATION ASSUMPTION (MANDATORY FLAG - HIGH PRIORITY, LOCKED)
+
+Labour and asset margin/net profit figures are calculated on the assumption
+that labour and assets are recovering at 100% utilisation. This is a
+deliberate, conservative baseline choice:
+
+- The business pays labour and asset cost in full regardless of actual
+  utilisation (wages are paid weekly; asset finance/ownership cost accrues
+  regardless of use).
+- Assuming full recovery is the conservative direction: if real utilisation
+  is lower, the model has already shown the best case, and any shortfall
+  will surface as a gap once live data is available, rather than being
+  hidden by an optimistic default.
+- This is a baseline, not a proven figure. Precision on actual recovery
+  comes later from live job/utilisation data (future build phase).
+
+This must be displayed as a persistent, clearly visible disclosure directly
+alongside every labour and asset margin/net profit figure on this page.
+Suggested wording:
+
+"Based on full utilisation assumption. Confirmed by live usage data in a
+future release."
+
+This is not optional and must not be buried in a tooltip or footnote only.
+
+---
+
+# 7. OVERHEAD DISTRIBUTION AND THE MATERIAL REMAINDER
+
+Cost Allocation distributes a portion of General Overheads into the labour
+and asset pools. What remains in the general overhead pool after that
+distribution must land against the material stream, since material has no
+dedicated Cost Allocation pool of its own.
+
+This means material margin must be shown in two states:
+
+- Material margin before the remaining overhead pull (= revenue - COGS)
+- Material net profit after the remaining overhead pull (= material margin -
+  residual overhead)
+
+The post-overhead material figure, together with the fully-loaded labour and
+asset net profit figures (already overhead-loaded via Cost Allocation), gives
+three genuinely comparable, fully-loaded net profit figures - not gross
+margins.
+
+Sum of the three net profit figures must equal P&L net profit exactly (see
+Section 3).
+
+---
+
+# 8. CROSS-SUBSIDY DETECTION
+
+Because all three streams are now visible on a like-for-like, fully-loaded
+basis, the page must surface when one stream is funding another - e.g.
+material margin covering a shortfall in asset or labour recovery.
+
+This must be shown as a plain-English statement with the dollar amount
+attached, e.g.:
+
+"Material margin is currently covering a $X shortfall in asset recovery
+(based on the full-utilisation assumption)."
+
+Do not rank streams against a "required recovery %" figure - that implies a
+precision the system does not yet have without live utilisation data (see
+Section 6). Cross-subsidy detection at this stage is a dollar-for-dollar
+comparison of the three fully-loaded net profit figures, not a coverage-
+percentage ranking.
+
+---
+
+# 9. DUAL VIEW: FULLY-LOADED NET PROFIT vs CONTRIBUTION MARGIN (TOGGLE)
+
+In addition to the primary fully-loaded view (Sections 5-8), provide a
+secondary, toggleable view that shows each stream's contribution margin
+before any overhead allocation:
+
+Contribution margin per stream = stream revenue - stream direct cost only
+(no overhead distributed)
+
+This view is allocation-methodology-independent. It strips out any
+sensitivity to how Cost Allocation chooses to distribute overhead, and
+instead answers: "how much does each stream throw off before overhead is
+shared at all?"
+
+This is directly analogous to a cash vs accrual toggle (e.g. Xero) - same
+underlying data, two legitimate lenses answering different questions. Neither
+view is wrong. The primary/default view is fully-loaded net profit; the
+secondary view is contribution margin, one toggle away.
+
+---
+
+# 10. PAGE FRAMING
+
+The page is framed around NET PROFIT, not revenue. Net profit is the number
+that answers "is this business working." The revenue/cost/margin breakdown
+per stream is the supporting proof underneath it, not the headline.
+
+Recommended structure, top to bottom:
+
+1. Total net profit (= P&L net profit, reconciliation-locked)
+2. Three-stream net profit breakdown (material, labour, asset) - dollar and
+   % of total net profit, shown together with revenue and cost for each
+   stream at the SAME level (not hidden behind a drill-down click)
+3. Utilisation assumption disclosure (Section 6) - persistent, adjacent to
+   labour and asset figures
+4. Cross-subsidy statement (Section 8), where applicable
+5. Fully-loaded vs contribution margin toggle (Section 9)
+6. Drill-down detail per stream (existing micro-level build: cost, charge,
+   margin detail already built for labour/assets - this page collates them,
+   it does not replace them)
+
+Revenue and margin must appear together at the top level for each stream.
+Margin must not be a drill-down-only detail - a stream that looks large by
+revenue but thin by margin must be visible at a glance, not discovered only
+after a click.
+
+---
+
+# 11. REQUIRED INPUT CONTRACTS
+
+Business Outcome must consume:
+
+## Rate Builder
+- labour charge-out rate(s)
+- asset charge-out rate(s)
+- rate_builder_status / model_trust_state
+
+## Cost Allocation
+- working groups / group cost stacks
+- overhead distributed into labour pool
+- overhead distributed into asset pool
+- residual (undistributed) general overhead pool
+- allocation_reconciliation_checks
+- cost_allocation_status / model_trust_state
+
+## Labour module
+- true labour cost
+
+## Assets module
+- true asset cost
+- utilisation data where available (future live-data phase)
+
+## P&L / Revenue-COG truth
+- total_revenue
+- total_COG
+- gross_profit
+- net_profit (anchor values - Section 3)
+
+## Cost Summary
+- total_business_overheads (pre-distribution, for residual calculation)
+
+These must be consumed through structured outputs or selectors, per existing
+system principle. Business Outcome must not mutate any of them.
+
+---
+
+# 12. REQUIRED OUTPUT CONTRACT
+
+Minimum required fields:
+
+- output_contract_version
+- source_period
+- reconciliation_status (pass/fail against P&L anchor)
+- total_revenue (= P&L revenue)
+- total_net_profit (= P&L net profit)
+- remainder_amount (must be zero; if not, flagged as blocking warning)
+
+Per stream (material, labour, asset):
+- stream_revenue
+- stream_revenue_percent_of_total
+- stream_direct_cost
+- stream_allocated_overhead (labour/asset only; material = residual pool)
+- stream_contribution_margin (pre-overhead)
+- stream_net_profit (fully-loaded)
+- stream_net_profit_percent_of_total
+- utilisation_assumption_flag (labour/asset only)
+- data_quality_state
+
+- cross_subsidy_statement (text + dollar amount, where applicable)
+- view_mode (fully_loaded | contribution_margin)
+- warning_list
+
+Where a field is not currently calculable, it must be returned as
+unavailable or deferred rather than invented.
+
+---
+
+# 13. BOUNDARIES
+
+Business Outcome must not:
+
+- invent or adjust revenue/cost/net profit totals to force reconciliation
+- hide a remainder if the three streams do not sum to the P&L anchor
+- rank streams using a coverage-percentage that isn't yet supported by live
+  data
+- treat the utilisation assumption as fact rather than a flagged assumption
+- mutate Rate Builder, Cost Allocation, Labour, or Assets source data
+- collapse the fully-loaded and contribution-margin views into one number
+- bury the utilisation assumption disclosure in secondary UI (tooltip only)
+
+---
+
+# 14. RELATIONSHIP TO EXISTING BUILT COMPONENTS
+
+The micro-level build (click into labour, click into an asset, and see its
+cost/charge/margin) already exists and is retained as-is. This brief adds the
+missing collated top-level view that sits above those micro views and
+presents all three streams together, reconciled to the P&L, as one net
+profit story.
+
+---
+
+# 15. FUTURE PHASE (NOT IN THIS BUILD)
+
+- Live utilisation/job data replacing the 100% assumption with actual
+  recovery percentages
+- Coverage-percentage-based stream ranking once actual data supports it
+- Cash-basis P&L import (explicitly out of scope - see session notes;
+  accrual is the correct and only basis for this feature)
+
+---
+
+# 16. DEFINITION OF DONE
+
+Business Outcome net profit unpacking is ready when:
+
+- Total revenue and total net profit reconcile exactly to the P&L, with any
+  remainder surfaced, never hidden
+- Three streams (material, labour, asset) each show revenue, cost, and
+  net profit together at top level
+- Utilisation assumption disclosure is persistent and adjacent to labour and
+  asset figures
+- Residual overhead correctly lands against material after Cost Allocation's
+  distribution to labour and asset pools
+- Cross-subsidy statement generates correctly when one stream is funding
+  another
+- Fully-loaded vs contribution-margin toggle is available and both views
+  reconcile independently
+- Section 2 reconciliation with S16 is resolved (Rate Builder / Cost
+  Allocation status confirmed as current, not legacy)
+
+---
+
+# 17. FINAL PRINCIPLE
+
+One blended GP and Net Profit number tells you nothing about which part of
+the business is actually working. This page reverse-engineers the P&L's net
+profit into three honest, fully-loaded streams - material, labour, and asset
+- so the business owner can see exactly which part of the business is
+carrying the others, and which part is being carried.
+
+END OF BRIEF

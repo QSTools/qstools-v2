@@ -1,0 +1,112 @@
+# Mirra v5.1 - Business Outcome: Net Profit Waterfall Source Confirmation
+
+STATUS: SOURCE CONFIRMATION - AMENDS/EXTENDS S23 AND S24
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-27
+AUTHORITY: Confirms and narrows S23_BUSINESS_OUTCOME_NET_PROFIT_STREAM_
+UNPACKING_BUILD_BRIEF_v5_0 and S24_BUSINESS_OUTCOME_S16_RECONCILIATION_
+NOTE_v5_0 against the real, inspected legacy code. Does not conflict with
+either - narrows S23's scope to the part confirmed buildable without
+Recovery Summary.
+
+---
+
+# 1. PURPOSE
+
+S23 defined the net-profit waterfall/stream-unpacking feature. S24
+reactivated Cost Allocation and Rate Builder as Business Outcome inputs to
+make it possible, but explicitly left Recovery Summary as legacy.
+
+Inspecting the real legacy code (hooks/useBusinessOutcome.js,
+lib/calculations/businessOutcomeCalculations.js,
+lib/selectors/businessOutcomeSelectors.js - the engine behind the existing
+/recovery-outcome "Reconstructed P&L" view) found that it depends on THREE
+reactivated/legacy sources, not two: Cost Allocation, Rate Builder, AND
+Recovery Summary.
+
+This note confirms, field by field, that the waterfall itself does not
+actually need Recovery Summary - only one other section of that legacy page
+(the "recovery pressure" table, testing a user-selected recovery strategy)
+does. This lets Business Outcome build the real net-profit waterfall on
+already-approved v5.0 + S24 sources only, with no further reactivation.
+
+---
+
+# 2. DECISION
+
+Business Outcome's net-profit waterfall (S23) is built WITHOUT Recovery
+Summary as a source.
+
+The legacy "recovery pressure" table (pressureRows in
+businessOutcomeSelectors.js - labour/asset/overhead pressure vs a SELECTED
+recovery strategy) is NOT ported to Business Outcome. It depends on Recovery
+Summary's recovery-strategy-selection concept, which S24 did not reactivate
+and which is not part of what this session's owner wants (avoiding further
+tool complexity was an explicit consideration).
+
+Recovery Summary remains fully legacy, exactly as S16/S24 left it. No further
+reactivation occurs.
+
+---
+
+# 3. FIELD-BY-FIELD SOURCE CONFIRMATION
+
+Every field calculateBusinessOutcome() needs for the waterfall (not the
+pressure table) traces to a real v5.0 or S24-reactivated source:
+
+| Field | Real source |
+|---|---|
+| totalRevenue | Business Summary (total_revenue) |
+| totalDirectCosts | Business Summary (total_direct_costs) |
+| netPositionReference | Business Summary (net_position) |
+| totalLabourCost | Cost Summary (total_people_cost_annual) |
+| totalAssetCost | Cost Summary (total_asset_cost_annual) |
+| totalBusinessOverheads | Cost Summary (total_business_overheads) |
+| productiveLabourCost | Labour module (total_productive_labour_cost) |
+| nonProductiveLabourCost | Labour module (total_non_productive_labour_cost) |
+| labourModelRecoveryCapacity | Rate Builder (weighted_summary, reactivated by S24) |
+| labourRateDataComplete / labourMissingRateCount | Rate Builder (weighted_summary) |
+| productiveAssetCost | Assets module, via Model Readiness (confirmed: Recovery Summary's asset_outputs.productive_asset_cost is a direct, commented pass-through of model_readiness.modules.assets.output_contract - not a Recovery Summary calculation) |
+| supportAssetCost | Assets module, via Model Readiness (same pass-through) |
+| productiveAssetAssignedOverheadCost | Assets module, via Model Readiness (same pass-through) |
+| supportAssetAssignedOverheadCost | Assets module, via Model Readiness (same pass-through) |
+| operationalGroupCostRows | Cost Allocation (operational_group_cost_rows, reactivated by S24) |
+| unassignedLabourCost / unassignedAssetCost | Cost Allocation (reactivated by S24) |
+| rateBuilderCalculators | Rate Builder storage (reactivated by S24) |
+| labourChargeOutRateForCalculator | Rate Builder (reactivated by S24) |
+
+Fields NOT needed for the waterfall (Recovery-Summary-only, pressure-table
+only, left behind): labourRecoveryCost, assetRecoveryCost,
+overheadAbsorbedCost, staffCoveragePercent, assetCoveragePercent (structure
+confidence note - separately reconstructible from Cost Allocation coverage
+fields if wanted later, but not required for the waterfall itself).
+
+---
+
+# 4. WHAT CARRIES OVER FROM THE LEGACY CODE
+
+calculateBusinessOutcome() (lib/calculations/businessOutcomeCalculations.js)
+and selectBusinessOutcomeDisplay()'s waterfallRows construction
+(lib/selectors/businessOutcomeSelectors.js) contain real, working,
+reconciliation-checked logic (netProfitReconciles, labourReconciles,
+assetReconciles) built specifically to never silently show an unverified
+number. This logic is sound and reusable.
+
+Approach: a new hook/calculation path for Business Outcome, built on the
+v5.0/S24 sources confirmed above, reusing the same waterfall math and the
+same reconciliation-check pattern - not a copy-paste of the legacy file
+wholesale, since it also carries the pressure-table logic this session does
+not want. The legacy /recovery-outcome page, its hook, and its selector
+remain untouched, exactly as required all session.
+
+---
+
+# 5. FINAL PRINCIPLE
+
+The net-profit waterfall was never actually dependent on Recovery Summary -
+it only looked that way because the legacy page bundled it together with a
+genuinely Recovery-Summary-dependent feature (the pressure table) in the same
+file. Separating them lets Business Outcome get the real feature without
+reactivating a third legacy module or adding the tool complexity that comes
+with it.

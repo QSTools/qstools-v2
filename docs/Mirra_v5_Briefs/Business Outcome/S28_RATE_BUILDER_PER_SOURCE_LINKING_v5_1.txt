@@ -1,0 +1,228 @@
+# Mirra v5.1 - Rate Builder: Per-Source Calculator Linking Build Brief
+
+STATUS: BUILD BRIEF - FOR REVIEW (OPEN DECISIONS AT SECTION 6 - DO NOT
+BUILD PAST THAT SECTION UNTIL ANSWERED)
+VERSION: v5.1
+MODULE TYPE: Rate Builder / Cost Allocation boundary
+DATE: 2026-08-28
+AUTHORITY: Raised directly out of building
+S26_BUSINESS_OUTCOME_PER_SOURCE_REVENUE_ATTRIBUTION_v5_1.txt. Required as a
+precondition for that brief's per-asset/per-labour profitability view - see
+Section 1.
+
+---
+
+# 0. THE PRINCIPLE THIS BRIEF SERVES
+
+No assumptions, ever. If the data needed to answer a real business question
+does not exist, it gets built - never allocated, estimated, or proportioned
+as a substitute. This brief exists because that principle was tested
+directly against live data (Section 2) and failed: individual asset
+profitability cannot currently be shown, only group-blended profitability
+can.
+
+---
+
+# 1. WHY THIS EXISTS
+
+S26's per-source revenue attribution view requires every labour source and
+every priced asset to show its OWN revenue, true cost, and paying-its-way
+verdict - individually, not just at group level. The stated requirement
+(user, this session): "we should have both - we must assign every cost but
+we also need to see what's productive... maybe one of them is not
+recovering, we need to be able to see that," using a 10-digger,
+10-operator "Machinery" group as the example.
+
+Tracing the actual code confirmed:
+
+- Labour already satisfies this. Every staff_type_id already carries its
+  own real charge_out_rate via readRateBuilderLabourSourceRates()
+  (confirmed, hooks/useBusinessOutcomeLabourRecovery.js) - two different
+  staff types in one group already price independently, correctly, today.
+- Assets do not. A Rate Builder calculator links to a whole Cost
+  Allocation GROUP (linked_cost_allocation_group_id), not to an
+  individual asset. Two assets in the same group share one calculator and
+  therefore one price, with no way to tell them apart.
+
+---
+
+# 2. LIVE DATA CONFIRMATION (2026-08-28, this session)
+
+Read directly from the running app's localStorage
+(qs_tools_cost_allocation_v2_1 and qs_tools_rate_builder_calculators_v1),
+not inferred from code alone:
+
+Group "2inc Line" (group_id 68e253bc-56e1-4f35-9a7a-c2b25d0b2d0f) has TWO
+distinct, separately-assigned assets:
+  - asset_id bc1dc072-28f5-4812-885b-5c4033284549 (100% assigned)
+  - asset_id 4b5eff75-3a86-4b52-b39b-111e433ee2fe (100% assigned)
+
+Both share exactly ONE calculator: "2inc Line calculator"
+(linked_cost_allocation_group_id = 68e253bc-56e1-4f35-9a7a-c2b25d0b2d0f).
+
+This is a live, real, present-day case of the exact gap this brief exists
+to close - not a hypothetical. Whatever "2inc Line calculator" prices,
+both assets are currently shown as earning identically, regardless of
+whether they actually do.
+
+Control cases confirmed clean (1 asset : 1 calculator, unaffected by this
+gap): PC55, PC15.
+
+Pure-labour groups (Site Crew, Foreman, Senior Crew) have 0 assets and no
+calculator - entirely unaffected, confirms this is an asset-side gap only
+(pending Section 6.2 decision on whether labour needs the same treatment
+for a different reason).
+
+---
+
+# 3. ROOT CAUSE (CODE-CONFIRMED)
+
+lib/calculations/businessOutcomeAssetSplitCalculations.js:
+  const calculator = calculators.find(
+    (calc) => calc?.linked_cost_allocation_group_id === groupId
+  );
+
+components/rate-builder/line-calculator/useRateBuilderLineCalculator.js:
+  const existing_calculator = calculators.find(
+    (calculator) => calculator.linked_cost_allocation_group_id === value
+  );
+
+The calculator object has no linked_asset_id field anywhere in the
+codebase (confirmed via full-repo search). linked_asset_ids does exist,
+but only inside Cost Allocation's own orphan-detection bookkeeping
+(costAllocationMaps.js, costAllocationValidation.js) - unrelated to
+pricing, and easily mistaken for the thing we need. It is not.
+
+asset_group_assignments rows themselves are confirmed minimal and clean -
+assignment_id, group_id, asset_id, assignment_percent, is_active - no
+pricing field exists on the assignment either. Pricing genuinely lives
+nowhere except the group-level calculator today.
+
+---
+
+# 4. WHAT ALSO FOLLOWS FROM THIS (DISCOVERED WHILE ASSET-SPLIT LOGIC WAS
+   BEING TRACED FOR S26 - SEPARATE BUG, SAME FILE)
+
+businessOutcomeAssetSplitCalculations.js currently derives asset revenue
+as a SUBTRACTION, not an independent figure:
+
+  const assetChargedAnnual = totalCharged - labourChargedAnnual;
+
+labourChargedAnnual is computed using labourChargeOutRateForCalculator,
+which traces back to the same stale "active model" rate source already
+found and fixed for the Labour Recovery card (see
+S26_BUSINESS_OUTCOME_PER_SOURCE_REVENUE_ATTRIBUTION_v5_1.txt Section 1)
+but never fixed here. This means asset revenue in the CURRENT by-group
+split is contaminated by the labour rate bug even before the per-asset
+gap in this brief is considered - S26's claim that "the asset side was
+not found to be broken" does not hold for this specific function and
+should be treated as superseded by this finding.
+
+This is a second, independent reason (on top of Section 1-3 above) that
+the current by-group split section is being replaced, not patched - see
+S26 Section 6, "What This Replaces." No action needed in THIS brief beyond
+recording it, since the new per-source hook (S26) will price labour
+independently via the already-corrected useBusinessOutcomeLabourRecovery
+source, not via this subtraction pattern.
+
+---
+
+# 5. WHAT S28 MUST DELIVER
+
+- A calculator can be linked to ONE SPECIFIC ASSET (linked_asset_id),
+  priced independently of any other asset sharing its Cost Allocation
+  group.
+- Rate Builder's group-based calculator picker
+  (useRateBuilderLineCalculator.js) is extended (not necessarily
+  replaced) to pick a specific asset within a group, not just the group
+  itself, when the group contains more than one asset.
+- Business Outcome's new per-source hook (S26) can look up a calculator by
+  asset_id directly and get that asset's own priced revenue - no
+  allocation, no proportional split, no assumption.
+- A group's total revenue becomes the SUM of its members' individually
+  priced revenue (labour sources already correct today; assets correct
+  once this brief lands) - a rollup, not a separately-derived figure.
+  This mirrors how group COST already works (costAllocationGroupCostBuilder.js
+  already sums individual assigned_cost / assigned_asset_cost rows into
+  total_group_cost) - this brief brings revenue into the same bottom-up
+  shape cost already uses.
+
+---
+
+# 6. OPEN DECISIONS - MUST BE ANSWERED BEFORE BUILD STARTS
+
+## 6.1 Migration of the one real ambiguous case
+
+"2inc Line calculator" currently prices BOTH real assets in the "2inc
+Line" group as one. Once linked_asset_id exists, this calculator cannot
+correctly serve both. Options:
+
+  (a) Keep "2inc Line calculator" as the rate for ONE of the two assets
+      (which one - needs to be chosen by the user, not guessed) and build
+      a new, separate calculator from scratch for the other.
+  (b) Treat both as unpriced going forward and rebuild both calculators
+      from scratch once linked_asset_id exists, discarding the current
+      one entirely.
+  (c) Some other resolution specific to what "2inc Line calculator"'s 3
+      existing lines actually represent (needs the user to look at the
+      calculator's real line items before choosing (a) or (b) - this
+      brief does not assume which asset, if either, the existing lines
+      were actually priced for).
+
+NOT DECIDED. Per Section 0's principle, this must not be resolved by
+guessing which asset the existing calculator was "really" for.
+
+## 6.2 Does labour need the same treatment?
+
+Labour already prices correctly per staff_type_id via
+readRateBuilderLabourSourceRates() - confirmed working today, unlike
+assets. Two questions still open:
+
+  - Does labour need its OWN calculator-linking mechanism analogous to
+    linked_asset_id (i.e. linked_staff_type_id), for consistency / future
+    UI symmetry - or is the existing per-source rate map sufficient and
+    this brief should stay asset-only?
+  - If labour stays on its current mechanism, does that mean S28 is
+    scoped to assets only, making its title "Rate Builder: Per-Asset
+    Calculator Linking" more accurate than "Per-Source"?
+
+NOT DECIDED.
+
+## 6.3 UI decision, not a data decision (flagged, not blocking)
+
+Once a group can contain multiple independently-priced assets, the Rate
+Builder UI needs to make clear which specific asset is being priced when
+a user opens a calculator - the exact ambiguity that led to Section 2's
+live case existing in the first place. This is a build-time UI decision,
+not a data-model decision, and does not block starting 6.1/6.2, but must
+be resolved before this brief is marked done, since an unclear picker
+would silently recreate the same problem this brief fixes.
+
+---
+
+# 7. DEFINITION OF DONE
+
+- linked_asset_id exists on the calculator shape and is the field used
+  for calculator lookup/creation, replacing linked_cost_allocation_group_id
+  as the pricing key (group id may be retained for filtering/display).
+- The live "2inc Line" ambiguous case is resolved per whichever option is
+  chosen in Section 6.1 - not silently overwritten.
+- Section 6.2 answered and scope adjusted accordingly.
+- Group-level revenue in Business Outcome's per-source view is a true
+  rollup of individually-priced sources, with zero proportional
+  allocation anywhere in the calculation.
+- npm run build clean, verified in browser against the real "2inc Line"
+  group showing two independently priced assets, committed.
+
+---
+
+# 8. FINAL PRINCIPLE
+
+The business asked a simple question: is each digger paying its way, not
+just the machinery group as a whole. The codebase could not answer that
+question, not because the math was wrong, but because the data underneath
+the math didn't exist yet - one price standing in for two different real
+assets. This brief exists to build the missing data, not to work around
+its absence.
+
+END OF BRIEF

@@ -1,0 +1,158 @@
+# Mirra v5.1 - Complete Build Brief: Independent Targets & Health Indicator
+STATUS: COMPLETE, CONSOLIDATED BUILD BRIEF - READ THIS FIRST NEXT SESSION
+SUPERSEDES: S26 Section 5, S27, S28, S29 - this folds all of them into
+one complete plan.
+BUILD ORDER PRIORITY: Business Outcome's health indicator (Section 2) is
+the FIRST thing to build.
+
+# 1. CONTEXT
+The proportional-fix lever built earlier this session is mathematically
+correct but targets the wrong thing - it zeroes the SMOOTHED total,
+which can report "fixed" while one source (confirmed: Materials/COG,
+-$950,663 naive in one real test) is silently propped up by others.
+Decision: every source should stand on its own, independently.
+
+# 2. BUILD FIRST: BUSINESS OUTCOME HEALTH/EXPOSURE INDICATOR
+No new calculation needed - reuses naive_net_profit and
+final_net_profit, already computed. Shows:
+  cross_subsidy_gap = naive_headline_total - smoothed_headline_total
+Also show per-source which sources are the biggest "carriers" - confirm
+whether existing attention-list logic already covers this before
+building new. NOT YET DECIDED: placement, wording, $ vs % - confirm with
+user before building.
+
+# 3. BUSINESS MODELLING: INDEPENDENT PER-GROUP TARGETS
+Per group, fully independent - no cascade, no other-group dependency:
+  target_revenue = group's own true_cost
+  required_rate_delta_per_hour = (true_cost - modelled_revenue) / group_recovery_hours
+  independent_target_rate = current_rate_per_hour + required_rate_delta_per_hour
+Different from (simpler than) the existing calculateIsolatedGroupBreakeven
+- that one depends on every other group; this one depends on nothing but
+itself. Confirm whether to keep both, clearly labelled, or retire the old one.
+
+# 4. BUSINESS MODELLING: MATERIALS/COG INDEPENDENT TARGET + LEVER
+Still fully unbuilt. Must be a MARGIN/MARKUP PERCENTAGE, not a dollar
+target. MANDATORY FIRST: read the real Revenue/COGS source to confirm
+markup-on-cost vs margin-on-price (different formulas, different
+numbers) - do not guess, user has explicitly said no errors allowed here.
+
+# 5. PROPORTIONAL-FIX FEATURE DISPOSITION
+Confirmed correct for what it does, but now the SECONDARY view (targets
+smoothed-zero, allows cross-subsidy). Recommend: keep, relabelled
+clearly (e.g. "Minimum shared fix - allows cross-subsidy"), shown
+alongside the new independent targets. Confirm with user before
+finalising. Its Phase 2 gap is de-prioritised, not abandoned.
+
+# 6. PHASE 1/PHASE 2 - PRECISE MECHANICS
+Phase 1: every profitable group loses the SAME % of its own profit,
+simultaneously. Phase 2: only if shortfall EXCEEDS total combined
+profit - leftover spreads by REVENUE share.
+PRECISE BREAKEVEN BOUNDARY: shortfall exactly equal to total profit =
+genuine breakeven, sitting exactly on the Phase 1/Phase 2 line. The
+moment Phase 2 has real work to do, the business is already in a LOSS -
+Phase 2 distributes the remainder of that loss, it is not "on the way to
+breakeven."
+VERIFIED (twice, by hand, live data): Phase 1's mechanism (25.76% and
+58.7% retained, both matched exactly).
+NOT YET VERIFIED: Phase 2's revenue-share spread - no scenario tested
+was severe enough to trigger it.
+GUARANTEED REGARDLESS: the TOTAL is always correct (division doesn't
+create/destroy dollars) - does not substitute for testing Phase 2's
+per-group display.
+TEST NEEDED: find a revenue level where shortfall exceeds total
+combined profit, hand-calculate the expected split, compare to the app.
+
+# 7. BUILD SEQUENCE
+1. Business Outcome health indicator (FIRST).
+2. Confirm real COG margin formula from source.
+3. Business Modelling independent per-group targets.
+4. Business Modelling COG independent target + lever.
+5. Relabel/keep proportional-fix feature (confirm with user).
+6. Re-verify the whole card end-to-end against live data.
+7. (Lower priority, don't skip indefinitely) Phase 2 verification test.
+
+# 8. WHAT NOT TO DO
+- Don't invent the material margin formula - confirm from source.
+- Don't prioritise Phase 2 over Sections 2-5.
+- Don't build the Outcome gap indicator as new calculation without
+  confirming it isn't already covered.
+- Don't silently remove or silently keep the proportional-fix feature.
+- Don't describe "Phase 2 activating" as "reaching breakeven" - see
+  Section 6's precise boundary.
+
+# 9. FINAL PRINCIPLE
+Business Outcome tells the truth about today, including how much of that
+truth is held up by quiet cross-subsidy. Business Modelling tests that
+exposure against real levers - a source is only fixed when it stands on
+its own. Every number must be checked against real, live data before
+it's trusted - no exceptions, for exactly the reason given tonight: this
+is the part people may actually act on.
+
+# 10. PHASE 2 - NOW VERIFIED (update to Section 6)
+
+CONFIRMED against live data, original -$369,777 scenario, via console
+pull of raw group_real_capacity for all 5 groups.
+
+- Total shortfall ($950,662.70, matched via sum of total_adjustment)
+  exceeded total available margin ($606,999.70) - Phase 2 trigger
+  condition confirmed met.
+- Every group correctly wiped to $0 by Phase 1, then pushed negative by
+  Phase 2 - matches expected behaviour.
+- Leftover ($343,663.00) hand-verified as spreading by REVENUE SHARE:
+  Foreman (23.77% of total revenue) took $81,685.58 (vs $81,685.63
+  hand-calculated), PC15 (25.38%) took $87,209.41 (vs $87,209.84
+  hand-calculated), Site Crew (9.14%) took $31,417.53 (vs ~$31,423
+  hand-calculated) - all within a few cents, consistent with manual
+  rounding, not a real discrepancy.
+
+PHASE 2 IS NOW FULLY VERIFIED - both phases of the real cascade have
+been hand-checked against live data this session. Do not re-open
+without a new, specific reason to doubt it.
+
+
+# 11. SECTION 2 STATUS UPDATE - ALREADY BUILT, DO NOT REBUILD
+
+CONFIRMED (this session, live check): Business Outcome's existing "Your
+business, right now" panel already fully satisfies Section 2's intent,
+and does it better than what was drafted there. It already shows the
+total cross-subsidy gap amount (verified: $950,663, matches this
+session's independently-derived figure), WHICH specific source carries
+the largest shortfall, WHY that source's dollar shortfall is large
+despite strong underlying margin, and a margin-buffer/resilience
+indicator per source that Section 2 never even specified.
+
+A duplicate indicator was built and tested this session, then
+DELIBERATELY REMOVED once this existing panel was found - the new one
+added nothing the existing panel didn't already do better.
+
+SECTION 2 IS CLOSED. Do not rebuild it. If a future session is asked to
+"build the health indicator," check this existing panel FIRST before
+writing any new code.
+
+REMAINING REAL WORK is Sections 3 and 4 only (Business Modelling
+independent per-group targets, and the Materials/COG independent target
++ margin lever) - these remain genuinely unbuilt.
+
+
+# 12. NEW ITEM - VISUAL HEALTH GAUGE (speedometer-style), NOT YET SCOPED
+
+User clarified: what's wanted alongside the existing text panel is a
+VISUAL gauge/speedometer-style indicator, at-a-glance, not more text.
+Separate, additional piece of work - the existing "Your business, right
+now" panel stays as-is.
+
+CANDIDATE METRICS (none yet confirmed with user):
+1. % of net profit currently cross-subsidised - buildable NOW.
+2. Count of sources standing on their own vs total (e.g. "5 of 6 green")
+   - buildable NOW, simplest option.
+3. Ratio between "revenue required for smoothed-zero" and "revenue
+   required for every source to stand alone independently" - strongest
+   option, but DEPENDS ON Sections 3-4 (independent targets) existing
+   first.
+
+RECOMMENDATION (not yet confirmed): build Sections 3-4 first, then the
+gauge using option 3, rather than building a rougher gauge now and
+redefining its metric later.
+
+NOT YET DECIDED: exact visual style, placement, which metric - confirm
+with user before building. Captured idea only, not a committed design.

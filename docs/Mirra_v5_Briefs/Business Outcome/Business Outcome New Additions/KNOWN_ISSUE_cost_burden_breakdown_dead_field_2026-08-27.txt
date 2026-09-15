@@ -1,0 +1,76 @@
+# Mirra v5.1 - Known Issue: cost_burden_breakdown is dead/always empty
+
+STATUS: KNOWN ISSUE - NOT YET FIXED - LOGGED SO IT IS NOT LOST
+VERSION: v5.1
+MODULE TYPE: Known Issue / Business Summary / Recovery Summary
+DATE: 2026-08-27
+FOUND DURING: S16 Business Outcome Implementation Order, Step 6 investigation
+
+---
+
+# 1. THE ISSUE
+
+`cost_burden_breakdown` (shape: { people: {}, assets: {}, business_overheads:
+{} }) is exposed in Business Summary's output_contract and is intended to hold
+a real labour/asset/overhead breakdown of total_cost_burden.
+
+It is never actually populated anywhere in the codebase. Every place that
+touches it only reads it as an input with a fallback to the same empty
+default - nothing constructs or fills it:
+
+- lib/calculations/recovery-summary/calculateRecoverySummary.js (line ~104):
+  reads input.cost_burden_breakdown, falls back to empty
+- lib/selectors/businessSummarySelectors.js (line ~205): reads
+  calculations.cost_burden_breakdown, falls back to empty
+- lib/selectors/recovery-summary/recoverySummaryCardSelector.js (line ~99):
+  reads calculated.cost_burden_breakdown, falls back to empty
+
+The field is real, present, and wired through to Business Summary's
+output_contract, but its actual value is always the empty default at every
+point in the chain. It is not currently used to break anything - no known
+consumer relies on it having real data - but it is misleading: it looks like
+a live field and isn't.
+
+It is also, incidentally, evidence that Business Summary's output_contract
+currently passes a value through legacy Recovery Summary calculation code
+(calculateRecoverySummary.js) rather than being purely v5.0-sourced, which
+is worth knowing given the S16 v5.0 brief's stance on legacy Recovery Chain
+dependency.
+
+---
+
+# 2. WHY IT WASN'T FIXED NOW
+
+Found while sourcing data for the Business Outcome revenue-split visual
+(S16 Implementation Order, Step 6). Not needed for that work - the real
+labour/asset/overhead/COG figures needed for the visual already exist as
+separately populated fields (total_people_cost_annual,
+total_asset_cost_annual, total_business_overheads, total_direct_costs) and
+do not depend on cost_burden_breakdown at all.
+
+Fixing it would mean deciding where the breakdown should actually be built
+(Cost Summary, most likely, since it owns people/asset/overhead totals) and
+is a separate, scoped piece of work - not a one-line patch.
+
+---
+
+# 3. NEXT STEP WHEN THIS IS PICKED UP
+
+1. Decide whether cost_burden_breakdown should be built in Cost Summary
+   (where the underlying totals already live) or removed entirely if no
+   consumer will ever need a granular breakdown beyond the totals.
+2. If building it: populate people/assets/business_overheads with real
+   dollar (and optionally percentage) values in Cost Summary's own
+   calculations, and pass them through untouched by Business Summary and
+   Recovery Summary.
+3. If removing it: confirm no UI reads it (recoverySummaryCardSelector.js
+   and businessSummarySelectors.js both currently expose it, so check their
+   consuming components first).
+
+---
+
+# 4. FINAL PRINCIPLE
+
+A field that always resolves to its own empty default is not data - it is a
+placeholder wearing a data shape. Log it before it gets mistaken for a real
+source in a future build.

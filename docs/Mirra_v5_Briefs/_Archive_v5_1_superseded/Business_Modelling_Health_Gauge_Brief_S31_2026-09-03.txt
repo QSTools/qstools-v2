@@ -1,0 +1,565 @@
+# Mirra v5.1 - Business Modelling FINAL Build Brief (incl. Health Gauge)
+
+STATUS: FINAL BUILD BRIEF - READY FOR IMPLEMENTATION
+VERSION: v5.1
+MODULE TYPE: Core / Modelling / Read-only Source Consumer + New Visual Component
+FILE NUMBER: S31
+DATE: 2026-09-03
+
+SUPERSEDES:
+- S30_MODELLING_AND_OUTCOME_COMPLETE_BUILD_BRIEF_v5_1.txt Sections 3-12
+  (Section 12's gauge concept is now fully specified below, no longer
+  an open/unscoped idea)
+
+CONTROLLING BRIEFS (still binding, not replaced):
+00_MIRRA_SYSTEM_PRINCIPLES_v4.0_LOCKED.txt
+02_MIRRA_IMPLEMENTATION_ORDER_v4.0_LOCKED.txt
+03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4.0_LOCKED.txt
+S05_BUSINESS_MODELLING_BUILD_BRIEF_v5.0.txt
+S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5.0.txt
+
+---
+
+# 1. PURPOSE
+
+This is the single source of truth for finishing Business Modelling and
+building the health gauge. It consolidates every decision made in the
+2026-09-02/03 voice-review session and locks the build order.
+
+Core principle carried through every section below: every cost source
+should be tested on whether it pays for itself, independently, with
+zero cross-subsidy. The tool observes and explains. It never decides
+for the user. Nothing here forbids a deliberate loss-leader - it only
+refuses to let one happen invisibly.
+
+---
+
+# 2. CASCADE RETIREMENT (CONFIRMED, FINAL)
+
+The existing cascade logic in
+`hooks/useBusinessOutcomePerSourceRevenue.js` (`apply_real_capacity` -
+simultaneous-% Phase 1, revenue-share Phase 2) is RETIRED from Business
+Modelling entirely. It continues to power Business Outcome's smoothed /
+blended "current reality" view only.
+
+Business Modelling's per-source target is purely independent:
+
+  target_revenue (per source) = source's own true_cost
+  required_rate_delta = (true_cost - modelled_revenue) / source's own
+                         driver quantity
+
+No source's target ever references another source's numbers. This is
+final - not a proposal.
+
+---
+
+# 3. BUILD ORDER (LOCKED SEQUENCE)
+
+This order is locked because of two dependency chains discovered in
+this session: (a) the gauge cannot be built until independent targets
+exist for every source, and (b) cost-pool levers (non-productive
+assets/labour, overheads) should be resolved before fine-tuning rate/
+utilisation levers, because removing a needless cost moves the
+breakeven target itself - doing rate work first means redoing it later.
+
+## Phase 1 - Verify before building anything
+1. Open and verify the ACTUAL Revenue/COGS calculation file in code
+   (not brief text) against the user's markup-on-cost mental model.
+   Zero tolerance for error - do not proceed to Phase 2 until this
+   passes a hand-check against real numbers.
+2. Verify Rate Builder's actual mechanism: does it blend each/hourly/
+   per-unit component charges into one job total and correctly derive
+   a headline effective rate per the group's chosen driver unit? This
+   must be confirmed in code before the per-unit driver work in
+   Section 6.
+
+## Phase 2 - Materials (highest priority, currently invisible)
+3. Build Materials' independent breakeven target (no lever exists at
+   all today). ~$950,000 COG in test data - the single largest
+   unaddressed number in the model. Cannot be ranked against any other
+   fix until it exists (see Section 4, net-profit-impact ranking).
+4. Build the markup-on-cost lever for Materials (Section 5).
+
+## Phase 3 - Finish per-group independent breakeven
+5. Wire the per-group independent breakeven formula (already specified
+   in S30 Section 3) as the actual VISIBLE target on the Business
+   Modelling page for every operating group, not just a conceptual
+   formula.
+6. Fix the per-group driver unit so each lever reads/calculates in its
+   real unit (cubic metres, hours, square metres, each) rather than
+   assuming hours everywhere (Section 6).
+
+## Phase 4 - UI consistency
+7. Merge the rate-entry card into the outcome/summary card as a single
+   accordion component on Business Modelling (Section 7).
+8. Apply the identical accordion pattern to Business Outcome so both
+   pages behave identically (Section 7).
+
+## Phase 5 - The health gauge
+9. Build the gauge (Section 9) - gated on Phases 2 and 3 existing,
+   since its metric is literally the ratio between smoothed-target and
+   independent-target revenue.
+
+## Phase 6 - Database + Dashboard (separate future brief)
+10. Database/storage build, triggered specifically by the live
+    dashboard's need for persisted month-by-month actuals (see Section
+    11). Not required for Phases 1-5.
+11. Dashboard build (three-needle gauge, net position trend, per-source
+    live scoreboard, biggest live gap, drift-from-model alert - see
+    Section 11).
+
+## Deferred - future lever family (NOT in this build, logged for later)
+- Utilisation as a second lever per asset/group (Section 8.1)
+- Non-productive asset disposal/restructure (Section 8.2)
+- Non-productive labour restructure (Section 8.2)
+- Line-by-line general overhead adjustment with locked/flagged items
+  (Section 8.3)
+- Labour productivity as a distinct lever
+Quote Checker is explicitly OUT of this chain - it is an optional,
+business-type-dependent module downstream of Rate Builder, not a
+required link before the dashboard.
+
+---
+
+# 4. RANKING PRINCIPLE FOR FUTURE LEVER WORK
+
+When more than one lever exists, prioritise by NET PROFIT IMPACT, not
+raw dollar size of the cost line. A large cost line does not
+automatically mean a large available fix lives there - it means fixing
+it delivers a large swing per dollar of adjustment. Materials is built
+first not because it is assumed to be the biggest win, but because it
+is currently invisible to any net-profit ranking at all - it has no
+lever to rank.
+
+---
+
+# 5. MATERIALS / COG LEVER
+
+- User's mental model, confirmed consistent with existing brief
+  language (13_MIRRA_REVENUE_COGS and 30_MIRRA_BUSINESS_MODELLING v4.0
+  LOCKED briefs), but NOT YET CODE-VERIFIED: markup-on-cost, a
+  percentage added on top of what was paid, not margin-on-price.
+- System rule (must hold): there is ONE blended material markup at the
+  model level. Do not invent fake supplier-level or category-level
+  markups. Supplier/category rows may show contribution/influence to
+  the one blended result only, never a fabricated per-supplier margin.
+- Mode-dependent COGS rule to respect:
+  - Hours-based/service mode: Revenue - COGS = Material Margin.
+    Materials are observational, not part of hourly recovery burden.
+  - Product/unit mode: Revenue - COGS = Margin Pool. COGS is
+    operational and tested against unit cost burden.
+- Existing brief-level formula (unverified in code, verify in Phase 1
+  step 1 before building):
+    category_adjustment_amount = category_spend x adjustment_percent
+    modelled_total_cog = current_total_cog + category_adjustment_amount
+    modelled_margin_pool = total_revenue - modelled_total_cog
+    modelled_gross_margin_percent = modelled_margin_pool / total_revenue
+- Materials gets a breakeven-style default the same way revenue levers
+  do (Section 8): the lever pre-fills at the calculated point where
+  Materials nets to zero on its own, fully editable.
+
+---
+
+# 6. PER-GROUP DRIVER UNIT (NOT HOURS EVERYWHERE)
+
+Confirmed: each operating group already has its real driver unit
+defined upstream (Cost Allocation / Rate Builder / Assets utilisation
+setup). Examples discussed: two-inch line pump -> cubic metres, digger
+-> hours, concrete laying -> square metres.
+
+Requirement: the Business Modelling lever for each group must read and
+display in that group's real unit, and the underlying breakeven
+divide-by must use the correct driver quantity per group (true_cost /
+group's own driver quantity), not a hardcoded hours assumption.
+
+Sub-requirement (from Rate Builder discussion): confirm Rate Builder
+genuinely blends each/hourly/per-unit component charges (e.g. line
+pump's set-up fee (each) + hourly pump charge + cubic-metre concrete
+rate) into one job total, and correctly derives the group's headline
+effective rate in its chosen unit from that blend. This must be
+checked in code (Phase 1, step 2) before the lever is built on top of
+it.
+
+Locked constraint: the lever moves PRICE only. It never adjusts the
+fixed utilisation/driver quantity that Assets already defines (e.g.
+expected annual hours for the pump). Utilisation as its own separate
+lever is deferred (Section 8.1).
+
+---
+
+# 7. ACCORDION UI (BOTH PAGES, IDENTICAL PATTERN)
+
+Business Modelling currently has two separate cards: one carried over
+from Business Outcome showing numbers, and a second card for entering
+each individual rate. These merge into ONE card.
+
+Behaviour:
+- Click a source's line (e.g. "Materials / COG") -> that line expands
+  in place showing the rate/markup input and its own breakeven detail.
+- Any other expanded line collapses automatically - only one rate
+  entry is open at a time.
+- Totals at the top of the page update live as the value is typed.
+- No separate second card/table to scan for the matching row.
+
+Apply the SAME accordion pattern to Business Outcome: clicking a line
+there expands outcome detail in place (not a rate input, since Outcome
+is read-only), with the same collapse/expand behaviour. Goal stated by
+user: both pages should operate exactly the same so the system feels
+like one tool, not two bolted together.
+
+---
+
+# 8. FUTURE LEVER FAMILY (LOGGED, NOT BUILT NOW)
+
+Six levers were identified as the complete family for this business
+type. Three are in this build (rate/per-group breakeven, materials
+markup - Sections 5-6). Three are deferred:
+
+## 8.1 Utilisation (per asset/group)
+- Second lever alongside price. Raises/lowers the annual
+  hours/quantity a group's asset actually runs.
+- NOT free upside: variable costs (confirmed examples - fuel, the
+  associated labour hours) scale with utilisation; fixed costs
+  (insurance, registration, finance, depreciation) do not.
+- Decision taken: do NOT ask the user to classify every cost line as
+  fixed/variable (too much extra input, against the "don't add
+  complexity" instinct). Default: treat the whole asset annual cost as
+  FIXED, no split. This slightly understates true upside (fuel really
+  would rise a little) but never overstates it, and costs zero extra
+  input - consistent with the defensible-over-precise standard.
+- Labour lock rule: an asset's associated labour hours scale in
+  lockstep, one-to-one, with that asset's utilisation hours when the
+  asset genuinely requires an operator to run (e.g. the pump cannot
+  run without its operator). This is a real, defensible mechanical
+  link, not an estimate.
+- Stacking: rate and utilisation can both move at once and should
+  compound, not be mutually exclusive.
+
+## 8.2 Non-productive asset / labour restructure
+- Distinct from "cut overhead by a percentage." This is a structural
+  swap: dispose of a non-productive asset (e.g. a ute used only for
+  commuting, on finance, insured, but generating zero revenue) and
+  replace its ownership cost with a smaller variable cost (fuel
+  card/allowance). Same logic applies to non-productive staff/roles
+  that don't generate revenue against any operating group.
+- More a binary toggle/decision test ("keep as is" vs "remove/
+  restructure") than a continuous slider.
+- IMPORTANT SEQUENCING NOTE: because this changes the cost POOL itself
+  (not just revenue/margin), it should generally be evaluated BEFORE
+  fine-tuning rate and utilisation levers when a user works through the
+  page, otherwise rate targets calculated first become stale the
+  moment a non-productive cost is removed afterward, forcing rework.
+  The tool must NOT enforce this order rigidly - the page stays a free
+  sandbox the user can move through in any direction - but the
+  suggested default walkthrough order should surface this insight.
+
+## 8.3 General overheads adjustment - LINE BY LINE, NOT ONE PERCENTAGE
+- CONFIRMED DECISION: reject a single blanket "adjust overheads by X%"
+  lever. Overhead pools mix genuinely different flexibility tiers:
+  - LOCKED (never editable): statutory employer costs, e.g. employer
+    KiwiSaver contributions. Not negotiable, full stop.
+  - HEAVILY FLAGGED (editable but must warn): mandatory-but-technically
+    -changeable items, e.g. ACC or ACC-alternative cover providers.
+    Editable, but the UI must warn clearly that this is mandatory
+    cover and changing the number does not mean the obligation goes
+    away.
+  - FREELY EDITABLE: genuinely discretionary costs, e.g. insurance
+    premiums, software subscriptions. These can be renegotiated,
+    switched, or cancelled.
+- Each overhead line item needs its own adjustment input and a
+  lock/flag status, not one shared slider.
+- Two distinct overhead homes to check/handle:
+  1. Overhead already ATTRIBUTED to specific assets (e.g. fuel,
+     insurance pushed down into each asset's own cost via Cost
+     Allocation) - a real-world win (e.g. a renegotiated insurance
+     premium) must flow through and reduce cost on every asset
+     carrying a slice of it.
+  2. The REMAINING general pool, spread proportionately across
+     operating groups.
+  A single category-level change (e.g. "insurance renegotiated") must
+  be able to correctly reduce BOTH homes at once, not just the general
+  pool. CHECK BEFORE BUILD: confirm how Assets / Cost Allocation /
+  General Overheads currently track the attributed-vs-remaining split
+  before writing this lever.
+- Same locked/flagged logic applies to labour-attributed overhead
+  items (e.g. ACC, employer contributions locked; some other
+  labour-attributed line items may be discretionary).
+
+## 8.4 Labour productivity (named, not yet scoped)
+- Productive hours actually delivered vs paid hours, distinct from
+  utilisation (utilisation is the asset's clock; productivity is the
+  efficiency of the person within their hours).
+
+---
+
+# 9. HEALTH GAUGE (FULLY SPECIFIED - REPLACES S30 SECTION 12)
+
+## 9.1 What the gauge is NOT
+It is NOT derived from the retired cascade logic. It does NOT reuse
+Business Outcome's smoothed cross-subsidy math as its calculation
+engine.
+
+## 9.2 The metric (single source of truth)
+The gauge shows the ratio between two totals:
+
+  1. SMOOTHED target revenue - the revenue needed for the whole
+     business to net to zero, cross-subsidy allowed (Business
+     Outcome's existing job, already built and verified).
+  2. INDEPENDENT target revenue - the revenue needed for EVERY single
+     source, including Materials, to net to zero entirely on its own,
+     zero cross-subsidy (the Phase 2-3 work in Section 3 of this
+     brief).
+
+  health_ratio = smoothed_target_revenue / independent_target_revenue
+
+Ratio close to 1 = healthy, needle sits toward green (real profit,
+minimal hidden subsidy). Large gap = mostly cross-subsidised, needle
+sits toward red (the good-looking blended number is mostly borrowed
+from strong sources propping up weak ones).
+
+This is a HARD BLOCKER: the gauge cannot be built with a real number
+until Phase 2 (Materials independent target) and Phase 3 (per-group
+independent target wired as visible) are both complete. Do not build
+a placeholder/rough version and redefine its metric later.
+
+## 9.3 Visual design (confirmed)
+- Semi-circle arc gauge, red -> amber -> green gradient across the
+  arc.
+- Needle(s) pointing to position on the arc.
+- Plain-language caption below the gauge, e.g. "X of Y sources
+  standing on their own."
+- NO tab switcher between Baseline/Modelling/Live views (an earlier
+  mockup used tabs - explicitly rejected).
+
+## 9.4 Needle count per page (confirmed, final)
+- Business Outcome page: ONE gauge, ONE needle - "Baseline" (today's
+  real smoothed state). No other needles on this page.
+- Business Modelling page: ONE gauge, TWO needles simultaneously
+  visible on the same arc - Baseline needle (fixed) + Modelling needle
+  (moves live as the user adjusts any lever on the page). Not two
+  separate gauges side by side - one gauge, two needles.
+- Future Dashboard (Section 11, separate build): the SAME gauge
+  pattern gains a THIRD needle - "Live" - continuously updating from
+  real, persisted actuals data, distinct from the one-off Modelling
+  scenario needle. This is additive (grows from 1 -> 2 -> 3 needles as
+  each page is built), not a rebuild each time.
+
+## 9.5 Breakeven anchor
+Breakeven (every source independently at zero net position) is the
+mathematical anchor the gauge orbits around - it is the point where
+smoothed_target and independent_target are equal, i.e. health_ratio =
+1, full green. This ties directly to the breakeven-default behaviour
+in Section 10.
+
+---
+
+# 10. BREAKEVEN DEFAULTS (LEVER PRE-FILL RULE)
+
+Applies only to REVENUE-side levers - rate/price, materials markup,
+(future) utilisation. Each of these has an actual equation that solves
+to zero, so the system pre-fills the lever's input with the calculated
+value that gets that source to independent breakeven. This is a
+neutral, guided starting point only - every field remains fully
+user-editable, and the system never tells the user what to charge.
+
+Does NOT apply to COST-POOL levers - non-productive assets/labour,
+general overheads (Section 8.2, 8.3). These have no revenue driver to
+solve to zero against, so they default to TODAY'S REAL FIGURE, and the
+lever lets the user test deviations from current reality rather than
+deviations from a calculated ideal.
+
+---
+
+# 11. DASHBOARD (SEPARATE FUTURE BUILD - LOGGED HERE FOR CONTINUITY)
+
+Not part of this brief's active build scope (gated behind Phases 1-5
+plus a database build), but the shape is decided enough to log now so
+nothing is lost.
+
+## 11.1 Trigger for the database build
+The database/storage layer is deliberately built LATE in the overall
+system sequence, after calculation logic is stable, so schema doesn't
+get rebuilt every time the model changes underneath it. The live
+Dashboard is the first feature that genuinely forces a database to
+exist - it needs persisted, accumulating month-by-month actuals to
+read from, not just numbers calculated fresh in memory per page load.
+Database build should immediately follow Business Modelling
+completion (Phases 1-5 above), ahead of the Dashboard itself.
+
+## 11.2 Storage shape (confirmed analogy: one workbook, separate sheets)
+Same storage layer, structurally distinct record types/tables:
+- BASELINE sheet/table - locked snapshot(s), never silently
+  overwritten. Represents a fixed belief at a point in time.
+- MODELLING sheet/table - locked scenario snapshot(s) the user has
+  saved, same never-overwritten rule.
+- LIVE ACTUALS sheet/table - a genuinely different shape: an
+  accumulating, appending record, one new row added per month,
+  designed to be summed/trended up to a yearly view. Actuals create
+  variance against baseline/modelling - they do not rewrite history.
+The Dashboard itself stores nothing new - it is a live read/blend
+across the three tables above, not a fourth data store.
+
+## 11.3 Monthly re-run mechanics (validated, with honest caveats)
+Confirmed: in the steady state (stable Xero categories, stable Assets
+and Labour inputs, only P&L amounts changing month to month, expected
+to be true ~95% of the time), importing a new month's P&L + Revenue/
+COGS data is genuinely close to "import file, whole chain
+recalculates itself" - because every module's contract and formula was
+already proven correct against the first dataset. This is the payoff
+of the classification/module-boundary discipline already built.
+
+Caveats (do not treat as automatically solved by "the math already
+works"):
+- New/never-seen category or account lines must surface via the
+  EXISTING "review required / not assigned" mechanism - flag ONLY the
+  new unassigned line, do not re-surface or re-flag categories that
+  are already correctly mapped.
+- Non-P&L actuals (productive hours, utilisation, headcount changes,
+  pay rises) are a separate, deliberately out-of-scope input stream
+  for this phase (explicitly parked by user - "let's not go down that
+  path just yet"), and must feed in alongside the P&L import, not be
+  assumed to update automatically from it.
+- Readiness/reconciliation gating must define behaviour for a month
+  that fails gating on import (block silently vs flag vs freeze last
+  good baseline) - not yet decided, needs its own small design pass
+  when this phase starts.
+
+## 11.4 Dashboard content (five items, confirmed shape)
+1. The gauge - three-needle version, centrepiece.
+2. Net position trend - live actual net position plotted against what
+   baseline predicted and what the model promised, over time, not just
+   a single snapshot.
+3. Per-source live scoreboard - the accordion list pattern (Section 7)
+   showing LIVE actuals instead of scenario inputs: which sources are
+   currently paying for themselves, which are being quietly
+   subsidised again even after a fix was modelled.
+4. Biggest current live gap - whichever source has the largest live
+   shortfall against its independent target right now (dynamic, not a
+   static list).
+5. Drift-from-model alert - flags when live reality has meaningfully
+   diverged from what was modelled/committed to.
+
+CONFIRMED REFINEMENT: the dashboard must show BOTH directions, not
+just shortfall/red. A source tracking above its independent target
+should be shown with equal visual weight as good news, not just
+absence of a red flag. The gauge's full red-amber-green arc already
+supports this; the scoreboard and biggest-gap cards must be designed
+the same way - a genuine two-sided view, not a list of problems.
+
+Deferred from this list: labour/asset utilisation as its own dashboard
+number - genuinely tied to real invoicing/job actuals, which is
+further down the track than this phase.
+
+## 11.5 Quote Checker - explicitly out of this chain
+Quote Checker validates a specific quote against Rate Builder/the
+model. It is optional and business-type-dependent (irrelevant to a
+business that doesn't quote jobs, e.g. retail/subscription models). It
+consumes outputs but nothing upstream depends on it. It does NOT block
+or gate the Dashboard build and should not be treated as a required
+step in this core chain. Future briefs should formalise it as a
+conditional module outside the Outcome -> Modelling -> Dashboard
+chain.
+
+---
+
+# 12. THREE-PAGE SYNC REQUIREMENT (WHY THIS ALL MATTERS)
+
+Business Outcome, Business Modelling, and the Dashboard/gauge must
+function as one synchronised diagnostic system, not three independent
+tools. Agreed plain-language framing for a non-technical user: "every
+part of your business should pay for itself; this shows you which
+parts don't, and lets you find the rate that fixes each one, one at a
+time."
+
+Honest status at time of writing this brief:
+- Business Outcome: solid, verified against live data.
+- Business Modelling: half-built - rate lever works; independent
+  targets not yet wired as the visible target; Materials has no lever.
+- Gauge: concept only, fully specified in this brief, zero code.
+
+The piece that actually synchronises all three pages is the
+independent-target work (Section 3, Phases 2-3). That is the true
+centre of this build, not a side task.
+
+---
+
+# 13. OUTPUT CONTRACT ADDITIONS (BUSINESS MODELLING)
+
+Extend the existing business_modelling_output_contract (per S05
+Section 6) with:
+
+  independent_target_model = {
+    per_source: [ { source_id, source_label, driver_unit,
+                     driver_quantity, true_cost, independent_target_revenue,
+                     modelled_revenue, gap, is_breakeven_or_above } ],
+    materials: { markup_percent, independent_target_revenue,
+                 modelled_revenue, gap, is_breakeven_or_above }
+  }
+
+  gauge_input = {
+    smoothed_target_revenue,   // from Business Outcome, unchanged
+    independent_target_revenue_total, // sum across independent_target_model
+    health_ratio,
+    baseline_needle_value,
+    modelling_needle_value
+  }
+
+Both must be returned as unavailable/deferred (never invented) if
+Phase 2-3 data is incomplete for any source, consistent with the
+existing no-fake-precision rule.
+
+---
+
+# 14. LOCKED BOUNDARIES (CARRIED FORWARD, RESTATED)
+
+Business Modelling must not:
+- overwrite Labour, Assets, General Overheads, Cost Summary, Revenue
+  Summary, or Business Summary
+- infer missing source truth or silently fix incomplete modules
+- use the retired cascade logic anywhere on this page or in the gauge
+- apply a blanket overhead percentage across locked/statutory items
+- let a lever adjust a fixed utilisation/driver quantity that Assets
+  already defines (utilisation is its own separate, deferred lever)
+- invent a per-supplier or per-category material margin where only one
+  blended model-level markup is supported by source data
+
+The gauge must not:
+- be built before Phases 2-3 (independent targets) exist
+- use tabs to switch between Baseline/Modelling/Live
+- reuse cascade output as its driving number
+
+---
+
+# 15. ACCEPTANCE CRITERIA
+
+Phase 1: COGS formula and Rate Builder blending mechanism confirmed in
+code, hand-checked against real numbers, documented as verified (not
+just brief-consistent).
+
+Phase 2: Materials independent target and markup lever live on
+Business Modelling; ~$950k COG line now has a real, editable target.
+
+Phase 3: Every operating group's independent breakeven is the visible
+on-page target, calculated using that group's own real driver unit
+(Section 6), not hours-by-default.
+
+Phase 4: Single accordion card replaces the two-card layout on
+Business Modelling; identical accordion pattern live on Business
+Outcome.
+
+Phase 5: Gauge live on Business Outcome (1 needle) and Business
+Modelling (2 needles), driven by the ratio in Section 9.2, updating
+live as levers move on the Modelling page.
+
+Each phase: npm run build passes; git status clean after commit;
+Calculation Trace integrity still passes; no source module overwritten.
+
+---
+
+# 16. FINAL PRINCIPLE
+
+Business Modelling and the gauge exist to make invisible cross-subsidy
+visible, source by source, and to let the business owner decide - with
+full information, not a hidden blend - which parts of the business
+should genuinely pay for themselves and which they are choosing to
+subsidise on purpose. The tool never makes that decision for them.

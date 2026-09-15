@@ -1,0 +1,217 @@
+# Mirra v5.1 - Business Outcome Build Brief Amendment
+
+STATUS: AMENDMENT - SUPERSEDES SELECTED SECTIONS OF v5.0
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-27
+SUPERSEDES: S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5_0_LOCKED.txt (Sections 2, 3, 4, 5, 6 only)
+DOES NOT SUPERSEDE: Sections 7, 8, 9, 10 (except Boundary 3), 11, 12, 13, 14, 15, 16 of v5.0, which remain in force.
+
+---
+
+# 1. PURPOSE
+
+This amendment records a deliberate, confirmed decision to extend Business Outcome's
+source contract beyond the v5.0 baseline, and to lock in what has actually been built.
+
+The v5.0 brief excluded Cost Allocation and Rate Builder from Business Outcome's
+primary source chain, treating them as legacy Recovery Chain routes. That exclusion
+is now partially reversed for one specific purpose: labour recovery.
+
+This is not a return to the legacy Recovery Chain. The legacy Recovery Outcome page
+and its hook remain untouched, separate, and are not the source of this data.
+
+---
+
+# 2. THE DECISION
+
+Business Outcome's whole-of-business viability layer (Stage 2 / Business Summary
+truth chain) is unchanged and remains as locked in v5.0.
+
+Added to it: a Labour Recovery sub-layer, sitting inside Business Outcome, that
+answers a question the v5.0 baseline could not answer - "is each labour source
+actually recovering its true cost, or is it a hidden loss-maker?"
+
+This restores the original v4.0 intent (Business Outcome should show where profit
+is leaking, not just the aggregate total) without reintroducing the legacy
+Recovery Chain page, hook, or allocation logic.
+
+Reason for the decision: Business Summary / Cost Summary only expose aggregate
+totals. They cannot show that, for example, Site Crew is being charged out below
+its true fully-loaded cost while Owner/Director is comfortably ahead. Without
+per-source visibility, "currently viable" at the top of the page can hide a real
+problem underneath. The owner explicitly wants Business Outcome to mirror the
+business back, including where it is leaking, not just certify overall viability.
+
+---
+
+# 3. UPDATED SOURCE CHAIN
+
+Input Modules
+-> Cost Summary
+-> Revenue / COG truth
+-> Revenue Summary
+-> Business Summary / Revenue Reality / Asset Reality where available
+-> Cost Allocation (labour group overhead distribution - real, not legacy)
+-> Rate Builder (real saved charge-out rates per labour source, via
+   rateBuilderLabourSourceRatesStorage - not the legacy Recovery Outcome route)
+-> Business Outcome
+-> Business Modelling
+-> AI-readable Business State Export
+-> Business Overview Dashboard
+-> Quote Checker
+
+The legacy Recovery Outcome page and its useBusinessOutcome.js hook are not part
+of this chain and must not be touched or reused. Business Outcome's labour
+recovery layer reads Cost Allocation and Rate Builder directly through their own
+current, real storage/selectors - not through the legacy recovery hook.
+
+---
+
+# 4. UPDATED INPUT CONTRACT - LABOUR RECOVERY
+
+In addition to the v5.0 Section 5 inputs (Cost Summary, Revenue/COG truth,
+Revenue Summary, Business Summary, Reality layers), Business Outcome's labour
+recovery sub-layer consumes:
+
+## Cost Allocation
+
+- rate_builder_labour_recovery_rows (true cost per hour per labour source,
+  including allocated overhead), sourced via useCostAllocation.js /
+  costAllocationRateBuilderSelectors.js
+
+## Rate Builder
+
+- real saved charge-out rate per labour source, read directly from
+  readRateBuilderLabourSourceRates() in
+  lib/storage/rateBuilderLabourSourceRatesStorage.js
+- this is a flat map keyed by labour_source_type_id, independent of which rate
+  model is currently active in Rate Builder - it is the true source of record
+  for "what we actually charge," not a scenario or model-specific figure
+
+Both are read-only. Business Outcome does not calculate or store labour rates
+or overhead distribution itself; it consumes the existing outputs of Cost
+Allocation and Rate Builder as-is.
+
+---
+
+# 5. UPDATED OUTPUT CONTRACT - LABOUR RECOVERY BLOCK
+
+In addition to the v5.0 Section 6 output_contract fields, Business Outcome now
+exposes a labour_recovery block:
+
+- labour_recovery.rows[] - one per labour source, each with:
+  - labour_source_id
+  - labour_source_label
+  - true_cost_per_hour (labour + allocated overhead, from Cost Allocation)
+  - charged_rate_per_hour (from Rate Builder's saved source rates)
+  - profit_per_hour (charged - true cost)
+  - recovery_status (recovering / shortfall / not_ready)
+- labour_recovery.weighted_summary:
+  - weighted_true_cost_per_hour
+  - weighted_charged_rate_per_hour
+  - weighted_profit_per_hour
+  - rate_coverage_percent (share of total hours with a saved rate)
+- labour_recovery.overall_status (e.g. "All labour sources recovering")
+
+Where a labour source has no saved rate in Rate Builder, its row must report
+recovery_status "not_ready" honestly rather than a fabricated $0 or hidden row.
+
+This block does not replace or alter the existing top-level output_contract
+fields defined in v5.0 Section 6 (total_revenue, gross_profit, recovery gap,
+etc.). It sits alongside them.
+
+---
+
+# 6. UPDATED BOUNDARIES
+
+All v5.0 Section 10 boundaries remain in force, with one clarified exception:
+
+"use Recovery Chain routes as primary truth" (v5.0 Boundary 3) is amended to:
+
+Business Outcome must not use the legacy Recovery Outcome page, its hook, or its
+allocation logic as a source. It may read Cost Allocation's and Rate Builder's
+own current, real outputs directly, for the specific, additive purpose of
+per-labour-source recovery visibility. This is a narrow, named exception, not a
+general reopening of the legacy Recovery Chain as a Business Outcome source.
+
+All other v5.0 boundaries stand unchanged, including: Business Outcome must not
+calculate source module values directly, must not overwrite Cost Summary /
+Revenue Summary / Business Summary, must not act as a scenario engine, and must
+not let AI determine authoritative totals.
+
+---
+
+# 7. CURRENT IMPLEMENTED STATE (AS OF THIS AMENDMENT)
+
+The following is built, working, and committed:
+
+- hooks/useBusinessOutcomeLabourRecovery.js - additive hook, reads Cost
+  Allocation's rate_builder_labour_recovery_rows and Rate Builder's real saved
+  source rates directly; computes recovery_status, rate_gap, and
+  weighted_summary per Section 5 above.
+- components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard.jsx -
+  displays per-labour-source table (source / true cost / charged rate /
+  profit-per-hr / status) with a weighted-average total row, styled to match
+  the existing v5.0 Business Outcome page.
+- Wired into app/business-outcome/page.jsx between the summary card and the
+  warnings panel.
+- Bug fixed and committed: lib/calculations/cost-allocation/
+  costAllocationLabourAdapter.js was deriving labour type keys by slugifying
+  the display label instead of using the real staff_type_id, silently breaking
+  overhead recovery for any staff type whose slugified label did not match its
+  real ID (Senior Operator/Senior Staff, Site Crew). Fixed to use the real
+  staff_type_id first, falling back to slugified label only for legacy/
+  unclassified staff with no real ID.
+
+Confirmed working output (screenshot-verified): all four labour sources
+(Operator/Delivery Staff, Owner/Director, Senior Operator/Senior Staff, Site
+Crew) show real nonzero true cost, real charged rate, and "Recovering" status.
+Weighted average: $73.64/hr true cost vs $83.00/hr charged, +$9.36/hr profit,
+100% of hours covered.
+
+---
+
+# 8. KNOWN GAPS - NOT YET BUILT
+
+- Business Outcome's top-banner "Reconciliation mismatch" warning (from the
+  pre-existing Stage 2 useBusinessOutcomeTruth.js truth-chain reconciliation
+  between Business Summary and Revenue/COG truth) has not been investigated in
+  this work. It is unrelated to the labour recovery addition.
+- Recovery visibility is labour-only. Extending it to assets and unit-priced
+  work (m2, m3, per-job pricing) is not possible yet: Cost Allocation has real
+  required rates for these, but there is no persisted "actual charged" record
+  to compare against. Rate Builder's Customer Charge Calculator is a live
+  one-off calculator, not persisted history. Job Costing / actual-billing
+  history (S23) is an explicit future build, not yet started. This has been
+  raised and explicitly deprioritised - not to be revisited unless requested.
+
+---
+
+# 9. DEFINITION OF DONE (UPDATED)
+
+Business Outcome's labour recovery layer is done when:
+
+- Cost Allocation and Rate Builder inputs are confirmed read-only and correct
+  (confirmed)
+- labour_recovery output block matches Section 5 shape (confirmed)
+- all labour sources with a saved rate show correct true cost, charged rate,
+  and status (confirmed)
+- labour sources with no saved rate report "not_ready" honestly, not $0
+  (confirmed by design; no current example in data)
+- build passes clean and the fix is committed (confirmed)
+- the legacy Recovery Outcome page remains untouched and unaffected (confirmed)
+
+All other v5.0 Section 15 items (contribution outputs, driver outputs, Business
+Modelling / AI Export / Dashboard consumption) remain open and are unchanged by
+this amendment.
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Business Outcome is still the current commercial truth layer, not the legacy
+Recovery Chain. Reading Cost Allocation and Rate Builder directly for labour
+recovery is a narrow, named, additive exception made because the business
+explicitly wanted to see where profit leaks by labour source - not a reopening
+of the legacy route as a general source of truth.

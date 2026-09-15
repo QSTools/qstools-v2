@@ -1,0 +1,152 @@
+# Mirra v5.1 - Per-Source Revenue Attribution: Scoping Decisions Note
+
+STATUS: DECISION NOTE - CLOSES SECTION 4 OF THE HANDOVER
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-28
+AUTHORITY: Closes the two open scoping questions listed in Section 4 of
+I_am_continuing_QS_Tools__Mirra_v5_.txt-style handover
+(S26_BUSINESS_OUTCOME_PER_SOURCE_REVENUE_ATTRIBUTION_v5_1.txt handover doc),
+"WHAT'S NOT YET CONFIRMED (scope this before writing the hook)". Both items
+below must still be verified against the LIVE repo file before code is
+written - this note resolves the design decision, not the live field-name
+confirmation. See Section 4 of this note.
+
+---
+
+# 1. PURPOSE
+
+The S26 handover left two open questions before the hook could be written:
+
+1. Exact mechanism for splitting a MIXED group's hours/cost between its
+   labour and asset portions at the true-cost level.
+2. Where residual/unassigned overhead and unassigned labour/asset cost
+   should be shown in the reconciliation.
+
+This note resolves both, based on the v4.0 Cost Allocation variable
+contract (03_MIRRA_VARIABLE_CONTRACT_BRIEF_v4_0_LOCKED.txt,
+17_MIRRA_COST_ALLOCATION_v4_0_LOCKED.txt) and the established
+unassigned-cost warning pattern
+(S18_MIRRA_COST_ALLOCATION_MANDATORY_LABOUR_AND_ASSET_COST.txt).
+
+---
+
+# 2. DECISION 1 - MIXED GROUP SPLIT MECHANISM
+
+## What the contract already provides
+
+The split is not something to derive - it already exists at two levels:
+
+- GROUP LEVEL: group_cost_stacks[] (Variable Contract Section 31) carries
+  labour and asset as separate fields on the same row -
+  assigned_labour_cost, assigned_labour_hours, assigned_asset_burden,
+  assigned_asset_hours, assigned_overhead_amount, summed into
+  total_group_cost. A mixed group's cost is never a single blended figure
+  at this level.
+
+- ASSIGNMENT LEVEL (the one to actually build against): underneath every
+  group_cost_stacks row sit labour_assignments[] (Section 20.7) and
+  productive_asset_assignments[] / shared_asset_allocations[]
+  (Sections 20.8-20.9), each row keyed by staff_type_id or asset_id
+  individually, each carrying its own assigned_labour_cost /
+  assigned_productive_hours or assigned_asset_burden. Per-source
+  attribution data already exists one level below the group rollup.
+
+## Decision
+
+Build the per-source hook against the ASSIGNMENT-LEVEL arrays
+(labour_assignments[], productive_asset_assignments[] /
+shared_asset_allocations[]), not by reverse-splitting group_cost_stacks.
+A mixed group like "2inc Line" (Labour recovery $93,766 + Asset recovery
+$33,413, confirmed live) should already resolve into separate assignment
+rows per staff type / asset feeding that one group total - read those
+rows directly rather than re-deriving a split that already exists
+upstream.
+
+## What still must happen before code is written (NOT resolved by this
+   note)
+
+This decision is made against the v4.0 VARIABLE CONTRACT documents, which
+describe the intended/spec shape. It has NOT been verified against the
+live implementation of costAllocationGroupCostBuilder.js in the current
+repo. Per the handover's own instruction (Section 4) and the working-style
+rule (Section 7, "never guess field names"):
+
+- Get-Content the full, live costAllocationGroupCostBuilder.js before
+  writing the hook.
+- Confirm labour_assignments[] and the asset assignment arrays are (a)
+  actually present in the live output, (b) keyed the way the contract
+  describes, and (c) already attached per group_cost_stacks row rather
+  than requiring a separate join.
+- If the live shape has drifted from the v4.0 contract (plausible, given
+  the labour rate bug already found this session came from exactly this
+  kind of drift), reconcile against the live file, not the spec.
+
+---
+
+# 3. DECISION 2 - UNASSIGNED / RESIDUAL COST PLACEMENT
+
+## What the contract already provides
+
+The "explicit, never-hidden remainder" pattern already exists twice in the
+current contract:
+
+- general_overheads_pool (Variable Contract Section 20.6) carries
+  remaining_overhead_pool_amount as its own named field - the contract's
+  own convention is a visible remainder, not silent absorption.
+- unassigned_labour_cost / unassigned_asset_cost warnings are an already-
+  established pattern, referenced in S18 as the existing mechanism the
+  non-productive labour/asset warnings were built to extend.
+
+## Decision
+
+Adopt S26 Section 5's option (b), as recommended in that brief:
+
+- Residual (undistributed) overhead folds into the materials stream, per
+  S23 Section 7 (already locked - overhead not distributed to labour/asset
+  pools has no dedicated pool of its own and lands against material).
+- Unassigned labour cost and unassigned asset cost each get their own
+  explicit line in the per-source reconciliation - never folded into a
+  named source, never absorbed into materials, never rounded away.
+
+This is consistent with the existing remaining_overhead_pool_amount
+convention rather than inventing a new rule, and keeps the two questions
+(where does unallocated overhead go vs where does unassigned direct cost
+go) answered separately, since they are different situations - one is
+overhead Cost Allocation chose not to distribute, the other is real
+labour/asset cost that was never assigned to a group at all.
+
+## What still must happen before code is written
+
+- Confirm unassignedLabourCost / unassignedAssetCost are live, populated
+  fields in useBusinessOutcomeWaterfall.js (the handover marks this as
+  "likely reusable as-is" but not confirmed) before wiring them into the
+  new per-source reconciliation lines.
+
+---
+
+# 4. STATUS
+
+Both Section 4 open questions from the S26 handover are now DESIGN-
+RESOLVED. Neither is LIVE-CODE-CONFIRMED. Per the session's own working
+style rule, live-code confirmation (Get-Content / Select-String against
+the actual current files) must happen before the hook is written, not be
+assumed from this note or from the v4.0 spec documents alone.
+
+Build order is otherwise unchanged from the handover's Section 6:
+confirm live shape -> build hook -> build selector -> extend CSS -> build
+component -> wire into page -> verify -> commit.
+
+---
+
+# 5. FINAL PRINCIPLE
+
+A spec document describes intent. A brief describes a decision. Neither
+is a substitute for reading the file that will actually run. This note
+closes the design question so the next session can move straight to
+verification and building, without re-litigating the "what should we do"
+conversation - but it does not skip the "what does the code actually do"
+step, which remains mandatory before the first line of the new hook is
+written.
+
+END OF NOTE

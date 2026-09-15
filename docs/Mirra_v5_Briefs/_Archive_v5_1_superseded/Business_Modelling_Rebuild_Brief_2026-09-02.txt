@@ -1,0 +1,297 @@
+# Mirra v5.1 — Business Modelling Rebuild Brief
+
+STATUS: BUILD BRIEF — DESIGN AGREED IN SESSION, NOT YET BUILT
+VERSION: v5.1
+MODULE TYPE: Core / Modelling / Consumer of Business Outcome Real Capacity
+DATE: 2026-09-02
+SUPERSEDES: S05_BUSINESS_MODELLING_BUILD_BRIEF_v5.0.txt as the active build
+direction for /business-modelling. S05's locked boundaries (Section 7,
+reproduced below) still apply. S05's Section 4 modelling-layer language
+(actual/minimum/target) is retained but now made concrete rather than a
+placeholder. The v4.0 lever categories (30_MIRRA_BUSINESS_MODELLING_v4.0_LOCKED.txt,
+Sections 19-23) are the origin of the lever concept used here and remain a
+useful reference for lever types not yet built (labour productivity, asset
+utilisation, overheads, combined scenarios).
+
+---
+
+# 1. WHY THIS BRIEF EXISTS
+
+Business Outcome and /recovery-outcome have just been through a heavily
+tested rebuild session (see S25_BUSINESS_OUTCOME_SESSION_HANDOVER_AND_
+MODELLING_NEXT_STEPS_v5_1.txt). Real Capacity's smoothed cascade, the
+naive-vs-smoothed distinction, and Card 1's headline/attention-list format
+are now live, trusted, and built from numbers checked against real
+references (several genuine bugs found and fixed, not assumed correct).
+
+Business Modelling (/business-modelling) is still stage-locked at "first
+v5.0 alignment" — the minimum model is a placeholder that just maps to the
+baseline snapshot, and no lever controls exist. This brief replaces that
+placeholder with a real build, using Business Outcome's now-trustworthy
+smoothed cascade as its foundation rather than a separate calculation.
+
+This is being treated as a genuine rebuild of the page's primary content,
+not an incremental patch. Per the user's explicit direction this session:
+new cards are being built for these ideas rather than adapting the existing
+ones. Existing /business-modelling cards are collapsed for now and left
+alone — not deleted, not rebuilt — to be revisited later if still needed.
+New cards go at the top of the page.
+
+---
+
+# 2. CORE PRINCIPLE — REVENUE IS NEVER A USER INPUT
+
+This is the single most important rule in this brief and must not be
+relaxed by any future session without an explicit, separate conversation.
+
+The user must never be able to type in a target revenue number and have
+the model work backward to make the business look viable. Revenue only
+ever appears as a READ-OUT — the consequence of a lever (a rate change,
+later a utilisation change) — never as a free-typed input.
+
+The one designed exception is the breakeven toggle (Section 4), which
+computes "what would total revenue have needed to be, at today's cost
+structure and mix, to reach zero net profit." This is a diagnostic
+question the system answers FOR the user, not a field the user fills in.
+It is not a lever, and it does not let the user set an arbitrary number —
+it is a single derived figure with one correct answer given the current
+state.
+
+---
+
+# 3. SCOPE — SMOOTHED MODE ONLY
+
+This entire feature (breakeven toggle, group rate levers, isolated
+per-group breakeven) operates ONLY in Real Capacity's smoothed mode
+("How the Business Runs"), never naive mode ("Each Part On Its Own") and
+never Assumed Capacity.
+
+Reasoning, confirmed with user: breakeven and the per-group lever both
+depend on walking the smoothed cascade's shortfall-sharing hierarchy —
+which group absorbs how much of a shortfall based on what it can actually
+afford to give up. That hierarchy does not exist in naive mode (nothing is
+"carried" in naive mode by definition — see S24) or in Assumed Capacity
+(flat percentage split, no hierarchy to walk). If a future session wants
+an Assumed Capacity or naive equivalent of this feature, that is a new
+design conversation, not an assumed extension of this brief.
+
+---
+
+# 4. FEATURE 1 — ACTUAL / BREAKEVEN TOGGLE ON A REUSED CARD 1
+
+## 4.1 What gets reused
+
+Business Modelling reuses Business Outcome's Card 1 shape (headline net
+profit figure + attention list of sources) as-is — same visual format,
+same familiar territory for the user. This is a new card built for
+Business Modelling, not a live import of the Business Outcome component,
+but it must look and behave the same way so the user recognises it
+immediately.
+
+## 4.2 The toggle
+
+Two states:
+
+- ACTUAL — today's real smoothed net profit and attention list, exactly
+  as Business Outcome Card 1 currently shows it.
+- BREAKEVEN — a hypothetical view showing what every source's numbers
+  would look like if total revenue were exactly the amount required to
+  bring smoothed net profit to zero, holding today's cost structure and
+  rate/cost mix constant, run through the same cascade logic used
+  everywhere else.
+
+## 4.3 How breakeven is calculated
+
+Breakeven is NOT a separate calculation bolted on top of the cascade. It
+runs the same cascade machinery in reverse: solve for the single revenue
+level that makes the cascade's net profit output equal zero, then run
+that revenue level forward through the normal cascade to produce every
+source's resulting figures.
+
+One cascade, two directions:
+- forward: actual inputs → net profit (existing, already built)
+- backward: target net profit (zero) → required revenue → forward through
+  cascade → per-source figures (new, this brief)
+
+## 4.4 What breakeven mode implies for the attention list
+
+Under breakeven, the attention list shows every source's figures AS THEY
+WOULD BE at that hypothetical revenue level, not today's real figures
+sitting under a hypothetical headline. The whole card re-renders as one
+coherent hypothetical state, sourced from one backward-solved revenue
+number pushed through the existing forward cascade.
+
+---
+
+# 5. FEATURE 2 — PER-OPERATING-GROUP RATE LEVER
+
+## 5.1 What a lever is, in this phase
+
+Phase 1 supports exactly one lever type: a blended rate adjustment per
+operating group. The user can raise or lower a group's rate (e.g. "+$5/hr
+on Digger + Operator") and see that group's — and via the cascade, the
+whole business's — resulting net profit.
+
+Confirmed constraints for this phase:
+
+- Hours are held constant. A rate change only moves revenue by
+  rate x existing hours — it never assumes more hours get sold.
+- One blended rate per group. Groups that mix labour and asset
+  components (e.g. digger + operator combining asset recovery and labour
+  recovery into one sell rate) are NOT split into separate levers for
+  their underlying components in this phase. The extra/reduced amount
+  from a rate change is not attributed to asset vs labour internally —
+  it doesn't need to be, because the cascade only consumes the group's
+  total resulting revenue and cost, not its internal composition.
+  Splitting the rate into its asset/labour components is a possible
+  future refinement (shows the user "how much of your increase is asset
+  recovery vs labour recovery") but is explicitly out of scope for phase
+  1.
+
+## 5.2 Three reference points per group
+
+Each operating group's rate row shows three numbers on the same line:
+
+1. CURRENT RATE — today's actual blended rate for that group.
+2. ISOLATED BREAKEVEN RATE — what this group's rate alone would need to
+   become, if this were the ONLY lever pulled and every other group's
+   rate stayed exactly as it is today, for the WHOLE BUSINESS's smoothed
+   net profit to reach zero.
+3. USER TARGET RATE — a value the user types in. May sit below, at, or
+   above the isolated breakeven rate.
+
+## 5.3 The circular-reference problem and how it's resolved
+
+Per-group isolated breakeven numbers cannot all be true simultaneously if
+the user is imagining changing multiple groups' rates at once — moving
+one group's rate changes how much shortfall the cascade shares onto every
+other group, which would change their breakeven numbers too. Solving all
+groups jointly is a genuinely different (and confusing) feature, and is
+explicitly rejected for this phase.
+
+Resolution (confirmed with user): each group's isolated breakeven number
+is a SNAPSHOT, not a locked/persistent target. It is recalculated fresh,
+based on the current state of every other group, every time the page
+(or any lever) changes. It always answers "given everything else exactly
+as it currently sits, what would this one group alone need to do" — never
+"what would it need to do if other things also changed." This must be
+stated in the UI or its supporting copy so the number is never
+misread as a fixed, standalone truth.
+
+## 5.4 Below-breakeven state
+
+If the user's target rate sits below the isolated breakeven rate for that
+group, the UI must visibly flag this as a still-a-loss state (exact
+visual treatment TBD at build time, matching existing pill/status
+conventions per S17 Section 16 style — do not invent new colour/status
+language ad hoc). Above breakeven should read as a surplus/profit-above-
+target state, not merely "resolved."
+
+---
+
+# 6. EXPLICITLY OUT OF SCOPE FOR THIS PHASE — DEFERRED
+
+- **Utilisation lever.** Architecturally compatible with the cascade (the
+  cascade doesn't care whether a group's revenue/cost changed because of
+  a rate move or a utilisation move — it just consumes the resulting
+  group-level revenue and cost). NOT trivial to build, because utilisation
+  changes both revenue (more billable hours) AND cost recovery per hour
+  (fixed asset ownership cost spread over more hours) — a real
+  second-order effect requiring Assets' own utilisation/recovery-basis
+  data. Treat as a distinct future lever type, not an extension of the
+  rate lever's math.
+- Splitting a group's blended rate into separate asset/labour rate levers.
+- Naive-mode or Assumed-Capacity equivalents of breakeven or the group
+  lever.
+- Multi-group simultaneous/joint breakeven solving.
+- Whether a user's target-rate scenario persists (saved) across sessions,
+  or is a live sandbox that resets on page load. NOT YET DECIDED — needs
+  an explicit answer before build, flagged in Section 8.
+- Labour productivity, overhead, and combined-scenario levers from the
+  v4.0 brief (Sections 20-23) — real, still-valid future work, not part
+  of this phase.
+
+---
+
+# 7. LOCKED BOUNDARIES (carried forward from S05, unchanged)
+
+Business Modelling must not:
+
+- overwrite Labour
+- overwrite Assets
+- overwrite General Overheads
+- overwrite Cost Summary
+- overwrite Revenue Summary
+- overwrite Business Summary
+- overwrite Business Outcome
+- override Model Readiness
+- infer missing source truth
+- patch missing values
+- change source module calculations
+
+Business Modelling may only:
+
+- read source output contracts, including Business Outcome's Real
+  Capacity output (group_real_capacity, naive_net_profit, final_net_profit)
+- read Model Readiness
+- store local scenario/lever assumptions
+- calculate modelling-only gaps, breakeven revenue, and isolated per-group
+  breakeven rates
+- expose selected model output
+- expose downstream readiness flags
+
+---
+
+# 8. OPEN QUESTIONS — CONFIRM BEFORE OR DURING BUILD
+
+- Q1: Does a user's target-rate lever value persist as a saved scenario,
+  or reset each time the page loads? Not yet decided.
+- Q2: Exact visual/status treatment for below-breakeven vs above-breakeven
+  target rate states — to be designed against real component patterns at
+  build time, not invented here.
+- Q3: Confirm the precise field names Business Modelling should read from
+  Business Outcome's Real Capacity output contract
+  (group_real_capacity.naive_net_profit / final_net_profit and related)
+  against the LIVE file, not assumed from this brief or from S25's
+  summary — per standing project discipline (S25 Section 6, working
+  conventions).
+- Q4: Where do existing (collapsed) /business-modelling cards go — visibly
+  collapsed with a "legacy" or "coming later" label, or removed from the
+  route entirely until revisited? Recommend visibly collapsed, not
+  removed, so nothing silently disappears.
+
+---
+
+# 9. BUILD SEQUENCE RECOMMENDATION
+
+1. Pull the LIVE current /business-modelling page, useBusinessModelling.js,
+   and businessModellingSelectors.js in full — not assumed from S05's
+   description, which is now over a month old and predates the Business
+   Outcome rebuild.
+2. Pull the LIVE Business Outcome Real Capacity output contract
+   (group_real_capacity, naive_net_profit, final_net_profit) to confirm
+   exact field names/shapes before writing any new selector.
+3. Collapse existing Business Modelling cards per Q4's resolution; do not
+   delete.
+4. Build the new Card 1 (actual/breakeven toggle) first, in isolation,
+   confirm it reconciles to Business Outcome's own headline number in
+   ACTUAL mode before touching BREAKEVEN mode.
+5. Hand-verify one breakeven number in a spreadsheet against real test
+   data before trusting the backward-cascade calculation in code — same
+   discipline used for Real Capacity's original two-phase cascade and the
+   naive headline reconciliation in S25.
+6. Build the per-group rate lever card, reusing the confirmed breakeven
+   mechanism for the isolated per-group figure.
+7. Confirm below/above-breakeven flagging against real numbers.
+8. npm run build, Calculation Trace integrity check, git status clean —
+   per standing acceptance criteria (S05 Section 9 pattern).
+
+---
+
+# 10. FINAL PRINCIPLE
+
+Business Modelling shows what happens if the business changes how it
+earns — never what happens if the business simply earns more. Every
+number this page shows the user must be traceable back to a lever they
+could actually pull, or a diagnostic question the system answered for
+them — never a number they were allowed to assume into existence.

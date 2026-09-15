@@ -1,0 +1,163 @@
+# Mirra v5.1 - Business Outcome Implementation Order
+
+STATUS: IMPLEMENTATION ORDER - FOR EXECUTION
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-27
+COMPANION TO: S16_BUSINESS_OUTCOME_BUILD_BRIEF_v5_1_AMENDMENT.txt
+
+---
+
+# 1. PURPOSE
+
+This sequences the remaining Business Outcome work into build order, so each
+step is done once, on a stable base, without rework. Steps are ordered so
+nothing gets wired downstream before the data underneath it is trustworthy.
+
+Working method for every step below:
+- PowerShell paste-and-run only (no manual file access on your end)
+- Targeted in-place patches by default (`.Replace()` + `Set-Content`)
+- Full-file rewrite only when a targeted patch genuinely isn't possible
+- `npm run build` after every step before moving to the next
+- git commit after every step, one step = one commit
+- stop and check in with you after each step, not just at the end
+
+---
+
+# 2. WHY THIS ORDER
+
+Labour recovery (Section 7 of the amendment) is already built, working, and
+committed - that is not in this sequence.
+
+Everything left falls into two kinds:
+- fixing/hardening what Business Outcome already shows (Steps 1-2)
+- wiring Business Outcome out to the modules that are supposed to consume it
+  (Steps 3-5)
+
+Wiring a downstream consumer to data that's still flagged "not yet ready for
+downstream use" means redoing that wiring later. So the reconciliation
+mismatch gets resolved before any downstream wiring starts.
+
+---
+
+# 3. STEP ORDER
+
+## STEP 1 - Housekeeping check (near-zero cost, do first)
+
+Confirm the previous session's loose ends are actually closed:
+- confirm diagnostic console.log lines are out of
+  hooks/useBusinessOutcomeLabourRecovery.js
+- confirm git status is clean (only your own two known untouched files should
+  ever show as modified)
+
+Output: confirmation only, patch if the diagnostic lines are still there.
+
+## STEP 2 - Resolve the "Reconciliation mismatch" warning
+
+The top banner on /business-outcome currently reads "Partial - some upstream
+sources not yet ready" with a "Reconciliation mismatch" flag, sourced from
+hooks/useBusinessOutcomeTruth.js. This is the Stage 2 truth-chain check
+comparing Business Summary against Revenue/COG truth.
+
+This needs a short investigation before anything else, because:
+- it's the thing actually gating "downstream_ready"
+- we don't yet know if it's a real data problem or a stale/overly strict check
+
+Action: inspect useBusinessOutcomeTruth.js's reconciliation logic and the
+actual current values it's comparing, identify whether it's a genuine
+mismatch (real data problem, do not silently patch) or a check that needs
+correcting. Report back before patching.
+
+## STEP 3 - Formalise the output_contract in code
+
+Right now labour_recovery is returned by its own hook with its own shape.
+The v5.0/v5.1 brief specifies a single output_contract object (Section 6 of
+v5.0 + Section 5 of the v5.1 amendment). Before wiring downstream consumers,
+Business Outcome's page-level data should be assembled into that one
+documented shape, so every downstream consumer reads the same contract
+instead of reaching into multiple hooks individually.
+
+Action: add a thin selector (e.g. businessOutcomeOutputContractSelectors.js)
+that composes useBusinessOutcomeTruth + useBusinessOutcomeLabourRecovery into
+the documented output_contract shape. Existing hooks and the page's own
+rendering are not touched - this is additive, for downstream use only.
+
+## STEP 4 - Wire AI-readable Business State Export (S06)
+
+lib/selectors/aiBusinessStateSelectors.js currently packages business_summary,
+business_modelling, and selected_model. It does not include business_outcome.
+
+Action: add a business_outcome section to the export object, sourced from the
+Step 3 output_contract selector. Read-only inclusion, no recalculation, per
+S06's own locked boundaries.
+
+This is lower-risk than Dashboard or Business Modelling because /ai-business-
+state is developer/admin-facing, not customer-facing - a good first downstream
+consumer to prove the contract works before touching user-facing pages.
+
+## STEP 5 - Wire Business Overview Dashboard (S07) and/or Business Modelling (S05)
+
+Once Step 4 confirms the contract holds up, decide together whether Dashboard,
+Business Modelling, or both are worth wiring now versus deferring. Both are
+"display/consume only, don't recalculate" per their own locked boundaries, but
+they're user-facing, so worth doing deliberately rather than both at once.
+
+## STEP 6 - Revenue-split visual ("where every revenue dollar goes")
+
+Earlier in this build (before Steps 1-5), a visual treatment for /business-
+outcome was discussed and mocked up: a horizontal bar showing revenue split
+by percentage across Labour / Assets / Overheads / COG / Net profit, instead
+of (or alongside) the current list-style figures. The intent was for this to
+be the page's real payoff - showing the shape of the business at a glance,
+not just confirming it's viable.
+
+This was agreed in principle but never built, and was not part of Steps 1-5.
+It sits here, after downstream wiring, because:
+- it's a presentation layer on top of data Steps 1-3 already made correct
+  (total_revenue, total_cost_burden broken into labour/asset/overhead,
+  total_COG) - building it before Step 2's reconciliation fix would have
+  meant visualising numbers that were still wrong
+- it doesn't block AI Export, Dashboard, or Business Modelling consuming the
+  output_contract, so it doesn't need to happen before Step 4/5
+
+Action: confirmed during investigation - Business Summary's
+cost_burden_breakdown (the field originally assumed to hold this split) is
+dead code, always resolving to its own empty default at every point in the
+chain. See KNOWN_ISSUE_cost_burden_breakdown_dead_field_v5_1.txt for the
+full trace. Not fixed now - out of scope for this step - but logged so it
+isn't lost.
+
+The visual instead uses the real, separately-populated fields already in
+Business Summary's output_contract: total_people_cost_annual (labour),
+total_asset_cost_annual (assets), total_business_overheads (overheads),
+total_direct_costs (COG, via the truth-chain's total_COG), total_revenue,
+and net_position (net profit). Build the bar visual as a new component on
+the existing /business-outcome page. Read-only, same as the labour recovery
+card - no new calculation, only presentation of numbers already in the
+output_contract.
+
+---
+
+# 4. EXPLICITLY NOT IN THIS SEQUENCE (deferred, per amendment Section 8)
+
+- Contribution contract (v5.0 Section 7) and Driver contract (v5.0 Section 8)
+  - real, but not blocking anything currently in use; separate future step
+- Asset / unit-priced recovery visibility - blocked on no persisted
+  actual-charged data existing anywhere yet (Job Costing S23, not started)
+- Job Costing itself - explicitly deprioritised, not to be raised again
+  unless requested
+
+---
+
+# 5. CHECK-IN RULE
+
+After each step: build passes, commit made, brief one-line status back to
+you before starting the next step. No step starts without your go-ahead.
+
+---
+
+# 6. FINAL PRINCIPLE
+
+Fix what's shown before wiring who sees it. Wire the lowest-risk consumer
+first to prove the contract, before touching user-facing pages. Only build
+the payoff visual once the numbers feeding it are confirmed correct.

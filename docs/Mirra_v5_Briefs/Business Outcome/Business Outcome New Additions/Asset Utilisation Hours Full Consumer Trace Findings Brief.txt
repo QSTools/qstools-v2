@@ -1,0 +1,71 @@
+# Asset Utilisation Hours — Full Consumer Trace: Findings Brief
+**Date:** 2026-09-11
+**Repo:** D:\QSTools\qstools-web
+**Status:** Verification complete. This is the evidence record behind `ASSET_UTILISATION_DOWNTIME_IMPLEMENTATION_SPEC_2026-09-11.md` Section 1. Read that spec for the build plan — this document is the trace itself: what was checked, how, and what was found.
+
+**Purpose:** Before building the Asset Utilisation/Downtime feature, every code path that reads any asset-hours-related field was traced back to its source, file by file, to confirm the planned single upstream fix (correcting `utilisation_hours_per_week` at the point Assets saves it) is genuinely sufficient — not assumed sufficient. This was prompted by the scoping brief's own warning that this "is major... a huge change in the system," and by two prior findings this project already made this session of a live number silently going wrong despite the build passing (see `BUSINESS_OUTCOME_SESSION_BRIEF_2026-09-10.md` Section 4).
+
+---
+
+## 1. Method
+
+- Full-repo search for every literal occurrence of the candidate field names, using PowerShell (`Get-ChildItem -Recurse` piped to `Select-String`), explicitly excluding `node_modules` and `.next` (compiled output).
+- Every file that referenced a candidate field was opened and read directly — not sampled, not pattern-matched by filename or by similarity to an already-checked file.
+- Every "this looks fine" conclusion was followed one hop further back (does this read a live hook? a prop? a stored value?) until it terminated at either a confirmed live `useMemo`/hook computation, or a confirmed dead/inert stored value.
+- Several PowerShell command failures occurred during the search itself (globbing syntax, `-Include` not filtering on recursion, `-SimpleMatch` disabling regex alternation, a stale `$files` variable). Each was individually diagnosed via isolated sanity checks before trusting the next "blank" result — logged here because a blank search result was wrongly trusted once already this project, elsewhere, and cost debugging time (see Business Outcome brief, Section 4, "field-name traps").
+
+---
+
+## 2. Source of truth
+
+`asset.utilisation_hours_per_week` — stored on the saved asset record, owned by the Assets module, written only in `components/assets/AssetForm.jsx`. Confirmed the only field a user directly edits for this concept.
+
+---
+
+## 3. Every consumer found, and its status
+
+| Consumer | File | Status |
+|---|---|---|
+| Assets' own hook recompute | `hooks/assets/assetHookUtils.js` (`get_asset_utilisation_fields`) | **Live.** Reads `utilisation_hours_per_week` fresh every call. |
+| Assets' own selector recompute | `lib/selectors/assets/assetSelectorUtilisation.js` (`get_live_asset_utilisation_hours_annual`) | **Live.** Same pattern, shared helper file underlying two other consumers. |
+| Assets' output contract | `hooks/assets/assetOutputContract.js` | **Live.** `asset_rows` spreads `...asset` first, then explicitly overrides `utilisation_hours_per_week`/`utilisation_hours_annual` with live-computed `utilisation_fields` — spread order verified correct. |
+| Assets' calculation layer | `lib/calculations/assetCalculations.js` | **Live.** Recomputes locally, same pattern. |
+| Recovery Summary | `lib/calculations/recovery-summary/calculateRecoverySummary.js` (via `asset_contract`) | **Live.** Traced through `hooks/useRecoverySummary.js` → `model_readiness.modules.assets.output_contract` — a live read, not a stored snapshot. Import path double-checked (`lib/calculations/recoverySummaryCalculations.js` is a confirmed one-line re-export, not a second implementation). |
+| Assets' pool-total sums (×3) | `assetOutputContract.js`, `lib/selectors/assets/assetCardSelectors.js`, `lib/selectors/assets/assetStatusSelectors.js` | **Live.** Three independent `reduce` sums of the same live per-asset value. Correct, but a hygiene concern — see Section 5. |
+| Cost Allocation pool builder | `lib/calculations/cost-allocation/costAllocationAssetPoolBuilders.js` (`available_asset_hours`) | **Live.** Resolves via `get_total_asset_hours()` in `costAllocationSharedHelpers.js`, which checks `row.utilisation_hours_annual` — live in the normal case. |
+| Cost Allocation recovery overlay | `hooks/cost-allocation/useCostAllocationAssetOverlay.js` (`asset_recovery_hours_used`) | **Live.** Resolves via `get_asset_recovery_hours()`, checks `asset.utilisation_hours_annual` first, sourced from the live output contract. Confirmed output-only — no form input, no manual override anywhere in Cost Allocation components. |
+| Cost Allocation group cost builder | `lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js` | **Live**, for groups on `asset_hours` recovery basis. See Section 4 for the `manual_hours` exception. |
+| Cost Allocation assignment cards | `hooks/cost-allocation/useCostAllocationAssignmentCards.js` | **Live.** Reads from `calculated.productive_asset_pool`, same verified chain. |
+| Cost Allocation output contract | `hooks/cost-allocation/useCostAllocationOutputContract.js` | **Clean, not a calculation site.** Pure pass-through shape-builder; relays `calculated.*` values already verified elsewhere. |
+| Business Outcome per-source revenue | `hooks/useBusinessOutcomePerSourceRevenue.js` | **Live.** Consumes `useCostAllocation()` as a live hook call, not a cached prop — full chain traced back to the source. |
+| Rate Builder result panel | `components/rate-builder/line-calculator/RateBuilderResultPanel.jsx` | **Clean, display-only.** No independent calculation. |
+| Rate Builder line calculator | `components/rate-builder/line-calculator/useRateBuilderLineCalculator.js` | **Live.** `selected_cost_allocation_group` built via `useMemo`, not cached. |
+| Display-only components (asset list, status strip, division summary, group cost stacks, groups card) | `AssetListCard.jsx`, `AssetStatusStrip.jsx`, `CostAllocationDivisionCostSummary.jsx`, `GroupCostStacksSection.jsx`, `CostAllocationGroupsCard.jsx` | **Clean.** All read pre-computed row/prop values, no independent logic. `GroupCostStacksSection.jsx`'s repeated use of one `group_recovery_hours` value across three display rows (labour/asset/overhead) was checked and confirmed intentional — one shared recovery-hours driver, three distinct cost streams divided by it, matching the documented "no cross-subsidy" design. |
+
+---
+
+## 4. Real findings — genuine discoveries, not false alarms
+
+### 4.1 `utilisation_hours_annual` IS persisted, and is dead code
+`lib/storage/assetStorage.js`'s `sanitizeSavedAssetRecord()` calls `calculateAssetOutputs()` at save time and freezes `utilisation_hours_annual` into the saved record in `localStorage`. This is a genuine snapshot — but every live consumer traced above overrides it before use. **Confirmed inert for calculation purposes today.** Still visible on raw record-level display (`AssetListCard.jsx`), so a stale frozen value post-migration would be a cosmetic display bug only, not a calculation error — provided the migration goes through the real save path (see implementation spec, Section 2.3).
+
+### 4.2 Cost Allocation groups on `manual_hours` are entirely unaffected by this feature
+Cost Allocation groups have three possible recovery-hour sources: `asset_hours`, `labour_hours`, `manual_hours` (`costAllocationGroupCostBuilder.js`), chosen once per group and — per an existing code comment — "stored on the group record, and never recalculated downstream." Only `asset_hours` groups will see any effect from the new downtime deduction. Groups on `manual_hours` read a separately user-entered figure (`manual_group_recovery_hours`) with no relationship to `utilisation_hours_per_week`. **This is a real, user-facing gap that needs communicating when the feature ships** — otherwise a business owner using manual hours for a group may reasonably expect downtime tracking to affect that group and be confused when it silently doesn't.
+
+### 4.3 Forward-looking architectural caveat (not a bug — a requirement for future work)
+The live-everywhere result holds today because every read path happens to go through React hooks that recompute on render, not because of an explicit architectural guarantee. Any future live-data write path (accounting feed, batch import, server-side job) that writes asset records directly into storage **without** going through `save_asset()`/`sanitizeAssetState()` would need to independently guarantee `utilisation_hours_per_week` correctness — it is the one field every live consumer actually trusts. Flagged as a named requirement for whenever that integration is scoped (implementation spec, Section 5).
+
+---
+
+## 5. Minor, non-blocking observations (optional future hygiene work, not required for this feature)
+
+- **Three independent sum-sites** compute `total_productive_asset_utilisation_hours_annual` (`assetOutputContract.js`, `assetCardSelectors.js`, `assetStatusSelectors.js`). All correct today, all reading the same live source — but three copies of the same simple sum is the same "two-copies-drift-apart" pattern this project has already found and fixed twice elsewhere (Business Outcome brief, Section 3). Worth consolidating into one shared function at some point — not required for correctness now.
+- **`assetHookUtils.js` and `assetCardSelectors.js`'s `live_` variant likely both route through the same shared helper file** (`assetSelectorUtilisation.js`), meaning the "four independent consumers" framing in the original scoping brief may already be closer to two than four in practice. Worth confirming exactly which of the four call into the shared file vs which have fully separate inline math, before deciding how much consolidation work (if any) is worth doing later.
+
+---
+
+## 6. Conclusion
+
+No consumer found anywhere in the codebase reads a stale or cached asset-hours value for calculation purposes. The single upstream fix proposed in the implementation spec — correcting `utilisation_hours_per_week` at the point Assets persists it — is confirmed sufficient for every live calculation path in the current system. Two genuine, non-obvious findings (4.1, 4.2) were captured and folded into the implementation spec rather than being discovered post-ship. One architectural caveat (4.3) is recorded as a named requirement for future live-data integration work, not an issue with the current build.
+
+**This trace is considered complete.** Every file returned by the full-codebase search for the relevant field names was individually opened and read. Ready to proceed to implementation per `ASSET_UTILISATION_DOWNTIME_IMPLEMENTATION_SPEC_2026-09-11.md`.

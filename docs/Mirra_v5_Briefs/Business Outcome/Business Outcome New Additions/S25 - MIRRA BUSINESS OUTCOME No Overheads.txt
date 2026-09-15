@@ -1,0 +1,205 @@
+S25 - MIRRA BUSINESS OUTCOME: UNDISTRIBUTED OVERHEAD VIEW BUILD BRIEF
+VERSION: v5.1
+STATUS: DRAFT - CAPTURED FOR FUTURE BUILD, NOT YET IMPLEMENTED
+DATE: 2026-09-04
+ORIGIN: Business Modelling voice build session (2026-09-03/04). Split out
+from S24 Section 5 into its own brief at the user's request, so it can be
+evaluated and built independently rather than as a footnote.
+
+---
+
+# 1. WHAT THIS IS
+
+A second, explicitly-labelled lens on Business Outcome's per-group figures:
+alongside the current view (every group carries its fair share of business
+overhead in its true cost - "full absorption costing"), add a toggleable
+view where groups carry ONLY their direct labour/asset cost, and total
+overhead sits separately as one lump-sum deduction against the whole
+business ("contribution margin" costing).
+
+Same underlying data, two different lenses - nothing about real cost or
+real revenue changes. Only how overhead is attributed to individual groups
+changes, and only in this second view.
+
+---
+
+# 2. WHY THIS MATTERS
+
+This is a standard, well-established split in management accounting - not a
+niche or unusual idea - and it answers two genuinely different questions:
+
+    Full absorption (current, default):
+        "Are we pricing correctly to recover EVERYTHING - including the
+        office, insurance, admin, and every other overhead - if this group
+        is our only source of revenue?"
+        This is the correct basis for setting rates and quoting. Overhead
+        genuinely has to be paid for by someone, and this view makes sure
+        no group's rate is quietly under-recovering it.
+
+    Contribution margin (new, toggle):
+        "How much is this group actually contributing toward covering our
+        fixed costs, independent of however we happened to divide overhead
+        up between groups?"
+        This protects against a specific, real failure mode: overhead
+        allocation bases are inherently somewhat arbitrary (this system
+        uses hours-based; a different business might use revenue-based or
+        headcount-based). A group can look unprofitable purely because it
+        absorbed a large overhead share that period - while genuinely
+        contributing real, positive dollars toward keeping the business
+        running. A business owner or CFO acting only on the fully-absorbed
+        view risks "fixing" or cutting a group that was actually fine, and
+        missing a group that looks fine but genuinely isn't paying for
+        itself once overhead is fairly counted.
+
+Confirmed with the user this session: they believe the CFO/business-analyst
+audience for this system would want and expect both views to exist, even if
+full absorption remains correct as the default / pricing basis.
+
+---
+
+# 3. THE MECHANIC
+
+For each operating group:
+
+    Full absorption (current):
+        true_cost_absorbed = labour_cost + asset_cost + overhead_share
+
+    Contribution margin (new view):
+        true_cost_contribution = labour_cost + asset_cost
+        (overhead_share removed - shown separately instead)
+
+    total_overhead_pool = SUM(every group's overhead_share) + any
+                           unassigned overhead
+
+Everything downstream that depends on true_cost shifts when the toggle is
+flipped - not just the headline number:
+
+    - net_profit (revenue - true_cost) increases for every group, since
+      true_cost drops
+    - minimum recoverable / breakeven rate (true_cost / hours) drops for
+      every group
+    - verdict (paying_its_way / being_carried) can flip for a group sitting
+      close to zero
+    - the business-wide total must still reconcile: sum of every group's
+      contribution-margin net profit, minus the one lump-sum overhead pool,
+      must equal the same total business net profit as the full-absorption
+      view. Same total, different attribution - this must be verified to
+      the cent before shipping this view, exactly as tonight's cascade
+      testing verified the existing views.
+
+---
+
+# 4. WORKED EXAMPLE (hand-verified this session, real data)
+
+2inc Line, using real figures pulled from the live Cost Allocation screen
+this session:
+
+    Labour recovery cost:    $93,766.00
+    Asset recovery cost:     $33,358.00
+    Overhead recovery cost:   $9,748.76
+    -------------------------------------
+    Total group cost (absorbed): $136,872.20   [current, default view]
+
+    Contribution-margin true cost (overhead removed):
+        $93,766.00 + $33,358.00 = $127,124.00
+        (matches the $127,123.44 figure discussed this session within
+        rounding)
+
+    Effect on minimum recoverable / breakeven rate (1,920 recovery hours):
+        Absorbed:            $136,872.20 / 1,920 = $71.29/hr
+        Contribution margin: $127,124.00 / 1,920 = $66.21/hr
+
+    Effect on net profit, using 2inc Line's real modelled revenue
+    ($276,960.00, real rate x real hours):
+        Absorbed net profit:            $276,960.00 - $136,872.20 = $140,087.80
+        Contribution margin net profit: $276,960.00 - $127,124.00 = $149,836.00
+        (difference = exactly the $9,748.76 overhead share removed, as
+        expected - confirms the mechanic is a pure re-attribution, not a
+        new number)
+
+NOT YET AVAILABLE - needed before build: the equivalent overhead-share
+breakdown for the other four operating groups (Foreman, Site Crew, PC55,
+PC15). Only 2inc Line's overhead share was pulled and hand-verified this
+session. The business-wide total overhead figure ($51,166) IS confirmed,
+but its per-group split for the remaining four groups is not - do not
+estimate or infer these; pull them from Cost Allocation the same way
+2inc Line's was pulled, before building the full table.
+
+---
+
+# 5. WHERE THIS LIVES / UI PATTERN
+
+Suggested pattern: a toggle, in the same visual style as the existing Real
+Capacity / Assumed Capacity toggle already on Business Outcome's per-source
+card - not a separate page, not a permanent second set of numbers shown at
+once (risk of the two being confused or misread as disagreeing with each
+other).
+
+Whichever toggle state is active should be clearly, persistently labelled
+on screen (not just at the toggle control) - given the real risk described
+in Section 6, a user should never be more than a glance away from knowing
+which lens they're looking at.
+
+---
+
+# 6. RISK - MUST BE HANDLED EXPLICITLY IN THE BUILD
+
+The contribution-margin view's lower "breakeven" rate is real and correct
+FOR WHAT IT MEASURES - but it is not a safe number to price a job against.
+Quoting or setting a rate using the contribution-margin breakeven would
+under-recover overhead across the business, since that overhead still has
+to be paid by someone, and this view deliberately stops counting it against
+individual groups.
+
+Build requirement: the contribution-margin view must carry a persistent,
+unmissable warning (not a one-time tooltip) whenever active - something
+equivalent to: "This view excludes overhead. Do not use these figures to
+set prices or quotes - see the full-cost view for that." This is not
+optional polish; it is the difference between a genuinely useful second
+lens and a number that could lead directly to under-priced work if
+misread.
+
+---
+
+# 7. RELATIONSHIP TO OTHER BRIEFS
+
+  - S24_MIRRA_RATE_BUILDER_OUTCOME_COSTS_HANDOVER_BRIEF_v5_1.txt Section 4
+    (Phase 2 - consolidated per-group cost view) is a natural place for
+    this toggle to live once built, since that view already brings cost,
+    minimum recoverable rate, current rate, revenue, and net profit
+    together in one place per group - this toggle would apply to that same
+    view rather than needing its own separate display.
+  - Does not depend on S23 (Revenue Reconciliation) or Materials gaining a
+    real entered markup - this brief concerns operating-group overhead
+    only, not Materials/COG.
+
+---
+
+# 8. OPEN QUESTIONS FOR NEXT SESSION
+
+  1. Pull and hand-verify the remaining four groups' overhead-share figures
+     from Cost Allocation (Foreman, Site Crew, PC55, PC15), the same way
+     2inc Line's was pulled this session, before building the full table.
+  2. Confirm whether this toggle should live inside S24's Phase 2
+     consolidated view, or as its own independent addition to Business
+     Outcome - user has not yet been asked this directly.
+  3. Exact wording and visual treatment of the Section 6 warning - needs to
+     be unmissable without being alarmist, given it will show every time
+     this (legitimately useful) view is active.
+  4. Confirm the business-wide reconciliation (contribution-margin total
+     net profit minus lump-sum overhead = same total as full-absorption
+     view) to the cent, using real data, before this ships - same
+     discipline as tonight's cascade verification.
+
+---
+
+# 9. HAND-VERIFICATION LOG (for trust/traceability)
+
+2inc Line's figures in Section 4 (labour $93,766.00, asset $33,358.00,
+overhead $9,748.76, total $136,872.20, modelled revenue $276,960.00) were
+read directly from a live Cost Allocation screenshot during this session,
+and the contribution-margin recalculation was checked by hand against those
+real figures - not estimated. The other four groups' overhead splits are
+explicitly marked NOT YET AVAILABLE in Section 4 and must be pulled fresh,
+not inferred from the business-wide total, before the full brief can be
+built out.

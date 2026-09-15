@@ -1,0 +1,144 @@
+====================================================================
+S31 — ASSET UTILISATION / DOWNTIME
+STAGE LOCK HANDOVER v5.1
+====================================================================
+STATUS: BUILT, LIVE-TESTED, AND COMMITTED (commit 6c8995f).
+VERSION: v5.1
+OWNING MODULES: Assets, Cost Allocation, Recovery Summary, Rate Builder
+DATE: 2026-09-11
+
+--------------------------------------------------------------------
+1. WHAT THIS CLOSES
+--------------------------------------------------------------------
+
+Assets previously had no equivalent of Labour's non-productive-time
+deduction for scheduled maintenance, servicing, or breakdowns. This
+was identified as a confirmed prerequisite for the paused Real/
+Assumed Capacity bidirectional drill-down on Business Outcome (see
+BUSINESS_OUTCOME_SESSION_BRIEF_2026-09-10.md, Section 8) — asset
+hours were not trustworthy enough as an input to that drill-down
+without this.
+
+Full scoping history: ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_
+2026-09-10.md (five open questions, all resolved — see Section 2
+below). Full design: ASSET_UTILISATION_DOWNTIME_IMPLEMENTATION_
+SPEC_2026-09-11.md. Full codebase consumer trace: ASSET_UTILISATION_
+HOURS_CONSUMER_TRACE_FINDINGS_2026-09-11.md.
+
+--------------------------------------------------------------------
+2. WHAT WAS BUILT
+--------------------------------------------------------------------
+
+New fields on the asset record: scheduled_hours_per_week (asset-
+specific ceiling, blank by default, never auto-filled from business
+opening hours) and downtime_hours_per_week (single weekly figure,
+scheduled maintenance/servicing/breakdown time).
+
+utilisation_hours_per_week is now CALCULATED for assets that have
+adopted the new model: max(scheduled - downtime, 0). Falls back to
+legacy direct entry when scheduled_hours_per_week is unset, so
+un-migrated assets are unaffected until they adopt the new fields.
+
+Single upstream fix point, not four/five separate patches: every
+downstream consumer (Assets output contract, Recovery Summary, Cost
+Allocation pool builder and recovery overlay, Rate Builder) reads
+utilisation_hours_per_week live and recomputes independently.
+Confirmed via full codebase trace before writing any code — see the
+findings doc for the complete file-by-file record.
+
+AssetForm.jsx: single "Hours used per week" input replaced with
+Scheduled hours per week / Downtime hours per week / calculated
+read-only display, in that order. Guide-fill pre-populates scheduled
+hours from the asset's existing value on first load if unmigrated —
+convenience only, nothing written to storage until the user saves.
+
+Migration: 6 existing productive assets migrated via a one-time
+browser console script (logged before/after, idempotent, respects
+each asset's own asset_annual_weeks_override). Confirmed numerically
+unchanged for every asset (downtime = 0 on migration, by design).
+
+--------------------------------------------------------------------
+3. VERIFICATION PERFORMED
+--------------------------------------------------------------------
+
+Not just code review. Hand-verified against the live running app:
+- Real test asset created (scheduled 40, downtime 4) — saved record
+  confirmed utilisation_hours_per_week: 36, matching the formula.
+- Assigned to a live Cost Allocation group on asset_hours recovery
+  basis — rendered group evidence panel confirmed the corrected 36
+  hours/week propagated all the way through to the screen (1,872
+  annual = 36 x 52, the business's real Opening Hours default).
+- Migration dry-run caught a real bug before it shipped: the first
+  version of the migration script ignored per-asset
+  asset_annual_weeks_override (would have silently corrupted PC55's
+  frozen annual figure, which uses a 30-week override, not the
+  default). Script corrected and re-verified before committing.
+- Post-migration, visually confirmed via the live UI (Selected Asset
+  Position card, Group Cost Stacks) that all 6 migrated assets show
+  identical numbers to before migration. Screenshots taken.
+
+--------------------------------------------------------------------
+4. KNOWN LIMITATIONS — NOT BUGS, NOT FIXED HERE
+--------------------------------------------------------------------
+
+Cost Allocation groups using manual_hours recovery basis are
+entirely unaffected by this feature — they read a separately
+user-entered manual_group_recovery_hours figure with no relationship
+to utilisation_hours_per_week. Needs user-facing communication when
+surfaced to real users (in-app copy or release notes) so a business
+owner on manual hours doesn't expect downtime to move their numbers
+and get confused when it doesn't.
+
+lib/storage/assetStorage.js freezes utilisation_hours_annual at save
+time using a hardcoded 48-week constant (ASSET_UTILISATION_WEEKS_
+PER_YEAR), which disagrees with the live business default (52 weeks
+in this test business) and with any per-asset asset_annual_weeks_
+override. Confirmed this frozen field is dead/unused by every live
+consumer in the codebase — cosmetic only, visible on raw record-
+level display (e.g. AssetListCard.jsx) but not feeding any real
+calculation. Pre-existing, not introduced by this work. Worth a
+separate low-priority cleanup ticket: replace the hardcoded constant
+with the real resolved annual-weeks value, consistent with the live
+path.
+
+--------------------------------------------------------------------
+5. WHAT THIS UNBLOCKS
+--------------------------------------------------------------------
+
+The Real/Assumed Capacity / group-level bidirectional coverage-gap
+drill-down on Business Outcome (BUSINESS_OUTCOME_SESSION_BRIEF_
+2026-09-10.md, Section 8) — fully designed, was PAUSED pending this
+work. Asset hours are now a trustworthy input. Ready to resume as
+its own dedicated session.
+
+--------------------------------------------------------------------
+6. FILES CHANGED
+--------------------------------------------------------------------
+
+components/assets/AssetForm.jsx
+lib/storage/assetStorage.js
+
+Commit 6c8995f. Full commit message includes the summary above in
+more detail — see git log.
+
+--------------------------------------------------------------------
+7. OUTSTANDING, NOT PART OF THIS BRIEF
+--------------------------------------------------------------------
+
+- Cost Allocation/Rate Builder manual_hours user-facing communication
+  (Section 4).
+- assetStorage.js hardcoded-48-weeks cleanup (Section 4).
+- Three independent sum-sites for total_productive_asset_
+  utilisation_hours_annual (assetOutputContract.js, assetCardSelectors.js,
+  assetStatusSelectors.js) — all correct, all live, but a
+  consolidation opportunity flagged in the findings doc, not required
+  for correctness.
+- docs/Mirra_v5_Briefs folder itself has grown large (90+ files,
+  numbering gaps at S23/S26/S27/S28, several untitled/unnumbered
+  session docs). Flagged here so it isn't lost — worth a dedicated
+  cleanup/audit session at some point, deliberately not attempted as
+  part of this feature's close-out.
+
+====================================================================
+END OF BRIEF
+====================================================================

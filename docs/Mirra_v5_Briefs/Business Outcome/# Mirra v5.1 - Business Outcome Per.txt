@@ -1,0 +1,199 @@
+# Mirra v5.1 - Business Outcome: Per-Source Revenue Attribution Brief
+
+STATUS: BUILD BRIEF - FOR REVIEW
+VERSION: v5.1
+MODULE TYPE: Business Outcome / Commercial Truth Layer
+DATE: 2026-08-27
+AUTHORITY: Extends S23_BUSINESS_OUTCOME_NET_PROFIT_STREAM_UNPACKING_BUILD_
+BRIEF_v5_0 to per-source granularity, following on directly from building
+the waterfall (S23's three-stream view) and finding its "by operating
+group" section unreliable.
+
+---
+
+# 1. WHY THIS EXISTS
+
+The waterfall (S23, built and reconciled this session) proves the business
+is viable in total. It does not show which part of the business is
+producing that result and which part is being carried by the rest.
+
+Testing the waterfall's "by operating group" section against the already-
+verified Labour Recovery card (built and debugged earlier this session)
+surfaced a real conflict: Foreman showed a $11,796 loss in the group split,
+while every labour source showed as recovering in the Labour Recovery card.
+Traced to source: the group split prices labour using Rate Builder's
+"active model" rate (calculate_weighted_summary_charge_out_rate, keyed off
+active_model) - the exact same stale-rate pattern already found and fixed
+in the Labour Recovery card earlier this session (real rates are not
+stored per-model; the true source of record is the flat per-source map,
+readRateBuilderLabourSourceRates()). The group split's headline totals
+were never fixed to use that correction - only the Labour Recovery card
+was.
+
+The real need underneath this: you cannot model how to fix the business if
+you cannot see what is producing its revenue and what is not. This brief
+defines that view properly, rather than patching the group split's rate
+source in isolation.
+
+---
+
+# 2. THE PRINCIPLE
+
+Every dollar of revenue traces to what earned it. Every dollar of cost,
+including its fair share of overhead, lands against whichever revenue-
+producing source it actually belongs to. The sum of every source's
+individual net profit equals total net profit exactly - the reverse-proof
+of the P&L, now at source granularity rather than three lump totals.
+
+This is S23's Section 3 reconciliation anchor, applied one level deeper:
+not just material/labour/asset, but Foreman/Site Crew/Owner-Director/
+PC55/2inc Line/materials - whatever the real revenue-producing sources
+actually are - each shown with its own revenue, true fully-loaded cost,
+and verdict: paying its way, or being carried.
+
+---
+
+# 3. WHAT "SOURCE" MEANS HERE
+
+A source is anything Cost Allocation already treats as a cost pool with a
+real charge-out mechanism:
+
+- A labour source type (Operator/Delivery Staff, Owner/Director, Senior
+  Operator/Senior Staff, Site Crew, Foreman, etc.) - the same granularity
+  already correctly used by the Labour Recovery card.
+- A productive asset or asset group with a Rate Builder calculator linked
+  (PC55, 2inc Line, etc.).
+- Materials/COG as a whole (not per-source, since materials don't have
+  Cost Allocation groups - see Section 5).
+
+This is NOT the same as a Cost Allocation "operating group." An operating
+group can currently mix multiple labour types and/or assets together
+(confirmed in businessOutcomeAssetSplitCalculations.js - a group can have
+hasLabour and hasAsset both true, with a labourAssignments array of
+multiple staff types inside one group). The per-source view must attribute
+revenue and cost at the SOURCE level (staff type / asset), not the group
+level, then optionally roll sources back up to their group for display if
+useful - not the other way around.
+
+---
+
+# 4. PER-SOURCE REVENUE AND COST
+
+For each labour source:
+- revenue = true_cost_per_hour... no - revenue = charge_out_rate (real,
+  per-source, from readRateBuilderLabourSourceRates() - the CORRECTED
+  source, same as Labour Recovery card) x that source's real recovery
+  hours (from Cost Allocation, per source, not per group)
+- true cost = real labour cost (Labour module, per staff type) + that
+  source's allocated overhead (Cost Allocation, per source - already
+  correctly computed, this is exactly what the Labour Recovery card
+  already shows as true_cost_per_hour)
+- net profit = revenue - true cost
+- verdict = paying its way (net profit >= 0) or being carried (net profit
+  < 0)
+
+This is almost entirely already-built, already-verified logic - it is the
+Labour Recovery card's own true_cost_per_hour and charge_out_rate, just
+multiplied out to annual dollars via real hours instead of shown per-hour.
+The bug was never in the Labour Recovery card's numbers; it was in the
+waterfall's separate, older, uncorrected group-split calculation duplicating
+the same job with the wrong rate source.
+
+For each productive asset/asset source:
+- revenue = Rate Builder calculator's charged amount for that asset's
+  actual usage (existing calculateRateBuilderQuotePreview logic, already
+  used correctly in businessOutcomeAssetSplitCalculations.js for assets -
+  this part was not found to be broken, only the labour side was)
+- true cost = real asset cost (Assets module) + that asset's allocated
+  overhead (Cost Allocation)
+- net profit = revenue - true cost
+- verdict = same as labour
+
+For materials/COG (whole, not per-source):
+- revenue = material sales revenue (Revenue/COG truth)
+- true cost = true COGS + residual/unassigned overhead (whatever Cost
+  Allocation did not distribute to labour or asset pools - S23 Section 7)
+- net profit = revenue - true cost
+- verdict = same as labour/asset
+
+---
+
+# 5. THE RECONCILIATION ANCHOR (MANDATORY)
+
+Sum of every source's revenue = total_revenue (Business Summary).
+Sum of every source's net profit = net_position (Business Summary).
+
+If these do not reconcile exactly, the variance must be surfaced as an
+explicit, visible remainder - never hidden, never rounded away, never
+silently absorbed into one source to force a match. Same non-negotiable
+rule as S23 Section 3 and the waterfall's existing reconciliation banner.
+
+Known open question requiring a decision before build: unassigned labour/
+asset cost (real cost that exists but is not attributed to any Cost
+Allocation group) and residual/undistributed overhead both need a home in
+this reconciliation. Options: (a) their own explicit "Unassigned" line,
+never folded into a named source, or (b) residual overhead only folds into
+materials per S23 Section 7, unassigned labour/asset cost gets its own
+line regardless. Recommend (b) for consistency with the already-locked S23
+decision on overhead, decision needed on unassigned labour/asset cost
+specifically.
+
+---
+
+# 6. WHAT THIS REPLACES
+
+The waterfall's current "by operating group" section (BusinessOutcomeWaterfallCard.jsx's SplitGroupRow rendering of labourSplitRows/assetSplitRows) is replaced by this per-source view. The waterfall's TOP-LEVEL
+rows (Revenue through Net Profit) are unaffected and stay as built - they
+never depended on the flat rate, only the by-group breakdown did.
+
+The existing Labour Recovery card is NOT replaced. Its true_cost_per_hour/
+charge_out_rate numbers are the verified foundation this view is built on.
+Whether the Labour Recovery card and this new view end up as one combined
+card or two separate ones showing the same underlying numbers at different
+granularity (per-hour rate vs annual dollar contribution) is a display
+decision for build time, not a data decision - they must never disagree,
+since they will be built from the same corrected source.
+
+---
+
+# 7. WHAT THIS DOES NOT COVER (OUT OF SCOPE, THIS BRIEF)
+
+- Fixing Rate Builder's "active model" concept itself, or removing it -
+  only ensuring Business Outcome never reads through it for real rates.
+  The active-model rate may still be legitimate for whatever Rate Builder
+  itself uses it for; this brief only concerns Business Outcome's sourcing.
+- Asset per-source revenue attribution when no Rate Builder calculator is
+  linked (existing "No Rate Builder calculator linked to this group"
+  reason/unavailable state carries over unchanged for those cases).
+- Live utilisation data - full utilisation assumption still applies,
+  disclosed the same way as the waterfall (S23 Section 6).
+
+---
+
+# 8. DEFINITION OF DONE
+
+- Every labour source, asset source, and materials/COG shown with real
+  revenue, real fully-loaded true cost, and a paying-its-way verdict
+- Every number traces to an already-verified source (Labour Recovery
+  card's true_cost_per_hour/charge_out_rate for labour, existing Rate
+  Builder calculator logic for assets, Business Summary/Revenue-COG truth
+  for materials) - no re-introduction of the "active model" rate path
+- Sum of all sources' revenue reconciles to total_revenue exactly, sum of
+  all sources' net profit reconciles to net_position exactly, any variance
+  surfaced explicitly, never hidden
+- Unassigned labour/asset cost and residual overhead each have an explicit,
+  visible home in the reconciliation, not folded silently into a named
+  source
+- Old "by operating group" flat-rate section removed from
+  BusinessOutcomeWaterfallCard.jsx once this replaces it
+
+---
+
+# 9. FINAL PRINCIPLE
+
+You cannot model how to fix the business if you cannot see what is
+producing its revenue and what is not. This is the actual point of
+Business Outcome - not a viability certificate, but a map of which parts
+of the business are paying their way and which parts are being carried,
+built entirely from numbers already proven correct elsewhere in this
+session, never from a rate source already known to be unreliable.
