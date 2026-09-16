@@ -189,5 +189,65 @@ original brief, see below.
    re-verification pass, not bundled into Section A/B's build.
 
 ===============================================================================
+7. REVISED DIRECTION (2026-09-16, later same day) - REAL ENGINE RERUN,
+   NOT SECTION A/B, GROUNDED IN ACTUAL REPO DISCOVERY
+===============================================================================
+
+Two external architecture briefs were reviewed this session (Copilot-authored,
+no repo access - "MIRRA v5.2 Business Modelling Orchestration and Page Flow"
+and "MIRRA v5.2 Business Outcome and Modelling Concept Decision Record", both
+dated 2026-09-16, not saved to this repo, session-only). Their core principle
+is CORRECT and now adopted: Business Modelling should not be a second
+diagnostic layer (Section A/B as originally proposed in this brief, Section 2
+above) - it should be Baseline (the real Business Outcome state, unchanged)
+plus an ISOLATED RERUN of the same real calculation chain with user-adjusted
+inputs, not a separate independent-aggregate calculation standing in for the
+whole-business result.
+
+Their SEQUENCING/EFFORT ESTIMATE (an 8-phase, multi-week extraction project)
+is NOT adopted as-is - it was reasoned from zero knowledge of this actual
+codebase. Real discovery this session found the situation is significantly
+better than assumed:
+
+**Cost Allocation (hooks/useCostAllocation.js, confirmed 2026-09-16):**
+The entire calculation is one call: `calculate_cost_allocation(calculation_inputs)`
+(lib/calculations/costAllocationRules.js), a pure function - plain object in,
+plain object out. Everything else in the hook either assembles
+calculation_inputs beforehand (build_cost_allocation_inputs, labour type row
+builders, asset overlay, group recovery rows builder - ALL pure, take plain
+data, no storage/hook access inside them) or reshapes the result afterward for
+display. The hook already partially supports override -
+`useCostAllocation(inputs = {})` lets recovery_summary be injected from
+outside today. labour, assets, and state (from useCostAllocationStorage) are
+NOT yet injectable - they always come from live hooks/storage.
+
+**What a real rerun requires (Cost Allocation specifically):** extract the
+existing assembly sequence (build_cost_allocation_inputs -> asset overlay ->
+labour type rows -> group recovery rows -> calculate_cost_allocation) out of
+useCostAllocation.js into one standalone function taking
+{ labour_output_contract, assets_output_contract, recovery_summary,
+allocation_state } and returning `calculated`. The live hook calls it with
+real data (unchanged behaviour - must be parity-tested, per the Copilot
+brief's own Phase 2/3 discipline, which IS being kept). Business Modelling
+calls the SAME function with a modified copy of one input. This is a scoped,
+single-file extraction - relocating an already-pure call sequence, not
+rewriting calculation logic - not the multi-week effort originally estimated.
+
+**Rate Builder (hooks/rate-builder/useRateBuilderLabourRates.js) - NOT YET
+CHECKED.** costAllocationGroupCostBuilder.js and
+rateBuilderLabourRateCalculations.js (lib/calculations/) were both confirmed
+pure this session (plain params in, plain result out) - promising, but the
+hook itself (the assembly/storage layer, same question as Cost Allocation
+above) has not yet been read. This is the next concrete discovery step.
+
+**Standing principle going forward:** any decision about HOW to build this
+rebuild is grounded in this repo's actual code, confirmed by direct reading -
+not assumed from the external briefs, which are useful for the CONCEPT
+(reuse real engines, isolated state, don't duplicate calculations - all
+correct and consistent with this project's founding principle) but not
+authoritative on implementation specifics, sequencing, or effort, since they
+were written without repo access.
+
+===============================================================================
 END OF BRIEF
 ===============================================================================
