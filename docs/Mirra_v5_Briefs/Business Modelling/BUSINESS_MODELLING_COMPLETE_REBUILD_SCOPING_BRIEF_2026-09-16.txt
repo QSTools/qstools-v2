@@ -248,6 +248,36 @@ correct and consistent with this project's founding principle) but not
 authoritative on implementation specifics, sequencing, or effort, since they
 were written without repo access.
 
+**Rate Builder (hooks/rate-builder/useRateBuilderLabourRates.js, confirmed
+2026-09-16):** the actual calculation, calculate_labour_rate_result()
+(lib/calculations/rateBuilderLabourRateCalculations.js), is pure and
+genuinely simple - five plain numbers in (labour_cost_rate,
+productive_efficiency_percent, recovery_allowance_rate,
+target_margin_percent, current_charge_out_rate), one result object out.
+Easier to rerun in isolation than Cost Allocation's calculation, taken
+alone.
+
+BUT: unlike useCostAllocation(inputs = {}), which at least allows
+recovery_summary to be overridden, useRateBuilderLabourRates() takes ZERO
+parameters - it calls useCostAllocation() directly and internally,
+hardcoded, with no injection point at all. This CONFIRMS (in real code,
+not assumption) the dependency chain the external Copilot brief predicted:
+Rate Builder cannot be isolated independently of Cost Allocation - it must
+be isolated together, with Cost Allocation's isolated output fed in as
+Rate Builder's input. They are not two independently-swappable pieces.
+
+ALSO WORTH FLAGGING: Rate Builder's pricing formula (cost / efficiency +
+recovery allowance, then margin-adjusted) is a GENUINELY DIFFERENT
+calculation from Business Modelling's own existing independent calc
+(true_cost / hours, working backward from real annual cost) - not the
+same calculation in different clothes. They answer different framing
+questions: "what should I charge given my cost structure and target
+margin" (Rate Builder) vs. "what would this group need to earn to cover
+its real cost" (Business Modelling's current independent engine). Do not
+assume Business Modelling should call Rate Builder's function directly
+without confirming which question the rebuilt Business Modelling is
+actually meant to answer.
+
 ===============================================================================
 END OF BRIEF
 ===============================================================================
