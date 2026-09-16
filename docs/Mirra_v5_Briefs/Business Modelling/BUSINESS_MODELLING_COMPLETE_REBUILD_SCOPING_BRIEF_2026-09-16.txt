@@ -306,6 +306,61 @@ brief's own phasing, Section 27) is adding a consistent injection
 mechanism to each hook, not rewriting any calculation logic, which is
 already correct and reusable as-is.
 
+**Business Outcome itself (hooks/useBusinessOutcomePerSourceRevenue.js,
+confirmed 2026-09-16) - DISCOVERY PASS COMPLETE, final and largest piece:**
+same pattern holds exactly, at the very end of the chain. Every calculation
+function inside (build_labour_sources, build_asset_sources,
+apply_revenue_ceiling, apply_real_capacity - both View A and View B
+variants) is pure - plain data in, plain data out, hand-verified against a
+spreadsheet and a 200,000-step numerical simulation per the file's own
+comments. But the hook itself, export default function
+useBusinessOutcomePerSourceRevenue(), takes ZERO parameters - the widest
+fan-in of anything checked: hardcoded directly to FIVE upstream live
+hooks (useBusinessOutcomeLabourRecovery, useCostAllocation,
+useBusinessSummary, useOpeningHours, useAssets). Makes sense - this is
+the final assembly point everything else funnels into - but it means the
+same injection-point gap exists here too, at the highest-stakes layer.
+
+**FILE SIZE FLAG (not urgent, not to be fixed as a side effect of
+anything else):** useBusinessOutcomePerSourceRevenue.js is genuinely
+large (1000+ lines) - it carries both View A and View B's full cascades,
+the capacity coverage gap diagnostic, and the health gauge baseline all
+in one file. Per Working Conventions, splitting an existing large file
+is a separate, deliberate decision, not a drive-by fix - noting this as
+a known future candidate, especially since the injection-point mechanism
+will need to modify this exact file most.
+
+**DISCOVERY PASS NOW COMPLETE across the full chain: Cost Allocation ->
+Rate Builder -> Assets -> Business Outcome.** The unified finding above
+holds at every single layer with zero exceptions: calculations are
+already pure and reusable; every hook needs a real injection mechanism
+added. Next real decision: design what that injection mechanism actually
+looks like (a consistent inputs parameter pattern? a shared
+isolated-state wrapper? per-hook or one shared approach?) - not yet
+decided, deliberately not decided in the middle of discovery.
+
+**NEW INSIGHT (2026-09-16, user's own idea, later same session):**
+BusinessOutcomePerSourceRevenueCard.jsx (per BUSINESS_OUTCOME_FILE_MAP_v5_1.txt
+Section 1) already receives per_source as a PROP, not derived internally
+via its own hook call - meaning the entire real Outcome display (every
+table, ledger, gauge, the View A/View B toggle) may already be reusable
+AS-IS, unmodified, the moment Business Modelling can produce a second,
+modelled per_source object to hand it instead of the real one. This
+would REPLACE the standalone BusinessModellingRealStateCard.jsx built
+earlier this session (left uncommitted, superseded by this - not wasted
+work, just a cleaner answer to the same goal): rather than a custom
+summary card that has to be kept matching Outcome's real view by hand,
+Business Modelling would render Outcome's actual real Card (fed the real
+per_source) and Outcome's actual Card again (fed a modelled per_source),
+toggled or compared side by side - genuinely note-for-note, by
+construction, not by manual upkeep. This also directly answers the
+future dashboard/performance-comparison need flagged by the user - every
+metric Outcome already computes becomes automatically available in
+modelled form too, with no separate dashboard-specific calculation ever
+needing to be built. NOT YET VERIFIED - the Card's actual prop signature
+still needs confirming (in progress, same session) before this is locked
+in as the plan.
+
 ===============================================================================
 END OF BRIEF
 ===============================================================================
