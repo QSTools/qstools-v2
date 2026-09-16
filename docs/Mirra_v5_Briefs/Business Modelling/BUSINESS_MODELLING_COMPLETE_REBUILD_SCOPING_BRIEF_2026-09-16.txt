@@ -125,22 +125,41 @@ contracts").
     DECISION, not yet decided.
 
 ===============================================================================
-5. OPEN QUESTIONS - NOT YET DECIDED
+5. OPEN QUESTIONS
 ===============================================================================
 
-1. Should Baseline (in the Upside/Downside redesign) be rebuilt to read
-   Section A's real reconciled figure instead of
-   buildLiveLeverHeadline-with-empty-levers? This would be a genuine
-   improvement toward Baseline's own stated definition ("where the
-   business actually is right now" - not "where it would be if every
-   source stood alone"), but changes real, already-shipped, live-
-   verified behaviour ($630,568 baseline) and needs to be re-verified
-   against real data if changed.
-2. For Section A's per-source materials figure specifically - View A's
-   residual or View B's real anchored figure? Business Outcome's own
-   real, reconciled headline_real_capacity already has an answer to
-   this (whichever view its own cascade uses) - need to confirm which,
-   rather than re-deciding it independently for Business Modelling.
+**[DECIDED 2026-09-16] Question 1 - Baseline's data source:** Baseline
+switches to per_source.headline_real_capacity (the real, reconciled
+figure - View A, "How the Business Runs") instead of
+buildLiveLeverHeadline-with-empty-levers. Rationale (user, 2026-09-16):
+"the baseline is Business Outcome - that's what the actual business is
+doing, which is the entire point of the tool." This is a real change to
+already-shipped, live-verified behaviour (the current $630,568 baseline
+was built from the independent view) - the new baseline figure WILL be
+different and must be re-verified against real data once built, not
+assumed to still be $630,568.
+
+**[DECIDED 2026-09-16] Question 2 - which view is "real" for Section A
+and Baseline:** View A, "How the Business Runs" specifically -
+per_source.headline_real_capacity. NOT "Each Part On Its Own" (same
+total, but re-shuffles per-source credit/blame - a different lens, not
+the smoothed day-to-day picture) and NOT View B (a separate,
+materials-only fairness question). headline_real_capacity is built via
+apply_real_capacity()'s two-phase cascade and is the same figure Business
+Outcome's own CrossCheck reconciliation confirms matches real P&L cost
+to the cent.
+
+**Still open - Question 3, Section A's component/file structure:** new
+standalone component vs. extending BusinessModellingLeverCard.jsx vs.
+something else. User's guidance (2026-09-16): patch/extend existing
+files where they can genuinely be reused, only create new files where
+the old ones are still needed for something else (e.g.
+businessModellingIndependentCalculations.js is still needed for Section
+B) - avoid ending up with too many scripts. Not yet scoped file-by-file.
+
+**Still open - Question 4:** what happens to the legacy "Previous
+scenario tools" section in light of this rebuild - unchanged from
+original brief, see below.
 3. Exact component/file structure for Section A - new component vs.
    extending BusinessModellingLeverCard.jsx vs. something else. Not
    scoped yet.
