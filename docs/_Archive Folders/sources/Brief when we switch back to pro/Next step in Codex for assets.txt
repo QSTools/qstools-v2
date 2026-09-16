@@ -1,0 +1,177 @@
+Good — Codex is working, and the **Assets audit is useful**.
+
+The audit confirms the next blocker clearly:
+
+```text
+Assets readiness is failing because no_active_assets_confirmed does not exist.
+```
+
+It also confirms the big variance is **not because the reconciliation formula is wrong**:
+
+```text
+module_total_business_costs =
+Labour + Assets + General Overheads
+```
+
+That formula is correct.
+
+## Key findings
+
+### 1. Assets readiness is too narrow
+
+Right now:
+
+```text
+assets_ready = reconciliation_state === "green"
+```
+
+That means Assets can only pass if there is an asset benchmark and the variance is tiny.
+
+But our v3.6 rule requires a second valid path:
+
+```text
+No active assets
++ user explicitly confirms no active assets
++ asset cost = 0
+= Assets ready
+```
+
+That path does not exist yet.
+
+### 2. `no_active_assets_confirmed` is missing
+
+Codex found:
+
+```text
+no_active_assets_confirmed: no occurrences
+```
+
+So this needs to be added to:
+
+```text
+asset storage
+asset hook/output contract
+asset calculations
+asset UI
+reconciliation check
+```
+
+### 3. Paid-off finance is not handled yet
+
+Current finance calculation still appears to calculate finance cost from:
+
+```text
+purchase_price
+interest_rate
+finance_term_years
+```
+
+But it does **not yet check whether the finance term has ended**.
+
+So this rule still needs implementing:
+
+```text
+If purchase date + finance term is before the current model period/date,
+current finance cost = 0
+```
+
+That is separate from `no_active_assets_confirmed`.
+
+### 4. P&L asset finance exclusion is conceptually correct
+
+The P&L can exclude asset finance interest using:
+
+```text
+interest_treatment === "asset_finance_exclude"
+```
+
+That is correct because Assets owns asset finance/ownership cost.
+
+So we should **not** change P&L for this next fix.
+
+## Do not implement everything at once
+
+Because you are at **96% session limit**, do not ask Codex for a big patch now.
+
+The next task should be one narrow implementation:
+
+```text
+Add no_active_assets_confirmed path only.
+```
+
+Do **not** include paid-off finance in the same task. That can be task two.
+
+## Next Codex prompt — use when your limit resets
+
+```text
+Read AGENTS.md first. Use docs/V3.6 Source Files as the active source pack.
+
+Implement only the Assets no-active-assets confirmation readiness path.
+
+Scope:
+Assets module readiness and output contract only.
+
+Do not change:
+- P&L
+- General Overheads
+- Labour
+- Cost Summary
+- WIP logic
+- asset finance paid-off calculations
+- routes
+- storage keys unrelated to Assets
+- unrelated modules
+
+Problem:
+Assets readiness currently only passes when reconciliation_state === "green".
+The v3.6 Assets rule requires a valid zero-assets path:
+If the user has no active assets and explicitly confirms that, Assets should be ready with total_asset_cost_annual = 0.
+
+Required behaviour:
+1. Add no_active_assets_confirmed to the Assets state.
+2. Add a minimal UI control on the Assets page for confirming no active assets.
+3. Include no_active_assets_confirmed in the Assets output contract.
+4. Update assets_ready logic so Assets can pass when:
+   - there are no active assets
+   - no_active_assets_confirmed === true
+   - total_asset_cost_annual === 0
+5. Keep the existing green reconciliation path for businesses with active assets.
+6. Update Module Reconciliation / Assets check so the explicit no-assets confirmation is accepted.
+7. Do not introduce new downstream numeric totals.
+8. Run npm run build once.
+
+Acceptance checks:
+- If there are no active assets and no_active_assets_confirmed is false, Assets is not ready.
+- If there are no active assets and no_active_assets_confirmed is true, Assets is ready with total_asset_cost_annual = 0.
+- If active assets exist, existing asset readiness/reconciliation path still applies.
+- total_asset_cost_annual remains the only downstream asset cost output.
+- npm run build passes.
+
+Report:
+- files changed
+- build result
+- where no_active_assets_confirmed was added
+- whether Assets readiness now has both valid paths
+- anything intentionally unchanged
+```
+
+## After that
+
+Second Assets task:
+
+```text
+Fix paid-off finance so completed finance terms produce current finance cost = 0.
+```
+
+But do not combine it with the no-assets confirmation task.
+
+Current order:
+
+```text
+1. no_active_assets_confirmed readiness path
+2. paid-off finance current-cost rule
+3. rerun Model Readiness
+4. inspect remaining business cost variance
+```
+
+This audit was worth doing. It found the exact missing contract.

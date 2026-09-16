@@ -1,0 +1,644 @@
+MIRRA v5.2 - BUSINESS OUTCOME / BUSINESS MODELLING
+CONCEPTUAL ARCHITECTURE AND DECISION RECORD
+
+STATUS: CONCEPT CONFIRMED - IMPLEMENTATION NOT YET SCOPED
+DATE: 2026-09-16
+ORIGIN: Formal record of the discussion reviewing the Business Modelling rebuild proposal and its relationship to Business Outcome, Cost Allocation and Rate Builder.
+
+===============================================================================
+1. PURPOSE OF THIS RECORD
+===============================================================================
+
+This document formalises the agreed conceptual purpose of Business Outcome and
+Business Modelling before further design or code changes are made.
+
+The discussion began with a proposal to separate Business Modelling into a
+"current business state" section and an "independent modelling" section. Further
+review established that the relationship is more precise than a simple split
+between reality and an independent calculation.
+
+The confirmed concept is:
+
+  Business Outcome = the current solved state of the business.
+
+  Business Modelling = an isolated, adjustable second state of that same
+  business, run through the same underlying calculation architecture.
+
+Business Modelling is therefore not a separate diagnostic system, and it must
+not become a second calculation truth. It is a controlled modelling layer placed
+on top of the trusted Business Outcome baseline.
+
+===============================================================================
+2. THE FOUNDATIONAL BUSINESS LOGIC
+===============================================================================
+
+The business cannot be meaningfully modelled from accounting outputs alone.
+Revenue, gross profit, net profit and cash are consequences of how the business
+creates, prices and recovers its costs. They are outputs, not the primary
+operating levers.
+
+The modelling foundation is the operating chain already established in Mirra:
+
+  Imported financial truth, including P&L and Balance Sheet data
+                              |
+                              v
+                       Cost Allocation
+                              |
+                              v
+                         Rate Builder
+                              |
+                              v
+                       Operating Groups
+                              |
+                              v
+                      Business Outcome
+
+Cost Allocation establishes the real cost burden carried by the business and
+assigns that cost to the relevant operating groups.
+
+Rate Builder prices those operating groups using their allocated costs,
+recoverable hours, asset assumptions, overhead contribution and other approved
+source inputs.
+
+The operating groups are the mechanisms through which the business generates
+cost and revenue. Examples include labour groups, asset groups and
+Materials/COGS.
+
+Business Outcome then runs those real business inputs through the reconciled
+business engine and shows the resulting current position.
+
+Accordingly, meaningful modelling must begin with these same operating groups
+and the same cost and pricing architecture. Modelling directly from top-level
+P&L or Balance Sheet outputs would not explain how the business generates or
+changes revenue and profit.
+
+===============================================================================
+3. BUSINESS OUTCOME - CURRENT STATE
+===============================================================================
+
+Business Outcome represents the current, reconciled state of the business based
+on the information presently held in Mirra.
+
+Its inputs are grounded in the specific business, including:
+
+  - imported P&L information;
+  - imported Balance Sheet information;
+  - allocated business costs;
+  - operating-group structure;
+  - current charge-out rates;
+  - asset costs and recovery assumptions;
+  - labour costs and recovery assumptions;
+  - overhead allocation and recovery;
+  - assumed productive or operating hours where live data is not yet available;
+  - current revenue attribution and reconciliation rules.
+
+Business Outcome is not merely an accounting scoreboard. It already answers the
+core diagnostic questions, including:
+
+  - what the business is currently producing as an overall outcome;
+  - whether the business covers its total cost;
+  - how each operating group stands on its own;
+  - which operating groups cover their own costs;
+  - which operating groups are supported by cross-subsidy;
+  - the current cost and charge-out basis for labour and assets;
+  - the current overhead recovery position;
+  - the business breakeven position;
+  - the difference between the whole-business result and each-part-on-its-own
+    views;
+  - areas where source assumptions or imported financial data require further
+    checking.
+
+Business Outcome is therefore both the current-state result and the existing
+business diagnosis. Business Modelling does not need to create another
+independent diagnostic layer.
+
+Important qualification:
+
+The current state is only as complete as the evidence available. Where live
+operational data is not yet connected, assumptions such as productive labour
+hours or asset running hours remain explicit business inputs. These are not fake
+metrics. They are the business's current stated assumptions, anchored to real
+cost and financial data. Future live data, including time tracking and actual
+utilisation, will test and improve those assumptions.
+
+===============================================================================
+4. BUSINESS MODELLING - ADJUSTED OR FUTURE STATE
+===============================================================================
+
+Business Modelling represents an isolated, adjustable version of the same
+business shown in Business Outcome.
+
+Its purpose is to answer:
+
+  "If the business changes its rates, recovery or overhead position, what
+  happens to the business outcome?"
+
+Business Modelling must not invent a separate business or recalculate the
+business from unrelated assumptions. It must take the trusted Business Outcome
+baseline, apply controlled changes to the relevant operating levers, and push
+the adjusted state back through the same Business Outcome calculation module in
+isolation.
+
+Conceptually:
+
+  Outcome = Business Engine(Current Inputs)
+
+  Modelling = Business Engine(Current Inputs + Selected Adjustments)
+
+The calculation engine and output contracts remain common. The state supplied
+to the engine differs.
+
+Business Outcome remains unchanged while the user models alternatives.
+Business Modelling is therefore a second layer on top of Outcome, not a mutation
+of the baseline state.
+
+The modelling state is valid because it remains grounded in:
+
+  - the same imported financial position;
+  - the same cost allocation;
+  - the same operating groups;
+  - the same source identities;
+  - the same true-cost calculations;
+  - the same revenue and recovery architecture;
+  - the same reconciliation rules;
+  - the same Business Outcome engine.
+
+Only the explicitly selected modelling inputs are changed.
+
+===============================================================================
+5. CURRENT STATE AND INDEPENDENT STATE ARE INTRINSICALLY LINKED
+===============================================================================
+
+The current state and independent modelling state are not competing truths and
+must not be presented as unrelated calculations.
+
+They are the same business under two states:
+
+  CURRENT / ACTUAL STATE
+  ----------------------
+  The present solved position produced by Business Outcome using current inputs.
+
+  ADJUSTED / MODELLED STATE
+  -------------------------
+  The isolated position produced by running selected operating-group changes
+  through the same Business Outcome engine.
+
+The current state is the baseline for every modelled state. Business Modelling
+cannot be valid until Business Outcome is correctly established because the
+modelled state inherits its costs, operating structure, rates, assumptions and
+financial anchors from Outcome.
+
+Likewise, Business Modelling exists so that the user can evaluate a possible
+change before deciding whether to implement it. If a change is later implemented
+and real data is updated, that change eventually becomes part of a future
+Business Outcome baseline.
+
+The resulting operating loop is:
+
+  Business Outcome: current solved state
+                  |
+                  v
+  Identify the operating-group change to test
+                  |
+                  v
+  Business Modelling: isolated adjusted state
+                  |
+                  v
+  Compare current versus adjusted outcomes
+                  |
+                  v
+  Decide whether to implement the change
+                  |
+                  v
+  New real inputs and live results eventually update Business Outcome
+                  |
+                  +-----------------------------------------------+
+
+This circular relationship is intentional. It creates a continuous process of
+understanding, modelling, decision-making and later verification.
+
+===============================================================================
+6. THE REAL BUSINESS LEVERS
+===============================================================================
+
+The agreed primary modelling levers are:
+
+  1. Labour Recovery
+  2. Asset Recovery
+  3. Overhead Recovery
+
+The relevant adjustable inputs can include, where supported by the existing
+business architecture:
+
+  - labour charge-out rates;
+  - labour recovery assumptions;
+  - labour productive-hour assumptions;
+  - asset charge-out rates;
+  - asset utilisation or operating-hour assumptions;
+  - asset recovery assumptions;
+  - overhead cost changes;
+  - overhead contribution or recovery;
+  - operating-group target rates.
+
+Revenue, gross profit, net profit and cash are not themselves the fundamental
+levers. They are derived outcomes produced when the actual operating levers
+change.
+
+A user cannot meaningfully "turn up net profit" as an isolated decision. The
+user can change a labour rate, asset rate, utilisation assumption, recovery
+position or overhead burden, after which the business engine calculates the
+resulting effects on revenue and profit.
+
+This distinction is central to Mirra's purpose. The application is intended to
+model how a business works, not merely apply arbitrary percentages to accounting
+headlines.
+
+===============================================================================
+7. OPERATING GROUPS ARE THE MODELLING UNIT
+===============================================================================
+
+Business Modelling should operate in the same terms used by Cost Allocation and
+Rate Builder: the operating groups.
+
+For each applicable operating group, the system can retain and compare items
+such as:
+
+  - current rate;
+  - true cost or minimum recoverable cost;
+  - allocated overhead contribution;
+  - full-cost breakeven rate;
+  - current assumed hours or utilisation;
+  - selected target rate;
+  - selected target hours or utilisation;
+  - current revenue and recovery;
+  - adjusted revenue and recovery;
+  - current contribution or net position;
+  - adjusted contribution or net position.
+
+The Foreman example already points towards this design by displaying:
+
+  - Current rate;
+  - Rate needed to break even for the group alone;
+  - User-selected target rate.
+
+That comparison is conceptually correct. It preserves the current source truth,
+shows the independently required rate and allows the user to choose a modelled
+rate. The modelled target must then be passed through the full isolated Outcome
+state so all whole-business consequences are calculated consistently.
+
+===============================================================================
+8. BASELINE, BREAKEVEN AND MODELLED SCENARIOS
+===============================================================================
+
+The scenario concepts should be anchored as follows.
+
+A. BASELINE
+
+The Baseline is the current Business Outcome state.
+
+It means:
+
+  "Where the business stands under its current reconciled inputs and current
+  assumptions."
+
+Baseline must not be generated by an unrelated or alternate calculation path.
+It must use the trusted current Outcome result.
+
+B. BREAKEVEN / MINIMUM ACCEPTABLE POSITION
+
+Breakeven is the point at which the business covers its real costs.
+
+Breakeven can sit above or below the current Baseline:
+
+  - If the current business is below breakeven, breakeven represents the minimum
+    improvement required to stop losing money.
+  - If the current business is above breakeven, breakeven represents the lower
+    boundary or downside position the business should not fall below.
+
+Breakeven is therefore a structural reference point, not automatically an
+"upside" or "downside" in every business. Its relationship to the Baseline must
+be determined from the current state.
+
+The modelling tool may offer breakeven as a default selectable scenario because
+it is a meaningful minimum operating position.
+
+C. ADJUSTED / TARGET STATE
+
+The adjusted state is created when the user changes one or more operating
+levers. It represents the projected outcome from those selected changes.
+
+D. UPSIDE AND DOWNSIDE
+
+Upside and Downside scenarios must remain anchored to the real Baseline and use
+the same isolated Outcome engine.
+
+They are combinations of explicit adjusted assumptions, not independent
+headline calculations.
+
+The naming and presentation should make clear whether a scenario is:
+
+  - the unchanged current Baseline;
+  - the calculated breakeven boundary;
+  - a user-defined target;
+  - an upside case; or
+  - a downside case.
+
+===============================================================================
+9. SINGLE SOURCE OF TRUTH - NON-NEGOTIABLE RULE
+===============================================================================
+
+Business Outcome and Business Modelling must never develop separate definitions
+of the same business metric.
+
+The following principle is confirmed:
+
+  One business engine, one set of source identities, one set of calculation
+  contracts, and two isolated states.
+
+Business Modelling must reuse the same trusted modules and outputs that produce
+Business Outcome. It must not independently recreate source costs, allocations,
+rates, revenue logic, cross-subsidy logic or reconciliation unless a shared
+calculation module is deliberately changed for both states.
+
+If Outcome and Modelling separately calculate the same item, the system risks
+creating two different businesses:
+
+  - one represented by the baseline Outcome state; and
+  - another represented by a disconnected modelling state.
+
+That would produce fictitious or misleading outcomes even if each page appeared
+internally consistent.
+
+The correct isolation is state isolation, not logic duplication.
+
+  Correct:
+    Same engine + cloned baseline state + explicit modelling adjustments.
+
+  Incorrect:
+    Separate modelling calculations that only approximate or imitate the
+    current Outcome.
+
+===============================================================================
+10. HOW CROSS-SUBSIDY AND INDEPENDENT CALCULATIONS FIT
+===============================================================================
+
+The independent operating-group calculations remain useful and valid. They show
+how each group stands on its own and establish figures such as true cost,
+breakeven rate and minimum required recovery without support from another
+source.
+
+Those calculations help define and explain the available modelling levers.
+They are not, by themselves, the whole-business modelled outcome.
+
+The whole-business result must still be produced by passing the selected changes
+through the same isolated Business Outcome logic, including the applicable
+allocation, revenue, recovery and reconciliation relationships.
+
+Accordingly:
+
+  - Independent calculations define each operating group's own economics.
+  - Business Outcome shows the current whole-business state.
+  - Business Modelling applies selected operating-group changes.
+  - The isolated Outcome engine calculates the resulting whole-business state.
+
+This preserves the value of the independent calculations without presenting
+their aggregate as an alternative current-business truth.
+
+===============================================================================
+11. REQUIRED CURRENT-VERSUS-ADJUSTED PRESENTATION
+===============================================================================
+
+Business Modelling should explicitly show the relationship between the Outcome
+baseline and the adjusted model.
+
+The exact component design remains an implementation matter, but the conceptual
+presentation should allow the user to understand, for each relevant operating
+group:
+
+  - what the current Business Outcome input or result is;
+  - what the independent cost or breakeven requirement is;
+  - what the user has changed;
+  - what the adjusted input becomes;
+  - what effect that adjustment has on the operating group; and
+  - what effect all selected adjustments have on the whole business.
+
+An underlying comparison table is a suitable concept. A possible structure is:
+
+  Operating Group
+  Current Rate
+  Breakeven Rate
+  Modelled Rate
+  Current Hours / Utilisation
+  Modelled Hours / Utilisation
+  Current Revenue / Recovery
+  Modelled Revenue / Recovery
+  Current Contribution
+  Modelled Contribution
+  Variance
+
+The table should not replace the existing lever controls. Its purpose is to make
+the current-versus-adjusted relationship explicit and auditable.
+
+The page should also clearly distinguish:
+
+  Current / Baseline Outcome
+  versus
+  Adjusted / Modelled Outcome
+
+The user should never have to infer which state a figure belongs to.
+
+===============================================================================
+12. ROLE OF LIVE DATA AND CURRENT ASSUMPTIONS
+===============================================================================
+
+Mirra currently knows part of the cause-and-effect chain from the existing
+financial inputs, cost allocation, Rate Builder calculations and user-supplied
+operating assumptions.
+
+For example, the system can know:
+
+  - the real annual cost assigned to a labour group;
+  - the real annual cost assigned to an asset;
+  - the current saved charge-out rate;
+  - the calculated breakeven rate;
+  - the assumed productive or running hours;
+  - the resulting modelled revenue and recovery.
+
+However, where actual time tracking or utilisation data is not yet available,
+the system cannot conclusively determine whether a recovery issue is caused by:
+
+  - an inadequate charge-out rate;
+  - inadequate utilisation or productive hours;
+  - an inaccurate operating assumption;
+  - or a combination of these factors.
+
+That limitation does not invalidate the present model. It means the current
+model is an evidence-based baseline using explicit assumptions. Future live data
+will test those assumptions and improve the confidence and diagnostic precision
+of both Outcome and Modelling.
+
+The system must continue to distinguish between:
+
+  - imported or observed data;
+  - calculated values;
+  - user-entered assumptions; and
+  - modelled adjustments.
+
+===============================================================================
+13. IMPACT ON THE BUSINESS MODELLING REBUILD PROPOSAL
+===============================================================================
+
+The earlier rebuild proposal should be refined to reflect the confirmed concept.
+
+The proposal was correct to identify that Business Modelling must stop presenting
+an independently aggregated result as though it were the current reconciled
+business position.
+
+However, the solution is not to create a new diagnostic layer duplicating
+Business Outcome.
+
+The refined direction is:
+
+  1. Business Outcome remains the complete, trusted current-state and diagnostic
+     module.
+
+  2. Business Modelling imports or receives the current Business Outcome state
+     as its locked Baseline.
+
+  3. The user adjusts labour, asset and overhead recovery inputs at the operating-
+     group level.
+
+  4. The adjusted state is passed through the same Business Outcome module or
+     calculation pipeline in isolation.
+
+  5. Business Modelling displays the resulting adjusted whole-business position
+     alongside the unchanged current Baseline.
+
+  6. Independent source calculations remain available to establish each group's
+     true cost, breakeven point and modelling options, but their aggregate must
+     not substitute for the isolated whole-business Outcome calculation.
+
+  7. Current-versus-adjusted values should be made explicit, potentially through
+     an underlying comparison table and clear state labels.
+
+  8. The baseline Business Outcome state must never be mutated by modelling.
+
+This means the preferred conceptual structure is not:
+
+  Section A: duplicate current-state diagnosis
+  Section B: disconnected independent model
+
+It is:
+
+  Baseline: current Business Outcome state
+  +
+  Operating-group levers: explicit user adjustments
+  +
+  Isolated parallel Business Outcome: adjusted/modelled state
+  +
+  Comparison: current versus adjusted
+
+===============================================================================
+14. CONFIRMED DECISIONS
+===============================================================================
+
+The following decisions are confirmed from the discussion:
+
+1. Business Outcome is the current solved state of the business.
+
+2. Business Modelling is the future or adjusted state of the same business.
+
+3. Business Modelling must begin from the Business Outcome Baseline.
+
+4. Outcome and Modelling must use exactly the same underlying business engine,
+   source contracts and reconciliation logic.
+
+5. Modelling must use an isolated copy or state so it cannot alter the current
+   Business Outcome Baseline.
+
+6. Revenue, gross profit, net profit and cash are derived outputs, not the core
+   modelling levers.
+
+7. The primary business levers are Labour Recovery, Asset Recovery and Overhead
+   Recovery, expressed through the operating groups established by Cost
+   Allocation and Rate Builder.
+
+8. Operating groups are the correct unit for modelling because they are how the
+   business incurs cost, sets charge-out rates and generates revenue.
+
+9. Business Outcome already supplies the current-state diagnosis. Business
+   Modelling does not need a new diagnostic layer.
+
+10. Independent calculations remain valuable for showing each operating group's
+    own economics and breakeven requirements.
+
+11. Independent source calculations must feed the modelling choices but must not
+    replace the whole-business outcome engine.
+
+12. The modelled state must be calculated by rerunning the same Business Outcome
+    module or calculation chain against isolated adjusted inputs.
+
+13. Baseline means the current Business Outcome state.
+
+14. Breakeven is the minimum cost-covering reference point and may sit above or
+    below the current Baseline.
+
+15. Current and adjusted values should be displayed explicitly so the user can
+    see what changed and the resulting business effect.
+
+16. The single source of truth between Outcome and Modelling is non-negotiable.
+
+17. Current assumptions remain legitimate inputs where live operational data is
+    not yet available. Future live data will validate and refine those
+    assumptions.
+
+18. There are no arbitrary or fake headline metrics in the intended model. Every
+    displayed outcome must be traceable to the specific business's financial
+    data, operating costs, rates, assumptions and selected adjustments.
+
+===============================================================================
+15. CONCEPTUAL MODEL IN ONE STATEMENT
+===============================================================================
+
+Business Outcome is the reconciled current state of the business, derived from
+its imported financial truth, cost allocation, Rate Builder, operating groups,
+current rates and current operating assumptions. Business Modelling is a
+controlled and isolated second layer that starts from that unchanged Outcome
+Baseline, adjusts Labour Recovery, Asset Recovery and Overhead Recovery through
+the same operating groups, and reruns the same Business Outcome engine to show
+the resulting future or adjusted state. The purpose is to compare actual versus
+adjusted business mechanics, not to model arbitrary accounting outputs. One
+business engine and one source of truth must govern both states.
+
+===============================================================================
+16. IMPLEMENTATION BOUNDARY
+===============================================================================
+
+This record confirms the concept only.
+
+It does not yet decide:
+
+  - the exact React component structure;
+  - the exact state-cloning mechanism;
+  - the exact selector or hook changes;
+  - the exact scenario storage format;
+  - the final comparison-table design;
+  - the treatment or retirement timing of legacy scenario tools;
+  - the detailed implementation sequence;
+  - the specific files to edit.
+
+Those matters should be scoped only after the current repo wiring has been
+verified against this conceptual decision.
+
+Any implementation brief should demonstrate how it will preserve:
+
+  - the unchanged Outcome Baseline;
+  - isolated modelling state;
+  - shared calculation logic;
+  - explicit adjustments;
+  - traceability from current to modelled values;
+  - and reconciliation of the modelled result through the same Outcome engine.
+
+===============================================================================
+END OF DECISION RECORD
+===============================================================================

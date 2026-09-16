@@ -1,0 +1,1138 @@
+MIRRA v5.2 - BUSINESS MODELLING ORCHESTRATION AND PAGE FLOW
+COMPREHENSIVE ARCHITECTURE / BUILD SCOPING BRIEF
+
+STATUS: CONCEPT CONFIRMED - REPOSITORY DISCOVERY REQUIRED BEFORE CODE CHANGES
+DATE: 2026-09-16
+ORIGIN: Follow-on decision to the Business Outcome / Business Modelling conceptual architecture record. This brief formalises how Business Modelling should reuse Mirra's existing validated calculation engines, how the user should move through the modelling workflow, and where any future calculation logic must be owned.
+
+===============================================================================
+1. PURPOSE OF THIS BRIEF
+===============================================================================
+
+This brief defines the agreed architectural and user-flow direction for the
+Business Modelling page.
+
+The central conclusion is:
+
+  Business Modelling must contain almost no business calculation logic of its
+  own.
+
+Business Modelling is an orchestration layer. It must:
+
+  1. receive the trusted current Business Outcome state;
+  2. create an isolated modelling state from that baseline;
+  3. allow the user to change approved operating inputs in the correct causal
+     order;
+  4. call the existing upstream calculation engines that already own those
+     calculations;
+  5. pass the resulting isolated state through the same Business Outcome engine;
+  6. display the current and adjusted positions clearly; and
+  7. leave the real Business Outcome baseline unchanged.
+
+The objective is not to design a new modelling calculator. The objective is to
+reuse the calculation engines that already exist, have already been tested, and
+have already been confirmed against Mirra's known inputs and outcomes.
+
+This approach protects consistency, preserves the single source of truth and
+avoids introducing parallel recalculation logic that can drift or create new
+bugs.
+
+===============================================================================
+2. CONFIRMED BUSINESS PRINCIPLE
+===============================================================================
+
+A business cannot be modelled meaningfully by changing accounting outputs such
+as revenue, gross profit, net profit or cash directly.
+
+Those values are derivatives of how the business:
+
+  - incurs cost;
+  - allocates cost;
+  - creates operating groups;
+  - sets labour charge-out rates;
+  - recovers asset costs;
+  - recovers overheads;
+  - prices materials and subcontractor costs;
+  - applies operating assumptions such as recoverable hours or utilisation; and
+  - ultimately generates revenue.
+
+Mirra's purpose is to model those underlying business mechanics rather than
+apply arbitrary changes to P&L or Balance Sheet headlines.
+
+The relevant causal chain is:
+
+  Imported Financial Truth
+            |
+            v
+      Source Modules
+            |
+            v
+      Cost Allocation
+            |
+            v
+        Rate Builder
+            |
+            v
+     Operating Groups
+            |
+            v
+     Business Outcome
+
+Business Modelling must use this same chain. It must not create a simplified
+parallel chain inside the Modelling page.
+
+===============================================================================
+3. CURRENT STATE AND MODELLED STATE
+===============================================================================
+
+Business Outcome and Business Modelling represent the same business under two
+states.
+
+A. CURRENT STATE / BASELINE
+
+Business Outcome is the current solved state of the business using:
+
+  - imported financial data;
+  - current allocations;
+  - current saved rates;
+  - current operating groups;
+  - current utilisation and recovery assumptions;
+  - current materials markup assumptions;
+  - current reconciliation rules; and
+  - the current validated calculation chain.
+
+This state is read-only from the perspective of Business Modelling.
+
+B. MODELLED STATE / ADJUSTED STATE
+
+Business Modelling starts as an isolated copy of the current state. The user
+then changes selected operating inputs. Existing upstream modules recalculate
+the affected state, after which the same Business Outcome engine calculates the
+adjusted whole-business result.
+
+Conceptually:
+
+  Current Outcome = Business Engine(Current State)
+
+  Modelled Outcome = Business Engine(Isolated Current State + Adjustments)
+
+The modelled state is not fictitious and is not a second business truth. It is
+the same specific business, using the same costs, identities, structures and
+calculation contracts, with a controlled set of changed assumptions.
+
+===============================================================================
+4. CORE ARCHITECTURAL RULE
+===============================================================================
+
+The primary rule is:
+
+  BUSINESS MODELLING OWNS STATE, NOT BUSINESS CALCULATIONS.
+
+Business Modelling may own:
+
+  - the isolated modelling state;
+  - user-selected adjustments;
+  - scenario names and scenario state;
+  - workflow progression;
+  - orchestration of calculation calls;
+  - current-versus-modelled comparison data;
+  - reset, apply, duplicate and scenario controls; and
+  - presentation of modelled results.
+
+Business Modelling must not own duplicate versions of:
+
+  - overhead distribution;
+  - cost allocation;
+  - labour true-cost calculation;
+  - labour recovery calculation;
+  - labour minimum recoverable rate calculation;
+  - asset true-cost calculation;
+  - asset-backed group pricing;
+  - asset recovery calculation;
+  - materials markup or margin calculation;
+  - operating-group cost-stack calculation;
+  - revenue attribution;
+  - cross-subsidy logic;
+  - business reconciliation; or
+  - whole-business Outcome calculations.
+
+For every required modelling calculation, the first question must be:
+
+  "Where is this calculation already owned and performed in Mirra?"
+
+The answer must be found in the repository and confirmed before new logic is
+written.
+
+===============================================================================
+5. CALCULATION OWNERSHIP RULE
+===============================================================================
+
+Every business calculation must have one authoritative owner.
+
+The intended ownership model is:
+
+  Source / P&L modules
+    Own the imported or entered source costs and source identities.
+
+  Assets module
+    Owns the asset-specific true-cost inputs and calculations, including the
+    treatment of applicable asset expenses such as fuel, insurance, maintenance
+    and other assigned asset costs, without independently inventing allocated
+    labour.
+
+  Cost Allocation
+    Owns cost assignment, residual overhead distribution and the creation or
+    assembly of operating-group cost stacks, including assigned labour, asset
+    cost and overhead recovery components as applicable.
+
+  Labour Rates Builder
+    Owns labour charge-out rate calculations, labour-only cost, minimum
+    recoverable labour rate, allocated overhead contribution and the comparison
+    between current or proposed charge-out rate and minimum recovery.
+
+  Customer Charge Calculator / asset-backed pricing logic
+    Owns pricing calculations for asset-backed operating groups and the
+    conversion of customer charge lines into an effective rate against the
+    selected output driver.
+
+  Materials Markup
+    Owns materials and subcontractor markup, margin, sell revenue and calculated
+    profit based on the applicable cost-of-sales base.
+
+  Business Outcome
+    Owns the complete reconciled whole-business outcome and the relevant
+    current-state, per-source, cross-subsidy and business-level result contracts.
+
+  Business Modelling
+    Owns no duplicate version of the above calculations. It owns the isolated
+    state and coordinates the existing calculation owners.
+
+The exact file, hook, selector and function ownership must be confirmed through
+repository discovery. The descriptions above are conceptual ownership rules,
+not an assumption about current implementation boundaries.
+
+===============================================================================
+6. NEW CALCULATION RULE
+===============================================================================
+
+If a modelling requirement appears to need a calculation that does not currently
+exist, the calculation must not automatically be created in Business Modelling.
+
+The required process is:
+
+  1. Confirm the calculation does not already exist elsewhere in Mirra.
+  2. Identify which upstream business module logically owns the calculation.
+  3. Design and implement the calculation in that owning module.
+  4. expose the result through that module's approved output contract;
+  5. test and verify the calculation in the owning module;
+  6. confirm that Business Outcome consumes the same result where applicable;
+  7. allow Business Modelling to consume or invoke that shared calculation in
+     its isolated state.
+
+This means a missing calculation is normally an upstream module requirement,
+not a Business Modelling requirement.
+
+A calculation must only exist inside Business Modelling if it is genuinely
+specific to modelling orchestration or scenario comparison and has no meaning
+in the underlying business engine. Even then, it must not recreate a business
+calculation already owned elsewhere.
+
+===============================================================================
+7. WHY DUPLICATE RECALCULATION IS PROHIBITED
+===============================================================================
+
+The existing Mirra inputs and calculation results have been tested and confirmed.
+Creating a second version of the same calculation inside Business Modelling
+would introduce unnecessary risk, including:
+
+  - formula drift;
+  - different rounding order;
+  - different aggregation order;
+  - mismatched defaults;
+  - missing source inputs;
+  - inconsistent handling of residual overhead;
+  - inconsistent treatment of productive and non-productive cost;
+  - inconsistent hours or utilisation bases;
+  - mismatched material markup or margin logic;
+  - different revenue attribution;
+  - broken reconciliation;
+  - future fixes being applied to one calculation path but not another; and
+  - Business Outcome and Business Modelling slowly representing different
+    businesses.
+
+The required protection is:
+
+  Correct:
+    One authoritative calculation + two isolated states.
+
+  Incorrect:
+    One calculation for Outcome + a recreated calculation for Modelling.
+
+If an upstream calculation is corrected later, both current Outcome and modelled
+Outcome must inherit the correction automatically because both states use the
+same calculation owner.
+
+===============================================================================
+8. REPOSITORY DISCOVERY REQUIRED BEFORE BUILD
+===============================================================================
+
+Before any Business Modelling rebuild begins, the implementation session must
+map the real current calculation chain in the repository.
+
+For every modelling stage, locate and record:
+
+  - the authoritative module;
+  - the authoritative calculation function or selector;
+  - its required inputs;
+  - its output contract;
+  - its current consumers;
+  - whether it is pure or mutates state;
+  - whether it can accept an isolated state;
+  - whether it has hard-coded access to live/current application state;
+  - whether it can be called without saving changes;
+  - its rounding and normalisation rules;
+  - its current tests or existing verification evidence; and
+  - any gaps preventing safe reuse.
+
+At minimum, discovery must find and confirm the existing mechanisms for:
+
+  1. residual overhead identification and redistribution;
+  2. overhead allocation into operating groups;
+  3. labour true-cost and labour recovery rates;
+  4. labour charge-out rate building;
+  5. asset true cost;
+  6. assignment of labour into asset-backed or mixed groups;
+  7. asset-backed customer charge pricing;
+  8. operating-group cost-stack assembly;
+  9. recovery hours and utilisation assumptions;
+  10. materials markup, margin, revenue and profit;
+  11. revenue attribution and cross-subsidy treatment; and
+  12. the final Business Outcome calculation pipeline.
+
+No replacement calculation should be written merely because the existing owner
+is difficult to call. If the current function is too tightly coupled to UI or
+live state, the preferred response is to extract or expose the validated core
+calculation from its owning module, preserving its logic and tests.
+
+===============================================================================
+9. OVERHEAD REDISTRIBUTION - REQUIRED DISCOVERY STEP
+===============================================================================
+
+The first editable modelling stage is overhead adjustment. Before this stage is
+built, the existing Mirra mechanism that redistributes residual overheads must
+be found and verified.
+
+The modelling page must not use a new overhead redistribution formula.
+
+The required flow is:
+
+  Current isolated baseline costs
+              |
+              v
+  User reduces or changes selected overhead inputs
+              |
+              v
+  Existing residual-overhead mechanism identifies the revised residual pool
+              |
+              v
+  Existing Cost Allocation logic redistributes that pool using the same current
+  allocation bases and rules
+              |
+              v
+  Existing operating-group cost stacks are rebuilt
+              |
+              v
+  Revised minimum recovery requirements become available to downstream rate and
+  pricing modules
+
+Repository discovery must confirm:
+
+  - where the residual overhead pool is calculated;
+  - what costs are included and excluded;
+  - which allocation rules are used;
+  - what happens to directly assigned costs;
+  - what happens to unassigned costs;
+  - how non-productive labour and non-productive assets are treated;
+  - how the revised allocations reach operating groups;
+  - whether allocations use hours, revenue, cost or another approved basis; and
+  - how the existing result reconciles back to total cost.
+
+The isolated modelling call must produce the same result as the existing module
+would produce if those same inputs were genuinely changed in the live business
+state, without altering or saving the live state.
+
+===============================================================================
+10. COMPOSITE OPERATING GROUPS
+===============================================================================
+
+Operating groups must not be classified simplistically as either labour groups
+or asset groups. Some operating groups are composite or mixed.
+
+An operating group may contain:
+
+  - productive labour recovery;
+  - productive asset recovery;
+  - allocated overhead recovery;
+  - non-productive labour cost;
+  - non-productive asset cost;
+  - other approved cost components;
+  - a selected output or recovery-hours basis; and
+  - a resulting total group cost and group recovery rate.
+
+For example, an asset-backed operating group can include:
+
+  Asset module costs
+  + Assigned productive labour
+  + Allocated overhead
+  = Total operating-group cost
+
+The operating-group recovery rate can then be made up of:
+
+  Labour recovery rate
+  + Asset recovery rate
+  + Overhead recovery rate
+  = Group recovery rate
+
+This composition is important to page flow. If labour rates or labour recovery
+requirements change upstream, the labour component of each affected mixed group
+must update before the user makes the final operating-group pricing decision.
+
+The modelling page should never assume that changing an "asset rate" affects
+only an isolated asset component. The existing cost-allocation and rate-building
+contracts must determine which groups receive the effect and how.
+
+===============================================================================
+11. CONFIRMED USER FLOW
+===============================================================================
+
+The page should operate as a guided causal workflow rather than a collection of
+unrelated calculators.
+
+The confirmed high-level sequence is:
+
+  STEP 1 - Establish the current Business Outcome Baseline
+  STEP 2 - Adjust overheads and rerun existing overhead distribution
+  STEP 3 - Adjust labour rates and related labour assumptions
+  STEP 4 - Rebuild affected operating and working groups
+  STEP 5 - Adjust group rates, asset-backed pricing and utilisation
+  STEP 6 - Adjust Materials/COGS markup or margin
+  STEP 7 - Run the same Business Outcome engine in isolation
+  STEP 8 - Compare current Outcome with modelled Outcome
+
+Each stage must use the upstream calculation owner already responsible for that
+business logic.
+
+===============================================================================
+12. STEP 1 - CURRENT BUSINESS OUTCOME BASELINE
+===============================================================================
+
+The modelling workflow begins with the trusted Business Outcome state.
+
+The Baseline must be:
+
+  - current;
+  - reconciled;
+  - unchanged by modelling;
+  - traceable to imported and entered business data;
+  - produced by the normal Business Outcome engine; and
+  - available as the reset point for every modelling scenario.
+
+The Baseline should show enough information to establish the starting position,
+but Business Modelling does not need to duplicate Business Outcome's full
+diagnostic interface.
+
+The Baseline's purpose on the Modelling page is to answer:
+
+  "What state are these modelling changes starting from?"
+
+At the start of a scenario:
+
+  Modelled State = Cloned Baseline State
+  Adjustments = None
+  Modelled Outcome = Current Outcome
+
+With no adjustments, both states must match exactly.
+
+This equality is a critical architecture invariant and should be testable.
+
+===============================================================================
+13. STEP 2 - OVERHEAD ADJUSTMENT AND REDISTRIBUTION
+===============================================================================
+
+Overheads are adjusted first because overhead changes affect the cost burden and
+minimum recovery requirement of downstream groups.
+
+The user may test reductions, increases or reclassification of permitted
+overhead inputs. The page should clearly distinguish between:
+
+  - a modelled change to an overhead cost;
+  - a change to the allocation basis;
+  - removal or reduction of a cost;
+  - direct assignment of a cost; and
+  - redistribution of the remaining residual overhead pool.
+
+The exact editable fields should be determined from the existing upstream module
+and its valid inputs, not invented specifically for Business Modelling.
+
+After an overhead adjustment, Business Modelling must invoke the existing
+residual overhead and Cost Allocation calculations against the isolated state.
+
+The outputs must then flow into all affected operating-group and labour-rate
+recovery calculations before the next modelling stage is presented as current.
+
+The user should be able to see, at a suitable summary level:
+
+  - current overhead pool;
+  - modelled overhead pool;
+  - value removed, increased or reclassified;
+  - current allocation by affected group;
+  - modelled allocation by affected group; and
+  - resulting change to required recovery.
+
+This display is explanatory only. It must be populated from the existing
+allocation outputs, not a separate modelling calculation.
+
+===============================================================================
+14. STEP 3 - LABOUR RATE AND LABOUR RECOVERY ADJUSTMENT
+===============================================================================
+
+Once modelled overheads have been redistributed, labour calculations must be
+rerun through the existing Labour Rates Builder logic.
+
+This ordering matters because the minimum recoverable labour rate may include an
+allocated overhead contribution. A labour decision made before the modelled
+overhead position has been recalculated would use stale cost information.
+
+The modelling workflow should reuse the existing labour calculator concepts,
+including as applicable:
+
+  - labour source;
+  - current charge-out rate;
+  - labour-only cost;
+  - allocated business overhead recovery;
+  - minimum recoverable charge-out rate;
+  - selected target rate;
+  - margin or surplus after full recovery;
+  - productive hours assumptions; and
+  - weighted or all-productive rate summaries.
+
+The user changes only approved inputs. The existing Labour Rates Builder owns the
+resulting calculations.
+
+The updated labour recovery values must then flow into every operating or working
+group that uses the affected labour source.
+
+This is especially important for mixed groups. Increasing a labour rate or labour
+recovery assumption may change the labour component embedded in an asset-backed
+operating group's total required charge.
+
+===============================================================================
+15. STEP 4 - REBUILD OPERATING AND WORKING GROUP COST STACKS
+===============================================================================
+
+After overhead and labour adjustments, the existing Cost Allocation and group
+assembly logic must rebuild all affected operating and working group cost stacks.
+
+This is a system calculation step, not necessarily a separate user-editing page.
+Its purpose is to ensure that users see up-to-date group economics before
+selecting final group rates, utilisation or charge lines.
+
+For each affected group, the rebuilt cost stack may include:
+
+  - productive labour cost;
+  - productive asset cost;
+  - overhead allocation;
+  - non-productive labour cost;
+  - non-productive asset cost;
+  - recovery hours;
+  - recovery basis;
+  - full group cost;
+  - minimum group recovery rate; and
+  - other components already supported by the owning module.
+
+The result must come from the same cost-stack calculation used by the current
+business workflow.
+
+The modelling page may summarise the effects, but it must not independently add
+labour, asset and overhead components together if an existing validated group
+assembly already owns that calculation.
+
+===============================================================================
+16. STEP 5 - OPERATING-GROUP RATES, ASSET PRICING AND UTILISATION
+===============================================================================
+
+Once affected group cost stacks have been rebuilt, the user can make final
+pricing and operational assumptions for each group.
+
+The exact controls depend on the existing group and pricing architecture. They
+may include:
+
+  - current group charge rate;
+  - minimum recoverable group rate;
+  - selected target group rate;
+  - customer charge lines;
+  - selected output driver;
+  - unit of charge;
+  - example or forecast quantities;
+  - effective rate against the selected output driver;
+  - current recovery hours;
+  - modelled recovery hours;
+  - current utilisation assumption;
+  - modelled utilisation assumption; and
+  - resulting modelled group revenue or recovery.
+
+The existing Customer Charge Calculator or relevant asset-backed pricing engine
+must own customer charge and effective-rate calculations.
+
+The existing recovery-hours and operating-group logic must determine how
+utilisation changes affect the group. Business Modelling should hold the
+modelled input and request the existing engine's result.
+
+Where an operating group is mixed, the page should show enough of the cost stack
+to explain why the group's revised minimum or target rate has changed after the
+overhead and labour stages.
+
+===============================================================================
+17. STEP 6 - MATERIALS / COGS MARKUP OR MARGIN
+===============================================================================
+
+Materials and subcontractor pricing should be adjusted after the revised labour,
+asset, overhead and operating-group requirements are known.
+
+The modelling page must reuse the existing Materials Markup calculation owner.
+Relevant concepts may include:
+
+  - applicable Materials/COGS cost base;
+  - current markup percentage;
+  - modelled markup percentage;
+  - calculated margin percentage;
+  - sell revenue; and
+  - profit contribution.
+
+Markup and margin must retain their existing definitions and conversion logic.
+Business Modelling must not create a second formula or independently calculate
+sell revenue where the existing Materials Markup module already does so.
+
+The modelled Materials/COGS result must then feed the isolated Business Outcome
+state through the same approved output contract used elsewhere in Mirra.
+
+===============================================================================
+18. STEP 7 - ISOLATED BUSINESS OUTCOME EXECUTION
+===============================================================================
+
+After each modelled change, or at an intentional recalculation boundary, the
+adjusted isolated state must be passed through the same Business Outcome engine
+used for the real current state.
+
+This is not a new "modelling outcome" formula.
+
+It is:
+
+  Business Outcome Engine(Modelled Isolated State)
+
+The engine must receive all adjusted upstream outputs through the same contracts
+used in the current-state calculation wherever technically possible.
+
+The modelled Outcome must include all normal whole-business effects supported by
+Business Outcome, including the applicable:
+
+  - operating-group outputs;
+  - revenue outputs;
+  - cost outputs;
+  - overhead recovery;
+  - materials result;
+  - cross-subsidy treatment;
+  - reconciliation;
+  - derived financial outcomes; and
+  - warnings or data-quality indicators.
+
+The live/current Outcome state must remain immutable throughout this process.
+
+===============================================================================
+19. STEP 8 - CURRENT VERSUS MODELLED COMPARISON
+===============================================================================
+
+The final purpose of the page is to compare the unchanged current state with the
+isolated adjusted state.
+
+The comparison should make two things explicit:
+
+  1. What inputs changed?
+  2. What consequences did those changes produce?
+
+At operating-group level, the comparison may include:
+
+  - current versus modelled overhead allocation;
+  - current versus modelled labour recovery rate;
+  - current versus modelled asset recovery rate;
+  - current versus modelled total group cost;
+  - current versus modelled minimum recovery rate;
+  - current versus modelled charge rate;
+  - current versus modelled utilisation or hours;
+  - current versus modelled revenue or recovery;
+  - current versus modelled contribution; and
+  - variance.
+
+At whole-business level, the existing Business Outcome outputs can show the
+consequences, including relevant derived values such as revenue, gross profit,
+net profit, cash-related outputs or breakeven measures where those values are
+already owned and supported by the Outcome engine.
+
+These are outputs of the modelling decisions, not editable accounting levers.
+
+===============================================================================
+20. PAGE FLOW AND PROGRESSIVE DISCLOSURE
+===============================================================================
+
+The Business Modelling page should guide the user through the causal sequence.
+A suitable conceptual flow is:
+
+  1. Baseline
+  2. Overheads
+  3. Labour Rates and Recovery
+  4. Updated Group Cost Stacks
+  5. Operating-Group Rates and Utilisation
+  6. Materials / COGS
+  7. Modelled Outcome
+  8. Current-versus-Modelled Comparison
+
+The page should avoid presenting every control at once without context. Each
+stage depends on outputs from earlier stages.
+
+A stage may be visually collapsed after completion while retaining a concise
+summary of:
+
+  - what changed;
+  - which upstream engine was rerun;
+  - which downstream groups were affected; and
+  - whether any unresolved warning remains.
+
+The page should not force the user to make changes at every stage. A user may
+leave a stage unchanged and continue. Unchanged inputs must retain their Baseline
+values.
+
+The page should clearly identify whether displayed figures belong to:
+
+  - Current / Baseline;
+  - Modelled / Adjusted;
+  - Breakeven / Minimum recovery; or
+  - User-selected target.
+
+===============================================================================
+21. BASELINE, BREAKEVEN AND SCENARIOS
+===============================================================================
+
+Baseline is the unchanged current Business Outcome state.
+
+Breakeven is the calculated minimum cost-covering state or reference point. It
+may sit above or below Baseline depending on the present business position.
+
+A breakeven preset may populate modelled inputs using existing upstream
+breakeven outputs, but it must still pass those inputs through the full isolated
+calculation chain and Business Outcome engine.
+
+Upside, Downside and user-defined targets are alternative sets of modelled
+inputs applied to the same Baseline.
+
+A scenario must therefore store or reference:
+
+  - Baseline identity or version;
+  - explicit changed inputs;
+  - unchanged inherited inputs;
+  - outputs returned by existing calculation owners;
+  - modelled Outcome result; and
+  - relevant warnings or unresolved assumptions.
+
+A scenario must not persist copies of business formulas.
+
+===============================================================================
+22. ISOLATED STATE REQUIREMENTS
+===============================================================================
+
+The modelling state must be isolated from current business state.
+
+Required behaviours include:
+
+  - opening Modelling does not alter saved current inputs;
+  - changing a modelled overhead does not change the live P&L or Cost Allocation;
+  - changing a modelled labour rate does not overwrite a saved Rate Builder rate;
+  - changing asset pricing does not overwrite the current customer charge model;
+  - changing materials markup does not overwrite the saved current markup;
+  - running modelled Outcome does not mutate Business Outcome's baseline state;
+  - resetting a scenario returns exactly to Baseline;
+  - discarding a scenario removes temporary adjustments; and
+  - implementing a modelled decision, if supported later, must be an explicit
+    controlled action rather than an automatic side effect.
+
+The isolated state should preserve provenance for each value, identifying where
+practical whether the value is:
+
+  - inherited from Baseline;
+  - entered by the user as a modelled adjustment;
+  - calculated by an upstream module;
+  - derived by Business Outcome; or
+  - unresolved or unavailable.
+
+===============================================================================
+23. REQUIRED INVARIANTS
+===============================================================================
+
+The implementation should enforce the following invariants:
+
+INVARIANT 1 - NO-CHANGE EQUALITY
+
+  With no modelled adjustments:
+
+    Modelled Outcome = Current Business Outcome
+
+  All comparable values must match according to the owning module's established
+  precision and rounding rules.
+
+INVARIANT 2 - BASELINE IMMUTABILITY
+
+  No modelling action changes the current Business Outcome state.
+
+INVARIANT 3 - SINGLE CALCULATION OWNER
+
+  No business formula is duplicated in Business Modelling when an upstream owner
+  exists.
+
+INVARIANT 4 - UPSTREAM FLOW
+
+  A changed upstream input must reach every downstream consumer through the same
+  contracts used in the current-state workflow.
+
+INVARIANT 5 - RECONCILIATION
+
+  The modelled Business Outcome must satisfy the same reconciliation and
+  cross-check requirements as the current Business Outcome.
+
+INVARIANT 6 - TRACEABILITY
+
+  Every modelled result must be traceable to Baseline plus explicit adjustments
+  and outputs from authoritative calculation owners.
+
+INVARIANT 7 - RESET FIDELITY
+
+  Resetting the modelled state must restore exact Baseline inputs and outputs.
+
+INVARIANT 8 - NO SILENT FALLBACK
+
+  If an upstream engine cannot calculate from the isolated state, Modelling must
+  not silently substitute an approximate local calculation.
+
+===============================================================================
+24. TESTING AND VERIFICATION STRATEGY
+===============================================================================
+
+The build must protect the already-tested and confirmed results.
+
+Testing should occur at calculation-owner and orchestration levels.
+
+A. EXISTING ENGINE PARITY
+
+For each reused engine:
+
+  - run the current module with known inputs;
+  - run the same engine through isolated modelling orchestration using identical
+    inputs;
+  - confirm identical outputs.
+
+B. NO-CHANGE BASELINE TEST
+
+Clone the Outcome Baseline with no adjustments and confirm the isolated Outcome
+matches the current Outcome across all exposed comparable fields.
+
+C. SINGLE-LEVER TESTS
+
+Change one input at a time, for example:
+
+  - one overhead cost;
+  - one labour charge-out rate;
+  - one labour-hours assumption;
+  - one asset-backed charge rate;
+  - one utilisation assumption;
+  - one materials markup input.
+
+Confirm only the expected downstream contracts change and that the final Outcome
+reconciles.
+
+D. COMPOSITE GROUP FLOW TEST
+
+Change an upstream labour input used inside a mixed asset-backed group. Confirm:
+
+  - the existing labour result changes;
+  - the affected operating-group labour component changes;
+  - the total group cost and minimum recovery rate change through the existing
+    group assembly;
+  - unrelated groups remain unchanged unless the current allocation rules
+    require an effect; and
+  - the modelled Outcome receives the revised group output.
+
+E. OVERHEAD REDISTRIBUTION TEST
+
+Reduce a selected residual overhead input and confirm:
+
+  - the residual pool changes correctly;
+  - the existing allocation engine redistributes the revised pool;
+  - group overhead recovery changes according to the current rules;
+  - downstream labour and group recovery calculations use the revised amounts;
+  - total allocated cost reconciles; and
+  - no alternative local allocation formula is invoked.
+
+F. RESET AND IMMUTABILITY TEST
+
+After multiple changes:
+
+  - confirm the live Baseline remains unchanged;
+  - reset the scenario;
+  - confirm all modelled values and outputs return exactly to Baseline.
+
+G. REGRESSION TESTS
+
+Existing module tests and known verified examples must continue to pass. Any
+refactoring required to expose calculation functions for isolated reuse must not
+change the results of the owning module.
+
+===============================================================================
+25. IMPLEMENTATION ANTI-PATTERNS
+===============================================================================
+
+The following approaches are prohibited unless a later explicit architecture
+decision replaces this brief:
+
+  - copying formulas from Rate Builder into Business Modelling;
+  - recreating residual overhead allocation in a modelling selector;
+  - adding labour, asset and overhead components locally when the group cost
+    stack already exists upstream;
+  - recalculating materials margin with a separate modelling formula;
+  - creating a modelling-only definition of revenue, profit or breakeven;
+  - aggregating independent source calculations and presenting the aggregate as
+    the modelled whole-business Outcome;
+  - using UI-displayed values as a substitute for approved output contracts;
+  - mutating current module state during a modelling session;
+  - silently applying approximate calculations when an upstream function cannot
+    accept isolated state;
+  - bypassing Business Outcome for the final modelled result; and
+  - bundling new business formulas into scenario or presentation components.
+
+===============================================================================
+26. RECOMMENDED TECHNICAL SHAPE - CONCEPT ONLY
+===============================================================================
+
+The exact repository implementation remains to be discovered, but the desired
+shape is conceptually:
+
+  Current Business State
+            |
+            v
+  Create Isolated Modelling State
+            |
+            v
+  Apply Explicit Modelling Input Overrides
+            |
+            v
+  Invoke Existing Authoritative Modules in Dependency Order
+            |
+            v
+  Produce Updated Upstream Output Contracts
+            |
+            v
+  Invoke Existing Business Outcome Engine
+            |
+            v
+  Store / Display Modelled Outcome
+            |
+            v
+  Compare Against Unchanged Current Outcome
+
+The orchestration layer should pass state and approved outputs between modules.
+It should not translate those outputs into newly invented business logic.
+
+If existing modules are UI-bound, the preferred technical change is:
+
+  Existing UI component
+            |
+            v
+  Extract or expose existing pure calculation core in owning module
+            |
+         /     \
+        v       v
+  Existing UI  Modelling orchestration
+
+The calculation must remain owned upstream and shared by both consumers.
+
+===============================================================================
+27. BUILD SEQUENCING
+===============================================================================
+
+Recommended sequence:
+
+PHASE 1 - REPOSITORY CALCULATION MAP
+
+  - Find each authoritative calculation owner.
+  - Record inputs, outputs, consumers and state dependencies.
+  - Identify the residual overhead redistribution mechanism.
+  - Identify the full current Outcome execution path.
+  - Identify gaps that prevent isolated execution.
+  - Make no calculation changes during discovery.
+
+PHASE 2 - SHARED ENGINE ACCESS
+
+  - Expose or extract validated calculation cores only where required.
+  - Keep ownership in the correct upstream module.
+  - Add parity tests against existing behaviour.
+  - Confirm no changed results.
+
+PHASE 3 - ISOLATED BASELINE
+
+  - Create the isolated modelling state.
+  - Run the unchanged state through the full shared chain.
+  - Prove exact current-versus-modelled equality with no adjustments.
+
+PHASE 4 - OVERHEAD STAGE
+
+  - Add modelled overhead inputs.
+  - Invoke existing residual overhead distribution and Cost Allocation.
+  - Verify redistribution and downstream effects.
+
+PHASE 5 - LABOUR STAGE
+
+  - Reuse Labour Rates Builder against revised isolated allocations.
+  - Feed updated labour recovery into affected groups.
+  - Verify mixed-group behaviour.
+
+PHASE 6 - GROUP / ASSET / UTILISATION STAGE
+
+  - Reuse operating-group assembly and Customer Charge Calculator logic.
+  - Add approved group rate and utilisation controls.
+  - Verify downstream Outcome results.
+
+PHASE 7 - MATERIALS STAGE
+
+  - Reuse Materials Markup.
+  - Feed the resulting contract into isolated Outcome.
+
+PHASE 8 - OUTCOME AND COMPARISON
+
+  - Render the isolated Business Outcome result.
+  - Add current-versus-modelled comparison.
+  - Add reset, scenario and traceability controls.
+
+Each phase should be independently tested and committed. A stage should not move
+forward until its existing-engine parity and state-isolation checks pass.
+
+===============================================================================
+28. DECISIONS CONFIRMED BY THIS BRIEF
+===============================================================================
+
+1. Business Modelling is an orchestration layer, not a second business
+   calculation engine.
+
+2. Business Modelling owns isolated state, explicit adjustments, workflow and
+   comparison presentation.
+
+3. Business Modelling should contain almost no business calculations of its own.
+
+4. Any required calculation must first be located in the existing repository.
+
+5. Existing validated calculation engines must be reused rather than recreated.
+
+6. If a genuinely new business calculation is needed, it must normally be built
+   upstream in the module that logically owns it.
+
+7. A new upstream calculation must be tested and exposed through an approved
+   output contract before Business Modelling consumes it.
+
+8. The existing residual overhead redistribution calculation must be located and
+   reused for the first editable modelling stage.
+
+9. Overhead changes occur before labour and operating-group pricing because
+   overhead allocation changes downstream recovery requirements.
+
+10. Labour-rate and labour-recovery changes occur before final operating-group
+    pricing because mixed groups can contain a labour recovery component.
+
+11. Operating groups are not to be divided simplistically into labour-only and
+    asset-only categories. Groups may be composite.
+
+12. Existing Cost Allocation logic must rebuild affected operating and working
+    group cost stacks after upstream changes.
+
+13. Existing Labour Rates Builder logic must own modelled labour calculations.
+
+14. Existing asset-backed pricing / Customer Charge Calculator logic must own
+    applicable asset and group pricing calculations.
+
+15. Existing Materials Markup logic must own materials markup, margin, sell
+    revenue and profit calculations.
+
+16. Existing Business Outcome logic must calculate the final modelled whole-
+    business result.
+
+17. Baseline is the unchanged current Business Outcome state.
+
+18. With no changes, the isolated modelled Outcome must match Baseline exactly.
+
+19. Modelling must never mutate the current Business Outcome state.
+
+20. The page should follow the causal workflow:
+
+      Baseline
+      -> Overheads
+      -> Labour
+      -> Updated Group Cost Stacks
+      -> Group Rates / Assets / Utilisation
+      -> Materials
+      -> Isolated Outcome
+      -> Current-versus-Modelled Comparison
+
+21. Derived accounting outcomes are displayed as consequences, not exposed as
+    arbitrary business levers.
+
+22. No silent approximation or local fallback calculation is permitted when an
+    upstream module cannot yet run against isolated state.
+
+23. Consistency comes from using one calculation owner across current and
+    modelled states, not from trying to make two separate calculations agree.
+
+===============================================================================
+29. CONCEPTUAL STATEMENT
+===============================================================================
+
+Business Modelling is a controlled orchestration workflow over Mirra's existing
+validated business engines. It begins with an immutable clone of the current
+Business Outcome Baseline, applies explicit user adjustments in causal order,
+reruns the authoritative overhead, cost-allocation, labour, asset-backed pricing,
+operating-group and materials calculations against that isolated state, and then
+passes the resulting outputs through the same Business Outcome engine to produce
+the modelled position. Business Modelling owns the temporary state and the
+comparison, not the business formulas. Any missing business calculation belongs
+upstream in its correct owning module so that current Outcome and modelled Outcome
+always use the same logic and produce consistent, reconcilable results.
+
+===============================================================================
+30. NEXT REQUIRED ACTION
+===============================================================================
+
+Before code changes, conduct a read-only repository discovery and produce a
+calculation ownership and dependency map covering:
+
+  - residual overhead redistribution;
+  - Cost Allocation;
+  - labour cost and recovery;
+  - asset true cost and asset-backed pricing;
+  - operating and working group cost-stack assembly;
+  - utilisation and recovery-hours handling;
+  - Materials/COGS markup and margin; and
+  - the full Business Outcome execution path.
+
+The discovery output must identify the exact existing functions and contracts to
+reuse and must explicitly flag any calculation currently duplicated, UI-bound or
+unable to accept isolated state.
+
+No new calculation should be introduced during that discovery.
+
+===============================================================================
+END OF BRIEF
+===============================================================================

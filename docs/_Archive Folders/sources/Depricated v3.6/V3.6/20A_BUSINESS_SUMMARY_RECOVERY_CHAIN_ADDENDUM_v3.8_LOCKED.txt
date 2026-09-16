@@ -1,0 +1,322 @@
+# QS Tools — Business Summary v3.8 Recovery Chain Addendum
+
+## STATUS: ADDENDUM TO 20_BUSINESS_SUMMARY_v3.8_LOCKED
+
+**Purpose:** Add a clear downstream handoff section so Recovery Summary, Cost Allocation, and Business Outcome consume Business Summary correctly without duplicating logic or drifting into hidden assumptions.
+
+This addendum does not replace the Business Summary v3.8 brief.
+
+It extends it for the Recovery Chain build.
+
+---
+
+# 1. WHY THIS ADDENDUM IS NEEDED
+
+The current Business Summary v3.8 brief is already correctly positioned as the factual current-business mirror.
+
+It already defines the key activity-driver outputs needed downstream:
+
+```js
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+```
+
+The Recovery Chain now needs these outputs to be treated as the locked handoff from Business Summary.
+
+Business Summary must remain the final current-reality layer before strategy begins.
+
+---
+
+# 2. LOCKED RECOVERY CHAIN PRINCIPLE
+
+The recovery chain must follow this separation:
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+Core rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+Business Summary provides the reality side of that rule.
+
+Recovery Summary provides the choice and consequence side.
+
+---
+
+# 3. BUSINESS SUMMARY MUST NOT BECOME RECOVERY SUMMARY
+
+Business Summary must not:
+
+```text
+allow recovery strategy inputs
+store recovery model choices
+calculate recovery shares
+optimise recovery mix
+recommend recovery strategy
+calculate allocation status
+calculate dependency status
+calculate business outcome status
+```
+
+Business Summary only shows:
+
+```text
+where the business is now
+what the current pressure is
+what the current gap is
+```
+
+---
+
+# 4. REQUIRED DOWNSTREAM HANDOFF OUTPUTS
+
+Business Summary must expose these fields cleanly for Recovery Summary:
+
+```js
+business_summary_ready
+business_type
+activity_driver_type
+activity_driver_label
+activity_driver_value
+required_recovery_per_driver
+required_recovery_label
+required_recovery_unit_label
+current_margin_per_driver
+current_margin_label
+recovery_gap_per_driver
+recovery_gap_label
+total_revenue
+total_direct_costs
+margin_pool
+gross_margin_percent
+total_cost_burden
+total_productive_output
+units_sold_annual
+net_position
+business_summary_status
+business_summary_warnings
+model_trust_state
+revenue_cogs_ready
+cost_summary_ready
+```
+
+These outputs form the Recovery Summary input contract.
+
+Recovery Summary must consume these outputs instead of rebuilding them.
+
+---
+
+# 5. REALITY BASELINE RULE
+
+Business Summary is the baseline reality layer.
+
+The baseline is not a historical P&L ratio.
+
+The baseline is:
+
+```text
+required recovery per driver
+current margin per driver
+recovery gap per driver
+margin pool
+total cost burden
+net position
+```
+
+This distinction is critical.
+
+P&L history is processed upstream into Revenue / COGS and Cost Summary.
+
+Business Summary receives those processed outputs and converts them into current commercial reality.
+
+Recovery Summary must not go back to raw history.
+
+---
+
+# 6. NO HISTORY DIRECTLY INTO RECOVERY SUMMARY
+
+Business Summary may be informed by historical P&L through upstream modules.
+
+Recovery Summary must not consume raw history directly.
+
+Correct flow:
+
+```text
+P&L history
+↓
+Revenue / COGS + Cost Summary
+↓
+Business Summary current reality
+↓
+Recovery Summary strategy and consequence
+```
+
+Incorrect flow:
+
+```text
+Raw P&L history
+↓
+Recovery Summary strategy
+```
+
+That would create duplicated logic and hidden assumptions.
+
+---
+
+# 7. CURRENT REALITY DISPLAY REQUIREMENT
+
+Business Summary should make these three values obvious enough that Recovery Summary can use them as the current-reality anchor:
+
+```text
+Required recovery per hour/unit
+Current margin per hour/unit
+Recovery gap per hour/unit
+```
+
+Simple test:
+
+```text
+Can the user clearly say:
+"I need $X per hour/unit, I am currently getting $Y, and the gap is $Z"?
+```
+
+If not, Business Summary needs to be fixed before Recovery Summary is built.
+
+---
+
+# 8. RECOVERY SUMMARY HANDOFF STATEMENT
+
+Add this wording to the Business Summary brief under Relationship To Recovery Summary:
+
+```text
+Business Summary is the current-reality baseline for Recovery Summary.
+
+It does not decide how recovery should happen.
+
+It exposes the required recovery per driver, current margin per driver, and recovery gap per driver so Recovery Summary can show the consequence of recovery strategy choices.
+
+Recovery Summary must consume these outputs and must not rebuild Business Summary calculations.
+```
+
+---
+
+# 9. DOWNSTREAM CONTRACT PROTECTION
+
+Recovery Summary must not recalculate these Business Summary-owned values:
+
+```js
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+```
+
+If Recovery Summary needs them, Business Summary must expose them.
+
+If they are missing, fix Business Summary first.
+
+Do not rebuild them downstream.
+
+---
+
+# 10. PRODUCT MODE NOTE
+
+In product-based mode, Business Summary must use:
+
+```js
+units_sold_annual
+```
+
+as the primary activity driver.
+
+Legacy hour fields may remain exposed for Business Modelling compatibility, but Recovery Summary must not use them as the primary driver in product-based mode.
+
+---
+
+# 11. LABOUR MODE NOTE
+
+In labour-based mode, Business Summary must use:
+
+```js
+total_productive_output
+```
+
+as the primary activity driver.
+
+This is the denominator for:
+
+```js
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+```
+
+---
+
+# 12. DEFINITION OF READY FOR RECOVERY SUMMARY
+
+Business Summary is ready for Recovery Summary when it exposes:
+
+```js
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+activity_driver_type
+activity_driver_value
+margin_pool
+total_cost_burden
+net_position
+business_summary_status
+model_trust_state
+```
+
+And the page clearly displays:
+
+```text
+required per driver
+current per driver
+gap per driver
+```
+
+If any of those are missing, do not build Recovery Summary yet.
+
+---
+
+# 13. FINAL ADDENDUM DEFINITION
+
+Business Summary is the locked current-reality baseline for the Recovery Chain.
+
+It shows what the business currently produces, what the business costs, and the recovery pressure through the selected activity driver.
+
+It does not decide strategy.
+
+It does not optimise recovery.
+
+It does not test delivery structure.
+
+It does not produce the verdict.
+
+It hands a clean reality contract to Recovery Summary so the next page can show:
+
+```text
+Reality → Strategy → Consequence
+```
+
+without rebuilding upstream maths.

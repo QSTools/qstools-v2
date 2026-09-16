@@ -1,0 +1,1224 @@
+# QS Tools — Variable Contract Brief
+
+## v3.7 — QUOTE ENGINE AND FEEDBACK LOOP CONTRACT UPDATED
+
+**STATUS:** ACTIVE VARIABLE CONTRACT
+**VERSION:** v3.7
+**REPLACES:** Variable Contract Brief v3.6
+**UPDATED FOR:** Quote Engine baseline build, accepted quote snapshots, monthly actuals, and macro feedback loop
+
+---
+
+## PURPOSE
+
+This brief defines allowed cross-module variable names for QS Tools v3.7.
+
+No module may rename contract variables without updating this brief.
+
+No downstream module may rebuild upstream maths.
+
+No downstream module may consume raw upstream form state unless a locked brief explicitly allows it.
+
+If a downstream module needs a value, the owning upstream module must expose it through its output contract.
+
+---
+
+## CORE CONTRACT RULES
+
+Every cross-module value must have:
+
+* one owner
+* one locked variable name
+* one clear downstream meaning
+* one calculation source
+* one trust state where relevant
+
+Benchmarks are diagnostic.
+
+Source module outputs are authoritative.
+
+Predictions are locked separately from actuals.
+
+Cost Summary must consume approved upstream outputs only.
+
+Business Summary and Business Modelling must consume locked outputs, not rebuild calculations.
+
+Quote Engine must consume the selected trusted baseline or scenario.
+
+Feedback Loop must compare accepted quote snapshots with monthly actuals without overwriting either.
+
+---
+
+## P&L OUTPUTS
+
+Allowed P&L outputs:
+
+* pnl_ready
+* pnl_lines
+* pnl_categories
+* total_business_costs
+* labour_benchmark_total
+* assets_benchmark_total
+* general_overheads_benchmark_total
+* income_benchmark_total
+* cogs_benchmark_total
+* direct_cost_benchmark_total
+* unassigned_balance
+
+P&L benchmark totals are diagnostic only.
+
+They flow to Module Reconciliation.
+
+They must not feed Cost Summary calculations directly.
+
+P&L classified income and COGS / Direct Cost outputs may feed Revenue / COGS.
+
+---
+
+## P&L MONTHLY ACTUAL OUTPUTS — FUTURE
+
+Allowed future P&L monthly actual outputs:
+
+* pnl_period_id
+* pnl_period_month
+* pnl_period_year
+* pnl_period_start_date
+* pnl_period_end_date
+* pnl_import_source
+* pnl_imported_at
+* pnl_source_status
+* monthly_actual_ready
+
+P&L monthly actuals are reality inputs.
+
+They must not overwrite quote predictions.
+
+They must not perform feedback-loop comparison.
+
+---
+
+## P&L INTEREST METADATA
+
+Allowed P&L interest metadata:
+
+* interest_treatment
+* contains_asset_finance_interest
+
+Allowed interest_treatment values:
+
+* not_reviewed
+* contains_asset_finance_interest
+* no_asset_finance_interest
+
+Legacy mappings:
+
+* unknown → not_reviewed
+* asset_finance_exclude → contains_asset_finance_interest
+* general_overhead_keep → no_asset_finance_interest
+
+P&L interest metadata is classification / reconciliation context only.
+
+It must not make P&L the source of truth for asset finance interest.
+
+---
+
+## GENERAL OVERHEADS OUTPUTS
+
+Allowed General Overheads outputs:
+
+* total_general_overheads
+* category_totals
+* general_overheads_ready
+* general_overheads_variance_amount
+* general_overheads_variance_percent
+* non_asset_interest_annual
+
+General Overheads may display category subtotals, including:
+
+* Staff Overheads
+* Vehicle Running Costs
+* Non-Asset Interest
+* Insurance / Compliance
+* Admin / Office
+* Software / Subscriptions
+* Other Overheads
+
+Only this value may flow to Cost Summary:
+
+* total_general_overheads
+
+Category subtotals are display / diagnostic values.
+
+Category subtotals must not feed Quote Engine directly.
+
+non_asset_interest_annual is supporting display detail only unless a later locked brief promotes it.
+
+---
+
+## LABOUR OUTPUTS
+
+Allowed Labour cost outputs:
+
+* total_gross_wages_annual
+* total_entitlements_annual
+* total_employer_kiwisaver_annual
+* total_esct_annual
+* total_acc_levy_annual
+* total_employer_contribution_annual
+* total_labour_cost_annual
+* total_productive_output
+* labour_ready
+
+Allowed Labour rate outputs where available:
+
+* productive_labour_cost_rate
+* loaded_labour_cost_rate
+* minimum_charge_out_rate
+* charge_out_rate
+
+Per-staff outputs may include:
+
+* staff_id
+* staff_name
+* gross_wages_annual
+* entitlements_annual
+* employer_kiwisaver_gross
+* esct_amount
+* acc_cu_code
+* acc_rate_percent
+* acc_levy_annual
+* total_employer_contribution_cost
+* productive_hours
+* productive_labour_cost_rate
+* loaded_labour_cost_rate
+* charge_out_rate
+* is_active
+
+Cost Summary must use:
+
+* total_labour_cost_annual
+* total_productive_output
+
+total_productive_output must be Labour’s final productive output after entitlement and productivity logic has already been applied.
+
+Cost Summary must not use paid hours, raw working hours, or pre-productivity hours.
+
+Quote Engine may consume productive_labour_cost_rate and charge_out_rate where available.
+
+Quote Engine must not recalculate Labour.
+
+---
+
+## ASSETS OUTPUTS
+
+Allowed Assets outputs:
+
+* total_asset_cost_annual
+* total_asset_interest_annual
+* assets_ready
+* no_active_assets_confirmed
+
+Per-asset outputs may include:
+
+* asset_id
+* asset_name
+* asset_type
+* finance_cost_annual
+* asset_interest_annual
+* estimated_remaining_finance_balance
+* finance_progress_percent
+* lease_cost_annual
+* depreciation_cost_annual
+* ownership_cost_annual
+* total_asset_cost_annual
+* finance_active
+* finance_status
+* finance_start_date
+* finance_end_date
+* finance_paid_off
+* is_active
+
+Deprecated:
+
+* running_cost_annual
+
+running_cost_annual must not feed Cost Summary.
+
+running_cost_annual must not be used as an active v3.7 output.
+
+---
+
+## ASSET FINANCE OUTPUT RULE
+
+Assets is the source of truth for asset finance interest.
+
+Asset finance interest must be exposed as:
+
+* total_asset_interest_annual
+* asset_interest_annual
+
+where available.
+
+Cost Summary may display total_asset_interest_annual as supporting detail, but must consume asset cost through:
+
+* total_asset_cost_annual
+
+P&L interest must not override asset finance interest.
+
+General Overheads must not duplicate asset finance interest.
+
+---
+
+## CASH FLOW SUPPORT OUTPUTS — FUTURE ONLY
+
+Assets may later expose separate Cash Flow support outputs such as:
+
+* asset_principal_repayment_annual
+* asset_principal_repayment_monthly
+* asset_total_finance_payment_annual
+* asset_total_finance_payment_monthly
+
+These outputs must not feed:
+
+* total_asset_cost_annual
+* total_general_overheads
+* total_cost_burden
+* required_recovery_rate
+* Cost Summary
+
+Principal repayments belong to the future Cash Flow layer.
+
+Interest belongs in cost.
+
+Principal belongs in cash flow.
+
+---
+
+## MODULE RECONCILIATION OUTPUTS
+
+Allowed Module Reconciliation outputs:
+
+* reconciliation_ready
+* reconciliation_checks
+* blocking_checks
+* warning_checks
+* blocking_modules
+* warning_modules
+* module_total_business_costs
+* pnl_business_cost_variance
+* pnl_business_cost_variance_percent
+* pnl_business_cost
+* business_cost_variance_amount
+* business_cost_variance_percent
+* setup_module_benchmark_total
+* full_pnl_business_cost_variance
+* full_pnl_business_cost_variance_percent
+
+Diagnostic totals do not replace source-of-truth module totals.
+
+Module Reconciliation must not recalculate upstream module maths.
+
+Module Reconciliation may expose informational finance / interest bridge values where available, but those values must not override source-of-truth outputs.
+
+Module Reconciliation must not calculate quote outputs or feedback-loop outputs.
+
+---
+
+## OPTIONAL FINANCE / INTEREST BRIDGE OUTPUTS — DIAGNOSTIC ONLY
+
+Module Reconciliation may later expose:
+
+* pnl_interest_total
+* pnl_interest_contains_asset_finance_total
+* modelled_asset_interest_annual
+* non_asset_interest_annual
+* interest_variance_amount
+* interest_variance_percent
+
+These are diagnostic / explanatory values only.
+
+They must not feed Cost Summary calculations.
+
+They must not replace:
+
+* total_asset_cost_annual
+* total_asset_interest_annual
+* total_general_overheads
+
+---
+
+## MODEL READINESS OUTPUTS
+
+Allowed Model Readiness outputs:
+
+* model_ready
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+* model_readiness_status
+
+Allowed model_readiness_status values:
+
+* ready
+* warning
+* blocked
+
+Model Readiness does not create cost totals.
+
+Model Readiness consumes readiness flags and Module Reconciliation outputs.
+
+Quote Engine and Feedback Loop must preserve/inherit model readiness state where relevant.
+
+---
+
+## COST SUMMARY OUTPUTS
+
+Allowed Cost Summary outputs:
+
+* total_people_cost_annual
+* total_asset_cost_annual
+* total_business_overheads
+* total_business_cost_annual
+* total_cost_burden
+* required_revenue
+* required_recovery_rate
+* total_productive_output
+* model_ready
+* blocking_modules
+* warning_modules
+* model_readiness_status
+
+Cost Summary may also expose supporting display values where available:
+
+* total_asset_interest_annual
+
+Supporting display values must not become separate downstream calculation inputs unless a later locked brief explicitly allows it.
+
+---
+
+## COST SUMMARY FORMULAS
+
+```text
+total_people_cost_annual =
+total_labour_cost_annual
+
+
+total_business_overheads =
+total_general_overheads
+
+
+total_business_cost_annual =
+total_asset_cost_annual + total_business_overheads
+
+
+total_cost_burden =
+total_people_cost_annual
++ total_asset_cost_annual
++ total_business_overheads
+
+
+required_revenue =
+total_cost_burden
+
+
+required_recovery_rate =
+required_revenue / total_productive_output
+```
+
+If total_productive_output = 0:
+
+```text
+required_recovery_rate = 0
+warning required
+```
+
+---
+
+## COST SUMMARY INPUT RULE
+
+Cost Summary may consume only:
+
+From Labour:
+
+* total_labour_cost_annual
+* total_productive_output
+* Labour display components where required
+
+From Assets:
+
+* total_asset_cost_annual
+* total_asset_interest_annual as supporting display detail only
+
+From General Overheads:
+
+* total_general_overheads
+
+From Model Readiness:
+
+* model_ready
+* model_readiness_status
+* blocking_modules
+* warning_modules
+* blocking_checks
+* warning_checks
+
+Cost Summary must not consume:
+
+* raw P&L lines
+* P&L benchmark values as calculation inputs
+* P&L interest as asset finance authority
+* historical P&L asset interest
+* principal repayments
+* running_cost_annual
+* Revenue / COGS outputs
+* Business Summary outputs
+* Business Modelling outputs
+* Quote Engine outputs
+* accepted quote snapshots
+* monthly actuals
+* feedback-loop outputs
+
+---
+
+## REVENUE / COGS OUTPUTS
+
+Allowed Revenue / COGS outputs:
+
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* revenue_cogs_ready
+* revenue_cogs_warnings
+
+Optional display outputs:
+
+* revenue_category_totals
+* direct_cost_category_totals
+* revenue_lines
+* direct_cost_lines
+* review_required_lines
+* excluded_trading_lines
+
+Core formula:
+
+```text
+margin_pool =
+total_revenue - total_direct_costs
+```
+
+```text
+gross_margin_percent =
+margin_pool / total_revenue
+```
+
+If total_revenue = 0:
+
+```text
+gross_margin_percent = 0
+warning required
+```
+
+Revenue / COGS consumes classified P&L income and COGS / direct-cost outputs only.
+
+Revenue / COGS must not consume Labour, Assets, General Overheads, Cost Summary internals, Business Summary outputs, Quote Engine outputs, or scenario outputs.
+
+---
+
+## BUSINESS SUMMARY OUTPUTS
+
+Allowed Business Summary outputs:
+
+* business_summary_ready
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* total_cost_burden
+* net_position
+* total_productive_output
+* required_recovery_rate
+* current_margin_per_productive_hour
+* recovery_gap_per_hour
+* business_summary_status
+* business_summary_warnings
+* model_trust_state
+* revenue_cogs_ready
+* cost_summary_ready
+
+Core formulas:
+
+```text
+net_position =
+margin_pool - total_cost_burden
+```
+
+```text
+current_margin_per_productive_hour =
+margin_pool / total_productive_output
+```
+
+```text
+recovery_gap_per_hour =
+current_margin_per_productive_hour - required_recovery_rate
+```
+
+If total_productive_output = 0:
+
+```text
+current_margin_per_productive_hour = 0
+recovery_gap_per_hour = 0
+warning required
+```
+
+Business Summary consumes:
+
+* Revenue / COGS outputs
+* Cost Summary outputs
+
+Business Summary must not rebuild Revenue / COGS or Cost Summary maths.
+
+Business Summary must not suggest actions, model scenarios, test quotes, or store accepted quote snapshots.
+
+---
+
+## BUSINESS MODELLING OUTPUTS
+
+Allowed Business Modelling outputs:
+
+* modelling_ready
+* baseline_snapshot
+* active_scenario
+* upside_scenario
+* downside_scenario
+* scenario_delta_annual
+* scenario_delta_per_hour
+* scenario_net_position
+* scenario_required_recovery_rate
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+* scenario_status
+* modelling_warnings
+
+Baseline snapshot may include:
+
+* baseline_id
+* baseline_name
+* total_revenue
+* total_direct_costs
+* margin_pool
+* gross_margin_percent
+* total_cost_burden
+* net_position
+* total_productive_output
+* required_recovery_rate
+* current_margin_per_productive_hour
+* recovery_gap_per_hour
+* created_at
+* source_model_status
+* source_business_summary_status
+* source_warnings
+
+Scenario outputs may include:
+
+* scenario_id
+* scenario_name
+* scenario_type
+* scenario_total_revenue
+* scenario_total_direct_costs
+* scenario_margin_pool
+* scenario_gross_margin_percent
+* scenario_total_cost_burden
+* scenario_total_productive_output
+* scenario_required_recovery_rate
+* scenario_margin_per_productive_hour
+* scenario_recovery_gap_per_hour
+* scenario_net_position
+* scenario_delta_annual
+* scenario_delta_per_hour
+* scenario_status
+* scenario_trust_state
+* scenario_warnings
+
+Allowed scenario_type values:
+
+* baseline
+* upside
+* downside
+
+Baseline must be read-only.
+
+Scenario must be an editable copy of baseline.
+
+Business Modelling must not mutate source module outputs.
+
+Required Recovery Rate is a reference line, not a scenario.
+
+---
+
+## SELECTED MODEL OUTPUTS FOR QUOTE ENGINE
+
+Allowed selected model outputs:
+
+* selected_model_id
+* selected_model_name
+* selected_model_type
+* selected_model_trust_state
+* selected_model_total_revenue
+* selected_model_direct_costs
+* selected_model_margin_pool
+* selected_model_total_cost_burden
+* selected_model_total_productive_output
+* selected_model_required_recovery_rate
+* selected_model_margin_per_productive_hour
+* selected_model_recovery_gap_per_hour
+* selected_model_net_position
+
+Allowed selected_model_type values:
+
+* baseline
+* upside
+* downside
+* active_scenario
+
+Quote Engine must not silently switch selected model.
+
+---
+
+## QUOTE ENGINE INPUTS
+
+Allowed Quote Engine input variables:
+
+* quote_id
+* job_id
+* job_name
+* quote_name
+* quote_reference
+* quote_date
+* quote_status
+* quote_version
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* material_markup_percent
+* labour_sell_total
+* labour_charge_out_rate
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* created_at
+* updated_at
+
+Suggested quote_status values:
+
+* draft
+* issued
+* revised
+* accepted
+* rejected
+* expired
+* cancelled
+* archived
+
+---
+
+## QUOTE ENGINE OUTPUTS
+
+Allowed Quote Engine outputs:
+
+* quote_revenue
+* quote_price_total
+* material_cost_total
+* material_sell_total
+* labour_sell_total
+* base_labour_hours_allowed
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* true_labour_cost_total
+* direct_cost_total
+* quote_margin_pool
+* quote_margin_percent
+* business_recovery_required_total
+* achieved_margin_per_hour
+* required_recovery_rate
+* hourly_gap
+* quote_gap
+* max_viable_hours
+* required_price_at_allowed_hours
+* price_gap
+* quote_result_status
+* quote_warnings
+* quote_model_used
+* quote_model_trust_state
+
+Allowed quote_result_status values:
+
+* works
+* marginal
+* leaking
+* invalid
+
+---
+
+## QUOTE ENGINE FORMULAS
+
+```text
+labour_sell_total =
+labour_charge_out_rate × base_labour_hours_allowed
+```
+
+where entered as rate.
+
+```text
+true_labour_cost_total =
+base_labour_hours_allowed × model_true_labour_cost_rate
+```
+
+```text
+direct_cost_total =
+material_cost_total
++ true_labour_cost_total
++ direct_cost_package_cost_total
+```
+
+```text
+quote_margin_pool =
+quote_price_total - direct_cost_total
+```
+
+```text
+business_recovery_required_total =
+base_labour_hours_allowed × required_recovery_rate
+```
+
+```text
+achieved_margin_per_hour =
+quote_margin_pool / base_labour_hours_allowed
+```
+
+```text
+hourly_gap =
+achieved_margin_per_hour - required_recovery_rate
+```
+
+```text
+quote_gap =
+quote_margin_pool - business_recovery_required_total
+```
+
+```text
+max_viable_hours =
+quote_margin_pool / required_recovery_rate
+```
+
+```text
+required_price_at_allowed_hours =
+direct_cost_total + business_recovery_required_total
+```
+
+```text
+price_gap =
+required_price_at_allowed_hours - quote_price_total
+```
+
+If base_labour_hours_allowed = 0:
+
+* achieved_margin_per_hour = 0
+* hourly_gap = 0
+* no_labour_hours warning required
+
+If required_recovery_rate = 0:
+
+* max_viable_hours = 0
+* no_required_recovery_rate warning required
+
+---
+
+## QUOTE ENGINE ORIGINAL / ADJUSTED OUTPUTS
+
+Original quote variables:
+
+* original_quote_price_total
+* original_base_labour_hours_allowed
+* original_material_cost_total
+* original_material_sell_total
+* original_labour_sell_total
+* original_direct_cost_package_allowance_total
+* original_direct_cost_package_cost_total
+* original_quote_gap
+* original_hourly_gap
+* original_result_status
+
+Adjusted quote variables:
+
+* adjusted_quote_price_total
+* adjusted_base_labour_hours_allowed
+* adjusted_material_sell_total
+* adjusted_labour_sell_total
+* adjusted_direct_cost_package_cost_total
+* adjusted_direct_cost_package_allowance_total
+* adjusted_quote_gap
+* adjusted_hourly_gap
+* adjusted_result_status
+
+Repair lever variables:
+
+* price_adjustment_amount
+* labour_hours_adjustment
+* material_margin_adjustment_percent
+* direct_cost_package_adjustment_amount
+
+Repair outputs:
+
+* original_quote_gap
+* adjusted_quote_gap
+* remaining_quote_gap
+* gap_closed_amount
+* gap_closed_percent
+
+---
+
+## QUOTE INTERNAL LABOUR LINE VARIABLES
+
+Optional first-build / future variables:
+
+* quote_internal_labour_line_id
+* quote_id
+* labour_source_type
+* labour_role_id
+* labour_role_name
+* staff_id
+* labour_class
+* hours_assigned
+* model_labour_cost_rate
+* model_labour_charge_out_rate
+* line_cost_total
+* line_sell_total
+* line_margin_total
+* line_margin_percent
+* line_variance_to_model
+* schedule_group
+* stage_name
+* sequence_order
+* estimated_duration_days
+
+Allowed labour_source_type values:
+
+* internal
+
+Default numeric values should be 0.
+
+---
+
+## QUOTE DIRECT COST PACKAGE VARIABLES
+
+Allowed direct cost package variables:
+
+* quote_direct_cost_package_id
+* quote_id
+* package_name
+* package_type
+* subcontractor_id
+* pricing_type
+* unit
+* quantity
+* cost_rate
+* sell_rate
+* cost_total
+* sell_total
+* profit_total
+* profit_percent
+* package_allowance_total
+* package_variance_to_allowance
+
+Allowed package_type values:
+
+* subcontractor
+* trade_package
+* plant_hire
+* supply_install
+* other_direct_cost
+
+Allowed pricing_type values:
+
+* unit_rate
+* hourly
+* day_rate
+* lump_sum
+* open_ended
+
+Allowed unit values:
+
+* hour
+* day
+* m2
+* m3
+* lineal_metre
+* each
+* block
+* tonne
+* lump_sum
+
+---
+
+## DIRECT COST PACKAGE POOL VARIABLES
+
+Allowed pool variables:
+
+* direct_cost_package_allowance_total
+* direct_cost_package_cost_total
+* direct_cost_package_sell_total
+* direct_cost_package_profit_total
+* direct_cost_package_pool_variance
+
+Formula:
+
+```text
+direct_cost_package_pool_variance =
+direct_cost_package_allowance_total - direct_cost_package_cost_total
+```
+
+Do not say a specific trade is short unless the user has created a specific trade allowance.
+
+---
+
+## QUOTE MATERIAL VARIABLES
+
+Allowed material variables:
+
+* quote_material_line_id
+* quote_id
+* material_group_name
+* material_cost_total
+* material_markup_percent
+* material_sell_total
+* material_margin_total
+* material_margin_percent
+
+Optional future variables:
+
+* unit
+* quantity
+* cost_rate
+* sell_rate
+* supplier_id
+
+Materials are checked for margin only.
+
+QS Tools does not validate material quantities.
+
+---
+
+## ACCEPTED QUOTE SNAPSHOT OUTPUTS
+
+Allowed accepted quote snapshot variables:
+
+* accepted_quote_snapshot_id
+* quote_id
+* job_id
+* job_name
+* accepted_quote_version
+* accepted_date
+* accepted_period_month
+* accepted_period_year
+* accepted_quote_price_total
+* accepted_base_labour_hours_allowed
+* accepted_material_cost_total
+* accepted_material_sell_total
+* accepted_labour_sell_total
+* accepted_direct_cost_package_allowance_total
+* accepted_direct_cost_package_cost_total
+* accepted_direct_cost_total
+* accepted_quote_margin_pool
+* accepted_required_recovery_rate
+* accepted_business_recovery_required_total
+* accepted_quote_gap
+* accepted_hourly_gap
+* accepted_result_status
+* accepted_model_used
+* accepted_model_trust_state
+* snapshot_locked
+* created_at
+
+Accepted quote snapshots are immutable.
+
+Monthly actuals must not overwrite them.
+
+---
+
+## MONTHLY ACTUAL OUTPUTS — FUTURE
+
+Allowed monthly actual variables:
+
+* actual_period_id
+* actual_period_month
+* actual_period_year
+* actual_total_revenue
+* actual_total_direct_costs
+* actual_margin_pool
+* actual_gross_margin_percent
+* actual_total_cost_burden
+* actual_total_productive_output
+* actual_margin_per_productive_hour
+* actual_required_recovery_rate
+* actual_recovery_gap_per_hour
+* actual_net_position
+* imported_from
+* imported_at
+* source_status
+
+Monthly actuals are reality.
+
+They must not overwrite accepted quote snapshots.
+
+---
+
+## FEEDBACK LOOP OUTPUTS — FUTURE
+
+Allowed Feedback Loop outputs:
+
+Expected monthly values:
+
+* expected_accepted_quote_count
+* expected_quote_revenue_total
+* expected_direct_cost_total
+* expected_margin_pool_total
+* expected_required_recovery_total
+* expected_quote_gap_total
+* expected_labour_hours_total
+* expected_margin_per_hour
+* expected_average_required_recovery_rate
+
+Variance outputs:
+
+* revenue_variance
+* direct_cost_variance
+* margin_pool_variance
+* recovery_variance
+* net_position_variance
+* margin_per_hour_variance
+* recovery_gap_per_hour_variance
+* quote_count
+* accepted_quote_value_total
+* actual_revenue_total
+* feedback_status
+* feedback_warnings
+
+Feedback readiness outputs:
+
+* feedback_ready
+* no_accepted_quotes_for_period
+* no_monthly_actuals_for_period
+* period_mismatch
+
+Feedback Loop must not perform job-level costing in V1.
+
+---
+
+## CASH FLOW OUTPUTS — LATER
+
+Allowed future Cash Flow outputs may include:
+
+* total_principal_repayment_annual
+* total_principal_repayment_monthly
+* total_finance_payment_annual
+* total_finance_payment_monthly
+* total_cash_pressure_annual
+* total_cash_pressure_monthly
+* cash_flow_status
+* cash_flow_warnings
+
+Cash Flow is later.
+
+Cash Flow must not feed Cost Summary.
+
+Cash Flow must not alter required_recovery_rate.
+
+---
+
+## PRODUCTION CAPACITY OUTPUTS — LATER
+
+Allowed future Production Capacity outputs may include:
+
+* available_productive_capacity
+* required_productive_capacity
+* capacity_gap
+* utilisation_required
+* capacity_ready
+
+Production Capacity belongs after Quote Engine.
+
+Do not build or depend on these until Quote Engine and capacity briefs are explicitly locked.
+
+---
+
+## BANNED VARIABLES
+
+Do not use:
+
+* employee_overheads_total
+* total_employee_overheads_annual
+* employee_overheads_total_annual
+* employee_overheads_benchmark_total
+* employee_overheads_ready
+* employee_overheads_status
+* employee_overheads_variance_amount
+* employee_overheads_variance_percent
+* employee_overheads_annual
+* staff_overheads_total
+* staff_overheads_ready
+* active_revenue_model inside Cost Summary
+* active_asset_labour_links inside Cost Summary
+* running_cost_annual inside Cost Summary
+* raw P&L lines inside Cost Summary
+* P&L benchmark values as Cost Summary calculation inputs
+* P&L interest as asset finance authority
+* historical P&L asset interest as Cost Summary input
+* principal repayments inside Cost Summary
+* principal repayments inside total_asset_cost_annual
+* principal repayments inside total_general_overheads
+* quote outputs inside Cost Summary
+* quote outputs inside Revenue / COGS
+* quote outputs inside Business Summary unless a later locked brief explicitly allows comparison display
+* accepted quote snapshots inside Cost Summary
+* accepted quote snapshots inside Revenue / COGS
+* monthly actuals inside Quote Engine
+* feedback-loop outputs inside source modules
+* cash-flow outputs inside Cost Summary
+
+---
+
+## FINAL DEFINITION
+
+The v3.7 variable contract keeps all module boundaries explicit.
+
+P&L owns classification, benchmark context, and future monthly actual preparation.
+
+Revenue / COGS owns Margin Pool.
+
+Labour owns people cost and productive output.
+
+General Overheads owns shared / staff / vehicle running / non-asset overheads.
+
+Assets owns ownership-only asset cost and asset finance interest.
+
+Module Reconciliation proves the model.
+
+Model Readiness gates trust.
+
+Cost Summary aggregates approved upstream operating cost outputs.
+
+Business Summary mirrors the current business.
+
+Business Modelling creates locked-baseline scenarios.
+
+Quote Engine tests individual quotes against the selected model.
+
+Accepted Quote Snapshots preserve predictions.
+
+Feedback Loop later compares predictions against monthly actuals.
+
+Cash Flow later owns principal and finance payment pressure.
+
+No downstream module may rebuild upstream maths or consume unapproved variables.

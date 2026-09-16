@@ -1,0 +1,278 @@
+# QS Tools — Active System Brief Addendum
+
+## v3.8 — RECOVERY CHAIN CONTRACT ADDENDUM
+
+**STATUS:** ADDENDUM TO 01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt
+**VERSION:** v3.8
+**PURPOSE:** Add explicit Recovery Summary → Cost Allocation → Business Outcome contract language to the existing Active System Brief.
+
+This is not a full replacement for `01_ACTIVE_SYSTEM_BRIEF_v3.8_LOCKED.txt`.
+
+Keep the existing Active System Brief and add this as a supporting addendum.
+
+---
+
+# 1. WHY THIS ADDENDUM EXISTS
+
+The Active System Brief v3.8 already includes the correct system flow:
+
+```text
+Business Summary
+↓
+Recovery Summary
+↓
+Cost Allocation
+↓
+Business Outcome
+```
+
+This addendum locks the more detailed separation required for the Recovery Chain build.
+
+---
+
+# 2. LOCKED RECOVERY CHAIN PRINCIPLE
+
+The recovery chain must follow this separation:
+
+```text
+Business Summary = current reality
+Recovery Summary = chosen strategy + visible consequence
+Cost Allocation = delivery structure + dependency
+Business Outcome = verdict
+```
+
+Core product rule:
+
+```text
+You can choose anything, but you cannot hide from what it causes.
+```
+
+This rule applies across Recovery Summary, Cost Allocation, and Business Outcome.
+
+---
+
+# 3. BUSINESS SUMMARY HANDOFF
+
+Business Summary provides the current-reality baseline.
+
+It must expose:
+
+```js
+business_type
+activity_driver_type
+activity_driver_value
+required_recovery_per_driver
+current_margin_per_driver
+recovery_gap_per_driver
+margin_pool
+total_cost_burden
+net_position
+model_trust_state
+business_summary_status
+business_summary_warnings
+```
+
+Business Summary does not decide recovery strategy.
+
+Business Summary does not calculate allocation status.
+
+Business Summary does not produce the final verdict.
+
+---
+
+# 4. RECOVERY SUMMARY ROLE
+
+Recovery Summary owns the selected recovery strategy and visible consequence.
+
+It consumes Business Summary outputs.
+
+It must expose:
+
+```js
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+active_recovery_model
+labour_share_percent
+asset_share_percent
+overhead_share_percent
+labour_recovery_cost
+asset_recovery_cost
+overhead_absorbed_cost
+required_labour_recovery_rate
+required_asset_recovery
+```
+
+Recovery Summary must not:
+
+```text
+rebuild Business Summary
+rebuild Cost Summary
+rebuild Revenue / COGS
+calculate allocation_status
+calculate business_outcome_status
+optimise recovery mix automatically
+```
+
+---
+
+# 5. COST ALLOCATION ROLE
+
+Cost Allocation owns delivery structure, capacity visibility, and dependency status.
+
+It consumes Recovery Summary outputs.
+
+It must expose:
+
+```js
+allocation_status
+allocation_dependency_type
+allocation_warnings
+active_recovery_model
+recovery_plan_target_per_driver
+recovery_plan_split
+component_required_recovery
+structure_valid
+staff_coverage_percent
+asset_coverage_percent
+group_coverage_percent
+external_delivery_enabled
+external_delivery_required
+internal_capacity_shortfall
+```
+
+Allowed `allocation_status` values:
+
+```js
+"ready"
+"ready_with_dependency"
+"strained"
+"not_supported"
+```
+
+Critical rule:
+
+```text
+Not enough internal capacity is not automatic failure. It is a dependency signal.
+```
+
+Cost Allocation must distinguish:
+
+```text
+internal constrained capacity
+external scalable delivery
+```
+
+Cost Allocation must not:
+
+```text
+change recovery strategy
+recalculate Recovery Summary
+produce the final business verdict
+optimise the model
+price quotes
+```
+
+---
+
+# 6. BUSINESS OUTCOME ROLE
+
+Business Outcome owns the verdict.
+
+It consumes Recovery Summary and Cost Allocation outputs.
+
+It must expose:
+
+```js
+business_outcome_status
+outcome_status
+outcome_title
+outcome_message
+primary_constraint_key
+primary_constraint_title
+primary_constraint_message
+recommended_action
+allocation_status
+allocation_dependency_type
+net_position
+recovery_gap_per_driver
+dependency_level
+business_model_health
+decision_warnings
+```
+
+Allowed `business_outcome_status` values:
+
+```js
+"viable"
+"viable_with_dependency"
+"at_risk"
+"not_viable"
+```
+
+Business Outcome must not:
+
+```text
+recalculate Recovery Summary
+recalculate Cost Allocation
+change recovery strategy
+change allocation structure
+optimise scenarios
+price quotes
+perform feedback-loop analysis
+```
+
+---
+
+# 7. TRUST INHERITANCE
+
+Recovery Summary, Cost Allocation, and Business Outcome must inherit the upstream trust state.
+
+If Model Readiness or Business Summary is blocked:
+
+```text
+Recovery Summary may display preview only.
+Cost Allocation may display preview only.
+Business Outcome must not present a final trusted verdict.
+```
+
+If Model Readiness is warning:
+
+```text
+Warnings must remain visible through the recovery chain.
+```
+
+---
+
+# 8. CURRENT BUILD PRIORITY UPDATE
+
+The current build priority is:
+
+```text
+1. Confirm Business Summary current-reality contract.
+2. Align Recovery Summary to expose recovery_plan_target_per_driver, recovery_plan_split, and component_required_recovery.
+3. Align Cost Allocation to expose allocation_status, allocation_dependency_type, and allocation_warnings.
+4. Align Business Outcome to consume clean Recovery Summary and Cost Allocation outputs.
+5. Defer Business Modelling until the recovery chain is stable.
+6. Defer Quote Engine until Business Outcome and selected baseline/model boundaries are clear.
+```
+
+---
+
+# 9. FINAL ADDENDUM DEFINITION
+
+The Active System Brief remains the central architecture file.
+
+This addendum locks the Recovery Chain handoff:
+
+```text
+Current reality → Strategy and consequence → Delivery dependency → Verdict
+```
+
+No downstream module may calculate what an upstream module already owns.
+
+No hidden assumptions.
+
+No fantasy modelling.
+
+Every choice must show its consequence.

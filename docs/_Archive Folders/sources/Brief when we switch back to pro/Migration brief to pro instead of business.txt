@@ -1,0 +1,878 @@
+Below is a complete cut-and-paste recovery brief for this chat/session.
+
+---
+
+# QS Tools — Session Recovery Brief
+
+## P&L Classification, General Overheads Alignment, Labour Recovery Standard, Codex Usage
+
+**Date:** 2026-04-30
+**Project:** `D:\QSTools\qstools-web`
+**Branch:** `main`
+
+---
+
+## 1. Current project state
+
+QS Tools has progressed through a major foundation tightening phase.
+
+The current locked build direction is:
+
+```text
+P&L
+→ General Overheads
+→ Labour
+→ Assets
+→ Module Reconciliation
+→ Model Readiness
+→ Cost Summary
+→ Recovery Summary
+→ Rate Models
+→ Production Capacity
+→ Recovery Outcome
+→ Quote Benchmark
+```
+
+The core philosophy remains:
+
+```text
+First principles for everything.
+
+Simple in hindsight.
+Invisible beforehand.
+```
+
+The system must expose hidden commercial assumptions, make costs traceable, and avoid producing trusted outputs from unresolved or unclear inputs.
+
+---
+
+## 2. Major work completed in this session
+
+### A. Product Standard / Commercial Defensibility brief added
+
+Created/updated:
+
+```text
+docs/V3.6 Source Files/00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+```
+
+Purpose:
+
+To lock the product quality standard for QS Tools.
+
+Key principles added:
+
+```text
+Good enough to defend, not just good enough to work.
+```
+
+A trusted number must be:
+
+```text
+traceable
+explainable
+reconciled
+owned by one module
+free from hidden assumptions
+supported by visible treatment decisions
+safe to use downstream
+```
+
+QS Tools is not just a calculator. It is intended to become a commercial decision engine that can show:
+
+```text
+what the business really costs
+which cost belongs where
+what assumptions are hidden
+what needs review
+whether the model can be trusted
+whether quotes recover the business model
+whether actual monthly performance aligns with the model
+```
+
+---
+
+### B. `AGENTS.md` updated
+
+Updated:
+
+```text
+AGENTS.md
+```
+
+The existing detailed `AGENTS.md` was preserved and expanded rather than replaced with a weaker version.
+
+Important additions:
+
+```text
+Product Standard & Commercial Defensibility rules
+Labour recovery and margin pool rules
+Reference to new Product Standard brief
+Reference to new Labour Recovery & Margin Pool Standard brief
+```
+
+`AGENTS.md` now explicitly tells Codex:
+
+```text
+Do not treat gross margin as proof of profit.
+Do not optimise for faster setup if doing so weakens the commercial model.
+Do not hide conceptual problems with code.
+Every cost must belong to exactly one module.
+```
+
+---
+
+### C. Labour Recovery & Margin Pool Standard added
+
+Created:
+
+```text
+docs/V3.6 Source Files/17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
+```
+
+This locks one of the most important product insights discovered in the session.
+
+Key insight:
+
+```text
+A fixed-price quote can show gross margin and still fail to recover internal labour, overheads, assets, and target profit.
+```
+
+Core fixed-price recovery test:
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit
+= recovery surplus / shortfall
+```
+
+If the recovery surplus / shortfall is negative, the quote is commercially loss-making against the model, even if a simple gross-margin view looks acceptable.
+
+This was identified as likely one of the main hidden leaks in quote-based businesses.
+
+---
+
+## 3. P&L classification work completed
+
+The P&L page has been heavily improved and is now considered effectively closed for the current phase.
+
+### Main P&L achievements
+
+The P&L now acts as a proper classification layer:
+
+```text
+P&L line
+→ accounting section
+→ QS category
+→ review_subcategory
+→ treatment
+→ readiness impact
+```
+
+The P&L now distinguishes:
+
+```text
+Labour
+General Overheads
+Assets
+Excluded
+Review Required
+WIP / Accounting Adjustment
+COGS
+Income / timing adjustment
+```
+
+### Known Operating Expense mappings added
+
+Known/default Operating Expense lines now map as follows:
+
+```text
+Salary & Wages → labour / salary_wages
+KiwiSaver Employer Contributions → labour / employer_kiwisaver
+ACC Levy → labour / employer_acc
+
+Staff Expenses → general_overheads / staff_overheads
+Entertainment → general_overheads / staff_overheads
+Entertainment - Non Deductible → general_overheads / staff_overheads
+
+Vehicle-related costs → general_overheads / vehicle_running_costs
+
+Computer Expenses → general_overheads / office_admin
+Printing & Stationery → general_overheads / office_admin
+
+Accounting Fees → general_overheads / finance_admin
+Bank Fees → general_overheads / finance_interest
+
+Legal Expenses → general_overheads / insurance_compliance
+Insurance → general_overheads / insurance_compliance
+
+Advertising → general_overheads / sales_growth
+Travel - National → general_overheads / travel
+
+Penalties & Fees → excluded / penalties_non_deductible
+```
+
+### P&L custom Operating Expense dropdown fixed
+
+The Operating Expenses dropdown was previously still showing generic old options:
+
+```text
+Labour
+General Overheads
+Assets
+```
+
+These were removed from the visible Operating Expenses dropdown because they are too vague and do not provide `review_subcategory` detail.
+
+The dropdown now forces specific classification choices such as:
+
+```text
+Salary & Wages → Labour
+KiwiSaver → Labour
+ACC Levy → Labour
+Staff Overheads → General Overheads
+Entertainment → Staff Overheads
+Vehicle Running Costs → General Overheads
+Office / Admin → General Overheads
+Accounting / Admin → General Overheads
+Finance / Interest → General Overheads
+Asset Finance → Assets
+Mixed Finance → Review Required
+Insurance / Compliance → General Overheads
+Sales / Growth → General Overheads
+Travel → General Overheads
+Penalties / Non-Deductible → Excluded
+Other / Review Required
+Excluded / Non-QS Cost
+Unassigned
+```
+
+Internal stored top-level categories still exist and are still needed. Only the vague visible dropdown choices were removed.
+
+### Relevant commit
+
+Latest relevant commit:
+
+```text
+f9d5abe Fix P&L Operating Expenses dropdown: Remove generic Labour/General Overheads/Assets options
+```
+
+Commit stat:
+
+```text
+components/p-and-l/ProfitAndLossOperatingExpenseGroup.jsx | 30 deletions
+```
+
+This commit was clean and only changed the intended file.
+
+---
+
+## 4. WIP treatment clarified and implemented
+
+WIP was a major conceptual issue.
+
+Conclusion:
+
+```text
+WIP is not automatically General Overheads.
+WIP is not automatically COGS.
+WIP is not automatically excluded.
+WIP is an accounting/timing adjustment until explicitly resolved.
+```
+
+WIP must default to:
+
+```text
+category: review_required
+review_subcategory: wip_accounting_adjustment
+```
+
+Allowed WIP treatments:
+
+```text
+Leave as Review Required
+Exclude from QS Cost Model
+Include as COGS / Direct Job Cost
+Treat as Income / Revenue Timing Adjustment
+```
+
+A WIP decision guide was added to the P&L UI to explain this.
+
+Important business reasoning:
+
+WIP in Xero/accounting can be used to move profit/loss across periods for tax/accounting timing. It cannot be blindly used as a direct QS cost without understanding the underlying source detail.
+
+---
+
+## 5. Excluded category and excluded items handling completed
+
+P&L now supports excluded items properly.
+
+Examples:
+
+```text
+Penalties / Non-Deductible → Excluded
+Asset finance interest → excluded from QS benchmark cost to avoid double counting
+```
+
+Asset finance interest logic:
+
+If the P&L contains an interest line that includes asset finance, it should be excluded from QS benchmark costs because the Assets module owns the actual asset finance/ownership cost.
+
+The UI warning says:
+
+```text
+Asset finance interest has been excluded from QS benchmark costs to prevent double counting.
+```
+
+This is correct.
+
+---
+
+## 6. P&L readiness status
+
+P&L is now passing.
+
+Current P&L summary screenshot showed:
+
+```text
+Total Business Costs: 420,763
+Total Assigned: 420,763
+Unassigned Balance: 0
+P&L Ready: Ready
+```
+
+P&L has no unassigned balance.
+
+This means all P&L business cost lines have been assigned to QS categories.
+
+---
+
+## 7. General Overheads alignment completed
+
+General Overheads was previously functionally working but not aligned with the new P&L `review_subcategory` language.
+
+### Audit findings
+
+General Overheads was still relying heavily on line-name keyword matching rather than using:
+
+```text
+line.review_subcategory
+```
+
+This was fixed.
+
+### Files changed in General Overheads alignment
+
+Codex changed:
+
+```text
+hooks/useGeneralOverheads.js
+lib/storage/generalOverheadStorage.js
+lib/calculations/generalOverheadCalculations.js
+lib/selectors/generalOverheadSelectors.js
+```
+
+### General Overheads now maps P&L review_subcategories
+
+Mappings:
+
+```text
+staff_overheads → Staff Overheads
+vehicle_running_costs → Vehicle Running Costs
+office_admin → Office / Admin
+finance_admin → Accounting / Admin
+finance_interest → Finance / Interest
+insurance_compliance → Insurance / Compliance
+sales_growth → Sales / Growth
+travel → Travel
+```
+
+Keyword fallback remains for older data where `review_subcategory` is missing.
+
+### General Overheads synced totals
+
+After clicking **Sync from P&L**, General Overheads showed:
+
+```text
+Total General Overheads = $93,225
+```
+
+Category split:
+
+```text
+Office / Admin            $26,931
+Accounting / Admin         $4,346
+Insurance / Compliance    $12,588
+Staff Overheads            $2,633
+Vehicle Running Costs     $36,441
+Travel                        $38
+Facilities / Premises      $5,978
+Sales / Growth             $3,234
+Other / Unallocated        $1,035
+```
+
+This matched the P&L General Overheads Benchmark:
+
+```text
+General Overheads Benchmark = $93,225
+```
+
+So the sync and total are now correct.
+
+### Important note about Other / Unallocated
+
+General Overheads still has a category called:
+
+```text
+Other / Unallocated
+```
+
+Amount:
+
+```text
+$1,035
+```
+
+This does **not** mean P&L is unassigned. P&L unassigned balance is zero.
+
+The $1,035 appears to be a real General Overheads row:
+
+```text
+Other General Overheads = $1,034.78
+```
+
+The naming is confusing. Later, we should rename this category to something like:
+
+```text
+Other General Overheads
+```
+
+or:
+
+```text
+Other / Review Required
+```
+
+Avoid the word `Unallocated` here because P&L unallocated/unassigned has a specific readiness meaning.
+
+This is a polish issue, not a blocker.
+
+### Relevant commit
+
+General Overheads alignment was committed as:
+
+```text
+9e4ab30 Align General Overheads with PnL review subcategories
+```
+
+---
+
+## 8. Model Readiness current state
+
+After P&L and General Overheads fixes, Model Readiness showed:
+
+```text
+Profit & Loss readiness: PASS
+Labour readiness: PASS
+General Overheads readiness: PASS
+Employee overheads detected: PASS
+Legacy asset running costs: PASS
+```
+
+Remaining blockers:
+
+```text
+Assets readiness: FAIL
+Business cost variance: FAIL
+```
+
+Raw snapshot showed approximately:
+
+```text
+pnl_business_costs:              1,620,078.70
+module_total_business_costs:       432,099.09
+pnl_business_cost_variance:      1,187,979.61
+pnl_business_cost_variance_%:        73.33%
+```
+
+Important: P&L current summary later showed:
+
+```text
+Total Business Costs: 420,763
+```
+
+So Model Readiness may need to be refreshed/rechecked after latest syncs and commits.
+
+---
+
+## 9. Current active blockers
+
+The current real blockers are:
+
+```text
+Assets readiness
+Business cost variance
+```
+
+P&L and General Overheads should no longer be the main blockers.
+
+Next planned work is:
+
+```text
+Assets readiness audit
+```
+
+Do not jump to Cost Summary yet.
+
+---
+
+## 10. Next Codex prompt planned: Assets inspect-only audit
+
+Use this next, after Codex usage is available and the repo is clean:
+
+```text
+Read AGENTS.md first. Use docs/V3.6 Source Files as the active source pack.
+
+Inspect only. Do not edit files.
+
+Audit why Assets readiness is failing and why module_total_business_costs differs from pnl_business_costs by more than 5%.
+
+Check:
+1. What assets_ready currently requires.
+2. Whether no_active_assets_confirmed exists and is wired correctly.
+3. Whether paid-off finance is still included as current asset finance cost.
+4. Whether asset finance from P&L is being excluded correctly to prevent double counting.
+5. Whether P&L assets benchmark is correct after asset finance exclusion.
+6. Whether module_total_business_costs is correctly made from Labour + General Overheads + Assets.
+7. Whether Assets module total_asset_cost_annual is correct.
+8. Whether the Assets page is missing a required confirmation state or output contract field.
+9. Smallest safe implementation plan.
+
+Do not edit files.
+Do not change P&L.
+Do not change General Overheads.
+Do not change Labour.
+Do not change Cost Summary.
+Do not run broad refactors.
+
+Report:
+- why Assets is failing
+- why the business cost variance is so large
+- exact files involved
+- smallest safe implementation plan
+```
+
+Expected likely issue:
+
+```text
+Assets readiness expects active assets,
+but no_active_assets_confirmed may be missing/not wired.
+```
+
+Also to check:
+
+```text
+Paid-off finance should not create current finance cost.
+Asset finance from P&L should be excluded to avoid double counting.
+Assets module owns ownership cost.
+P&L identifies/reconciles asset finance risk but should not be source-of-truth for asset cost.
+```
+
+---
+
+## 11. Codex usage / upgrade discussion
+
+Codex usage was nearly exhausted.
+
+The current working setup in VS Code Codex is still valid.
+
+A new Codex app/interface was downloaded. It showed:
+
+```text
+GPT-5.5 in Codex
+5.5 Medium
+qstools-web
+Work locally
+main
+IDE context
+```
+
+But it produced:
+
+```text
+403 Forbidden
+invalid_workspace_selected
+```
+
+This was not a Python interpreter issue. It was a Codex workspace/access/selection issue.
+
+Possible causes:
+
+```text
+workspace registration / permission mismatch
+Codex app workspace identity issue
+IDE context conflict
+account/session issue
+```
+
+Recommended if using the new app:
+
+```text
+Sign out/sign back in
+Select D:\QSTools\qstools-web exactly
+Try disabling IDE context and using only Work locally
+```
+
+Fallback:
+
+```text
+Use VS Code Codex panel
+```
+
+VS Code Codex has already been working and can continue to be used.
+
+---
+
+## 12. Codex usage strategy going forward
+
+To conserve allowance:
+
+```text
+inspect-only audit
+→ one narrow implementation
+→ build
+→ visual check
+→ commit
+→ stop
+```
+
+Avoid broad prompts like:
+
+```text
+Fix Assets
+Fix General Overheads
+Fix Cost Summary
+```
+
+Use narrow prompts only.
+
+Recommended next sequence:
+
+```text
+1. Assets readiness inspect-only audit
+2. Assets readiness narrow fix
+3. Recheck Model Readiness
+4. Business cost variance inspect-only audit
+5. Cost Summary trusted/not-trusted wiring
+6. Recovery Summary / labour recovery baseline view
+```
+
+---
+
+## 13. Git status / commits from session
+
+Known important commits:
+
+```text
+074da52 Add labour recovery and margin pool standard
+9e4ab30 Align General Overheads with PnL review subcategories
+f9d5abe Fix P&L Operating Expenses dropdown: Remove generic Labour/General Overheads/Assets options
+```
+
+At the point shown:
+
+```text
+branch: main
+ahead of origin/main by 1 commit
+latest commit: f9d5abe
+working tree clean
+```
+
+User was instructed to run:
+
+```powershell
+npm run build
+git push
+git status
+```
+
+If already pushed successfully, expected:
+
+```text
+On branch main
+Your branch is up to date with 'origin/main'.
+nothing to commit, working tree clean
+```
+
+---
+
+## 14. Current conceptual product insight
+
+The project has moved beyond a basic cost model.
+
+The likely most powerful insight is:
+
+```text
+Fixed-price quotes can look profitable while labour recovery is leaking underneath.
+```
+
+The system must eventually show:
+
+```text
+Does the margin / recovery pool recover:
+- internal labour
+- general overheads
+- asset ownership
+- target profit
+```
+
+If not, the output should say:
+
+```text
+This quote is under-recovering by $X.
+```
+
+or:
+
+```text
+This quote is commercially loss-making against your model.
+```
+
+This does not necessarily mean accounting/cash loss immediately. It means the quote fails the recovery model the business has set.
+
+This is now locked into:
+
+```text
+00_PRODUCT_STANDARD_AND_COMMERCIAL_DEFENSIBILITY_v3.6_LOCKED.txt
+17_LABOUR_RECOVERY_AND_MARGIN_POOL_STANDARD_v3.6_LOCKED.txt
+AGENTS.md
+01_ACTIVE_SYSTEM_BRIEF_v3.6_LOCKED.txt
+```
+
+---
+
+## 15. Important technical rules currently locked
+
+### P&L
+
+```text
+P&L is raw financial input and classification.
+P&L benchmark values flow to Module Reconciliation only.
+P&L values must not feed Cost Summary calculations directly.
+```
+
+### General Overheads
+
+```text
+General Overheads owns total_general_overheads.
+Only total_general_overheads may flow downstream.
+Staff overheads are a category inside General Overheads, not a separate module.
+Vehicle running costs belong in General Overheads, not Assets.
+```
+
+### Labour
+
+```text
+Labour owns salary/wages, employer KiwiSaver, ESCT, employer ACC, entitlements, productive hours.
+Labour does not own staff overheads.
+```
+
+### Assets
+
+```text
+Assets owns ownership-only asset costs:
+finance
+lease
+depreciation
+ownership / replacement recovery if explicitly enabled
+
+Assets does not own:
+fuel
+servicing
+repairs
+maintenance
+registration
+licensing
+tyres
+vehicle running costs
+```
+
+### WIP
+
+```text
+WIP defaults to Review Required.
+WIP must not auto-feed COGS, General Overheads, Assets, Labour, Income, or Excluded.
+```
+
+### Fixed-price recovery
+
+```text
+Revenue
+- external/direct costs
+= margin / recovery pool
+```
+
+Then:
+
+```text
+margin / recovery pool
+- required internal labour recovery
+- required general overhead recovery
+- required asset ownership recovery
+- target profit
+= recovery surplus / shortfall
+```
+
+---
+
+## 16. Immediate next action after plan/account change
+
+After changing plan or restoring Codex usage:
+
+1. Confirm repo is clean:
+
+```powershell
+cd D:\QSTools\qstools-web
+git status
+git log --oneline -5
+```
+
+2. Confirm latest commits include:
+
+```text
+f9d5abe Fix P&L Operating Expenses dropdown...
+9e4ab30 Align General Overheads...
+074da52 Add labour recovery...
+```
+
+3. Run build if needed:
+
+```powershell
+npm run build
+```
+
+4. Run the Assets inspect-only Codex prompt.
+
+Do not run implementation first.
+
+---
+
+## 17. Summary in one line
+
+Current position:
+
+```text
+P&L classification is closed, General Overheads is aligned and passing, Labour is passing, product standards are locked, and the next blocker is Assets readiness followed by business cost variance.
+```
