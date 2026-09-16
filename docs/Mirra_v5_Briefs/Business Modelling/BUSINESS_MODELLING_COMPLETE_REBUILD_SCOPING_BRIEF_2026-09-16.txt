@@ -396,5 +396,85 @@ having separate open/closed states) but worth confirming deliberately
 rather than assuming, when this is actually built.
 
 ===============================================================================
+8. LEVERS VS REAL DATA - THE ACTUAL SCOPE OF "RERUN EVERYTHING" (2026-09-16)
+===============================================================================
+
+User's own framing, confirmed correct: modelling should rerun the real
+chain end-to-end, but NOT let every field be edited. Overriding General
+Overheads as one blunt percentage (e.g. "-10% across the board") is wrong
+in the same way the materials residual was wrong earlier this session -
+it treats genuinely different things (a statutory rate nobody controls, a
+discretionary spend a business genuinely decides on) as if they were the
+same kind of number. Two real categories exist and must be kept distinct
+in any lever design:
+  - REAL, STRUCTURALLY FIXED FACTS - ACC rate, KiwiSaver employer
+    contribution, ESCT, insurance premiums, actual fuel/market prices.
+    Nobody decides these. Modelling must never touch them - "what if I
+    paid less ACC" is not a real business decision, it is fiction, and
+    would break the "no invented reality" principle this whole rebuild
+    is built on.
+  - GENUINE LEVERS - charge-out rate (already the existing lever, via
+    Rate Builder), which overhead line items to cut/negotiate, training/
+    PPE/staff-benefit spend, financing choices, staffing levels/hours.
+    Real business decisions modelling exists specifically to test.
+
+**General Overheads (hooks/useGeneralOverheads.js +
+hooks/general-overheads/generalOverheadPnlSync.js, confirmed 2026-09-16):**
+same zero-injection-point pattern as every other module (hardcoded to
+live P&L + Asset storage). BUT a major positive finding: overhead is
+ALREADY tracked at the INDIVIDUAL LINE-ITEM level, not one aggregate pool
+- every P&L operating expense line becomes its own tracked item
+(synced_pnl_overhead_items), each with a real category already assigned
+via keyword matching against the line's actual name: vehicles_running,
+insurance_compliance, financial_admin, office_admin, facilities_premises,
+sales_growth, finance_interest, other_unallocated. This is exactly the
+data structure the lever-vs-fixed distinction needs - it already exists,
+was not invented for this rebuild. What's missing is one more property
+per line/category: an is_lever flag - a data addition on top of an
+existing structure, not new architecture.
+
+**Employee Overheads (hooks/useEmployeeOverheads.js +
+lib/calculations/employeeOverheadCalculations.js, confirmed 2026-09-16)
+- CORRECTION:** this is NOT where ACC/KiwiSaver live, despite the name -
+it is per-staff training cost, PPE cost, transport allowance, phone
+allowance - real discretionary staff benefits. Same zero-injection
+pattern, calculation is pure. These ARE genuine lever candidates (same
+category as General Overheads' sales_growth line) - a business can
+really decide to spend less on training this year.
+
+**Labour / ACC / KiwiSaver (hooks/useLabour.js +
+lib/calculations/labourCalculations.js, confirmed 2026-09-16) - the
+actual answer to the user's ACC example:** ACC and KiwiSaver ARE already
+cleanly separate, individually-named, individually-exposed fields -
+acc_rate, acc_work_levy_annual, employer_kiwisaver_rate,
+employer_kiwisaver_gross, esct_rate, esct_amount - never blended into
+one number. Confirms the lever-vs-fixed distinction is buildable on
+existing field-level granularity here too.
+
+TWO NOTABLE EXCEPTIONS TO THE ZERO-INJECTION PATTERN, found here:
+  - useLabour({ pnl_recovery_inputs = {} } = {}) DOES accept a real
+    parameter - the first hook checked all session that does. Not the
+    full picture (pnl_recovery_inputs is recovery-rate context, not a
+    wage/ACC override), but real, positive precedent that this pattern
+    already exists somewhere in the codebase.
+  - acc_manual_override_enabled / acc_manual_rate already exists as a
+    stored, user-editable field - but this exists to CORRECT the real
+    rate (e.g. actual industry classification differs from the default),
+    not to model a hypothetical lower ACC. Same mechanism, different
+    intent - do not conflate "fix a real number" with "test a fictional
+    lever" when the actual lever design happens.
+
+**DISCOVERY NOW COVERS SEVEN MODULES (Cost Allocation, Rate Builder,
+Assets, Business Outcome, General Overheads, Employee Overheads,
+Labour), all telling the same consistent story:** calculations are pure
+and reusable everywhere; injection points are absent almost everywhere
+(two partial exceptions found: Cost Allocation's recovery_summary,
+Labour's pnl_recovery_inputs); and wherever real granular data exists
+(overhead line items, ACC/KiwiSaver fields), it is ALREADY structured
+at exactly the level a lever-vs-fixed distinction needs - nothing found
+so far requires new data structure, only new is_lever
+classification plus the injection mechanism itself.
+
+===============================================================================
 END OF BRIEF
 ===============================================================================
