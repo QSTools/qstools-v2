@@ -1,0 +1,73 @@
+# Business Modelling - New Chat Handover (2026-09-14)
+
+**Repo:** D:\QSTools\qstools-web
+**Purpose of this document:** everything a brand-new chat needs to pick up Business Modelling work correctly, without re-deriving context. Read this fully before doing anything. Also read BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (docs\Mirra_v5_Briefs\Business Outcome\) for fast file/function lookup across the whole calculation chain - this document is the narrative and current state, the file map is the reference for "which file has function X."
+
+Standing conventions: Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt at repo root (also loaded automatically via Project custom instructions). Key points: batch independent patches into one PowerShell command, Apply-Patch only (never Set-Content), confirm "Patched:"/"NOT FOUND:" before trusting a patch landed, build after every batch, live-test against real data before committing, watch for the two recurring bug classes (closure scoping; storage/selector layers silently dropping fields).
+
+---
+
+## 1. What Business Modelling actually is
+
+/business-modelling answers "what happens if I change a rate, a markup, or a cost?" - a what-if tool, built on top of Business Outcome's real, live, already-verified per-source data. It is NOT a separate calculation engine with its own independent numbers - it reuses Business Outcome's real calculation chain, feeding it modelled (hypothetical) inputs instead of just displaying real ones. This "reuse the engine, don't rebuild it" principle is the core architecture decision governing everything on this page.
+
+## 2. How Outcome feeds Modelling - the real handoff, confirmed working
+
+The chain: `useBusinessOutcomePerSourceRevenue()` (hooks/) → `selectBusinessOutcomePerSourceRevenue()` (lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js) produces `per_source` → `useBusinessModelling()` (hooks/) calls this and exposes `per_source` itself (added 2026-09-14, was previously computed internally but never returned - needed for the scenario redesign below) → `lib/selectors/businessModellingLeverSelectors.js`'s `buildLiveLeverHeadline(per_source, rate_target_by_group_id, materials_markup_percent)` is the real live-lever engine, consuming `per_source` directly and applying whatever rate/markup changes are currently set.
+
+This handoff is real, live, and already confirmed working correctly - do not re-investigate whether it works, only what it reads (Section 4 below is the one open question).
+
+## 3. What's built and shipped - don't re-verify from scratch
+
+**The live-lever card** (`BusinessModellingLeverCard.jsx`, always visible at the top of the page): per-group rate targets, materials markup target, real-time resulting net profit, breakeven rate per group, proportional suggestions. Reads `per_source` directly via the chain above. This IS Business Modelling's real engine - has been for some time, confirmed via commit history (`f98b9f3`, "S31 Phase 2-3").
+
+**Business Modelling Scenario Redesign - Baseline/Upside/Downside** (built 2026-09-14, see BUSINESS_MODELLING_SCENARIO_REDESIGN_DECISION_LOCK_2026-09-12.txt, same folder as this doc, for the full original decision):
+- **Baseline**: NOT editable. A real, locked, dated snapshot of "where the business actually is right now" - built via `buildBaselineSnapshotFromLive(per_source)` (lib/calculations/businessModellingScenarioCalculations.js), which calls `buildLiveLeverHeadline` with EMPTY levers (`{}`, `null`) so it captures genuine reality, never a half-edited scenario. Full history kept (never deleted, exactly one `is_current`), stored via lib/storage/businessModellingScenarioStorage.js (key `qs_tools_business_modelling_scenario_state_v1`, separate from the old system's key). Re-locking is suggested (not automatic), with manual revert always available.
+- **Upside**: A single (not multiple) saved target scenario, using the live-lever engine's real levers. Computed via `buildUpsideHeadline(per_source, upside_scenario)` - deliberately uses the SAVED levers, not whatever's currently live-editable in the UI.
+- **Downside**: Calculated live as breakeven, NEVER stored, via `calculateDownsideAsBreakeven(baseline_snapshot)`. If Baseline is profitable, Downside sits below it (room to fall); if a loss, above it (climb needed).
+- UI: `components/business-modelling/BusinessModellingScenarioSection.jsx`, wired into the page below the existing live-lever card.
+- Hook: `hooks/useBusinessModellingScenario.js` - takes `per_source` as an input (does not recompute it), has a `has_loaded` guard applied proactively (learned from an earlier session's race-condition bug elsewhere).
+- **Real bug found and fixed during build**: Downside initially always showed "Lock a Baseline first" even with a real baseline locked - `calculateDownsideAsBreakeven` was checking a `baseline_snapshot.available` flag that does NOT survive the storage round-trip (the storage layer's `normaliseBaselineSnapshot` explicitly rebuilds the snapshot object listing only its 4 real data fields, silently dropping `available` - the same "middle layer drops the field" bug class this whole project has hit repeatedly). Fixed by checking the real underlying data (`total_net_profit`, `breakeven_revenue` both finite) directly instead.
+- Live-verified with real data: Baseline locked at $630,568 net profit, Downside correctly showed $1,869,432 breakeven with the right distance message, a real lever change (Site Crew rate $75→$80/hr) saved as Upside correctly showed $712,618, genuinely different from Baseline.
+
+**Old system** (`lib/storage/businessModellingStorage.js`, `lib/calculations/businessModellingCalculations.js`, rendered collapsed as "Previous scenario tools" on the page): deliberately left untouched as a safety net until the new system is fully trusted. Not yet retired - that's a separate, deliberate future decision, not something to do casually.
+
+## 4. THE ONE GENUINELY OPEN QUESTION - pick up here
+
+**Should Business Modelling's lever engine (and by extension, the new Baseline/Upside/Downside system) read View B's real materials markup instead of View A's residual figure?**
+
+Confirmed facts:
+- `buildBreakevenSummary` (lib/selectors/businessModellingLeverSelectors.js) is confirmed **View-A only** - reads `per_source.real_capacity` and `per_source.materials` (View A's residual construction: `total_revenue - labour_modelled - asset_modelled`), and does NOT read `per_source.view_b` at all.
+- View B's materials figure is **real, stored, and independently anchored**: `total_cogs × (1 + markup%)`, using a real user-set 15% markup (`lib/storage/rateBuilderMaterialsMarkupStorage.js`, key `qstools_rate_builder_materials_markup_v1`). This is NOT a test value - it was confirmed as a deliberate real figure (previously a 10% test value, since updated).
+- An earlier session's own resolution (session brief Section 3.2) states "View A is the trusted base for all lever math, View B's role is a check-and-balance overlay for the materials lever specifically, not a modelling input" - but this was decided BEFORE the real 15% markup existed as stored data, and a later reconciliation document (S32, 2026-09-08) explicitly flagged this as worth re-deciding now that real View B data exists, calling View B "the more honest architecture" without ever getting a final confirmed decision.
+- Both the existing live-lever card AND the new Baseline/Upside/Downside system inherit whatever decision is made here, since both ultimately call `buildLiveLeverHeadline`, which calls `buildBreakevenSummary`.
+
+**This is a real architecture decision, not a bug to fix.** Recommended approach for a new chat: pull real numbers for View A's residual materials figure vs. View B's real 15%-markup figure, using live data, show the actual gap to the user, and get an explicit decision before changing any code - same discipline used for every other architecture decision this project has made (see the depreciation-in-true-cost decision in FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt as a template for how that conversation went).
+
+## 5. Other genuinely open items, lower priority than Section 4
+
+- **Debt-to-equity as Business Modelling scenario context** (CFO gap doc item 4, CFO_REQUIREMENTS_GAP_2026-09-12.txt) - explicitly deferred until the scenario system existed. It now exists. Not yet scoped.
+- **The old ~$20 (on ~$1.84M revenue) discrepancy** between Business Outcome's and Business Modelling's net profit figures, flagged in an original handover, never resolved across any session. Given Modelling is now confirmed to read `per_source` directly, this gap may be smaller or easier to close than originally thought - worth a fresh look, not assumed either way.
+- **Retiring the old system** - deliberate future decision, not urgent, the new system needs more real-world use first.
+
+## 6. Files to know (see BUSINESS_OUTCOME_FILE_MAP_v5_1.txt for the full calculation-chain map)
+
+- `hooks/useBusinessModelling.js` - main hook, both old and new systems, now exposes `per_source`
+- `hooks/useBusinessModellingScenario.js` - new scenario system's hook
+- `lib/selectors/businessModellingLeverSelectors.js` - live-lever engine, includes the View-A-only `buildBreakevenSummary`
+- `lib/calculations/businessModellingScenarioCalculations.js` - Baseline/Upside/Downside calculations
+- `lib/storage/businessModellingScenarioStorage.js` - new system's storage (separate key from old system)
+- `lib/calculations/businessModellingIndependentCalculations.js` - **ON THE "LEAVE UNTOUCHED" LIST**, but NOT abandoned - contains `calculateGaugeInput()` (Health Gauge's real formula) and `calculateIndependentMaterialsBreakeven()`. Only just committed to git 2026-09-14 after sitting as an uncommitted local change since 2026-09-08 - see BUSINESS_OUTCOME_SESSION_BRIEF_v5_1.txt Section 8 for the full story. Do not extend this file - create a new file if new calculation is needed.
+- `components/business-modelling/BusinessModellingLeverCard.jsx` - **ALSO ON THE "LEAVE UNTOUCHED" LIST**, same reasoning, just committed 2026-09-14.
+- `components/business-modelling/BusinessModellingScenarioSection.jsx` - new scenario UI
+
+## 7. Related documents (same folder unless noted)
+
+- `BUSINESS_MODELLING_SCENARIO_REDESIGN_DECISION_LOCK_2026-09-12.txt` (docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\) - the original decision lock this session's build executed against
+- `CFO_REQUIREMENTS_GAP_2026-09-12.txt` (same location as above) - item 4 (debt-to-equity)
+- `BUSINESS_OUTCOME_SESSION_BRIEF_v5_1.txt` (docs\Mirra_v5_Briefs\Business Outcome\) - the full running narrative, Section 2A has the original "two coexisting systems" discovery, Section 3 has the full View A/B history
+- `BUSINESS_OUTCOME_FILE_MAP_v5_1.txt` (same location) - fast file/function reference for the whole calculation chain
+
+## Status
+
+Written 2026-09-14 specifically to hand off to a fresh chat for continued Business Modelling work. The scenario redesign is genuinely complete and live-verified. The single most valuable next step is Section 4 - the View A vs View B decision - since it's real, unresolved, and affects both the existing live-lever card and the brand-new scenario system.
