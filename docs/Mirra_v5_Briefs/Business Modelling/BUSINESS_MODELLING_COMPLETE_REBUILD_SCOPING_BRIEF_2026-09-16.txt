@@ -1,0 +1,174 @@
+MIRRA v5.2 - BUSINESS MODELLING COMPLETE REBUILD - SCOPING BRIEF
+STATUS: DRAFT - FOR REVIEW BEFORE ANY CODE CHANGES
+DATE: 2026-09-16
+ORIGIN: Surfaced while live-testing the materials/View A-B independence
+fix (same session). Fixing materials revealed a deeper, pre-existing
+problem: Business Modelling has never actually shown the business's
+real, current, reconciled state - only an independent-lever view that
+happened to sum close to reality because materials was silently acting
+as a residual plug. Removing that plug (today's fix) didn't create the
+problem, it just stopped masking it.
+
+===============================================================================
+1. THE ACTUAL PROBLEM, STATED PLAINLY
+===============================================================================
+
+Every function in businessModellingIndependentCalculations.js was
+deliberately built (S31 brief) to judge each source "against ONLY its own
+true_cost... never a business-wide total." That is correct and useful
+FOR MODELLING A FIX - "if this source stood entirely on its own, what
+would it need to charge to break even?"
+
+It is NOT a correct representation of "how is the business actually
+doing right now" - that requires the real, cascade-adjusted, reconciled
+figures (cross-subsidy included), which is what Business Outcome's
+headline_real_capacity already shows and is already trusted.
+
+Business Modelling's page has always opened directly on the independent
+view, headlined as "Your business is currently making $X in net profit"
+- a real-sounding claim built from unreal, non-reconciled numbers. Before
+today, this was disguised by Materials silently absorbing whatever gap
+existed (a residual, not an independent figure), so the total happened
+to land close to the real number by construction, not by honesty. Today's
+materials fix (session same date) removed that disguise - the business
+was at real $0 breakeven, and the independent-view total came out at
+$767,271 - the size of the cross-subsidy currently hidden in the rate
+structure between sources, not a real profit figure.
+
+===============================================================================
+2. THE DECISION - CONFIRMED, 2026-09-16
+===============================================================================
+
+Business Modelling is being rebuilt to genuinely separate two different
+questions it currently conflates:
+
+**Section A - Current business state (real, reconciled)**
+"Here's where the business actually is right now" - matches Business
+Outcome exactly. Real total net profit (including cross-subsidy), each
+source's actual current rate/margin as things stand today. This is a
+STARTING POINT, not a lever exercise.
+
+**Section B - Model a fix (independent, lever-driven)**
+The existing lever engine, kept, but explicitly reframed as "if each
+source stood fully on its own, with no help from any other source" -
+matching the same honest framing Business Outcome already uses for its
+own "Each Part On Its Own" / View A-B toggle. Used for deciding WHICH
+lever to pull, never presented as today's reality.
+
+Nothing in this module is on a "leave untouched" list anymore - full
+rebuild authorised, including BusinessModellingLeverCard.jsx and
+businessModellingIndependentCalculations.js (both previously untouchable
+per Section 7 of BUSINESS_OUTCOME_FILE_MAP_v5_1.txt - THAT status is
+REVOKED for these two files specifically, by this decision. The other
+three files on that list - SidebarNavigation.jsx, the S22 brief, and
+generalOverheadCategorySelectors.js - are NOT part of this decision and
+remain untouched).
+
+===============================================================================
+3. WHAT ALREADY EXISTS AND CAN BE REUSED (Section A's data)
+===============================================================================
+
+Section A does NOT need new calculation logic - the real, reconciled
+figures already exist and are already trusted, via the same per_source
+object Business Modelling already receives:
+
+  - per_source.headline_real_capacity - real total_net_profit,
+    total_modelled_revenue, all_sources (each source's real,
+    cascade-adjusted net profit and verdict) - this IS Business
+    Outcome's own trusted headline, already flowing into
+    useBusinessModelling() today.
+  - per_source.real_capacity.group_real_capacity[] - per-group real
+    current rate (modelled_revenue / group_recovery_hours), for showing
+    "your rates and margins as they are today."
+  - per_source.materials (View A residual - NOT to be used here) vs
+    per_source.view_b.materials (real, independently-anchored - the
+    field the materials fix now reads, but for THIS section, the
+    correct figure is whichever one the real reconciled total already
+    uses - needs confirming which, see Section 5 below).
+
+This is "reuse the engine, don't rebuild it" - the exact principle this
+whole module was originally built on (S05 build brief, Section 3: "must
+not recalculate source modules... may only read existing output
+contracts").
+
+===============================================================================
+4. WHAT NEEDS TO CHANGE (Section B's reframing + UI restructure)
+===============================================================================
+
+  - BusinessModellingLeverCard.jsx - currently opens directly on the
+    independent view with the "Your business is currently making $X"
+    headline. Needs: a NEW Section A above it (or as a sibling
+    component) showing the real state first, and Section B's existing
+    content re-labelled to make clear it's an independent, no-cross-
+    subsidy exercise - not a second "actual" figure.
+  - Likely a new component for Section A - naming/location TBD, but
+    following the existing pattern (components/business-modelling/).
+  - businessModellingIndependentCalculations.js - the underlying
+    calculations here are NOT wrong (they correctly compute the
+    independent view, which Section B genuinely needs) - the problem
+    was never the calculation, it was presenting its output as if it
+    were Section A's answer. This file's calculations likely stay
+    almost as-is; what changes is what CONSUMES them and how it's
+    labelled.
+  - Baseline/Upside/Downside scenario system
+    (businessModellingScenarioCalculations.js,
+    BusinessModellingScenarioSection.jsx) - built 2026-09-14 on TOP of
+    the independent lever engine (buildLiveLeverHeadline with empty
+    levers = Baseline). This inherits the same conflation - "Baseline"
+    is currently built from the INDEPENDENT view, not the real
+    reconciled one. NEEDS ITS OWN DECISION: should Baseline become
+    Section A's real reconciled figure instead? This seems like the
+    more honest interpretation of "where the business actually is right
+    now" (the Baseline's own stated definition, per the 2026-09-12
+    decision lock) - but changing Baseline's source is itself a real
+    architecture decision, not an assumed yes. FLAG FOR EXPLICIT
+    DECISION, not yet decided.
+
+===============================================================================
+5. OPEN QUESTIONS - NOT YET DECIDED
+===============================================================================
+
+1. Should Baseline (in the Upside/Downside redesign) be rebuilt to read
+   Section A's real reconciled figure instead of
+   buildLiveLeverHeadline-with-empty-levers? This would be a genuine
+   improvement toward Baseline's own stated definition ("where the
+   business actually is right now" - not "where it would be if every
+   source stood alone"), but changes real, already-shipped, live-
+   verified behaviour ($630,568 baseline) and needs to be re-verified
+   against real data if changed.
+2. For Section A's per-source materials figure specifically - View A's
+   residual or View B's real anchored figure? Business Outcome's own
+   real, reconciled headline_real_capacity already has an answer to
+   this (whichever view its own cascade uses) - need to confirm which,
+   rather than re-deciding it independently for Business Modelling.
+3. Exact component/file structure for Section A - new component vs.
+   extending BusinessModellingLeverCard.jsx vs. something else. Not
+   scoped yet.
+4. What happens to the legacy "Previous scenario tools" section
+   (useBusinessModellingLegacyScenario.js, split out just this session)
+   in light of this rebuild? Still a separate, deliberate future
+   retirement decision per the 2026-09-12 decision lock - this rebuild
+   does not change that status, but worth flagging that the module is
+   now mid-rebuild with three coexisting concepts (legacy scenario
+   system, Section A/B split, Baseline/Upside/Downside redesign) until
+   this settles.
+
+===============================================================================
+6. SUGGESTED SEQUENCING
+===============================================================================
+
+1. Resolve Section 5's open questions with explicit user decisions,
+   same discipline as every other architecture decision this project
+   has made - before writing code.
+2. Build Section A first (pure reuse of existing trusted data, lowest
+   risk) as its own step, live-test against real data, commit.
+3. Reframe Section B's labelling/headline to make clear it's the
+   independent/no-cross-subsidy view, not current reality.
+4. Only then, separately, decide and act on Baseline's data source
+   (open question 1) - this touches already-shipped, already-verified
+   behaviour and deserves its own dedicated confirmation and live
+   re-verification pass, not bundled into Section A/B's build.
+
+===============================================================================
+END OF BRIEF
+===============================================================================
