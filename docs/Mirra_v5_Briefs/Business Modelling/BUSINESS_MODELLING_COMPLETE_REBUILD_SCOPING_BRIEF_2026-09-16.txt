@@ -278,6 +278,34 @@ assume Business Modelling should call Rate Builder's function directly
 without confirming which question the rebuilt Business Modelling is
 actually meant to answer.
 
+**Assets (hooks/useAssets.js, confirmed 2026-09-16):** calculateAssetOutputs()
+(lib/calculations/assetCalculations.js) is fully pure - plain asset_state,
+saved_assets, and override params in, plain result object out (confirmed
+by reading the whole function, ~14KB, no storage/hook access anywhere
+inside it). Same pattern as Cost Allocation and Rate Builder.
+
+BUT, same problem as Rate Builder: useAssets() takes ZERO parameters -
+no injection point at all. Worse than Rate Builder in one respect -
+it is hardcoded directly to THREE upstream live hooks, not one:
+useProfitAndLoss(), useGeneralOverheads(), useOpeningHours(). This widens
+the real dependency graph beyond what was originally scoped (Cost
+Allocation -> Rate Builder -> Operating Groups -> Business Outcome) -
+Assets alone reaches further upstream into P&L, General Overheads, and
+Opening Hours too.
+
+**UNIFIED FINDING ACROSS ALL THREE MODULES CHECKED (Cost Allocation, Rate
+Builder, Assets):** every actual calculation is a pure function, already
+separable from live data by construction - genuinely good news, the "reuse
+the engine" principle is achievable everywhere checked so far. But NO hook
+is currently built to accept an isolated/modified input as a first-class
+feature - Cost Allocation has one partial override field
+(recovery_summary), Rate Builder and Assets have none at all. This is one
+consistent architectural gap across the whole upstream chain, not three
+separate problems - the real Phase 2 work (per the external Copilot
+brief's own phasing, Section 27) is adding a consistent injection
+mechanism to each hook, not rewriting any calculation logic, which is
+already correct and reusable as-is.
+
 ===============================================================================
 END OF BRIEF
 ===============================================================================
