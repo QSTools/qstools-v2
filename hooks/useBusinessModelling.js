@@ -11,6 +11,7 @@ import {
   buildGroupLeverRows,
   buildMaterialsLeverRow,
   buildProportionalSuggestions,
+  resolveLeverOverrides,
 } from "@/lib/selectors/businessModellingLeverSelectors";
 import useBusinessModellingLegacyScenario from "@/hooks/useBusinessModellingLegacyScenario";
 
@@ -73,6 +74,26 @@ export default function useBusinessModelling() {
     set_rate_target_by_group_id(next);
   }
 
+  // REAL ENGINE RERUN (2026-09-17) - resolves the existing lever inputs
+  // into the override shape the real hook needs, then calls
+  // useBusinessOutcomePerSourceRevenue a SECOND time with those
+  // overrides. This produces a genuinely modelled per_source, built by
+  // rerunning the same real calculation chain every live page uses -
+  // not a separate independent formula. Falls back to real data for
+  // anything without an override (same guarantee the hook itself
+  // provides). Not yet wired into any display - this proves the
+  // mechanism works end-to-end against real data before deciding how
+  // to show it.
+  const lever_overrides_resolution = useMemo(
+    () => resolveLeverOverrides(per_source, rate_target_by_group_id, materials_markup_percent),
+    [per_source, rate_target_by_group_id, materials_markup_percent]
+  );
+
+  const modelled_per_source_raw = useBusinessOutcomePerSourceRevenue({
+    overrides: lever_overrides_resolution.overrides,
+  });
+  const modelled_per_source = selectBusinessOutcomePerSourceRevenue(modelled_per_source_raw);
+
   return {
     ...legacy,
     live_headline,
@@ -90,6 +111,14 @@ export default function useBusinessModelling() {
     // useBusinessModellingScenario can build a real Baseline snapshot
     // without duplicating the expensive live-cascade calculation.
     per_source,
+    // Added 2026-09-17 - the real engine rerun, fed the current lever
+    // inputs via resolveLeverOverrides. unsupported_lever_group_ids
+    // lists working units whose current target rate could not be
+    // mapped unambiguously (mixed labour+asset, or multiple labour
+    // types) - not silently ignored, surfaced so the UI can eventually
+    // tell the user why.
+    modelled_per_source,
+    unsupported_lever_group_ids: lever_overrides_resolution.unsupported_group_ids,
   };
 }
 

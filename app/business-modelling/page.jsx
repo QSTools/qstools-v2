@@ -11,6 +11,7 @@ import BusinessModellingDeltaCard from "@/components/business-modelling/Business
 import BusinessModellingHelpPanel from "@/components/business-modelling/BusinessModellingHelpPanel";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import BusinessModellingLeverCard from "@/components/business-modelling/BusinessModellingLeverCard";
+import BusinessModellingRealStateCard from "@/components/business-modelling/BusinessModellingRealStateCard";
 import useBusinessModellingScenario from "@/hooks/useBusinessModellingScenario";
 import BusinessModellingScenarioSection from "@/components/business-modelling/BusinessModellingScenarioSection";
 
@@ -43,6 +44,8 @@ export default function BusinessModellingPage() {
     proportional_suggestions,
     applyProportionalSuggestions,
     per_source,
+    modelled_per_source,
+    unsupported_lever_group_ids,
   } = useBusinessModelling();
 
   const {
@@ -76,6 +79,8 @@ export default function BusinessModellingPage() {
   return (
     <main className="ui-page">
       <div className="ui-page-stack">
+        <BusinessModellingRealStateCard per_source={per_source} />
+
         <BusinessModellingLeverCard
           headline={live_headline}
           breakeven_summary={breakeven_summary}
@@ -88,6 +93,25 @@ export default function BusinessModellingPage() {
           materials_markup_percent={materials_markup_percent}
           onMaterialsMarkupChange={updateMaterialsMarkupPercent}
         />
+
+        {/* TEMPORARY DEBUG (2026-09-17) - proves the real-engine-rerun
+            override mechanism works end-to-end against real data.
+            Remove once confirmed and a real display is decided. */}
+        <div className="ui-panel ui-stack-sm" style={{ border: "2px dashed orange" }}>
+          <div className="ui-kicker">DEBUG: real engine rerun check</div>
+          <div className="ui-row-between">
+            <span>Real total net profit (headline_real_capacity)</span>
+            <strong>{per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
+          </div>
+          <div className="ui-row-between">
+            <span>Modelled total net profit (headline_real_capacity)</span>
+            <strong>{modelled_per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
+          </div>
+          <div className="ui-row-between">
+            <span>Unsupported working units (ambiguous lever)</span>
+            <strong>{JSON.stringify(unsupported_lever_group_ids ?? [])}</strong>
+          </div>
+        </div>
 
         <section className="ui-section">
           <div className="ui-panel">
