@@ -357,9 +357,43 @@ construction, not by manual upkeep. This also directly answers the
 future dashboard/performance-comparison need flagged by the user - every
 metric Outcome already computes becomes automatically available in
 modelled form too, with no separate dashboard-specific calculation ever
-needing to be built. NOT YET VERIFIED - the Card's actual prop signature
-still needs confirming (in progress, same session) before this is locked
-in as the plan.
+needing to be built. **[CONFIRMED 2026-09-16]** BusinessOutcomePerSourceRevenueCard's real
+signature: `BusinessOutcomePerSourceRevenueCard({ per_source,
+output_contract, labour_recovery, smoothing_mode, view_mode_ab,
+set_view_mode_ab, balance_sheet_current_year_earnings,
+fixed_assets_reconciliation, balance_sheet_working_capital })` -
+per_source genuinely arrives as a prop, not derived internally. The
+reuse idea above is architecturally sound, confirmed by reading the
+real file, not assumed.
+
+ONE HONEST CAVEAT: the Card is not fully prop-driven - it has one
+internal live hook call of its own, useProfitAndLoss(), used only for a
+small cross-check in the blurb (comparing the cascade's own net profit
+against the P&L's own real actual net profit). Feeding this Card a
+modelled per_source would still pull REAL live P&L data into that one
+comparison - possibly correct as-is (comparing a modelled scenario
+against real actuals is a meaningful comparison in its own right), or
+may need its own explicit toggle/prop - not yet decided, flagged for a
+deliberate choice rather than left as an accidental gap.
+
+ALSO: this Card is a very large file (bigger than
+useBusinessOutcomePerSourceRevenue.js by the look of it - two full
+ledger components defined inline plus significant local view-mode
+state before the main export even starts). Third large file flagged in
+this exact area this session (alongside useBusinessOutcomePerSourceRevenue.js
+and, at a smaller scale, useBusinessModelling.js before its split).
+Worth being aware the whole Business Outcome/Modelling display layer may
+deserve its own deliberate size conversation at some point - not urgent,
+not touched today, per Working Conventions discipline (no drive-by
+splits).
+
+Note also: the Card holds significant LOCAL React state (view_mode,
+time_scale, capacity_mode, cost_mode, card2_view_mode_ab, sources_open,
+detail_open, breakdown_open, etc.) - rendering two instances (real +
+modelled) would give each its own independent toggle state by default,
+which is likely the correct behaviour (two separate views naturally
+having separate open/closed states) but worth confirming deliberately
+rather than assuming, when this is actually built.
 
 ===============================================================================
 END OF BRIEF
