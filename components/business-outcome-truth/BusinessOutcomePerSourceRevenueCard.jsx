@@ -2022,6 +2022,13 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // total_net_profit - the list is now genuinely transparent, not
   // just the headline total.
   const unassigned_total = per_source.unassigned?.total ?? 0;
+  // FIX (2026-09-17): real cost that IS assigned to a working unit but
+  // isn't tied to any revenue-bearing source (non-productive labour/
+  // assets) - genuinely different from unassigned_total above (which
+  // means "not yet assigned, go fix this in Cost Allocation"). Shown
+  // as its own row so the breakdown list keeps summing to the real
+  // headline total, without implying there's still something to fix.
+  const non_revenue_bearing_total = per_source.non_revenue_bearing?.total ?? 0;
 
   // Shared helper (2026-09-10): injects the unassigned-cost row into
   // any raw headline object. Extracted so both the toggle-following
@@ -2048,8 +2055,32 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     };
   }
 
-  const active_headline = apply_unassigned_entry(raw_active_headline);
-  const stable_headline = apply_unassigned_entry(raw_stable_headline);
+  // FIX (2026-09-17): same injection pattern as apply_unassigned_entry
+  // above, for real assigned-but-not-revenue-bearing cost. Kept as a
+  // separate function and a separate row rather than merged into the
+  // unassigned entry, since the two mean genuinely different things.
+  function apply_non_revenue_bearing_entry(raw_headline) {
+    if (!(non_revenue_bearing_total > 0 && raw_headline)) return raw_headline;
+    const non_revenue_bearing_entry = {
+      key: "non_revenue_bearing",
+      name: "Non-productive cost (assigned, not tied to any revenue-bearing source)",
+      net_profit: -non_revenue_bearing_total,
+      modelled_revenue: 0,
+      verdict: "being_carried",
+      type: "non_revenue_bearing",
+    };
+    return {
+      ...raw_headline,
+      all_sources: [...(raw_headline.all_sources || []), non_revenue_bearing_entry],
+      total_group_count: (raw_headline.total_group_count ?? 0) + 1,
+      being_carried_count: (raw_headline.being_carried_count ?? 0) + 1,
+      being_carried: [...(raw_headline.being_carried || []), non_revenue_bearing_entry],
+      all_good: false,
+    };
+  }
+
+  const active_headline = apply_non_revenue_bearing_entry(apply_unassigned_entry(raw_active_headline));
+  const stable_headline = apply_non_revenue_bearing_entry(apply_unassigned_entry(raw_stable_headline));
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;

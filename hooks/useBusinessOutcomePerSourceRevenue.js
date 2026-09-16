@@ -120,7 +120,7 @@ function split_group_overhead(group) {
   };
 }
 
-function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map()) {
+function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}) {
   const rows = [];
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
 
@@ -133,7 +133,21 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       return;
     }
 
-    const { blended_rate, reason } = get_group_blended_rate(group, calculators);
+    // Business Modelling override (2026-09-17): if a modelled blended
+    // rate is supplied for this working unit, it replaces Rate
+    // Builder's live calculator result - real cost is untouched, only
+    // the revenue-side rate changes. Falls back to the real live value
+    // whenever no override is present, so every existing page (which
+    // never passes blended_rate_overrides) is byte-identical to before
+    // this change.
+    const override_blended_rate = blended_rate_overrides[group.group_id];
+    const has_blended_rate_override =
+      override_blended_rate !== undefined && override_blended_rate !== null && override_blended_rate !== "";
+    const live_blended_rate_result = get_group_blended_rate(group, calculators);
+    const blended_rate = has_blended_rate_override
+      ? to_number(override_blended_rate)
+      : live_blended_rate_result.blended_rate;
+    const reason = has_blended_rate_override ? null : live_blended_rate_result.reason;
     const { asset_overhead_pool } = split_group_overhead(group);
 
     // Real sum of this group's own per-asset hours - deliberately NOT
@@ -248,11 +262,22 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
 // is still reused from useBusinessOutcomeLabourRecovery (that hook
 // remains correct and unchanged for its own purpose - rate recovery,
 // not whole-business cost totalling) - only the COST side changes here.
-function build_labour_sources(operational_group_cost_rows, labour_recovery_rows, operational_group_recovery_rows = []) {
+function build_labour_sources(operational_group_cost_rows, labour_recovery_rows, operational_group_recovery_rows = [], rate_overrides = {}) {
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
   const charge_out_rate_by_id = new Map(
     labour_recovery_rows.map((row) => [row.labour_source_type_id, to_number(row.charge_out_rate)])
   );
+  // Business Modelling override (2026-09-17): a modelled charge-out
+  // rate for this specific labour type, keyed by staff_type_id,
+  // replaces the live Rate Builder rate. Real cost is untouched - only
+  // the revenue-side rate changes. Falls back to the real live map
+  // whenever rate_overrides is empty, so every existing page is
+  // byte-identical to before this change.
+  Object.entries(rate_overrides).forEach(([staff_type_id, override_rate]) => {
+    if (override_rate !== undefined && override_rate !== null && override_rate !== "") {
+      charge_out_rate_by_id.set(staff_type_id, to_number(override_rate));
+    }
+  });
   const staff_type_name_by_id = new Map(
     labour_recovery_rows.map((row) => [row.labour_source_type_id, row.labour_source_type_name])
   );
@@ -712,7 +737,7 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
   };
 }
 
-export default function useBusinessOutcomePerSourceRevenue() {
+export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const cost_allocation = useCostAllocation();
   const business_summary = useBusinessSummary();
@@ -778,10 +803,25 @@ export default function useBusinessOutcomePerSourceRevenue() {
   const operational_group_recovery_rows = allocation_contract.operational_group_recovery_rows ?? [];
 
   const result = useMemo(() => {
+    // Business Modelling override (2026-09-17): when overrides is
+    // passed (only Business Modelling ever passes this - every other
+    // page calls this hook exactly as before, receiving undefined),
+    // effective_materials_markup_percent and the two rate-override maps
+    // below replace the live values feeding build_labour_sources/
+    // build_asset_sources. Real cost is never touched here - only the
+    // revenue side, via the same real functions every live page uses.
+    const effective_materials_markup_percent =
+      overrides?.materials_markup_percent_override !== undefined &&
+      overrides?.materials_markup_percent_override !== null &&
+      overrides?.materials_markup_percent_override !== ""
+        ? to_number(overrides.materials_markup_percent_override)
+        : materials_markup_percent;
+
     const labour_sources = build_labour_sources(
       operational_group_cost_rows,
       labour_recovery.labour_recovery_rows ?? [],
-      operational_group_recovery_rows
+      operational_group_recovery_rows,
+      overrides?.labour_charge_out_rate_overrides
     );
 
     const asset_sources = build_asset_sources(
@@ -789,7 +829,8 @@ export default function useBusinessOutcomePerSourceRevenue() {
       rate_builder_calculators,
       operational_group_recovery_rows,
       asset_interest_by_id,
-      asset_depreciation_by_id
+      asset_depreciation_by_id,
+      overrides?.asset_blended_rate_overrides
     );
 
     const total_assigned_overhead = operational_group_cost_rows.reduce(
@@ -816,6 +857,26 @@ export default function useBusinessOutcomePerSourceRevenue() {
       allocation_contract.unassigned_non_productive_asset_cost
     );
 
+    // FIX (confirmed live, 2026-09-17): a non-productive labour/asset
+    // item's real cost was only ever counted while UNASSIGNED (via
+    // unassigned_non_productive_labour_cost/unassigned_non_productive_asset_cost
+    // above). The moment it gets assigned to a working unit, Cost
+    // Allocation correctly tracks its real cost as
+    // assigned_non_productive_labour_cost/assigned_non_productive_asset_cost
+    // on that working unit's own row (costAllocationGroupCostBuilder.js) -
+    // but nothing here ever read those fields, so that real cost
+    // silently disappeared from total_true_cost the moment it stopped
+    // being "unassigned". Non-productive cost is real either way -
+    // always counted now, regardless of assignment status.
+    const assigned_non_productive_labour_cost = operational_group_cost_rows.reduce(
+      (sum, group) => sum + to_number(group.assigned_non_productive_labour_cost),
+      0
+    );
+    const assigned_non_productive_asset_cost = operational_group_cost_rows.reduce(
+      (sum, group) => sum + to_number(group.assigned_non_productive_asset_cost),
+      0
+    );
+
     const total_revenue_reference = to_number(bs.total_revenue);
     const total_cogs = to_number(bs.total_direct_costs ?? bs.total_cogs);
     // === S26 VIEW B - "Materials shares equally" (additive, parallel to
@@ -825,7 +886,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
     const view_b_materials_source = build_materials_source(
       total_cogs,
       residual_overhead,
-      materials_markup_percent
+      effective_materials_markup_percent
     );
     const view_b_ceiling = apply_revenue_ceiling_v2(
       view_b_labour_sources,
@@ -939,7 +1000,7 @@ export default function useBusinessOutcomePerSourceRevenue() {
     // (lib/calculations/businessOutcomeViewBCalculations.js
     // build_materials_source) - zero reference to total_revenue_reference.
     const materials_independent_revenue = round_currency(
-      total_cogs * (1 + materials_markup_percent / 100)
+      total_cogs * (1 + effective_materials_markup_percent / 100)
     );
 
     const total_modelled_revenue =
@@ -954,7 +1015,9 @@ export default function useBusinessOutcomePerSourceRevenue() {
       unassigned_labour_cost +
       unassigned_asset_cost +
       unassigned_non_productive_labour_cost +
-      unassigned_non_productive_asset_cost;
+      unassigned_non_productive_asset_cost +
+      assigned_non_productive_labour_cost +
+      assigned_non_productive_asset_cost;
 
     // Revenue reconciliation deliberately NOT included here. Removed
     // (this session) after confirming it is tautological, not a real
@@ -1000,6 +1063,11 @@ export default function useBusinessOutcomePerSourceRevenue() {
       unassigned_asset_cost: round_currency(unassigned_asset_cost),
       unassigned_non_productive_labour_cost: round_currency(unassigned_non_productive_labour_cost),
       unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
+      // FIX (2026-09-17) - exposed alongside the unassigned figures
+      // above for the same reason those are: real cost, now counted
+      // consistently regardless of assignment status.
+      assigned_non_productive_labour_cost: round_currency(assigned_non_productive_labour_cost),
+      assigned_non_productive_asset_cost: round_currency(assigned_non_productive_asset_cost),
       residual_overhead: round_currency(residual_overhead),
       total_revenue_reference: round_currency(total_revenue_reference),
       labour_modelled_revenue_total: round_currency(labour_modelled_revenue_total),
@@ -1074,11 +1142,11 @@ export default function useBusinessOutcomePerSourceRevenue() {
         smoothed_net_profit: round_currency(
           (real_capacity.group_real_capacity || []).reduce((sum, g) => sum + (g.final_net_profit ?? 0), 0) +
           (materials.real_capacity_net_profit ?? 0) -
-          (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost)
+          (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost + assigned_non_productive_labour_cost + assigned_non_productive_asset_cost)
         ),
       }),
     };
-  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent]);
+  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent, overrides]);
 
   return result;
 }
