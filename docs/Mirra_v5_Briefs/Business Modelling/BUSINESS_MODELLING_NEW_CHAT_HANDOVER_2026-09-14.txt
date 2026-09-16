@@ -3,6 +3,8 @@
 **Repo:** D:\QSTools\qstools-web
 **Purpose of this document:** everything a brand-new chat needs to pick up Business Modelling work correctly, without re-deriving context. Read this fully before doing anything. Also read BUSINESS_OUTCOME_FILE_MAP_v5_1.txt (docs\Mirra_v5_Briefs\Business Outcome\) for fast file/function lookup across the whole calculation chain - this document is the narrative and current state, the file map is the reference for "which file has function X."
 
+**UPDATE 2026-09-16:** hooks/useBusinessModelling.js has since been split - see Section 6 below (useBusinessModelling.js and useBusinessModellingLegacyScenario.js entries) for the current file shape. Section 4's open question (View A vs View B materials) is still unresolved as of this update - nothing here has changed that decision.
+
 Standing conventions: Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt at repo root (also loaded automatically via Project custom instructions). Key points: batch independent patches into one PowerShell command, Apply-Patch only (never Set-Content), confirm "Patched:"/"NOT FOUND:" before trusting a patch landed, build after every batch, live-test against real data before committing, watch for the two recurring bug classes (closure scoping; storage/selector layers silently dropping fields).
 
 ---
@@ -52,7 +54,8 @@ Confirmed facts:
 
 ## 6. Files to know (see BUSINESS_OUTCOME_FILE_MAP_v5_1.txt for the full calculation-chain map)
 
-- `hooks/useBusinessModelling.js` - main hook, both old and new systems, now exposes `per_source`
+- `hooks/useBusinessModelling.js` - SPLIT 2026-09-16 (full detail in BUSINESS_OUTCOME_FILE_MAP_v5_1.txt, Section 3). Now a slim orchestrator: fetches `per_source`, runs the live-lever system, and merges in whatever `useBusinessModellingLegacyScenario()` returns. Return shape is unchanged from before the split.
+- `hooks/useBusinessModellingLegacyScenario.js` - NEW 2026-09-16, extracted out of useBusinessModelling.js (pure extraction, no behaviour change - live-verified against the live-lever card, "Previous scenario tools," and this scenario redesign section, all matching pre-split numbers). The legacy baseline/upside/downside system, fed from useBusinessSummary, rendered collapsed as "Previous scenario tools."
 - `hooks/useBusinessModellingScenario.js` - new scenario system's hook
 - `lib/selectors/businessModellingLeverSelectors.js` - live-lever engine, includes the View-A-only `buildBreakevenSummary`
 - `lib/calculations/businessModellingScenarioCalculations.js` - Baseline/Upside/Downside calculations
