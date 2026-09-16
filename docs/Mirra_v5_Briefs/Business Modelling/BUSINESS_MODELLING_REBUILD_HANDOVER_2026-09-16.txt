@@ -1,0 +1,143 @@
+MIRRA v5.2 - BUSINESS MODELLING REBUILD - NEW CHAT HANDOVER
+STATUS: SECTION A NOT YET BUILT - READ THIS FIRST
+DATE: 2026-09-16
+REPO: D:\QSTools\qstools-web
+
+Also read (same folder): BUSINESS_MODELLING_COMPLETE_REBUILD_SCOPING_BRIEF_2026-09-16.txt
+(the full rebuild rationale/decisions) and
+BUSINESS_MODELLING_NEW_CHAT_HANDOVER_2026-09-14.txt (pre-rebuild context,
+still valid for the live-lever/scenario system's basic shape).
+
+===============================================================================
+1. WHAT HAPPENED THIS SESSION (all shipped, committed, build clean)
+===============================================================================
+
+1. Split hooks/useBusinessModelling.js (too large, 3 jobs in one file)
+   into a slim orchestrator + hooks/useBusinessModellingLegacyScenario.js
+   (the legacy baseline/upside/downside system, fed from
+   useBusinessSummary). Pure extraction, no behaviour change -
+   live-verified against all 3 dependent UI sections. Committed.
+
+2. Fixed Materials' lever input (lib/selectors/businessModellingLeverSelectors.js)
+   to use View B's real, independently-anchored revenue
+   (per_source.view_b.materials.modelled_revenue = cogs x real stored
+   markup%) instead of View A's residual figure
+   (per_source.materials.revenue). New shared build_materials_input()
+   helper, used by all 3 lever functions. Committed.
+
+   Live-testing THIS fix surfaced a deeper, pre-existing problem - see
+   Section 2 below. The materials fix itself is correct and complete on
+   its own; the problem it surfaced is a separate, bigger piece of work.
+
+===============================================================================
+2. THE REBUILD - WHY, AND WHAT'S DECIDED
+===============================================================================
+
+**The problem:** Business Modelling's lever card has always opened with
+"Your business is currently making $X in net profit" - but $X was built
+from the INDEPENDENT view (every source judged alone, no cross-subsidy),
+not the REAL reconciled figure. Before the materials fix, this was
+disguised because Materials silently acted as a residual that forced the
+total to land close to reality. After the fix, at real $0 breakeven, the
+independent view showed $767,271 - the size of the cross-subsidy
+currently hidden in the rate structure, NOT a real profit number.
+
+**The decision (confirmed 2026-09-16, user's own words):** Business
+Modelling needs TWO clearly separate sections:
+  - **Section A - real current state.** "Where are we right now" - must
+    match Business Outcome exactly. NOT YET BUILT.
+  - **Section B - model a fix.** The existing independent lever engine,
+    kept as-is, used for "what if I change this rate" - correctly
+    independent, that's the whole point of modelling. ALREADY BUILT
+    (BusinessModellingLeverCard.jsx, unchanged by this decision).
+
+**[DECIDED] Which view is "real" for Section A:** View A, "How the
+Business Runs" - per_source.headline_real_capacity. NOT "Each Part On
+Its Own" (same total, different per-source credit/blame - a different
+lens) and NOT View B (a separate materials-only fairness question).
+headline_real_capacity is built via apply_real_capacity()'s two-phase
+cascade and is the exact figure Business Outcome's own CrossCheck
+confirms matches real P&L cost to the cent.
+
+**[DECIDED] Baseline (in the Upside/Downside redesign) switches to the
+same real figure** - per_source.headline_real_capacity - instead of its
+current source (buildLiveLeverHeadline with empty levers, i.e. the
+independent view). User's rationale: "the baseline is Business Outcome -
+that's what the actual business is doing, which is the entire point of
+the tool." THIS CHANGES ALREADY-SHIPPED, ALREADY-VERIFIED BEHAVIOUR -
+the current $630,568 baseline was built from the independent view and
+WILL change once this is implemented. Must be re-verified against real
+data when built, not assumed to still read $630,568.
+
+**Nothing in Business Modelling's own files is "leave untouched"
+anymore** - specifically BusinessModellingLeverCard.jsx and
+businessModellingIndependentCalculations.js, previously on that list per
+BUSINESS_OUTCOME_FILE_MAP_v5_1.txt Section 7. That status is REVOKED for
+these two files only. The other three files on that list
+(SidebarNavigation.jsx, the S22 brief, generalOverheadCategorySelectors.js)
+are unrelated and remain untouched.
+
+===============================================================================
+3. THE VERY NEXT STEP - CONFIRMED PLAN, NOT YET BUILT
+===============================================================================
+
+Reviewed BusinessModellingLeverCard.jsx in full this session (it's small,
+~230 lines, clean single-purpose file - NOT the source of the size
+problem, useBusinessModelling.js was). Decision: build Section A as a
+**new, separate component**, not an extension of this file - keeps
+Section B's file doing exactly one job (the independent lever view),
+same principle as the hook split earlier this session.
+
+**Concrete plan:**
+- New file: components/business-modelling/BusinessModellingRealStateCard.jsx
+- Fed per_source.headline_real_capacity directly (already flows into
+  useBusinessModelling() as per_source - NO new calculation needed, pure
+  reuse per S05's original "must not recalculate source modules"
+  principle).
+- Rendered on the page ABOVE the existing BusinessModellingLeverCard,
+  same pattern as how BusinessModellingScenarioSection already sits
+  alongside it.
+- Shows: real total net profit (headline_real_capacity.total_net_profit),
+  each source's real current net profit/verdict
+  (headline_real_capacity.all_sources), framed as "here's where the
+  business actually is" - NOT editable, NOT a lever exercise.
+
+**NOT yet done:**
+- The actual new component has not been written.
+- Baseline's data source has not yet been changed in code (decision
+  locked, implementation not started - see
+  businessModellingScenarioCalculations.js's buildBaselineSnapshotFromLive,
+  which currently calls buildLiveLeverHeadline with empty levers - this
+  needs to change to read headline_real_capacity instead).
+- The page component wiring (wherever BusinessModellingLeverCard is
+  currently rendered) has not been touched to add the new card.
+- BusinessModellingLeverCard.jsx's own headline text ("Your business is
+  currently making $X") has NOT yet been reworded to make clear it's the
+  independent view, not current reality - needed once Section A exists
+  alongside it, so the two don't contradict each other on the page.
+
+===============================================================================
+4. STILL OPEN - NOT YET DECIDED
+===============================================================================
+
+- Exact file for the legacy "Previous scenario tools" system's fate -
+  unchanged, still a separate future retirement decision.
+- Whether BusinessModellingLeverCard.jsx's reworded headline should
+  explicitly say "if every source stood alone" or similar - wording not
+  yet drafted, just the need for a change flagged.
+
+===============================================================================
+5. STANDING CONVENTIONS REMINDER
+===============================================================================
+
+Per this session's explicit correction: ALL brief/documentation updates
+go through PowerShell (.NET UTF-8-no-BOM writer or Apply-Patch), same as
+code - never write briefs any other way. This applies to every .txt file
+under docs/Mirra_v5_Briefs/, no exceptions.
+
+Full standing conventions: Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt,
+repo root.
+
+===============================================================================
+END OF HANDOVER
+===============================================================================
