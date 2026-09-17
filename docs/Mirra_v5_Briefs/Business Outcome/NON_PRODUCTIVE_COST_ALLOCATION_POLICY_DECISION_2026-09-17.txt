@@ -323,5 +323,86 @@ working tree pending the real decision below.
      as a known, deliberate gap, not an oversight.
 
 ===============================================================================
+7. VIEW B PARITY - CONCRETE ACTION PLAN (added end of session,
+   confirmed live, not yet built)
+===============================================================================
+
+Live-tested via the "Real Capacity ledger" panel, both views, same
+real data, same moment. Foreman's TRUE COST (a real wage, cannot
+legitimately differ by "view"):
+  View A ledger: $309,581
+  View B ledger: $257,374
+
+Summed across every working unit (excluding materials), View A totals
+$739,491, View B totals $627,866 - a $111,625 gap, matching EXACTLY
+today's non-productive cost total (Accountant $110,204 + Site Crew's
+own charge-to-self $1,421). View A's true_cost figures correctly
+include today's fix. View B's do NOT, because View B runs its own
+separate, parallel cascade (apply_real_capacity_v2,
+lib/calculations/businessOutcomeViewBCalculations.js) that was
+deliberately not touched today. Not cosmetic - View B's real cost
+numbers are currently understated business-wide by $111,625.
+
+Ordered plan for next session:
+  1. Read businessOutcomeViewBCalculations.js fresh in full before
+     touching anything - confirm apply_real_capacity_v2's exact shape,
+     whether it has its own Step 1 (outer, group-level) and Step 2
+     (inner, per-row) cascade matching View A's structure.
+  2. Thread the SAME non_productive_cost_by_group_id map (already
+     computed once per render via distribute_non_productive_cost) into
+     apply_real_capacity_v2 - reuse it, do not recompute separately.
+  3. Apply the same true_cost injection at View B's own Step 1
+     (mirror today's fix in apply_real_capacity).
+  4. Check whether View B's Step 2 has the SAME row-basis bug found
+     and fixed for View A today - confirm by tracing the math, don't
+     assume just because the structure looks similar.
+  5. Check whether View B needs its own pure-support group visibility
+     (the same gap View A had before Accountant was made visible).
+  6. Once View B distributes correctly: REMOVE the standalone
+     "Non-productive cost" catch-all row for View B too (currently
+     still shown there by design) - same double-counting risk already
+     fixed once for View A will recur here if missed. Revisit whether
+     View B needs its own distribution banner too.
+  7. Full live re-test, both views, same real data - every working
+     unit's TRUE COST must match exactly between View A and View B.
+  8. Revisit BusinessOutcomeViewABComparisonTable.jsx (fixed tonight
+     for wording only) once View B's underlying cost figures change.
+
+===============================================================================
+8. WHY THIS MATTERS FOR BUSINESS MODELLING SPECIFICALLY (added end of
+   session, not yet built)
+===============================================================================
+
+Business Modelling's real-engine rerun (useBusinessOutcomePerSourceRevenue's
+overrides mechanism, built earlier this same session) currently runs
+through VIEW A's cascade. View A's materials figure is a RESIDUAL
+(total_revenue - labour - assets) with no formula of its own - nothing
+in it reads materials_markup_percent_override at all. The materials
+lever, though wired with a real override parameter, currently has
+ZERO effect on Business Modelling's real-cascade rerun - changing the
+markup does nothing to View A's real materials revenue, because
+there's nothing there to change. Labour/asset rate overrides ARE
+genuinely functional (confirmed working, live-tested earlier tonight)
+- this is specifically a materials-only gap.
+
+DECISION: once View B reaches parity (Section 7 above), switch
+Business Modelling's real-engine rerun to run through View B's cascade
+instead of View A's - View B is the only one where every source,
+including materials, has genuinely independent, markup-driven
+economics a lever can actually move. Not optional polish - View A can
+never properly support a materials lever no matter how it's patched,
+because a residual has nothing of its own for an override to affect.
+
+Scope once View B parity is reached: change useBusinessModelling.js's
+second useBusinessOutcomePerSourceRevenue call (the one passing
+overrides) to source its inputs from View B's cascade output instead
+of View A's per_source.headline_real_capacity/real_capacity - likely
+requires useBusinessOutcomePerSourceRevenue to expose an equivalent
+"view_b_headline_real_capacity", same shape as today's real_capacity,
+once apply_real_capacity_v2 is fixed. Live-test the materials lever
+specifically once switched - changing markup% should visibly move the
+modelled total, which it currently does not.
+
+===============================================================================
 END OF BRIEF
 ===============================================================================
