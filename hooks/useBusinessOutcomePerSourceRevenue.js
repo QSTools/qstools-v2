@@ -667,6 +667,16 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
   const result_by_group_id = new Map();
   const pool_payers = [];
   const recipients = [];
+  // Added 2026-09-17, second pass - pure-support working units never
+  // get a row of their own anywhere (build_labour_sources/
+  // build_asset_sources only ever read PRODUCTIVE assignments, so a
+  // unit like "Accountant" with zero productive members contributes
+  // nothing to group_rows_by_group_id and is architecturally invisible
+  // everywhere downstream). Tracked here, separately, with its own RAW
+  // (undistributed) cost, so "Each Part On Its Own" can show it as its
+  // own real row instead of it just vanishing into everyone else's
+  // numbers with no visible trace.
+  const pure_support_groups = [];
 
   operational_group_cost_rows.forEach((group) => {
     const own_non_productive_cost =
@@ -687,6 +697,14 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
 
     if (own_non_productive_cost <= 0) {
       return;
+    }
+
+    if (is_pure_support) {
+      pure_support_groups.push({
+        group_id: group.group_id,
+        group_name: group.group_name,
+        own_non_productive_cost: round_currency(own_non_productive_cost),
+      });
     }
 
     const should_spread = is_pure_support || mixed_unit_policy === "spread_as_overhead";
@@ -727,7 +745,11 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
     });
   }
 
-  return result_by_group_id;
+  return {
+    cost_by_group_id: result_by_group_id,
+    pure_support_groups,
+    pool_total: round_currency(pool_total),
+  };
 }
 
 function apply_real_capacity(labour_sources, asset_sources, materials_naive_revenue, materials_true_cost, non_productive_cost_by_group_id = new Map()) {
@@ -1129,10 +1151,11 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
     // day) - pure-support units always spread, mixed units follow the
     // stored policy. See distribute_non_productive_cost's own comment
     // for the full reasoning.
-    const non_productive_cost_by_group_id = distribute_non_productive_cost(
+    const non_productive_distribution = distribute_non_productive_cost(
       operational_group_cost_rows,
       mixed_unit_non_productive_policy
     );
+    const non_productive_cost_by_group_id = non_productive_distribution.cost_by_group_id;
 
     const real_capacity = apply_real_capacity(
       labour_sources,
@@ -1239,6 +1262,14 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       // consistently regardless of assignment status.
       assigned_non_productive_labour_cost: round_currency(assigned_non_productive_labour_cost),
       assigned_non_productive_asset_cost: round_currency(assigned_non_productive_asset_cost),
+      // Added 2026-09-17, second pass - pure-support working units
+      // (e.g. Accountant, Office Staff) with their own raw, undistributed
+      // cost, and the total amount actually spread across productive
+      // units - both needed so the UI can show these units as their own
+      // visible row (Each Part On Its Own) and signal the distribution
+      // that's already happening under the hood (How the Business Runs).
+      pure_support_groups: non_productive_distribution.pure_support_groups,
+      non_productive_cost_distributed_total: non_productive_distribution.pool_total,
       residual_overhead: round_currency(residual_overhead),
       total_revenue_reference: round_currency(total_revenue_reference),
       labour_modelled_revenue_total: round_currency(labour_modelled_revenue_total),

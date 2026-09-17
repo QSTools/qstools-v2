@@ -1923,7 +1923,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       type: "group",
     }));
 
-    const all_sources = [materials_entry, ...group_entries];
+    // Added 2026-09-17, second pass - pure-support working units (e.g.
+    // Accountant) never appear in groups above at all (they contribute
+    // no rows to build_labour_sources/build_asset_sources, so
+    // group_rows_by_group_id never creates an entry for them). "Each
+    // Part On Its Own" is exactly where this belongs - their raw,
+    // undistributed cost against $0 revenue, since they structurally
+    // can never earn anything on their own.
+    const pure_support_entries = (per_source.pure_support_groups || []).map((g) => ({
+      key: g.group_id,
+      name: g.group_name,
+      net_profit: -g.own_non_productive_cost,
+      modelled_revenue: 0,
+      verdict: "being_carried",
+      type: "group",
+    }));
+
+    const all_sources = [materials_entry, ...group_entries, ...pure_support_entries];
     const total_net_profit = all_sources.reduce((sum, s) => sum + s.net_profit, 0) - (per_source.unassigned?.total ?? 0);
     const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
 
@@ -1967,8 +1983,20 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         type: e.is_materials ? "materials" : "group",
       };
     });
+    // FIX (2026-09-17, third pass): non_revenue_bearing_total was
+    // never subtracted here, even though the catch-all display row
+    // (apply_non_revenue_bearing_entry) still shows for View B - the
+    // total and the visible row list disagreed as a result. Matching
+    // the same pattern unassigned_total already uses on the line
+    // below, which the catch-all row for THAT has always correctly
+    // matched. Does not fix View B's own per-group split (still the
+    // known, deliberate gap - View B's own cascade, apply_real_capacity_v2,
+    // has no non-productive cost awareness at all) - only restores
+    // agreement between the total and what's visibly shown.
     const total_net_profit =
-      all_sources.reduce((sum, s) => sum + s.net_profit, 0) - (per_source.unassigned?.total ?? 0);
+      all_sources.reduce((sum, s) => sum + s.net_profit, 0) -
+      (per_source.unassigned?.total ?? 0) -
+      (per_source.non_revenue_bearing?.total ?? 0);
     const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
     return {
       total_net_profit,
@@ -2091,10 +2119,21 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // "naive") - the one path fixed today. View B always still needs the
   // standalone row (its own cascade untouched), same for the naive/
   // assumed headline either view.
-  const active_headline_already_includes_non_revenue_bearing =
-    view_mode_ab !== "b" && capacity_mode === "real" && smoothing_mode !== "naive";
-  const stable_headline_already_includes_non_revenue_bearing =
-    capacity_mode === "real" && smoothing_mode !== "naive";
+  // FIX (2026-09-17, third pass): View A now correctly represents
+  // non-productive cost in BOTH modes - naive/"Each Part On Its Own"
+  // shows pure-support units (e.g. Accountant) as their own explicit
+  // row, and real-capacity/"How the Business Runs" bakes it directly
+  // into every working unit's own true_cost (plus the new distribution
+  // banner). The standalone catch-all row is now fully redundant for
+  // View A either way - was only ever skipped for the real-capacity
+  // path before this fix, causing Accountant's cost to be counted
+  // TWICE in the naive view (once as its own row, once in the
+  // catch-all). View B's own separate cascade is still untouched, so
+  // it still needs the catch-all row, in both its modes.
+  const active_headline_already_includes_non_revenue_bearing = view_mode_ab !== "b";
+  // stable_headline is always View A's own basis regardless of the
+  // View A/B toggle (see its own comment above) - always covered now.
+  const stable_headline_already_includes_non_revenue_bearing = true;
 
   const active_headline = apply_non_revenue_bearing_entry(
     apply_unassigned_entry(raw_active_headline),
@@ -2218,6 +2257,22 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </>
           )}
         </div>
+
+        {/* Added 2026-09-17, second pass - signals the non-productive
+            cost distribution that's already happening under the hood
+            (real cascade math, confirmed correct earlier this session)
+            but was previously invisible anywhere on screen. Only shown
+            for View A's real-capacity cascade specifically - the one
+            path this whole feature was built and fixed for today. */}
+        {view_mode_ab !== "b" && capacity_mode === "real" && smoothing_mode !== "naive" &&
+          (per_source.non_productive_cost_distributed_total ?? 0) > 0 && (
+            <div className="ui-help" style={{ margin: "0.5rem 0" }}>
+              <strong>{format_currency(per_source.non_productive_cost_distributed_total)}</strong>{" "}
+              of non-productive support cost (e.g. admin, management - not tied to any billable
+              job) has been spread across the sources below, weighted by their own real cost.
+              See &quot;Each Part On Its Own&quot; to see this cost on its own, undistributed.
+            </div>
+          )}
 
         <div className="ui-help" style={{ margin: "0.5rem 0" }}>
           Breakeven revenue:{" "}
