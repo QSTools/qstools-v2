@@ -1902,14 +1902,36 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   function build_naive_headline() {
     const groups = per_source.real_capacity?.group_real_capacity || [];
     const materials = per_source.materials;
-    const materials_naive_net_profit =
-      (materials?.real_capacity_naive_revenue ?? 0) - (materials?.true_cost ?? 0);
+
+    // FIX (2026-09-17): materials?.real_capacity_naive_revenue is the
+    // View A RESIDUAL (total_revenue - labour_modelled - asset_modelled)
+    // - not independent Materials revenue at all. It swings with every
+    // OTHER source's assumed billing, and since this view already
+    // credits labour/assets with more revenue than the business
+    // actually took in (that's the whole point of this view), Materials
+    // was absorbing the entire negative gap as a fake, un-earned loss -
+    // same broken mechanism already identified and fixed for Business
+    // Modelling's independent lever engine earlier this session
+    // (build_materials_input, businessModellingLeverSelectors.js).
+    // Same fix, same source of truth: per_source.view_b's own materials
+    // figure, built from Rate Builder's real markup against real COGS
+    // (businessOutcomeViewBCalculations.js build_materials_source) -
+    // genuinely independent of every other source's revenue. Falls
+    // back to the old residual only if View B is genuinely unavailable.
+    const view_b_materials_revenue = per_source.view_b?.materials?.modelled_revenue;
+    const has_view_b_materials_revenue =
+      view_b_materials_revenue !== null && view_b_materials_revenue !== undefined;
+    const materials_independent_revenue = has_view_b_materials_revenue
+      ? view_b_materials_revenue
+      : (materials?.real_capacity_naive_revenue ?? 0);
+
+    const materials_naive_net_profit = materials_independent_revenue - (materials?.true_cost ?? 0);
 
     const materials_entry = {
       key: "materials",
       name: "Materials / COGS",
       net_profit: materials_naive_net_profit,
-      modelled_revenue: materials?.real_capacity_naive_revenue ?? 0,
+      modelled_revenue: materials_independent_revenue,
       verdict: materials_naive_net_profit >= 0 ? "paying_its_way" : "being_carried",
       type: "materials",
     };
@@ -2229,31 +2251,81 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         </div>
 
       <div className={`business-outcome-headline${reveals_more_failure ? " business-outcome-headline-stark" : ""}`}>
-        <div className="business-outcome-headline-eyebrow">Is your business working?</div>
+        {/* FIX (2026-09-17): "Each Part On Its Own" (smoothing_mode ===
+            "naive") was reusing the exact same "Your business made $X
+            in net profit" wording the REAL headline uses - but this
+            number is not a measurement of anything real, it's a
+            hypothetical total stacking together what each part WOULD
+            earn if fully billed at its assumed rate/hours with no cap
+            to real revenue and no cross-subsidy. Confirmed via git
+            history (commit 2724a61, 2026-08-28) this mechanism itself
+            is original, deliberate design - "the variance IS the
+            diagnostic, never force it to reconcile" (S29 comment,
+            top of useBusinessOutcomePerSourceRevenue.js). The bug was
+            never the math - it was the wording implying a real
+            financial fact. Every per-source row is unchanged. */}
+        <div className="business-outcome-headline-eyebrow">
+          {smoothing_mode === "naive" ? "If every part stood entirely on its own" : "Is your business working?"}
+        </div>
         <div className="business-outcome-headline-text">
-          Your business made{" "}
-          <span className={active_headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
-            {format_currency(
-              scaleAnnualValue(
-                active_headline.total_net_profit,
-                time_scale,
-                null,
-                per_source.net_annual_business_open_hours
-              )
-            )}
-            {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
-          </span>{" "}
-          in net profit.
-
-        {active_headline.all_good ? (
-            <> Every part of your business is paying its way.</>
+          {smoothing_mode === "naive" ? (
+            <>
+              If every part of your business stood entirely on its own, with no help from
+              anywhere else, the combined result would be{" "}
+              <span className={active_headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
+                {format_currency(
+                  scaleAnnualValue(
+                    active_headline.total_net_profit,
+                    time_scale,
+                    null,
+                    per_source.net_annual_business_open_hours
+                  )
+                )}
+                {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
+              </span>
+              . This is not a measurement of what actually happened - it is a hypothetical total,
+              adding up what each part would earn on its own, at full assumed billing, with no cap
+              to real revenue. The gap between this and your real net profit shows how much
+              assumed billing capacity currently exceeds what the business actually invoices.
+              {active_headline.all_good ? (
+                <> Every part of your business is paying its way.</>
+              ) : (
+                <>
+                  {" "}
+                  <span className="value-bad">
+                    {carried_count} of {total_source_count}
+                  </span>{" "}
+                  {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way, on this
+                  independent basis.
+                </>
+              )}
+            </>
           ) : (
             <>
-              {" "}
-              <span className="value-bad">
-                {carried_count} of {total_source_count}
+              Your business made{" "}
+              <span className={active_headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
+                {format_currency(
+                  scaleAnnualValue(
+                    active_headline.total_net_profit,
+                    time_scale,
+                    null,
+                    per_source.net_annual_business_open_hours
+                  )
+                )}
+                {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
               </span>{" "}
-              {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+              in net profit.
+              {active_headline.all_good ? (
+                <> Every part of your business is paying its way.</>
+              ) : (
+                <>
+                  {" "}
+                  <span className="value-bad">
+                    {carried_count} of {total_source_count}
+                  </span>{" "}
+                  {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+                </>
+              )}
             </>
           )}
         </div>
