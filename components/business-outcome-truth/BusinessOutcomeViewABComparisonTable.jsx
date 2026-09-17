@@ -79,14 +79,17 @@ export default function BusinessOutcomeViewABComparisonTable({
       <div className="ui-help">
         Same business, two different ways of pricing Materials/COGS. Labour and Assets are
         identical in both views by design - only Materials/COGS differs, which is why its
-        variance is the only one that isn&apos;t $0.
+        variance is the only one that isn&apos;t $0. These are modelled figures (rate x assumed
+        hours, or Rate Builder&apos;s markup for Materials) - not capped to real P&amp;L revenue,
+        same basis as &quot;Best Case (100% of Entered Rates &amp; Hours)&quot; elsewhere on this
+        page. Real revenue is one single number regardless of view - it does not appear here.
       </div>
 
       <div className="business-outcome-ledger-table">
         <div className="business-outcome-ledger-row business-outcome-ledger-header">
           <span>Source</span>
-          <span>View A revenue</span>
-          <span>View B revenue</span>
+          <span>View A (modelled)</span>
+          <span>View B (modelled)</span>
           <span>Variance</span>
         </div>
 
