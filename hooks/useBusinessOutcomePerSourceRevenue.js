@@ -1016,6 +1016,21 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       overrides?.asset_blended_rate_overrides
     );
 
+    // FIX (2026-09-18): moved earlier (was originally right before View
+    // A's own apply_real_capacity call, much later in this function) -
+    // View B's cascade also needs this now, and View B's own call
+    // happens BEFORE where this used to be declared, causing a real
+    // "cannot access before initialization" runtime error. Computed
+    // once here, used by both View A's and View B's cascade calls below.
+    // Pure-support units always spread, mixed units follow the stored
+    // policy - see distribute_non_productive_cost's own comment for the
+    // full reasoning.
+    const non_productive_distribution = distribute_non_productive_cost(
+      operational_group_cost_rows,
+      mixed_unit_non_productive_policy
+    );
+    const non_productive_cost_by_group_id = non_productive_distribution.cost_by_group_id;
+
     const total_assigned_overhead = operational_group_cost_rows.reduce(
       (sum, group) => sum + to_number(group.assigned_overhead_amount),
       0
@@ -1081,7 +1096,8 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       view_b_labour_sources,
       view_b_asset_sources,
       view_b_materials_source,
-      total_revenue_reference
+      total_revenue_reference,
+      non_productive_cost_by_group_id
     );
     // Additive only (same pattern as View A's own group_recovery_hours
     // enrichment, further below in this file): attaches each group's
@@ -1147,16 +1163,6 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
     const materials_naive_revenue = round_currency(
       total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
     );
-    // Non-productive cost per working unit (2026-09-17, revised same
-    // day) - pure-support units always spread, mixed units follow the
-    // stored policy. See distribute_non_productive_cost's own comment
-    // for the full reasoning.
-    const non_productive_distribution = distribute_non_productive_cost(
-      operational_group_cost_rows,
-      mixed_unit_non_productive_policy
-    );
-    const non_productive_cost_by_group_id = non_productive_distribution.cost_by_group_id;
-
     const real_capacity = apply_real_capacity(
       labour_sources,
       asset_sources,

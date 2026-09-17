@@ -2015,10 +2015,18 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     // known, deliberate gap - View B's own cascade, apply_real_capacity_v2,
     // has no non-productive cost awareness at all) - only restores
     // agreement between the total and what's visibly shown.
+    // FIX (2026-09-18): View B's own cascade (apply_real_capacity_v2)
+    // now correctly bakes non-productive cost into each row's own
+    // real_capacity_net_profit, the same way View A's does - subtracting
+    // non_revenue_bearing_total again here double-counts it (confirmed
+    // live: Foreman and Site Crew matched exactly between View A and
+    // View B once the cascade fix landed, but the two TOTALS were off
+    // by almost exactly the non-productive cost amount - this line was
+    // why). unassigned_total is untouched - that's still a genuinely
+    // separate, unhandled thing.
     const total_net_profit =
       all_sources.reduce((sum, s) => sum + s.net_profit, 0) -
-      (per_source.unassigned?.total ?? 0) -
-      (per_source.non_revenue_bearing?.total ?? 0);
+      (per_source.unassigned?.total ?? 0);
     const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
     return {
       total_net_profit,
@@ -2152,9 +2160,11 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // TWICE in the naive view (once as its own row, once in the
   // catch-all). View B's own separate cascade is still untouched, so
   // it still needs the catch-all row, in both its modes.
-  const active_headline_already_includes_non_revenue_bearing = view_mode_ab !== "b";
-  // stable_headline is always View A's own basis regardless of the
-  // View A/B toggle (see its own comment above) - always covered now.
+  // FIX (2026-09-18): View B's own cascade (apply_real_capacity_v2) now
+  // correctly distributes non-productive cost too - the catch-all row
+  // is fully redundant for View B as well now, not just View A. Both
+  // headlines always covered.
+  const active_headline_already_includes_non_revenue_bearing = true;
   const stable_headline_already_includes_non_revenue_bearing = true;
 
   const active_headline = apply_non_revenue_bearing_entry(
