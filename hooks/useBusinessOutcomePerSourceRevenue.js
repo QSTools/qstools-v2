@@ -10,6 +10,7 @@ import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
+import { readNonProductiveCostPolicy } from "@/lib/storage/businessOutcomeNonProductivePolicyStorage";
 import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
 import { calculateGaugeInput } from "@/lib/calculations/businessModellingIndependentCalculations";
 
@@ -634,9 +635,120 @@ export function group_rows_by_group_id(rows) {
   return Array.from(map.values());
 }
 
-function apply_real_capacity(labour_sources, asset_sources, materials_naive_revenue, materials_true_cost) {
+// NON-PRODUCTIVE COST DISTRIBUTION (2026-09-17) - decides, per working
+// unit, how its own assigned non-productive cost (support labour/
+// assets, e.g. an office team or the Foreman's company car) actually
+// affects true_cost. Two genuinely different cases, confirmed with
+// user:
+//   PURE-SUPPORT working unit (zero productive labour cost AND zero
+//   productive asset cost - e.g. an Office Staff unit with no billable
+//   member at all) - ALWAYS spread across productive working units,
+//   weighted the same way General Overheads already spreads its own
+//   pool (build_overhead_pool, lib/calculations/cost-allocation/
+//   costAllocationOverheadPoolBuilder.js). Charging this to itself
+//   would produce a permanent, structurally negative number with no
+//   possible fix - there is no revenue stream to ever recover it from,
+//   so spreading is not a policy choice here, it is the only
+//   meaningful option.
+//   MIXED working unit (has real productive members AND a
+//   non-productive item riding along) - a genuine business choice,
+//   controlled by mixed_unit_policy (businessOutcomeNonProductivePolicyStorage.js):
+//   "charge_to_self" (default) or "spread_as_overhead".
+//
+// Verified safe against double-counting with real code, 2026-09-17:
+// total_business_overheads (costSummaryCalculations.js) is an EXPLICIT
+// pass-through of General Overheads' own total, not a residual - and
+// generalOverheadPnlSync.js's P&L sync explicitly excludes both
+// "labour" and "assets" categories from what it pulls in. Non-productive
+// labour/asset cost has no existing route into total_business_overheads -
+// this distribution is genuinely additive, not a duplicate of anything
+// already spread.
+function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_policy) {
+  const result_by_group_id = new Map();
+  const pool_payers = [];
+  const recipients = [];
+
+  operational_group_cost_rows.forEach((group) => {
+    const own_non_productive_cost =
+      to_number(group.assigned_non_productive_labour_cost) +
+      to_number(group.assigned_non_productive_asset_cost);
+
+    const productive_labour_cost = to_number(group.assigned_labour_cost);
+    const productive_asset_cost = to_number(group.assigned_asset_burden);
+    const is_pure_support = productive_labour_cost <= 0 && productive_asset_cost <= 0;
+
+    if (productive_labour_cost > 0 || productive_asset_cost > 0) {
+      recipients.push({
+        group_id: group.group_id,
+        productive_labour_cost,
+        productive_asset_cost,
+      });
+    }
+
+    if (own_non_productive_cost <= 0) {
+      return;
+    }
+
+    const should_spread = is_pure_support || mixed_unit_policy === "spread_as_overhead";
+
+    if (should_spread) {
+      pool_payers.push(own_non_productive_cost);
+    } else {
+      // Mixed unit, charge_to_self policy.
+      result_by_group_id.set(
+        group.group_id,
+        (result_by_group_id.get(group.group_id) ?? 0) + own_non_productive_cost
+      );
+    }
+  });
+
+  const pool_total = pool_payers.reduce((sum, v) => sum + v, 0);
+
+  if (pool_total > 0 && recipients.length > 0) {
+    const total_labour_cost = recipients.reduce((sum, r) => sum + r.productive_labour_cost, 0);
+    const total_asset_cost = recipients.reduce((sum, r) => sum + r.productive_asset_cost, 0);
+
+    let weight_basis = "equal_split";
+    if (total_labour_cost > 0) weight_basis = "labour_cost_weighted";
+    else if (total_asset_cost > 0) weight_basis = "asset_burden_weighted";
+
+    recipients.forEach((r) => {
+      let weight = 0;
+      if (weight_basis === "labour_cost_weighted") {
+        weight = total_labour_cost > 0 ? r.productive_labour_cost / total_labour_cost : 0;
+      } else if (weight_basis === "asset_burden_weighted") {
+        weight = total_asset_cost > 0 ? r.productive_asset_cost / total_asset_cost : 0;
+      } else {
+        weight = 1 / recipients.length;
+      }
+
+      const share = pool_total * weight;
+      result_by_group_id.set(r.group_id, (result_by_group_id.get(r.group_id) ?? 0) + share);
+    });
+  }
+
+  return result_by_group_id;
+}
+
+function apply_real_capacity(labour_sources, asset_sources, materials_naive_revenue, materials_true_cost, non_productive_cost_by_group_id = new Map()) {
   const all_sources = [...labour_sources, ...asset_sources];
   const groups = group_rows_by_group_id(all_sources);
+
+  // FIX (2026-09-17) - genuinely missing from the system, not a coding
+  // bug: non-productive labour/assets assigned to a working unit (e.g.
+  // the Foreman's company car, admin staff working within a group) are
+  // real cost that unit must actually recover, same as its own direct
+  // cost. Added directly into the SAME true_cost the cascade already
+  // uses, through its normal front door - the hand-verified sharing
+  // mechanism below handles it exactly like any other real cost, no
+  // new parallel calculation. If a working unit's own margin can't
+  // absorb it, the existing shortfall-sharing logic spreads it exactly
+  // as it already does for any other real cost overrun.
+  groups.forEach((g) => {
+    const non_productive_cost = to_number(non_productive_cost_by_group_id.get(g.group_id));
+    g.non_productive_cost = round_currency(non_productive_cost);
+    g.true_cost = round_currency(g.true_cost + non_productive_cost);
+  });
 
   groups.forEach((g) => {
     g.naive_net_profit = g.modelled_revenue - g.true_cost;
@@ -666,17 +778,53 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
 
   // STEP 2 - inner cascade, pushing each group's own total_adjustment down
   // across just that group's own individual sources.
+  //
+  // FIX (2026-09-17, diagnosed live): non_productive_cost belongs to
+  // the WORKING UNIT, not any specific row - it was only ever added to
+  // g.true_cost (the group aggregate), never to any individual row.
+  // group-level naive_net_profit therefore already reflects it, but
+  // inner_v0 below was still being computed from raw, UNADJUSTED
+  // row.net_profit - understating how much the rows' own margin had
+  // really shrunk, so Step 2 under-absorbed g.total_adjustment into the
+  // rows, leaving non-productive cost's effect sitting incorrectly in
+  // one row instead of properly reflected. Confirmed live: a $1,421.79
+  // non-productive cost added at group level left almost exactly $1,421
+  // sitting unrecovered in a single row. Fix: give each row its
+  // proportional share of non_productive_cost (by revenue share, same
+  // basis phase2's leftover already uses) BEFORE running the inner
+  // cascade, so rows start from the same non-productive-cost-inclusive
+  // basis the group level already used. Provably restores the cascade's
+  // own invariant: sum(row.net_profit) across a group always equals
+  // g.naive_net_profit + g.non_productive_cost (by construction, since
+  // group_rows_by_group_id sums row net_profit BEFORE the non-productive
+  // injection runs), so subtracting each row's own share here makes the
+  // adjusted rows sum exactly to g.naive_net_profit - the same starting
+  // point Step 1 already used.
   groups.forEach((g) => {
+    const group_row_revenue_total = g.rows.reduce((sum, row) => sum + (row.modelled_revenue ?? 0), 0);
+
+    const row_non_productive_share_by_row = new Map(
+      g.rows.map((row) => {
+        const share =
+          g.non_productive_cost > 0
+            ? group_row_revenue_total > 0
+              ? g.non_productive_cost * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+              : g.non_productive_cost / g.rows.length
+            : 0;
+        return [row, round_currency(share)];
+      })
+    );
+
     const inner_v0 = g.rows.reduce((sum, row) => {
-      if (row.net_profit === null || row.net_profit <= 0) return sum;
-      return sum + row.net_profit;
+      if (row.net_profit === null) return sum;
+      const adjusted_net_profit = to_number(row.net_profit) - (row_non_productive_share_by_row.get(row) ?? 0);
+      if (adjusted_net_profit <= 0) return sum;
+      return sum + adjusted_net_profit;
     }, 0);
 
     const inner_absorbed = Math.min(Math.max(g.total_adjustment, 0), inner_v0);
     const inner_factor = inner_v0 > 0 ? inner_absorbed / inner_v0 : 0;
     const inner_leftover = round_currency(g.total_adjustment - inner_absorbed);
-
-    const group_row_revenue_total = g.rows.reduce((sum, row) => sum + (row.modelled_revenue ?? 0), 0);
 
     g.rows.forEach((row) => {
       if (row.net_profit === null) {
@@ -685,8 +833,11 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
         return;
       }
 
+      const row_non_productive_share = row_non_productive_share_by_row.get(row) ?? 0;
+      const adjusted_net_profit = to_number(row.net_profit) - row_non_productive_share;
+
       const inner_after_phase1 =
-        row.net_profit > 0 ? row.net_profit * (1 - inner_factor) : row.net_profit;
+        adjusted_net_profit > 0 ? adjusted_net_profit * (1 - inner_factor) : adjusted_net_profit;
 
       const inner_phase2_deduction =
         inner_leftover > 0 && group_row_revenue_total > 0
@@ -733,6 +884,10 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
       // purely additive, not read anywhere in this function's own math.
       asset_interest_annual: round_currency(g.asset_interest_annual ?? 0),
       asset_depreciation_annual: round_currency(g.asset_depreciation_annual ?? 0),
+      // Added 2026-09-17 - exposed per working unit so the UI can
+      // eventually show "$X of this includes non-productive support
+      // cost" as its own line, rather than a hidden catch-all.
+      non_productive_cost: g.non_productive_cost ?? 0,
     })),
   };
 }
@@ -795,6 +950,12 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
   const [materials_markup_percent, set_materials_markup_percent] = useState(0);
   useEffect(() => {
     set_materials_markup_percent(readRateBuilderMaterialsMarkup().materials_markup_percent ?? 0);
+  }, []);
+  const [mixed_unit_non_productive_policy, set_mixed_unit_non_productive_policy] = useState("charge_to_self");
+  useEffect(() => {
+    set_mixed_unit_non_productive_policy(
+      readNonProductiveCostPolicy().mixed_unit_non_productive_policy
+    );
   }, []);
 
   const bs = business_summary.output_contract ?? {};
@@ -964,11 +1125,21 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
     const materials_naive_revenue = round_currency(
       total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
     );
+    // Non-productive cost per working unit (2026-09-17, revised same
+    // day) - pure-support units always spread, mixed units follow the
+    // stored policy. See distribute_non_productive_cost's own comment
+    // for the full reasoning.
+    const non_productive_cost_by_group_id = distribute_non_productive_cost(
+      operational_group_cost_rows,
+      mixed_unit_non_productive_policy
+    );
+
     const real_capacity = apply_real_capacity(
       labour_sources,
       asset_sources,
       materials_naive_revenue,
-      materials.true_cost
+      materials.true_cost,
+      non_productive_cost_by_group_id
     );
 
     // Additive only (S26 Business Modelling rate-lever prep): attach each
@@ -1139,14 +1310,18 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       health_gauge: calculateGaugeInput({
         groups: real_capacity.group_real_capacity,
         materials: { modelled_revenue: materials.revenue, true_cost: materials.true_cost },
+        // REVERTED (2026-09-17): assigned_non_productive_*_cost is no
+        // longer subtracted here - g.final_net_profit already includes
+        // it now, via apply_real_capacity's own true_cost injection
+        // above. Subtracting it again here would double-count it.
         smoothed_net_profit: round_currency(
           (real_capacity.group_real_capacity || []).reduce((sum, g) => sum + (g.final_net_profit ?? 0), 0) +
           (materials.real_capacity_net_profit ?? 0) -
-          (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost + assigned_non_productive_labour_cost + assigned_non_productive_asset_cost)
+          (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost)
         ),
       }),
     };
-  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent, overrides]);
+  }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent, overrides, mixed_unit_non_productive_policy]);
 
   return result;
 }

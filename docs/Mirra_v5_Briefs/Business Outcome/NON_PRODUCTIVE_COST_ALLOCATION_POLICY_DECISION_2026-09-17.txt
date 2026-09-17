@@ -1,3 +1,79 @@
+MIRRA v5.2 - NON-PRODUCTIVE COST ALLOCATION POLICY - BUILT, FIXED, VERIFIED
+STATUS: COMPLETE FOR VIEW A - LIVE-TESTED, COMMITTED. VIEW B NOT YET DONE.
+DATE: 2026-09-17
+
+===============================================================================
+0. UPDATE - RESOLVED SAME DAY, LATER SESSION
+===============================================================================
+
+Sections 1-6 below are the ORIGINAL decision brief, preserved as written
+at the time - the reasoning in them is still accurate and worth reading
+for context. This section records what actually got built and fixed
+after the decision was made.
+
+**Decision made (Section 4's three options, resolved):** pure-support
+working units (no productive member at all) ALWAYS spread their
+non-productive cost as overhead - not configurable, since no other
+option is meaningful. Mixed working units (real productive members +
+a non-productive item, e.g. Foreman + company car) get a real, stored,
+business-wide setting - "charge_to_self" (default) or
+"spread_as_overhead" - reusing General Overheads' own weighting logic
+(labour-cost-weighted / asset-burden-weighted / equal-split), not a new
+mechanism. New storage file:
+lib/storage/businessOutcomeNonProductivePolicyStorage.js.
+
+**Verified safe against double-counting before building anything:**
+costSummaryCalculations.js's total_business_overheads is an explicit
+pass-through of General Overheads' own total, not a residual -
+generalOverheadPnlSync.js's P&L sync explicitly excludes both "labour"
+and "assets" categories. Non-productive cost has no existing route into
+total_business_overheads - confirmed via real code, not assumed.
+
+**A REAL, SEPARATE BUG WAS FOUND AND FIXED DURING LIVE TESTING** - the
+distribution mechanism itself was correct from the start (confirmed via
+live debug data: a $1,421.79 non-productive cost on Site Crew was
+correctly computed and correctly NOT pooled, since Site Crew is a mixed
+unit under the default charge_to_self policy). But live-testing revealed
+every OTHER working unit showing exactly $0 while Site Crew alone showed
++$1,421 - traced to the cent: apply_real_capacity's STEP 2 (the inner
+cascade that pushes a group's adjustment down onto its individual rows)
+was computing its basis from RAW, unadjusted row.net_profit - it had no
+knowledge that non_productive_cost had been added to the GROUP's
+true_cost, since that addition only ever touched g.true_cost, never any
+individual row. This meant Step 2 under-absorbed the group's total
+adjustment into its rows, leaving non-productive cost's effect sitting
+incorrectly in one row instead of properly distributed - PROVABLY, not
+a guess: sum(row.net_profit) across a group always equals
+g.naive_net_profit + g.non_productive_cost by construction (group_rows_by_group_id
+sums row net_profit BEFORE the non-productive injection runs), so Step
+2 needed each row's own proportional share of non_productive_cost (by
+revenue share, same basis phase2's leftover already uses) subtracted
+BEFORE running its inner cascade, restoring the invariant that a
+group's children always sum exactly to that group's own total.
+
+**Live-verified, real data, 2026-09-17:** at real revenue set to exactly
+breakeven, every single source (all 9 working units, materials, the
+business total) now correctly shows $0 - fully internally consistent,
+confirmed via screenshot before AND after the Step 2 fix (before: every
+group $0 except Site Crew at +$1,421; after: every group genuinely $0).
+
+**SCOPE - explicitly NOT done:** this fix applies to View A's real-
+capacity cascade only (apply_real_capacity). View B has its own
+separate, parallel cascade (apply_real_capacity_v2,
+businessOutcomeViewBCalculations.js) that does NOT have this fix -
+flagged as a known, deliberate gap, not an oversight, same as the
+earlier non-productive-cost-visibility fix's own View B gap.
+
+**NOT YET BUILT:** any UI to actually change the
+mixed_unit_non_productive_policy setting - it currently defaults to
+"charge_to_self" with no way to switch it except editing localStorage
+directly. A real settings UI (likely in Cost Allocation or General
+Overheads) is a separate, smaller follow-up.
+
+===============================================================================
+END OF UPDATE - ORIGINAL BRIEF BELOW, PRESERVED AS WRITTEN
+===============================================================================
+
 MIRRA v5.2 - NON-PRODUCTIVE COST ALLOCATION POLICY - DECISION NEEDED
 STATUS: BLOCKS FURTHER WORK - PARTIAL FIX LIVE, UNCOMMITTED, KNOWN INCOMPLETE
 DATE: 2026-09-17

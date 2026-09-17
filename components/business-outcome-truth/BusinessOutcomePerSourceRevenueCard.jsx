@@ -2059,7 +2059,15 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // above, for real assigned-but-not-revenue-bearing cost. Kept as a
   // separate function and a separate row rather than merged into the
   // unassigned entry, since the two mean genuinely different things.
-  function apply_non_revenue_bearing_entry(raw_headline) {
+  // FIX (2026-09-17): this standalone catch-all row is now only
+  // correct for the paths NOT covered by today's real-capacity cascade
+  // fix - the naive/assumed headline, and View B's own separate
+  // cascade (not touched today). For View A's real-capacity cascade
+  // specifically, non-productive cost is now correctly baked into each
+  // working unit's own row (useBusinessOutcomePerSourceRevenue.js), so
+  // adding this catch-all row on top would double-count it.
+  function apply_non_revenue_bearing_entry(raw_headline, already_included_in_rows) {
+    if (already_included_in_rows) return raw_headline;
     if (!(non_revenue_bearing_total > 0 && raw_headline)) return raw_headline;
     const non_revenue_bearing_entry = {
       key: "non_revenue_bearing",
@@ -2079,8 +2087,23 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     };
   }
 
-  const active_headline = apply_non_revenue_bearing_entry(apply_unassigned_entry(raw_active_headline));
-  const stable_headline = apply_non_revenue_bearing_entry(apply_unassigned_entry(raw_stable_headline));
+  // True only for View A's real-capacity cascade (smoothing_mode not
+  // "naive") - the one path fixed today. View B always still needs the
+  // standalone row (its own cascade untouched), same for the naive/
+  // assumed headline either view.
+  const active_headline_already_includes_non_revenue_bearing =
+    view_mode_ab !== "b" && capacity_mode === "real" && smoothing_mode !== "naive";
+  const stable_headline_already_includes_non_revenue_bearing =
+    capacity_mode === "real" && smoothing_mode !== "naive";
+
+  const active_headline = apply_non_revenue_bearing_entry(
+    apply_unassigned_entry(raw_active_headline),
+    active_headline_already_includes_non_revenue_bearing
+  );
+  const stable_headline = apply_non_revenue_bearing_entry(
+    apply_unassigned_entry(raw_stable_headline),
+    stable_headline_already_includes_non_revenue_bearing
+  );
 
   const total_source_count = active_headline.total_group_count;
   const carried_count = active_headline.being_carried_count;
