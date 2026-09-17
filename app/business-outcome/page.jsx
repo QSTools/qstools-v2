@@ -111,19 +111,26 @@ export default function BusinessOutcomePage() {
         <button
           type="button"
           className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
-          onClick={() => set_smoothing_mode("naive")}
-          disabled={view_mode_ab === "b"}
-          title={view_mode_ab === "b" ? "Not available for View B - Outcome only shows real, reconciled figures against actual revenue" : undefined}
-          style={view_mode_ab === "b" ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+          onClick={() => {
+            // FIX (2026-09-17): Best Case only exists in View A - rather
+            // than showing a disabled button or a fallback banner, just
+            // assert View A directly when Best Case is selected. Closes
+            // the "Best Case + View B" combination at the source instead
+            // of only blocking one of the two paths into it.
+            set_smoothing_mode("naive");
+            if (view_mode_ab === "b") {
+              set_view_mode_ab("a");
+            }
+          }}
         >
-          Each Part On Its Own
+          Best Case (100% of Entered Rates & Hours)
         </button>
       </div>
       <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
         <strong style={{ color: "var(--text-primary)" }}>How the Business Runs</strong> answers: is the business
-        making money overall, and who&apos;s carrying who? <strong style={{ color: "var(--text-primary)" }}>Each
-        Part On Its Own</strong> answers: which parts are actually profitable on their own, with no help from
-        anywhere else. Same total either way - this only changes which part gets the credit or the blame.
+        making money overall, and who&apos;s carrying who? <strong style={{ color: "var(--text-primary)" }}>Best
+        Case (100% of Entered Rates & Hours)</strong> answers: what would happen if every part achieved 100% of
+        the rates and hours you&apos;ve entered, with no cap to real revenue and no help from anywhere else.
       </p>
 
       <BusinessOutcomePerSourceRevenueCard
@@ -131,6 +138,7 @@ export default function BusinessOutcomePage() {
         output_contract={output_contract}
         labour_recovery={labour_recovery}
         smoothing_mode={smoothing_mode}
+        set_smoothing_mode={set_smoothing_mode}
         view_mode_ab={view_mode_ab}
         set_view_mode_ab={set_view_mode_ab}
         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}

@@ -1795,7 +1795,7 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", set_smoothing_mode, view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null }) {
   // NEW (this session, per user request): the P&L's own genuine
   // Net Profit and Trading Income, straight from useProfitAndLoss -
   // a completely separate hook/calculation from everything else on
@@ -2244,7 +2244,16 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           <button
             type="button"
             className={`business-outcome-view-toggle-btn ${view_mode_ab === "b" ? "active" : ""}`}
-            onClick={() => set_view_mode_ab("b")}
+            onClick={() => {
+              // FIX (2026-09-17): symmetric to the Best Case button's own
+              // fix - Best Case + View B is never a valid combination, so
+              // selecting View B while on Best Case reverts to How the
+              // Business Runs, closing the loop from this direction too.
+              set_view_mode_ab("b");
+              if (smoothing_mode === "naive" && typeof set_smoothing_mode === "function") {
+                set_smoothing_mode("smoothed");
+              }
+            }}
           >
             View B (Materials shares equally)
           </button>
@@ -2265,13 +2274,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             never the math - it was the wording implying a real
             financial fact. Every per-source row is unchanged. */}
         <div className="business-outcome-headline-eyebrow">
-          {smoothing_mode === "naive" ? "If every part stood entirely on its own" : "Is your business working?"}
+          {smoothing_mode === "naive" ? "Your best-case ceiling" : "Is your business working?"}
         </div>
         <div className="business-outcome-headline-text">
           {smoothing_mode === "naive" ? (
             <>
-              If every part of your business stood entirely on its own, with no help from
-              anywhere else, the combined result would be{" "}
+              If every part of your business achieved 100% of the rates and hours you&apos;ve
+              entered - no cap to real revenue, no help from anywhere else - the combined result
+              would be{" "}
               <span className={active_headline.total_net_profit >= 0 ? "value-good" : "value-bad"}>
                 {format_currency(
                   scaleAnnualValue(
@@ -2283,10 +2293,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 )}
                 {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
               </span>
-              . This is not a measurement of what actually happened - it is a hypothetical total,
-              adding up what each part would earn on its own, at full assumed billing, with no cap
-              to real revenue. The gap between this and your real net profit shows how much
-              assumed billing capacity currently exceeds what the business actually invoices.
+              . This is not a measurement of what actually happened - it is your best-case
+              ceiling. A source that still can&apos;t cover its own cost here has a rate or hours
+              problem that would persist even under perfect conditions.
               {active_headline.all_good ? (
                 <> Every part of your business is paying its way.</>
               ) : (
@@ -2342,7 +2351,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
               <strong>{format_currency(per_source.non_productive_cost_distributed_total)}</strong>{" "}
               of non-productive support cost (e.g. admin, management - not tied to any billable
               job) has been spread across the sources below, weighted by their own real cost.
-              See &quot;Each Part On Its Own&quot; to see this cost on its own, undistributed.
+              See &quot;Best Case (100% of Entered Rates &amp; Hours)&quot; to see this cost on its own, undistributed.
             </div>
           )}
 
@@ -2387,10 +2396,10 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
         {view_mode_ab === "b" && smoothing_mode === "naive" && (
           <div className="business-outcome-capacity-warning">
             <strong>
-              &quot;Each Part On Its Own&quot; isn&apos;t offered for View B here - Outcome only
-              shows what&apos;s actually happening against real revenue, not a hypothetical
-              ceiling. Showing the full reconciled picture instead (same as &quot;How the Business
-              Runs&quot;).
+              &quot;Best Case (100% of Entered Rates &amp; Hours)&quot; isn&apos;t offered for View B here -
+              Outcome only shows what&apos;s actually happening against real revenue, not a
+              hypothetical ceiling. Showing the full reconciled picture instead (same as &quot;How
+              the Business Runs&quot;).
             </strong>
           </div>
         )}
