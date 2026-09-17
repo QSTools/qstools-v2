@@ -1,0 +1,175 @@
+MIRRA v5.2 - NON-PRODUCTIVE COST ALLOCATION POLICY - DECISION NEEDED
+STATUS: BLOCKS FURTHER WORK - PARTIAL FIX LIVE, UNCOMMITTED, KNOWN INCOMPLETE
+DATE: 2026-09-17
+ORIGIN: Surfaced while live-testing the "rows default to real figures"
+fix for Business Modelling's lever card (same session). Fixing the
+per-row display revealed that non-productive labour/asset cost
+(support staff, a company car not tied to a billable job) was silently
+missing from the real net profit calculation entirely - a genuine
+system gap, not a display bug, confirmed by the user: "it's been
+missed in the system by the look."
+
+===============================================================================
+1. THE ORIGINAL FINDING (fixed earlier this session, still correct)
+===============================================================================
+
+Non-productive labour/asset cost was ONLY ever counted while
+UNASSIGNED (via unassigned_non_productive_labour_cost/
+unassigned_non_productive_asset_cost). The moment it was assigned to a
+working unit in Cost Allocation, it fell into a gap - Business Outcome
+never read assigned_non_productive_labour_cost/
+assigned_non_productive_asset_cost anywhere. Confirmed via grep, fixed
+by adding those totals into total_true_cost (the top-level breakeven
+figure) and the headline net profit figures. This part of today's work
+is CORRECT, COMMITTED, and NOT affected by anything below - see the
+earlier commit "Fix: non-productive labour/asset cost was silently
+dropped..." same date.
+
+===============================================================================
+2. THE DEEPER PROBLEM - SURFACED WHILE FIXING PER-ROW DISPLAY
+===============================================================================
+
+Once Business Modelling's lever card was fixed to show each working
+unit's REAL current position (not the independent figure) by default,
+the user asked a sharper question: should non-productive cost really
+just be dumped as a single business-wide catch-all line, or should it
+be attributed to the RIGHT working unit/spread the RIGHT way, the same
+way General Overheads already spreads other indirect real cost?
+
+Real examples given by the user, both entirely normal in a real
+business:
+  - The Foreman has a company car (non-productive asset) - it doesn't
+    generate revenue itself, but it clearly belongs to the Foreman
+    working unit specifically. This is a MIXED working unit - it has
+    real productive members (the Foreman himself, billable) AND a
+    non-productive item riding along.
+  - An Office Staff working unit (Accounts, QS, Management) - entirely
+    non-productive. No billable labour, no billable asset, at all. This
+    unit was never meant to earn revenue - it supports the whole
+    business.
+
+===============================================================================
+3. WHAT WAS BUILT TODAY (2026-09-17) - PARTIAL, KNOWN-INCOMPLETE
+===============================================================================
+
+A first attempt: non-productive cost assigned to a working unit is now
+added directly into THAT SAME working unit's own true_cost, inside
+apply_real_capacity (hooks/useBusinessOutcomePerSourceRevenue.js),
+through the existing, hand-verified cascade mechanism - the same
+front door as any other real cost, not a new parallel calculation.
+
+THIS IS CORRECT FOR THE MIXED-UNIT CASE (Foreman + car) - the
+Foreman's own rate now genuinely has to cover his own car, exactly as
+it should, and if it can't, the existing cascade correctly lets the
+shortfall show as that unit's own loss (or spreads via the cascade's
+normal shortfall-sharing mechanism if other units have margin to give).
+
+THIS IS WRONG / INCOMPLETE FOR THE PURE-SUPPORT-UNIT CASE (Office
+Staff) - confirmed live by the user: a working unit with NO
+revenue-generating members at all just shows a permanently,
+structurally negative number once its own real cost is charged to
+itself. There is no rate for it to raise - it was never meant to earn
+anything. The cascade currently has no mechanism to GIVE margin back
+to a unit whose own cost just increased (it only ever TAKES margin
+away from healthy units to cover the materials shortfall specifically)
+- so a pure-support unit's own hit just sits there, unresolved,
+correctly reflecting real cost but not usefully.
+
+===============================================================================
+4. THE REAL DECISION - TWO GENUINELY DIFFERENT CASES, NOT ONE POLICY
+===============================================================================
+
+  - MIXED working unit (has real productive members + non-productive
+    items) -> charge to itself. Matches today's build. Correct.
+  - PURE non-productive working unit (no productive members at all)
+    -> must be spread across the productive parts of the business,
+    the same way General Overheads already spreads other indirect
+    cost (build_overhead_pool - labour-cost-weighted, asset-burden-
+    weighted, or equal-split, per lib/calculations/cost-allocation/
+    costAllocationOverheadPoolBuilder.js).
+
+**THE USER'S OWN KEY POINT, EXPLICITLY FLAGGED AS THE CORE OF THIS
+DECISION:** not every business would want to draw this line the same
+way. Some may want EVERY non-productive item charged to whatever
+working unit it's assigned to, even a pure-support one (accepting the
+structural loss as informational - "this is what Office Staff costs
+us"). Others may want pure-support units' cost spread automatically.
+This needs to be a REAL, CONFIGURABLE CHOICE in the system - not
+something hardcoded either way. Same reasoning General Overheads'
+own allocation_method already exists for.
+
+===============================================================================
+5. CURRENT LIVE STATE - NOT YET COMMITTED, NEEDS ATTENTION
+===============================================================================
+
+As of this brief, the following changes ARE applied to the working
+tree (uncommitted) from today's cascade patch:
+  - hooks/useBusinessOutcomePerSourceRevenue.js - apply_real_capacity
+    now injects non_productive_cost_by_group_id into each group's own
+    true_cost (Patch 1, landed).
+  - The call site building non_productive_cost_by_group_id and passing
+    it in (Patch 3, landed).
+  - The health gauge's smoothed_net_profit reverted to avoid double-
+    counting (Patch 4, landed).
+  - lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+    - total_net_profit_real_capacity reverted to stop double-subtracting
+    (Patch 5, landed).
+  - components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+    - the standalone "Non-productive cost" catch-all row now
+    conditionally skipped for the real-capacity cascade path specifically
+    (Patch 6, landed).
+
+ONE PATCH DID NOT LAND (NOT FOUND, silently skipped, file unchanged
+for this specific piece):
+  - Exposing non_productive_cost as a field on each group's returned
+    real_capacity entry (group_real_capacity[].non_productive_cost) -
+    this patch's old-text match failed against the live file. The
+    cascade math itself is correctly using the injected cost, but the
+    RETURNED per-group object does not yet carry a visible
+    non_productive_cost field for the UI to eventually show "$X of
+    this includes non-productive support cost" per working unit. This
+    needs a fresh view + retry, not urgent to fix before this decision
+    is made, since the value isn't yet exposed to any UI - but flagged
+    so it isn't forgotten.
+
+NOT YET COMMITTED - this entire change should be treated as a known-
+incomplete first attempt, correct for one case (mixed units), wrong/
+incomplete for another (pure-support units), sitting live in the
+working tree pending the real decision below.
+
+===============================================================================
+6. SUGGESTED NEXT STEPS
+===============================================================================
+
+  1. Decide the configurability question first (Section 4's core
+     point) - what are the real options a user should be able to
+     choose from, per working unit or as a business-wide default?
+     Candidate options, not yet decided:
+       a. Charge to self always (today's behaviour) - simple, but
+          produces meaningless permanent losses for pure-support units.
+       b. Detect "has zero productive members" automatically and
+          spread THOSE units' non-productive cost as overhead,
+          charge-to-self for everything else (mixed units) - no user
+          configuration needed, but assumes the system should decide,
+          which the user has explicitly said may not be right for every
+          business.
+       c. A real, explicit per-working-unit or business-wide toggle -
+          "charge to self" vs "spread as overhead" - matching General
+          Overheads' own existing allocation_method pattern. Most
+          flexible, most work to build (new stored setting, new UI).
+  2. Once decided, retry the missed non_productive_cost exposure patch
+     (Section 5) with a fresh view of the current file.
+  3. Build whichever spreading mechanism is decided for pure-support
+     units - likely reusing build_overhead_pool's existing weighting
+     logic (labour-cost-weighted / asset-burden-weighted / equal-split)
+     rather than inventing a new one, consistent with "reuse the
+     engine" throughout this project.
+  4. Live-test against real data (Foreman/car case AND an Office
+     Staff-style pure-support unit) before trusting either path.
+  5. Apply the same eventual fix to View B's own separate cascade
+     (apply_real_capacity_v2) - explicitly NOT touched today, flagged
+     as a known, deliberate gap, not an oversight.
+
+===============================================================================
+END OF BRIEF
+===============================================================================

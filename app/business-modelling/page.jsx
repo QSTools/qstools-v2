@@ -83,6 +83,7 @@ export default function BusinessModellingPage() {
 
         <BusinessModellingLeverCard
           headline={live_headline}
+          real_headline={per_source?.headline_real_capacity}
           breakeven_summary={breakeven_summary}
           lever_rows={lever_rows}
           rate_target_by_group_id={rate_target_by_group_id}
