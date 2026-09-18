@@ -1842,6 +1842,149 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
   );
 }
 
+// NEW (2026-09-18) - View B equivalent of AssumedCapacityLedger above,
+// the panel that previously said "hasn't been built yet". Genuinely
+// simpler than View A's version - materials is a real peer here (same
+// as ViewBRealCapacityLedger already treats it), so no separate
+// materials handling is needed, just one merge_view_b_groups(view_b,
+// "assumed") call for everything. That function was itself fixed
+// 2026-09-18 to correctly reflect non-productive cost in both cost and
+// net profit for this mode - this panel is purely additive display on
+// top of already-correct, already-tested data, no new calculation.
+function ViewBAssumedCapacityLedger({ view_b, unassigned, time_scale, open_hours }) {
+  if (!view_b || !view_b.revenue_ceiling) {
+    return <div className="ui-help">Assumed Capacity data is not available yet.</div>;
+  }
+
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
+  const money = (v) => `${format_currency(scale(v))}${suffix}`;
+
+  const rows = merge_view_b_groups(view_b, "assumed").map((e) => {
+    const naive_net_profit = e.modelled_revenue - e.total_cost;
+    return { ...e, naive_net_profit };
+  });
+
+  const scale_pct = ((view_b.revenue_ceiling.scale_factor ?? 1) * 100).toFixed(1);
+  const unassigned_total = unassigned?.total ?? 0;
+
+  const total_modelled_revenue = rows.reduce((sum, r) => sum + r.modelled_revenue, 0);
+  const total_true_cost = rows.reduce((sum, r) => sum + r.total_cost, 0);
+  const total_naive_net_profit = rows.reduce((sum, r) => sum + r.naive_net_profit, 0);
+  const total_implied_net_profit = rows.reduce((sum, r) => sum + r.net_profit, 0);
+  const true_total_implied_net_profit = total_implied_net_profit - unassigned_total;
+
+  return (
+    <div className="business-outcome-ledger">
+      <div className="ui-help">
+        Shows exactly how Assumed Capacity is calculated for View B - materials is a genuine
+        sixth peer here too, same as its Real Capacity ledger, going through the same single
+        scale applied to every source at once if the combined claim exceeds what was actually
+        billed.
+      </div>
+
+      <div className="business-outcome-ledger-section-title">Starting point - before any scaling</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Modelled Revenue</span>
+          <span>True Cost</span>
+          <span>Naive Net Profit</span>
+        </div>
+        {rows.map((r) => (
+          <div className="business-outcome-ledger-row" key={r.key}>
+            <span>{r.label}</span>
+            <span>{money(r.modelled_revenue)}</span>
+            <span>{money(r.total_cost)}</span>
+            <span className={r.naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+              {money(r.naive_net_profit)}
+            </span>
+          </div>
+        ))}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total</span>
+          <span>{money(total_modelled_revenue)}</span>
+          <span>{money(total_true_cost)}</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(total_naive_net_profit)}
+          </span>
+        </div>
+      </div>
+
+      <div className="business-outcome-ledger-section-title">The scale check</div>
+      <div className="business-outcome-ledger-metrics">
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Combined claim (all 6 sources)</span>
+          <span className="business-outcome-ledger-metric-value">
+            {money(view_b.revenue_ceiling.all_peers_modelled_total)}
+          </span>
+        </div>
+        <div className="business-outcome-ledger-metric">
+          <span className="business-outcome-ledger-metric-label">Ceiling breached?</span>
+          <span className="business-outcome-ledger-metric-value">
+            {view_b.revenue_ceiling.is_breached ? `Yes (${scale_pct}%)` : "No"}
+          </span>
+        </div>
+      </div>
+      {view_b.revenue_ceiling.is_breached ? (
+        <div className="ui-help">
+          Combined claim across all six sources exceeds real revenue - every source is scaled
+          down by the same {scale_pct}% so the total exactly matches what was actually billed.
+        </div>
+      ) : (
+        <div className="ui-help">
+          Combined claim is within total revenue - nothing is scaled down, every source keeps
+          its full modelled figure.
+        </div>
+      )}
+
+      <div className="business-outcome-ledger-section-title">Final allocation</div>
+      <div className="business-outcome-ledger-table">
+        <div className="business-outcome-ledger-row business-outcome-ledger-header">
+          <span>Source</span>
+          <span>Naive Net Profit</span>
+          <span>Implied Net Profit</span>
+          <span>Verdict</span>
+        </div>
+        {rows.map((r) => (
+          <div className="business-outcome-ledger-row" key={r.key}>
+            <span>{r.label}</span>
+            <span>{money(r.naive_net_profit)}</span>
+            <span className={r.net_profit >= 0 ? "value-good" : "value-bad"}>
+              {money(r.net_profit)}
+            </span>
+            <span>{r.verdict_label}</span>
+          </div>
+        ))}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total">
+          <span>Total (6 sources)</span>
+          <span className={total_naive_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(total_naive_net_profit)}
+          </span>
+          <span>{money(total_implied_net_profit)}</span>
+          <span>-</span>
+        </div>
+        {unassigned_total > 0 && (
+          <div className="business-outcome-ledger-row">
+            <span>Unassigned cost (not attributed to any source)</span>
+            <span>-</span>
+            <span className="value-bad">{money(-unassigned_total)}</span>
+            <span>-</span>
+          </div>
+        )}
+        <div className="business-outcome-ledger-row business-outcome-ledger-total business-outcome-ledger-true-total">
+          <span>TRUE TOTAL (matches page headline)</span>
+          <span>-</span>
+          <span className={true_total_implied_net_profit >= 0 ? "value-good" : "value-bad"}>
+            {money(true_total_implied_net_profit)}
+          </span>
+          <span>-</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", set_smoothing_mode, view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null }) {
   // NEW (this session, per user request): the P&L's own genuine
   // Net Profit and Trading Income, straight from useProfitAndLoss -
@@ -2804,11 +2947,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
-                <div className="ui-help">
-                  The Assumed Capacity ledger for View B hasn&apos;t been built yet - the Cost
-                  build-up (Assumed Capacity) table below already reflects Assumed Capacity
-                  correctly for View B; only this detailed step-by-step trace is still outstanding.
-                </div>
+                <ViewBAssumedCapacityLedger
+                  view_b={per_source.view_b}
+                  unassigned={per_source.unassigned}
+                  time_scale={time_scale}
+                  open_hours={per_source.net_annual_business_open_hours}
+                />
               </CollapsibleSection>
               <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
                 <ViewBCostBuildUpTable
