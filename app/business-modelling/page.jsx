@@ -101,12 +101,29 @@ export default function BusinessModellingPage() {
         <div className="ui-panel ui-stack-sm" style={{ border: "2px dashed orange" }}>
           <div className="ui-kicker">DEBUG: real engine rerun check</div>
           <div className="ui-row-between">
-            <span>Real total net profit (headline_real_capacity)</span>
+            <span>Real total net profit - View A (headline_real_capacity)</span>
             <strong>{per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
           </div>
           <div className="ui-row-between">
-            <span>Modelled total net profit (headline_real_capacity)</span>
+            <span>Modelled total net profit - View A (headline_real_capacity)</span>
             <strong>{modelled_per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
+          </div>
+          {/* Added 2026-09-18 - View B is the only cascade where materials
+              has genuinely independent, lever-movable economics (View
+              A's materials is a residual, nothing for the markup
+              override to affect). These two rows are the real proof: if
+              the materials lever is genuinely wired correctly, changing
+              markup% should move the View B modelled figure while the
+              View A figures above stay comparatively unaffected by that
+              specific lever (labour/asset rate levers correctly move
+              both, since both views share the same labour/asset input). */}
+          <div className="ui-row-between">
+            <span>Real total net profit - View B (view_b_headline_real_capacity)</span>
+            <strong>{per_source?.view_b_headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
+          </div>
+          <div className="ui-row-between">
+            <span>Modelled total net profit - View B (view_b_headline_real_capacity)</span>
+            <strong>{modelled_per_source?.view_b_headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
           </div>
           <div className="ui-row-between">
             <span>Unsupported working units (ambiguous lever)</span>
