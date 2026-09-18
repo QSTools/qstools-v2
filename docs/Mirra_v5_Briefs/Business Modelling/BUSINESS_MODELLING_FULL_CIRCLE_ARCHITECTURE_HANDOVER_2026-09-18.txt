@@ -1,0 +1,248 @@
+MIRRA v5.2 - BUSINESS MODELLING "FULL CIRCLE" ARCHITECTURE - HANDOVER
+STATUS: DIRECTION AGREED, NOT YET BUILT. REAL DATA RESET NEEDED FIRST.
+DATE: 2026-09-18 (end of a two-day session covering Business Outcome
+View A/B parity + two failed Business Modelling attempts + this new
+direction)
+READ THIS FIRST IN A NEW CHAT.
+
+===============================================================================
+0. THE ONE THING TO DO BEFORE ANYTHING ELSE
+===============================================================================
+
+**Real business data has drifted from the real P&L.** Across this
+session, test additions were made directly in the live system to prove
+mechanisms worked: an "Accountant" non-productive labour item, a "TEST"
+working unit, "Mini Truck" and "2inc Line Pump 2" assets, and various
+manual P&L edits to hit exact breakeven for testing. These were
+genuinely necessary and valuable for proving each fix - but they mean
+the numbers currently sitting in the tool do NOT represent the real
+business anymore.
+
+**User's own words, the actual next step:** "I think the sensible thing
+to do is go right back to the P&L and start from there." Confirm with
+the user exactly what needs resetting (which test additions to remove,
+whether the P&L itself needs re-importing or just specific manual
+edits reverted) before trusting ANY number the tool shows, including
+anything used to investigate the open questions below.
+
+===============================================================================
+1. WHAT'S SOLID - DO NOT RE-INVESTIGATE, GENUINELY DONE
+===============================================================================
+
+**Business Outcome - View A and View B are at full, verified parity.**
+Every real number, every table, every capacity mode. This took two full
+days and multiple real bugs found and fixed (see
+docs/Mirra_v5_Briefs/Business Outcome/NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION_2026-09-17.txt
+for the complete story - cascade injection, a Step 2 row-basis bug, a
+missing true_cost field on View B's own return object, a display-layer
+bug where ledger tables read stale uninjected cost even after the
+cascade was fixed, and the missing View B Assumed Capacity ledger
+panel, all found live-testing and all fixed and verified). Non-productive
+cost allocation (pure-support units always spread as overhead, mixed
+units follow a real charge_to_self/spread_as_overhead policy setting)
+is fully built and working in both views.
+
+**"Best Case (100% of Entered Rates & Hours)"** (renamed from "Each
+Part On Its Own") is correctly understood and correctly framed - see
+docs/Mirra_v5_Briefs/Business Outcome/EACH_PART_ON_ITS_OWN_REVENUE_BASIS_QUESTION_2026-09-17.txt.
+It answers "what's the best possible outcome given what's currently
+entered, with zero cap to real revenue" - not a measurement of reality,
+never meant to compete with the real headline. Confirmed correct
+findings from working through real numbers: it revealed a genuine
+Materials residual bug (View A's Materials revenue was a leftover
+figure with no formula of its own - fixed to use Rate Builder's real
+markup instead) and confirmed the existing per-source "achieved rate"
+drill-down (Business Outcome -> click a working unit -> per labour
+type) already answers "is this rate working, tied to real revenue" -
+a real, capped-to-revenue diagnostic that already exists and works.
+
+**File map and both briefs above are up to date** - reflect the real,
+current architecture accurately as of 2026-09-18.
+
+===============================================================================
+2. TWO FAILED BUSINESS MODELLING ATTEMPTS TODAY - WHY, PRECISELY
+===============================================================================
+
+**Attempt 1 - real-capacity cascade rerun via View B (built, tested,
+then reverted same day).** useBusinessOutcomePerSourceRevenue's
+override mechanism (built 2026-09-17: labour_charge_out_rate_overrides,
+asset_blended_rate_overrides, materials_markup_percent_override) was
+wired into the lever card's live_headline via a new
+view_b_headline_real_capacity selector field. THE FLAW, discovered
+live: View B's real-capacity cascade is DESIGNED to always reconcile
+its total to today's real revenue minus real cost, regardless of any
+lever input - the total literally cannot move no matter what rate or
+markup is changed, because the cascade mathematically redistributes
+margin to always land on the real total. Confirmed live: changing
+materials markup moved WHICH sources were "being carried" but never
+moved the total itself. This defeats the entire purpose of a
+forward-looking modelling tool. REVERTED same day - see
+hooks/useBusinessModelling.js's own comments, live_headline now reads
+buildLiveLeverHeadline again (the older, independent, uncapped
+engine), NOT buildRealEngineLeverHeadline (deleted from use, function
+itself still exists in businessModellingLeverSelectors.js, unused).
+
+**Attempt 2 - the pre-existing independent engine (buildLiveLeverHeadline)
+- also confirmed inadequate, different reason.** This engine sums
+every working unit's OWN full, uncapped, independent claim (rate x
+assumed hours, no cross-subsidy) - materials' own input
+(build_materials_input) was ALREADY correctly fixed earlier in the
+session to use Rate Builder's real markup formula, so this was never
+actually broken for materials specifically. But live-tested with real
+numbers (COG at 10% markup): produced a total around $862,452 - a real,
+mathematically consistent number (traced and confirmed correct
+arithmetic), but essentially meaningless for "what does my real
+business look like if I make this one change" - it's dominated by
+every OTHER untouched working unit's own full assumed billing ceiling
+stacked together (e.g. PC15 alone claiming ~$295k independently),
+nothing to do with today's real, cross-subsidized business.
+
+**CONCLUSION FROM BOTH FAILURES:** neither "pinned to today's real
+total no matter what" (Attempt 1) nor "every untouched source jumps to
+its own independent fantasy ceiling" (Attempt 2) is the right
+behaviour for a lever. The right behaviour, agreed live with the user:
+touch ONE lever, recalculate ONLY that one working unit using its real
+cost and the new rate, and leave EVERY OTHER working unit exactly at
+its real, today's achieved figure - untouched. Total net profit then
+= today's real total, plus exactly the effect of the one thing
+changed. Not yet built - this is the mechanism the "full circle"
+architecture in Section 3 needs to support, not a separate patch.
+
+===============================================================================
+3. THE NEW DIRECTION - "FULL CIRCLE" ARCHITECTURE (agreed, not built)
+===============================================================================
+
+User's own description, the real target architecture, worth quoting
+directly rather than paraphrasing since precision matters here:
+
+"we are going to bring in the overheads from Cost Summary - these are
+what remains after distribution to assets and labour has been done...
+when I say distributed I mean that from the P&L we've said fuel
+belongs to running our vehicles, so use that so we can work out the
+true vehicle cost - that gets pulled out of general overheads for
+Cost Summary... this applies to insurance, finance etc. Labour works
+the same - these all belong to labour so we can see what our min
+recoverable rate is for every staff member/type - this is also pulled
+out and potentially adjusted with an ACC calc and employer
+contributions. So Cost Summary overheads are what's left of that pool...
+that remaining overhead pool is what gets distributed later as a
+portion... now we know the full min recoverable rate for each labour
+and asset item. Then we have built Cost Allocation and Rate Builder
+and Outcome which tests your assumptions against the actual business
+and creates the achieved rate. So if we reduce overheads that are left
+in Cost Summary via modelling we change all the downstream min
+recovery rates, and then if we change the labour rates that changes
+the asset rates - and that completes the circle."
+
+**In plain terms:** real injection points at EVERY real decision point
+in the chain (Cost Summary's remaining overhead, Labour's rates/on-costs,
+Rate Builder's working-unit pricing), each one's edited value flowing
+FORWARD through the same real calculation chain that already runs
+today with real data - Cost Allocation, Rate Builder, Business Outcome
+- rather than overriding only the final output (which is what both
+failed attempts today tried, from opposite ends of "how much should
+be uncapped").
+
+**Important nuance, not yet confirmed either way:** rate-lever changes
+specifically (e.g. "raise the Operator's chargeout rate, see PC55's
+achieved rate respond") may already be MOSTLY built - the existing
+override mechanism (labour_charge_out_rate_overrides,
+asset_blended_rate_overrides) sits at exactly this point in the chain
+already. What's likely still needed there is just the Section 2
+"only touch what changed" cascade fix, not new injection points
+reaching back into Rate Builder/Labour themselves. The GENUINELY new,
+unbuilt piece is overhead cost - "reduce this Cost Summary line, see
+the effect ripple down" has ZERO lever support anywhere currently.
+Do not assume this without checking - see Section 4.
+
+===============================================================================
+4. SIX THINGS FLAGGED TO CHECK - NOT YET VERIFIED, DO NOT ASSUME TRUE
+===============================================================================
+
+User named these explicitly, in order, as things that need tracing in
+the actual code before trusting the "full circle" picture is accurate:
+
+  1. Fuel/vehicle costs genuinely pulled OUT of General Overheads into
+     each specific asset's own true cost - not just categorized as
+     "vehicle-related" while still sitting in a shared pool. (Earlier
+     session evidence, 2026-09-16/17: generalOverheadPnlSync.js DOES
+     keyword-match vehicle-related P&L lines into a "vehicles_running"
+     category - but categorization into a NAMED BUCKET is not the same
+     claim as "pulled out and added directly to one specific asset's
+     own cost." This specific distinction has NOT been confirmed
+     either way - check it for real before assuming.)
+  2. Same direct-attribution mechanism for insurance, finance/interest,
+     etc.
+  3. Labour's own on-costs (ACC, employer KiwiSaver contributions)
+     correctly pulled from the P&L and added into each labour type's
+     own true cost. (Earlier session evidence, 2026-09-17:
+     labourCalculations.js DOES have real, separate fields - acc_rate,
+     acc_work_levy_annual, employer_kiwisaver_rate,
+     employer_kiwisaver_gross, esct_rate, esct_amount - confirmed not
+     blended into one number. This is real evidence FOR the claim, but
+     was confirmed for a different reason that session (checking
+     whether ACC/KiwiSaver are separable at all, not specifically
+     whether they correctly flow from a live P&L sync) - worth
+     re-confirming in this specific context.)
+  4. Cost Summary's remaining overhead pool correctly SURFACES any
+     variance if an overhead figure has been edited outside the real
+     P&L sync (i.e. a genuine "this doesn't match your real P&L
+     anymore" check exists and works) - not silently swallowed.
+  5. That remaining overhead pool gets distributed downstream as a
+     real, traceable share - not lost, not double-counted. (Earlier
+     session evidence, 2026-09-16: costAllocationOverheadPoolBuilder.js's
+     build_overhead_pool() DOES conserve the total exactly regardless
+     of allocation method or working-unit count, confirmed via real
+     algebra that session - but that was investigating a DIFFERENT
+     question then, breakeven drift after reassigning working units,
+     not specifically confirming this pool is what "Cost Summary
+     remaining overhead" actually refers to or feeds into distribution
+     correctly today. Re-confirm in this specific context.)
+  6. The full circle genuinely closes: overheads -> labour min
+     recoverable rate -> asset min recoverable rate -> Cost Allocation
+     -> Rate Builder -> Outcome's achieved rate, with no gap, using
+     REAL current-session code (not assumed from memory of earlier
+     findings).
+
+**Also flagged, not yet resolved - the COG/Materials cascade question.**
+User's own reasoning, worth preserving: if Materials/COGS turns out to
+be the business's single largest source of real margin (current real
+data suggested this, though data has since drifted per Section 0), the
+real-capacity cascade SHOULD lean on it hardest when something else
+falls short - same as it would for any other profitable source, no
+special treatment. Whether this is ACTUALLY happening correctly in the
+real cascade, and whether Materials (or another source, e.g. PC15) is
+genuinely the dominant one right now, could not be confirmed on
+drifted data. Re-check once real data is restored (Section 0) - this
+is a real, open question, not resolved, not dismissed.
+
+===============================================================================
+5. RECOMMENDED STARTING POINT FOR NEXT SESSION
+===============================================================================
+
+1. Reset test data to genuinely match the real P&L (Section 0) - agree
+   with the user exactly what needs removing/reverting before trusting
+   any number.
+2. Re-verify the COG/Materials cascade question (end of Section 4) on
+   clean, real data - this was the last live thread before the session
+   ended, worth closing out first while it's fresh.
+3. Work through the six checks in Section 4 in order, in the real
+   code, live - do not assume any of them from memory or from earlier
+   sessions' different-context findings, even where cited evidence
+   above looks favourable.
+4. Once Section 4 is confirmed (or corrected), design the actual
+   injection points needed - likely: Cost Summary overhead line items
+   (genuinely new, confirmed zero lever support currently), Labour
+   rate/on-cost overrides (may already mostly exist via the current
+   override mechanism, verify), Rate Builder working-unit pricing (may
+   already mostly exist, verify) - each flowing FORWARD through the
+   real chain, not overriding only the final Outcome-level output.
+5. Build the "only touch what changed" behaviour from Section 2's
+   conclusion as the actual cascade mechanism underneath whatever
+   lever gets touched - this is the missing piece both failed attempts
+   today lacked, and needs to be correct before any lever UI is
+   trusted again.
+
+===============================================================================
+END OF HANDOVER
+===============================================================================
