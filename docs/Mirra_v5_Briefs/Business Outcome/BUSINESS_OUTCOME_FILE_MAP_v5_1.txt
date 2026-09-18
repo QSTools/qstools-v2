@@ -1,4 +1,17 @@
 # Business Outcome - File Map & Quick Reference
+**Updated 2026-09-18:** Non-productive cost allocation built end-to-end
+(mixed working units vs pure-support units, real policy setting), a real
+Step 2 cascade bug found and fixed, View B brought to full parity with
+View A (was silently missing the entire fix - real true_cost differed
+by $100k+ between views for the SAME real wage), and a SEPARATE display-
+-layer bug found and fixed (true_cost shown in ledger/cost-build-up
+tables was reading a stale, uninjected source even after the cascade
+fix landed - see Section 4's new gotcha #4, the most likely place for
+this class of bug to recur). "Each Part On Its Own" renamed to "Best
+Case (100% of Entered Rates & Hours)", reframed as a ceiling diagnostic,
+not a competing "net profit" claim. Full detail:
+docs/Mirra_v5_Briefs/Business Outcome/NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION_2026-09-17.txt
+and .../EACH_PART_ON_ITS_OWN_REVENUE_BASIS_QUESTION_2026-09-17.txt.
 **Updated 2026-09-16:** useBusinessModelling.js split (see Section 3) and
 the 2026-09-14 Baseline/Upside/Downside scenario redesign files added -
 this map previously predated that redesign entirely.
@@ -58,6 +71,10 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 - lib/selectors/businessModellingLeverSelectors.js - buildLiveLeverHeadline(), buildBreakevenSummary(), buildGroupLeverRows(), buildMaterialsLeverRow(), buildProportionalSuggestions() - the live lever system's selector layer, consumes per_source directly.
 - lib/calculations/businessOutcomeNetProfitBuildUpSelectors.js - Feeds BusinessOutcomeNetProfitBuildUp.jsx.
 - lib/utils/scrollToSection.js - NEW 2026-09-12. Extracted from ScrollToSectionLink.jsx - exports scroll_to_section() and open_if_closed(). One shared navigation engine used by both the text-link component AND the Health Gauge's click-through.
+- lib/storage/businessOutcomeNonProductivePolicyStorage.js - NEW 2026-09-17. readNonProductiveCostPolicy()/writeNonProductiveCostPolicy() - the mixed_unit_non_productive_policy setting ("charge_to_self" default, or "spread_as_overhead"). Pure-support working units (no productive member at all) always spread, regardless of this setting - it only governs mixed working units (real productive members + a non-productive item riding along, e.g. a company car). No settings UI exists yet - the value can currently only be changed by editing localStorage directly.
+- distribute_non_productive_cost() (in useBusinessOutcomePerSourceRevenue.js, near apply_real_capacity) - decides per working unit how its own non-productive cost affects true_cost: pure-support units always spread (weighted the same way General Overheads' own build_overhead_pool spreads its pool - labour-cost-weighted / asset-burden-weighted / equal-split), mixed units follow the stored policy above. Computed ONCE, early in the hook (moved there 2026-09-18 after a real "cannot access before initialization" runtime error - View B's cascade call happens earlier in the function than where this was originally declared), the same map is passed into BOTH apply_real_capacity (View A) and apply_real_capacity_v2 (View B).
+
+**KNOWN GAP, NOT A BUG (confirmed 2026-09-18):** View B has no "Assumed Capacity ledger" detailed step-by-step trace panel (View A's own equivalent shows Starting point -> Scale check -> Final allocation) - the panel itself says so explicitly, and always has ("hasn't been built yet"). The actual NUMBERS are correct and available via View B's own "Cost build-up (Assumed Capacity)" table right below it (confirmed fixed 2026-09-18) - only the detailed walkthrough view is missing, not the underlying data.
 
 **Baseline/Upside/Downside scenario redesign (NEW 2026-09-14, was missing from this map until 2026-09-16):**
 - hooks/useBusinessModellingScenario.js - The redesign's own hook. Takes per_source as an input (does not recompute it - reads it from useBusinessModelling()'s per_source). Has a has_loaded guard on its save effect.
@@ -75,6 +92,8 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 **3. Links into "How the Numbers Are Calculated" need the pre-toggle.** Any ScrollToSectionLink or scroll_to_section() call pointing there needs pre_toggle_labels: ["Show breakdown"] in addition to ancestor_ids.
 
+**4. THERE ARE TWO true_cost SOURCES, ONE STALE - confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it has NEVER been touched by the non-productive cost injection (that injection only ever lives inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives ONLY in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B - this field did not even exist on View B's return object until 2026-09-18, root cause of that day's bug). ANY table or component that builds its own cost figure by re-summing row.true_cost or reading group_true_cost/entry.total_cost from merge_groups_by_id()/merge_groups_by_id_real_capacity()/merge_view_b_groups() WITHOUT cross-referencing group_real_capacity's own true_cost is showing the stale figure. Confirmed fixed in: CostBuildUpTable, merge_view_b_groups (both call sites: ViewBRealCapacityLedger and ViewBCostBuildUpTable). NOT yet checked: any other component that might independently read group_true_cost/entry.total_cost - grep both terms before trusting a new or unfamiliar cost display.
+
 ---
 
 ## 5. Field-name traps
@@ -82,7 +101,8 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 - per_source.labour_groups[] / asset_groups[] use .group_modelled_revenue / .group_true_cost, NOT .modelled_revenue/.total_cost.
 - per_source.materials uses .revenue for View A's residual figure, NOT .modelled_revenue.
 - per_source.view_b.labour_sources[] / .asset_sources[] / .materials DO use .modelled_revenue directly.
-- real_capacity.group_real_capacity[] has both naive_net_profit and final_net_profit - pick deliberately.
+- real_capacity.group_real_capacity[] has both naive_net_profit and final_net_profit - pick deliberately. Also has true_cost (the CORRECT, non-productive-cost-injected figure - see gotcha #4 above) and non_productive_cost (added 2026-09-17/18) - both present on View A's array from the start, both added to View B's array only on 2026-09-18.
+- Assumed Capacity mode's net_profit (implied_net_profit / assumed_net_profit, via apply_revenue_ceiling/apply_revenue_ceiling_v2) is a SEPARATE mechanism from the real-capacity cascade, never touched by the non-productive injection - as of 2026-09-18, CostBuildUpTable and merge_view_b_groups both now recompute it directly as (assumed revenue - corrected true_cost) rather than trusting that field, for exactly this reason.
 - Per-source direct/overhead cost IS tracked separately: direct_cost, overhead_share, summed to true_cost - confirmed in useBusinessOutcomePerSourceRevenue.js and carried through the selector as group_true_cost, group_overhead_share.
 - Always grep for an existing working consumer of a field before writing new code that reads it.
 
