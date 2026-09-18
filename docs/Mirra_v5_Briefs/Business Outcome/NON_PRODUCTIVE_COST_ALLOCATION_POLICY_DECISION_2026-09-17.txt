@@ -404,5 +404,48 @@ specifically once switched - changing markup% should visibly move the
 modelled total, which it currently does not.
 
 ===============================================================================
+9. BOTH SECTIONS 7 AND 8 NOW DONE (2026-09-18, later same session)
+===============================================================================
+
+**Section 7 (View B parity) - genuinely complete.** Beyond the ordered
+plan above: a real runtime error was found and fixed (non_productive_cost_by_group_id
+used before its declaration - moved earlier in the function, shared by
+both views), and a SEPARATE, deeper display-layer bug was found and
+fixed - every ledger/cost-build-up table across BOTH views was still
+showing stale true_cost even after the cascade fix landed, because
+apply_real_capacity_v2's group_real_capacity never exposed a true_cost
+field at all (View A's always had one - the actual root cause).
+Documented as file map gotcha #4. The one remaining known gap (View
+B's missing "Assumed Capacity ledger" trace panel) was also built the
+same day. View A and View B are now at full parity - every table,
+every mode, live-verified.
+
+**Section 8 (Business Modelling -> View B) - genuinely complete.**
+view_b_headline_real_capacity built in the selector (same shape as
+headline_real_capacity, required adding one missing field -
+modelled_revenue - to View B's group_real_capacity first, same fix
+pattern as the true_cost gap). Business Modelling's overrides mechanism
+already flowed into View B automatically - View B's labour/asset
+sources are clones of the same already-overridden arrays View A uses,
+and its materials calculation already reads the same
+effective_materials_markup_percent - so no new override-threading was
+needed, only exposing the correctly-shaped headline. Live-verified via
+a temporary debug block on the Business Modelling page: changing
+materials markup now moves View B's modelled total_net_profit while
+View A's stays unchanged (both real and modelled) - the actual proof
+the materials lever has somewhere real to land, not just that it
+compiles.
+
+**STILL OPEN - the last-mile UI decision, not yet started.** The
+visible lever card still shows the OLD independent engine's total
+(buildLiveLeverHeadline, businessModellingLeverSelectors.js) - today's
+work is proven correct in a debug block only, not yet wired into what
+a real user looks at. Real options, not picked yet: (a) replace the
+lever total outright with View B's working figure, (b) show both,
+clearly labelled (same "real vs best-case" distinction pattern already
+used successfully on Outcome's own page), or (c) something else. A
+genuine product decision, not a small patch.
+
+===============================================================================
 END OF BRIEF
 ===============================================================================
