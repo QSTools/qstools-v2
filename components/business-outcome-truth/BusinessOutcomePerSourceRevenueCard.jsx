@@ -355,14 +355,42 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, open_hours, use_implied, capacity_mode }) {
+function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, open_hours, use_implied, capacity_mode, real_capacity }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const entries =
     capacity_mode === "real"
       ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
       : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
-  const rows = entries.filter((e) => e.type === "group");
+  // FIX (2026-09-18): mirrors the same fix just applied to View B's
+  // merge_view_b_groups - the selector's own group_true_cost is summed
+  // from raw, UNINJECTED row.true_cost, missing non-productive cost
+  // entirely. real_capacity.group_real_capacity has the correct,
+  // already-injected figure (same trusted source the page headline's
+  // own breakeven number comes from) - used for BOTH capacity modes
+  // here, since real true cost doesn't change based on which cascade
+  // phase is being displayed, only net profit does. net_profit itself
+  // needs no correction - entries' own net_profit already correctly
+  // reads from the injected cascade.
+  const true_cost_by_group_id = new Map(
+    (real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g.true_cost])
+  );
+  const rows = entries.filter((e) => e.type === "group").map((e) => {
+    const correct_total_cost = true_cost_by_group_id.get(e.key);
+    if (correct_total_cost === undefined) return e;
+    const updated = { ...e, total_cost: correct_total_cost };
+    // FIX (2026-09-18): Assumed Capacity's net_profit comes from a
+    // completely separate mechanism (the ceiling/implied model) never
+    // touched by the non-productive injection fix. This table never
+    // shows any row scaled down here - revenue is always each source's
+    // own full assumed claim - so net profit for this mode is simply
+    // revenue minus this row's own (now-corrected) cost, recomputed
+    // directly rather than trusting the old, uninjected field.
+    if (capacity_mode === "assumed") {
+      updated.net_profit = (e.modelled_revenue ?? 0) - correct_total_cost;
+    }
+    return updated;
+  });
   const totals = rows.reduce(
     (acc, r) => {
       const overhead = r.overhead_share ?? 0;
@@ -821,12 +849,30 @@ function merge_view_b_groups(view_b, capacity_mode) {
     const cascade_entry = cascade_by_group_id.get(entry.key);
     const group_recovery_hours = cascade_entry?.group_recovery_hours ?? 0;
 
+    // FIX (2026-09-18): entry.total_cost above was summed from raw,
+    // UNINJECTED row.true_cost - non-productive cost (e.g. Accountant's
+    // distributed wage) was never included. Confirmed live: Foreman's
+    // true cost shown here didn't match the real, already-correct
+    // figure in real_capacity.group_real_capacity by exactly the
+    // non-productive cost total. cascade_entry.true_cost IS correct
+    // (this same lookup already correctly feeds group_recovery_hours
+    // above) - use it here too. Falls back to the raw sum only if
+    // genuinely unavailable (materials never receives a non-productive
+    // share, so its raw sum is already correct either way).
+    const true_cost = cascade_entry?.true_cost ?? entry.total_cost;
+
+    // FIX (2026-09-18, second pass): entry.assumed_net_profit was still
+    // using the old, uninjected figure (accumulated from row.implied_net_profit,
+    // itself computed by apply_revenue_ceiling_v2 from raw, uninjected
+    // true_cost - a completely separate mechanism never touched by the
+    // non-productive fix). Recomputed directly from assumed_revenue
+    // minus the now-corrected true_cost instead of trusting that field.
     const net_profit =
       capacity_mode === "assumed"
-        ? entry.assumed_net_profit
-        : cascade_entry?.final_net_profit ?? entry.modelled_revenue - entry.total_cost;
+        ? entry.assumed_revenue - true_cost
+        : cascade_entry?.final_net_profit ?? entry.modelled_revenue - true_cost;
     const achieved_revenue =
-      capacity_mode === "assumed" ? entry.assumed_revenue : entry.total_cost + net_profit;
+      capacity_mode === "assumed" ? entry.assumed_revenue : true_cost + net_profit;
 
     const verdict = net_profit >= 0 ? "paying_its_way" : "being_carried";
 
@@ -837,6 +883,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
 
     return {
       ...entry,
+      total_cost: true_cost,
       net_profit,
       verdict,
       verdict_label: verdict === "being_carried" ? "Being carried" : "Paying its way",
@@ -2730,6 +2777,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   open_hours={per_source.net_annual_business_open_hours}
                   use_implied={per_source.use_implied}
                   capacity_mode="real"
+                  real_capacity={per_source.real_capacity}
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Cost build-up (Assumed Capacity)" defaultOpen={false}>
@@ -2741,6 +2789,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   open_hours={per_source.net_annual_business_open_hours}
                   use_implied={per_source.use_implied}
                   capacity_mode="assumed"
+                  real_capacity={per_source.real_capacity}
                 />
               </CollapsibleSection>
             </CollapsibleSection>
