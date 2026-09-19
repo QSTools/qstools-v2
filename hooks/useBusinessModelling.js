@@ -42,6 +42,25 @@ export default function useBusinessModelling() {
     set_materials_markup_percent(value);
   }
 
+  // REVERTED (2026-09-18, same day as the swap) - buildLiveLeverHeadline
+  // is the correct source for live_headline after all. The swap to
+  // buildRealEngineLeverHeadline (View B's real-capacity cascade) was
+  // based on a mistaken premise: the temporary debug block that
+  // "proved" materials was broken was testing a DIFFERENT code path
+  // (the raw override-rerun mechanism) than what live_headline actually
+  // used. buildLiveLeverHeadline's own materials input
+  // (build_materials_input, above in this file) was ALREADY fixed
+  // earlier this session to use View B's real markup formula - it was
+  // never actually broken. The deeper, more important reason to revert:
+  // View B's real-capacity cascade is DESIGNED to always reconcile its
+  // total to today's real revenue minus real cost, regardless of any
+  // lever - meaning the total could NEVER move no matter what rate or
+  // markup was changed, which defeats the entire purpose of a "what if"
+  // modelling tool. buildLiveLeverHeadline is deliberately uncapped -
+  // exactly what forward-looking modelling needs, unlike Outcome's own
+  // real, reconciled view. Confirmed live: the real-capacity swap
+  // produced a total that never changed regardless of lever input -
+  // this revert restores correct behaviour.
   const live_headline = useMemo(
     () => buildLiveLeverHeadline(per_source, rate_target_by_group_id, materials_markup_percent),
     [per_source, rate_target_by_group_id, materials_markup_percent]
@@ -77,13 +96,14 @@ export default function useBusinessModelling() {
   // REAL ENGINE RERUN (2026-09-17) - resolves the existing lever inputs
   // into the override shape the real hook needs, then calls
   // useBusinessOutcomePerSourceRevenue a SECOND time with those
-  // overrides. This produces a genuinely modelled per_source, built by
+  // overrides. Produces a genuinely modelled per_source, built by
   // rerunning the same real calculation chain every live page uses -
-  // not a separate independent formula. Falls back to real data for
-  // anything without an override (same guarantee the hook itself
-  // provides). Not yet wired into any display - this proves the
-  // mechanism works end-to-end against real data before deciding how
-  // to show it.
+  // not a separate independent formula. NOT wired into live_headline
+  // (reverted 2026-09-18 - see the comment above live_headline for why:
+  // this mechanism's total is always forced to reconcile to today's
+  // real revenue, which is correct for Outcome but wrong for
+  // forward-looking modelling). Kept as genuinely correct, tested
+  // infrastructure - real future use not yet decided.
   const lever_overrides_resolution = useMemo(
     () => resolveLeverOverrides(per_source, rate_target_by_group_id, materials_markup_percent),
     [per_source, rate_target_by_group_id, materials_markup_percent]
