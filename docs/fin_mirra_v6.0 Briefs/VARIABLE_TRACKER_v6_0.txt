@@ -1,0 +1,195 @@
+MIRRA v6.0 - VARIABLE TRACKER
+STATUS: LIVING DOCUMENT - updated as each module is verified
+PURPOSE: trace a key figure (labour cost, asset cost, materials revenue,
+overhead) through every stage it passes, stage by stage, so a bug can be
+traced to the exact hop where it diverges - without re-deriving the whole
+chain from scratch each time.
+
+RULE: NO DOLLAR FIGURES IN THIS DOCUMENT. This describes mechanism (which
+field, in which file, becomes which field in the next stage) so it stays
+true regardless of what data is currently loaded. Verified real numbers
+belong only in the dated [VERIFIED] entry of that module's own brief -
+link to that entry from here rather than repeating the number.
+
+Format per stage, per variable: see Section 2 for the template. Fill in
+only once a stage has actually been verified - an empty row is more
+honest than a guessed one.
+
+===============================================================================
+1. THE BACKBONE (shared across labour / asset / materials)
+===============================================================================
+
+    P&L  -->  [module: Labour / Assets]  -->  COST ALLOCATION
+      (true cost + overhead distribution)
+        -->  RATE BUILDER (charge-out rate)
+        -->  BUSINESS OUTCOME (revenue vs true cost vs net profit)
+        -->  BUSINESS MODELLING
+
+Materials follows a shorter path: P&L / Revenue-COGS import --> Cost
+Allocation (COGS side) --> Business Outcome. Confirm exact path when that
+stage is reached - not yet verified as of this document's creation.
+
+===============================================================================
+2. TRACKER TEMPLATE (copy this block per variable, per stage)
+===============================================================================
+
+STAGE: [e.g. "Labour module - true cost"]
+FIELD NAME: [exact field name, e.g. true_labour_cost]
+FILE / FUNCTION: [e.g. hooks/useLabour.js - calculate_true_cost()]
+FEEDS INTO: [next stage's field name + file]
+HOURS/UNITS AWARE: [Yes - confirmed / No - assumes hours / Not checked]
+VERIFIED: [Not yet / See <module brief name>, [VERIFIED YYYY-MM-DD] entry]
+NOTES: [mechanism only - e.g. "rebuilt object in selector, not spread -
+  check new fields are added to the explicit return list"]
+
+===============================================================================
+3. LABOUR - STAGE BY STAGE
+===============================================================================
+
+-- Not yet started. Fill in as Phase 2 Step 3 (Labour module) is verified. --
+
+===============================================================================
+4. ASSETS - STAGE BY STAGE
+===============================================================================
+
+-- Not yet started. Fill in as Phase 2 Step 4 (Assets module) is verified. --
+
+===============================================================================
+5. MATERIALS - STAGE BY STAGE
+===============================================================================
+
+-- Not yet started. Path not yet confirmed - see Section 1 note. --
+
+===============================================================================
+6. COST ALLOCATION - OVERHEAD DISTRIBUTION (the hinge - see kickoff doc)
+===============================================================================
+
+-- Not yet started. This is the actual milestone of the v6.0 pass. --
+
+===============================================================================
+7. CROSS-IMPORT ALIGNMENT (P&L / Balance Sheet / Revenue-COGS)
+===============================================================================
+
+CHECK EXISTS: Yes - lib/calculations/crossImportAlignmentCheck.js (pure,
+read-only), dev page app/dev/cross-import-check (route /dev/cross-import-check).
+STATUS: Built and run against loaded data [VERIFIED 2026-09-20, see the
+dated Phase 1 note / P&L brief entry].
+MECHANISM: Revenue/COGS holds no imported cost-of-sales data. It reads P&L's
+output_contract live (total_revenue, total_direct_costs), so P&L and
+Revenue/COGS agree by construction. This supersedes the earlier "same Xero
+report" assumption. P&L's revenue and cost of sales are each computed twice
+inside calculateProfitAndLoss (section-based vs category-based); the check
+compares the two and lists offending lines if they diverge.
+PERIOD CHECK: compares P&L financial_year (year ending) + period_month against
+the Balance Sheet as_at_date, using financial_year_end_month as an input.
+
+===============================================================================
+8. GAPS / OPEN QUESTIONS FOUND DURING VERIFICATION
+===============================================================================
+
+-- Log anything found here that doesn't fit the template above - e.g. a
+   stage that turns out not to exist, a field that's dead, a hours/units
+   gap found mid-module. Date each entry. --
+
+[2026-09-20] Phase 1 findings:
+- P&L financial_year defaults from today's date (get_default_financial_year in
+  profitAndLossDefaults.js) under a hard-coded 31 March year-end, and the P&L
+  importer does not set it from the report header. An unset year can silently
+  disagree with a correctly dated Balance Sheet (found live: default rolled to
+  the next year while all source documents were the earlier year).
+- The tool has no user-supplied financial_year_end_month. The default-year
+  logic and the alignment check both need one. Year-end must be per-business
+  (NZ commonly 31 March, AU commonly 30 June, both allow other dates).
+- P&L importer leaves period_month blank; period is not captured on import.
+- Xero COG importer already produces its own account_reconciliation
+  (P&L COG total vs Xero net total); where its result is stored is unconfirmed.
+- Hours/units coverage: not applicable to Phase 1 (money totals only).
+- Dev page year-end selector is React state only and resets on reload.
+
+[2026-09-20] P2.1 Intro page (business type) findings:
+- The setting is business_type, values labour_based / product_based. The kickoff
+  wording "hours vs units" is naming drift from the code. Storage key
+  qs_tools_business_setup_v1 (lib/storage/businessSetupStorage.js), hook
+  hooks/useBusinessSetup.js. Save effect is guarded (storage_loaded plays the
+  has_loaded role). Invalid stored values fall back to the default.
+- Default is labour_based in storage, selector, and every downstream fallback
+  (Revenue/COGS, Business Summary, Recovery Summary, Cost Allocation input
+  builder and card sections). The completeness check Boolean(business_type) can
+  never fail, so a new user counts as complete without choosing, and the
+  Recovery Summary missing_business_type warning is unreachable in practice.
+  Design decision, not patched.
+- Name collision: Quick Start has its own unrelated business_type
+  (lib/storage/quickStartStorage.js; values labour_rate_reality_check /
+  product_time / m2_rate). Exclude Quick Start files from any business_type grep.
+- Four mode vocabularies exist: business_type (labour_based/product_based),
+  commercial_driver_mode in Revenue/COGS (hours_based/unit_based/
+  mixed_unit_based), recovery_mode in Recovery Summary (hours_based/
+  product_unit), activity_driver_type (hours/units, set only in
+  get_activity_driver_config, businessSummaryCalculations.js). All derive
+  one-way from business_type. No competing stored copy found.
+- Recovery Summary re-derives business_type with its own fallback chain (input,
+  then revenue_cogs, then labour_based). Duplicated logic, not duplicated state.
+- Cost Allocation only passes business_type and activity_driver_type through
+  (display: driver label). Its real branching is active_recovery_model, which is
+  unrelated to this setting. The labour_only vs labour_led default drift is
+  harmless (normalise_recovery_model maps both to labour_led).
+- Hours/units coverage: Labour, Assets, Cost Allocation, Business Outcome,
+  Business Modelling, Rate Builder and quote-engine do not read business_type.
+  All work in recovery_hours and are hours-native in either mode. Whether a
+  product business needs units-aware behaviour there is an open design
+  question, parked per kickoff Section 1.
+- Live check: Recovery Summary driver card follows the setting in both modes
+  (hours-based -> recovery hours; product -> units and margin). Product mode was
+  checked for wiring only: the test dataset has no unit driver data, so no
+  product-mode numbers were exercised.
+- Business Summary hierarchy builder is mode-aware: it branches on
+  activity_driver_type === "units" and shows the product-mode heading in
+  product mode (seen live). Its "Current business mirror" card is a separate
+  component (BusinessSummaryStatusStrip.jsx) that uses net annual open hours;
+  seen live in both modes (2026-09-20): identical in hours and product mode, so
+  it is not mode-aware. Open design question whether an open-hours denominator
+  is right for a product business. Not patched.
+- Cost Allocation driver label (Units sold / Selected recovery hours) is built in
+  lib/selectors/cost-allocation/costAllocationCardSections.js but no component or
+  hook under a cost-allocation path reads or renders it (grep, 2026-09-20). The
+  mode is carried as data only, so there is no visible label to check.
+- Storage write path checked live in both modes: the stored business_type value
+  follows the intro page setting.
+- Reload behaviour (does a switch update pages without a reload) not observed.
+- Cosmetic: the product-mode business type label is defined in three places
+  with inconsistent capitalisation (businessSetupSelectors.js and
+  BusinessSummaryHierarchyBuilder.js use "Unit-based"; recoverySummaryWarningHelpers.js
+  uses "unit-based"). Duplicated label logic, not duplicated state. Not patched.
+- lib/selectors/quoteEngineSelectors.js mentions hours-based only in a warning
+  string; it does not read business_type.
+- Cosmetic: Business Summary mirror shows the currency symbol twice on the
+  required operating cost per open hour line (prefix plus unit suffix).
+- For P2.5: Business Summary shows a "Cost Summary is not trusted" preview-only
+  warning on the test data.
+
+===============================================================================
+9. BUSINESS TYPE SETTING - CHAIN (intro page to Cost Allocation)
+===============================================================================
+
+STATUS: code trace complete 2026-09-20. Live checks done for storage, Recovery Summary and Business Summary (see Section 8).
+HOP 1 - Intro page. FIELD: business_type. FILES: hooks/useBusinessSetup.js,
+  lib/storage/businessSetupStorage.js. FEEDS: useRevenueCogs (own
+  useBusinessSetup() call).
+HOP 2 - Revenue/COGS. FIELDS: business_type, is_product_based, is_labour_based,
+  commercial_driver_mode (resolved from business_type; the stored mode only
+  distinguishes single vs mixed inside product). FILE: hooks/useRevenueCogs.js.
+  FEEDS: output_contract, read by useBusinessSummary and useRecoverySummary.
+HOP 3 - Business Summary. FIELD: activity_driver_type via
+  get_activity_driver_config (lib/calculations/businessSummaryCalculations.js).
+  useBusinessSummary reads business_type from the Revenue/COGS output contract.
+  FEEDS: spread into the useRecoverySummary input.
+HOP 4 - Recovery Summary. FIELDS: business_type (re-derived), recovery_mode,
+  activity_driver_type (passthrough).
+  FILE: lib/calculations/recovery-summary/calculateRecoverySummary.js.
+  FEEDS: Cost Allocation input builder.
+HOP 5 - Cost Allocation. FILES: lib/calculations/cost-allocation/
+  costAllocationInputBuilder.js, lib/selectors/cost-allocation/
+  costAllocationCardSections.js. Passthrough / display only, silent defaults.
+HOURS/UNITS AWARE: hops 1-4 mode-aware; hop 5 passthrough; Labour, Assets and
+  everything downstream of Cost Allocation are hours-native.
+[VERIFIED 2026-09-20] Code trace complete; storage and Recovery Summary live-checked in both modes; Business Summary hierarchy seen in product mode. Product-mode numbers not exercised (test data has no unit driver data). Reload behaviour not observed.

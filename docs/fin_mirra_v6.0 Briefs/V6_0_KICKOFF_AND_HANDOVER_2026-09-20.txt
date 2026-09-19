@@ -1,0 +1,247 @@
+MIRRA v6.0 - KICKOFF & HANDOVER
+STATUS: ACTIVE - START HERE FOR ANY V6.0 SESSION
+DATE: 2026-09-20
+SUPERSEDES: all v5.x briefs as the entry point (individual v5.x briefs are
+not deleted - see Section 6 for how they get folded in / archived as each
+module is reached).
+
+===============================================================================
+1. WHY V6.0 EXISTS - READ THIS FIRST
+===============================================================================
+
+Business Modelling has stalled. It cannot be trusted until the calculation
+chain beneath it is proven correct end to end, starting from Cost
+Allocation.
+
+The dependency chain is:
+
+    P&L / Labour / Assets  -->  COST ALLOCATION  -->  Rate Builder
+        --> Business Outcome  -->  Business Modelling
+
+Cost Allocation is the hinge. Everything upstream of it just feeds it.
+Everything downstream of it (Rate Builder, Business Outcome, Business
+Modelling) depends entirely on trusting what it distributes. This pass
+exists to verify Cost Allocation is doing exactly what it's supposed to
+do - so that everything built on top of it can finally be trusted.
+
+v5.x briefs were written before live-data injection points and Business
+Modelling's wiring into Business Outcome existed. Rather than patch old
+assumptions, v6.0 starts the verification chain fresh from page one.
+
+DEFINITION OF DONE for this pass: not "every brief is tidy" - done means
+any number Business Modelling needs can be traced and trusted, from its
+real source through to Cost Allocation's output.
+
+A known, explicitly parked gap to watch throughout: the hours-based vs.
+units-based business-type setting (set on the intro page) is NOT fully
+wired through every downstream module yet. As each module is verified,
+explicitly note whether it correctly respects this setting or silently
+assumes one. Do not fix this inline unless trivial - log it, keep moving,
+fix as a dedicated pass once the gaps are fully known.
+
+===============================================================================
+2. BUILD PATH (in order)
+===============================================================================
+
+Phase 0 - Setup (this document + variable tracker; done 2026-09-20)
+
+Phase 1 - Cross-import alignment check
+  Confirm P&L, Balance Sheet, and Revenue/COGS imports agree with each
+  other for the same period. No existing check does this today - it's a
+  new, standalone check worth building early, before Cost Allocation
+  work starts, since nothing downstream can be trusted if the three
+  source imports don't agree with each other.
+
+Phase 2 - Sequential module verification (one module per chat session)
+  1. Intro page - business type (units vs. hours) - does this setting
+     actually flow as real data downstream, and to where?
+  2. P&L
+  3. Labour module
+  4. Assets module
+  5. Cost Allocation  <-- the actual milestone this whole pass exists for
+  (Rate Builder / Business Outcome / Business Modelling come after Cost
+  Allocation is proven - separate phase, not yet scoped in detail here.)
+
+Phase 3 - Per-module close-out (repeat for each module in Phase 2)
+  - Update that module's ONE consolidated brief with [VERIFIED] status,
+    date, and real numbers checked.
+  - Update the variable tracker with the real, dated figures for that
+    stage and the hours/units coverage note.
+  - Remove that module's brief from project knowledge; upload the next
+    module's brief.
+  - Close the chat session. Start a new one for the next module.
+
+===============================================================================
+3. TEST DATA APPROACH FOR THIS PASS
+===============================================================================
+
+- Tool realigned to match the real P&L and Balance Sheet being used.
+- A small number of deliberately added items (some non-productive staff,
+  a few extra productive assets) to give Cost Allocation enough real
+  variety to test overhead distribution properly. Kept minimal - roughly
+  one non-productive staff member and two extra assets.
+- The P&L and Balance Sheet documents uploaded to project knowledge are
+  updated to match these additions, so the tool's inputs and the source
+  documents stay consistent with each other. Any reconciliation check
+  during this phase is checking "does the distribution logic work
+  correctly", not "does this match a real, unmodified set of accounts."
+- Revenue is set to breakeven (revenue = total true cost, net profit = 0)
+  while verifying Cost Allocation specifically. This isolates the cost
+  side: Cost Allocation doesn't use revenue, so if headline net profit
+  drifts off zero unexpectedly, that's an immediate, obvious signal
+  something in the cost distribution didn't reconcile. Breakeven is
+  dropped once verification moves on to Rate Builder / Business Outcome,
+  which are about revenue and margin and need real figures to test
+  properly.
+- Once Cost Allocation is proven against this padded-but-consistent
+  dataset, decide explicitly whether to strip the synthetic entries back
+  out before testing downstream, or carry them through as now-genuinely-
+  reconciled data. Note whichever choice is made and why.
+
+===============================================================================
+4. PROCESS RULES FOR EVERY V6.0 SESSION
+===============================================================================
+
+Full detail: "Working_Conventions - PowerShell Patching, CSS, and Numeric
+Verification" (repo root) - this section is a summary, that document is
+authoritative.
+
+- One module per chat session. Do not carry v6.0 work for multiple
+  modules in one long conversation.
+- Project knowledge for each session holds ONLY: this kickoff document,
+  the variable tracker, the file map, and the ONE module brief currently
+  being worked. Nothing else. Swap the module brief out before starting
+  the next module's session.
+- View the actual current file content fresh before patching - never
+  patch against context from earlier in the conversation or an earlier
+  session.
+- All edits via PowerShell, Apply-Patch (IndexOf/Substring), UTF-8-no-BOM
+  I/O. Never Set-Content for writing code.
+- Require an explicit "Patched:" / "NOT FOUND:" / "AMBIGUOUS" confirmation
+  for every patch. A passing build does not confirm a patch landed.
+- Build after every batch of patches.
+- Live-test against real (or deliberately-padded-and-documented) data
+  before trusting a fix, not just a clean build.
+- Watch for the two recurring bug classes: (a) a standalone function
+  outside a hook can't see hook-local variables - pass explicitly as
+  parameters; (b) a storage/selector layer that explicitly rebuilds an
+  object rather than spreading silently drops unlisted fields (this is
+  exactly the bug class Section 5's file-map notes exist to catch -
+  see BUSINESS_OUTCOME_FILE_MAP_v5_1.txt Section 4, "the selector
+  explicitly lists every field it returns"). Both are now checkable with
+  a script before assuming a manual trace is needed - see Section 5:
+  check_field_parity.py for (b)-style field drops, check_has_loaded_guard.py
+  for the has_loaded race condition.
+- Numbers in living reference docs (file map, variable tracker): NOT
+  ALLOWED. These describe mechanism, not current state - they must stay
+  true regardless of what data is loaded. Numbers belong only in dated,
+  point-in-time records (a module's [VERIFIED 2026-xx-xx] brief entry),
+  clearly tied to what they proved, so they read as historical evidence
+  rather than a claim about today's data.
+- Confirm git status before any commit.
+
+===============================================================================
+5. TOOLING AVAILABLE (run locally, paste summary back - saves tokens)
+===============================================================================
+
+Location: D:\QSTools\qstools-web\Py\audit-scripts\
+  - find_inline_css.py           - inline style={{}} / style="" sweep
+  - find_duplicate_css.py        - duplicate CSS rule-block finder
+  - find_field_references.py     - find every file/line referencing a
+                                    given field name (use this to check
+                                    whether a field survives the hook ->
+                                    selector -> component chain before
+                                    assuming it's broken)
+  - check_field_parity.py        - compares a hook's returned fields
+                                    against its selector's returned
+                                    fields, flags anything dropped
+                                    (bug class (b) below). Usage:
+                                    check_field_parity.py <hook_file>
+                                    <selector_file>
+  - check_has_loaded_guard.py    - scans the repo for hooks that write
+                                    to localStorage inside a useEffect
+                                    and flags any missing a has_loaded
+                                    guard (Section 4 rule on race
+                                    conditions)
+
+Run from repo root (D:\QSTools\qstools-web), e.g.:
+    python Py\audit-scripts\find_field_references.py group_overhead_share
+
+Paste the terminal summary back, not the full .txt report, unless more
+detail is specifically needed.
+
+WHEN TO RUN EACH (do not run any of these "just in case" - only when the
+trigger below actually applies, to avoid wasted token spend reviewing
+irrelevant output):
+
+  - find_field_references.py - run when verifying a specific module in
+    Phase 2, to confirm a field genuinely exists (or doesn't) across the
+    hook/selector/component chain BEFORE spending tokens tracing it by
+    reading files manually.
+
+  - check_field_parity.py - run once per hook/selector pair, at the
+    point that pair's module is actually reached in Phase 2. Not useful
+    before then - there's nothing yet to compare.
+
+  - check_has_loaded_guard.py - optional, repo-wide, no specific module
+    dependency. Can be run once early (e.g. during Phase 0/1 setup) to
+    seed the variable tracker's Section 8 with a baseline gap list, OR
+    deferred and run once during/after Phase 2 Step 4 (Assets - the
+    module most likely to touch localStorage-heavy hooks). Either
+    timing is fine; running it twice with no code changes in between is
+    the only thing to avoid.
+
+  - find_inline_css.py / find_duplicate_css.py - DO NOT run during
+    Phase 1/2. These belong to the separate CSS Consolidation brief
+    (Section 7), which starts only after v6.0 verification is complete.
+    Running them now produces a report that will be stale by the time
+    that brief actually starts.
+
+===============================================================================
+6. CONSOLIDATION - v5.x BRIEFS FOLDING INTO v6.0
+===============================================================================
+
+As each module is reached in Phase 2, its scattered v5.x documents get
+folded into ONE current brief for that module before verification starts,
+old documents then archived out of project knowledge (not deleted from
+the repo - kept for history, just not part of the active working set).
+
+Business Outcome alone currently has ~8-9 separate v5.x documents
+(S23, S24, S26, S27, S28, the file map, the CFO gap doc, the session
+brief). These consolidate into one Business Outcome v6.0 brief when that
+module is reached in Phase 2.
+
+Do NOT consolidate ahead of time for modules not yet being worked -
+do it just-in-time, as part of that module's own session, since the
+verification work itself will reveal what's still true and what's stale
+far better than consolidating blind.
+
+===============================================================================
+7. DEFERRED / OUT OF SCOPE FOR THIS PASS (logged so they aren't lost)
+===============================================================================
+
+- Import consolidation (moving all imports into one section of the tool,
+  ahead of the future Xero API build). Real and worth doing, but a
+  separate scoping brief, picked up AFTER the file map and variable
+  tracker exist and the v6.0 chain is verified - not before, since the
+  map will make it far easier to scope safely.
+- CSS consolidation (de-duplicating and tidying stylesheets for easier
+  future visual updates). Same treatment - own scoping brief, after v6.0
+  verification, informed by the file map.
+- Calculation Trace pilot page (lib/calculation-trace/, app page already
+  exists, status: code verification deferred). NOT built out further
+  during this pass. Once a module's numbers are proven via the plain-text
+  variable tracker, THEN that module's real nodes/edges get added to this
+  page - populating proven data, not discovering it live.
+- Hours/units-based coverage gap - tracked as a running note per module
+  (Section 1), not fixed inline unless trivial.
+
+===============================================================================
+8. NEXT STEP
+===============================================================================
+
+Start Phase 1 (cross-import alignment check) or Phase 2, Step 1 (intro
+page / business type setting) - whichever the user wants to tackle first
+in the next session. Upload only: this document, the variable tracker,
+the file map, and (if Phase 2) the intro page's current brief if one
+exists.
