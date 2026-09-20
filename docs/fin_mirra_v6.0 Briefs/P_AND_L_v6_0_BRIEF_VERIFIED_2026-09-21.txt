@@ -1,0 +1,252 @@
+MIRRA v6.0 - P&L BRIEF (PHASE 2, STEP 2)
+STATUS: VERIFIED WITH LOGGED GAPS - 2026-09-21
+REPLACES (as the working P&L brief): 04_MIRRA_P_AND_L_PAGE_v4.0_LOCKED (+v5.0
+  addenda), v4.0 P&L Consumer Contract Brief, Phase 1 record. Those stay in the
+  repo archive for history; this is the only P&L brief to load into a session.
+TAGS: [VERIFIED date] = live-tested. [CODE-READ] = seen in source only.
+  [LOGGED] = known gap, not fixed. [SHIPPED] = code changed this pass.
+RULE: numbers appear only inside dated [VERIFIED] entries (Section 6).
+
+===============================================================================
+1. VERDICT
+===============================================================================
+The P&L is trustworthy as the hinge's accounting source ON THE TEST DATASET:
+its section totals, category totals and benchmarks reconcile with each other,
+with Revenue/COGS, and (for General Overheads and asset-finance interest) with
+the Module Reconciliation page. One real bug was found and fixed (blank rows
+blocking readiness). Several latent risks are LOGGED, not fixed: the P&L can
+disagree with itself if a cost-of-sales line lacks an active direct-cost group,
+and it has no built-in warning for that. The large business-cost gap on Module
+Reconciliation is NOT a P&L problem; it is Labour (and Assets) test-data
+alignment, carried forward.
+
+===============================================================================
+2. HOW THE P&L WORKS (live code, [CODE-READ] + [VERIFIED])
+===============================================================================
+Storage: qs_tools_profit_and_loss_state (localStorage), hydrate-then-save guard
+  (has_hydrated). Hook: hooks/useProfitAndLoss.js returns status, card,
+  output_contract. Calculation: lib/calculations/profitAndLossCalculations.js
+  (calculateProfitAndLoss). Selector: lib/selectors/profitAndLossSelectors.js
+  (builds the card and display fields).
+Line shape (fields that matter): pnl_line_id, line_name, amount (may be stored
+  as text; calculation converts), section, category, direct_cost_category_id,
+  review_subcategory, interest_treatment.
+Live sections: trading_income, cost_of_sales, other_income, operating_expenses.
+  (No other_expenses section exists.)
+Live categories: revenue, cogs, labour, assets, general_overheads, excluded,
+  unassigned, review_required.
+THREE groupings are computed from the same lines:
+  A. SECTION-BASED: total_trading_income, total_cost_of_sales,
+     total_other_income, total_operating_expenses, gross_profit, net_profit
+     (net = gross + other income - operating expenses).
+  B. CATEGORY-BASED: total_revenue (category revenue, any section);
+     total_direct_costs = total_cogs (cogs lines, summed by ACTIVE direct-cost
+     groups in state.direct_cost_categories); labour / assets /
+     general_overheads benchmarks (operating-expense lines by category);
+     unassigned_balance; total_business_costs = labour + assets +
+     general_overheads + unassigned.
+  C. INTEREST: pnl_interest_total and related totals match "interest" in the
+     line name; the marked / unreviewed / reviewed totals use operating
+     expenses only, pnl_interest_total uses all sections.
+Direct-cost groups are created by the importer from the imported cost-of-sales
+  accounts (one per account) and are owned in P&L state; Revenue/COGS reads
+  them. (v4.0 said P&L must not finalise COG categories; the code does group
+  them, and Revenue/COGS depends on it. The brief now follows the code.)
+Readiness: pnl_ready = no review lines, where a review line is unassigned /
+  review_required, or cogs with a missing/review direct-cost group, and NOT a
+  completely blank row (see Section 5, X2).
+
+===============================================================================
+3. WHO READS WHAT (code read + live checks)
+===============================================================================
+Revenue/COGS (hooks/useRevenueCogs.js) reads: total_revenue, total_direct_costs,
+  revenue_lines, cost_of_sales_lines, direct_cost_categories,
+  direct_cost_category_totals. => downstream (Business Summary, Recovery,
+  Business Outcome, Business Modelling) sees the CATEGORY-BASED pair.
+The SECTION-BASED pair reaches only the P&L page, Model Readiness audit panel,
+  the cross-import check and one Business Outcome card reference (unchecked).
+lib/reconciliation/reconciliationRules.js reads: total_business_costs (as the
+  P&L side of the business cost benchmark), unassigned_balance, pnl_ready (as
+  "Profit & Loss readiness"), excluded_asset_finance_interest_total (capped
+  redistribution from general overheads to asset finance, S22),
+  employee_overheads_benchmark_total (always 0, see F14), labour lines (wages vs
+  on-cost split by NAME pattern, see F13).
+Business Summary page and Model Readiness read total_business_costs.
+hooks/general-overheads/generalOverheadPnlSync.js consumes P&L lines [NOT
+  TRACED in P2.2 - belongs to P2.5].
+business_type: NOT read anywhere in the P&L core files (hook, calculation,
+  selector, storage, importer, route). P&L is money-only and hours/units-neutral.
+
+===============================================================================
+4. FIELD STATUS (output_contract)
+===============================================================================
+CORE, verified: total_trading_income, total_cost_of_sales, total_other_income,
+  total_operating_expenses, gross_profit, net_profit, total_revenue,
+  total_direct_costs, direct_cost_category_totals, direct_cost_categories,
+  revenue_lines, cost_of_sales_lines, labour_benchmark_total,
+  general_overheads_benchmark_total, assets_benchmark_total, unassigned_balance,
+  total_business_costs, pnl_ready, excluded_asset_finance_interest_total.
+ALIASES (same value, different name): total_cogs = total_direct_costs;
+  excluded_asset_finance_interest_total = pnl_interest_marked_asset_finance_total;
+  total_assigned_business_costs (labour + assets + overheads).
+DISPLAY-ONLY, no readers: materials_cost, subcontract_cost, hired_equipment_cost
+  (hard-coded legacy group ids), and the selector copies of them.
+DEAD: employee_overheads_benchmark_total (hard-coded 0).
+NOT BUILT (v4.0 aspirations, STRUCK unless the owner wants them as new work):
+  pnl_status, pnl_model_trust_state, pnl_period_start / _end, structured warning
+  objects and warning IDs, imported-vs-calculated net profit variance,
+  saved account-mapping store, other_expenses section, pnl_* field prefix.
+NOT AN OUTPUT FIELD (display only, produced in the selector): total_pnl_costs,
+  total_model_costs. model_total_costs is produced nowhere.
+
+===============================================================================
+5. SHIPPED THIS PASS
+===============================================================================
+[SHIPPED] lib/calculations/crossImportAlignmentCheck.js (dev-only, read-only):
+  added I3 (operating expenses vs business cost buckets, lists lines in no
+  bucket and shows the four bucket totals) and I4 (all lines vs the four
+  section totals). An optional refinement (I3 counts deliberately excluded
+  lines as accounted for) was offered; whether it was applied is UNCONFIRMED -
+  check git diff.
+[SHIPPED] lib/calculations/profitAndLossCalculations.js (X2): imports
+  is_empty_placeholder_line from lib/p-and-l/profitAndLossLineRules.js and
+  applies it to review_required_lines only. A row is ignored ONLY if it has no
+  name, a zero/empty amount, category unassigned and no account code / source
+  id. Owner condition met: any name or amount makes it count again.
+Commits: 560e9e4 v6.0 P&L: add operating-expense and section-total invariant checks to cross-import dev check (dev check); d3cd8e6 v6.0 P&L: ignore fully blank placeholder rows when deciding review_required_lines / pnl_ready (X2).
+
+REGRESSION CHECK (re-run after any P&L change): open /dev/cross-import-check,
+  set the year-end month, expect revenue, cost of sales, passthrough, period and
+  line-vs-section checks to pass; I3 differs only by deliberately excluded
+  lines (listed). Add a blank row (readiness unchanged), add a named row
+  (readiness flips), delete it.
+
+===============================================================================
+6. VERIFIED LOG (dated evidence)
+===============================================================================
+[VERIFIED 2026-09-20] Phase 1, loaded (padded) dataset, FY ended 31 March 2026:
+  total_trading_income = total_revenue = 1,979,555; total_cost_of_sales =
+  total_direct_costs = 1,240,090.70; Revenue/COGS totals match P&L (diff 0);
+  Balance Sheet as at 31 March 2026 matches P&L FY2026 with year-end March.
+  Finding: P&L financial_year held the date-derived default (2027), corrected
+  by hand.
+[VERIFIED 2026-09-21] Same checks re-run: pass. Period check passes once the
+  year-end month is supplied (dev-page selector resets on reload).
+[VERIFIED 2026-09-21] I4: sum of all lines 3,669,782.44 equals the sum of the
+  four section totals: no non-zero line outside the recognised sections.
+[VERIFIED 2026-09-21] I3: total_operating_expenses 447,528.18 vs
+  total_business_costs 447,208.88; difference 319.30 = one line, "Penalties and
+  Fees", category excluded. Buckets: labour 331,342.48 + assets 0 + general
+  overheads 115,866.40 + unassigned 0 = total_business_costs.
+[VERIFIED 2026-09-21] X2 live: blank row leaves readiness Ready; a saved named
+  row flips it to Attention; an amount flows to Module Reconciliation as a
+  variance; deleting the row restores Ready. (An earlier "named row stayed
+  Ready" result was an unsaved edit; the auto-classification hypothesis was
+  withdrawn.)
+[VERIFIED 2026-09-21] Module Reconciliation, business cost benchmark: P&L
+  447,209 vs modules 739,385, gap 292,176 (blocking). Labour 331,342 vs 602,334
+  (variance 270,992; wages 318,603 vs 574,205, on-costs 12,739 vs 28,129);
+  asset finance 20,000 vs 41,185 (21,185); general overheads 95,866 vs 95,866
+  (reconciled; equals raw 115,866.40 less 20,000 moved to asset finance by
+  design). 270,992 + 21,185 = 292,177 (rounding). P&L-side omission explains
+  319.30 only. OWNER: the P&L is based on 3 staff, the Labour module holds 6
+  (extra staff added during build testing) - expected misalignment.
+[VERIFIED 2026-09-21] assets_benchmark_total = 0: the only asset-classified
+  lines are two zero-value "Asset Finance" lines; the real asset finance
+  interest is one "Interest Expense" line (general_overheads / finance_interest,
+  interest_treatment contains_asset_finance_interest). No depreciation line in
+  this P&L.
+[VERIFIED 2026-09-21] Classification of this dataset by category: labour =
+  Salary & Wages 318,603 + ACC Levy 8,024.07 + KiwiSaver Employer 4,715.41;
+  general overheads = 22 ordinary overhead lines; excluded 319.30; nothing
+  unassigned or in review. Cost of sales: 12 direct-cost groups (one per
+  imported account) summing to 1,240,090.70. Scope: outputs on this dataset
+  only; classification rule files not read (F15).
+[VERIFIED 2026-09-21] WIP: cost of sales holds one line "Opening Work in
+  progress (WIP)" of 162,000 (about 13% of cost of sales) as an ordinary direct
+  cost group. The source P&L has no Closing WIP line (owner confirmed), so
+  nothing was dropped by the importer.
+
+===============================================================================
+7. FINDINGS REGISTER (final for this pass)
+===============================================================================
+FIXED
+  F6  Blank row made pnl_ready false with nothing to resolve. -> X2 shipped.
+LATENT / LOGGED (not manifest on the test data)
+  F1  Section pair and category pair can diverge (a cost-of-sales line with a
+      missing/inactive direct-cost group or non-cogs category, or a revenue
+      line outside trading_income). Downstream reads the category pair. No
+      built-in warning; only the dev check catches it. Proposed: surface
+      I1-I4 as P&L warnings and make failure block pnl_ready (core change).
+  F2  Operating-expense lines in no bucket (e.g. excluded) drop out of
+      total_business_costs, which is the P&L side of Module Reconciliation.
+      Excluded lines are not exposed in the output contract. Proposed X6:
+      expose excluded_operating_expenses_total.
+  F3  A line with an unrecognised section drops out of every section total; no
+      warning (I4 catches it in dev).
+  F16 Opening WIP (a year-end journal-type line) counts as a normal direct cost
+      and raises no review flag; v4.0 wanted WIP/journal lines visible for
+      review. Downstream treatment (does opening WIP belong in true cost for
+      breakeven?) is a question for Revenue/COGS and Business Outcome.
+DESIGN DECISIONS / CLEAN-UP (owner to confirm)
+  D1  Adopt the live vocabulary (trading_income, category, unprefixed names) and
+      strike the v4.0 aspirations listed in Section 4. Proposed; this brief is
+      written that way; NOT yet confirmed by the owner.
+  D2  Keep the category pair as authoritative downstream; make divergence loud.
+  D3  Retire: materials_cost / subcontract_cost / hired_equipment_cost (and the
+      cogs_material / cogs_subcontract / cogs_hire line arrays),
+      employee_overheads_benchmark_total, alias fields, the orphaned P&L
+      reconciliation panel and selector reconciliation object (confirm the panel
+      is not imported anywhere first).
+  D5  A financial year-end month setting (natural home: business setup storage
+      next to business_type). Separate small pass.
+LOGGED
+  F4  P&L reconciliation panel compares against model_total_costs, produced
+      nowhere; the card does not render it; looks orphaned.
+  F5  normalise_category / review logic is duplicated in the calculation, the
+      selector (its copy skips the legacy direct-cost-group fallback) and the
+      dev check.
+  F7  pnl_interest_total scope is all sections; siblings use operating expenses;
+      interest is detected by name text in three places (P&L calculation,
+      generalOverheadPnlSync.js, generalOverheadCalculations.js).
+  F8  Warnings are plain strings (five); none for unassigned lines, period, or
+      section/category divergence.
+  F9  No imported-vs-calculated net profit variance; no saved account-mapping
+      store ("Saved P&L Profiles" are period snapshots). Feature decision.
+  F12 direct_cost_category_totals is a live cross-module contract (P&L ->
+      Revenue/COGS -> Business Summary). Brief corrected to match.
+  F13 reconciliationRules on-cost pattern "acc" (also matches accrued /
+      account) applied to labour line names. Better: a P&L review_subcategory.
+      Owner: Labour / Reconciliation pass.
+  F14 "Employee overheads detected" readiness check reads a field hard-coded to
+      0, so it can never fail. Owner: Reconciliation pass.
+  F15 Classification logic in at least three places (ClassificationRules,
+      quick-import infer_line_mapping, operatingExpenseDetection); rules not
+      read, consistency unchecked.
+  PERIOD  Excel importer blanks financial_year / period_month (PDF route passes
+      extracted values); default financial_year is derived from today's date
+      under a hard-coded 31 March year-end, and the Reset button restores that
+      default; nothing in the calculation reads the period. Cross-import check
+      returns cannot-compare rather than a false pass.
+  MINOR  duplicate sum function; amounts stored as text on some lines (handled
+      by the calculation); Bank Fees / Entertainment - Non deductible
+      treatment differs from Penalties and Fees; Turbopack warning about
+      file-system tracing in app/api/pnl-import/route.js (import pass).
+
+===============================================================================
+8. CARRIED FORWARD TO OTHER SESSIONS
+===============================================================================
+P2.3 Labour: the 270,992 variance (3 extra test staff; clean test = exclude
+  them and expect the P&L labour benchmark, on-cost timing lag aside); Owner /
+  Director pay treatment; F13; the two stale accepted variances (8 Aug 2026).
+P2.4 Assets: the 21,185 asset finance variance (six assets with finance
+  interest vs one flagged P&L interest line); no depreciation benchmark in P&L.
+P2.5 Cost Allocation: general overheads pool = raw general_overheads_benchmark
+  less interest moved to asset finance (verified equal to the module); trace
+  generalOverheadPnlSync.js; F7.
+Revenue/COGS and Business Outcome: WIP treatment (F16); ownership of
+  direct-cost groups (F12).
+Reconciliation: F4, F14.
+Business setup: year-end month (D5).
+Import consolidation: importer period capture, route.js Turbopack warning.
+Business_type gap for this module: none (P&L never reads it).
