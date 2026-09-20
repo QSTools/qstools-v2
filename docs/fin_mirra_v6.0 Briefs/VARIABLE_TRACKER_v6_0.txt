@@ -46,7 +46,55 @@ NOTES: [mechanism only - e.g. "rebuilt object in selector, not spread -
 3. LABOUR - STAGE BY STAGE
 ===============================================================================
 
--- Not yet started. Fill in as Phase 2 Step 3 (Labour module) is verified. --
+STATUS: P2.3 verified 2026-09-21; numbers live in Labour_v6_0_BRIEF_VERIFIED_2026-09-21.txt, not here.
+
+STAGE: Labour staff row calculation
+FIELD NAMES: total_labour_cost_annual, productive_hours, recovery_hours, paid_hours_per_year
+FILE / FUNCTION: lib/calculations/labourCalculations.js (calculateLabourOutputs);
+  hooks/useLabour.js (active_staff maps recovery_hours to productive_hours_annual)
+FEEDS INTO: lib/selectors/labour/labourOutputContractSelectors.js
+HOURS/UNITS AWARE: Hours-native. business_type is never read.
+VERIFIED: See Labour v6.0 brief, [VERIFIED 2026-09-21], sections B and C.
+NOTES: productive_hours = (paid hours less leave, public holiday, sick and bereavement
+  hours) x productivity %. recovery_hours equals productive_hours unless
+  contributes_to_recovery_hours is false. Leave is paid inside base cost (rate x paid
+  hours) but is not productive. Storage holds inputs only, never calculated totals.
+  useLabour filters is_active !== false.
+
+STAGE: Labour output contract
+FIELD NAMES: total_labour_cost_annual (sum over ALL active staff incl. non-productive),
+  total_people_cost_annual (alias), total_productive_output (sum of staff productive_hours
+  field), total_productive_labour_hours and total_productive_labour_cost (from
+  calculateProductiveStaffTypeRates: active AND productive staff only),
+  weighted_all_productive_labour_rate, productive_staff_type_rates, labour_ready (boolean),
+  labour_warnings (alias of productive_staff_type_rate_warnings, no reader)
+FILE / FUNCTION: lib/selectors/labour/labourOutputContractSelectors.js
+FEEDS INTO (by field name, code search 2026-09-21; not read hop by hop):
+  - total_labour_cost_annual: Cost Summary, Revenue Reality, Recovery Summary,
+    Cost Allocation group recovery rows, reconciliationRules.js
+  - total_people_cost_annual: Cost Summary, Business Summary, Recovery Summary, Revenue
+    Reality, Revenue Summary, Quote Engine, Cost Allocation input builder and labour
+    adapter, Business Outcome hooks
+  - total_productive_output: Cost Summary, Business Summary, Recovery Summary, Quote
+    Engine, Business Modelling legacy scenario, reconciliationRules.js
+  - productive_staff_type_rates: Cost Allocation (assignment cards, card sections),
+    Business Outcome labour recovery, Rate Builder source selector
+  - total_productive_labour_hours / weighted_all_productive_labour_rate: Rate Builder only
+  - total_productive_labour_cost: Business Outcome, Cost Allocation shared helpers, Rate Builder
+HOURS/UNITS AWARE: Hours-native; every consumer works in recovery hours.
+VERIFIED: Labour panel maths verified live; downstream consumption traced by name only.
+NOTES: two hours names exist (total_productive_output vs total_productive_labour_hours).
+  They do NOT agree on current data (see Labour brief F12): total_productive_output sums the un-zeroed productive_hours field of ALL active staff including non-productive, while the panel field uses productive staff only. Old note: (depends on whether non-productive
+  staff's productive_hours field is zero).
+
+STAGE: Labour status / trust
+FIELD NAMES: labour_ready (only status field emitted). labour_status and
+  labour_model_trust_state are NOT produced by Labour.
+FEEDS INTO: reconciliationRules.js (labour_ready), model-readiness page, Rate Builder
+  source selector (reads labour_status / labour_model_trust_state, defaults to "ready").
+NOTES: Cost Summary and Cost Allocation read no Labour readiness or trust field.
+  buildLabourStatus (labourStatusSelectors.js) validates only the editor profile.
+  LabourStatusStrip.jsx is not imported anywhere.
 
 ===============================================================================
 4. ASSETS - STAGE BY STAGE
@@ -279,3 +327,24 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
 - Classification rules themselves (three separate places) not yet read.
 - The Business Outcome file map (BUSINESS_OUTCOME_FILE_MAP_v6_0.txt) was not
   changed by this pass.
+
+===============================================================================
+12. LABOUR GAPS / OPEN QUESTIONS (P2.3, 2026-09-21) - full register F1-F15 in the Labour brief
+===============================================================================
+[2026-09-21] P2.3 Labour findings, mechanism only:
+- Trust chain broken at the Labour hop: the brief's six-value labour_status and
+  labour_model_trust_state are not emitted; Rate Builder silently defaults the summary
+  row to "ready"; Cost Summary and Cost Allocation inherit nothing. Design decision for P2.5.
+- labour_ready needs employer contributions and ACC levy both above zero, which is stricter
+  than the brief and omits its staff-type and zero-hour checks.
+- Reconciliation on-cost split matches line names by substring ("acc"); latent on current
+  data. Better key is review_subcategory. reconciliationRules.js is 1,035 lines, so put the
+  classifier in a new file.
+- CONFIRMED (code + recompute, 2026-09-21): total_productive_output includes non-productive staff's un-zeroed productive_hours, so it exceeds total_productive_labour_hours. The two names (total_productive_output, total_productive_labour_hours) feed different
+  consumers. Downstream effect depends on which field each reads (see Labour brief F12).
+- Readiness UI validates the open editor profile, not the saved staff; dead
+  LabourStatusStrip and a stale comment naming it as a consumer.
+- is_productive is derived from labour_class; no staff include/exclude toggle in the UI.
+- Reconciliation "timing lag" wording is shown regardless of cause; Owner/Director card
+  compares amounts only.
+- Hours/units coverage: Labour is hours-native and does not read business_type.
