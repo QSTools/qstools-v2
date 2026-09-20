@@ -84,7 +84,7 @@ FEEDS INTO (by field name, code search 2026-09-21; not read hop by hop):
 HOURS/UNITS AWARE: Hours-native; every consumer works in recovery hours.
 VERIFIED: Labour panel maths verified live; downstream consumption traced by name only.
 NOTES: two hours names exist (total_productive_output vs total_productive_labour_hours).
-  They do NOT agree on current data (see Labour brief F12): total_productive_output sums the un-zeroed productive_hours field of ALL active staff including non-productive, while the panel field uses productive staff only. Old note: (depends on whether non-productive
+  FIXED 2026-09-21 (commit f8c337d, Labour brief F12): total_productive_output is now defined as total_productive_labour_hours (productive staff only). Before the fix, total_productive_output sums the un-zeroed productive_hours field of ALL active staff including non-productive, while the panel field uses productive staff only. Old note: (depends on whether non-productive
   staff's productive_hours field is zero).
 
 STAGE: Labour status / trust
@@ -340,11 +340,14 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
 - Reconciliation on-cost split matches line names by substring ("acc"); latent on current
   data. Better key is review_subcategory. reconciliationRules.js is 1,035 lines, so put the
   classifier in a new file.
-- CONFIRMED (code + recompute, 2026-09-21): total_productive_output includes non-productive staff's un-zeroed productive_hours, so it exceeds total_productive_labour_hours. The two names (total_productive_output, total_productive_labour_hours) feed different
+- FIXED 2026-09-21 (commit f8c337d): total_productive_output is now the productive-staff figure. Was: total_productive_output includes non-productive staff's un-zeroed productive_hours, so it exceeds total_productive_labour_hours. The two names (total_productive_output, total_productive_labour_hours) feed different
   consumers. Downstream effect depends on which field each reads (see Labour brief F12).
 - Readiness UI validates the open editor profile, not the saved staff; dead
   LabourStatusStrip and a stale comment naming it as a consumer.
 - is_productive is derived from labour_class; no staff include/exclude toggle in the UI.
 - Reconciliation "timing lag" wording is shown regardless of cause; Owner/Director card
   compares amounts only.
+- Business Summary required_labour_burden_rate reads a field its calculation never produces, so it shows zero (F16).
+- Legacy Business Modelling baseline snapshots keep old hours until re-locked (F17).
+- DESIGN QUESTION (F18): business_recovery_hours is one productive person's average hours (productive output / productive staff count), and every whole-business recovery rate divides total business cost by it. Intent undecided; for the Cost Summary and Business Summary passes.
 - Hours/units coverage: Labour is hours-native and does not read business_type.
