@@ -1,0 +1,565 @@
+################ components\cost-allocation\evidence\PoolReconciliationSection.jsx (146 lines) ################
+    1: import {
+    2:   TableBlock,
+    3:   TableRow,
+    4:   formatMoney,
+    5: } from "@/components/cost-allocation/evidence/evidenceHelpers";
+    6: 
+    7: export default function PoolReconciliationSection({
+    8:   recovery_plan,
+    9:   labour_assignment,
+   10:   asset_assignment,
+   11:   overhead_assignment,
+   12: }) {
+   13:   const labour_available =
+   14:     labour_assignment?.available_labour_cost ??
+   15:     recovery_plan?.total_available_labour_cost ??
+   16:     0;
+   17: 
+   18:   const labour_assigned =
+   19:     labour_assignment?.assigned_labour_cost ??
+   20:     recovery_plan?.total_assigned_labour_cost ??
+   21:     0;
+   22: 
+   23:   const labour_remaining =
+   24:     labour_assignment?.remaining_labour_cost ??
+   25:     recovery_plan?.total_remaining_labour_cost ??
+   26:     0;
+   27: 
+   28:   const asset_available =
+   29:     asset_assignment?.available_asset_cost ??
+   30:     recovery_plan?.total_available_asset_cost ??
+   31:     0;
+   32: 
+   33:   const asset_assigned =
+   34:     asset_assignment?.assigned_asset_cost ??
+   35:     recovery_plan?.total_assigned_asset_cost ??
+   36:     0;
+   37: 
+   38:   const asset_remaining =
+   39:     asset_assignment?.remaining_asset_cost ??
+   40:     recovery_plan?.total_remaining_asset_cost ??
+   41:     0;
+   42: 
+   43:   const overhead_available =
+   44:     overhead_assignment?.available_overhead_cost ??
+   45:     recovery_plan?.total_available_overhead_cost ??
+   46:     0;
+   47: 
+   48:   const overhead_assigned =
+   49:     overhead_assignment?.assigned_overhead_cost ??
+   50:     recovery_plan?.total_assigned_overhead_cost ??
+   51:     0;
+   52: 
+   53:   const overhead_remaining =
+   54:     overhead_assignment?.remaining_overhead_cost ??
+   55:     recovery_plan?.total_remaining_overhead_cost ??
+   56:     0;
+   57: 
+   58:   return (
+   59:     <section className="ui-panel">
+   60:       <div className="ui-stack">
+   61:         <div>
+   62:           <p className="ui-kicker">Pool reconciliation</p>
+   63:           <h3 className="text-base font-semibold text-[var(--text-primary)]">
+   64:             Check assigned and remaining source pools
+   65:           </h3>
+   66:           <p className="ui-help">
+   67:             This confirms that Cost Allocation is distributing existing source
+   68:             pools rather than creating new cost.
+   69:           </p>
+   70:         </div>
+   71: 
+   72:         <TableBlock
+   73:           title="Labour pool"
+   74:           help_text="Labour includes productive and support / non-productive labour. Support labour adds cost only and does not add productive recovery hours."
+   75:         >
+   76:           <TableRow
+   77:             label="Available labour cost"
+   78:             value={formatMoney(labour_available)}
+   79:           />
+   80:           <TableRow
+   81:             label="Assigned labour cost"
+   82:             value={formatMoney(labour_assigned)}
+   83:           />
+   84:           <TableRow
+   85:             label="Remaining labour cost"
+   86:             value={formatMoney(labour_remaining)}
+   87:             total
+   88:           />
+   89:         </TableBlock>
+   90: 
+   91:         <TableBlock
+   92:           title="Productive asset pool"
+   93:           help_text="Assets are assigned into operating groups by allocation percentage."
+   94:         >
+   95:           <TableRow
+   96:             label="Available asset cost"
+   97:             value={formatMoney(asset_available)}
+   98:           />
+   99:           <TableRow
+  100:             label="Assigned asset cost"
+  101:             value={formatMoney(asset_assigned)}
+  102:           />
+  103:           <TableRow
+  104:             label="Remaining asset cost"
+  105:             value={formatMoney(asset_remaining)}
+  106:             total
+  107:           />
+  108:         </TableBlock>
+  109: 
+  110:         <TableBlock
+  111:           title="Overhead pool"
+  112:           help_text="Overhead is distributed automatically from the operating structure after labour and asset assignments are known."
+  113:         >
+  114:           <TableRow
+  115:             label="Available overhead"
+  116:             value={formatMoney(overhead_available)}
+  117:           />
+  118:           <TableRow
+  119:             label="Assigned overhead"
+  120:             value={formatMoney(overhead_assigned)}
+  121:           />
+  122:           <TableRow
+  123:             label="Remaining overhead"
+  124:             value={formatMoney(overhead_remaining)}
+  125:             total
+  126:           />
+  127:         </TableBlock>
+  128: 
+  129:         <TableBlock
+  130:           title="Total assigned / remaining"
+  131:           help_text="This is the combined operating cost currently inside and outside operating groups."
+  132:         >
+  133:           <TableRow
+  134:             label="Grouped operating cost"
+  135:             value={formatMoney(recovery_plan?.total_grouped_operating_cost)}
+  136:           />
+  137:           <TableRow
+  138:             label="Unassigned operating cost"
+  139:             value={formatMoney(recovery_plan?.total_unassigned_cost)}
+  140:             total
+  141:           />
+  142:         </TableBlock>
+  143:       </div>
+  144:     </section>
+  145:   );
+  146: }
+################ components\cost-allocation\CostAllocationMainCard.jsx (393 lines) ################
+    1: "use client";
+    2: 
+    3: import { useState } from "react";
+    4: 
+    5: import CostAllocationEvidenceBreakdown from "@/components/cost-allocation/CostAllocationEvidenceBreakdown";
+    6: import CostAllocationStepBuilder from "@/components/cost-allocation/CostAllocationStepBuilder";
+    7: 
+    8: function formatCount(value) {
+    9:   return Number(value || 0).toLocaleString("en-NZ");
+   10: }
+   11: 
+   12: function formatMoney(value) {
+   13:   return `$${Number(value || 0).toLocaleString("en-NZ", {
+   14:     maximumFractionDigits: 0,
+   15:   })}`;
+   16: }
+   17: 
+   18: function PoolSummaryRow({ title, available, assigned, remaining }) {
+   19:   return (
+   20:     <div className="cost-allocation-pool-table-row">
+   21:       <div className="cost-allocation-pool-table-label">
+   22:         <p className="text-sm font-semibold text-[var(--text-primary)]">
+   23:           {title}
+   24:         </p>
+   25:       </div>
+   26: 
+   27:       <p className="cost-allocation-pool-table-value">
+   28:         {formatMoney(available)}
+   29:       </p>
+   30: 
+   31:       <p className="cost-allocation-pool-table-value">
+   32:         {formatMoney(assigned)}
+   33:       </p>
+   34: 
+   35:       <p className="cost-allocation-pool-table-value">
+   36:         {formatMoney(remaining)}
+   37:       </p>
+   38:     </div>
+   39:   );
+   40: }
+   41: 
+   42: function PoolPositionCard({
+   43:   labour_assignment,
+   44:   asset_assignment,
+   45:   overhead_assignment,
+   46:   recovery_plan,
+   47: }) {
+   48:   const labour_available =
+   49:     labour_assignment?.available_labour_cost ??
+   50:     recovery_plan?.total_available_labour_cost ??
+   51:     0;
+   52: 
+   53:   const labour_assigned =
+   54:     labour_assignment?.assigned_labour_cost ??
+   55:     recovery_plan?.total_assigned_labour_cost ??
+   56:     0;
+   57: 
+   58:   const labour_remaining =
+   59:     labour_assignment?.remaining_labour_cost ??
+   60:     recovery_plan?.total_remaining_labour_cost ??
+   61:     0;
+   62: 
+   63:   const asset_available =
+   64:     asset_assignment?.available_asset_cost ??
+   65:     recovery_plan?.total_available_asset_cost ??
+   66:     0;
+   67: 
+   68:   const asset_assigned =
+   69:     asset_assignment?.assigned_asset_cost ??
+   70:     recovery_plan?.total_assigned_asset_cost ??
+   71:     0;
+   72: 
+   73:   const asset_remaining =
+   74:     asset_assignment?.remaining_asset_cost ??
+   75:     recovery_plan?.total_remaining_asset_cost ??
+   76:     0;
+   77: 
+   78:   const overhead_available =
+   79:     overhead_assignment?.available_overhead_cost ??
+   80:     recovery_plan?.total_available_overhead_cost ??
+   81:     0;
+   82: 
+   83:   const overhead_assigned =
+   84:     overhead_assignment?.assigned_overhead_cost ??
+   85:     recovery_plan?.total_assigned_overhead_cost ??
+   86:     0;
+   87: 
+   88:   const overhead_remaining =
+   89:     overhead_assignment?.remaining_overhead_cost ??
+   90:     recovery_plan?.total_remaining_overhead_cost ??
+   91:     0;
+   92: 
+   93:   return (
+   94:     <section className="ui-panel cost-allocation-pool-position-card">
+   95:       <div className="ui-stack">
+   96:         <div>
+   97:           <p className="ui-kicker">Cost to allocate</p>
+   98:           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+   99:             Pool position
+  100:           </h3>
+  101:           <p className="ui-help">
+  102:             Cost available, assigned, and left to assign.
+  103:           </p>
+  104:         </div>
+  105: 
+  106:         <div className="cost-allocation-pool-table">
+  107:           <div className="cost-allocation-pool-table-header">
+  108:             <span></span>
+  109:             <span>Available</span>
+  110:             <span>Assigned</span>
+  111:             <span>Remaining</span>
+  112:           </div>
+  113: 
+  114:           <PoolSummaryRow
+  115:             title="Labour"
+  116:             available={labour_available}
+  117:             assigned={labour_assigned}
+  118:             remaining={labour_remaining}
+  119:           />
+  120: 
+  121:           <PoolSummaryRow
+  122:             title="Assets"
+  123:             available={asset_available}
+  124:             assigned={asset_assigned}
+  125:             remaining={asset_remaining}
+  126:           />
+  127: 
+  128:           <PoolSummaryRow
+  129:             title="Overhead"
+  130:             available={overhead_available}
+  131:             assigned={overhead_assigned}
+  132:             remaining={overhead_remaining}
+  133:           />
+  134:         </div>
+  135:       </div>
+  136:     </section>
+  137:   );
+  138: }
+  139: 
+  140: function CollapsedChecks({
+  141:   recovery_plan,
+  142:   delivery_summary,
+  143:   evidence,
+  144:   problems,
+  145:   labour_assignment,
+  146:   asset_assignment,
+  147:   overhead_assignment,
+  148: }) {
+  149:   const [is_open, set_is_open] = useState(false);
+  150:   const [active_check, set_active_check] = useState("pool_reconciliation");
+  151: 
+  152:   const setup_count = Array.isArray(evidence?.setup_warnings)
+  153:     ? evidence.setup_warnings.length
+  154:     : 0;
+  155: 
+  156:   const structural_count = Array.isArray(evidence?.structural_warnings)
+  157:     ? evidence.structural_warnings.length
+  158:     : 0;
+  159: 
+  160:   const warning_count = setup_count + structural_count;
+  161: 
+  162:   if (!is_open) {
+  163:     return (
+  164:       <section className="ui-panel">
+  165:         <div className="ui-actions">
+  166:           <div>
+  167:             <p className="ui-kicker">Allocation checks</p>
+  168:             <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+  169:               Checks hidden
+  170:             </h3>
+  171:             <p className="ui-help">
+  172:               Open only when you need to review reconciliation, group cost
+  173:               stacks, or warning details.
+  174:             </p>
+  175:           </div>
+  176: 
+  177:           <button
+  178:             type="button"
+  179:             className="ui-button-secondary"
+  180:             onClick={() => set_is_open(true)}
+  181:           >
+  182:             Show checks ({formatCount(warning_count)})
+  183:           </button>
+  184:         </div>
+  185:       </section>
+  186:     );
+  187:   }
+  188: 
+  189:   return (
+  190:     <section className="ui-panel">
+  191:       <div className="ui-stack">
+  192:         <div className="ui-actions">
+  193:           <div>
+  194:             <p className="ui-kicker">Allocation checks</p>
+  195:             <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+  196:               Review allocation checks
+  197:             </h3>
+  198:             <p className="ui-help">
+  199:               These are secondary checks. The main page remains an input and
+  200:               assignment builder.
+  201:             </p>
+  202:           </div>
+  203: 
+  204:           <button
+  205:             type="button"
+  206:             className="ui-button-secondary"
+  207:             onClick={() => set_is_open(false)}
+  208:           >
+  209:             Hide checks
+  210:           </button>
+  211:         </div>
+  212: 
+  213:         <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+  214:           <button
+  215:             type="button"
+  216:             className={
+  217:               active_check === "pool_reconciliation"
+  218:                 ? "ui-button cost-allocation-check-tab is-active"
+  219:                 : "ui-button-secondary cost-allocation-check-tab"
+  220:             }
+  221:             onClick={() => set_active_check("pool_reconciliation")}
+  222:           >
+  223:             Reconciliation
+  224:           </button>
+  225: 
+  226:           <button
+  227:             type="button"
+  228:             className={
+  229:               active_check === "group_cost_stacks"
+  230:                 ? "ui-button cost-allocation-check-tab is-active"
+  231:                 : "ui-button-secondary cost-allocation-check-tab"
+  232:             }
+  233:             onClick={() => set_active_check("group_cost_stacks")}
+  234:           >
+  235:             Group costs
+  236:           </button>
+  237: 
+  238:           <button
+  239:             type="button"
+  240:             className={
+  241:               active_check === "structural_warnings"
+  242:                 ? "ui-button cost-allocation-check-tab is-active"
+  243:                 : "ui-button-secondary cost-allocation-check-tab"
+  244:             }
+  245:             onClick={() => set_active_check("structural_warnings")}
+  246:           >
+  247:             Warnings
+  248:           </button>
+  249: 
+  250:           <button
+  251:             type="button"
+  252:             className={
+  253:               active_check === "setup_checklist"
+  254:                 ? "ui-button cost-allocation-check-tab is-active"
+  255:                 : "ui-button-secondary cost-allocation-check-tab"
+  256:             }
+  257:             onClick={() => set_active_check("setup_checklist")}
+  258:           >
+  259:             Setup
+  260:           </button>
+  261:         </div>
+  262: 
+  263:         <CostAllocationEvidenceBreakdown
+  264:           active_section={active_check}
+  265:           recovery_plan={recovery_plan}
+  266:           delivery_summary={delivery_summary}
+  267:           evidence={evidence}
+  268:           problems={problems}
+  269:           labour_assignment={labour_assignment}
+  270:           asset_assignment={asset_assignment}
+  271:           overhead_assignment={overhead_assignment}
+  272:         />
+  273:       </div>
+  274:     </section>
+  275:   );
+  276: }
+  277: 
+  278: export default function CostAllocationMainCard({
+  279:   recovery_plan,
+  280:   allocation_tests,
+  281:   delivery_summary,
+  282:   evidence,
+  283:   links,
+  284:   divisions,
+  285:   groups,
+  286:   problems,
+  287:   labour_assignment,
+  288:   asset_assignment,
+  289:   overhead_assignment,
+  290:   add_division,
+  291:   update_division,
+  292:   remove_division,
+  293:   add_asset_labour_link,
+  294:   remove_asset_labour_link,
+  295:   add_operational_group,
+  296:   update_operational_group,
+  297:   remove_operational_group,
+  298:   add_labour_assignment,
+  299:   remove_labour_assignment,
+  300:   add_asset_assignment,
+  301:   remove_asset_assignment,
+  302:   add_overhead_assignment,
+  303:   remove_overhead_assignment,
+  304:   reset_state,
+  305: }) {
+  306:   return (
+  307:     <section className="ui-section">
+  308:       <div className="ui-stack">
+  309:         <section className="ui-panel cost-allocation-hero-panel">
+  310:           <div className="ui-stack">
+  311:             <div>
+  312:               <p className="ui-kicker">Cost allocation</p>
+  313:               <h2 className="ui-display">Cost allocation builder</h2>
+  314:               <p className="ui-help">
+  315:                 Assign labour, asset, and overhead pools into divisions and
+  316:                 operating groups.
+  317:               </p>
+  318:               <p className="ui-help">
+  319:                 This is an input page. Recovery testing, rates, business
+  320:                 outcome, and quote checking happen downstream.
+  321:               </p>
+  322: 
+  323:               <div className="mt-4 ui-actions">
+  324:                 <button
+  325:                   type="button"
+  326:                   className="ui-button-secondary"
+  327:                   onClick={() => {
+  328:                     if (typeof reset_state === "function") {
+  329:                       reset_state();
+  330:                     }
+  331:                   }}
+  332:                 >
+  333:                   Clear cost allocation inputs
+  334:                 </button>
+  335:               </div>
+  336:             </div>
+  337:           </div>
+  338:         </section>
+  339: 
+  340:         <div className="cost-allocation-layout">
+  341:           <div className="ui-stack">
+  342:             <CostAllocationStepBuilder
+  343:               recovery_plan={recovery_plan}
+  344:               allocation_tests={allocation_tests}
+  345:               delivery_summary={delivery_summary}
+  346:               evidence={evidence}
+  347:               links={links}
+  348:               divisions={divisions}
+  349:               groups={groups}
+  350:               problems={problems}
+  351:               labour_assignment={labour_assignment}
+  352:               asset_assignment={asset_assignment}
+  353:               overhead_assignment={overhead_assignment}
+  354:               add_division={add_division}
+  355:               update_division={update_division}
+  356:               remove_division={remove_division}
+  357:               add_asset_labour_link={add_asset_labour_link}
+  358:               remove_asset_labour_link={remove_asset_labour_link}
+  359:               add_operational_group={add_operational_group}
+  360:               update_operational_group={update_operational_group}
+  361:               remove_operational_group={remove_operational_group}
+  362:               add_labour_assignment={add_labour_assignment}
+  363:               remove_labour_assignment={remove_labour_assignment}
+  364:               add_asset_assignment={add_asset_assignment}
+  365:               remove_asset_assignment={remove_asset_assignment}
+  366:               add_overhead_assignment={add_overhead_assignment}
+  367:               remove_overhead_assignment={remove_overhead_assignment}
+  368:             />
+  369: 
+  370:             <CollapsedChecks
+  371:               recovery_plan={recovery_plan}
+  372:               delivery_summary={delivery_summary}
+  373:               evidence={evidence}
+  374:               problems={problems}
+  375:               labour_assignment={labour_assignment}
+  376:               asset_assignment={asset_assignment}
+  377:               overhead_assignment={overhead_assignment}
+  378:             />
+  379:           </div>
+  380: 
+  381:           <div className="ui-stack">
+  382:             <PoolPositionCard
+  383:               labour_assignment={labour_assignment}
+  384:               asset_assignment={asset_assignment}
+  385:               overhead_assignment={overhead_assignment}
+  386:               recovery_plan={recovery_plan}
+  387:             />
+  388:           </div>
+  389:         </div>
+  390:       </div>
+  391:     </section>
+  392:   );
+  393: }
+################ GREP: pool field names in selectors ################
+lib\selectors\cost-allocation\costAllocationCardSections.js:105: unassigned_asset_cost: calculated?.unassigned_asset_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:106: unassigned_overhead_cost: calculated?.unassigned_overhead_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:117: selected: calculated?.total_assigned_labour_cost > 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:118: recovery_cost: calculated?.total_assigned_labour_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:153: available_labour_cost: calculated?.total_available_labour_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:154: available_labour_hours: calculated?.total_available_labour_hours ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:155: assigned_labour_cost: calculated?.total_assigned_labour_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:156: assigned_labour_hours: calculated?.total_assigned_labour_hours ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:157: remaining_labour_cost: calculated?.total_remaining_labour_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:158: remaining_labour_hours: calculated?.total_remaining_labour_hours ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:268: unassigned_asset_count_all: calculated?.unassigned_asset_count_all ?? 0,
+lib\selectors\cost-allocation\costAllocationCardSections.js:381: unassigned_asset_count_all: calculated?.unassigned_asset_count_all ?? 0,
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:45: const group_overhead_amount = to_number(group?.assigned_overhead_amount);
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:90: assigned_overhead_amount: allocated_business_overhead_amount,
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:115: assigned_overhead_amount: round_currency(
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:122: calculated?.total_available_overhead_cost ??
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:143: const total_available_overhead = to_number(
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:144: calculated?.total_available_overhead_cost ??
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:153: total_available_overhead * (labour_share_percent / 100);
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:174: assigned_overhead_amount: round_currency(all_allocated_overhead),
+lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js:180: total_business_overheads: round_currency(total_available_overhead),
+lib\selectors\cost-allocation\costAllocationStatusSelectors.js:75: total_assigned_source_pool: calculated?.total_grouped_operating_cost ?? 0,
+lib\selectors\cost-allocation\costAllocationStatusSelectors.js:76: total_remaining_source_pool: calculated?.total_unassigned_cost ?? 0,

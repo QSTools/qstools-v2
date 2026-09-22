@@ -307,8 +307,23 @@ export function build_cost_allocation_assignment_cards({
   asset_group_assignments,
   non_productive_asset_group_assignments,
   overhead_group_assignments,
-  calculated,
+  calculated: raw_calculated,
 }) {
+  // C19 (P2.5, 2026-09-23): pool objects and their totals live nested inside
+  // the *_assignment_result objects of the calculation context and are never
+  // lifted to the top level, so the asset and overhead cards read undefined
+  // and fell through to 0 ("Assigned $0"). Lift them here for the cards only.
+  // raw_calculated is spread last so every field that already resolved keeps
+  // its value. Display layer only - calculation and output contract untouched.
+  const calculated = {
+    ...(raw_calculated?.labour_assignment_result ?? {}),
+    ...(raw_calculated?.non_productive_labour_assignment_result ?? {}),
+    ...(raw_calculated?.asset_assignment_result ?? {}),
+    ...(raw_calculated?.non_productive_asset_assignment_result ?? {}),
+    ...(raw_calculated?.overhead_assignment_result ?? {}),
+    ...(raw_calculated ?? {}),
+  };
+
   return {
     labour_assignment: build_labour_assignment_card({
       productive_labour_type_rows,

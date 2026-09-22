@@ -1,0 +1,522 @@
+################ hooks\cost-allocation\useCostAllocationAssignmentCards.js (333 lines) ################
+    1: "use client";
+    2: 
+    3: import {
+    4:   safe_array,
+    5: } from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
+    6: 
+    7: function safe_number(value) {
+    8:   const parsed = Number(value);
+    9:   return Number.isFinite(parsed) ? parsed : 0;
+   10: }
+   11: 
+   12: function get_active_assignment_rows(rows = []) {
+   13:   return safe_array(rows).filter((row) => row?.is_active !== false);
+   14: }
+   15: 
+   16: function find_labour_row(rows = [], assignment = {}) {
+   17:   const target_id =
+   18:     assignment?.staff_type_id ||
+   19:     assignment?.labour_type_id ||
+   20:     assignment?.labour_type_key ||
+   21:     "";
+   22: 
+   23:   return safe_array(rows).find((row) => {
+   24:     return (
+   25:       row?.staff_type_id === target_id ||
+   26:       row?.labour_type_id === target_id ||
+   27:       row?.labour_type_key === target_id
+   28:     );
+   29:   });
+   30: }
+   31: 
+   32: function get_assignment_ratio(row = {}, assignment = {}) {
+   33:   const assigned_staff_count = safe_number(assignment?.assigned_staff_count);
+   34: 
+   35:   const row_staff_count = safe_number(
+   36:     row?.staff_count ??
+   37:       row?.productive_staff_count ??
+   38:       row?.support_staff_count ??
+   39:       0
+   40:   );
+   41: 
+   42:   if (assigned_staff_count > 0 && row_staff_count > 0) {
+   43:     return Math.min(assigned_staff_count / row_staff_count, 1);
+   44:   }
+   45: 
+   46:   return Math.min(safe_number(assignment?.assignment_percent) / 100, 1);
+   47: }
+   48: 
+   49: function is_productive_labour_row(row = {}) {
+   50:   return row?.is_productive === true || row?.labour_class === "productive";
+   51: }
+   52: 
+   53: function get_labour_row_cost(row = {}) {
+   54:   return safe_number(row?.total_labour_cost ?? row?.total_annual_cost);
+   55: }
+   56: 
+   57: function build_labour_pool_from_rows({ all_labour_rows, active_assignments }) {
+   58:   const available_labour_cost = safe_array(all_labour_rows).reduce(
+   59:     (total, row) => total + get_labour_row_cost(row),
+   60:     0
+   61:   );
+   62: 
+   63:   const available_labour_hours = safe_array(all_labour_rows).reduce(
+   64:     (total, row) => total + safe_number(row?.total_productive_hours),
+   65:     0
+   66:   );
+   67: 
+   68:   const assigned_labour_cost = safe_array(active_assignments).reduce(
+   69:     (total, assignment) => {
+   70:       const row = find_labour_row(all_labour_rows, assignment);
+   71:       const ratio = get_assignment_ratio(row, assignment);
+   72: 
+   73:       return total + get_labour_row_cost(row) * ratio;
+   74:     },
+   75:     0
+   76:   );
+   77: 
+   78:   const assigned_labour_hours = safe_array(active_assignments).reduce(
+   79:     (total, assignment) => {
+   80:       const row = find_labour_row(all_labour_rows, assignment);
+   81:       const ratio = get_assignment_ratio(row, assignment);
+   82: 
+   83:       if (!is_productive_labour_row(row)) {
+   84:         return total;
+   85:       }
+   86: 
+   87:       return total + safe_number(row?.total_productive_hours) * ratio;
+   88:     },
+   89:     0
+   90:   );
+   91: 
+   92:   return {
+   93:     available_labour_cost,
+   94:     available_labour_hours,
+   95:     assigned_labour_cost,
+   96:     assigned_labour_hours,
+   97:     remaining_labour_cost: Math.max(
+   98:       available_labour_cost - assigned_labour_cost,
+   99:       0
+  100:     ),
+  101:     remaining_labour_hours: Math.max(
+  102:       available_labour_hours - assigned_labour_hours,
+  103:       0
+  104:     ),
+  105:     over_allocated_labour_cost: Math.max(
+  106:       assigned_labour_cost - available_labour_cost,
+  107:       0
+  108:     ),
+  109:     over_allocated_labour_hours: Math.max(
+  110:       assigned_labour_hours - available_labour_hours,
+  111:       0
+  112:     ),
+  113:   };
+  114: }
+  115: 
+  116: function build_labour_assignment_card({
+  117:   productive_labour_type_rows,
+  118:   support_labour_type_rows,
+  119:   all_labour_type_rows,
+  120:   labour_group_assignments,
+  121:   calculated,
+  122: }) {
+  123:   const active_assignments = get_active_assignment_rows(
+  124:     labour_group_assignments
+  125:   );
+  126: 
+  127:   const all_labour_rows =
+  128:     safe_array(all_labour_type_rows).length > 0
+  129:       ? safe_array(all_labour_type_rows)
+  130:       : [
+  131:           ...safe_array(productive_labour_type_rows),
+  132:           ...safe_array(support_labour_type_rows),
+  133:         ];
+  134: 
+  135:   const full_labour_pool = build_labour_pool_from_rows({
+  136:     all_labour_rows,
+  137:     active_assignments,
+  138:   });
+  139: 
+  140:   return {
+  141:     productive_staff_type_rates: safe_array(productive_labour_type_rows),
+  142:     productive_labour_rows: all_labour_rows,
+  143:     support_labour_rows: safe_array(support_labour_type_rows),
+  144:     all_labour_rows,
+  145: 
+  146:     labour_group_assignments: active_assignments,
+  147:     assignments: active_assignments,
+  148: 
+  149:     available_labour_cost: full_labour_pool.available_labour_cost,
+  150:     available_labour_hours: full_labour_pool.available_labour_hours,
+  151: 
+  152:     assigned_labour_cost: full_labour_pool.assigned_labour_cost,
+  153:     assigned_labour_hours: full_labour_pool.assigned_labour_hours,
+  154: 
+  155:     remaining_labour_cost: full_labour_pool.remaining_labour_cost,
+  156:     remaining_labour_hours: full_labour_pool.remaining_labour_hours,
+  157: 
+  158:     over_allocated_labour_cost: full_labour_pool.over_allocated_labour_cost,
+  159:     over_allocated_labour_hours: full_labour_pool.over_allocated_labour_hours,
+  160: 
+  161:     productive_labour_pool: calculated?.productive_labour_pool ?? null,
+  162:     labour_pool_status:
+  163:       calculated?.labour_pool?.allocation_status ||
+  164:       calculated?.productive_labour_pool?.allocation_status ||
+  165:       calculated?.labour_pool_status ||
+  166:       "review_required",
+  167: 
+  168:     allocation_status:
+  169:       calculated?.labour_pool?.allocation_status ||
+  170:       calculated?.productive_labour_pool?.allocation_status ||
+  171:       calculated?.labour_pool_status ||
+  172:       "review_required",
+  173:   };
+  174: }
+  175: 
+  176: function build_asset_assignment_card({
+  177:   asset_recovery_rows,
+  178:   asset_group_assignments,
+  179:   non_productive_asset_group_assignments,
+  180:   calculated,
+  181: }) {
+  182:   const active_assignments = get_active_assignment_rows(asset_group_assignments);
+  183: 
+  184:   const productive_asset_rows = safe_array(asset_recovery_rows).filter(
+  185:     (asset) => asset?.asset_type !== "support"
+  186:   );
+  187: 
+  188:   const support_asset_rows = safe_array(asset_recovery_rows).filter(
+  189:     (asset) => asset?.asset_type === "support"
+  190:   );
+  191: 
+  192:   const active_non_productive_assignments = get_active_assignment_rows(
+  193:     non_productive_asset_group_assignments
+  194:   );
+  195: 
+  196:   return {
+  197:     productive_asset_rows,
+  198:     asset_rows: productive_asset_rows,
+  199:     asset_group_assignments: active_assignments,
+  200:     assignments: active_assignments,
+  201: 
+  202:     support_asset_rows,
+  203:     non_productive_asset_rows: support_asset_rows,
+  204:     non_productive_asset_group_assignments: active_non_productive_assignments,
+  205:     non_productive_asset_pool: calculated?.non_productive_asset_pool ?? null,
+  206: 
+  207:     productive_asset_pool: calculated?.productive_asset_pool ?? null,
+  208: 
+  209:     available_asset_cost:
+  210:       calculated?.productive_asset_pool?.available_asset_cost ??
+  211:       calculated?.total_available_asset_cost ??
+  212:       calculated?.productive_asset_cost ??
+  213:       0,
+  214: 
+  215:     assigned_asset_cost:
+  216:       calculated?.productive_asset_pool?.assigned_asset_cost ??
+  217:       calculated?.total_assigned_asset_cost ??
+  218:       0,
+  219: 
+  220:     remaining_asset_cost:
+  221:       calculated?.productive_asset_pool?.remaining_asset_cost ??
+  222:       calculated?.total_remaining_asset_cost ??
+  223:       calculated?.unassigned_asset_cost ??
+  224:       0,
+  225: 
+  226:     over_allocated_asset_cost:
+  227:       calculated?.productive_asset_pool?.over_allocated_asset_cost ??
+  228:       calculated?.total_over_allocated_asset_cost ??
+  229:       0,
+  230: 
+  231:     available_asset_hours:
+  232:       calculated?.productive_asset_pool?.available_asset_hours ??
+  233:       calculated?.total_available_asset_hours ??
+  234:       0,
+  235: 
+  236:     assigned_asset_hours:
+  237:       calculated?.productive_asset_pool?.assigned_asset_hours ??
+  238:       calculated?.total_assigned_asset_hours ??
+  239:       0,
+  240: 
+  241:     remaining_asset_hours:
+  242:       calculated?.productive_asset_pool?.remaining_asset_hours ??
+  243:       calculated?.total_remaining_asset_hours ??
+  244:       0,
+  245: 
+  246:     over_allocated_asset_hours:
+  247:       calculated?.productive_asset_pool?.over_allocated_asset_hours ??
+  248:       calculated?.total_over_allocated_asset_hours ??
+  249:       0,
+  250: 
+  251:     allocation_status:
+  252:       calculated?.productive_asset_pool?.allocation_status ||
+  253:       calculated?.asset_pool_status ||
+  254:       "review_required",
+  255:   };
+  256: }
+  257: 
+  258: function build_overhead_assignment_card({
+  259:   overhead_group_assignments,
+  260:   calculated,
+  261: }) {
+  262:   const active_assignments = get_active_assignment_rows(
+  263:     overhead_group_assignments
+  264:   );
+  265: 
+  266:   return {
+  267:     overhead_group_assignments: active_assignments,
+  268:     assignments: active_assignments,
+  269: 
+  270:     overhead_pool: calculated?.overhead_pool ?? null,
+  271: 
+  272:     available_overhead_cost:
+  273:       calculated?.overhead_pool?.available_overhead_cost ??
+  274:       calculated?.total_available_overhead_cost ??
+  275:       calculated?.overhead_absorbed_cost ??
+  276:       0,
+  277: 
+  278:     assigned_overhead_cost:
+  279:       calculated?.overhead_pool?.assigned_overhead_cost ??
+  280:       calculated?.total_assigned_overhead_cost ??
+  281:       0,
+  282: 
+  283:     remaining_overhead_cost:
+  284:       calculated?.overhead_pool?.remaining_overhead_cost ??
+  285:       calculated?.total_remaining_overhead_cost ??
+  286:       calculated?.unassigned_overhead_cost ??
+  287:       0,
+  288: 
+  289:     over_allocated_overhead_cost:
+  290:       calculated?.overhead_pool?.over_allocated_overhead_cost ??
+  291:       calculated?.total_over_allocated_overhead_cost ??
+  292:       0,
+  293: 
+  294:     allocation_status:
+  295:       calculated?.overhead_pool?.allocation_status ||
+  296:       calculated?.overhead_pool_status ||
+  297:       "review_required",
+  298:   };
+  299: }
+  300: 
+  301: export function build_cost_allocation_assignment_cards({
+  302:   productive_labour_type_rows,
+  303:   support_labour_type_rows,
+  304:   all_labour_type_rows,
+  305:   labour_group_assignments,
+  306:   asset_recovery_rows,
+  307:   asset_group_assignments,
+  308:   non_productive_asset_group_assignments,
+  309:   overhead_group_assignments,
+  310:   calculated,
+  311: }) {
+  312:   return {
+  313:     labour_assignment: build_labour_assignment_card({
+  314:       productive_labour_type_rows,
+  315:       support_labour_type_rows,
+  316:       all_labour_type_rows,
+  317:       labour_group_assignments,
+  318:       calculated,
+  319:     }),
+  320: 
+  321:     asset_assignment: build_asset_assignment_card({
+  322:       asset_recovery_rows,
+  323:       asset_group_assignments,
+  324:       non_productive_asset_group_assignments,
+  325:       calculated,
+  326:     }),
+  327: 
+  328:     overhead_assignment: build_overhead_assignment_card({
+  329:       overhead_group_assignments,
+  330:       calculated,
+  331:     }),
+  332:   };
+  333: }
+################ lib\selectors\cost-allocation\costAllocationRateBuilderSelectors.js (187 lines) ################
+    1: function to_number(value) {
+    2:   const parsed = Number(value);
+    3:   return Number.isFinite(parsed) ? parsed : 0;
+    4: }
+    5: 
+    6: function round_currency(value) {
+    7:   return Number(to_number(value).toFixed(2));
+    8: }
+    9: 
+   10: function get_labour_assignment_id(assignment = {}) {
+   11:   return (
+   12:     assignment.staff_type_id ||
+   13:     assignment.labour_type_id ||
+   14:     assignment.labour_type_key ||
+   15:     ""
+   16:   );
+   17: }
+   18: 
+   19: function get_labour_assignment_name(assignment = {}) {
+   20:   return (
+   21:     assignment.staff_type_name ||
+   22:     assignment.labour_type_label ||
+   23:     assignment.labour_type_name ||
+   24:     "Productive labour group"
+   25:   );
+   26: }
+   27: 
+   28: export function build_rate_builder_labour_recovery_rows(calculated = {}) {
+   29:   const operational_group_cost_rows =
+   30:     calculated?.operational_group_cost_rows ?? [];
+   31: 
+   32:   const overhead_allocation_method =
+   33:     calculated?.overhead_allocation_method ??
+   34:     calculated?.overhead_pool?.allocation_method ??
+   35:     "cost_allocation";
+   36: 
+   37:   const rows_by_labour_source = new Map();
+   38: 
+   39:   operational_group_cost_rows.forEach((group) => {
+   40:     const labour_assignments = Array.isArray(group?.labour_group_assignments)
+   41:       ? group.labour_group_assignments
+   42:       : [];
+   43: 
+   44:     const group_labour_cost = to_number(group?.assigned_labour_cost);
+   45:     const group_overhead_amount = to_number(group?.assigned_overhead_amount);
+   46: 
+   47:     if (group_labour_cost <= 0 || group_overhead_amount <= 0) {
+   48:       return;
+   49:     }
+   50: 
+   51:     labour_assignments.forEach((assignment) => {
+   52:       const labour_source_type_id = get_labour_assignment_id(assignment);
+   53: 
+   54:       if (!labour_source_type_id) {
+   55:         return;
+   56:       }
+   57: 
+   58:       const assigned_labour_cost = to_number(assignment?.assigned_cost);
+   59:       const assigned_labour_hours = to_number(assignment?.assigned_hours);
+   60: 
+   61:       if (assigned_labour_cost <= 0 || assigned_labour_hours <= 0) {
+   62:         return;
+   63:       }
+   64: 
+   65:       const labour_weight = assigned_labour_cost / group_labour_cost;
+   66:       const allocated_business_overhead_amount =
+   67:         group_overhead_amount * labour_weight;
+   68: 
+   69:       const existing = rows_by_labour_source.get(labour_source_type_id) || {
+   70:         labour_source_type_id,
+   71:         staff_type_id: labour_source_type_id,
+   72:         labour_source_type_name: get_labour_assignment_name(assignment),
+   73:         labour_source_kind: "staff_type",
+   74:         assigned_labour_cost: 0,
+   75:         assigned_labour_hours: 0,
+   76:         labour_allocated_business_overhead_pool: 0,
+   77:         source_group_rows: [],
+   78:       };
+   79: 
+   80:       existing.assigned_labour_cost += assigned_labour_cost;
+   81:       existing.assigned_labour_hours += assigned_labour_hours;
+   82:       existing.labour_allocated_business_overhead_pool +=
+   83:         allocated_business_overhead_amount;
+   84: 
+   85:       existing.source_group_rows.push({
+   86:         group_id: group?.group_id || "",
+   87:         group_name: group?.group_name || "Operating group",
+   88:         assigned_labour_cost,
+   89:         assigned_labour_hours,
+   90:         assigned_overhead_amount: allocated_business_overhead_amount,
+   91:       });
+   92: 
+   93:       rows_by_labour_source.set(labour_source_type_id, existing);
+   94:     });
+   95:   });
+   96: 
+   97:   const staff_type_rows = Array.from(rows_by_labour_source.values()).map(
+   98:     (row) => {
+   99:       const allocated_business_overhead_recovery_rate =
+  100:         row.assigned_labour_hours > 0
+  101:           ? row.labour_allocated_business_overhead_pool /
+  102:             row.assigned_labour_hours
+  103:           : 0;
+  104: 
+  105:       return {
+  106:         ...row,
+  107:         assigned_labour_cost: round_currency(row.assigned_labour_cost),
+  108:         assigned_labour_hours: round_currency(row.assigned_labour_hours),
+  109:         labour_allocated_business_overhead_pool: round_currency(
+  110:           row.labour_allocated_business_overhead_pool
+  111:         ),
+  112:         allocated_business_overhead_amount: round_currency(
+  113:           row.labour_allocated_business_overhead_pool
+  114:         ),
+  115:         assigned_overhead_amount: round_currency(
+  116:           row.labour_allocated_business_overhead_pool
+  117:         ),
+  118:         allocated_business_overhead_recovery_rate: round_currency(
+  119:           allocated_business_overhead_recovery_rate
+  120:         ),
+  121:         total_business_overheads: round_currency(
+  122:           calculated?.total_available_overhead_cost ??
+  123:             calculated?.total_grouped_overhead_cost ??
+  124:             calculated?.overhead_absorbed_cost ??
+  125:             0
+  126:         ),
+  127:         overhead_allocation_source: "cost_allocation",
+  128:         overhead_allocation_method,
+  129:       };
+  130:     }
+  131:   );
+  132: 
+  133:   const all_assigned_labour_cost = staff_type_rows.reduce(
+  134:     (sum, row) => sum + to_number(row.assigned_labour_cost),
+  135:     0
+  136:   );
+  137: 
+  138:   const all_assigned_labour_hours = staff_type_rows.reduce(
+  139:     (sum, row) => sum + to_number(row.assigned_labour_hours),
+  140:     0
+  141:   );
+  142: 
+  143:   const total_available_overhead = to_number(
+  144:     calculated?.total_available_overhead_cost ??
+  145:       calculated?.total_grouped_overhead_cost ??
+  146:       calculated?.overhead_absorbed_cost ??
+  147:       0
+  148:   );
+  149: 
+  150:   const labour_share_percent = to_number(calculated?.labour_share_percent ?? 100);
+  151: 
+  152:   const labour_allocated_overhead =
+  153:     total_available_overhead * (labour_share_percent / 100);
+  154: 
+  155:   const all_allocated_overhead =
+  156:     labour_allocated_overhead > 0
+  157:       ? labour_allocated_overhead
+  158:       : staff_type_rows.reduce(
+  159:           (sum, row) =>
+  160:             sum + to_number(row.labour_allocated_business_overhead_pool),
+  161:           0
+  162:         );
+  163: 
+  164:   const all_productive_row = {
+  165:     labour_source_type_id: "all_productive",
+  166:     staff_type_id: "all_productive",
+  167:     labour_source_type_name: "All productive labour weighted rate",
+  168:     labour_source_kind: "all_productive",
+  169:     assigned_labour_cost: round_currency(all_assigned_labour_cost),
+  170:     assigned_labour_hours: round_currency(all_assigned_labour_hours),
+  171:     labour_allocated_business_overhead_pool:
+  172:       round_currency(all_allocated_overhead),
+  173:     allocated_business_overhead_amount: round_currency(all_allocated_overhead),
+  174:     assigned_overhead_amount: round_currency(all_allocated_overhead),
+  175:     allocated_business_overhead_recovery_rate: round_currency(
+  176:       all_assigned_labour_hours > 0
+  177:         ? all_allocated_overhead / all_assigned_labour_hours
+  178:         : 0
+  179:     ),
+  180:     total_business_overheads: round_currency(total_available_overhead),
+  181:     overhead_allocation_source: "cost_allocation",
+  182:     overhead_allocation_method,
+  183:     source_group_rows: [],
+  184:   };
+  185: 
+  186:   return [all_productive_row, ...staff_type_rows];
+  187: }
