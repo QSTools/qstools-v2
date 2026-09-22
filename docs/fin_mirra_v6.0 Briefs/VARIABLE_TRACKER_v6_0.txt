@@ -350,4 +350,13 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
 - Business Summary required_labour_burden_rate reads a field its calculation never produces, so it shows zero (F16).
 - Legacy Business Modelling baseline snapshots keep old hours until re-locked (F17).
 - DESIGN QUESTION (F18): business_recovery_hours is one productive person's average hours (productive output / productive staff count), and every whole-business recovery rate divides total business cost by it. Intent undecided; for the Cost Summary and Business Summary passes.
+- FIXED 2026-09-22 (commit 25644b8): statutory NZ rest breaks were not deducted from
+  productive hours (F19, full detail in Labour brief). New jurisdiction-pluggable break-
+  rule module; labourCalculations.js now derives worked days from leave, then folds paid
+  rest-break minutes into non_productive_paid_hours. Downstream effect confirmed live:
+  required_recovery_rate, people_cost_per_recovery_hour and business_recovery_hours all
+  moved accordingly; weighted_productivity_percent unchanged (consistency guard held).
+  Jurisdiction is hardcoded NZ for now - no Business Setup field yet (forward item, see
+  kickoff). Asset-level break impact (operator-bound vs staffed/staggered assets) deferred
+  to the Assets pass (P2.4).
 - Hours/units coverage: Labour is hours-native and does not read business_type.

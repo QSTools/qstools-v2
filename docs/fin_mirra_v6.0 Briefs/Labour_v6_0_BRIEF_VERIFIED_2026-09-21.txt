@@ -1797,6 +1797,38 @@ F12. FIXED 2026-09-21, commit f8c337d (labourOutputContractSelectors.js: total_p
 F16. Business Summary shows required_labour_burden_rate = 0 (seen on BusinessSummaryStatusStrip, 2026-09-21). businessSummarySelectors.js:261 reads calculations.required_labour_burden_rate but businessSummaryCalculations.js never produces it; Cost Summary does produce it (costSummaryCalculations.js:54). Field dropped between layers. Not fixed.
 F17. Legacy Business Modelling baseline snapshots store total_productive_output and total_available_hours_before_productivity (businessModellingCalculations.js). Baselines locked before the F12 fix keep the old values until re-locked. Not fixed.
 F18. DESIGN QUESTION: business_recovery_hours = total_productive_output / productive staff count (costSummarySelectors.js getBusinessRecoveryHours), i.e. one productive person's average hours. Every whole-business rate divides total business cost by it (required_recovery_rate, people_cost_per_recovery_hour, model readiness baseline card). Before the F12 fix the numerator included non-productive staff hours while the count excluded them (a hybrid); after the fix it equals per-person productive hours. Whether a per-person-hours denominator is intended for a whole-business rate is undecided. Not changed. For the Cost Summary / Business Summary passes.
+F19. FIXED 2026-09-22, commit 25644b8. Statutory paid rest breaks were not deducted
+from productive hours - only leave categories (annual leave, public holiday, sick,
+bereavement, family violence) were subtracted before productivity% was applied. NZ
+Employment Relations Act 2000 ss 69ZD-69ZE: for an 8hr work period, 2 paid 10-min rest
+breaks + 1 unpaid 30-min meal break; entitlement scales by work-period length and
+recurs for hours beyond 8 (verified against legislation.govt.nz, 2026-09-22). Meal
+breaks are unpaid and already excluded from hours_per_week (confirmed with business
+owner) - only rest-break minutes needed adding, not a cost change.
+Fix: new lib/calculations/compliance/breakRules/nz.js (pure jurisdiction rule,
+recursive for >8hr periods) + lib/calculations/compliance/breakRulesRegistry.js
+(jurisdiction code -> rule function; NZ only for now, designed so a future
+jurisdiction is one new file + one registry entry, no change to Labour's own
+calculation). labourCalculations.js restructured: worked_days_per_year derived from
+paid hours less LEAVE only (breaks only accrue on days worked), then break_hours_annual
+= worked_days_per_year x (paid rest minutes / 60), folded into non_productive_paid_hours
+alongside the existing leave figure. non_productive_paid_hours keeps its exported name
+and shape - only its composition changed - so no downstream consumer needed touching.
+Verified live end to end (all six staff active): worked_days_per_year 217/productive
+staff, break_hours_annual 72.33/productive staff. total_productive_labour_hours 7,378
+to 7,070.58; total_available_hours_before_productivity 8,680 to 8,318.33;
+weighted_productivity_percent unchanged at 85 (consistency guard held).
+productive_labour_cost_rate (contract) 81.64 to 85.19. Downstream: business_recovery_hours
+(Business Summary) 1,475.6 to 1,414.12; required_recovery_rate 501.07 to 522.82;
+people_cost_per_recovery_hour 408.20 to 425.94.
+NOT done: jurisdiction is hardcoded to NZ inside the registry only - no user-facing
+jurisdiction setting exists yet. Deferred to a future Business Setup pass (mirrors
+business_type's pattern) - only matters once a non-NZ user exists. Also deferred:
+whether/how the Assets module opts individual assets into the same break rule
+(operator-bound assets like a digger lose uptime during the operator's break;
+staffed/staggered assets like a multi-crew line do not) - belongs to Assets' own
+verification pass (P2.4), asset/labour pairing is explicitly out of Labour's scope
+per brief Section 2.
 F13. Seeded staff types include one blank-named entry at the end of DEFAULT_STAFF_TYPES.
 F14. hooks/useLabour.js:160 comment names a person ("Paul"). Reword to "the Owner profile".
 F15. Hours/units: Labour is hours-native and does not read business_type (consistent with
