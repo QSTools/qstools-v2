@@ -1,0 +1,1273 @@
+===== lib\calculations\recovery-summary\calculateRecoverySummary.js  (total 651 lines; showing 1-651) =====
+    1: import {
+    2:   BALANCE_TOLERANCE,
+    3:   get_product_unit_display,
+    4:   is_numeric_input,
+    5:   normalise_recovery_model,
+    6:   round_currency,
+    7:   round_percent,
+    8:   to_number,
+    9: } from "./sharedRecoverySummaryHelpers.js";
+   10: import { build_overhead_absorption_diagnostics } from "./recoverySummaryOverheadDiagnostics.js";
+   11: import { build_suggested_starting_split } from "./recoverySummarySuggestedSplit.js";
+   12: 
+   13: export function calculateRecoverySummary(input = {}) {
+   14:   const business_summary_ready = input.business_summary_ready === true;
+   15:   const revenue_cogs = input.revenue_cogs ?? {};
+   16:   const asset_contract = input.assets ?? {};
+   17:   const labour_contract = input.labour ?? {};
+   18:   const general_overheads_contract = input.general_overheads ?? {};
+   19:   const business_type =
+   20:     input.business_type ||
+   21:     revenue_cogs.business_type ||
+   22:     (revenue_cogs.is_product_based === true ? "product_based" : "") ||
+   23:     "labour_based";
+   24:   const is_product_based =
+   25:     input.is_product_based === true ||
+   26:     revenue_cogs.is_product_based === true ||
+   27:     business_type === "product_based";
+   28:   const is_labour_based =
+   29:     input.is_labour_based === true ||
+   30:     revenue_cogs.is_labour_based === true ||
+   31:     business_type !== "product_based";
+   32:   const recovery_mode = is_product_based ? "product_unit" : "hours_based";
+   33:   const activity_driver_type = input.activity_driver_type || "hours";
+   34: 
+   35:   const activity_driver_label =
+   36:     input.activity_driver_label ||
+   37:     (activity_driver_type === "units"
+   38:       ? "Units sold"
+   39:       : "Selected recovery hours");
+   40: 
+   41:   const activity_driver_value = to_number(input.activity_driver_value);
+   42: 
+   43:   const required_recovery_per_driver = to_number(
+   44:     input.required_recovery_per_driver
+   45:   );
+   46: 
+   47:   const current_margin_per_driver = to_number(input.current_margin_per_driver);
+   48:   const recovery_gap_per_driver = to_number(input.recovery_gap_per_driver);
+   49: 
+   50:   const total_revenue = to_number(input.total_revenue);
+   51:   const total_direct_costs = to_number(input.total_direct_costs);
+   52:   const gross_margin_percent = to_number(input.gross_margin_percent);
+   53:   const margin_pool = to_number(input.margin_pool);
+   54:   const commercial_driver_mode =
+   55:     revenue_cogs.commercial_driver_mode ||
+   56:     (is_product_based ? "unit_based" : "hours_based");
+   57:   const unit_driver_rows = Array.isArray(revenue_cogs.unit_driver_rows)
+   58:     ? revenue_cogs.unit_driver_rows
+   59:     : [];
+   60:   const product_unit_display = get_product_unit_display({
+   61:     commercial_driver_mode,
+   62:     primary_unit_label: revenue_cogs.primary_unit_label,
+   63:     primary_unit_type: revenue_cogs.primary_unit_type,
+   64:     unit_driver_rows,
+   65:   });
+   66: 
+   67:   const total_people_cost_annual = to_number(
+   68:     input.total_people_cost_annual ?? labour_contract.total_labour_cost_annual
+   69:   );
+   70:   const total_asset_cost_annual = to_number(input.total_asset_cost_annual);
+   71:   const total_business_overheads = to_number(
+   72:     input.total_business_overheads ??
+   73:       general_overheads_contract.total_general_overheads
+   74:   );
+   75:   const total_cost_burden =
+   76:     to_number(input.total_cost_burden) ||
+   77:     total_people_cost_annual + total_asset_cost_annual + total_business_overheads;
+   78: 
+   79:   const has_productive_asset_recovery_base =
+   80:     input.has_productive_asset_recovery_base === true ||
+   81:     asset_contract.has_productive_asset_recovery_base === true;
+   82: 
+   83:   const productive_asset_count = to_number(
+   84:     input.productive_asset_count ?? asset_contract.productive_asset_count
+   85:   );
+   86:   const support_asset_count = to_number(
+   87:     input.support_asset_count ?? asset_contract.support_asset_count
+   88:   );
+   89:   const productive_asset_cost = to_number(
+   90:     input.productive_asset_cost ??
+   91:       input.productive_asset_cost_annual ??
+   92:       asset_contract.productive_asset_cost_annual ??
+   93:       asset_contract.productive_asset_cost
+   94:   );
+   95:   const support_asset_cost = to_number(input.support_asset_cost);
+   96:   const asset_utilisation_hours_annual = to_number(
+   97:     input.asset_utilisation_hours_annual ??
+   98:       input.total_productive_asset_utilisation_hours_annual ??
+   99:       asset_contract.total_productive_asset_utilisation_hours_annual
+  100:   );
+  101:   const required_asset_recovery_rate =
+  102:     asset_utilisation_hours_annual > 0
+  103:       ? round_currency(productive_asset_cost / asset_utilisation_hours_annual)
+  104:       : 0;
+  105: 
+  106:   const cost_burden_breakdown = input.cost_burden_breakdown ?? {
+  107:     people: {},
+  108:     assets: {},
+  109:     business_overheads: {},
+  110:   };
+  111: 
+  112:   const required_recovery_rate = to_number(input.required_recovery_rate);
+  113:   const total_recovery_hours = to_number(input.total_recovery_hours);
+  114:   const total_productive_output = to_number(input.total_productive_output);
+  115: 
+  116:   const recovery_hours_used =
+  117:     total_recovery_hours > 0 ? total_recovery_hours : total_productive_output;
+  118: 
+  119:   const actual_recovery_rate = to_number(input.actual_recovery_rate);
+  120: 
+  121:   const profit_or_deficit_per_recovery_hour = to_number(
+  122:     input.profit_or_deficit_per_recovery_hour
+  123:   );
+  124: 
+  125:   const units_sold_annual = to_number(
+  126:     revenue_cogs.total_derived_units_annual ?? input.units_sold_annual
+  127:   );
+  128:   const margin_per_unit_input = to_number(
+  129:     revenue_cogs.weighted_average_margin_per_unit ??
+  130:       revenue_cogs.margin_per_unit ??
+  131:       input.margin_per_unit
+  132:   );
+  133:   const margin_per_unit =
+  134:     margin_per_unit_input > 0 || is_numeric_input(input.margin_per_unit)
+  135:       ? margin_per_unit_input
+  136:       : units_sold_annual > 0
+  137:         ? margin_pool / units_sold_annual
+  138:         : 0;
+  139:   const total_units = units_sold_annual;
+  140:   const required_cost_per_unit =
+  141:     total_units > 0 ? round_currency(total_cost_burden / total_units) : 0;
+  142:   const unit_surplus_or_gap = round_currency(
+  143:     margin_per_unit - required_cost_per_unit
+  144:   );
+  145:   const total_annual_surplus_or_gap = round_currency(
+  146:     unit_surplus_or_gap * total_units
+  147:   );
+  148:   const required_units_to_break_even =
+  149:     margin_per_unit > 0 ? total_cost_burden / margin_per_unit : 0;
+  150:   const unit_surplus_or_shortfall = total_units - required_units_to_break_even;
+  151:   const required_units_if_margin_fixed = required_units_to_break_even;
+  152:   const required_margin_if_units_fixed = required_cost_per_unit;
+  153:   const product_recovery_ready = margin_per_unit > 0 && total_units > 0;
+  154:   const product_recovery_status =
+  155:     margin_per_unit <= 0
+  156:       ? "not_recoverable"
+  157:       : unit_surplus_or_gap < 0
+  158:         ? "shortfall"
+  159:         : "surplus";
+  160:   const product_unit_recovery_status = product_recovery_status;
+  161:   const net_position = to_number(input.net_position);
+  162:   const model_trust_state = input.model_trust_state || "blocked";
+  163: 
+  164:   const suggested_starting_split = build_suggested_starting_split({
+  165:     total_people_cost_annual,
+  166:     productive_asset_cost,
+  167:     has_productive_asset_recovery_base,
+  168:     total_direct_costs,
+  169:     recovery_hours_used,
+  170:     total_productive_output,
+  171:   });
+  172: 
+  173:   const has_valid_recovery_hour_result =
+  174:     recovery_hours_used > 0 &&
+  175:     required_recovery_rate > 0 &&
+  176:     total_cost_burden > 0 &&
+  177:     is_numeric_input(input.actual_recovery_rate) &&
+  178:     is_numeric_input(input.profit_or_deficit_per_recovery_hour) &&
+  179:     is_numeric_input(input.margin_pool);
+  180:   const has_valid_product_result =
+  181:     is_product_based &&
+  182:     units_sold_annual > 0 &&
+  183:     total_cost_burden > 0 &&
+  184:     is_numeric_input(margin_per_unit) &&
+  185:     is_numeric_input(unit_surplus_or_shortfall) &&
+  186:     is_numeric_input(input.margin_pool);
+  187: 
+  188:   const recovery_model = normalise_recovery_model(
+  189:     input.recovery_model ?? suggested_starting_split.suggested_recovery_model
+  190:   );
+  191: 
+  192:   const active_recovery_model = recovery_model;
+  193: 
+  194:   const labour_share_percent = to_number(
+  195:     input.labour_share_percent ??
+  196:       suggested_starting_split.suggested_labour_share_percent
+  197:   );
+  198: 
+  199:   const asset_share_percent = to_number(
+  200:     input.asset_share_percent ??
+  201:       suggested_starting_split.suggested_asset_share_percent
+  202:   );
+  203: 
+  204:   const material_share_percent = to_number(
+  205:     input.material_share_percent ??
+  206:       suggested_starting_split.suggested_material_share_percent
+  207:   );
+  208: 
+  209:   const explained_recovery_total =
+  210:     labour_share_percent + asset_share_percent + material_share_percent;
+  211: 
+  212:   const explained_recovery_exceeds_100 =
+  213:     explained_recovery_total > 100 + BALANCE_TOLERANCE;
+  214: 
+  215:   const overhead_absorbed_percent = explained_recovery_exceeds_100
+  216:     ? 0
+  217:     : Math.max(0, 100 - explained_recovery_total);
+  218: 
+  219:   const share_total = explained_recovery_total + overhead_absorbed_percent;
+  220:   const share_not_balanced = explained_recovery_exceeds_100;
+  221: 
+  222:   let labour_recovery_cost = round_currency(
+  223:     total_cost_burden * (labour_share_percent / 100)
+  224:   );
+  225: 
+  226:   let asset_recovery_cost = round_currency(
+  227:     total_cost_burden * (asset_share_percent / 100)
+  228:   );
+  229: 
+  230:   let material_recovery_cost = round_currency(
+  231:     total_cost_burden * (material_share_percent / 100)
+  232:   );
+  233: 
+  234:   let overhead_absorbed_cost = round_currency(
+  235:     total_cost_burden * (overhead_absorbed_percent / 100)
+  236:   );
+  237: 
+  238:   const material_margin_pool = round_currency(margin_pool);
+  239:   const material_margin_percent =
+  240:     total_revenue > 0 ? round_percent((margin_pool / total_revenue) * 100) : 0;
+  241:   const labour_recovery_hours = round_currency(recovery_hours_used);
+  242:   const labour_recovery_status =
+  243:     total_people_cost_annual <= 0
+  244:       ? "missing_labour_cost"
+  245:       : recovery_hours_used <= 0
+  246:         ? "missing_recovery_hours"
+  247:         : "ready";
+  248:   const asset_recovery_status =
+  249:     productive_asset_count <= 0 && productive_asset_cost <= 0
+  250:       ? "no_productive_assets"
+  251:       : asset_utilisation_hours_annual <= 0
+  252:         ? "missing_utilisation"
+  253:         : "ready";
+  254: 
+  255:   if (recovery_mode === "hours_based") {
+  256:     labour_recovery_cost = round_currency(total_people_cost_annual);
+  257:     asset_recovery_cost = round_currency(productive_asset_cost);
+  258:     material_recovery_cost = 0;
+  259:     overhead_absorbed_cost = round_currency(total_business_overheads);
+  260:   }
+  261: 
+  262:   if (recovery_mode === "product_unit") {
+  263:     labour_recovery_cost = 0;
+  264:     asset_recovery_cost = 0;
+  265:     material_recovery_cost = 0;
+  266:     overhead_absorbed_cost = round_currency(total_cost_burden);
+  267:   }
+  268: 
+  269:   const no_productive_output = total_productive_output <= 0;
+  270:   const no_recovery_hours = recovery_hours_used <= 0;
+  271: 
+  272:   const required_labour_recovery_rate = no_recovery_hours
+  273:     ? 0
+  274:     : round_currency(labour_recovery_cost / recovery_hours_used);
+  275:   const labour_recovery_gap =
+  276:     recovery_mode === "hours_based" && no_recovery_hours
+  277:       ? 0
+  278:       : round_currency(current_margin_per_driver - required_labour_recovery_rate);
+  279: 
+  280:   const required_labour_recovery_rate_per_recovery_hour = no_recovery_hours
+  281:     ? 0
+  282:     : round_currency(labour_recovery_cost / recovery_hours_used);
+  283: 
+  284:   const required_asset_recovery_per_recovery_hour = no_recovery_hours
+  285:     ? 0
+  286:     : round_currency(asset_recovery_cost / recovery_hours_used);
+  287: 
+  288:   const required_material_recovery_per_recovery_hour = no_recovery_hours
+  289:     ? 0
+  290:     : round_currency(material_recovery_cost / recovery_hours_used);
+  291: 
+  292:   const overhead_absorbed_cost_per_recovery_hour = no_recovery_hours
+  293:     ? 0
+  294:     : round_currency(overhead_absorbed_cost / recovery_hours_used);
+  295: 
+  296:   const required_asset_recovery = round_currency(asset_recovery_cost);
+  297:   const required_material_recovery = round_currency(material_recovery_cost);
+  298: 
+  299:   const material_recovery_included =
+  300:     recovery_mode !== "hours_based" && material_share_percent > 0;
+  301:   const asset_recovery_included =
+  302:     recovery_mode === "hours_based"
+  303:       ? productive_asset_cost > 0
+  304:       : asset_share_percent > 0;
+  305: 
+  306:   const gross_profit_source_status = "revenue_cogs";
+  307:   const material_margin_status =
+  308:     margin_pool <= 0
+  309:       ? "not_recoverable"
+  310:       : total_direct_costs <= 0
+  311:         ? "no_direct_costs"
+  312:         : "margin_available";
+  313:   const asset_utilisation_status = asset_recovery_status;
+  314: 
+  315:   const asset_recovery_without_assets =
+  316:     asset_share_percent > 0 && !has_productive_asset_recovery_base;
+  317: 
+  318:   const labour_recovery_without_labour =
+  319:     labour_share_percent > 0 && total_productive_output <= 0;
+  320: 
+  321:   const overhead_absorption_review = build_overhead_absorption_diagnostics({
+  322:     overhead_absorbed_percent,
+  323:     labour_share_percent,
+  324:     asset_share_percent,
+  325:     material_share_percent,
+  326:     total_people_cost_annual,
+  327:     total_asset_cost_annual,
+  328:     total_business_overheads,
+  329:     total_direct_costs,
+  330:     recovery_hours_used,
+  331:   });
+  332: 
+  333:   const recovery_stream_total =
+  334:     labour_recovery_cost +
+  335:     asset_recovery_cost +
+  336:     material_recovery_cost +
+  337:     overhead_absorbed_cost;
+  338:   const output_labour_share_percent =
+  339:     recovery_stream_total > 0
+  340:       ? (labour_recovery_cost / recovery_stream_total) * 100
+  341:       : 0;
+  342:   const output_asset_share_percent =
+  343:     recovery_stream_total > 0
+  344:       ? (asset_recovery_cost / recovery_stream_total) * 100
+  345:       : 0;
+  346:   const output_material_share_percent =
+  347:     recovery_stream_total > 0
+  348:       ? (material_recovery_cost / recovery_stream_total) * 100
+  349:       : 0;
+  350:   const output_overhead_absorbed_percent =
+  351:     recovery_stream_total > 0
+  352:       ? Math.max(
+  353:           0,
+  354:           100 -
+  355:             output_labour_share_percent -
+  356:             output_asset_share_percent -
+  357:             output_material_share_percent
+  358:         )
+  359:       : 0;
+  360: 
+  361:   const recovery_plan_target_per_driver = round_currency(
+  362:     required_recovery_per_driver
+  363:   );
+  364: 
+  365:   const recovery_plan_split = {
+  366:     labour_share_percent: round_percent(output_labour_share_percent),
+  367:     asset_share_percent: round_percent(output_asset_share_percent),
+  368:     material_share_percent: round_percent(output_material_share_percent),
+  369:     overhead_absorbed_percent: round_percent(output_overhead_absorbed_percent),
+  370: 
+  371:     // Backwards-compatible output for older consumers.
+  372:     overhead_share_percent: round_percent(output_overhead_absorbed_percent),
+  373:   };
+  374: 
+  375:   const component_required_recovery = {
+  376:     labour: {
+  377:       share_percent: round_percent(output_labour_share_percent),
+  378:       recovery_cost: labour_recovery_cost,
+  379:       required_recovery_rate: required_labour_recovery_rate,
+  380:     },
+  381:     asset: {
+  382:       share_percent: round_percent(output_asset_share_percent),
+  383:       recovery_cost: asset_recovery_cost,
+  384:       required_recovery: required_asset_recovery,
+  385:     },
+  386:     material: {
+  387:       share_percent: round_percent(output_material_share_percent),
+  388:       recovery_cost: material_recovery_cost,
+  389:       required_recovery: required_material_recovery,
+  390:     },
+  391:     overhead: {
+  392:       share_percent: round_percent(output_overhead_absorbed_percent),
+  393:       recovery_cost: overhead_absorbed_cost,
+  394:     },
+  395:   };
+  396: 
+  397:   const warnings = [];
+  398: 
+  399:   if (
+  400:     !business_summary_ready &&
+  401:     !has_valid_recovery_hour_result &&
+  402:     !has_valid_product_result
+  403:   ) {
+  404:     warnings.push("business_summary_not_ready");
+  405:   }
+  406: 
+  407:   if (model_trust_state !== "ready" && model_trust_state !== "warning") {
+  408:     warnings.push("upstream_model_not_ready");
+  409:   }
+  410: 
+  411:   if (!business_type) {
+  412:     warnings.push("missing_business_type");
+  413:   }
+  414: 
+  415:   if (total_revenue <= 0 && margin_pool <= 0) {
+  416:     warnings.push("missing_revenue_cogs_data");
+  417:   }
+  418: 
+  419:   if (share_not_balanced) {
+  420:     warnings.push("share_not_balanced");
+  421:   }
+  422: 
+  423:   if (overhead_absorption_review.overhead_absorption_level === "medium") {
+  424:     warnings.push("overhead_absorption_review");
+  425:   }
+  426: 
+  427:   if (overhead_absorption_review.overhead_absorption_level === "high") {
+  428:     warnings.push("overhead_absorption_high");
+  429:   }
+  430: 
+  431:   if (activity_driver_value <= 0) {
+  432:     warnings.push("no_activity_driver");
+  433:   }
+  434: 
+  435:   if (business_type === "labour_based" && recovery_hours_used <= 0) {
+  436:     warnings.push("no_productive_output");
+  437:   }
+  438: 
+  439:   if (recovery_mode === "hours_based" && total_people_cost_annual <= 0) {
+  440:     warnings.push("missing_labour_cost");
+  441:   }
+  442: 
+  443:   if (
+  444:     recovery_mode === "hours_based" &&
+  445:     productive_asset_count > 0 &&
+  446:     asset_utilisation_hours_annual <= 0
+  447:   ) {
+  448:     warnings.push("missing_productive_asset_utilisation");
+  449:   }
+  450: 
+  451:   if (business_type === "product_based" && total_units <= 0) {
+  452:     warnings.push("no_units_sold");
+  453:   }
+  454: 
+  455:   if (is_product_based && margin_per_unit <= 0) {
+  456:     warnings.push("no_positive_margin_per_unit");
+  457:   }
+  458: 
+  459:   if (is_product_based && unit_surplus_or_gap < 0) {
+  460:     warnings.push("product_unit_shortfall");
+  461:   }
+  462: 
+  463:   if (required_recovery_per_driver <= 0) {
+  464:     warnings.push("no_required_recovery_per_driver");
+  465:   }
+  466: 
+  467:   if (margin_pool < 0) {
+  468:     warnings.push("negative_margin_pool");
+  469:   }
+  470: 
+  471:   if (net_position < 0) {
+  472:     warnings.push("negative_net_position");
+  473:   }
+  474: 
+  475:   if (recovery_gap_per_driver < 0) {
+  476:     warnings.push("recovery_gap_negative");
+  477:   }
+  478: 
+  479:   if (material_recovery_included && recovery_mode !== "hours_based") {
+  480:     warnings.push("material_margin_unverified");
+  481:   }
+  482: 
+  483:   if (asset_recovery_included && recovery_mode !== "hours_based") {
+  484:     warnings.push("asset_utilisation_unverified");
+  485:   }
+  486: 
+  487:   if (asset_recovery_without_assets) {
+  488:     warnings.push("asset_share_without_asset_recovery_base");
+  489:   }
+  490: 
+  491:   if (labour_recovery_without_labour) {
+  492:     warnings.push("labour_share_without_productive_output");
+  493:   }
+  494: 
+  495:   return {
+  496:     business_summary_ready,
+  497:     business_type,
+  498:     recovery_mode,
+  499:     is_product_based,
+  500:     is_labour_based,
+  501:     activity_driver_type,
+  502:     activity_driver_label,
+  503:     activity_driver_value: round_currency(activity_driver_value),
+  504: 
+  505:     required_recovery_per_driver: round_currency(required_recovery_per_driver),
+  506:     current_margin_per_driver: round_currency(current_margin_per_driver),
+  507:     recovery_gap_per_driver: round_currency(recovery_gap_per_driver),
+  508: 
+  509:     recovery_plan_target_per_driver,
+  510:     recovery_plan_split,
+  511:     component_required_recovery,
+  512: 
+  513:     recovery_model,
+  514:     active_recovery_model,
+  515: 
+  516:     suggested_recovery_model:
+  517:       suggested_starting_split.suggested_recovery_model,
+  518:     suggested_labour_share_percent:
+  519:       suggested_starting_split.suggested_labour_share_percent,
+  520:     suggested_asset_share_percent:
+  521:       suggested_starting_split.suggested_asset_share_percent,
+  522:     suggested_material_share_percent:
+  523:       suggested_starting_split.suggested_material_share_percent,
+  524:     suggested_overhead_absorbed_percent:
+  525:       suggested_starting_split.suggested_overhead_absorbed_percent,
+  526:     split_source: suggested_starting_split.split_source,
+  527: 
+  528:     total_revenue: round_currency(total_revenue),
+  529:     total_direct_costs: round_currency(total_direct_costs),
+  530:     gross_margin_percent: round_percent(gross_margin_percent),
+  531:     margin_pool: round_currency(margin_pool),
+  532:     gross_profit: round_currency(margin_pool),
+  533: 
+  534:     total_people_cost_annual: round_currency(total_people_cost_annual),
+  535:     total_asset_cost_annual: round_currency(total_asset_cost_annual),
+  536:     total_business_overheads: round_currency(total_business_overheads),
+  537:     total_cost_burden: round_currency(total_cost_burden),
+  538:     cost_burden_breakdown,
+  539: 
+  540:     has_productive_asset_recovery_base,
+  541:     productive_asset_count,
+  542:     support_asset_count,
+  543:     productive_asset_cost: round_currency(productive_asset_cost),
+  544:     productive_asset_cost_annual: round_currency(productive_asset_cost),
+  545:     support_asset_cost: round_currency(support_asset_cost),
+  546:     asset_utilisation_hours_annual: round_currency(
+  547:       asset_utilisation_hours_annual
+  548:     ),
+  549:     required_asset_recovery_rate,
+  550: 
+  551:     required_revenue: round_currency(total_cost_burden),
+  552:     required_recovery_rate: round_currency(required_recovery_rate),
+  553: 
+  554:     total_recovery_hours: round_currency(total_recovery_hours),
+  555:     recovery_hours_used: round_currency(recovery_hours_used),
+  556:     total_productive_output: round_currency(total_productive_output),
+  557: 
+  558:     actual_recovery_rate: round_currency(actual_recovery_rate),
+  559:     profit_or_deficit_per_recovery_hour: round_currency(
+  560:       profit_or_deficit_per_recovery_hour
+  561:     ),
+  562: 
+  563:     units_sold_annual: round_currency(total_units),
+  564:     total_units: round_currency(total_units),
+  565:     margin_per_unit: round_currency(margin_per_unit),
+  566:     required_cost_per_unit,
+  567:     unit_surplus_or_gap,
+  568:     total_annual_surplus_or_gap,
+  569:     required_units_to_break_even: round_currency(
+  570:       required_units_to_break_even
+  571:     ),
+  572:     required_units_if_margin_fixed: round_currency(
+  573:       required_units_if_margin_fixed
+  574:     ),
+  575:     required_margin_if_units_fixed: round_currency(
+  576:       required_margin_if_units_fixed
+  577:     ),
+  578:     unit_surplus_or_shortfall: round_currency(unit_surplus_or_shortfall),
+  579:     product_recovery_ready,
+  580:     product_recovery_status,
+  581:     product_unit_recovery_status,
+  582:     commercial_driver_mode,
+  583:     unit_driver_rows,
+  584:     ...product_unit_display,
+  585:     net_position: round_currency(net_position),
+  586:     model_trust_state,
+  587: 
+  588:     labour_share_percent: round_percent(output_labour_share_percent),
+  589:     asset_share_percent: round_percent(output_asset_share_percent),
+  590:     material_share_percent: round_percent(output_material_share_percent),
+  591:     overhead_absorbed_percent: round_percent(output_overhead_absorbed_percent),
+  592: 
+  593:     // Backwards-compatible output for older components/selectors.
+  594:     overhead_share_percent: round_percent(output_overhead_absorbed_percent),
+  595: 
+  596:     explained_recovery_total: round_percent(
+  597:       output_labour_share_percent +
+  598:         output_asset_share_percent +
+  599:         output_material_share_percent
+  600:     ),
+  601:     share_total: round_percent(
+  602:       output_labour_share_percent +
+  603:         output_asset_share_percent +
+  604:         output_material_share_percent +
+  605:         output_overhead_absorbed_percent
+  606:     ),
+  607: 
+  608:     labour_recovery_cost,
+  609:     labour_recovery_hours,
+  610:     labour_recovery_status,
+  611:     labour_recovery_gap,
+  612:     asset_recovery_cost,
+  613:     material_recovery_cost,
+  614:     material_margin_pool,
+  615:     material_margin_percent,
+  616:     overhead_absorbed_cost,
+  617: 
+  618:     required_labour_recovery_rate,
+  619:     required_labour_recovery_rate_per_recovery_hour,
+  620:     required_asset_recovery_per_recovery_hour,
+  621:     required_material_recovery_per_recovery_hour,
+  622:     overhead_absorbed_cost_per_recovery_hour,
+  623:     required_asset_recovery,
+  624:     required_material_recovery,
+  625: 
+  626:     gross_profit_source_status,
+  627:     material_margin_status,
+  628:     asset_utilisation_status,
+  629:     material_recovery_included,
+  630:     asset_recovery_included,
+  631: 
+  632:     overhead_absorption_level:
+  633:       overhead_absorption_review.overhead_absorption_level,
+  634:     overhead_absorption_title:
+  635:       overhead_absorption_review.overhead_absorption_title,
+  636:     overhead_absorption_message:
+  637:       overhead_absorption_review.overhead_absorption_message,
+  638:     overhead_absorption_diagnostics:
+  639:       overhead_absorption_review.overhead_absorption_diagnostics,
+  640: 
+  641:     share_not_balanced,
+  642:     no_productive_output,
+  643:     no_recovery_hours,
+  644:     asset_recovery_without_assets,
+  645:     labour_recovery_without_labour,
+  646:     labour_share_without_productive_output: labour_recovery_without_labour,
+  647:     asset_share_without_asset_recovery_base: asset_recovery_without_assets,
+  648: 
+  649:     warnings,
+  650:   };
+  651: }
+===== lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js  (total 153 lines; showing 1-153) =====
+    1: import {
+    2:   round_percent,
+    3:   to_number,
+    4: } from "./sharedRecoverySummaryHelpers.js";
+    5: 
+    6: function normalise_split_to_100({
+    7:   labour_basis,
+    8:   asset_basis,
+    9:   material_basis,
+   10: }) {
+   11:   const total_basis =
+   12:     to_number(labour_basis) + to_number(asset_basis) + to_number(material_basis);
+   13: 
+   14:   if (total_basis <= 0) {
+   15:     return {
+   16:       labour_share_percent: 100,
+   17:       asset_share_percent: 0,
+   18:       material_share_percent: 0,
+   19:     };
+   20:   }
+   21: 
+   22:   const raw_labour_share = (to_number(labour_basis) / total_basis) * 100;
+   23:   const raw_asset_share = (to_number(asset_basis) / total_basis) * 100;
+   24:   const raw_material_share = (to_number(material_basis) / total_basis) * 100;
+   25: 
+   26:   const labour_share_percent = round_percent(raw_labour_share);
+   27:   const asset_share_percent = round_percent(raw_asset_share);
+   28: 
+   29:   const material_share_percent = round_percent(
+   30:     100 - labour_share_percent - asset_share_percent
+   31:   );
+   32: 
+   33:   return {
+   34:     labour_share_percent,
+   35:     asset_share_percent,
+   36:     material_share_percent,
+   37:   };
+   38: }
+   39: 
+   40: export function build_suggested_starting_split({
+   41:   total_people_cost_annual,
+   42:   productive_asset_cost,
+   43:   has_productive_asset_recovery_base,
+   44:   total_direct_costs,
+   45:   recovery_hours_used,
+   46:   total_productive_output,
+   47: }) {
+   48:   const has_labour_recovery_base =
+   49:     to_number(recovery_hours_used) > 0 ||
+   50:     to_number(total_productive_output) > 0 ||
+   51:     to_number(total_people_cost_annual) > 0;
+   52: 
+   53:   const has_asset_recovery_base =
+   54:     has_productive_asset_recovery_base === true &&
+   55:     to_number(productive_asset_cost) > 0;
+   56: 
+   57:   const has_material_recovery_base = to_number(total_direct_costs) > 0;
+   58: 
+   59:   const labour_basis = has_labour_recovery_base
+   60:     ? to_number(total_people_cost_annual)
+   61:     : 0;
+   62: 
+   63:   const asset_basis = has_asset_recovery_base ? to_number(productive_asset_cost) : 0;
+   64: 
+   65:   const material_basis = has_material_recovery_base
+   66:     ? to_number(total_direct_costs)
+   67:     : 0;
+   68: 
+   69:   const split = normalise_split_to_100({
+   70:     labour_basis,
+   71:     asset_basis,
+   72:     material_basis,
+   73:   });
+   74: 
+   75:   if (
+   76:     has_labour_recovery_base &&
+   77:     has_asset_recovery_base &&
+   78:     has_material_recovery_base
+   79:   ) {
+   80:     return {
+   81:       suggested_recovery_model: "hybrid",
+   82:       suggested_labour_share_percent: split.labour_share_percent,
+   83:       suggested_asset_share_percent: split.asset_share_percent,
+   84:       suggested_material_share_percent: split.material_share_percent,
+   85:       suggested_overhead_absorbed_percent: 0,
+   86:       split_source: "system_suggested",
+   87:     };
+   88:   }
+   89: 
+   90:   if (has_labour_recovery_base && has_material_recovery_base) {
+   91:     return {
+   92:       suggested_recovery_model: "hybrid",
+   93:       suggested_labour_share_percent: split.labour_share_percent,
+   94:       suggested_asset_share_percent: 0,
+   95:       suggested_material_share_percent: split.material_share_percent,
+   96:       suggested_overhead_absorbed_percent: 0,
+   97:       split_source: "system_suggested",
+   98:     };
+   99:   }
+  100: 
+  101:   if (has_labour_recovery_base && has_asset_recovery_base) {
+  102:     return {
+  103:       suggested_recovery_model: "hybrid",
+  104:       suggested_labour_share_percent: split.labour_share_percent,
+  105:       suggested_asset_share_percent: split.asset_share_percent,
+  106:       suggested_material_share_percent: 0,
+  107:       suggested_overhead_absorbed_percent: 0,
+  108:       split_source: "system_suggested",
+  109:     };
+  110:   }
+  111: 
+  112:   if (has_asset_recovery_base && has_material_recovery_base) {
+  113:     return {
+  114:       suggested_recovery_model: "hybrid",
+  115:       suggested_labour_share_percent: 0,
+  116:       suggested_asset_share_percent: split.asset_share_percent,
+  117:       suggested_material_share_percent: split.material_share_percent,
+  118:       suggested_overhead_absorbed_percent: 0,
+  119:       split_source: "system_suggested",
+  120:     };
+  121:   }
+  122: 
+  123:   if (has_material_recovery_base) {
+  124:     return {
+  125:       suggested_recovery_model: "material_led",
+  126:       suggested_labour_share_percent: 0,
+  127:       suggested_asset_share_percent: 0,
+  128:       suggested_material_share_percent: 100,
+  129:       suggested_overhead_absorbed_percent: 0,
+  130:       split_source: "system_suggested",
+  131:     };
+  132:   }
+  133: 
+  134:   if (has_asset_recovery_base) {
+  135:     return {
+  136:       suggested_recovery_model: "asset_led",
+  137:       suggested_labour_share_percent: 0,
+  138:       suggested_asset_share_percent: 100,
+  139:       suggested_material_share_percent: 0,
+  140:       suggested_overhead_absorbed_percent: 0,
+  141:       split_source: "system_suggested",
+  142:     };
+  143:   }
+  144: 
+  145:   return {
+  146:     suggested_recovery_model: "labour_led",
+  147:     suggested_labour_share_percent: 100,
+  148:     suggested_asset_share_percent: 0,
+  149:     suggested_material_share_percent: 0,
+  150:     suggested_overhead_absorbed_percent: 0,
+  151:     split_source: "system_suggested",
+  152:   };
+  153: }
+===== lib\storage\recoverySummaryStorage.js  (total 137 lines; showing 1-137) =====
+    1: "use client";
+    2: 
+    3: import { useEffect, useState } from "react";
+    4: 
+    5: const STORAGE_KEY = "qs_tools_recovery_summary_state";
+    6: 
+    7: export const DEFAULT_RECOVERY_SUMMARY_STATE = {
+    8:   recovery_model: "labour_led",
+    9:   labour_share_percent: 100,
+   10:   asset_share_percent: 0,
+   11:   material_share_percent: 0,
+   12:   overhead_absorbed_percent: 0,
+   13:   split_manually_overridden: false,
+   14: };
+   15: 
+   16: function normalise_recovery_model(value) {
+   17:   if (value === "labour_only") return "labour_led";
+   18:   if (value === "asset_driven") return "asset_led";
+   19: 
+   20:   if (
+   21:     value === "labour_led" ||
+   22:     value === "asset_led" ||
+   23:     value === "material_led" ||
+   24:     value === "hybrid"
+   25:   ) {
+   26:     return value;
+   27:   }
+   28: 
+   29:   return DEFAULT_RECOVERY_SUMMARY_STATE.recovery_model;
+   30: }
+   31: 
+   32: function normalise_recovery_state(value = {}) {
+   33:   const overhead_absorbed_percent =
+   34:     value.overhead_absorbed_percent ??
+   35:     value.overhead_share_percent ??
+   36:     DEFAULT_RECOVERY_SUMMARY_STATE.overhead_absorbed_percent;
+   37: 
+   38:   return {
+   39:     ...DEFAULT_RECOVERY_SUMMARY_STATE,
+   40:     ...value,
+   41:     recovery_model: normalise_recovery_model(value.recovery_model),
+   42:     labour_share_percent: Number(value.labour_share_percent ?? 100),
+   43:     asset_share_percent: Number(value.asset_share_percent ?? 0),
+   44:     material_share_percent: Number(value.material_share_percent ?? 0),
+   45:     overhead_absorbed_percent: Number(overhead_absorbed_percent ?? 0),
+   46:     split_manually_overridden: value.split_manually_overridden === true,
+   47:   };
+   48: }
+   49: 
+   50: function parse_stored_state(value) {
+   51:   if (!value) {
+   52:     return DEFAULT_RECOVERY_SUMMARY_STATE;
+   53:   }
+   54: 
+   55:   try {
+   56:     const parsed_value = JSON.parse(value);
+   57:     return normalise_recovery_state(parsed_value);
+   58:   } catch (error) {
+   59:     return DEFAULT_RECOVERY_SUMMARY_STATE;
+   60:   }
+   61: }
+   62: 
+   63: export function getRecoverySummaryState() {
+   64:   if (typeof window === "undefined") {
+   65:     return DEFAULT_RECOVERY_SUMMARY_STATE;
+   66:   }
+   67: 
+   68:   return parse_stored_state(window.localStorage.getItem(STORAGE_KEY));
+   69: }
+   70: 
+   71: export function saveRecoverySummaryState(recovery_state) {
+   72:   if (typeof window === "undefined") {
+   73:     return;
+   74:   }
+   75: 
+   76:   window.localStorage.setItem(
+   77:     STORAGE_KEY,
+   78:     JSON.stringify(normalise_recovery_state(recovery_state))
+   79:   );
+   80: }
+   81: 
+   82: export function resetRecoverySummaryState() {
+   83:   if (typeof window === "undefined") {
+   84:     return;
+   85:   }
+   86: 
+   87:   window.localStorage.setItem(
+   88:     STORAGE_KEY,
+   89:     JSON.stringify(DEFAULT_RECOVERY_SUMMARY_STATE)
+   90:   );
+   91: }
+   92: 
+   93: export function useRecoverySummaryStorage() {
+   94:   const [recovery_state, set_recovery_state] = useState(() =>
+   95:     getRecoverySummaryState()
+   96:   );
+   97: 
+   98:   useEffect(() => {
+   99:     saveRecoverySummaryState(recovery_state);
+  100:   }, [recovery_state]);
+  101: 
+  102:   function update_recovery_field(field_name, value, options = {}) {
+  103:     set_recovery_state((current_state) => {
+  104:       const next_state = {
+  105:         ...current_state,
+  106:         [field_name]:
+  107:           field_name === "recovery_model" ? value : Number(value ?? 0),
+  108:       };
+  109: 
+  110:       if (
+  111:         field_name === "labour_share_percent" ||
+  112:         field_name === "asset_share_percent" ||
+  113:         field_name === "material_share_percent"
+  114:       ) {
+  115:         next_state.split_manually_overridden =
+  116:           options.manual_override === false ? false : true;
+  117:       }
+  118: 
+  119:       if (field_name === "recovery_model" && options.manual_override === false) {
+  120:         next_state.split_manually_overridden = false;
+  121:       }
+  122: 
+  123:       return normalise_recovery_state(next_state);
+  124:     });
+  125:   }
+  126: 
+  127:   function reset_recovery_state() {
+  128:     set_recovery_state(DEFAULT_RECOVERY_SUMMARY_STATE);
+  129:   }
+  130: 
+  131:   return {
+  132:     recovery_state,
+  133:     set_recovery_state,
+  134:     update_recovery_field,
+  135:     reset_recovery_state,
+  136:   };
+  137: }
+===== hooks\useRecoverySummary.js  (total 265 lines; showing 1-260) =====
+    1: "use client";
+    2: 
+    3: import { useMemo } from "react";
+    4: 
+    5: import useBusinessSummary from "@/hooks/useBusinessSummary";
+    6: import useModelReadiness from "@/hooks/useModelReadiness";
+    7: import useRevenueCogs from "@/hooks/useRevenueCogs";
+    8: import { calculateRecoverySummary } from "@/lib/calculations/recoverySummaryCalculations";
+    9: import {
+   10:   buildRecoverySummaryCard,
+   11:   buildRecoverySummaryStatus,
+   12: } from "@/lib/selectors/recoverySummarySelectors";
+   13: import { useRecoverySummaryStorage } from "@/lib/storage/recoverySummaryStorage";
+   14: 
+   15: export default function useRecoverySummary(inputs = {}) {
+   16:   const business_summary = useBusinessSummary();
+   17:   const revenue_cogs = useRevenueCogs();
+   18:   const model_readiness = useModelReadiness();
+   19: 
+   20:   const {
+   21:     recovery_state,
+   22:     update_recovery_field,
+   23:     reset_recovery_state,
+   24:   } = useRecoverySummaryStorage();
+   25: 
+   26:   const business_summary_outputs =
+   27:     inputs.business_summary ?? business_summary.output_contract ?? {};
+   28:   const revenue_cogs_outputs =
+   29:     inputs.revenue_cogs ?? revenue_cogs.output_contract ?? {};
+   30:   const asset_outputs =
+   31:     inputs.assets ?? model_readiness.modules?.assets?.output_contract ?? {};
+   32:   const labour_outputs =
+   33:     inputs.labour ?? model_readiness.modules?.labour?.output_contract ?? {};
+   34:   const general_overheads_outputs =
+   35:     inputs.general_overheads ??
+   36:     model_readiness.modules?.generalOverheads?.output_contract ??
+   37:     {};
+   38: 
+   39:   const calculated = useMemo(() => {
+   40:     const use_saved_split =
+   41:       recovery_state.split_manually_overridden === true ||
+   42:       recovery_state.recovery_model !== "hybrid";
+   43: 
+   44:     return calculateRecoverySummary({
+   45:       ...business_summary_outputs,
+   46:       revenue_cogs: revenue_cogs_outputs,
+   47:       assets: asset_outputs,
+   48:       labour: labour_outputs,
+   49:       general_overheads: general_overheads_outputs,
+   50: 
+   51:       recovery_model: recovery_state.recovery_model,
+   52: 
+   53:       labour_share_percent: use_saved_split
+   54:         ? recovery_state.labour_share_percent
+   55:         : undefined,
+   56:       asset_share_percent: use_saved_split
+   57:         ? recovery_state.asset_share_percent
+   58:         : undefined,
+   59:       material_share_percent: use_saved_split
+   60:         ? recovery_state.material_share_percent
+   61:         : undefined,
+   62: 
+   63:       // Unexplained recovery allowance is calculated inside Recovery Summary
+   64:       // as 100% minus labour, asset, and materials / products shares.
+   65:     });
+   66:   }, [
+   67:     business_summary_outputs,
+   68:     revenue_cogs_outputs,
+   69:     asset_outputs,
+   70:     labour_outputs,
+   71:     general_overheads_outputs,
+   72:     recovery_state,
+   73:   ]);
+   74: 
+   75:   const status = useMemo(() => {
+   76:     return buildRecoverySummaryStatus({
+   77:       calculated,
+   78:     });
+   79:   }, [calculated]);
+   80: 
+   81:   const card = useMemo(() => {
+   82:     return buildRecoverySummaryCard({
+   83:       calculated,
+   84:       recovery_state,
+   85:       update_recovery_field,
+   86:       reset_recovery_state,
+   87:     });
+   88:   }, [calculated, recovery_state, update_recovery_field, reset_recovery_state]);
+   89: 
+   90:   const output_contract = useMemo(() => {
+   91:     return {
+   92:       recovery_summary_ready: status.recovery_summary_ready,
+   93:       recovery_summary_status: status.recovery_summary_status,
+   94:       recovery_summary_warnings: status.recovery_summary_warnings,
+   95: 
+   96:       business_type: calculated.business_type,
+   97:       recovery_mode: calculated.recovery_mode,
+   98:       is_product_based: calculated.is_product_based,
+   99:       is_labour_based: calculated.is_labour_based,
+  100:       activity_driver_type: calculated.activity_driver_type,
+  101:       activity_driver_label: calculated.activity_driver_label,
+  102:       activity_driver_value: calculated.activity_driver_value,
+  103: 
+  104:       required_recovery_per_driver: calculated.required_recovery_per_driver,
+  105:       current_margin_per_driver: calculated.current_margin_per_driver,
+  106:       recovery_gap_per_driver: calculated.recovery_gap_per_driver,
+  107: 
+  108:       recovery_plan_target_per_driver:
+  109:         calculated.recovery_plan_target_per_driver,
+  110:       recovery_plan_split: calculated.recovery_plan_split,
+  111:       component_required_recovery: calculated.component_required_recovery,
+  112: 
+  113:       recovery_model: calculated.recovery_model,
+  114:       active_recovery_model: calculated.active_recovery_model,
+  115: 
+  116:       labour_share_percent: calculated.labour_share_percent,
+  117:       asset_share_percent: calculated.asset_share_percent,
+  118:       material_share_percent: calculated.material_share_percent,
+  119:       overhead_absorbed_percent: calculated.overhead_absorbed_percent,
+  120: 
+  121:       // Backwards-compatible output while older downstream code migrates.
+  122:       overhead_share_percent: calculated.overhead_absorbed_percent,
+  123: 
+  124:       explained_recovery_total: calculated.explained_recovery_total,
+  125: 
+  126:       labour_recovery_cost: calculated.labour_recovery_cost,
+  127:       labour_recovery_hours: calculated.labour_recovery_hours,
+  128:       labour_recovery_status: calculated.labour_recovery_status,
+  129:       labour_recovery_gap: calculated.labour_recovery_gap,
+  130:       asset_recovery_cost: calculated.asset_recovery_cost,
+  131:       asset_utilisation_hours_annual:
+  132:         calculated.asset_utilisation_hours_annual,
+  133:       required_asset_recovery_rate: calculated.required_asset_recovery_rate,
+  134:       asset_recovery_status: calculated.asset_recovery_status,
+  135:       material_recovery_cost: calculated.material_recovery_cost,
+  136:       material_margin_pool: calculated.material_margin_pool,
+  137:       material_margin_percent: calculated.material_margin_percent,
+  138:       material_margin_status: calculated.material_margin_status,
+  139:       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+  140: 
+  141:       // Support/productive asset split, plus each side's assigned share of
+  142:       // the asset overhead pools (fuel, insurance, repairs, registration,
+  143:       // consumables, finance interest). Pass-through from the assets
+  144:       // contract Recovery Summary already receives as an input - not a
+  145:       // new calculation. Needed so downstream consumers (e.g. Business
+  146:       // Outcome) can show the true full cost of non-productive assets
+  147:       // without calling useAssets() directly.
+  148:       productive_asset_cost: asset_outputs.productive_asset_cost ?? 0,
+  149:       support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+  150:       productive_asset_assigned_overhead_cost_annual:
+  151:         asset_outputs.productive_asset_assigned_overhead_cost_annual ?? 0,
+  152:       support_asset_assigned_overhead_cost_annual:
+  153:         asset_outputs.support_asset_assigned_overhead_cost_annual ?? 0,
+  154: 
+  155:       required_revenue: calculated.required_revenue,
+  156:       required_recovery_rate: calculated.required_recovery_rate,
+  157: 
+  158:       total_recovery_hours: calculated.total_recovery_hours,
+  159:       recovery_hours_used: calculated.recovery_hours_used,
+  160:       actual_recovery_rate: calculated.actual_recovery_rate,
+  161:       profit_or_deficit_per_recovery_hour:
+  162:         calculated.profit_or_deficit_per_recovery_hour,
+  163: 
+  164:       required_labour_recovery_rate: calculated.required_labour_recovery_rate,
+  165:       required_labour_recovery_rate_per_recovery_hour:
+  166:         calculated.required_labour_recovery_rate_per_recovery_hour,
+  167: 
+  168:       required_asset_recovery_per_recovery_hour:
+  169:         calculated.required_asset_recovery_per_recovery_hour,
+  170: 
+  171:       required_material_recovery_per_recovery_hour:
+  172:         calculated.required_material_recovery_per_recovery_hour,
+  173: 
+  174:       overhead_absorbed_cost_per_recovery_hour:
+  175:         calculated.overhead_absorbed_cost_per_recovery_hour,
+  176: 
+  177:       required_asset_recovery: calculated.required_asset_recovery,
+  178:       required_material_recovery: calculated.required_material_recovery,
+  179: 
+  180:       gross_profit: calculated.gross_profit,
+  181:       gross_profit_source_status: calculated.gross_profit_source_status,
+  182:       material_margin_status: calculated.material_margin_status,
+  183:       asset_utilisation_status: calculated.asset_utilisation_status,
+  184:       material_recovery_included: calculated.material_recovery_included,
+  185:       asset_recovery_included: calculated.asset_recovery_included,
+  186: 
+  187:       overhead_absorption_level: calculated.overhead_absorption_level,
+  188:       overhead_absorption_title: calculated.overhead_absorption_title,
+  189:       overhead_absorption_message: calculated.overhead_absorption_message,
+  190:       overhead_absorption_diagnostics:
+  191:         calculated.overhead_absorption_diagnostics,
+  192: 
+  193:       total_revenue: calculated.total_revenue,
+  194:       total_direct_costs: calculated.total_direct_costs,
+  195:       gross_margin_percent: calculated.gross_margin_percent,
+  196:       margin_pool: calculated.margin_pool,
+  197: 
+  198:       total_people_cost_annual: calculated.total_people_cost_annual,
+  199:       total_asset_cost_annual: calculated.total_asset_cost_annual,
+  200:       total_business_overheads: calculated.total_business_overheads,
+  201:       total_cost_burden: calculated.total_cost_burden,
+  202:       cost_burden_breakdown: calculated.cost_burden_breakdown,
+  203: 
+  204:       net_position: calculated.net_position,
+  205:       model_trust_state: calculated.model_trust_state,
+  206: 
+  207:       // Backwards-compatible outputs still consumed by existing downstream code.
+  208:       total_productive_output: calculated.total_productive_output,
+  209:       units_sold_annual: calculated.units_sold_annual,
+  210:       margin_per_unit: calculated.margin_per_unit,
+  211:       required_units_to_break_even:
+  212:         calculated.required_units_to_break_even,
+  213:       unit_surplus_or_shortfall:
+  214:         calculated.unit_surplus_or_shortfall,
+  215:       product_recovery_ready: calculated.product_recovery_ready,
+  216:       product_recovery_status: calculated.product_recovery_status,
+  217:       total_units: calculated.total_units,
+  218:       required_cost_per_unit: calculated.required_cost_per_unit,
+  219:       unit_surplus_or_gap: calculated.unit_surplus_or_gap,
+  220:       total_annual_surplus_or_gap: calculated.total_annual_surplus_or_gap,
+  221:       required_units_if_margin_fixed:
+  222:         calculated.required_units_if_margin_fixed,
+  223:       required_margin_if_units_fixed:
+  224:         calculated.required_margin_if_units_fixed,
+  225:       product_unit_recovery_status:
+  226:         calculated.product_unit_recovery_status,
+  227:       commercial_driver_mode: calculated.commercial_driver_mode,
+  228:       unit_driver_rows: calculated.unit_driver_rows,
+  229:       product_unit_label: calculated.product_unit_label,
+  230:       product_unit_type: calculated.product_unit_type,
+  231:       product_unit_type_label: calculated.product_unit_type_label,
+  232:       product_unit_margin_label: calculated.product_unit_margin_label,
+  233:       product_required_cost_label: calculated.product_required_cost_label,
+  234:       product_surplus_gap_label: calculated.product_surplus_gap_label,
+  235:       product_total_units_label: calculated.product_total_units_label,
+  236:       product_unit_suffix: calculated.product_unit_suffix,
+  237:       product_rate_suffix: calculated.product_rate_suffix,
+  238: 
+  239:       recovery_warning_rows: card.recovery_warning_rows,
+  240:       primary_recovery_warning: card.primary_recovery_warning,
+  241:       cascade_recovery_warnings: card.cascade_recovery_warnings,
+  242:       recovery_failure_path: card.recovery_failure_path,
+  243:       has_primary_recovery_warning: card.has_primary_recovery_warning,
+  244:       has_blocking_recovery_warning: card.has_blocking_recovery_warning,
+  245:       has_review_recovery_warning: card.has_review_recovery_warning,
+  246:       blocking_recovery_warning_count: card.blocking_recovery_warning_count,
+  247:       review_recovery_warning_count: card.review_recovery_warning_count,
+  248:       info_recovery_warning_count: card.info_recovery_warning_count,
+  249:       recovery_warning_count: card.recovery_warning_count,
+  250: 
+  251:       warnings: calculated.warnings,
+  252:       share_not_balanced: calculated.share_not_balanced,
+  253:       no_productive_output: calculated.no_productive_output,
+  254:       no_recovery_hours: calculated.no_recovery_hours,
+  255:       asset_recovery_without_assets: calculated.asset_recovery_without_assets,
+  256:       labour_recovery_without_labour: calculated.labour_recovery_without_labour,
+  257:     };
+  258:   }, [calculated, status, card, asset_outputs]);
+  259: 
+  260:   return {
+===== grep: productive_asset / asset_recovery_cost / labour_share_percent in other recovery-summary files =====
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:5: labour_share_percent,
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:6: asset_share_percent,
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:35: if (total_people_cost_annual > 0 && labour_share_percent <= 0) {
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:45: if (labour_share_percent > 0 && recovery_hours_used <= 0) {
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:55: if (total_asset_cost_annual > 0 && asset_share_percent <= 0) {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:105: has_productive_asset_recovery_base:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:106: calculated.has_productive_asset_recovery_base === true,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:107: productive_asset_count: calculated.productive_asset_count ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:109: productive_asset_cost: calculated.productive_asset_cost ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:110: productive_asset_cost_annual:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:111: calculated.productive_asset_cost_annual ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:112: calculated.productive_asset_cost ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:175: labour_share_percent: resolved_shares.labour_share_percent,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:176: asset_share_percent: resolved_shares.asset_share_percent,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:183: suggested_labour_share_percent:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:184: calculated.suggested_labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:185: resolved_shares.labour_share_percent,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:186: suggested_asset_share_percent:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:187: calculated.suggested_asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:188: resolved_shares.asset_share_percent,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:204: asset_recovery_cost: calculated.asset_recovery_cost ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:302: update_recovery_field("labour_share_percent", 100, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:305: update_recovery_field("asset_share_percent", 0, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:315: update_recovery_field("labour_share_percent", 0, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:318: update_recovery_field("asset_share_percent", 100, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:328: update_recovery_field("labour_share_percent", 0, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:331: update_recovery_field("asset_share_percent", 0, {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:342: "labour_share_percent",
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:343: calculated.suggested_labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:344: resolved_shares.labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:349: "asset_share_percent",
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:350: calculated.suggested_asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:351: resolved_shares.asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:366: update_recovery_field("labour_share_percent", value),
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:369: update_recovery_field("asset_share_percent", value),
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:381: "labour_share_percent",
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:382: calculated.suggested_labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:383: resolved_shares.labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:388: "asset_share_percent",
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:389: calculated.suggested_asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:390: resolved_shares.asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:25: safe_number(calculated.asset_recovery_cost) +
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:71: missing_productive_asset_utilisation:
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:157: const asset_share_percent = resolve_share_percent({
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:158: displayed_percent: calculated.asset_share_percent,
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:159: component_cost: calculated.asset_recovery_cost,
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:189: asset_share_percent > 0 &&
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:196: if (asset_share_percent > 0 && material_share_percent > 0) {
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:200: if (asset_share_percent > 0) {
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:244: calculated.has_productive_asset_recovery_base !== true
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:278: "missing_productive_asset_utilisation",
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:289: ? recovery_state.labour_share_percent ?? 100
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:290: : calculated.labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:291: calculated.suggested_labour_share_percent ??
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:295: ? recovery_state.asset_share_percent ?? 0
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:296: : calculated.asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:297: calculated.suggested_asset_share_percent ??
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:313: labour_share_percent: resolve_share_percent({
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:319: asset_share_percent: resolve_share_percent({
+lib\selectors\recovery-summary\recoverySummarySelectorHelpers.js:321: component_cost: calculated.asset_recovery_cost,
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:47: const labour_share_percent = resolve_share_percent({
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:48: displayed_percent: calculated.labour_share_percent ?? 100,
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:53: const asset_share_percent = resolve_share_percent({
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:54: displayed_percent: calculated.asset_share_percent ?? 0,
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:55: component_cost: calculated.asset_recovery_cost,
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:85: labour_share_percent,
+lib\selectors\recovery-summary\recoverySummaryStatusSelector.js:86: asset_share_percent,

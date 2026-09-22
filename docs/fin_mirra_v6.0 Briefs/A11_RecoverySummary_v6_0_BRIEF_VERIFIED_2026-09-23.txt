@@ -1,0 +1,153 @@
+MIRRA v6.0 - A11 FIX IN RECOVERY SUMMARY
+STATUS: [VERIFIED 2026-09-23] - follow-on fix handed from Assets (P2.4) via
+  Cost Allocation (P2.5). Recovery Summary half of A11 only.
+COMMIT: fix(recovery-summary): A11 full productive asset burden + return
+  asset_recovery_status (see git log for hash).
+EVIDENCE: docs\Audit\v6_0\A11_RecoverySummary\ (step1-3 code dumps).
+RELATED: Assets_v6_0_BRIEF_VERIFIED_2026-09-23.txt (A11 origin and fix spec),
+  Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt (C1, C24).
+
+RULE CARRIED FROM KICKOFF: numbers here are point-in-time evidence for
+2026-09-23 on the padded test dataset, not claims about current data.
+
+===============================================================================
+1. WHAT WAS WRONG
+===============================================================================
+
+calculateRecoverySummary.js used productive_asset_cost as the full productive
+asset burden. That field is OWN cost only (finance interest). It excludes the
+General Overheads running-cost pools assigned to productive assets (fuel,
+insurance, repairs, registration). In hours mode, General Overheads is already
+net of those pools, so the pools were missing from every recovery stream.
+
+Effect: required asset recovery rate, asset_recovery_cost, the suggested split
+basis and the output shares (labour / asset / overhead) were all wrong.
+Recovery streams summed to less than the cost burden by the whole pool amount.
+
+===============================================================================
+2. CORRECTION TO THE ASSETS BRIEF FIX SPEC
+===============================================================================
+
+The Assets brief said useRecoverySummary "already passes"
+productive_asset_assigned_overhead_cost_annual in (~line 149). It does not.
+Lines 148-153 of useRecoverySummary are the OUTPUT contract passthrough. The
+calculation receives Business Summary outputs spread at top level plus the
+Assets contract nested as input.assets. Business Summary does not publish the
+pool figure. The fix therefore reads it from input.assets (the same source the
+output passthrough uses), with input.* checked first.
+
+===============================================================================
+3. WHAT CHANGED (lib/calculations/recovery-summary/calculateRecoverySummary.js)
+===============================================================================
+
+  P1 New constants: productive_asset_assigned_overhead_cost (from the Assets
+     contract) and productive_asset_recovery_cost = own + pools.
+  P2 required_asset_recovery_rate uses the full burden.
+  P3 Suggested split basis uses the full burden.
+  P4 asset_recovery_status base check uses the full burden.
+  P5 Hours-mode asset_recovery_cost = full burden.
+  P6 asset_recovery_included uses the full burden.
+  P7 Publishes productive_asset_assigned_overhead_cost and
+     productive_asset_recovery_cost_annual. productive_asset_cost and
+     productive_asset_cost_annual are UNCHANGED (own cost) - naming trap.
+  P8 Returns asset_recovery_status. It was computed but never returned, so the
+     card always showed "Not selected" and the output contract published
+     undefined (dropped-field bug class (b)). Found live during this fix.
+
+P4 and P6 go slightly beyond the Assets brief spec: they keep the "has a
+productive asset base" checks consistent with the stream they describe.
+
+No UI change needed: the "Productive asset cost" row on the Recovery Summary
+evidence panel displays asset_recovery_cost, not productive_asset_cost.
+
+===============================================================================
+4. DOUBLE-COUNT CHECKS (code, before patching)
+===============================================================================
+
+  - Legacy useBusinessOutcome: productive asset cost is built from
+    productive_asset_cost + productive_asset_assigned_overhead_cost_annual
+    (businessOutcomeCalculations.js 122-123). asset_recovery_cost is used only
+    as the asset stream recoveryTarget (line 324). After the fix the target
+    equals the productive asset cost. No double count.
+  - useCostAllocation.js 99-101: asset_recovery_cost feeds
+    working_unit_recovery_cost -> working_unit_recovery_rate_per_hour (C1,
+    stale, unread; group recovery rows are overwritten from cost rows).
+  - useRecoverySummary returns only status, card and output_contract - the
+    raw calculated object never leaves the hook.
+
+===============================================================================
+5. [VERIFIED 2026-09-23] LIVE RESULTS
+===============================================================================
+
+Recovery Summary evidence panel (screen, after patch):
+                              Before          After
+  Asset recovery status       Not selected    Ready
+  Productive asset cost       39,718.00       84,418.00
+  Annual asset utilisation    12,672 hrs      12,672 hrs
+  Required asset rate         3.13 /hr        6.66 /hr
+  Labour cost / hours / rate  602,334.01 / 1,414 hrs / 425.94 /hr (unchanged)
+  Material margin pool        739,464.30, 37.4% (unchanged)
+
+Output shares (DERIVED from code lines 333-345, not screen-read; stream costs
+labour 602,334.01, overhead 51,166.59 per Cost Allocation brief s4):
+                              Before          After
+  Labour share                86.89%          81.63%
+  Asset share                  5.73%          11.44%
+  Overhead share               7.38%           6.93%
+  Stream total                693,218.60      737,918.60
+  Short of cost burden        46,113.22        1,413.22
+  (739,331.82)
+
+Cost Allocation page (console text check vs Cost Allocation brief s4, after
+patch): 16/17 figures found unchanged - labour pool 602,334, productive asset
+84,418, non-productive asset 1,413, overhead pool 51,166, and every group
+total and overhead split (PC55 100,039 / 8,022; 2inc Line 136,686 / 9,749;
+Site Crew 98,646 / 9,157; Foreman 257,374 / 24,239; PC15 11,829; Mini Truck
+7,500; 2inc Line Pump 2 17,053; Accountant 110,204). The one miss (combined
+grouped operating cost) is not displayed as a single figure. C1 live-confirmed.
+
+C24 (Rate Builder all_productive overhead = overhead pool x labour share),
+derived: 44,458.65 before -> 41,767.29 after. Evidence for the Rate Builder
+pass; Rate Builder not touched.
+
+===============================================================================
+6. NEW FINDINGS (R1-R5)
+===============================================================================
+
+  R1 FIXED (P8) asset_recovery_status computed, never returned.
+  R2 LOGGED The saved split (recoverySummaryStorage.js, split controls on the
+     card) never reaches any output. Hours mode and product mode both overwrite
+     all four stream costs (calculateRecoverySummary 255-267), and published
+     shares are derived from stream costs. The controls affect the card display
+     only. Design decision: remove the controls or give them a real effect.
+  R3 LOGGED Support asset own cost (and any support pools) sits in no hours-mode
+     stream. Stream total falls short of cost burden by exactly that amount
+     (1,413.22 here = Van Nissan own cost 1,413.41, rounding). Natural home is
+     the overhead stream. Not patched - outside the A11 spec.
+  R4 LOGGED RecoverySummaryStatusStrip.jsx and main-card/
+     RecoverySupportingEvidenceDetail.jsx appear to be the same component
+     duplicated (matching content at lines 195-354).
+  R5 LOGGED Recovery hours 1,414 (labour rate 425.94 /hr) is Labour F18
+     (business_recovery_hours = one productive person's average). Unchanged
+     by this fix.
+
+===============================================================================
+7. STILL OPEN FROM A11
+===============================================================================
+
+  Business Summary half of A11 (BusinessSummaryComponentBreakdown.jsx ~218-224,
+  businessSummaryHierarchyChildren.js ~103-106: sum asset_recovery_cost_annual
+  per row, not total_asset_cost_annual). Not started - separate pass.
+  C24 Rate Builder all_productive row - prerequisite now met; handed to the
+  Rate Builder pass.
+
+===============================================================================
+8. TOOLING NOTE
+===============================================================================
+
+  Browser console checks: DevTools copy() is unavailable after an await inside
+  an async snippet (throws "copy is not defined", caught by the Next.js dev
+  overlay - harmless). Capture it first: const cp = typeof copy === "function"
+  ? copy : null. Collapsed sections are invisible to innerText - expand first.
+  Auto-clicking aria-expanded="false" controls can hide panels on the Recovery
+  Summary page; expand by hand there.

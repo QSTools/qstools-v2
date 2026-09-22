@@ -538,7 +538,8 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
   overhead itself and would double count.
 - FOR P2.5 (A11): Recovery Summary rate / asset_recovery_cost / split basis and
   the Business Summary asset breakdowns treat own cost as the full burden. Fix spec
-  in the Assets brief s5.
+  in the Assets brief s5. Recovery Summary half FIXED 2026-09-23 (see Section 15);
+  Business Summary half still open.
 - FOR P2.5 (A12/A13): General Overheads publishes clashing asset_* field names
   and reads saved assets through its own storage instance.
 - DESIGN: A1 own cost is interest only (no depreciation / lease / ownership
@@ -594,3 +595,37 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
 - Hours/units: passthrough only; group_cost_per_unit hard-coded 0.
 - Business Outcome file map not changed by this pass.
 - Test data: synthetic strip-or-carry decision due at this close-out (kickoff s3).
+
+===============================================================================
+15. RECOVERY SUMMARY - A11 FIX (2026-09-23) - record in A11_RecoverySummary_v6_0_BRIEF_VERIFIED_2026-09-23.txt
+===============================================================================
+STAGE: Recovery Summary asset stream
+FIELD NAMES: productive_asset_cost (own, unchanged), productive_asset_assigned_
+  overhead_cost (new), productive_asset_recovery_cost_annual (new, own + pools),
+  asset_recovery_cost, required_asset_recovery_rate, asset_recovery_status,
+  labour/asset/overhead_share_percent
+FILE / FUNCTION: lib/calculations/recovery-summary/calculateRecoverySummary.js
+FEEDS INTO: useRecoverySummary output_contract -> Cost Allocation input builder
+  (labour_share_percent -> Rate Builder all_productive row, C24; asset_recovery_
+  cost -> working_unit_recovery_cost, dead C1), legacy useBusinessOutcome
+  (asset stream recoveryTarget).
+HOURS/UNITS AWARE: hours mode only; product mode zeroes every stream except
+  overhead.
+VERIFIED: See A11 record, [VERIFIED 2026-09-23], s5.
+NOTES: the calculation input is Business Summary outputs spread at top level
+  plus the Assets contract nested as input.assets. Business Summary publishes
+  productive_asset_cost (own) but not the assigned-pool figure - read pools
+  from input.assets. Published shares derive from stream costs, never from the
+  saved split. The raw calculated object never leaves the hook (status, card,
+  output_contract only).
+GAPS (mechanism only):
+- R1 FIXED: asset_recovery_status computed but not returned (card showed
+  "Not selected", contract published undefined).
+- R2: saved split controls never reach any output (streams overwritten in both
+  modes). Design decision.
+- R3: support asset own cost (and support pools) sit in no hours-mode stream;
+  stream total falls short of cost burden by that amount.
+- R4: RecoverySummaryStatusStrip.jsx duplicates main-card/
+  RecoverySupportingEvidenceDetail.jsx.
+- Business Summary half of A11 still open.
+- Business Outcome file map not changed by this fix.

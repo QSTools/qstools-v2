@@ -1,0 +1,127 @@
+===== hooks\useCostAllocation.js  (total 561; showing 88-115) =====
+   88:     asset_output_contract: assets?.output_contract ?? {},
+   89:     recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
+   90:   });
+   91: 
+   92:   const operational_group_recovery_rows = useCostAllocationGroupRecoveryRows({
+   93:     operational_groups: state?.operational_groups ?? [],
+   94:     active_assets: asset_recovery_overlay.active_assets,
+   95:     active_staff: base_calculation_inputs?.active_staff ?? [],
+   96:     labour_group_assignments: safe_array(state?.labour_group_assignments),
+   97:     asset_group_assignments: safe_array(state?.asset_group_assignments),
+   98:     productive_labour_type_rows,
+   99:     working_unit_recovery_cost:
+  100:       safe_number(base_calculation_inputs?.labour_recovery_cost) +
+  101:       safe_number(base_calculation_inputs?.asset_recovery_cost),
+  102:     overhead_absorbed_cost: base_calculation_inputs?.overhead_absorbed_cost,
+  103:     recovery_hours_used: base_calculation_inputs?.recovery_hours_used,
+  104:   });
+  105: 
+  106:   const calculation_inputs = useMemo(() => {
+  107:     return {
+  108:       ...base_calculation_inputs,
+  109: 
+  110:       divisions: safe_array(state?.divisions),
+  111: 
+  112:       active_assets: asset_recovery_overlay.active_assets,
+  113:       asset_recovery_rows: asset_recovery_overlay.asset_recovery_rows,
+  114: 
+  115:       productive_labour_type_rows,
+===== hooks\useBusinessOutcome.js  (total 94; showing 25-75) =====
+   25: 
+   26:   const [rateBuilderCalculators, setRateBuilderCalculators] = useState([]);
+   27: 
+   28:   useEffect(() => {
+   29:     setRateBuilderCalculators(loadRateBuilderCalculators([]));
+   30:   }, []);
+   31: 
+   32:   const operationalGroupCostRows = allocationContract.operational_group_cost_rows || [];
+   33: 
+   34:   const calculation = useMemo(() => {
+   35:     return calculateBusinessOutcome({
+   36:       totalLabourCost: recovery.total_people_cost_annual ?? 0,
+   37:       totalAssetCost: recovery.total_asset_cost_annual ?? 0,
+   38:       totalBusinessOverheads: recovery.total_business_overheads ?? 0,
+   39: 
+   40:       labourRecoveryCost: recovery.labour_recovery_cost ?? 0,
+   41:       assetRecoveryCost: recovery.asset_recovery_cost ?? 0,
+   42:       overheadAbsorbedCost: recovery.overhead_absorbed_cost ?? 0,
+   43: 
+   44:       labourModelRecoveryCapacity: weightedSummary.summary_complete
+   45:         ? weightedSummary.weighted_modelled_labour_revenue ?? null
+   46:         : null,
+   47:       labourRateDataComplete: weightedSummary.summary_complete === true,
+   48:       labourMissingRateCount: weightedSummary.missing_rate_count ?? null,
+   49: 
+   50:       staffCoveragePercent: allocationContract.staff_coverage_percent ?? null,
+   51:       assetCoveragePercent: allocationContract.asset_coverage_percent ?? null,
+   52: 
+   53:       totalRevenue: recovery.total_revenue ?? 0,
+   54:       totalDirectCosts: recovery.total_direct_costs ?? 0,
+   55:       productiveLabourCost: labourContract.total_productive_labour_cost ?? 0,
+   56:       nonProductiveLabourCost: labourContract.total_non_productive_labour_cost ?? 0,
+   57:       productiveAssetCost: recovery.productive_asset_cost ?? 0,
+   58:       productiveAssetAssignedOverheadCost:
+   59:         recovery.productive_asset_assigned_overhead_cost_annual ?? 0,
+   60:       supportAssetCost: recovery.support_asset_cost ?? 0,
+   61:       supportAssetAssignedOverheadCost:
+   62:         recovery.support_asset_assigned_overhead_cost_annual ?? 0,
+   63:       netPositionReference: recovery.net_position ?? null,
+   64: 
+   65:       weightedSummaryRows: weightedSummary.weighted_summary_rows ?? [],
+   66: 
+   67:       rateBuilderCalculators,
+   68:       operationalGroupCostRows,
+   69:       labourChargeOutRateForCalculator,
+   70: 
+   71:       unassignedLabourCost: allocationContract.unassigned_labour_cost ?? null,
+   72:       unassignedAssetCost: allocationContract.unassigned_asset_cost ?? null,
+   73:     });
+   74:   }, [
+   75:     recovery,
+===== grep: where legacy Business Outcome uses assetRecoveryCost / productiveAssetCost =====
+hooks\useBusinessOutcome.js:41: assetRecoveryCost: recovery.asset_recovery_cost ?? 0,
+hooks\useBusinessOutcome.js:57: productiveAssetCost: recovery.productive_asset_cost ?? 0,
+hooks\useBusinessOutcome.js:58: productiveAssetAssignedOverheadCost:
+hooks\useBusinessOutcomeWaterfall.js:25: // assetRecoveryCost, overheadAbsorbedCost, staffCoveragePercent,
+hooks\useBusinessOutcomeWaterfall.js:64: assetRecoveryCost: 0,
+hooks\useBusinessOutcomeWaterfall.js:81: productiveAssetCost: assets_contract.productive_asset_cost ?? 0,
+hooks\useBusinessOutcomeWaterfall.js:82: productiveAssetAssignedOverheadCost:
+lib\calculations\businessOutcomeAssetSplitCalculations.js:108: const nonProductiveAssetCost = Number(
+lib\calculations\businessOutcomeAssetSplitCalculations.js:123: nonProductiveAssetCost,
+lib\calculations\businessOutcomeCalculations.js:13: * totals (nonProductiveLabourCost from Labour, nonProductiveAssetCost
+lib\calculations\businessOutcomeCalculations.js:28: assetRecoveryCost,
+lib\calculations\businessOutcomeCalculations.js:40: productiveAssetCost,
+lib\calculations\businessOutcomeCalculations.js:41: productiveAssetAssignedOverheadCost,
+lib\calculations\businessOutcomeCalculations.js:119: const nonProductiveAssetCostTotal =
+lib\calculations\businessOutcomeCalculations.js:122: const productiveAssetCostTotal =
+lib\calculations\businessOutcomeCalculations.js:123: (productiveAssetCost ?? 0) + (productiveAssetAssignedOverheadCost ?? 0);
+lib\calculations\businessOutcomeCalculations.js:133: nonProductiveAssetCostTotal -
+lib\calculations\businessOutcomeCalculations.js:134: productiveAssetCostTotal -
+lib\calculations\businessOutcomeCalculations.js:154: nonProductiveAssetCost: nonProductiveAssetCostTotal,
+lib\calculations\businessOutcomeCalculations.js:155: productiveAssetCost: productiveAssetCostTotal,
+lib\calculations\businessOutcomeCalculations.js:202: .filter((row) => row.nonProductiveAssetCost > 0)
+lib\calculations\businessOutcomeCalculations.js:206: cost: row.nonProductiveAssetCost,
+lib\calculations\businessOutcomeCalculations.js:284: // nonProductiveAssetCostTotal as its own reconciliation line,
+lib\calculations\businessOutcomeCalculations.js:295: assetGroupsCost + nonProductiveAssetCostTotal + safeUnassignedAssetCost;
+lib\calculations\businessOutcomeCalculations.js:308: nonProductiveAssetGroupedTotal - nonProductiveAssetCostTotal;
+lib\calculations\businessOutcomeCalculations.js:324: recoveryTarget: assetRecoveryCost,
+lib\calculations\businessOutcomeCalculations.js:389: nonProductiveAssetCost: nonProductiveAssetCostTotal,
+lib\calculations\businessOutcomeCalculations.js:407: totalNonProductiveAssetCost: nonProductiveAssetCostTotal,
+lib\selectors\business-outcome\businessOutcomeWaterfallSelectors.js:82: { id: "non_prod_asset", label: "Non-Productive Asset Cost", value: -waterfall.nonProductiveAssetCost, indent: 1, isTotal: false },
+lib\selectors\business-outcome\businessOutcomeWaterfallSelectors.js:83: { id: "prod_asset", label: "Productive Asset Cost", value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+lib\selectors\businessOutcomeSelectors.js:148: { id: 'non_prod_asset', label: 'Non-Productive Asset Cost', value: -waterfall.nonProductiveAssetCost, indent: 1, isTotal: false },
+lib\selectors\businessOutcomeSelectors.js:149: { id: 'prod_asset', label: 'Productive Asset Cost', value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+lib\selectors\businessOutcomeSelectors.js:214: { id: 'non_productive', label: 'Non-Productive Asset Cost', note: 'no charge-out mechanism', value: assetReconciliation.nonProductiveAssetCost },
+===== grep: Recovery Summary UI: productive asset cost display =====
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:195: asset_recovery_cost = 0,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:234: value: format_currency(asset_recovery_cost),
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:279: asset_recovery_cost,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:352: asset_recovery_cost={asset_recovery_cost}
+components\recovery-summary\RecoverySummaryDistributionBlock.jsx:6: asset_recovery_cost,
+components\recovery-summary\RecoverySummaryDistributionBlock.jsx:41: {format_currency(asset_recovery_cost)}
+components\recovery-summary\RecoverySummaryMainCard.jsx:70: asset_recovery_cost={card.asset_recovery_cost}
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:195: asset_recovery_cost = 0,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:234: value: format_currency(asset_recovery_cost),
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:279: asset_recovery_cost,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:352: asset_recovery_cost={asset_recovery_cost}

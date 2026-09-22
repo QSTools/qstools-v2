@@ -265,6 +265,11 @@ LOW / HOUSEKEEPING (logged)
 HANDED TO P2.5 (outside Assets)
   A11 Recovery Summary and Business Summary read productive_asset_cost as if it
       were the full asset burden.
+      [SHIPPED 2026-09-23] Recovery Summary half - see
+        A11_RecoverySummary_v6_0_BRIEF_VERIFIED_2026-09-23.txt. Live: 84,418,
+        6.66/hr as expected. CORRECTION to the spec below: useRecoverySummary
+        line ~149 is the OUTPUT passthrough, not an input; the fix reads the
+        pool figure from input.assets. Business Summary half still OPEN.
       FIX SPEC - Recovery Summary (lib/calculations/recovery-summary/
         calculateRecoverySummary.js ~lines 89-103, 257, and the suggested-split
         basis): use productive_asset_cost + input.productive_asset_assigned_
@@ -318,8 +323,9 @@ HANDED TO P2.5 (outside Assets)
   Cost Summary (hooks/useCostSummary.js): Assets line = total_asset_recovery_
     cost_annual; subtracts total_allocated_asset_overhead_cost_annual from GO;
     passes productive/support own cost and recovery cost through.
-  Recovery Summary: productive_asset_cost (own only - A11),
-    total_productive_asset_utilisation_hours_annual.
+  Recovery Summary: productive_asset_cost (own) + productive_asset_assigned_
+    overhead_cost_annual from input.assets (full burden since A11 fix
+    2026-09-23), total_productive_asset_utilisation_hours_annual.
   Business Outcome / waterfall: own + assigned overhead (correct).
   Cost Allocation overlay (useCostAllocationAssetOverlay.js): reads contract
     active_assets rows; rebuilds productive_asset_cost WITH pools internally.
@@ -335,6 +341,9 @@ HANDED TO P2.5 (outside Assets)
     app/assets/page.jsx, components/assets/AssetStatusStrip.jsx,
     hooks/assets/assetOutputContract.js, hooks/useAssets.js,
     lib/selectors/assets/assetStatusSelectors.js. Build clean; live-checked.
+  [SHIPPED 2026-09-23] fix(recovery-summary): A11 Recovery Summary half (outside
+    Assets). lib/calculations/recovery-summary/calculateRecoverySummary.js.
+    Record: A11_RecoverySummary_v6_0_BRIEF_VERIFIED_2026-09-23.txt.
 
 ===============================================================================
 10. EVIDENCE FILES (docs\Audit\v6_0\P2.4_Assets\)
