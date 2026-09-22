@@ -1,0 +1,99 @@
+##### lib\selectors\general-overheads\generalOverheadAllocationSelectors.js (build_grouped_rows from line 308, 90 lines) #####
+  308: export function build_grouped_rows(
+  309:   overhead_rows,
+  310:   overhead_state,
+  311:   include_move_controls = false
+  312: ) {
+  313:   const grouped = CATEGORY_DEFINITIONS.map((category) => ({
+  314:     category_key: category.key,
+  315:     category_label: category.label,
+  316:     source_total_amount: 0,
+  317:     assigned_amount: 0,
+  318:     remaining_amount: 0,
+  319:     allocation_pool_used: 0,
+  320:     allocation_pool_remaining: 0,
+  321:     allocation_pool_status: "unallocated",
+  322:     total_amount: 0,
+  323:     total_amount_display: format_currency(0),
+  324:     rows: [],
+  325:   }));
+  326: 
+  327:   const source_rows = (overhead_rows ?? []).map((row) => {
+  328:     const effective_category_key = get_effective_category_key(
+  329:       row,
+  330:       overhead_state
+  331:     );
+  332: 
+  333:     return {
+  334:       row,
+  335:       effective_category_key,
+  336:       default_category_key: get_default_category_key(row),
+  337:       // Net/active amount, not raw P&L amount - a row flagged as containing
+  338:       // asset finance interest has already had the Assets module's matched
+  339:       // finance-interest portion subtracted in active_amount. The category
+  340:       // breakdown and every downstream total in this module must be built
+  341:       // from that net figure, or the category headline (built here) will
+  342:       // show the gross P&L amount while the module's own top-line total
+  343:       // (built in generalOverheadCalculations.js) shows the net amount -
+  344:       // two different numbers for the same underlying figure.
+  345:       source_amount: to_number(row.active_amount ?? row.amount),
+  346:       input_amount: get_allocation_input_amount(row, overhead_state),
+  347:     };
+  348:   });
+  349: 
+  350:   const source_rows_by_key = new Map(
+  351:     source_rows.map((entry) => [entry.row.key, entry])
+  352:   );
+  353: 
+  354:   const balanced_pool_runtime = new Map();
+  355: 
+  356:   for (const group of grouped) {
+  357:     const balanced_config = get_balanced_pool_config(group.category_key);
+  358: 
+  359:     const group_source_rows = source_rows.filter(
+  360:       (entry) => entry.effective_category_key === group.category_key
+  361:     );
+  362: 
+  363:     const has_real_split_rows = Boolean(
+  364:       balanced_config &&
+  365:         group_source_rows.some((entry) => {
+  366:           const key = entry.row.key;
+  367: 
+  368:           return (
+  369:             !is_balanced_parent_key(key, balanced_config) &&
+  370:             !is_balanced_child_key(key, balanced_config)
+  371:           );
+  372:         })
+  373:     );
+  374: 
+  375:     const has_redistribution_pool = Boolean(
+  376:       has_real_split_rows && get_redistribution_pool_config(group.category_key)
+  377:     );
+  378: 
+  379:     balanced_pool_runtime.set(group.category_key, {
+  380:       balanced_config,
+  381:       has_real_split_rows,
+  382:       has_redistribution_pool,
+  383:     });
+  384: 
+  385:     let source_total_amount = group_source_rows.reduce(
+  386:       (sum, entry) => sum + entry.source_amount,
+  387:       0
+  388:     );
+  389: 
+  390:     if (balanced_config) {
+  391:       const parent_entry = source_rows_by_key.get(balanced_config.parent_key);
+  392:       const parent_source_amount = to_number(parent_entry?.source_amount);
+  393: 
+  394:       if (parent_source_amount > 0) {
+  395:         source_total_amount = parent_source_amount;
+  396:       }
+  397:     }
+
+=== every 'amount' / 'active_amount' assignment in that file ===
+  204: // flagged row's real remaining General Overheads amount is active_amount,
+  207: return to_number(row.active_amount ?? row.amount);
+  272: active_amount: amount,
+  339: // finance-interest portion subtracted in active_amount. The category
+  345: source_amount: to_number(row.active_amount ?? row.amount),
+  484: amount: input_amount,

@@ -1,0 +1,613 @@
+=== Apply-Patch definition ===
+
+  param([string]$Path, [string]$Find, [string]$Replace, [string]$Label)
+  $full = Join-Path (Get-Location).Path $Path
+  $text = [System.IO.File]::ReadAllText($full)
+  $first = $text.IndexOf($Find, [StringComparison]::Ordinal)
+  if ($first -lt 0) { "NOT FOUND: $Label"; return }
+  $second = $text.IndexOf($Find, $first + $Find.Length, [StringComparison]::Ordinal)
+  if ($second -ge 0) { "AMBIGUOUS: $Label"; return }
+  $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $Replace = $Replace -replace "`r?`n", $nl
+  $new = $text.Substring(0, $first) + $Replace + $text.Substring($first + $Find.Length)
+  [System.IO.File]::WriteAllText($full, $new, (New-Object System.Text.UTF8Encoding($false)))
+  "Patched: $Label"
+
+
+=== A11 safety: how Cost Allocation and others use productive/support asset cost ===
+--- hooks\cost-allocation\useCostAllocationAssetOverlay.js:174
+> productive_asset_cost: productive_asset_recovery_cost,
+  support_asset_cost: support_asset_recovery_cost,
+  
+--- hooks\cost-allocation\useCostAllocationAssetOverlay.js:175
+> support_asset_cost: support_asset_recovery_cost,
+  
+  total_allocated_asset_overhead_cost:
+--- hooks\cost-allocation\useCostAllocationAssignmentCards.js:212
+> calculated?.productive_asset_cost ??
+  0,
+  
+--- hooks\cost-allocation\useCostAllocationOutputContract.js:97
+> unassigned_non_productive_asset_cost: calculated.unassigned_non_productive_asset_cost,
+  labour_pool_over_allocated: calculated.labour_pool_over_allocated,
+  asset_pool_over_allocated: calculated.asset_pool_over_allocated,
+--- hooks\cost-allocation\useCostAllocationOutputContract.js:106
+> productive_asset_cost: calculated.productive_asset_cost,
+  support_asset_cost: calculated.support_asset_cost,
+  
+--- hooks\cost-allocation\useCostAllocationOutputContract.js:107
+> support_asset_cost: calculated.support_asset_cost,
+  
+  active_allocation_profile_id: calculated.active_allocation_profile_id,
+--- hooks\useBusinessOutcome.js:57
+> productiveAssetCost: recovery.productive_asset_cost ?? 0,
+  productiveAssetAssignedOverheadCost:
+  recovery.productive_asset_assigned_overhead_cost_annual ?? 0,
+--- hooks\useBusinessOutcome.js:60
+> supportAssetCost: recovery.support_asset_cost ?? 0,
+  supportAssetAssignedOverheadCost:
+  recovery.support_asset_assigned_overhead_cost_annual ?? 0,
+--- hooks\useBusinessOutcomePerSourceRevenue.js:684
+> to_number(group.assigned_non_productive_asset_cost);
+  
+  const productive_labour_cost = to_number(group.assigned_labour_cost);
+--- hooks\useBusinessOutcomePerSourceRevenue.js:687
+> const productive_asset_cost = to_number(group.assigned_asset_burden);
+  const is_pure_support = productive_labour_cost <= 0 && productive_asset_cost <= 0;
+  
+--- hooks\useBusinessOutcomePerSourceRevenue.js:688
+> const is_pure_support = productive_labour_cost <= 0 && productive_asset_cost <= 0;
+  
+  if (productive_labour_cost > 0 || productive_asset_cost > 0) {
+--- hooks\useBusinessOutcomePerSourceRevenue.js:690
+> if (productive_labour_cost > 0 || productive_asset_cost > 0) {
+  recipients.push({
+  group_id: group.group_id,
+--- hooks\useBusinessOutcomePerSourceRevenue.js:694
+> productive_asset_cost,
+  });
+  }
+--- hooks\useBusinessOutcomePerSourceRevenue.js:727
+> const total_asset_cost = recipients.reduce((sum, r) => sum + r.productive_asset_cost, 0);
+  
+  let weight_basis = "equal_split";
+--- hooks\useBusinessOutcomePerSourceRevenue.js:738
+> weight = total_asset_cost > 0 ? r.productive_asset_cost / total_asset_cost : 0;
+  } else {
+  weight = 1 / recipients.length;
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1054
+> const unassigned_non_productive_asset_cost = to_number(
+  allocation_contract.unassigned_non_productive_asset_cost
+  );
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1055
+> allocation_contract.unassigned_non_productive_asset_cost
+  );
+  
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1060
+> // unassigned_non_productive_labour_cost/unassigned_non_productive_asset_cost
+  // above). The moment it gets assigned to a working unit, Cost
+  // Allocation correctly tracks its real cost as
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1063
+> // assigned_non_productive_labour_cost/assigned_non_productive_asset_cost
+  // on that working unit's own row (costAllocationGroupCostBuilder.js) -
+  // but nothing here ever read those fields, so that real cost
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1073
+> const assigned_non_productive_asset_cost = operational_group_cost_rows.reduce(
+  (sum, group) => sum + to_number(group.assigned_non_productive_asset_cost),
+  0
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1074
+> (sum, group) => sum + to_number(group.assigned_non_productive_asset_cost),
+  0
+  );
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1218
+> unassigned_non_productive_asset_cost +
+  assigned_non_productive_labour_cost +
+  assigned_non_productive_asset_cost;
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1220
+> assigned_non_productive_asset_cost;
+  
+  // Revenue reconciliation deliberately NOT included here. Removed
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1265
+> unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
+  // FIX (2026-09-17) - exposed alongside the unassigned figures
+  // above for the same reason those are: real cost, now counted
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1270
+> assigned_non_productive_asset_cost: round_currency(assigned_non_productive_asset_cost),
+  // Added 2026-09-17, second pass - pure-support working units
+  // (e.g. Accountant, Office Staff) with their own raw, undistributed
+--- hooks\useBusinessOutcomePerSourceRevenue.js:1357
+> (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost)
+  ),
+  }),
+--- hooks\useBusinessOutcomeWaterfall.js:81
+> productiveAssetCost: assets_contract.productive_asset_cost ?? 0,
+  productiveAssetAssignedOverheadCost:
+  assets_contract.productive_asset_assigned_overhead_cost_annual ?? 0,
+--- hooks\useBusinessOutcomeWaterfall.js:84
+> supportAssetCost: assets_contract.support_asset_cost ?? 0,
+  supportAssetAssignedOverheadCost:
+  assets_contract.support_asset_assigned_overhead_cost_annual ?? 0,
+--- hooks\useBusinessSummary.js:120
+> productive_asset_cost:
+  cost_summary_output_contract.productive_asset_cost ?? 0,
+  support_asset_cost:
+--- hooks\useBusinessSummary.js:121
+> cost_summary_output_contract.productive_asset_cost ?? 0,
+  support_asset_cost:
+  cost_summary_output_contract.support_asset_cost ?? 0,
+--- hooks\useBusinessSummary.js:122
+> support_asset_cost:
+  cost_summary_output_contract.support_asset_cost ?? 0,
+  
+--- hooks\useBusinessSummary.js:123
+> cost_summary_output_contract.support_asset_cost ?? 0,
+  
+  total_business_overheads:
+--- hooks\useBusinessSummary.js:213
+> productive_asset_cost:
+  display_details.productive_asset_cost,
+  support_asset_cost:
+--- hooks\useBusinessSummary.js:214
+> display_details.productive_asset_cost,
+  support_asset_cost:
+  display_details.support_asset_cost,
+--- hooks\useBusinessSummary.js:215
+> support_asset_cost:
+  display_details.support_asset_cost,
+  
+--- hooks\useBusinessSummary.js:216
+> display_details.support_asset_cost,
+  
+  total_business_overheads:
+--- hooks\useCostAllocation.js:138
+> productive_asset_cost: asset_recovery_overlay.productive_asset_cost,
+  support_asset_cost: asset_recovery_overlay.support_asset_cost,
+  
+--- hooks\useCostAllocation.js:139
+> support_asset_cost: asset_recovery_overlay.support_asset_cost,
+  
+  total_allocated_asset_overhead_cost:
+--- hooks\useCostSummary.js:139
+> productive_asset_cost:
+  asset_output_contract.productive_asset_cost ?? 0,
+  productive_asset_recovery_cost_annual:
+--- hooks\useCostSummary.js:140
+> asset_output_contract.productive_asset_cost ?? 0,
+  productive_asset_recovery_cost_annual:
+  asset_output_contract.productive_asset_recovery_cost_annual ??
+--- hooks\useCostSummary.js:143
+> asset_output_contract.productive_asset_cost ??
+  0,
+  support_asset_cost:
+--- hooks\useCostSummary.js:145
+> support_asset_cost:
+  asset_output_contract.support_asset_cost ?? 0,
+  
+--- hooks\useCostSummary.js:146
+> asset_output_contract.support_asset_cost ?? 0,
+  
+  total_business_overheads: calculations.total_business_overheads ?? 0,
+--- hooks\useCostSummary.js:234
+> productive_asset_cost:
+  asset_output_contract.productive_asset_cost ?? 0,
+  productive_asset_recovery_cost_annual:
+--- hooks\useCostSummary.js:235
+> asset_output_contract.productive_asset_cost ?? 0,
+  productive_asset_recovery_cost_annual:
+  asset_output_contract.productive_asset_recovery_cost_annual ??
+--- hooks\useCostSummary.js:238
+> asset_output_contract.productive_asset_cost ??
+  0,
+  support_asset_cost:
+--- hooks\useCostSummary.js:240
+> support_asset_cost:
+  asset_output_contract.support_asset_cost ?? 0,
+  asset_overhead_pool_assignment_summary: Array.isArray(
+--- hooks\useCostSummary.js:241
+> asset_output_contract.support_asset_cost ?? 0,
+  asset_overhead_pool_assignment_summary: Array.isArray(
+  asset_output_contract.asset_overhead_pool_assignment_summary
+--- hooks\useRecoverySummary.js:148
+> productive_asset_cost: asset_outputs.productive_asset_cost ?? 0,
+  support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+  productive_asset_assigned_overhead_cost_annual:
+--- hooks\useRecoverySummary.js:149
+> support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+  productive_asset_assigned_overhead_cost_annual:
+  asset_outputs.productive_asset_assigned_overhead_cost_annual ?? 0,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:240
+> const available_non_productive_asset_cost = asset_rows.reduce(
+  (sum, asset) => sum + get_total_asset_cost(asset),
+  0
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:245
+> const assigned_non_productive_asset_cost = enriched_assignments.reduce(
+  (sum, assignment) => sum + safe_number(assignment.assigned_asset_cost),
+  0
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:266
+> let over_allocated_non_productive_asset_cost = 0;
+  let max_non_productive_asset_assignment_percent = 0;
+  
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:282
+> over_allocated_non_productive_asset_cost +=
+  safe_number(asset_row?.available_asset_cost) * (over_percent / 100);
+  });
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:286
+> const remaining_non_productive_asset_cost =
+  available_non_productive_asset_cost - assigned_non_productive_asset_cost;
+  
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:287
+> available_non_productive_asset_cost - assigned_non_productive_asset_cost;
+  
+  let allocation_status = "balanced";
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:291
+> if (over_allocated_non_productive_asset_cost > 0) {
+  allocation_status = "over_allocated";
+  } else if (remaining_non_productive_asset_cost > 1) {
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:293
+> } else if (remaining_non_productive_asset_cost > 1) {
+  allocation_status = "under_allocated";
+  }
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:301
+> available_asset_cost: available_non_productive_asset_cost,
+  assigned_asset_cost: assigned_non_productive_asset_cost,
+  remaining_asset_cost: remaining_non_productive_asset_cost,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:302
+> assigned_asset_cost: assigned_non_productive_asset_cost,
+  remaining_asset_cost: remaining_non_productive_asset_cost,
+  over_allocated_asset_cost: over_allocated_non_productive_asset_cost,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:303
+> remaining_asset_cost: remaining_non_productive_asset_cost,
+  over_allocated_asset_cost: over_allocated_non_productive_asset_cost,
+  max_assignment_percent: max_non_productive_asset_assignment_percent,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:304
+> over_allocated_asset_cost: over_allocated_non_productive_asset_cost,
+  max_assignment_percent: max_non_productive_asset_assignment_percent,
+  allocation_status,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:311
+> total_available_non_productive_asset_cost:
+  available_non_productive_asset_cost,
+  total_assigned_non_productive_asset_cost:
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:312
+> available_non_productive_asset_cost,
+  total_assigned_non_productive_asset_cost:
+  assigned_non_productive_asset_cost,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:313
+> total_assigned_non_productive_asset_cost:
+  assigned_non_productive_asset_cost,
+  total_remaining_non_productive_asset_cost:
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:314
+> assigned_non_productive_asset_cost,
+  total_remaining_non_productive_asset_cost:
+  remaining_non_productive_asset_cost,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:315
+> total_remaining_non_productive_asset_cost:
+  remaining_non_productive_asset_cost,
+  total_over_allocated_non_productive_asset_cost:
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:316
+> remaining_non_productive_asset_cost,
+  total_over_allocated_non_productive_asset_cost:
+  over_allocated_non_productive_asset_cost,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:317
+> total_over_allocated_non_productive_asset_cost:
+  over_allocated_non_productive_asset_cost,
+  non_productive_asset_pool_status: allocation_status,
+--- lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:318
+> over_allocated_non_productive_asset_cost,
+  non_productive_asset_pool_status: allocation_status,
+  };
+--- lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:65
+> const assigned_non_productive_asset_cost =
+  non_productive_asset_assignments.reduce(
+  (sum, assignment) => sum + safe_number(assignment.assigned_asset_cost),
+--- lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:111
+> assigned_non_productive_asset_cost;
+  
+  // These three sum to group_cost_per_hour by construction (total_group_cost / hours),
+--- lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:182
+> assigned_non_productive_asset_cost,
+  
+  assigned_overhead_amount,
+--- lib\calculations\cost-allocation\costAllocationInputBuilder.js:123
+> productive_asset_cost: safe_number(recovery_outputs?.productive_asset_cost),
+  support_asset_cost: safe_number(recovery_outputs?.support_asset_cost),
+  
+--- lib\calculations\cost-allocation\costAllocationInputBuilder.js:124
+> support_asset_cost: safe_number(recovery_outputs?.support_asset_cost),
+  
+  active_staff: active_staff.map((staff) => ({
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:337
+> const total_grouped_non_productive_asset_cost =
+  non_productive_asset_assignment_result.total_assigned_non_productive_asset_cost;
+  
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:338
+> non_productive_asset_assignment_result.total_assigned_non_productive_asset_cost;
+  
+  const total_grouped_operating_cost =
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:345
+> total_grouped_non_productive_asset_cost;
+  
+  const unassigned_labour_cost =
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:359
+> const unassigned_non_productive_asset_cost =
+  non_productive_asset_assignment_result.total_remaining_non_productive_asset_cost;
+  
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:360
+> non_productive_asset_assignment_result.total_remaining_non_productive_asset_cost;
+  
+  const total_unassigned_cost =
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:527
+> total_grouped_non_productive_asset_cost,
+  total_grouped_operating_cost,
+  unassigned_labour_cost,
+--- lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:533
+> unassigned_non_productive_asset_cost,
+  total_unassigned_cost,
+  };
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:89
+> const productive_asset_cost = to_number(
+  input.productive_asset_cost ??
+  input.productive_asset_cost_annual ??
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:90
+> input.productive_asset_cost ??
+  input.productive_asset_cost_annual ??
+  asset_contract.productive_asset_cost_annual ??
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:93
+> asset_contract.productive_asset_cost
+  );
+  const support_asset_cost = to_number(input.support_asset_cost);
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:95
+> const support_asset_cost = to_number(input.support_asset_cost);
+  const asset_utilisation_hours_annual = to_number(
+  input.asset_utilisation_hours_annual ??
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:103
+> ? round_currency(productive_asset_cost / asset_utilisation_hours_annual)
+  : 0;
+  
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:166
+> productive_asset_cost,
+  has_productive_asset_recovery_base,
+  total_direct_costs,
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:249
+> productive_asset_count <= 0 && productive_asset_cost <= 0
+  ? "no_productive_assets"
+  : asset_utilisation_hours_annual <= 0
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:257
+> asset_recovery_cost = round_currency(productive_asset_cost);
+  material_recovery_cost = 0;
+  overhead_absorbed_cost = round_currency(total_business_overheads);
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:303
+> ? productive_asset_cost > 0
+  : asset_share_percent > 0;
+  
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:543
+> productive_asset_cost: round_currency(productive_asset_cost),
+  productive_asset_cost_annual: round_currency(productive_asset_cost),
+  support_asset_cost: round_currency(support_asset_cost),
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:544
+> productive_asset_cost_annual: round_currency(productive_asset_cost),
+  support_asset_cost: round_currency(support_asset_cost),
+  asset_utilisation_hours_annual: round_currency(
+--- lib\calculations\recovery-summary\calculateRecoverySummary.js:545
+> support_asset_cost: round_currency(support_asset_cost),
+  asset_utilisation_hours_annual: round_currency(
+  asset_utilisation_hours_annual
+--- lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:42
+> productive_asset_cost,
+  has_productive_asset_recovery_base,
+  total_direct_costs,
+--- lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:55
+> to_number(productive_asset_cost) > 0;
+  
+  const has_material_recovery_base = to_number(total_direct_costs) > 0;
+--- lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:63
+> const asset_basis = has_asset_recovery_base ? to_number(productive_asset_cost) : 0;
+  
+  const material_basis = has_material_recovery_base
+--- lib\calculations\businessOutcomeAssetSplitCalculations.js:108
+> const nonProductiveAssetCost = Number(
+  group?.assigned_non_productive_asset_cost || 0
+  );
+--- lib\calculations\businessOutcomeAssetSplitCalculations.js:109
+> group?.assigned_non_productive_asset_cost || 0
+  );
+  
+--- lib\calculations\businessOutcomeAssetSplitCalculations.js:123
+> nonProductiveAssetCost,
+  calculatorName: calculator?.name || null,
+  hasCalculator: Boolean(calculator?.lines?.length),
+--- lib\calculations\businessOutcomeCalculations.js:13
+> * totals (nonProductiveLabourCost from Labour, nonProductiveAssetCost
+  * from Recovery Summary) and the new per-group sums (from Cost
+  * Allocation's operational_group_cost_rows) are independently sourced
+--- lib\calculations\businessOutcomeCalculations.js:40
+> productiveAssetCost,
+  productiveAssetAssignedOverheadCost,
+  supportAssetCost,
+--- lib\calculations\businessOutcomeCalculations.js:42
+> supportAssetCost,
+  supportAssetAssignedOverheadCost,
+  netPositionReference,
+--- lib\calculations\businessOutcomeCalculations.js:119
+> const nonProductiveAssetCostTotal =
+  (supportAssetCost ?? 0) + (supportAssetAssignedOverheadCost ?? 0);
+  
+--- lib\calculations\businessOutcomeCalculations.js:120
+> (supportAssetCost ?? 0) + (supportAssetAssignedOverheadCost ?? 0);
+  
+  const productiveAssetCostTotal =
+--- lib\calculations\businessOutcomeCalculations.js:122
+> const productiveAssetCostTotal =
+  (productiveAssetCost ?? 0) + (productiveAssetAssignedOverheadCost ?? 0);
+  
+--- lib\calculations\businessOutcomeCalculations.js:123
+> (productiveAssetCost ?? 0) + (productiveAssetAssignedOverheadCost ?? 0);
+  
+  const margin = hasLabourCapacity
+--- lib\calculations\businessOutcomeCalculations.js:133
+> nonProductiveAssetCostTotal -
+  productiveAssetCostTotal -
+  totalBusinessOverheads
+--- lib\calculations\businessOutcomeCalculations.js:134
+> productiveAssetCostTotal -
+  totalBusinessOverheads
+  : null;
+--- lib\calculations\businessOutcomeCalculations.js:154
+> nonProductiveAssetCost: nonProductiveAssetCostTotal,
+  productiveAssetCost: productiveAssetCostTotal,
+  generalOverheads: totalBusinessOverheads,
+--- lib\calculations\businessOutcomeCalculations.js:155
+> productiveAssetCost: productiveAssetCostTotal,
+  generalOverheads: totalBusinessOverheads,
+  netProfit,
+--- lib\calculations\businessOutcomeCalculations.js:202
+> .filter((row) => row.nonProductiveAssetCost > 0)
+  .map((row) => ({
+  groupId: row.groupId,
+--- lib\calculations\businessOutcomeCalculations.js:206
+> cost: row.nonProductiveAssetCost,
+  }));
+  
+--- lib\calculations\businessOutcomeCalculations.js:284
+> // nonProductiveAssetCostTotal as its own reconciliation line,
+  // matching the Labour pattern exactly.
+  
+--- lib\calculations\businessOutcomeCalculations.js:295
+> assetGroupsCost + nonProductiveAssetCostTotal + safeUnassignedAssetCost;
+  
+  const assetReconciliationVariance = totalAssetAccounted - (totalAssetCost ?? 0);
+--- lib\calculations\businessOutcomeCalculations.js:308
+> nonProductiveAssetGroupedTotal - nonProductiveAssetCostTotal;
+  
+  const nonProductiveAssetGroupedReconciles =
+--- lib\calculations\businessOutcomeCalculations.js:389
+> nonProductiveAssetCost: nonProductiveAssetCostTotal,
+  unassignedAssetCost: safeUnassignedAssetCost,
+  totalAssetCost: totalAssetCost ?? 0,
+--- lib\calculations\businessOutcomeCalculations.js:407
+> totalNonProductiveAssetCost: nonProductiveAssetCostTotal,
+  groupedTotal: nonProductiveAssetGroupedTotal,
+  variance: nonProductiveAssetGroupedVariance,
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:16
+> //    unassigned_non_productive_labour_cost, unassigned_non_productive_asset_cost,
+  //    and materials are their own separate block, not folded into the
+  //    source list - so an unassigned amount reads as a clear, actionable
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:367
+> unassigned_non_productive_asset_cost,
+  // FIX (2026-09-17) - real cost, counted even once a non-productive
+  // item is assigned to a working unit, not just while unassigned.
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:374
+> assigned_non_productive_asset_cost,
+  residual_overhead,
+  reconciliation,
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:419
+> unassigned_non_productive_asset_cost > 0 && {
+  label: "Unassigned non-productive asset cost",
+  amount: unassigned_non_productive_asset_cost,
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:421
+> amount: unassigned_non_productive_asset_cost,
+  hint: "Real support asset cost not yet assigned to a Cost Allocation group - e.g. a vehicle with no group assignment.",
+  },
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:430
+> unassigned_non_productive_asset_cost;
+  
+  const total_labour_modelled_revenue = labour_groups.reduce(
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:481
+> unassigned_non_productive_asset_cost -
+  (assigned_non_productive_labour_cost ?? 0) -
+  (assigned_non_productive_asset_cost ?? 0);
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:483
+> (assigned_non_productive_asset_cost ?? 0);
+  
+  const being_carried = all_group_level_entries
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:558
+> unassigned_non_productive_asset_cost;
+  
+  const being_carried_real_capacity = all_group_level_entries_real_capacity
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:694
+> total: (assigned_non_productive_labour_cost ?? 0) + (assigned_non_productive_asset_cost ?? 0),
+  has_gaps: ((assigned_non_productive_labour_cost ?? 0) + (assigned_non_productive_asset_cost ?? 0)) > 0,
+  },
+--- lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:695
+> has_gaps: ((assigned_non_productive_labour_cost ?? 0) + (assigned_non_productive_asset_cost ?? 0)) > 0,
+  },
+  // Added 2026-09-17, second pass - pass-through, no reshaping needed.
+--- lib\selectors\business-outcome\businessOutcomeWaterfallSelectors.js:82
+> { id: "non_prod_asset", label: "Non-Productive Asset Cost", value: -waterfall.nonProductiveAssetCost, indent: 1, isTotal: false },
+  { id: "prod_asset", label: "Productive Asset Cost", value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+  { id: "overheads", label: "General Overheads (unassigned)", value: -waterfall.generalOverheads, indent: 1, isTotal: false },
+--- lib\selectors\business-outcome\businessOutcomeWaterfallSelectors.js:83
+> { id: "prod_asset", label: "Productive Asset Cost", value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+  { id: "overheads", label: "General Overheads (unassigned)", value: -waterfall.generalOverheads, indent: 1, isTotal: false },
+  { id: "net_profit", label: "Net Profit", value: waterfall.netProfit, indent: 0, isTotal: true },
+--- lib\selectors\recovery-summary\recoverySummaryCardSelector.js:109
+> productive_asset_cost: calculated.productive_asset_cost ?? 0,
+  productive_asset_cost_annual:
+  calculated.productive_asset_cost_annual ??
+--- lib\selectors\recovery-summary\recoverySummaryCardSelector.js:112
+> calculated.productive_asset_cost ??
+  0,
+  support_asset_cost: calculated.support_asset_cost ?? 0,
+--- lib\selectors\recovery-summary\recoverySummaryCardSelector.js:114
+> support_asset_cost: calculated.support_asset_cost ?? 0,
+  asset_utilisation_hours_annual:
+  calculated.asset_utilisation_hours_annual ?? 0,
+--- lib\selectors\businessOutcomeSelectors.js:148
+> { id: 'non_prod_asset', label: 'Non-Productive Asset Cost', value: -waterfall.nonProductiveAssetCost, indent: 1, isTotal: false },
+  { id: 'prod_asset', label: 'Productive Asset Cost', value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+  { id: 'overheads', label: 'General Overheads (unassigned)', value: -waterfall.generalOverheads, indent: 1, isTotal: false },
+--- lib\selectors\businessOutcomeSelectors.js:149
+> { id: 'prod_asset', label: 'Productive Asset Cost', value: -waterfall.productiveAssetCost, indent: 1, isTotal: false },
+  { id: 'overheads', label: 'General Overheads (unassigned)', value: -waterfall.generalOverheads, indent: 1, isTotal: false },
+  { id: 'net_profit', label: 'Net Profit', value: waterfall.netProfit, indent: 0, isTotal: true },
+--- lib\selectors\businessOutcomeSelectors.js:214
+> { id: 'non_productive', label: 'Non-Productive Asset Cost', note: 'no charge-out mechanism', value: assetReconciliation.nonProductiveAssetCost },
+  { id: 'unassigned', label: 'Unassigned Asset Cost', note: assetReconciliation.unassignedAssetCost > 0 ? 'coverage gap' : 'fully covered', value: assetReconciliation.unassignedAssetCost },
+  { id: 'total', label: 'Total Asset Cost', value: assetReconciliation.totalAssetAccounted, isTotal: true },
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:103
+> const productive_asset_cost = scaleDisplayPeriodValue(
+  sumAssetCost(productive_assets)
+  );
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:106
+> const support_asset_cost = scaleDisplayPeriodValue(
+  sumAssetCost(support_assets)
+  );
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:144
+> value: productive_asset_cost,
+  amount: Math.abs(productive_asset_cost),
+  referenceTotal: Math.abs(scaled_asset_cost),
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:145
+> amount: Math.abs(productive_asset_cost),
+  referenceTotal: Math.abs(scaled_asset_cost),
+  suffix: scale_suffix,
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:154
+> value: support_asset_cost,
+  amount: Math.abs(support_asset_cost),
+  referenceTotal: Math.abs(scaled_asset_cost),
+--- components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:155
+> amount: Math.abs(support_asset_cost),
+  referenceTotal: Math.abs(scaled_asset_cost),
+  suffix: scale_suffix,
+--- components\business-summary\BusinessSummaryComponentBreakdown.jsx:218
+> const productive_asset_cost = sum_rows(
+  productive_assets,
+  "total_asset_cost_annual"
+--- components\business-summary\BusinessSummaryComponentBreakdown.jsx:222
+> const support_asset_cost = sum_rows(
+  support_assets,
+  "total_asset_cost_annual"
+--- components\business-summary\BusinessSummaryComponentBreakdown.jsx:267
+> total={productive_asset_cost}
+  />
+  {productive_assets.length > 0 ? (
+--- components\business-summary\BusinessSummaryComponentBreakdown.jsx:286
+> total={support_asset_cost}
+  />
+  {support_assets.length > 0 ? (
+--- components\cost-allocation\evidence\GroupCostStacksSection.jsx:180
+> value={formatMoney(row.assigned_non_productive_asset_cost)}
+  />
+  <TableRow
+--- components\cost-allocation\groups\CostAllocationGroupCostSummary.jsx:369
+> {formatMoney(group_cost_row?.assigned_non_productive_asset_cost)}
+  </div>
+  </div>

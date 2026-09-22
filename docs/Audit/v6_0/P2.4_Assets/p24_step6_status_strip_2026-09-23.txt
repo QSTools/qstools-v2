@@ -1,0 +1,166 @@
+##### components\assets\AssetStatusStrip.jsx (1-75) #####
+    1: function SummaryRow({ label, value }) {
+    2:   return (
+    3:     <div className="labour-summary-table-row">
+    4:       <div className="labour-summary-table-label">{label}</div>
+    5:       <div className="labour-summary-table-value">{value}</div>
+    6:     </div>
+    7:   );
+    8: }
+    9: 
+   10: export default function AssetStatusStrip({
+   11:   module_total_asset_cost_label,
+   12:   assets_benchmark_total_label,
+   13:   assets_variance_amount_label,
+   14:   assets_variance_percent_label,
+   15:   reconciliation_label,
+   16:   active_asset_count_label,
+   17:   productive_asset_count_label,
+   18:   total_productive_asset_utilisation_hours_annual_label,
+   19:   productive_asset_cost_annual_label,
+   20:   productive_asset_recovery_rate_label,
+   21:   warning_count,
+   22:   warnings,
+   23:   is_ready,
+   24: }) {
+   25:   return (
+   26:     <section className="ui-section">
+   27:       <div className="ui-panel ui-stack-sm">
+   28:         <div className="ui-stack-sm">
+   29:           <div className="ui-kicker">Reconciliation</div>
+   30:           <div className="ui-display">Asset position</div>
+   31:           <div className="ui-help">
+   32:             As you enter assets, your position moves closer to your P&amp;L
+   33:             benchmark.
+   34:           </div>
+   35:         </div>
+   36: 
+   37:         <div className="ui-panel">
+   38:           <div className="ui-stack-sm">
+   39:             <div className="ui-kicker">Status</div>
+   40: 
+   41:             <div className="labour-summary-table">
+   42:               <SummaryRow
+   43:                 label="Module State"
+   44:                 value={is_ready ? "Ready" : "Needs attention"}
+   45:               />
+   46:               <SummaryRow
+   47:                 label="Reconciliation"
+   48:                 value={reconciliation_label}
+   49:               />
+   50:               <SummaryRow
+   51:                 label="Active Assets"
+   52:                 value={active_asset_count_label}
+   53:               />
+   54:               <SummaryRow
+   55:                 label="Productive Assets"
+   56:                 value={productive_asset_count_label}
+   57:               />
+   58:               <SummaryRow
+   59:                 label="Productive Asset Utilisation"
+   60:                 value={total_productive_asset_utilisation_hours_annual_label}
+   61:               />
+   62:               <SummaryRow
+   63:                 label="Productive Asset Annual Cost"
+   64:                 value={productive_asset_cost_annual_label}
+   65:               />
+   66:               <SummaryRow
+   67:                 label="Productive Asset Recovery Rate"
+   68:                 value={productive_asset_recovery_rate_label}
+   69:               />
+   70:             </div>
+   71:           </div>
+   72:         </div>
+   73: 
+   74:         <div className="ui-panel">
+   75:           <div className="ui-stack-sm">
+
+##### app\assets\page.jsx (full) #####
+    1: "use client";
+    2: 
+    3: import useAssets from "@/hooks/useAssets";
+    4: import NextStepFooter from "@/components/navigation/NextStepFooter";
+    5: import AssetMainCard from "@/components/assets/AssetMainCard";
+    6: import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
+    7: import AssetFinancePnlMatchCard from "@/components/assets/AssetFinancePnlMatchCard";
+    8: import AssetTotalPurchasePriceCard from "@/components/assets/AssetTotalPurchasePriceCard";
+    9: 
+   10: export default function AssetsPage() {
+   11:   const { status, card, business_default_annual_weeks, asset_finance_pnl_match, active_assets } = useAssets();
+   12: 
+   13:   return (
+   14:     <main className="ui-page">
+   15:       <div className="ui-page-stack">
+   16:         <section className="ui-section">
+   17:           <div className="ui-panel ui-stack-sm">
+   18:             <div className="ui-kicker">Assets</div>
+   19:             <div className="ui-display">Owned asset cost baseline</div>
+   20:             <p className="ui-lead">
+   21:               Break asset ownership costs out of the P&amp;L so finance interest
+   22:               and total annual operating asset cost are visible before moving on.
+   23:             </p>
+   24:           </div>
+   25:         </section>
+   26: 
+   27:         <AssetMainCard
+   28:           {...card}
+   29:           status={status}
+   30:           default_annual_weeks={business_default_annual_weeks}
+   31:         />
+   32:         <AssetFinancePnlMatchCard asset_finance_pnl_match={asset_finance_pnl_match} />
+   33:         <section className="ui-section">
+   34:           <div className="ui-panel">
+   35:             <AssetTotalPurchasePriceCard active_assets={active_assets} />
+   36:           </div>
+   37:         </section>
+   38:         <AssetHelpPanel />
+   39:         <NextStepFooter
+   40:           nextHref="/opening-hours"
+   41:           nextLabel="Next: Opening Hours"
+   42:         />
+   43:       </div>
+   44:     </main>
+   45:   );
+   46: }
+   47: 
+   48: 
+   49: 
+   50: 
+
+=== Where AssetStatusStrip is rendered ===
+
+=== 'warnings' / 'Productive asset annual cost' in Assets components ===
+components\assets\AssetStatusStrip.jsx:21: warning_count,
+components\assets\AssetStatusStrip.jsx:22: warnings,
+components\assets\AssetStatusStrip.jsx:63: label="Productive Asset Annual Cost"
+components\assets\AssetStatusStrip.jsx:67: label="Productive Asset Recovery Rate"
+components\assets\AssetStatusStrip.jsx:99: {warning_count > 0 && (
+components\assets\AssetStatusStrip.jsx:102: <div className="ui-kicker">Warnings</div>
+components\assets\AssetStatusStrip.jsx:105: {warnings.map((warning, index) => (
+lib\selectors\assets\assetCardSelectors.js:244: label: "Productive asset annual cost",
+lib\selectors\assets\assetCardSelectors.js:254: label: "Productive asset recovery rate",
+lib\selectors\assets\assetStatusSelectors.js:91: const warnings = [];
+lib\selectors\assets\assetStatusSelectors.js:194: warnings.push("Asset name is missing.");
+lib\selectors\assets\assetStatusSelectors.js:202: warnings.push("Effective from date is missing.");
+lib\selectors\assets\assetStatusSelectors.js:212: warnings.push("Purchase price is required when finance inputs are used.");
+lib\selectors\assets\assetStatusSelectors.js:216: warnings.push("Interest rate is required when finance inputs are used.");
+lib\selectors\assets\assetStatusSelectors.js:220: warnings.push("Finance term is required when finance inputs are used.");
+lib\selectors\assets\assetStatusSelectors.js:224: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:234: warnings.push("Enter extension months when extending finance.");
+lib\selectors\assets\assetStatusSelectors.js:241: warnings.push("Paid-off date is missing.");
+lib\selectors\assets\assetStatusSelectors.js:245: warnings.push("Support assets are included in cost only.");
+lib\selectors\assets\assetStatusSelectors.js:253: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:259: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:265: warnings.push("No active assets explicitly confirmed.");
+lib\selectors\assets\assetStatusSelectors.js:267: warnings.push("Awaiting P&L asset benchmark. This is diagnostic only.");
+lib\selectors\assets\assetStatusSelectors.js:270: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:276: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:283: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:289: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:301: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:307: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:310: .join(", ")}. Their utilisation hours still lower the productive asset recovery rate. Review cost inputs or asset type.`
+lib\selectors\assets\assetStatusSelectors.js:315: warnings.push(
+lib\selectors\assets\assetStatusSelectors.js:321: warnings.push("No active assets are saved yet.");
+lib\selectors\assets\assetStatusSelectors.js:331: warning_count: warnings.length,
+lib\selectors\assets\assetStatusSelectors.js:332: warnings,

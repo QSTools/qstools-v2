@@ -1,0 +1,354 @@
+MIRRA v6.0 - ASSETS MODULE BRIEF
+STATUS: [VERIFIED 2026-09-23] - v6.0 Phase 2 Step 4 (P2.4)
+COMMIT: 26f4be7 (code fixes A10, A18, A21, A23). Prior HEAD 01f90c6.
+SUPERSEDES (archive, do not delete from repo):
+  - 09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt (incl. appended v5.0 addendum + Pass 4 sections)
+  - assets_ACCEPTED_BRIEF_ADDENDUM_v5.0.txt (already inside the v4 file verbatim)
+  - assets_BRIEF_UPDATE_v5.0.txt (raw pre-review list)
+  - MIRRA_PASS_4_ASSETS_DECISION_PACK_v5.0.csv (blank form) / _DECISIONS_v5.0.csv (filled)
+EVIDENCE: docs\Audit\v6_0\P2.4_Assets\ (code dumps, live stored data, page captures,
+  patch/build logs - listed in Section 10).
+
+RULE CARRIED FROM KICKOFF: numbers in this brief are point-in-time evidence for
+2026-09-23 on the padded test dataset. They are not claims about current data.
+
+===============================================================================
+1. WHAT ASSETS ACTUALLY DOES (code truth, 2026-09-23)
+===============================================================================
+
+The v4 brief describes a much richer module than the code implements. Where they
+differ, THIS SECTION is the truth; Section 3 lists the gaps.
+
+FILES
+  hooks/useAssets.js                         orchestrator (343 lines)
+  hooks/assets/assetOutputContract.js        buildAssetsOutputContract (the contract)
+  hooks/assets/assetHookUtils.js             pool keys, pool summary, utilisation/rate
+  lib/calculations/assetCalculations.js      calculateAssetOutputs (finance, interest)
+  lib/storage/assetStorage.js                useAssetStorage, sanitize, save/load
+  lib/selectors/assets/assetStatusSelectors.js   buildAssetStatus (warnings, guardrail)
+  lib/selectors/assets/assetCardSelectors.js     buildAssetCard (page card values)
+  lib/selectors/assets/assetOverheadPoolSelectors.js  status-side pool summary
+  lib/selectors/assets/assetSelectorUtilisation.js    live annual hours for status
+  components/assets/AssetStatusStrip.jsx     now rendered on /assets (A23)
+  app/assets/page.jsx
+
+STORAGE
+  qs_tools_asset_state   = the editor draft (one asset being edited)
+  qs_tools_saved_assets  = the saved asset list (what everything downstream reads)
+  qs_tools_fixed_asset_register_state_v1 = Fixed Asset Register import (separate)
+  Save effects are guarded by has_hydrated (the audit script flags this as a gap
+  only because it does not recognise that name - false positive).
+  sanitizeSavedAssetRecord re-runs calculateAssetOutputs on EVERY read, so
+  finance interest is refreshed on each page load. It passes no business weeks,
+  so the stored utilisation_hours_annual always uses 48 weeks (or the override).
+
+ASSET TYPE
+  asset_type "productive" | "support" (normalizeAssetType maps non_productive ->
+  support; anything unrecognised -> productive). Support assets: utilisation and
+  rate forced to 0. Active = !is_retired (is_active is stored and kept in sync by
+  the form, but no filter reads it).
+
+PER-ASSET OWN COST
+  total_asset_cost_annual = asset_interest_annual + running_cost_annual(=0, hard-coded)
+  asset_interest_annual   = purchase_price x (1 - elapsed_days / (term_years x 365.25))
+                            x interest_rate, only while finance is active
+                            (not paid off, term not ended). "elapsed" is to TODAY.
+  Principal and total finance payment are computed (amortising payment formula)
+  and exposed as cash_flow_support only - never in cost. Correct per brief s17.
+
+UTILISATION
+  utilisation_hours_per_week = scheduled - downtime (if scheduled set), else the
+    stored value, else default 40 (productive only).
+  annual weeks = asset_annual_weeks_override -> Opening Hours annual_open_weeks
+    -> 48 fallback. (Brief said a fixed 48; the code's chain is deliberate.)
+  utilisation_hours_annual = weekly hours x annual weeks.
+
+ASSET OVERHEAD POOLS (running-cost transfers from General Overheads)
+  Six keys: asset_fuel_pool, asset_insurance_pool, asset_repairs_maintenance_pool,
+    asset_registration_compliance_pool, asset_consumables_pool,
+    asset_finance_interest_pool. Pool amounts come from General Overheads
+    (generalOverheadPoolSelectors build_asset_overhead_pools), built from the
+    NET active_amount, i.e. after Assets' calculated interest has been removed
+    from the flagged P&L interest row - so no interest double count (A19 closed).
+  Each asset stores asset_overhead_pool_assignments {pool_key: amount}.
+  Contract: effective assignment = raw, scaled pro-rata only if the pool is
+    over-assigned (see A3).
+  asset_recovery_cost_annual = total_asset_cost_annual + effective assignments.
+  Cost Summary adds total_allocated_asset_overhead_cost_annual to Assets and
+    subtracts the same figure from General Overheads, so the transfer moves cost
+    between the two lines without changing the total (brief s31 satisfied).
+
+RATE
+  required_asset_recovery_rate (per asset, contract) =
+    (asset_recovery_cost_annual + depreciation_addition) / utilisation_hours_annual
+    depreciation_addition = estimated_annual_depreciation only when
+    include_depreciation_in_cost is true (register-linked assets) - see A2.
+  productive_asset_recovery_rate (contract, blended) =
+    productive_asset_recovery_cost_annual / total productive utilisation hours.
+  Status (Assets page) productive_asset_recovery_rate: same definition since
+    26f4be7 (was own cost only - A10).
+
+GUARDRAIL / STATUS
+  buildAssetStatus computes asset_pool_guardrail_status (blocked if any pool
+  over-allocated; review_required if any pool under-allocated / no source /
+  review; else ready) as brief s33 describes. assets_ready is false on
+  over-allocation. Since 26f4be7 the guardrail is in the output contract (A18).
+  Warnings are plain strings (not the brief's structured objects).
+
+===============================================================================
+2. OUTPUT CONTRACT (as implemented) - field meanings
+===============================================================================
+
+buildAssetsOutputContract returns (key fields):
+  assets / active_assets        row list (identical arrays) - per-asset rows with
+                                effective pool assignments, recovery cost, rate
+  assets_ready, no_active_assets_confirmed, has_productive_asset_recovery_base
+  asset_pool_guardrail_status   NEW 26f4be7
+  productive_asset_count, support_asset_count
+  total_asset_cost_annual       OWN cost, all live assets (interest only today)
+  productive_asset_cost         OWN cost, productive only - EXCLUDES pools
+  productive_asset_cost_annual  alias of productive_asset_cost
+  productive_asset_assigned_overhead_cost_annual   pools assigned to productive
+  productive_asset_recovery_cost_annual            own + pools, productive
+  support_asset_cost            OWN cost, support only - EXCLUDES pools
+  support_asset_assigned_overhead_cost_annual
+  total_allocated_asset_overhead_cost_annual (+ alias total_assigned_...)
+  total_asset_recovery_cost_annual   own + pools, all live assets
+                                     = Cost Summary's Assets line
+  total_productive_asset_utilisation_hours_annual, productive_asset_recovery_rate
+  asset_overhead_pools, asset_overhead_pool_assignment_summary (+ aliases
+    asset_related_overhead_pool, asset_related_pool_total,
+    total_asset_related_overhead_pool_amount, asset_related_assigned_to_assets,
+    asset_related_unassigned_cost / _balance, total_unassigned_asset_related_...)
+  asset_review_required         true when any pool balance remains unassigned (A6)
+  asset_overhead_assignment_warnings
+  total_asset_interest_annual, finance_cost_annual, cash_flow_support,
+  legacy_display.running_cost_annual (always 0)
+
+!! NAMING TRAP (A11): productive_asset_cost / support_asset_cost are OWN cost
+   and EXCLUDE assigned pools. Any consumer wanting the full asset burden must
+   add *_assigned_overhead_cost_annual (Business Outcome does this correctly) or
+   read *_recovery_cost_annual. Do NOT change the contract field to include
+   pools - Business Outcome would then double count.
+
+Also returned by useAssets() alongside the contract (NOT inside it):
+  status, card, active_assets (a SECOND, separately built row list - uses RAW
+  pool assignments, no pro-rata; see A3), business_default_annual_weeks,
+  asset_finance_pnl_match.
+
+v5.0 Pass 4 decisions, now recorded:
+  Reference wrappers (not business metrics): asset_detail (Cost Summary),
+    asset_outputs (Recovery Summary), asset_overhead_pools, asset_recovery_overlay
+    (Cost Allocation), assets, general_overheads, live_assets, saved_assets,
+    asset_output_contract, assets_output (Model Readiness).
+  Rejected helpers: build_asset_recovery_overlay, safe_array, safe_number.
+  asset_operator: comes from lib/selectors/quickStartSelectors.js - a Quick Start
+    name collision, NOT an Assets field (same pattern as business_type in P2.1).
+  The v5 audit assigned fields to Assets by name match; several listed
+  "Assets" fields are produced by Cost Summary / reconciliation
+  (e.g. total_general_overheads_before_asset_assignment,
+  assigned_asset_overhead_cost_annual, excluded_asset_finance_interest_total).
+
+===============================================================================
+3. v4 BRIEF vs CODE - sections that do not hold
+===============================================================================
+
+  s18-19 cost row: lease, depreciation/replacement, insurance, registration,
+         other ownership cost fields do not exist as cost inputs. Own cost =
+         interest only (A1). Running costs reach assets only via GO pools.
+  s21    fixed 48 weeks -> code uses override / Opening Hours weeks / 48.
+  s24/26 asset_recovery_rate_status values not implemented; zero-utilisation
+         holds rate at 0 with a warning; zero-cost now warned (A21).
+  s34    over-allocation: brief says block, no cap, no auto-adjust. Code blocks
+         assets_ready but ALSO scales pro-rata in the contract (A3).
+  s35/46/48 guardrail passed downstream - now in contract (A18) but no consumer
+         reads it yet.
+  s38-40 assets_status six-value set, assets_model_trust_state, structured
+         warning objects - not implemented (same gap as Labour P2.3).
+  s32 vs s33 internal contradiction: partial assignment "not a failure" vs
+         review_required (A6).
+
+===============================================================================
+4. [VERIFIED 2026-09-23] LIVE DATA RECORD (padded test dataset)
+===============================================================================
+
+Captured from qs_tools_saved_assets (10 assets) and recomputed by hand. The
+interest formula reproduces every stored figure exactly.
+
+  Asset               Type        Own cost   Pools  Hours          Live rate
+  Pc55                productive  3,864.27  11,000  1,200 (30 wk)  12.39
+  Mini Truck Nissan   productive      0.00   7,500  1,920           3.91
+  2inc Line pump      productive  7,918.21  13,500  1,920          11.16
+  Toyota Landcruiser  productive  8,053.18   3,700  1,920           6.12
+  2inc Line Pump      productive  8,053.18   9,000  1,920           8.88
+  PC15                productive 11,829.16       0  1,920           6.16
+  Test Machine        productive      0.00       0  1,872 (52 wk)   0.00
+  Van Nissan          support     1,413.41       0  -
+  Ute Holder Colorado support         0.00 (term ended)
+  Ford Mondeo         support         0.00 (term ended)
+
+  Pools (GO available = assigned, all balanced): fuel 20,000; insurance 6,000;
+    repairs/maintenance 11,500; registration 7,200; consumables 0; interest 0.
+  Productive own cost 39,718.00; productive pools 44,700; productive recovery
+    cost 84,418.00; support own 1,413.41; total own 41,131.41.
+  Total asset recovery cost (Cost Summary Assets line) 85,831.41 - confirmed on
+    screen as $85,831.
+  Productive hours 12,672. Blended rate 6.66/hr (own-only would be 3.13/hr).
+  Live screen after 26f4be7: status strip Productive Asset Cost (incl. assigned
+    pools) $84,418, rate $7/hr; warnings show benchmark note + Test Machine.
+  Recovery Summary still shows productive asset cost $39,718 / $3.13/hr (A11,
+    handed to P2.5).
+  Interest method check (A4): straight-line estimate 41,131 vs amortising
+    next-12-month interest 38,238 (about 7.6% high overall; Pc55 3,864 vs 3,609).
+
+===============================================================================
+5. FINDINGS REGISTER A1-A23
+===============================================================================
+
+FIXED in 26f4be7
+  A10 Status productive_asset_recovery_rate used own cost only. Now own + pools;
+      status also exposes productive_asset_recovery_cost_annual(_label). Strip
+      cost row relabelled "Productive Asset Cost (incl. assigned pools)".
+  A18 asset_pool_guardrail_status added to the output contract; useAssets
+      output_contract useMemo now depends on status.asset_pool_guardrail_status.
+  A21 Warning for productive assets with no own cost and no pools (their hours
+      still dilute the blended rate). Fires on Test Machine.
+  A23 AssetStatusStrip was never rendered - every Assets warning (incl. pool
+      over-allocation) was invisible. Now rendered below the main card; warnings
+      shown as numbered wrapping lines (ui-help).
+
+CLOSED (no issue)
+  A17 status pool summary field assigned_total exists.
+  A19 finance-interest pool built from net active_amount - no double count.
+  A9  business_type never read; productive/support split matches brief intent.
+
+DESIGN DECISIONS NEEDED (logged, not patched)
+  A1  Own asset cost is finance interest only. Owned, unfinanced assets cost $0
+      of their own; no depreciation, lease or ownership costs as inputs; lease
+      has no pool key. Decide what "asset cost" should include.
+  A2  Opt-in depreciation (register-linked assets) enters the per-asset rate
+      only - not total_asset_cost_annual, recovery cost, blended rate or Cost
+      Summary. Editor rate (assetCalculations.js) also ignores it. Latent on
+      saved data (no asset opted in); was seen live on an unsaved Pc55 draft
+      ($16/hr vs $11.49/hr). Decide with A1, and check whether P&L depreciation
+      already sits in General Overheads before adding it to asset cost.
+  A4  Interest = straight-line balance on full purchase price, dated to today,
+      not the P&L financial year. About 7.6% high vs amortising on this data;
+      reconciliation vs P&L interest can never tie out by construction.
+  A6  asset_review_required fires whenever any pool is partly assigned; brief
+      s13/s32 say that is normal, s33 says review_required. Resolve in brief.
+  A3  Over-assigned pools handled three ways: contract pro-rata; useAssets
+      hook-level active_assets raw (uncapped); editor capped first-come; plus
+      status summary clamps negatives, contract summary does not. Brief says
+      block, never cap. Latent (all pools exactly balanced). Unify to one
+      pool-summary function when touched.
+
+LOW / HOUSEKEEPING (logged)
+  A5  Annual-weeks chain implemented four times (calculations, hook utils,
+      selector utilisation, storage-hard-48). Stored rows can contradict
+      themselves (Test Machine: annual_weeks_used 52, hours at 48 weeks).
+  A20 Stored derived fields go stale: asset_recovery_cost_annual frozen at
+      last save (PC15 stores 12,000 = interest the day before finance
+      started), per-asset assets_benchmark_total differs by save date. Contract
+      recomputes, so only raw saved_assets readers are affected.
+  A14 maintenance/fuel/registration/other_running_cost_monthly stored, never
+      used (form does not show them).
+  A15 is_active stored alongside is_retired; filters use is_retired only.
+  A22 Assets page formats rates to whole dollars ($6.66 shows as $7).
+  A8  audit script notes: check_field_parity flattens row fields;
+      check_has_loaded_guard misses guards named has_hydrated (profitAndLoss
+      Storage flag may be the same false positive - unconfirmed).
+  Card wording: "Productive asset annual cost" on the main card is own cost;
+      the card's separate "Productive assigned overhead" row makes it add up,
+      but the label could say "own cost".
+
+HANDED TO P2.5 (outside Assets)
+  A11 Recovery Summary and Business Summary read productive_asset_cost as if it
+      were the full asset burden.
+      FIX SPEC - Recovery Summary (lib/calculations/recovery-summary/
+        calculateRecoverySummary.js ~lines 89-103, 257, and the suggested-split
+        basis): use productive_asset_cost + input.productive_asset_assigned_
+        overhead_cost_annual for the rate, asset_recovery_cost and split basis.
+        useRecoverySummary already passes that field in (line ~149). KEEP the
+        published productive_asset_cost unchanged - Business Outcome adds the
+        overhead itself (businessOutcomeCalculations.js 119-123).
+      FIX SPEC - Business Summary (BusinessSummaryComponentBreakdown.jsx ~218-224,
+        businessSummaryHierarchyChildren.js ~103-106): sum asset_recovery_cost_
+        annual per row, not total_asset_cost_annual, so productive + support =
+        the Assets total.
+      Expected on this dataset: productive 84,418; rate 6.66/hr.
+  A12 General Overheads' output contract publishes asset_related_unassigned_cost
+      (whole pool, assigned hard-coded 0) and asset_review_required under the
+      same names as Assets. Cost Summary reads the Assets versions (correct).
+  A13 General Overheads reads saved assets through its own useAssetStorage()
+      instance (to avoid a circular hook). On /assets the Asset Finance - P&L
+      Match card may lag until reload after a save. Unverified.
+  A16 Calculation Trace pilot map (traceEdges.js) marks per-asset cost edges
+      "Verified" for lease/depreciation/insurance/registration/transfers that the
+      code does not have. Mark unverified when the trace page is picked up.
+
+===============================================================================
+6. HOURS / UNITS AND BREAK RULES
+===============================================================================
+
+  Assets is hours-native and never reads business_type (confirmed by grep).
+  Asset utilisation is independent of labour hours (brief s22 holds).
+  Labour F19 (NZ rest breaks): no break logic in Assets. Whether operator-bound
+  assets should lose break time from utilisation remains a design question -
+  not a code gap.
+
+===============================================================================
+7. TEST DATA NOTES / OPEN QUESTIONS FOR THE USER
+===============================================================================
+
+  - Which assets are the deliberately added test assets is NOT yet confirmed.
+    Newest records: PC15 (created 2026-08-27) and Test Machine (2026-09-10).
+  - "2inc Line pump" and "2inc Line Pump" - two real pumps or a duplicate entry?
+  - Test Machine is a productive asset with no cost at all (now warned, A21).
+  - An unsaved editor draft of Pc55 (register-linked, 72,000 purchase price,
+    depreciation apparently included) was discarded; saved Pc55 at 100,000 is
+    treated as current.
+  - Decide at Cost Allocation close-out whether synthetic assets are stripped or
+    carried (kickoff s3).
+
+===============================================================================
+8. DOWNSTREAM CONSUMERS (by field, code search 2026-09-23)
+===============================================================================
+
+  Cost Summary (hooks/useCostSummary.js): Assets line = total_asset_recovery_
+    cost_annual; subtracts total_allocated_asset_overhead_cost_annual from GO;
+    passes productive/support own cost and recovery cost through.
+  Recovery Summary: productive_asset_cost (own only - A11),
+    total_productive_asset_utilisation_hours_annual.
+  Business Outcome / waterfall: own + assigned overhead (correct).
+  Cost Allocation overlay (useCostAllocationAssetOverlay.js): reads contract
+    active_assets rows; rebuilds productive_asset_cost WITH pools internally.
+  Reconciliation rules: total_asset_cost_annual, active_assets,
+    no_active_assets_confirmed. Model Readiness: total_asset_cost_annual.
+  General Overheads: reads saved assets directly for the interest subtraction.
+
+===============================================================================
+9. SHIPPED
+===============================================================================
+
+  [SHIPPED 2026-09-23] 26f4be7 fix(assets): A10, A18, A21, A23.
+    app/assets/page.jsx, components/assets/AssetStatusStrip.jsx,
+    hooks/assets/assetOutputContract.js, hooks/useAssets.js,
+    lib/selectors/assets/assetStatusSelectors.js. Build clean; live-checked.
+
+===============================================================================
+10. EVIDENCE FILES (docs\Audit\v6_0\P2.4_Assets\)
+===============================================================================
+
+  p24_step2_contract_and_calc_dump_2026-09-23.txt   parity script, hook, contract,
+                                                    hook utils, calculations
+  p24_step3a_storage_status_consumers_2026-09-23.txt  storage, status, GO, consumers
+  p24_step3b_live_saved_assets_2026-09-23.json      live stored assets (10)
+  p24_step3c_pools_costsummary_2026-09-23.txt       pool selectors, Cost Summary
+  p24_step3d_go_grouped_rows_2026-09-23.txt         GO net amount into pools (A19)
+  p24_step4_page_text_capture_2026-09-23.txt        page capture incl. Pc55 draft
+  p24_step5_applypatch_and_a11_grep_2026-09-23.txt  A11 double-count safety grep
+  p24_step6_status_strip_2026-09-23.txt             strip never rendered (A23)
+  p24_step7_card_selector_2026-09-23.txt            card rows
+  p24_batch1_patch_build_2026-09-23.txt, p24_batch2_patch_build_2026-09-23.txt,
+  p24_batch2b_warning_layout_2026-09-23.txt         patch confirmations + builds

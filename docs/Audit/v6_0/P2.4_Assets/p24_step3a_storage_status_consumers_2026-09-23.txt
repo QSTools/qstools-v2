@@ -1,0 +1,1352 @@
+
+##### lib\storage\assetStorage.js (1-359) #####
+    1: "use client";
+    2: 
+    3: import { useEffect, useMemo, useState } from "react";
+    4: import { calculateAssetOutputs } from "@/lib/calculations/assetCalculations";
+    5: 
+    6: const ASSET_STATE_STORAGE_KEY = "qs_tools_asset_state";
+    7: const SAVED_ASSETS_STORAGE_KEY = "qs_tools_saved_assets";
+    8: const ASSET_UTILISATION_WEEKS_PER_YEAR = 48;
+    9: 
+   10: function create_uuid() {
+   11:   if (typeof crypto !== "undefined" && crypto.randomUUID) {
+   12:     return crypto.randomUUID();
+   13:   }
+   14: 
+   15:   return `asset-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+   16: }
+   17: 
+   18: function create_timestamp() {
+   19:   return new Date().toISOString();
+   20: }
+   21: 
+   22: function get_next_profile_version(existing_asset = {}) {
+   23:   const current_version = Number(existing_asset.profile_version || 0);
+   24:   return current_version > 0 ? current_version + 1 : 1;
+   25: }
+   26: 
+   27: export function normalizeAssetType(value) {
+   28:   const normalized_value = String(value ?? "")
+   29:     .trim()
+   30:     .toLowerCase()
+   31:     .replace(/\s+/g, "_")
+   32:     .replace(/-/g, "_");
+   33: 
+   34:   if (
+   35:     normalized_value === "support" ||
+   36:     normalized_value === "non_productive" ||
+   37:     normalized_value === "nonproductive"
+   38:   ) {
+   39:     return "support";
+   40:   }
+   41: 
+   42:   if (normalized_value === "productive") {
+   43:     return "productive";
+   44:   }
+   45: 
+   46:   return "productive";
+   47: }
+   48: 
+   49: export function createEmptyAssetState() {
+   50:   const timestamp = create_timestamp();
+   51: 
+   52:   return {
+   53:     asset_id: create_uuid(),
+   54:     owner_scope_id: "",
+   55:     asset_name: "",
+   56:     asset_type: "productive",
+   57:     scheduled_hours_per_week: null,
+   58:     downtime_hours_per_week: 0,
+   59:     utilisation_hours_per_week: 40,
+   60:     utilisation_hours_annual: 40 * ASSET_UTILISATION_WEEKS_PER_YEAR,
+   61: 
+   62:     purchase_price: 0,
+   63:     // Added 2026-09-12 for Fixed Asset Register linking - see
+   64:     // FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt. When
+   65:     // linked_register_asset_number is set, purchase_price was sourced
+   66:     // from a real imported Xero register entry (not typed in) and the
+   67:     // form should render it read-only - user decision: "can't invent a
+   68:     // number" once it's genuinely sourced. Both default to
+   69:     // unset/false, matching every existing asset today exactly -
+   70:     // purely additive, no migration required.
+   71:     linked_register_asset_number: "",
+   72:     purchase_price_locked: false,
+   73:     // Added 2026-09-12 for the depreciation-in-true-cost decision (see
+   74:     // scoping brief) - both default to unset, so nothing changes for
+   75:     // any existing asset. estimated_annual_depreciation is stored at
+   76:     // link time (not recomputed live) using the same validated formula
+   77:     // as the /imports preview table (fixedAssetRegisterCalculations.js).
+   78:     estimated_annual_depreciation: null,
+   79:     include_depreciation_in_cost: false,
+   80:     interest_rate: 0,
+   81:     finance_start_date: "",
+   82:     finance_term_years: 0,
+   83:     finance_paid_off: false,
+   84: 
+   85:     finance_paid_off_date: "",
+   86:     early_payoff_amount: 0,
+   87:     early_payoff_notes: "",
+   88: 
+   89:     finance_term_extended: false,
+   90:     original_finance_end_date: "",
+   91:     revised_finance_end_date: "",
+   92:     revised_term_months: 0,
+   93:     extension_reason: "",
+   94: 
+   95:     maintenance_cost_monthly: 0,
+   96:     fuel_cost_monthly: 0,
+   97:     registration_cost_monthly: 0,
+   98:     other_running_cost_monthly: 0,
+   99: 
+  100:     assets_benchmark_total: 0,
+  101:     no_active_assets_confirmed: false,
+  102: 
+  103:     profile_version: 1,
+  104:     effective_from: "",
+  105:     is_active: true,
+  106:     is_retired: false,
+  107:     created_at: timestamp,
+  108:     updated_at: timestamp,
+  109: 
+  110:     change_reason: "",
+  111:     notes: "",
+  112:   };
+  113: }
+  114: 
+  115: export function sanitizeAssetState(input = {}) {
+  116:   const empty_state = createEmptyAssetState();
+  117:   const asset_type = normalizeAssetType(input.asset_type);
+  118:   const default_utilisation_hours_per_week =
+  119:     asset_type === "productive" ? 40 : 0;
+  120: 
+  121:   const has_scheduled_hours =
+  122:     input.scheduled_hours_per_week !== undefined &&
+  123:     input.scheduled_hours_per_week !== null &&
+  124:     input.scheduled_hours_per_week !== "";
+  125: 
+  126:   const scheduled_hours_per_week_raw = has_scheduled_hours
+  127:     ? Number(input.scheduled_hours_per_week)
+  128:     : null;
+  129: 
+  130:   const safe_scheduled_hours_per_week =
+  131:     scheduled_hours_per_week_raw !== null &&
+  132:     Number.isFinite(scheduled_hours_per_week_raw)
+  133:       ? Math.max(scheduled_hours_per_week_raw, 0)
+  134:       : null;
+  135: 
+  136:   const downtime_hours_per_week_raw = Number(
+  137:     input.downtime_hours_per_week || 0
+  138:   );
+  139:   const safe_downtime_hours_per_week = Number.isFinite(
+  140:     downtime_hours_per_week_raw
+  141:   )
+  142:     ? Math.max(downtime_hours_per_week_raw, 0)
+  143:     : 0;
+  144: 
+  145:   const utilisation_hours_per_week =
+  146:     asset_type === "productive"
+  147:       ? safe_scheduled_hours_per_week !== null
+  148:         ? Math.max(
+  149:             safe_scheduled_hours_per_week - safe_downtime_hours_per_week,
+  150:             0
+  151:           )
+  152:         : Number(
+  153:             input.utilisation_hours_per_week ??
+  154:               input.hours_used_per_week ??
+  155:               default_utilisation_hours_per_week
+  156:           )
+  157:       : 0;
+  158: 
+  159:   const safe_utilisation_hours_per_week = Number.isFinite(
+  160:     utilisation_hours_per_week
+  161:   )
+  162:     ? Math.max(utilisation_hours_per_week, 0)
+  163:     : default_utilisation_hours_per_week;
+  164: 
+  165:   return {
+  166:     ...empty_state,
+  167:     ...input,
+  168: 
+  169:     asset_id: input.asset_id || empty_state.asset_id,
+  170: 
+  171:     asset_type,
+  172:     scheduled_hours_per_week:
+  173:       asset_type === "productive" ? safe_scheduled_hours_per_week : null,
+  174:     downtime_hours_per_week:
+  175:       asset_type === "productive" ? safe_downtime_hours_per_week : 0,
+  176:     utilisation_hours_per_week: safe_utilisation_hours_per_week,
+  177:     utilisation_hours_annual:
+  178:       asset_type === "productive"
+  179:         ? safe_utilisation_hours_per_week * ASSET_UTILISATION_WEEKS_PER_YEAR
+  180:         : 0,
+  181: 
+  182:     purchase_price: Number(input.purchase_price || 0),
+  183:     linked_register_asset_number:
+  184:       typeof input.linked_register_asset_number === "string"
+  185:         ? input.linked_register_asset_number
+  186:         : "",
+  187:     purchase_price_locked: Boolean(input.purchase_price_locked),
+  188:     estimated_annual_depreciation:
+  189:       input.estimated_annual_depreciation === null || input.estimated_annual_depreciation === undefined
+  190:         ? null
+  191:         : Number(input.estimated_annual_depreciation),
+  192:     include_depreciation_in_cost: Boolean(input.include_depreciation_in_cost),
+  193:     interest_rate: Number(input.interest_rate || 0),
+  194:     finance_start_date:
+  195:       typeof input.finance_start_date === "string"
+  196:         ? input.finance_start_date
+  197:         : "",
+  198:     finance_term_years: Number(input.finance_term_years || 0),
+  199:     finance_paid_off: Boolean(input.finance_paid_off),
+  200: 
+  201:     finance_paid_off_date:
+  202:       typeof input.finance_paid_off_date === "string"
+  203:         ? input.finance_paid_off_date
+  204:         : "",
+  205:     early_payoff_amount: Number(input.early_payoff_amount || 0),
+  206:     early_payoff_notes:
+  207:       typeof input.early_payoff_notes === "string"
+  208:         ? input.early_payoff_notes
+  209:         : "",
+  210: 
+  211:     finance_term_extended: Boolean(input.finance_term_extended),
+  212:     original_finance_end_date:
+  213:       typeof input.original_finance_end_date === "string"
+  214:         ? input.original_finance_end_date
+  215:         : "",
+  216:     revised_finance_end_date:
+  217:       typeof input.revised_finance_end_date === "string"
+  218:         ? input.revised_finance_end_date
+  219:         : "",
+  220:     revised_term_months: Number(input.revised_term_months || 0),
+  221:     extension_reason:
+  222:       typeof input.extension_reason === "string" ? input.extension_reason : "",
+  223: 
+  224:     maintenance_cost_monthly: Number(input.maintenance_cost_monthly || 0),
+  225:     fuel_cost_monthly: Number(input.fuel_cost_monthly || 0),
+  226:     registration_cost_monthly: Number(input.registration_cost_monthly || 0),
+  227:     other_running_cost_monthly: Number(input.other_running_cost_monthly || 0),
+  228: 
+  229:     assets_benchmark_total: Number(input.assets_benchmark_total || 0),
+  230:     no_active_assets_confirmed: Boolean(input.no_active_assets_confirmed),
+  231: 
+  232:     profile_version: Number(input.profile_version || 1),
+  233:     effective_from:
+  234:       typeof input.effective_from === "string" ? input.effective_from : "",
+  235:     is_active: input.is_active !== undefined ? Boolean(input.is_active) : true,
+  236:     is_retired: Boolean(input.is_retired),
+  237: 
+  238:     created_at: input.created_at || empty_state.created_at,
+  239:     updated_at: input.updated_at || create_timestamp(),
+  240: 
+  241:     change_reason:
+  242:       typeof input.change_reason === "string" ? input.change_reason : "",
+  243:     notes: typeof input.notes === "string" ? input.notes : "",
+  244:   };
+  245: }
+  246: 
+  247: function sanitizeSavedAssetRecord(input = {}) {
+  248:   const sanitized = sanitizeAssetState(input);
+  249:   const recalculated = calculateAssetOutputs(
+  250:     sanitized,
+  251:     [],
+  252:     sanitized.assets_benchmark_total
+  253:   );
+  254: 
+  255:   const asset_interest_annual = Number(
+  256:     recalculated.asset_interest_annual ??
+  257:       input.asset_interest_annual ??
+  258:       input.interest_annual ??
+  259:       0
+  260:   );
+  261: 
+  262:   const asset_principal_repayment_annual = Number(
+  263:     recalculated.asset_principal_repayment_annual ??
+  264:       input.asset_principal_repayment_annual ??
+  265:       input.principal_annual ??
+  266:       0
+  267:   );
+  268: 
+  269:   return {
+  270:     ...sanitized,
+  271: 
+  272:     finance_end_date:
+  273:       recalculated.finance_end_date || input.finance_end_date || "",
+  274:     original_finance_end_date:
+  275:       recalculated.original_finance_end_date ||
+  276:       input.original_finance_end_date ||
+  277:       "",
+  278:     revised_finance_end_date:
+  279:       recalculated.revised_finance_end_date ||
+  280:       input.revised_finance_end_date ||
+  281:       "",
+  282:     effective_finance_term_years: Number(
+  283:       recalculated.effective_finance_term_years ??
+  284:         input.effective_finance_term_years ??
+  285:         0
+  286:     ),
+  287: 
+  288:     finance_active: Boolean(recalculated.finance_active),
+  289:     finance_status:
+  290:       recalculated.finance_status || input.finance_status || "not_financed",
+  291: 
+  292:     estimated_remaining_finance_balance: Number(
+  293:       recalculated.estimated_remaining_finance_balance ??
+  294:         input.estimated_remaining_finance_balance ??
+  295:         0
+  296:     ),
+  297:     finance_progress_percent: Number(
+  298:       recalculated.finance_progress_percent ??
+  299:         input.finance_progress_percent ??
+  300:         0
+  301:     ),
+  302: 
+  303:     principal_annual: asset_principal_repayment_annual,
+  304:     interest_annual: asset_interest_annual,
+  305:     asset_interest_annual,
+  306:     asset_principal_repayment_annual,
+  307:     asset_total_finance_payment_annual: Number(
+  308:       recalculated.asset_total_finance_payment_annual ??
+  309:         input.asset_total_finance_payment_annual ??
+  310:         0
+  311:     ),
+  312:     finance_cost_annual: asset_interest_annual,
+  313:     running_cost_annual: Number(input.running_cost_annual || 0),
+  314:     total_asset_cost_annual: Number(
+  315:       recalculated.total_asset_cost_annual ?? input.total_asset_cost_annual ?? 0
+  316:     ),
+  317:     scheduled_hours_per_week: Number.isFinite(
+  318:       Number(sanitized.scheduled_hours_per_week)
+  319:     )
+  320:       ? sanitized.scheduled_hours_per_week
+  321:       : null,
+  322:     downtime_hours_per_week: Number(sanitized.downtime_hours_per_week ?? 0),
+  323:     utilisation_hours_per_week: Number(
+  324:       recalculated.utilisation_hours_per_week ??
+  325:         sanitized.utilisation_hours_per_week ??
+  326:         0
+  327:     ),
+  328:     utilisation_hours_annual: Number(
+  329:       recalculated.utilisation_hours_annual ??
+  330:         sanitized.utilisation_hours_annual ??
+  331:         0
+  332:     ),
+  333:     required_asset_recovery_rate: Number(
+  334:       recalculated.required_asset_recovery_rate ??
+  335:         input.required_asset_recovery_rate ??
+  336:         0
+  337:     ),
+  338:     productive_asset_hours: Number(
+  339:       recalculated.productive_asset_hours ??
+  340:         input.productive_asset_hours ??
+  341:         0
+  342:     ),
+  343:     true_asset_cost_per_hour: Number(
+  344:       recalculated.true_asset_cost_per_hour ??
+  345:         input.true_asset_cost_per_hour ??
+  346:         0
+  347:     ),
+  348:   };
+  349: }
+  350: 
+  351: function readStoredAssetState() {
+  352:   if (typeof window === "undefined") {
+  353:     return createEmptyAssetState();
+  354:   }
+  355: 
+  356:   try {
+  357:     const raw = window.localStorage.getItem(ASSET_STATE_STORAGE_KEY);
+  358:     if (!raw) {
+  359:       return createEmptyAssetState();
+
+##### lib\storage\assetStorage.js (450-546) #####
+  450:   function save_asset(calculations) {
+  451:     const timestamp = create_timestamp();
+  452:     const existing_asset =
+  453:       saved_assets.find((asset) => asset.asset_id === asset_state.asset_id) ||
+  454:       null;
+  455: 
+  456:     const sanitized_state = sanitizeAssetState({
+  457:       ...asset_state,
+  458:       profile_version: existing_asset
+  459:         ? get_next_profile_version(existing_asset)
+  460:         : Number(asset_state.profile_version || 1),
+  461:       created_at:
+  462:         existing_asset?.created_at || asset_state.created_at || timestamp,
+  463:       updated_at: timestamp,
+  464:       is_active: asset_state.is_active !== false,
+  465:       effective_from:
+  466:         asset_state.effective_from ||
+  467:         existing_asset?.effective_from ||
+  468:         asset_state.created_at ||
+  469:         timestamp,
+  470:       change_reason:
+  471:         asset_state.change_reason || existing_asset?.change_reason || "",
+  472:       notes: asset_state.notes || existing_asset?.notes || "",
+  473:     });
+  474: 
+  475:     const saved_record = sanitizeSavedAssetRecord({
+  476:       ...sanitized_state,
+  477:       ...calculations,
+  478:       profile_version: sanitized_state.profile_version,
+  479:       created_at: sanitized_state.created_at,
+  480:       updated_at: timestamp,
+  481:     });
+  482: 
+  483:     set_saved_assets((current) => {
+  484:       const existing_index = current.findIndex(
+  485:         (asset) => asset.asset_id === saved_record.asset_id
+  486:       );
+  487: 
+  488:       if (existing_index === -1) {
+  489:         return [...current, saved_record];
+  490:       }
+  491: 
+  492:       return current.map((asset) =>
+  493:         asset.asset_id === saved_record.asset_id ? saved_record : asset
+  494:       );
+  495:     });
+  496: 
+  497:     set_asset_state(saved_record);
+  498: 
+  499:     return saved_record;
+  500:   }
+  501: 
+  502:   function load_asset(asset_id) {
+  503:     const selected_asset =
+  504:       saved_assets.find((asset) => asset.asset_id === asset_id) || null;
+  505: 
+  506:     if (!selected_asset) {
+  507:       return null;
+  508:     }
+  509: 
+  510:     const sanitized_asset = sanitizeAssetState(selected_asset);
+  511:     set_asset_state(sanitized_asset);
+  512:     return sanitized_asset;
+  513:   }
+  514: 
+  515:   function delete_asset(asset_id) {
+  516:     set_saved_assets((current) =>
+  517:       current.filter((asset) => asset.asset_id !== asset_id)
+  518:     );
+  519: 
+  520:     set_asset_state((current) => {
+  521:       if (current.asset_id !== asset_id) {
+  522:         return current;
+  523:       }
+  524: 
+  525:       return createEmptyAssetState();
+  526:     });
+  527:   }
+  528: 
+  529:   const active_asset_count = useMemo(() => {
+  530:     return saved_assets.filter((asset) => !asset.is_retired).length;
+  531:   }, [saved_assets]);
+  532: 
+  533:   return {
+  534:     asset_state,
+  535:     saved_assets,
+  536:     active_asset_count,
+  537:     has_hydrated,
+  538:     set_asset_field,
+  539:     set_asset_fields,
+  540:     replace_asset_state,
+  541:     reset_asset_state,
+  542:     save_asset,
+  543:     load_asset,
+  544:     delete_asset,
+  545:   };
+  546: }
+
+##### lib\selectors\assets\assetStatusSelectors.js (1-99999) #####
+    1: import {
+    2:   format_currency,
+    3:   format_hours,
+    4:   format_percent,
+    5:   has_positive_number,
+    6:   has_valid_number,
+    7:   has_value,
+    8: } from "./assetSelectorFormatters";
+    9: import { get_live_asset_utilisation_hours_annual } from "./assetSelectorUtilisation";
+   10: import {
+   11:   build_asset_overhead_pool_summary,
+   12:   get_active_saved_assets,
+   13: } from "./assetOverheadPoolSelectors";
+   14: 
+   15: function is_valid_active_asset_record(asset) {
+   16:   const finance_fields_started =
+   17:     has_positive_number(asset?.purchase_price) ||
+   18:     has_positive_number(asset?.interest_rate) ||
+   19:     has_positive_number(asset?.finance_term_years);
+   20: 
+   21:   const finance_fields_valid =
+   22:     !finance_fields_started ||
+   23:     (has_positive_number(asset?.purchase_price) &&
+   24:       has_positive_number(asset?.interest_rate) &&
+   25:       has_positive_number(asset?.finance_term_years) &&
+   26:       has_value(asset?.finance_start_date));
+   27: 
+   28:   return (
+   29:     has_value(asset?.asset_id) &&
+   30:     has_value(asset?.asset_name) &&
+   31:     has_value(asset?.asset_type) &&
+   32:     asset?.is_retired !== true &&
+   33:     has_valid_number(asset?.total_asset_cost_annual) &&
+   34:     finance_fields_valid
+   35:   );
+   36: }
+   37: 
+   38: function get_reconciliation_label(reconciliation_state) {
+   39:   if (reconciliation_state === "pending") {
+   40:     return "Awaiting benchmark";
+   41:   }
+   42: 
+   43:   if (reconciliation_state === "green") {
+   44:     return "Reconciled";
+   45:   }
+   46: 
+   47:   if (reconciliation_state === "amber") {
+   48:     return "Close variance";
+   49:   }
+   50: 
+   51:   return "Out of balance";
+   52: }
+   53: 
+   54: export function get_finance_status_label(finance_status) {
+   55:   if (finance_status === "active") return "Active";
+   56:   if (finance_status === "extended") return "Extended";
+   57:   if (finance_status === "paid_off") return "Paid off";
+   58:   if (finance_status === "term_ended") return "Term ended";
+   59:   return "Not financed";
+   60: }
+   61: 
+   62: export function get_finance_lifecycle_note(calculations = {}) {
+   63:   if (calculations.finance_status === "paid_off") {
+   64:     return "Finance has been paid off. Future interest, principal and finance payment are treated as zero.";
+   65:   }
+   66: 
+   67:   if (calculations.finance_status === "extended") {
+   68:     return "Finance term has been extended. Current finance outputs use the original term plus extension months.";
+   69:   }
+   70: 
+   71:   if (calculations.finance_status === "term_ended") {
+   72:     return "Finance term has ended. Future interest, principal and finance payment are treated as zero.";
+   73:   }
+   74: 
+   75:   if (calculations.finance_status === "active") {
+   76:     return "Finance is active. Interest is included as operating asset cost; principal is shown for cash-flow visibility.";
+   77:   }
+   78: 
+   79:   return "No active finance is currently included for this asset.";
+   80: }
+   81: 
+   82: export function buildAssetStatus({
+   83:   asset_state,
+   84:   calculations,
+   85:   saved_assets,
+   86:   active_asset_count,
+   87:   asset_overhead_pools = {},
+   88:   business_default_annual_weeks,
+   89: }) {
+   90:   const warnings = [];
+   91:   const active_saved_assets = get_active_saved_assets(saved_assets);
+   92: 
+   93:   const active_saved_asset_total = active_saved_assets.reduce(
+   94:     (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+   95:     0
+   96:   );
+   97: 
+   98:   const invalid_active_assets = active_saved_assets.filter(
+   99:     (asset) => !is_valid_active_asset_record(asset)
+  100:   );
+  101: 
+  102:   const productive_active_assets = active_saved_assets.filter(
+  103:     (asset) => asset.asset_type === "productive"
+  104:   );
+  105: 
+  106:   const productive_assets_missing_utilisation = productive_active_assets.filter(
+  107:     (asset) => !has_positive_number(asset.utilisation_hours_per_week)
+  108:   );
+  109: 
+  110:   const total_productive_asset_utilisation_hours_annual =
+  111:     productive_active_assets.reduce(
+  112:       (sum, asset) =>
+  113:         sum +
+  114:         get_live_asset_utilisation_hours_annual(
+  115:           asset,
+  116:           business_default_annual_weeks
+  117:         ),
+  118:       0
+  119:     );
+  120: 
+  121:   const productive_asset_cost_annual = productive_active_assets.reduce(
+  122:     (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+  123:     0
+  124:   );
+  125: 
+  126:   const productive_asset_recovery_rate =
+  127:     total_productive_asset_utilisation_hours_annual > 0
+  128:       ? productive_asset_cost_annual /
+  129:         total_productive_asset_utilisation_hours_annual
+  130:       : 0;
+  131: 
+  132:   const asset_pool_summary = build_asset_overhead_pool_summary({
+  133:     asset_state,
+  134:     saved_assets,
+  135:     asset_overhead_pools,
+  136:   });
+  137: 
+  138:   const asset_pool_over_allocated = asset_pool_summary.some(
+  139:     (pool) => pool.allocation_status === "over_allocated"
+  140:   );
+  141: 
+  142:   const asset_pool_review_required = asset_pool_summary.some((pool) =>
+  143:     ["under_allocated", "no_source_pool", "review_required"].includes(
+  144:       pool.allocation_status
+  145:     )
+  146:   );
+  147: 
+  148:   const asset_pool_guardrail_status = asset_pool_over_allocated
+  149:     ? "blocked"
+  150:     : asset_pool_review_required
+  151:       ? "review_required"
+  152:       : "ready";
+  153: 
+  154:   const asset_type =
+  155:     asset_state.asset_type === "support" ? "support" : "productive";
+  156: 
+  157:   const no_active_assets_confirmed =
+  158:     asset_state.no_active_assets_confirmed === true;
+  159: 
+  160:   const no_active_assets_ready =
+  161:     active_saved_assets.length === 0 &&
+  162:     no_active_assets_confirmed &&
+  163:     active_saved_asset_total === 0;
+  164: 
+  165:   const active_assets_ready =
+  166:     active_saved_assets.length > 0 && invalid_active_assets.length === 0;
+  167: 
+  168:   if (
+  169:     active_saved_assets.length === 0 &&
+  170:     !no_active_assets_ready &&
+  171:     !has_value(asset_state.asset_name)
+  172:   ) {
+  173:     warnings.push("Asset name is missing.");
+  174:   }
+  175: 
+  176:   if (
+  177:     active_saved_assets.length === 0 &&
+  178:     !no_active_assets_ready &&
+  179:     !has_value(asset_state.effective_from)
+  180:   ) {
+  181:     warnings.push("Effective from date is missing.");
+  182:   }
+  183: 
+  184:   const finance_fields_started =
+  185:     has_positive_number(asset_state.purchase_price) ||
+  186:     has_positive_number(asset_state.interest_rate) ||
+  187:     has_positive_number(asset_state.finance_term_years);
+  188: 
+  189:   if (finance_fields_started) {
+  190:     if (!has_positive_number(asset_state.purchase_price)) {
+  191:       warnings.push("Purchase price is required when finance inputs are used.");
+  192:     }
+  193: 
+  194:     if (!has_positive_number(asset_state.interest_rate)) {
+  195:       warnings.push("Interest rate is required when finance inputs are used.");
+  196:     }
+  197: 
+  198:     if (!has_positive_number(asset_state.finance_term_years)) {
+  199:       warnings.push("Finance term is required when finance inputs are used.");
+  200:     }
+  201: 
+  202:     if (!has_value(asset_state.finance_start_date)) {
+  203:       warnings.push(
+  204:         "Finance start date is required when finance inputs are used."
+  205:       );
+  206:     }
+  207:   }
+  208: 
+  209:   if (
+  210:     asset_state.finance_term_extended === true &&
+  211:     !has_positive_number(asset_state.revised_term_months)
+  212:   ) {
+  213:     warnings.push("Enter extension months when extending finance.");
+  214:   }
+  215: 
+  216:   if (
+  217:     asset_state.finance_paid_off === true &&
+  218:     !has_value(asset_state.finance_paid_off_date)
+  219:   ) {
+  220:     warnings.push("Paid-off date is missing.");
+  221:   }
+  222: 
+  223:   if (active_saved_assets.length === 0 && asset_type === "support") {
+  224:     warnings.push("Support assets are included in cost only.");
+  225:   }
+  226: 
+  227:   if (
+  228:     active_saved_assets.length === 0 &&
+  229:     asset_type === "productive" &&
+  230:     !has_positive_number(asset_state.utilisation_hours_per_week)
+  231:   ) {
+  232:     warnings.push(
+  233:       "Productive asset utilisation is zero, so asset recovery rate is held at 0."
+  234:     );
+  235:   }
+  236: 
+  237:   if (active_saved_assets.length === 0 && asset_state.is_retired) {
+  238:     warnings.push(
+  239:       "This asset is retired and excluded from active downstream use."
+  240:     );
+  241:   }
+  242: 
+  243:   if (no_active_assets_ready) {
+  244:     warnings.push("No active assets explicitly confirmed.");
+  245:   } else if (!has_positive_number(calculations.assets_benchmark_total)) {
+  246:     warnings.push("Awaiting P&L asset benchmark. This is diagnostic only.");
+  247:   } else {
+  248:     if (calculations.reconciliation_state === "amber") {
+  249:       warnings.push(
+  250:         "Asset total is close to benchmark but not fully reconciled. This is diagnostic only."
+  251:       );
+  252:     }
+  253: 
+  254:     if (calculations.reconciliation_state === "red") {
+  255:       warnings.push(
+  256:         "Asset total is materially out of balance with benchmark. This is diagnostic only."
+  257:       );
+  258:     }
+  259:   }
+  260: 
+  261:   if (invalid_active_assets.length > 0) {
+  262:     warnings.push(
+  263:       "One or more active asset records are missing required setup fields."
+  264:     );
+  265:   }
+  266: 
+  267:   if (productive_assets_missing_utilisation.length > 0) {
+  268:     warnings.push(
+  269:       "One or more productive assets have zero utilisation, so their asset recovery rate is held at 0."
+  270:     );
+  271:   }
+  272: 
+  273:   if (
+  274:     asset_pool_summary.some(
+  275:       (pool) =>
+  276:         Number(pool.available_amount || 0) > 0 &&
+  277:         Number(pool.assigned_total || 0) === 0
+  278:     )
+  279:   ) {
+  280:     warnings.push(
+  281:       "Asset-related overhead pools exist but are not assigned to assets yet. They remain visible for review."
+  282:     );
+  283:   }
+  284: 
+  285:   if (asset_pool_over_allocated) {
+  286:     warnings.push(
+  287:       "One or more asset-related overhead pools are assigned above the available General Overheads pool amount."
+  288:     );
+  289:   }
+  290: 
+  291:   if (active_saved_assets.length === 0 && !no_active_assets_confirmed) {
+  292:     warnings.push("No active assets are saved yet.");
+  293:   }
+  294: 
+  295:   const assets_ready =
+  296:     (active_assets_ready || no_active_assets_ready) && !asset_pool_over_allocated;
+  297: 
+  298:   return {
+  299:     is_ready: assets_ready,
+  300:     assets_ready,
+  301:     no_active_assets_confirmed,
+  302:     warning_count: warnings.length,
+  303:     warnings,
+  304: 
+  305:     asset_pool_guardrail_status,
+  306: 
+  307:     asset_name_label: asset_state.asset_name || "Unnamed asset",
+  308:     lifecycle_label: asset_state.is_retired ? "Retired" : "Active",
+  309:     asset_type_label: asset_type === "support" ? "Support" : "Productive",
+  310:     effective_from_label: asset_state.effective_from || "No effective date",
+  311:     total_asset_cost_label: format_currency(
+  312:       calculations.total_asset_cost_annual
+  313:     ),
+  314:     saved_asset_count_label: `${saved_assets.length} saved`,
+  315:     active_asset_count_label: `${active_asset_count} active`,
+  316:     productive_asset_count_label: `${productive_active_assets.length} productive`,
+  317:     total_productive_asset_utilisation_hours_annual,
+  318:     total_productive_asset_utilisation_hours_annual_label: format_hours(
+  319:       total_productive_asset_utilisation_hours_annual,
+  320:       0
+  321:     ),
+  322:     productive_asset_cost_annual,
+  323:     productive_asset_cost_annual_label: format_currency(
+  324:       productive_asset_cost_annual
+  325:     ),
+  326:     productive_asset_recovery_rate,
+  327:     productive_asset_recovery_rate_label: `${format_currency(
+  328:       productive_asset_recovery_rate
+  329:     )} / hr`,
+  330: 
+  331:     assets_benchmark_total_label: format_currency(
+  332:       calculations.assets_benchmark_total
+  333:     ),
+  334: 
+  335:     module_total_asset_cost_label: format_currency(
+  336:       calculations.module_total_asset_cost_annual
+  337:     ),
+  338:     assets_variance_amount_label: format_currency(
+  339:       calculations.assets_variance_amount
+  340:     ),
+  341:     assets_variance_percent_label: format_percent(
+  342:       calculations.assets_variance_percent
+  343:     ),
+  344:     reconciliation_label: get_reconciliation_label(
+  345:       calculations.reconciliation_state
+  346:     ),
+  347:     reconciliation_state: calculations.reconciliation_state,
+  348:   };
+  349: }
+  350: 
+
+=== DEPRECIATION FLAG: who writes / reads it ===
+components\assets\AssetForm.jsx:118: estimated_annual_depreciation: estimateAnnualDepreciation(asset),
+components\assets\AssetForm.jsx:134: // estimated_annual_depreciation and include_depreciation_in_cost
+components\assets\AssetForm.jsx:136: // linked, so a stale include_depreciation_in_cost=true after
+components\assets\AssetForm.jsx:142: estimated_annual_depreciation: null,
+components\assets\AssetForm.jsx:143: include_depreciation_in_cost: false,
+components\assets\AssetForm.jsx:260: {values.purchase_price_locked && Number.isFinite(values.estimated_annual_depreciation) ? (
+components\assets\AssetForm.jsx:265: checked={values.include_depreciation_in_cost === true}
+components\assets\AssetForm.jsx:266: onChange={(event) => on_change("include_depreciation_in_cost", event.target.checked)}
+components\assets\AssetForm.jsx:269: Include real depreciation ({format_number_with_commas(Math.round(values.estimated_annual_depreciation))}/yr) in this asset&apos;s true cost
+components\business-outcome-truth\BusinessOutcomeEbitByUnitTable.jsx:22: * finance coverage check) and depreciation (estimated_annual_depreciation,
+hooks\assets\assetHookUtils.js:170: // added when include_depreciation_in_cost is explicitly true for
+hooks\assets\assetHookUtils.js:177: asset.include_depreciation_in_cost === true
+hooks\assets\assetHookUtils.js:178: ? to_number(asset.estimated_annual_depreciation)
+hooks\useBusinessOutcomePerSourceRevenue.js:945: // each asset's own include_depreciation_in_cost toggle (that toggle
+hooks\useBusinessOutcomePerSourceRevenue.js:952: const dep = to_number(asset.estimated_annual_depreciation);
+lib\calculations\businessOutcomeEbitCalculations.js:34: // include_depreciation_in_cost toggle - that toggle only affects
+lib\storage\assetStorage.js:75: // any existing asset. estimated_annual_depreciation is stored at
+lib\storage\assetStorage.js:78: estimated_annual_depreciation: null,
+lib\storage\assetStorage.js:79: include_depreciation_in_cost: false,
+lib\storage\assetStorage.js:188: estimated_annual_depreciation:
+lib\storage\assetStorage.js:189: input.estimated_annual_depreciation === null || input.estimated_annual_depreciation === undefined
+lib\storage\assetStorage.js:191: : Number(input.estimated_annual_depreciation),
+lib\storage\assetStorage.js:192: include_depreciation_in_cost: Boolean(input.include_depreciation_in_cost),
+
+=== GENERAL OVERHEADS: asset pools + interest match + any asset hook use ===
+--- hooks\general-overheads\generalOverheadOutputContract.js:31
+  const has_asset_finance_interest_duplication =
+>     Number(calculated.assets_finance_interest_total ?? 0) >
+    flagged_pnl_total + 0.01;
+
+  return {
+    total_general_overheads: calculated.total_general_overheads,
+--- hooks\general-overheads\generalOverheadOutputContract.js:47
+    ),
+>     asset_overhead_pools: allocation_outputs.asset_overhead_pools,
+    total_asset_overhead_pool_amount:
+      allocation_outputs.total_asset_overhead_pool_amount,
+    asset_related_pool_total:
+      allocation_outputs.total_asset_overhead_pool_amount,
+--- hooks\general-overheads\generalOverheadOutputContract.js:53
+    asset_related_assigned_to_assets: 0,
+>     asset_related_overhead_pool: allocation_outputs.asset_overhead_pools,
+    asset_related_unassigned_cost:
+      allocation_outputs.total_asset_overhead_pool_amount,
+    asset_related_unassigned_balance:
+      allocation_outputs.total_asset_overhead_pool_amount,
+--- hooks\general-overheads\generalOverheadOutputContract.js:60
+      allocation_outputs.total_asset_overhead_pool_amount,
+>     asset_review_required:
+      allocation_outputs.total_asset_overhead_pool_amount > 0,
+    asset_related_pool_rows: allocation_outputs.allocation_rows.filter(
+      (row) => row.is_asset_related_pool
+    ),
+--- hooks\useGeneralOverheads.js:33
+import { calculateProfitAndLoss } from "@/lib/calculations/profitAndLossCalculations";
+> import { useAssetStorage } from "@/lib/storage/assetStorage";
+
+export default function useGeneralOverheads() {
+  const [is_hydrated, set_is_hydrated] = useState(false);
+
+--- hooks\useGeneralOverheads.js:49
+  // Read Assets' raw saved records directly from storage - not via the
+>   // useAssets hook, because useAssets itself imports useGeneralOverheads
+  // (for asset_overhead_pools). Going through useAssets here would create
+  // a circular hook dependency. Reading storage directly breaks that
+  // cycle: this pulls the same saved asset records Assets itself reads,
+  // with no dependency on Assets' calculated output.
+--- hooks\useGeneralOverheads.js:50
+  // useAssets hook, because useAssets itself imports useGeneralOverheads
+>   // (for asset_overhead_pools). Going through useAssets here would create
+  // a circular hook dependency. Reading storage directly breaks that
+  // cycle: this pulls the same saved asset records Assets itself reads,
+  // with no dependency on Assets' calculated output.
+  const { saved_assets, has_hydrated: assets_has_hydrated } =
+--- hooks\useGeneralOverheads.js:55
+  const { saved_assets, has_hydrated: assets_has_hydrated } =
+>     useAssetStorage();
+
+  const assets_finance_interest_total = useMemo(() => {
+    if (!assets_has_hydrated) {
+      return 0;
+--- hooks\useGeneralOverheads.js:57
+
+>   const assets_finance_interest_total = useMemo(() => {
+    if (!assets_has_hydrated) {
+      return 0;
+    }
+
+--- hooks\useGeneralOverheads.js:126
+      overhead_state,
+>       assets_finance_interest_total
+    );
+  }, [overhead_state, assets_finance_interest_total]);
+
+  const output_contract = useMemo(() => {
+--- hooks\useGeneralOverheads.js:128
+    );
+>   }, [overhead_state, assets_finance_interest_total]);
+
+  const output_contract = useMemo(() => {
+    return build_general_overhead_output_contract({
+      calculated,
+--- lib\calculations\generalOverheadCalculations.js:23
+  overhead_state,
+>   assets_finance_interest_total = 0
+) {
+  const fixed_rows = [
+    {
+      key: "public_liability_insurance",
+--- lib\calculations\generalOverheadCalculations.js:223
+
+>   const safe_assets_finance_interest_total = Math.max(
+    to_number(assets_finance_interest_total),
+    0
+  );
+
+--- lib\calculations\generalOverheadCalculations.js:224
+  const safe_assets_finance_interest_total = Math.max(
+>     to_number(assets_finance_interest_total),
+    0
+  );
+
+  const overhead_rows = all_rows.map((row) => {
+--- lib\calculations\generalOverheadCalculations.js:239
+      flagged_rows_total > 0
+>         ? (row_amount / flagged_rows_total) * safe_assets_finance_interest_total
+        : 0;
+
+    return {
+      ...row,
+--- lib\calculations\generalOverheadCalculations.js:265
+    non_asset_interest_annual,
+>     flagged_asset_finance_pnl_total: flagged_rows_total,
+    assets_finance_interest_total: safe_assets_finance_interest_total,
+  };
+}
+--- lib\calculations\generalOverheadCalculations.js:266
+    flagged_asset_finance_pnl_total: flagged_rows_total,
+>     assets_finance_interest_total: safe_assets_finance_interest_total,
+  };
+}
+--- lib\selectors\general-overheads\generalOverheadDefinitions.js:201
+  asset_related_consumables_pool: "asset_consumables_pool",
+>   asset_finance_interest: "asset_finance_interest_pool",
+};
+
+export const ASSET_OVERHEAD_POOL_DEFINITIONS = {
+  asset_fuel_pool: "Asset-related fuel pool",
+--- lib\selectors\general-overheads\generalOverheadDefinitions.js:212
+  asset_consumables_pool: "Asset-related consumables pool",
+>   asset_finance_interest_pool: "Asset finance / interest pool",
+};
+--- lib\selectors\general-overheads\generalOverheadPoolSelectors.js:29
+
+> function build_asset_overhead_pools(rows = []) {
+  const pools = Object.fromEntries(
+    Object.entries(ASSET_OVERHEAD_POOL_DEFINITIONS).map(([key, label]) => [
+      key,
+      {
+--- lib\selectors\general-overheads\generalOverheadPoolSelectors.js:69
+  const allocation_rows = grouped_rows.flatMap((group) => group.rows);
+>   const asset_overhead_pools = build_asset_overhead_pools(allocation_rows);
+
+  const total_asset_overhead_pool_amount = Object.values(
+    asset_overhead_pools
+  ).reduce((total, pool) => total + to_number(pool?.amount), 0);
+--- lib\selectors\general-overheads\generalOverheadPoolSelectors.js:72
+  const total_asset_overhead_pool_amount = Object.values(
+>     asset_overhead_pools
+  ).reduce((total, pool) => total + to_number(pool?.amount), 0);
+
+  const unallocated_overhead_lines = allocation_rows.filter(
+    (row) =>
+--- lib\selectors\general-overheads\generalOverheadPoolSelectors.js:99
+    })),
+>     asset_overhead_pools,
+    total_asset_overhead_pool_amount: format_allocation_amount(
+      total_asset_overhead_pool_amount
+    ),
+    unallocated_overhead_lines: unallocated_overhead_lines.map(
+
+=== CONSUMERS: which asset fields each downstream file reads ===
+app\business-summary\page.jsx:81: total_asset_cost_annual={card.total_asset_cost_annual}
+app\business-summary\page.jsx:140: total_asset_cost_annual={card.total_asset_cost_annual}
+app\cost-summary\page.jsx:37: total_asset_cost_annual={card.asset_cost_total}
+app\model-readiness\page.jsx:30: ["total_asset_cost_annual", status.total_asset_cost_annual, "currency"],
+app\model-readiness\page.jsx:80: "total_asset_cost_annual",
+app\model-readiness\page.jsx:81: status.normalised_reconciliation_inputs?.total_asset_cost_annual,
+app\module-reconciliation\page.jsx:90: // module (modules.assets.active_assets). Read-only display only; no
+app\module-reconciliation\page.jsx:92: const active_assets = modules?.assets?.active_assets || [];
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:62: const asset_cost = scaleDisplayPeriodValue(asset.total_asset_cost_annual);
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:103: const productive_asset_cost = scaleDisplayPeriodValue(
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:106: const support_asset_cost = scaleDisplayPeriodValue(
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:144: value: productive_asset_cost,
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:145: amount: Math.abs(productive_asset_cost),
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:154: value: support_asset_cost,
+components\business-summary\hierarchy\businessSummaryHierarchyChildren.js:155: amount: Math.abs(support_asset_cost),
+components\business-summary\hierarchy\businessSummaryHierarchyScaleUtils.js:31: (total, asset) => total + (Number(asset.total_asset_cost_annual) || 0),
+components\business-summary\BusinessSummaryCard.jsx:26: total_asset_cost_annual = 0,
+components\business-summary\BusinessSummaryCard.jsx:83: total_asset_cost_annual,
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:62: asset.total_asset_cost_annual
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:81: const active_assets = Array.isArray(assets.active_assets)
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:82: ? assets.active_assets
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:218: const productive_asset_cost = sum_rows(
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:220: "total_asset_cost_annual"
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:222: const support_asset_cost = sum_rows(
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:224: "total_asset_cost_annual"
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:227: assets.total_asset_cost_annual ?? values.total_asset_cost_annual ?? 0;
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:267: total={productive_asset_cost}
+components\business-summary\BusinessSummaryComponentBreakdown.jsx:286: total={support_asset_cost}
+components\business-summary\BusinessSummaryHierarchyBuilder.js:24: total_asset_cost_annual = 0,
+components\business-summary\BusinessSummaryHierarchyBuilder.js:159: : scaleDisplayPeriodValue(total_asset_cost_annual);
+components\business-summary\BusinessSummaryHierarchyBuilder.js:188: const active_assets = Array.isArray(assets_breakdown.active_assets)
+components\business-summary\BusinessSummaryHierarchyBuilder.js:189: ? assets_breakdown.active_assets
+components\business-summary\BusinessSummaryMacroPositionCard.jsx:355: total_asset_cost_annual = 0,
+components\business-summary\BusinessSummaryMacroPositionCard.jsx:420: value: `-${format_currency(total_asset_cost_annual)}`,
+components\business-summary\BusinessSummaryMacroPositionCard.jsx:447: total_asset_cost_annual,
+components\business-summary\BusinessSummarySourceBreakdown.jsx:157: value={format_currency(values.total_asset_cost_annual)}
+components\cost-allocation\evidence\GroupCostStacksSection.jsx:180: value={formatMoney(row.assigned_non_productive_asset_cost)}
+components\cost-allocation\groups\CostAllocationGroupCostSummary.jsx:369: {formatMoney(group_cost_row?.assigned_non_productive_asset_cost)}
+components\cost-allocation\groups\costAllocationGroupHelpers.js:215: row?.total_asset_cost_annual ??
+components\cost-summary\cost-summary-card\costSummaryHierarchy.js:39: total_asset_cost_annual,
+components\cost-summary\cost-summary-card\costSummaryHierarchy.js:129: amount: total_asset_cost_annual,
+components\cost-summary\cost-summary-card\costSummaryHierarchy.js:202: amount: total_asset_cost_annual,
+components\cost-summary\CostSummaryCard.jsx:45: const total_asset_cost_annual = toNumber(asset_cost_total);
+components\cost-summary\CostSummaryCard.jsx:55: total_asset_cost_annual,
+components\cost-summary\CostSummaryCard.jsx:65: total_asset_cost_annual,
+components\cost-summary\CostSummaryStatusStrip.jsx:23: total_asset_cost_annual = 0,
+components\cost-summary\CostSummaryStatusStrip.jsx:28: { label: "Assets", value: Number(total_asset_cost_annual) || 0 },
+components\cost-summary\CostSummaryStatusStrip.jsx:52: total_asset_cost_annual = 0,
+components\cost-summary\CostSummaryStatusStrip.jsx:63: total_asset_cost_annual,
+components\model-readiness\ModelReadinessAuditPanel.jsx:68: const total_asset_cost_annual =
+components\model-readiness\ModelReadinessAuditPanel.jsx:69: status.total_asset_cost_annual ??
+components\model-readiness\ModelReadinessAuditPanel.jsx:70: reconciliation.total_asset_cost_annual ??
+components\model-readiness\ModelReadinessAuditPanel.jsx:71: assets_output.total_asset_cost_annual ??
+components\model-readiness\ModelReadinessAuditPanel.jsx:84: to_number(total_asset_cost_annual) +
+components\model-readiness\ModelReadinessAuditPanel.jsx:104: total_asset_cost_annual,
+components\model-readiness\ModelReadinessVarianceBreakdown.jsx:205: status.total_asset_cost_annual ?? normalised.total_asset_cost_annual,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:196: asset_utilisation_hours_annual = 0,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:197: required_asset_recovery_rate = 0,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:238: value: format_number(asset_utilisation_hours_annual, " hrs"),
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:242: value: `${format_currency(required_asset_recovery_rate)} /hr`,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:280: asset_utilisation_hours_annual,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:281: required_asset_recovery_rate,
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:353: asset_utilisation_hours_annual={asset_utilisation_hours_annual}
+components\recovery-summary\main-card\RecoverySupportingEvidenceDetail.jsx:354: required_asset_recovery_rate={required_asset_recovery_rate}
+components\recovery-summary\RecoverySummaryComponentBreakdown.jsx:161: const active_assets = Array.isArray(assets.active_assets)
+components\recovery-summary\RecoverySummaryComponentBreakdown.jsx:162: ? assets.active_assets
+components\recovery-summary\RecoverySummaryComponentBreakdown.jsx:290: assets.total_asset_cost_annual ??
+components\recovery-summary\RecoverySummaryComponentBreakdown.jsx:291: values.total_asset_cost_annual ??
+components\recovery-summary\RecoverySummaryMainCard.jsx:71: asset_utilisation_hours_annual={card.asset_utilisation_hours_annual}
+components\recovery-summary\RecoverySummaryMainCard.jsx:72: required_asset_recovery_rate={card.required_asset_recovery_rate}
+components\recovery-summary\RecoverySummaryMainCard.jsx:136: total_asset_cost_annual,
+components\recovery-summary\RecoverySummaryMainCard.jsx:192: total_asset_cost_annual,
+components\recovery-summary\RecoverySummarySourceBreakdown.jsx:103: value={format_currency(values.total_asset_cost_annual)}
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:196: asset_utilisation_hours_annual = 0,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:197: required_asset_recovery_rate = 0,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:238: value: format_number(asset_utilisation_hours_annual, " hrs"),
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:242: value: `${format_currency(required_asset_recovery_rate)} /hr`,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:280: asset_utilisation_hours_annual,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:281: required_asset_recovery_rate,
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:353: asset_utilisation_hours_annual={asset_utilisation_hours_annual}
+components\recovery-summary\RecoverySummaryStatusStrip.jsx:354: required_asset_recovery_rate={required_asset_recovery_rate}
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:20: safe_number(asset.utilisation_hours_annual) ||
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:21: safe_number(asset.asset_utilisation_hours_annual) ||
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:32: const active_assets = safe_array(asset_output_contract.active_assets);
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:36: const base_asset_cost_annual = safe_number(asset.total_asset_cost_annual);
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:75: utilisation_hours_annual: asset_recovery_hours_used,
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:100: utilisation_hours_annual: safe_number(asset.utilisation_hours_annual),
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:174: productive_asset_cost: productive_asset_recovery_cost,
+hooks\cost-allocation\useCostAllocationAssetOverlay.js:175: support_asset_cost: support_asset_recovery_cost,
+hooks\cost-allocation\useCostAllocationAssignmentCards.js:212: calculated?.productive_asset_cost ??
+hooks\cost-allocation\useCostAllocationOutputContract.js:97: unassigned_non_productive_asset_cost: calculated.unassigned_non_productive_asset_cost,
+hooks\cost-allocation\useCostAllocationOutputContract.js:101: productive_asset_utilisation_hours_annual:
+hooks\cost-allocation\useCostAllocationOutputContract.js:102: calculated.productive_asset_utilisation_hours_annual,
+hooks\cost-allocation\useCostAllocationOutputContract.js:106: productive_asset_cost: calculated.productive_asset_cost,
+hooks\cost-allocation\useCostAllocationOutputContract.js:107: support_asset_cost: calculated.support_asset_cost,
+hooks\general-overheads\generalOverheadOutputContract.js:54: asset_related_unassigned_cost:
+hooks\general-overheads\generalOverheadOutputContract.js:60: asset_review_required:
+hooks\useBusinessOutcome.js:37: totalAssetCost: recovery.total_asset_cost_annual ?? 0,
+hooks\useBusinessOutcome.js:57: productiveAssetCost: recovery.productive_asset_cost ?? 0,
+hooks\useBusinessOutcome.js:60: supportAssetCost: recovery.support_asset_cost ?? 0,
+hooks\useBusinessOutcomePerSourceRevenue.js:684: to_number(group.assigned_non_productive_asset_cost);
+hooks\useBusinessOutcomePerSourceRevenue.js:687: const productive_asset_cost = to_number(group.assigned_asset_burden);
+hooks\useBusinessOutcomePerSourceRevenue.js:688: const is_pure_support = productive_labour_cost <= 0 && productive_asset_cost <= 0;
+hooks\useBusinessOutcomePerSourceRevenue.js:690: if (productive_labour_cost > 0 || productive_asset_cost > 0) {
+hooks\useBusinessOutcomePerSourceRevenue.js:694: productive_asset_cost,
+hooks\useBusinessOutcomePerSourceRevenue.js:727: const total_asset_cost = recipients.reduce((sum, r) => sum + r.productive_asset_cost, 0);
+hooks\useBusinessOutcomePerSourceRevenue.js:738: weight = total_asset_cost > 0 ? r.productive_asset_cost / total_asset_cost : 0;
+hooks\useBusinessOutcomePerSourceRevenue.js:1054: const unassigned_non_productive_asset_cost = to_number(
+hooks\useBusinessOutcomePerSourceRevenue.js:1055: allocation_contract.unassigned_non_productive_asset_cost
+hooks\useBusinessOutcomePerSourceRevenue.js:1060: // unassigned_non_productive_labour_cost/unassigned_non_productive_asset_cost
+hooks\useBusinessOutcomePerSourceRevenue.js:1063: // assigned_non_productive_labour_cost/assigned_non_productive_asset_cost
+hooks\useBusinessOutcomePerSourceRevenue.js:1073: const assigned_non_productive_asset_cost = operational_group_cost_rows.reduce(
+hooks\useBusinessOutcomePerSourceRevenue.js:1074: (sum, group) => sum + to_number(group.assigned_non_productive_asset_cost),
+hooks\useBusinessOutcomePerSourceRevenue.js:1218: unassigned_non_productive_asset_cost +
+hooks\useBusinessOutcomePerSourceRevenue.js:1220: assigned_non_productive_asset_cost;
+hooks\useBusinessOutcomePerSourceRevenue.js:1265: unassigned_non_productive_asset_cost: round_currency(unassigned_non_productive_asset_cost),
+hooks\useBusinessOutcomePerSourceRevenue.js:1270: assigned_non_productive_asset_cost: round_currency(assigned_non_productive_asset_cost),
+hooks\useBusinessOutcomePerSourceRevenue.js:1357: (unassigned_labour_cost + unassigned_asset_cost + unassigned_non_productive_labour_cost + unassigned_non_productive_asset_cost)
+hooks\useBusinessOutcomeRevenueSplit.js:29: const assets = to_number(bs.total_asset_cost_annual);
+hooks\useBusinessOutcomeWaterfall.js:57: totalAssetCost: bs.total_asset_cost_annual ?? 0,
+hooks\useBusinessOutcomeWaterfall.js:81: productiveAssetCost: assets_contract.productive_asset_cost ?? 0,
+hooks\useBusinessOutcomeWaterfall.js:84: supportAssetCost: assets_contract.support_asset_cost ?? 0,
+hooks\useBusinessSummary.js:47: total_asset_cost_annual:
+hooks\useBusinessSummary.js:48: cost_summary_output_contract.total_asset_cost_annual ?? 0,
+hooks\useBusinessSummary.js:110: total_asset_cost_annual:
+hooks\useBusinessSummary.js:111: cost_summary_output_contract.total_asset_cost_annual ?? 0,
+hooks\useBusinessSummary.js:120: productive_asset_cost:
+hooks\useBusinessSummary.js:121: cost_summary_output_contract.productive_asset_cost ?? 0,
+hooks\useBusinessSummary.js:122: support_asset_cost:
+hooks\useBusinessSummary.js:123: cost_summary_output_contract.support_asset_cost ?? 0,
+hooks\useBusinessSummary.js:204: total_asset_cost_annual:
+hooks\useBusinessSummary.js:205: display_details.total_asset_cost_annual,
+hooks\useBusinessSummary.js:213: productive_asset_cost:
+hooks\useBusinessSummary.js:214: display_details.productive_asset_cost,
+hooks\useBusinessSummary.js:215: support_asset_cost:
+hooks\useBusinessSummary.js:216: display_details.support_asset_cost,
+hooks\useCostAllocation.js:94: active_assets: asset_recovery_overlay.active_assets,
+hooks\useCostAllocation.js:112: active_assets: asset_recovery_overlay.active_assets,
+hooks\useCostAllocation.js:138: productive_asset_cost: asset_recovery_overlay.productive_asset_cost,
+hooks\useCostAllocation.js:139: support_asset_cost: asset_recovery_overlay.support_asset_cost,
+hooks\useCostAllocation.js:509: productive_asset_utilisation_hours_annual:
+hooks\useCostAllocation.js:510: calculated.productive_asset_utilisation_hours_annual,
+hooks\useCostSummary.js:27: asset_output_contract.total_allocated_asset_overhead_cost_annual ?? 0
+hooks\useCostSummary.js:39: total_asset_cost_annual:
+hooks\useCostSummary.js:40: asset_output_contract.total_asset_recovery_cost_annual ??
+hooks\useCostSummary.js:41: asset_output_contract.total_asset_cost_annual ??
+hooks\useCostSummary.js:44: asset_output_contract.total_asset_cost_annual ?? 0,
+hooks\useCostSummary.js:123: total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
+hooks\useCostSummary.js:125: asset_output_contract.total_asset_cost_annual ?? 0,
+hooks\useCostSummary.js:127: total_asset_recovery_cost_annual:
+hooks\useCostSummary.js:128: asset_output_contract.total_asset_recovery_cost_annual ??
+hooks\useCostSummary.js:129: calculations.total_asset_cost_annual ??
+hooks\useCostSummary.js:139: productive_asset_cost:
+hooks\useCostSummary.js:140: asset_output_contract.productive_asset_cost ?? 0,
+hooks\useCostSummary.js:141: productive_asset_recovery_cost_annual:
+hooks\useCostSummary.js:142: asset_output_contract.productive_asset_recovery_cost_annual ??
+hooks\useCostSummary.js:143: asset_output_contract.productive_asset_cost ??
+hooks\useCostSummary.js:145: support_asset_cost:
+hooks\useCostSummary.js:146: asset_output_contract.support_asset_cost ?? 0,
+hooks\useCostSummary.js:156: asset_output_contract.asset_related_unassigned_cost ?? 0,
+hooks\useCostSummary.js:215: total_asset_cost_annual:
+hooks\useCostSummary.js:216: calculations.total_asset_cost_annual ?? 0,
+hooks\useCostSummary.js:218: asset_output_contract.total_asset_cost_annual ?? 0,
+hooks\useCostSummary.js:220: total_asset_recovery_cost_annual:
+hooks\useCostSummary.js:221: asset_output_contract.total_asset_recovery_cost_annual ??
+hooks\useCostSummary.js:222: calculations.total_asset_cost_annual ??
+hooks\useCostSummary.js:234: productive_asset_cost:
+hooks\useCostSummary.js:235: asset_output_contract.productive_asset_cost ?? 0,
+hooks\useCostSummary.js:236: productive_asset_recovery_cost_annual:
+hooks\useCostSummary.js:237: asset_output_contract.productive_asset_recovery_cost_annual ??
+hooks\useCostSummary.js:238: asset_output_contract.productive_asset_cost ??
+hooks\useCostSummary.js:240: support_asset_cost:
+hooks\useCostSummary.js:241: asset_output_contract.support_asset_cost ?? 0,
+hooks\useCostSummary.js:247: asset_related_unassigned_cost:
+hooks\useCostSummary.js:248: asset_output_contract.asset_related_unassigned_cost ?? 0,
+hooks\useCostSummary.js:249: asset_review_required:
+hooks\useCostSummary.js:250: asset_output_contract.asset_review_required === true,
+hooks\useCostSummary.js:251: active_assets: Array.isArray(asset_output_contract.active_assets)
+hooks\useCostSummary.js:252: ? asset_output_contract.active_assets
+hooks\useCostSummary.js:270: asset_output_contract.asset_related_unassigned_cost ?? 0,
+hooks\useRecoverySummary.js:131: asset_utilisation_hours_annual:
+hooks\useRecoverySummary.js:132: calculated.asset_utilisation_hours_annual,
+hooks\useRecoverySummary.js:133: required_asset_recovery_rate: calculated.required_asset_recovery_rate,
+hooks\useRecoverySummary.js:148: productive_asset_cost: asset_outputs.productive_asset_cost ?? 0,
+hooks\useRecoverySummary.js:149: support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+hooks\useRecoverySummary.js:199: total_asset_cost_annual: calculated.total_asset_cost_annual,
+lib\audit\buildLiveAuditSnapshotExport.js:86: getValue(costSummaryData, "total_asset_cost_annual", 0)
+lib\audit\buildLiveAuditSnapshotExport.js:110: total_asset_cost_annual: totalAssetCostAnnual,
+lib\calculation-trace\pilot-map\traceEdges.js:91: notes: "Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+lib\calculation-trace\pilot-map\traceEdges.js:95: edge_id: "cost_summary.total_asset_cost_annual__to__cost_summary.total_cost_burden",
+lib\calculation-trace\pilot-map\traceEdges.js:96: from_node_id: "cost_summary.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:99: notes: "Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+lib\calculation-trace\pilot-map\traceEdges.js:107: notes: "Verified from formula: total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+lib\calculation-trace\pilot-map\traceEdges.js:119: edge_id: "assets.total_asset_cost_annual__to__cost_summary.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:120: from_node_id: "assets.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:121: to_node_id: "cost_summary.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:123: notes: "Cost Summary consumes total_asset_cost_annual from Assets.",
+lib\calculation-trace\pilot-map\traceEdges.js:175: edge_id: "assets.asset_total_asset_cost_annual__to__assets.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:176: from_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:177: to_node_id: "assets.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:179: notes: "Verified from Assets formula: total_asset_cost_annual = sum total_asset_cost_annual for active assets",
+lib\calculation-trace\pilot-map\traceEdges.js:183: edge_id: "assets.asset_ownership_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:185: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:187: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_ownership_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:191: edge_id: "assets.asset_finance_interest_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:193: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:195: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_finance_interest_annual. Principal must not be included.",
+lib\calculation-trace\pilot-map\traceEdges.js:199: edge_id: "assets.asset_lease_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:201: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:203: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_lease_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:207: edge_id: "assets.asset_depreciation_or_replacement_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:209: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:211: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_depreciation_or_replacement_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:215: edge_id: "assets.asset_insurance_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:217: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:219: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_insurance_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:223: edge_id: "assets.asset_registration_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:225: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:227: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_registration_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:231: edge_id: "assets.asset_other_ownership_cost_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:233: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:235: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes asset_other_ownership_cost_annual.",
+lib\calculation-trace\pilot-map\traceEdges.js:271: edge_id: "assets.assigned_running_cost_transfers_annual__to__assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:273: to_node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceEdges.js:275: notes: "Verified from Assets formula per asset: total_asset_cost_annual includes assigned_running_cost_transfers_annual. This is not a root input; the transfer source path is mapped through general_overheads.general_overheads_pool_amount and assets.asset_running_cost_transfers.",
+lib\calculation-trace\pilot-map\traceNodes.js:138: formula_text: "total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+lib\calculation-trace\pilot-map\traceNodes.js:161: node_id: "cost_summary.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:163: variable_name: "total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:287: node_id: "assets.total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:289: variable_name: "total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:292: formula_text: "total_asset_cost_annual = sum total_asset_cost_annual for active assets",
+lib\calculation-trace\pilot-map\traceNodes.js:301: node_id: "assets.asset_total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:303: variable_name: "total_asset_cost_annual",
+lib\calculation-trace\pilot-map\traceNodes.js:306: formula_text: "total_asset_cost_annual = asset_ownership_cost_annual + asset_finance_interest_annual + asset_lease_cost_annual + asset_depreciation_or_replacement_cost_annual + asset_insurance_cost_annual + asset_registration_cost_annual + asset_other_ownership_cost_annual + assigned_running_cost_transfers_annual",
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:240: const available_non_productive_asset_cost = asset_rows.reduce(
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:245: const assigned_non_productive_asset_cost = enriched_assignments.reduce(
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:266: let over_allocated_non_productive_asset_cost = 0;
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:282: over_allocated_non_productive_asset_cost +=
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:286: const remaining_non_productive_asset_cost =
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:287: available_non_productive_asset_cost - assigned_non_productive_asset_cost;
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:291: if (over_allocated_non_productive_asset_cost > 0) {
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:293: } else if (remaining_non_productive_asset_cost > 1) {
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:301: available_asset_cost: available_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:302: assigned_asset_cost: assigned_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:303: remaining_asset_cost: remaining_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:304: over_allocated_asset_cost: over_allocated_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:311: total_available_non_productive_asset_cost:
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:312: available_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:313: total_assigned_non_productive_asset_cost:
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:314: assigned_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:315: total_remaining_non_productive_asset_cost:
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:316: remaining_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:317: total_over_allocated_non_productive_asset_cost:
+lib\calculations\cost-allocation\costAllocationAssetPoolBuilders.js:318: over_allocated_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:65: const assigned_non_productive_asset_cost =
+lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:111: assigned_non_productive_asset_cost;
+lib\calculations\cost-allocation\costAllocationGroupCostBuilder.js:182: assigned_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:23: const source_assets = Array.isArray(assets?.active_assets)
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:24: ? assets.active_assets
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:88: total_asset_cost_annual: safe_number(
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:89: recovery_outputs?.total_asset_cost_annual
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:123: productive_asset_cost: safe_number(recovery_outputs?.productive_asset_cost),
+lib\calculations\cost-allocation\costAllocationInputBuilder.js:124: support_asset_cost: safe_number(recovery_outputs?.support_asset_cost),
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:52: const active_assets = safe_array(inputs.active_assets);
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:337: const total_grouped_non_productive_asset_cost =
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:338: non_productive_asset_assignment_result.total_assigned_non_productive_asset_cost;
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:345: total_grouped_non_productive_asset_cost;
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:359: const unassigned_non_productive_asset_cost =
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:360: non_productive_asset_assignment_result.total_remaining_non_productive_asset_cost;
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:527: total_grouped_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationRuleBuildContext.js:533: unassigned_non_productive_asset_cost,
+lib\calculations\cost-allocation\costAllocationSharedHelpers.js:73: row.total_asset_cost_annual ??
+lib\calculations\cost-allocation\costAllocationSharedHelpers.js:83: row.utilisation_hours_annual ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:70: const total_asset_cost_annual = to_number(input.total_asset_cost_annual);
+lib\calculations\recovery-summary\calculateRecoverySummary.js:77: total_people_cost_annual + total_asset_cost_annual + total_business_overheads;
+lib\calculations\recovery-summary\calculateRecoverySummary.js:89: const productive_asset_cost = to_number(
+lib\calculations\recovery-summary\calculateRecoverySummary.js:90: input.productive_asset_cost ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:91: input.productive_asset_cost_annual ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:92: asset_contract.productive_asset_cost_annual ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:93: asset_contract.productive_asset_cost
+lib\calculations\recovery-summary\calculateRecoverySummary.js:95: const support_asset_cost = to_number(input.support_asset_cost);
+lib\calculations\recovery-summary\calculateRecoverySummary.js:96: const asset_utilisation_hours_annual = to_number(
+lib\calculations\recovery-summary\calculateRecoverySummary.js:97: input.asset_utilisation_hours_annual ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:98: input.total_productive_asset_utilisation_hours_annual ??
+lib\calculations\recovery-summary\calculateRecoverySummary.js:99: asset_contract.total_productive_asset_utilisation_hours_annual
+lib\calculations\recovery-summary\calculateRecoverySummary.js:101: const required_asset_recovery_rate =
+lib\calculations\recovery-summary\calculateRecoverySummary.js:102: asset_utilisation_hours_annual > 0
+lib\calculations\recovery-summary\calculateRecoverySummary.js:103: ? round_currency(productive_asset_cost / asset_utilisation_hours_annual)
+lib\calculations\recovery-summary\calculateRecoverySummary.js:166: productive_asset_cost,
+lib\calculations\recovery-summary\calculateRecoverySummary.js:249: productive_asset_count <= 0 && productive_asset_cost <= 0
+lib\calculations\recovery-summary\calculateRecoverySummary.js:251: : asset_utilisation_hours_annual <= 0
+lib\calculations\recovery-summary\calculateRecoverySummary.js:257: asset_recovery_cost = round_currency(productive_asset_cost);
+lib\calculations\recovery-summary\calculateRecoverySummary.js:303: ? productive_asset_cost > 0
+lib\calculations\recovery-summary\calculateRecoverySummary.js:327: total_asset_cost_annual,
+lib\calculations\recovery-summary\calculateRecoverySummary.js:446: asset_utilisation_hours_annual <= 0
+lib\calculations\recovery-summary\calculateRecoverySummary.js:535: total_asset_cost_annual: round_currency(total_asset_cost_annual),
+lib\calculations\recovery-summary\calculateRecoverySummary.js:543: productive_asset_cost: round_currency(productive_asset_cost),
+lib\calculations\recovery-summary\calculateRecoverySummary.js:544: productive_asset_cost_annual: round_currency(productive_asset_cost),
+lib\calculations\recovery-summary\calculateRecoverySummary.js:545: support_asset_cost: round_currency(support_asset_cost),
+lib\calculations\recovery-summary\calculateRecoverySummary.js:546: asset_utilisation_hours_annual: round_currency(
+lib\calculations\recovery-summary\calculateRecoverySummary.js:547: asset_utilisation_hours_annual
+lib\calculations\recovery-summary\calculateRecoverySummary.js:549: required_asset_recovery_rate,
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:9: total_asset_cost_annual,
+lib\calculations\recovery-summary\recoverySummaryOverheadDiagnostics.js:55: if (total_asset_cost_annual > 0 && asset_share_percent <= 0) {
+lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:42: productive_asset_cost,
+lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:55: to_number(productive_asset_cost) > 0;
+lib\calculations\recovery-summary\recoverySummarySuggestedSplit.js:63: const asset_basis = has_asset_recovery_base ? to_number(productive_asset_cost) : 0;
+lib\calculations\businessOutcomeAssetSplitCalculations.js:109: group?.assigned_non_productive_asset_cost || 0
+lib\calculations\businessSummaryCalculations.js:54: total_asset_cost_annual = 0,
+lib\calculations\businessSummaryCalculations.js:68: const asset_cost_total = to_number(total_asset_cost_annual);
+lib\calculations\businessSummaryCalculations.js:178: total_asset_cost_annual: asset_cost_total,
+lib\calculations\costSummaryCalculations.js:30: const total_asset_cost_annual = to_number(asset_data.total_asset_cost_annual);
+lib\calculations\costSummaryCalculations.js:39: total_asset_cost_annual + total_business_overheads;
+lib\calculations\costSummaryCalculations.js:43: total_asset_cost_annual +
+lib\calculations\costSummaryCalculations.js:87: total_asset_cost_annual,
+lib\calculations\quoteEngineCalculations.js:67: const total_asset_cost_annual = toNumber(
+lib\calculations\quoteEngineCalculations.js:68: cost_summary_output_contract.total_asset_cost_annual
+lib\calculations\quoteEngineCalculations.js:184: total_asset_cost_annual,
+lib\reconciliation\reconciliationRules.js:71: const active_assets = Array.isArray(asset_output_contract.active_assets)
+lib\reconciliation\reconciliationRules.js:72: ? asset_output_contract.active_assets
+lib\reconciliation\reconciliationRules.js:77: const total_asset_cost_annual = toNumber(
+lib\reconciliation\reconciliationRules.js:78: asset_output_contract.total_asset_cost_annual,
+lib\reconciliation\reconciliationRules.js:93: total_asset_cost_annual === 0;
+lib\reconciliation\reconciliationRules.js:115: ? "no_active_assets_confirmed is true and total_asset_cost_annual is 0."
+lib\reconciliation\reconciliationRules.js:780: const total_asset_cost_annual = toNumber(
+lib\reconciliation\reconciliationRules.js:781: asset_output_contract.total_asset_cost_annual,
+lib\reconciliation\reconciliationRules.js:800: const active_assets = Array.isArray(asset_output_contract.active_assets)
+lib\reconciliation\reconciliationRules.js:801: ? asset_output_contract.active_assets
+lib\reconciliation\reconciliationRules.js:815: total_asset_cost_annual +
+lib\reconciliation\reconciliationRules.js:940: total_asset_cost_annual,
+lib\reconciliation\reconciliationRules.js:969: total_asset_cost_annual,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:16: //    unassigned_non_productive_labour_cost, unassigned_non_productive_asset_cost,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:367: unassigned_non_productive_asset_cost,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:374: assigned_non_productive_asset_cost,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:419: unassigned_non_productive_asset_cost > 0 && {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:421: amount: unassigned_non_productive_asset_cost,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:430: unassigned_non_productive_asset_cost;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:481: unassigned_non_productive_asset_cost -
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:483: (assigned_non_productive_asset_cost ?? 0);
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:558: unassigned_non_productive_asset_cost;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:694: total: (assigned_non_productive_labour_cost ?? 0) + (assigned_non_productive_asset_cost ?? 0),
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:695: has_gaps: ((assigned_non_productive_labour_cost ?? 0) + (assigned_non_productive_asset_cost ?? 0)) > 0,
+lib\selectors\cost-allocation\costAllocationCardSelectors.js:45: return (calculated?.active_assets ?? []).map((asset) => {
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:97: total_asset_cost_annual: calculated.total_asset_cost_annual ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:109: productive_asset_cost: calculated.productive_asset_cost ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:110: productive_asset_cost_annual:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:111: calculated.productive_asset_cost_annual ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:112: calculated.productive_asset_cost ??
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:114: support_asset_cost: calculated.support_asset_cost ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:115: asset_utilisation_hours_annual:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:116: calculated.asset_utilisation_hours_annual ?? 0,
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:117: required_asset_recovery_rate:
+lib\selectors\recovery-summary\recoverySummaryCardSelector.js:118: calculated.required_asset_recovery_rate ?? 0,
+lib\selectors\businessSummarySelectors.js:186: total_asset_cost_annual: toNumber(calculations.total_asset_cost_annual),
+lib\selectors\costSummarySelectors.js:140: "total_asset_cost_annual"
+lib\selectors\costSummarySelectors.js:240: asset_cost_total: calculations.total_asset_cost_annual,

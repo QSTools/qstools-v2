@@ -1,0 +1,1706 @@
+=== FIELD PARITY: useAssets vs assetOutputContract ===
+Hook file:     hooks\useAssets.js  (24 top-level keys)
+Selector file: hooks\assets\assetOutputContract.js  (34 top-level keys)
+
+IN BOTH (3):
+    total_asset_cost_annual
+    finance_cost_annual
+    cash_flow_support
+
+IN HOOK BUT MISSING FROM SELECTOR (21) - likely won't reach the component:
+    ** asset_id
+    ** asset_name
+    ** asset_type
+    ** allocated_asset_overhead_cost_annual
+    ** asset_recovery_cost_annual
+    ** asset_overhead_pool_assignments
+    ** assigned_asset_overhead_source_rows
+    ** asset_interest_annual
+    ** estimated_remaining_finance_balance
+    ** finance_progress_percent
+    ** finance_active
+    ** finance_status
+    ** finance_start_date
+    ** finance_end_date
+    ** finance_paid_off
+    ** utilisation_hours_per_week
+    ** utilisation_hours_annual
+    ** required_asset_recovery_rate
+    ** productive_asset_hours
+    ** true_asset_cost_per_hour
+    ** is_active
+
+IN SELECTOR BUT NOT FOUND IN HOOK (31) - informational, may be a legitimate derived field or a spread the script couldn't see through:
+    assets
+    active_assets
+    assets_ready
+    no_active_assets_confirmed
+    has_productive_asset_recovery_base
+    productive_asset_count
+    support_asset_count
+    productive_asset_cost
+    productive_asset_cost_annual
+    productive_asset_recovery_cost_annual
+    productive_asset_assigned_overhead_cost_annual
+    support_asset_cost
+    support_asset_assigned_overhead_cost_annual
+    total_productive_asset_utilisation_hours_annual
+    productive_asset_recovery_rate
+    asset_overhead_pools
+    asset_overhead_pool_assignment_summary
+    total_allocated_asset_overhead_cost_annual
+    total_assigned_asset_overhead_cost_annual
+    total_asset_related_overhead_pool_amount
+    asset_related_pool_total
+    asset_related_assigned_to_assets
+    asset_related_unassigned_cost
+    asset_related_unassigned_balance
+    total_unassigned_asset_related_overhead_cost_annual
+    asset_related_overhead_pool
+    asset_review_required
+    asset_overhead_assignment_warnings
+    total_asset_recovery_cost_annual
+    legacy_display
+    total_asset_interest_annual
+
+ACTION: review each '**' field above - confirm whether it's intentionally excluded or a genuine gap to patch.
+
+=== STORAGE KEY USAGE ===
+lib\storage\assetStorage.js:6: const ASSET_STATE_STORAGE_KEY = "qs_tools_asset_state";
+lib\storage\assetStorage.js:7: const SAVED_ASSETS_STORAGE_KEY = "qs_tools_saved_assets";
+lib\storage\fixedAssetRegisterStorage.js:15: const STORAGE_KEY = "qs_tools_fixed_asset_register_state_v1";
+
+=== WEEK CONSTANTS / PRINCIPAL / BUSINESS_TYPE / BREAKS in asset files ===
+lib\calculations\assetCalculations.js:22: utilisation_hours_per_week,
+lib\calculations\assetCalculations.js:23: asset_annual_weeks_override,
+lib\calculations\assetCalculations.js:24: business_default_annual_weeks,
+lib\calculations\assetCalculations.js:28: utilisation_hours_per_week: 0,
+lib\calculations\assetCalculations.js:30: annual_weeks_used: 0,
+lib\calculations\assetCalculations.js:31: annual_weeks_source: "not_applicable",
+lib\calculations\assetCalculations.js:35: const weekly_hours = Math.max(to_number(utilisation_hours_per_week), 0);
+lib\calculations\assetCalculations.js:36: const override_weeks = to_number(asset_annual_weeks_override);
+lib\calculations\assetCalculations.js:37: const default_weeks = to_number(business_default_annual_weeks);
+lib\calculations\assetCalculations.js:39: let annual_weeks_used;
+lib\calculations\assetCalculations.js:40: let annual_weeks_source;
+lib\calculations\assetCalculations.js:42: if (override_weeks > 0) {
+lib\calculations\assetCalculations.js:43: annual_weeks_used = override_weeks;
+lib\calculations\assetCalculations.js:44: annual_weeks_source = "asset_override";
+lib\calculations\assetCalculations.js:45: } else if (default_weeks > 0) {
+lib\calculations\assetCalculations.js:46: annual_weeks_used = default_weeks;
+lib\calculations\assetCalculations.js:47: annual_weeks_source = "opening_hours_default";
+lib\calculations\assetCalculations.js:49: annual_weeks_used = 48;
+lib\calculations\assetCalculations.js:50: annual_weeks_source = "fallback_default";
+lib\calculations\assetCalculations.js:54: utilisation_hours_per_week: weekly_hours,
+lib\calculations\assetCalculations.js:55: utilisation_hours_annual: weekly_hours * annual_weeks_used,
+lib\calculations\assetCalculations.js:56: annual_weeks_used,
+lib\calculations\assetCalculations.js:57: annual_weeks_source,
+lib\calculations\assetCalculations.js:313: asset_principal_repayment_annual: 0,
+lib\calculations\assetCalculations.js:319: asset_principal_repayment_annual: Math.max(
+lib\calculations\assetCalculations.js:352: business_default_annual_weeks = 48
+lib\calculations\assetCalculations.js:429: utilisation_hours_per_week: asset_state.utilisation_hours_per_week,
+lib\calculations\assetCalculations.js:430: asset_annual_weeks_override: asset_state.asset_annual_weeks_override,
+lib\calculations\assetCalculations.js:431: business_default_annual_weeks,
+lib\calculations\assetCalculations.js:471: principal_annual: round_currency(
+lib\calculations\assetCalculations.js:472: cash_flow_support.asset_principal_repayment_annual
+lib\calculations\assetCalculations.js:482: asset_principal_repayment_annual: round_currency(
+lib\calculations\assetCalculations.js:483: cash_flow_support.asset_principal_repayment_annual
+lib\calculations\assetCalculations.js:504: utilisation_hours_per_week: round_percent(
+lib\calculations\assetCalculations.js:505: utilisation.utilisation_hours_per_week
+lib\calculations\assetCalculations.js:508: asset_annual_weeks_override:
+lib\calculations\assetCalculations.js:509: to_number(asset_state.asset_annual_weeks_override) || null,
+lib\calculations\assetCalculations.js:510: annual_weeks_used: utilisation.annual_weeks_used,
+lib\calculations\assetCalculations.js:511: annual_weeks_source: utilisation.annual_weeks_source,
+hooks\assets\assetHookUtils.js:135: function resolve_asset_annual_weeks({
+hooks\assets\assetHookUtils.js:136: asset_annual_weeks_override,
+hooks\assets\assetHookUtils.js:137: business_default_annual_weeks,
+hooks\assets\assetHookUtils.js:139: const override_weeks = to_number(asset_annual_weeks_override);
+hooks\assets\assetHookUtils.js:141: if (override_weeks > 0) {
+hooks\assets\assetHookUtils.js:142: return override_weeks;
+hooks\assets\assetHookUtils.js:145: const default_weeks = to_number(business_default_annual_weeks);
+hooks\assets\assetHookUtils.js:147: return default_weeks > 0 ? default_weeks : 48;
+hooks\assets\assetHookUtils.js:152: business_default_annual_weeks = 48
+hooks\assets\assetHookUtils.js:155: const utilisation_hours_per_week =
+hooks\assets\assetHookUtils.js:157: ? Math.max(to_number(asset.utilisation_hours_per_week ?? 40), 0)
+hooks\assets\assetHookUtils.js:159: const annual_weeks_used = resolve_asset_annual_weeks({
+hooks\assets\assetHookUtils.js:160: asset_annual_weeks_override: asset.asset_annual_weeks_override,
+hooks\assets\assetHookUtils.js:161: business_default_annual_weeks,
+hooks\assets\assetHookUtils.js:165: ? utilisation_hours_per_week * annual_weeks_used
+hooks\assets\assetHookUtils.js:187: utilisation_hours_per_week,
+hooks\assets\assetHookUtils.js:189: annual_weeks_used,
+hooks\assets\assetOutputContract.js:16: business_default_annual_weeks,
+hooks\assets\assetOutputContract.js:34: utilisation_hours_per_week: Number(
+hooks\assets\assetOutputContract.js:35: asset.utilisation_hours_per_week ?? 0
+hooks\assets\assetOutputContract.js:38: asset_annual_weeks_override:
+hooks\assets\assetOutputContract.js:39: asset.asset_annual_weeks_override === null ||
+hooks\assets\assetOutputContract.js:40: asset.asset_annual_weeks_override === undefined ||
+hooks\assets\assetOutputContract.js:41: asset.asset_annual_weeks_override === ""
+hooks\assets\assetOutputContract.js:43: : Number(asset.asset_annual_weeks_override),
+hooks\assets\assetOutputContract.js:44: annual_weeks_used: Number(asset.annual_weeks_used ?? 0),
+hooks\assets\assetOutputContract.js:45: annual_weeks_source: asset.annual_weeks_source ?? "",
+hooks\assets\assetOutputContract.js:61: asset_principal_repayment_annual: Number(
+hooks\assets\assetOutputContract.js:62: asset.asset_principal_repayment_annual ??
+hooks\assets\assetOutputContract.js:63: asset.principal_annual ??
+hooks\assets\assetOutputContract.js:94: business_default_annual_weeks
+hooks\assets\assetOutputContract.js:107: utilisation_hours_per_week:
+hooks\assets\assetOutputContract.js:108: utilisation_fields.utilisation_hours_per_week,
+hooks\assets\assetOutputContract.js:174: total_asset_principal_repayment_annual: live_assets.reduce(
+hooks\assets\assetOutputContract.js:178: asset.asset_principal_repayment_annual ??
+hooks\assets\assetOutputContract.js:179: asset.principal_annual ??
+hooks\useAssets.js:45: const business_default_annual_weeks =
+hooks\useAssets.js:46: to_number(opening_hours?.calculated?.annual_open_weeks) || 48;
+hooks\useAssets.js:61: business_default_annual_weeks
+hooks\useAssets.js:67: business_default_annual_weeks,
+hooks\useAssets.js:113: business_default_annual_weeks
+hooks\useAssets.js:127: business_default_annual_weeks,
+hooks\useAssets.js:201: business_default_annual_weeks,
+hooks\useAssets.js:209: business_default_annual_weeks,
+hooks\useAssets.js:218: business_default_annual_weeks,
+hooks\useAssets.js:236: business_default_annual_weeks,
+hooks\useAssets.js:254: business_default_annual_weeks
+hooks\useAssets.js:285: utilisation_hours_per_week:
+hooks\useAssets.js:286: utilisation_fields.utilisation_hours_per_week,
+hooks\useAssets.js:292: asset_principal_repayment_annual: Number(
+hooks\useAssets.js:293: asset.asset_principal_repayment_annual ??
+hooks\useAssets.js:294: asset.principal_annual ??
+hooks\useAssets.js:314: }, [saved_assets, business_default_annual_weeks]);
+hooks\useAssets.js:322: business_default_annual_weeks,
+hooks\useAssets.js:329: business_default_annual_weeks,
+hooks\useAssets.js:337: business_default_annual_weeks,
+lib\selectors\assets\assetCardSelectors.js:23: business_default_annual_weeks,
+lib\selectors\assets\assetCardSelectors.js:79: business_default_annual_weeks
+lib\selectors\assets\assetCardSelectors.js:130: const current_principal_annual = current_asset_is_active
+lib\selectors\assets\assetCardSelectors.js:132: calculations.asset_principal_repayment_annual ??
+lib\selectors\assets\assetCardSelectors.js:133: calculations.principal_annual ??
+lib\selectors\assets\assetCardSelectors.js:145: current_principal_annual > 0 ||
+lib\selectors\assets\assetCardSelectors.js:170: business_default_annual_weeks
+lib\selectors\assets\assetCardSelectors.js:195: utilisation_hours_per_week:
+lib\selectors\assets\assetCardSelectors.js:197: ? format_hours(asset.utilisation_hours_per_week, 2)
+lib\selectors\assets\assetCardSelectors.js:276: label: "Annual principal repayment",
+lib\selectors\assets\assetCardSelectors.js:277: value: format_currency(current_principal_annual),
+lib\selectors\assets\assetCardSelectors.js:286: "Interest is included in ownership asset cost. Principal is shown for cash-flow visibility only. Assigned asset overhead pools are running/review costs from General Overheads and are transferred into asset recovery without changing the source P&L total.",
+lib\selectors\assets\assetCardSelectors.js:326: label: "Principal Annual (Cash Flow Later)",
+lib\selectors\assets\assetCardSelectors.js:327: value: format_currency(calculations.principal_annual),
+lib\selectors\assets\assetCardSelectors.js:358: label: "Utilisation Hours / Week",
+lib\selectors\assets\assetCardSelectors.js:361: ? format_hours(calculations.utilisation_hours_per_week, 2)
+lib\selectors\assets\assetCardSelectors.js:411: utilisation_hours_per_week: calculations.utilisation_hours_per_week,
+lib\selectors\assets\assetSelectorUtilisation.js:3: export function resolve_asset_annual_weeks({
+lib\selectors\assets\assetSelectorUtilisation.js:4: asset_annual_weeks_override,
+lib\selectors\assets\assetSelectorUtilisation.js:5: business_default_annual_weeks,
+lib\selectors\assets\assetSelectorUtilisation.js:7: const override_weeks = to_number(asset_annual_weeks_override);
+lib\selectors\assets\assetSelectorUtilisation.js:9: if (override_weeks > 0) {
+lib\selectors\assets\assetSelectorUtilisation.js:10: return override_weeks;
+lib\selectors\assets\assetSelectorUtilisation.js:13: const default_weeks = to_number(business_default_annual_weeks);
+lib\selectors\assets\assetSelectorUtilisation.js:15: return default_weeks > 0 ? default_weeks : 48;
+lib\selectors\assets\assetSelectorUtilisation.js:20: business_default_annual_weeks
+lib\selectors\assets\assetSelectorUtilisation.js:26: const weekly_hours = Math.max(to_number(asset.utilisation_hours_per_week), 0);
+lib\selectors\assets\assetSelectorUtilisation.js:27: const annual_weeks_used = resolve_asset_annual_weeks({
+lib\selectors\assets\assetSelectorUtilisation.js:28: asset_annual_weeks_override: asset.asset_annual_weeks_override,
+lib\selectors\assets\assetSelectorUtilisation.js:29: business_default_annual_weeks,
+lib\selectors\assets\assetSelectorUtilisation.js:32: return weekly_hours * annual_weeks_used;
+lib\selectors\assets\assetStatusSelectors.js:64: return "Finance has been paid off. Future interest, principal and finance payment are treated as zero.";
+lib\selectors\assets\assetStatusSelectors.js:72: return "Finance term has ended. Future interest, principal and finance payment are treated as zero.";
+lib\selectors\assets\assetStatusSelectors.js:76: return "Finance is active. Interest is included as operating asset cost; principal is shown for cash-flow visibility.";
+lib\selectors\assets\assetStatusSelectors.js:88: business_default_annual_weeks,
+lib\selectors\assets\assetStatusSelectors.js:107: (asset) => !has_positive_number(asset.utilisation_hours_per_week)
+lib\selectors\assets\assetStatusSelectors.js:116: business_default_annual_weeks
+lib\selectors\assets\assetStatusSelectors.js:230: !has_positive_number(asset_state.utilisation_hours_per_week)
+lib\storage\assetStorage.js:8: const ASSET_UTILISATION_WEEKS_PER_YEAR = 48;
+lib\storage\assetStorage.js:57: scheduled_hours_per_week: null,
+lib\storage\assetStorage.js:58: downtime_hours_per_week: 0,
+lib\storage\assetStorage.js:59: utilisation_hours_per_week: 40,
+lib\storage\assetStorage.js:60: utilisation_hours_annual: 40 * ASSET_UTILISATION_WEEKS_PER_YEAR,
+lib\storage\assetStorage.js:118: const default_utilisation_hours_per_week =
+lib\storage\assetStorage.js:122: input.scheduled_hours_per_week !== undefined &&
+lib\storage\assetStorage.js:123: input.scheduled_hours_per_week !== null &&
+lib\storage\assetStorage.js:124: input.scheduled_hours_per_week !== "";
+lib\storage\assetStorage.js:126: const scheduled_hours_per_week_raw = has_scheduled_hours
+lib\storage\assetStorage.js:127: ? Number(input.scheduled_hours_per_week)
+lib\storage\assetStorage.js:130: const safe_scheduled_hours_per_week =
+lib\storage\assetStorage.js:131: scheduled_hours_per_week_raw !== null &&
+lib\storage\assetStorage.js:132: Number.isFinite(scheduled_hours_per_week_raw)
+lib\storage\assetStorage.js:133: ? Math.max(scheduled_hours_per_week_raw, 0)
+lib\storage\assetStorage.js:136: const downtime_hours_per_week_raw = Number(
+lib\storage\assetStorage.js:137: input.downtime_hours_per_week || 0
+lib\storage\assetStorage.js:139: const safe_downtime_hours_per_week = Number.isFinite(
+lib\storage\assetStorage.js:140: downtime_hours_per_week_raw
+lib\storage\assetStorage.js:142: ? Math.max(downtime_hours_per_week_raw, 0)
+lib\storage\assetStorage.js:145: const utilisation_hours_per_week =
+lib\storage\assetStorage.js:147: ? safe_scheduled_hours_per_week !== null
+lib\storage\assetStorage.js:149: safe_scheduled_hours_per_week - safe_downtime_hours_per_week,
+lib\storage\assetStorage.js:153: input.utilisation_hours_per_week ??
+lib\storage\assetStorage.js:154: input.hours_used_per_week ??
+lib\storage\assetStorage.js:155: default_utilisation_hours_per_week
+lib\storage\assetStorage.js:159: const safe_utilisation_hours_per_week = Number.isFinite(
+lib\storage\assetStorage.js:160: utilisation_hours_per_week
+lib\storage\assetStorage.js:162: ? Math.max(utilisation_hours_per_week, 0)
+lib\storage\assetStorage.js:163: : default_utilisation_hours_per_week;
+lib\storage\assetStorage.js:172: scheduled_hours_per_week:
+lib\storage\assetStorage.js:173: asset_type === "productive" ? safe_scheduled_hours_per_week : null,
+lib\storage\assetStorage.js:174: downtime_hours_per_week:
+lib\storage\assetStorage.js:175: asset_type === "productive" ? safe_downtime_hours_per_week : 0,
+lib\storage\assetStorage.js:176: utilisation_hours_per_week: safe_utilisation_hours_per_week,
+lib\storage\assetStorage.js:179: ? safe_utilisation_hours_per_week * ASSET_UTILISATION_WEEKS_PER_YEAR
+lib\storage\assetStorage.js:262: const asset_principal_repayment_annual = Number(
+lib\storage\assetStorage.js:263: recalculated.asset_principal_repayment_annual ??
+lib\storage\assetStorage.js:264: input.asset_principal_repayment_annual ??
+lib\storage\assetStorage.js:265: input.principal_annual ??
+lib\storage\assetStorage.js:303: principal_annual: asset_principal_repayment_annual,
+lib\storage\assetStorage.js:306: asset_principal_repayment_annual,
+lib\storage\assetStorage.js:317: scheduled_hours_per_week: Number.isFinite(
+lib\storage\assetStorage.js:318: Number(sanitized.scheduled_hours_per_week)
+lib\storage\assetStorage.js:320: ? sanitized.scheduled_hours_per_week
+lib\storage\assetStorage.js:322: downtime_hours_per_week: Number(sanitized.downtime_hours_per_week ?? 0),
+lib\storage\assetStorage.js:323: utilisation_hours_per_week: Number(
+lib\storage\assetStorage.js:324: recalculated.utilisation_hours_per_week ??
+lib\storage\assetStorage.js:325: sanitized.utilisation_hours_per_week ??
+
+##### lib\selectors\assetSelectors.js (1-99999) #####
+    1: export { buildAssetStatus } from "./assets/assetStatusSelectors";
+    2: export { buildAssetCard } from "./assets/assetCardSelectors";
+
+##### lib\storage\assetStorage.js (360-450) #####
+  360:     }
+  361: 
+  362:     return sanitizeAssetState(JSON.parse(raw));
+  363:   } catch {
+  364:     return createEmptyAssetState();
+  365:   }
+  366: }
+  367: 
+  368: function readStoredSavedAssets() {
+  369:   if (typeof window === "undefined") {
+  370:     return [];
+  371:   }
+  372: 
+  373:   try {
+  374:     const raw = window.localStorage.getItem(SAVED_ASSETS_STORAGE_KEY);
+  375:     if (!raw) {
+  376:       return [];
+  377:     }
+  378: 
+  379:     const parsed = JSON.parse(raw);
+  380:     return Array.isArray(parsed)
+  381:       ? parsed.map((asset) => sanitizeSavedAssetRecord(asset))
+  382:       : [];
+  383:   } catch {
+  384:     return [];
+  385:   }
+  386: }
+  387: 
+  388: export function useAssetStorage() {
+  389:   const [asset_state, set_asset_state] = useState(() =>
+  390:     createEmptyAssetState()
+  391:   );
+  392:   const [saved_assets, set_saved_assets] = useState(() => []);
+  393:   const [has_hydrated, set_has_hydrated] = useState(false);
+  394: 
+  395:   useEffect(() => {
+  396:     const stored_asset_state = readStoredAssetState();
+  397:     const stored_saved_assets = readStoredSavedAssets();
+  398: 
+  399:     set_asset_state(stored_asset_state);
+  400:     set_saved_assets(stored_saved_assets);
+  401:     set_has_hydrated(true);
+  402:   }, []);
+  403: 
+  404:   useEffect(() => {
+  405:     if (!has_hydrated || typeof window === "undefined") {
+  406:       return;
+  407:     }
+  408: 
+  409:     window.localStorage.setItem(
+  410:       ASSET_STATE_STORAGE_KEY,
+  411:       JSON.stringify(asset_state)
+  412:     );
+  413:   }, [asset_state, has_hydrated]);
+  414: 
+  415:   useEffect(() => {
+  416:     if (!has_hydrated || typeof window === "undefined") {
+  417:       return;
+  418:     }
+  419: 
+  420:     window.localStorage.setItem(
+  421:       SAVED_ASSETS_STORAGE_KEY,
+  422:       JSON.stringify(saved_assets)
+  423:     );
+  424:   }, [saved_assets, has_hydrated]);
+  425: 
+  426:   function set_asset_field(field_name, value) {
+  427:     set_asset_state((current) => ({
+  428:       ...current,
+  429:       [field_name]: value,
+  430:       updated_at: create_timestamp(),
+  431:     }));
+  432:   }
+  433: 
+  434:   function set_asset_fields(partial_state) {
+  435:     set_asset_state((current) => ({
+  436:       ...current,
+  437:       ...partial_state,
+  438:       updated_at: create_timestamp(),
+  439:     }));
+  440:   }
+  441: 
+  442:   function replace_asset_state(next_state) {
+  443:     set_asset_state(sanitizeAssetState(next_state));
+  444:   }
+  445: 
+  446:   function reset_asset_state() {
+  447:     set_asset_state(createEmptyAssetState());
+  448:   }
+  449: 
+  450:   function save_asset(calculations) {
+
+##### hooks\useAssets.js (1-99999) #####
+    1: "use client";
+    2: 
+    3: import { useMemo } from "react";
+    4: import {
+    5:   createEmptyAssetState,
+    6:   normalizeAssetType,
+    7:   useAssetStorage,
+    8: } from "@/lib/storage/assetStorage";
+    9: import { calculateAssetOutputs } from "@/lib/calculations/assetCalculations";
+   10: import {
+   11:   buildAssetStatus,
+   12:   buildAssetCard,
+   13: } from "@/lib/selectors/assetSelectors";
+   14: import useProfitAndLoss from "@/hooks/useProfitAndLoss";
+   15: import useGeneralOverheads from "@/hooks/useGeneralOverheads";
+   16: import useOpeningHours from "@/hooks/useOpeningHours";
+   17: import { buildAssetsOutputContract } from "@/hooks/assets/assetOutputContract";
+   18: import {
+   19:   build_asset_overhead_assignment_rows,
+   20:   build_asset_recovery_fields,
+   21:   get_asset_pool_assignments,
+   22:   get_asset_utilisation_fields,
+   23:   sum_asset_pool_assignments,
+   24:   to_number,
+   25: } from "@/hooks/assets/assetHookUtils";
+   26: 
+   27: export default function useAssets() {
+   28:   const {
+   29:     asset_state,
+   30:     saved_assets,
+   31:     active_asset_count,
+   32:     set_asset_field,
+   33:     set_asset_fields,
+   34:     replace_asset_state,
+   35:     reset_asset_state,
+   36:     save_asset,
+   37:     load_asset,
+   38:     delete_asset,
+   39:   } = useAssetStorage();
+   40: 
+   41:   const { output_contract: pnl_output_contract } = useProfitAndLoss();
+   42:   const general_overheads = useGeneralOverheads();
+   43:   const opening_hours = useOpeningHours();
+   44: 
+   45:   const business_default_annual_weeks =
+   46:     to_number(opening_hours?.calculated?.annual_open_weeks) || 48;
+   47: 
+   48:   const asset_overhead_pools = useMemo(() => {
+   49:     return general_overheads?.output_contract?.asset_overhead_pools ?? {};
+   50:   }, [general_overheads?.output_contract?.asset_overhead_pools]);
+   51: 
+   52:   const assets_benchmark_total = Number(
+   53:     pnl_output_contract?.assets_benchmark_total ?? 0
+   54:   );
+   55: 
+   56:   const base_calculations = useMemo(() => {
+   57:     return calculateAssetOutputs(
+   58:       asset_state,
+   59:       saved_assets,
+   60:       assets_benchmark_total,
+   61:       business_default_annual_weeks
+   62:     );
+   63:   }, [
+   64:     asset_state,
+   65:     saved_assets,
+   66:     assets_benchmark_total,
+   67:     business_default_annual_weeks,
+   68:   ]);
+   69: 
+   70:   const current_asset_recovery_fields = useMemo(() => {
+   71:     const current_assignments = get_asset_pool_assignments(asset_state);
+   72:     const active_saved_assets = Array.isArray(saved_assets)
+   73:       ? saved_assets.filter(
+   74:           (asset) =>
+   75:             !asset.is_retired && asset.asset_id !== asset_state.asset_id
+   76:         )
+   77:       : [];
+   78:     const effective_current_assignments = Object.fromEntries(
+   79:       Object.entries(current_assignments).map(([pool_key, amount]) => {
+   80:         const available_amount = to_number(
+   81:           asset_overhead_pools?.[pool_key]?.amount
+   82:         );
+   83:         const assigned_to_other_assets = active_saved_assets.reduce(
+   84:           (sum, asset) =>
+   85:             sum +
+   86:             to_number(asset.asset_overhead_pool_assignments?.[pool_key]),
+   87:           0
+   88:         );
+   89:         const remaining_available = Math.max(
+   90:           available_amount - assigned_to_other_assets,
+   91:           0
+   92:         );
+   93: 
+   94:         return [pool_key, Math.min(to_number(amount), remaining_available)];
+   95:       })
+   96:     );
+   97:     const allocated_asset_overhead_cost_annual = sum_asset_pool_assignments(
+   98:       effective_current_assignments
+   99:     );
+  100:     const asset_recovery_cost_annual =
+  101:       to_number(base_calculations.total_asset_cost_annual) +
+  102:       allocated_asset_overhead_cost_annual;
+  103:     const recovery_fields = {
+  104:       allocated_asset_overhead_cost_annual,
+  105:       asset_recovery_cost_annual,
+  106:     };
+  107:     const utilisation_fields = get_asset_utilisation_fields(
+  108:       {
+  109:         ...asset_state,
+  110:         total_asset_cost_annual: base_calculations.total_asset_cost_annual,
+  111:         asset_recovery_cost_annual: recovery_fields.asset_recovery_cost_annual,
+  112:       },
+  113:       business_default_annual_weeks
+  114:     );
+  115: 
+  116:     return {
+  117:       ...recovery_fields,
+  118:       required_asset_recovery_rate:
+  119:         utilisation_fields.required_asset_recovery_rate,
+  120:       true_asset_cost_per_hour: utilisation_fields.true_asset_cost_per_hour,
+  121:     };
+  122:   }, [
+  123:     asset_state,
+  124:     saved_assets,
+  125:     asset_overhead_pools,
+  126:     base_calculations.total_asset_cost_annual,
+  127:     business_default_annual_weeks,
+  128:   ]);
+  129: 
+  130:   const calculations = useMemo(() => {
+  131:     return {
+  132:       ...base_calculations,
+  133:       ...current_asset_recovery_fields,
+  134:     };
+  135:   }, [base_calculations, current_asset_recovery_fields]);
+  136: 
+  137:   // Asset Finance Interest - P&L Match: compares the P&L's flagged
+  138:   // asset-finance interest line(s) against Assets' own confirmed total.
+  139:   // Sourced from the General Overheads hook already imported above -
+  140:   // no new dependency, no circular-import risk (see S22 brief).
+  141:   const asset_finance_pnl_match = useMemo(() => {
+  142:     const flagged_pnl_total = to_number(
+  143:       general_overheads?.calculated?.flagged_asset_finance_pnl_total
+  144:     );
+  145:     const matched_to_assets = to_number(
+  146:       general_overheads?.calculated?.assets_finance_interest_total
+  147:     );
+  148:     const remaining = Math.max(flagged_pnl_total - matched_to_assets, 0);
+  149:     const match_status =
+  150:       flagged_pnl_total <= 0
+  151:         ? matched_to_assets > 0.01
+  152:           ? "unflagged_but_assets_has_interest"
+  153:           : "not_applicable"
+  154:         : remaining <= 0.01
+  155:         ? "fully_matched"
+  156:         : "gap_present";
+  157: 
+  158:     return {
+  159:       flagged_pnl_total,
+  160:       matched_to_assets,
+  161:       remaining,
+  162:       match_status,
+  163:     };
+  164:   }, [
+  165:     general_overheads?.calculated?.flagged_asset_finance_pnl_total,
+  166:     general_overheads?.calculated?.assets_finance_interest_total,
+  167:   ]);
+  168: 
+  169:   function handle_new_asset() {
+  170:     replace_asset_state(createEmptyAssetState());
+  171:   }
+  172: 
+  173:   function handle_save_asset() {
+  174:     save_asset(calculations);
+  175:   }
+  176: 
+  177:   function handle_load_asset(asset_id) {
+  178:     load_asset(asset_id);
+  179:   }
+  180: 
+  181:   function handle_delete_asset(asset_id) {
+  182:     delete_asset(asset_id);
+  183:   }
+  184: 
+  185:   function handle_change_asset_overhead_pool_assignment(pool_key, value) {
+  186:     const current_assignments = get_asset_pool_assignments(asset_state);
+  187: 
+  188:     set_asset_field("asset_overhead_pool_assignments", {
+  189:       ...current_assignments,
+  190:       [pool_key]: to_number(value),
+  191:     });
+  192:   }
+  193: 
+  194:   const status = useMemo(() => {
+  195:     return buildAssetStatus({
+  196:       asset_state,
+  197:       calculations,
+  198:       saved_assets,
+  199:       active_asset_count,
+  200:       asset_overhead_pools,
+  201:       business_default_annual_weeks,
+  202:     });
+  203:   }, [
+  204:     asset_state,
+  205:     calculations,
+  206:     saved_assets,
+  207:     active_asset_count,
+  208:     asset_overhead_pools,
+  209:     business_default_annual_weeks,
+  210:   ]);
+  211: 
+  212:   const card = useMemo(() => {
+  213:     return buildAssetCard({
+  214:       asset_state,
+  215:       calculations,
+  216:       saved_assets,
+  217:       asset_overhead_pools,
+  218:       business_default_annual_weeks,
+  219:       actions: {
+  220:         set_asset_field,
+  221:         set_asset_fields,
+  222:         reset_asset_state,
+  223:         new_asset: handle_new_asset,
+  224:         save_asset: handle_save_asset,
+  225:         load_asset: handle_load_asset,
+  226:         delete_asset: handle_delete_asset,
+  227:         change_asset_overhead_pool_assignment:
+  228:           handle_change_asset_overhead_pool_assignment,
+  229:       },
+  230:     });
+  231:   }, [
+  232:     asset_state,
+  233:     calculations,
+  234:     saved_assets,
+  235:     asset_overhead_pools,
+  236:     business_default_annual_weeks,
+  237:     set_asset_field,
+  238:     set_asset_fields,
+  239:     reset_asset_state,
+  240:   ]);
+  241: 
+  242:   const active_assets = useMemo(() => {
+  243:     return Array.isArray(saved_assets)
+  244:       ? saved_assets
+  245:           .filter((asset) => !asset.is_retired)
+  246:           .map((asset) => {
+  247:             const recovery_fields = build_asset_recovery_fields(asset);
+  248:             const utilisation_fields = get_asset_utilisation_fields(
+  249:               {
+  250:                 ...asset,
+  251:                 asset_recovery_cost_annual:
+  252:                   recovery_fields.asset_recovery_cost_annual,
+  253:               },
+  254:               business_default_annual_weeks
+  255:             );
+  256: 
+  257:             return {
+  258:               asset_id: asset.asset_id ?? "",
+  259:               asset_name: asset.asset_name ?? "Unnamed Asset",
+  260:               asset_type: normalizeAssetType(asset.asset_type),
+  261:               total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+  262:               allocated_asset_overhead_cost_annual:
+  263:                 recovery_fields.allocated_asset_overhead_cost_annual,
+  264:               asset_recovery_cost_annual:
+  265:                 recovery_fields.asset_recovery_cost_annual,
+  266:               asset_overhead_pool_assignments:
+  267:                 get_asset_pool_assignments(asset),
+  268:               assigned_asset_overhead_source_rows:
+  269:                 build_asset_overhead_assignment_rows(asset),
+  270:               asset_interest_annual: Number(
+  271:                 asset.asset_interest_annual ?? asset.interest_annual ?? 0
+  272:               ),
+  273:               finance_cost_annual: Number(asset.finance_cost_annual ?? 0),
+  274:               estimated_remaining_finance_balance: Number(
+  275:                 asset.estimated_remaining_finance_balance ?? 0
+  276:               ),
+  277:               finance_progress_percent: Number(
+  278:                 asset.finance_progress_percent ?? 0
+  279:               ),
+  280:               finance_active: asset.finance_active === true,
+  281:               finance_status: asset.finance_status ?? "not_financed",
+  282:               finance_start_date: asset.finance_start_date ?? "",
+  283:               finance_end_date: asset.finance_end_date ?? "",
+  284:               finance_paid_off: asset.finance_paid_off === true,
+  285:               utilisation_hours_per_week:
+  286:                 utilisation_fields.utilisation_hours_per_week,
+  287:               utilisation_hours_annual:
+  288:                 utilisation_fields.utilisation_hours_annual,
+  289:               required_asset_recovery_rate:
+  290:                 utilisation_fields.required_asset_recovery_rate,
+  291:               cash_flow_support: {
+  292:                 asset_principal_repayment_annual: Number(
+  293:                   asset.asset_principal_repayment_annual ??
+  294:                     asset.principal_annual ??
+  295:                     0
+  296:                 ),
+  297:                 asset_total_finance_payment_annual: Number(
+  298:                   asset.asset_total_finance_payment_annual ?? 0
+  299:                 ),
+  300:               },
+  301:               productive_asset_hours: utilisation_fields.productive_asset_hours,
+  302:               true_asset_cost_per_hour:
+  303:                 utilisation_fields.true_asset_cost_per_hour,
+  304:               is_active: !asset.is_retired,
+  305:               // Passthrough added 2026-09-12 for the Balance Sheet Fixed
+  306:               // Assets reconciliation (CFO_REQUIREMENTS_GAP_2026-09-12.txt
+  307:               // Part 1B item 2) - purchase_price was already stored per
+  308:               // asset (lib/storage/assetStorage.js) but never flowed
+  309:               // through this hook before now.
+  310:               purchase_price: Number(asset.purchase_price ?? 0),
+  311:             };
+  312:           })
+  313:       : [];
+  314:   }, [saved_assets, business_default_annual_weeks]);
+  315: 
+  316:   const output_contract = useMemo(() => {
+  317:     return buildAssetsOutputContract({
+  318:       asset_state,
+  319:       saved_assets,
+  320:       status,
+  321:       asset_overhead_pools,
+  322:       business_default_annual_weeks,
+  323:     });
+  324:   }, [
+  325:     asset_state.no_active_assets_confirmed,
+  326:     saved_assets,
+  327:     status.assets_ready,
+  328:     asset_overhead_pools,
+  329:     business_default_annual_weeks,
+  330:   ]);
+  331: 
+  332:   return {
+  333:     status,
+  334:     card,
+  335:     output_contract,
+  336:     active_assets,
+  337:     business_default_annual_weeks,
+  338:     asset_finance_pnl_match,
+  339:   };
+  340: }
+  341: 
+  342: 
+  343: 
+
+##### hooks\assets\assetOutputContract.js (1-99999) #####
+    1: import { normalizeAssetType } from "@/lib/storage/assetStorage";
+    2: import {
+    3:   build_asset_overhead_assignment_rows,
+    4:   build_asset_overhead_pool_assignment_summary,
+    5:   get_asset_pool_assignments,
+    6:   get_asset_utilisation_fields,
+    7:   get_effective_asset_pool_assignments,
+    8:   sum_asset_pool_assignments,
+    9: } from "@/hooks/assets/assetHookUtils";
+   10: 
+   11: export function buildAssetsOutputContract({
+   12:   asset_state,
+   13:   saved_assets,
+   14:   status,
+   15:   asset_overhead_pools,
+   16:   business_default_annual_weeks,
+   17: }) {
+   18:   const live_assets = Array.isArray(saved_assets)
+   19:     ? saved_assets.filter((asset) => !asset.is_retired)
+   20:     : [];
+   21: 
+   22:   const productive_assets = live_assets.filter(
+   23:     (asset) => normalizeAssetType(asset.asset_type) === "productive"
+   24:   );
+   25:   const support_assets = live_assets.filter(
+   26:     (asset) => normalizeAssetType(asset.asset_type) === "support"
+   27:   );
+   28: 
+   29:   const raw_asset_rows = live_assets.map((asset) => ({
+   30:       asset_id: asset.asset_id ?? "",
+   31:       asset_name: asset.asset_name ?? "Unnamed Asset",
+   32:       asset_type: normalizeAssetType(asset.asset_type),
+   33:       total_asset_cost_annual: Number(asset.total_asset_cost_annual ?? 0),
+   34:       utilisation_hours_per_week: Number(
+   35:         asset.utilisation_hours_per_week ?? 0
+   36:       ),
+   37:       utilisation_hours_annual: Number(asset.utilisation_hours_annual ?? 0),
+   38:       asset_annual_weeks_override:
+   39:         asset.asset_annual_weeks_override === null ||
+   40:         asset.asset_annual_weeks_override === undefined ||
+   41:         asset.asset_annual_weeks_override === ""
+   42:           ? null
+   43:           : Number(asset.asset_annual_weeks_override),
+   44:       annual_weeks_used: Number(asset.annual_weeks_used ?? 0),
+   45:       annual_weeks_source: asset.annual_weeks_source ?? "",
+   46:       asset_overhead_pool_assignments: get_asset_pool_assignments(asset),
+   47:       asset_interest_annual: Number(
+   48:         asset.asset_interest_annual ?? asset.interest_annual ?? 0
+   49:       ),
+   50:       finance_cost_annual: Number(asset.finance_cost_annual ?? 0),
+   51:       estimated_remaining_finance_balance: Number(
+   52:         asset.estimated_remaining_finance_balance ?? 0
+   53:       ),
+   54:       finance_progress_percent: Number(asset.finance_progress_percent ?? 0),
+   55:       finance_active: asset.finance_active === true,
+   56:       finance_status: asset.finance_status ?? "not_financed",
+   57:       finance_start_date: asset.finance_start_date ?? "",
+   58:       finance_end_date: asset.finance_end_date ?? "",
+   59:       finance_paid_off: asset.finance_paid_off === true,
+   60:       cash_flow_support: {
+   61:         asset_principal_repayment_annual: Number(
+   62:           asset.asset_principal_repayment_annual ??
+   63:             asset.principal_annual ??
+   64:             0
+   65:         ),
+   66:         asset_total_finance_payment_annual: Number(
+   67:           asset.asset_total_finance_payment_annual ?? 0
+   68:         ),
+   69:       },
+   70:       is_active: !asset.is_retired,
+   71:     }));
+   72: 
+   73:   const asset_overhead_pool_assignment_summary =
+   74:     build_asset_overhead_pool_assignment_summary({
+   75:       asset_rows: raw_asset_rows,
+   76:       asset_overhead_pools,
+   77:     });
+   78: 
+   79:   const asset_rows = raw_asset_rows.map((asset) => {
+   80:     const effective_assignments = get_effective_asset_pool_assignments({
+   81:       asset,
+   82:       pool_summary: asset_overhead_pool_assignment_summary,
+   83:     });
+   84:     const allocated_asset_overhead_cost_annual =
+   85:       sum_asset_pool_assignments(effective_assignments);
+   86:     const asset_recovery_cost_annual =
+   87:       Number(asset.total_asset_cost_annual ?? 0) +
+   88:       allocated_asset_overhead_cost_annual;
+   89:     const utilisation_fields = get_asset_utilisation_fields(
+   90:       {
+   91:         ...asset,
+   92:         asset_recovery_cost_annual,
+   93:       },
+   94:       business_default_annual_weeks
+   95:     );
+   96: 
+   97:     return {
+   98:       ...asset,
+   99:       allocated_asset_overhead_cost_annual,
+  100:       asset_recovery_cost_annual,
+  101:       effective_asset_overhead_pool_assignments: effective_assignments,
+  102:       assigned_asset_overhead_source_rows:
+  103:         build_asset_overhead_assignment_rows({
+  104:           ...asset,
+  105:           asset_overhead_pool_assignments: effective_assignments,
+  106:         }),
+  107:       utilisation_hours_per_week:
+  108:         utilisation_fields.utilisation_hours_per_week,
+  109:       utilisation_hours_annual: utilisation_fields.utilisation_hours_annual,
+  110:       required_asset_recovery_rate:
+  111:         utilisation_fields.required_asset_recovery_rate,
+  112:       productive_asset_hours: utilisation_fields.productive_asset_hours,
+  113:       true_asset_cost_per_hour:
+  114:         utilisation_fields.true_asset_cost_per_hour,
+  115:     };
+  116:   });
+  117: 
+  118:   const total_asset_cost_annual = asset_rows.reduce(
+  119:     (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+  120:     0
+  121:   );
+  122: 
+  123:   const total_allocated_asset_overhead_cost_annual = asset_rows.reduce(
+  124:     (sum, asset) =>
+  125:       sum + Number(asset.allocated_asset_overhead_cost_annual ?? 0),
+  126:     0
+  127:   );
+  128: 
+  129:   const total_asset_recovery_cost_annual = asset_rows.reduce(
+  130:     (sum, asset) => sum + Number(asset.asset_recovery_cost_annual ?? 0),
+  131:     0
+  132:   );
+  133: 
+  134:   const productive_asset_rows = asset_rows.filter(
+  135:     (asset) => asset.asset_type === "productive"
+  136:   );
+  137: 
+  138:   const productive_asset_cost = productive_asset_rows.reduce(
+  139:     (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+  140:     0
+  141:   );
+  142:   const productive_asset_recovery_cost_annual =
+  143:     productive_asset_rows.reduce(
+  144:       (sum, asset) => sum + Number(asset.asset_recovery_cost_annual ?? 0),
+  145:       0
+  146:     );
+  147:   const productive_asset_assigned_overhead_cost_annual =
+  148:     productive_asset_rows.reduce(
+  149:       (sum, asset) =>
+  150:         sum + Number(asset.allocated_asset_overhead_cost_annual ?? 0),
+  151:       0
+  152:     );
+  153:   const support_asset_cost = support_assets.reduce(
+  154:     (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+  155:     0
+  156:   );
+  157:   const support_asset_rows = asset_rows.filter(
+  158:     (asset) => asset.asset_type === "support"
+  159:   );
+  160:   const support_asset_assigned_overhead_cost_annual =
+  161:     support_asset_rows.reduce(
+  162:       (sum, asset) =>
+  163:         sum + Number(asset.allocated_asset_overhead_cost_annual ?? 0),
+  164:       0
+  165:     );
+  166: 
+  167:   const total_asset_interest_annual = live_assets.reduce(
+  168:     (sum, asset) =>
+  169:       sum + Number(asset.asset_interest_annual ?? asset.interest_annual ?? 0),
+  170:     0
+  171:   );
+  172: 
+  173:   const cash_flow_support = {
+  174:     total_asset_principal_repayment_annual: live_assets.reduce(
+  175:       (sum, asset) =>
+  176:         sum +
+  177:         Number(
+  178:           asset.asset_principal_repayment_annual ??
+  179:             asset.principal_annual ??
+  180:             0
+  181:         ),
+  182:       0
+  183:     ),
+  184:     total_asset_finance_payment_annual: live_assets.reduce(
+  185:       (sum, asset) =>
+  186:         sum + Number(asset.asset_total_finance_payment_annual ?? 0),
+  187:       0
+  188:     ),
+  189:     cash_flow_layer: "future_only",
+  190:   };
+  191: 
+  192:   const total_productive_asset_utilisation_hours_annual =
+  193:     productive_asset_rows.reduce(
+  194:       (sum, asset) => sum + Number(asset.utilisation_hours_annual ?? 0),
+  195:       0
+  196:     );
+  197:   const productive_asset_recovery_rate =
+  198:     total_productive_asset_utilisation_hours_annual > 0
+  199:       ? productive_asset_recovery_cost_annual /
+  200:         total_productive_asset_utilisation_hours_annual
+  201:       : 0;
+  202:   const total_asset_related_overhead_pool_amount =
+  203:     asset_overhead_pool_assignment_summary.reduce(
+  204:       (sum, pool) => sum + Number(pool.available_amount ?? 0),
+  205:       0
+  206:     );
+  207:   const asset_related_unassigned_cost =
+  208:     asset_overhead_pool_assignment_summary.reduce(
+  209:       (sum, pool) => sum + Math.max(Number(pool.remaining_amount ?? 0), 0),
+  210:       0
+  211:     );
+  212:   const asset_overhead_assignment_warnings =
+  213:     asset_overhead_pool_assignment_summary
+  214:       .filter((pool) => pool.assignment_status === "over_assigned")
+  215:       .map((pool) => ({
+  216:         warning_key: "asset_pool_assigned_over_available",
+  217:         message: `${pool.label} has more assigned to assets than the General Overheads pool contains.`,
+  218:         pool_key: pool.pool_key,
+  219:       }));
+  220: 
+  221:   return {
+  222:     assets: asset_rows,
+  223:     active_assets: asset_rows,
+  224:     assets_ready: Boolean(status.assets_ready),
+  225:     no_active_assets_confirmed:
+  226:       asset_state.no_active_assets_confirmed === true,
+  227:     has_productive_asset_recovery_base: productive_assets.length > 0,
+  228:     productive_asset_count: productive_assets.length,
+  229:     support_asset_count: support_assets.length,
+  230:     productive_asset_cost,
+  231:     productive_asset_cost_annual: productive_asset_cost,
+  232:     productive_asset_recovery_cost_annual,
+  233:     productive_asset_assigned_overhead_cost_annual,
+  234:     support_asset_cost,
+  235:     support_asset_assigned_overhead_cost_annual,
+  236:     total_productive_asset_utilisation_hours_annual,
+  237:     productive_asset_recovery_rate,
+  238: 
+  239:     asset_overhead_pools,
+  240:     asset_overhead_pool_assignment_summary,
+  241:     total_allocated_asset_overhead_cost_annual,
+  242:     total_assigned_asset_overhead_cost_annual:
+  243:       total_allocated_asset_overhead_cost_annual,
+  244:     total_asset_related_overhead_pool_amount,
+  245:     asset_related_pool_total: total_asset_related_overhead_pool_amount,
+  246:     asset_related_assigned_to_assets:
+  247:       total_allocated_asset_overhead_cost_annual,
+  248:     asset_related_unassigned_cost,
+  249:     asset_related_unassigned_balance: asset_related_unassigned_cost,
+  250:     total_unassigned_asset_related_overhead_cost_annual:
+  251:       asset_related_unassigned_cost,
+  252:     asset_related_overhead_pool: asset_overhead_pool_assignment_summary,
+  253:     asset_review_required: asset_related_unassigned_cost > 0,
+  254:     asset_overhead_assignment_warnings,
+  255:     total_asset_recovery_cost_annual,
+  256: 
+  257:     finance_cost_annual: live_assets.reduce(
+  258:       (sum, asset) => sum + Number(asset.finance_cost_annual ?? 0),
+  259:       0
+  260:     ),
+  261:     legacy_display: {
+  262:       running_cost_annual: live_assets.reduce(
+  263:         (sum, asset) => sum + Number(asset.running_cost_annual ?? 0),
+  264:         0
+  265:       ),
+  266:     },
+  267:     total_asset_interest_annual,
+  268:     cash_flow_support,
+  269:     total_asset_cost_annual,
+  270:   };
+  271: }
+
+##### hooks\assets\assetHookUtils.js (1-99999) #####
+    1: import { normalizeAssetType } from "@/lib/storage/assetStorage";
+    2: 
+    3: export const ASSET_POOL_KEYS = [
+    4:   "asset_fuel_pool",
+    5:   "asset_insurance_pool",
+    6:   "asset_repairs_maintenance_pool",
+    7:   "asset_registration_compliance_pool",
+    8:   "asset_consumables_pool",
+    9:   "asset_finance_interest_pool",
+   10: ];
+   11: 
+   12: export function to_number(value) {
+   13:   const parsed = Number(value);
+   14:   return Number.isFinite(parsed) ? parsed : 0;
+   15: }
+   16: 
+   17: export function get_asset_pool_assignments(asset = {}) {
+   18:   const assignments = asset.asset_overhead_pool_assignments ?? {};
+   19: 
+   20:   return Object.fromEntries(
+   21:     ASSET_POOL_KEYS.map((pool_key) => [pool_key, to_number(assignments[pool_key])])
+   22:   );
+   23: }
+   24: 
+   25: export function get_allocated_asset_overhead_cost(asset = {}) {
+   26:   const assignments = get_asset_pool_assignments(asset);
+   27: 
+   28:   return Object.values(assignments).reduce(
+   29:     (sum, value) => sum + to_number(value),
+   30:     0
+   31:   );
+   32: }
+   33: 
+   34: export function build_asset_overhead_assignment_rows(asset = {}) {
+   35:   const assignments = get_asset_pool_assignments(asset);
+   36: 
+   37:   return Object.entries(assignments)
+   38:     .filter(([, amount]) => to_number(amount) !== 0)
+   39:     .map(([pool_key, amount]) => ({
+   40:       pool_key,
+   41:       amount: to_number(amount),
+   42:       assigned_asset_id: asset.asset_id ?? "",
+   43:       assigned_asset_name: asset.asset_name ?? "Unnamed Asset",
+   44:       assigned_asset_type: normalizeAssetType(asset.asset_type),
+   45:     }));
+   46: }
+   47: 
+   48: export function build_asset_overhead_pool_assignment_summary({
+   49:   asset_rows = [],
+   50:   asset_overhead_pools = {},
+   51: }) {
+   52:   return ASSET_POOL_KEYS.map((pool_key) => {
+   53:     const pool = asset_overhead_pools?.[pool_key] ?? {};
+   54:     const available_amount = to_number(pool.amount);
+   55:     const assigned_assets = asset_rows
+   56:       .map((asset) => {
+   57:         const assigned_amount = to_number(
+   58:           asset.asset_overhead_pool_assignments?.[pool_key]
+   59:         );
+   60: 
+   61:         if (assigned_amount === 0) {
+   62:           return null;
+   63:         }
+   64: 
+   65:         return {
+   66:           asset_id: asset.asset_id,
+   67:           asset_name: asset.asset_name,
+   68:           asset_type: asset.asset_type,
+   69:           amount: assigned_amount,
+   70:         };
+   71:       })
+   72:       .filter(Boolean);
+   73:     const assigned_amount = assigned_assets.reduce(
+   74:       (sum, assignment) => sum + to_number(assignment.amount),
+   75:       0
+   76:     );
+   77:     const remaining_amount = available_amount - assigned_amount;
+   78: 
+   79:     return {
+   80:       pool_key,
+   81:       label: pool.label || pool_key,
+   82:       available_amount,
+   83:       assigned_amount,
+   84:       remaining_amount,
+   85:       assignment_status:
+   86:         assigned_amount === 0
+   87:           ? "unassigned"
+   88:           : assigned_amount < available_amount
+   89:             ? "partially_assigned"
+   90:             : assigned_amount === available_amount
+   91:               ? "fully_assigned"
+   92:               : "over_assigned",
+   93:       source_lines: Array.isArray(pool.source_lines) ? pool.source_lines : [],
+   94:       assigned_assets,
+   95:     };
+   96:   });
+   97: }
+   98: 
+   99: export function get_effective_asset_pool_assignments({
+  100:   asset = {},
+  101:   pool_summary = [],
+  102: }) {
+  103:   const assignments = get_asset_pool_assignments(asset);
+  104:   const summary_by_key = new Map(
+  105:     pool_summary.map((pool) => [pool.pool_key, pool])
+  106:   );
+  107: 
+  108:   return Object.fromEntries(
+  109:     Object.entries(assignments).map(([pool_key, amount]) => {
+  110:       const raw_amount = to_number(amount);
+  111:       const pool = summary_by_key.get(pool_key);
+  112:       const available_amount = to_number(pool?.available_amount);
+  113:       const assigned_amount = to_number(pool?.assigned_amount);
+  114: 
+  115:       if (raw_amount <= 0 || assigned_amount <= available_amount) {
+  116:         return [pool_key, raw_amount];
+  117:       }
+  118: 
+  119:       if (available_amount <= 0) {
+  120:         return [pool_key, 0];
+  121:       }
+  122: 
+  123:       return [pool_key, raw_amount * (available_amount / assigned_amount)];
+  124:     })
+  125:   );
+  126: }
+  127: 
+  128: export function sum_asset_pool_assignments(assignments = {}) {
+  129:   return Object.values(assignments).reduce(
+  130:     (sum, value) => sum + to_number(value),
+  131:     0
+  132:   );
+  133: }
+  134: 
+  135: function resolve_asset_annual_weeks({
+  136:   asset_annual_weeks_override,
+  137:   business_default_annual_weeks,
+  138: }) {
+  139:   const override_weeks = to_number(asset_annual_weeks_override);
+  140: 
+  141:   if (override_weeks > 0) {
+  142:     return override_weeks;
+  143:   }
+  144: 
+  145:   const default_weeks = to_number(business_default_annual_weeks);
+  146: 
+  147:   return default_weeks > 0 ? default_weeks : 48;
+  148: }
+  149: 
+  150: export function get_asset_utilisation_fields(
+  151:   asset = {},
+  152:   business_default_annual_weeks = 48
+  153: ) {
+  154:   const asset_type = normalizeAssetType(asset.asset_type);
+  155:   const utilisation_hours_per_week =
+  156:     asset_type === "productive"
+  157:       ? Math.max(to_number(asset.utilisation_hours_per_week ?? 40), 0)
+  158:       : 0;
+  159:   const annual_weeks_used = resolve_asset_annual_weeks({
+  160:     asset_annual_weeks_override: asset.asset_annual_weeks_override,
+  161:     business_default_annual_weeks,
+  162:   });
+  163:   const utilisation_hours_annual =
+  164:     asset_type === "productive"
+  165:       ? utilisation_hours_per_week * annual_weeks_used
+  166:       : 0;
+  167:   const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
+  168:   // Added 2026-09-12 for the depreciation-in-true-cost decision - see
+  169:   // FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt. ONLY
+  170:   // added when include_depreciation_in_cost is explicitly true for
+  171:   // THIS asset (default false for every asset, existing or new) - when
+  172:   // false, depreciation_addition is exactly 0, meaning zero change to
+  173:   // this calculation for any asset that hasn't opted in. Purely
+  174:   // additive, matching the confirmed "no migration required"
+  175:   // guarantee.
+  176:   const depreciation_addition =
+  177:     asset.include_depreciation_in_cost === true
+  178:       ? to_number(asset.estimated_annual_depreciation)
+  179:       : 0;
+  180:   const required_asset_recovery_rate =
+  181:     asset_type === "productive" && utilisation_hours_annual > 0
+  182:       ? (to_number(asset.asset_recovery_cost_annual ?? total_asset_cost_annual) + depreciation_addition) /
+  183:         utilisation_hours_annual
+  184:       : 0;
+  185: 
+  186:   return {
+  187:     utilisation_hours_per_week,
+  188:     utilisation_hours_annual,
+  189:     annual_weeks_used,
+  190:     required_asset_recovery_rate,
+  191:     productive_asset_hours: utilisation_hours_annual,
+  192:     true_asset_cost_per_hour: required_asset_recovery_rate,
+  193:   };
+  194: }
+  195: 
+  196: export function build_asset_recovery_fields(asset = {}) {
+  197:   const allocated_asset_overhead_cost_annual =
+  198:     get_allocated_asset_overhead_cost(asset);
+  199:   const total_asset_cost_annual = to_number(asset.total_asset_cost_annual);
+  200: 
+  201:   return {
+  202:     allocated_asset_overhead_cost_annual,
+  203:     asset_recovery_cost_annual:
+  204:       total_asset_cost_annual + allocated_asset_overhead_cost_annual,
+  205:   };
+  206: }
+
+##### lib\calculations\assetCalculations.js (1-99999) #####
+    1: function to_number(value) {
+    2:   const parsed = Number(value);
+    3:   return Number.isFinite(parsed) ? parsed : 0;
+    4: }
+    5: 
+    6: function round_currency(value) {
+    7:   const parsed = Number(value);
+    8:   return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : 0;
+    9: }
+   10: 
+   11: function round_percent(value) {
+   12:   const parsed = Number(value);
+   13:   return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : 0;
+   14: }
+   15: 
+   16: function clamp(value, minimum, maximum) {
+   17:   return Math.min(Math.max(value, minimum), maximum);
+   18: }
+   19: 
+   20: function get_asset_utilisation({
+   21:   asset_type,
+   22:   utilisation_hours_per_week,
+   23:   asset_annual_weeks_override,
+   24:   business_default_annual_weeks,
+   25: }) {
+   26:   if (asset_type !== "productive") {
+   27:     return {
+   28:       utilisation_hours_per_week: 0,
+   29:       utilisation_hours_annual: 0,
+   30:       annual_weeks_used: 0,
+   31:       annual_weeks_source: "not_applicable",
+   32:     };
+   33:   }
+   34: 
+   35:   const weekly_hours = Math.max(to_number(utilisation_hours_per_week), 0);
+   36:   const override_weeks = to_number(asset_annual_weeks_override);
+   37:   const default_weeks = to_number(business_default_annual_weeks);
+   38: 
+   39:   let annual_weeks_used;
+   40:   let annual_weeks_source;
+   41: 
+   42:   if (override_weeks > 0) {
+   43:     annual_weeks_used = override_weeks;
+   44:     annual_weeks_source = "asset_override";
+   45:   } else if (default_weeks > 0) {
+   46:     annual_weeks_used = default_weeks;
+   47:     annual_weeks_source = "opening_hours_default";
+   48:   } else {
+   49:     annual_weeks_used = 48;
+   50:     annual_weeks_source = "fallback_default";
+   51:   }
+   52: 
+   53:   return {
+   54:     utilisation_hours_per_week: weekly_hours,
+   55:     utilisation_hours_annual: weekly_hours * annual_weeks_used,
+   56:     annual_weeks_used,
+   57:     annual_weeks_source,
+   58:   };
+   59: }
+   60: 
+   61: function parse_date(value) {
+   62:   if (!value || typeof value !== "string") {
+   63:     return null;
+   64:   }
+   65: 
+   66:   const [year, month, day] = value.split("-").map(Number);
+   67: 
+   68:   if (!year || !month || !day) {
+   69:     return null;
+   70:   }
+   71: 
+   72:   return new Date(Date.UTC(year, month - 1, day));
+   73: }
+   74: 
+   75: function format_date(date) {
+   76:   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+   77:     return "";
+   78:   }
+   79: 
+   80:   return date.toISOString().slice(0, 10);
+   81: }
+   82: 
+   83: function calculate_finance_end_date({ finance_start_date, finance_term_years }) {
+   84:   const start_date = parse_date(finance_start_date);
+   85: 
+   86:   if (!start_date || finance_term_years <= 0) {
+   87:     return "";
+   88:   }
+   89: 
+   90:   const end_date = new Date(start_date.getTime());
+   91:   end_date.setUTCFullYear(end_date.getUTCFullYear() + finance_term_years);
+   92: 
+   93:   return format_date(end_date);
+   94: }
+   95: 
+   96: function calculate_years_between_dates(start_date_value, end_date_value) {
+   97:   const start_date = parse_date(start_date_value);
+   98:   const end_date = parse_date(end_date_value);
+   99: 
+  100:   if (!start_date || !end_date || end_date <= start_date) {
+  101:     return 0;
+  102:   }
+  103: 
+  104:   const diff_days =
+  105:     (end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24);
+  106: 
+  107:   return diff_days / 365.25;
+  108: }
+  109: 
+  110: function get_effective_finance_term({
+  111:   finance_start_date,
+  112:   finance_term_years,
+  113:   finance_term_extended,
+  114:   revised_finance_end_date,
+  115:   revised_term_months,
+  116: }) {
+  117:   const original_finance_end_date = calculate_finance_end_date({
+  118:     finance_start_date,
+  119:     finance_term_years,
+  120:   });
+  121: 
+  122:   if (!finance_term_extended) {
+  123:     return {
+  124:       original_finance_end_date,
+  125:       finance_end_date: original_finance_end_date,
+  126:       effective_finance_term_years: finance_term_years,
+  127:     };
+  128:   }
+  129: 
+  130:   if (revised_finance_end_date) {
+  131:     const effective_finance_term_years = calculate_years_between_dates(
+  132:       finance_start_date,
+  133:       revised_finance_end_date
+  134:     );
+  135: 
+  136:     return {
+  137:       original_finance_end_date,
+  138:       finance_end_date: revised_finance_end_date,
+  139:       effective_finance_term_years:
+  140:         effective_finance_term_years > 0
+  141:           ? effective_finance_term_years
+  142:           : finance_term_years,
+  143:     };
+  144:   }
+  145: 
+  146:   if (revised_term_months > 0) {
+  147:     const extension_years = revised_term_months / 12;
+  148:     const effective_finance_term_years = finance_term_years + extension_years;
+  149: 
+  150:     return {
+  151:       original_finance_end_date,
+  152:       finance_end_date: calculate_finance_end_date({
+  153:         finance_start_date,
+  154:         finance_term_years: effective_finance_term_years,
+  155:       }),
+  156:       effective_finance_term_years,
+  157:     };
+  158:   }
+  159: 
+  160:   return {
+  161:     original_finance_end_date,
+  162:     finance_end_date: original_finance_end_date,
+  163:     effective_finance_term_years: finance_term_years,
+  164:   };
+  165: }
+  166: 
+  167: function get_finance_lifecycle({
+  168:   has_finance,
+  169:   finance_paid_off,
+  170:   finance_start_date,
+  171:   finance_term_years,
+  172:   finance_term_extended,
+  173:   revised_finance_end_date,
+  174:   revised_term_months,
+  175: }) {
+  176:   const {
+  177:     original_finance_end_date,
+  178:     finance_end_date,
+  179:     effective_finance_term_years,
+  180:   } = get_effective_finance_term({
+  181:     finance_start_date,
+  182:     finance_term_years,
+  183:     finance_term_extended,
+  184:     revised_finance_end_date,
+  185:     revised_term_months,
+  186:   });
+  187: 
+  188:   const end_date = parse_date(finance_end_date);
+  189:   const today = new Date();
+  190:   const current_date = new Date(
+  191:     Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  192:   );
+  193:   const term_ended = Boolean(end_date && current_date > end_date);
+  194: 
+  195:   if (!has_finance) {
+  196:     return {
+  197:       original_finance_end_date,
+  198:       finance_end_date,
+  199:       effective_finance_term_years,
+  200:       finance_active: false,
+  201:       finance_status: "not_financed",
+  202:     };
+  203:   }
+  204: 
+  205:   if (finance_paid_off) {
+  206:     return {
+  207:       original_finance_end_date,
+  208:       finance_end_date,
+  209:       effective_finance_term_years,
+  210:       finance_active: false,
+  211:       finance_status: "paid_off",
+  212:     };
+  213:   }
+  214: 
+  215:   if (term_ended) {
+  216:     return {
+  217:       original_finance_end_date,
+  218:       finance_end_date,
+  219:       effective_finance_term_years,
+  220:       finance_active: false,
+  221:       finance_status: "term_ended",
+  222:     };
+  223:   }
+  224: 
+  225:   return {
+  226:     original_finance_end_date,
+  227:     finance_end_date,
+  228:     effective_finance_term_years,
+  229:     finance_active: true,
+  230:     finance_status: finance_term_extended ? "extended" : "active",
+  231:   };
+  232: }
+  233: 
+  234: function calculate_total_finance_payment_annual({
+  235:   purchase_price,
+  236:   interest_rate,
+  237:   finance_term_years,
+  238: }) {
+  239:   const has_finance =
+  240:     purchase_price > 0 && interest_rate > 0 && finance_term_years > 0;
+  241: 
+  242:   if (!has_finance) {
+  243:     return 0;
+  244:   }
+  245: 
+  246:   const monthly_rate = interest_rate / 100 / 12;
+  247:   const total_months = finance_term_years * 12;
+  248: 
+  249:   if (monthly_rate <= 0 || total_months <= 0) {
+  250:     return 0;
+  251:   }
+  252: 
+  253:   const monthly_repayment =
+  254:     (purchase_price * monthly_rate) /
+  255:     (1 - Math.pow(1 + monthly_rate, -total_months));
+  256: 
+  257:   return monthly_repayment * 12;
+  258: }
+  259: 
+  260: function calculate_forward_asset_interest({
+  261:   purchase_price,
+  262:   interest_rate,
+  263:   finance_term_years,
+  264:   finance_start_date,
+  265:   finance_active,
+  266: }) {
+  267:   const has_finance =
+  268:     purchase_price > 0 && interest_rate > 0 && finance_term_years > 0;
+  269: 
+  270:   if (!has_finance || !finance_active) {
+  271:     return {
+  272:       asset_interest_annual: 0,
+  273:       estimated_remaining_finance_balance: 0,
+  274:       finance_progress_percent: 0,
+  275:     };
+  276:   }
+  277: 
+  278:   const start_date = parse_date(finance_start_date);
+  279:   const today = new Date();
+  280:   const current_date = new Date(
+  281:     Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  282:   );
+  283:   const total_term_days = finance_term_years * 365.25;
+  284:   const elapsed_days = start_date
+  285:     ? Math.max(
+  286:         0,
+  287:         (current_date.getTime() - start_date.getTime()) /
+  288:           (1000 * 60 * 60 * 24)
+  289:       )
+  290:     : 0;
+  291:   const finance_progress_ratio =
+  292:     total_term_days > 0 ? clamp(elapsed_days / total_term_days, 0, 1) : 0;
+  293:   const remaining_term_percent = 1 - finance_progress_ratio;
+  294:   const estimated_remaining_finance_balance =
+  295:     purchase_price * remaining_term_percent;
+  296:   const asset_interest_annual =
+  297:     estimated_remaining_finance_balance * (interest_rate / 100);
+  298: 
+  299:   return {
+  300:     asset_interest_annual,
+  301:     estimated_remaining_finance_balance,
+  302:     finance_progress_percent: finance_progress_ratio * 100,
+  303:   };
+  304: }
+  305: 
+  306: function calculate_cash_flow_support({
+  307:   total_finance_payment_annual,
+  308:   asset_interest_annual,
+  309:   finance_active,
+  310: }) {
+  311:   if (!finance_active || total_finance_payment_annual <= 0) {
+  312:     return {
+  313:       asset_principal_repayment_annual: 0,
+  314:       asset_total_finance_payment_annual: 0,
+  315:     };
+  316:   }
+  317: 
+  318:   return {
+  319:     asset_principal_repayment_annual: Math.max(
+  320:       total_finance_payment_annual - asset_interest_annual,
+  321:       0
+  322:     ),
+  323:     asset_total_finance_payment_annual: total_finance_payment_annual,
+  324:   };
+  325: }
+  326: 
+  327: function calculate_reconciliation_state({
+  328:   assets_benchmark_total,
+  329:   assets_variance_percent,
+  330: }) {
+  331:   if (assets_benchmark_total <= 0) {
+  332:     return "pending";
+  333:   }
+  334: 
+  335:   const absolute_variance_percent = Math.abs(assets_variance_percent);
+  336: 
+  337:   if (absolute_variance_percent <= 0.5) {
+  338:     return "green";
+  339:   }
+  340: 
+  341:   if (absolute_variance_percent <= 1.0) {
+  342:     return "amber";
+  343:   }
+  344: 
+  345:   return "red";
+  346: }
+  347: 
+  348: export function calculateAssetOutputs(
+  349:   asset_state = {},
+  350:   saved_assets = [],
+  351:   assets_benchmark_total_override = null,
+  352:   business_default_annual_weeks = 48
+  353: ) {
+  354:   const asset_type =
+  355:     asset_state.asset_type === "support" ? "support" : "productive";
+  356: 
+  357:   const purchase_price = to_number(asset_state.purchase_price);
+  358:   const interest_rate = to_number(asset_state.interest_rate);
+  359:   const finance_start_date =
+  360:     typeof asset_state.finance_start_date === "string"
+  361:       ? asset_state.finance_start_date
+  362:       : "";
+  363:   const finance_term_years = to_number(asset_state.finance_term_years);
+  364:   const finance_paid_off = asset_state.finance_paid_off === true;
+  365:   const finance_paid_off_date =
+  366:     typeof asset_state.finance_paid_off_date === "string"
+  367:       ? asset_state.finance_paid_off_date
+  368:       : "";
+  369:   const finance_term_extended = asset_state.finance_term_extended === true;
+  370:   const revised_finance_end_date =
+  371:     typeof asset_state.revised_finance_end_date === "string"
+  372:       ? asset_state.revised_finance_end_date
+  373:       : "";
+  374:   const revised_term_months = to_number(asset_state.revised_term_months);
+  375: 
+  376:   const has_finance =
+  377:     purchase_price > 0 && interest_rate > 0 && finance_term_years > 0;
+  378: 
+  379:   const {
+  380:     original_finance_end_date,
+  381:     finance_end_date,
+  382:     effective_finance_term_years,
+  383:     finance_active,
+  384:     finance_status,
+  385:   } = get_finance_lifecycle({
+  386:     has_finance,
+  387:     finance_paid_off,
+  388:     finance_start_date,
+  389:     finance_term_years,
+  390:     finance_term_extended,
+  391:     revised_finance_end_date,
+  392:     revised_term_months,
+  393:   });
+  394: 
+  395:   const assets_benchmark_total =
+  396:     assets_benchmark_total_override !== null &&
+  397:     Number.isFinite(Number(assets_benchmark_total_override))
+  398:       ? to_number(assets_benchmark_total_override)
+  399:       : to_number(asset_state.assets_benchmark_total);
+  400: 
+  401:   const total_finance_payment_annual = finance_active
+  402:     ? calculate_total_finance_payment_annual({
+  403:         purchase_price,
+  404:         interest_rate,
+  405:         finance_term_years: effective_finance_term_years,
+  406:       })
+  407:     : 0;
+  408: 
+  409:   const finance_interest = calculate_forward_asset_interest({
+  410:     purchase_price,
+  411:     interest_rate,
+  412:     finance_term_years: effective_finance_term_years,
+  413:     finance_start_date,
+  414:     finance_active,
+  415:   });
+  416: 
+  417:   const asset_interest_annual = finance_interest.asset_interest_annual;
+  418: 
+  419:   const cash_flow_support = calculate_cash_flow_support({
+  420:     total_finance_payment_annual,
+  421:     asset_interest_annual,
+  422:     finance_active,
+  423:   });
+  424: 
+  425:   const running_cost_annual = 0;
+  426:   const total_asset_cost_annual = asset_interest_annual + running_cost_annual;
+  427:   const utilisation = get_asset_utilisation({
+  428:     asset_type,
+  429:     utilisation_hours_per_week: asset_state.utilisation_hours_per_week,
+  430:     asset_annual_weeks_override: asset_state.asset_annual_weeks_override,
+  431:     business_default_annual_weeks,
+  432:   });
+  433:   const required_asset_recovery_rate =
+  434:     utilisation.utilisation_hours_annual > 0
+  435:       ? total_asset_cost_annual / utilisation.utilisation_hours_annual
+  436:       : 0;
+  437: 
+  438:   const active_saved_assets = Array.isArray(saved_assets)
+  439:     ? saved_assets.filter((asset) => !asset.is_retired)
+  440:     : [];
+  441: 
+  442:   const other_active_asset_total = active_saved_assets
+  443:     .filter((asset) => asset.asset_id !== asset_state.asset_id)
+  444:     .reduce(
+  445:       (sum, asset) => sum + Number(asset.total_asset_cost_annual ?? 0),
+  446:       0
+  447:     );
+  448: 
+  449:   const module_total_asset_cost_annual =
+  450:     other_active_asset_total + total_asset_cost_annual;
+  451: 
+  452:   const assets_variance_amount =
+  453:     module_total_asset_cost_annual - assets_benchmark_total;
+  454: 
+  455:   const assets_variance_percent =
+  456:     assets_benchmark_total > 0
+  457:       ? (assets_variance_amount / assets_benchmark_total) * 100
+  458:       : 0;
+  459: 
+  460:   const reconciliation_state = calculate_reconciliation_state({
+  461:     assets_benchmark_total,
+  462:     assets_variance_percent,
+  463:   });
+  464: 
+  465:   const benchmark_reconciled = reconciliation_state === "green";
+  466:   const assets_ready = Number.isFinite(total_asset_cost_annual);
+  467: 
+  468:   return {
+  469:     asset_type,
+  470: 
+  471:     principal_annual: round_currency(
+  472:       cash_flow_support.asset_principal_repayment_annual
+  473:     ),
+  474:     interest_annual: round_currency(asset_interest_annual),
+  475:     asset_interest_annual: round_currency(asset_interest_annual),
+  476:     estimated_remaining_finance_balance: round_currency(
+  477:       finance_interest.estimated_remaining_finance_balance
+  478:     ),
+  479:     finance_progress_percent: round_percent(
+  480:       finance_interest.finance_progress_percent
+  481:     ),
+  482:     asset_principal_repayment_annual: round_currency(
+  483:       cash_flow_support.asset_principal_repayment_annual
+  484:     ),
+  485:     asset_total_finance_payment_annual: round_currency(
+  486:       cash_flow_support.asset_total_finance_payment_annual
+  487:     ),
+  488: 
+  489:     finance_start_date,
+  490:     original_finance_end_date,
+  491:     revised_finance_end_date,
+  492:     effective_finance_term_years: round_percent(effective_finance_term_years),
+  493:     finance_end_date,
+  494:     finance_active,
+  495:     finance_paid_off,
+  496:     finance_paid_off_date,
+  497:     finance_term_extended,
+  498:     revised_term_months,
+  499:     finance_status,
+  500: 
+  501:     finance_cost_annual: round_currency(asset_interest_annual),
+  502:     running_cost_annual: round_currency(running_cost_annual),
+  503:     total_asset_cost_annual: round_currency(total_asset_cost_annual),
+  504:     utilisation_hours_per_week: round_percent(
+  505:       utilisation.utilisation_hours_per_week
+  506:     ),
+  507:     utilisation_hours_annual: round_percent(utilisation.utilisation_hours_annual),
+  508:     asset_annual_weeks_override:
+  509:       to_number(asset_state.asset_annual_weeks_override) || null,
+  510:     annual_weeks_used: utilisation.annual_weeks_used,
+  511:     annual_weeks_source: utilisation.annual_weeks_source,
+  512:     required_asset_recovery_rate: round_currency(required_asset_recovery_rate),
+  513:     productive_asset_hours: round_percent(utilisation.utilisation_hours_annual),
+  514:     true_asset_cost_per_hour: round_currency(required_asset_recovery_rate),
+  515: 
+  516:     assets_benchmark_total: round_currency(assets_benchmark_total),
+  517:     module_total_asset_cost_annual: round_currency(
+  518:       module_total_asset_cost_annual
+  519:     ),
+  520:     assets_variance_amount: round_currency(assets_variance_amount),
+  521:     assets_variance_percent: round_percent(assets_variance_percent),
+  522:     reconciliation_state,
+  523:     benchmark_reconciled,
+  524:     assets_ready,
+  525:   };
+  526: }
