@@ -183,7 +183,100 @@ VERIFIED: contract totals recomputed by hand and matched on screen; see brief s4
 6. COST ALLOCATION - OVERHEAD DISTRIBUTION (the hinge - see kickoff doc)
 ===============================================================================
 
--- Not yet started. This is the actual milestone of the v6.0 pass. --
+STATUS: P2.5 verified 2026-09-23 (commits 30de7cc, c40eaad); numbers live in
+Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt, not here.
+
+STAGE: Inputs into Cost Allocation
+FIELD NAMES: productive_labour_type_rows, support_labour_type_rows,
+  all_labour_type_rows (Labour); active_assets / asset_recovery_rows (Assets);
+  ~40 Recovery Summary fields incl. overhead_absorbed_cost, recovery_hours_used,
+  labour_share_percent, recovery_summary_ready
+FILE / FUNCTION: hooks/useCostAllocation.js;
+  lib/calculations/cost-allocation/costAllocationLabourAdapter.js (keys by the
+  REAL staff_type_id); hooks/cost-allocation/useCostAllocationAssetOverlay.js
+  (asset cost = Assets contract row asset_recovery_cost_annual, own + pools);
+  lib/calculations/cost-allocation/costAllocationInputBuilder.js (Recovery Summary)
+FEEDS INTO: costAllocationRuleBuildContext.js (build_allocation_context)
+HOURS/UNITS AWARE: Hours-native. business_type / activity_driver_type are
+  passthrough only.
+VERIFIED: See Cost Allocation brief, [VERIFIED 2026-09-23], sections 1 and 4.
+NOTES: Recovery Summary is UPSTREAM of Cost Allocation (v4 brief had it the
+  other way). useCostAllocation calls useRecoverySummary() itself as a
+  fallback. Asset hours fall back to Recovery Summary recovery_hours_used when
+  an asset has zero utilisation (C10).
+
+STAGE: Source pools
+FIELD NAMES: productive_labour_pool, non_productive_labour_pool,
+  productive_asset_pool, non_productive_asset_pool, overhead_pool and their
+  total_available/assigned/remaining/over_allocated_* fields
+FILE / FUNCTION: costAllocationLabourPoolBuilders.js,
+  costAllocationAssetPoolBuilders.js, costAllocationOverheadPoolBuilder.js
+FEEDS INTO: build_operational_group_cost_rows; output contract (since c40eaad)
+NOTES: pool objects live NESTED in *_assignment_result on the calculation
+  result, never at its top level - read them from there (C19/C9b root cause).
+  Labour assignment cost = staff-type total x assignment_percent;
+  assigned_staff_count ignored (C13). Productive/non-productive split uses the
+  is_productive flag stamped on the assignment at creation (C17). Overhead pool
+  = Recovery Summary overhead_absorbed_cost: hours mode total_business_overheads
+  (net of asset pool transfer - verified), product mode total_cost_burden
+  (would double count - C3b). Over-allocation detected, not capped (C14).
+  Orphaned labour assignment -> silent zero cost (C12).
+
+STAGE: Overhead distribution
+FIELD NAMES: overhead_group_assignments (automatic), overhead_allocation_method
+FILE / FUNCTION: costAllocationOverheadPoolBuilder.js (build_overhead_pool)
+NOTES: automatic only; method inferred (labour_cost_weighted if any productive
+  labour assigned, else asset_burden_weighted, else equal_split). Groups with
+  no productive labour get zero overhead under labour weighting (C5). Stored
+  manual overhead assignments are never read. Weights sum to 1.
+
+STAGE: Group cost rows (the hinge output)
+FIELD NAMES: operational_group_cost_rows[] - assigned_labour_cost/hours,
+  assigned_asset_burden/hours, assigned_overhead_amount,
+  assigned_non_productive_labour_cost, assigned_non_productive_asset_cost,
+  total_group_cost, group_recovery_hour_source, group_recovery_hours,
+  labour/asset/overhead_recovery_rate, group_cost_per_hour,
+  labour_coverage_warning, enriched per-group assignment lists
+FILE / FUNCTION: costAllocationGroupCostBuilder.js
+  (build_operational_group_cost_rows)
+FEEDS INTO: Business Outcome (useBusinessOutcomePerSourceRevenue,
+  useBusinessOutcomeWaterfall, useBusinessOutcome legacy,
+  businessOutcomeAssetSplitCalculations), Rate Builder line calculator,
+  costAllocationRateBuilderSelectors
+HOURS/UNITS AWARE: hours-native; group_cost_per_unit hard-coded 0.
+VERIFIED: every group reconciled to the dollar; see brief s4.
+NOTES: total_group_cost includes non-productive cost; the three stream rates
+  do not (C6). Recovery hours default to asset hours when a productive asset is
+  present (MAX of the group's asset hours, not the sum), else labour hours.
+  labour_coverage_warning is computed but not surfaced (C22).
+
+STAGE: Group recovery rows and Rate Builder rows
+FIELD NAMES: operational_group_recovery_rows[].minimum_recoverable_rate_per_hour;
+  rate_builder_labour_recovery_rows[]
+FILE / FUNCTION: hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js,
+  then OVERWRITTEN from cost rows in useCostAllocation.js (calculated useMemo);
+  lib/selectors/cost-allocation/costAllocationRateBuilderSelectors.js
+FEEDS INTO: Business Outcome (minimum recoverable rate per group), Rate Builder
+  (rateBuilderLabourSourceSelectors), useBusinessOutcomeLabourRecovery
+NOTES: recovery logic v4 said to remove is still here and load-bearing (C7).
+  working_unit_recovery_rate_per_hour is stale and unread (C1). Per-staff-type
+  Rate Builder rows use each group's actual overhead split; the
+  "all_productive" row uses Recovery Summary labour_share_percent instead
+  (C24 - A11-affected, handed to Rate Builder).
+
+STAGE: Output contract -> consumers
+FIELD NAMES: operational_group_cost_rows, operational_group_recovery_rows,
+  rate_builder_labour_recovery_rows (the real surface); pool objects and totals;
+  unassigned_* ; coverage percents; cost_allocation_ready; Recovery Summary
+  passthrough fields
+FILE / FUNCTION: hooks/cost-allocation/useCostAllocationOutputContract.js
+  (explicit list) + overrides in useCostAllocation.js output_contract
+NOTES: explicit list, not a spread - a new calculated field does NOT reach the
+  contract unless added (C9 was exactly this). productive_asset_cost here means
+  own + pools; in the Assets contract it means own only (C2). Top-level
+  assignment lists are raw stored records - read the enriched per-group lists.
+  cost_allocation_ready gated on Recovery Summary readiness (C16).
+  useCostAllocation() is instantiated separately by each consumer (C15).
 
 ===============================================================================
 7. CROSS-IMPORT ALIGNMENT (P&L / Balance Sheet / Revenue-COGS)
@@ -462,3 +555,42 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
   flattens row-level fields into top-level results.
 - Hours/units coverage: Assets is hours-native and does not read business_type.
 - Test data: which assets are the synthetic additions is not yet confirmed.
+
+===============================================================================
+14. COST ALLOCATION GAPS / OPEN QUESTIONS (P2.5, 2026-09-23) - full register C1-C24 in the Cost Allocation brief
+===============================================================================
+[2026-09-23] P2.5 Cost Allocation findings, mechanism only:
+- VERIFIED: every source dollar is distributed exactly once. Labour, productive
+  and non-productive assets and overhead reconcile to grouped operating cost,
+  Cost Summary total and Recovery Summary cost burden; nothing unassigned.
+- FIXED 30de7cc (C19): asset and overhead pool panels showed zero assigned -
+  cards read pool fields at the top level of the calculation result, where they
+  never exist. Cards now lift the nested *_assignment_result objects.
+- FIXED c40eaad (C9/C9b): contract pool objects, overhead total and method, and
+  the S18 non-productive fields were undefined / zero / empty. No consumer read
+  them; now correct for future readers.
+- CLOSED: overhead pool is net of the asset pool transfer in hours mode (no
+  double count). A11 does not reach any Cost Allocation figure that is read.
+- DESIGN: product mode would double count via the overhead pool (C3b);
+  overhead method inferred, asset-only groups get none (C5); minimum recoverable
+  rate excludes non-productive cost vs Business Outcome charge_to_self (C6);
+  recovery logic still lives here (C7); status gated on Recovery Summary and a
+  single Assets review warning blocks the whole chain (C16); support-vehicle
+  running costs cannot follow the vehicle until Assets A1 is decided (C18).
+- LATENT: orphaned assignments compute silently to zero (C12, has happened
+  once); assigned_staff_count ignored, card uses a different formula (C13);
+  over-allocation not capped (C14); productive flag frozen at assignment time
+  (C17); labour coverage gap computed but never shown (C22, live on this data);
+  zero-hour asset falls back to whole-business hours (C10).
+- DISPLAY: non-productive partly hidden in pool panel (C20); status strip
+  possibly not rendered (C21, unconfirmed); stream hour labels show group hours
+  (C23); four warning flags hard-coded false (C8).
+- HANDED ON: C24 to Rate Builder (all_productive row uses Recovery Summary
+  labour share; Assets A11 is a prerequisite). C6 to Business Outcome.
+- Breakeven residuals move daily because asset interest is dated to today
+  (Assets A4). Treat a residual explainable by interest decay as a pass.
+- Tooling: check_has_loaded_guard false positive again (guard named hydrated);
+  check_field_parity compared calculation_inputs, not the contract.
+- Hours/units: passthrough only; group_cost_per_unit hard-coded 0.
+- Business Outcome file map not changed by this pass.
+- Test data: synthetic strip-or-carry decision due at this close-out (kickoff s3).
