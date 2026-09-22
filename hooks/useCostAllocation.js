@@ -543,9 +543,13 @@ export default function useCostAllocation(inputs = {}) {
     rate_builder_labour_recovery_rows:
       card?.recovery_plan?.rate_builder_labour_recovery_rows ?? [],
     operational_group_cost_rows: calculated?.operational_group_cost_rows ?? [],
-    total_available_overhead_cost: calculated?.total_available_overhead_cost ?? 0,
+    // C9b (P2.5, 2026-09-23): these two were read from calculated's top level,
+    // where they never existed, so the contract always published 0 and "".
+    total_available_overhead_cost:
+      calculated?.overhead_assignment_result?.total_available_overhead_cost ?? 0,
     total_grouped_overhead_cost: calculated?.total_grouped_overhead_cost ?? 0,
-    overhead_allocation_method: calculated?.overhead_allocation_method ?? "",
+    overhead_allocation_method:
+      calculated?.overhead_assignment_result?.overhead_allocation_method ?? "",
   };
 
   return {

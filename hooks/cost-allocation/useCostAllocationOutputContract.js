@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { safe_array } from "@/lib/calculations/cost-allocation/costAllocationInputBuilder";
 
@@ -64,9 +64,29 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     asset_group_assignments: safe_array(state?.asset_group_assignments),
     overhead_group_assignments: safe_array(state?.overhead_group_assignments),
 
-    productive_labour_pool: calculated.productive_labour_pool,
-    productive_asset_pool: calculated.productive_asset_pool,
-    overhead_pool: calculated.overhead_pool,
+    // C9/C9b (P2.5, 2026-09-23): the pools live nested inside the
+    // *_assignment_result objects and were never on calculated's top level,
+    // so these fields were always undefined. Read them from where they live.
+    // S18 non-productive fields added here too - they existed in calculated
+    // but never reached the contract. Additive only; no consumer read them.
+    productive_labour_pool:
+      calculated.labour_assignment_result?.productive_labour_pool ?? null,
+    productive_asset_pool:
+      calculated.asset_assignment_result?.productive_asset_pool ?? null,
+    overhead_pool:
+      calculated.overhead_assignment_result?.overhead_pool ?? null,
+    non_productive_labour_pool:
+      calculated.non_productive_labour_assignment_result
+        ?.non_productive_labour_pool ?? null,
+    non_productive_asset_pool:
+      calculated.non_productive_asset_assignment_result
+        ?.non_productive_asset_pool ?? null,
+    total_grouped_non_productive_labour_cost:
+      calculated.total_grouped_non_productive_labour_cost ?? 0,
+    total_grouped_non_productive_asset_cost:
+      calculated.total_grouped_non_productive_asset_cost ?? 0,
+    full_cost_attribution_coverage_percent:
+      calculated.full_cost_attribution_coverage_percent ?? 0,
 
     cost_allocation_ready:
       calculated.allocation_status === "ready" ||
