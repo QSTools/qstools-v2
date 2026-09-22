@@ -325,6 +325,7 @@ export default function useAssets() {
     asset_state.no_active_assets_confirmed,
     saved_assets,
     status.assets_ready,
+    status.asset_pool_guardrail_status,
     asset_overhead_pools,
     business_default_annual_weeks,
   ]);

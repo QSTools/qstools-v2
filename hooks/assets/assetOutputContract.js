@@ -222,6 +222,10 @@ export function buildAssetsOutputContract({
     assets: asset_rows,
     active_assets: asset_rows,
     assets_ready: Boolean(status.assets_ready),
+    // v6.0 P2.4 A18 (2026-09-23): brief sections 35/46/48 - downstream must
+    // be able to see the pool guardrail (ready / review_required / blocked).
+    asset_pool_guardrail_status:
+      status.asset_pool_guardrail_status ?? "review_required",
     no_active_assets_confirmed:
       asset_state.no_active_assets_confirmed === true,
     has_productive_asset_recovery_base: productive_assets.length > 0,

@@ -17,6 +17,7 @@ export default function AssetStatusStrip({
   productive_asset_count_label,
   total_productive_asset_utilisation_hours_annual_label,
   productive_asset_cost_annual_label,
+  productive_asset_recovery_cost_annual_label,
   productive_asset_recovery_rate_label,
   warning_count,
   warnings,
@@ -60,8 +61,8 @@ export default function AssetStatusStrip({
                 value={total_productive_asset_utilisation_hours_annual_label}
               />
               <SummaryRow
-                label="Productive Asset Annual Cost"
-                value={productive_asset_cost_annual_label}
+                label="Productive Asset Cost (incl. assigned pools)"
+                value={productive_asset_recovery_cost_annual_label}
               />
               <SummaryRow
                 label="Productive Asset Recovery Rate"
@@ -103,11 +104,9 @@ export default function AssetStatusStrip({
 
               <div className="labour-summary-table">
                 {warnings.map((warning, index) => (
-                  <SummaryRow
-                    key={`${warning}-${index}`}
-                    label={`Warning ${index + 1}`}
-                    value={warning}
-                  />
+                  <div key={`${warning}-${index}`} className="ui-help">
+                    {index + 1}. {warning}
+                  </div>
                 ))}
               </div>
             </div>

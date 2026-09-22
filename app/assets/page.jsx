@@ -3,6 +3,7 @@
 import useAssets from "@/hooks/useAssets";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import AssetMainCard from "@/components/assets/AssetMainCard";
+import AssetStatusStrip from "@/components/assets/AssetStatusStrip";
 import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 import AssetFinancePnlMatchCard from "@/components/assets/AssetFinancePnlMatchCard";
 import AssetTotalPurchasePriceCard from "@/components/assets/AssetTotalPurchasePriceCard";
@@ -29,6 +30,7 @@ export default function AssetsPage() {
           status={status}
           default_annual_weeks={business_default_annual_weeks}
         />
+        <AssetStatusStrip {...status} />
         <AssetFinancePnlMatchCard asset_finance_pnl_match={asset_finance_pnl_match} />
         <section className="ui-section">
           <div className="ui-panel">
