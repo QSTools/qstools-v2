@@ -31,6 +31,8 @@ export default function CostSummaryCard({
   total_recovery_hours = 0,
   macro_required_operating_hour_rate = 0,
   net_annual_business_open_hours = 0,
+  net_annual_business_open_days = 0,
+  annual_open_weeks = 0,
   labour_detail = {},
   asset_detail = {},
   overhead_detail = {},
@@ -83,7 +85,9 @@ export default function CostSummaryCard({
             total_cost_burden_annual,
             timeScale,
             recovery_hours_total,
-            net_annual_business_open_hours
+            net_annual_business_open_hours,
+            net_annual_business_open_days,
+            annual_open_weeks
           );
 
   const insight =
@@ -177,7 +181,9 @@ export default function CostSummaryCard({
                     activeLevel.total,
                     timeScale,
                     recovery_hours_total,
-                    net_annual_business_open_hours
+                    net_annual_business_open_hours,
+                    net_annual_business_open_days,
+                    annual_open_weeks
                   )
                 )}
                 <span className="cost-summary-level-total-suffix">
@@ -193,6 +199,8 @@ export default function CostSummaryCard({
             timeScale={timeScale}
             totalRecoveryHours={recovery_hours_total}
             openHours={net_annual_business_open_hours}
+            openDays={net_annual_business_open_days}
+            openWeeks={annual_open_weeks}
             hoveredItemKey={hoveredItemKey}
             onHoverItem={setHoveredItemKey}
             onClearHover={() => setHoveredItemKey("")}
@@ -209,6 +217,8 @@ export default function CostSummaryCard({
                 timeScale={timeScale}
                 totalRecoveryHours={recovery_hours_total}
                 openHours={net_annual_business_open_hours}
+                openDays={net_annual_business_open_days}
+                openWeeks={annual_open_weeks}
                 hoveredItemKey={hoveredItemKey}
                 onHoverItem={setHoveredItemKey}
                 onClearHover={() => setHoveredItemKey("")}

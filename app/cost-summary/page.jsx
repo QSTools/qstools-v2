@@ -48,6 +48,8 @@ export default function CostSummaryPage() {
           total_recovery_hours={card.total_recovery_hours}
           macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
           net_annual_business_open_hours={card.net_annual_business_open_hours}
+          net_annual_business_open_days={card.net_annual_business_open_days}
+          annual_open_weeks={card.annual_open_weeks}
           labour_detail={card.labour_detail}
           asset_detail={card.asset_detail}
           overhead_detail={card.overhead_detail}

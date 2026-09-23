@@ -13,6 +13,8 @@ export function CostBar({
   timeScale,
   totalRecoveryHours,
   openHours = 0,
+  openDays = 0,
+  openWeeks = 0,
   hoveredItemKey,
   onHoverItem,
   onClearHover,
@@ -43,7 +45,9 @@ export function CostBar({
           item.amount,
           timeScale,
           totalRecoveryHours,
-          openHours
+          openHours,
+          openDays,
+          openWeeks
         );
         const isActive = hoveredItemKey === item.key;
         const isMuted = Boolean(hoveredItemKey) && !isActive;
@@ -99,6 +103,8 @@ export function DrillRow({
   timeScale,
   totalRecoveryHours,
   openHours = 0,
+  openDays = 0,
+  openWeeks = 0,
   hoveredItemKey,
   onHoverItem,
   onClearHover,
@@ -109,7 +115,9 @@ export function DrillRow({
     item.amount,
     timeScale,
     totalRecoveryHours,
-    openHours
+    openHours,
+    openDays,
+    openWeeks
   );
 
   const shareOfParent = calculateShare(item.amount, parentTotal);

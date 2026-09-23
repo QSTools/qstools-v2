@@ -1,0 +1,1511 @@
+===== FILE: components\business-summary\BusinessSummaryCard.jsx =====
+   1: "use client";
+   2: 
+   3: import { useState } from "react";
+   4: 
+   5: import BusinessSummaryGraphSection from "@/components/business-summary/BusinessSummaryGraphSection";
+   6: import { buildBusinessSummaryHierarchyState } from "@/components/business-summary/BusinessSummaryHierarchyBuilder";
+   7: import BusinessSummaryModePanel from "@/components/business-summary/BusinessSummaryModePanel";
+   8: import BusinessSummaryResultHero from "@/components/business-summary/BusinessSummaryResultHero";
+   9: import {
+  10:   findNodeByPath,
+  11:   getBreadcrumbNodes,
+  12:   getNodeChildren,
+  13:   hasAvailableChildren,
+  14:   formatCurrency,
+  15:   formatNumber,
+  16: } from "@/components/business-summary/BusinessSummaryCardUtils";
+  17: 
+  18: export default function BusinessSummaryCard({
+  19:   total_revenue = 0,
+  20:   total_direct_costs = 0,
+  21:   direct_cost_category_totals = [],
+  22:   margin_pool = 0,
+  23:   gross_margin_percent = 0,
+  24:   total_cost_burden = 0,
+  25:   total_people_cost_annual = 0,
+  26:   total_asset_cost_annual = 0,
+  27:   total_business_overheads = 0,
+  28:   margin_after_labour = 0,
+  29:   non_people_cost_burden = 0,
+  30:   people_cost_per_recovery_hour = 0,
+  31:   asset_cost_per_recovery_hour = 0,
+  32:   business_overheads_per_recovery_hour = 0,
+  33:   margin_after_labour_per_recovery_hour = 0,
+  34:   non_people_cost_burden_per_recovery_hour = 0,
+  35:   total_recovery_hours = 0,
+  36:   recovery_hours_used = 0,
+  37:   total_productive_output = 0,
+  38:   units_sold_annual = 0,
+  39:   business_type = "labour_based",
+  40:   is_product_based = false,
+  41:   is_labour_based = true,
+  42:   activity_driver_type = "hours",
+  43:   activity_driver_display_label = "Productive hours",
+  44:   activity_driver_value = 0,
+  45:   activity_driver_suffix = "hrs",
+  46:   required_recovery_per_driver = 0,
+  47:   required_recovery_label = "Required recovery per hour",
+  48:   required_recovery_unit_label = "$/hour",
+  49:   current_margin_per_driver = 0,
+  50:   current_margin_label = "Current margin per hour",
+  51:   recovery_gap_per_driver = 0,
+  52:   recovery_gap_label = "Hourly gap",
+  53:   revenue_per_unit = 0,
+  54:   direct_cost_per_unit = 0,
+  55:   margin_per_unit = 0,
+  56:   required_units_to_break_even = 0,
+  57:   unit_surplus_or_shortfall = 0,
+  58:   required_recovery_rate = 0,
+  59:   actual_recovery_rate = 0,
+  60:   profit_or_deficit_per_recovery_hour = 0,
+  61:   net_position = 0,
+  62:   cost_burden_breakdown = {
+  63:     people: {},
+  64:     assets: {},
+  65:     business_overheads: {},
+  66:   },
+  67:   required_labour_burden_rate = 0,
+  68:   macro_required_operating_hour_rate = 0,
+  69:   net_annual_business_open_hours = 0,
+  70: }) {
+  71:   const [timeScale, setTimeScale] = useState("hour");
+  72:   const [hoveredItemKey, setHoveredItemKey] = useState("");
+  73:   const [activePath, setActivePath] = useState(["business-result"]);
+  74: 
+  75:   const hierarchyState = buildBusinessSummaryHierarchyState({
+  76:     total_revenue,
+  77:     total_direct_costs,
+  78:     direct_cost_category_totals,
+  79:     margin_pool,
+  80:     gross_margin_percent,
+  81:     total_cost_burden,
+  82:     total_people_cost_annual,
+  83:     total_asset_cost_annual,
+  84:     total_business_overheads,
+  85:     margin_after_labour,
+  86:     non_people_cost_burden,
+  87:     people_cost_per_recovery_hour,
+  88:     asset_cost_per_recovery_hour,
+  89:     business_overheads_per_recovery_hour,
+  90:     margin_after_labour_per_recovery_hour,
+  91:     non_people_cost_burden_per_recovery_hour,
+  92:     recovery_hours_used,
+  93:     units_sold_annual,
+  94:     business_type,
+  95:     is_product_based,
+  96:     is_labour_based,
+  97:     activity_driver_type,
+  98:     revenue_per_unit,
+  99:     direct_cost_per_unit,
+ 100:     margin_per_unit,
+ 101:     required_units_to_break_even,
+ 102:     unit_surplus_or_shortfall,
+ 103:     required_recovery_rate,
+ 104:     actual_recovery_rate,
+ 105:     profit_or_deficit_per_recovery_hour,
+ 106:     net_position,
+ 107:     cost_burden_breakdown,
+ 108:     net_annual_business_open_hours,
+ 109:     timeScale,
+ 110:   });
+ 111: 
+ 112:   const {
+ 113:     active_time_scale,
+ 114:     business_hierarchy,
+ 115:     business_type_label,
+ 116:     hero,
+ 117:     product_mode_active,
+ 118:     result_table,
+ 119:   } = hierarchyState;
+ 120: 
+ 121:   const active_node =
+ 122:     findNodeByPath(business_hierarchy, activePath) ?? business_hierarchy;
+ 123:   const active_children = getNodeChildren(active_node);
+ 124:   const active_bar_items = active_children.filter(
+ 125:     (item) => item.includeInBar !== false && !item.isPending && item.amount > 0
+ 126:   );
+ 127:   const active_bar_total =
+ 128:     active_node.key === "business-result"
+ 129:       ? Math.max(
+ 130:           Math.abs(active_node.referenceTotal || 0),
+ 131:           active_bar_items.reduce((total, item) => total + item.amount, 0)
+ 132:         )
+ 133:       : Math.abs(active_node.value);
+ 134:   const active_share_label =
+ 135:     active_node.key === "business-result"
+ 136:       ? "revenue"
+ 137:       : active_node.shareLabel || active_node.label.toLowerCase();
+ 138:   const active_level_title =
+ 139:     active_node.key === "business-result"
+ 140:       ? product_mode_active
+ 141:         ? "Trading Margin Consumption"
+ 142:         : "Revenue Consumption"
+ 143:       : active_node.label;
+ 144:   const active_level_helper =
+ 145:     active_node.key === "business-result" && product_mode_active
+ 146:       ? "This shows how product revenue becomes trading margin, then whether that margin covers the business cost burden."
+ 147:       : active_node.key === "business-result"
+ 148:         ? "This shows how your revenue is consumed before profit is created."
+ 149:         : active_node.key === "margin-pool" && !product_mode_active
+ 150:           ? "Full labour and material margin split becomes available once claimed labour hours and quote/job data are connected."
+ 151:           : active_node.key === "remaining-cost-burden"
+ 152:             ? "This shows the remaining cost burden after People Cost: Asset Cost plus Business Overheads."
+ 153:             : active_node.note;
+ 154:   const breadcrumbs = getBreadcrumbNodes(business_hierarchy, activePath);
+ 155: 
+ 156:   function handleSelectHierarchyNode(item) {
+ 157:     if (!hasAvailableChildren(item)) {
+ 158:       return;
+ 159:     }
+ 160: 
+ 161:     setActivePath((previousPath) => [...previousPath, item.key]);
+ 162:     setHoveredItemKey("");
+ 163:   }
+ 164: 
+ 165:   function handleSelectBreadcrumb(index) {
+ 166:     setActivePath((previousPath) => previousPath.slice(0, index + 1));
+ 167:     setHoveredItemKey("");
+ 168:   }
+ 169: 
+ 170:   return (
+ 171:     <section className="ui-section">
+ 172:       <div className="ui-stack">
+ 173:         <div className="ui-stack-sm">
+ 174:           <div className="ui-kicker">Business Snapshot</div>
+ 175:           <div className="ui-card-title">Current position</div>
+ 176:           <p className="ui-help">
+ 177:             Factual summary of trading output compared with operating costs.
+ 178:           </p>
+ 179:         </div>
+ 180: 
+ 181:         <div className="ui-panel ui-stack-sm">
+ 182:           <BusinessSummaryResultHero
+ 183:             active_time_scale={active_time_scale}
+ 184:             hero={hero}
+ 185:             onTimeScaleChange={setTimeScale}
+ 186:             product_mode_active={product_mode_active}
+ 187:             result_table={result_table}
+ 188:             timeScale={timeScale}
+ 189:             activity_driver_type={activity_driver_type}
+ 190:             total_productive_output={total_productive_output}
+ 191:           />
+ 192: 
+ 193:           <div style={{ height: 12 }} />
+ 194: 
+ 195:           <div className="ui-kicker">Operating calendar pressure</div>
+ 196:           <div className="labour-summary-table">
+ 197:             <div className="labour-summary-table-row">
+ 198:               <div className="labour-summary-table-label">Operating calendar pressure</div>
+ 199:               <div className="labour-summary-table-value">
+ 200:                 {formatCurrency(macro_required_operating_hour_rate)} $/open hr
+ 201:               </div>
+ 202:             </div>
+ 203:             <div className="labour-summary-table-row">
+ 204:               <div className="labour-summary-table-label">Based on</div>
+ 205:               <div className="labour-summary-table-value">
+ 206:                 {Number(net_annual_business_open_hours || 0).toFixed(1)} net annual business open hours
+ 207:               </div>
+ 208:             </div>
+ 209:           </div>
+ 210: 
+ 211:           <BusinessSummaryGraphSection
+ 212:             active_bar_items={active_bar_items}
+ 213:             active_bar_total={active_bar_total}
+ 214:             active_children={active_children}
+ 215:             active_level_helper={active_level_helper}
+ 216:             active_level_title={active_level_title}
+ 217:             active_node={active_node}
+ 218:             active_share_label={active_share_label}
+ 219:             breadcrumbs={breadcrumbs}
+ 220:             hoveredItemKey={hoveredItemKey}
+ 221:             onClearHover={() => setHoveredItemKey("")}
+ 222:             onHoverItem={setHoveredItemKey}
+ 223:             onSelectBreadcrumb={handleSelectBreadcrumb}
+ 224:             onSelectItem={handleSelectHierarchyNode}
+ 225:             product_mode_active={product_mode_active}
+ 226:           />
+ 227:         </div>
+ 228: 
+ 229:         <BusinessSummaryModePanel
+ 230:           activity_driver_display_label={activity_driver_display_label}
+ 231:           activity_driver_suffix={activity_driver_suffix}
+ 232:           activity_driver_type={activity_driver_type}
+ 233:           activity_driver_value={activity_driver_value}
+ 234:           business_type_label={business_type_label}
+ 235:           current_margin_label={current_margin_label}
+ 236:           current_margin_per_driver={current_margin_per_driver}
+ 237:           recovery_gap_label={recovery_gap_label}
+ 238:           recovery_gap_per_driver={recovery_gap_per_driver}
+ 239:           required_recovery_label={required_recovery_label}
+ 240:           required_recovery_per_driver={required_recovery_per_driver}
+ 241:           required_recovery_unit_label={required_recovery_unit_label}
+ 242:           total_productive_output={total_productive_output}
+ 243:           total_recovery_hours={total_recovery_hours}
+ 244:           units_sold_annual={units_sold_annual}
+ 245:         />
+ 246:       </div>
+ 247:     </section>
+ 248:   );
+ 249: }
+===== FILE: components\business-summary\BusinessSummaryHierarchyBuilder.js =====
+   1: import {
+   2:   formatCurrency,
+   3:   formatNumber,
+   4:   getTimeScaleName,
+   5:   getTimeScaleSuffix,
+   6: } from "@/components/business-summary/BusinessSummaryCardUtils";
+   7: import { buildBusinessSummaryHierarchyChildren } from "@/components/business-summary/hierarchy/businessSummaryHierarchyChildren";
+   8: import {
+   9:   PRODUCT_TIME_SCALES,
+  10:   createDisplayScalers,
+  11:   scaleProductAnnualValue,
+  12: } from "@/components/business-summary/hierarchy/businessSummaryHierarchyScaleUtils";
+  13: import { buildBusinessSummaryHierarchyTrees } from "@/components/business-summary/hierarchy/businessSummaryHierarchyTrees";
+  14: 
+  15: export { PRODUCT_TIME_SCALES };
+  16: 
+  17: export function buildBusinessSummaryHierarchyState({
+  18:   total_revenue = 0,
+  19:   total_direct_costs = 0,
+  20:   direct_cost_category_totals = [],
+  21:   margin_pool = 0,
+  22:   total_cost_burden = 0,
+  23:   total_people_cost_annual = 0,
+  24:   total_asset_cost_annual = 0,
+  25:   total_business_overheads = 0,
+  26:   margin_after_labour = 0,
+  27:   non_people_cost_burden = 0,
+  28:   people_cost_per_recovery_hour = 0,
+  29:   asset_cost_per_recovery_hour = 0,
+  30:   business_overheads_per_recovery_hour = 0,
+  31:   margin_after_labour_per_recovery_hour = 0,
+  32:   non_people_cost_burden_per_recovery_hour = 0,
+  33:   recovery_hours_used = 0,
+  34:   net_annual_business_open_hours = 0,
+  35:   units_sold_annual = 0,
+  36:   business_type = "labour_based",
+  37:   is_product_based = false,
+  38:   is_labour_based = true,
+  39:   activity_driver_type = "hours",
+  40:   revenue_per_unit = 0,
+  41:   direct_cost_per_unit = 0,
+  42:   margin_per_unit = 0,
+  43:   required_units_to_break_even = 0,
+  44:   unit_surplus_or_shortfall = 0,
+  45:   required_recovery_rate = 0,
+  46:   actual_recovery_rate = 0,
+  47:   profit_or_deficit_per_recovery_hour = 0,
+  48:   net_position = 0,
+  49:   cost_burden_breakdown = {
+  50:     people: {},
+  51:     assets: {},
+  52:     business_overheads: {},
+  53:   },
+  54:   timeScale = "hour",
+  55: } = {}) {
+  56:   const business_type_label =
+  57:     business_type === "product_based"
+  58:       ? "Product / Unit-based business"
+  59:       : "Service / Labour-based business";
+  60:   const product_mode_active =
+  61:     is_product_based === true ||
+  62:     is_labour_based === false ||
+  63:     business_type === "product_based" ||
+  64:     activity_driver_type === "units";
+  65:   const active_time_scale =
+  66:     product_mode_active && timeScale === "hour" ? "day" : timeScale;
+  67: 
+  68:   const open_hours_used = Number(net_annual_business_open_hours) || 0;
+  69:   const { scaleDisplayAnnualValue, scaleDisplayPeriodValue } =
+  70:     createDisplayScalers({
+  71:       active_time_scale,
+  72:       open_hours_used,
+  73:       product_mode_active,
+  74:     });
+  75: 
+  76:   const scaled_required_recovery = scaleDisplayAnnualValue(
+  77:     total_cost_burden,
+  78:     required_recovery_rate
+  79:   );
+  80:   const scaled_actual_recovery = scaleDisplayAnnualValue(
+  81:     margin_pool,
+  82:     actual_recovery_rate
+  83:   );
+  84:   const scaled_recovery_result = scaleDisplayAnnualValue(
+  85:     net_position,
+  86:     profit_or_deficit_per_recovery_hour
+  87:   );
+  88:   const recovery_result_abs = Math.abs(scaled_recovery_result);
+  89:   const scale_label = getTimeScaleName(active_time_scale);
+  90:   const result_scale_label =
+  91:     active_time_scale === "hour" ? "Open Hour" : scale_label;
+  92:   const scale_suffix = product_mode_active
+  93:     ? `/${active_time_scale}`
+  94:     : getTimeScaleSuffix(active_time_scale);
+  95:   const product_unit_suffix = `units/${active_time_scale}`;
+  96:   const product_period_phrase = `per ${active_time_scale}`;
+  97:   const scaled_units_sold = scaleProductAnnualValue(
+  98:     units_sold_annual,
+  99:     active_time_scale
+ 100:   );
+ 101:   const scaled_required_units_to_break_even = scaleProductAnnualValue(
+ 102:     required_units_to_break_even,
+ 103:     active_time_scale
+ 104:   );
+ 105:   const scaled_unit_surplus_or_shortfall = scaleProductAnnualValue(
+ 106:     unit_surplus_or_shortfall,
+ 107:     active_time_scale
+ 108:   );
+ 109: 
+ 110:   const recovery_result_label =
+ 111:     scaled_recovery_result >= 0
+ 112:       ? `Surplus per ${result_scale_label}`
+ 113:       : `Deficit per ${result_scale_label}`;
+ 114:   const recovery_headline =
+ 115:     scaled_recovery_result >= 0
+ 116:       ? `You are earning ${formatCurrency(
+ 117:           recovery_result_abs
+ 118:         )}${scale_suffix} after covering your real business costs.`
+ 119:       : `You are short ${formatCurrency(
+ 120:           recovery_result_abs
+ 121:         )}${scale_suffix} against your required recovery rate.`;
+ 122:   const product_position_title =
+ 123:     margin_per_unit <= 0
+ 124:       ? "Product Margin Not Recoverable"
+ 125:       : unit_surplus_or_shortfall < 0
+ 126:         ? "Unit Volume Shortfall"
+ 127:         : "Unit Volume Surplus";
+ 128:   const product_hero_value =
+ 129:     margin_per_unit <= 0
+ 130:       ? formatCurrency(margin_per_unit)
+ 131:       : formatNumber(Math.abs(scaled_unit_surplus_or_shortfall));
+ 132:   const product_hero_suffix =
+ 133:     margin_per_unit <= 0 ? "/unit" : ` ${product_unit_suffix}`;
+ 134:   const product_helper_text =
+ 135:     margin_per_unit <= 0
+ 136:       ? "Product margin is not positive, so unit volume cannot recover the business cost burden."
+ 137:       : unit_surplus_or_shortfall < 0
+ 138:         ? `You need ${formatNumber(
+ 139:             scaled_required_units_to_break_even
+ 140:           )} units sold ${product_period_phrase} to recover the business cost burden. Current volume is ${formatNumber(
+ 141:             scaled_units_sold
+ 142:           )} units ${product_period_phrase}.`
+ 143:         : `Current unit volume is above the break-even unit requirement ${product_period_phrase}.`;
+ 144: 
+ 145:   const scaled_revenue = scaleDisplayPeriodValue(total_revenue);
+ 146:   const scaled_direct_costs = scaleDisplayPeriodValue(total_direct_costs);
+ 147:   const scaled_margin_pool = scaleDisplayPeriodValue(margin_pool);
+ 148:   const scaled_people_cost =
+ 149:     active_time_scale === "hour"
+ 150:       ? people_cost_per_recovery_hour
+ 151:       : scaleDisplayPeriodValue(total_people_cost_annual);
+ 152:   const scaled_margin_after_labour =
+ 153:     active_time_scale === "hour"
+ 154:       ? margin_after_labour_per_recovery_hour
+ 155:       : scaleDisplayPeriodValue(margin_after_labour);
+ 156:   const scaled_asset_cost =
+ 157:     active_time_scale === "hour"
+ 158:       ? asset_cost_per_recovery_hour
+ 159:       : scaleDisplayPeriodValue(total_asset_cost_annual);
+ 160:   const scaled_general_overheads =
+ 161:     active_time_scale === "hour"
+ 162:       ? business_overheads_per_recovery_hour
+ 163:       : scaleDisplayPeriodValue(total_business_overheads);
+ 164:   const scaled_non_people_cost_burden =
+ 165:     active_time_scale === "hour"
+ 166:       ? non_people_cost_burden_per_recovery_hour
+ 167:       : scaleDisplayPeriodValue(non_people_cost_burden);
+ 168:   const scaled_net_position = scaleDisplayPeriodValue(net_position);
+ 169:   const product_secondary_result =
+ 170:     margin_per_unit <= 0
+ 171:       ? `Final surplus / deficit: ${formatCurrency(
+ 172:           scaled_net_position
+ 173:         )}${scale_suffix}`
+ 174:       : scaled_net_position < 0
+ 175:         ? `Final deficit: ${formatCurrency(scaled_net_position)}${scale_suffix}`
+ 176:         : `Final surplus: ${formatCurrency(scaled_net_position)}${scale_suffix}`;
+ 177: 
+ 178:   const surplus_or_deficit_label =
+ 179:     scaled_net_position >= 0 ? "Surplus" : "Deficit";
+ 180:   const surplus_or_deficit_amount = Math.abs(scaled_net_position);
+ 181:   const revenue_reference_total = Math.abs(scaled_revenue);
+ 182:   const people_breakdown = cost_burden_breakdown.people ?? {};
+ 183:   const assets_breakdown = cost_burden_breakdown.assets ?? {};
+ 184:   const overheads_breakdown = cost_burden_breakdown.business_overheads ?? {};
+ 185:   const active_staff = Array.isArray(people_breakdown.active_staff)
+ 186:     ? people_breakdown.active_staff
+ 187:     : [];
+ 188:   const active_assets = Array.isArray(assets_breakdown.active_assets)
+ 189:     ? assets_breakdown.active_assets
+ 190:     : [];
+ 191:   const overhead_category_totals = Array.isArray(
+ 192:     overheads_breakdown.category_totals
+ 193:   )
+ 194:     ? overheads_breakdown.category_totals
+ 195:     : [];
+ 196: 
+ 197:   const {
+ 198:     direct_cost_children,
+ 199:     people_cost_children,
+ 200:     pending_contribution_children,
+ 201:     product_margin_pool_children,
+ 202:     remaining_cost_children,
+ 203:   } = buildBusinessSummaryHierarchyChildren({
+ 204:     active_assets,
+ 205:     active_staff,
+ 206:     direct_cost_category_totals,
+ 207:     direct_cost_per_unit,
+ 208:     margin_per_unit,
+ 209:     overhead_category_totals,
+ 210:     product_unit_suffix,
+ 211:     revenue_per_unit,
+ 212:     scaleDisplayPeriodValue,
+ 213:     scale_suffix,
+ 214:     scaled_asset_cost,
+ 215:     scaled_direct_costs,
+ 216:     scaled_general_overheads,
+ 217:     scaled_margin_pool,
+ 218:     scaled_non_people_cost_burden,
+ 219:     scaled_people_cost,
+ 220:     scaled_revenue,
+ 221:     scaled_units_sold,
+ 222:   });
+ 223: 
+ 224:   const { labour_business_hierarchy, product_business_hierarchy } =
+ 225:     buildBusinessSummaryHierarchyTrees({
+ 226:       direct_cost_children,
+ 227:       margin_after_labour_note: {
+ 228:         labour:
+ 229:           "Gross Profit / Margin Pool after People Cost. This shows whether the business is already positive or negative before assets and business overheads.",
+ 230:         product:
+ 231:           "Trading Margin Pool after People Cost. This shows whether the business is positive or negative before assets and overheads.",
+ 232:       },
+ 233:       people_cost_children,
+ 234:       pending_contribution_children,
+ 235:       product_margin_pool_children,
+ 236:       remaining_cost_children,
+ 237:       revenue_reference_total,
+ 238:       scale_suffix,
+ 239:       scaled_direct_costs,
+ 240:       scaled_general_overheads,
+ 241:       scaled_margin_after_labour,
+ 242:       scaled_margin_pool,
+ 243:       scaled_net_position,
+ 244:       scaled_non_people_cost_burden,
+ 245:       scaled_people_cost,
+ 246:       scaled_revenue,
+ 247:       surplus_or_deficit_amount,
+ 248:       surplus_or_deficit_label,
+ 249:     });
+ 250: 
+ 251:   return {
+ 252:     active_time_scale,
+ 253:     business_hierarchy: product_mode_active
+ 254:       ? product_business_hierarchy
+ 255:       : labour_business_hierarchy,
+ 256:     business_type_label,
+ 257:     product_mode_active,
+ 258:     hero: {
+ 259:       product_position_title,
+ 260:       product_hero_value,
+ 261:       product_hero_suffix,
+ 262:       product_helper_text,
+ 263:       product_secondary_result,
+ 264:       recovery_result_abs,
+ 265:       recovery_result_label,
+ 266:       recovery_headline,
+ 267:     },
+ 268:     result_table: {
+ 269:       margin_per_unit,
+ 270:       product_unit_suffix,
+ 271:       recovery_hours_used,
+ 272:       scale_label,
+ 273:       scale_suffix,
+ 274:       scaled_actual_recovery,
+ 275:       scaled_net_position,
+ 276:       scaled_recovery_result,
+ 277:       scaled_required_recovery,
+ 278:       scaled_required_units_to_break_even,
+ 279:       scaled_unit_surplus_or_shortfall,
+ 280:       scaled_units_sold,
+ 281:     },
+ 282:   };
+ 283: }
+===== FILE: components\business-summary\BusinessSummaryModePanel.jsx =====
+   1: "use client";
+   2: 
+   3: import {
+   4:   formatCurrency,
+   5:   formatNumber,
+   6: } from "@/components/business-summary/BusinessSummaryCardUtils";
+   7: 
+   8: function TableRow({ label, value, total = false }) {
+   9:   return (
+  10:     <div className={`labour-summary-table-row${total ? " total" : ""}`}>
+  11:       <div className="labour-summary-table-label">{label}</div>
+  12:       <div className="labour-summary-table-value">{value}</div>
+  13:     </div>
+  14:   );
+  15: }
+  16: 
+  17: export default function BusinessSummaryModePanel({
+  18:   activity_driver_display_label = "Net annual business open hours",
+  19:   activity_driver_suffix = "hrs",
+  20:   activity_driver_type = "hours",
+  21:   activity_driver_value = 0,
+  22:   business_type_label = "Service / Labour-based business",
+  23:   current_margin_label = "Actual margin per open hour",
+  24:   current_margin_per_driver = 0,
+  25:   recovery_gap_label = "Open-hour gap",
+  26:   recovery_gap_per_driver = 0,
+  27:   required_recovery_label = "Required operating cost per open hour",
+  28:   required_recovery_per_driver = 0,
+  29:   required_recovery_unit_label = "$/open hr",
+  30:   total_productive_output = 0,
+  31:   total_recovery_hours = 0,
+  32:   units_sold_annual = 0,
+  33: }) {
+  34:   const hours_mode = activity_driver_type === "hours";
+  35: 
+  36:   return (
+  37:     <>
+  38:       <div className="ui-panel ui-stack-sm">
+  39:         <div className="ui-kicker">Business mode</div>
+  40:         <div className="ui-card-title-sm">{business_type_label}</div>
+  41:         <p className="ui-help">
+  42:           {activity_driver_type === "units"
+  43:             ? "Business Summary is calculating the result through units sold."
+  44:             : "Business Summary is comparing trading margin against net annual business open hours."}
+  45:         </p>
+  46:       </div>
+  47: 
+  48:       <div className="ui-panel ui-stack-sm">
+  49:         <div className="ui-kicker">
+  50:           {activity_driver_type === "units"
+  51:             ? "Per-Unit Reality"
+  52:             : "Open-Hour Reality"}
+  53:         </div>
+  54: 
+  55:         <p className="ui-help">
+  56:           {activity_driver_type === "units"
+  57:             ? "This shows the business result spread across annual units sold."
+  58:             : "This shows the business result spread across net annual business open hours."}
+  59:         </p>
+  60: 
+  61:         <div className="labour-summary-table">
+  62:           <TableRow
+  63:             label={
+  64:               hours_mode
+  65:                 ? "Required operating cost per open hour"
+  66:                 : required_recovery_label
+  67:             }
+  68:             value={`${formatCurrency(
+  69:               required_recovery_per_driver
+  70:             )} ${required_recovery_unit_label}`}
+  71:           />
+  72: 
+  73:           <TableRow
+  74:             label={hours_mode ? "Actual margin per open hour" : current_margin_label}
+  75:             value={`${formatCurrency(
+  76:               current_margin_per_driver
+  77:             )} ${required_recovery_unit_label}`}
+  78:           />
+  79: 
+  80:           <TableRow
+  81:             label={hours_mode ? "Open-hour gap" : recovery_gap_label}
+  82:             value={`${formatCurrency(
+  83:               recovery_gap_per_driver
+  84:             )} ${required_recovery_unit_label}`}
+  85:             total
+  86:           />
+  87: 
+  88:           <TableRow
+  89:             label={
+  90:               hours_mode
+  91:                 ? "Net annual business open hours"
+  92:                 : activity_driver_display_label
+  93:             }
+  94:             value={`${formatNumber(activity_driver_value)} ${activity_driver_suffix}`}
+  95:           />
+  96: 
+  97:           {hours_mode ? null : (
+  98:             <TableRow
+  99:               label="Selected recovery hours"
+ 100:               value={`${formatNumber(total_recovery_hours)} hrs`}
+ 101:             />
+ 102:           )}
+ 103:         </div>
+ 104:       </div>
+ 105: 
+ 106:       {activity_driver_type === "units" ? (
+ 107:         <div className="ui-panel ui-stack-sm">
+ 108:           <div className="ui-kicker">Product driver source</div>
+ 109:           <div className="labour-summary-table">
+ 110:             <TableRow
+ 111:               label="Units sold per year"
+ 112:               value={`${formatNumber(units_sold_annual)} units`}
+ 113:             />
+ 114:             <TableRow
+ 115:               label="Productive hours still available"
+ 116:               value={`${formatNumber(total_productive_output)} hrs`}
+ 117:             />
+ 118:           </div>
+ 119:         </div>
+ 120:       ) : null}
+ 121:     </>
+ 122:   );
+ 123: }
+===== FILE: components\business-summary\BusinessSummaryResultHero.jsx =====
+   1: "use client";
+   2: 
+   3: import {
+   4:   TIME_SCALES,
+   5:   formatCurrency,
+   6:   formatNumber,
+   7: } from "@/components/business-summary/BusinessSummaryCardUtils";
+   8: import { PRODUCT_TIME_SCALES } from "@/components/business-summary/BusinessSummaryHierarchyBuilder";
+   9: 
+  10: function TableRow({ label, value, total = false }) {
+  11:   return (
+  12:     <div className={`labour-summary-table-row${total ? " total" : ""}`}>
+  13:       <div className="labour-summary-table-label">{label}</div>
+  14:       <div className="labour-summary-table-value">{value}</div>
+  15:     </div>
+  16:   );
+  17: }
+  18: 
+  19: function getResultRowLabel(timeScale, resultLabel) {
+  20:   if (timeScale !== "hour") {
+  21:     return resultLabel;
+  22:   }
+  23: 
+  24:   return resultLabel?.includes("Surplus")
+  25:     ? "Surplus per open hour"
+  26:     : "Deficit per open hour";
+  27: }
+  28: 
+  29: export default function BusinessSummaryResultHero({
+  30:   active_time_scale = "hour",
+  31:   hero,
+  32:   onTimeScaleChange,
+  33:   product_mode_active = false,
+  34:   result_table,
+  35:   timeScale = "hour",
+  36: }) {
+  37:   const scaleOptions = product_mode_active ? PRODUCT_TIME_SCALES : TIME_SCALES;
+  38: 
+  39:   return (
+  40:     <>
+  41:       <div className="ui-kicker">Business Result</div>
+  42:       <div className="ui-card-title-sm">
+  43:         {product_mode_active
+  44:           ? hero.product_position_title
+  45:           : hero.recovery_result_label}
+  46:       </div>
+  47: 
+  48:       <div className="ui-display">
+  49:         {product_mode_active
+  50:           ? hero.product_hero_value
+  51:           : formatCurrency(hero.recovery_result_abs)}
+  52:         <span className="ui-help">
+  53:           {product_mode_active
+  54:             ? hero.product_hero_suffix
+  55:             : ` ${result_table.scale_suffix}`}
+  56:         </span>
+  57:       </div>
+  58: 
+  59:       <p className="ui-help">
+  60:         {product_mode_active
+  61:           ? hero.product_helper_text
+  62:           : hero.recovery_headline}
+  63:       </p>
+  64: 
+  65:       {product_mode_active ? (
+  66:         <p className="ui-help">{hero.product_secondary_result}</p>
+  67:       ) : (
+  68:         <>
+  69:           <p className="ui-help">
+  70:             Owner wages are already included in costs, so this result is after
+  71:             paying the owner properly.
+  72:           </p>
+  73:           <p className="ui-help">
+  74:             This compares your actual Gross Profit / Margin Pool against the
+  75:             Cost Summary operating cost baseline.
+  76:           </p>
+  77:         </>
+  78:       )}
+  79: 
+  80:       <div className="cost-summary-toggle" aria-label="Time scale">
+  81:         {scaleOptions.map((option) => (
+  82:           <button
+  83:             key={option.key}
+  84:             type="button"
+  85:             className={
+  86:               option.key === active_time_scale
+  87:                 ? "cost-summary-toggle-button active"
+  88:                 : "cost-summary-toggle-button"
+  89:             }
+  90:             onClick={() => onTimeScaleChange(option.key)}
+  91:           >
+  92:             {option.label}
+  93:           </button>
+  94:         ))}
+  95:       </div>
+  96: 
+  97:       {product_mode_active ? (
+  98:         <div className="labour-summary-table">
+  99:           <TableRow
+ 100:             label="Margin per Unit"
+ 101:             value={`${formatCurrency(result_table.margin_per_unit)} /unit`}
+ 102:           />
+ 103:           <TableRow
+ 104:             label="Current Units Sold"
+ 105:             value={`${formatNumber(
+ 106:               result_table.scaled_units_sold
+ 107:             )} ${result_table.product_unit_suffix}`}
+ 108:           />
+ 109:           <TableRow
+ 110:             label="Required Units to Break Even"
+ 111:             value={`${formatNumber(
+ 112:               result_table.scaled_required_units_to_break_even
+ 113:             )} ${result_table.product_unit_suffix}`}
+ 114:           />
+ 115:           <TableRow
+ 116:             label="Unit Surplus / Shortfall"
+ 117:             value={`${formatNumber(
+ 118:               result_table.scaled_unit_surplus_or_shortfall
+ 119:             )} ${result_table.product_unit_suffix}`}
+ 120:           />
+ 121:           <TableRow
+ 122:             label="Final Surplus / Deficit"
+ 123:             value={`${formatCurrency(
+ 124:               result_table.scaled_net_position
+ 125:             )} ${result_table.scale_suffix}`}
+ 126:             total
+ 127:           />
+ 128:         </div>
+ 129:       ) : (
+ 130:         <div className="labour-summary-table">
+ 131:           <TableRow
+ 132:             label={
+ 133:               timeScale === "hour"
+ 134:                 ? "Required operating cost per open hour"
+ 135:                 : `Required operating cost per ${result_table.scale_label}`
+ 136:             }
+ 137:             value={`${formatCurrency(
+ 138:               result_table.scaled_required_recovery
+ 139:             )} ${result_table.scale_suffix}`}
+ 140:           />
+ 141:           <TableRow
+ 142:             label={
+ 143:               timeScale === "hour"
+ 144:                 ? "Actual margin per open hour"
+ 145:                 : `Actual margin per ${result_table.scale_label}`
+ 146:             }
+ 147:             value={`${formatCurrency(
+ 148:               result_table.scaled_actual_recovery
+ 149:             )} ${result_table.scale_suffix}`}
+ 150:           />
+ 151:           <TableRow
+ 152:             label={getResultRowLabel(timeScale, hero.recovery_result_label)}
+ 153:             value={`${formatCurrency(
+ 154:               result_table.scaled_recovery_result
+ 155:             )} ${result_table.scale_suffix}`}
+ 156:             total
+ 157:           />
+ 158:         </div>
+ 159:       )}
+ 160:     </>
+ 161:   );
+ 162: }
+===== FILE: components\recovery-summary\RecoverySummaryRequirementBlock.jsx =====
+   1: import {
+   2:   format_currency,
+   3:   format_number,
+   4:   format_rate,
+   5: } from "@/components/recovery-summary/recoverySummaryFormatters";
+   6: 
+   7: export default function RecoverySummaryRequirementBlock({
+   8:   total_cost_burden,
+   9:   required_recovery_rate,
+  10:   recovery_hours_used,
+  11: 
+  12:   business_type,
+  13:   activity_driver_type,
+  14:   units_sold_annual,
+  15: 
+  16:   actual_recovery_rate,
+  17:   profit_or_deficit_per_recovery_hour,
+  18: }) {
+  19:   const is_product_based =
+  20:     business_type === "product_based" || activity_driver_type === "units";
+  21: 
+  22:   const recovery_driver_label = is_product_based
+  23:     ? "Units used"
+  24:     : "Selected recovery hours";
+  25: 
+  26:   const recovery_driver_quantity = is_product_based
+  27:     ? units_sold_annual
+  28:     : recovery_hours_used;
+  29: 
+  30:   const required_recovery_label = is_product_based
+  31:     ? "Required recovery per unit"
+  32:     : "Required recovery per recovery hour";
+  33: 
+  34:   const actual_recovery_label = is_product_based
+  35:     ? "Actual recovery per unit"
+  36:     : "Actual recovery per recovery hour";
+  37: 
+  38:   const variance_label = is_product_based
+  39:     ? "Recovery variance per unit"
+  40:     : "Recovery variance per recovery hour";
+  41: 
+  42:   const rate_suffix = is_product_based ? "/unit" : "/hr";
+  43: 
+  44:   const required_recovery_rate_display = format_rate(
+  45:     required_recovery_rate,
+  46:     rate_suffix
+  47:   );
+  48: 
+  49:   const actual_recovery_rate_display = format_rate(
+  50:     actual_recovery_rate,
+  51:     rate_suffix
+  52:   );
+  53: 
+  54:   const recovery_variance_display = format_rate(
+  55:     profit_or_deficit_per_recovery_hour,
+  56:     rate_suffix
+  57:   );
+  58: 
+  59:   const has_recovery_shortfall =
+  60:     Number(profit_or_deficit_per_recovery_hour ?? 0) < 0;
+  61: 
+  62:   const has_recovery_surplus =
+  63:     Number(profit_or_deficit_per_recovery_hour ?? 0) > 0;
+  64: 
+  65:   const recovery_result_text = has_recovery_shortfall
+  66:     ? `The business is currently ${format_rate(
+  67:         Math.abs(Number(profit_or_deficit_per_recovery_hour ?? 0)),
+  68:         rate_suffix
+  69:       )} below the required recovery rate.`
+  70:     : has_recovery_surplus
+  71:       ? `The business is currently ${format_rate(
+  72:           profit_or_deficit_per_recovery_hour,
+  73:           rate_suffix
+  74:         )} above the required recovery rate.`
+  75:       : "The business is currently matching the required recovery rate.";
+  76: 
+  77:   return (
+  78:     <div className="ui-panel">
+  79:       <div className="ui-stack">
+  80:         <div>
+  81:           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+  82:             Recovery requirement
+  83:           </h3>
+  84: 
+  85:           <p className="ui-help">
+  86:             This shows how the Business Summary cost burden becomes the recovery
+  87:             rate carried forward into Cost Allocation.
+  88:           </p>
+  89:         </div>
+  90: 
+  91:         <div className="ui-readonly">
+  92:           <div className="ui-stack-sm">
+  93:             <p className="ui-kicker">Required recovery build-up</p>
+  94: 
+  95:             <div className="labour-summary-table">
+  96:               <div className="labour-summary-table-row">
+  97:                 <div className="labour-summary-table-label">
+  98:                   Total cost burden
+  99:                 </div>
+ 100:                 <div className="labour-summary-table-value">
+ 101:                   {format_currency(total_cost_burden)}
+ 102:                 </div>
+ 103:               </div>
+ 104: 
+ 105:               <div className="labour-summary-table-row">
+ 106:                 <div className="labour-summary-table-label">
+ 107:                   {recovery_driver_label}
+ 108:                 </div>
+ 109:                 <div className="labour-summary-table-value">
+ 110:                   {is_product_based
+ 111:                     ? format_number(recovery_driver_quantity)
+ 112:                     : `${format_number(recovery_driver_quantity)} hrs`}
+ 113:                 </div>
+ 114:               </div>
+ 115: 
+ 116:               <div className="labour-summary-table-row total">
+ 117:                 <div className="labour-summary-table-label">
+ 118:                   {required_recovery_label}
+ 119:                 </div>
+ 120:                 <div className="labour-summary-table-value">
+ 121:                   {required_recovery_rate_display}
+ 122:                 </div>
+ 123:               </div>
+ 124:             </div>
+ 125: 
+ 126:             <p className="ui-help">
+ 127:               {is_product_based
+ 128:                 ? "Total cost burden ÷ units used = required recovery per unit."
+ 129:                 : "Total cost burden ÷ selected recovery hours = required recovery per recovery hour."}
+ 130:             </p>
+ 131:           </div>
+ 132:         </div>
+ 133: 
+ 134:         <div className="ui-readonly">
+ 135:           <div className="ui-stack-sm">
+ 136:             <p className="ui-kicker">Actual vs required</p>
+ 137: 
+ 138:             <div className="labour-summary-table">
+ 139:               <div className="labour-summary-table-row">
+ 140:                 <div className="labour-summary-table-label">
+ 141:                   {actual_recovery_label}
+ 142:                 </div>
+ 143:                 <div className="labour-summary-table-value">
+ 144:                   {actual_recovery_rate_display}
+ 145:                 </div>
+ 146:               </div>
+ 147: 
+ 148:               <div className="labour-summary-table-row">
+ 149:                 <div className="labour-summary-table-label">
+ 150:                   {required_recovery_label}
+ 151:                 </div>
+ 152:                 <div className="labour-summary-table-value">
+ 153:                   {required_recovery_rate_display}
+ 154:                 </div>
+ 155:               </div>
+ 156: 
+ 157:               <div className="labour-summary-table-row total">
+ 158:                 <div className="labour-summary-table-label">
+ 159:                   {variance_label}
+ 160:                 </div>
+ 161:                 <div className="labour-summary-table-value">
+ 162:                   {recovery_variance_display}
+ 163:                 </div>
+ 164:               </div>
+ 165:             </div>
+ 166: 
+ 167:             <p className="ui-help">
+ 168:               Actual recovery rate - required recovery rate = recovery variance.
+ 169:             </p>
+ 170: 
+ 171:             <div className="ui-readonly">
+ 172:               <p className="text-sm font-medium text-[var(--text-primary)]">
+ 173:                 {recovery_result_text}
+ 174:               </p>
+ 175:             </div>
+ 176:           </div>
+ 177:         </div>
+ 178:       </div>
+ 179:     </div>
+ 180:   );
+ 181: }
+===== FILE: app\business-summary\page.jsx =====
+   1: "use client";
+   2: 
+   3: import useBusinessSummary from "@/hooks/useBusinessSummary";
+   4: import useModelReadiness from "@/hooks/useModelReadiness";
+   5: 
+   6: import NextStepFooter from "@/components/navigation/NextStepFooter";
+   7: import BusinessSummaryStatusStrip from "@/components/business-summary/BusinessSummaryStatusStrip";
+   8: import BusinessSummaryCard from "@/components/business-summary/BusinessSummaryCard";
+   9: import BusinessSummaryMacroPositionCard from "@/components/business-summary/BusinessSummaryMacroPositionCard";
+  10: import BusinessSummaryHelpPanel from "@/components/business-summary/BusinessSummaryHelpPanel";
+  11: 
+  12: function to_number(value) {
+  13:   const number = Number(value);
+  14:   return Number.isFinite(number) ? number : 0;
+  15: }
+  16: 
+  17: export default function BusinessSummaryPage() {
+  18:   const { status, card } = useBusinessSummary();
+  19:   const { status: model_readiness_status } = useModelReadiness();
+  20: 
+  21:   const other_income =
+  22:     card.other_income ??
+  23:     card.total_other_income ??
+  24:     card.other_income_total ??
+  25:     card.total_other_income_annual ??
+  26:     model_readiness_status?.other_income ??
+  27:     model_readiness_status?.total_other_income ??
+  28:     0;
+  29: 
+  30:   const pnl_net_profit =
+  31:     card.net_profit ??
+  32:     card.pnl_net_profit ??
+  33:     model_readiness_status?.net_profit ??
+  34:     model_readiness_status?.pnl_net_profit ??
+  35:     to_number(card.margin_pool) +
+  36:       to_number(other_income) -
+  37:       to_number(model_readiness_status?.total_business_costs);
+  38: 
+  39:   return (
+  40:     <main className="ui-page">
+  41:       <div className="ui-page-stack">
+  42:         <section className="ui-hero">
+  43:           <div className="ui-hero-inner">
+  44:             <div className="ui-kicker">Business Performance</div>
+  45:             <h1 className="ui-hero-title">Business Summary</h1>
+  46:             <p className="ui-hero-copy">
+  47:               Turn your P&amp;L into an operating result.
+  48:             </p>
+  49:             <p className="ui-hero-copy">
+  50:               This page shows what your business is actually making after
+  51:               direct costs and your Cost Summary baseline are covered.
+  52:             </p>
+  53:           </div>
+  54:         </section>
+  55: 
+  56:         <BusinessSummaryStatusStrip
+  57:           net_position={status.net_position}
+  58:           current_margin_per_driver={status.current_margin_per_driver}
+  59:           required_recovery_per_driver={status.required_recovery_per_driver}
+  60:           recovery_gap_per_driver={status.recovery_gap_per_driver}
+  61:           current_margin_label={status.current_margin_label}
+  62:           required_recovery_label={status.required_recovery_label}
+  63:           recovery_gap_label={status.recovery_gap_label}
+  64:           required_recovery_unit_label={status.required_recovery_unit_label}
+  65:           warning_count={status.warning_count}
+  66:           business_summary_warnings={status.business_summary_warnings}
+  67:           required_labour_burden_rate={card.required_labour_burden_rate}
+  68:           macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+  69:           net_annual_business_open_hours={card.net_annual_business_open_hours}
+  70:           total_productive_output={card.total_productive_output}
+  71:         />
+  72: 
+  73:         <BusinessSummaryCard
+  74:           total_revenue={card.total_revenue}
+  75:           total_direct_costs={card.total_direct_costs}
+  76:           direct_cost_category_totals={card.direct_cost_category_totals}
+  77:           margin_pool={card.margin_pool}
+  78:           gross_margin_percent={card.gross_margin_percent}
+  79:           total_cost_burden={card.total_cost_burden}
+  80:           total_people_cost_annual={card.total_people_cost_annual}
+  81:           total_asset_cost_annual={card.total_asset_cost_annual}
+  82:           total_business_overheads={card.total_business_overheads}
+  83:           margin_after_labour={card.margin_after_labour}
+  84:           non_people_cost_burden={card.non_people_cost_burden}
+  85:           people_cost_per_recovery_hour={card.people_cost_per_recovery_hour}
+  86:           asset_cost_per_recovery_hour={card.asset_cost_per_recovery_hour}
+  87:           business_overheads_per_recovery_hour={
+  88:             card.business_overheads_per_recovery_hour
+  89:           }
+  90:           margin_after_labour_per_recovery_hour={
+  91:             card.margin_after_labour_per_recovery_hour
+  92:           }
+  93:           non_people_cost_burden_per_recovery_hour={
+  94:             card.non_people_cost_burden_per_recovery_hour
+  95:           }
+  96:           total_recovery_hours={card.total_recovery_hours}
+  97:           recovery_hours_used={card.recovery_hours_used}
+  98:           total_productive_output={card.total_productive_output}
+  99:           units_sold_annual={card.units_sold_annual}
+ 100:           business_type={card.business_type}
+ 101:           is_product_based={card.is_product_based}
+ 102:           is_labour_based={card.is_labour_based}
+ 103:           activity_driver_type={card.activity_driver_type}
+ 104:           activity_driver_display_label={card.activity_driver_display_label}
+ 105:           activity_driver_value={card.activity_driver_value}
+ 106:           activity_driver_suffix={card.activity_driver_suffix}
+ 107:           required_recovery_per_driver={card.required_recovery_per_driver}
+ 108:           required_recovery_label={card.required_recovery_label}
+ 109:           required_recovery_unit_label={card.required_recovery_unit_label}
+ 110:           current_margin_per_driver={card.current_margin_per_driver}
+ 111:           current_margin_label={card.current_margin_label}
+ 112:           recovery_gap_per_driver={card.recovery_gap_per_driver}
+ 113:           recovery_gap_label={card.recovery_gap_label}
+ 114:           revenue_per_unit={card.revenue_per_unit}
+ 115:           direct_cost_per_unit={card.direct_cost_per_unit}
+ 116:           margin_per_unit={card.margin_per_unit}
+ 117:           required_units_to_break_even={card.required_units_to_break_even}
+ 118:           unit_surplus_or_shortfall={card.unit_surplus_or_shortfall}
+ 119:           required_recovery_rate={card.required_recovery_rate}
+ 120:           actual_recovery_rate={card.actual_recovery_rate}
+ 121:           profit_or_deficit_per_recovery_hour={
+ 122:             card.profit_or_deficit_per_recovery_hour
+ 123:           }
+ 124:           net_position={card.net_position}
+ 125:           cost_burden_breakdown={card.cost_burden_breakdown}
+ 126:           required_labour_burden_rate={card.required_labour_burden_rate}
+ 127:           macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
+ 128:           net_annual_business_open_hours={card.net_annual_business_open_hours}
+ 129:           total_productive_output={card.total_productive_output}
+ 130:         />
+ 131: 
+ 132:         <BusinessSummaryMacroPositionCard
+ 133:           total_revenue={card.total_revenue}
+ 134:           total_direct_costs={card.total_direct_costs}
+ 135:           direct_cost_category_totals={card.direct_cost_category_totals}
+ 136:           margin_pool={card.margin_pool}
+ 137:           gross_margin_percent={card.gross_margin_percent}
+ 138:           total_cost_burden={card.total_cost_burden}
+ 139:           total_people_cost_annual={card.total_people_cost_annual}
+ 140:           total_asset_cost_annual={card.total_asset_cost_annual}
+ 141:           total_business_overheads={card.total_business_overheads}
+ 142:           margin_after_labour={card.margin_after_labour}
+ 143:           non_people_cost_burden={card.non_people_cost_burden}
+ 144:           people_cost_per_recovery_hour={card.people_cost_per_recovery_hour}
+ 145:           asset_cost_per_recovery_hour={card.asset_cost_per_recovery_hour}
+ 146:           business_overheads_per_recovery_hour={
+ 147:             card.business_overheads_per_recovery_hour
+ 148:           }
+ 149:           margin_after_labour_per_recovery_hour={
+ 150:             card.margin_after_labour_per_recovery_hour
+ 151:           }
+ 152:           non_people_cost_burden_per_recovery_hour={
+ 153:             card.non_people_cost_burden_per_recovery_hour
+ 154:           }
+ 155:           net_position={card.net_position}
+ 156:           cost_burden_breakdown={card.cost_burden_breakdown}
+ 157:           labour_benchmark_total={
+ 158:             model_readiness_status?.labour_benchmark_total ?? 0
+ 159:           }
+ 160:           asset_finance_benchmark_total={
+ 161:             model_readiness_status?.asset_finance_benchmark_total ?? 0
+ 162:           }
+ 163:           total_asset_interest_annual={
+ 164:             model_readiness_status?.total_asset_interest_annual ?? 0
+ 165:           }
+ 166:           general_overheads_benchmark_total={
+ 167:             model_readiness_status?.general_overheads_benchmark_total ?? 0
+ 168:           }
+ 169:           other_income={other_income}
+ 170:           pnl_net_profit={pnl_net_profit}
+ 171:         />
+ 172: 
+ 173:         <BusinessSummaryHelpPanel />
+ 174:         <NextStepFooter
+ 175:           nextHref="/business-overview"
+ 176:           nextLabel="Next: Business Overview"
+ 177:         />
+ 178:       </div>
+ 179:     </main>
+ 180:   );
+ 181: }
+===== FILE: lib\calculations\openingHoursCalculations.js =====
+   1: function to_number(value) {
+   2:   const parsed = Number(value);
+   3:   return Number.isFinite(parsed) ? parsed : 0;
+   4: }
+   5: 
+   6: function round_number(value, decimals = 2) {
+   7:   const parsed = to_number(value);
+   8:   return Number(parsed.toFixed(decimals));
+   9: }
+  10: 
+  11: function parse_time_to_minutes(value) {
+  12:   if (!value || typeof value !== "string") {
+  13:     return null;
+  14:   }
+  15: 
+  16:   const [hours_raw, minutes_raw] = value.split(":");
+  17:   const hours = Number(hours_raw);
+  18:   const minutes = Number(minutes_raw);
+  19: 
+  20:   if (
+  21:     !Number.isFinite(hours) ||
+  22:     !Number.isFinite(minutes) ||
+  23:     hours < 0 ||
+  24:     hours > 23 ||
+  25:     minutes < 0 ||
+  26:     minutes > 59
+  27:   ) {
+  28:     return null;
+  29:   }
+  30: 
+  31:   return hours * 60 + minutes;
+  32: }
+  33: 
+  34: function calculate_daily_open_hours(day) {
+  35:   if (!day?.is_open) {
+  36:     return {
+  37:       daily_open_hours: 0,
+  38:       invalid_time_range: false,
+  39:     };
+  40:   }
+  41: 
+  42:   const open_minutes = parse_time_to_minutes(day.open_time);
+  43:   const close_minutes = parse_time_to_minutes(day.close_time);
+  44:   const break_minutes = Math.max(to_number(day.break_minutes), 0);
+  45: 
+  46:   if (open_minutes === null || close_minutes === null) {
+  47:     return {
+  48:       daily_open_hours: 0,
+  49:       invalid_time_range: true,
+  50:     };
+  51:   }
+  52: 
+  53:   const MINUTES_PER_DAY = 24 * 60;
+  54:   let gross_minutes;
+  55: 
+  56:   if (close_minutes === open_minutes) {
+  57:     // Same open/close time represents a full continuous 24-hour day
+  58:     // (e.g. 24hr operation, 3-shift factory) - not a zero-length day.
+  59:     gross_minutes = MINUTES_PER_DAY;
+  60:   } else if (close_minutes < open_minutes) {
+  61:     // Closing time is after midnight (e.g. 10:00 PM to 6:00 AM) -
+  62:     // wrap around to the next day instead of treating it as invalid.
+  63:     gross_minutes = close_minutes + MINUTES_PER_DAY - open_minutes;
+  64:   } else {
+  65:     gross_minutes = close_minutes - open_minutes;
+  66:   }
+  67: 
+  68:   const net_minutes = Math.max(gross_minutes - break_minutes, 0);
+  69: 
+  70:   return {
+  71:     daily_open_hours: round_number(net_minutes / 60),
+  72:     invalid_time_range: false,
+  73:   };
+  74: }
+  75: 
+  76: function build_warning({
+  77:   warning_id,
+  78:   severity = "warning",
+  79:   message,
+  80:   affected_variable,
+  81:   blocking = false,
+  82:   review_action,
+  83: }) {
+  84:   return {
+  85:     warning_id,
+  86:     source_module: "opening_hours",
+  87:     severity,
+  88:     message,
+  89:     affected_variable,
+  90:     blocking,
+  91:     review_action,
+  92:   };
+  93: }
+  94: 
+  95: export function calculate_opening_hours(input_state = {}) {
+  96:   const standard_week_days = Array.isArray(input_state.standard_week_days)
+  97:     ? input_state.standard_week_days
+  98:     : [];
+  99: 
+ 100:   const warnings = [];
+ 101: 
+ 102:   const calculated_week_days = standard_week_days.map((day) => {
+ 103:     const day_result = calculate_daily_open_hours(day);
+ 104: 
+ 105:     if (day_result.invalid_time_range) {
+ 106:       warnings.push(
+ 107:         build_warning({
+ 108:           warning_id: "opening_hours_invalid_time_range",
+ 109:           severity: "critical",
+ 110:           message: `${day.day_name} has an invalid opening or closing time.`,
+ 111:           affected_variable: "standard_week_days",
+ 112:           blocking: true,
+ 113:           review_action:
+ 114:             "Review the opening and closing times for this day.",
+ 115:         })
+ 116:       );
+ 117:     }
+ 118: 
+ 119:     return {
+ 120:       ...day,
+ 121:       daily_open_hours: day_result.daily_open_hours,
+ 122:       invalid_time_range: day_result.invalid_time_range,
+ 123:     };
+ 124:   });
+ 125: 
+ 126:   const open_day_count = calculated_week_days.filter((day) => day.is_open).length;
+ 127:   const closed_day_count = calculated_week_days.length - open_day_count;
+ 128: 
+ 129:   const standard_weekly_open_hours = round_number(
+ 130:     calculated_week_days.reduce(
+ 131:       (total, day) => total + to_number(day.daily_open_hours),
+ 132:       0
+ 133:     )
+ 134:   );
+ 135: 
+ 136:   const open_days = calculated_week_days.filter((day) => day.is_open);
+ 137:   const standard_daily_open_hours =
+ 138:     open_days.length > 0
+ 139:       ? round_number(standard_weekly_open_hours / open_days.length)
+ 140:       : 0;
+ 141: 
+ 142:   const seasonal_shutdown_weeks = Math.max(
+ 143:     to_number(input_state.seasonal_shutdown_weeks),
+ 144:     0
+ 145:   );
+ 146: 
+ 147:   let annual_open_weeks = round_number(52 - seasonal_shutdown_weeks);
+ 148: 
+ 149:   if (seasonal_shutdown_weeks >= 52) {
+ 150:     annual_open_weeks = 0;
+ 151: 
+ 152:     warnings.push(
+ 153:       build_warning({
+ 154:         warning_id: "opening_hours_shutdown_exceeds_year",
+ 155:         severity: "critical",
+ 156:         message:
+ 157:           "Seasonal shutdown weeks equal or exceed the full year.",
+ 158:         affected_variable: "seasonal_shutdown_weeks",
+ 159:         blocking: true,
+ 160:         review_action:
+ 161:           "Reduce shutdown weeks so the business has operating weeks available.",
+ 162:       })
+ 163:     );
+ 164:   }
+ 165: 
+ 166:   const annual_business_open_hours = round_number(
+ 167:     standard_weekly_open_hours * annual_open_weeks
+ 168:   );
+ 169: 
+ 170:   const public_holiday_days = Math.max(
+ 171:     to_number(input_state.public_holiday_days),
+ 172:     0
+ 173:   );
+ 174: 
+ 175:   const public_holiday_closed_hours = round_number(
+ 176:     public_holiday_days * standard_daily_open_hours
+ 177:   );
+ 178: 
+ 179:   const additional_closed_days = Array.isArray(
+ 180:     input_state.additional_closed_days
+ 181:   )
+ 182:     ? input_state.additional_closed_days
+ 183:     : [];
+ 184: 
+ 185:   const additional_closed_hours = round_number(
+ 186:     additional_closed_days.reduce((total, closed_day) => {
+ 187:       return total + Math.max(to_number(closed_day.closed_hours), 0);
+ 188:     }, 0)
+ 189:   );
+ 190: 
+ 191:   let net_annual_business_open_hours = round_number(
+ 192:     annual_business_open_hours -
+ 193:       public_holiday_closed_hours -
+ 194:       additional_closed_hours
+ 195:   );
+ 196: 
+ 197:   if (net_annual_business_open_hours < 0) {
+ 198:     net_annual_business_open_hours = 0;
+ 199: 
+ 200:     warnings.push(
+ 201:       build_warning({
+ 202:         warning_id: "opening_hours_negative_net_hours",
+ 203:         severity: "critical",
+ 204:         message:
+ 205:           "Closed days and holidays exceed the available annual open hours.",
+ 206:         affected_variable: "net_annual_business_open_hours",
+ 207:         blocking: true,
+ 208:         review_action:
+ 209:           "Review shutdown weeks, public holidays, and additional closed days.",
+ 210:       })
+ 211:     );
+ 212:   }
+ 213: 
+ 214:   if (standard_week_days.length === 0) {
+ 215:     warnings.push(
+ 216:       build_warning({
+ 217:         warning_id: "opening_hours_missing",
+ 218:         severity: "critical",
+ 219:         message: "No opening hours setup exists.",
+ 220:         affected_variable: "standard_week_days",
+ 221:         blocking: true,
+ 222:         review_action: "Create a standard weekly opening pattern.",
+ 223:       })
+ 224:     );
+ 225:   }
+ 226: 
+ 227:   if (open_day_count === 0) {
+ 228:     warnings.push(
+ 229:       build_warning({
+ 230:         warning_id: "opening_hours_no_open_days",
+ 231:         severity: "critical",
+ 232:         message: "No open business days are selected.",
+ 233:         affected_variable: "standard_week_days",
+ 234:         blocking: true,
+ 235:         review_action: "Select at least one normal operating day.",
+ 236:       })
+ 237:     );
+ 238:   }
+ 239: 
+ 240:   if (standard_weekly_open_hours === 0) {
+ 241:     warnings.push(
+ 242:       build_warning({
+ 243:         warning_id: "opening_hours_zero_weekly_hours",
+ 244:         severity: "critical",
+ 245:         message: "Standard weekly open hours are zero.",
+ 246:         affected_variable: "standard_weekly_open_hours",
+ 247:         blocking: true,
+ 248:         review_action:
+ 249:           "Add valid opening times for at least one operating day.",
+ 250:       })
+ 251:     );
+ 252:   }
+ 253: 
+ 254:   const default_used =
+ 255:     standard_weekly_open_hours === 45 &&
+ 256:     seasonal_shutdown_weeks === 4 &&
+ 257:     public_holiday_days === 0 &&
+ 258:     additional_closed_days.length === 0;
+ 259: 
+ 260:   if (default_used) {
+ 261:     warnings.push(
+ 262:       build_warning({
+ 263:         warning_id: "opening_hours_default_used",
+ 264:         severity: "info",
+ 265:         message:
+ 266:           "Default operating hours are being used. Review and adjust if these do not match the business.",
+ 267:         affected_variable: "standard_week_days",
+ 268:         blocking: false,
+ 269:         review_action:
+ 270:           "Confirm the operating week, shutdown weeks, and closed days.",
+ 271:       })
+ 272:     );
+ 273:   }
+ 274: 
+ 275:   const has_blocking_warning = warnings.some((warning) => warning.blocking);
+ 276: 
+ 277:   let opening_hours_status = "ready";
+ 278: 
+ 279:   if (has_blocking_warning) {
+ 280:     opening_hours_status = "blocked";
+ 281:   } else if (warnings.length > 0) {
+ 282:     opening_hours_status = "ready_with_warnings";
+ 283:   }
+ 284: 
+ 285:   const opening_hours_model_trust_state = has_blocking_warning
+ 286:     ? "blocked"
+ 287:     : warnings.length > 0
+ 288:       ? "warning"
+ 289:       : "ready";
+ 290: 
+ 291:   const default_hours_per_week = standard_weekly_open_hours;
+ 292:   const default_days_per_week = open_day_count;
+ 293: 
+ 294:   return {
+ 295:     ...input_state,
+ 296: 
+ 297:     standard_week_days: calculated_week_days,
+ 298:     open_day_count,
+ 299:     closed_day_count,
+ 300: 
+ 301:     standard_daily_open_hours,
+ 302:     standard_weekly_open_hours,
+ 303: 
+ 304:     seasonal_shutdown_weeks,
+ 305:     annual_open_weeks,
+ 306:     annual_business_open_hours,
+ 307: 
+ 308:     public_holiday_days,
+ 309:     public_holiday_closed_hours,
+ 310: 
+ 311:     additional_closed_days,
+ 312:     additional_closed_hours,
+ 313: 
+ 314:     net_annual_business_open_hours,
+ 315: 
+ 316:     default_hours_per_week,
+ 317:     default_days_per_week,
+ 318: 
+ 319:     opening_hours_ready: !has_blocking_warning,
+ 320:     opening_hours_status,
+ 321:     opening_hours_warnings: warnings,
+ 322:     opening_hours_warning_count: warnings.length,
+ 323:     opening_hours_model_trust_state,
+ 324:   };
+ 325: }

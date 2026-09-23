@@ -40,7 +40,9 @@ export function scaleAnnualValue(
   annualValue,
   timeScale,
   totalRecoveryHours,
-  openHours = 0
+  openHours = 0,
+  openDays = 0,
+  openWeeks = 0
 ) {
   const value = toNumber(annualValue);
   const recoveryHours = toNumber(totalRecoveryHours);
@@ -50,8 +52,12 @@ export function scaleAnnualValue(
     return hours > 0 ? value / hours : 0;
   }
 
-  if (timeScale === "day") return value / 260;
-  if (timeScale === "week") return value / 52;
+  // Per day / per week follow the opening calendar when known;
+  // 260 / 52 remain the fallback when it is not passed.
+  const days = toNumber(openDays);
+  const weeks = toNumber(openWeeks);
+  if (timeScale === "day") return days > 0 ? value / days : value / 260;
+  if (timeScale === "week") return weeks > 0 ? value / weeks : value / 52;
   if (timeScale === "month") return value / 12;
   if (timeScale === "quarter") return value / 4;
 

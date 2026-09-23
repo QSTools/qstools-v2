@@ -1,0 +1,879 @@
+===== FILE: components\cost-summary\cost-summary-card\costSummaryFormatters.js =====
+   1: import { formatCostSummaryPercent } from "@/lib/selectors/costSummarySelectors";
+   2: 
+   3: export const TIME_SCALES = [
+   4:   { key: "hour", label: "Hour", suffix: "/ hr" },
+   5:   { key: "day", label: "Day", suffix: "/ day" },
+   6:   { key: "week", label: "Week", suffix: "/ week" },
+   7:   { key: "month", label: "Month", suffix: "/ month" },
+   8:   { key: "quarter", label: "Quarter", suffix: "/ quarter" },
+   9:   { key: "year", label: "Year", suffix: "/ year" },
+  10: ];
+  11: 
+  12: export function toNumber(value) {
+  13:   const number = Number(value);
+  14:   return Number.isFinite(number) ? number : 0;
+  15: }
+  16: 
+  17: export function formatMoney(value, maximumFractionDigits = 0) {
+  18:   const number = toNumber(value);
+  19: 
+  20:   return `$${number.toLocaleString(undefined, {
+  21:     maximumFractionDigits,
+  22:   })}`;
+  23: }
+  24: 
+  25: export function formatNumber(value) {
+  26:   return toNumber(value).toLocaleString(undefined, {
+  27:     maximumFractionDigits: 0,
+  28:   });
+  29: }
+  30: 
+  31: export function calculateShare(part, total) {
+  32:   const safePart = toNumber(part);
+  33:   const safeTotal = toNumber(total);
+  34: 
+  35:   if (safeTotal <= 0) return 0;
+  36:   return (safePart / safeTotal) * 100;
+  37: }
+  38: 
+  39: export function scaleAnnualValue(
+  40:   annualValue,
+  41:   timeScale,
+  42:   totalRecoveryHours,
+  43:   openHours = 0
+  44: ) {
+  45:   const value = toNumber(annualValue);
+  46:   const recoveryHours = toNumber(totalRecoveryHours);
+  47:   const hours = toNumber(openHours);
+  48: 
+  49:   if (timeScale === "hour") {
+  50:     return hours > 0 ? value / hours : 0;
+  51:   }
+  52: 
+  53:   if (timeScale === "day") return value / 260;
+  54:   if (timeScale === "week") return value / 52;
+  55:   if (timeScale === "month") return value / 12;
+  56:   if (timeScale === "quarter") return value / 4;
+  57: 
+  58:   return value;
+  59: }
+  60: 
+  61: export function getTimeScaleSuffix(timeScale) {
+  62:   return TIME_SCALES.find((option) => option.key === timeScale)?.suffix ?? "";
+  63: }
+  64: 
+  65: export function getInsightForLevel(level, items, total_cost_burden) {
+  66:   const largestItem = [...items].sort((a, b) => b.amount - a.amount)[0];
+  67: 
+  68:   if (!largestItem || total_cost_burden <= 0) {
+  69:     return "Cost Summary shows the business cost that must be recovered.";
+  70:   }
+  71: 
+  72:   const shareOfTotal = calculateShare(largestItem.amount, total_cost_burden);
+  73: 
+  74:   if (level === "total") {
+  75:     return `${largestItem.label} is the largest part of your total cost at ${formatCostSummaryPercent(
+  76:       shareOfTotal
+  77:     )}.`;
+  78:   }
+  79: 
+  80:   return `${largestItem.label} is the largest item in this layer and represents ${formatCostSummaryPercent(
+  81:     shareOfTotal
+  82:   )} of your total cost.`;
+  83: }
+===== FILE: components\business-summary\BusinessSummaryHierarchyBuilder.js =====
+   1: import {
+   2:   formatCurrency,
+   3:   formatNumber,
+   4:   getTimeScaleName,
+   5:   getTimeScaleSuffix,
+   6: } from "@/components/business-summary/BusinessSummaryCardUtils";
+   7: import { buildBusinessSummaryHierarchyChildren } from "@/components/business-summary/hierarchy/businessSummaryHierarchyChildren";
+   8: import {
+   9:   PRODUCT_TIME_SCALES,
+  10:   createDisplayScalers,
+  11:   scaleProductAnnualValue,
+  12: } from "@/components/business-summary/hierarchy/businessSummaryHierarchyScaleUtils";
+  13: import { buildBusinessSummaryHierarchyTrees } from "@/components/business-summary/hierarchy/businessSummaryHierarchyTrees";
+  14: 
+  15: export { PRODUCT_TIME_SCALES };
+  16: 
+  17: export function buildBusinessSummaryHierarchyState({
+  18:   total_revenue = 0,
+  19:   total_direct_costs = 0,
+  20:   direct_cost_category_totals = [],
+  21:   margin_pool = 0,
+  22:   total_cost_burden = 0,
+  23:   total_people_cost_annual = 0,
+  24:   total_asset_cost_annual = 0,
+  25:   total_business_overheads = 0,
+  26:   margin_after_labour = 0,
+  27:   non_people_cost_burden = 0,
+  28:   people_cost_per_recovery_hour = 0,
+  29:   asset_cost_per_recovery_hour = 0,
+  30:   business_overheads_per_recovery_hour = 0,
+  31:   margin_after_labour_per_recovery_hour = 0,
+  32:   non_people_cost_burden_per_recovery_hour = 0,
+  33:   recovery_hours_used = 0,
+  34:   net_annual_business_open_hours = 0,
+  35:   units_sold_annual = 0,
+  36:   business_type = "labour_based",
+  37:   is_product_based = false,
+  38:   is_labour_based = true,
+  39:   activity_driver_type = "hours",
+  40:   revenue_per_unit = 0,
+  41:   direct_cost_per_unit = 0,
+  42:   margin_per_unit = 0,
+  43:   required_units_to_break_even = 0,
+  44:   unit_surplus_or_shortfall = 0,
+  45:   required_recovery_rate = 0,
+  46:   actual_recovery_rate = 0,
+  47:   profit_or_deficit_per_recovery_hour = 0,
+  48:   net_position = 0,
+  49:   cost_burden_breakdown = {
+  50:     people: {},
+  51:     assets: {},
+  52:     business_overheads: {},
+  53:   },
+  54:   timeScale = "hour",
+  55: } = {}) {
+  56:   const business_type_label =
+  57:     business_type === "product_based"
+  58:       ? "Product / Unit-based business"
+  59:       : "Service / Labour-based business";
+  60:   const product_mode_active =
+  61:     is_product_based === true ||
+  62:     is_labour_based === false ||
+  63:     business_type === "product_based" ||
+  64:     activity_driver_type === "units";
+  65:   const active_time_scale =
+  66:     product_mode_active && timeScale === "hour" ? "day" : timeScale;
+  67: 
+  68:   const open_hours_used = Number(net_annual_business_open_hours) || 0;
+  69:   const { scaleDisplayAnnualValue, scaleDisplayPeriodValue } =
+  70:     createDisplayScalers({
+  71:       active_time_scale,
+  72:       open_hours_used,
+  73:       product_mode_active,
+  74:     });
+  75: 
+  76:   const scaled_required_recovery = scaleDisplayAnnualValue(
+  77:     total_cost_burden,
+  78:     required_recovery_rate
+  79:   );
+  80:   const scaled_actual_recovery = scaleDisplayAnnualValue(
+  81:     margin_pool,
+  82:     actual_recovery_rate
+  83:   );
+  84:   const scaled_recovery_result = scaleDisplayAnnualValue(
+  85:     net_position,
+  86:     profit_or_deficit_per_recovery_hour
+  87:   );
+  88:   const recovery_result_abs = Math.abs(scaled_recovery_result);
+  89:   const scale_label = getTimeScaleName(active_time_scale);
+  90:   const result_scale_label =
+  91:     active_time_scale === "hour" ? "Open Hour" : scale_label;
+  92:   const scale_suffix = product_mode_active
+  93:     ? `/${active_time_scale}`
+  94:     : getTimeScaleSuffix(active_time_scale);
+  95:   const product_unit_suffix = `units/${active_time_scale}`;
+  96:   const product_period_phrase = `per ${active_time_scale}`;
+  97:   const scaled_units_sold = scaleProductAnnualValue(
+  98:     units_sold_annual,
+  99:     active_time_scale
+ 100:   );
+ 101:   const scaled_required_units_to_break_even = scaleProductAnnualValue(
+ 102:     required_units_to_break_even,
+ 103:     active_time_scale
+ 104:   );
+ 105:   const scaled_unit_surplus_or_shortfall = scaleProductAnnualValue(
+ 106:     unit_surplus_or_shortfall,
+ 107:     active_time_scale
+ 108:   );
+ 109: 
+ 110:   const recovery_result_label =
+ 111:     scaled_recovery_result >= 0
+ 112:       ? `Surplus per ${result_scale_label}`
+ 113:       : `Deficit per ${result_scale_label}`;
+ 114:   const recovery_headline =
+ 115:     scaled_recovery_result >= 0
+ 116:       ? `You are earning ${formatCurrency(
+ 117:           recovery_result_abs
+ 118:         )}${scale_suffix} after covering your real business costs.`
+ 119:       : `You are short ${formatCurrency(
+ 120:           recovery_result_abs
+ 121:         )}${scale_suffix} against your required recovery rate.`;
+ 122:   const product_position_title =
+ 123:     margin_per_unit <= 0
+ 124:       ? "Product Margin Not Recoverable"
+ 125:       : unit_surplus_or_shortfall < 0
+ 126:         ? "Unit Volume Shortfall"
+ 127:         : "Unit Volume Surplus";
+ 128:   const product_hero_value =
+ 129:     margin_per_unit <= 0
+ 130:       ? formatCurrency(margin_per_unit)
+ 131:       : formatNumber(Math.abs(scaled_unit_surplus_or_shortfall));
+ 132:   const product_hero_suffix =
+ 133:     margin_per_unit <= 0 ? "/unit" : ` ${product_unit_suffix}`;
+ 134:   const product_helper_text =
+ 135:     margin_per_unit <= 0
+ 136:       ? "Product margin is not positive, so unit volume cannot recover the business cost burden."
+ 137:       : unit_surplus_or_shortfall < 0
+ 138:         ? `You need ${formatNumber(
+ 139:             scaled_required_units_to_break_even
+ 140:           )} units sold ${product_period_phrase} to recover the business cost burden. Current volume is ${formatNumber(
+ 141:             scaled_units_sold
+ 142:           )} units ${product_period_phrase}.`
+ 143:         : `Current unit volume is above the break-even unit requirement ${product_period_phrase}.`;
+ 144: 
+ 145:   const scaled_revenue = scaleDisplayPeriodValue(total_revenue);
+ 146:   const scaled_direct_costs = scaleDisplayPeriodValue(total_direct_costs);
+ 147:   const scaled_margin_pool = scaleDisplayPeriodValue(margin_pool);
+ 148:   const scaled_people_cost =
+ 149:     active_time_scale === "hour"
+ 150:       ? people_cost_per_recovery_hour
+ 151:       : scaleDisplayPeriodValue(total_people_cost_annual);
+ 152:   const scaled_margin_after_labour =
+ 153:     active_time_scale === "hour"
+ 154:       ? margin_after_labour_per_recovery_hour
+ 155:       : scaleDisplayPeriodValue(margin_after_labour);
+ 156:   const scaled_asset_cost =
+ 157:     active_time_scale === "hour"
+ 158:       ? asset_cost_per_recovery_hour
+ 159:       : scaleDisplayPeriodValue(total_asset_cost_annual);
+ 160:   const scaled_general_overheads =
+ 161:     active_time_scale === "hour"
+ 162:       ? business_overheads_per_recovery_hour
+ 163:       : scaleDisplayPeriodValue(total_business_overheads);
+ 164:   const scaled_non_people_cost_burden =
+ 165:     active_time_scale === "hour"
+ 166:       ? non_people_cost_burden_per_recovery_hour
+ 167:       : scaleDisplayPeriodValue(non_people_cost_burden);
+ 168:   const scaled_net_position = scaleDisplayPeriodValue(net_position);
+ 169:   const product_secondary_result =
+ 170:     margin_per_unit <= 0
+ 171:       ? `Final surplus / deficit: ${formatCurrency(
+ 172:           scaled_net_position
+ 173:         )}${scale_suffix}`
+ 174:       : scaled_net_position < 0
+ 175:         ? `Final deficit: ${formatCurrency(scaled_net_position)}${scale_suffix}`
+ 176:         : `Final surplus: ${formatCurrency(scaled_net_position)}${scale_suffix}`;
+ 177: 
+ 178:   const surplus_or_deficit_label =
+ 179:     scaled_net_position >= 0 ? "Surplus" : "Deficit";
+ 180:   const surplus_or_deficit_amount = Math.abs(scaled_net_position);
+ 181:   const revenue_reference_total = Math.abs(scaled_revenue);
+ 182:   const people_breakdown = cost_burden_breakdown.people ?? {};
+ 183:   const assets_breakdown = cost_burden_breakdown.assets ?? {};
+ 184:   const overheads_breakdown = cost_burden_breakdown.business_overheads ?? {};
+ 185:   const active_staff = Array.isArray(people_breakdown.active_staff)
+ 186:     ? people_breakdown.active_staff
+ 187:     : [];
+ 188:   const active_assets = Array.isArray(assets_breakdown.active_assets)
+ 189:     ? assets_breakdown.active_assets
+ 190:     : [];
+ 191:   const overhead_category_totals = Array.isArray(
+ 192:     overheads_breakdown.category_totals
+ 193:   )
+ 194:     ? overheads_breakdown.category_totals
+ 195:     : [];
+ 196: 
+ 197:   const {
+ 198:     direct_cost_children,
+ 199:     people_cost_children,
+ 200:     pending_contribution_children,
+ 201:     product_margin_pool_children,
+ 202:     remaining_cost_children,
+ 203:   } = buildBusinessSummaryHierarchyChildren({
+ 204:     active_assets,
+ 205:     active_staff,
+ 206:     direct_cost_category_totals,
+ 207:     direct_cost_per_unit,
+ 208:     margin_per_unit,
+ 209:     overhead_category_totals,
+ 210:     product_unit_suffix,
+ 211:     revenue_per_unit,
+ 212:     scaleDisplayPeriodValue,
+ 213:     scale_suffix,
+ 214:     scaled_asset_cost,
+ 215:     scaled_direct_costs,
+ 216:     scaled_general_overheads,
+ 217:     scaled_margin_pool,
+ 218:     scaled_non_people_cost_burden,
+ 219:     scaled_people_cost,
+ 220:     scaled_revenue,
+ 221:     scaled_units_sold,
+ 222:   });
+ 223: 
+ 224:   const { labour_business_hierarchy, product_business_hierarchy } =
+ 225:     buildBusinessSummaryHierarchyTrees({
+ 226:       direct_cost_children,
+ 227:       margin_after_labour_note: {
+ 228:         labour:
+ 229:           "Gross Profit / Margin Pool after People Cost. This shows whether the business is already positive or negative before assets and business overheads.",
+ 230:         product:
+ 231:           "Trading Margin Pool after People Cost. This shows whether the business is positive or negative before assets and overheads.",
+ 232:       },
+ 233:       people_cost_children,
+ 234:       pending_contribution_children,
+ 235:       product_margin_pool_children,
+ 236:       remaining_cost_children,
+ 237:       revenue_reference_total,
+ 238:       scale_suffix,
+ 239:       scaled_direct_costs,
+ 240:       scaled_general_overheads,
+ 241:       scaled_margin_after_labour,
+ 242:       scaled_margin_pool,
+ 243:       scaled_net_position,
+ 244:       scaled_non_people_cost_burden,
+ 245:       scaled_people_cost,
+ 246:       scaled_revenue,
+ 247:       surplus_or_deficit_amount,
+ 248:       surplus_or_deficit_label,
+ 249:     });
+ 250: 
+ 251:   return {
+ 252:     active_time_scale,
+ 253:     business_hierarchy: product_mode_active
+ 254:       ? product_business_hierarchy
+ 255:       : labour_business_hierarchy,
+ 256:     business_type_label,
+ 257:     product_mode_active,
+ 258:     hero: {
+ 259:       product_position_title,
+ 260:       product_hero_value,
+ 261:       product_hero_suffix,
+ 262:       product_helper_text,
+ 263:       product_secondary_result,
+ 264:       recovery_result_abs,
+ 265:       recovery_result_label,
+ 266:       recovery_headline,
+ 267:     },
+ 268:     result_table: {
+ 269:       margin_per_unit,
+ 270:       product_unit_suffix,
+ 271:       recovery_hours_used,
+ 272:       scale_label,
+ 273:       scale_suffix,
+ 274:       scaled_actual_recovery,
+ 275:       scaled_net_position,
+ 276:       scaled_recovery_result,
+ 277:       scaled_required_recovery,
+ 278:       scaled_required_units_to_break_even,
+ 279:       scaled_unit_surplus_or_shortfall,
+ 280:       scaled_units_sold,
+ 281:     },
+ 282:   };
+ 283: }
+===== FILE: lib\calculations\quoteEngineCalculations.js =====
+   1: function toNumber(value) {
+   2:   const parsed = Number(value);
+   3:   return Number.isFinite(parsed) ? parsed : 0;
+   4: }
+   5: 
+   6: function safeDivide(value, divisor) {
+   7:   if (Number(divisor) === 0) {
+   8:     return 0;
+   9:   }
+  10: 
+  11:   return Number(value) / Number(divisor);
+  12: }
+  13: 
+  14: export function calculateQuoteEngine({
+  15:   quote_state = {},
+  16:   cost_summary_output_contract = {},
+  17:   business_summary_output_contract = {},
+  18:   labour_output_contract = {},
+  19: }) {
+  20:   const quote_price_total = toNumber(quote_state.quote_price_total);
+  21: 
+  22:   const cog_cost_total = toNumber(
+  23:     quote_state.cog_cost_total || quote_state.material_cost_total
+  24:   );
+  25: 
+  26:   const cog_pricing_mode = "markup";
+  27: 
+  28:   const cog_markup_percent = toNumber(
+  29:     quote_state.cog_markup_percent || quote_state.material_markup_percent
+  30:   );
+  31: 
+  32:   const cog_sell_total = cog_cost_total * (1 + cog_markup_percent / 100);
+  33:   const cog_margin_total = cog_sell_total - cog_cost_total;
+  34: 
+  35:   const labour_hours_allowed = toNumber(
+  36:     quote_state.labour_hours_allowed || quote_state.base_labour_hours_allowed
+  37:   );
+  38: 
+  39:   const labour_hourly_cost_rate = toNumber(
+  40:     quote_state.labour_hourly_cost_rate
+  41:   );
+  42: 
+  43:   const labour_cost_total =
+  44:     labour_hours_allowed * labour_hourly_cost_rate;
+  45: 
+  46:   const labour_charge_total = Math.max(0, quote_price_total - cog_sell_total);
+  47: 
+  48:   const labour_margin_total =
+  49:     labour_charge_total - labour_cost_total;
+  50: 
+  51:   const required_recovery_rate = toNumber(
+  52:     cost_summary_output_contract.required_recovery_rate
+  53:   );
+  54: 
+  55:   const total_productive_output = toNumber(
+  56:     cost_summary_output_contract.total_productive_output
+  57:   );
+  58: 
+  59:   const total_cost_burden = toNumber(
+  60:     cost_summary_output_contract.total_cost_burden
+  61:   );
+  62: 
+  63:   const total_people_cost_annual = toNumber(
+  64:     cost_summary_output_contract.total_people_cost_annual
+  65:   );
+  66: 
+  67:   const total_asset_cost_annual = toNumber(
+  68:     cost_summary_output_contract.total_asset_cost_annual
+  69:   );
+  70: 
+  71:   const total_business_overheads = toNumber(
+  72:     cost_summary_output_contract.total_business_overheads
+  73:   );
+  74: 
+  75:   const model_ready = cost_summary_output_contract.model_ready === true;
+  76: 
+  77:   const model_readiness_status =
+  78:     cost_summary_output_contract.model_readiness_status || "blocked";
+  79: 
+  80:   const productive_labour_cost_rate = toNumber(
+  81:     labour_output_contract.productive_labour_cost_rate
+  82:   );
+  83: 
+  84:   const model_labour_cost_total =
+  85:     labour_hours_allowed * productive_labour_cost_rate;
+  86: 
+  87:   const labour_cost_variance =
+  88:     labour_cost_total - model_labour_cost_total;
+  89: 
+  90:   const labour_charge_out_rate =
+  91:     labour_hours_allowed > 0
+  92:       ? safeDivide(labour_charge_total, labour_hours_allowed)
+  93:       : 0;
+  94: 
+  95:   const estimated_job_cost_total =
+  96:     cog_cost_total + labour_cost_total;
+  97: 
+  98:   const quote_margin_pool = quote_price_total - estimated_job_cost_total;
+  99: 
+ 100:   const quote_margin_percent =
+ 101:     quote_price_total > 0
+ 102:       ? safeDivide(quote_margin_pool, quote_price_total)
+ 103:       : 0;
+ 104: 
+ 105:   const business_recovery_required_total =
+ 106:     labour_hours_allowed * required_recovery_rate;
+ 107: 
+ 108:   const achieved_margin_per_hour =
+ 109:     labour_hours_allowed > 0
+ 110:       ? safeDivide(quote_margin_pool, labour_hours_allowed)
+ 111:       : 0;
+ 112: 
+ 113:   const hourly_gap =
+ 114:     labour_hours_allowed > 0
+ 115:       ? achieved_margin_per_hour - required_recovery_rate
+ 116:       : 0;
+ 117: 
+ 118:   const quote_gap = quote_margin_pool - business_recovery_required_total;
+ 119: 
+ 120:   const max_viable_hours =
+ 121:     required_recovery_rate > 0
+ 122:       ? safeDivide(quote_margin_pool, required_recovery_rate)
+ 123:       : 0;
+ 124: 
+ 125:   const required_price_at_allowed_hours =
+ 126:     estimated_job_cost_total + business_recovery_required_total;
+ 127: 
+ 128:   const price_gap = required_price_at_allowed_hours - quote_price_total;
+ 129: 
+ 130:   const quote_model_used = "balanced-cog-markup-plus-labour-hourly-cost";
+ 131: 
+ 132:   const quote_model_trust_state =
+ 133:     business_summary_output_contract.model_trust_state ||
+ 134:     model_readiness_status ||
+ 135:     (model_ready ? "ready" : "blocked");
+ 136: 
+ 137:   return {
+ 138:     quote_revenue: quote_price_total,
+ 139:     quote_price_total,
+ 140: 
+ 141:     cog_cost_total,
+ 142:     cog_pricing_mode,
+ 143:     cog_markup_percent,
+ 144:     cog_sell_total,
+ 145:     cog_margin_total,
+ 146: 
+ 147:     labour_hours_allowed,
+ 148:     labour_hourly_cost_rate,
+ 149:     labour_cost_total,
+ 150:     labour_charge_total,
+ 151:     labour_charge_out_rate,
+ 152:     labour_margin_total,
+ 153: 
+ 154:     estimated_labour_cost_total: labour_cost_total,
+ 155:     estimated_labour_cost_rate: labour_hourly_cost_rate,
+ 156: 
+ 157:     model_labour_cost_total,
+ 158:     labour_cost_variance,
+ 159:     productive_labour_cost_rate,
+ 160: 
+ 161:     estimated_job_cost_total,
+ 162:     direct_cost_total: estimated_job_cost_total,
+ 163: 
+ 164:     quote_margin_pool,
+ 165:     quote_margin_percent,
+ 166: 
+ 167:     business_recovery_required_total,
+ 168:     achieved_margin_per_hour,
+ 169:     required_recovery_rate,
+ 170:     hourly_gap,
+ 171:     quote_gap,
+ 172:     max_viable_hours,
+ 173:     required_price_at_allowed_hours,
+ 174:     price_gap,
+ 175: 
+ 176:     quote_model_used,
+ 177:     quote_model_trust_state,
+ 178:     model_ready,
+ 179:     model_readiness_status,
+ 180: 
+ 181:     total_productive_output,
+ 182:     total_cost_burden,
+ 183:     total_people_cost_annual,
+ 184:     total_asset_cost_annual,
+ 185:     total_business_overheads,
+ 186: 
+ 187:     material_cost_total: cog_cost_total,
+ 188:     material_sell_total: cog_sell_total,
+ 189:     material_markup_percent: cog_markup_percent,
+ 190:     labour_sell_total: labour_charge_total,
+ 191:     base_labour_hours_allowed: labour_hours_allowed,
+ 192:     true_labour_cost_total: labour_cost_total,
+ 193:     direct_cost_package_allowance_total: 0,
+ 194:     direct_cost_package_cost_total: 0,
+ 195: 
+ 196:     quote_id: String(quote_state.quote_id || ""),
+ 197:     quote_job_id: String(quote_state.quote_job_id || ""),
+ 198:     quote_version_id: String(quote_state.quote_version_id || ""),
+ 199: 
+ 200:     job_id: String(quote_state.job_id || ""),
+ 201:     job_number: String(quote_state.job_number || ""),
+ 202:     job_name: String(quote_state.job_name || ""),
+ 203: 
+ 204:     client_id: String(quote_state.client_id || ""),
+ 205:     client_name: String(quote_state.client_name || ""),
+ 206:     client_contact_name: String(quote_state.client_contact_name || ""),
+ 207:     client_phone: String(quote_state.client_phone || ""),
+ 208:     client_email: String(quote_state.client_email || ""),
+ 209: 
+ 210:     job_type_id: String(quote_state.job_type_id || ""),
+ 211:     job_type_name: String(quote_state.job_type_name || ""),
+ 212: 
+ 213:     quote_name: String(quote_state.quote_name || quote_state.job_name || ""),
+ 214:     quote_reference: String(
+ 215:       quote_state.quote_reference || quote_state.job_number || ""
+ 216:     ),
+ 217:     quote_date: String(quote_state.quote_date || ""),
+ 218:     quote_status: String(quote_state.quote_status || "draft"),
+ 219:     quote_version: String(quote_state.quote_version || "1"),
+ 220: 
+ 221:     is_winning_quote: Boolean(quote_state.is_winning_quote),
+ 222:     is_live_job: Boolean(quote_state.is_live_job),
+ 223:     live_job_id: String(quote_state.live_job_id || ""),
+ 224: 
+ 225:     created_at: String(quote_state.created_at || ""),
+ 226:     updated_at: String(quote_state.updated_at || ""),
+ 227:   };
+ 228: }
+===== FILE: lib\calculations\recoveryAnalysisCalculations.js =====
+   1: function toNumber(value) {
+   2:   const n = Number(value);
+   3:   return Number.isFinite(n) ? n : 0;
+   4: }
+   5: 
+   6: export function calculateRecoveryAnalysis({
+   7:   labour_data,
+   8:   cost_summary_calculations,
+   9: }) {
+  10:   const active_staff = Array.isArray(labour_data?.active_staff)
+  11:     ? labour_data.active_staff
+  12:     : [];
+  13: 
+  14:   const recoverable_rows = active_staff
+  15:     .filter((staff) => staff?.labour_class === "direct_production")
+  16:     .map((staff) => {
+  17:       const productive_hours = toNumber(staff?.productive_hours);
+  18:       const charge_out_rate = toNumber(staff?.charge_out_rate);
+  19:       const achievable_revenue = productive_hours * charge_out_rate;
+  20: 
+  21:       return {
+  22:         staff_id: staff?.staff_id ?? "",
+  23:         staff_name: staff?.staff_name ?? "Unnamed Staff",
+  24:         staff_role: staff?.staff_role ?? "",
+  25:         labour_class: staff?.labour_class ?? "",
+  26:         productive_hours,
+  27:         charge_out_rate,
+  28:         achievable_revenue,
+  29:       };
+  30:     });
+  31: 
+  32:   const total_recoverable_hours = recoverable_rows.reduce(
+  33:     (sum, row) => sum + row.productive_hours,
+  34:     0
+  35:   );
+  36: 
+  37:   const achievable_revenue = recoverable_rows.reduce(
+  38:     (sum, row) => sum + row.achievable_revenue,
+  39:     0
+  40:   );
+  41: 
+  42:   const weighted_achievable_rate =
+  43:     total_recoverable_hours > 0
+  44:       ? achievable_revenue / total_recoverable_hours
+  45:       : 0;
+  46: 
+  47:   const required_revenue = toNumber(cost_summary_calculations?.required_revenue);
+  48:   const required_recovery_rate = toNumber(
+  49:     cost_summary_calculations?.required_recovery_rate
+  50:   );
+  51: 
+  52:   const revenue_gap = achievable_revenue - required_revenue;
+  53:   const recovery_gap = weighted_achievable_rate - required_recovery_rate;
+  54: 
+  55:   const shortfall_amount = revenue_gap < 0 ? Math.abs(revenue_gap) : 0;
+  56: 
+  57:   const extra_hours_required_at_current_rates =
+  58:     shortfall_amount > 0 && weighted_achievable_rate > 0
+  59:       ? shortfall_amount / weighted_achievable_rate
+  60:       : 0;
+  61: 
+  62:   const cost_reduction_required_at_current_rates = shortfall_amount;
+  63: 
+  64:   const required_average_rate_increase =
+  65:     recovery_gap < 0 ? Math.abs(recovery_gap) : 0;
+  66: 
+  67:   let primary_constraint_key = "healthy";
+  68:   let primary_constraint_title = "Recovery is currently viable";
+  69:   let decision_message =
+  70:     "Current direct production pricing is sufficient to recover the full business cost burden.";
+  71:   let decision_detail =
+  72:     "Achievable revenue from direct production labour meets or exceeds required revenue.";
+  73: 
+  74:   if (total_recoverable_hours <= 0) {
+  75:     primary_constraint_key = "no_recoverable_base";
+  76:     primary_constraint_title = "No recoverable labour base";
+  77:     decision_message =
+  78:       "No direct production hours are available to recover business cost.";
+  79:     decision_detail =
+  80:       "Recovery analysis only uses direct production labour. If no staff are classified as direct production, the business has no recoverable labour base.";
+  81:   } else if (revenue_gap < 0 && required_average_rate_increase <= 5) {
+  82:     primary_constraint_key = "minor_gap";
+  83:     primary_constraint_title = "Minor recovery gap";
+  84:     decision_message =
+  85:       "Current production pricing is close, but not enough to recover the full business cost burden.";
+  86:     decision_detail =
+  87:       "A small lift in achievable rate, a modest increase in recoverable hours, or a small cost reduction should close the gap.";
+  88:   } else if (revenue_gap < 0 && required_average_rate_increase <= 15) {
+  89:     primary_constraint_key = "moderate_gap";
+  90:     primary_constraint_title = "Rates or utilisation are too low";
+  91:     decision_message =
+  92:       "Current direct production rates and hours are not sufficient to carry the present business burden.";
+  93:     decision_detail =
+  94:       "The business likely needs a combination of better recovery rates, more recoverable production hours, and tighter overhead control.";
+  95:   } else if (revenue_gap < 0) {
+  96:     primary_constraint_key = "heavy_cost_structure";
+  97:     primary_constraint_title = "Cost structure is too heavy";
+  98:     decision_message =
+  99:       "Current market-facing production rates are not enough to support the present cost structure.";
+ 100:     decision_detail =
+ 101:       "This usually indicates too much non-production burden, not enough recoverable labour base, or both.";
+ 102:   }
+ 103: 
+ 104:   return {
+ 105:     recoverable_rows,
+ 106:     direct_production_staff_count: recoverable_rows.length,
+ 107:     total_recoverable_hours,
+ 108:     achievable_revenue,
+ 109:     weighted_achievable_rate,
+ 110:     required_revenue,
+ 111:     required_recovery_rate,
+ 112:     revenue_gap,
+ 113:     recovery_gap,
+ 114:     shortfall_amount,
+ 115:     extra_hours_required_at_current_rates,
+ 116:     cost_reduction_required_at_current_rates,
+ 117:     required_average_rate_increase,
+ 118:     primary_constraint_key,
+ 119:     primary_constraint_title,
+ 120:     decision_message,
+ 121:     decision_detail,
+ 122:   };
+ 123: }
+===== FILE: lib\calculations\modelReadinessCalculations.js =====
+   1: function asArray(value) {
+   2:   return Array.isArray(value) ? value : [];
+   3: }
+   4: 
+   5: function toCheckItem(check = {}) {
+   6:   return {
+   7:     id: check.id ?? check.check_id ?? "",
+   8:     module: check.module ?? "Model Readiness",
+   9:     label: check.label ?? "",
+  10:     message: check.message ?? "",
+  11:     status: check.status ?? "unknown",
+  12:     severity: check.severity ?? "",
+  13:     recommended_action: check.recommended_action ?? "",
+  14:   };
+  15: }
+  16: 
+  17: function buildGroup({ id, label, checks = [] }) {
+  18:   const normalisedChecks = asArray(checks).map(toCheckItem);
+  19:   const blockers = normalisedChecks.filter((check) => check.status === "fail");
+  20:   const warnings = normalisedChecks.filter((check) => check.status === "warn");
+  21: 
+  22:   const status =
+  23:     blockers.length > 0 ? "blocked" : warnings.length > 0 ? "warning" : "ready";
+  24: 
+  25:   return {
+  26:     id,
+  27:     label,
+  28:     status,
+  29:     checks: normalisedChecks,
+  30:     passed_count: normalisedChecks.filter((check) => check.status === "pass").length,
+  31:     warning_count: warnings.length,
+  32:     blocking_count: blockers.length,
+  33:   };
+  34: }
+  35: 
+  36: export function calculateModelReadiness(reconciliation_status = {}) {
+  37:   const reconciliation_checks = asArray(
+  38:     reconciliation_status.reconciliation_checks,
+  39:   );
+  40: 
+  41:   const blocking_items = reconciliation_checks
+  42:     .filter((check) => check.is_blocking)
+  43:     .map(toCheckItem);
+  44: 
+  45:   const warning_items = reconciliation_checks
+  46:     .filter((check) => check.is_warning && !check.is_blocking)
+  47:     .map(toCheckItem);
+  48: 
+  49:   const passed_items = reconciliation_checks
+  50:     .filter((check) => check.status === "pass" || check.passed === true)
+  51:     .map(toCheckItem);
+  52: 
+  53:   const source_input_checks = reconciliation_checks.filter((check) =>
+  54:     ["Profit & Loss"].includes(check.module),
+  55:   );
+  56: 
+  57:   const module_output_checks = reconciliation_checks.filter((check) =>
+  58:     ["Labour", "Assets", "General Overheads"].includes(check.module),
+  59:   );
+  60: 
+  61:   const reconciliation_group_checks = reconciliation_checks.filter((check) =>
+  62:     ["Model Readiness"].includes(check.module),
+  63:   );
+  64: 
+  65:   const readiness_groups = [
+  66:     buildGroup({
+  67:       id: "source_inputs",
+  68:       label: "Source Inputs",
+  69:       checks: source_input_checks,
+  70:     }),
+  71:     buildGroup({
+  72:       id: "module_outputs",
+  73:       label: "Module Outputs",
+  74:       checks: module_output_checks,
+  75:     }),
+  76:     buildGroup({
+  77:       id: "reconciliation",
+  78:       label: "Reconciliation",
+  79:       checks: reconciliation_group_checks,
+  80:     }),
+  81:     {
+  82:       id: "traceability",
+  83:       label: "Traceability",
+  84:       status: "warning",
+  85:       checks: [
+  86:         {
+  87:           id: "calculation_trace_first_chain",
+  88:           module: "Calculation Trace",
+  89:           label: "First selected output chain",
+  90:           message:
+  91:             "Calculation Trace pilot shell is implemented and the first selected output chain is source-verified.",
+  92:           status: "pass",
+  93:           severity: "info",
+  94:           recommended_action:
+  95:             "Continue source verification for remaining pilot nodes in a future stage.",
+  96:         },
+  97:       ],
+  98:       passed_count: 1,
+  99:       warning_count: 0,
+ 100:       blocking_count: 0,
+ 101:     },
+ 102:     {
+ 103:       id: "modelling_readiness",
+ 104:       label: "Modelling Readiness",
+ 105:       status: blocking_items.length > 0 ? "blocked" : "ready",
+ 106:       checks: [
+ 107:         {
+ 108:           id: "business_model_gate",
+ 109:           module: "Model Readiness",
+ 110:           label: "Business model gate",
+ 111:           message:
+ 112:             blocking_items.length > 0
+ 113:               ? "Business modelling is blocked until readiness blockers are resolved."
+ 114:               : "Business modelling can proceed from the current reconciliation state.",
+ 115:           status: blocking_items.length > 0 ? "fail" : "pass",
+ 116:           severity: blocking_items.length > 0 ? "blocker" : "info",
+ 117:           recommended_action:
+ 118:             blocking_items.length > 0
+ 119:               ? "Resolve blocking readiness checks before modelling."
+ 120:               : "Proceed to Business Modelling setup.",
+ 121:         },
+ 122:       ],
+ 123:       passed_count: blocking_items.length > 0 ? 0 : 1,
+ 124:       warning_count: 0,
+ 125:       blocking_count: blocking_items.length > 0 ? 1 : 0,
+ 126:     },
+ 127:   ];
+ 128: 
+ 129:   const is_ready_for_modelling = blocking_items.length === 0;
+ 130:   const is_ready_for_ai_export = is_ready_for_modelling;
+ 131:   const is_ready_for_dashboard = reconciliation_checks.length > 0;
+ 132: 
+ 133:   const overall_status =
+ 134:     blocking_items.length > 0
+ 135:       ? "blocked"
+ 136:       : warning_items.length > 0
+ 137:         ? "warning"
+ 138:         : "ready";
+ 139: 
+ 140:   return {
+ 141:     ...reconciliation_status,
+ 142: 
+ 143:     overall_status,
+ 144:     model_ready: is_ready_for_modelling,
+ 145:     model_readiness_status: overall_status,
+ 146: 
+ 147:     is_ready_for_modelling,
+ 148:     is_ready_for_ai_export,
+ 149:     is_ready_for_dashboard,
+ 150: 
+ 151:     blocking_items,
+ 152:     warning_items,
+ 153:     passed_items,
+ 154:     readiness_groups,
+ 155:     last_checked_at: new Date().toISOString(),
+ 156:   };
+ 157: }

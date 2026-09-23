@@ -1,0 +1,4137 @@
+===== FILE: docs\fin_mirra_v6.0 Briefs\A11_RecoverySummary_v6_0_BRIEF_VERIFIED_2026-09-23.txt =====
+   1: MIRRA v6.0 - A11 FIX IN RECOVERY SUMMARY
+   2: STATUS: [VERIFIED 2026-09-23] - follow-on fix handed from Assets (P2.4) via
+   3:   Cost Allocation (P2.5). Recovery Summary half of A11 only.
+   4: COMMIT: fix(recovery-summary): A11 full productive asset burden + return
+   5:   asset_recovery_status (see git log for hash).
+   6: EVIDENCE: docs\Audit\v6_0\A11_RecoverySummary\ (step1-3 code dumps).
+   7: RELATED: Assets_v6_0_BRIEF_VERIFIED_2026-09-23.txt (A11 origin and fix spec),
+   8:   Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt (C1, C24).
+   9: 
+  10: RULE CARRIED FROM KICKOFF: numbers here are point-in-time evidence for
+  11: 2026-09-23 on the padded test dataset, not claims about current data.
+  12: 
+  13: ===============================================================================
+  14: 1. WHAT WAS WRONG
+  15: ===============================================================================
+  16: 
+  17: calculateRecoverySummary.js used productive_asset_cost as the full productive
+  18: asset burden. That field is OWN cost only (finance interest). It excludes the
+  19: General Overheads running-cost pools assigned to productive assets (fuel,
+  20: insurance, repairs, registration). In hours mode, General Overheads is already
+  21: net of those pools, so the pools were missing from every recovery stream.
+  22: 
+  23: Effect: required asset recovery rate, asset_recovery_cost, the suggested split
+  24: basis and the output shares (labour / asset / overhead) were all wrong.
+  25: Recovery streams summed to less than the cost burden by the whole pool amount.
+  26: 
+  27: ===============================================================================
+  28: 2. CORRECTION TO THE ASSETS BRIEF FIX SPEC
+  29: ===============================================================================
+  30: 
+  31: The Assets brief said useRecoverySummary "already passes"
+  32: productive_asset_assigned_overhead_cost_annual in (~line 149). It does not.
+  33: Lines 148-153 of useRecoverySummary are the OUTPUT contract passthrough. The
+  34: calculation receives Business Summary outputs spread at top level plus the
+  35: Assets contract nested as input.assets. Business Summary does not publish the
+  36: pool figure. The fix therefore reads it from input.assets (the same source the
+  37: output passthrough uses), with input.* checked first.
+  38: 
+  39: ===============================================================================
+  40: 3. WHAT CHANGED (lib/calculations/recovery-summary/calculateRecoverySummary.js)
+  41: ===============================================================================
+  42: 
+  43:   P1 New constants: productive_asset_assigned_overhead_cost (from the Assets
+  44:      contract) and productive_asset_recovery_cost = own + pools.
+  45:   P2 required_asset_recovery_rate uses the full burden.
+  46:   P3 Suggested split basis uses the full burden.
+  47:   P4 asset_recovery_status base check uses the full burden.
+  48:   P5 Hours-mode asset_recovery_cost = full burden.
+  49:   P6 asset_recovery_included uses the full burden.
+  50:   P7 Publishes productive_asset_assigned_overhead_cost and
+  51:      productive_asset_recovery_cost_annual. productive_asset_cost and
+  52:      productive_asset_cost_annual are UNCHANGED (own cost) - naming trap.
+  53:   P8 Returns asset_recovery_status. It was computed but never returned, so the
+  54:      card always showed "Not selected" and the output contract published
+  55:      undefined (dropped-field bug class (b)). Found live during this fix.
+  56: 
+  57: P4 and P6 go slightly beyond the Assets brief spec: they keep the "has a
+  58: productive asset base" checks consistent with the stream they describe.
+  59: 
+  60: No UI change needed: the "Productive asset cost" row on the Recovery Summary
+  61: evidence panel displays asset_recovery_cost, not productive_asset_cost.
+  62: 
+  63: ===============================================================================
+  64: 4. DOUBLE-COUNT CHECKS (code, before patching)
+  65: ===============================================================================
+  66: 
+  67:   - Legacy useBusinessOutcome: productive asset cost is built from
+  68:     productive_asset_cost + productive_asset_assigned_overhead_cost_annual
+  69:     (businessOutcomeCalculations.js 122-123). asset_recovery_cost is used only
+  70:     as the asset stream recoveryTarget (line 324). After the fix the target
+  71:     equals the productive asset cost. No double count.
+  72:   - useCostAllocation.js 99-101: asset_recovery_cost feeds
+  73:     working_unit_recovery_cost -> working_unit_recovery_rate_per_hour (C1,
+  74:     stale, unread; group recovery rows are overwritten from cost rows).
+  75:   - useRecoverySummary returns only status, card and output_contract - the
+  76:     raw calculated object never leaves the hook.
+  77: 
+  78: ===============================================================================
+  79: 5. [VERIFIED 2026-09-23] LIVE RESULTS
+  80: ===============================================================================
+  81: 
+  82: Recovery Summary evidence panel (screen, after patch):
+  83:                               Before          After
+  84:   Asset recovery status       Not selected    Ready
+  85:   Productive asset cost       39,718.00       84,418.00
+  86:   Annual asset utilisation    12,672 hrs      12,672 hrs
+  87:   Required asset rate         3.13 /hr        6.66 /hr
+  88:   Labour cost / hours / rate  602,334.01 / 1,414 hrs / 425.94 /hr (unchanged)
+  89:   Material margin pool        739,464.30, 37.4% (unchanged)
+  90: 
+  91: Output shares (DERIVED from code lines 333-345, not screen-read; stream costs
+  92: labour 602,334.01, overhead 51,166.59 per Cost Allocation brief s4):
+  93:                               Before          After
+  94:   Labour share                86.89%          81.63%
+  95:   Asset share                  5.73%          11.44%
+  96:   Overhead share               7.38%           6.93%
+  97:   Stream total                693,218.60      737,918.60
+  98:   Short of cost burden        46,113.22        1,413.22
+  99:   (739,331.82)
+ 100: 
+ 101: Cost Allocation page (console text check vs Cost Allocation brief s4, after
+ 102: patch): 16/17 figures found unchanged - labour pool 602,334, productive asset
+ 103: 84,418, non-productive asset 1,413, overhead pool 51,166, and every group
+ 104: total and overhead split (PC55 100,039 / 8,022; 2inc Line 136,686 / 9,749;
+ 105: Site Crew 98,646 / 9,157; Foreman 257,374 / 24,239; PC15 11,829; Mini Truck
+ 106: 7,500; 2inc Line Pump 2 17,053; Accountant 110,204). The one miss (combined
+ 107: grouped operating cost) is not displayed as a single figure. C1 live-confirmed.
+ 108: 
+ 109: C24 (Rate Builder all_productive overhead = overhead pool x labour share),
+ 110: derived: 44,458.65 before -> 41,767.29 after. Evidence for the Rate Builder
+ 111: pass; Rate Builder not touched.
+ 112: 
+ 113: ===============================================================================
+ 114: 6. NEW FINDINGS (R1-R5)
+ 115: ===============================================================================
+ 116: 
+ 117:   R1 FIXED (P8) asset_recovery_status computed, never returned.
+ 118:   R2 LOGGED The saved split (recoverySummaryStorage.js, split controls on the
+ 119:      card) never reaches any output. Hours mode and product mode both overwrite
+ 120:      all four stream costs (calculateRecoverySummary 255-267), and published
+ 121:      shares are derived from stream costs. The controls affect the card display
+ 122:      only. Design decision: remove the controls or give them a real effect.
+ 123:   R3 LOGGED Support asset own cost (and any support pools) sits in no hours-mode
+ 124:      stream. Stream total falls short of cost burden by exactly that amount
+ 125:      (1,413.22 here = Van Nissan own cost 1,413.41, rounding). Natural home is
+ 126:      the overhead stream. Not patched - outside the A11 spec.
+ 127:   R4 LOGGED RecoverySummaryStatusStrip.jsx and main-card/
+ 128:      RecoverySupportingEvidenceDetail.jsx appear to be the same component
+ 129:      duplicated (matching content at lines 195-354).
+ 130:   R5 LOGGED Recovery hours 1,414 (labour rate 425.94 /hr) is Labour F18
+ 131:      (business_recovery_hours = one productive person's average). Unchanged
+ 132:      by this fix.
+ 133: 
+ 134: ===============================================================================
+ 135: 7. STILL OPEN FROM A11
+ 136: ===============================================================================
+ 137: 
+ 138:   Business Summary half of A11 (BusinessSummaryComponentBreakdown.jsx ~218-224,
+ 139:   businessSummaryHierarchyChildren.js ~103-106: sum asset_recovery_cost_annual
+ 140:   per row, not total_asset_cost_annual). Not started - separate pass.
+ 141:   C24 Rate Builder all_productive row - prerequisite now met; handed to the
+ 142:   Rate Builder pass.
+ 143: 
+ 144: ===============================================================================
+ 145: 8. TOOLING NOTE
+ 146: ===============================================================================
+ 147: 
+ 148:   Browser console checks: DevTools copy() is unavailable after an await inside
+ 149:   an async snippet (throws "copy is not defined", caught by the Next.js dev
+ 150:   overlay - harmless). Capture it first: const cp = typeof copy === "function"
+ 151:   ? copy : null. Collapsed sections are invisible to innerText - expand first.
+ 152:   Auto-clicking aria-expanded="false" controls can hide panels on the Recovery
+ 153:   Summary page; expand by hand there.
+===== FILE: docs\Audit\v6_0\P2.4_Assets\p24_step3c_pools_costsummary_2026-09-23.txt =====
+   1: 
+   2: ##### lib\selectors\assets\assetOverheadPoolSelectors.js (1-99999) #####
+   3:     1: import { format_currency } from "./assetSelectorFormatters";
+   4:     2: 
+   5:     3: export const ASSET_POOL_DEFINITIONS = [
+   6:     4:   {
+   7:     5:     key: "asset_fuel_pool",
+   8:     6:     label: "Asset-related fuel pool",
+   9:     7:   },
+  10:     8:   {
+  11:     9:     key: "asset_insurance_pool",
+  12:    10:     label: "Asset-related insurance pool",
+  13:    11:   },
+  14:    12:   {
+  15:    13:     key: "asset_repairs_maintenance_pool",
+  16:    14:     label: "Asset-related repairs / maintenance pool",
+  17:    15:   },
+  18:    16:   {
+  19:    17:     key: "asset_registration_compliance_pool",
+  20:    18:     label: "Asset-related registration / compliance pool",
+  21:    19:   },
+  22:    20:   {
+  23:    21:     key: "asset_consumables_pool",
+  24:    22:     label: "Asset-related consumables pool",
+  25:    23:   },
+  26:    24:   {
+  27:    25:     key: "asset_finance_interest_pool",
+  28:    26:     label: "Asset finance / interest pool",
+  29:    27:   },
+  30:    28: ];
+  31:    29: 
+  32:    30: export function get_active_saved_assets(saved_assets = []) {
+  33:    31:   return Array.isArray(saved_assets)
+  34:    32:     ? saved_assets.filter((asset) => !asset.is_retired)
+  35:    33:     : [];
+  36:    34: }
+  37:    35: 
+  38:    36: export function get_asset_pool_assignments(asset = {}) {
+  39:    37:   const assignments = asset.asset_overhead_pool_assignments ?? {};
+  40:    38: 
+  41:    39:   return Object.fromEntries(
+  42:    40:     ASSET_POOL_DEFINITIONS.map((pool) => [
+  43:    41:       pool.key,
+  44:    42:       Math.max(0, Number(assignments?.[pool.key] || 0)),
+  45:    43:     ])
+  46:    44:   );
+  47:    45: }
+  48:    46: 
+  49:    47: export function get_allocated_asset_overhead_cost(asset = {}) {
+  50:    48:   return Object.values(get_asset_pool_assignments(asset)).reduce(
+  51:    49:     (sum, value) => sum + Number(value || 0),
+  52:    50:     0
+  53:    51:   );
+  54:    52: }
+  55:    53: 
+  56:    54: export function build_asset_overhead_pool_summary({
+  57:    55:   asset_state,
+  58:    56:   saved_assets,
+  59:    57:   asset_overhead_pools,
+  60:    58: }) {
+  61:    59:   const current_asset_id = asset_state?.asset_id ?? "";
+  62:    60:   const current_assignments = get_asset_pool_assignments(asset_state);
+  63:    61:   const active_saved_assets = get_active_saved_assets(saved_assets);
+  64:    62: 
+  65:    63:   return ASSET_POOL_DEFINITIONS.map((pool) => {
+  66:    64:     const available_amount = Math.max(
+  67:    65:       0,
+  68:    66:       Number(asset_overhead_pools?.[pool.key]?.amount ?? 0)
+  69:    67:     );
+  70:    68: 
+  71:    69:     const assigned_to_other_assets = active_saved_assets
+  72:    70:       .filter((asset) => asset.asset_id !== current_asset_id)
+  73:    71:       .reduce((sum, asset) => {
+  74:    72:         const assignments = get_asset_pool_assignments(asset);
+  75:    73:         return sum + Math.max(0, Number(assignments?.[pool.key] || 0));
+  76:    74:       }, 0);
+  77:    75: 
+  78:    76:     const assigned_to_current_asset = Math.max(
+  79:    77:       0,
+  80:    78:       Number(current_assignments?.[pool.key] || 0)
+  81:    79:     );
+  82:    80: 
+  83:    81:     const assigned_total =
+  84:    82:       assigned_to_other_assets + assigned_to_current_asset;
+  85:    83: 
+  86:    84:     const raw_remaining_amount = available_amount - assigned_total;
+  87:    85: 
+  88:    86:     const remaining_amount = Math.max(0, raw_remaining_amount);
+  89:    87: 
+  90:    88:     const over_allocated_amount = Math.max(
+  91:    89:       0,
+  92:    90:       assigned_total - available_amount
+  93:    91:     );
+  94:    92: 
+  95:    93:     const max_assignable_to_current_asset = Math.max(
+  96:    94:       0,
+  97:    95:       available_amount - assigned_to_other_assets
+  98:    96:     );
+  99:    97: 
+ 100:    98:     const allocation_status =
+ 101:    99:       over_allocated_amount > 0
+ 102:   100:         ? "over_allocated"
+ 103:   101:         : Math.abs(raw_remaining_amount) <= 1
+ 104:   102:           ? "balanced"
+ 105:   103:           : assigned_total < available_amount
+ 106:   104:             ? "under_allocated"
+ 107:   105:             : "review_required";
+ 108:   106: 
+ 109:   107:     const assignment_status =
+ 110:   108:       allocation_status === "over_allocated"
+ 111:   109:         ? "Over assigned"
+ 112:   110:         : assigned_total === 0
+ 113:   111:           ? "Unassigned"
+ 114:   112:           : allocation_status === "under_allocated"
+ 115:   113:             ? "Partially assigned"
+ 116:   114:             : "Fully assigned";
+ 117:   115: 
+ 118:   116:     return {
+ 119:   117:       pool_key: pool.key,
+ 120:   118:       label: pool.label,
+ 121:   119: 
+ 122:   120:       available_amount,
+ 123:   121:       assigned_to_current_asset,
+ 124:   122:       assigned_to_other_assets,
+ 125:   123:       assigned_total,
+ 126:   124:       remaining_amount,
+ 127:   125:       over_allocated_amount,
+ 128:   126:       max_assignable_to_current_asset,
+ 129:   127: 
+ 130:   128:       allocation_status,
+ 131:   129:       assignment_status,
+ 132:   130: 
+ 133:   131:       available_amount_label: format_currency(available_amount),
+ 134:   132:       assigned_to_current_asset_label: format_currency(
+ 135:   133:         assigned_to_current_asset
+ 136:   134:       ),
+ 137:   135:       assigned_to_other_assets_label: format_currency(
+ 138:   136:         assigned_to_other_assets
+ 139:   137:       ),
+ 140:   138:       assigned_total_label: format_currency(assigned_total),
+ 141:   139:       remaining_amount_label: format_currency(remaining_amount),
+ 142:   140:       over_allocated_amount_label: format_currency(over_allocated_amount),
+ 143:   141:       max_assignable_to_current_asset_label: format_currency(
+ 144:   142:         max_assignable_to_current_asset
+ 145:   143:       ),
+ 146:   144:     };
+ 147:   145:   });
+ 148:   146: }
+ 149:   147: 
+ 150: 
+ 151: ##### lib\selectors\assets\assetSelectorUtilisation.js (1-99999) #####
+ 152:     1: import { to_number } from "./assetSelectorFormatters";
+ 153:     2: 
+ 154:     3: export function resolve_asset_annual_weeks({
+ 155:     4:   asset_annual_weeks_override,
+ 156:     5:   business_default_annual_weeks,
+ 157:     6: }) {
+ 158:     7:   const override_weeks = to_number(asset_annual_weeks_override);
+ 159:     8: 
+ 160:     9:   if (override_weeks > 0) {
+ 161:    10:     return override_weeks;
+ 162:    11:   }
+ 163:    12: 
+ 164:    13:   const default_weeks = to_number(business_default_annual_weeks);
+ 165:    14: 
+ 166:    15:   return default_weeks > 0 ? default_weeks : 48;
+ 167:    16: }
+ 168:    17: 
+ 169:    18: export function get_live_asset_utilisation_hours_annual(
+ 170:    19:   asset = {},
+ 171:    20:   business_default_annual_weeks
+ 172:    21: ) {
+ 173:    22:   if (asset?.asset_type !== "productive") {
+ 174:    23:     return 0;
+ 175:    24:   }
+ 176:    25: 
+ 177:    26:   const weekly_hours = Math.max(to_number(asset.utilisation_hours_per_week), 0);
+ 178:    27:   const annual_weeks_used = resolve_asset_annual_weeks({
+ 179:    28:     asset_annual_weeks_override: asset.asset_annual_weeks_override,
+ 180:    29:     business_default_annual_weeks,
+ 181:    30:   });
+ 182:    31: 
+ 183:    32:   return weekly_hours * annual_weeks_used;
+ 184:    33: }
+ 185:    34: 
+ 186: 
+ 187: ##### lib\selectors\general-overheads\generalOverheadPoolSelectors.js (1-70) #####
+ 188:     1: import { ASSET_OVERHEAD_POOL_DEFINITIONS } from "./generalOverheadDefinitions";
+ 189:     2: 
+ 190:     3: import {
+ 191:     4:   format_allocation_amount,
+ 192:     5:   to_number,
+ 193:     6: } from "./generalOverheadFormatting";
+ 194:     7: 
+ 195:     8: import { build_grouped_rows } from "./generalOverheadAllocationSelectors";
+ 196:     9: import { build_allocation_pool_warnings } from "./generalOverheadWarnings";
+ 197:    10: 
+ 198:    11: function build_pool_source_line(row) {
+ 199:    12:   return {
+ 200:    13:     line_id: row.line_id,
+ 201:    14:     line_label: row.line_label,
+ 202:    15:     source_category: row.source_category,
+ 203:    16:     current_category: row.current_category,
+ 204:    17:     source_amount: row.source_amount,
+ 205:    18:     amount: row.amount,
+ 206:    19:     system_allocation_type: row.system_allocation_type,
+ 207:    20:     system_allocation_label: row.system_allocation_label,
+ 208:    21:     is_asset_related_pool: row.is_asset_related_pool,
+ 209:    22:     allocation_pool_key: row.allocation_pool_key,
+ 210:    23:     is_virtual_redistribution_row: row.is_virtual_redistribution_row === true,
+ 211:    24:     redistribution_source_total_amount:
+ 212:    25:       row.redistribution_source_total_amount ?? null,
+ 213:    26:   };
+ 214:    27: }
+ 215:    28: 
+ 216:    29: function build_asset_overhead_pools(rows = []) {
+ 217:    30:   const pools = Object.fromEntries(
+ 218:    31:     Object.entries(ASSET_OVERHEAD_POOL_DEFINITIONS).map(([key, label]) => [
+ 219:    32:       key,
+ 220:    33:       {
+ 221:    34:         label,
+ 222:    35:         amount: 0,
+ 223:    36:         source_lines: [],
+ 224:    37:       },
+ 225:    38:     ])
+ 226:    39:   );
+ 227:    40: 
+ 228:    41:   rows.forEach((row) => {
+ 229:    42:     if (!row?.is_asset_related_pool || !row?.allocation_pool_key) {
+ 230:    43:       return;
+ 231:    44:     }
+ 232:    45: 
+ 233:    46:     if (row?.is_balanced_parent_pool) {
+ 234:    47:       return;
+ 235:    48:     }
+ 236:    49: 
+ 237:    50:     const target_pool = pools[row.allocation_pool_key];
+ 238:    51: 
+ 239:    52:     if (!target_pool) {
+ 240:    53:       return;
+ 241:    54:     }
+ 242:    55: 
+ 243:    56:     target_pool.amount += to_number(row.amount);
+ 244:    57:     target_pool.source_lines.push(build_pool_source_line(row));
+ 245:    58:   });
+ 246:    59: 
+ 247:    60:   return pools;
+ 248:    61: }
+ 249:    62: 
+ 250:    63: export function build_general_overhead_allocation_outputs({
+ 251:    64:   overhead_rows = [],
+ 252:    65:   overhead_state = {},
+ 253:    66: }) {
+ 254:    67:   const grouped_rows = build_grouped_rows(overhead_rows, overhead_state, false);
+ 255:    68:   const allocation_rows = grouped_rows.flatMap((group) => group.rows);
+ 256:    69:   const asset_overhead_pools = build_asset_overhead_pools(allocation_rows);
+ 257:    70: 
+ 258: 
+ 259: ##### lib\calculations\generalOverheadCalculations.js (200-266) #####
+ 260:   200:       contains_asset_finance_interest:
+ 261:   201:         item.contains_asset_finance_interest === true,
+ 262:   202:     })
+ 263:   203:   );
+ 264:   204: 
+ 265:   205:   const all_rows = [...fixed_rows, ...synced_pnl_rows, ...custom_rows].map(
+ 266:   206:     (row) => ({
+ 267:   207:       ...row,
+ 268:   208:       is_asset_finance_interest: is_asset_finance_interest_row(row),
+ 269:   209:     })
+ 270:   210:   );
+ 271:   211: 
+ 272:   212:   // Rows flagged "contains asset finance interest" get the Assets module's
+ 273:   213:   // real, confirmed finance-interest amount subtracted from the P&L amount -
+ 274:   214:   // not zeroed, and not left untouched. If there is ever more than one
+ 275:   215:   // flagged row at once, the Assets total is split across them in
+ 276:   216:   // proportion to each row's own P&L amount. With a single flagged row
+ 277:   217:   // (the normal case) this is identical to subtracting the full Assets
+ 278:   218:   // total from that one row.
+ 279:   219:   const flagged_rows_total = all_rows
+ 280:   220:     .filter((row) => row.is_asset_finance_interest)
+ 281:   221:     .reduce((sum, row) => sum + to_number(row.amount), 0);
+ 282:   222: 
+ 283:   223:   const safe_assets_finance_interest_total = Math.max(
+ 284:   224:     to_number(assets_finance_interest_total),
+ 285:   225:     0
+ 286:   226:   );
+ 287:   227: 
+ 288:   228:   const overhead_rows = all_rows.map((row) => {
+ 289:   229:     if (!row.is_asset_finance_interest) {
+ 290:   230:       return {
+ 291:   231:         ...row,
+ 292:   232:         active_amount: to_number(row.amount),
+ 293:   233:       };
+ 294:   234:     }
+ 295:   235: 
+ 296:   236:     const row_amount = to_number(row.amount);
+ 297:   237:     const row_share_of_assets_total =
+ 298:   238:       flagged_rows_total > 0
+ 299:   239:         ? (row_amount / flagged_rows_total) * safe_assets_finance_interest_total
+ 300:   240:         : 0;
+ 301:   241: 
+ 302:   242:     return {
+ 303:   243:       ...row,
+ 304:   244:       active_amount: Math.max(row_amount - row_share_of_assets_total, 0),
+ 305:   245:     };
+ 306:   246:   });
+ 307:   247: 
+ 308:   248:   const total_general_overheads = overhead_rows.reduce(
+ 309:   249:     (sum, row) => sum + to_number(row.active_amount),
+ 310:   250:     0
+ 311:   251:   );
+ 312:   252: 
+ 313:   253:   const non_asset_interest_annual = overhead_rows.reduce((sum, row) => {
+ 314:   254:     if (!is_interest_row(row) || is_asset_finance_interest_row(row)) {
+ 315:   255:       return sum;
+ 316:   256:     }
+ 317:   257: 
+ 318:   258:     return sum + to_number(row.active_amount);
+ 319:   259:   }, 0);
+ 320:   260: 
+ 321:   261:   return {
+ 322:   262:     overhead_rows,
+ 323:   263:     total_general_overheads,
+ 324:   264:     non_asset_interest_annual,
+ 325:   265:     flagged_asset_finance_pnl_total: flagged_rows_total,
+ 326:   266:     assets_finance_interest_total: safe_assets_finance_interest_total,
+ 327: 
+ 328: ##### hooks\useCostSummary.js (1-60) #####
+ 329:     1: "use client";
+ 330:     2: 
+ 331:     3: import { useMemo } from "react";
+ 332:     4: 
+ 333:     5: import { calculateCostSummary } from "@/lib/calculations/costSummaryCalculations";
+ 334:     6: import {
+ 335:     7:   selectCostSummaryLabour,
+ 336:     8:   buildCostSummaryStatus,
+ 337:     9:   buildCostSummaryCard,
+ 338:    10: } from "@/lib/selectors/costSummarySelectors";
+ 339:    11: 
+ 340:    12: export default function useCostSummary(inputs = {}) {
+ 341:    13:   return useMemo(() => {
+ 342:    14:     const labour_data = selectCostSummaryLabour(inputs.labour);
+ 343:    15: 
+ 344:    16:     const opening_hours_module = inputs.opening_hours ?? {};
+ 345:    17:     const opening_hours_data =
+ 346:    18:       opening_hours_module.calculated ??
+ 347:    19:       opening_hours_module.output_contract ??
+ 348:    20:       opening_hours_module;
+ 349:    21: 
+ 350:    22:     const labour_output_contract = inputs.labour?.output_contract ?? {};
+ 351:    23:     const asset_output_contract = inputs.assets?.output_contract ?? {};
+ 352:    24:     const general_overheads_output_contract =
+ 353:    25:       inputs.general_overheads?.output_contract ?? {};
+ 354:    26:     const assigned_asset_overhead_cost = Number(
+ 355:    27:       asset_output_contract.total_allocated_asset_overhead_cost_annual ?? 0
+ 356:    28:     );
+ 357:    29:     const total_general_overheads_before_asset_assignment = Number(
+ 358:    30:       general_overheads_output_contract.total_general_overheads ?? 0
+ 359:    31:     );
+ 360:    32:     const total_general_overheads_after_asset_assignment = Math.max(
+ 361:    33:       total_general_overheads_before_asset_assignment -
+ 362:    34:         assigned_asset_overhead_cost,
+ 363:    35:       0
+ 364:    36:     );
+ 365:    37: 
+ 366:    38:     const asset_data = {
+ 367:    39:       total_asset_cost_annual:
+ 368:    40:         asset_output_contract.total_asset_recovery_cost_annual ??
+ 369:    41:         asset_output_contract.total_asset_cost_annual ??
+ 370:    42:         0,
+ 371:    43:       base_asset_cost_annual:
+ 372:    44:         asset_output_contract.total_asset_cost_annual ?? 0,
+ 373:    45:       assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+ 374:    46:       total_asset_interest_annual:
+ 375:    47:         asset_output_contract.total_asset_interest_annual ?? 0,
+ 376:    48:       asset_detail: {
+ 377:    49:         running_cost_annual:
+ 378:    50:           asset_output_contract.legacy_display?.running_cost_annual ??
+ 379:    51:           asset_output_contract.running_cost_annual ??
+ 380:    52:           0,
+ 381:    53:       },
+ 382:    54:     };
+ 383:    55: 
+ 384:    56:     const general_overhead_data = {
+ 385:    57:       total_general_overheads:
+ 386:    58:         total_general_overheads_after_asset_assignment,
+ 387:    59:       total_general_overheads_before_asset_assignment:
+ 388:    60:         total_general_overheads_before_asset_assignment,
+ 389: 
+ 390: === asset_pool_guardrail_status: everywhere ===
+ 391: lib\selectors\assets\assetStatusSelectors.js:148: const asset_pool_guardrail_status = asset_pool_over_allocated
+ 392: lib\selectors\assets\assetStatusSelectors.js:305: asset_pool_guardrail_status,
+ 393: 
+ 394: === AssetForm: dead running-cost inputs / is_active ===
+ 395: components\assets\AssetForm.jsx:158: on_change("is_active", !is_retired);
+===== FILE: lib\calculations\businessSummaryCalculations.js =====
+   1: function to_number(value) {
+   2:   const parsed = Number(value);
+   3:   return Number.isFinite(parsed) ? parsed : 0;
+   4: }
+   5: 
+   6: function safe_divide(numerator, denominator) {
+   7:   return denominator === 0 ? 0 : numerator / denominator;
+   8: }
+   9: 
+  10: function get_activity_driver_config({
+  11:   business_type = "labour_based",
+  12:   total_recovery_hours = 0,
+  13:   total_productive_output = 0,
+  14:   units_sold_annual = 0,
+  15: }) {
+  16:   const is_product_based = business_type === "product_based";
+  17: 
+  18:   if (is_product_based) {
+  19:     return {
+  20:       business_type,
+  21:       activity_driver_type: "units",
+  22:       activity_driver_label: "Units sold",
+  23:       activity_driver_value: to_number(units_sold_annual),
+  24:       required_recovery_label: "Required recovery per unit",
+  25:       required_recovery_unit_label: "$/unit",
+  26:       current_margin_label: "Current margin per unit",
+  27:       recovery_gap_label: "Unit recovery gap",
+  28:       activity_driver_display_label: "Units sold per year",
+  29:       activity_driver_suffix: "units",
+  30:     };
+  31:   }
+  32: 
+  33:   return {
+  34:     business_type: "labour_based",
+  35:     activity_driver_type: "hours",
+  36:     activity_driver_label: "Recovery hours",
+  37:     activity_driver_value: to_number(total_recovery_hours),
+  38:     required_recovery_label: "Required recovery per hour",
+  39:     required_recovery_unit_label: "$/hour",
+  40:     current_margin_label: "Current margin per hour",
+  41:     recovery_gap_label: "Hourly gap",
+  42:     activity_driver_display_label: "Operating recovery hours",
+  43:     activity_driver_suffix: "hrs",
+  44:   };
+  45: }
+  46: 
+  47: export function calculateBusinessSummary({
+  48:   total_revenue = 0,
+  49:   total_direct_costs = 0,
+  50:   margin_pool = 0,
+  51:   gross_margin_percent = 0,
+  52:   total_cost_burden = 0,
+  53:   total_people_cost_annual = 0,
+  54:   total_asset_cost_annual = 0,
+  55:   total_business_overheads = 0,
+  56:   total_recovery_hours = 0,
+  57:   total_productive_output = 0,
+  58:   units_sold_annual = 0,
+  59:   business_type = "labour_based",
+  60:   required_recovery_rate = 0,
+  61: } = {}) {
+  62:   const revenue_total = to_number(total_revenue);
+  63:   const direct_cost_total = to_number(total_direct_costs);
+  64:   const margin_pool_total = to_number(margin_pool);
+  65:   const gross_margin_rate = to_number(gross_margin_percent);
+  66:   const operating_cost_total = to_number(total_cost_burden);
+  67:   const people_cost_total = to_number(total_people_cost_annual);
+  68:   const asset_cost_total = to_number(total_asset_cost_annual);
+  69:   const business_overheads_total = to_number(total_business_overheads);
+  70:   const recovery_hours_total = to_number(total_recovery_hours);
+  71:   const productive_output_total = to_number(total_productive_output);
+  72:   const units_sold_total = to_number(units_sold_annual);
+  73:   const cost_summary_required_recovery_rate = to_number(required_recovery_rate);
+  74:   const recovery_hours_used =
+  75:     recovery_hours_total > 0 ? recovery_hours_total : productive_output_total;
+  76: 
+  77:   const driver_config = get_activity_driver_config({
+  78:     business_type,
+  79:     total_recovery_hours: recovery_hours_used,
+  80:     total_productive_output: productive_output_total,
+  81:     units_sold_annual: units_sold_total,
+  82:   });
+  83: 
+  84:   const activity_driver_value = driver_config.activity_driver_value;
+  85:   const is_product_based = driver_config.business_type === "product_based";
+  86:   const is_labour_based = !is_product_based;
+  87: 
+  88:   const required_recovery_per_driver = safe_divide(
+  89:     operating_cost_total,
+  90:     activity_driver_value
+  91:   );
+  92: 
+  93:   const current_margin_per_driver = safe_divide(
+  94:     margin_pool_total,
+  95:     activity_driver_value
+  96:   );
+  97: 
+  98:   const recovery_gap_per_driver =
+  99:     activity_driver_value > 0
+ 100:       ? current_margin_per_driver - required_recovery_per_driver
+ 101:       : 0;
+ 102:   const revenue_per_unit = safe_divide(revenue_total, units_sold_total);
+ 103:   const direct_cost_per_unit = safe_divide(
+ 104:     direct_cost_total,
+ 105:     units_sold_total
+ 106:   );
+ 107:   const margin_per_unit = safe_divide(margin_pool_total, units_sold_total);
+ 108:   const required_units_to_break_even =
+ 109:     margin_per_unit > 0
+ 110:       ? safe_divide(operating_cost_total, margin_per_unit)
+ 111:       : 0;
+ 112:   const unit_surplus_or_shortfall =
+ 113:     units_sold_total - required_units_to_break_even;
+ 114: 
+ 115:   const net_position = margin_pool_total - operating_cost_total;
+ 116:   const margin_after_labour = margin_pool_total - people_cost_total;
+ 117:   const non_people_cost_burden =
+ 118:     asset_cost_total + business_overheads_total;
+ 119:   const people_cost_per_recovery_hour =
+ 120:     recovery_hours_used > 0
+ 121:       ? safe_divide(people_cost_total, recovery_hours_used)
+ 122:       : 0;
+ 123:   const asset_cost_per_recovery_hour =
+ 124:     recovery_hours_used > 0
+ 125:       ? safe_divide(asset_cost_total, recovery_hours_used)
+ 126:       : 0;
+ 127:   const business_overheads_per_recovery_hour =
+ 128:     recovery_hours_used > 0
+ 129:       ? safe_divide(business_overheads_total, recovery_hours_used)
+ 130:       : 0;
+ 131:   const margin_after_labour_per_recovery_hour =
+ 132:     recovery_hours_used > 0
+ 133:       ? safe_divide(margin_after_labour, recovery_hours_used)
+ 134:       : 0;
+ 135:   const non_people_cost_burden_per_recovery_hour =
+ 136:     recovery_hours_used > 0
+ 137:       ? safe_divide(non_people_cost_burden, recovery_hours_used)
+ 138:       : 0;
+ 139: 
+ 140:   const actual_recovery_rate =
+ 141:     recovery_hours_used > 0
+ 142:       ? safe_divide(margin_pool_total, recovery_hours_used)
+ 143:       : 0;
+ 144: 
+ 145:   const profit_or_deficit_per_recovery_hour =
+ 146:     recovery_hours_used > 0
+ 147:       ? actual_recovery_rate - cost_summary_required_recovery_rate
+ 148:       : 0;
+ 149: 
+ 150:   /*
+ 151:     Backwards-compatible hour fields.
+ 152:     These are still used by Business Modelling and existing pages.
+ 153:     In labour mode they match the universal driver values.
+ 154:     In product mode they remain hour-based outputs if recovery hours exist.
+ 155:   */
+ 156:   const productive_hour_required_recovery_rate =
+ 157:     recovery_hours_used > 0
+ 158:       ? safe_divide(operating_cost_total, recovery_hours_used)
+ 159:       : cost_summary_required_recovery_rate;
+ 160: 
+ 161:   const current_margin_per_hour =
+ 162:     recovery_hours_used > 0
+ 163:       ? safe_divide(margin_pool_total, recovery_hours_used)
+ 164:       : 0;
+ 165: 
+ 166:   const hourly_gap =
+ 167:     recovery_hours_used > 0
+ 168:       ? current_margin_per_hour - productive_hour_required_recovery_rate
+ 169:       : 0;
+ 170: 
+ 171:   return {
+ 172:     total_revenue: revenue_total,
+ 173:     total_direct_costs: direct_cost_total,
+ 174:     margin_pool: margin_pool_total,
+ 175:     gross_margin_percent: gross_margin_rate,
+ 176:     total_cost_burden: operating_cost_total,
+ 177:     total_people_cost_annual: people_cost_total,
+ 178:     total_asset_cost_annual: asset_cost_total,
+ 179:     total_business_overheads: business_overheads_total,
+ 180:     margin_after_labour,
+ 181:     non_people_cost_burden,
+ 182:     people_cost_per_recovery_hour,
+ 183:     asset_cost_per_recovery_hour,
+ 184:     business_overheads_per_recovery_hour,
+ 185:     margin_after_labour_per_recovery_hour,
+ 186:     non_people_cost_burden_per_recovery_hour,
+ 187:     total_recovery_hours: recovery_hours_total,
+ 188:     recovery_hours_used,
+ 189:     total_productive_output: productive_output_total,
+ 190:     units_sold_annual: units_sold_total,
+ 191: 
+ 192:     business_type: driver_config.business_type,
+ 193:     is_product_based,
+ 194:     is_labour_based,
+ 195:     activity_driver_type: driver_config.activity_driver_type,
+ 196:     activity_driver_label: driver_config.activity_driver_label,
+ 197:     activity_driver_value,
+ 198:     activity_driver_display_label: driver_config.activity_driver_display_label,
+ 199:     activity_driver_suffix: driver_config.activity_driver_suffix,
+ 200: 
+ 201:     required_recovery_per_driver,
+ 202:     required_recovery_label: driver_config.required_recovery_label,
+ 203:     required_recovery_unit_label: driver_config.required_recovery_unit_label,
+ 204: 
+ 205:     current_margin_per_driver,
+ 206:     current_margin_label: driver_config.current_margin_label,
+ 207: 
+ 208:     recovery_gap_per_driver,
+ 209:     recovery_gap_label: driver_config.recovery_gap_label,
+ 210:     revenue_per_unit,
+ 211:     direct_cost_per_unit,
+ 212:     margin_per_unit,
+ 213:     required_units_to_break_even,
+ 214:     unit_surplus_or_shortfall,
+ 215: 
+ 216:     required_recovery_rate: cost_summary_required_recovery_rate,
+ 217:     productive_hour_required_recovery_rate,
+ 218:     actual_recovery_rate,
+ 219:     profit_or_deficit_per_recovery_hour,
+ 220:     net_position,
+ 221:     current_margin_per_hour,
+ 222:     hourly_gap,
+ 223:   };
+ 224: }
+===== FILE: hooks\useBusinessSummary.js =====
+   1: "use client";
+   2: 
+   3: import { useMemo } from "react";
+   4: 
+   5: import useRevenueCogs from "@/hooks/useRevenueCogs";
+   6: import useCostSummary from "@/hooks/useCostSummary";
+   7: import useModelReadiness from "@/hooks/useModelReadiness";
+   8: import { calculateBusinessSummary } from "@/lib/calculations/businessSummaryCalculations";
+   9: import {
+  10:   buildBusinessSummaryCard,
+  11:   buildBusinessSummaryStatus,
+  12: } from "@/lib/selectors/businessSummarySelectors";
+  13: 
+  14: export default function useBusinessSummary() {
+  15:   const revenue_cogs = useRevenueCogs();
+  16:   const model_readiness = useModelReadiness();
+  17: 
+  18:   const cost_summary = useCostSummary({
+  19:     labour: model_readiness.modules.labour,
+  20:     assets: model_readiness.modules.assets,
+  21:     general_overheads: model_readiness.modules.generalOverheads,
+  22:     opening_hours: model_readiness.modules.openingHours,
+  23:     model_readiness: model_readiness.status,
+  24:   });
+  25: 
+  26:   const revenue_cogs_output_contract = revenue_cogs.output_contract ?? {};
+  27:   const cost_summary_output_contract = cost_summary.output_contract ?? {};
+  28: 
+  29:   return useMemo(() => {
+  30:     const calculations = calculateBusinessSummary({
+  31:       total_revenue: revenue_cogs_output_contract.total_revenue ?? 0,
+  32: 
+  33:       total_direct_costs:
+  34:         revenue_cogs_output_contract.total_direct_costs ?? 0,
+  35: 
+  36:       margin_pool: revenue_cogs_output_contract.margin_pool ?? 0,
+  37: 
+  38:       gross_margin_percent:
+  39:         revenue_cogs_output_contract.gross_margin_percent ?? 0,
+  40: 
+  41:       total_cost_burden:
+  42:         cost_summary_output_contract.total_cost_burden ?? 0,
+  43: 
+  44:       total_people_cost_annual:
+  45:         cost_summary_output_contract.total_people_cost_annual ?? 0,
+  46: 
+  47:       total_asset_cost_annual:
+  48:         cost_summary_output_contract.total_asset_cost_annual ?? 0,
+  49: 
+  50:       total_business_overheads:
+  51:         cost_summary_output_contract.total_business_overheads ?? 0,
+  52: 
+  53:       total_recovery_hours:
+  54:         cost_summary_output_contract.total_recovery_hours ?? 0,
+  55: 
+  56:       business_recovery_hours:
+  57:         cost_summary_output_contract.business_recovery_hours ?? 0,
+  58: 
+  59:       operating_recovery_hours:
+  60:         cost_summary_output_contract.operating_recovery_hours ?? 0,
+  61: 
+  62:       total_productive_output:
+  63:         cost_summary_output_contract.total_productive_output ?? 0,
+  64: 
+  65:       units_sold_annual:
+  66:         revenue_cogs_output_contract.units_sold_annual ?? 0,
+  67: 
+  68:       business_type:
+  69:         revenue_cogs_output_contract.business_type ??
+  70:         (revenue_cogs_output_contract.is_product_based === true
+  71:           ? "product_based"
+  72:           : "labour_based"),
+  73: 
+  74:       required_recovery_rate:
+  75:         cost_summary_output_contract.required_recovery_rate ?? 0,
+  76:       required_labour_burden_rate:
+  77:         cost_summary_output_contract.required_labour_burden_rate ?? 0,
+  78:       macro_required_operating_hour_rate:
+  79:         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+  80:       net_annual_business_open_hours:
+  81:         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+  82:     });
+  83: 
+  84:     const model_trust_state =
+  85:       cost_summary_output_contract.model_readiness_status ??
+  86:       (cost_summary_output_contract.model_ready === true
+  87:         ? "ready"
+  88:         : "blocked");
+  89: 
+  90:     const status = buildBusinessSummaryStatus({
+  91:       ...calculations,
+  92:       model_trust_state,
+  93:       revenue_cogs_ready:
+  94:         revenue_cogs_output_contract.revenue_cogs_ready === true,
+  95:       cost_summary_ready: cost_summary_output_contract.model_ready === true,
+  96: 
+  97:       macro_required_operating_hour_rate:
+  98:         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+  99:       net_annual_business_open_hours:
+ 100:         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+ 101:     });
+ 102: 
+ 103:     const display_details = {
+ 104:       direct_cost_category_totals:
+ 105:         revenue_cogs_output_contract.direct_cost_category_totals ?? [],
+ 106: 
+ 107:       total_people_cost_annual:
+ 108:         cost_summary_output_contract.total_people_cost_annual ?? 0,
+ 109: 
+ 110:       total_asset_cost_annual:
+ 111:         cost_summary_output_contract.total_asset_cost_annual ?? 0,
+ 112: 
+ 113:       has_productive_asset_recovery_base:
+ 114:         cost_summary_output_contract.has_productive_asset_recovery_base ===
+ 115:         true,
+ 116:       productive_asset_count:
+ 117:         cost_summary_output_contract.productive_asset_count ?? 0,
+ 118:       support_asset_count:
+ 119:         cost_summary_output_contract.support_asset_count ?? 0,
+ 120:       productive_asset_cost:
+ 121:         cost_summary_output_contract.productive_asset_cost ?? 0,
+ 122:       support_asset_cost:
+ 123:         cost_summary_output_contract.support_asset_cost ?? 0,
+ 124: 
+ 125:       total_business_overheads:
+ 126:         cost_summary_output_contract.total_business_overheads ?? 0,
+ 127: 
+ 128:       // Pass through Cost Summary macro/open-hour metrics so the Business
+ 129:       // Summary card receives the same authoritative values.
+ 130:       macro_required_operating_hour_rate:
+ 131:         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+ 132:       net_annual_business_open_hours:
+ 133:         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+ 134: 
+ 135:       cost_burden_breakdown:
+ 136:         cost_summary_output_contract.cost_burden_breakdown ?? {
+ 137:           people: {},
+ 138:           assets: {},
+ 139:           business_overheads: {},
+ 140:         },
+ 141:     };
+ 142: 
+ 143:     const card = buildBusinessSummaryCard({
+ 144:       ...calculations,
+ 145:       ...display_details,
+ 146:     });
+ 147: 
+ 148:     const output_contract = {
+ 149:       business_summary_ready: status.business_summary_ready,
+ 150: 
+ 151:       business_type: calculations.business_type,
+ 152:       is_product_based: calculations.is_product_based,
+ 153:       is_labour_based: calculations.is_labour_based,
+ 154:       activity_driver_type: calculations.activity_driver_type,
+ 155:       activity_driver_label: calculations.activity_driver_label,
+ 156:       activity_driver_value: calculations.activity_driver_value,
+ 157: 
+ 158:       required_recovery_per_driver:
+ 159:         calculations.required_recovery_per_driver,
+ 160: 
+ 161:       required_recovery_label: calculations.required_recovery_label,
+ 162:       required_recovery_unit_label:
+ 163:         calculations.required_recovery_unit_label,
+ 164: 
+ 165:       current_margin_per_driver: calculations.current_margin_per_driver,
+ 166:       current_margin_label: calculations.current_margin_label,
+ 167: 
+ 168:       recovery_gap_per_driver: calculations.recovery_gap_per_driver,
+ 169:       recovery_gap_label: calculations.recovery_gap_label,
+ 170:       revenue_per_unit: calculations.revenue_per_unit,
+ 171:       direct_cost_per_unit: calculations.direct_cost_per_unit,
+ 172:       margin_per_unit: calculations.margin_per_unit,
+ 173:       required_units_to_break_even:
+ 174:         calculations.required_units_to_break_even,
+ 175:       unit_surplus_or_shortfall:
+ 176:         calculations.unit_surplus_or_shortfall,
+ 177: 
+ 178:       total_revenue: calculations.total_revenue,
+ 179:       total_direct_costs: calculations.total_direct_costs,
+ 180: 
+ 181:       direct_cost_category_totals:
+ 182:         display_details.direct_cost_category_totals,
+ 183: 
+ 184:       margin_pool: calculations.margin_pool,
+ 185:       gross_margin_percent: calculations.gross_margin_percent,
+ 186: 
+ 187:       total_cost_burden: calculations.total_cost_burden,
+ 188:       margin_after_labour: calculations.margin_after_labour,
+ 189:       non_people_cost_burden: calculations.non_people_cost_burden,
+ 190:       people_cost_per_recovery_hour:
+ 191:         calculations.people_cost_per_recovery_hour,
+ 192:       asset_cost_per_recovery_hour:
+ 193:         calculations.asset_cost_per_recovery_hour,
+ 194:       business_overheads_per_recovery_hour:
+ 195:         calculations.business_overheads_per_recovery_hour,
+ 196:       margin_after_labour_per_recovery_hour:
+ 197:         calculations.margin_after_labour_per_recovery_hour,
+ 198:       non_people_cost_burden_per_recovery_hour:
+ 199:         calculations.non_people_cost_burden_per_recovery_hour,
+ 200: 
+ 201:       total_people_cost_annual:
+ 202:         display_details.total_people_cost_annual,
+ 203: 
+ 204:       total_asset_cost_annual:
+ 205:         display_details.total_asset_cost_annual,
+ 206: 
+ 207:       has_productive_asset_recovery_base:
+ 208:         display_details.has_productive_asset_recovery_base,
+ 209:       productive_asset_count:
+ 210:         display_details.productive_asset_count,
+ 211:       support_asset_count:
+ 212:         display_details.support_asset_count,
+ 213:       productive_asset_cost:
+ 214:         display_details.productive_asset_cost,
+ 215:       support_asset_cost:
+ 216:         display_details.support_asset_cost,
+ 217: 
+ 218:       total_business_overheads:
+ 219:         display_details.total_business_overheads,
+ 220: 
+ 221:       cost_burden_breakdown: display_details.cost_burden_breakdown,
+ 222: 
+ 223:       net_position: calculations.net_position,
+ 224: 
+ 225:       total_recovery_hours: calculations.total_recovery_hours,
+ 226:       business_recovery_hours:
+ 227:         cost_summary_output_contract.business_recovery_hours ?? 0,
+ 228:       operating_recovery_hours:
+ 229:         cost_summary_output_contract.operating_recovery_hours ?? 0,
+ 230:       total_staff_recovery_hours:
+ 231:         cost_summary_output_contract.total_staff_recovery_hours ?? 0,
+ 232:       recovery_hours_used: calculations.recovery_hours_used,
+ 233:       total_productive_output: calculations.total_productive_output,
+ 234:       units_sold_annual: calculations.units_sold_annual,
+ 235: 
+ 236:       weighted_productivity_percent:
+ 237:         cost_summary_output_contract.weighted_productivity_percent ?? 0,
+ 238: 
+ 239:       total_available_hours_before_productivity:
+ 240:         cost_summary_output_contract.total_available_hours_before_productivity ??
+ 241:         0,
+ 242: 
+ 243:       required_recovery_rate: calculations.required_recovery_rate,
+ 244:       actual_recovery_rate: calculations.actual_recovery_rate,
+ 245: 
+ 246:       profit_or_deficit_per_recovery_hour:
+ 247:         calculations.profit_or_deficit_per_recovery_hour,
+ 248: 
+ 249:       current_margin_per_productive_hour:
+ 250:         calculations.current_margin_per_hour,
+ 251: 
+ 252:       recovery_gap_per_hour: calculations.hourly_gap,
+ 253: 
+ 254:       current_margin_per_hour: calculations.current_margin_per_hour,
+ 255:       hourly_gap: calculations.hourly_gap,
+ 256: 
+ 257:       business_summary_status: status.business_summary_status,
+ 258:       business_summary_warnings: status.business_summary_warnings,
+ 259:       model_trust_state,
+ 260: 
+ 261:       revenue_cogs_ready:
+ 262:         revenue_cogs_output_contract.revenue_cogs_ready === true,
+ 263: 
+ 264:       cost_summary_ready: cost_summary_output_contract.model_ready === true,
+ 265: 
+ 266:       macro_required_operating_hour_rate:
+ 267:         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
+ 268:       net_annual_business_open_hours:
+ 269:         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+ 270:     };
+ 271: 
+ 272:     return {
+ 273:       status,
+ 274:       card,
+ 275:       output_contract,
+ 276:     };
+ 277:   }, [revenue_cogs_output_contract, cost_summary_output_contract]);
+ 278: }
+ 279: 
+===== FILE: lib\selectors\businessSummarySelectors.js =====
+   1: function toNumber(value) {
+   2:   const parsed = Number(value);
+   3:   return Number.isFinite(parsed) ? parsed : 0;
+   4: }
+   5: 
+   6: export function buildBusinessSummaryStatus(calculations = {}) {
+   7:   const total_revenue = toNumber(calculations.total_revenue);
+   8:   const margin_pool = toNumber(calculations.margin_pool);
+   9:   const total_cost_burden = toNumber(calculations.total_cost_burden);
+  10:   const recovery_hours_used = toNumber(calculations.recovery_hours_used);
+  11:   const total_productive_output = toNumber(
+  12:     calculations.total_productive_output
+  13:   );
+  14:   const units_sold_annual = toNumber(calculations.units_sold_annual);
+  15:   const activity_driver_value = toNumber(calculations.activity_driver_value);
+  16:   const net_position = toNumber(calculations.net_position);
+  17:   const current_margin_per_hour = toNumber(
+  18:     calculations.current_margin_per_hour
+  19:   );
+  20:   const required_recovery_rate = toNumber(calculations.required_recovery_rate);
+  21:   const actual_recovery_rate = toNumber(calculations.actual_recovery_rate);
+  22:   const profit_or_deficit_per_recovery_hour = toNumber(
+  23:     calculations.profit_or_deficit_per_recovery_hour
+  24:   );
+  25:   const hourly_gap = toNumber(calculations.hourly_gap);
+  26:   const required_recovery_per_driver = toNumber(
+  27:     calculations.required_recovery_per_driver
+  28:   );
+  29:   const current_margin_per_driver = toNumber(
+  30:     calculations.current_margin_per_driver
+  31:   );
+  32:   const recovery_gap_per_driver = toNumber(
+  33:     calculations.recovery_gap_per_driver
+  34:   );
+  35: 
+  36:   const business_type = calculations.business_type || "labour_based";
+  37:   const activity_driver_type = calculations.activity_driver_type || "hours";
+  38: 
+  39:   const model_trust_state = calculations.model_trust_state || "blocked";
+  40:   const revenue_cogs_ready = calculations.revenue_cogs_ready === true;
+  41:   const cost_summary_ready = calculations.cost_summary_ready === true;
+  42:   const warnings = [];
+  43: 
+  44:   if (total_revenue === 0) {
+  45:     warnings.push({
+  46:       warning_id: "no_revenue_data",
+  47:       message: "No revenue data is flowing from Revenue / COGS.",
+  48:     });
+  49:   }
+  50: 
+  51:   if (margin_pool === 0) {
+  52:     warnings.push({
+  53:       warning_id: "no_margin_pool",
+  54:       message: "Margin Pool is zero in the Revenue / COGS output.",
+  55:     });
+  56:   }
+  57: 
+  58:   if (total_cost_burden === 0) {
+  59:     warnings.push({
+  60:       warning_id: "no_cost_summary_data",
+  61:       message: "Operating Costs are zero in the Cost Summary output.",
+  62:     });
+  63:   }
+  64: 
+  65:   if (activity_driver_type === "hours" && activity_driver_value === 0) {
+  66:     warnings.push({
+  67:       warning_id: "no_productive_output",
+  68:       message:
+  69:         "No recovery hours are available. Required recovery per hour cannot be calculated.",
+  70:     });
+  71:   }
+  72: 
+  73:   if (recovery_hours_used === 0) {
+  74:     warnings.push({
+  75:       warning_id: "no_recovery_hours",
+  76:       message:
+  77:         "Recovery hours are zero, so actual recovery per hour is held at 0.",
+  78:     });
+  79:   }
+  80: 
+  81:   if (activity_driver_type === "units" && units_sold_annual === 0) {
+  82:     warnings.push({
+  83:       warning_id: "no_units_sold",
+  84:       message:
+  85:         "Units sold are required to calculate required recovery per unit.",
+  86:     });
+  87:   }
+  88: 
+  89:   if (activity_driver_value === 0) {
+  90:     warnings.push({
+  91:       warning_id: "no_activity_driver",
+  92:       message:
+  93:         "The selected activity driver is zero, so recovery per output is held at 0.",
+  94:     });
+  95:   }
+  96: 
+  97:   if (net_position < 0) {
+  98:     warnings.push({
+  99:       warning_id: "negative_net_position",
+ 100:       message:
+ 101:         "Net Position is negative because Margin Pool is below Operating Costs.",
+ 102:     });
+ 103:   }
+ 104: 
+ 105:   if (!revenue_cogs_ready) {
+ 106:     warnings.push({
+ 107:       warning_id: "revenue_cogs_not_ready",
+ 108:       message:
+ 109:         "Revenue / COGS is not ready, so Business Summary is not trusted as a final baseline.",
+ 110:     });
+ 111:   }
+ 112: 
+ 113:   if (!cost_summary_ready) {
+ 114:     warnings.push({
+ 115:       warning_id: "cost_summary_not_ready",
+ 116:       message:
+ 117:         "Cost Summary is not trusted, so Business Summary is preview only.",
+ 118:     });
+ 119:   }
+ 120: 
+ 121:   return {
+ 122:     business_summary_ready:
+ 123:       warnings.length === 0 && model_trust_state === "ready",
+ 124:     business_summary_status:
+ 125:       model_trust_state === "blocked"
+ 126:         ? "blocked"
+ 127:         : warnings.length === 0
+ 128:           ? "ready"
+ 129:           : "ready_with_warnings",
+ 130: 
+ 131:     business_type,
+ 132:     activity_driver_type,
+ 133:     activity_driver_label:
+ 134:       calculations.activity_driver_label || "Productive hours",
+ 135:     activity_driver_value,
+ 136:     required_recovery_label:
+ 137:       calculations.required_recovery_label || "Required recovery per hour",
+ 138:     required_recovery_unit_label:
+ 139:       calculations.required_recovery_unit_label || "$/hour",
+ 140:     current_margin_label:
+ 141:       calculations.current_margin_label || "Current margin per hour",
+ 142:     recovery_gap_label: calculations.recovery_gap_label || "Hourly gap",
+ 143: 
+ 144:     net_position,
+ 145:     current_margin_per_hour,
+ 146:     required_recovery_rate,
+ 147:     actual_recovery_rate,
+ 148:     profit_or_deficit_per_recovery_hour,
+ 149:     recovery_hours_used,
+ 150:     hourly_gap,
+ 151: 
+ 152:     required_recovery_per_driver,
+ 153:     current_margin_per_driver,
+ 154:     recovery_gap_per_driver,
+ 155: 
+ 156:     warning_count: warnings.length,
+ 157:     business_summary_warnings: warnings,
+ 158:     model_trust_state,
+ 159:     revenue_cogs_ready,
+ 160:     cost_summary_ready,
+ 161:   };
+ 162: }
+ 163: 
+ 164: export function buildBusinessSummaryCard(calculations = {}) {
+ 165:   const direct_cost_category_totals = Array.isArray(
+ 166:     calculations.direct_cost_category_totals
+ 167:   )
+ 168:     ? calculations.direct_cost_category_totals.map((category, index) => ({
+ 169:         category_id: category.category_id || `direct-cost-${index}`,
+ 170:         label:
+ 171:           category.category_name ||
+ 172:           category.label ||
+ 173:           "Direct cost category",
+ 174:         amount: toNumber(category.total ?? category.amount),
+ 175:       }))
+ 176:     : [];
+ 177: 
+ 178:   return {
+ 179:     total_revenue: toNumber(calculations.total_revenue),
+ 180:     total_direct_costs: toNumber(calculations.total_direct_costs),
+ 181:     direct_cost_category_totals,
+ 182:     margin_pool: toNumber(calculations.margin_pool),
+ 183:     gross_margin_percent: toNumber(calculations.gross_margin_percent),
+ 184:     total_cost_burden: toNumber(calculations.total_cost_burden),
+ 185:     total_people_cost_annual: toNumber(calculations.total_people_cost_annual),
+ 186:     total_asset_cost_annual: toNumber(calculations.total_asset_cost_annual),
+ 187:     total_business_overheads: toNumber(calculations.total_business_overheads),
+ 188:     margin_after_labour: toNumber(calculations.margin_after_labour),
+ 189:     non_people_cost_burden: toNumber(calculations.non_people_cost_burden),
+ 190:     people_cost_per_recovery_hour: toNumber(
+ 191:       calculations.people_cost_per_recovery_hour
+ 192:     ),
+ 193:     asset_cost_per_recovery_hour: toNumber(
+ 194:       calculations.asset_cost_per_recovery_hour
+ 195:     ),
+ 196:     business_overheads_per_recovery_hour: toNumber(
+ 197:       calculations.business_overheads_per_recovery_hour
+ 198:     ),
+ 199:     margin_after_labour_per_recovery_hour: toNumber(
+ 200:       calculations.margin_after_labour_per_recovery_hour
+ 201:     ),
+ 202:     non_people_cost_burden_per_recovery_hour: toNumber(
+ 203:       calculations.non_people_cost_burden_per_recovery_hour
+ 204:     ),
+ 205:     cost_burden_breakdown: calculations.cost_burden_breakdown ?? {
+ 206:       people: {},
+ 207:       assets: {},
+ 208:       business_overheads: {},
+ 209:     },
+ 210:     total_recovery_hours: toNumber(calculations.total_recovery_hours),
+ 211:     recovery_hours_used: toNumber(calculations.recovery_hours_used),
+ 212:     total_productive_output: toNumber(calculations.total_productive_output),
+ 213:     units_sold_annual: toNumber(calculations.units_sold_annual),
+ 214: 
+ 215:     business_type: calculations.business_type || "labour_based",
+ 216:     is_product_based: calculations.is_product_based === true,
+ 217:     is_labour_based: calculations.is_labour_based !== false,
+ 218:     activity_driver_type: calculations.activity_driver_type || "hours",
+ 219:     activity_driver_label:
+ 220:       calculations.activity_driver_label || "Productive hours",
+ 221:     activity_driver_value: toNumber(calculations.activity_driver_value),
+ 222:     activity_driver_display_label:
+ 223:       calculations.activity_driver_display_label || "Productive hours",
+ 224:     activity_driver_suffix: calculations.activity_driver_suffix || "hrs",
+ 225: 
+ 226:     required_recovery_per_driver: toNumber(
+ 227:       calculations.required_recovery_per_driver
+ 228:     ),
+ 229:     required_recovery_label:
+ 230:       calculations.required_recovery_label || "Required recovery per hour",
+ 231:     required_recovery_unit_label:
+ 232:       calculations.required_recovery_unit_label || "$/hour",
+ 233: 
+ 234:     current_margin_per_driver: toNumber(
+ 235:       calculations.current_margin_per_driver
+ 236:     ),
+ 237:     current_margin_label:
+ 238:       calculations.current_margin_label || "Current margin per hour",
+ 239: 
+ 240:     recovery_gap_per_driver: toNumber(calculations.recovery_gap_per_driver),
+ 241:     recovery_gap_label: calculations.recovery_gap_label || "Hourly gap",
+ 242:     revenue_per_unit: toNumber(calculations.revenue_per_unit),
+ 243:     direct_cost_per_unit: toNumber(calculations.direct_cost_per_unit),
+ 244:     margin_per_unit: toNumber(calculations.margin_per_unit),
+ 245:     required_units_to_break_even: toNumber(
+ 246:       calculations.required_units_to_break_even
+ 247:     ),
+ 248:     unit_surplus_or_shortfall: toNumber(
+ 249:       calculations.unit_surplus_or_shortfall
+ 250:     ),
+ 251: 
+ 252:     required_recovery_rate: toNumber(calculations.required_recovery_rate),
+ 253:     actual_recovery_rate: toNumber(calculations.actual_recovery_rate),
+ 254:     profit_or_deficit_per_recovery_hour: toNumber(
+ 255:       calculations.profit_or_deficit_per_recovery_hour
+ 256:     ),
+ 257:     net_position: toNumber(calculations.net_position),
+ 258:     current_margin_per_hour: toNumber(calculations.current_margin_per_hour),
+ 259:     hourly_gap: toNumber(calculations.hourly_gap),
+ 260:     // New metrics: labour burden and macro operating-hour pressure
+ 261:     required_labour_burden_rate: toNumber(
+ 262:       calculations.required_labour_burden_rate
+ 263:     ),
+ 264:     macro_required_operating_hour_rate: toNumber(
+ 265:       calculations.macro_required_operating_hour_rate
+ 266:     ),
+ 267:     net_annual_business_open_hours: toNumber(
+ 268:       calculations.net_annual_business_open_hours
+ 269:     ),
+ 270:   };
+ 271: }
+===== FILE: components\business-summary\BusinessSummaryComponentBreakdown.jsx =====
+   1: "use client";
+   2: 
+   3: import {
+   4:   format_currency,
+   5:   format_number,
+   6: } from "@/components/business-summary/businessSummaryFormatters";
+   7: 
+   8: function sum_rows(rows = [], field = "") {
+   9:   return rows.reduce((total, row) => total + Number(row?.[field] ?? 0), 0);
+  10: }
+  11: 
+  12: function GroupHeader({ title, count, total }) {
+  13:   return (
+  14:     <div className="recovery-summary-interactive recovery-summary-row is-active">
+  15:       <div className="recovery-summary-row-label">{title}</div>
+  16:       <div className="recovery-summary-row-value">
+  17:         {format_currency(total)} - {count} item{count === 1 ? "" : "s"}
+  18:       </div>
+  19:     </div>
+  20:   );
+  21: }
+  22: 
+  23: function EmptyGroupNotice({ message }) {
+  24:   return (
+  25:     <div className="ui-readonly">
+  26:       <p className="text-sm font-medium text-[var(--text-primary)]">
+  27:         {message}
+  28:       </p>
+  29:     </div>
+  30:   );
+  31: }
+  32: 
+  33: function StaffRow({ staff, index }) {
+  34:   return (
+  35:     <div
+  36:       key={`${staff.profile_id || staff.staff_id || staff.staff_name || "staff"}-${index}`}
+  37:       className="labour-summary-table-row"
+  38:     >
+  39:       <div className="labour-summary-table-label">
+  40:         {staff.staff_name || "Unnamed staff"}
+  41:       </div>
+  42:       <div className="labour-summary-table-value">
+  43:         {format_currency(staff.total_labour_cost_annual)}
+  44:       </div>
+  45:     </div>
+  46:   );
+  47: }
+  48: 
+  49: function AssetRow({ asset, index }) {
+  50:   return (
+  51:     <div
+  52:       key={`${asset.asset_id || asset.asset_name || "asset"}-${index}`}
+  53:       className="labour-summary-table-row"
+  54:     >
+  55:       <div className="labour-summary-table-label">
+  56:         {asset.asset_name || "Unnamed asset"}
+  57:       </div>
+  58:       <div className="labour-summary-table-value">
+  59:         {format_currency(
+  60:           asset.asset_interest_annual ??
+  61:             asset.finance_cost_annual ??
+  62:             asset.total_asset_cost_annual
+  63:         )}
+  64:       </div>
+  65:     </div>
+  66:   );
+  67: }
+  68: 
+  69: export default function BusinessSummaryComponentBreakdown({
+  70:   active_component,
+  71:   values,
+  72: }) {
+  73:   const breakdown = values.cost_burden_breakdown ?? {};
+  74:   const people = breakdown.people ?? {};
+  75:   const assets = breakdown.assets ?? {};
+  76:   const overheads = breakdown.business_overheads ?? {};
+  77: 
+  78:   const active_staff = Array.isArray(people.active_staff)
+  79:     ? people.active_staff
+  80:     : [];
+  81:   const active_assets = Array.isArray(assets.active_assets)
+  82:     ? assets.active_assets
+  83:     : [];
+  84:   const category_totals = Array.isArray(overheads.category_totals)
+  85:     ? overheads.category_totals
+  86:     : [];
+  87: 
+  88:   if (!active_component) {
+  89:     return null;
+  90:   }
+  91: 
+  92:   if (active_component === "people_cost") {
+  93:     const productive_staff = active_staff.filter(
+  94:       (staff) => staff.contributes_to_recovery_hours !== false
+  95:     );
+  96:     const non_productive_staff = active_staff.filter(
+  97:       (staff) => staff.contributes_to_recovery_hours === false
+  98:     );
+  99:     const productive_staff_cost = sum_rows(
+ 100:       productive_staff,
+ 101:       "total_labour_cost_annual"
+ 102:     );
+ 103:     const non_productive_staff_cost = sum_rows(
+ 104:       non_productive_staff,
+ 105:       "total_labour_cost_annual"
+ 106:     );
+ 107:     const people_cost_total =
+ 108:       people.total_people_cost_annual ??
+ 109:       values.total_people_cost_annual ??
+ 110:       0;
+ 111: 
+ 112:     return (
+ 113:       <div className="ui-readonly">
+ 114:         <div className="ui-stack-sm">
+ 115:           <p className="ui-kicker">People Cost source</p>
+ 116:           <p className="ui-help">
+ 117:             These values come from Labour and Cost Summary. The productive and
+ 118:             non-productive groups use the existing staff recovery classification
+ 119:             exposed upstream.
+ 120:           </p>
+ 121: 
+ 122:           <div className="labour-summary-table">
+ 123:             <div className="labour-summary-table-row">
+ 124:               <div className="labour-summary-table-label">
+ 125:                 Productive staff cost
+ 126:               </div>
+ 127:               <div className="labour-summary-table-value">
+ 128:                 {format_currency(productive_staff_cost)}
+ 129:               </div>
+ 130:             </div>
+ 131:             <div className="labour-summary-table-row">
+ 132:               <div className="labour-summary-table-label">
+ 133:                 Non-productive staff cost
+ 134:               </div>
+ 135:               <div className="labour-summary-table-value">
+ 136:                 {format_currency(non_productive_staff_cost)}
+ 137:               </div>
+ 138:             </div>
+ 139:             <div className="labour-summary-table-row">
+ 140:               <div className="labour-summary-table-label">Recovery Hours</div>
+ 141:               <div className="labour-summary-table-value">
+ 142:                 {format_number(people.total_recovery_hours)}
+ 143:               </div>
+ 144:             </div>
+ 145:             <div className="labour-summary-table-row">
+ 146:               <div className="labour-summary-table-label">
+ 147:                 Productive Output
+ 148:               </div>
+ 149:               <div className="labour-summary-table-value">
+ 150:                 {format_number(people.total_productive_output)}
+ 151:               </div>
+ 152:             </div>
+ 153:             <div className="labour-summary-table-row total">
+ 154:               <div className="labour-summary-table-label">People Cost</div>
+ 155:               <div className="labour-summary-table-value">
+ 156:                 {format_currency(people_cost_total)}
+ 157:               </div>
+ 158:             </div>
+ 159:           </div>
+ 160: 
+ 161:           {active_staff.length > 0 ? (
+ 162:             <div className="ui-stack">
+ 163:               <div className="ui-stack-sm">
+ 164:                 <GroupHeader
+ 165:                   title="Productive staff"
+ 166:                   count={productive_staff.length}
+ 167:                   total={productive_staff_cost}
+ 168:                 />
+ 169:                 {productive_staff.length > 0 ? (
+ 170:                   productive_staff.map((staff, index) => (
+ 171:                     <StaffRow
+ 172:                       key={`${staff.profile_id || staff.staff_id || staff.staff_name || "productive-staff"}-${index}`}
+ 173:                       staff={staff}
+ 174:                       index={index}
+ 175:                     />
+ 176:                   ))
+ 177:                 ) : (
+ 178:                   <EmptyGroupNotice message="No productive staff are exposed in this source breakdown." />
+ 179:                 )}
+ 180:               </div>
+ 181: 
+ 182:               <div className="ui-stack-sm">
+ 183:                 <GroupHeader
+ 184:                   title="Non-productive staff"
+ 185:                   count={non_productive_staff.length}
+ 186:                   total={non_productive_staff_cost}
+ 187:                 />
+ 188:                 {non_productive_staff.length > 0 ? (
+ 189:                   non_productive_staff.map((staff, index) => (
+ 190:                     <StaffRow
+ 191:                       key={`${staff.profile_id || staff.staff_id || staff.staff_name || "non-productive-staff"}-${index}`}
+ 192:                       staff={staff}
+ 193:                       index={index}
+ 194:                     />
+ 195:                   ))
+ 196:                 ) : (
+ 197:                   <EmptyGroupNotice message="No non-productive staff are exposed in this source breakdown." />
+ 198:                 )}
+ 199:               </div>
+ 200:             </div>
+ 201:           ) : (
+ 202:             <p className="ui-help">
+ 203:               Active staff source rows are not exposed to Business Summary yet.
+ 204:             </p>
+ 205:           )}
+ 206:         </div>
+ 207:       </div>
+ 208:     );
+ 209:   }
+ 210: 
+ 211:   if (active_component === "asset_cost") {
+ 212:     const productive_assets = active_assets.filter(
+ 213:       (asset) => asset.asset_type === "productive"
+ 214:     );
+ 215:     const support_assets = active_assets.filter(
+ 216:       (asset) => asset.asset_type !== "productive"
+ 217:     );
+ 218:     const productive_asset_cost = sum_rows(
+ 219:       productive_assets,
+ 220:       "total_asset_cost_annual"
+ 221:     );
+ 222:     const support_asset_cost = sum_rows(
+ 223:       support_assets,
+ 224:       "total_asset_cost_annual"
+ 225:     );
+ 226:     const asset_cost_total =
+ 227:       assets.total_asset_cost_annual ?? values.total_asset_cost_annual ?? 0;
+ 228: 
+ 229:     return (
+ 230:       <div className="ui-readonly">
+ 231:         <div className="ui-stack-sm">
+ 232:           <p className="ui-kicker">Asset Cost source</p>
+ 233:           <p className="ui-help">
+ 234:             Asset Cost comes from Assets. Principal repayments are not included
+ 235:             in the operating cost burden because principal belongs to the
+ 236:             balance sheet / cash-flow layer, not Cost Summary.
+ 237:           </p>
+ 238: 
+ 239:           <div className="labour-summary-table">
+ 240:             <div className="labour-summary-table-row">
+ 241:               <div className="labour-summary-table-label">
+ 242:                 Asset Interest / Finance Cost
+ 243:               </div>
+ 244:               <div className="labour-summary-table-value">
+ 245:                 {format_currency(
+ 246:                   assets.total_asset_interest_annual ??
+ 247:                     assets.finance_cost_annual
+ 248:                 )}
+ 249:               </div>
+ 250:             </div>
+ 251:             <div className="labour-summary-table-row total">
+ 252:               <div className="labour-summary-table-label">
+ 253:                 Total Asset Cost
+ 254:               </div>
+ 255:               <div className="labour-summary-table-value">
+ 256:                 {format_currency(asset_cost_total)}
+ 257:               </div>
+ 258:             </div>
+ 259:           </div>
+ 260: 
+ 261:           {active_assets.length > 0 ? (
+ 262:             <div className="ui-stack">
+ 263:               <div className="ui-stack-sm">
+ 264:                 <GroupHeader
+ 265:                   title="Productive assets"
+ 266:                   count={productive_assets.length}
+ 267:                   total={productive_asset_cost}
+ 268:                 />
+ 269:                 {productive_assets.length > 0 ? (
+ 270:                   productive_assets.map((asset, index) => (
+ 271:                     <AssetRow
+ 272:                       key={`${asset.asset_id || asset.asset_name || "productive-asset"}-${index}`}
+ 273:                       asset={asset}
+ 274:                       index={index}
+ 275:                     />
+ 276:                   ))
+ 277:                 ) : (
+ 278:                   <EmptyGroupNotice message="No productive assets are exposed in this source breakdown." />
+ 279:                 )}
+ 280:               </div>
+ 281: 
+ 282:               <div className="ui-stack-sm">
+ 283:                 <GroupHeader
+ 284:                   title="Support assets"
+ 285:                   count={support_assets.length}
+ 286:                   total={support_asset_cost}
+ 287:                 />
+ 288:                 {support_assets.length > 0 ? (
+ 289:                   support_assets.map((asset, index) => (
+ 290:                     <AssetRow
+ 291:                       key={`${asset.asset_id || asset.asset_name || "support-asset"}-${index}`}
+ 292:                       asset={asset}
+ 293:                       index={index}
+ 294:                     />
+ 295:                   ))
+ 296:                 ) : (
+ 297:                   <EmptyGroupNotice message="No support assets are exposed in this source breakdown." />
+ 298:                 )}
+ 299:               </div>
+ 300:             </div>
+ 301:           ) : (
+ 302:             <p className="ui-help">
+ 303:               Active asset source rows are not exposed to Business Summary yet.
+ 304:             </p>
+ 305:           )}
+ 306:         </div>
+ 307:       </div>
+ 308:     );
+ 309:   }
+ 310: 
+ 311:   if (active_component === "business_overheads") {
+ 312:     const business_overheads_total =
+ 313:       overheads.total_business_overheads ??
+ 314:       values.total_business_overheads ??
+ 315:       0;
+ 316: 
+ 317:     return (
+ 318:       <div className="ui-readonly">
+ 319:         <div className="ui-stack-sm">
+ 320:           <p className="ui-kicker">Business Overheads source</p>
+ 321:           <p className="ui-help">
+ 322:             These category totals come from General Overheads. Review General
+ 323:             Overheads for individual source rows.
+ 324:           </p>
+ 325: 
+ 326:           <div className="labour-summary-table">
+ 327:             {category_totals.length > 0 ? (
+ 328:               category_totals.map((category, index) => (
+ 329:                 <div
+ 330:                   key={`${category.category_id || category.category_name || "overhead"}-${index}`}
+ 331:                   className="labour-summary-table-row"
+ 332:                 >
+ 333:                   <div className="labour-summary-table-label">
+ 334:                     {category.category_label ||
+ 335:                       category.category_name ||
+ 336:                       category.category_id ||
+ 337:                       "Overhead category"}
+ 338:                   </div>
+ 339:                   <div className="labour-summary-table-value">
+ 340:                     {format_currency(category.total ?? category.amount ?? 0)}
+ 341:                   </div>
+ 342:                 </div>
+ 343:               ))
+ 344:             ) : (
+ 345:               <div className="labour-summary-table-row">
+ 346:                 <div className="labour-summary-table-label">
+ 347:                   Category totals not exposed
+ 348:                 </div>
+ 349:                 <div className="labour-summary-table-value">$0.00</div>
+ 350:               </div>
+ 351:             )}
+ 352: 
+ 353:             <div className="labour-summary-table-row total">
+ 354:               <div className="labour-summary-table-label">
+ 355:                 Business Overheads
+ 356:               </div>
+ 357:               <div className="labour-summary-table-value">
+ 358:                 {format_currency(business_overheads_total)}
+ 359:               </div>
+ 360:             </div>
+ 361:           </div>
+ 362:         </div>
+ 363:       </div>
+ 364:     );
+ 365:   }
+ 366: 
+ 367:   return null;
+ 368: }
+===== FILE: components\business-summary\hierarchy\businessSummaryHierarchyChildren.js =====
+   1: import {
+   2:   formatCurrency,
+   3:   formatNumber,
+   4: } from "@/components/business-summary/BusinessSummaryCardUtils";
+   5: import {
+   6:   sumAssetCost,
+   7:   sumStaffCost,
+   8: } from "@/components/business-summary/hierarchy/businessSummaryHierarchyScaleUtils";
+   9: 
+  10: export function buildBusinessSummaryHierarchyChildren({
+  11:   active_assets,
+  12:   active_staff,
+  13:   direct_cost_category_totals,
+  14:   direct_cost_per_unit,
+  15:   margin_per_unit,
+  16:   overhead_category_totals,
+  17:   product_unit_suffix,
+  18:   revenue_per_unit,
+  19:   scaleDisplayPeriodValue,
+  20:   scale_suffix,
+  21:   scaled_asset_cost,
+  22:   scaled_direct_costs,
+  23:   scaled_general_overheads,
+  24:   scaled_margin_pool,
+  25:   scaled_non_people_cost_burden,
+  26:   scaled_people_cost,
+  27:   scaled_revenue,
+  28:   scaled_units_sold,
+  29: }) {
+  30:   const productive_staff = active_staff.filter(
+  31:     (staff) => staff.contributes_to_recovery_hours !== false
+  32:   );
+  33:   const non_productive_staff = active_staff.filter(
+  34:     (staff) => staff.contributes_to_recovery_hours === false
+  35:   );
+  36:   const productive_assets = active_assets.filter(
+  37:     (asset) => asset.asset_type === "productive"
+  38:   );
+  39:   const support_assets = active_assets.filter(
+  40:     (asset) => asset.asset_type !== "productive"
+  41:   );
+  42: 
+  43:   function buildStaffRows(staffRows = []) {
+  44:     return staffRows.map((staff, index) => {
+  45:       const staff_cost = scaleDisplayPeriodValue(
+  46:         staff.total_labour_cost_annual
+  47:       );
+  48: 
+  49:       return {
+  50:         key: `${staff.profile_id || staff.staff_id || staff.staff_name || "staff"}-${index}`,
+  51:         label: staff.staff_name || "Unnamed staff",
+  52:         value: staff_cost,
+  53:         amount: Math.abs(staff_cost),
+  54:         referenceTotal: Math.abs(scaled_people_cost),
+  55:         suffix: scale_suffix,
+  56:       };
+  57:     });
+  58:   }
+  59: 
+  60:   function buildAssetRows(assetRows = []) {
+  61:     return assetRows.map((asset, index) => {
+  62:       const asset_cost = scaleDisplayPeriodValue(asset.total_asset_cost_annual);
+  63: 
+  64:       return {
+  65:         key: `${asset.asset_id || asset.asset_name || "asset"}-${index}`,
+  66:         label: asset.asset_name || "Unnamed asset",
+  67:         value: asset_cost,
+  68:         amount: Math.abs(asset_cost),
+  69:         referenceTotal: Math.abs(scaled_asset_cost),
+  70:         suffix: scale_suffix,
+  71:       };
+  72:     });
+  73:   }
+  74: 
+  75:   function buildOverheadCategoryRows(categoryRows = []) {
+  76:     return categoryRows.map((category, index) => {
+  77:       const category_amount = category.total ?? category.amount;
+  78:       const category_value = scaleDisplayPeriodValue(category_amount);
+  79: 
+  80:       return {
+  81:         key: `${category.category_id || category.category_name || category.category_label || "overhead-category"}-${index}`,
+  82:         label:
+  83:           category.category_label ||
+  84:           category.category_name ||
+  85:           category.category_id ||
+  86:           "Overhead category",
+  87:         value: category_value,
+  88:         amount: Math.abs(category_value),
+  89:         referenceTotal: Math.abs(scaled_general_overheads),
+  90:         suffix: scale_suffix,
+  91:       };
+  92:     });
+  93:   }
+  94: 
+  95:   const productive_staff_cost = scaleDisplayPeriodValue(
+  96:     sumStaffCost(productive_staff)
+  97:   );
+  98:   const non_productive_staff_cost = scaleDisplayPeriodValue(
+  99:     sumStaffCost(non_productive_staff)
+ 100:   );
+ 101:   const productive_staff_children = buildStaffRows(productive_staff);
+ 102:   const non_productive_staff_children = buildStaffRows(non_productive_staff);
+ 103:   const productive_asset_cost = scaleDisplayPeriodValue(
+ 104:     sumAssetCost(productive_assets)
+ 105:   );
+ 106:   const support_asset_cost = scaleDisplayPeriodValue(
+ 107:     sumAssetCost(support_assets)
+ 108:   );
+ 109:   const productive_asset_children = buildAssetRows(productive_assets);
+ 110:   const support_asset_children = buildAssetRows(support_assets);
+ 111:   const overhead_category_children =
+ 112:     buildOverheadCategoryRows(overhead_category_totals);
+ 113: 
+ 114:   const direct_cost_children = (
+ 115:     Array.isArray(direct_cost_category_totals) ? direct_cost_category_totals : []
+ 116:   )
+ 117:     .map((category) => {
+ 118:       const categoryValue = scaleDisplayPeriodValue(category.amount);
+ 119: 
+ 120:       return {
+ 121:         key: `direct-cost-${category.category_id || category.label}`,
+ 122:         label: category.label || "Direct cost category",
+ 123:         value: categoryValue,
+ 124:         amount: Math.abs(categoryValue),
+ 125:         referenceTotal: Math.abs(scaled_direct_costs),
+ 126:         suffix: scale_suffix,
+ 127:       };
+ 128:     })
+ 129:     .filter((category) => category.amount > 0);
+ 130: 
+ 131:   const remaining_cost_children = [
+ 132:     {
+ 133:       key: "assets",
+ 134:       label: "Asset Cost",
+ 135:       value: scaled_asset_cost,
+ 136:       amount: Math.abs(scaled_asset_cost),
+ 137:       referenceTotal: Math.abs(scaled_non_people_cost_burden),
+ 138:       suffix: scale_suffix,
+ 139:       note: "Annual asset cost from Cost Summary.",
+ 140:       children: [
+ 141:         {
+ 142:           key: "productive-assets",
+ 143:           label: "Productive assets",
+ 144:           value: productive_asset_cost,
+ 145:           amount: Math.abs(productive_asset_cost),
+ 146:           referenceTotal: Math.abs(scaled_asset_cost),
+ 147:           suffix: scale_suffix,
+ 148:           note: "Assets marked as productive.",
+ 149:           children: productive_asset_children,
+ 150:         },
+ 151:         {
+ 152:           key: "support-assets",
+ 153:           label: "Support assets",
+ 154:           value: support_asset_cost,
+ 155:           amount: Math.abs(support_asset_cost),
+ 156:           referenceTotal: Math.abs(scaled_asset_cost),
+ 157:           suffix: scale_suffix,
+ 158:           note: "Support assets remain in the cost burden.",
+ 159:           children: support_asset_children,
+ 160:         },
+ 161:       ],
+ 162:     },
+ 163:     {
+ 164:       key: "general-overheads",
+ 165:       label: "Business Overheads",
+ 166:       value: scaled_general_overheads,
+ 167:       amount: Math.abs(scaled_general_overheads),
+ 168:       referenceTotal: Math.abs(scaled_non_people_cost_burden),
+ 169:       suffix: scale_suffix,
+ 170:       note: "Annual business overheads from Cost Summary.",
+ 171:       children: overhead_category_children,
+ 172:     },
+ 173:   ].filter((item) => item.amount > 0);
+ 174: 
+ 175:   const people_cost_children = [
+ 176:     {
+ 177:       key: "productive-labour",
+ 178:       label: "Productive labour",
+ 179:       value: productive_staff_cost,
+ 180:       amount: Math.abs(productive_staff_cost),
+ 181:       referenceTotal: Math.abs(scaled_people_cost),
+ 182:       suffix: scale_suffix,
+ 183:       note: "Staff selected to contribute recovery hours.",
+ 184:       children: productive_staff_children,
+ 185:     },
+ 186:     {
+ 187:       key: "non-productive-labour",
+ 188:       label: "Non-productive labour",
+ 189:       value: non_productive_staff_cost,
+ 190:       amount: Math.abs(non_productive_staff_cost),
+ 191:       referenceTotal: Math.abs(scaled_people_cost),
+ 192:       suffix: scale_suffix,
+ 193:       note: "Staff that add cost but do not contribute recovery hours.",
+ 194:       children: non_productive_staff_children,
+ 195:     },
+ 196:   ];
+ 197: 
+ 198:   const pending_contribution_children = [
+ 199:     {
+ 200:       key: "labour-contribution-split",
+ 201:       label: "Labour Contribution Split",
+ 202:       value: 0,
+ 203:       amount: 0,
+ 204:       referenceTotal: Math.abs(scaled_margin_pool),
+ 205:       suffix: scale_suffix,
+ 206:       isPending: true,
+ 207:       includeInBar: false,
+ 208:       note: "Not yet calculated.",
+ 209:       pendingLabel: "Requires claimed labour hours / quote-job data",
+ 210:     },
+ 211:     {
+ 212:       key: "material-contribution-split",
+ 213:       label: "Material Contribution Split",
+ 214:       value: 0,
+ 215:       amount: 0,
+ 216:       referenceTotal: Math.abs(scaled_margin_pool),
+ 217:       suffix: scale_suffix,
+ 218:       isPending: true,
+ 219:       includeInBar: false,
+ 220:       note: "Not yet calculated.",
+ 221:       pendingLabel: "Requires claimed labour hours / quote-job data",
+ 222:     },
+ 223:     {
+ 224:       key: "other-contribution-split",
+ 225:       label: "Other Contribution Split",
+ 226:       value: 0,
+ 227:       amount: 0,
+ 228:       referenceTotal: Math.abs(scaled_margin_pool),
+ 229:       suffix: scale_suffix,
+ 230:       isPending: true,
+ 231:       includeInBar: false,
+ 232:       note: "Not yet calculated.",
+ 233:       pendingLabel: "Requires claimed labour hours / quote-job data",
+ 234:     },
+ 235:   ];
+ 236: 
+ 237:   const revenue_reference_total = Math.abs(scaled_revenue);
+ 238:   const product_margin_pool_children = [
+ 239:     {
+ 240:       key: "revenue-generated",
+ 241:       label: "Revenue",
+ 242:       value: scaled_revenue,
+ 243:       amount: revenue_reference_total,
+ 244:       referenceTotal: revenue_reference_total,
+ 245:       suffix: scale_suffix,
+ 246:       isReference: true,
+ 247:       includeInBar: false,
+ 248:       note: "Annual product revenue.",
+ 249:     },
+ 250:     {
+ 251:       key: "direct-costs",
+ 252:       label: "COGS / Direct Costs",
+ 253:       value: scaled_direct_costs,
+ 254:       amount: Math.abs(scaled_direct_costs),
+ 255:       referenceTotal: revenue_reference_total,
+ 256:       suffix: scale_suffix,
+ 257:       note: "Annual COGS / Direct Costs.",
+ 258:       children: direct_cost_children,
+ 259:     },
+ 260:     {
+ 261:       key: "units-sold",
+ 262:       label: "Units Sold",
+ 263:       value: 0,
+ 264:       amount: 0,
+ 265:       referenceTotal: revenue_reference_total,
+ 266:       isPending: true,
+ 267:       includeInBar: false,
+ 268:       valueLabel: `${formatNumber(scaled_units_sold)} ${product_unit_suffix}`,
+ 269:       pendingLabel: "Unit economics evidence",
+ 270:     },
+ 271:     {
+ 272:       key: "revenue-per-unit",
+ 273:       label: "Revenue per Unit",
+ 274:       value: 0,
+ 275:       amount: 0,
+ 276:       referenceTotal: revenue_reference_total,
+ 277:       isPending: true,
+ 278:       includeInBar: false,
+ 279:       valueLabel: `${formatCurrency(revenue_per_unit)} /unit`,
+ 280:       pendingLabel: "Unit economics evidence",
+ 281:     },
+ 282:     {
+ 283:       key: "direct-cost-per-unit",
+ 284:       label: "Direct Cost per Unit",
+ 285:       value: 0,
+ 286:       amount: 0,
+ 287:       referenceTotal: revenue_reference_total,
+ 288:       isPending: true,
+ 289:       includeInBar: false,
+ 290:       valueLabel: `${formatCurrency(direct_cost_per_unit)} /unit`,
+ 291:       pendingLabel: "Unit economics evidence",
+ 292:     },
+ 293:     {
+ 294:       key: "margin-per-unit",
+ 295:       label: "Margin per Unit",
+ 296:       value: 0,
+ 297:       amount: 0,
+ 298:       referenceTotal: revenue_reference_total,
+ 299:       isPending: true,
+ 300:       includeInBar: false,
+ 301:       valueLabel: `${formatCurrency(margin_per_unit)} /unit`,
+ 302:       pendingLabel: "Unit economics evidence",
+ 303:     },
+ 304:   ];
+ 305: 
+ 306:   return {
+ 307:     direct_cost_children,
+ 308:     people_cost_children,
+ 309:     pending_contribution_children,
+ 310:     product_margin_pool_children,
+ 311:     remaining_cost_children,
+ 312:   };
+ 313: }
+===== FILE: lib\calculations\costSummaryCalculations.js =====
+   1: function to_number(value) {
+   2:   const parsed = Number(value);
+   3:   return Number.isFinite(parsed) ? parsed : 0;
+   4: }
+   5: 
+   6: export function calculateCostSummary({
+   7:   labour_data = {},
+   8:   asset_data = {},
+   9:   general_overhead_data = {},
+  10:   opening_hours_data = {},
+  11: }) {
+  12:   const total_people_cost_annual = to_number(
+  13:     labour_data.total_labour_cost_annual
+  14:   );
+  15:   const total_productive_output = to_number(
+  16:     labour_data.total_productive_output
+  17:   );
+  18:   const business_recovery_hours = to_number(
+  19:     labour_data.business_recovery_hours ??
+  20:       labour_data.operating_recovery_hours ??
+  21:       labour_data.total_recovery_hours
+  22:   );
+  23:   const total_staff_recovery_hours = to_number(
+  24:     labour_data.total_staff_recovery_hours ?? labour_data.total_productive_output
+  25:   );
+  26:   const labour_recovery_hours = to_number(business_recovery_hours);
+  27:   const total_recovery_hours =
+  28:     labour_recovery_hours > 0 ? labour_recovery_hours : total_productive_output;
+  29: 
+  30:   const total_asset_cost_annual = to_number(asset_data.total_asset_cost_annual);
+  31:   const total_asset_interest_annual = to_number(
+  32:     asset_data.total_asset_interest_annual
+  33:   );
+  34:   const total_business_overheads = to_number(
+  35:     general_overhead_data.total_general_overheads
+  36:   );
+  37: 
+  38:   const total_business_cost_annual =
+  39:     total_asset_cost_annual + total_business_overheads;
+  40: 
+  41:   const total_cost_burden =
+  42:     total_people_cost_annual +
+  43:     total_asset_cost_annual +
+  44:     total_business_overheads;
+  45: 
+  46:   const required_revenue = total_cost_burden;
+  47: 
+  48:   const required_recovery_rate =
+  49:     total_recovery_hours > 0
+  50:       ? required_revenue / total_recovery_hours
+  51:       : 0;
+  52: 
+  53:   // Labour-based denominator: cost per productive output (labour perspective)
+  54:   const required_labour_burden_rate =
+  55:     total_productive_output > 0 ? total_cost_burden / total_productive_output : 0;
+  56: 
+  57:   // Macro operating calendar denominator: cost per available business open hour
+  58:   const net_annual_business_open_hours = to_number(
+  59:     opening_hours_data?.net_annual_business_open_hours ??
+  60:       opening_hours_data?.netAnnualBusinessOpenHours ??
+  61:       0
+  62:   );
+  63: 
+  64:   const opening_hours_warnings = [];
+  65: 
+  66:   let macro_required_operating_hour_rate = 0;
+  67:   if (net_annual_business_open_hours > 0) {
+  68:     macro_required_operating_hour_rate =
+  69:       total_cost_burden / net_annual_business_open_hours;
+  70:   } else {
+  71:     // Do not fall back to labour productive hours silently.
+  72:     macro_required_operating_hour_rate = 0;
+  73:     opening_hours_warnings.push(
+  74:       "Opening Hours missing or zero: macro_required_operating_hour_rate unavailable"
+  75:     );
+  76:   }
+  77: 
+  78:   return {
+  79:     total_people_cost_annual,
+  80: 
+  81:     total_productive_output,
+  82:     total_staff_recovery_hours,
+  83:     business_recovery_hours: total_recovery_hours,
+  84:     operating_recovery_hours: total_recovery_hours,
+  85:     total_recovery_hours,
+  86: 
+  87:     total_asset_cost_annual,
+  88:     total_asset_interest_annual,
+  89:     total_business_overheads,
+  90:     total_business_cost_annual,
+  91: 
+  92:     total_cost_burden,
+  93:     required_revenue,
+  94:     required_recovery_rate,
+  95:     required_labour_burden_rate,
+  96:     net_annual_business_open_hours,
+  97:     macro_required_operating_hour_rate,
+  98:     opening_hours_warnings,
+  99:   };
+ 100: }
+===== FILE: hooks\useCostSummary.js =====
+   1: "use client";
+   2: 
+   3: import { useMemo } from "react";
+   4: 
+   5: import { calculateCostSummary } from "@/lib/calculations/costSummaryCalculations";
+   6: import {
+   7:   selectCostSummaryLabour,
+   8:   buildCostSummaryStatus,
+   9:   buildCostSummaryCard,
+  10: } from "@/lib/selectors/costSummarySelectors";
+  11: 
+  12: export default function useCostSummary(inputs = {}) {
+  13:   return useMemo(() => {
+  14:     const labour_data = selectCostSummaryLabour(inputs.labour);
+  15: 
+  16:     const opening_hours_module = inputs.opening_hours ?? {};
+  17:     const opening_hours_data =
+  18:       opening_hours_module.calculated ??
+  19:       opening_hours_module.output_contract ??
+  20:       opening_hours_module;
+  21: 
+  22:     const labour_output_contract = inputs.labour?.output_contract ?? {};
+  23:     const asset_output_contract = inputs.assets?.output_contract ?? {};
+  24:     const general_overheads_output_contract =
+  25:       inputs.general_overheads?.output_contract ?? {};
+  26:     const assigned_asset_overhead_cost = Number(
+  27:       asset_output_contract.total_allocated_asset_overhead_cost_annual ?? 0
+  28:     );
+  29:     const total_general_overheads_before_asset_assignment = Number(
+  30:       general_overheads_output_contract.total_general_overheads ?? 0
+  31:     );
+  32:     const total_general_overheads_after_asset_assignment = Math.max(
+  33:       total_general_overheads_before_asset_assignment -
+  34:         assigned_asset_overhead_cost,
+  35:       0
+  36:     );
+  37: 
+  38:     const asset_data = {
+  39:       total_asset_cost_annual:
+  40:         asset_output_contract.total_asset_recovery_cost_annual ??
+  41:         asset_output_contract.total_asset_cost_annual ??
+  42:         0,
+  43:       base_asset_cost_annual:
+  44:         asset_output_contract.total_asset_cost_annual ?? 0,
+  45:       assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+  46:       total_asset_interest_annual:
+  47:         asset_output_contract.total_asset_interest_annual ?? 0,
+  48:       asset_detail: {
+  49:         running_cost_annual:
+  50:           asset_output_contract.legacy_display?.running_cost_annual ??
+  51:           asset_output_contract.running_cost_annual ??
+  52:           0,
+  53:       },
+  54:     };
+  55: 
+  56:     const general_overhead_data = {
+  57:       total_general_overheads:
+  58:         total_general_overheads_after_asset_assignment,
+  59:       total_general_overheads_before_asset_assignment:
+  60:         total_general_overheads_before_asset_assignment,
+  61:       assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+  62:       overhead_detail: {
+  63:         category_totals: Array.isArray(
+  64:           general_overheads_output_contract.category_totals
+  65:         )
+  66:           ? general_overheads_output_contract.category_totals
+  67:           : [],
+  68:         overhead_rows: Array.isArray(
+  69:           general_overheads_output_contract.overhead_rows
+  70:         )
+  71:           ? general_overheads_output_contract.overhead_rows
+  72:           : [],
+  73:       },
+  74:     };
+  75: 
+  76:     const model_readiness_input = inputs.model_readiness ?? {};
+  77: 
+  78:     const model_readiness = {
+  79:       model_ready: model_readiness_input.model_ready === true,
+  80:       model_readiness_status:
+  81:         model_readiness_input.model_readiness_status ?? "blocked",
+  82:       blocking_modules: model_readiness_input.blocking_modules ?? [],
+  83:       warning_modules: model_readiness_input.warning_modules ?? [],
+  84:       blocking_checks: model_readiness_input.blocking_checks ?? [],
+  85:       warning_checks: model_readiness_input.warning_checks ?? [],
+  86:     };
+  87: 
+  88:     const calculations = calculateCostSummary({
+  89:       labour_data,
+  90:       asset_data,
+  91:       general_overhead_data,
+  92:       opening_hours_data,
+  93:     });
+  94: 
+  95:     const status = buildCostSummaryStatus({
+  96:       labour_data,
+  97:       asset_data,
+  98:       general_overhead_data,
+  99:       calculations,
+ 100:       model_readiness,
+ 101:     });
+ 102: 
+ 103:     const card = buildCostSummaryCard({
+ 104:       labour_data,
+ 105:       asset_data,
+ 106:       general_overhead_data,
+ 107:       calculations,
+ 108:       model_readiness,
+ 109:     });
+ 110: 
+ 111:     const output_contract = {
+ 112:       total_people_cost_annual: calculations.total_people_cost_annual ?? 0,
+ 113:       total_recovery_hours: calculations.total_recovery_hours ?? 0,
+ 114:       business_recovery_hours: calculations.business_recovery_hours ?? 0,
+ 115:       operating_recovery_hours: calculations.operating_recovery_hours ?? 0,
+ 116:       total_staff_recovery_hours: calculations.total_staff_recovery_hours ?? 0,
+ 117:       total_productive_output: calculations.total_productive_output ?? 0,
+ 118:       total_available_hours_before_productivity:
+ 119:         labour_data.total_available_hours_before_productivity ?? 0,
+ 120:       weighted_productivity_percent:
+ 121:         labour_data.weighted_productivity_percent ?? 0,
+ 122: 
+ 123:       total_asset_cost_annual: calculations.total_asset_cost_annual ?? 0,
+ 124:       base_asset_cost_annual:
+ 125:         asset_output_contract.total_asset_cost_annual ?? 0,
+ 126:       assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+ 127:       total_asset_recovery_cost_annual:
+ 128:         asset_output_contract.total_asset_recovery_cost_annual ??
+ 129:         calculations.total_asset_cost_annual ??
+ 130:         0,
+ 131:       total_asset_interest_annual:
+ 132:         calculations.total_asset_interest_annual ?? 0,
+ 133:       has_productive_asset_recovery_base:
+ 134:         asset_output_contract.has_productive_asset_recovery_base === true,
+ 135:       productive_asset_count:
+ 136:         asset_output_contract.productive_asset_count ?? 0,
+ 137:       support_asset_count:
+ 138:         asset_output_contract.support_asset_count ?? 0,
+ 139:       productive_asset_cost:
+ 140:         asset_output_contract.productive_asset_cost ?? 0,
+ 141:       productive_asset_recovery_cost_annual:
+ 142:         asset_output_contract.productive_asset_recovery_cost_annual ??
+ 143:         asset_output_contract.productive_asset_cost ??
+ 144:         0,
+ 145:       support_asset_cost:
+ 146:         asset_output_contract.support_asset_cost ?? 0,
+ 147: 
+ 148:       total_business_overheads: calculations.total_business_overheads ?? 0,
+ 149:       total_general_overheads_before_asset_assignment,
+ 150:       total_general_overheads_after_asset_assignment:
+ 151:         calculations.total_business_overheads ?? 0,
+ 152:       general_overheads_after_asset_assignment:
+ 153:         calculations.total_business_overheads ?? 0,
+ 154:       total_assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+ 155:       total_unassigned_asset_related_overhead_cost_annual:
+ 156:         asset_output_contract.asset_related_unassigned_cost ?? 0,
+ 157:       total_business_cost_annual:
+ 158:         calculations.total_business_cost_annual ?? 0,
+ 159:       total_cost_burden: calculations.total_cost_burden ?? 0,
+ 160:       required_labour_burden_rate:
+ 161:         calculations.required_labour_burden_rate ?? 0,
+ 162:       macro_required_operating_hour_rate:
+ 163:         calculations.macro_required_operating_hour_rate ?? 0,
+ 164:       net_annual_business_open_hours:
+ 165:         calculations.net_annual_business_open_hours ?? 0,
+ 166: 
+ 167:       required_revenue: calculations.required_revenue ?? 0,
+ 168:       required_recovery_rate: calculations.required_recovery_rate ?? 0,
+ 169: 
+ 170:       model_ready: model_readiness.model_ready === true,
+ 171:       model_readiness_status:
+ 172:         model_readiness.model_readiness_status ?? "blocked",
+ 173:       blocking_modules: model_readiness.blocking_modules ?? [],
+ 174:       warning_modules: model_readiness.warning_modules ?? [],
+ 175:       blocking_checks: model_readiness.blocking_checks ?? [],
+ 176:       warning_checks: model_readiness.warning_checks ?? [],
+ 177: 
+ 178:       cost_burden_breakdown: {
+ 179:         people: {
+ 180:           total_people_cost_annual:
+ 181:             calculations.total_people_cost_annual ?? 0,
+ 182:           total_labour_cost_annual:
+ 183:             labour_output_contract.total_labour_cost_annual ??
+ 184:             calculations.total_people_cost_annual ??
+ 185:             0,
+ 186:           total_recovery_hours: calculations.total_recovery_hours ?? 0,
+ 187:           business_recovery_hours:
+ 188:             calculations.business_recovery_hours ?? 0,
+ 189:           operating_recovery_hours:
+ 190:             calculations.operating_recovery_hours ?? 0,
+ 191:           total_staff_recovery_hours:
+ 192:             calculations.total_staff_recovery_hours ?? 0,
+ 193:           total_productive_output:
+ 194:             calculations.total_productive_output ?? 0,
+ 195:           total_available_hours_before_productivity:
+ 196:             labour_data.total_available_hours_before_productivity ?? 0,
+ 197:           weighted_productivity_percent:
+ 198:             labour_data.weighted_productivity_percent ?? 0,
+ 199:           active_staff: Array.isArray(labour_output_contract.active_staff)
+ 200:             ? labour_output_contract.active_staff
+ 201:             : [],
+ 202:           productive_labour_types: Array.isArray(
+ 203:             labour_output_contract.productive_labour_types
+ 204:           )
+ 205:             ? labour_output_contract.productive_labour_types
+ 206:             : [],
+ 207:           labour_detail: labour_data.labour_detail ?? {},
+ 208:           entitlement_totals:
+ 209:             labour_output_contract.entitlement_totals ?? {},
+ 210:           employer_contribution_totals:
+ 211:             labour_output_contract.employer_contribution_totals ?? {},
+ 212:         },
+ 213: 
+ 214:         assets: {
+ 215:           total_asset_cost_annual:
+ 216:             calculations.total_asset_cost_annual ?? 0,
+ 217:           base_asset_cost_annual:
+ 218:             asset_output_contract.total_asset_cost_annual ?? 0,
+ 219:           assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+ 220:           total_asset_recovery_cost_annual:
+ 221:             asset_output_contract.total_asset_recovery_cost_annual ??
+ 222:             calculations.total_asset_cost_annual ??
+ 223:             0,
+ 224:           total_asset_interest_annual:
+ 225:             calculations.total_asset_interest_annual ?? 0,
+ 226:           finance_cost_annual:
+ 227:             asset_output_contract.finance_cost_annual ?? 0,
+ 228:           has_productive_asset_recovery_base:
+ 229:             asset_output_contract.has_productive_asset_recovery_base === true,
+ 230:           productive_asset_count:
+ 231:             asset_output_contract.productive_asset_count ?? 0,
+ 232:           support_asset_count:
+ 233:             asset_output_contract.support_asset_count ?? 0,
+ 234:           productive_asset_cost:
+ 235:             asset_output_contract.productive_asset_cost ?? 0,
+ 236:           productive_asset_recovery_cost_annual:
+ 237:             asset_output_contract.productive_asset_recovery_cost_annual ??
+ 238:             asset_output_contract.productive_asset_cost ??
+ 239:             0,
+ 240:           support_asset_cost:
+ 241:             asset_output_contract.support_asset_cost ?? 0,
+ 242:           asset_overhead_pool_assignment_summary: Array.isArray(
+ 243:             asset_output_contract.asset_overhead_pool_assignment_summary
+ 244:           )
+ 245:             ? asset_output_contract.asset_overhead_pool_assignment_summary
+ 246:             : [],
+ 247:           asset_related_unassigned_cost:
+ 248:             asset_output_contract.asset_related_unassigned_cost ?? 0,
+ 249:           asset_review_required:
+ 250:             asset_output_contract.asset_review_required === true,
+ 251:           active_assets: Array.isArray(asset_output_contract.active_assets)
+ 252:             ? asset_output_contract.active_assets
+ 253:             : [],
+ 254:           assets: Array.isArray(asset_output_contract.assets)
+ 255:             ? asset_output_contract.assets
+ 256:             : [],
+ 257:         },
+ 258: 
+ 259:         business_overheads: {
+ 260:           total_business_overheads:
+ 261:             calculations.total_business_overheads ?? 0,
+ 262:           total_general_overheads:
+ 263:             total_general_overheads_after_asset_assignment,
+ 264:           total_general_overheads_before_asset_assignment:
+ 265:             total_general_overheads_before_asset_assignment,
+ 266:           assigned_asset_overhead_cost_annual: assigned_asset_overhead_cost,
+ 267:           general_overheads_after_asset_assignment:
+ 268:             total_general_overheads_after_asset_assignment,
+ 269:           total_unassigned_asset_related_overhead_cost_annual:
+ 270:             asset_output_contract.asset_related_unassigned_cost ?? 0,
+ 271:           category_totals: Array.isArray(
+ 272:             general_overheads_output_contract.category_totals
+ 273:           )
+ 274:             ? general_overheads_output_contract.category_totals
+ 275:             : [],
+ 276:           overhead_rows: Array.isArray(
+ 277:             general_overheads_output_contract.overhead_rows
+ 278:           )
+ 279:             ? general_overheads_output_contract.overhead_rows
+ 280:             : [],
+ 281:         },
+ 282:       },
+ 283:     };
+ 284: 
+ 285:     return {
+ 286:       status,
+ 287:       card,
+ 288:       output_contract,
+ 289:     };
+ 290:   }, [
+ 291:     inputs.labour,
+ 292:     inputs.assets,
+ 293:     inputs.general_overheads,
+ 294:     inputs.opening_hours,
+ 295:     inputs.model_readiness,
+ 296:   ]);
+ 297: }
+===== FILE: lib\selectors\costSummarySelectors.js =====
+   1: function toNumber(value) {
+   2:   const n = Number(value);
+   3:   return Number.isFinite(n) ? n : 0;
+   4: }
+   5: 
+   6: function sumRows(rows = [], field = "") {
+   7:   return rows.reduce((total, row) => total + toNumber(row?.[field]), 0);
+   8: }
+   9: 
+  10: export function formatCostSummaryPercent(value) {
+  11:   const percent = toNumber(value);
+  12: 
+  13:   if (percent === 0) return "0%";
+  14:   if (percent > 0 && percent < 0.1) return "<0.1%";
+  15: 
+  16:   return `${percent.toFixed(1)}%`;
+  17: }
+  18: 
+  19: function buildLabourGroupDetail(active_staff = [], contributes_to_recovery_hours) {
+  20:   const staff = active_staff.filter(
+  21:     (row) =>
+  22:       (row?.contributes_to_recovery_hours !== false) ===
+  23:       contributes_to_recovery_hours
+  24:   );
+  25:   const gross_wages_annual = sumRows(staff, "gross_wages_annual");
+  26:   const entitlements_annual = sumRows(staff, "entitlements_annual");
+  27:   const annual_leave_cost_annual = sumRows(
+  28:     staff,
+  29:     "annual_leave_cost_annual"
+  30:   );
+  31:   const public_holiday_cost_annual = sumRows(
+  32:     staff,
+  33:     "public_holiday_cost_annual"
+  34:   );
+  35:   const sick_leave_cost_annual = sumRows(staff, "sick_leave_cost_annual");
+  36:   const bereavement_leave_cost_annual = sumRows(
+  37:     staff,
+  38:     "bereavement_leave_cost_annual"
+  39:   );
+  40:   const family_violence_leave_cost_annual = sumRows(
+  41:     staff,
+  42:     "family_violence_leave_cost_annual"
+  43:   );
+  44:   const employer_kiwisaver_annual = sumRows(staff, "employer_kiwisaver_gross");
+  45:   const esct_annual = sumRows(staff, "esct_amount");
+  46:   const acc_levy_annual = staff.reduce((total, row) => {
+  47:     return total + toNumber(row?.acc_levy_annual ?? row?.acc_work_levy_annual);
+  48:   }, 0);
+  49:   const employer_contribution_annual = sumRows(
+  50:     staff,
+  51:     "total_employer_contribution_cost"
+  52:   );
+  53:   const total_labour_cost_annual = sumRows(staff, "total_labour_cost_annual");
+  54: 
+  55:   return {
+  56:     staff_count: staff.length,
+  57:     total_labour_cost_annual,
+  58:     base_wages_annual: Math.max(gross_wages_annual - entitlements_annual, 0),
+  59:     entitlements_annual,
+  60:     annual_leave_cost_annual,
+  61:     public_holiday_cost_annual,
+  62:     sick_leave_cost_annual,
+  63:     bereavement_leave_cost_annual,
+  64:     family_violence_leave_cost_annual,
+  65:     employer_contribution_annual,
+  66:     employer_kiwisaver_annual,
+  67:     esct_annual,
+  68:     acc_levy_annual,
+  69:   };
+  70: }
+  71: 
+  72: function getBusinessRecoveryHours({
+  73:   total_productive_output = 0,
+  74:   productive_staff_count = 0,
+  75:   total_recovery_hours = 0,
+  76: }) {
+  77:   if (productive_staff_count > 0 && total_productive_output > 0) {
+  78:     return total_productive_output / productive_staff_count;
+  79:   }
+  80: 
+  81:   return toNumber(total_recovery_hours);
+  82: }
+  83: 
+  84: export function selectCostSummaryLabour(labour) {
+  85:   const output_contract = labour?.output_contract ?? labour ?? {};
+  86:   const active_staff = Array.isArray(output_contract.active_staff)
+  87:     ? output_contract.active_staff
+  88:     : [];
+  89:   const labour_detail = {
+  90:     productive: buildLabourGroupDetail(active_staff, true),
+  91:     non_productive: buildLabourGroupDetail(active_staff, false),
+  92:   };
+  93:   const total_productive_output = toNumber(
+  94:     output_contract.total_productive_output
+  95:   );
+  96:   const total_staff_recovery_hours = toNumber(
+  97:     output_contract.total_recovery_hours
+  98:   );
+  99:   const business_recovery_hours = getBusinessRecoveryHours({
+ 100:     total_productive_output,
+ 101:     productive_staff_count: labour_detail.productive.staff_count,
+ 102:     total_recovery_hours: total_staff_recovery_hours,
+ 103:   });
+ 104: 
+ 105:   return {
+ 106:     total_labour_cost_annual: toNumber(
+ 107:       output_contract.total_labour_cost_annual
+ 108:     ),
+ 109:     total_productive_output,
+ 110:     total_staff_recovery_hours,
+ 111:     business_recovery_hours,
+ 112:     operating_recovery_hours: business_recovery_hours,
+ 113:     total_recovery_hours: business_recovery_hours,
+ 114:     total_available_hours_before_productivity: toNumber(
+ 115:       output_contract.total_available_hours_before_productivity
+ 116:     ),
+ 117:     weighted_productivity_percent: toNumber(
+ 118:       output_contract.weighted_productivity_percent
+ 119:     ),
+ 120:     labour_detail,
+ 121:   };
+ 122: }
+ 123: 
+ 124: export function buildCostSummaryStatus({
+ 125:   labour_data,
+ 126:   asset_data,
+ 127:   general_overhead_data,
+ 128:   calculations,
+ 129:   model_readiness = {},
+ 130: }) {
+ 131:   const warnings = [];
+ 132:   const missing_modules = [];
+ 133:   const has_labour_data = Object.prototype.hasOwnProperty.call(
+ 134:     labour_data ?? {},
+ 135:     "total_labour_cost_annual"
+ 136:   );
+ 137: 
+ 138:   const has_asset_data = Object.prototype.hasOwnProperty.call(
+ 139:     asset_data ?? {},
+ 140:     "total_asset_cost_annual"
+ 141:   );
+ 142:   const has_general_overhead_data = Object.prototype.hasOwnProperty.call(
+ 143:     general_overhead_data ?? {},
+ 144:     "total_general_overheads"
+ 145:   );
+ 146:   const has_recovery_hours =
+ 147:     toNumber(calculations?.total_recovery_hours) > 0;
+ 148: 
+ 149:   if (!has_labour_data) {
+ 150:     warnings.push("Labour output is missing. Fix Labour before trusting Cost Summary.");
+ 151:     missing_modules.push("Labour");
+ 152:   }
+ 153: 
+ 154:   if (!has_asset_data) {
+ 155:     warnings.push("Assets output is missing. Fix Assets before trusting Cost Summary.");
+ 156:     missing_modules.push("Assets");
+ 157:   }
+ 158: 
+ 159:   if (!has_general_overhead_data) {
+ 160:     warnings.push(
+ 161:       "General Overheads output is missing. Fix General Overheads before trusting Cost Summary."
+ 162:     );
+ 163:     missing_modules.push("General Overheads");
+ 164:   }
+ 165: 
+ 166:   if (!has_recovery_hours) {
+ 167:     warnings.push(
+ 168:       "Recovery hours are zero. Mark at least one Labour profile as productive before trusting the required recovery rate."
+ 169:     );
+ 170:   }
+ 171: 
+ 172:   // Propagate opening hours warnings from calculations, if present
+ 173:   if (Array.isArray(calculations?.opening_hours_warnings)) {
+ 174:     calculations.opening_hours_warnings.forEach((w) => warnings.push(w));
+ 175:   }
+ 176: 
+ 177:   const model_ready = model_readiness.model_ready === true;
+ 178:   const model_readiness_status =
+ 179:     model_readiness.model_readiness_status ?? "blocked";
+ 180:   const blocking_checks = Array.isArray(model_readiness.blocking_checks)
+ 181:     ? model_readiness.blocking_checks
+ 182:     : [];
+ 183:   const warning_checks = Array.isArray(model_readiness.warning_checks)
+ 184:     ? model_readiness.warning_checks
+ 185:     : [];
+ 186: 
+ 187:   return {
+ 188:     labour_profiles_label: has_labour_data ? "Connected" : "Missing",
+ 189:     asset_costs_label: has_asset_data ? "Connected" : "Missing",
+ 190:     general_overheads_label: has_general_overhead_data ? "Connected" : "Missing",
+ 191:     recovery_hours_label: has_recovery_hours
+ 192:       ? calculations.total_recovery_hours.toFixed(0)
+ 193:       : "0",
+ 194:     productive_output_label:
+ 195:       toNumber(calculations?.total_productive_output) > 0
+ 196:         ? calculations.total_productive_output.toFixed(0)
+ 197:         : "0",
+ 198:     missing_modules,
+ 199:     warnings: [...warnings, ...warning_checks],
+ 200:     is_ready: model_ready && has_recovery_hours,
+ 201:     model_ready,
+ 202:     model_readiness_status,
+ 203:     blocking_modules: model_readiness.blocking_modules ?? [],
+ 204:     warning_modules: model_readiness.warning_modules ?? [],
+ 205:     blocking_checks,
+ 206:     warning_checks,
+ 207:   };
+ 208: }
+ 209: 
+ 210: export function buildCostSummaryCard({
+ 211:   labour_data,
+ 212:   asset_data,
+ 213:   general_overhead_data,
+ 214:   calculations,
+ 215:   model_readiness = {},
+ 216: }) {
+ 217:   const labour_share =
+ 218:     calculations.total_cost_burden > 0
+ 219:       ? (calculations.total_people_cost_annual /
+ 220:           calculations.total_cost_burden) *
+ 221:         100
+ 222:       : 0;
+ 223: 
+ 224:   let highlight_insight =
+ 225:     "Cost Summary is using Labour, Assets, and General Overheads outputs only.";
+ 226: 
+ 227:   if (calculations.total_recovery_hours <= 0) {
+ 228:     highlight_insight =
+ 229:       "Recovery hours are zero, so the required recovery rate is held at 0.";
+ 230:   } else {
+ 231:     highlight_insight = `Labour represents ${formatCostSummaryPercent(
+ 232:       labour_share
+ 233:     )} of the current cost burden baseline.`;
+ 234:   }
+ 235: 
+ 236:   return {
+ 237:     people_cost_total: calculations.total_people_cost_annual,
+ 238: 
+ 239:     business_cost_total: calculations.total_business_cost_annual,
+ 240:     asset_cost_total: calculations.total_asset_cost_annual,
+ 241:     total_asset_interest_annual: calculations.total_asset_interest_annual,
+ 242:     general_overheads_total: calculations.total_business_overheads,
+ 243: 
+ 244:     total_cost_burden: calculations.total_cost_burden,
+ 245:     required_revenue: calculations.required_revenue,
+ 246:     required_recovery_rate: calculations.required_recovery_rate,
+ 247:     required_labour_burden_rate: calculations.required_labour_burden_rate,
+ 248:     macro_required_operating_hour_rate:
+ 249:       calculations.macro_required_operating_hour_rate,
+ 250:     net_annual_business_open_hours: calculations.net_annual_business_open_hours,
+ 251:     total_recovery_hours: calculations.total_recovery_hours,
+ 252:     business_recovery_hours: calculations.business_recovery_hours,
+ 253:     operating_recovery_hours: calculations.operating_recovery_hours,
+ 254:     total_staff_recovery_hours: calculations.total_staff_recovery_hours,
+ 255:     total_productive_output: calculations.total_productive_output,
+ 256:     labour_detail: labour_data.labour_detail ?? {},
+ 257:     asset_detail: asset_data.asset_detail ?? {},
+ 258:     overhead_detail: general_overhead_data.overhead_detail ?? {},
+ 259:     model_ready: model_readiness.model_ready === true,
+ 260:     model_readiness_status:
+ 261:       model_readiness.model_readiness_status ?? "blocked",
+ 262: 
+ 263:     highlight_insight,
+ 264:   };
+ 265: }
+===== FILE: hooks\useRecoverySummary.js =====
+   1: "use client";
+   2: 
+   3: import { useMemo } from "react";
+   4: 
+   5: import useBusinessSummary from "@/hooks/useBusinessSummary";
+   6: import useModelReadiness from "@/hooks/useModelReadiness";
+   7: import useRevenueCogs from "@/hooks/useRevenueCogs";
+   8: import { calculateRecoverySummary } from "@/lib/calculations/recoverySummaryCalculations";
+   9: import {
+  10:   buildRecoverySummaryCard,
+  11:   buildRecoverySummaryStatus,
+  12: } from "@/lib/selectors/recoverySummarySelectors";
+  13: import { useRecoverySummaryStorage } from "@/lib/storage/recoverySummaryStorage";
+  14: 
+  15: export default function useRecoverySummary(inputs = {}) {
+  16:   const business_summary = useBusinessSummary();
+  17:   const revenue_cogs = useRevenueCogs();
+  18:   const model_readiness = useModelReadiness();
+  19: 
+  20:   const {
+  21:     recovery_state,
+  22:     update_recovery_field,
+  23:     reset_recovery_state,
+  24:   } = useRecoverySummaryStorage();
+  25: 
+  26:   const business_summary_outputs =
+  27:     inputs.business_summary ?? business_summary.output_contract ?? {};
+  28:   const revenue_cogs_outputs =
+  29:     inputs.revenue_cogs ?? revenue_cogs.output_contract ?? {};
+  30:   const asset_outputs =
+  31:     inputs.assets ?? model_readiness.modules?.assets?.output_contract ?? {};
+  32:   const labour_outputs =
+  33:     inputs.labour ?? model_readiness.modules?.labour?.output_contract ?? {};
+  34:   const general_overheads_outputs =
+  35:     inputs.general_overheads ??
+  36:     model_readiness.modules?.generalOverheads?.output_contract ??
+  37:     {};
+  38: 
+  39:   const calculated = useMemo(() => {
+  40:     const use_saved_split =
+  41:       recovery_state.split_manually_overridden === true ||
+  42:       recovery_state.recovery_model !== "hybrid";
+  43: 
+  44:     return calculateRecoverySummary({
+  45:       ...business_summary_outputs,
+  46:       revenue_cogs: revenue_cogs_outputs,
+  47:       assets: asset_outputs,
+  48:       labour: labour_outputs,
+  49:       general_overheads: general_overheads_outputs,
+  50: 
+  51:       recovery_model: recovery_state.recovery_model,
+  52: 
+  53:       labour_share_percent: use_saved_split
+  54:         ? recovery_state.labour_share_percent
+  55:         : undefined,
+  56:       asset_share_percent: use_saved_split
+  57:         ? recovery_state.asset_share_percent
+  58:         : undefined,
+  59:       material_share_percent: use_saved_split
+  60:         ? recovery_state.material_share_percent
+  61:         : undefined,
+  62: 
+  63:       // Unexplained recovery allowance is calculated inside Recovery Summary
+  64:       // as 100% minus labour, asset, and materials / products shares.
+  65:     });
+  66:   }, [
+  67:     business_summary_outputs,
+  68:     revenue_cogs_outputs,
+  69:     asset_outputs,
+  70:     labour_outputs,
+  71:     general_overheads_outputs,
+  72:     recovery_state,
+  73:   ]);
+  74: 
+  75:   const status = useMemo(() => {
+  76:     return buildRecoverySummaryStatus({
+  77:       calculated,
+  78:     });
+  79:   }, [calculated]);
+  80: 
+  81:   const card = useMemo(() => {
+  82:     return buildRecoverySummaryCard({
+  83:       calculated,
+  84:       recovery_state,
+  85:       update_recovery_field,
+  86:       reset_recovery_state,
+  87:     });
+  88:   }, [calculated, recovery_state, update_recovery_field, reset_recovery_state]);
+  89: 
+  90:   const output_contract = useMemo(() => {
+  91:     return {
+  92:       recovery_summary_ready: status.recovery_summary_ready,
+  93:       recovery_summary_status: status.recovery_summary_status,
+  94:       recovery_summary_warnings: status.recovery_summary_warnings,
+  95: 
+  96:       business_type: calculated.business_type,
+  97:       recovery_mode: calculated.recovery_mode,
+  98:       is_product_based: calculated.is_product_based,
+  99:       is_labour_based: calculated.is_labour_based,
+ 100:       activity_driver_type: calculated.activity_driver_type,
+ 101:       activity_driver_label: calculated.activity_driver_label,
+ 102:       activity_driver_value: calculated.activity_driver_value,
+ 103: 
+ 104:       required_recovery_per_driver: calculated.required_recovery_per_driver,
+ 105:       current_margin_per_driver: calculated.current_margin_per_driver,
+ 106:       recovery_gap_per_driver: calculated.recovery_gap_per_driver,
+ 107: 
+ 108:       recovery_plan_target_per_driver:
+ 109:         calculated.recovery_plan_target_per_driver,
+ 110:       recovery_plan_split: calculated.recovery_plan_split,
+ 111:       component_required_recovery: calculated.component_required_recovery,
+ 112: 
+ 113:       recovery_model: calculated.recovery_model,
+ 114:       active_recovery_model: calculated.active_recovery_model,
+ 115: 
+ 116:       labour_share_percent: calculated.labour_share_percent,
+ 117:       asset_share_percent: calculated.asset_share_percent,
+ 118:       material_share_percent: calculated.material_share_percent,
+ 119:       overhead_absorbed_percent: calculated.overhead_absorbed_percent,
+ 120: 
+ 121:       // Backwards-compatible output while older downstream code migrates.
+ 122:       overhead_share_percent: calculated.overhead_absorbed_percent,
+ 123: 
+ 124:       explained_recovery_total: calculated.explained_recovery_total,
+ 125: 
+ 126:       labour_recovery_cost: calculated.labour_recovery_cost,
+ 127:       labour_recovery_hours: calculated.labour_recovery_hours,
+ 128:       labour_recovery_status: calculated.labour_recovery_status,
+ 129:       labour_recovery_gap: calculated.labour_recovery_gap,
+ 130:       asset_recovery_cost: calculated.asset_recovery_cost,
+ 131:       asset_utilisation_hours_annual:
+ 132:         calculated.asset_utilisation_hours_annual,
+ 133:       required_asset_recovery_rate: calculated.required_asset_recovery_rate,
+ 134:       asset_recovery_status: calculated.asset_recovery_status,
+ 135:       material_recovery_cost: calculated.material_recovery_cost,
+ 136:       material_margin_pool: calculated.material_margin_pool,
+ 137:       material_margin_percent: calculated.material_margin_percent,
+ 138:       material_margin_status: calculated.material_margin_status,
+ 139:       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+ 140: 
+ 141:       // Support/productive asset split, plus each side's assigned share of
+ 142:       // the asset overhead pools (fuel, insurance, repairs, registration,
+ 143:       // consumables, finance interest). Pass-through from the assets
+ 144:       // contract Recovery Summary already receives as an input - not a
+ 145:       // new calculation. Needed so downstream consumers (e.g. Business
+ 146:       // Outcome) can show the true full cost of non-productive assets
+ 147:       // without calling useAssets() directly.
+ 148:       productive_asset_cost: asset_outputs.productive_asset_cost ?? 0,
+ 149:       support_asset_cost: asset_outputs.support_asset_cost ?? 0,
+ 150:       productive_asset_assigned_overhead_cost_annual:
+ 151:         asset_outputs.productive_asset_assigned_overhead_cost_annual ?? 0,
+ 152:       support_asset_assigned_overhead_cost_annual:
+ 153:         asset_outputs.support_asset_assigned_overhead_cost_annual ?? 0,
+ 154: 
+ 155:       required_revenue: calculated.required_revenue,
+ 156:       required_recovery_rate: calculated.required_recovery_rate,
+ 157: 
+ 158:       total_recovery_hours: calculated.total_recovery_hours,
+ 159:       recovery_hours_used: calculated.recovery_hours_used,
+ 160:       actual_recovery_rate: calculated.actual_recovery_rate,
+ 161:       profit_or_deficit_per_recovery_hour:
+ 162:         calculated.profit_or_deficit_per_recovery_hour,
+ 163: 
+ 164:       required_labour_recovery_rate: calculated.required_labour_recovery_rate,
+ 165:       required_labour_recovery_rate_per_recovery_hour:
+ 166:         calculated.required_labour_recovery_rate_per_recovery_hour,
+ 167: 
+ 168:       required_asset_recovery_per_recovery_hour:
+ 169:         calculated.required_asset_recovery_per_recovery_hour,
+ 170: 
+ 171:       required_material_recovery_per_recovery_hour:
+ 172:         calculated.required_material_recovery_per_recovery_hour,
+ 173: 
+ 174:       overhead_absorbed_cost_per_recovery_hour:
+ 175:         calculated.overhead_absorbed_cost_per_recovery_hour,
+ 176: 
+ 177:       required_asset_recovery: calculated.required_asset_recovery,
+ 178:       required_material_recovery: calculated.required_material_recovery,
+ 179: 
+ 180:       gross_profit: calculated.gross_profit,
+ 181:       gross_profit_source_status: calculated.gross_profit_source_status,
+ 182:       material_margin_status: calculated.material_margin_status,
+ 183:       asset_utilisation_status: calculated.asset_utilisation_status,
+ 184:       material_recovery_included: calculated.material_recovery_included,
+ 185:       asset_recovery_included: calculated.asset_recovery_included,
+ 186: 
+ 187:       overhead_absorption_level: calculated.overhead_absorption_level,
+ 188:       overhead_absorption_title: calculated.overhead_absorption_title,
+ 189:       overhead_absorption_message: calculated.overhead_absorption_message,
+ 190:       overhead_absorption_diagnostics:
+ 191:         calculated.overhead_absorption_diagnostics,
+ 192: 
+ 193:       total_revenue: calculated.total_revenue,
+ 194:       total_direct_costs: calculated.total_direct_costs,
+ 195:       gross_margin_percent: calculated.gross_margin_percent,
+ 196:       margin_pool: calculated.margin_pool,
+ 197: 
+ 198:       total_people_cost_annual: calculated.total_people_cost_annual,
+ 199:       total_asset_cost_annual: calculated.total_asset_cost_annual,
+ 200:       total_business_overheads: calculated.total_business_overheads,
+ 201:       total_cost_burden: calculated.total_cost_burden,
+ 202:       cost_burden_breakdown: calculated.cost_burden_breakdown,
+ 203: 
+ 204:       net_position: calculated.net_position,
+ 205:       model_trust_state: calculated.model_trust_state,
+ 206: 
+ 207:       // Backwards-compatible outputs still consumed by existing downstream code.
+ 208:       total_productive_output: calculated.total_productive_output,
+ 209:       units_sold_annual: calculated.units_sold_annual,
+ 210:       margin_per_unit: calculated.margin_per_unit,
+ 211:       required_units_to_break_even:
+ 212:         calculated.required_units_to_break_even,
+ 213:       unit_surplus_or_shortfall:
+ 214:         calculated.unit_surplus_or_shortfall,
+ 215:       product_recovery_ready: calculated.product_recovery_ready,
+ 216:       product_recovery_status: calculated.product_recovery_status,
+ 217:       total_units: calculated.total_units,
+ 218:       required_cost_per_unit: calculated.required_cost_per_unit,
+ 219:       unit_surplus_or_gap: calculated.unit_surplus_or_gap,
+ 220:       total_annual_surplus_or_gap: calculated.total_annual_surplus_or_gap,
+ 221:       required_units_if_margin_fixed:
+ 222:         calculated.required_units_if_margin_fixed,
+ 223:       required_margin_if_units_fixed:
+ 224:         calculated.required_margin_if_units_fixed,
+ 225:       product_unit_recovery_status:
+ 226:         calculated.product_unit_recovery_status,
+ 227:       commercial_driver_mode: calculated.commercial_driver_mode,
+ 228:       unit_driver_rows: calculated.unit_driver_rows,
+ 229:       product_unit_label: calculated.product_unit_label,
+ 230:       product_unit_type: calculated.product_unit_type,
+ 231:       product_unit_type_label: calculated.product_unit_type_label,
+ 232:       product_unit_margin_label: calculated.product_unit_margin_label,
+ 233:       product_required_cost_label: calculated.product_required_cost_label,
+ 234:       product_surplus_gap_label: calculated.product_surplus_gap_label,
+ 235:       product_total_units_label: calculated.product_total_units_label,
+ 236:       product_unit_suffix: calculated.product_unit_suffix,
+ 237:       product_rate_suffix: calculated.product_rate_suffix,
+ 238: 
+ 239:       recovery_warning_rows: card.recovery_warning_rows,
+ 240:       primary_recovery_warning: card.primary_recovery_warning,
+ 241:       cascade_recovery_warnings: card.cascade_recovery_warnings,
+ 242:       recovery_failure_path: card.recovery_failure_path,
+ 243:       has_primary_recovery_warning: card.has_primary_recovery_warning,
+ 244:       has_blocking_recovery_warning: card.has_blocking_recovery_warning,
+ 245:       has_review_recovery_warning: card.has_review_recovery_warning,
+ 246:       blocking_recovery_warning_count: card.blocking_recovery_warning_count,
+ 247:       review_recovery_warning_count: card.review_recovery_warning_count,
+ 248:       info_recovery_warning_count: card.info_recovery_warning_count,
+ 249:       recovery_warning_count: card.recovery_warning_count,
+ 250: 
+ 251:       warnings: calculated.warnings,
+ 252:       share_not_balanced: calculated.share_not_balanced,
+ 253:       no_productive_output: calculated.no_productive_output,
+ 254:       no_recovery_hours: calculated.no_recovery_hours,
+ 255:       asset_recovery_without_assets: calculated.asset_recovery_without_assets,
+ 256:       labour_recovery_without_labour: calculated.labour_recovery_without_labour,
+ 257:     };
+ 258:   }, [calculated, status, card, asset_outputs]);
+ 259: 
+ 260:   return {
+ 261:     status,
+ 262:     card,
+ 263:     output_contract,
+ 264:   };
+ 265: }
+===== FILE: lib\calculations\recovery-summary\calculateRecoverySummary.js =====
+   1: import {
+   2:   BALANCE_TOLERANCE,
+   3:   get_product_unit_display,
+   4:   is_numeric_input,
+   5:   normalise_recovery_model,
+   6:   round_currency,
+   7:   round_percent,
+   8:   to_number,
+   9: } from "./sharedRecoverySummaryHelpers.js";
+  10: import { build_overhead_absorption_diagnostics } from "./recoverySummaryOverheadDiagnostics.js";
+  11: import { build_suggested_starting_split } from "./recoverySummarySuggestedSplit.js";
+  12: 
+  13: export function calculateRecoverySummary(input = {}) {
+  14:   const business_summary_ready = input.business_summary_ready === true;
+  15:   const revenue_cogs = input.revenue_cogs ?? {};
+  16:   const asset_contract = input.assets ?? {};
+  17:   const labour_contract = input.labour ?? {};
+  18:   const general_overheads_contract = input.general_overheads ?? {};
+  19:   const business_type =
+  20:     input.business_type ||
+  21:     revenue_cogs.business_type ||
+  22:     (revenue_cogs.is_product_based === true ? "product_based" : "") ||
+  23:     "labour_based";
+  24:   const is_product_based =
+  25:     input.is_product_based === true ||
+  26:     revenue_cogs.is_product_based === true ||
+  27:     business_type === "product_based";
+  28:   const is_labour_based =
+  29:     input.is_labour_based === true ||
+  30:     revenue_cogs.is_labour_based === true ||
+  31:     business_type !== "product_based";
+  32:   const recovery_mode = is_product_based ? "product_unit" : "hours_based";
+  33:   const activity_driver_type = input.activity_driver_type || "hours";
+  34: 
+  35:   const activity_driver_label =
+  36:     input.activity_driver_label ||
+  37:     (activity_driver_type === "units"
+  38:       ? "Units sold"
+  39:       : "Selected recovery hours");
+  40: 
+  41:   const activity_driver_value = to_number(input.activity_driver_value);
+  42: 
+  43:   const required_recovery_per_driver = to_number(
+  44:     input.required_recovery_per_driver
+  45:   );
+  46: 
+  47:   const current_margin_per_driver = to_number(input.current_margin_per_driver);
+  48:   const recovery_gap_per_driver = to_number(input.recovery_gap_per_driver);
+  49: 
+  50:   const total_revenue = to_number(input.total_revenue);
+  51:   const total_direct_costs = to_number(input.total_direct_costs);
+  52:   const gross_margin_percent = to_number(input.gross_margin_percent);
+  53:   const margin_pool = to_number(input.margin_pool);
+  54:   const commercial_driver_mode =
+  55:     revenue_cogs.commercial_driver_mode ||
+  56:     (is_product_based ? "unit_based" : "hours_based");
+  57:   const unit_driver_rows = Array.isArray(revenue_cogs.unit_driver_rows)
+  58:     ? revenue_cogs.unit_driver_rows
+  59:     : [];
+  60:   const product_unit_display = get_product_unit_display({
+  61:     commercial_driver_mode,
+  62:     primary_unit_label: revenue_cogs.primary_unit_label,
+  63:     primary_unit_type: revenue_cogs.primary_unit_type,
+  64:     unit_driver_rows,
+  65:   });
+  66: 
+  67:   const total_people_cost_annual = to_number(
+  68:     input.total_people_cost_annual ?? labour_contract.total_labour_cost_annual
+  69:   );
+  70:   const total_asset_cost_annual = to_number(input.total_asset_cost_annual);
+  71:   const total_business_overheads = to_number(
+  72:     input.total_business_overheads ??
+  73:       general_overheads_contract.total_general_overheads
+  74:   );
+  75:   const total_cost_burden =
+  76:     to_number(input.total_cost_burden) ||
+  77:     total_people_cost_annual + total_asset_cost_annual + total_business_overheads;
+  78: 
+  79:   const has_productive_asset_recovery_base =
+  80:     input.has_productive_asset_recovery_base === true ||
+  81:     asset_contract.has_productive_asset_recovery_base === true;
+  82: 
+  83:   const productive_asset_count = to_number(
+  84:     input.productive_asset_count ?? asset_contract.productive_asset_count
+  85:   );
+  86:   const support_asset_count = to_number(
+  87:     input.support_asset_count ?? asset_contract.support_asset_count
+  88:   );
+  89:   const productive_asset_cost = to_number(
+  90:     input.productive_asset_cost ??
+  91:       input.productive_asset_cost_annual ??
+  92:       asset_contract.productive_asset_cost_annual ??
+  93:       asset_contract.productive_asset_cost
+  94:   );
+  95:   const support_asset_cost = to_number(input.support_asset_cost);
+  96:   // A11 (2026-09-23): productive_asset_cost is OWN cost only (Assets naming
+  97:   // trap). The full productive asset burden adds the General Overheads pools
+  98:   // assigned to productive assets. Business Summary does not publish the pool
+  99:   // figure, so it is read from the Assets contract (input.assets).
+ 100:   // productive_asset_cost itself stays own-only - Business Outcome adds the
+ 101:   // pools itself (businessOutcomeCalculations.js) and would double count.
+ 102:   const productive_asset_assigned_overhead_cost = to_number(
+ 103:     input.productive_asset_assigned_overhead_cost_annual ??
+ 104:       asset_contract.productive_asset_assigned_overhead_cost_annual
+ 105:   );
+ 106:   const productive_asset_recovery_cost =
+ 107:     productive_asset_cost + productive_asset_assigned_overhead_cost;
+ 108:   const asset_utilisation_hours_annual = to_number(
+ 109:     input.asset_utilisation_hours_annual ??
+ 110:       input.total_productive_asset_utilisation_hours_annual ??
+ 111:       asset_contract.total_productive_asset_utilisation_hours_annual
+ 112:   );
+ 113:   const required_asset_recovery_rate =
+ 114:     asset_utilisation_hours_annual > 0
+ 115:       ? round_currency(productive_asset_recovery_cost / asset_utilisation_hours_annual)
+ 116:       : 0;
+ 117: 
+ 118:   const cost_burden_breakdown = input.cost_burden_breakdown ?? {
+ 119:     people: {},
+ 120:     assets: {},
+ 121:     business_overheads: {},
+ 122:   };
+ 123: 
+ 124:   const required_recovery_rate = to_number(input.required_recovery_rate);
+ 125:   const total_recovery_hours = to_number(input.total_recovery_hours);
+ 126:   const total_productive_output = to_number(input.total_productive_output);
+ 127: 
+ 128:   const recovery_hours_used =
+ 129:     total_recovery_hours > 0 ? total_recovery_hours : total_productive_output;
+ 130: 
+ 131:   const actual_recovery_rate = to_number(input.actual_recovery_rate);
+ 132: 
+ 133:   const profit_or_deficit_per_recovery_hour = to_number(
+ 134:     input.profit_or_deficit_per_recovery_hour
+ 135:   );
+ 136: 
+ 137:   const units_sold_annual = to_number(
+ 138:     revenue_cogs.total_derived_units_annual ?? input.units_sold_annual
+ 139:   );
+ 140:   const margin_per_unit_input = to_number(
+ 141:     revenue_cogs.weighted_average_margin_per_unit ??
+ 142:       revenue_cogs.margin_per_unit ??
+ 143:       input.margin_per_unit
+ 144:   );
+ 145:   const margin_per_unit =
+ 146:     margin_per_unit_input > 0 || is_numeric_input(input.margin_per_unit)
+ 147:       ? margin_per_unit_input
+ 148:       : units_sold_annual > 0
+ 149:         ? margin_pool / units_sold_annual
+ 150:         : 0;
+ 151:   const total_units = units_sold_annual;
+ 152:   const required_cost_per_unit =
+ 153:     total_units > 0 ? round_currency(total_cost_burden / total_units) : 0;
+ 154:   const unit_surplus_or_gap = round_currency(
+ 155:     margin_per_unit - required_cost_per_unit
+ 156:   );
+ 157:   const total_annual_surplus_or_gap = round_currency(
+ 158:     unit_surplus_or_gap * total_units
+ 159:   );
+ 160:   const required_units_to_break_even =
+ 161:     margin_per_unit > 0 ? total_cost_burden / margin_per_unit : 0;
+ 162:   const unit_surplus_or_shortfall = total_units - required_units_to_break_even;
+ 163:   const required_units_if_margin_fixed = required_units_to_break_even;
+ 164:   const required_margin_if_units_fixed = required_cost_per_unit;
+ 165:   const product_recovery_ready = margin_per_unit > 0 && total_units > 0;
+ 166:   const product_recovery_status =
+ 167:     margin_per_unit <= 0
+ 168:       ? "not_recoverable"
+ 169:       : unit_surplus_or_gap < 0
+ 170:         ? "shortfall"
+ 171:         : "surplus";
+ 172:   const product_unit_recovery_status = product_recovery_status;
+ 173:   const net_position = to_number(input.net_position);
+ 174:   const model_trust_state = input.model_trust_state || "blocked";
+ 175: 
+ 176:   const suggested_starting_split = build_suggested_starting_split({
+ 177:     total_people_cost_annual,
+ 178:     productive_asset_cost: productive_asset_recovery_cost,
+ 179:     has_productive_asset_recovery_base,
+ 180:     total_direct_costs,
+ 181:     recovery_hours_used,
+ 182:     total_productive_output,
+ 183:   });
+ 184: 
+ 185:   const has_valid_recovery_hour_result =
+ 186:     recovery_hours_used > 0 &&
+ 187:     required_recovery_rate > 0 &&
+ 188:     total_cost_burden > 0 &&
+ 189:     is_numeric_input(input.actual_recovery_rate) &&
+ 190:     is_numeric_input(input.profit_or_deficit_per_recovery_hour) &&
+ 191:     is_numeric_input(input.margin_pool);
+ 192:   const has_valid_product_result =
+ 193:     is_product_based &&
+ 194:     units_sold_annual > 0 &&
+ 195:     total_cost_burden > 0 &&
+ 196:     is_numeric_input(margin_per_unit) &&
+ 197:     is_numeric_input(unit_surplus_or_shortfall) &&
+ 198:     is_numeric_input(input.margin_pool);
+ 199: 
+ 200:   const recovery_model = normalise_recovery_model(
+ 201:     input.recovery_model ?? suggested_starting_split.suggested_recovery_model
+ 202:   );
+ 203: 
+ 204:   const active_recovery_model = recovery_model;
+ 205: 
+ 206:   const labour_share_percent = to_number(
+ 207:     input.labour_share_percent ??
+ 208:       suggested_starting_split.suggested_labour_share_percent
+ 209:   );
+ 210: 
+ 211:   const asset_share_percent = to_number(
+ 212:     input.asset_share_percent ??
+ 213:       suggested_starting_split.suggested_asset_share_percent
+ 214:   );
+ 215: 
+ 216:   const material_share_percent = to_number(
+ 217:     input.material_share_percent ??
+ 218:       suggested_starting_split.suggested_material_share_percent
+ 219:   );
+ 220: 
+ 221:   const explained_recovery_total =
+ 222:     labour_share_percent + asset_share_percent + material_share_percent;
+ 223: 
+ 224:   const explained_recovery_exceeds_100 =
+ 225:     explained_recovery_total > 100 + BALANCE_TOLERANCE;
+ 226: 
+ 227:   const overhead_absorbed_percent = explained_recovery_exceeds_100
+ 228:     ? 0
+ 229:     : Math.max(0, 100 - explained_recovery_total);
+ 230: 
+ 231:   const share_total = explained_recovery_total + overhead_absorbed_percent;
+ 232:   const share_not_balanced = explained_recovery_exceeds_100;
+ 233: 
+ 234:   let labour_recovery_cost = round_currency(
+ 235:     total_cost_burden * (labour_share_percent / 100)
+ 236:   );
+ 237: 
+ 238:   let asset_recovery_cost = round_currency(
+ 239:     total_cost_burden * (asset_share_percent / 100)
+ 240:   );
+ 241: 
+ 242:   let material_recovery_cost = round_currency(
+ 243:     total_cost_burden * (material_share_percent / 100)
+ 244:   );
+ 245: 
+ 246:   let overhead_absorbed_cost = round_currency(
+ 247:     total_cost_burden * (overhead_absorbed_percent / 100)
+ 248:   );
+ 249: 
+ 250:   const material_margin_pool = round_currency(margin_pool);
+ 251:   const material_margin_percent =
+ 252:     total_revenue > 0 ? round_percent((margin_pool / total_revenue) * 100) : 0;
+ 253:   const labour_recovery_hours = round_currency(recovery_hours_used);
+ 254:   const labour_recovery_status =
+ 255:     total_people_cost_annual <= 0
+ 256:       ? "missing_labour_cost"
+ 257:       : recovery_hours_used <= 0
+ 258:         ? "missing_recovery_hours"
+ 259:         : "ready";
+ 260:   const asset_recovery_status =
+ 261:     productive_asset_count <= 0 && productive_asset_recovery_cost <= 0
+ 262:       ? "no_productive_assets"
+ 263:       : asset_utilisation_hours_annual <= 0
+ 264:         ? "missing_utilisation"
+ 265:         : "ready";
+ 266: 
+ 267:   if (recovery_mode === "hours_based") {
+ 268:     labour_recovery_cost = round_currency(total_people_cost_annual);
+ 269:     asset_recovery_cost = round_currency(productive_asset_recovery_cost);
+ 270:     material_recovery_cost = 0;
+ 271:     overhead_absorbed_cost = round_currency(total_business_overheads);
+ 272:   }
+ 273: 
+ 274:   if (recovery_mode === "product_unit") {
+ 275:     labour_recovery_cost = 0;
+ 276:     asset_recovery_cost = 0;
+ 277:     material_recovery_cost = 0;
+ 278:     overhead_absorbed_cost = round_currency(total_cost_burden);
+ 279:   }
+ 280: 
+ 281:   const no_productive_output = total_productive_output <= 0;
+ 282:   const no_recovery_hours = recovery_hours_used <= 0;
+ 283: 
+ 284:   const required_labour_recovery_rate = no_recovery_hours
+ 285:     ? 0
+ 286:     : round_currency(labour_recovery_cost / recovery_hours_used);
+ 287:   const labour_recovery_gap =
+ 288:     recovery_mode === "hours_based" && no_recovery_hours
+ 289:       ? 0
+ 290:       : round_currency(current_margin_per_driver - required_labour_recovery_rate);
+ 291: 
+ 292:   const required_labour_recovery_rate_per_recovery_hour = no_recovery_hours
+ 293:     ? 0
+ 294:     : round_currency(labour_recovery_cost / recovery_hours_used);
+ 295: 
+ 296:   const required_asset_recovery_per_recovery_hour = no_recovery_hours
+ 297:     ? 0
+ 298:     : round_currency(asset_recovery_cost / recovery_hours_used);
+ 299: 
+ 300:   const required_material_recovery_per_recovery_hour = no_recovery_hours
+ 301:     ? 0
+ 302:     : round_currency(material_recovery_cost / recovery_hours_used);
+ 303: 
+ 304:   const overhead_absorbed_cost_per_recovery_hour = no_recovery_hours
+ 305:     ? 0
+ 306:     : round_currency(overhead_absorbed_cost / recovery_hours_used);
+ 307: 
+ 308:   const required_asset_recovery = round_currency(asset_recovery_cost);
+ 309:   const required_material_recovery = round_currency(material_recovery_cost);
+ 310: 
+ 311:   const material_recovery_included =
+ 312:     recovery_mode !== "hours_based" && material_share_percent > 0;
+ 313:   const asset_recovery_included =
+ 314:     recovery_mode === "hours_based"
+ 315:       ? productive_asset_recovery_cost > 0
+ 316:       : asset_share_percent > 0;
+ 317: 
+ 318:   const gross_profit_source_status = "revenue_cogs";
+ 319:   const material_margin_status =
+ 320:     margin_pool <= 0
+ 321:       ? "not_recoverable"
+ 322:       : total_direct_costs <= 0
+ 323:         ? "no_direct_costs"
+ 324:         : "margin_available";
+ 325:   const asset_utilisation_status = asset_recovery_status;
+ 326: 
+ 327:   const asset_recovery_without_assets =
+ 328:     asset_share_percent > 0 && !has_productive_asset_recovery_base;
+ 329: 
+ 330:   const labour_recovery_without_labour =
+ 331:     labour_share_percent > 0 && total_productive_output <= 0;
+ 332: 
+ 333:   const overhead_absorption_review = build_overhead_absorption_diagnostics({
+ 334:     overhead_absorbed_percent,
+ 335:     labour_share_percent,
+ 336:     asset_share_percent,
+ 337:     material_share_percent,
+ 338:     total_people_cost_annual,
+ 339:     total_asset_cost_annual,
+ 340:     total_business_overheads,
+ 341:     total_direct_costs,
+ 342:     recovery_hours_used,
+ 343:   });
+ 344: 
+ 345:   const recovery_stream_total =
+ 346:     labour_recovery_cost +
+ 347:     asset_recovery_cost +
+ 348:     material_recovery_cost +
+ 349:     overhead_absorbed_cost;
+ 350:   const output_labour_share_percent =
+ 351:     recovery_stream_total > 0
+ 352:       ? (labour_recovery_cost / recovery_stream_total) * 100
+ 353:       : 0;
+ 354:   const output_asset_share_percent =
+ 355:     recovery_stream_total > 0
+ 356:       ? (asset_recovery_cost / recovery_stream_total) * 100
+ 357:       : 0;
+ 358:   const output_material_share_percent =
+ 359:     recovery_stream_total > 0
+ 360:       ? (material_recovery_cost / recovery_stream_total) * 100
+ 361:       : 0;
+ 362:   const output_overhead_absorbed_percent =
+ 363:     recovery_stream_total > 0
+ 364:       ? Math.max(
+ 365:           0,
+ 366:           100 -
+ 367:             output_labour_share_percent -
+ 368:             output_asset_share_percent -
+ 369:             output_material_share_percent
+ 370:         )
+ 371:       : 0;
+ 372: 
+ 373:   const recovery_plan_target_per_driver = round_currency(
+ 374:     required_recovery_per_driver
+ 375:   );
+ 376: 
+ 377:   const recovery_plan_split = {
+ 378:     labour_share_percent: round_percent(output_labour_share_percent),
+ 379:     asset_share_percent: round_percent(output_asset_share_percent),
+ 380:     material_share_percent: round_percent(output_material_share_percent),
+ 381:     overhead_absorbed_percent: round_percent(output_overhead_absorbed_percent),
+ 382: 
+ 383:     // Backwards-compatible output for older consumers.
+ 384:     overhead_share_percent: round_percent(output_overhead_absorbed_percent),
+ 385:   };
+ 386: 
+ 387:   const component_required_recovery = {
+ 388:     labour: {
+ 389:       share_percent: round_percent(output_labour_share_percent),
+ 390:       recovery_cost: labour_recovery_cost,
+ 391:       required_recovery_rate: required_labour_recovery_rate,
+ 392:     },
+ 393:     asset: {
+ 394:       share_percent: round_percent(output_asset_share_percent),
+ 395:       recovery_cost: asset_recovery_cost,
+ 396:       required_recovery: required_asset_recovery,
+ 397:     },
+ 398:     material: {
+ 399:       share_percent: round_percent(output_material_share_percent),
+ 400:       recovery_cost: material_recovery_cost,
+ 401:       required_recovery: required_material_recovery,
+ 402:     },
+ 403:     overhead: {
+ 404:       share_percent: round_percent(output_overhead_absorbed_percent),
+ 405:       recovery_cost: overhead_absorbed_cost,
+ 406:     },
+ 407:   };
+ 408: 
+ 409:   const warnings = [];
+ 410: 
+ 411:   if (
+ 412:     !business_summary_ready &&
+ 413:     !has_valid_recovery_hour_result &&
+ 414:     !has_valid_product_result
+ 415:   ) {
+ 416:     warnings.push("business_summary_not_ready");
+ 417:   }
+ 418: 
+ 419:   if (model_trust_state !== "ready" && model_trust_state !== "warning") {
+ 420:     warnings.push("upstream_model_not_ready");
+ 421:   }
+ 422: 
+ 423:   if (!business_type) {
+ 424:     warnings.push("missing_business_type");
+ 425:   }
+ 426: 
+ 427:   if (total_revenue <= 0 && margin_pool <= 0) {
+ 428:     warnings.push("missing_revenue_cogs_data");
+ 429:   }
+ 430: 
+ 431:   if (share_not_balanced) {
+ 432:     warnings.push("share_not_balanced");
+ 433:   }
+ 434: 
+ 435:   if (overhead_absorption_review.overhead_absorption_level === "medium") {
+ 436:     warnings.push("overhead_absorption_review");
+ 437:   }
+ 438: 
+ 439:   if (overhead_absorption_review.overhead_absorption_level === "high") {
+ 440:     warnings.push("overhead_absorption_high");
+ 441:   }
+ 442: 
+ 443:   if (activity_driver_value <= 0) {
+ 444:     warnings.push("no_activity_driver");
+ 445:   }
+ 446: 
+ 447:   if (business_type === "labour_based" && recovery_hours_used <= 0) {
+ 448:     warnings.push("no_productive_output");
+ 449:   }
+ 450: 
+ 451:   if (recovery_mode === "hours_based" && total_people_cost_annual <= 0) {
+ 452:     warnings.push("missing_labour_cost");
+ 453:   }
+ 454: 
+ 455:   if (
+ 456:     recovery_mode === "hours_based" &&
+ 457:     productive_asset_count > 0 &&
+ 458:     asset_utilisation_hours_annual <= 0
+ 459:   ) {
+ 460:     warnings.push("missing_productive_asset_utilisation");
+ 461:   }
+ 462: 
+ 463:   if (business_type === "product_based" && total_units <= 0) {
+ 464:     warnings.push("no_units_sold");
+ 465:   }
+ 466: 
+ 467:   if (is_product_based && margin_per_unit <= 0) {
+ 468:     warnings.push("no_positive_margin_per_unit");
+ 469:   }
+ 470: 
+ 471:   if (is_product_based && unit_surplus_or_gap < 0) {
+ 472:     warnings.push("product_unit_shortfall");
+ 473:   }
+ 474: 
+ 475:   if (required_recovery_per_driver <= 0) {
+ 476:     warnings.push("no_required_recovery_per_driver");
+ 477:   }
+ 478: 
+ 479:   if (margin_pool < 0) {
+ 480:     warnings.push("negative_margin_pool");
+ 481:   }
+ 482: 
+ 483:   if (net_position < 0) {
+ 484:     warnings.push("negative_net_position");
+ 485:   }
+ 486: 
+ 487:   if (recovery_gap_per_driver < 0) {
+ 488:     warnings.push("recovery_gap_negative");
+ 489:   }
+ 490: 
+ 491:   if (material_recovery_included && recovery_mode !== "hours_based") {
+ 492:     warnings.push("material_margin_unverified");
+ 493:   }
+ 494: 
+ 495:   if (asset_recovery_included && recovery_mode !== "hours_based") {
+ 496:     warnings.push("asset_utilisation_unverified");
+ 497:   }
+ 498: 
+ 499:   if (asset_recovery_without_assets) {
+ 500:     warnings.push("asset_share_without_asset_recovery_base");
+ 501:   }
+ 502: 
+ 503:   if (labour_recovery_without_labour) {
+ 504:     warnings.push("labour_share_without_productive_output");
+ 505:   }
+ 506: 
+ 507:   return {
+ 508:     business_summary_ready,
+ 509:     business_type,
+ 510:     recovery_mode,
+ 511:     is_product_based,
+ 512:     is_labour_based,
+ 513:     activity_driver_type,
+ 514:     activity_driver_label,
+ 515:     activity_driver_value: round_currency(activity_driver_value),
+ 516: 
+ 517:     required_recovery_per_driver: round_currency(required_recovery_per_driver),
+ 518:     current_margin_per_driver: round_currency(current_margin_per_driver),
+ 519:     recovery_gap_per_driver: round_currency(recovery_gap_per_driver),
+ 520: 
+ 521:     recovery_plan_target_per_driver,
+ 522:     recovery_plan_split,
+ 523:     component_required_recovery,
+ 524: 
+ 525:     recovery_model,
+ 526:     active_recovery_model,
+ 527: 
+ 528:     suggested_recovery_model:
+ 529:       suggested_starting_split.suggested_recovery_model,
+ 530:     suggested_labour_share_percent:
+ 531:       suggested_starting_split.suggested_labour_share_percent,
+ 532:     suggested_asset_share_percent:
+ 533:       suggested_starting_split.suggested_asset_share_percent,
+ 534:     suggested_material_share_percent:
+ 535:       suggested_starting_split.suggested_material_share_percent,
+ 536:     suggested_overhead_absorbed_percent:
+ 537:       suggested_starting_split.suggested_overhead_absorbed_percent,
+ 538:     split_source: suggested_starting_split.split_source,
+ 539: 
+ 540:     total_revenue: round_currency(total_revenue),
+ 541:     total_direct_costs: round_currency(total_direct_costs),
+ 542:     gross_margin_percent: round_percent(gross_margin_percent),
+ 543:     margin_pool: round_currency(margin_pool),
+ 544:     gross_profit: round_currency(margin_pool),
+ 545: 
+ 546:     total_people_cost_annual: round_currency(total_people_cost_annual),
+ 547:     total_asset_cost_annual: round_currency(total_asset_cost_annual),
+ 548:     total_business_overheads: round_currency(total_business_overheads),
+ 549:     total_cost_burden: round_currency(total_cost_burden),
+ 550:     cost_burden_breakdown,
+ 551: 
+ 552:     has_productive_asset_recovery_base,
+ 553:     productive_asset_count,
+ 554:     support_asset_count,
+ 555:     productive_asset_cost: round_currency(productive_asset_cost),
+ 556:     productive_asset_cost_annual: round_currency(productive_asset_cost),
+ 557:     productive_asset_assigned_overhead_cost: round_currency(
+ 558:       productive_asset_assigned_overhead_cost
+ 559:     ),
+ 560:     productive_asset_recovery_cost_annual: round_currency(
+ 561:       productive_asset_recovery_cost
+ 562:     ),
+ 563:     support_asset_cost: round_currency(support_asset_cost),
+ 564:     asset_utilisation_hours_annual: round_currency(
+ 565:       asset_utilisation_hours_annual
+ 566:     ),
+ 567:     required_asset_recovery_rate,
+ 568: 
+ 569:     required_revenue: round_currency(total_cost_burden),
+ 570:     required_recovery_rate: round_currency(required_recovery_rate),
+ 571: 
+ 572:     total_recovery_hours: round_currency(total_recovery_hours),
+ 573:     recovery_hours_used: round_currency(recovery_hours_used),
+ 574:     total_productive_output: round_currency(total_productive_output),
+ 575: 
+ 576:     actual_recovery_rate: round_currency(actual_recovery_rate),
+ 577:     profit_or_deficit_per_recovery_hour: round_currency(
+ 578:       profit_or_deficit_per_recovery_hour
+ 579:     ),
+ 580: 
+ 581:     units_sold_annual: round_currency(total_units),
+ 582:     total_units: round_currency(total_units),
+ 583:     margin_per_unit: round_currency(margin_per_unit),
+ 584:     required_cost_per_unit,
+ 585:     unit_surplus_or_gap,
+ 586:     total_annual_surplus_or_gap,
+ 587:     required_units_to_break_even: round_currency(
+ 588:       required_units_to_break_even
+ 589:     ),
+ 590:     required_units_if_margin_fixed: round_currency(
+ 591:       required_units_if_margin_fixed
+ 592:     ),
+ 593:     required_margin_if_units_fixed: round_currency(
+ 594:       required_margin_if_units_fixed
+ 595:     ),
+ 596:     unit_surplus_or_shortfall: round_currency(unit_surplus_or_shortfall),
+ 597:     product_recovery_ready,
+ 598:     product_recovery_status,
+ 599:     product_unit_recovery_status,
+ 600:     commercial_driver_mode,
+ 601:     unit_driver_rows,
+ 602:     ...product_unit_display,
+ 603:     net_position: round_currency(net_position),
+ 604:     model_trust_state,
+ 605: 
+ 606:     labour_share_percent: round_percent(output_labour_share_percent),
+ 607:     asset_share_percent: round_percent(output_asset_share_percent),
+ 608:     material_share_percent: round_percent(output_material_share_percent),
+ 609:     overhead_absorbed_percent: round_percent(output_overhead_absorbed_percent),
+ 610: 
+ 611:     // Backwards-compatible output for older components/selectors.
+ 612:     overhead_share_percent: round_percent(output_overhead_absorbed_percent),
+ 613: 
+ 614:     explained_recovery_total: round_percent(
+ 615:       output_labour_share_percent +
+ 616:         output_asset_share_percent +
+ 617:         output_material_share_percent
+ 618:     ),
+ 619:     share_total: round_percent(
+ 620:       output_labour_share_percent +
+ 621:         output_asset_share_percent +
+ 622:         output_material_share_percent +
+ 623:         output_overhead_absorbed_percent
+ 624:     ),
+ 625: 
+ 626:     labour_recovery_cost,
+ 627:     labour_recovery_hours,
+ 628:     labour_recovery_status,
+ 629:     labour_recovery_gap,
+ 630:     asset_recovery_status,
+ 631:     asset_recovery_cost,
+ 632:     material_recovery_cost,
+ 633:     material_margin_pool,
+ 634:     material_margin_percent,
+ 635:     overhead_absorbed_cost,
+ 636: 
+ 637:     required_labour_recovery_rate,
+ 638:     required_labour_recovery_rate_per_recovery_hour,
+ 639:     required_asset_recovery_per_recovery_hour,
+ 640:     required_material_recovery_per_recovery_hour,
+ 641:     overhead_absorbed_cost_per_recovery_hour,
+ 642:     required_asset_recovery,
+ 643:     required_material_recovery,
+ 644: 
+ 645:     gross_profit_source_status,
+ 646:     material_margin_status,
+ 647:     asset_utilisation_status,
+ 648:     material_recovery_included,
+ 649:     asset_recovery_included,
+ 650: 
+ 651:     overhead_absorption_level:
+ 652:       overhead_absorption_review.overhead_absorption_level,
+ 653:     overhead_absorption_title:
+ 654:       overhead_absorption_review.overhead_absorption_title,
+ 655:     overhead_absorption_message:
+ 656:       overhead_absorption_review.overhead_absorption_message,
+ 657:     overhead_absorption_diagnostics:
+ 658:       overhead_absorption_review.overhead_absorption_diagnostics,
+ 659: 
+ 660:     share_not_balanced,
+ 661:     no_productive_output,
+ 662:     no_recovery_hours,
+ 663:     asset_recovery_without_assets,
+ 664:     labour_recovery_without_labour,
+ 665:     labour_share_without_productive_output: labour_recovery_without_labour,
+ 666:     asset_share_without_asset_recovery_base: asset_recovery_without_assets,
+ 667: 
+ 668:     warnings,
+ 669:   };
+ 670: }
+===== FILE: lib\selectors\recovery-summary\recoverySummaryStatusSelector.js =====
+   1: import {
+   2:   blocking_warning_keys,
+   3:   get_model_label,
+   4:   get_total_recovery_cost,
+   5:   get_warning_label,
+   6:   normalise_recovery_model,
+   7:   resolve_share_percent,
+   8: } from "@/lib/selectors/recovery-summary/recoverySummarySelectorHelpers";
+   9: 
+  10: export function buildRecoverySummaryStatus({ calculated = {} } = {}) {
+  11:   const warning_items = (calculated.warnings ?? []).map((warning_key) => ({
+  12:     warning_key,
+  13:     label: get_warning_label(warning_key),
+  14:   }));
+  15: 
+  16:   const has_blocking_driver =
+  17:     (calculated.warnings ?? []).includes("no_activity_driver") ||
+  18:     (calculated.warnings ?? []).includes("no_required_recovery_per_driver");
+  19: 
+  20:   const has_blocking_warning = warning_items.some((warning) =>
+  21:     blocking_warning_keys.has(warning.warning_key)
+  22:   );
+  23: 
+  24:   const has_commercial_warnings =
+  25:     warning_items.length > 0 && !has_blocking_warning;
+  26: 
+  27:   const recovery_summary_status =
+  28:     has_blocking_driver || has_blocking_warning
+  29:       ? "blocked"
+  30:       : calculated.model_trust_state !== "ready" &&
+  31:           calculated.model_trust_state !== "warning"
+  32:         ? "not_trusted"
+  33:         : warning_items.length === 0
+  34:           ? "ready"
+  35:           : "ready_with_warnings";
+  36: 
+  37:   const recovery_summary_ready =
+  38:     recovery_summary_status === "ready" ||
+  39:     recovery_summary_status === "ready_with_warnings";
+  40: 
+  41:   const active_recovery_model = normalise_recovery_model(
+  42:     calculated.active_recovery_model
+  43:   );
+  44: 
+  45:   const total_recovery_cost = get_total_recovery_cost(calculated);
+  46: 
+  47:   const labour_share_percent = resolve_share_percent({
+  48:     displayed_percent: calculated.labour_share_percent ?? 100,
+  49:     component_cost: calculated.labour_recovery_cost,
+  50:     total_cost: total_recovery_cost,
+  51:   });
+  52: 
+  53:   const asset_share_percent = resolve_share_percent({
+  54:     displayed_percent: calculated.asset_share_percent ?? 0,
+  55:     component_cost: calculated.asset_recovery_cost,
+  56:     total_cost: total_recovery_cost,
+  57:   });
+  58: 
+  59:   const material_share_percent = resolve_share_percent({
+  60:     displayed_percent: calculated.material_share_percent ?? 0,
+  61:     component_cost: calculated.material_recovery_cost,
+  62:     total_cost: total_recovery_cost,
+  63:   });
+  64: 
+  65:   const overhead_absorbed_percent = resolve_share_percent({
+  66:     displayed_percent:
+  67:       calculated.overhead_absorbed_percent ??
+  68:       calculated.overhead_share_percent ??
+  69:       0,
+  70:     component_cost: calculated.overhead_absorbed_cost,
+  71:     total_cost: total_recovery_cost,
+  72:   });
+  73: 
+  74:   return {
+  75:     recovery_summary_ready,
+  76:     recovery_summary_status,
+  77:     recovery_summary_warnings: warning_items,
+  78:     recovery_summary_usable: recovery_summary_ready,
+  79:     has_blocking_warnings: has_blocking_warning,
+  80:     has_commercial_warnings,
+  81: 
+  82:     active_recovery_model,
+  83:     active_recovery_model_label: get_model_label(active_recovery_model),
+  84: 
+  85:     labour_share_percent,
+  86:     asset_share_percent,
+  87:     material_share_percent,
+  88:     overhead_absorbed_percent,
+  89:     overhead_share_percent: overhead_absorbed_percent,
+  90: 
+  91:     explained_recovery_total: calculated.explained_recovery_total ?? 100,
+  92: 
+  93:     recovery_ready: recovery_summary_ready,
+  94:     warning_count: warning_items.length,
+  95:     warning_items,
+  96:   };
+  97: }
+===== FILE: lib\calculations\cost-allocation\costAllocationStatus.js =====
+   1: export function get_allocation_dependency_type({
+   2:   has_internal_capacity_shortfall,
+   3:   external_delivery_required,
+   4:   has_asset_structure_issue,
+   5: }) {
+   6:   const dependency_types = [];
+   7: 
+   8:   if (has_internal_capacity_shortfall) {
+   9:     dependency_types.push("internal_capacity");
+  10:   }
+  11: 
+  12:   if (external_delivery_required) {
+  13:     dependency_types.push("external_delivery");
+  14:   }
+  15: 
+  16:   if (has_asset_structure_issue) {
+  17:     dependency_types.push("asset_structure");
+  18:   }
+  19: 
+  20:   if (dependency_types.length === 0) {
+  21:     return "none";
+  22:   }
+  23: 
+  24:   if (dependency_types.length > 1) {
+  25:     return "mixed";
+  26:   }
+  27: 
+  28:   return dependency_types[0] ?? "unknown";
+  29: }
+  30: 
+  31: export function get_allocation_status({
+  32:   recovery_summary_ready,
+  33:   missing_recovery_plan_target,
+  34:   missing_component_required_recovery,
+  35:   structure_valid,
+  36:   has_asset_structure_issue,
+  37:   has_internal_capacity_shortfall,
+  38:   external_delivery_enabled,
+  39:   has_low_coverage,
+  40: }) {
+  41:   if (
+  42:     !recovery_summary_ready ||
+  43:     missing_recovery_plan_target ||
+  44:     missing_component_required_recovery ||
+  45:     has_asset_structure_issue ||
+  46:     !structure_valid
+  47:   ) {
+  48:     return "not_supported";
+  49:   }
+  50: 
+  51:   if (has_internal_capacity_shortfall && external_delivery_enabled) {
+  52:     return "ready_with_dependency";
+  53:   }
+  54: 
+  55:   if (has_internal_capacity_shortfall || has_low_coverage) {
+  56:     return "strained";
+  57:   }
+  58: 
+  59:   return "ready";
+  60: }
+===== FILE: lib\calculations\cost-allocation\costAllocationWarnings.js =====
+   1: export function make_allocation_warning(warning_key, message) {
+   2:   return {
+   3:     warning_key,
+   4:     message,
+   5:   };
+   6: }
+   7: 
+   8: export function build_cost_allocation_warnings({
+   9:   recovery_summary_ready,
+  10:   missing_recovery_plan_target,
+  11:   missing_component_required_recovery,
+  12:   structure_valid,
+  13:   has_low_staff_coverage,
+  14:   has_low_asset_coverage,
+  15:   has_low_group_coverage,
+  16:   has_internal_capacity_shortfall,
+  17:   external_delivery_required,
+  18:   external_delivery_enabled,
+  19:   has_asset_structure_issue,
+  20:   has_no_labour_cost,
+  21:   has_no_productive_labour_driver,
+  22:   has_productive_asset_zero_utilisation,
+  23:   has_asset_without_labour_driver_group,
+  24:   has_labour_without_productive_capacity_group,
+  25:   has_unassigned_cost,
+  26:   has_no_operational_groups,
+  27:   duplicate_link_warnings = [],
+  28:   invalid_operational_groups,
+  29: }) {
+  30:   const setup_warnings = [];
+  31:   const structural_warnings = [];
+  32: 
+  33:   if (!recovery_summary_ready) {
+  34:     setup_warnings.push(
+  35:       make_allocation_warning(
+  36:         "recovery_summary_not_ready",
+  37:         "Recovery Summary is not ready, so Cost Allocation is preview only."
+  38:       )
+  39:     );
+  40:   }
+  41: 
+  42:   if (missing_recovery_plan_target) {
+  43:     setup_warnings.push(
+  44:       make_allocation_warning(
+  45:         "missing_recovery_plan_target",
+  46:         "Recovery plan target per driver is missing from Recovery Summary."
+  47:       )
+  48:     );
+  49:   }
+  50: 
+  51:   if (missing_component_required_recovery) {
+  52:     setup_warnings.push(
+  53:       make_allocation_warning(
+  54:         "missing_component_required_recovery",
+  55:         "Component required recovery is missing from Recovery Summary."
+  56:       )
+  57:     );
+  58:   }
+  59: 
+  60:   if (!structure_valid) {
+  61:     setup_warnings.push(
+  62:       make_allocation_warning(
+  63:         "structure_incomplete",
+  64:         "Complete the operating groups and productive source-pool assignments required for the selected recovery plan."
+  65:       )
+  66:     );
+  67:   }
+  68: 
+  69:   if (has_no_labour_cost) {
+  70:     setup_warnings.push(
+  71:       make_allocation_warning(
+  72:         "no_labour_cost_available",
+  73:         "No productive labour cost is available for Cost Allocation."
+  74:       )
+  75:     );
+  76:   }
+  77: 
+  78:   if (has_no_productive_labour_driver) {
+  79:     setup_warnings.push(
+  80:       make_allocation_warning(
+  81:         "no_productive_labour_driver_available",
+  82:         "No productive labour group is available for operating groups."
+  83:       )
+  84:     );
+  85:   }
+  86: 
+  87:   if (has_no_operational_groups) {
+  88:     setup_warnings.push(
+  89:       make_allocation_warning(
+  90:         "no_operational_groups_created",
+  91:         "No operating groups have been created yet."
+  92:       )
+  93:     );
+  94:   }
+  95: 
+  96:   if (has_low_staff_coverage) {
+  97:     structural_warnings.push(
+  98:       make_allocation_warning(
+  99:         "low_productive_labour_coverage",
+ 100:         "Productive labour group coverage is low for the visible operating groups."
+ 101:       )
+ 102:     );
+ 103:   }
+ 104: 
+ 105:   if (has_low_asset_coverage) {
+ 106:     structural_warnings.push(
+ 107:       make_allocation_warning(
+ 108:         "low_productive_asset_coverage",
+ 109:         "Productive asset coverage is low for the visible operating groups."
+ 110:       )
+ 111:     );
+ 112:   }
+ 113: 
+ 114:   if (has_low_group_coverage) {
+ 115:     structural_warnings.push(
+ 116:       make_allocation_warning(
+ 117:         "low_operating_group_coverage",
+ 118:         "Operating group coverage is low for the visible allocation structure."
+ 119:       )
+ 120:     );
+ 121:   }
+ 122: 
+ 123:   if (has_internal_capacity_shortfall) {
+ 124:     structural_warnings.push(
+ 125:       make_allocation_warning(
+ 126:         "internal_capacity_shortfall",
+ 127:         "The recovery plan requires internal productive capacity beyond the current operating groups."
+ 128:       )
+ 129:     );
+ 130:   }
+ 131: 
+ 132:   if (external_delivery_required) {
+ 133:     structural_warnings.push(
+ 134:       make_allocation_warning(
+ 135:         "external_delivery_required",
+ 136:         "This recovery plan requires visible external delivery capacity."
+ 137:       )
+ 138:     );
+ 139:   }
+ 140: 
+ 141:   if (external_delivery_required && !external_delivery_enabled) {
+ 142:     structural_warnings.push(
+ 143:       make_allocation_warning(
+ 144:         "external_delivery_not_defined",
+ 145:         "External delivery is required, but no external delivery assumption has been confirmed."
+ 146:       )
+ 147:     );
+ 148:   }
+ 149: 
+ 150:   if (has_asset_structure_issue) {
+ 151:     structural_warnings.push(
+ 152:       make_allocation_warning(
+ 153:         "asset_recovery_without_productive_asset_structure",
+ 154:         "Asset recovery is selected, but productive assets have not been assigned into the operating groups."
+ 155:       )
+ 156:     );
+ 157:   }
+ 158: 
+ 159:   if (has_productive_asset_zero_utilisation) {
+ 160:     structural_warnings.push(
+ 161:       make_allocation_warning(
+ 162:         "productive_asset_zero_utilisation",
+ 163:         "One or more productive assets have zero utilisation hours."
+ 164:       )
+ 165:     );
+ 166:   }
+ 167: 
+ 168:   if (has_asset_without_labour_driver_group) {
+ 169:     structural_warnings.push(
+ 170:       make_allocation_warning(
+ 171:         "operating_group_asset_without_labour_driver",
+ 172:         "One or more operating groups has productive assets but no labour driver."
+ 173:       )
+ 174:     );
+ 175:   }
+ 176: 
+ 177:   if (has_labour_without_productive_capacity_group) {
+ 178:     structural_warnings.push(
+ 179:       make_allocation_warning(
+ 180:         "operating_group_labour_without_productive_capacity",
+ 181:         "One or more operating groups has labour selected but no productive capacity."
+ 182:       )
+ 183:     );
+ 184:   }
+ 185: 
+ 186:   if (has_unassigned_cost) {
+ 187:     structural_warnings.push(
+ 188:       make_allocation_warning(
+ 189:         "unassigned_operating_cost",
+ 190:         "Some productive labour, asset, or overhead cost remains outside operating groups."
+ 191:       )
+ 192:     );
+ 193:   }
+ 194: 
+ 195:   if (duplicate_link_warnings.length > 0) {
+ 196:     structural_warnings.push(
+ 197:       make_allocation_warning(
+ 198:         "duplicate_advanced_capability_links",
+ 199:         "Duplicate advanced capability links exist. This does not block the group-first builder, but should be reviewed before using capability-link validation."
+ 200:       )
+ 201:     );
+ 202:   }
+ 203: 
+ 204:   if (invalid_operational_groups > 0) {
+ 205:     structural_warnings.push(
+ 206:       make_allocation_warning(
+ 207:         "invalid_operating_groups",
+ 208:         "One or more operating groups are invalid."
+ 209:       )
+ 210:     );
+ 211:   }
+ 212: 
+ 213:   return {
+ 214:     setup_warnings,
+ 215:     structural_warnings,
+ 216:     allocation_warnings: [...setup_warnings, ...structural_warnings],
+ 217:   };
+ 218: }
+===== FILE: D:\QSTools\qstools-web\docs\fin_mirra_v6.0 Briefs\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt =====
+   1: # Business Outcome - File Map & Quick Reference
+   2: **Updated 2026-09-18:** Non-productive cost allocation built end-to-end
+   3: (mixed working units vs pure-support units, real policy setting), a real
+   4: Step 2 cascade bug found and fixed, View B brought to full parity with
+   5: View A (was silently missing the entire fix - real true_cost differed
+   6: by $100k+ between views for the SAME real wage), and a SEPARATE display-
+   7: -layer bug found and fixed (true_cost shown in ledger/cost-build-up
+   8: tables was reading a stale, uninjected source even after the cascade
+   9: fix landed - see Section 4's new gotcha #4, the most likely place for
+  10: this class of bug to recur). "Each Part On Its Own" renamed to "Best
+  11: Case (100% of Entered Rates & Hours)", reframed as a ceiling diagnostic,
+  12: not a competing "net profit" claim. Full detail:
+  13: docs/Mirra_v5_Briefs/Business Outcome/NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION_2026-09-17.txt
+  14: and .../EACH_PART_ON_ITS_OWN_REVENUE_BASIS_QUESTION_2026-09-17.txt.
+  15: **Updated 2026-09-16:** useBusinessModelling.js split (see Section 3) and
+  16: the 2026-09-14 Baseline/Upside/Downside scenario redesign files added -
+  17: this map previously predated that redesign entirely.
+  18: **Purpose:** fast lookup, not a narrative. For the story/decisions/commits, see V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt in this same folder - that is now the real, saved entry point for this project (previously chat-pasted only, resolved 2026-09-20). This document is just: where is everything, and what does it do.
+  19: 
+  20: ---
+  21: 
+  22: ## 1. The data flow (read this first)
+  23: 
+  24: hooks/useBusinessOutcomePerSourceRevenue.js
+  25:   (raw calculations, returns per_source_result)
+  26:         v
+  27: lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+  28:   selectBusinessOutcomePerSourceRevenue() - RESHAPES the raw result into per_source
+  29:         v
+  30: components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+  31:   (the main page Card - receives per_source as a prop, renders everything)
+  32:         v
+  33:   passes pieces of per_source down as props to sub-components:
+  34:   - BusinessOutcomeTruthSituationSummary.jsx (the blurb)
+  35:   - BusinessOutcomeViewABComparisonTable.jsx
+  36:   - BusinessOutcomeCapacityCoverageGapTable.jsx
+  37:   - BusinessOutcomeHealthGauge.jsx
+  38:   - BusinessOutcomeHealthGaugeExplainer.jsx (NEW 2026-09-12)
+  39:   - RealCapacityLedger, AssumedCapacityLedger, CostBuildUpTable (defined inline in the Card itself)
+  40:   - ViewBRealCapacityLedger, ViewBCostBuildUpTable (View B equivalents, also inline in the Card)
+  41: 
+  42: **The #1 rule that bites every time:** a new field added to the hook's return object does NOT automatically reach the Card. It must ALSO be added to the selector's return object (selectBusinessOutcomePerSourceRevenue's own return { ... }, near the existing view_b:, capacity_coverage_gap:, health_gauge: lines). Search per_source_result. in that file to see the existing pattern before adding a new one.
+  43: 
+  44: ---
+  45: 
+  46: ## 2. Component files (what renders what)
+  47: 
+  48: - components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx - The main page component. Everything else is a child of this. Contains inline: merge_view_b_groups(), build_view_b_headline(), CostBuildUpTable, ViewBCostBuildUpTable, and all the top-level JSX/imports/prop-wiring.
+  49: - components/business-outcome-truth/BusinessOutcomeTruthSituationSummary.jsx - The "Your business, right now" blurb. Two functions: inner build_situation_summary() and exported wrapper BusinessOutcomeTruthSituationBlurb. Two SEPARATE prop lists - see Section 4.
+  50: - components/business-outcome-truth/BusinessOutcomeViewABComparisonTable.jsx - View A vs View B comparison table. Built 2026-09-10.
+  51: - components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable.jsx - The capacity coverage gap table. Built 2026-09-11.
+  52: - components/business-outcome-truth/BusinessOutcomeHealthGauge.jsx - The health gauge visual (arc + needle). Built 2026-09-11. Exports SCALE_MIN, SCALE_MAX, zone_for_ratio (added 2026-09-12). Now wrapped in a clickable button in the Card - clicking navigates to the explainer panel.
+  53: - components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer.jsx - NEW 2026-09-12. Lives under "How the Numbers Are Calculated" as CollapsibleSection id="health-gauge-explainer-panel". Explains health_ratio, shows the two headline inputs (smoothed_net_profit, independent_net_profit_floored) as ledger-metric cards, links to the real Revenue/Net Profit table for full per-source proof, and shows a 3-zone legend built from the gauge's own SCALE_MIN/SCALE_MAX/zone_for_ratio. Also surfaces the "N of M sources not paying their way" line, reusing active_headline.being_carried/total_group_count.
+  54: - components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable.jsx - The 4-metric Revenue Snapshot panel. Contains "Projected Net Profit" - still flagged as needing verification.
+  55: - components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp.jsx - The "Revenue / Net Profit" table, linked from the blurb AND (new 2026-09-12) the Health Gauge explainer.
+  56: - components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger.jsx - The Revenue Claim Test / Independent Breakeven panel.
+  57: - components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard.jsx - Labour recovery, by source.
+  58: - components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel.jsx / BusinessOutcomeTruthHelpPanel.jsx - Warnings and the "About Business Outcome" help panel.
+  59: - components/common/ScrollToSectionLink.jsx - Shared inline text-link component. Refactored 2026-09-12 to delegate to lib/utils/scrollToSection.js.
+  60: 
+  61: ---
+  62: 
+  63: ## 3. Core calculation files
+  64: 
+  65: - hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge.
+  66: - lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js - Reshapes the hook's raw output into per_source. Key functions: group_sources_by_group(), merge_groups_by_id(), merge_groups_by_id_real_capacity(), selectBusinessOutcomePerSourceRevenue().
+  67: - lib/calculations/businessOutcomeViewBCalculations.js - View B's own cascade: build_materials_source(), apply_revenue_ceiling_v2(), apply_real_capacity_v2().
+  68: - lib/calculations/businessModellingIndependentCalculations.js - ON THE "LEAVE UNTOUCHED" LIST (see Section 7). Contains calculateGaugeInput() and calculateIndependentMaterialsBreakeven(). CLARIFIED 2026-09-12: this is NOT abandoned/unused - it is Business Modelling's real, active "live lever" calculation engine (System 2, see session brief Section 2A), gained 254 lines in the "S31 Phase 2-3" commit (f98b9f3). Untouched-list status is because it's already-verified, load-bearing code, not because it's dead. Do not extend this file - create a new file instead if new calculation is ever needed (confirmed acceptable 2026-09-12).
+  69: - hooks/useBusinessModelling.js - SPLIT 2026-09-16 (was one large file covering three jobs, now a slim orchestrator). Calls useBusinessSummary(), useBusinessOutcomePerSourceRevenue()/selectBusinessOutcomePerSourceRevenue(), and useBusinessModellingLegacyScenario() (see below), then merges the legacy hook's result with the live-lever system's own state/derived values (live_headline, lever_rows, materials_lever_row, proportional_suggestions, per_source - rendered as the primary BusinessModellingLeverCard). Return shape is unchanged from before the split - same flat key list, just assembled from two hooks instead of one. This IS the real Outcome-to-Modelling handoff point.
+  70: - hooks/useBusinessModellingLegacyScenario.js - NEW 2026-09-16, extracted out of useBusinessModelling.js (pure extraction, no behaviour change - see commit same date). The legacy baseline/upside/downside scenario system, fed from useBusinessSummary (NOT useBusinessOutcomePerSourceRevenue), rendered collapsed on the page as "Previous scenario tools." Takes business_summary as a parameter rather than calling useBusinessSummary() itself. Left in place as a safety net alongside the live-lever system and the separate Baseline/Upside/Downside scenario redesign below - not yet retired, per the 2026-09-12 decision lock.
+  71: - lib/selectors/businessModellingLeverSelectors.js - buildLiveLeverHeadline(), buildBreakevenSummary(), buildGroupLeverRows(), buildMaterialsLeverRow(), buildProportionalSuggestions() - the live lever system's selector layer, consumes per_source directly.
+  72: - lib/calculations/businessOutcomeNetProfitBuildUpSelectors.js - Feeds BusinessOutcomeNetProfitBuildUp.jsx.
+  73: - lib/utils/scrollToSection.js - NEW 2026-09-12. Extracted from ScrollToSectionLink.jsx - exports scroll_to_section() and open_if_closed(). One shared navigation engine used by both the text-link component AND the Health Gauge's click-through.
+  74: - lib/storage/businessOutcomeNonProductivePolicyStorage.js - NEW 2026-09-17. readNonProductiveCostPolicy()/writeNonProductiveCostPolicy() - the mixed_unit_non_productive_policy setting ("charge_to_self" default, or "spread_as_overhead"). Pure-support working units (no productive member at all) always spread, regardless of this setting - it only governs mixed working units (real productive members + a non-productive item riding along, e.g. a company car). No settings UI exists yet - the value can currently only be changed by editing localStorage directly.
+  75: - distribute_non_productive_cost() (in useBusinessOutcomePerSourceRevenue.js, near apply_real_capacity) - decides per working unit how its own non-productive cost affects true_cost: pure-support units always spread (weighted the same way General Overheads' own build_overhead_pool spreads its pool - labour-cost-weighted / asset-burden-weighted / equal-split), mixed units follow the stored policy above. Computed ONCE, early in the hook (moved there 2026-09-18 after a real "cannot access before initialization" runtime error - View B's cascade call happens earlier in the function than where this was originally declared), the same map is passed into BOTH apply_real_capacity (View A) and apply_real_capacity_v2 (View B).
+  76: 
+  77: **RESOLVED same day (2026-09-18):** View B's "Assumed Capacity ledger" detailed step-by-step trace panel (Starting point -> Scale check -> Final allocation, mirroring View A's own) is now built - ViewBAssumedCapacityLedger, same file. Genuinely simple once the underlying data was already correct: materials is a real peer here (same as ViewBRealCapacityLedger), so it's one merge_view_b_groups(view_b, "assumed") call plus view_b.revenue_ceiling for the scale-check section - purely additive display, no new calculation. Live-verified matching the already-tested Cost build-up (Assumed Capacity) table exactly. View A and View B are now at FULL parity - every table, every mode, no known gaps remaining.
+  78: 
+  79: **Baseline/Upside/Downside scenario redesign (NEW 2026-09-14, was missing from this map until 2026-09-16):**
+  80: - hooks/useBusinessModellingScenario.js - The redesign's own hook. Takes per_source as an input (does not recompute it - reads it from useBusinessModelling()'s per_source). Has a has_loaded guard on its save effect.
+  81: - lib/calculations/businessModellingScenarioCalculations.js - buildBaselineSnapshotFromLive(per_source) (calls buildLiveLeverHeadline with EMPTY levers to capture real, unedited reality), buildUpsideHeadline(per_source, upside_scenario) (uses SAVED levers, not live-editable UI state), calculateDownsideAsBreakeven(baseline_snapshot) (calculated live, never stored - checks real underlying data (total_net_profit, breakeven_revenue both finite) directly, NOT an available flag, since that flag does not survive the storage round-trip - see the bug fixed 2026-09-14, commit 8339965).
+  82: - lib/storage/businessModellingScenarioStorage.js - Separate storage key (qs_tools_business_modelling_scenario_state_v1) from the legacy system's key. normaliseBaselineSnapshot() explicitly rebuilds the snapshot listing only 4 real data fields - drops any field not in that list (the recurring storage/selector gotcha - see Section 4).
+  83: - components/business-modelling/BusinessModellingScenarioSection.jsx - The redesign's UI. Wired into the page below the primary live-lever card, ABOVE the legacy "Previous scenario tools" section. Shows Baseline/Upside/Downside(Breakeven) cards, Lock New Baseline / Save Current Levers as Upside / Clear Upside controls, and Baseline History.
+  84: 
+  85: ---
+  86: 
+  87: ## 4. The three recurring gotchas
+  88: 
+  89: **1. The blurb has two separate prop lists.** File: BusinessOutcomeTruthSituationSummary.jsx. A new prop must be added in three places: the Card's JSX call, the wrapper's destructuring, and the wrapper's forwarding call into build_situation_summary. Miss the middle one and the paragraph silently doesn't render.
+  90: 
+  91: **2. The selector explicitly lists every field it returns.** File: businessOutcomePerSourceRevenueSelectors.js, inside selectBusinessOutcomePerSourceRevenue(). A new field on the hook's raw return object will NOT reach the Card unless also added here.
+  92: 
+  93: **3. Links into "How the Numbers Are Calculated" need the pre-toggle.** Any ScrollToSectionLink or scroll_to_section() call pointing there needs pre_toggle_labels: ["Show breakdown"] in addition to ancestor_ids.
+  94: 
+  95: **4. THERE ARE TWO true_cost SOURCES, ONE STALE - confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it has NEVER been touched by the non-productive cost injection (that injection only ever lives inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives ONLY in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B - this field did not even exist on View B's return object until 2026-09-18, root cause of that day's bug). ANY table or component that builds its own cost figure by re-summing row.true_cost or reading group_true_cost/entry.total_cost from merge_groups_by_id()/merge_groups_by_id_real_capacity()/merge_view_b_groups() WITHOUT cross-referencing group_real_capacity's own true_cost is showing the stale figure. Confirmed fixed in: CostBuildUpTable, merge_view_b_groups (both call sites: ViewBRealCapacityLedger and ViewBCostBuildUpTable). NOT yet checked: any other component that might independently read group_true_cost/entry.total_cost - grep both terms before trusting a new or unfamiliar cost display.
+  96: 
+  97: ---
+  98: 
+  99: ## 5. Field-name traps
+ 100: 
+ 101: - per_source.labour_groups[] / asset_groups[] use .group_modelled_revenue / .group_true_cost, NOT .modelled_revenue/.total_cost.
+ 102: - per_source.materials uses .revenue for View A's residual figure, NOT .modelled_revenue.
+ 103: - per_source.view_b.labour_sources[] / .asset_sources[] / .materials DO use .modelled_revenue directly.
+ 104: - real_capacity.group_real_capacity[] has both naive_net_profit and final_net_profit - pick deliberately. Also has true_cost (the CORRECT, non-productive-cost-injected figure - see gotcha #4 above) and non_productive_cost (added 2026-09-17/18) - both present on View A's array from the start, both added to View B's array only on 2026-09-18. modelled_revenue was ALSO missing from View B's array until 2026-09-18 (second pass, same day) - check any new consumer of this array works from BOTH views, since View A always had every field View B has only recently caught up to.
+ 105: - per_source.view_b_headline_real_capacity - NEW 2026-09-18. Same shape as headline_real_capacity, built for Business Modelling's real-engine rerun specifically (View B is the only cascade where materials has genuinely independent, lever-movable economics). Built inline in selectBusinessOutcomePerSourceRevenue(), deliberately NOT reusing merge_view_b_groups (a UI-layer function in the Card component - a selector importing from a UI component would be backwards).
+ 106: - Assumed Capacity mode's net_profit (implied_net_profit / assumed_net_profit, via apply_revenue_ceiling/apply_revenue_ceiling_v2) is a SEPARATE mechanism from the real-capacity cascade, never touched by the non-productive injection - as of 2026-09-18, CostBuildUpTable and merge_view_b_groups both now recompute it directly as (assumed revenue - corrected true_cost) rather than trusting that field, for exactly this reason.
+ 107: - Per-source direct/overhead cost IS tracked separately: direct_cost, overhead_share, summed to true_cost - confirmed in useBusinessOutcomePerSourceRevenue.js and carried through the selector as group_true_cost, group_overhead_share.
+ 108: - Always grep for an existing working consumer of a field before writing new code that reads it.
+ 109: 
+ 110: ---
+ 111: 
+ 112: ## 6. Section Index (searchable anchors, not line numbers - those shift)
+ 113: 
+ 114: - Health gauge zone labels/thresholds -> BusinessOutcomeHealthGauge.jsx -> search "zone_for_ratio"
+ 115: - Health gauge scale bounds -> BusinessOutcomeHealthGauge.jsx -> search "SCALE_MIN" / "SCALE_MAX"
+ 116: - Health gauge explainer panel -> BusinessOutcomeHealthGaugeExplainer.jsx -> whole file, small
+ 117: - Gauge click-through wiring -> BusinessOutcomePerSourceRevenueCard.jsx -> search "business-outcome-health-gauge-clickable"
+ 118: - Shared scroll/navigation engine -> lib/utils/scrollToSection.js -> search "scroll_to_section"
+ 119: - Blurb "who's healthy" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "WHO'S HEALTHY"
+ 120: - Blurb "things to check" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "THINGS TO CHECK"
+ 121: - View B "N of M not paying their way" -> BusinessOutcomePerSourceRevenueCard.jsx -> search "isn't paying its way"
+ 122: - Capacity coverage gap narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "Capacity coverage gap (2026-09-11"
+ 123: - View A/B materials variance narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "MATERIALS MARKUP VARIANCE"
+ 124: - CollapsibleSection nesting (all panels) -> BusinessOutcomePerSourceRevenueCard.jsx -> search "how-the-numbers-are-calculated"
+ 125: 
+ 126: ---
+ 127: 
+ 128: ## 7. Standing conventions & untouchable files
+ 129: 
+ 130: Full detail in "Working_Conventions - PowerShell Patching, CSS, and Numeric Verification" (repo root). Summary:
+ 131: - All edits via PowerShell, one command at a time, targeted Apply-Patch (IndexOf/Substring) patches - never full-file rewrites once a file has real content worth preserving.
+ 132: - .NET UTF-8-no-BOM file I/O only, never Set-Content/Get-Content for writing.
+ 133: - Build after every single patch.
+ 134: - Five pre-existing files remain untouched unless specifically working on them (confirm via git status): components/business-modelling/BusinessModellingLeverCard.jsx, components/layout/SidebarNavigation.jsx, docs/Mirra_v5_Briefs/S22 - ASSET FINANCE INTEREST EXCLUSION & COVERAGE CHECK.txt, lib/calculations/businessModellingIndependentCalculations.js, lib/selectors/general-overheads/generalOverheadCategorySelectors.js.
+ 135: - CSS: reuse existing classes/variables before inventing new ones; scope new styling to a new class, never modify a shared class.
+ 136: 
+ 137: ---
+ 138: 
+ 139: ## 8. Brief documents index
+ 140: 
+ 141: - Main running session brief - RESOLVED 2026-09-20. See V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt in this same folder, now the real, saved entry point.
+ 142: - ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_2026-09-10.md - Superseded. Detailed Q&A lives in Business Outcome/Business Outcome New Additions/S31 - ASSET UTILISATION_DOWNTIME.txt.
+ 143: - OPENING_HOURS_CAPACITY_CHECK_SCOPING_BRIEF_2026-09-11.md - Deleted. Idea investigated and rejected.
+ 144: - Working_Conventions - PowerShell Patching, CSS, and Numeric Verification - Repo root. The authoritative process doc.
+ 145: 
+ 146: Run git log --oneline -15 to confirm commit history is current.

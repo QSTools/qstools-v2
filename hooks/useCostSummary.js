@@ -163,6 +163,9 @@ export default function useCostSummary(inputs = {}) {
         calculations.macro_required_operating_hour_rate ?? 0,
       net_annual_business_open_hours:
         calculations.net_annual_business_open_hours ?? 0,
+      net_annual_business_open_days:
+        calculations.net_annual_business_open_days ?? 0,
+      annual_open_weeks: calculations.annual_open_weeks ?? 0,
 
       required_revenue: calculations.required_revenue ?? 0,
       required_recovery_rate: calculations.required_recovery_rate ?? 0,
