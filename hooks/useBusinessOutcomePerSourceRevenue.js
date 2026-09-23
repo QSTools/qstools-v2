@@ -194,7 +194,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       // them re-introduced the same double-count this fix was meant to
       // remove, just one level up.
       const group_asset_revenue =
-        blended_rate !== null ? blended_rate * to_number(group.group_recovery_hours) : null;
+        blended_rate !== null ? blended_rate * get_group_covered_hours(group) : null; // v6.0 BO-6 covered hours
 
       const asset_cost_share =
         group_asset_cost_sum > 0 ? asset_cost / group_asset_cost_sum : 0;
@@ -263,6 +263,26 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
 // is still reused from useBusinessOutcomeLabourRecovery (that hook
 // remains correct and unchanged for its own purpose - rate recovery,
 // not whole-business cost totalling) - only the COST side changes here.
+// COVERED HOURS (v6.0 BO-6, 2026-09-23, user decision). In an asset-driven
+// group, revenue can only come from hours the assigned labour actually
+// covers: min(asset seat hours, sum of assigned labour hours). A group with
+// no labour assigned earns nothing and is flagged in capacity_coverage_gap.
+// Labour-driven groups are unchanged (their recovery hours ARE labour hours).
+// Also feeds group_real_capacity.group_recovery_hours, so Business
+// Modelling's rate levers price on covered hours without being edited.
+// Known limits (logged, not built): unattended / dry-hire units need an
+// exemption setting; one person attending several separately billed units
+// at the same time is not modelled - put those assets in one working unit.
+function get_group_covered_hours(group) {
+  const seat_hours = to_number(group?.group_recovery_hours);
+  if (group?.group_recovery_hour_source !== "asset_hours") {
+    return seat_hours;
+  }
+  const labour_hours = (Array.isArray(group.labour_group_assignments) ? group.labour_group_assignments : [])
+    .reduce((sum, assignment) => sum + to_number(assignment.assigned_hours), 0);
+  return Math.min(seat_hours, labour_hours);
+}
+
 function build_labour_sources(operational_group_cost_rows, labour_recovery_rows, operational_group_recovery_rows = [], rate_overrides = {}) {
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
   const charge_out_rate_by_id = new Map(
@@ -305,6 +325,11 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
   // groups (no asset - e.g. Site Crew, Foreman), there is no seat to
   // cover - the person themselves is what's being charged out, so their
   // own real assigned hours remain the correct basis.
+  // v6.0 BO-6 (2026-09-23, user decision - supersedes the seat-hours rule
+  // above where labour is short): seat hours are capped at the hours the
+  // assigned labour actually covers (get_group_covered_hours). An asset
+  // cannot earn for hours nobody is there to run it; the shortfall shows in
+  // capacity_coverage_gap as revenue not earned.
   const accumulated = new Map(); // "group_id::staff_type_id" -> row data
 
   operational_group_cost_rows.forEach((group) => {
@@ -323,7 +348,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
     );
 
     const use_seat_hours = group.group_recovery_hour_source === "asset_hours";
-    const group_seat_hours = to_number(group.group_recovery_hours);
+    const group_seat_hours = get_group_covered_hours(group);
 
     labour_assignments.forEach((assignment) => {
       const staff_type_id = assignment.staff_type_id;
@@ -398,8 +423,10 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 // allowance already built into Real Capacity). Sign and meaning depend
 // on which side actually drives that group's revenue
 // (group_recovery_hour_source === "asset_hours" or not):
-//   asset-driven, gap > 0: revenue already counted is riding on the
-//     seat, not on someone actually covering it (revenue_at_risk).
+//   asset-driven, gap > 0: v6.0 BO-6 (2026-09-23) - these hours are
+//     REMOVED from modelled revenue (covered-hours cap); the gap is the
+//     revenue NOT earned, valued at asset + assigned labour charge rate
+//     (key name revenue_at_risk kept so existing consumers still match).
 //   asset-driven, gap < 0: genuinely overstaffed - extra labour paid,
 //     revenue capped at seat hours regardless of headcount (wasted_cost).
 //   labour-driven, gap > 0: asset capacity not being converted to
@@ -407,7 +434,10 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 //   labour-driven, gap < 0: labour logged beyond the asset's actual
 //     running time - a data/scheduling oddity, not a cost claim
 //     (data_check).
-function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators) {
+function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators, labour_recovery_rows = []) {
+  const charge_out_rate_by_id = new Map(
+    labour_recovery_rows.map((row) => [row.labour_source_type_id, to_number(row.charge_out_rate)])
+  );
   return operational_group_cost_rows
     .filter((group) => {
       const asset_assignments = Array.isArray(group.asset_group_assignments)
@@ -428,6 +458,15 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
       0
     );
     const labour_true_cost_rate = labour_hours > 0 ? labour_cost / labour_hours : null;
+    // v6.0 BO-6: weighted charge-out rate of the labour actually assigned, so a
+    // coverage shortfall is valued at the revenue it removes (asset + labour).
+    const weighted_labour_charge_rate =
+      labour_hours > 0
+        ? labour_assignments.reduce(
+            (sum, a) => sum + to_number(a.assigned_hours) * (charge_out_rate_by_id.get(a.staff_type_id) ?? 0),
+            0
+          ) / labour_hours
+        : 0;
 
     const asset_hours = to_number(group.group_recovery_hours);
     const { blended_rate } = get_group_blended_rate(group, calculators);
@@ -442,7 +481,7 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
       if (is_asset_driven) {
         if (gap_hours > 0) {
           gap_type = "revenue_at_risk";
-          gap_dollar_value = round_currency(gap_hours * blended_rate);
+          gap_dollar_value = round_currency(gap_hours * (blended_rate + weighted_labour_charge_rate));
         } else {
           gap_type = "wasted_cost";
           gap_dollar_value =
@@ -1105,7 +1144,7 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
     // derive an "achieved rate" or "achieved hours" figure per group -
     // see ViewBGroupsDrill / merge_view_b_groups on the display side.
     const view_b_recovery_hours_by_group_id = new Map(
-      operational_group_cost_rows.map((g) => [g.group_id, to_number(g.group_recovery_hours)])
+      operational_group_cost_rows.map((g) => [g.group_id, get_group_covered_hours(g)])
     );
     view_b_real_capacity.group_real_capacity = view_b_real_capacity.group_real_capacity.map((g) => ({
       ...g,
@@ -1178,7 +1217,7 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
     // group.group_recovery_hours, above). Does not change any existing
     // field or behaviour.
     const recovery_hours_by_group_id = new Map(
-      operational_group_cost_rows.map((g) => [g.group_id, to_number(g.group_recovery_hours)])
+      operational_group_cost_rows.map((g) => [g.group_id, get_group_covered_hours(g)])
     );
     real_capacity.group_real_capacity = real_capacity.group_real_capacity.map((g) => ({
       ...g,
@@ -1333,7 +1372,7 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
         cost_reconciles,
       },
       view_b,
-      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
+      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows ?? []),
       // Health gauge baseline (2026-09-11, moved here from Business Modelling
       // per user decision - Outcome computes the trusted baseline once,
       // Modelling consumes it downstream, same "reuse the engine" principle
