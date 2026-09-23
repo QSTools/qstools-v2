@@ -10,11 +10,9 @@ import BusinessOutcomeTruthStatusStrip from "@/components/business-outcome-truth
 import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
 import useBusinessOutcomeRevenueSplit from "@/hooks/useBusinessOutcomeRevenueSplit";
 import BusinessOutcomeTruthRevenueSplitCard from "@/components/business-outcome-truth/BusinessOutcomeTruthRevenueSplitCard";
-import useBusinessOutcomeWaterfall from "@/hooks/useBusinessOutcomeWaterfall";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import BusinessOutcomePerSourceRevenueCard from "@/components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard";
-import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome/businessOutcomeWaterfallSelectors";
 
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
@@ -45,8 +43,6 @@ export default function BusinessOutcomePage() {
   const { output_contract } = useBusinessOutcomeTruth();
   const labour_recovery = useBusinessOutcomeLabourRecovery();
   const revenue_split = useBusinessOutcomeRevenueSplit();
-  const waterfall_calculation = useBusinessOutcomeWaterfall();
-  const waterfall = selectBusinessOutcomeWaterfall(waterfall_calculation);
   const per_source_calculation = useBusinessOutcomePerSourceRevenue();
   const per_source = selectBusinessOutcomePerSourceRevenue(per_source_calculation);
   const { ratios: balance_sheet_ratios, has_data: has_balance_sheet_data, as_at_date: balance_sheet_as_at_date, accounts: balance_sheet_accounts } = useBalanceSheet();

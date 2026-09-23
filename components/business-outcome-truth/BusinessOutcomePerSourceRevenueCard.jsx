@@ -141,10 +141,10 @@ function AssetGroupsSection({ asset_groups, view_mode }) {
   );
 }
 
-function MaterialsBuildUp({ build_up, view_mode, time_scale, open_hours }) {
+function MaterialsBuildUp({ build_up, view_mode, time_scale, open_hours, open_days, open_weeks }) {
   if (!build_up) return null;
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const money = (v) => format_currency(scale(v));
 
   return (
@@ -235,10 +235,10 @@ function MaterialsBuildUp({ build_up, view_mode, time_scale, open_hours }) {
   );
 }
 
-function MaterialsSection({ materials, view_mode, capacity_mode, time_scale, open_hours }) {
+function MaterialsSection({ materials, view_mode, capacity_mode, time_scale, open_hours, open_days, open_weeks }) {
   if (!materials) return null;
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
 
   const net_profit_value =
     capacity_mode === "real" ? materials.real_capacity_net_profit : materials.net_profit;
@@ -278,7 +278,7 @@ function MaterialsSection({ materials, view_mode, capacity_mode, time_scale, ope
               </span>
             </span>
           </div>
-          <MaterialsBuildUp build_up={materials.build_up} view_mode={view_mode} time_scale={time_scale} open_hours={open_hours} />
+          <MaterialsBuildUp build_up={materials.build_up} view_mode={view_mode} time_scale={time_scale} open_hours={open_hours} open_days={open_days} open_weeks={open_weeks} />
         </div>
       </CollapsibleSection>
     </div>
@@ -355,8 +355,8 @@ function ReconciliationBanner({ reconciliation }) {
   );
 }
 
-function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, open_hours, use_implied, capacity_mode, real_capacity }) {
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, real_capacity }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const entries =
     capacity_mode === "real"
@@ -449,8 +449,8 @@ function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, 
 // achieved_revenue (the reconciled figure) rather than raw modelled
 // revenue for the Revenue column, same as ViewBGroupsDrill already
 // does, so this table's totals reconcile to real revenue too.
-function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, capacity_mode }) {
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, open_days, open_weeks, capacity_mode }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   if (!view_b) return null;
   const rows = merge_view_b_groups(view_b, capacity_mode);
@@ -503,8 +503,8 @@ function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, capacity_mode }
     </div>
   );
 }
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [hovered_key, set_hovered_key] = useState("");
 
@@ -588,7 +588,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
       </div>
 
       {selected_entry?.key === "materials" ? (
-        <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} time_scale={time_scale} open_hours={open_hours} />
+        <MaterialsSection materials={materials} view_mode={view_mode} capacity_mode={capacity_mode} time_scale={time_scale} open_hours={open_hours} open_days={open_days} open_weeks={open_weeks} />
       ) : (
       <div className="cost-summary-drill-list">
         {active_list.map((item) => {
@@ -615,7 +615,7 @@ function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, v
                 <div className="cost-summary-drill-label">{item.label}</div>
                 {item.type === "group" && (
                   <div className="ui-help">
-                    Cost {formatCurrencyTruth(item.total_cost)} &middot; Min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
+                    Cost {formatCurrencyTruth(item.total_cost)} &middot; Group min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
                   </div>
                 )}
                 {item.type !== "group" && item.type !== "materials" && item.total_cost !== undefined && (
@@ -936,12 +936,12 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // achieved_hours are recomputed under the credited figures too, using
 // each entry's own group_recovery_hours, so the Rate/Hours Shortfall
 // toggle stays internally consistent even in the hypothetical view.
-function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, shortfall_mode, capacity_mode, selected_key, set_selected_key, cost_mode }) {
+function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days, open_weeks, shortfall_mode, capacity_mode, selected_key, set_selected_key, cost_mode }) {
   const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
 
   if (!view_b || !view_b.real_capacity) return null;
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const surplus = view_b.real_capacity.surplus ?? 0;
   const raw_entries = merge_view_b_groups(view_b, capacity_mode);
 
@@ -1299,12 +1299,14 @@ function AssumedCapacityLedger({
   unassigned,
   time_scale,
   open_hours,
+  open_days,
+  open_weeks,
 }) {
   if (!revenue_ceiling) {
     return <div className="ui-help">Assumed Capacity data is not available yet.</div>;
   }
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const money = (v) => `${format_currency(scale(v))}${suffix}`;
 
@@ -1486,12 +1488,12 @@ function AssumedCapacityLedger({
   );
 }
 
-function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, open_hours }) {
+function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, open_hours, open_days, open_weeks }) {
   if (!real_capacity) {
     return <div className="ui-help">Real Capacity data is not available yet.</div>;
   }
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const money = (v) => `${format_currency(scale(v))}${suffix}`;
 
@@ -1689,12 +1691,12 @@ function RealCapacityLedger({ real_capacity, materials, unassigned, time_scale, 
 // calculation logic - naive_net_profit and total_adjustment are
 // derived client-side from fields that function already returns
 // (modelled_revenue - total_cost, and naive - final, respectively).
-function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours }) {
+function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours, open_days, open_weeks }) {
   if (!view_b || !view_b.real_capacity) {
     return <div className="ui-help">Real Capacity data is not available yet.</div>;
   }
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const money = (v) => `${format_currency(scale(v))}${suffix}`;
 
@@ -1851,12 +1853,12 @@ function ViewBRealCapacityLedger({ view_b, unassigned, time_scale, open_hours })
 // 2026-09-18 to correctly reflect non-productive cost in both cost and
 // net profit for this mode - this panel is purely additive display on
 // top of already-correct, already-tested data, no new calculation.
-function ViewBAssumedCapacityLedger({ view_b, unassigned, time_scale, open_hours }) {
+function ViewBAssumedCapacityLedger({ view_b, unassigned, time_scale, open_hours, open_days, open_weeks }) {
   if (!view_b || !view_b.revenue_ceiling) {
     return <div className="ui-help">Assumed Capacity data is not available yet.</div>;
   }
 
-  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+  const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const money = (v) => `${format_currency(scale(v))}${suffix}`;
 
@@ -2488,7 +2490,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                     active_headline.total_net_profit,
                     time_scale,
                     null,
-                    per_source.net_annual_business_open_hours
+                    per_source.net_annual_business_open_hours,
+                    per_source.net_annual_business_open_days,
+                    per_source.annual_open_weeks
                   )
                 )}
                 {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
@@ -2518,7 +2522,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                     active_headline.total_net_profit,
                     time_scale,
                     null,
-                    per_source.net_annual_business_open_hours
+                    per_source.net_annual_business_open_hours,
+                    per_source.net_annual_business_open_days,
+                    per_source.annual_open_weeks
                   )
                 )}
                 {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
@@ -2560,7 +2566,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           <strong>
             {breakeven_revenue !== null
               ? format_currency(
-                  scaleAnnualValue(breakeven_revenue, time_scale, null, per_source.net_annual_business_open_hours)
+                  scaleAnnualValue(breakeven_revenue, time_scale, null, per_source.net_annual_business_open_hours, per_source.net_annual_business_open_days, per_source.annual_open_weeks)
                 )
               : "N/A"}
             {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}
@@ -2573,7 +2579,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   Needs{" "}
                   <strong className="value-bad">
                     {format_currency(
-                      scaleAnnualValue(breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+                      scaleAnnualValue(breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours, per_source.net_annual_business_open_days, per_source.annual_open_weeks)
                     )}
                   </strong>{" "}
                   more revenue to break even
@@ -2583,7 +2589,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   Currently{" "}
                   <strong className="value-good">
                     {format_currency(
-                      scaleAnnualValue(-breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+                      scaleAnnualValue(-breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours, per_source.net_annual_business_open_days, per_source.annual_open_weeks)
                     )}
                   </strong>{" "}
                   above breakeven
@@ -2806,7 +2812,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </div>
 
             {card2_view_mode_ab === "b" ? (
-              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
+              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
             ) : (
               <RankedGroupsDrill
                 headline={active_headline}
@@ -2815,7 +2821,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 materials={per_source.materials}
                 view_mode={view_mode}
                 time_scale={time_scale}
-                open_hours={per_source.net_annual_business_open_hours}
+                open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 use_implied={per_source.use_implied}
                 capacity_mode={capacity_mode}
                 cost_mode={cost_mode}
@@ -2897,7 +2903,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   materials={per_source.materials}
                   unassigned={per_source.unassigned}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
@@ -2908,7 +2914,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   groups_naive={per_source.real_capacity?.group_real_capacity}
                   unassigned={per_source.unassigned}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
@@ -2917,7 +2923,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   asset_groups={per_source.asset_groups}
                   materials={per_source.materials}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                   use_implied={per_source.use_implied}
                   capacity_mode="real"
                   real_capacity={per_source.real_capacity}
@@ -2929,7 +2935,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   asset_groups={per_source.asset_groups}
                   materials={per_source.materials}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                   use_implied={per_source.use_implied}
                   capacity_mode="assumed"
                   real_capacity={per_source.real_capacity}
@@ -2943,7 +2949,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   view_b={per_source.view_b}
                   unassigned={per_source.unassigned}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Assumed Capacity ledger" defaultOpen={false}>
@@ -2951,14 +2957,14 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   view_b={per_source.view_b}
                   unassigned={per_source.unassigned}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 />
               </CollapsibleSection>
               <CollapsibleSection title="Cost build-up (Real Capacity)" defaultOpen={false}>
                 <ViewBCostBuildUpTable
                   view_b={per_source.view_b}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                   capacity_mode="real"
                 />
               </CollapsibleSection>
@@ -2966,7 +2972,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 <ViewBCostBuildUpTable
                   view_b={per_source.view_b}
                   time_scale={time_scale}
-                  open_hours={per_source.net_annual_business_open_hours}
+                  open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                   capacity_mode="assumed"
                 />
               </CollapsibleSection>

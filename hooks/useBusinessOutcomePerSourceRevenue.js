@@ -1320,6 +1320,8 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       labour_modelled_revenue_total: round_currency(labour_modelled_revenue_total),
       asset_modelled_revenue_total: round_currency(asset_modelled_revenue_total),
       net_annual_business_open_hours: to_number(bs.net_annual_business_open_hours),
+      net_annual_business_open_days: to_number(bs.net_annual_business_open_days),
+      annual_open_weeks: to_number(bs.annual_open_weeks),
       labour_pool_over_allocated: allocation_contract.labour_pool_over_allocated === true,
       asset_pool_over_allocated: allocation_contract.asset_pool_over_allocated === true,
       // Already computed by costAllocationGroupCostBuilder.js on every
