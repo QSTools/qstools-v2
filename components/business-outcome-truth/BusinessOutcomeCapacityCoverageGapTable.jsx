@@ -12,7 +12,7 @@ function format_hours(value) {
 }
 
 const GAP_TYPE_LABEL = {
-  revenue_at_risk: "Revenue at risk",
+  revenue_at_risk: "Revenue not earned",
   wasted_cost: "Overstaffed",
   opportunity: "Opportunity",
   data_check: "Worth checking",
@@ -63,11 +63,12 @@ export default function BusinessOutcomeCapacityCoverageGapTable({ capacity_cover
       <div className="ui-help">
         Compares each group&apos;s asset hours against labour&apos;s own real assigned hours (not the
         asset-adjusted figure used elsewhere, so this never double-counts). Works both directions:
-        labour short of asset hours flags revenue that assumes coverage which isn&apos;t actually
-        there; labour exceeding asset hours flags overstaffing - real cost the revenue doesn&apos;t
-        account for. Only asset-driven groups are shown - a pure labour group has no asset hours to
-        compare against. This is a diagnostic only - it does not change any revenue or cost figure
-        used elsewhere on this page. The fix, if one&apos;s needed, happens in Business Modelling.
+        labour short of asset hours means the asset can only earn for the hours labour covers - the
+        uncovered hours are left out of revenue everywhere on this page, and the value shown is the
+        revenue not earned (asset plus labour rate). Labour exceeding asset hours flags overstaffing -
+        real cost the revenue doesn&apos;t account for. Only asset-driven groups are shown - a pure
+        labour group has no asset hours to compare against. The fix is to assign more labour in Cost
+        Allocation, or to test the change in Business Modelling.
       </div>
 
       <div className="business-outcome-ledger-table">

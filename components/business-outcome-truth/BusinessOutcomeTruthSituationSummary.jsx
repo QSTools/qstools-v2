@@ -575,15 +575,15 @@ function build_situation_summary({
       const abs_dollars = format_currency(Math.abs(g.gap_dollar_value));
       if (g.gap_type === "revenue_at_risk" && g.labour_hours === 0) {
         things_to_check.push([
-          { type: "text", text: `${g.group_name}'s entire ` },
+          { type: "text", text: `${g.group_name} has no labour assigned, so ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
-          { type: "text", text: ` in revenue and profit assumes this asset runs ${abs_hours} hours a year - but with zero labour hours assigned, there's currently nobody to actually run it for those hours. Right now this group's real output is limited by labour, not by the asset, so the true achievable revenue here is likely well below what's currently being counted.` },
+          { type: "text", text: ` of potential revenue is not being counted: this asset could run ${abs_hours} hours a year, but nobody is there to run it, so it earns nothing here while its costs still count. Assign labour to this working unit in Cost Allocation, or confirm the asset isn't meant to be productive.` },
         ]);
       } else if (g.gap_type === "revenue_at_risk") {
         things_to_check.push([
           { type: "text", text: `${g.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${abs_hours} fewer hours than this asset runs each year, so ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
-          { type: "text", text: " of the revenue counted above assumes hours the asset is running without anyone there to actually cover them." },
+          { type: "text", text: " of revenue is not being earned - those hours are left out of the figures above because nobody is assigned to cover them." },
         ]);
       } else if (g.gap_type === "wasted_cost") {
         things_to_check.push([
