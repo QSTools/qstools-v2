@@ -16,7 +16,6 @@ import BusinessOutcomePerSourceRevenueCard from "@/components/business-outcome-t
 
 import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
 import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
-import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import useBalanceSheet from "@/hooks/useBalanceSheet";
 import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";

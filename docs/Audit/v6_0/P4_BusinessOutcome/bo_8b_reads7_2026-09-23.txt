@@ -1,0 +1,142 @@
+﻿155: export function apply_real_capacity_v2(labour_sources, asset_sources, materials_source, total_revenue_reference, non_productive_cost_by_group_id = new Map()) {
+156:   const all_sources = [...labour_sources, ...asset_sources, materials_source];
+157:   const groups = group_rows_by_group_id(all_sources);
+158: 
+159:   // FIX (2026-09-18, mirrors the same fix in View A's apply_real_capacity,
+160:   // useBusinessOutcomePerSourceRevenue.js, from 2026-09-17) -
+161:   // non-productive labour/asset cost (support staff, a company car not
+162:   // tied to a billable job) was never fed into View B's cascade at all,
+163:   // confirmed live: Foreman's true cost differed by $111,625 between
+164:   // View A and View B for the SAME real wage. Added into g.true_cost
+165:   // here, through the same front door as any other real cost - "materials"
+166:   // never receives a share since non_productive_cost_by_group_id is only
+167:   // ever built from Cost Allocation's working units, which never include
+168:   // materials as a key.
+169:   groups.forEach((g) => {
+170:     const non_productive_cost = to_number(non_productive_cost_by_group_id.get(g.group_id));
+171:     g.non_productive_cost = round_currency(non_productive_cost);
+172:     g.true_cost = round_currency(g.true_cost + non_productive_cost);
+173:   });
+174: 
+175:   groups.forEach((g) => {
+176:     g.naive_net_profit = g.modelled_revenue - g.true_cost;
+177:   });
+178: 
+179:   const total_modelled_revenue_all = groups.reduce((sum, g) => sum + g.modelled_revenue, 0);
+180:   const shortfall = Math.max(0, round_currency(total_modelled_revenue_all - total_revenue_reference));
+181: 
+182:   const surplus = Math.max(0, round_currency(total_revenue_reference - total_modelled_revenue_all));
+183:   const v0 = groups.reduce((sum, g) => (g.naive_net_profit > 0 ? sum + g.naive_net_profit : sum), 0);
+184:   const phase1_absorbed = Math.min(shortfall, v0);
+185:   const phase1_factor = v0 > 0 ? phase1_absorbed / v0 : 0;
+186:   const leftover = round_currency(shortfall - phase1_absorbed);
+187: 
+188:   groups.forEach((g) => {
+189:     const after_phase1 = g.naive_net_profit > 0 ? g.naive_net_profit * (1 - phase1_factor) : g.naive_net_profit;
+190:     const phase2_deduction =
+191:       leftover > 0 && total_modelled_revenue_all > 0
+192:         ? leftover * (g.modelled_revenue / total_modelled_revenue_all)
+193:         : 0;
+194:     g.final_net_profit = round_currency(after_phase1 - phase2_deduction);
+195:     g.total_adjustment = round_currency(g.naive_net_profit - g.final_net_profit);
+196:   });
+197: 
+198:   // FIX (2026-09-18, mirrors the same Step 2 fix from View A,
+199:   // 2026-09-17): inner_v0 was computed from raw, UNADJUSTED row.net_profit,
+200:   // with no knowledge that non_productive_cost had been added to the
+201:   // group's true_cost above - understating each row's real margin
+202:   // reduction, leaving the added cost sitting unrecovered in one row
+203:   // instead of correctly reflected. Same fix: give each row its own
+204:   // proportional share of non_productive_cost (by revenue share, same
+205:   // basis phase2's leftover already uses) BEFORE running the inner
+206:   // cascade, so rows start from the same non-productive-cost-inclusive
+207:   // basis the group level already used.
+208:   groups.forEach((g) => {
+209:     const group_row_revenue_total = g.rows.reduce((sum, row) => sum + (row.modelled_revenue ?? 0), 0);
+210: 
+211:     const row_non_productive_share_by_row = new Map(
+212:       g.rows.map((row) => {
+213:         const share =
+214:           g.non_productive_cost > 0
+215:             ? group_row_revenue_total > 0
+216:               ? g.non_productive_cost * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+217:               : g.non_productive_cost / g.rows.length
+218:             : 0;
+219:         return [row, round_currency(share)];
+220:       })
+221:     );
+222: 
+223:     const inner_v0 = g.rows.reduce((sum, row) => {
+224:       if (row.net_profit === null) return sum;
+225:       const adjusted_net_profit = to_number(row.net_profit) - (row_non_productive_share_by_row.get(row) ?? 0);
+226:       if (adjusted_net_profit <= 0) return sum;
+227:       return sum + adjusted_net_profit;
+228:     }, 0);
+229: 
+230:     const inner_absorbed = Math.min(Math.max(g.total_adjustment, 0), inner_v0);
+231:     const inner_factor = inner_v0 > 0 ? inner_absorbed / inner_v0 : 0;
+232:     const inner_leftover = round_currency(g.total_adjustment - inner_absorbed);
+233: 
+234:     g.rows.forEach((row) => {
+235:       if (row.net_profit === null) {
+236:         row.real_capacity_net_profit = null;
+237:         row.real_capacity_verdict = null;
+238:         return;
+239:       }
+240:       const row_non_productive_share = row_non_productive_share_by_row.get(row) ?? 0;
+241:       const adjusted_net_profit = to_number(row.net_profit) - row_non_productive_share;
+242:       const inner_after_phase1 = adjusted_net_profit > 0 ? adjusted_net_profit * (1 - inner_factor) : adjusted_net_profit;
+243:       const inner_phase2_deduction =
+244:         inner_leftover > 0 && group_row_revenue_total > 0
+245:           ? inner_leftover * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+246:           : 0;
+247: 
+248:       const real_capacity_net_profit = round_currency(inner_after_phase1 - inner_phase2_deduction);
+249:       row.real_capacity_net_profit = real_capacity_net_profit;
+250:       row.real_capacity_verdict = verdict_for(real_capacity_net_profit);
+251: 
+252:       if (row.group_id === "materials") {
+253:         const achieved_revenue = row.true_cost + real_capacity_net_profit;
+254:         row.minimum_recoverable_markup_percent =
+255:           row.true_cost > 0 ? round_currency(((achieved_revenue / row.true_cost) - 1) * 100) : null;
+256:       }
+257:     });
+258:   });
+259: 
+260:   const materials_row = groups.find((g) => g.group_id === "materials").rows[0];
+261: 
+262:   return {
+263:     shortfall: round_currency(shortfall),
+264:     surplus,
+265:     v0: round_currency(v0),
+266:     phase1_absorbed: round_currency(phase1_absorbed),
+267:     phase1_factor,
+268:     leftover,
+269:     materials_real_capacity_net_profit: materials_row.real_capacity_net_profit,
+270:     materials_real_capacity_verdict: materials_row.real_capacity_verdict,
+271:     materials_minimum_recoverable_markup_percent: materials_row.minimum_recoverable_markup_percent,
+272:     group_real_capacity: groups.map((g) => ({
+273:       group_id: g.group_id,
+274:       group_name: g.group_name,
+275:       // FIX (2026-09-18): true_cost was never exposed here at all -
+276:       // View A's equivalent (apply_real_capacity) always has, but this
+277:       // function never did. This is the ROOT CAUSE of the true-cost
+278:       // mismatch found live testing today - merge_view_b_groups's own
+279:       // fix (BusinessOutcomePerSourceRevenueCard.jsx) was correctly
+280:       // written to read cascade_entry.true_cost, but that field simply
+281:       // didn't exist here, so it silently fell back to the old,
+282:       // uninjected value every time. g.true_cost DOES already include
+283:       // the non-productive injection (see the injection block near the
+284:       // top of this function) - it just was never returned.
+285:       true_cost: round_currency(g.true_cost),
+286:       // Added 2026-09-18 (second pass) - View A's equivalent always has
+287:       // this too; needed so Business Modelling's real-engine rerun can
+288:       // build a View B headline in the same shape as View A's.
+289:       modelled_revenue: round_currency(g.modelled_revenue),
+290:       naive_net_profit: round_currency(g.naive_net_profit),
+291:       final_net_profit: g.final_net_profit,
+292:       total_adjustment: g.total_adjustment,
+293:       non_productive_cost: g.non_productive_cost ?? 0,
+294:     })),
+295:   };
+296: }

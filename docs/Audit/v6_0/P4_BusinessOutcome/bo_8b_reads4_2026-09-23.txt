@@ -1,0 +1,441 @@
+﻿=== locate build-up files ===
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js
+components\business-outcome-truth\BusinessOutcomeNetProfitBuildUp.jsx
+
+=== components\business-outcome-truth\BusinessOutcomeNetProfitBuildUp.jsx 1-233 ===
+1: "use client";
+2: import { useState } from "react";
+3: import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
+4: import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+5: import { buildNetProfitBuildUpRows } from "@/lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors";
+6: 
+7: function format_currency(value) {
+8:   const n = Number(value) || 0;
+9:   const sign = n < 0 ? "-" : "";
+10:   return `${sign}$${Math.abs(Math.round(n)).toLocaleString()}`;
+11: }
+12: 
+13: function contribution_color(net_profit) {
+14:   return net_profit > 0 ? "var(--success)" : "var(--danger)";
+15: }
+16: 
+17: export default function BusinessOutcomeNetProfitBuildUp({ smoothing_mode = "smoothed" }) {
+18:   const [view_mode, set_view_mode] = useState("revenue");
+19: 
+20:   const per_source_result = useBusinessOutcomePerSourceRevenue();
+21:   const selected_output = selectBusinessOutcomePerSourceRevenue(per_source_result);
+22:   const build_up = buildNetProfitBuildUpRows(selected_output);
+23: 
+24:   if (!build_up) {
+25:     return (
+26:       <div className="business-outcome-ledger">
+27:         <div className="business-outcome-ledger-section-title">How Net Profit Is Actually Built</div>
+28:         <p>Not available yet - upstream sources aren&apos;t ready.</p>
+29:       </div>
+30:     );
+31:   }
+32: 
+33:   const {
+34:     rows,
+35:     unassigned_lines,
+36:     total_unassigned,
+37:     total_net_profit,
+38:     reconciles_to_headline,
+39:     headline_variance,
+40:     naive_reconciles_to_headline,
+41:     naive_headline_variance,
+42:   } = build_up;
+43: 
+44:   const total_revenue = rows.reduce((sum, r) => sum + r.modelled_revenue, 0);
+45: 
+46:   return (
+47:     <div className="business-outcome-ledger">
+48:       <div className="business-outcome-ledger-section-title">How Net Profit Is Actually Built</div>
+49:       <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem", margin: "0 0 0.5rem" }}>
+50:         Here&apos;s how it&apos;s built, source by source.
+51:       </p>
+52: 
+53:       <div className="business-outcome-view-toggle" aria-label="Build-up view" style={{ marginBottom: "0.75rem" }}>
+54:         <button
+55:           type="button"
+56:           className={`business-outcome-view-toggle-btn ${view_mode === "revenue" ? "active" : ""}`}
+57:           onClick={() => set_view_mode("revenue")}
+58:         >
+59:           Revenue
+60:         </button>
+61:         <button
+62:           type="button"
+63:           className={`business-outcome-view-toggle-btn ${view_mode === "profit" ? "active" : ""}`}
+64:           onClick={() => set_view_mode("profit")}
+65:         >
+66:           Net Profit
+67:         </button>
+68:       </div>
+69: 
+70:       {view_mode === "profit" && smoothing_mode === "naive" && (
+71:         <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: "0 0 0.75rem", fontStyle: "italic" }}>
+72:           Each source shown at what it earns on its own, before any group subsidises another. The total
+73:           below is identical either way - this view only changes which line item carries the shortfall,
+74:           not whether the business made money overall.
+75:         </p>
+76:       )}
+77: 
+78:       <div className="business-outcome-ledger-table">
+79:         {view_mode === "revenue" ? (
+80:           <>
+81:             {rows.map((row) => (
+82:               <div key={row.key}>
+83:                 <div className="business-outcome-buildup-source-title">
+84:                   {row.name}
+85:                   {row.is_materials && (
+86:                     <span className="business-outcome-ledger-status-tag neutral">materials</span>
+87:                   )}
+88:                 </div>
+89: 
+90:                 {row.revenue_members.length > 0 ? (
+91:                   row.revenue_members.map((member) => (
+92:                     <div className="business-outcome-buildup-row" key={member.name}>
+93:                       <span>{member.name}</span>
+94:                       <span>{format_currency(member.modelled_revenue)}</span>
+95:                     </div>
+96:                   ))
+97:                 ) : (
+98:                   <div className="business-outcome-buildup-row">
+99:                     <span>{row.name}</span>
+100:                     <span>{format_currency(row.modelled_revenue)}</span>
+101:                   </div>
+102:                 )}
+103: 
+104:                 <div className="business-outcome-buildup-row contribution">
+105:                   <span>Subtotal</span>
+106:                   <span>{format_currency(row.modelled_revenue)}</span>
+107:                 </div>
+108:               </div>
+109:             ))}
+110:           </>
+111:         ) : view_mode === "profit" && smoothing_mode !== "naive" ? (
+112:           <>
+113:             {rows.map((row) => (
+114:               <div key={row.key}>
+115:                 <div className="business-outcome-buildup-source-title">
+116:                   {row.name}
+117:                   {!row.is_materials && !row.true_cost_reconciles && (
+118:                     <span className="business-outcome-ledger-status-tag bad">check</span>
+119:                   )}
+120:                 </div>
+121: 
+122:                 {row.is_materials ? (
+123:                   <div className="business-outcome-buildup-row negative">
+124:                     <span>Material cost</span>
+125:                     <span>-{format_currency(row.modelled_revenue - row.net_profit)}</span>
+126:                   </div>
+127:                 ) : (
+128:                   <>
+129:                     <div className="business-outcome-buildup-row negative">
+130:                       <span>Labour cost</span>
+131:                       <span>-{format_currency(row.labour_direct_cost)}</span>
+132:                     </div>
+133:                     <div className="business-outcome-buildup-row negative">
+134:                       <span>Asset cost</span>
+135:                       <span>-{format_currency(row.asset_direct_cost)}</span>
+136:                     </div>
+137:                     <div className="business-outcome-buildup-row negative">
+138:                       <span>Overhead share</span>
+139:                       <span>-{format_currency(row.total_overhead)}</span>
+140:                     </div>
+141:                     {!row.true_cost_reconciles && (
+142:                       <div className="business-outcome-buildup-row negative">
+143:                         <span>
+144:                           Check: doesn&apos;t match Cost Allocation&apos;s own total by{" "}
+145:                           {format_currency(row.true_cost_variance)}.
+146:                         </span>
+147:                       </div>
+148:                     )}
+149:                   </>
+150:                 )}
+151: 
+152:                 <div className="business-outcome-buildup-row contribution">
+153:                   <span>Contribution to profit</span>
+154:                   <span style={{ color: contribution_color(row.net_profit) }}>
+155:                     {format_currency(row.net_profit)}
+156:                   </span>
+157:                 </div>
+158:               </div>
+159:             ))}
+160: 
+161:             <div className="business-outcome-buildup-source-title">Not yet assigned to a group</div>
+162:             {unassigned_lines.map((line) => (
+163:               <div className="business-outcome-buildup-row negative" key={line.label}>
+164:                 <span>{line.label}</span>
+165:                 <span>-{format_currency(line.amount)}</span>
+166:               </div>
+167:             ))}
+168:             <div className="business-outcome-buildup-row contribution">
+169:               <span>Total not yet assigned</span>
+170:               <span>-{format_currency(total_unassigned)}</span>
+171:             </div>
+172:           </>
+173:         ) : view_mode === "profit" ? (
+174:           <>
+175:             {rows.map((row) => (
+176:               <div key={row.key}>
+177:                 <div className="business-outcome-buildup-source-title">
+178:                   {row.name}
+179:                   {row.is_materials && (
+180:                     <span className="business-outcome-ledger-status-tag neutral">materials</span>
+181:                   )}
+182:                 </div>
+183:                 <div className="business-outcome-buildup-row">
+184:                   <span>Revenue</span>
+185:                   <span>{format_currency(row.modelled_revenue)}</span>
+186:                 </div>
+187:                 <div className="business-outcome-buildup-row contribution">
+188:                   <span>Net profit, as priced (no smoothing)</span>
+189:                   <span style={{ color: row.naive_net_profit === null ? "var(--text-muted)" : contribution_color(row.naive_net_profit) }}>
+190:                     {row.naive_net_profit === null ? "Not available" : format_currency(row.naive_net_profit)}
+191:                   </span>
+192:                 </div>
+193:               </div>
+194:             ))}
+195: 
+196:             <div className="business-outcome-buildup-source-title">Not yet assigned to a group</div>
+197:             {unassigned_lines.map((line) => (
+198:               <div className="business-outcome-buildup-row negative" key={line.label}>
+199:                 <span>{line.label}</span>
+200:                 <span>-{format_currency(line.amount)}</span>
+201:               </div>
+202:             ))}
+203:             <div className="business-outcome-buildup-row contribution">
+204:               <span>Total not yet assigned</span>
+205:               <span>-{format_currency(total_unassigned)}</span>
+206:             </div>
+207:           </>
+208:         ) : null}
+209: 
+210:         <div className="business-outcome-buildup-row contribution" style={{ borderTop: "2px solid var(--info)", color: "var(--info)", fontSize: "0.95rem" }}>
+211:           <span>TOTAL REVENUE</span>
+212:           <span>{format_currency(total_revenue)}</span>
+213:         </div>
+214:         <div className="business-outcome-buildup-row contribution" style={{ fontSize: "0.95rem" }}>
+215:           <span style={{ color: "var(--text-primary)" }}>NET PROFIT</span>
+216:           <span style={{ color: contribution_color(total_net_profit) }}>
+217:             {view_mode === "naive" ? (
+218:               naive_reconciles_to_headline ? (
+219:                 `✓ ${format_currency(total_net_profit)}`
+220:               ) : (
+221:                 <span style={{ color: "var(--danger)" }}>Variance {format_currency(naive_headline_variance)}</span>
+222:               )
+223:             ) : reconciles_to_headline ? (
+224:               `✓ ${format_currency(total_net_profit)}`
+225:             ) : (
+226:               <span style={{ color: "var(--danger)" }}>Variance {format_currency(headline_variance)}</span>
+227:             )}
+228:           </span>
+229:         </div>
+230:       </div>
+231:     </div>
+232:   );
+233: }
+
+=== D:\QSTools\qstools-web\lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js 1-350 ===
+1: function to_number(value) {
+2:   const n = Number(value);
+3:   return Number.isFinite(n) ? n : 0;
+4: }
+5: 
+6: function safe_array(value) {
+7:   return Array.isArray(value) ? value : [];
+8: }
+9: 
+10: function totals_by_group(groups, members_key) {
+11:   const by_group = new Map();
+12:   safe_array(groups).forEach((g) => {
+13:     const members = safe_array(g?.[members_key]);
+14:     let direct_cost = 0;
+15:     let overhead = 0;
+16:     members.forEach((m) => {
+17:       direct_cost += to_number(m?.direct_cost);
+18:       overhead += to_number(m?.overhead_share);
+19:     });
+20:     by_group.set(g.group_id, {
+21:       direct_cost,
+22:       overhead,
+23:       group_true_cost_known: g?.group_true_cost !== undefined ? to_number(g.group_true_cost) : null,
+24:     });
+25:   });
+26:   return by_group;
+27: }
+28: 
+29: export function buildNetProfitBuildUpRows(selected_output) {
+30:   if (
+31:     !selected_output ||
+32:     selected_output.data_status !== "ready" ||
+33:     !selected_output.headline_real_capacity
+34:   ) {
+35:     return null;
+36:   }
+37: 
+38:   const { all_sources, total_net_profit } = selected_output.headline_real_capacity;
+39:   const labour_totals = totals_by_group(selected_output.labour_groups, "staff");
+40:   const asset_totals = totals_by_group(selected_output.asset_groups, "assets");
+41: 
+42:   // As-priced (naive, no cascade) figures - independent of the smoothed
+43:   // final_net_profit shown elsewhere. Groups: real_capacity.group_real_capacity's
+44:   // own naive_net_profit. Materials: selected_output.materials.net_profit,
+45:   // which IS the naive figure (real_capacity_net_profit is the floored/
+46:   // smoothed one, kept separate).
+47:   const naive_by_group_id = new Map(
+48:     safe_array(selected_output.real_capacity?.group_real_capacity).map((g) => [g.group_id, to_number(g.naive_net_profit)])
+49:   );
+50:   const materials_naive_net_profit = to_number(selected_output.materials?.net_profit);
+51: 
+52:   const rows = safe_array(all_sources).map((source) => {
+53:     if (source.type === "materials") {
+54:       return {
+55:         key: source.key,
+56:         name: source.name,
+57:         is_materials: true,
+58:         modelled_revenue: to_number(source.modelled_revenue),
+59:         net_profit: to_number(source.net_profit),
+60:         naive_net_profit: materials_naive_net_profit,
+61:         revenue_members: [],
+62:       };
+63:     }
+64: 
+65:     const group_id = source.key;
+66:     const labour = labour_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+67:     const asset = asset_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+68: 
+69:     const regrouped_true_cost =
+70:       labour.direct_cost + labour.overhead + asset.direct_cost + asset.overhead;
+71: 
+72:     const known_true_cost_parts = [labour.group_true_cost_known, asset.group_true_cost_known].filter(
+73:       (v) => v !== null
+74:     );
+75:     const known_true_cost =
+76:       known_true_cost_parts.length > 0 ? known_true_cost_parts.reduce((a, b) => a + b, 0) : null;
+77:     const true_cost_variance =
+78:       known_true_cost === null ? 0 : Math.round((regrouped_true_cost - known_true_cost) * 100) / 100;
+79:     const true_cost_reconciles = known_true_cost === null ? true : Math.abs(true_cost_variance) < 1;
+80: 
+81:     const revenue_members = [];
+82:     safe_array(selected_output.labour_groups).forEach((g) => {
+83:       if (g.group_id !== group_id) return;
+84:       safe_array(g.staff).forEach((m) => {
+85:         revenue_members.push({ name: m.staff_type_name || "Unnamed labour source", modelled_revenue: to_number(m.modelled_revenue), type: "labour" });
+86:       });
+87:     });
+88:     safe_array(selected_output.asset_groups).forEach((g) => {
+89:       if (g.group_id !== group_id) return;
+90:       safe_array(g.assets).forEach((m) => {
+91:         revenue_members.push({ name: m.asset_name || "Unnamed asset", modelled_revenue: to_number(m.modelled_revenue), type: "asset" });
+92:       });
+93:     });
+94: 
+95:     return {
+96:       key: group_id,
+97:       name: source.name,
+98:       is_materials: false,
+99:       modelled_revenue: to_number(source.modelled_revenue),
+100:       labour_direct_cost: labour.direct_cost,
+101:       labour_overhead: labour.overhead,
+102:       asset_direct_cost: asset.direct_cost,
+103:       asset_overhead: asset.overhead,
+104:       total_overhead: labour.overhead + asset.overhead,
+105:       true_cost_reconciles,
+106:       true_cost_variance,
+107:       net_profit: to_number(source.net_profit),
+108:       naive_net_profit: naive_by_group_id.has(group_id) ? naive_by_group_id.get(group_id) : null,
+109:       revenue_members,
+110:     };
+111:   });
+112: 
+113:   const unassigned_lines = safe_array(selected_output.unassigned?.lines).map((l) => ({
+114:     label: l.label,
+115:     amount: to_number(l.amount),
+116:     hint: l.hint || null,
+117:   }));
+118:   const total_unassigned = to_number(selected_output.unassigned?.total);
+119: 
+120:   const sum_of_rows = rows.reduce((sum, r) => sum + r.net_profit, 0);
+121:   const total_net_profit_value = to_number(total_net_profit);
+122:   const headline_variance =
+123:     Math.round((sum_of_rows - total_unassigned - total_net_profit_value) * 100) / 100;
+124: 
+125:   // As-priced total uses the SAME headline total_net_profit - the cascade
+126:   // is zero-sum across sources (proven: naive sum - unassigned = the same
+127:   // total_net_profit shown elsewhere), so the as-priced view's own total
+128:   // row reconciles against that identical figure, not a separate one.
+129:   const sum_of_naive_rows = rows.reduce((sum, r) => sum + (r.naive_net_profit ?? 0), 0);
+130:   const naive_headline_variance =
+131:     Math.round((sum_of_naive_rows - total_unassigned - total_net_profit_value) * 100) / 100;
+132: 
+133:   return {
+134:     rows,
+135:     unassigned_lines,
+136:     total_unassigned,
+137:     total_net_profit: total_net_profit_value,
+138:     reconciles_to_headline: Math.abs(headline_variance) < 1,
+139:     headline_variance,
+140:     naive_reconciles_to_headline: Math.abs(naive_headline_variance) < 1,
+141:     naive_headline_variance,
+142:   };
+143: }
+
+=== page.jsx render of build-up ===
+19: import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+
+=== lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js 315-345 ===
+315:         verdict_label: verdict_label(verdict),
+316:         total_cost: child_true_cost,
+317:         overhead_share: a.overhead_share ?? 0,
+318:         current_rate: child_current_rate,
+319:         minimum_recoverable_rate: a.minimum_recoverable_rate_per_hour ?? null,
+320:         achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+321:         achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+322:       });
+323:     });
+324:   });
+325: 
+326:   const merged_entries = Array.from(by_group_id.values()).map((entry) => {
+327:     const current_rate = entry.current_rate_count > 0 ? entry.current_rate_sum / entry.current_rate_count : null;
+328:     const verdict = entry.has_unavailable ? null : verdict_for(entry.net_profit);
+329:     return {
+330:       ...entry,
+331:       type: "group",
+332:       current_rate,
+333:       verdict,
+334:       verdict_label: verdict_label(verdict),
+335:     };
+336:   });
+337: 
+338:   merged_entries.push({
+339:     key: "materials",
+340:     label: "Materials / COGS",
+341:     net_profit: materials.real_capacity_net_profit,
+342:     modelled_revenue: materials.revenue,
+343:     verdict: materials.real_capacity_verdict,
+344:     verdict_label: verdict_label(materials.real_capacity_verdict),
+345:     children: [],
+
+=== callers of merge_groups_by_id_real_capacity ===
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:225: export function merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials) {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:529: const all_group_level_entries_real_capacity = merge_groups_by_id_real_capacity(
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:10: import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:363: ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:513: ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+
+=== where rows get real_capacity_net_profit (hook) ===
+623: // real_capacity_net_profit can go as negative as needed, because
+892: row.real_capacity_net_profit = null;
+893: row.real_capacity_verdict = null;
+908: const real_capacity_net_profit = round_currency(inner_after_phase1 - inner_phase2_deduction);
+909: row.real_capacity_net_profit = real_capacity_net_profit;
+910: row.real_capacity_verdict = verdict_for(real_capacity_net_profit);
+915: const materials_real_capacity_net_profit = round_currency(materials_final_revenue - materials_true_cost);
+923: materials_real_capacity_net_profit,
+932: materials_real_capacity_verdict:
+933: shortfall > 0 ? "being_carried" : verdict_for(materials_real_capacity_net_profit),
+1226: materials.real_capacity_net_profit = real_capacity.materials_real_capacity_net_profit;
+1228: materials.real_capacity_verdict = real_capacity.materials_real_capacity_verdict;
+1397: (materials.real_capacity_net_profit ?? 0) -

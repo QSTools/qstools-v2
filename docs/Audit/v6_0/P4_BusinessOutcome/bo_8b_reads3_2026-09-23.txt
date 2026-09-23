@@ -1,0 +1,119 @@
+﻿=== line counts ===
+lib\calculations\businessOutcomeNetProfitBuildUpSelectors.js : 
+components\business-outcome-truth\BusinessOutcomeNetProfitBuildUp.jsx : 233
+
+=== lib\calculations\businessOutcomeNetProfitBuildUpSelectors.js 1-400 ===
+
+=== who feeds the build-up (page / card) ===
+page.jsx:19: import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+BusinessOutcomePerSourceRevenueCard.jsx:15: import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+BusinessOutcomePerSourceRevenueCard.jsx:2847: <BusinessOutcomeNetProfitBuildUp smoothing_mode={smoothing_mode} />
+
+=== merge_groups_by_id_real_capacity in selector ===
+
+=== lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js 225-315 ===
+225: export function merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials) {
+226:   const by_group_id = new Map();
+227: 
+228:   function get_or_create(group_id, group_name) {
+229:     const key = group_id || `unkeyed_${group_name}`;
+230:     if (!by_group_id.has(key)) {
+231:       by_group_id.set(key, {
+232:         key,
+233:         label: group_name,
+234:         net_profit: 0,
+235:         modelled_revenue: 0,
+236:         total_cost: 0,
+237:         overhead_share: 0,
+238:         current_rate_sum: 0,
+239:         current_rate_count: 0,
+240:         minimum_recoverable_rate: null,
+241:         children: [],
+242:         has_unavailable: false,
+243:       });
+244:     }
+245:     return by_group_id.get(key);
+246:   }
+247: 
+248:   labour_groups.forEach((g) => {
+249:     const entry = get_or_create(g.group_id, g.group_name);
+250:     entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+251:     entry.total_cost += g.group_true_cost ?? 0;
+252:     entry.overhead_share += g.group_overhead_share ?? 0;
+253:     if (g.current_rate !== null && g.current_rate !== undefined) {
+254:       entry.current_rate_sum += g.current_rate;
+255:       entry.current_rate_count += 1;
+256:     }
+257:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+258:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+259:     if (g.group_has_unavailable) entry.has_unavailable = true;
+260:     g.staff.forEach((s) => {
+261:       const verdict = s.real_capacity_verdict;
+262:       const child_true_cost = s.true_cost ?? 0;
+263:       const child_net_profit = s.real_capacity_net_profit ?? 0;
+264:       const child_achieved_revenue = child_true_cost + child_net_profit;
+265:       const child_hours = s.hours ?? 0;
+266:       const child_current_rate = s.charge_out_rate ?? s.blended_rate ?? null;
+267:       entry.children.push({
+268:         key: s.staff_type_id,
+269:         label: s.staff_type_name,
+270:         net_profit: child_net_profit,
+271:         modelled_revenue: s.modelled_revenue,
+272:         achieved_revenue: child_achieved_revenue,
+273:         available: s.available,
+274:         unavailable_reason: s.unavailable_reason,
+275:         verdict,
+276:         verdict_label: verdict_label(verdict),
+277:         total_cost: child_true_cost,
+278:         overhead_share: s.overhead_share ?? 0,
+279:         current_rate: child_current_rate,
+280:         minimum_recoverable_rate: s.minimum_recoverable_rate_per_hour ?? null,
+281:         achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+282:         achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+283:       });
+284:     });
+285:   });
+286: 
+287:   asset_groups.forEach((g) => {
+288:     const entry = get_or_create(g.group_id, g.group_name);
+289:     entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+290:     entry.total_cost += g.group_true_cost ?? 0;
+291:     entry.overhead_share += g.group_overhead_share ?? 0;
+292:     if (g.current_rate !== null && g.current_rate !== undefined) {
+293:       entry.current_rate_sum += g.current_rate;
+294:       entry.current_rate_count += 1;
+295:     }
+296:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+297:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+298:     if (g.group_has_unavailable) entry.has_unavailable = true;
+299:     g.assets.forEach((a) => {
+300:       const verdict = a.real_capacity_verdict;
+301:       const child_true_cost = a.true_cost ?? 0;
+302:       const child_net_profit = a.real_capacity_net_profit ?? 0;
+303:       const child_achieved_revenue = child_true_cost + child_net_profit;
+304:       const child_hours = a.hours ?? 0;
+305:       const child_current_rate = a.blended_rate ?? a.charge_out_rate ?? null;
+306:       entry.children.push({
+307:         key: a.asset_id,
+308:         label: a.asset_name,
+309:         net_profit: child_net_profit,
+310:         modelled_revenue: a.modelled_revenue,
+311:         achieved_revenue: child_achieved_revenue,
+312:         available: a.available,
+313:         unavailable_reason: a.unavailable_reason,
+314:         verdict,
+315:         verdict_label: verdict_label(verdict),
+
+=== its paying-its-way wording ===
+BusinessOutcomePerSourceRevenueCard.jsx:821: verdict_label: child_verdict === "being_carried" ? "Being carried" : "Paying its way",
+BusinessOutcomePerSourceRevenueCard.jsx:889: verdict_label: verdict === "being_carried" ? "Being carried" : "Paying its way",
+BusinessOutcomePerSourceRevenueCard.jsx:976: verdict_label: credited_verdict === "being_carried" ? "Being carried" : "Paying its way",
+BusinessOutcomePerSourceRevenueCard.jsx:1061: {being_carried_count === 1 ? "isn't paying its way" : "aren't paying their way"} - the rest of the
+BusinessOutcomePerSourceRevenueCard.jsx:1441: {g.verdict === "being_carried" ? "Being carried" : "Paying its way"}
+BusinessOutcomePerSourceRevenueCard.jsx:1457: {materials.verdict === "being_carried" ? "Being carried" : "Paying its way"}
+BusinessOutcomePerSourceRevenueCard.jsx:2003: const [view_mode, set_view_mode] = useState("profit"); // Default changed (this session, per user request): profit is more directly actionable for a casual owner than revenue - "who is actually making money" vs "who brings in the most money". Also surfaces the Being Carried / Paying its way verdict tags by default, since those only render in profit mode.
+BusinessOutcomePerSourceRevenueCard.jsx:2504: <> Every part of your business is paying its way.</>
+BusinessOutcomePerSourceRevenueCard.jsx:2511: {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way, on this
+BusinessOutcomePerSourceRevenueCard.jsx:2534: <> Every part of your business is paying its way.</>
+BusinessOutcomePerSourceRevenueCard.jsx:2541: {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+BusinessOutcomeTruthSituationSummary.jsx:334: { type: "text", text: "Zooming into individual sources, every part of the business is currently paying its way - no source is being propped up by the rest, so there's no cross-subsidy happening beneath the numbers above." },

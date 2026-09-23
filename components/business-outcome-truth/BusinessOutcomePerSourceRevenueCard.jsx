@@ -360,7 +360,7 @@ function CostBuildUpTable({ labour_groups, asset_groups, materials, time_scale, 
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const entries =
     capacity_mode === "real"
-      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials, real_capacity?.group_real_capacity)
       : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
   // FIX (2026-09-18): mirrors the same fix just applied to View B's
   // merge_view_b_groups - the selector's own group_true_cost is summed
@@ -503,14 +503,14 @@ function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, open_days, open
     </div>
   );
 }
-function RankedGroupsDrill({ headline, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
+function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [hovered_key, set_hovered_key] = useState("");
 
   const entries =
     capacity_mode === "real"
-      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+      ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials, real_capacity?.group_real_capacity)
       : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
 
   // S25: contribution-margin lens - overhead_share removed from each
@@ -1114,7 +1114,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
                 <div className="ui-help">
                   {item.is_materials ? (
                     <>
-                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Min recoverable markup{" "}
+                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Achieved markup{" "}
                       {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined
                         ? formatPercentTruth(item.minimum_recoverable_rate)
                         : "N/A"}{" "}
@@ -2216,13 +2216,17 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
     // by almost exactly the non-productive cost amount - this line was
     // why). unassigned_total is untouched - that's still a genuinely
     // separate, unhandled thing.
+    // BO-11 / F8 (a): add real revenue that rates + markup do not explain (View B surplus).
+    const unexplained_revenue = Math.max(0, Number(per_source.view_b?.real_capacity?.surplus) || 0);
     const total_net_profit =
       all_sources.reduce((sum, s) => sum + s.net_profit, 0) -
-      (per_source.unassigned?.total ?? 0);
+      (per_source.unassigned?.total ?? 0) +
+      unexplained_revenue;
     const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
     return {
       total_net_profit,
       total_modelled_revenue: all_sources.reduce((sum, s) => sum + s.modelled_revenue, 0),
+      unexplained_revenue,
       total_group_count: all_sources.length,
       being_carried_count: being_carried.length,
       being_carried,
@@ -2508,7 +2512,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   <span className="value-bad">
                     {carried_count} of {total_source_count}
                   </span>{" "}
-                  {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way, on this
+                  {carried_count === 1 ? "source isn't paying its way" : "sources aren't paying their way"}, on this
                   independent basis.
                 </>
               )}
@@ -2538,7 +2542,15 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   <span className="value-bad">
                     {carried_count} of {total_source_count}
                   </span>{" "}
-                  {carried_count === 1 ? "source isn't" : "sources aren't"} paying its way.
+                  {carried_count === 1 ? "source isn't paying its way" : "sources aren't paying their way"}.
+              {active_headline?.unexplained_revenue > 0.5 && (
+                <>
+                  {" "}Includes{" "}
+                  {format_currency(scaleAnnualValue(active_headline.unexplained_revenue, time_scale, null, per_source.net_annual_business_open_hours, per_source.net_annual_business_open_days, per_source.annual_open_weeks))}
+                  {time_scale !== "year" ? getTimeScaleSuffix(time_scale) : ""}{" "}of revenue your rates and markup
+                  don&apos;t explain - customers are paying more than the rates set in Rate Builder.
+                </>
+              )}
                 </>
               )}
             </>
@@ -2814,8 +2826,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             {card2_view_mode_ab === "b" ? (
               <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
             ) : (
-              <RankedGroupsDrill
-                headline={active_headline}
+              <RankedGroupsDrill real_capacity={per_source.real_capacity}                 headline={active_headline}
                 labour_groups={per_source.labour_groups}
                 asset_groups={per_source.asset_groups}
                 materials={per_source.materials}

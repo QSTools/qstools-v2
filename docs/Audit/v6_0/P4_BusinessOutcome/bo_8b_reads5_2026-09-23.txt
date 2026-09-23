@@ -1,0 +1,232 @@
+﻿
+=== hooks\useBusinessOutcomePerSourceRevenue.js 868-935 ===
+868:       g.rows.map((row) => {
+869:         const share =
+870:           g.non_productive_cost > 0
+871:             ? group_row_revenue_total > 0
+872:               ? g.non_productive_cost * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+873:               : g.non_productive_cost / g.rows.length
+874:             : 0;
+875:         return [row, round_currency(share)];
+876:       })
+877:     );
+878: 
+879:     const inner_v0 = g.rows.reduce((sum, row) => {
+880:       if (row.net_profit === null) return sum;
+881:       const adjusted_net_profit = to_number(row.net_profit) - (row_non_productive_share_by_row.get(row) ?? 0);
+882:       if (adjusted_net_profit <= 0) return sum;
+883:       return sum + adjusted_net_profit;
+884:     }, 0);
+885: 
+886:     const inner_absorbed = Math.min(Math.max(g.total_adjustment, 0), inner_v0);
+887:     const inner_factor = inner_v0 > 0 ? inner_absorbed / inner_v0 : 0;
+888:     const inner_leftover = round_currency(g.total_adjustment - inner_absorbed);
+889: 
+890:     g.rows.forEach((row) => {
+891:       if (row.net_profit === null) {
+892:         row.real_capacity_net_profit = null;
+893:         row.real_capacity_verdict = null;
+894:         return;
+895:       }
+896: 
+897:       const row_non_productive_share = row_non_productive_share_by_row.get(row) ?? 0;
+898:       const adjusted_net_profit = to_number(row.net_profit) - row_non_productive_share;
+899: 
+900:       const inner_after_phase1 =
+901:         adjusted_net_profit > 0 ? adjusted_net_profit * (1 - inner_factor) : adjusted_net_profit;
+902: 
+903:       const inner_phase2_deduction =
+904:         inner_leftover > 0 && group_row_revenue_total > 0
+905:           ? inner_leftover * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+906:           : 0;
+907: 
+908:       const real_capacity_net_profit = round_currency(inner_after_phase1 - inner_phase2_deduction);
+909:       row.real_capacity_net_profit = real_capacity_net_profit;
+910:       row.real_capacity_verdict = verdict_for(real_capacity_net_profit);
+911:     });
+912:   });
+913: 
+914:   const materials_final_revenue = Math.max(materials_naive_revenue, materials_true_cost);
+915:   const materials_real_capacity_net_profit = round_currency(materials_final_revenue - materials_true_cost);
+916: 
+917:   return {
+918:     shortfall: round_currency(shortfall),
+919:     v0: round_currency(v0),
+920:     phase1_absorbed: round_currency(phase1_absorbed),
+921:     phase1_factor,
+922:     leftover,
+923:     materials_real_capacity_net_profit,
+924:     materials_real_capacity_naive_revenue: round_currency(materials_naive_revenue),
+925:     // FIX (confirmed with user): materials floored at exactly $0 net
+926:     // profit still needed real help to get there - its naive figure
+927:     // was genuinely negative, and the floor exists precisely to hide
+928:     // that. That is a "being carried" state, not a healthy "paying its
+929:     // way" one, even though the displayed number is >= 0. Only
+930:     // materials that never needed the floor at all (shortfall === 0)
+931:     // genuinely counts as paying its way.
+932:     materials_real_capacity_verdict:
+933:       shortfall > 0 ? "being_carried" : verdict_for(materials_real_capacity_net_profit),
+934:     // Exposed for verification against the spreadsheet - group-level
+935:     // final figures, before the inner per-source split.
+
+=== card uses of merge_groups_by_id_real_capacity / total_cost ===
+10: import { merge_groups_by_id, merge_groups_by_id_real_capacity } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+363: ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+368: // entirely. real_capacity.group_real_capacity has the correct,
+376: (real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g.true_cost])
+397: const full_cost = r.total_cost ?? 0;
+419: const no_overhead = (r.total_cost ?? 0) - overhead;
+420: const full_cost = r.total_cost ?? 0;
+460: const full_cost = r.total_cost ?? 0;
+482: const no_overhead = (r.total_cost ?? 0) - overhead;
+483: const full_cost = r.total_cost ?? 0;
+513: ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials)
+530: total_cost: (e.total_cost ?? 0) - (e.overhead_share ?? 0),
+555: total_cost: (c.total_cost ?? 0) - (c.overhead_share ?? 0),
+618: Cost {formatCurrencyTruth(item.total_cost)} &middot; Group min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
+621: {item.type !== "group" && item.type !== "materials" && item.total_cost !== undefined && (
+623: Cost {formatCurrencyTruth(item.total_cost)} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"} &middot; Achieved rate {item.achieved_rate !== null && item.achieved_rate !== undefined ? `${formatCurrencyTruth(item.achieved_rate)}/hr` : "N/A"}
+683: // View B's data (view_b.real_capacity.group_real_capacity) already
+695: // (view_b.real_capacity.group_real_capacity) - the number that actually
+716: //     (view_b.real_capacity.group_real_capacity) - shortfall shared
+774: entry.total_cost += row.true_cost ?? 0;
+836: entry.total_cost += m.true_cost ?? 0;
+845: (view_b.real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g])
+852: // FIX (2026-09-18): entry.total_cost above was summed from raw,
+856: // figure in real_capacity.group_real_capacity by exactly the
+862: const true_cost = cascade_entry?.true_cost ?? entry.total_cost;
+1001: total_cost: (e.total_cost ?? 0) - (e.overhead_share ?? 0),
+1014: total_cost: (c.total_cost ?? 0) - (c.overhead_share ?? 0),
+1117: Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Min recoverable markup{" "}
+1128: Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+1137: Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Current rate{" "}
+1500: const groups = real_capacity.group_real_capacity || [];
+1704: const naive_net_profit = e.modelled_revenue - e.total_cost;
+1713: const total_true_cost = rows.reduce((sum, r) => sum + r.total_cost, 0);
+1740: <span>{money(r.total_cost)}</span>
+1866: const naive_net_profit = e.modelled_revenue - e.total_cost;
+1874: const total_true_cost = rows.reduce((sum, r) => sum + r.total_cost, 0);
+1900: <span>{money(r.total_cost)}</span>
+2095: const groups = per_source.real_capacity?.group_real_capacity || [];
+2176: // member of group_real_capacity, not something bolted on afterward.
+2190: const net_profit = mode === "naive" ? e.modelled_revenue - e.total_cost : e.net_profit;
+2861: group_real_capacity={per_source.real_capacity?.group_real_capacity}
+2914: groups_naive={per_source.real_capacity?.group_real_capacity}
+
+=== F8: consumers of view_b_headline_real_capacity / all_peers_modelled_total ===
+lib\calculations\businessOutcomeViewBCalculations.js:110: all_peers_modelled_total: round_currency(combined_total),
+lib\calculations\businessOutcomeViewBCalculations.js:135: all_peers_modelled_total: round_currency(combined_total),
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:600: let view_b_headline_real_capacity = null;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:616: view_b_headline_real_capacity = {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:619: independent_modelled_revenue: view_b.revenue_ceiling?.all_peers_modelled_total ?? 0,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:665: view_b_headline_real_capacity,
+lib\selectors\businessModellingLeverSelectors.js:60: // View B headline (view_b_headline_real_capacity, built in
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:1921: {money(view_b.revenue_ceiling.all_peers_modelled_total)}
+
+=== components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx 2185-2290 ===
+2185:   function build_view_b_headline(mode) {
+2186:     if (!per_source.view_b) return null;
+2187:     const merge_mode = mode === "assumed" ? "assumed" : "real";
+2188:     const merged = merge_view_b_groups(per_source.view_b, merge_mode);
+2189:     const all_sources = merged.map((e) => {
+2190:       const net_profit = mode === "naive" ? e.modelled_revenue - e.total_cost : e.net_profit;
+2191:       return {
+2192:         key: e.key,
+2193:         name: e.label,
+2194:         net_profit,
+2195:         modelled_revenue: e.modelled_revenue,
+2196:         verdict: net_profit >= 0 ? "paying_its_way" : "being_carried",
+2197:         type: e.is_materials ? "materials" : "group",
+2198:       };
+2199:     });
+2200:     // FIX (2026-09-17, third pass): non_revenue_bearing_total was
+2201:     // never subtracted here, even though the catch-all display row
+2202:     // (apply_non_revenue_bearing_entry) still shows for View B - the
+2203:     // total and the visible row list disagreed as a result. Matching
+2204:     // the same pattern unassigned_total already uses on the line
+2205:     // below, which the catch-all row for THAT has always correctly
+2206:     // matched. Does not fix View B's own per-group split (still the
+2207:     // known, deliberate gap - View B's own cascade, apply_real_capacity_v2,
+2208:     // has no non-productive cost awareness at all) - only restores
+2209:     // agreement between the total and what's visibly shown.
+2210:     // FIX (2026-09-18): View B's own cascade (apply_real_capacity_v2)
+2211:     // now correctly bakes non-productive cost into each row's own
+2212:     // real_capacity_net_profit, the same way View A's does - subtracting
+2213:     // non_revenue_bearing_total again here double-counts it (confirmed
+2214:     // live: Foreman and Site Crew matched exactly between View A and
+2215:     // View B once the cascade fix landed, but the two TOTALS were off
+2216:     // by almost exactly the non-productive cost amount - this line was
+2217:     // why). unassigned_total is untouched - that's still a genuinely
+2218:     // separate, unhandled thing.
+2219:     const total_net_profit =
+2220:       all_sources.reduce((sum, s) => sum + s.net_profit, 0) -
+2221:       (per_source.unassigned?.total ?? 0);
+2222:     const being_carried = all_sources.filter((s) => s.verdict === "being_carried");
+2223:     return {
+2224:       total_net_profit,
+2225:       total_modelled_revenue: all_sources.reduce((sum, s) => sum + s.modelled_revenue, 0),
+2226:       total_group_count: all_sources.length,
+2227:       being_carried_count: being_carried.length,
+2228:       being_carried,
+2229:       all_sources,
+2230:       all_good: being_carried.length === 0,
+2231:       labour_capacity_warning: per_source.headline_real_capacity?.labour_capacity_warning ?? false,
+2232:       asset_capacity_warning: per_source.headline_real_capacity?.asset_capacity_warning ?? false,
+2233:       labour_coverage_gaps: per_source.headline_real_capacity?.labour_coverage_gaps || [],
+2234:     };
+2235:   }
+2236: 
+2237:   const raw_active_headline =
+2238:     view_mode_ab === "b"
+2239:       ? build_view_b_headline(capacity_mode === "assumed" ? "assumed" : "real")
+2240:       : capacity_mode === "real"
+2241:         ? smoothing_mode === "naive"
+2242:           ? build_naive_headline()
+2243:           : per_source.headline_real_capacity
+2244:         : per_source.headline;
+2245: 
+2246:   // Stable headline for the "Your business, right now" blurb only -
+2247:   // always View A's basis (real P&L revenue), regardless of the
+2248:   // View A/B toggle. The toggle should only affect the page's own
+2249:   // View A/B sections, never silently change the blurb's headline
+2250:   // numbers underneath the reader (2026-09-10 decision).
+2251:   const raw_stable_headline =
+2252:     capacity_mode === "real"
+2253:       ? smoothing_mode === "naive"
+2254:         ? build_naive_headline()
+2255:         : per_source.headline_real_capacity
+2256:       : per_source.headline;
+2257: 
+2258:   // Unassigned cost as a genuine "blocking flag" row (this session,
+2259:   // per user request): real cost, real money, not attributed to any
+2260:   // source above - previously invisible in this list even though the
+2261:   // headline total already correctly subtracts it. Shown here as a
+2262:   // 7th entry, always verdict "being_carried" (it can never be
+2263:   // positive - it is pure cost with no revenue attached), counted in
+2264:   // the being_carried total so "X of Y sources aren't paying their
+2265:   // way" honestly reflects it as a real, current problem, not just
+2266:   // informational. Applied here (after active_headline is otherwise
+2267:   // finalized) so every mode - naive, real, assumed, View A, View B -
+2268:   // gets this consistently without duplicating the logic per branch.
+2269:   // The math checks out: total_net_profit already equals
+2270:   // sum(6 sources) - unassigned_total, so adding a 7th row valued at
+2271:   // -unassigned_total makes the full 7-row list sum to exactly
+2272:   // total_net_profit - the list is now genuinely transparent, not
+2273:   // just the headline total.
+2274:   const unassigned_total = per_source.unassigned?.total ?? 0;
+2275:   // FIX (2026-09-17): real cost that IS assigned to a working unit but
+2276:   // isn't tied to any revenue-bearing source (non-productive labour/
+2277:   // assets) - genuinely different from unassigned_total above (which
+2278:   // means "not yet assigned, go fix this in Cost Allocation"). Shown
+2279:   // as its own row so the breakdown list keeps summing to the real
+2280:   // headline total, without implying there's still something to fix.
+2281:   const non_revenue_bearing_total = per_source.non_revenue_bearing?.total ?? 0;
+2282: 
+2283:   // Shared helper (2026-09-10): injects the unassigned-cost row into
+2284:   // any raw headline object. Extracted so both the toggle-following
+2285:   // active_headline (used elsewhere on the page) and the toggle-
+2286:   // stable stable_headline (used only by the blurb) get identical
+2287:   // treatment without duplicating this logic.
+2288:   function apply_unassigned_entry(raw_headline) {
+2289:     if (!(unassigned_total > 0 && raw_headline)) return raw_headline;
+2290:     const unassigned_entry = {

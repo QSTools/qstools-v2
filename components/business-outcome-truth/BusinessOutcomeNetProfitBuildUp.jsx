@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
@@ -120,12 +120,28 @@ export default function BusinessOutcomeNetProfitBuildUp({ smoothing_mode = "smoo
                 </div>
 
                 {row.is_materials ? (
-                  <div className="business-outcome-buildup-row negative">
-                    <span>Material cost</span>
-                    <span>-{format_currency(row.modelled_revenue - row.net_profit)}</span>
-                  </div>
+                  <>
+                    <div className="business-outcome-buildup-row">
+                      <span>Revenue</span>
+                      <span>{format_currency(row.modelled_revenue)}</span>
+                    </div>
+                    <div className="business-outcome-buildup-row negative">
+                      <span>Material cost</span>
+                      <span>-{format_currency(row.material_true_cost)}</span>
+                    </div>
+                    {row.shortfall_carried_by_others > 0.5 && (
+                      <div className="business-outcome-buildup-row">
+                        <span>Shortfall carried by other sources</span>
+                        <span>+{format_currency(row.shortfall_carried_by_others)}</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
+                    <div className="business-outcome-buildup-row">
+                      <span>Revenue</span>
+                      <span>{format_currency(row.modelled_revenue)}</span>
+                    </div>
                     <div className="business-outcome-buildup-row negative">
                       <span>Labour cost</span>
                       <span>-{format_currency(row.labour_direct_cost)}</span>
@@ -138,10 +154,22 @@ export default function BusinessOutcomeNetProfitBuildUp({ smoothing_mode = "smoo
                       <span>Overhead share</span>
                       <span>-{format_currency(row.total_overhead)}</span>
                     </div>
+                    {row.non_productive_cost > 0.5 && (
+                      <div className="business-outcome-buildup-row negative">
+                        <span>Non-productive support share</span>
+                        <span>-{format_currency(row.non_productive_cost)}</span>
+                      </div>
+                    )}
+                    {row.shortfall_absorbed > 0.5 && (
+                      <div className="business-outcome-buildup-row negative">
+                        <span>Share of materials shortfall carried</span>
+                        <span>-{format_currency(row.shortfall_absorbed)}</span>
+                      </div>
+                    )}
                     {!row.true_cost_reconciles && (
                       <div className="business-outcome-buildup-row negative">
                         <span>
-                          Check: doesn&apos;t match Cost Allocation&apos;s own total by{" "}
+                          Check: the lines above differ from this group&apos;s true cost by{" "}
                           {format_currency(row.true_cost_variance)}.
                         </span>
                       </div>
@@ -214,7 +242,7 @@ export default function BusinessOutcomeNetProfitBuildUp({ smoothing_mode = "smoo
         <div className="business-outcome-buildup-row contribution" style={{ fontSize: "0.95rem" }}>
           <span style={{ color: "var(--text-primary)" }}>NET PROFIT</span>
           <span style={{ color: contribution_color(total_net_profit) }}>
-            {view_mode === "naive" ? (
+            {view_mode === "profit" && smoothing_mode === "naive" ? (
               naive_reconciles_to_headline ? (
                 `✓ ${format_currency(total_net_profit)}`
               ) : (

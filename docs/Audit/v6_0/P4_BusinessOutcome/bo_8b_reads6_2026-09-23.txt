@@ -1,0 +1,384 @@
+﻿=== selector call site (after patch) ===
+225: export function merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials, group_real_capacity = null) {
+541: const all_group_level_entries_real_capacity = merge_groups_by_id_real_capacity(
+
+=== lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js 40-85 ===
+40: function group_sources_by_group(sources, member_key) {
+41:   const groups = new Map();
+42: 
+43:   sources.forEach((row) => {
+44:     const key = row.group_id || "ungrouped";
+45:     if (!groups.has(key)) {
+46:       groups.set(key, {
+47:         group_id: row.group_id,
+48:         group_name: row.group_name || "Unnamed group",
+49:         [member_key]: [],
+50:         group_modelled_revenue: 0,
+51:         group_true_cost: 0,
+52:         group_overhead_share: 0,
+53:         current_rate: null,
+54:         minimum_recoverable_rate: null,
+55:         group_net_profit: 0,
+56:         group_implied_revenue: 0,
+57:         group_implied_net_profit: 0,
+58:         group_real_capacity_net_profit: 0,
+59:         group_has_unavailable: false,
+60:       });
+61:     }
+62: 
+63:     const group = groups.get(key);
+64:     group[member_key].push(row);
+65:     group.group_modelled_revenue += row.modelled_revenue ?? 0;
+66:     group.group_true_cost += row.true_cost ?? 0;
+67:     group.group_overhead_share += row.overhead_share ?? 0;
+68:     const row_current_rate = row.blended_rate ?? row.charge_out_rate ?? null;
+69:     if (group.current_rate === null && row_current_rate !== null && row_current_rate !== undefined) group.current_rate = row_current_rate;
+70:     if (group.minimum_recoverable_rate === null && row.minimum_recoverable_rate_per_hour !== null && row.minimum_recoverable_rate_per_hour !== undefined) group.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+71:     group.group_net_profit += row.net_profit ?? 0;
+72:     // STEP 4 (S30 brief): implied figures roll up the same way as
+73:     // assumed figures - summed per group from each individual source.
+74:     // Falls back to the assumed value when implied is not present (no
+75:     // ceiling breach), so this sum is always safe to read regardless of
+76:     // breach state.
+77:     group.group_implied_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
+78:     group.group_implied_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
+79:     // REAL CAPACITY (two-phase cascade, hand-verified in a spreadsheet
+80:     // before this was coded): same roll-up pattern as implied above -
+81:     // falls back to the assumed net_profit when real_capacity_net_profit
+82:     // is not present, always safe to read.
+83:     group.group_real_capacity_net_profit += row.real_capacity_net_profit ?? row.net_profit ?? 0;
+84:     if (!row.available) {
+85:       group.group_has_unavailable = true;
+
+=== View B cascade: row-level non-productive / real_capacity_net_profit ===
+146: * as apply_revenue_ceiling_v2 above (real_capacity_net_profit,
+152: * end: materials_real_capacity_net_profit can be negative, same as any
+155: export function apply_real_capacity_v2(labour_sources, asset_sources, materials_source, total_revenue_reference, non_productive_cost_by_group_id = new Map()) {
+166: // never receives a share since non_productive_cost_by_group_id is only
+170: const non_productive_cost = to_number(non_productive_cost_by_group_id.get(g.group_id));
+171: g.non_productive_cost = round_currency(non_productive_cost);
+172: g.true_cost = round_currency(g.true_cost + non_productive_cost);
+200: // with no knowledge that non_productive_cost had been added to the
+204: // proportional share of non_productive_cost (by revenue share, same
+211: const row_non_productive_share_by_row = new Map(
+214: g.non_productive_cost > 0
+216: ? g.non_productive_cost * ((row.modelled_revenue ?? 0) / group_row_revenue_total)
+217: : g.non_productive_cost / g.rows.length
+225: const adjusted_net_profit = to_number(row.net_profit) - (row_non_productive_share_by_row.get(row) ?? 0);
+236: row.real_capacity_net_profit = null;
+240: const row_non_productive_share = row_non_productive_share_by_row.get(row) ?? 0;
+241: const adjusted_net_profit = to_number(row.net_profit) - row_non_productive_share;
+248: const real_capacity_net_profit = round_currency(inner_after_phase1 - inner_phase2_deduction);
+249: row.real_capacity_net_profit = real_capacity_net_profit;
+250: row.real_capacity_verdict = verdict_for(real_capacity_net_profit);
+253: const achieved_revenue = row.true_cost + real_capacity_net_profit;
+269: materials_real_capacity_net_profit: materials_row.real_capacity_net_profit,
+293: non_productive_cost: g.non_productive_cost ?? 0,
+
+=== card merge_view_b_groups children (cost / achieved) ===
+
+=== components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx 770-800 ===
+770:   // same convention as View A (materials never has children either).
+771:   [...view_b.labour_sources, ...view_b.asset_sources].forEach((row) => {
+772:     const entry = get_or_create(row.group_id, row.group_name);
+773:     entry.modelled_revenue += row.modelled_revenue ?? 0;
+774:     entry.total_cost += row.true_cost ?? 0;
+775:     entry.overhead_share += row.overhead_share ?? 0;
+776:     entry.assumed_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
+777:     entry.assumed_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
+778:     const row_rate = row.blended_rate ?? row.charge_out_rate ?? null;
+779:     if (entry.current_rate === null && row_rate !== null && row_rate !== undefined) entry.current_rate = row_rate;
+780:     if (
+781:       entry.minimum_recoverable_rate === null &&
+782:       row.minimum_recoverable_rate_per_hour !== null &&
+783:       row.minimum_recoverable_rate_per_hour !== undefined
+784:     ) {
+785:       entry.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+786:     }
+787: 
+788:     const child_net_profit =
+789:       capacity_mode === "assumed"
+790:         ? row.implied_net_profit ?? row.net_profit ?? 0
+791:         : row.real_capacity_net_profit ?? row.net_profit ?? 0;
+792:     const child_achieved_revenue =
+793:       capacity_mode === "assumed"
+794:         ? row.implied_revenue ?? row.modelled_revenue ?? 0
+795:         : (row.true_cost ?? 0) + child_net_profit;
+796:     const child_verdict = child_net_profit >= 0 ? "paying_its_way" : "being_carried";
+797:     // Labour children get their own genuinely distinct, individually-
+798:     // set rate (e.g. Owner/Director $120/hr vs Senior Operator $75/hr -
+799:     // confirmed real, separately-set numbers). Asset children within a
+800:     // co-deployed group (e.g. a pump + its tow vehicle) share ONE
+
+=== components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx 830-900 ===
+830:   });
+831: 
+832:   if (view_b.materials) {
+833:     const m = view_b.materials;
+834:     const entry = get_or_create(m.group_id, m.group_name);
+835:     entry.modelled_revenue += m.modelled_revenue ?? 0;
+836:     entry.total_cost += m.true_cost ?? 0;
+837:     entry.overhead_share += m.overhead_share ?? 0;
+838:     entry.assumed_revenue += m.implied_revenue ?? m.modelled_revenue ?? 0;
+839:     entry.assumed_net_profit += m.implied_net_profit ?? m.net_profit ?? 0;
+840:     entry.current_rate = m.current_markup_percent ?? null;
+841:     entry.minimum_recoverable_rate = m.minimum_recoverable_markup_percent ?? null;
+842:   }
+843: 
+844:   const cascade_by_group_id = new Map(
+845:     (view_b.real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g])
+846:   );
+847: 
+848:   return Array.from(by_group_id.values()).map((entry) => {
+849:     const cascade_entry = cascade_by_group_id.get(entry.key);
+850:     const group_recovery_hours = cascade_entry?.group_recovery_hours ?? 0;
+851: 
+852:     // FIX (2026-09-18): entry.total_cost above was summed from raw,
+853:     // UNINJECTED row.true_cost - non-productive cost (e.g. Accountant's
+854:     // distributed wage) was never included. Confirmed live: Foreman's
+855:     // true cost shown here didn't match the real, already-correct
+856:     // figure in real_capacity.group_real_capacity by exactly the
+857:     // non-productive cost total. cascade_entry.true_cost IS correct
+858:     // (this same lookup already correctly feeds group_recovery_hours
+859:     // above) - use it here too. Falls back to the raw sum only if
+860:     // genuinely unavailable (materials never receives a non-productive
+861:     // share, so its raw sum is already correct either way).
+862:     const true_cost = cascade_entry?.true_cost ?? entry.total_cost;
+863: 
+864:     // FIX (2026-09-18, second pass): entry.assumed_net_profit was still
+865:     // using the old, uninjected figure (accumulated from row.implied_net_profit,
+866:     // itself computed by apply_revenue_ceiling_v2 from raw, uninjected
+867:     // true_cost - a completely separate mechanism never touched by the
+868:     // non-productive fix). Recomputed directly from assumed_revenue
+869:     // minus the now-corrected true_cost instead of trusting that field.
+870:     const net_profit =
+871:       capacity_mode === "assumed"
+872:         ? entry.assumed_revenue - true_cost
+873:         : cascade_entry?.final_net_profit ?? entry.modelled_revenue - true_cost;
+874:     const achieved_revenue =
+875:       capacity_mode === "assumed" ? entry.assumed_revenue : true_cost + net_profit;
+876: 
+877:     const verdict = net_profit >= 0 ? "paying_its_way" : "being_carried";
+878: 
+879:     const achieved_rate =
+880:       !entry.is_materials && group_recovery_hours > 0 ? achieved_revenue / group_recovery_hours : null;
+881:     const achieved_hours =
+882:       !entry.is_materials && entry.current_rate > 0 ? achieved_revenue / entry.current_rate : null;
+883: 
+884:     return {
+885:       ...entry,
+886:       total_cost: true_cost,
+887:       net_profit,
+888:       verdict,
+889:       verdict_label: verdict === "being_carried" ? "Being carried" : "Paying its way",
+890:       achieved_rate,
+891:       achieved_hours,
+892:       achieved_revenue,
+893:       group_recovery_hours,
+894:     };
+895:   });
+896: }
+897: 
+898: // === S26 VIEW B DISPLAY - "Materials shares equally" ===
+899: // Mirrors RankedGroupsDrill's row layout/metadata exactly (Cost / Min
+900: // rate / Current rate subtitle, MODELLED tag, verdict tag, revenue-share
+
+=== lib\selectors\businessModellingLeverSelectors.js 1-140 ===
+1: // lib/selectors/businessModellingLeverSelectors.js
+2: //
+3: // Display shaping for Business Modelling's Card 1 + rate lever rows
+4: // (S26 brief). Pure shaping only - the two lever calculations imported
+5: // below own the actual maths (lib/calculations/businessModellingLeverCalculations.js).
+6: //
+7: // Card 1's headline reuses Business Outcome's own real
+8: // headline_real_capacity figure directly (the same number already shown
+9: // and trusted on /business-outcome) rather than a second calculation.
+10: 
+11: import {
+12:   calculateProportionalGroupTargets,
+13: } from "@/lib/calculations/businessModellingLeverCalculations";
+14: import {
+15:   calculateIndependentGroupBreakeven,
+16:   applyIndependentGroupRateLever,
+17:   applyIndependentGroupRateLevers,
+18:   calculateIndependentMaterialsBreakeven,
+19:   applyMaterialsMarkupLever,
+20: } from "@/lib/calculations/businessModellingIndependentCalculations";
+21: 
+22: function to_number(value) {
+23:   const n = Number(value);
+24:   return Number.isFinite(n) ? n : 0;
+25: }
+26: 
+27: function round_currency(value) {
+28:   return Math.round(to_number(value) * 100) / 100;
+29: }
+30: 
+31: // Materials' own independent input - the "no cross-subsidy" principle
+32: // (confirmed 2026-09-16). View A's per_source.materials.revenue is a
+33: // RESIDUAL (total_revenue - labour_modelled - asset_modelled) - it swings
+34: // with every OTHER group's rate even though nothing about Materials
+35: // itself changed, the opposite of independent. View B's
+36: // per_source.view_b.materials.modelled_revenue is the real, independently
+37: // -anchored figure: cogs x (1 + Materials' own real stored markup%,
+38: // currently 15% - lib/storage/rateBuilderMaterialsMarkupStorage.js) -
+39: // built entirely from Materials' own numbers, matching the same
+40: // no-cross-subsidy standard every operating group's breakeven already
+41: // uses (calculateIndependentGroupBreakeven). true_cost and cogs are
+42: // unchanged - View A and View B already agree on both (same total_cogs,
+43: // same residual_overhead) - only modelled_revenue was ever the residual.
+44: // Falls back to the View A residual only if View B genuinely isn't
+45: // available yet (e.g. still loading) so the lever engine never breaks.
+46: function build_materials_input(per_source) {
+47:   const view_b_modelled_revenue = per_source.view_b?.materials?.modelled_revenue;
+48:   const has_view_b_revenue = view_b_modelled_revenue !== null && view_b_modelled_revenue !== undefined;
+49: 
+50:   return {
+51:     cogs: per_source.materials?.build_up?.cogs ?? 0,
+52:     true_cost: per_source.materials?.true_cost ?? 0,
+53:     modelled_revenue: has_view_b_revenue
+54:       ? to_number(view_b_modelled_revenue)
+55:       : (per_source.materials?.revenue ?? 0),
+56:   };
+57: }
+58: 
+59: // REAL ENGINE ADAPTER (2026-09-18) - reshapes the real-engine rerun's
+60: // View B headline (view_b_headline_real_capacity, built in
+61: // businessOutcomePerSourceRevenueSelectors.js) into the EXACT same
+62: // field names buildLiveLeverHeadline below always produced, so the
+63: // lever card component itself needs zero changes - only the
+64: // underlying data source swaps. View B specifically because it's the
+65: // only cascade where materials has genuinely independent, lever-
+66: // movable economics (View A's materials is a residual, nothing for an
+67: // override to affect) - confirmed live 2026-09-18, materials markup
+68: // changes now visibly move this total, which they never did before.
+69: export function buildRealEngineLeverHeadline(view_b_headline, real_pnl_revenue) {
+70:   if (!view_b_headline) {
+71:     return { available: false };
+72:   }
+73: 
+74:   const total_modelled_revenue = round_currency(view_b_headline.total_modelled_revenue ?? 0);
+75:   const revenue_jump_percent =
+76:     real_pnl_revenue > 0
+77:       ? round_currency(((total_modelled_revenue - real_pnl_revenue) / real_pnl_revenue) * 100)
+78:       : 0;
+79: 
+80:   return {
+81:     available: true,
+82:     is_live: true,
+83:     total_net_profit: round_currency(view_b_headline.total_net_profit ?? 0),
+84:     total_modelled_revenue,
+85:     real_pnl_revenue,
+86:     all_sources: (view_b_headline.all_sources || []).map((e) => ({
+87:       key: e.key,
+88:       name: e.name,
+89:       net_profit: e.net_profit,
+90:       verdict: e.verdict,
+91:     })),
+92:     carried_count: view_b_headline.being_carried_count ?? 0,
+93:     total_source_count: view_b_headline.total_group_count ?? 0,
+94:     all_good: view_b_headline.all_good === true,
+95:     shows_large_jump_warning: Math.abs(revenue_jump_percent) > 20,
+96:     revenue_jump_percent,
+97:   };
+98: }
+99: 
+100: export function buildLiveLeverHeadline(per_source, rate_target_by_group_id = {}, materials_markup_percent = null) {
+101:   if (!per_source?.available || per_source.data_status !== "ready") {
+102:     return { available: false };
+103:   }
+104: 
+105:   const group_real_capacity = per_source.real_capacity?.group_real_capacity || [];
+106:   const unassigned_total = per_source.unassigned?.total ?? 0;
+107:   // FIX (2026-09-17): real cost assigned to a working unit but not
+108:   // tied to any revenue-bearing source (non-productive labour/assets) -
+109:   // same fix already applied to the real/reconciled figures, now
+110:   // applied here too so the independent view's total is consistent
+111:   // with the same real cost basis.
+112:   const non_revenue_bearing_total = per_source.non_revenue_bearing?.total ?? 0;
+113:   const real_pnl_revenue = per_source.headline_real_capacity?.total_modelled_revenue ?? 0;
+114: 
+115:   const materials_input = build_materials_input(per_source);
+116: 
+117:   const rate_delta_by_group_id = {};
+118:   group_real_capacity.forEach((g) => {
+119:     const target_rate = rate_target_by_group_id[g.group_id];
+120:     const has_target = target_rate !== undefined && target_rate !== null && target_rate !== "";
+121:     if (!has_target || to_number(g.group_recovery_hours) <= 0) return;
+122: 
+123:     const current_rate = to_number(g.modelled_revenue) / to_number(g.group_recovery_hours);
+124:     rate_delta_by_group_id[g.group_id] = to_number(target_rate) - current_rate;
+125:   });
+126: 
+127:   const applied = applyIndependentGroupRateLevers({
+128:     groups: group_real_capacity,
+129:     rate_delta_by_group_id,
+130:   });
+131: 
+132:   const has_materials_markup =
+133:     materials_markup_percent !== null && materials_markup_percent !== undefined && materials_markup_percent !== "";
+134: 
+135:   const materials_result = has_materials_markup
+136:     ? applyMaterialsMarkupLever({ materials: materials_input, markup_percent: materials_markup_percent })
+137:     : {
+138:         modelled_revenue: materials_input.modelled_revenue,
+139:         net_profit: round_currency(materials_input.modelled_revenue - materials_input.true_cost),
+140:         verdict:
+
+=== Business Modelling readers of view_b headline fields ===
+lib\calculations\businessOutcomeViewBCalculations.js:98: export function apply_revenue_ceiling_v2(labour_sources, asset_sources, materials_source, total_revenue_reference) {
+lib\calculations\businessOutcomeViewBCalculations.js:104: const is_breached = combined_total > total_revenue_reference;
+lib\calculations\businessOutcomeViewBCalculations.js:115: const overage = round_currency(combined_total - total_revenue_reference);
+lib\calculations\businessOutcomeViewBCalculations.js:116: const scale_factor = total_revenue_reference / combined_total;
+lib\calculations\businessOutcomeViewBCalculations.js:155: export function apply_real_capacity_v2(labour_sources, asset_sources, materials_source, total_revenue_reference, non_productive_cost_by_group_id = new Map()) {
+lib\calculations\businessOutcomeViewBCalculations.js:180: const shortfall = Math.max(0, round_currency(total_modelled_revenue_all - total_revenue_reference));
+lib\calculations\businessOutcomeViewBCalculations.js:182: const surplus = Math.max(0, round_currency(total_revenue_reference - total_modelled_revenue_all));
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:389: total_revenue_reference,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:516: total_modelled_revenue: total_revenue_reference,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:517: independent_modelled_revenue: per_source_result.total_modelled_revenue, // NEW (this session) - genuinely independent of the P&L, unlike total_modelled_revenue above (which deliberately equals total_revenue_reference - do not change that, other code depends on it). Real labour+asset rate x hours, plus materials at Rate Builder's own markup.
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:583: total_modelled_revenue: total_revenue_reference,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:584: independent_modelled_revenue: per_source_result.total_modelled_revenue, // NEW (this session) - genuinely independent of the P&L, unlike total_modelled_revenue above (which deliberately equals total_revenue_reference - do not change that, other code depends on it). Real labour+asset rate x hours, plus materials at Rate Builder's own markup.
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:611: let view_b_headline_real_capacity = null;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:627: view_b_headline_real_capacity = {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:629: total_modelled_revenue: total_revenue_reference,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:630: independent_modelled_revenue: view_b.revenue_ceiling?.all_peers_modelled_total ?? 0,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:676: view_b_headline_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:685: total_pnl_revenue: total_revenue_reference,
+lib\selectors\businessModellingLeverSelectors.js:60: // View B headline (view_b_headline_real_capacity, built in
+lib\selectors\businessModellingLeverSelectors.js:69: export function buildRealEngineLeverHeadline(view_b_headline, real_pnl_revenue) {
+lib\selectors\businessModellingLeverSelectors.js:70: if (!view_b_headline) {
+lib\selectors\businessModellingLeverSelectors.js:74: const total_modelled_revenue = round_currency(view_b_headline.total_modelled_revenue ?? 0);
+lib\selectors\businessModellingLeverSelectors.js:83: total_net_profit: round_currency(view_b_headline.total_net_profit ?? 0),
+lib\selectors\businessModellingLeverSelectors.js:86: all_sources: (view_b_headline.all_sources || []).map((e) => ({
+lib\selectors\businessModellingLeverSelectors.js:92: carried_count: view_b_headline.being_carried_count ?? 0,
+lib\selectors\businessModellingLeverSelectors.js:93: total_source_count: view_b_headline.total_group_count ?? 0,
+lib\selectors\businessModellingLeverSelectors.js:94: all_good: view_b_headline.all_good === true,
+hooks\useBusinessOutcomePerSourceRevenue.js:521: // asset_modelled_revenue_total exceeds total_revenue_reference, that is
+hooks\useBusinessOutcomePerSourceRevenue.js:541: function apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference) {
+hooks\useBusinessOutcomePerSourceRevenue.js:552: const is_breached = combined_total > total_revenue_reference;
+hooks\useBusinessOutcomePerSourceRevenue.js:563: const overage = round_currency(combined_total - total_revenue_reference);
+hooks\useBusinessOutcomePerSourceRevenue.js:564: const scale_factor = total_revenue_reference / combined_total;
+hooks\useBusinessOutcomePerSourceRevenue.js:600: // only ever calculates for today's real total_revenue_reference, once
+hooks\useBusinessOutcomePerSourceRevenue.js:626: // exactly to total_revenue_reference minus total true cost.
+hooks\useBusinessOutcomePerSourceRevenue.js:1117: const total_revenue_reference = to_number(bs.total_revenue);
+hooks\useBusinessOutcomePerSourceRevenue.js:1132: total_revenue_reference
+hooks\useBusinessOutcomePerSourceRevenue.js:1138: total_revenue_reference,
+hooks\useBusinessOutcomePerSourceRevenue.js:1182: const ceiling = apply_revenue_ceiling(labour_sources, asset_sources, total_revenue_reference);
+hooks\useBusinessOutcomePerSourceRevenue.js:1193: total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
+hooks\useBusinessOutcomePerSourceRevenue.js:1203: total_revenue_reference - labour_modelled_revenue_total - asset_modelled_revenue_total
+hooks\useBusinessOutcomePerSourceRevenue.js:1231: // View-A leftover (total_revenue_reference - labour - assets),
+hooks\useBusinessOutcomePerSourceRevenue.js:1233: // identity always equal to total_revenue_reference, no matter
+hooks\useBusinessOutcomePerSourceRevenue.js:1240: // build_materials_source) - zero reference to total_revenue_reference.
+hooks\useBusinessOutcomePerSourceRevenue.js:1319: total_revenue_reference: round_currency(total_revenue_reference),
+components\business-outcome-truth\BusinessOutcomeIndependentBreakevenLedger.jsx:63: * real_capacity.materials is built. total_revenue_reference,
+components\business-outcome-truth\BusinessOutcomeIndependentBreakevenLedger.jsx:76: total_revenue_reference,
+components\business-outcome-truth\BusinessOutcomeIndependentBreakevenLedger.jsx:92: const total_revenue = Number(total_revenue_reference) || 0;
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2185: function build_view_b_headline(mode) {
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2239: ? build_view_b_headline(capacity_mode === "assumed" ? "assumed" : "real")
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2409: // build_view_b_headline for both capacity modes.
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2413: ? (build_view_b_headline("real")?.being_carried_count ?? 0) >
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2414: (build_view_b_headline("assumed")?.being_carried_count ?? 0)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2852: modelled_revenue={per_source.headline_real_capacity?.independent_modelled_revenue}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2861: total_revenue_reference={per_source.materials?.build_up?.total_pnl_revenue}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:3026: view_b_modelled_revenue={build_view_b_headline("real")?.total_modelled_revenue}
+components\business-outcome-truth\BusinessOutcomeRevenueSnapshotTable.jsx:31: *    (per_source.headline_real_capacity.independent_modelled_revenue).
