@@ -1,0 +1,1147 @@
+################ lib\selectors\rate-builder\rateBuilderLabourModelSelectors.js (190 lines) ################
+    1: export const LABOUR_UNIT_LABEL = "hr";
+    2: export const PRODUCTIVE_EFFICIENCY_PERCENT = 100;
+    3: export const RECOVERY_ALLOWANCE_RATE = 0;
+    4: 
+    5: export function build_cost_allocation_output_contract(cost_allocation = {}) {
+    6:   return {
+    7:     ...(cost_allocation?.output_contract ?? {}),
+    8:     recovery_plan: cost_allocation?.card?.recovery_plan ?? {},
+    9:     card: cost_allocation?.card ?? {},
+   10:   };
+   11: }
+   12: 
+   13: export function normalise_loaded_labour_rate_models({
+   14:   loaded_models = [],
+   15:   saved_labour_source_rates = {},
+   16:   get_rate_map,
+   17: }) {
+   18:   return loaded_models.map((model) => ({
+   19:     ...model,
+   20:     charge_out_rates_by_labour_source: {
+   21:       ...get_rate_map(model),
+   22:       ...saved_labour_source_rates,
+   23:     },
+   24:   }));
+   25: }
+   26: 
+   27: export function get_active_labour_rate_model({
+   28:   labour_rate_models = [],
+   29:   active_labour_rate_model_id,
+   30: }) {
+   31:   return (
+   32:     labour_rate_models.find(
+   33:       (model) => model.labour_rate_model_id === active_labour_rate_model_id
+   34:     ) || labour_rate_models[0]
+   35:   );
+   36: }
+   37: 
+   38: export function get_selected_source_charge_out_rate({
+   39:   active_model,
+   40:   selected_labour_source,
+   41:   is_all_productive_summary,
+   42:   weighted_summary,
+   43:   get_source_charge_out_rate,
+   44: }) {
+   45:   if (is_all_productive_summary) {
+   46:     return weighted_summary.weighted_current_charge_out_rate;
+   47:   }
+   48: 
+   49:   return get_source_charge_out_rate(active_model, selected_labour_source);
+   50: }
+   51: 
+   52: export function build_active_labour_rate_model_for_calculation({
+   53:   active_model,
+   54:   selected_labour_source,
+   55:   selected_source_charge_out_rate,
+   56: }) {
+   57:   if (!active_model) {
+   58:     return {};
+   59:   }
+   60: 
+   61:   if (!selected_labour_source) {
+   62:     return {
+   63:       ...active_model,
+   64:       labour_unit_label: LABOUR_UNIT_LABEL,
+   65:       productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+   66:       recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+   67:     };
+   68:   }
+   69: 
+   70:   return {
+   71:     ...active_model,
+   72:     current_charge_out_rate: selected_source_charge_out_rate,
+   73:     labour_unit_label: LABOUR_UNIT_LABEL,
+   74:     productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+   75:     recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+   76: 
+   77:     labour_cost_rate: selected_labour_source.labour_cost_rate,
+   78:     labour_source_type_id: selected_labour_source.labour_source_type_id,
+   79:     labour_source_type_name: selected_labour_source.labour_source_type_name,
+   80:     labour_source_kind: selected_labour_source.labour_source_kind,
+   81:     labour_group_name: selected_labour_source.labour_source_type_name,
+   82: 
+   83:     pnl_implied_recovered_rate:
+   84:       selected_labour_source.pnl_implied_recovered_rate,
+   85:     pnl_recovery_gap_to_cost_rate:
+   86:       selected_labour_source.pnl_recovery_gap_to_cost_rate,
+   87: 
+   88:     non_productive_labour_pressure_rate:
+   89:       selected_labour_source.non_productive_labour_pressure_rate,
+   90:     non_productive_labour_recovery_rate:
+   91:       selected_labour_source.non_productive_labour_recovery_rate,
+   92:     allocated_business_overhead_recovery_rate:
+   93:       selected_labour_source.allocated_business_overhead_recovery_rate,
+   94:     minimum_recoverable_charge_out_rate:
+   95:       selected_labour_source.minimum_recoverable_charge_out_rate,
+   96:     fully_loaded_labour_rate: selected_labour_source.fully_loaded_labour_rate,
+   97:   };
+   98: }
+   99: 
+  100: export function build_labour_rate_result_metrics({
+  101:   result = {},
+  102:   selected_labour_source,
+  103: }) {
+  104:   const current_charge_out_rate = Number(result.current_charge_out_rate || 0);
+  105: 
+  106:   const effective_labour_cost_rate = Number(
+  107:     result.effective_labour_cost_rate || result.labour_cost_rate || 0
+  108:   );
+  109: 
+  110:   const minimum_recoverable_charge_out_rate = Number(
+  111:     selected_labour_source?.minimum_recoverable_charge_out_rate || 0
+  112:   );
+  113: 
+  114:   const current_rate_gap_to_minimum =
+  115:     current_charge_out_rate - minimum_recoverable_charge_out_rate;
+  116: 
+  117:   const current_rate_above_minimum = current_rate_gap_to_minimum >= 0;
+  118: 
+  119:   const current_margin_after_recovery_percent =
+  120:     current_charge_out_rate > 0
+  121:       ? (current_rate_gap_to_minimum / current_charge_out_rate) * 100
+  122:       : 0;
+  123: 
+  124:   return {
+  125:     current_charge_out_rate,
+  126:     effective_labour_cost_rate,
+  127:     minimum_recoverable_charge_out_rate,
+  128:     current_rate_gap_to_minimum,
+  129:     current_rate_above_minimum,
+  130:     current_margin_after_recovery_percent,
+  131:   };
+  132: }
+  133: 
+  134: export function build_new_labour_rate_model_payload({
+  135:   first_source,
+  136:   saved_labour_source_rates = {},
+  137: }) {
+  138:   return {
+  139:     labour_rate_model_name: "New Labour Rate",
+  140:     labour_source_type_id:
+  141:       first_source?.labour_source_type_id || "all_productive",
+  142:     labour_source_type_name:
+  143:       first_source?.labour_source_type_name ||
+  144:       "All productive labour weighted rate",
+  145:     labour_source_kind: first_source?.labour_source_kind || "all_productive",
+  146:     labour_group_name:
+  147:       first_source?.labour_source_type_name ||
+  148:       "All productive labour weighted rate",
+  149:     labour_cost_rate: first_source?.labour_cost_rate || 45,
+  150:     current_charge_out_rate: 0,
+  151:     charge_out_rates_by_labour_source: saved_labour_source_rates,
+  152:     labour_unit_label: LABOUR_UNIT_LABEL,
+  153: 
+  154:     pnl_implied_recovered_rate: first_source?.pnl_implied_recovered_rate || 0,
+  155:     pnl_recovery_gap_to_cost_rate:
+  156:       first_source?.pnl_recovery_gap_to_cost_rate || 0,
+  157: 
+  158:     non_productive_labour_pressure_rate:
+  159:       first_source?.non_productive_labour_pressure_rate || 0,
+  160:     non_productive_labour_recovery_rate:
+  161:       first_source?.non_productive_labour_recovery_rate || 0,
+  162:     allocated_business_overhead_recovery_rate:
+  163:       first_source?.allocated_business_overhead_recovery_rate || 0,
+  164:     minimum_recoverable_charge_out_rate:
+  165:       first_source?.minimum_recoverable_charge_out_rate || 0,
+  166:     fully_loaded_labour_rate: first_source?.fully_loaded_labour_rate || 0,
+  167: 
+  168:     productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+  169:     recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+  170:   };
+  171: }
+  172: 
+  173: export function build_duplicated_labour_rate_model_payload({
+  174:   active_model,
+  175:   get_rate_map,
+  176: }) {
+  177:   return {
+  178:     ...active_model,
+  179:     charge_out_rates_by_labour_source: {
+  180:       ...get_rate_map(active_model),
+  181:     },
+  182:     labour_unit_label: LABOUR_UNIT_LABEL,
+  183:     productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+  184:     recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+  185:     labour_rate_model_id: crypto.randomUUID(),
+  186:     labour_rate_model_name: `${active_model.labour_rate_model_name} Copy`,
+  187:     created_at: new Date().toISOString(),
+  188:     updated_at: new Date().toISOString(),
+  189:   };
+  190: }
+################ lib\selectors\rate-builder\rateBuilderLabourRateSummarySelectors.js (83 lines) ################
+    1: function to_number(value) {
+    2:   const parsed = Number(value);
+    3:   return Number.isFinite(parsed) ? parsed : 0;
+    4: }
+    5: 
+    6: export function get_rate_map(model = {}) {
+    7:   return model?.charge_out_rates_by_labour_source &&
+    8:     typeof model.charge_out_rates_by_labour_source === "object"
+    9:     ? model.charge_out_rates_by_labour_source
+   10:     : {};
+   11: }
+   12: 
+   13: export function get_source_charge_out_rate(model = {}, source = {}) {
+   14:   const source_id = source?.labour_source_type_id;
+   15:   const rate_map = get_rate_map(model);
+   16: 
+   17:   if (source_id && rate_map[source_id] !== undefined) {
+   18:     return to_number(rate_map[source_id]);
+   19:   }
+   20: 
+   21:   if (source?.labour_source_kind !== "all_productive") {
+   22:     return to_number(model?.current_charge_out_rate);
+   23:   }
+   24: 
+   25:   return 0;
+   26: }
+   27: 
+   28: export function get_staff_type_sources(labour_source_options = []) {
+   29:   return labour_source_options.filter(
+   30:     (source) => source.labour_source_kind === "staff_type"
+   31:   );
+   32: }
+   33: 
+   34: export function calculate_weighted_summary_charge_out_rate({
+   35:   labour_source_options = [],
+   36:   active_model = {},
+   37: } = {}) {
+   38:   const staff_type_sources = get_staff_type_sources(labour_source_options);
+   39:   const rate_map = get_rate_map(active_model);
+   40: 
+   41:   let weighted_revenue = 0;
+   42:   let weighted_hours = 0;
+   43:   let missing_rate_count = 0;
+   44: 
+   45:   const rows = staff_type_sources.map((source) => {
+   46:     const productive_hours = to_number(source.total_productive_hours);
+   47:     const current_charge_out_rate =
+   48:       rate_map[source.labour_source_type_id] !== undefined
+   49:         ? to_number(rate_map[source.labour_source_type_id])
+   50:         : 0;
+   51: 
+   52:     const has_rate = current_charge_out_rate > 0;
+   53: 
+   54:     if (!has_rate) {
+   55:       missing_rate_count += 1;
+   56:     }
+   57: 
+   58:     const modelled_labour_revenue =
+   59:       productive_hours * current_charge_out_rate;
+   60: 
+   61:     weighted_revenue += modelled_labour_revenue;
+   62:     weighted_hours += productive_hours;
+   63: 
+   64:     return {
+   65:       labour_source_type_id: source.labour_source_type_id,
+   66:       labour_source_type_name: source.labour_source_type_name,
+   67:       productive_hours,
+   68:       current_charge_out_rate,
+   69:       modelled_labour_revenue,
+   70:       has_rate,
+   71:     };
+   72:   });
+   73: 
+   74:   return {
+   75:     weighted_current_charge_out_rate:
+   76:       weighted_hours > 0 ? weighted_revenue / weighted_hours : 0,
+   77:     weighted_modelled_labour_revenue: weighted_revenue,
+   78:     weighted_productive_hours: weighted_hours,
+   79:     weighted_summary_rows: rows,
+   80:     missing_rate_count,
+   81:     summary_complete: missing_rate_count === 0 && staff_type_sources.length > 0,
+   82:   };
+   83: }
+################ lib\actions\rate-builder\rateBuilderLabourRateModelActions.js (260 lines) ################
+    1: import {
+    2:   LABOUR_UNIT_LABEL,
+    3:   PRODUCTIVE_EFFICIENCY_PERCENT,
+    4:   RECOVERY_ALLOWANCE_RATE,
+    5:   build_duplicated_labour_rate_model_payload,
+    6:   build_new_labour_rate_model_payload,
+    7: } from "@/lib/selectors/rate-builder/rateBuilderLabourModelSelectors";
+    8: 
+    9: import { create_labour_rate_model } from "@/lib/storage/rateBuilderLabourRatesStorage";
+   10: 
+   11: import {
+   12:   readRateBuilderLabourSourceRates,
+   13:   saveRateBuilderLabourSourceRate,
+   14: } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
+   15: 
+   16: import {
+   17:   get_rate_map,
+   18:   get_source_charge_out_rate,
+   19: } from "@/lib/selectors/rate-builder/rateBuilderLabourRateSummarySelectors";
+   20: 
+   21: export function update_active_labour_rate_model({
+   22:   active_model,
+   23:   set_labour_rate_models,
+   24:   field_name,
+   25:   value,
+   26: }) {
+   27:   if (!active_model) {
+   28:     return;
+   29:   }
+   30: 
+   31:   set_labour_rate_models((current_models) =>
+   32:     current_models.map((model) => {
+   33:       if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
+   34:         return model;
+   35:       }
+   36: 
+   37:       return {
+   38:         ...model,
+   39:         [field_name]: value,
+   40:         labour_unit_label: LABOUR_UNIT_LABEL,
+   41:         productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+   42:         recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+   43:         updated_at: new Date().toISOString(),
+   44:       };
+   45:     })
+   46:   );
+   47: }
+   48: 
+   49: export function update_labour_source_charge_out_rate({
+   50:   active_model,
+   51:   selected_labour_source,
+   52:   is_all_productive_summary,
+   53:   set_labour_rate_models,
+   54:   set_labour_source_rate_save_status,
+   55:   value,
+   56: }) {
+   57:   if (!active_model || !selected_labour_source || is_all_productive_summary) {
+   58:     return;
+   59:   }
+   60: 
+   61:   set_labour_source_rate_save_status("");
+   62: 
+   63:   const source_id = selected_labour_source.labour_source_type_id;
+   64: 
+   65:   set_labour_rate_models((current_models) =>
+   66:     current_models.map((model) => {
+   67:       if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
+   68:         return model;
+   69:       }
+   70: 
+   71:       const next_rate_map = {
+   72:         ...get_rate_map(model),
+   73:         [source_id]: Number(value),
+   74:       };
+   75: 
+   76:       return {
+   77:         ...model,
+   78:         current_charge_out_rate: Number(value),
+   79:         charge_out_rates_by_labour_source: next_rate_map,
+   80:         labour_unit_label: LABOUR_UNIT_LABEL,
+   81:         productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+   82:         recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+   83:         updated_at: new Date().toISOString(),
+   84:       };
+   85:     })
+   86:   );
+   87: }
+   88: 
+   89: export function save_selected_labour_source_charge_out_rate({
+   90:   active_model,
+   91:   selected_labour_source,
+   92:   selected_source_charge_out_rate,
+   93:   is_all_productive_summary,
+   94:   set_labour_rate_models,
+   95:   set_labour_source_rate_save_status,
+   96: }) {
+   97:   if (!active_model || !selected_labour_source || is_all_productive_summary) {
+   98:     return;
+   99:   }
+  100: 
+  101:   const source_id = selected_labour_source.labour_source_type_id;
+  102: 
+  103:   if (!source_id) {
+  104:     return;
+  105:   }
+  106: 
+  107:   const saved_rate = Number(selected_source_charge_out_rate || 0);
+  108: 
+  109:   saveRateBuilderLabourSourceRate(source_id, saved_rate);
+  110: 
+  111:   set_labour_rate_models((current_models) =>
+  112:     current_models.map((model) => {
+  113:       if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
+  114:         return model;
+  115:       }
+  116: 
+  117:       const next_rate_map = {
+  118:         ...get_rate_map(model),
+  119:         [source_id]: saved_rate,
+  120:       };
+  121: 
+  122:       return {
+  123:         ...model,
+  124:         current_charge_out_rate: saved_rate,
+  125:         charge_out_rates_by_labour_source: next_rate_map,
+  126:         labour_unit_label: LABOUR_UNIT_LABEL,
+  127:         productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+  128:         recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+  129:         updated_at: new Date().toISOString(),
+  130:       };
+  131:     })
+  132:   );
+  133: 
+  134:   set_labour_source_rate_save_status("Saved");
+  135: }
+  136: 
+  137: export function change_labour_source({
+  138:   active_model,
+  139:   labour_source_options,
+  140:   set_labour_rate_models,
+  141:   set_labour_source_rate_save_status,
+  142:   labour_source_type_id,
+  143: }) {
+  144:   const selected_source = labour_source_options.find(
+  145:     (option) => option.labour_source_type_id === labour_source_type_id
+  146:   );
+  147: 
+  148:   if (!selected_source || !active_model) {
+  149:     return;
+  150:   }
+  151: 
+  152:   set_labour_source_rate_save_status("");
+  153: 
+  154:   set_labour_rate_models((current_models) =>
+  155:     current_models.map((model) => {
+  156:       if (model.labour_rate_model_id !== active_model.labour_rate_model_id) {
+  157:         return model;
+  158:       }
+  159: 
+  160:       const source_rate = get_source_charge_out_rate(model, selected_source);
+  161: 
+  162:       return {
+  163:         ...model,
+  164:         labour_source_type_id: selected_source.labour_source_type_id,
+  165:         labour_source_type_name: selected_source.labour_source_type_name,
+  166:         labour_source_kind: selected_source.labour_source_kind,
+  167:         labour_group_name: selected_source.labour_source_type_name,
+  168:         labour_cost_rate: selected_source.labour_cost_rate,
+  169:         current_charge_out_rate:
+  170:           selected_source.labour_source_kind === "all_productive"
+  171:             ? model.current_charge_out_rate
+  172:             : source_rate,
+  173:         labour_unit_label: LABOUR_UNIT_LABEL,
+  174: 
+  175:         pnl_implied_recovered_rate:
+  176:           selected_source.pnl_implied_recovered_rate,
+  177:         pnl_recovery_gap_to_cost_rate:
+  178:           selected_source.pnl_recovery_gap_to_cost_rate,
+  179: 
+  180:         non_productive_labour_pressure_rate:
+  181:           selected_source.non_productive_labour_pressure_rate,
+  182:         non_productive_labour_recovery_rate:
+  183:           selected_source.non_productive_labour_recovery_rate,
+  184:         allocated_business_overhead_recovery_rate:
+  185:           selected_source.allocated_business_overhead_recovery_rate,
+  186:         minimum_recoverable_charge_out_rate:
+  187:           selected_source.minimum_recoverable_charge_out_rate,
+  188:         fully_loaded_labour_rate: selected_source.fully_loaded_labour_rate,
+  189: 
+  190:         charge_out_rates_by_labour_source: get_rate_map(model),
+  191:         productive_efficiency_percent: PRODUCTIVE_EFFICIENCY_PERCENT,
+  192:         recovery_allowance_rate: RECOVERY_ALLOWANCE_RATE,
+  193:         updated_at: new Date().toISOString(),
+  194:       };
+  195:     })
+  196:   );
+  197: }
+  198: 
+  199: export function add_new_labour_rate_model({
+  200:   labour_source_options,
+  201:   set_labour_rate_models,
+  202:   set_active_labour_rate_model_id,
+  203: }) {
+  204:   const first_source = labour_source_options[0];
+  205: 
+  206:   const new_model = create_labour_rate_model(
+  207:     build_new_labour_rate_model_payload({
+  208:       first_source,
+  209:       saved_labour_source_rates: readRateBuilderLabourSourceRates(),
+  210:     })
+  211:   );
+  212: 
+  213:   set_labour_rate_models((current_models) => [...current_models, new_model]);
+  214: 
+  215:   set_active_labour_rate_model_id(new_model.labour_rate_model_id);
+  216: }
+  217: 
+  218: export function duplicate_labour_rate_model({
+  219:   active_model,
+  220:   set_labour_rate_models,
+  221:   set_active_labour_rate_model_id,
+  222: }) {
+  223:   if (!active_model) {
+  224:     return;
+  225:   }
+  226: 
+  227:   const duplicated_model = create_labour_rate_model(
+  228:     build_duplicated_labour_rate_model_payload({
+  229:       active_model,
+  230:       get_rate_map,
+  231:     })
+  232:   );
+  233: 
+  234:   set_labour_rate_models((current_models) => [
+  235:     ...current_models,
+  236:     duplicated_model,
+  237:   ]);
+  238: 
+  239:   set_active_labour_rate_model_id(duplicated_model.labour_rate_model_id);
+  240: }
+  241: 
+  242: export function delete_labour_rate_model({
+  243:   active_model,
+  244:   labour_rate_models,
+  245:   set_labour_rate_models,
+  246:   set_active_labour_rate_model_id,
+  247: }) {
+  248:   if (!active_model || labour_rate_models.length <= 1) {
+  249:     return;
+  250:   }
+  251: 
+  252:   const remaining_models = labour_rate_models.filter(
+  253:     (model) => model.labour_rate_model_id !== active_model.labour_rate_model_id
+  254:   );
+  255: 
+  256:   set_labour_rate_models(remaining_models);
+  257:   set_active_labour_rate_model_id(
+  258:     remaining_models[0]?.labour_rate_model_id || null
+  259:   );
+  260: }
+################ lib\storage\rateBuilderLabourRatesStorage.js (102 lines) ################
+    1: const STORAGE_KEY = "qs_tools_rate_builder_labour_rates_v1";
+    2: 
+    3: export const DEFAULT_LABOUR_RATE_MODEL = {
+    4:   labour_rate_model_id: "default_labour_rate_model",
+    5:   labour_rate_model_name: "Standard Labour Charge-Out",
+    6: 
+    7:   labour_source_type_id: "all_productive",
+    8:   labour_source_type_name: "All productive labour weighted rate",
+    9:   labour_source_kind: "all_productive",
+   10: 
+   11:   labour_group_name: "All productive labour weighted rate",
+   12:   labour_unit_label: "hr",
+   13: 
+   14:   labour_cost_rate: 45,
+   15:   productive_efficiency_percent: 100,
+   16:   recovery_allowance_rate: 0,
+   17:   target_margin_percent: 25,
+   18:   current_charge_out_rate: 75,
+   19: 
+   20:   created_at: null,
+   21:   updated_at: null,
+   22: };
+   23: 
+   24: function safe_parse(json_value) {
+   25:   try {
+   26:     return JSON.parse(json_value);
+   27:   } catch {
+   28:     return null;
+   29:   }
+   30: }
+   31: 
+   32: export function create_labour_rate_model(overrides = {}) {
+   33:   const now = new Date().toISOString();
+   34: 
+   35:   return {
+   36:     ...DEFAULT_LABOUR_RATE_MODEL,
+   37:     labour_rate_model_id:
+   38:       overrides.labour_rate_model_id || crypto.randomUUID(),
+   39:     labour_rate_model_name:
+   40:       overrides.labour_rate_model_name || "New Labour Rate",
+   41: 
+   42:     labour_source_type_id:
+   43:       overrides.labour_source_type_id ||
+   44:       DEFAULT_LABOUR_RATE_MODEL.labour_source_type_id,
+   45:     labour_source_type_name:
+   46:       overrides.labour_source_type_name ||
+   47:       DEFAULT_LABOUR_RATE_MODEL.labour_source_type_name,
+   48:     labour_source_kind:
+   49:       overrides.labour_source_kind ||
+   50:       DEFAULT_LABOUR_RATE_MODEL.labour_source_kind,
+   51: 
+   52:     labour_group_name:
+   53:       overrides.labour_group_name ||
+   54:       overrides.labour_source_type_name ||
+   55:       DEFAULT_LABOUR_RATE_MODEL.labour_group_name,
+   56: 
+   57:     created_at: overrides.created_at || now,
+   58:     updated_at: now,
+   59: 
+   60:     ...overrides,
+   61:   };
+   62: }
+   63: 
+   64: export function load_labour_rate_models() {
+   65:   if (typeof window === "undefined") {
+   66:     return [DEFAULT_LABOUR_RATE_MODEL];
+   67:   }
+   68: 
+   69:   const stored_value = window.localStorage.getItem(STORAGE_KEY);
+   70:   const parsed_value = stored_value ? safe_parse(stored_value) : null;
+   71: 
+   72:   if (!Array.isArray(parsed_value) || parsed_value.length === 0) {
+   73:     return [create_labour_rate_model(DEFAULT_LABOUR_RATE_MODEL)];
+   74:   }
+   75: 
+   76:   return parsed_value.map((model) =>
+   77:     create_labour_rate_model({
+   78:       ...DEFAULT_LABOUR_RATE_MODEL,
+   79:       ...model,
+   80:       labour_source_type_id:
+   81:         model.labour_source_type_id ||
+   82:         DEFAULT_LABOUR_RATE_MODEL.labour_source_type_id,
+   83:       labour_source_type_name:
+   84:         model.labour_source_type_name ||
+   85:         model.labour_group_name ||
+   86:         DEFAULT_LABOUR_RATE_MODEL.labour_source_type_name,
+   87:       labour_source_kind:
+   88:         model.labour_source_kind ||
+   89:         DEFAULT_LABOUR_RATE_MODEL.labour_source_kind,
+   90:       created_at: model.created_at || null,
+   91:       updated_at: model.updated_at || null,
+   92:     })
+   93:   );
+   94: }
+   95: 
+   96: export function save_labour_rate_models(models) {
+   97:   if (typeof window === "undefined") {
+   98:     return;
+   99:   }
+  100: 
+  101:   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(models));
+  102: }
+################ components\rate-builder\RateBuilderLabourRatesBuilder.jsx (37 lines) ################
+    1: "use client";
+    2: import RateBuilderLabourRatesInputCard from "@/components/rate-builder/RateBuilderLabourRatesInputCard";
+    3: import RateBuilderLabourRatesResultPanel from "@/components/rate-builder/RateBuilderLabourRatesResultPanel";
+    4: import RateBuilderLabourRatesSetupCard from "@/components/rate-builder/RateBuilderLabourRatesSetupCard";
+    5: 
+    6: export default function RateBuilderLabourRatesBuilder({ model }) {
+    7:   if (!model.active_model) {
+    8:     return (
+    9:       <section className="ui-section">
+   10:         <p className="ui-help">Loading labour rate builder...</p>
+   11:       </section>
+   12:     );
+   13:   }
+   14:   return (
+   15:     <section className="ui-section">
+   16:       <div className="ui-stack">
+   17:         <div>
+   18:           <p className="ui-kicker">Labour Rates Builder</p>
+   19:           <h2 className="ui-section-title">
+   20:             Build customer-facing labour charge-out rates.
+   21:           </h2>
+   22:           <p className="ui-help">
+   23:             Enter customer-facing rates by productive staff type. The all
+   24:             productive rate is a read-only weighted summary.
+   25:           </p>
+   26:         </div>
+   27:         <div className="rate-builder-labour">
+   28:           <div className="rate-builder-labour__left">
+   29:             <RateBuilderLabourRatesSetupCard model={model} />
+   30:             <RateBuilderLabourRatesInputCard model={model} />
+   31:           </div>
+   32:           <RateBuilderLabourRatesResultPanel model={model} />
+   33:         </div>
+   34:       </div>
+   35:     </section>
+   36:   );
+   37: }
+################ components\rate-builder\RateBuilderLabourRatesSetupCard.jsx (68 lines) ################
+    1: export default function RateBuilderLabourRatesSetupCard({ model }) {
+    2:   const {
+    3:     labour_rate_models,
+    4:     active_model,
+    5:     actions,
+    6:   } = model;
+    7: 
+    8:   return (
+    9:     <div className="ui-panel">
+   10:       <div className="ui-stack">
+   11:         <div>
+   12:           <p className="ui-kicker">Saved rate models</p>
+   13:           <h3 className="ui-section-title">Labour rate setup</h3>
+   14:         </div>
+   15: 
+   16:         <div className="ui-field">
+   17:           <label className="ui-label" htmlFor="labour_rate_model_select">
+   18:             Saved calculator
+   19:           </label>
+   20:           <select
+   21:             id="labour_rate_model_select"
+   22:             className="ui-select"
+   23:             value={active_model.labour_rate_model_id}
+   24:             onChange={(event) =>
+   25:               actions.set_active_labour_rate_model_id(event.target.value)
+   26:             }
+   27:           >
+   28:             {labour_rate_models.map((labour_rate_model) => (
+   29:               <option
+   30:                 key={labour_rate_model.labour_rate_model_id}
+   31:                 value={labour_rate_model.labour_rate_model_id}
+   32:               >
+   33:                 {labour_rate_model.labour_rate_model_name}
+   34:               </option>
+   35:             ))}
+   36:           </select>
+   37:         </div>
+   38: 
+   39:         <div className="ui-actions">
+   40:           <button
+   41:             type="button"
+   42:             className="ui-button-primary"
+   43:             onClick={actions.handle_new_model}
+   44:           >
+   45:             New rate
+   46:           </button>
+   47: 
+   48:           <button
+   49:             type="button"
+   50:             className="ui-button-secondary"
+   51:             onClick={actions.handle_duplicate_model}
+   52:           >
+   53:             Duplicate
+   54:           </button>
+   55: 
+   56:           <button
+   57:             type="button"
+   58:             className="ui-button-danger"
+   59:             onClick={actions.handle_delete_model}
+   60:             disabled={labour_rate_models.length <= 1}
+   61:           >
+   62:             Delete
+   63:           </button>
+   64:         </div>
+   65:       </div>
+   66:     </div>
+   67:   );
+   68: }
+################ components\rate-builder\RateBuilderLabourRatesInputCard.jsx (116 lines) ################
+    1: export default function RateBuilderLabourRatesInputCard({ model }) {
+    2:   const {
+    3:     active_model,
+    4:     selected_labour_source,
+    5:     labour_source_options,
+    6:     is_all_productive_summary,
+    7:     selected_source_charge_out_rate,
+    8:     current_charge_out_rate,
+    9:     labour_source_rate_save_status,
+   10:     actions,
+   11:   } = model;
+   12: 
+   13:   return (
+   14:     <div className="ui-panel">
+   15:       <div className="ui-stack">
+   16:         <div>
+   17:           <p className="ui-kicker">Input</p>
+   18:           <h3 className="ui-section-title">Rate assumptions</h3>
+   19:         </div>
+   20: 
+   21:         <div className="ui-field">
+   22:           <label className="ui-label" htmlFor="labour_rate_model_name">
+   23:             Calculator name
+   24:           </label>
+   25:           <input
+   26:             id="labour_rate_model_name"
+   27:             className="ui-input"
+   28:             value={active_model.labour_rate_model_name}
+   29:             onChange={(event) =>
+   30:               actions.update_active_model(
+   31:                 "labour_rate_model_name",
+   32:                 event.target.value
+   33:               )
+   34:             }
+   35:           />
+   36:         </div>
+   37: 
+   38:         <div className="ui-field">
+   39:           <label className="ui-label" htmlFor="labour_source_type_id">
+   40:             Labour source
+   41:           </label>
+   42:           <select
+   43:             id="labour_source_type_id"
+   44:             className="ui-select"
+   45:             value={
+   46:               selected_labour_source?.labour_source_type_id ||
+   47:               active_model.labour_source_type_id ||
+   48:               "all_productive"
+   49:             }
+   50:             onChange={(event) =>
+   51:               actions.handle_labour_source_change(event.target.value)
+   52:             }
+   53:           >
+   54:             {labour_source_options.map((option) => (
+   55:               <option
+   56:                 key={option.labour_source_type_id}
+   57:                 value={option.labour_source_type_id}
+   58:               >
+   59:                 {option.labour_source_type_name}
+   60:               </option>
+   61:             ))}
+   62:           </select>
+   63:           <p className="ui-help">
+   64:             Productive staff type rates are editable. The all productive option
+   65:             is a read-only weighted summary.
+   66:           </p>
+   67:         </div>
+   68: 
+   69:         <div className="ui-field">
+   70:           <label className="ui-label" htmlFor="current_charge_out_rate">
+   71:             {is_all_productive_summary
+   72:               ? "Weighted current charge-out rate"
+   73:               : "Current charge-out rate"}
+   74:           </label>
+   75:           <input
+   76:             id="current_charge_out_rate"
+   77:             className="ui-input"
+   78:             type="number"
+   79:             min="0"
+   80:             step="0.01"
+   81:             value={
+   82:               is_all_productive_summary
+   83:                 ? Number(current_charge_out_rate.toFixed(2))
+   84:                 : selected_source_charge_out_rate
+   85:             }
+   86:             disabled={is_all_productive_summary}
+   87:             onChange={(event) =>
+   88:               actions.update_source_charge_out_rate(event.target.value)
+   89:             }
+   90:           />
+   91:           <p className="ui-help">
+   92:             {is_all_productive_summary
+   93:               ? "This is derived from the individual staff-type charge-out rates weighted by productive hours."
+   94:               : "Enter the hourly labour rate the business currently charges or intends to charge for this staff type."}
+   95:           </p>
+   96:         </div>
+   97: 
+   98:         {!is_all_productive_summary ? (
+   99:           <div className="ui-actions">
+  100:             <button
+  101:               type="button"
+  102:               className="ui-button-primary"
+  103:               onClick={actions.save_selected_labour_source_charge_out_rate}
+  104:             >
+  105:               Save rate
+  106:             </button>
+  107: 
+  108:             {labour_source_rate_save_status ? (
+  109:               <span className="ui-help">{labour_source_rate_save_status}</span>
+  110:             ) : null}
+  111:           </div>
+  112:         ) : null}
+  113:       </div>
+  114:     </div>
+  115:   );
+  116: }
+################ components\rate-builder\RateBuilderLabourRatesResultPanel.jsx (118 lines) ################
+    1: import RateBuilderMinimumRecoveryCard from "@/components/rate-builder/RateBuilderMinimumRecoveryCard";
+    2: import RateBuilderLabourWeightedSummaryCard from "@/components/rate-builder/RateBuilderLabourWeightedSummaryCard";
+    3: 
+    4: import {
+    5:   format_currency,
+    6:   format_percent,
+    7:   format_rate,
+    8: } from "@/lib/calculations/rateBuilderLabourRateCalculations";
+    9: 
+   10: export default function RateBuilderLabourRatesResultPanel({ model }) {
+   11:   const {
+   12:     active_model,
+   13:     selected_labour_source,
+   14:     weighted_summary,
+   15:     current_charge_out_rate,
+   16:     effective_labour_cost_rate,
+   17:     current_rate_gap_to_minimum,
+   18:     current_rate_above_minimum,
+   19:     current_margin_after_recovery_percent,
+   20:     is_all_productive_summary,
+   21:     labour_unit_label,
+   22:   } = model;
+   23: 
+   24:   return (
+   25:     <aside className="rate-builder-labour__right">
+   26:       <div className="rate-builder-result-card">
+   27:         <p className="rate-builder-result-label">
+   28:           {is_all_productive_summary
+   29:             ? "Overall productive labour summary"
+   30:             : "Labour source"}
+   31:         </p>
+   32:         <p className="rate-builder-result-value">
+   33:           {selected_labour_source?.labour_source_type_name ||
+   34:             active_model.labour_source_type_name ||
+   35:             "Labour source"}
+   36:         </p>
+   37:         <p className="ui-help">
+   38:           Status:{" "}
+   39:           {selected_labour_source?.rate_status ||
+   40:             active_model.rate_status ||
+   41:             "ready"}
+   42:         </p>
+   43:       </div>
+   44: 
+   45:       <div className="rate-builder-result-card">
+   46:         <p className="rate-builder-result-label">
+   47:           {is_all_productive_summary
+   48:             ? "Weighted current charge-out rate"
+   49:             : "Current charge-out rate"}
+   50:         </p>
+   51:         <p className="rate-builder-result-value">
+   52:           {format_rate(current_charge_out_rate, labour_unit_label)}
+   53:         </p>
+   54:         {is_all_productive_summary ? (
+   55:           <p className="ui-help">
+   56:             Derived from saved staff-type charge-out rates.{" "}
+   57:             {weighted_summary.missing_rate_count > 0
+   58:               ? `${weighted_summary.missing_rate_count} staff type rate(s) are missing.`
+   59:               : "All productive staff-type rates are included."}
+   60:           </p>
+   61:         ) : null}
+   62:       </div>
+   63: 
+   64:       <RateBuilderMinimumRecoveryCard
+   65:         selected_labour_source={selected_labour_source}
+   66:         labour_unit_label={labour_unit_label}
+   67:       />
+   68: 
+   69:       <div
+   70:         className={
+   71:           current_rate_above_minimum
+   72:             ? "rate-builder-status-card rate-builder-status-card--good"
+   73:             : "rate-builder-status-card rate-builder-status-card--bad"
+   74:         }
+   75:       >
+   76:         <p className="rate-builder-result-label">
+   77:           {is_all_productive_summary
+   78:             ? "Weighted rate vs minimum recoverable rate"
+   79:             : "Current rate vs minimum recoverable rate"}
+   80:         </p>
+   81: 
+   82:         <p className="rate-builder-result-value">
+   83:           {current_rate_above_minimum ? "Above minimum" : "Below minimum"}
+   84:         </p>
+   85: 
+   86:         <p className="ui-help">
+   87:           {current_rate_above_minimum
+   88:             ? `Surplus: ${format_currency(
+   89:                 current_rate_gap_to_minimum
+   90:               )} / ${labour_unit_label}`
+   91:             : `Leak: ${format_currency(
+   92:                 Math.abs(current_rate_gap_to_minimum)
+   93:               )} / ${labour_unit_label}`}
+   94:         </p>
+   95: 
+   96:         <div className="rate-builder-labour-breakdown">
+   97:           <div className="rate-builder-labour-breakdown__row">
+   98:             <span>Labour-only cost</span>
+   99:             <strong>
+  100:               {format_rate(effective_labour_cost_rate, labour_unit_label)}
+  101:             </strong>
+  102:           </div>
+  103: 
+  104:           <div className="rate-builder-labour-breakdown__row">
+  105:             <span>Margin after full recovery</span>
+  106:             <strong>
+  107:               {format_percent(current_margin_after_recovery_percent)}
+  108:             </strong>
+  109:           </div>
+  110:         </div>
+  111:       </div>
+  112: 
+  113:       {is_all_productive_summary ? (
+  114:         <RateBuilderLabourWeightedSummaryCard model={model} />
+  115:       ) : null}
+  116:     </aside>
+  117:   );
+  118: }
+################ components\rate-builder\RateBuilderLabourWeightedSummaryCard.jsx (47 lines) ################
+    1: import {
+    2:   format_currency,
+    3:   format_rate,
+    4: } from "@/lib/calculations/rateBuilderLabourRateCalculations";
+    5: 
+    6: export default function RateBuilderLabourWeightedSummaryCard({ model }) {
+    7:   const { weighted_summary, labour_unit_label } = model;
+    8: 
+    9:   return (
+   10:     <div className="rate-builder-result-card">
+   11:       <p className="rate-builder-result-label">Staff-type rate build-up</p>
+   12: 
+   13:       <div className="rate-builder-labour-breakdown">
+   14:         {weighted_summary.weighted_summary_rows.map((row) => (
+   15:           <div
+   16:             className="rate-builder-labour-breakdown__row"
+   17:             key={row.labour_source_type_id}
+   18:           >
+   19:             <span>
+   20:               {row.labour_source_type_name}
+   21:               <br />
+   22:               <small>
+   23:                 {row.productive_hours.toFixed(2)} hrs ×{" "}
+   24:                 {format_rate(row.current_charge_out_rate, labour_unit_label)}
+   25:               </small>
+   26:             </span>
+   27:             <strong>{format_currency(row.modelled_labour_revenue)}</strong>
+   28:           </div>
+   29:         ))}
+   30: 
+   31:         <div className="rate-builder-labour-breakdown__row">
+   32:           <span>Total modelled productive labour revenue</span>
+   33:           <strong>
+   34:             {format_currency(weighted_summary.weighted_modelled_labour_revenue)}
+   35:           </strong>
+   36:         </div>
+   37: 
+   38:         <div className="rate-builder-labour-breakdown__row">
+   39:           <span>Total productive labour hours</span>
+   40:           <strong>
+   41:             {weighted_summary.weighted_productive_hours.toFixed(2)} hrs
+   42:           </strong>
+   43:         </div>
+   44:       </div>
+   45:     </div>
+   46:   );
+   47: }
+################ D:\QSTools\qstools-web\lib\calculations\labourCalculations.js [103-218] ################
+  103:   }
+  104: 
+  105:   return warnings;
+  106: }
+  107: 
+  108: export function calculateProductiveStaffTypeRates(active_staff = []) {
+  109:   const productive_staff = (active_staff ?? []).filter((staff) => {
+  110:     return staff?.is_active !== false && isProductiveStaff(staff);
+  111:   });
+  112: 
+  113:   const total_productive_labour_hours = productive_staff.reduce(
+  114:     (total, staff) => total + get_staff_productive_hours(staff),
+  115:     0
+  116:   );
+  117: 
+  118:   const total_productive_labour_cost = productive_staff.reduce(
+  119:     (total, staff) => total + get_staff_labour_cost(staff),
+  120:     0
+  121:   );
+  122: 
+  123:   const total_productive_paid_hours = productive_staff.reduce(
+  124:     (total, staff) => total + get_staff_paid_hours(staff),
+  125:     0
+  126:   );
+  127: 
+  128:   const groups = new Map();
+  129: 
+  130:   productive_staff.forEach((staff) => {
+  131:     const staff_type_id = String(staff?.staff_type_id || "").trim();
+  132:     const staff_type_name = String(staff?.staff_type_name || "").trim();
+  133:     const group_id = staff_type_id || "unassigned_productive_review";
+  134:     const group_name = staff_type_id
+  135:       ? staff_type_name || "Unnamed staff type"
+  136:       : "Unassigned / Review required";
+  137: 
+  138:     const annual_cost = get_staff_labour_cost(staff);
+  139:     const productive_hours = get_staff_productive_hours(staff);
+  140:     const paid_hours = get_staff_paid_hours(staff);
+  141: 
+  142:     if (!groups.has(group_id)) {
+  143:       groups.set(group_id, {
+  144:         staff_type_id: group_id,
+  145:         staff_type_name: group_name,
+  146:         staff_count: 0,
+  147:         total_annual_cost: 0,
+  148:         total_paid_hours: 0,
+  149:         total_productive_hours: 0,
+  150:         weighted_productivity_percent: 0,
+  151:         weighted_productive_hourly_rate: 0,
+  152:         productive_share_percent: 0,
+  153:         is_productive: true,
+  154:         rate_status: "ready",
+  155:         source: "labour_module",
+  156:       });
+  157:     }
+  158: 
+  159:     const group = groups.get(group_id);
+  160:     group.staff_count += 1;
+  161:     group.total_annual_cost += annual_cost;
+  162:     group.total_paid_hours += paid_hours;
+  163:     group.total_productive_hours += productive_hours;
+  164:   });
+  165: 
+  166:   const productive_staff_type_rates = Array.from(groups.values())
+  167:     .map((group) => {
+  168:       const weighted_productivity_percent =
+  169:         group.total_paid_hours > 0
+  170:           ? (group.total_productive_hours / group.total_paid_hours) * 100
+  171:           : 0;
+  172: 
+  173:       const weighted_productive_hourly_rate =
+  174:         group.total_productive_hours > 0 && group.total_annual_cost > 0
+  175:           ? group.total_annual_cost / group.total_productive_hours
+  176:           : 0;
+  177: 
+  178:       const productive_share_percent =
+  179:         total_productive_labour_hours > 0
+  180:           ? (group.total_productive_hours / total_productive_labour_hours) * 100
+  181:           : 0;
+  182: 
+  183:       return {
+  184:         ...group,
+  185:         weighted_productivity_percent,
+  186:         weighted_productive_hourly_rate,
+  187:         productive_share_percent,
+  188:         rate_status: get_staff_type_rate_status(group),
+  189:       };
+  190:     })
+  191:     .sort((left, right) =>
+  192:       left.staff_type_name.localeCompare(right.staff_type_name)
+  193:     );
+  194: 
+  195:   return {
+  196:     productive_staff_type_rates,
+  197:     total_productive_labour_hours,
+  198:     total_productive_labour_cost,
+  199:     total_productive_paid_hours,
+  200:     weighted_all_productive_productivity_percent:
+  201:       total_productive_paid_hours > 0
+  202:         ? (total_productive_labour_hours / total_productive_paid_hours) * 100
+  203:         : 0,
+  204:     weighted_all_productive_labour_rate:
+  205:       total_productive_labour_hours > 0
+  206:         ? total_productive_labour_cost / total_productive_labour_hours
+  207:         : 0,
+  208:     productive_staff_type_rate_warnings:
+  209:       build_productive_staff_type_rate_warnings({
+  210:         productive_staff_type_rates,
+  211:         total_productive_labour_hours,
+  212:       }),
+  213:   };
+  214: }
+  215: 
+  216: export function calculatePnlDerivedLabourRecovery({
+  217:   revenue = 0,
+  218:   cog = 0,

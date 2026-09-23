@@ -737,3 +737,61 @@ NOTES: warnings pass; a single blocking reconciliation check sets Cost
 - Hours/units: macro views hours-mode only; product mode untouched.
 - Business Outcome file map not changed by this pass.
 
+===============================================================================
+18. RATE BUILDER (2026-09-23) - record in RateBuilder_v6_0_BRIEF_VERIFIED_2026-09-23.txt
+===============================================================================
+STATUS: code-traced 2026-09-23, closed without live numbers (no calculated
+  Rate Builder figure propagates). No code changed.
+
+STAGE: Labour Rates Builder (Path A)
+FIELD NAMES: labour_cost_rate, allocated_business_overhead_recovery_rate,
+  minimum_recoverable_charge_out_rate, current_charge_out_rate,
+  weighted_current_charge_out_rate
+FILE / FUNCTION: hooks/rate-builder/useRateBuilderLabourRates.js;
+  lib/selectors/rate-builder/rateBuilderLabourSourceSelectors.js
+  (build_labour_source_options, build_recovery_fields);
+  lib/selectors/cost-allocation/costAllocationRateBuilderSelectors.js
+  (build_rate_builder_labour_recovery_rows)
+INPUTS: Labour productive_staff_type_rates[].weighted_productive_hourly_rate,
+  weighted_all_productive_labour_rate; Cost Allocation
+  rate_builder_labour_recovery_rows.
+FEEDS INTO: display only. Saved charge rates (user input) go to storage key
+  qstools_rate_builder_labour_source_rates_v1, keyed by staff_type_id, read
+  directly by Business Outcome (readRateBuilderLabourSourceRates).
+HOURS/UNITS AWARE: hours-native; business_type not read.
+NOTES: minimum rate = labour cost rate + that staff type's overhead share /
+  its Cost Allocation assigned hours. Per-staff rows put 100% of each
+  group's overhead on labour (RB-1). all_productive row uses Recovery
+  Summary labour share (C24). labour status defaults to "ready" (RB-Q1).
+  calculate_labour_rate_result forces efficiency 100 / allowance 0 - its
+  sell-rate outputs are unused.
+
+STAGE: Customer Charge Calculator (Path B)
+FIELD NAMES: operational_group_cost_rows[].group_cost_per_hour,
+  labour/asset/overhead_recovery_rate, group_recovery_hours;
+  recovery_driver_quantity, recovery_preview
+FILE / FUNCTION: components/rate-builder/line-calculator/
+  useRateBuilderLineCalculator.js; lib/calculations/rateBuilderCalculations.js
+FEEDS INTO: display only. Calculators (user input) go to storage key
+  qs_tools_rate_builder_calculators_v1, keyed by
+  linked_cost_allocation_group_id, read by Business Outcome.
+NOTES: only groups with assigned_asset_burden > 0 offered. Recovery hours =
+  sum of "hr" line quantities, else output-driver quantity (RB-13). Card
+  mixes group rate and Labour-tab minimum rate (RB-12). No linked_asset_id.
+
+STAGE: Output contract
+NOTES: none exists. Rate Builder reads no readiness / trust field.
+
+===============================================================================
+19. RATE BUILDER GAPS (2026-09-23) - full register RB-1..RB-17 in the brief
+===============================================================================
+- Parked display defects: RB-1, RB-2, RB-3/C24, RB-5, RB-12, RB-13, RB-15,
+  RB-17. Parked design / cleanup: RB-7, RB-10, RB-11, RB-14, RB-16, RB-Q2.
+- Not built from v4.0: output contract, status / warnings, margin / markup
+  and suggested sell rate, rate comparisons, unit and subset rates, Recovery
+  Link tab.
+- Handed to Business Outcome: storage ids (H1), calculator group links and
+  S28 (H2), C6 (H3), C24 if read (H4), materials markup (H5), S-G1 (H6),
+  test-data decision (H7).
+- Hours/units: hours-native; business_type not read.
+- Business Outcome file map not changed by this pass.

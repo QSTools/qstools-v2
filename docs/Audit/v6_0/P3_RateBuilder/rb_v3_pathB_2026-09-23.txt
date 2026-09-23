@@ -1,0 +1,1047 @@
+################ components\rate-builder\RateBuilderLineCalculator.jsx (60 lines) ################
+    1: "use client";
+    2: 
+    3: import RateBuilderAddLinePanel from "./line-calculator/RateBuilderAddLinePanel";
+    4: import RateBuilderChargeList from "./line-calculator/RateBuilderChargeList";
+    5: import RateBuilderGroupSelector from "./line-calculator/RateBuilderGroupSelector";
+    6: import RateBuilderResultPanel from "./line-calculator/RateBuilderResultPanel";
+    7: import useRateBuilderLineCalculator from "./line-calculator/useRateBuilderLineCalculator";
+    8: 
+    9: export default function RateBuilderLineCalculator({ labour_rate_context = {} }) {
+   10:   const calculator = useRateBuilderLineCalculator({ labour_rate_context });
+   11: 
+   12:   return (
+   13:     <section className="rate-builder-calculator">
+   14:       <div className="rate-builder-calculator__left ui-stack">
+   15:         <RateBuilderGroupSelector
+   16:           active_calculator={calculator.active_calculator}
+   17:           asset_backed_group_options={calculator.asset_backed_group_options}
+   18:           updateLinkedCostAllocationGroup={
+   19:             calculator.updateLinkedCostAllocationGroup
+   20:           }
+   21:         />
+   22: 
+   23:         <RateBuilderAddLinePanel
+   24:           addRateLine={calculator.addRateLine}
+   25:           draft_line={calculator.draft_line}
+   26:           updateDraftField={calculator.updateDraftField}
+   27:         />
+   28: 
+   29:         <RateBuilderResultPanel
+   30:           display_calculator_name={calculator.display_calculator_name}
+   31:           has_labour_rate_context={calculator.has_labour_rate_context}
+   32:           labour_charge_out_rate={calculator.labour_charge_out_rate}
+   33:           labour_job_charge={calculator.labour_job_charge}
+   34:           labour_minimum_recoverable_rate={
+   35:             calculator.labour_minimum_recoverable_rate
+   36:           }
+   37:           labour_per_hr_profit={calculator.labour_per_hr_profit}
+   38:           preview={calculator.preview}
+   39:           recovery_driver_quantity={calculator.recovery_driver_quantity}
+   40:           recovery_preview={calculator.recovery_preview}
+   41:           selected_cost_allocation_group={
+   42:             calculator.selected_cost_allocation_group
+   43:           }
+   44:           selected_group_asset_rate={calculator.selected_group_asset_rate}
+   45:           selected_group_labour_rate={calculator.selected_group_labour_rate}
+   46:           selected_group_overhead_rate={calculator.selected_group_overhead_rate}
+   47:           selected_group_recovery_rate={calculator.selected_group_recovery_rate}
+   48:         />
+   49:       </div>
+   50: 
+   51:       <RateBuilderChargeList
+   52:         deleteRateLine={calculator.deleteRateLine}
+   53:         display_calculator_name={calculator.display_calculator_name}
+   54:         rate_lines={calculator.rate_lines}
+   55:         setOutputDriver={calculator.setOutputDriver}
+   56:         updateRateLine={calculator.updateRateLine}
+   57:       />
+   58:     </section>
+   59:   );
+   60: }
+################ components\rate-builder\line-calculator\useRateBuilderLineCalculator.js (384 lines) ################
+    1: "use client";
+    2: 
+    3: import { useEffect, useMemo, useState } from "react";
+    4: 
+    5: import {
+    6:   calculateRateBuilderQuotePreview,
+    7:   calculateRateBuilderRecoveryPreview,
+    8: } from "@/lib/calculations/rateBuilderCalculations";
+    9: 
+   10: import {
+   11:   loadRateBuilderCalculators,
+   12:   saveRateBuilderCalculators,
+   13: } from "@/lib/storage/rateBuilderStorage";
+   14: 
+   15: import useCostAllocation from "@/hooks/useCostAllocation";
+   16: 
+   17: import {
+   18:   DEFAULT_CALCULATOR,
+   19:   EMPTY_LINE,
+   20:   build_id,
+   21:   get_default_calculators,
+   22: } from "./rateBuilderLineCalculatorConstants";
+   23: 
+   24: export default function useRateBuilderLineCalculator({ labour_rate_context = {} }) {
+   25:   const cost_allocation = useCostAllocation();
+   26: 
+   27:   const asset_backed_group_options = useMemo(() => {
+   28:     const group_rows =
+   29:       cost_allocation?.output_contract?.operational_group_cost_rows ?? [];
+   30: 
+   31:     return group_rows.filter(
+   32:       (group) => Number(group?.assigned_asset_burden) > 0
+   33:     );
+   34:   }, [cost_allocation?.output_contract?.operational_group_cost_rows]);
+   35: 
+   36:   const [calculators, set_calculators] = useState(get_default_calculators);
+   37:   const [active_calculator_id, set_active_calculator_id] = useState(
+   38:     DEFAULT_CALCULATOR.id
+   39:   );
+   40:   const [draft_line, set_draft_line] = useState(EMPTY_LINE);
+   41:   const [has_loaded_storage, set_has_loaded_storage] = useState(false);
+   42: 
+   43:   useEffect(() => {
+   44:     const stored_calculators = loadRateBuilderCalculators(
+   45:       get_default_calculators()
+   46:     );
+   47: 
+   48:     set_calculators(stored_calculators);
+   49: 
+   50:     const first_calculator = stored_calculators[0];
+   51: 
+   52:     if (first_calculator?.id) {
+   53:       set_active_calculator_id(first_calculator.id);
+   54:     }
+   55: 
+   56:     set_has_loaded_storage(true);
+   57:   }, []);
+   58: 
+   59:   useEffect(() => {
+   60:     if (!has_loaded_storage) {
+   61:       return;
+   62:     }
+   63: 
+   64:     saveRateBuilderCalculators(calculators);
+   65:   }, [calculators, has_loaded_storage]);
+   66: 
+   67:   const active_calculator = useMemo(() => {
+   68:     return (
+   69:       calculators.find(
+   70:         (calculator) => calculator.id === active_calculator_id
+   71:       ) || calculators[0]
+   72:     );
+   73:   }, [calculators, active_calculator_id]);
+   74: 
+   75:   const rate_lines = active_calculator?.lines || [];
+   76: 
+   77:   const preview = useMemo(() => {
+   78:     return calculateRateBuilderQuotePreview(rate_lines);
+   79:   }, [rate_lines]);
+   80: 
+   81:   const selected_cost_allocation_group = useMemo(() => {
+   82:     const selected_group_id =
+   83:       active_calculator?.linked_cost_allocation_group_id || "";
+   84: 
+   85:     return (
+   86:       asset_backed_group_options.find(
+   87:         (group) => group.group_id === selected_group_id
+   88:       ) || null
+   89:     );
+   90:   }, [
+   91:     active_calculator?.linked_cost_allocation_group_id,
+   92:     asset_backed_group_options,
+   93:   ]);
+   94: 
+   95:   const selected_group_recovery_hours =
+   96:     Number(selected_cost_allocation_group?.group_recovery_hours) || 0;
+   97: 
+   98:   const selected_group_labour_rate =
+   99:     Number(selected_cost_allocation_group?.labour_recovery_rate) ||
+  100:     (selected_group_recovery_hours > 0
+  101:       ? Number(selected_cost_allocation_group?.assigned_labour_cost || 0) /
+  102:         selected_group_recovery_hours
+  103:       : 0);
+  104: 
+  105:   const selected_group_asset_rate =
+  106:     Number(selected_cost_allocation_group?.asset_recovery_rate) ||
+  107:     (selected_group_recovery_hours > 0
+  108:       ? Number(selected_cost_allocation_group?.assigned_asset_burden || 0) /
+  109:         selected_group_recovery_hours
+  110:       : 0);
+  111: 
+  112:   const selected_group_overhead_rate =
+  113:     Number(selected_cost_allocation_group?.overhead_recovery_rate) ||
+  114:     (selected_group_recovery_hours > 0
+  115:       ? Number(selected_cost_allocation_group?.assigned_overhead_amount || 0) /
+  116:         selected_group_recovery_hours
+  117:       : 0);
+  118: 
+  119:   const selected_group_recovery_rate =
+  120:     Number(selected_cost_allocation_group?.group_cost_per_hour) || 0;
+  121: 
+  122: 
+  123:   const labour_charge_out_rate =
+  124:     Number(labour_rate_context.current_charge_out_rate) || 0;
+  125:   const labour_minimum_recoverable_rate =
+  126:     Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
+  127:   const has_labour_rate_context = labour_charge_out_rate > 0;
+  128: 
+  129:   const recovery_driver_quantity = useMemo(() => {
+  130:     const time_line_quantity = preview.line_totals
+  131:       .filter((line) => line.unit === "hr")
+  132:       .reduce((total, line) => total + Number(line.quantity || 0), 0);
+  133: 
+  134:     if (time_line_quantity > 0) {
+  135:       return time_line_quantity;
+  136:     }
+  137: 
+  138:     return preview.output_driver_quantity;
+  139:   }, [preview.line_totals, preview.output_driver_quantity]);
+  140: 
+  141:   const recovery_preview = useMemo(() => {
+  142:     return calculateRateBuilderRecoveryPreview({
+  143:       total_charge: preview.total_charge,
+  144:       selected_recovery_rate: selected_group_recovery_rate,
+  145:       recovery_driver_quantity,
+  146:       output_driver_quantity: preview.output_driver_quantity,
+  147:     });
+  148:   }, [
+  149:     preview.total_charge,
+  150:     preview.output_driver_quantity,
+  151:     recovery_driver_quantity,
+  152:     selected_group_recovery_rate,
+  153:   ]);
+  154: 
+  155:   const labour_job_charge =
+  156:     labour_charge_out_rate * recovery_driver_quantity;
+  157:   const labour_job_cost =
+  158:     labour_minimum_recoverable_rate * recovery_driver_quantity;
+  159:   const labour_job_profit = labour_job_charge - labour_job_cost;
+  160:   const labour_per_hr_profit =
+  161:     labour_charge_out_rate - labour_minimum_recoverable_rate;
+  162: 
+  163:   const display_calculator_name =
+  164:     String(active_calculator?.name || "").trim() || "Unnamed calculator";
+  165: 
+  166:   function updateDraftField(field, value) {
+  167:     set_draft_line((current) => ({
+  168:       ...current,
+  169:       [field]: value,
+  170:     }));
+  171:   }
+  172: 
+  173:   function updateActiveCalculator(updater) {
+  174:     set_calculators((current) =>
+  175:       current.map((calculator) =>
+  176:         calculator.id === active_calculator?.id
+  177:           ? updater(calculator)
+  178:           : calculator
+  179:       )
+  180:     );
+  181:   }
+  182: 
+  183:   function updateCalculatorName(value) {
+  184:     updateActiveCalculator((calculator) => ({
+  185:       ...calculator,
+  186:       name: value,
+  187:     }));
+  188:   }
+  189: 
+  190:   function updateLinkedCostAllocationGroup(value) {
+  191:     if (!value) {
+  192:       updateActiveCalculator((calculator) => ({
+  193:         ...calculator,
+  194:         linked_cost_allocation_group_id: "",
+  195:       }));
+  196: 
+  197:       return;
+  198:     }
+  199: 
+  200:     const selected_group = asset_backed_group_options.find(
+  201:       (group) => group.group_id === value
+  202:     );
+  203: 
+  204:     const existing_calculator = calculators.find(
+  205:       (calculator) => calculator.linked_cost_allocation_group_id === value
+  206:     );
+  207: 
+  208:     if (existing_calculator?.id) {
+  209:       set_active_calculator_id(existing_calculator.id);
+  210:       set_draft_line(EMPTY_LINE);
+  211:       return;
+  212:     }
+  213: 
+  214:     const next_calculator = {
+  215:       id: build_id(selected_group?.group_name || "asset_group_calculator"),
+  216:       name: selected_group?.group_name
+  217:         ? `${selected_group.group_name} calculator`
+  218:         : "Asset group calculator",
+  219:       linked_cost_allocation_group_id: value,
+  220:       lines: [],
+  221:     };
+  222: 
+  223:     set_calculators((current) => [...current, next_calculator]);
+  224:     set_active_calculator_id(next_calculator.id);
+  225:     set_draft_line(EMPTY_LINE);
+  226:   }
+  227: 
+  228:   function createNewCalculator() {
+  229:     const next_calculator = {
+  230:       id: build_id("new_calculator"),
+  231:       name: "New rate calculator",
+  232:       lines: [],
+  233:     };
+  234: 
+  235:     set_calculators((current) => [...current, next_calculator]);
+  236:     set_active_calculator_id(next_calculator.id);
+  237:     set_draft_line(EMPTY_LINE);
+  238:   }
+  239: 
+  240:   function deleteActiveCalculator() {
+  241:     if (!active_calculator) {
+  242:       return;
+  243:     }
+  244: 
+  245:     set_calculators((current) => {
+  246:       const filtered_calculators = current.filter(
+  247:         (calculator) => calculator.id !== active_calculator.id
+  248:       );
+  249: 
+  250:       if (filtered_calculators.length === 0) {
+  251:         const fallback_calculators = get_default_calculators();
+  252:         set_active_calculator_id(fallback_calculators[0].id);
+  253:         return fallback_calculators;
+  254:       }
+  255: 
+  256:       set_active_calculator_id(filtered_calculators[0].id);
+  257:       return filtered_calculators;
+  258:     });
+  259:   }
+  260: 
+  261:   function duplicateActiveCalculator() {
+  262:     if (!active_calculator) {
+  263:       return;
+  264:     }
+  265: 
+  266:     const duplicated_calculator = {
+  267:       ...active_calculator,
+  268:       id: build_id(active_calculator.name),
+  269:       name: `${active_calculator.name} copy`,
+  270:       lines: active_calculator.lines.map((line) => ({
+  271:         ...line,
+  272:         id: build_id(line.name),
+  273:       })),
+  274:     };
+  275: 
+  276:     set_calculators((current) => [...current, duplicated_calculator]);
+  277:     set_active_calculator_id(duplicated_calculator.id);
+  278:   }
+  279: 
+  280:   function addRateLine() {
+  281:     const name = String(draft_line.name || "").trim();
+  282: 
+  283:     if (!name || !active_calculator) {
+  284:       return;
+  285:     }
+  286: 
+  287:     const next_line = {
+  288:       id: build_id(name),
+  289:       name,
+  290:       unit: draft_line.unit,
+  291:       rate: Number(draft_line.rate) || 0,
+  292:       quantity: Number(draft_line.quantity) || 0,
+  293:       is_output_driver: rate_lines.length === 0,
+  294:     };
+  295: 
+  296:     updateActiveCalculator((calculator) => ({
+  297:       ...calculator,
+  298:       lines: [...calculator.lines, next_line],
+  299:     }));
+  300: 
+  301:     set_draft_line(EMPTY_LINE);
+  302:   }
+  303: 
+  304:   function updateRateLine(id, field, value) {
+  305:     updateActiveCalculator((calculator) => ({
+  306:       ...calculator,
+  307:       lines: calculator.lines.map((line) =>
+  308:         line.id === id
+  309:           ? {
+  310:               ...line,
+  311:               [field]: value,
+  312:             }
+  313:           : line
+  314:       ),
+  315:     }));
+  316:   }
+  317: 
+  318:   function setOutputDriver(id) {
+  319:     updateActiveCalculator((calculator) => ({
+  320:       ...calculator,
+  321:       lines: calculator.lines.map((line) => ({
+  322:         ...line,
+  323:         is_output_driver: line.id === id,
+  324:       })),
+  325:     }));
+  326:   }
+  327: 
+  328:   function deleteRateLine(id) {
+  329:     updateActiveCalculator((calculator) => {
+  330:       const filtered_lines = calculator.lines.filter((line) => line.id !== id);
+  331: 
+  332:       if (filtered_lines.length === 0) {
+  333:         return {
+  334:           ...calculator,
+  335:           lines: [],
+  336:         };
+  337:       }
+  338: 
+  339:       if (filtered_lines.some((line) => line.is_output_driver)) {
+  340:         return {
+  341:           ...calculator,
+  342:           lines: filtered_lines,
+  343:         };
+  344:       }
+  345: 
+  346:       return {
+  347:         ...calculator,
+  348:         lines: filtered_lines.map((line, index) => ({
+  349:           ...line,
+  350:           is_output_driver: index === 0,
+  351:         })),
+  352:       };
+  353:     });
+  354:   }
+  355: 
+  356:   return {
+  357:     active_calculator,
+  358:     asset_backed_group_options,
+  359:     display_calculator_name,
+  360:     draft_line,
+  361:     has_labour_rate_context,
+  362:     labour_charge_out_rate,
+  363:     labour_job_charge,
+  364:     labour_job_cost,
+  365:     labour_job_profit,
+  366:     labour_minimum_recoverable_rate,
+  367:     labour_per_hr_profit,
+  368:     preview,
+  369:     rate_lines,
+  370:     recovery_driver_quantity,
+  371:     recovery_preview,
+  372:     selected_cost_allocation_group,
+  373:     selected_group_asset_rate,
+  374:     selected_group_labour_rate,
+  375:     selected_group_overhead_rate,
+  376:     selected_group_recovery_rate,
+  377:     addRateLine,
+  378:     deleteRateLine,
+  379:     setOutputDriver,
+  380:     updateDraftField,
+  381:     updateLinkedCostAllocationGroup,
+  382:     updateRateLine,
+  383:   };
+  384: }
+################ lib\calculations\rateBuilderCalculations.js (152 lines) ################
+    1: function to_number(value) {
+    2:   const parsed = Number(value);
+    3:   return Number.isFinite(parsed) ? parsed : 0;
+    4: }
+    5: 
+    6: function round_currency(value) {
+    7:   const parsed = to_number(value);
+    8:   return Number(parsed.toFixed(2));
+    9: }
+   10: 
+   11: function get_output_driver_line(line_totals = []) {
+   12:   const selected_line = line_totals.find((line) => line.is_output_driver);
+   13: 
+   14:   if (selected_line) {
+   15:     return selected_line;
+   16:   }
+   17: 
+   18:   return line_totals[0] || null;
+   19: }
+   20: 
+   21: export function calculateRateBuilderQuotePreview(rate_lines = []) {
+   22:   const line_totals = rate_lines.map((line) => {
+   23:     const rate = to_number(line.rate);
+   24:     const quantity = to_number(line.quantity);
+   25:     const total = round_currency(rate * quantity);
+   26: 
+   27:     return {
+   28:       ...line,
+   29:       rate,
+   30:       quantity,
+   31:       total,
+   32:     };
+   33:   });
+   34: 
+   35:   const total_charge = round_currency(
+   36:     line_totals.reduce((total, line) => total + line.total, 0)
+   37:   );
+   38: 
+   39:   const output_driver_line = get_output_driver_line(line_totals);
+   40: 
+   41:   const output_driver_quantity = output_driver_line
+   42:     ? to_number(output_driver_line.quantity)
+   43:     : 0;
+   44: 
+   45:   const effective_rate_per_output_unit =
+   46:     output_driver_quantity > 0
+   47:       ? round_currency(total_charge / output_driver_quantity)
+   48:       : 0;
+   49: 
+   50:   return {
+   51:     line_totals,
+   52:     total_charge,
+   53:     output_driver_id: output_driver_line?.id || "",
+   54:     output_driver_name: output_driver_line?.name || "No output driver selected",
+   55:     output_driver_unit: output_driver_line?.unit || "unit",
+   56:     output_driver_quantity,
+   57:     effective_rate_per_output_unit,
+   58:   };
+   59: }
+   60: 
+   61: export function formatCurrency(value) {
+   62:   const parsed = to_number(value);
+   63: 
+   64:   return new Intl.NumberFormat("en-NZ", {
+   65:     style: "currency",
+   66:     currency: "NZD",
+   67:     minimumFractionDigits: 2,
+   68:     maximumFractionDigits: 2,
+   69:   }).format(parsed);
+   70: }
+   71: 
+   72: export function formatRate(value, unit_label = "unit") {
+   73:   const parsed = to_number(value);
+   74: 
+   75:   return `${new Intl.NumberFormat("en-NZ", {
+   76:     style: "currency",
+   77:     currency: "NZD",
+   78:     minimumFractionDigits: 2,
+   79:     maximumFractionDigits: 2,
+   80:   }).format(parsed)} / ${unit_label}`;
+   81: }
+   82: 
+   83: export function formatNumber(value) {
+   84:   const parsed = to_number(value);
+   85: 
+   86:   return new Intl.NumberFormat("en-NZ", {
+   87:     maximumFractionDigits: 0,
+   88:   }).format(parsed);
+   89: }
+   90: export function calculateRateBuilderRecoveryPreview({
+   91:   total_charge = 0,
+   92:   selected_recovery_rate = 0,
+   93:   recovery_driver_quantity = 0,
+   94:   output_driver_quantity = 0,
+   95: }) {
+   96:   const safe_total_charge = to_number(total_charge);
+   97:   const safe_selected_recovery_rate = to_number(selected_recovery_rate);
+   98:   const safe_recovery_driver_quantity = to_number(recovery_driver_quantity);
+   99:   const safe_output_driver_quantity = to_number(output_driver_quantity);
+  100: 
+  101:   const selected_recovery_cost = round_currency(
+  102:     safe_selected_recovery_rate * safe_recovery_driver_quantity
+  103:   );
+  104: 
+  105:   const profit_amount = round_currency(
+  106:     safe_total_charge - selected_recovery_cost
+  107:   );
+  108: 
+  109:   const profit_margin_percent =
+  110:     safe_total_charge > 0 ? (profit_amount / safe_total_charge) * 100 : 0;
+  111: 
+  112:   const recovery_cost_per_output_unit =
+  113:     safe_output_driver_quantity > 0
+  114:       ? round_currency(selected_recovery_cost / safe_output_driver_quantity)
+  115:       : 0;
+  116: 
+  117:   const profit_per_output_unit =
+  118:     safe_output_driver_quantity > 0
+  119:       ? round_currency(profit_amount / safe_output_driver_quantity)
+  120:       : 0;
+  121: 
+  122:   const recovery_status =
+  123:     safe_total_charge > 0 &&
+  124:     safe_selected_recovery_rate > 0 &&
+  125:     safe_recovery_driver_quantity > 0
+  126:       ? profit_amount >= 0
+  127:         ? "profitable"
+  128:         : "shortfall"
+  129:       : "not_ready";
+  130: 
+  131:   return {
+  132:     total_charge: safe_total_charge,
+  133:     selected_recovery_rate: safe_selected_recovery_rate,
+  134:     recovery_driver_quantity: safe_recovery_driver_quantity,
+  135:     output_driver_quantity: safe_output_driver_quantity,
+  136:     selected_recovery_cost,
+  137:     profit_amount,
+  138:     profit_margin_percent,
+  139:     recovery_cost_per_output_unit,
+  140:     profit_per_output_unit,
+  141:     recovery_status,
+  142:   };
+  143: }
+  144: 
+  145: export function formatPercent(value) {
+  146:   const parsed = to_number(value);
+  147: 
+  148:   return `${new Intl.NumberFormat("en-NZ", {
+  149:     minimumFractionDigits: 2,
+  150:     maximumFractionDigits: 2,
+  151:   }).format(parsed)}%`;
+  152: }
+################ components\rate-builder\line-calculator\RateBuilderResultPanel.jsx (306 lines) ################
+    1: import {
+    2:   formatCurrency,
+    3:   formatPercent,
+    4:   formatRate,
+    5: } from "@/lib/calculations/rateBuilderCalculations";
+    6: 
+    7: import { get_unit_label } from "./rateBuilderLineCalculatorConstants";
+    8: 
+    9: export default function RateBuilderResultPanel({
+   10:   display_calculator_name,
+   11:   has_labour_rate_context,
+   12:   labour_charge_out_rate,
+   13:   labour_job_charge,
+   14:   labour_minimum_recoverable_rate,
+   15:   labour_per_hr_profit,
+   16:   preview,
+   17:   recovery_driver_quantity,
+   18:   recovery_preview,
+   19:   selected_cost_allocation_group,
+   20:   selected_group_asset_rate,
+   21:   selected_group_labour_rate,
+   22:   selected_group_overhead_rate,
+   23:   selected_group_recovery_rate,
+   24: }) {
+   25:   return (
+   26:         <article className="ui-section">
+   27:           <p className="ui-kicker">Calculator result</p>
+   28: 
+   29:           <h2 className="ui-section-title">
+   30:             Example charge total - {display_calculator_name}
+   31:           </h2>
+   32: 
+   33:           <p className="ui-help">
+   34:             The total charge is divided by the selected output driver quantity
+   35:             to show the effective rate per output unit.
+   36:           </p>
+   37: 
+   38:           <div className="mt-5 grid gap-3">
+   39:             <div className="rate-builder-result-card">
+   40:               <p className="rate-builder-result-label">Total charge</p>
+   41: 
+   42:               <p className="rate-builder-result-value">
+   43:                 {formatCurrency(preview.total_charge)}
+   44:               </p>
+   45:             </div>
+   46: 
+   47:             <div className="rate-builder-result-card">
+   48:               <p className="rate-builder-result-label">
+   49:                 Primary output driver
+   50:               </p>
+   51: 
+   52:               <p className="rate-builder-driver-name">
+   53:                 {preview.output_driver_name}
+   54:               </p>
+   55: 
+   56:               <p className="rate-builder-driver-quantity">
+   57:                 {preview.output_driver_quantity}{" "}
+   58:                 {get_unit_label(preview.output_driver_unit)}
+   59:               </p>
+   60:             </div>
+   61: 
+   62:             <div className="rate-builder-effective-card">
+   63:               <p className="rate-builder-effective-label">Effective rate</p>
+   64: 
+   65:               <p className="rate-builder-result-value">
+   66:                 {formatRate(
+   67:                   preview.effective_rate_per_output_unit,
+   68:                   get_unit_label(preview.output_driver_unit)
+   69:                 )}
+   70:               </p>
+   71:             </div>
+   72: 
+   73:             <div className="rate-builder-result-card">
+   74:               <p className="rate-builder-result-label">
+   75:                 Cost Allocation source
+   76:               </p>
+   77: 
+   78:               <p className="rate-builder-driver-name">
+   79:                 {selected_cost_allocation_group?.group_name ||
+   80:                   "No cost group selected"}
+   81:               </p>
+   82: 
+   83:               <div className="mt-3 grid gap-2 sm:grid-cols-2">
+   84:                 <p className="ui-help">
+   85:                   Labour cost:{" "}
+   86:                   {formatCurrency(
+   87:                     selected_cost_allocation_group?.assigned_labour_cost || 0
+   88:                   )}
+   89:                 </p>
+   90: 
+   91:                 <p className="ui-help">
+   92:                   Labour hours:{" "}
+   93:                   {Number(
+   94:                     selected_cost_allocation_group?.assigned_labour_hours || 0
+   95:                   ).toFixed(2)}
+   96:                 </p>
+   97: 
+   98:                 <p className="ui-help">
+   99:                   Labour recovery rate:{" "}
+  100:                   {formatRate(selected_group_labour_rate, "hr")}
+  101:                 </p>
+  102: 
+  103:                 <p className="ui-help">
+  104:                   Asset cost:{" "}
+  105:                   {formatCurrency(
+  106:                     selected_cost_allocation_group?.assigned_asset_burden || 0
+  107:                   )}
+  108:                 </p>
+  109: 
+  110:                 <p className="ui-help">
+  111:                   Asset hours:{" "}
+  112:                   {Number(
+  113:                     selected_cost_allocation_group?.assigned_asset_hours || 0
+  114:                   ).toFixed(2)}
+  115:                 </p>
+  116: 
+  117:                 <p className="ui-help">
+  118:                   Asset recovery rate: {formatRate(selected_group_asset_rate, "hr")}
+  119:                 </p>
+  120: 
+  121:                 <p className="ui-help">
+  122:                   Overhead allocation:{" "}
+  123:                   {formatCurrency(
+  124:                     selected_cost_allocation_group?.assigned_overhead_amount || 0
+  125:                   )}
+  126:                 </p>
+  127: 
+  128:                 <p className="ui-help">
+  129:                   Overhead recovery rate:{" "}
+  130:                   {formatRate(selected_group_overhead_rate, "hr")}
+  131:                 </p>
+  132: 
+  133:                 <p className="ui-help">
+  134:                   Total group cost:{" "}
+  135:                   {formatCurrency(
+  136:                     selected_cost_allocation_group?.total_group_cost || 0
+  137:                   )}
+  138:                 </p>                <p className="ui-help">
+  139:                   Recovery basis:{" "}
+  140:                   {selected_cost_allocation_group?.group_recovery_hour_source ===
+  141:                   "asset_hours"
+  142:                     ? "Asset hours"
+  143:                     : selected_cost_allocation_group?.group_recovery_hour_source ===
+  144:                         "manual_hours"
+  145:                       ? "Manual hours"
+  146:                       : "Labour hours"}
+  147:                 </p>
+  148: 
+  149:                 <p className="ui-help">
+  150:                   Recovery hours used:{" "}
+  151:                   {Number(
+  152:                     selected_cost_allocation_group?.group_recovery_hours || 0
+  153:                   ).toFixed(2)}
+  154:                 </p>
+  155: 
+  156:                 <p className="ui-help sm:col-span-2">
+  157:                   Group recovery rate:{" "}
+  158:                   {formatRate(selected_group_recovery_rate, "hr")}
+  159:                 </p>
+  160:               </div>
+  161:             </div>
+  162: 
+  163:             <div className="rate-builder-result-card">
+  164:               <p className="rate-builder-result-label">Profit / shortfall</p>
+  165: 
+  166:               <p className="rate-builder-result-value">
+  167:                 {formatCurrency(recovery_preview.profit_amount)}
+  168:               </p>
+  169: 
+  170:               <div className="mt-3 grid gap-1 text-xs text-[var(--text-secondary)] sm:grid-cols-3">
+  171:                 <p>
+  172:                   Pricing unit:{" "}
+  173:                   <span className="font-semibold text-[var(--text-primary)]">
+  174:                     {get_unit_label(preview.output_driver_unit)}
+  175:                   </span>
+  176:                 </p>
+  177:                 <p>
+  178:                   Output quantity:{" "}
+  179:                   <span className="font-semibold text-[var(--text-primary)]">
+  180:                     {preview.output_driver_quantity}{" "}
+  181:                     {get_unit_label(preview.output_driver_unit)}
+  182:                   </span>
+  183:                 </p>
+  184:                 <p>
+  185:                   Recovery hours:{" "}
+  186:                   <span className="font-semibold text-[var(--text-primary)]">
+  187:                     {recovery_driver_quantity.toFixed(2)} hrs
+  188:                   </span>
+  189:                 </p>
+  190:               </div>
+  191: 
+  192:               <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+  193:                 <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+  194:                   <div className="px-3 py-2">View</div>
+  195:                   <div className="px-3 py-2 text-right">Charge</div>
+  196:                   <div className="px-3 py-2 text-right">Cost</div>
+  197:                   <div className="px-3 py-2 text-right">Profit / Loss</div>
+  198:                 </div>
+  199: 
+  200:                 <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+  201:                   <div className="px-3 py-2 font-semibold text-slate-200">
+  202:                     Total job
+  203:                   </div>
+  204:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+  205:                     {formatCurrency(preview.total_charge)}
+  206:                   </div>
+  207:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+  208:                     {formatCurrency(selected_group_recovery_rate * recovery_driver_quantity)}
+  209:                   </div>
+  210:                   <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+  211:                     {formatCurrency(recovery_preview.profit_amount)}
+  212:                   </div>
+  213:                 </div>
+  214: 
+  215:                 <div className="grid grid-cols-4 text-xs">
+  216:                   <div className="px-3 py-2 font-semibold text-slate-200">
+  217:                     Per {get_unit_label(preview.output_driver_unit)}
+  218:                   </div>
+  219:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+  220:                     {formatCurrency(
+  221:                       preview.output_driver_quantity > 0
+  222:                         ? preview.total_charge / preview.output_driver_quantity
+  223:                         : 0
+  224:                     )}
+  225:                   </div>
+  226:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+  227:                     {formatCurrency(recovery_preview.recovery_cost_per_output_unit)}
+  228:                   </div>
+  229:                   <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+  230:                     {formatCurrency(recovery_preview.profit_per_output_unit)}
+  231:                   </div>
+  232:                 </div>
+  233:               </div>
+  234: 
+  235:               <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+  236:                 <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+  237:                   <div className="px-3 py-2">Charge / Cost breakdown</div>
+  238:                   <div className="px-3 py-2 text-right">Charge</div>
+  239:                   <div className="px-3 py-2 text-right">Cost</div>
+  240:                   <div className="px-3 py-2 text-right">Profit / Loss</div>
+  241:                 </div>
+  242: 
+  243:                 {has_labour_rate_context ? (
+  244:                   <>
+  245:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+  246:                       <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+  247:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_charge_out_rate)}</div>
+  248:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_minimum_recoverable_rate)}</div>
+  249:                       <div className={`px-3 py-2 text-right font-semibold ${labour_per_hr_profit >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+  250:                         {formatCurrency(labour_per_hr_profit)}
+  251:                       </div>
+  252:                     </div>
+  253:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+  254:                       <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+  255:                       <div className="px-3 py-2 text-right text-slate-100">
+  256:                         {formatCurrency(preview.total_charge - labour_job_charge > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity : 0)}
+  257:                       </div>
+  258:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+  259:                       <div className={`px-3 py-2 text-right font-semibold ${(preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+  260:                         {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate : 0)}
+  261:                       </div>
+  262:                     </div>
+  263:                     <div className="grid grid-cols-4 text-xs">
+  264:                       <div className="px-3 py-2 font-semibold text-cyan-300">Total / hr</div>
+  265:                       <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+  266:                         {formatCurrency(recovery_driver_quantity > 0 ? preview.total_charge / recovery_driver_quantity : 0)}
+  267:                       </div>
+  268:                       <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+  269:                         {formatCurrency(labour_minimum_recoverable_rate + selected_group_asset_rate)}
+  270:                       </div>
+  271:                       <div className={`px-3 py-2 text-right font-semibold ${recovery_driver_quantity > 0 && (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+  272:                         {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) : 0)}
+  273:                       </div>
+  274:                     </div>
+  275:                   </>
+  276:                 ) : (
+  277:                   <>
+  278:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+  279:                       <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+  280:                       <div className="px-3 py-2 text-right text-slate-400">—</div>
+  281:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_labour_rate)}</div>
+  282:                       <div className="px-3 py-2 text-right text-slate-400">—</div>
+  283:                     </div>
+  284:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+  285:                       <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+  286:                       <div className="px-3 py-2 text-right text-slate-400">—</div>
+  287:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+  288:                       <div className="px-3 py-2 text-right text-slate-400">—</div>
+  289:                     </div>
+  290:                     <div className="grid grid-cols-4 text-xs">
+  291:                       <div className="px-3 py-2 font-semibold text-slate-400 text-xs">Set a charge-out rate in Labour Rates Builder to see charge / profit breakdown.</div>
+  292:                     </div>
+  293:                   </>
+  294:                 )}
+  295:               </div>
+  296:               <p className="ui-help mt-3">
+  297:                 Margin: {formatPercent(recovery_preview.profit_margin_percent)}
+  298:               </p>
+  299:               <p className="ui-help">
+  300:                 Status: {recovery_preview.recovery_status}
+  301:               </p>
+  302:             </div>
+  303:           </div>
+  304:         </article>
+  305:   );
+  306: }
+################ components\rate-builder\line-calculator\RateBuilderGroupSelector.jsx (41 lines) ################
+    1: 
+    2: export default function RateBuilderGroupSelector({
+    3:   active_calculator,
+    4:   asset_backed_group_options,
+    5:   updateLinkedCostAllocationGroup,
+    6: }) {
+    7:   return (
+    8:         <article className="ui-section">
+    9:           <p className="ui-kicker">Calculator setup</p>
+   10: 
+   11:           <h2 className="ui-section-title">Asset-backed pricing group</h2>
+   12: 
+   13:           <p className="ui-help">
+   14:             Select the Cost Allocation group this calculator is pricing. Only
+   15:             asset-backed operational groups are shown here.
+   16:           </p>
+   17: 
+   18:           <div className="mt-5 grid gap-4">
+   19:             <label className="ui-field">
+   20:               <span className="ui-label">Select cost allocation group</span>
+   21: 
+   22:               <select
+   23:                 value={active_calculator?.linked_cost_allocation_group_id || ""}
+   24:                 onChange={(event) =>
+   25:                   updateLinkedCostAllocationGroup(event.target.value)
+   26:                 }
+   27:                 className="ui-select"
+   28:               >
+   29:                 <option value="">Select asset-backed group</option>
+   30: 
+   31:                 {asset_backed_group_options.map((group) => (
+   32:                   <option key={group.group_id} value={group.group_id}>
+   33:                     {group.group_name}
+   34:                   </option>
+   35:                 ))}
+   36:               </select>
+   37:             </label>
+   38:           </div>
+   39:         </article>
+   40:   );
+   41: }
+################ components\rate-builder\line-calculator\rateBuilderLineCalculatorConstants.js (69 lines) ################
+    1: export const UNIT_OPTIONS = [
+    2:   { value: "each", label: "Each" },
+    3:   { value: "hr", label: "Hour" },
+    4:   { value: "day", label: "Day" },
+    5:   { value: "m3", label: "m³" },
+    6:   { value: "m2", label: "m²" },
+    7:   { value: "lm", label: "Lineal metre" },
+    8:   { value: "tonne", label: "Tonne" },
+    9:   { value: "item", label: "Item" },
+   10:   { value: "custom", label: "Custom" },
+   11: ];
+   12: 
+   13: export const DEFAULT_CALCULATOR = {
+   14:   id: "two_inch_line_pump",
+   15:   name: "2-inch line pump calculator",
+   16:   linked_cost_allocation_group_id: "",
+   17:   lines: [
+   18:     {
+   19:       id: "setup_fee",
+   20:       name: "Setup Fee",
+   21:       unit: "each",
+   22:       rate: 135,
+   23:       quantity: 1,
+   24:       is_output_driver: false,
+   25:     },
+   26:     {
+   27:       id: "m3_rate",
+   28:       name: "m3 Rate",
+   29:       unit: "m3",
+   30:       rate: 13,
+   31:       quantity: 15,
+   32:       is_output_driver: true,
+   33:     },
+   34:     {
+   35:       id: "pump_hire_2inc",
+   36:       name: "2inc Line Pump Hire",
+   37:       unit: "hr",
+   38:       rate: 135,
+   39:       quantity: 4,
+   40:       is_output_driver: false,
+   41:     },
+   42:   ],
+   43: };
+   44: 
+   45: export const EMPTY_LINE = {
+   46:   name: "",
+   47:   unit: "each",
+   48:   rate: "",
+   49:   quantity: "",
+   50: };
+   51: 
+   52: export function get_unit_label(unit_value) {
+   53:   const match = UNIT_OPTIONS.find((unit) => unit.value === unit_value);
+   54:   return match ? match.label : unit_value || "unit";
+   55: }
+   56: 
+   57: export function build_id(name) {
+   58:   const base_id = String(name || "item")
+   59:     .toLowerCase()
+   60:     .trim()
+   61:     .replaceAll(" ", "_")
+   62:     .replace(/[^a-z0-9_]/g, "");
+   63: 
+   64:   return `${base_id || "item"}_${Date.now()}`;
+   65: }
+   66: 
+   67: export function get_default_calculators() {
+   68:   return [DEFAULT_CALCULATOR];
+   69: }
+################ components\rate-builder\RateBuilderRecoveryLink.jsx (28 lines) ################
+    1: "use client";
+    2: 
+    3: export default function RateBuilderRecoveryLink() {
+    4:   return (
+    5:     <section className="ui-section">
+    6:       <p className="ui-kicker">Recovery Link</p>
+    7: 
+    8:       <h2 className="ui-section-title">Recovery comparison</h2>
+    9: 
+   10:       <p className="ui-help">
+   11:         This section will later compare calculated rates against required
+   12:         recovery targets from Recovery Summary and Business Outcome.
+   13:       </p>
+   14: 
+   15:       <div className="mt-5 rate-builder-recovery-note">
+   16:         <p className="rate-builder-recovery-note__title">
+   17:           Future connection point
+   18:         </p>
+   19: 
+   20:         <p className="rate-builder-recovery-note__body">
+   21:           Once labour rates and customer charge calculators are stable, this
+   22:           section will test whether the calculated effective rates are high
+   23:           enough to recover labour, asset, overhead, and profit requirements.
+   24:         </p>
+   25:       </div>
+   26:     </section>
+   27:   );
+   28: }

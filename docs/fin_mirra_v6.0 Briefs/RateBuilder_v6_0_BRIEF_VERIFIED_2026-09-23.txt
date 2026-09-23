@@ -1,0 +1,314 @@
+MIRRA v6.0 - RATE BUILDER BRIEF
+STATUS: [VERIFIED 2026-09-23] - CODE-TRACED, CLOSED (see s7). Live numeric check
+  deliberately skipped: Rate Builder figures do not propagate (s5 V3 scope insight).
+PHASE: first module after Cost Allocation (kickoff s2, next phase)
+LOCATION: docs\fin_mirra_v6.0 Briefs\
+
+FOLDS IN (archive out of project knowledge once this brief is [VERIFIED];
+keep in repo for history):
+  - _Archive_v4\19_MIRRA_RATE_BUILDER_v4.0_LOCKED.txt (intent, s1-50)
+  - rate-builder_BRIEF_UPDATE_v5.0.txt, rate-builder_ACCEPTED_BRIEF_ADDENDUM_v5.0.txt
+    (both only list group_rows / operational_group_cost_rows as contract fields)
+  - "Rate Builder Updated Build and contract" (Recovery Link, 3-tool split)
+  - "Labour Rates Builder Part 2" (labour rate locked decisions)
+  - S28_RATE_BUILDER_PER_SOURCE_LINKING_v5_1.txt (per-asset calculator
+    linking, open decisions 6.1-6.3 - shared with Business Outcome)
+  - README_EVIDENCE 2026-06-30 Rate_Builder_Labour_Benchmark (screenshots only)
+  - p25_step7_cards_ratebuilder_2026-09-23.txt (P2.5 code dump)
+
+RULE: no dollar figures outside a dated [VERIFIED] entry (kickoff s4).
+Old example numbers in the v4 / v5 sources are NOT carried forward.
+
+===============================================================================
+1. ROLE AND BOUNDARIES (intent carried forward - still believed correct)
+===============================================================================
+
+Rate Builder answers "what rate recovers it?". It turns Cost Allocation
+structure + recovery requirement + component cost + margin target into
+minimum recoverable rates and sell rates.
+
+Owns: charge-out rates (labour per staff type), customer charge lines,
+charge vs cost vs profit comparison, margin / markup application.
+
+Does NOT own (consumes only): labour cost, asset cost, overhead cost, COG,
+productive hours, asset utilisation, groups, assignments, overhead
+distribution, recovery testing, final business verdict.
+
+Locked decisions still in force (verify each against code):
+  L1 One owner per calculation. Labour owns labour cost; Cost Allocation owns
+     group cost and overhead split; Rate Builder compares charge to cost.
+  L2 Minimum recoverable labour rate = productive labour cost + allocated
+     overhead. Non-productive labour is NOT loaded directly into the rate.
+  L3 All-productive weighted rate is read-only: sum(staff-type charge rate x
+     productive hours) / total productive hours.
+  L4 Overhead follows labour cost weighting, not equal split.
+  L5 Productive asset running costs stay out of the labour overhead pool
+     (now true upstream: pool transfer to Assets, verified P2.4/P2.5).
+  L6 Rate Builder must not invent labour charge rates, market rates, or
+     product rates from COG totals.
+  L7 Margin and markup are distinct: margin sell = cost / (1 - m);
+     markup sell = cost x (1 + k). Active method must be visible.
+  L8 P&L implied labour benchmark does not belong in Labour Rates Builder
+     (belongs to Business Outcome). See RB-Q5 - component still exists.
+
+===============================================================================
+2. WHAT EXISTS IN CODE (file scan 2026-09-23; ~4,300 lines, 35 files)
+===============================================================================
+
+Three independent paths under app\rate-builder\page.jsx:
+
+PATH A - Labour Rates Builder
+  hooks\rate-builder\useRateBuilderLabourRates.js
+  lib\selectors\rate-builder\rateBuilderLabourSourceSelectors.js (reads Labour
+    contract + Cost Allocation rate_builder_labour_recovery_rows)
+  lib\selectors\rate-builder\rateBuilderLabourModelSelectors.js,
+    rateBuilderLabourRateSummarySelectors.js
+  lib\calculations\rateBuilderLabourRateCalculations.js
+  lib\actions\rate-builder\rateBuilderLabourRateModelActions.js
+  lib\storage\rateBuilderLabourRatesStorage.js (calculator models),
+    rateBuilderLabourSourceRatesStorage.js (per staff_type_id charge rates;
+    read directly by Business Outcome via readRateBuilderLabourSourceRates)
+  components: RateBuilderLabourRates*.jsx, RateBuilderMinimumRecoveryCard.jsx,
+    RateBuilderLabourWeightedSummaryCard.jsx
+  Upstream builder: lib\selectors\cost-allocation\
+    costAllocationRateBuilderSelectors.js (build_rate_builder_labour_recovery_rows)
+
+PATH B - Customer Charge Calculator / Recovery Link (line calculator)
+  components\rate-builder\line-calculator\useRateBuilderLineCalculator.js
+  lib\calculations\rateBuilderCalculations.js
+  storage key qs_tools_rate_builder_calculators_v1 (per S28); calculator keyed
+    by linked_cost_allocation_group_id
+  Reads operational_group_cost_rows (group labour / asset / overhead rates,
+    group_cost_per_hour).
+
+PATH C - Materials markup
+  hooks\rate-builder\useRateBuilderMaterialsMarkup.js,
+  rateBuilderMaterialsMarkupCalculations.js, RateBuilderMaterialsMarkupCard.jsx,
+  lib\storage\rateBuilderMaterialsMarkupStorage.js
+
+Also present: RateBuilderPnlLabourBenchmarkCard.jsx (209 lines),
+RateBuilderRecoveryLink.jsx, rateBuilderStorage.js (40 lines, purpose unknown).
+
+===============================================================================
+3. INPUTS (field names from tracker s3 / s6 - hop-by-hop not yet read)
+===============================================================================
+
+Labour contract: productive_staff_type_rates, total_productive_labour_hours,
+  weighted_all_productive_labour_rate, total_productive_labour_cost;
+  labour_status / labour_model_trust_state (NOT emitted - Rate Builder
+  defaults to "ready", Labour F-trust note).
+Cost Allocation contract: rate_builder_labour_recovery_rows,
+  operational_group_cost_rows (labour/asset/overhead_recovery_rate,
+  group_cost_per_hour, group_recovery_hours), cost_allocation_ready.
+Recovery Summary (via Cost Allocation): labour_share_percent (C24 only).
+business_type: NOT read (tracker P2.1). v4 "mode-guided" intent is unbuilt.
+
+===============================================================================
+4. v4.0 INTENT vs CODE (to confirm - expected gaps, not yet verified)
+===============================================================================
+
+  - v4 output contract (rate_builder_ready / status / warnings / trust state /
+    rate_builder_rows / 20 warning IDs / 8 rate_status values): expected
+    largely unbuilt. v5 audit found only group_rows and
+    operational_group_cost_rows. Decide: rebuild the contract, or document
+    the real surface and retire the v4 list.
+  - Mode-guided rates / unit rates / SOQ rule: unbuilt; parked with the
+    business_type gap (kickoff s1). Do not build in this pass.
+  - v4 s45 "move rates in from Cost Allocation": not done; recovery rates
+    still live in Cost Allocation (C7). Keep as is unless a bug forces it.
+  - Current / target / market comparison, margin vs markup switch: check
+    which exist.
+
+===============================================================================
+5. CARRIED-IN ITEMS AND CANDIDATE FINDINGS
+===============================================================================
+
+Handed on from earlier passes:
+  C24 + R3  all_productive row overhead = Recovery Summary labour_share_percent
+            x total overhead; per-staff rows use each group's actual split.
+            The two bases differ (R3: support assets in no Recovery Summary
+            stream). Fix candidate: all_productive = sum of staff-type rows.
+  C6        minimum recoverable rate excludes non-productive cost; Business
+            Outcome charge_to_self includes it. Owned by Business Outcome,
+            but L2 says exclusion is intended here - confirm both sides agree.
+  C7 / C1   recovery logic still in Cost Allocation; working_unit rate stale.
+  F18       labour rate now per person-hour (51e2e08) - confirm Rate Builder
+            minimum rate moved as expected.
+  S28 6.1-6.3  per-asset calculator linking (linked_asset_id) - check whether
+            built; if not, carry decisions to Business Outcome session.
+
+Candidate findings from the P2.5 dump (re-view fresh before acting):
+  RB-1  build_rate_builder_labour_recovery_rows gives each staff type
+        group_overhead x (its cost / group labour cost). Summed over the
+        group, labour carries 100% of the group's overhead, including groups
+        with productive assets. If Path B also charges the group overhead
+        rate on machine work, overhead may be recovered twice when a job is
+        priced with labour charge-out + a machine calculator. Design check.
+  RB-2  A group with zero overhead or zero labour cost is skipped entirely
+        (return before the assignment loop), so that group's labour hours
+        and cost also drop out of the staff-type row. Latent while every
+        labour group gets overhead (labour_cost_weighted method, C5).
+  RB-3  all_productive falls back to summed staff rows only when the share
+        product is zero - mixed basis (see C24).
+
+V1 code read (2026-09-23, dump docs\Audit\v6_0\P3_RateBuilder\
+rb_v1_pathA_2026-09-23.txt). costAllocationRateBuilderSelectors.js is
+byte-identical to the P2.5 dump, so RB-1..3 stand as written.
+  Minimum recoverable rate (card) = labour_cost_rate + CA overhead rate:
+    staff type: labour_cost_rate = Labour productive_staff_type_rates
+      .weighted_productive_hourly_rate; overhead rate = that staff type's CA
+      row allocated_business_overhead_recovery_rate (overhead share / CA
+      assigned hours). Hour bases match only if the staff type is assigned
+      100% in total (C13 / C14 interaction - check live).
+    all_productive: labour_cost_rate = Labour weighted_all_productive_labour_
+      rate; overhead from the C24 row.
+    Built in rateBuilderLabourSourceSelectors.js build_recovery_fields. L2
+    holds (non-productive not added). F18 does not reach Path A (no read of
+    business_recovery_hours).
+  V1b (dump rb_v1b_pathA_2026-09-23.txt): Labour
+    calculateProductiveStaffTypeRates confirms labour_cost_rate = staff-type
+    total_annual_cost / total_productive_hours (productive staff only);
+    weighted_all_productive_labour_rate = total productive cost / hours.
+  RB-4  DOWNGRADED to dead code. build_active_labour_rate_model_for_calculation
+        forces productive_efficiency_percent = 100 and recovery_allowance_rate
+        = 0 after spreading the model, so no double productivity.
+        calculate_labour_rate_result's suggested_charge_out_rate,
+        cost_with_recovery, profit_per_hour and rate_gap are computed but not
+        rendered; only current_charge_out_rate and effective_labour_cost_rate
+        (= labour_cost_rate) are used. target_margin_percent has no input.
+        So L7 (margin / markup, suggested sell rate) is NOT built in Path A.
+  RB-5  CONFIRMED. MainCard's labour_rate_context = the hook's
+        current_charge_out_rate and minimum_recoverable_charge_out_rate for
+        the source selected on the Labour tab (default all_productive). The
+        Customer Charge Calculator's labour check follows that tab, not the
+        priced group's staff types.
+  RB-9  Surplus / leak and "margin after full recovery" = (current rate -
+        minimum rate) / current rate. Correct against L2. The all_productive
+        comparison inherits C24's overhead basis.
+  RB-10 Weighted summary counts hours of staff types with no saved rate
+        (rate 0), pulling the weighted current rate down while incomplete.
+        Flagged on screen via missing_rate_count - acceptable.
+  RB-11 Saved charge rates are one global map (qstools_rate_builder_labour_
+        source_rates_v1) overlaid onto every model on load, so models cannot
+        hold different rates after a reload. Supports RB-Q2 (remove the
+        saved-calculator UI).
+  RB-6  Fields read from the Labour contract that the tracker does not list
+        as emitted: total_non_productive_labour_cost (drives the
+        "non-productive pressure" line), pnl_derived_recovered_labour_rate,
+        gross_profit, labour_recovery_pool, pnl_labour_recovery_multiplier,
+        per-row pnl_implied_recovered_rate. labourCalculations.js does
+        define calculatePnlDerivedLabourRecovery, so the P&L fields may be
+        emitted after all. Confirm by field reference search.
+  RB-7  Invented defaults, contrary to L6: "Manual preview rate" option
+        when no labour data; new-model labour_cost_rate fallback; and
+        DEFAULT_LABOUR_RATE_MODEL seeds a current charge-out rate and a
+        target margin. The default charge rate reaches the screen only for
+        a staff type with no saved rate (get_source_charge_out_rate falls
+        back to model.current_charge_out_rate). Latent on current data.
+  RB-8  WITHDRAWN. Delete is blocked at one model and load always returns
+        at least one, so the length > 0 save guard acts as has_loaded.
+        useCostAllocation is instantiated again here (C15) - noted only.
+  RB-Q1 CONFIRMED and VISIBLE: labour_status falls back labour_status ->
+        labour_model_trust_state -> "ready"; neither is emitted. The result
+        panel prints "Status: ready" for the all-productive summary
+        regardless of Labour readiness.
+  RB-Q3 ANSWERED: rateBuilderStorage.js = qs_tools_rate_builder_calculators_v1,
+        the Path B calculator store. Live.
+
+V3 code read (dump rb_v3_pathB_2026-09-23.txt):
+  SCOPE INSIGHT: Rate Builder publishes NO output contract. What leaves
+    it is stored user input only: per-staff-type charge rates
+    (qstools_rate_builder_labour_source_rates_v1) and calculators
+    (qs_tools_rate_builder_calculators_v1). Its calculated figures
+    (minimum rate, recovery cost, profit) are display-only; Business
+    Outcome reads minimum recoverable rates from Cost Allocation and
+    re-derives the rest itself. So Rate Builder display bugs do not
+    propagate down the chain; storage keys and ids do. The v5 "contract
+    fields" (group_rows, operational_group_cost_rows) are Cost Allocation
+    inputs, not outputs. Rate Builder reads no readiness / trust field, so
+    the blocked Model Readiness state (C16) and breakeven revenue do not
+    affect it - live checks can run on current data.
+  Mechanism: calculator linked to one Cost Allocation group; only groups with
+    assigned_asset_burden > 0 are offered. Top "Total job" cost =
+    group_cost_per_hour x recovery hours. has_loaded guard present.
+  RB-12 Two different total costs on one card. "Total job" uses the group
+        rate (labour + asset + overhead [+ non-productive, C6] per group
+        recovery hour). The breakdown "Total / hr" cost = Labour-tab minimum
+        rate (one person, selected source, carries overhead - RB-1/RB-5) +
+        group asset rate. They will not agree; the group's own labour and
+        overhead rates are shown above but not used in the breakdown.
+        Asset charge in the breakdown is a residual (total charge - labour
+        charge) - the same subtraction pattern S28 s4 flagged in Business
+        Outcome.
+  RB-13 recovery hours = sum of quantities on every "hr" line; if none, the
+        output-driver quantity in its own unit (m3, each...) is used as
+        hours. "day" lines are not counted. Two hour lines for the same job
+        (pump hire + operator) double the hours.
+  RB-14 Labour-only groups cannot be priced in the calculator (design).
+  RB-15 Group rate includes non-productive cost; stream rates and the labour
+        minimum rate do not (C6 visible on one screen).
+  RB-16 DEFAULT_CALCULATOR seeds a named real-business calculator with
+        priced lines for any new user (L6 / test-data leak). Latent.
+  RB-17 A calculator whose group stops being asset-backed silently shows
+        no cost group, zero cost, status not_ready.
+  S28   NOT BUILT: calculators keyed by linked_cost_allocation_group_id only.
+  Recovery Link tab is a placeholder; the charge / cost / profit view lives
+    in the Customer Charge Calculator.
+  RB-6  UPDATE: pnl_derived_recovered_labour_rate IS emitted by the Labour
+        contract (labourOutputContractSelectors.js); carried into source
+        options but not rendered anywhere in Rate Builder.
+
+Open questions:
+  RB-Q2 Is the saved-calculator UI (Path A) still wanted? (LRB s6 deferred.)
+  RB-Q4 Does any has_loaded guard gap exist in the four storage files?
+  RB-Q5 Is RateBuilderPnlLabourBenchmarkCard rendered (contradicts L8)?
+  RB-Q6 Business type coverage: note per path (expected: hours-native).
+
+===============================================================================
+6. VERIFICATION PLAN
+===============================================================================
+
+  V1 Path A code read - DONE (V1, V1b above).
+  V3 Path B code read - DONE (V3 above).
+  V2 / V3 live checks - NOT RUN, by decision: no Rate Builder calculated
+     figure reaches Business Outcome or Business Modelling.
+  V4 Path C (materials markup) - NOT READ. Carried to Business Outcome with
+     the materials path (tracker s5), since Revenue/COGS is its source.
+  V5 Consumers - handed to Business Outcome (see s7 hand-offs).
+  V6 Tooling - check_field_parity not run (hook returns a spread of
+     result_metrics, not a rebuilt selector object; no bug-class (b) risk).
+
+===============================================================================
+7. [VERIFIED] ENTRIES
+===============================================================================
+
+[VERIFIED 2026-09-23] Code trace, no live numbers.
+  Proven by code read:
+  - Path A minimum recoverable labour rate = Labour staff-type cost /
+    productive hours + that staff type's Cost Allocation overhead share /
+    its Cost Allocation assigned hours. L2 holds (non-productive excluded).
+    L3 holds (all-productive charge rate weighted by productive hours).
+  - No double productivity (RB-4 dead code). No has_loaded race in either
+    storage-writing hook.
+  - Rate Builder publishes no output contract and reads no readiness field.
+  Not fixed (display-only, parked for a later Rate Builder tidy-up):
+    RB-1, RB-2, RB-3/C24, RB-5, RB-7, RB-10, RB-11, RB-12, RB-13, RB-14,
+    RB-15, RB-16, RB-17, RB-Q1, RB-Q2.
+  Not built from v4.0 intent (documented, not a defect): output contract,
+    rate status / warnings / trust state, margin / markup / suggested sell
+    rate (L7), current / target / market comparison, mode-guided and unit
+    rates, subset (machine + operator) rates, Recovery Link tab.
+  Handed to Business Outcome (what actually propagates):
+    H1 qstools_rate_builder_labour_source_rates_v1 - keyed by staff_type_id;
+       confirm Business Outcome reads the same ids Labour emits and handles
+       a staff type with no saved rate.
+    H2 qs_tools_rate_builder_calculators_v1 - keyed by
+       linked_cost_allocation_group_id; S28 per-asset linking not built;
+       S28 s4 asset-revenue-by-subtraction; stale group links (RB-17).
+    H3 C6 / RB-15 non-productive cost in group rate vs minimum rate.
+    H4 C24 / R3 only if Business Outcome reads the all_productive row.
+    H5 Path C materials markup, with the materials path.
+    H6 S-G1 General Overheads interest cap (terminal output outstanding).
+    H7 Strip-or-carry decision and dropping breakeven revenue (kickoff s3).
+  Hours/units: Rate Builder does not read business_type; hours-native
+    throughout (calculator units are free text, recovery in hours).
