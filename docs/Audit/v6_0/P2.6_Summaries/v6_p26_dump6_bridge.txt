@@ -1,0 +1,1630 @@
+===== FILE: components\business-summary\BusinessSummaryMacroPositionCard.jsx =====
+   1: "use client";
+   2: 
+   3: import { useState } from "react";
+   4: 
+   5: import BusinessSummarySourceBreakdown from "@/components/business-summary/BusinessSummarySourceBreakdown";
+   6: import {
+   7:   format_currency,
+   8:   format_percent,
+   9: } from "@/components/business-summary/businessSummaryFormatters";
+  10: 
+  11: function to_number(value) {
+  12:   const number = Number(value);
+  13:   return Number.isFinite(number) ? number : 0;
+  14: }
+  15: 
+  16: function MacroRow({
+  17:   id,
+  18:   title,
+  19:   help,
+  20:   value,
+  21:   active,
+  22:   total = false,
+  23:   onClick,
+  24: }) {
+  25:   const is_clickable = Boolean(onClick);
+  26: 
+  27:   const class_name = `business-summary-macro-row ${
+  28:     active ? "is-active" : ""
+  29:   } ${total ? "total" : ""}`;
+  30: 
+  31:   if (!is_clickable) {
+  32:     return (
+  33:       <div className={class_name}>
+  34:         <div className="business-summary-macro-row-label">
+  35:           <div className="business-summary-macro-row-title">{title}</div>
+  36:           {help ? (
+  37:             <div className="business-summary-macro-row-help">{help}</div>
+  38:           ) : null}
+  39:         </div>
+  40: 
+  41:         <div className="business-summary-macro-row-value">{value}</div>
+  42:       </div>
+  43:     );
+  44:   }
+  45: 
+  46:   return (
+  47:     <button
+  48:       type="button"
+  49:       onClick={() => onClick(active ? null : id)}
+  50:       className={class_name}
+  51:     >
+  52:       <div className="business-summary-macro-row-label">
+  53:         <div className="business-summary-macro-row-title">{title}</div>
+  54:         {help ? (
+  55:           <div className="business-summary-macro-row-help">{help}</div>
+  56:         ) : null}
+  57:       </div>
+  58: 
+  59:       <div className="business-summary-macro-row-value">{value}</div>
+  60:     </button>
+  61:   );
+  62: }
+  63: 
+  64: function BridgeRow({
+  65:   title,
+  66:   help,
+  67:   benchmark,
+  68:   module_total,
+  69:   variance,
+  70:   benchmark_label = "P&L benchmark",
+  71:   module_label = "QS Tools total",
+  72: }) {
+  73:   return (
+  74:     <div className="ui-panel ui-stack-sm">
+  75:       <div className="ui-row-between">
+  76:         <div>
+  77:           <div className="ui-kicker">{title}</div>
+  78:           {help ? <p className="ui-help">{help}</p> : null}
+  79:         </div>
+  80: 
+  81:         <span className="ui-pill">
+  82:           {Math.abs(to_number(variance)) < 1 ? "Reconciled" : "Review"}
+  83:         </span>
+  84:       </div>
+  85: 
+  86:       <div className="labour-summary-table">
+  87:         <div className="labour-summary-table-row">
+  88:           <div className="labour-summary-table-label">{benchmark_label}</div>
+  89:           <div className="labour-summary-table-value">
+  90:             {format_currency(benchmark)}
+  91:           </div>
+  92:         </div>
+  93: 
+  94:         <div className="labour-summary-table-row">
+  95:           <div className="labour-summary-table-label">{module_label}</div>
+  96:           <div className="labour-summary-table-value">
+  97:             {format_currency(module_total)}
+  98:           </div>
+  99:         </div>
+ 100: 
+ 101:         <div className="labour-summary-table-row">
+ 102:           <div className="labour-summary-table-label">Variance</div>
+ 103:           <div className="labour-summary-table-value">
+ 104:             {format_currency(variance)}
+ 105:           </div>
+ 106:         </div>
+ 107:       </div>
+ 108:     </div>
+ 109:   );
+ 110: }
+ 111: 
+ 112: function OtherIncomeBridgeRow({ other_income = 0 }) {
+ 113:   const other_income_amount = to_number(other_income);
+ 114: 
+ 115:   return (
+ 116:     <div className="ui-panel ui-stack-sm">
+ 117:       <div className="ui-row-between">
+ 118:         <div>
+ 119:           <div className="ui-kicker">Other income treatment</div>
+ 120:           <p className="ui-help">
+ 121:             Traditional P&amp;L net profit includes Other Income. Business
+ 122:             Summary excludes Other Income from the operating margin pool so the
+ 123:             recovery model is based on core trading performance.
+ 124:           </p>
+ 125:         </div>
+ 126: 
+ 127:         <span className="ui-pill">
+ 128:           {Math.abs(other_income_amount) < 1 ? "No adjustment" : "Bridge"}
+ 129:         </span>
+ 130:       </div>
+ 131: 
+ 132:       <div className="labour-summary-table">
+ 133:         <div className="labour-summary-table-row">
+ 134:           <div className="labour-summary-table-label">P&amp;L Other Income</div>
+ 135:           <div className="labour-summary-table-value">
+ 136:             {format_currency(other_income_amount)}
+ 137:           </div>
+ 138:         </div>
+ 139: 
+ 140:         <div className="labour-summary-table-row">
+ 141:           <div className="labour-summary-table-label">
+ 142:             Business Summary operating margin treatment
+ 143:           </div>
+ 144:           <div className="labour-summary-table-value">
+ 145:             {format_currency(0)}
+ 146:           </div>
+ 147:         </div>
+ 148: 
+ 149:         <div className="labour-summary-table-row">
+ 150:           <div className="labour-summary-table-label">Bridge impact</div>
+ 151:           <div className="labour-summary-table-value">
+ 152:             {format_currency(other_income_amount)}
+ 153:           </div>
+ 154:         </div>
+ 155:       </div>
+ 156:     </div>
+ 157:   );
+ 158: }
+ 159: 
+ 160: function BridgeProofRow({ label, value, is_total = false }) {
+ 161:   return (
+ 162:     <div
+ 163:       className={`labour-summary-table-row ${
+ 164:         is_total ? "border-t border-[var(--border-primary)] pt-3" : ""
+ 165:       }`}
+ 166:     >
+ 167:       <div className="labour-summary-table-label">{label}</div>
+ 168:       <div className="labour-summary-table-value">{format_currency(value)}</div>
+ 169:     </div>
+ 170:   );
+ 171: }
+ 172: 
+ 173: function BridgeReconciliationProof({
+ 174:   pnl_net_profit = 0,
+ 175:   labour_variance = 0,
+ 176:   asset_finance_variance = 0,
+ 177:   overhead_variance = 0,
+ 178:   other_income_treatment = 0,
+ 179:   qs_tools_operating_position = 0,
+ 180: }) {
+ 181:   return (
+ 182:     <div className="ui-panel ui-stack-sm">
+ 183:       <div>
+ 184:         <div className="ui-kicker">Reconciliation proof</div>
+ 185:         <p className="ui-help">
+ 186:           This confirms how traditional P&amp;L net profit bridges to the QS
+ 187:           Tools operating position. Cost-burden movements and Other Income
+ 188:           treatment are shown separately so income and expenses are not treated
+ 189:           as one category.
+ 190:         </p>
+ 191:       </div>
+ 192: 
+ 193:       <div className="labour-summary-table">
+ 194:         <BridgeProofRow
+ 195:           label="Traditional P&L Net Profit"
+ 196:           value={pnl_net_profit}
+ 197:         />
+ 198: 
+ 199:         <BridgeProofRow
+ 200:           label="Less labour variance"
+ 201:           value={-Math.abs(to_number(labour_variance))}
+ 202:         />
+ 203: 
+ 204:         <BridgeProofRow
+ 205:           label="Less asset finance variance"
+ 206:           value={-Math.abs(to_number(asset_finance_variance))}
+ 207:         />
+ 208: 
+ 209:         <BridgeProofRow
+ 210:           label="Less overhead variance"
+ 211:           value={-Math.abs(to_number(overhead_variance))}
+ 212:         />
+ 213: 
+ 214:         <BridgeProofRow
+ 215:           label="Less Other Income excluded"
+ 216:           value={-Math.abs(to_number(other_income_treatment))}
+ 217:         />
+ 218: 
+ 219:         <BridgeProofRow
+ 220:           label="QS Tools Operating Position"
+ 221:           value={qs_tools_operating_position}
+ 222:           is_total
+ 223:         />
+ 224:       </div>
+ 225:     </div>
+ 226:   );
+ 227: }
+ 228: 
+ 229: function OperationalRealityBridge({
+ 230:   labour_benchmark_total = 0,
+ 231:   total_people_cost_annual = 0,
+ 232: 
+ 233:   asset_finance_benchmark_total = 0,
+ 234:   total_asset_interest_annual = 0,
+ 235: 
+ 236:   general_overheads_benchmark_total = 0,
+ 237:   total_business_overheads = 0,
+ 238: 
+ 239:   other_income = 0,
+ 240:   pnl_net_profit = 0,
+ 241:   qs_tools_operating_position = 0,
+ 242: }) {
+ 243:   const labour_variance =
+ 244:     to_number(total_people_cost_annual) - to_number(labour_benchmark_total);
+ 245: 
+ 246:   const asset_finance_variance =
+ 247:     to_number(total_asset_interest_annual) -
+ 248:     to_number(asset_finance_benchmark_total);
+ 249: 
+ 250:   const adjusted_overheads_benchmark =
+ 251:     to_number(general_overheads_benchmark_total) -
+ 252:     to_number(asset_finance_benchmark_total);
+ 253: 
+ 254:   const overhead_variance =
+ 255:     to_number(total_business_overheads) - adjusted_overheads_benchmark;
+ 256: 
+ 257:   const operational_pressure_adjustment =
+ 258:     labour_variance + asset_finance_variance + overhead_variance;
+ 259: 
+ 260:   const other_income_treatment = to_number(other_income);
+ 261: 
+ 262:   const total_bridge_adjustment =
+ 263:     operational_pressure_adjustment + other_income_treatment;
+ 264: 
+ 265:   return (
+ 266:     <div className="ui-panel ui-stack">
+ 267:       <div>
+ 268:         <p className="ui-kicker">P&amp;L to Operational Reality Bridge</p>
+ 269: 
+ 270:         <h3 className="ui-card-title-sm text-[var(--text-primary)]">
+ 271:           Why this position differs from the P&amp;L benchmark
+ 272:         </h3>
+ 273: 
+ 274:         <p className="ui-help">
+ 275:           The P&amp;L shows the historical accounting position. QS Tools shows
+ 276:           the operating burden the business is currently carrying. This bridge
+ 277:           explains the difference before downstream recovery and outcome
+ 278:           decisions are trusted.
+ 279:         </p>
+ 280:       </div>
+ 281: 
+ 282:       <div className="ui-stack-sm">
+ 283:         <BridgeRow
+ 284:           title="Labour variance"
+ 285:           help="Labour variance is a review signal, not a conclusion. It may reflect current pay assumptions, staff mix, timing, classification differences, or actual labour movement."
+ 286:           benchmark={labour_benchmark_total}
+ 287:           module_total={total_people_cost_annual}
+ 288:           variance={labour_variance}
+ 289:           benchmark_label="P&L labour benchmark"
+ 290:           module_label="People Cost from Cost Summary"
+ 291:         />
+ 292: 
+ 293:         <BridgeRow
+ 294:           title="Asset finance variance"
+ 295:           help="This highlights asset finance / ownership cost that may not yet be fully visible in the P&L until interest, depreciation, or journal timing is complete."
+ 296:           benchmark={asset_finance_benchmark_total}
+ 297:           module_total={total_asset_interest_annual}
+ 298:           variance={asset_finance_variance}
+ 299:           benchmark_label="P&L interest marked as asset finance"
+ 300:           module_label="Assets finance / interest cost"
+ 301:         />
+ 302: 
+ 303:         <BridgeRow
+ 304:           title="General overheads reconciliation"
+ 305:           help="General Overheads is checked after asset finance interest is removed from the P&L overhead benchmark, because asset finance is reviewed separately against Assets."
+ 306:           benchmark={adjusted_overheads_benchmark}
+ 307:           module_total={total_business_overheads}
+ 308:           variance={overhead_variance}
+ 309:           benchmark_label="Adjusted P&L overhead benchmark"
+ 310:           module_label="Net General Overheads"
+ 311:         />
+ 312: 
+ 313:         <OtherIncomeBridgeRow other_income={other_income_treatment} />
+ 314:       </div>
+ 315: 
+ 316:       <div className="business-summary-macro-row total">
+ 317:         <div className="business-summary-macro-row-label">
+ 318:           <div className="business-summary-macro-row-title">
+ 319:             Total difference to P&amp;L net profit
+ 320:           </div>
+ 321:           <div className="business-summary-macro-row-help">
+ 322:             Cost-burden movements and Other Income treatment explain why the QS
+ 323:             Tools operating position differs from traditional P&amp;L net
+ 324:             profit.
+ 325:           </div>
+ 326:         </div>
+ 327: 
+ 328:         <div className="business-summary-macro-row-value">
+ 329:           {format_currency(total_bridge_adjustment)}
+ 330:         </div>
+ 331:       </div>
+ 332: 
+ 333:       <BridgeReconciliationProof
+ 334:         pnl_net_profit={pnl_net_profit}
+ 335:         labour_variance={labour_variance}
+ 336:         asset_finance_variance={asset_finance_variance}
+ 337:         overhead_variance={overhead_variance}
+ 338:         other_income_treatment={other_income_treatment}
+ 339:         qs_tools_operating_position={qs_tools_operating_position}
+ 340:       />
+ 341:     </div>
+ 342:   );
+ 343: }
+ 344: 
+ 345: export default function BusinessSummaryMacroPositionCard({
+ 346:   total_revenue = 0,
+ 347:   total_direct_costs = 0,
+ 348:   margin_pool = 0,
+ 349:   gross_margin_percent = 0,
+ 350:   total_cost_burden = 0,
+ 351:   net_position = 0,
+ 352:   pnl_net_profit = 0,
+ 353: 
+ 354:   total_people_cost_annual = 0,
+ 355:   total_asset_cost_annual = 0,
+ 356:   total_business_overheads = 0,
+ 357:   margin_after_labour = 0,
+ 358:   non_people_cost_burden = 0,
+ 359:   people_cost_per_recovery_hour = 0,
+ 360:   asset_cost_per_recovery_hour = 0,
+ 361:   business_overheads_per_recovery_hour = 0,
+ 362:   margin_after_labour_per_recovery_hour = 0,
+ 363:   non_people_cost_burden_per_recovery_hour = 0,
+ 364: 
+ 365:   labour_benchmark_total = 0,
+ 366:   asset_finance_benchmark_total = 0,
+ 367:   total_asset_interest_annual = 0,
+ 368:   general_overheads_benchmark_total = 0,
+ 369:   other_income = 0,
+ 370: 
+ 371:   direct_cost_category_totals = [],
+ 372:   cost_burden_breakdown = {
+ 373:     people: {},
+ 374:     assets: {},
+ 375:     business_overheads: {},
+ 376:   },
+ 377: }) {
+ 378:   const [active_breakdown, set_active_breakdown] = useState(null);
+ 379: 
+ 380:   const rows = [
+ 381:     {
+ 382:       id: "revenue",
+ 383:       title: "Revenue",
+ 384:       help: "Income before COGS / direct costs and operating cost burden.",
+ 385:       value: format_currency(total_revenue),
+ 386:     },
+ 387:     {
+ 388:       id: "direct_costs",
+ 389:       title: "Less COGS / direct costs",
+ 390:       help: "Materials, subcontract costs, hired plant, freight, tipping, consumables, and other direct costs.",
+ 391:       value: `-${format_currency(total_direct_costs)}`,
+ 392:       drilldown_key: "direct_costs",
+ 393:     },
+ 394:     {
+ 395:       id: "margin_pool",
+ 396:       title: "Gross Profit / Margin Pool",
+ 397:       help: `${format_percent(
+ 398:         gross_margin_percent
+ 399:       )} of revenue after COGS / direct costs. This must still cover people cost, assets, business overheads, and profit.`,
+ 400:       value: format_currency(margin_pool),
+ 401:     },
+ 402:     {
+ 403:       id: "people_cost",
+ 404:       title: "Less People Cost",
+ 405:       help: "Annual people cost from Cost Summary.",
+ 406:       value: `-${format_currency(total_people_cost_annual)}`,
+ 407:       drilldown_key: "people_cost",
+ 408:     },
+ 409:     {
+ 410:       id: "margin_after_labour",
+ 411:       title: "Margin after Labour",
+ 412:       help: "Gross Profit / Margin Pool minus People Cost. This shows whether the business is positive or negative before assets and overheads.",
+ 413:       value: format_currency(margin_after_labour),
+ 414:       total: true,
+ 415:     },
+ 416:     {
+ 417:       id: "asset_cost",
+ 418:       title: "Less Asset Cost",
+ 419:       help: "Annual asset cost from Cost Summary.",
+ 420:       value: `-${format_currency(total_asset_cost_annual)}`,
+ 421:       drilldown_key: "asset_cost",
+ 422:     },
+ 423:     {
+ 424:       id: "business_overheads",
+ 425:       title: "Less Business Overheads",
+ 426:       help: "Annual business overheads from Cost Summary.",
+ 427:       value: `-${format_currency(total_business_overheads)}`,
+ 428:       drilldown_key: "business_overheads",
+ 429:     },
+ 430:     {
+ 431:       id: "net_position",
+ 432:       title: "Net Position",
+ 433:       help: "Final position after Gross Profit / Margin Pool is reduced by People Cost, Asset Cost, and Business Overheads.",
+ 434:       value: format_currency(net_position),
+ 435:       total: true,
+ 436:     },
+ 437:   ];
+ 438: 
+ 439:   const values = {
+ 440:     total_revenue,
+ 441:     total_direct_costs,
+ 442:     margin_pool,
+ 443:     total_cost_burden,
+ 444:     net_position,
+ 445: 
+ 446:     total_people_cost_annual,
+ 447:     total_asset_cost_annual,
+ 448:     total_business_overheads,
+ 449:     margin_after_labour,
+ 450:     non_people_cost_burden,
+ 451:     people_cost_per_recovery_hour,
+ 452:     asset_cost_per_recovery_hour,
+ 453:     business_overheads_per_recovery_hour,
+ 454:     margin_after_labour_per_recovery_hour,
+ 455:     non_people_cost_burden_per_recovery_hour,
+ 456: 
+ 457:     direct_cost_category_totals,
+ 458:     cost_burden_breakdown,
+ 459:   };
+ 460: 
+ 461:   return (
+ 462:     <section className="business-summary-macro">
+ 463:       <div className="business-summary-macro-inner">
+ 464:         <div className="ui-stack">
+ 465:           <div>
+ 466:             <p className="ui-kicker">Macro position</p>
+ 467: 
+ 468:             <h2 className="ui-card-title-sm text-[var(--text-primary)]">
+ 469:               Where this position comes from
+ 470:             </h2>
+ 471: 
+ 472:             <p className="ui-help">
+ 473:               This shows the current business position before recovery strategy.
+ 474:               Gross Profit / Margin Pool is what remains after COGS / direct
+ 475:               costs. It must still cover People Cost, Asset Cost, Business
+ 476:               Overheads, and profit.
+ 477:             </p>
+ 478:           </div>
+ 479: 
+ 480:           <div className="business-summary-macro-grid">
+ 481:             {rows.map((row) => {
+ 482:               const is_active = active_breakdown === row.drilldown_key;
+ 483: 
+ 484:               return (
+ 485:                 <div key={row.id} className="ui-stack-sm">
+ 486:                   <MacroRow
+ 487:                     id={row.drilldown_key}
+ 488:                     title={row.title}
+ 489:                     help={row.help}
+ 490:                     value={row.value}
+ 491:                     total={row.total}
+ 492:                     active={is_active}
+ 493:                     onClick={
+ 494:                       row.drilldown_key ? set_active_breakdown : undefined
+ 495:                     }
+ 496:                   />
+ 497: 
+ 498:                   {is_active ? (
+ 499:                     <div className="business-summary-macro-drilldown">
+ 500:                       <BusinessSummarySourceBreakdown
+ 501:                         active_breakdown={active_breakdown}
+ 502:                         values={values}
+ 503:                       />
+ 504:                     </div>
+ 505:                   ) : null}
+ 506:                 </div>
+ 507:               );
+ 508:             })}
+ 509:           </div>
+ 510: 
+ 511:           <OperationalRealityBridge
+ 512:             labour_benchmark_total={labour_benchmark_total}
+ 513:             total_people_cost_annual={total_people_cost_annual}
+ 514:             asset_finance_benchmark_total={asset_finance_benchmark_total}
+ 515:             total_asset_interest_annual={total_asset_interest_annual}
+ 516:             general_overheads_benchmark_total={
+ 517:               general_overheads_benchmark_total
+ 518:             }
+ 519:             total_business_overheads={total_business_overheads}
+ 520:             other_income={other_income}
+ 521:             pnl_net_profit={pnl_net_profit}
+ 522:             qs_tools_operating_position={net_position}
+ 523:           />
+ 524:         </div>
+ 525:       </div>
+ 526:     </section>
+ 527:   );
+ 528: }
+===== FILE: components\general-overheads\GeneralOverheadSummaryCard.jsx =====
+   1: "use client";
+   2: 
+   3: import CollapsibleSection from "@/components/common/CollapsibleSection";
+   4: 
+   5: function format_currency(value) {
+   6:   return new Intl.NumberFormat("en-NZ", {
+   7:     style: "currency",
+   8:     currency: "NZD",
+   9:     maximumFractionDigits: 0,
+  10:   }).format(Number(value) || 0);
+  11: }
+  12: 
+  13: function get_interest_treatment_label(row) {
+  14:   switch (row?.interest_treatment) {
+  15:     case "contains_asset_finance_interest":
+  16:       return "Contains asset finance interest";
+  17:     case "no_asset_finance_interest":
+  18:       return "Does not contain asset finance interest";
+  19:     case "not_reviewed":
+  20:       return "Interest not reviewed";
+  21:     default:
+  22:       return "";
+  23:   }
+  24: }
+  25: 
+  26: function SummaryRow({ row }) {
+  27:   const interest_treatment_label = get_interest_treatment_label(row);
+  28: 
+  29:   return (
+  30:     <div className="labour-summary-table-row">
+  31:       <div className="labour-summary-table-label">
+  32:         <div>{row.label}</div>
+  33: 
+  34:         {row.is_synced_from_pnl ? (
+  35:           <div className="ui-help">Synced from P&amp;L</div>
+  36:         ) : null}
+  37: 
+  38:         {interest_treatment_label ? (
+  39:           <div className="ui-help">{interest_treatment_label}</div>
+  40:         ) : null}
+  41: 
+  42:         {row.system_allocation_label ? (
+  43:           <div className="ui-help">
+  44:             System allocation: {row.system_allocation_label}
+  45:           </div>
+  46:         ) : null}
+  47:       </div>
+  48: 
+  49:       <div className="labour-summary-table-value">{row.amount_display}</div>
+  50:     </div>
+  51:   );
+  52: }
+  53: 
+  54: function format_pool_status(status) {
+  55:   const labels = {
+  56:     unallocated: "Unallocated",
+  57:     partially_allocated: "Partially allocated",
+  58:     fully_allocated: "Fully allocated",
+  59:     over_allocated: "Over allocated",
+  60:   };
+  61: 
+  62:   return labels[status] || "Unallocated";
+  63: }
+  64: 
+  65: function AllocationPoolSummary({ group }) {
+  66:   return (
+  67:     <div className="ui-readonly">
+  68:       <div className="grid grid-cols-1 gap-2">
+  69:         <div>
+  70:           <span className="ui-label">P&amp;L source total</span>
+  71:           <div className="mt-1 text-sm text-[var(--text-primary)]">
+  72:             {format_currency(group.source_total_amount)}
+  73:           </div>
+  74:         </div>
+  75: 
+  76:         <div>
+  77:           <span className="ui-label">Allocation pool used</span>
+  78:           <div className="mt-1 text-sm text-[var(--text-primary)]">
+  79:             {format_currency(group.allocation_pool_used)}
+  80:           </div>
+  81:         </div>
+  82: 
+  83:         <div>
+  84:           <span className="ui-label">Remaining as general overhead</span>
+  85:           <div className="mt-1 text-sm text-[var(--text-primary)]">
+  86:             {format_currency(group.allocation_pool_remaining)}
+  87:           </div>
+  88:         </div>
+  89: 
+  90:         <div>
+  91:           <span className="ui-label">Status</span>
+  92:           <div className="mt-1 text-sm text-[var(--text-primary)]">
+  93:             {format_pool_status(group.allocation_pool_status)}
+  94:           </div>
+  95:         </div>
+  96:       </div>
+  97:     </div>
+  98:   );
+  99: }
+ 100: 
+ 101: export default function GeneralOverheadSummaryCard({
+ 102:   total_general_overheads,
+ 103:   total_general_overheads_display,
+ 104:   grouped_overhead_rows = [],
+ 105:   output_contract,
+ 106: }) {
+ 107:   return (
+ 108:     <div className="ui-card ui-stack">
+ 109:       <div className="ui-stack-sm">
+ 110:         <div className="ui-kicker">Summary</div>
+ 111:         <div className="ui-card-title">General Overheads Summary</div>
+ 112: 
+ 113:         <p className="ui-help">
+ 114:           Locked downstream total for Cost Summary consumption.
+ 115:         </p>
+ 116: 
+ 117:         <p className="ui-help">
+ 118:           Asset finance / interest lines are excluded from this total when
+ 119:           selected. They are reviewed separately against the Assets module
+ 120:           finance / interest cost in Model Readiness.
+ 121:         </p>
+ 122:       </div>
+ 123: 
+ 124:       <div className="ui-panel ui-stack-sm">
+ 125:         <div className="ui-label">Net General Overheads</div>
+ 126:         <div className="ui-display">{total_general_overheads_display}</div>
+ 127: 
+ 128:         <p className="ui-help">
+ 129:           This is the net overhead total sent to Cost Summary after any selected
+ 130:           asset finance / interest amount has been removed from General
+ 131:           Overheads.
+ 132:         </p>
+ 133:       </div>
+ 134: 
+ 135:       <div className="ui-stack-sm">
+ 136:         {grouped_overhead_rows.map((group) => (
+ 137:           <CollapsibleSection
+ 138:             key={group.category_key}
+ 139:             title={group.category_label}
+ 140:             summary={group.total_amount_display}
+ 141:             defaultOpen={false}
+ 142:           >
+ 143:             <div className="ui-panel ui-stack-sm">
+ 144:               <AllocationPoolSummary group={group} />
+ 145: 
+ 146:               {group.rows.length === 0 ? (
+ 147:                 <div className="ui-help">No items in this category yet.</div>
+ 148:               ) : (
+ 149:                 <div className="labour-summary-table">
+ 150:                   {group.rows.map((row) => (
+ 151:                     <SummaryRow key={row.key} row={row} />
+ 152:                   ))}
+ 153:                 </div>
+ 154:               )}
+ 155:             </div>
+ 156:           </CollapsibleSection>
+ 157:         ))}
+ 158:       </div>
+ 159: 
+ 160:       <div className="ui-panel ui-stack-sm">
+ 161:         <div className="ui-label">Output Contract</div>
+ 162: 
+ 163:         <div className="ui-readonly">
+ 164:           total_general_overheads = {format_currency(total_general_overheads)}
+ 165:         </div>
+ 166: 
+ 167:         <p className="ui-help">
+ 168:           This contract value is the net General Overheads amount consumed
+ 169:           downstream.
+ 170:         </p>
+ 171: 
+ 172:         {output_contract?.overhead_rows ? (
+ 173:           <div className="ui-help">
+ 174:             {output_contract.overhead_rows.length} overhead rows included in the
+ 175:             current output.
+ 176:           </div>
+ 177:         ) : null}
+ 178: 
+ 179:         {output_contract?.asset_overhead_pools ? (
+ 180:           <div className="ui-stack-sm">
+ 181:             <div className="ui-label">Asset overhead pools</div>
+ 182: 
+ 183:             {Object.entries(output_contract.asset_overhead_pools).map(
+ 184:               ([pool_key, pool]) => (
+ 185:                 <div key={pool_key} className="ui-readonly">
+ 186:                   <div className="ui-row-between">
+ 187:                     <span>{pool.label}</span>
+ 188:                     <span>{format_currency(pool.amount)}</span>
+ 189:                   </div>
+ 190:                 </div>
+ 191:               ),
+ 192:             )}
+ 193:           </div>
+ 194:         ) : null}
+ 195:       </div>
+ 196:     </div>
+ 197:   );
+ 198: }
+===== FILE: components\model-readiness\ModelReadinessVarianceBreakdown.jsx =====
+   1: function to_number(value) {
+   2:   const number = Number(value);
+   3:   return Number.isFinite(number) ? number : 0;
+   4: }
+   5: 
+   6: function format_currency(value) {
+   7:   return new Intl.NumberFormat("en-NZ", {
+   8:     style: "currency",
+   9:     currency: "NZD",
+  10:     minimumFractionDigits: 0,
+  11:     maximumFractionDigits: 0,
+  12:   }).format(to_number(value));
+  13: }
+  14: 
+  15: function format_percent(value) {
+  16:   return `${to_number(value).toFixed(1)}%`;
+  17: }
+  18: 
+  19: function get_variance_percent(variance, benchmark) {
+  20:   const base = Math.abs(to_number(benchmark));
+  21: 
+  22:   if (base <= 0) {
+  23:     return Math.abs(to_number(variance)) > 0 ? 100 : 0;
+  24:   }
+  25: 
+  26:   return (Math.abs(to_number(variance)) / base) * 100;
+  27: }
+  28: 
+  29: function get_variance_level(variance, benchmark, override_title = "") {
+  30:   const variance_amount = Math.abs(to_number(variance));
+  31:   const variance_percent = get_variance_percent(variance, benchmark);
+  32: 
+  33:   if (override_title) {
+  34:     return {
+  35:       title: override_title,
+  36:       pill: variance_amount < 1 || variance_percent < 1 ? "PASS" : "REVIEW",
+  37:       severity: variance_amount < 1 || variance_percent < 1 ? "clear" : "minor",
+  38:     };
+  39:   }
+  40: 
+  41:   if (variance_amount < 1 || variance_percent < 1) {
+  42:     return {
+  43:       title: "Reconciled",
+  44:       pill: "PASS",
+  45:       severity: "clear",
+  46:     };
+  47:   }
+  48: 
+  49:   if (variance_percent <= 5) {
+  50:     return {
+  51:       title: "Minor variance detected",
+  52:       pill: "REVIEW",
+  53:       severity: "minor",
+  54:     };
+  55:   }
+  56: 
+  57:   return {
+  58:     title: "Material variance detected",
+  59:     pill: "REVIEW",
+  60:     severity: "material",
+  61:   };
+  62: }
+  63: 
+  64: function get_direction_text(variance) {
+  65:   const amount = to_number(variance);
+  66: 
+  67:   if (amount > 0) {
+  68:     return "The module total is higher than the P&L benchmark.";
+  69:   }
+  70: 
+  71:   if (amount < 0) {
+  72:     return "The module total is lower than the P&L benchmark.";
+  73:   }
+  74: 
+  75:   return "The module total reconciles to the P&L benchmark.";
+  76: }
+  77: 
+  78: function DiagnosticRow({ label, value }) {
+  79:   return (
+  80:     <div className="flex items-start justify-between gap-4 border-b border-[var(--border-primary)] py-3 last:border-b-0">
+  81:       <span className="ui-label">{label}</span>
+  82:       <span className="max-w-[60%] break-words text-right text-sm font-semibold text-[var(--text-primary)]">
+  83:         {format_currency(value)}
+  84:       </span>
+  85:     </div>
+  86:   );
+  87: }
+  88: 
+  89: function VariancePercentRow({ value }) {
+  90:   return (
+  91:     <div className="flex items-start justify-between gap-4 border-b border-[var(--border-primary)] py-3 last:border-b-0">
+  92:       <span className="ui-label">Variance %</span>
+  93:       <span className="max-w-[60%] break-words text-right text-sm font-semibold text-[var(--text-primary)]">
+  94:         {format_percent(value)}
+  95:       </span>
+  96:     </div>
+  97:   );
+  98: }
+  99: 
+ 100: function VarianceBlock({
+ 101:   label,
+ 102:   pnl,
+ 103:   module_total,
+ 104:   variance,
+ 105:   note,
+ 106:   show_percent = true,
+ 107:   benchmark_label = "P&L benchmark",
+ 108:   module_label = "Module total",
+ 109:   override_title = "",
+ 110:   extra_rows = [],
+ 111:   direction_override = "",
+ 112: }) {
+ 113:   const variance_percent = get_variance_percent(variance, pnl);
+ 114:   const variance_level = get_variance_level(variance, pnl, override_title);
+ 115:   const direction_text = direction_override || get_direction_text(variance);
+ 116: 
+ 117:   return (
+ 118:     <div className="ui-panel ui-stack-sm">
+ 119:       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+ 120:         <div>
+ 121:           <div className="ui-kicker">{label}</div>
+ 122:           <h3 className="ui-card-title-sm">{variance_level.title}</h3>
+ 123:         </div>
+ 124: 
+ 125:         <span className="ui-pill">{variance_level.pill}</span>
+ 126:       </div>
+ 127: 
+ 128:       <div className="ui-panel">
+ 129:         <DiagnosticRow label={benchmark_label} value={pnl} />
+ 130: 
+ 131:         {extra_rows.map((row) => (
+ 132:           <DiagnosticRow
+ 133:             key={row.label}
+ 134:             label={row.label}
+ 135:             value={row.value}
+ 136:           />
+ 137:         ))}
+ 138: 
+ 139:         <DiagnosticRow label={module_label} value={module_total} />
+ 140:         <DiagnosticRow label="Variance" value={variance} />
+ 141: 
+ 142:         {show_percent ? <VariancePercentRow value={variance_percent} /> : null}
+ 143:       </div>
+ 144: 
+ 145:       <div className="ui-stack-sm">
+ 146:         <p className="ui-help">{direction_text}</p>
+ 147:         <p className="ui-help">{note}</p>
+ 148:       </div>
+ 149:     </div>
+ 150:   );
+ 151: }
+ 152: 
+ 153: export default function ModelReadinessVarianceBreakdown({ status = {} }) {
+ 154:   const normalised = status.normalised_reconciliation_inputs ?? {};
+ 155: 
+ 156:   const pnl_labour = to_number(
+ 157:     status.labour_benchmark_total ?? normalised.labour_benchmark_total,
+ 158:   );
+ 159:   const module_labour = to_number(
+ 160:     status.total_labour_cost_annual ?? normalised.total_labour_cost_annual,
+ 161:   );
+ 162: 
+ 163:   const pnl_asset_finance = to_number(
+ 164:     status.asset_finance_benchmark_total ??
+ 165:       normalised.asset_finance_benchmark_total,
+ 166:   );
+ 167:   const module_asset_finance = to_number(
+ 168:     status.total_asset_interest_annual ??
+ 169:       normalised.total_asset_interest_annual,
+ 170:   );
+ 171: 
+ 172:   const pnl_asset_operating = to_number(
+ 173:     status.assets_benchmark_total ?? normalised.assets_benchmark_total,
+ 174:   );
+ 175: 
+ 176:   const pnl_overheads_gross = to_number(
+ 177:     status.general_overheads_benchmark_total ??
+ 178:       normalised.general_overheads_benchmark_total,
+ 179:   );
+ 180: 
+ 181:   const asset_finance_exclusion = pnl_asset_finance;
+ 182: 
+ 183:   const pnl_overheads_adjusted =
+ 184:     pnl_overheads_gross - asset_finance_exclusion;
+ 185: 
+ 186:   const module_overheads = to_number(
+ 187:     status.total_general_overheads ?? normalised.total_general_overheads,
+ 188:   );
+ 189: 
+ 190:   const overhead_variance = module_overheads - pnl_overheads_adjusted;
+ 191: 
+ 192:   const overhead_is_reconciled_after_exclusion =
+ 193:     Math.abs(overhead_variance) < 1;
+ 194: 
+ 195:   const pnl_total =
+ 196:     to_number(status.setup_module_benchmark_total) ||
+ 197:     to_number(normalised.setup_module_benchmark_total) ||
+ 198:     pnl_labour + pnl_asset_operating + pnl_overheads_gross ||
+ 199:     to_number(status.total_business_costs);
+ 200: 
+ 201:   const module_total =
+ 202:     to_number(status.module_total_business_costs) ||
+ 203:     module_labour +
+ 204:       to_number(
+ 205:         status.total_asset_cost_annual ?? normalised.total_asset_cost_annual,
+ 206:       ) +
+ 207:       module_overheads;
+ 208: 
+ 209:   const total_variance = module_total - pnl_total;
+ 210: 
+ 211:   const rows = [
+ 212:     {
+ 213:       label: "Total Business Cost",
+ 214:       pnl: pnl_total,
+ 215:       module_total,
+ 216:       variance: total_variance,
+ 217:       benchmark_label: "P&L benchmark",
+ 218:       module_label: "Module total",
+ 219:       note:
+ 220:         "This is the overall trust check. Model Readiness is blocked when the total QS Tools module cost does not reconcile to the P&L benchmark and the variance has not been explained.",
+ 221:     },
+ 222:     {
+ 223:       label: "Labour",
+ 224:       pnl: pnl_labour,
+ 225:       module_total: module_labour,
+ 226:       variance: module_labour - pnl_labour,
+ 227:       benchmark_label: "P&L labour benchmark",
+ 228:       module_label: "Labour module total",
+ 229:       note:
+ 230:         "Labour variance is a review signal, not a conclusion. A small variance may reflect timing, current pay assumptions, staff mix, rounding, or P&L classification differences. A larger variance may point to current staffing changes, under-classified labour costs, additional labour burden, or period mismatch. It should not be treated as overtime unless actual paid hours and standard hours confirm it.",
+ 231:     },
+ 232:     {
+ 233:       label: "Asset Finance",
+ 234:       pnl: pnl_asset_finance,
+ 235:       module_total: module_asset_finance,
+ 236:       variance: module_asset_finance - pnl_asset_finance,
+ 237:       benchmark_label: "P&L interest marked as asset finance",
+ 238:       module_label: "Assets finance / interest cost",
+ 239:       note:
+ 240:         "This compares P&L interest marked as asset finance against the Assets module finance / interest cost. Broader P&L asset/equipment lines such as repairs, registrations, licences, and vehicle expenses are classification review items, not the direct finance benchmark.",
+ 241:     },
+ 242:     {
+ 243:       label: "General Overheads",
+ 244:       pnl: pnl_overheads_adjusted,
+ 245:       module_total: module_overheads,
+ 246:       variance: overhead_variance,
+ 247:       benchmark_label: "Adjusted P&L overhead benchmark",
+ 248:       module_label: "General Overheads module total",
+ 249:       override_title: overhead_is_reconciled_after_exclusion
+ 250:         ? "Reconciled after asset finance exclusion"
+ 251:         : "",
+ 252:       direction_override: overhead_is_reconciled_after_exclusion
+ 253:         ? "General Overheads reconciles once asset finance interest is removed from the P&L overhead benchmark."
+ 254:         : "",
+ 255:       extra_rows: [
+ 256:         {
+ 257:           label: "Gross P&L overhead benchmark",
+ 258:           value: pnl_overheads_gross,
+ 259:         },
+ 260:         {
+ 261:           label: "Less asset finance interest",
+ 262:           value: -asset_finance_exclusion,
+ 263:         },
+ 264:       ],
+ 265:       note:
+ 266:         "General Overheads should reconcile to the adjusted P&L overhead benchmark after asset finance interest has been removed. Asset finance is reviewed separately against the Assets module finance / interest cost.",
+ 267:     },
+ 268:   ];
+ 269: 
+ 270:   return (
+ 271:     <section className="ui-section">
+ 272:       <div className="ui-panel ui-stack">
+ 273:         <div>
+ 274:           <div className="ui-kicker">Variance Breakdown</div>
+ 275:           <h2 className="ui-display">What needs attention</h2>
+ 276:           <p className="ui-help">
+ 277:             This compares the P&amp;L benchmark against the live QS Tools module
+ 278:             totals. Model Readiness is blocked when material variance is not
+ 279:             explained. Variance is a diagnostic signal, not an automatic
+ 280:             conclusion.
+ 281:           </p>
+ 282:         </div>
+ 283: 
+ 284:         <div className="ui-stack-sm">
+ 285:           {rows.map((row) => (
+ 286:             <VarianceBlock
+ 287:               key={row.label}
+ 288:               label={row.label}
+ 289:               pnl={row.pnl}
+ 290:               module_total={row.module_total}
+ 291:               variance={row.variance}
+ 292:               benchmark_label={row.benchmark_label}
+ 293:               module_label={row.module_label}
+ 294:               note={row.note}
+ 295:               override_title={row.override_title}
+ 296:               extra_rows={row.extra_rows}
+ 297:               direction_override={row.direction_override}
+ 298:             />
+ 299:           ))}
+ 300:         </div>
+ 301: 
+ 302:         {pnl_asset_operating > 0 ? (
+ 303:           <div className="ui-panel ui-stack-sm">
+ 304:             <div className="ui-kicker">Asset operating classification signal</div>
+ 305:             <p className="ui-help">
+ 306:               P&amp;L asset/equipment operating benchmark:{" "}
+ 307:               <strong>{format_currency(pnl_asset_operating)}</strong>
+ 308:             </p>
+ 309:             <p className="ui-help">
+ 310:               This is retained as diagnostic evidence only. It should not be
+ 311:               compared directly against asset finance interest. Review these
+ 312:               lines separately for repairs, registrations, licences, vehicle
+ 313:               expenses, consumables, or other operating classifications.
+ 314:             </p>
+ 315:           </div>
+ 316:         ) : null}
+ 317:       </div>
+ 318:     </section>
+ 319:   );
+ 320: }
+===== FILE: lib\calculation-trace\pilot-map\traceNodes.js =====
+   1: // Mirra v5.0 - Calculation Trace Pilot Map
+   2: // Generated from S03_CALCULATION_TRACE_PILOT_LINEAGE_MAP_v5.0.txt
+   3: // Read-only supporting data. Do not calculate from this file.
+   4: 
+   5: export const traceNodes = [
+   6:   {
+   7:     node_id: "business_summary.required_recovery_per_driver",
+   8:     module_name: "business-summary",
+   9:     variable_name: "required_recovery_per_driver",
+  10:     display_label: "Required Recovery Per Driver",
+  11:     value_source: "output_contract",
+  12:     formula_text: "required_recovery_per_driver = total_cost_burden / activity_driver_value",
+  13:     is_root_input: false,
+  14:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  15:     last_verified_against: "v5.0 pilot draft",
+  16:     source_file: "lib/calculations/businessSummaryCalculations.js",
+  17:     implementation_status: "verified_in_brief",
+  18:     notes: "",
+  19:   },
+  20:   {
+  21:     node_id: "business_summary.total_cost_burden",
+  22:     module_name: "business-summary",
+  23:     variable_name: "total_cost_burden",
+  24:     display_label: "Total Cost Burden",
+  25:     value_source: "output_contract",
+  26:     formula_text: "Business Summary receives total_cost_burden from Cost Summary; Cost Summary owns cost burden aggregation",
+  27:     is_root_input: false,
+  28:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  29:     last_verified_against: "v5.0 pilot draft",
+  30:     source_file: "lib/calculations/businessSummaryCalculations.js",
+  31:     implementation_status: "verified_in_brief",
+  32:     notes: "",
+  33:   },
+  34:   {
+  35:     node_id: "business_summary.activity_driver_value",
+  36:     module_name: "business-summary",
+  37:     variable_name: "activity_driver_value",
+  38:     display_label: "Activity Driver Value",
+  39:     value_source: "output_contract",
+  40:     formula_text: "If business_type = labour_based, activity_driver_value = total_productive_output; if business_type = product_based, activity_driver_value = total_derived_units_annual or units_sold_annual",
+  41:     is_root_input: false,
+  42:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  43:     last_verified_against: "v5.0 pilot draft",
+  44:     source_file: "lib/calculations/businessSummaryCalculations.js",
+  45:     implementation_status: "verified_in_brief",
+  46:     notes: "",
+  47:   },
+  48:   {
+  49:     node_id: "business_summary.total_productive_output",
+  50:     module_name: "business-summary",
+  51:     variable_name: "total_productive_output",
+  52:     display_label: "Total Productive Output",
+  53:     value_source: "output_contract",
+  54:     formula_text: "Business Summary consumes total_productive_output from Cost Summary; labour-based activity_driver_value = total_productive_output",
+  55:     is_root_input: false,
+  56:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  57:     last_verified_against: "v5.0 pilot draft",
+  58:     source_file: null,
+  59:     implementation_status: "verified_in_brief",
+  60:     notes: "",
+  61:   },
+  62:   {
+  63:     node_id: "business_summary.total_derived_units_annual",
+  64:     module_name: "business-summary",
+  65:     variable_name: "total_derived_units_annual",
+  66:     display_label: "Total Derived Units Annual",
+  67:     value_source: "output_contract",
+  68:     formula_text: "Business Summary consumes total_derived_units_annual from Revenue / COGS; product-based activity_driver_value = total_derived_units_annual or units_sold_annual",
+  69:     is_root_input: false,
+  70:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  71:     last_verified_against: "v5.0 pilot draft",
+  72:     source_file: null,
+  73:     implementation_status: "verified_in_brief",
+  74:     notes: "",
+  75:   },
+  76:   {
+  77:     node_id: "business_summary.units_sold_annual",
+  78:     module_name: "business-summary",
+  79:     variable_name: "units_sold_annual",
+  80:     display_label: "Units Sold Annual",
+  81:     value_source: "output_contract",
+  82:     formula_text: "Accepted Business Summary output contract field; product-based activity_driver_value may use units_sold_annual where total_derived_units_annual is not the selected annual unit driver",
+  83:     is_root_input: false,
+  84:     brief_reference: "14_MIRRA_BUSINESS_SUMMARY_v4.0_LOCKED.txt",
+  85:     last_verified_against: "v5.0 pilot draft",
+  86:     source_file: null,
+  87:     implementation_status: "verified_in_brief",
+  88:     notes: "",
+  89:   },
+  90:   {
+  91:     node_id: "revenue_cogs.unit_driver_rows",
+  92:     module_name: "revenue-cogs",
+  93:     variable_name: "unit_driver_rows",
+  94:     display_label: "Revenue / COGS Unit Driver Rows",
+  95:     value_source: "raw_source_import",
+  96:     formula_text: "Product/unit mode root setup rows; each row includes unit_label, unit_type, annual_revenue, average_sale_rate_per_unit, estimated_units_annual, derived_units_annual, annual_margin_pool, and margin_per_unit. estimated_units_annual may be user-entered; derived_units_annual may be calculated from revenue / average sale rate. Do not invent annual units.",
+  97:     is_root_input: true,
+  98:     brief_reference: "13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt",
+  99:     last_verified_against: "v5.0 pilot draft",
+ 100:     source_file: null,
+ 101:     implementation_status: "verified_in_brief",
+ 102:     notes: "",
+ 103:   },
+ 104:   {
+ 105:     node_id: "revenue_cogs.total_derived_units_annual",
+ 106:     module_name: "revenue-cogs",
+ 107:     variable_name: "total_derived_units_annual",
+ 108:     display_label: "Revenue / COGS Total Derived Units Annual",
+ 109:     value_source: "output_contract",
+ 110:     formula_text: "total_derived_units_annual = sum derived_units_annual from unit_driver_rows where product/unit mode requires trusted unit recovery",
+ 111:     is_root_input: false,
+ 112:     brief_reference: "13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt",
+ 113:     last_verified_against: "v5.0 pilot draft",
+ 114:     source_file: null,
+ 115:     implementation_status: "verified_in_brief",
+ 116:     notes: "",
+ 117:   },
+ 118:   {
+ 119:     node_id: "revenue_cogs.units_sold_annual",
+ 120:     module_name: "revenue-cogs",
+ 121:     variable_name: "units_sold_annual",
+ 122:     display_label: "Revenue / COGS Units Sold Annual",
+ 123:     value_source: "raw_source_import",
+ 124:     formula_text: "Legacy compatibility product/unit annual unit field; preferred v4.0 fields are unit_driver_rows and total_derived_units_annual. If both exist, they must not diverge silently.",
+ 125:     is_root_input: true,
+ 126:     brief_reference: "13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt",
+ 127:     last_verified_against: "v5.0 pilot draft",
+ 128:     source_file: null,
+ 129:     implementation_status: "verified_in_brief",
+ 130:     notes: "",
+ 131:   },
+ 132:   {
+ 133:     node_id: "cost_summary.total_cost_burden",
+ 134:     module_name: "cost-summary",
+ 135:     variable_name: "total_cost_burden",
+ 136:     display_label: "Total Cost Burden",
+ 137:     value_source: "output_contract",
+ 138:     formula_text: "total_cost_burden = total_people_cost_annual + total_asset_cost_annual + total_business_overheads",
+ 139:     is_root_input: false,
+ 140:     brief_reference: "06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt",
+ 141:     last_verified_against: "v5.0 pilot draft",
+ 142:     source_file: "lib/calculations/costSummaryCalculations.js",
+ 143:     implementation_status: "verified_in_brief",
+ 144:     notes: "",
+ 145:   },
+ 146:   {
+ 147:     node_id: "cost_summary.total_people_cost_annual",
+ 148:     module_name: "cost-summary",
+ 149:     variable_name: "total_people_cost_annual",
+ 150:     display_label: "Total People Cost Annual",
+ 151:     value_source: "output_contract",
+ 152:     formula_text: "Labour source output consumed by Cost Summary",
+ 153:     is_root_input: false,
+ 154:     brief_reference: "06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt",
+ 155:     last_verified_against: "v5.0 pilot draft",
+ 156:     source_file: "lib/calculations/costSummaryCalculations.js",
+ 157:     implementation_status: "verified_in_brief",
+ 158:     notes: "",
+ 159:   },
+ 160:   {
+ 161:     node_id: "cost_summary.total_asset_cost_annual",
+ 162:     module_name: "cost-summary",
+ 163:     variable_name: "total_asset_cost_annual",
+ 164:     display_label: "Total Asset Cost Annual",
+ 165:     value_source: "output_contract",
+ 166:     formula_text: "Assets source output consumed by Cost Summary",
+ 167:     is_root_input: false,
+ 168:     brief_reference: "06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt",
+ 169:     last_verified_against: "v5.0 pilot draft",
+ 170:     source_file: "lib/calculations/costSummaryCalculations.js",
+ 171:     implementation_status: "verified_in_brief",
+ 172:     notes: "",
+ 173:   },
+ 174:   {
+ 175:     node_id: "cost_summary.total_business_overheads",
+ 176:     module_name: "cost-summary",
+ 177:     variable_name: "total_business_overheads",
+ 178:     display_label: "Total Business Overheads",
+ 179:     value_source: "output_contract",
+ 180:     formula_text: "General Overheads source output consumed by Cost Summary",
+ 181:     is_root_input: false,
+ 182:     brief_reference: "06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt",
+ 183:     last_verified_against: "v5.0 pilot draft",
+ 184:     source_file: "lib/calculations/costSummaryCalculations.js",
+ 185:     implementation_status: "verified_in_brief",
+ 186:     notes: "",
+ 187:   },
+ 188:   {
+ 189:     node_id: "cost_summary.total_productive_output",
+ 190:     module_name: "cost-summary",
+ 191:     variable_name: "total_productive_output",
+ 192:     display_label: "Total Productive Output",
+ 193:     value_source: "output_contract",
+ 194:     formula_text: "Cost Summary consumes total_productive_output from Labour and passes it downstream; Cost Summary does not own product/unit output",
+ 195:     is_root_input: false,
+ 196:     brief_reference: "06_MIRRA_COST_SUMMARY_v4.0_LOCKED.txt",
+ 197:     last_verified_against: "v5.0 pilot draft",
+ 198:     source_file: null,
+ 199:     implementation_status: "verified_in_brief",
+ 200:     notes: "",
+ 201:   },
+ 202:   {
+ 203:     node_id: "labour.total_people_cost_annual",
+ 204:     module_name: "labour",
+ 205:     variable_name: "total_people_cost_annual",
+ 206:     display_label: "Total People Cost Annual",
+ 207:     value_source: "output_contract",
+ 208:     formula_text: "total_people_cost_annual = total_labour_cost_annual",
+ 209:     is_root_input: false,
+ 210:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 211:     last_verified_against: "v5.0 pilot draft",
+ 212:     source_file: "lib/selectors/labour/labourOutputContractSelectors.js",
+ 213:     implementation_status: "verified_in_brief",
+ 214:     notes: "",
+ 215:   },
+ 216:   {
+ 217:     node_id: "labour.total_productive_output",
+ 218:     module_name: "labour",
+ 219:     variable_name: "total_productive_output",
+ 220:     display_label: "Total Productive Output",
+ 221:     value_source: "output_contract",
+ 222:     formula_text: "Labour source output for total productive labour hours / productive output consumed by Cost Summary and Business Summary",
+ 223:     is_root_input: false,
+ 224:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 225:     last_verified_against: "v5.0 pilot draft",
+ 226:     source_file: null,
+ 227:     implementation_status: "verified_in_brief",
+ 228:     notes: "",
+ 229:   },
+ 230:   {
+ 231:     node_id: "labour.total_labour_cost_annual",
+ 232:     module_name: "labour",
+ 233:     variable_name: "total_labour_cost_annual",
+ 234:     display_label: "Total Labour Cost Annual",
+ 235:     value_source: "output_contract",
+ 236:     formula_text: "total_labour_cost_annual = sum annual_labour_cost for active staff",
+ 237:     is_root_input: false,
+ 238:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 239:     last_verified_against: "v5.0 pilot draft",
+ 240:     source_file: null,
+ 241:     implementation_status: "verified_in_brief",
+ 242:     notes: "",
+ 243:   },
+ 244:   {
+ 245:     node_id: "labour.annual_labour_cost",
+ 246:     module_name: "labour",
+ 247:     variable_name: "annual_labour_cost",
+ 248:     display_label: "Annual Labour Cost",
+ 249:     value_source: "output_contract",
+ 250:     formula_text: "annual_labour_cost = annual_base_cost + annual_on_costs",
+ 251:     is_root_input: false,
+ 252:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 253:     last_verified_against: "v5.0 pilot draft",
+ 254:     source_file: null,
+ 255:     implementation_status: "verified_in_brief",
+ 256:     notes: "",
+ 257:   },
+ 258:   {
+ 259:     node_id: "labour.annual_base_cost",
+ 260:     module_name: "labour",
+ 261:     variable_name: "annual_base_cost",
+ 262:     display_label: "Annual Base Cost",
+ 263:     value_source: "raw_source_import",
+ 264:     formula_text: "Direct Labour staff-row input; Labour must not use P&L labour as operational source truth",
+ 265:     is_root_input: true,
+ 266:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 267:     last_verified_against: "v5.0 pilot draft",
+ 268:     source_file: null,
+ 269:     implementation_status: "verified_in_brief",
+ 270:     notes: "",
+ 271:   },
+ 272:   {
+ 273:     node_id: "labour.annual_on_costs",
+ 274:     module_name: "labour",
+ 275:     variable_name: "annual_on_costs",
+ 276:     display_label: "Annual On-Costs",
+ 277:     value_source: "raw_source_import",
+ 278:     formula_text: "Direct Labour staff-row input for employer contributions, payroll on-costs, leave allowance, ACC / workers compensation, KiwiSaver / superannuation employer cost, and payroll tax where relevant",
+ 279:     is_root_input: true,
+ 280:     brief_reference: "07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt",
+ 281:     last_verified_against: "v5.0 pilot draft",
+ 282:     source_file: null,
+ 283:     implementation_status: "verified_in_brief",
+ 284:     notes: "",
+ 285:   },
+ 286:   {
+ 287:     node_id: "assets.total_asset_cost_annual",
+ 288:     module_name: "assets",
+ 289:     variable_name: "total_asset_cost_annual",
+ 290:     display_label: "Total Asset Cost Annual",
+ 291:     value_source: "output_contract",
+ 292:     formula_text: "total_asset_cost_annual = sum total_asset_cost_annual for active assets",
+ 293:     is_root_input: false,
+ 294:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 295:     last_verified_against: "v5.0 pilot draft",
+ 296:     source_file: null,
+ 297:     implementation_status: "verified_in_brief",
+ 298:     notes: "",
+ 299:   },
+ 300:   {
+ 301:     node_id: "assets.asset_total_asset_cost_annual",
+ 302:     module_name: "assets",
+ 303:     variable_name: "total_asset_cost_annual",
+ 304:     display_label: "Per Asset Total Asset Cost Annual",
+ 305:     value_source: "output_contract",
+ 306:     formula_text: "total_asset_cost_annual = asset_ownership_cost_annual + asset_finance_interest_annual + asset_lease_cost_annual + asset_depreciation_or_replacement_cost_annual + asset_insurance_cost_annual + asset_registration_cost_annual + asset_other_ownership_cost_annual + assigned_running_cost_transfers_annual",
+ 307:     is_root_input: false,
+ 308:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 309:     last_verified_against: "v5.0 pilot draft",
+ 310:     source_file: "hooks/useAssets.js",
+ 311:     implementation_status: "verified_in_brief",
+ 312:     notes: "",
+ 313:   },
+ 314:   {
+ 315:     node_id: "assets.asset_ownership_cost_annual",
+ 316:     module_name: "assets",
+ 317:     variable_name: "asset_ownership_cost_annual",
+ 318:     display_label: "Asset Ownership Cost Annual",
+ 319:     value_source: "raw_source_import",
+ 320:     formula_text: "Direct Assets asset-row input for asset ownership cost",
+ 321:     is_root_input: true,
+ 322:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 323:     last_verified_against: "v5.0 pilot draft",
+ 324:     source_file: null,
+ 325:     implementation_status: "verified_in_brief",
+ 326:     notes: "",
+ 327:   },
+ 328:   {
+ 329:     node_id: "assets.asset_finance_interest_annual",
+ 330:     module_name: "assets",
+ 331:     variable_name: "asset_finance_interest_annual",
+ 332:     display_label: "Asset Finance Interest Annual",
+ 333:     value_source: "raw_source_import",
+ 334:     formula_text: "Direct Assets asset-row input for finance interest; principal must not be included",
+ 335:     is_root_input: true,
+ 336:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 337:     last_verified_against: "v5.0 pilot draft",
+ 338:     source_file: null,
+ 339:     implementation_status: "verified_in_brief",
+ 340:     notes: "",
+ 341:   },
+ 342:   {
+ 343:     node_id: "assets.asset_lease_cost_annual",
+ 344:     module_name: "assets",
+ 345:     variable_name: "asset_lease_cost_annual",
+ 346:     display_label: "Asset Lease Cost Annual",
+ 347:     value_source: "raw_source_import",
+ 348:     formula_text: "Direct Assets asset-row input for lease cost where applicable",
+ 349:     is_root_input: true,
+ 350:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 351:     last_verified_against: "v5.0 pilot draft",
+ 352:     source_file: null,
+ 353:     implementation_status: "verified_in_brief",
+ 354:     notes: "",
+ 355:   },
+ 356:   {
+ 357:     node_id: "assets.asset_depreciation_or_replacement_cost_annual",
+ 358:     module_name: "assets",
+ 359:     variable_name: "asset_depreciation_or_replacement_cost_annual",
+ 360:     display_label: "Asset Depreciation Or Replacement Cost Annual",
+ 361:     value_source: "raw_source_import",
+ 362:     formula_text: "Direct Assets asset-row input for depreciation / replacement allowance where enabled",
+ 363:     is_root_input: true,
+ 364:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 365:     last_verified_against: "v5.0 pilot draft",
+ 366:     source_file: null,
+ 367:     implementation_status: "verified_in_brief",
+ 368:     notes: "",
+ 369:   },
+ 370:   {
+ 371:     node_id: "assets.asset_insurance_cost_annual",
+ 372:     module_name: "assets",
+ 373:     variable_name: "asset_insurance_cost_annual",
+ 374:     display_label: "Asset Insurance Cost Annual",
+ 375:     value_source: "raw_source_import",
+ 376:     formula_text: "Direct Assets asset-row input for asset insurance where explicitly treated as asset-owned",
+ 377:     is_root_input: true,
+ 378:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 379:     last_verified_against: "v5.0 pilot draft",
+ 380:     source_file: null,
+ 381:     implementation_status: "verified_in_brief",
+ 382:     notes: "",
+ 383:   },
+ 384:   {
+ 385:     node_id: "assets.asset_registration_cost_annual",
+ 386:     module_name: "assets",
+ 387:     variable_name: "asset_registration_cost_annual",
+ 388:     display_label: "Asset Registration Cost Annual",
+ 389:     value_source: "raw_source_import",
+ 390:     formula_text: "Direct Assets asset-row input for registration where explicitly treated as asset-owned",
+ 391:     is_root_input: true,
+ 392:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 393:     last_verified_against: "v5.0 pilot draft",
+ 394:     source_file: null,
+ 395:     implementation_status: "verified_in_brief",
+ 396:     notes: "",
+ 397:   },
+ 398:   {
+ 399:     node_id: "assets.asset_other_ownership_cost_annual",
+ 400:     module_name: "assets",
+ 401:     variable_name: "asset_other_ownership_cost_annual",
+ 402:     display_label: "Asset Other Ownership Cost Annual",
+ 403:     value_source: "raw_source_import",
+ 404:     formula_text: "Direct Assets asset-row input for other fixed ownership costs",
+ 405:     is_root_input: true,
+ 406:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 407:     last_verified_against: "v5.0 pilot draft",
+ 408:     source_file: null,
+ 409:     implementation_status: "verified_in_brief",
+ 410:     notes: "",
+ 411:   },
+ 412:   {
+ 413:     node_id: "general_overheads.general_overheads_pool_amount",
+ 414:     module_name: "general-overheads",
+ 415:     variable_name: "general_overheads_pool_amount",
+ 416:     display_label: "General Overheads Pool Amount",
+ 417:     value_source: "output_contract",
+ 418:     formula_text: "general_overheads_pool_amount = total_general_overheads by default; General Overheads owns the original overhead source pool",
+ 419:     is_root_input: false,
+ 420:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 421:     last_verified_against: "v5.0 pilot draft",
+ 422:     source_file: null,
+ 423:     implementation_status: "verified_in_brief",
+ 424:     notes: "",
+ 425:   },
+ 426:   {
+ 427:     node_id: "assets.asset_running_cost_transfers",
+ 428:     module_name: "assets",
+ 429:     variable_name: "asset_running_cost_transfers",
+ 430:     display_label: "Asset Running Cost Transfers",
+ 431:     value_source: "output_contract",
+ 432:     formula_text: "asset_running_cost_transfers[] rows explicitly transfer portions of asset-related source pools into productive assets; each transfer must preserve source pool, assigned amount, remaining pool, over-allocated amount, and allocation status",
+ 433:     is_root_input: false,
+ 434:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 435:     last_verified_against: "v5.0 pilot draft",
+ 436:     source_file: null,
+ 437:     implementation_status: "verified_in_brief",
+ 438:     notes: "",
+ 439:   },
+ 440:   {
+ 441:     node_id: "assets.total_asset_running_cost_transferred",
+ 442:     module_name: "assets",
+ 443:     variable_name: "total_asset_running_cost_transferred",
+ 444:     display_label: "Total Asset Running Cost Transferred",
+ 445:     value_source: "output_contract",
+ 446:     formula_text: "total_asset_running_cost_transferred = sum assigned productive-asset running cost transfer amounts from asset_running_cost_transfers[]",
+ 447:     is_root_input: false,
+ 448:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 449:     last_verified_against: "v5.0 pilot draft",
+ 450:     source_file: null,
+ 451:     implementation_status: "verified_in_brief",
+ 452:     notes: "",
+ 453:   },
+ 454:   {
+ 455:     node_id: "assets.assigned_running_cost_transfers_annual",
+ 456:     module_name: "assets",
+ 457:     variable_name: "assigned_running_cost_transfers_annual",
+ 458:     display_label: "Assigned Running Cost Transfers Annual",
+ 459:     value_source: "output_contract",
+ 460:     formula_text: "assigned_running_cost_transfers_annual = transferred productive asset running cost portion assigned from explicit asset_running_cost_transfers[] source-pool rows; General Overheads remains owner of the original overhead source pool",
+ 461:     is_root_input: false,
+ 462:     brief_reference: "09_MIRRA_ASSETS_MODULE_v4.0_LOCKED.txt",
+ 463:     last_verified_against: "v5.0 pilot draft",
+ 464:     source_file: null,
+ 465:     implementation_status: "verified_in_brief",
+ 466:     notes: "",
+ 467:   },
+ 468:   {
+ 469:     node_id: "general_overheads.gross_general_overheads_benchmark",
+ 470:     module_name: "general-overheads",
+ 471:     variable_name: "gross_general_overheads_benchmark",
+ 472:     display_label: "Gross General Overheads Benchmark",
+ 473:     value_source: "raw_source_import",
+ 474:     formula_text: "P&L / general overhead benchmark before exclusions",
+ 475:     is_root_input: true,
+ 476:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 477:     last_verified_against: "v5.0 pilot draft",
+ 478:     source_file: null,
+ 479:     implementation_status: "verified_in_brief",
+ 480:     notes: "",
+ 481:   },
+ 482:   {
+ 483:     node_id: "general_overheads.asset_finance_interest_excluded",
+ 484:     module_name: "general-overheads",
+ 485:     variable_name: "asset_finance_interest_excluded",
+ 486:     display_label: "Asset Finance Interest Excluded",
+ 487:     value_source: "raw_source_import",
+ 488:     formula_text: "Explicit user/module selection flag where asset finance interest is selected as asset-related and reviewed through the Assets pathway; exclusion must be visible and must not delete the original P&L line",
+ 489:     is_root_input: true,
+ 490:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 491:     last_verified_against: "v5.0 pilot draft",
+ 492:     source_file: null,
+ 493:     implementation_status: "verified_in_brief",
+ 494:     notes: "",
+ 495:   },
+ 496:   {
+ 497:     node_id: "general_overheads.asset_finance_interest_excluded_amount",
+ 498:     module_name: "general-overheads",
+ 499:     variable_name: "asset_finance_interest_excluded_amount",
+ 500:     display_label: "Asset Finance Interest Excluded Amount",
+ 501:     value_source: "raw_source_import",
+ 502:     formula_text: "Explicit amount excluded from General Overheads when asset finance interest is selected as asset-related; excluded amount must remain visible for Module Reconciliation and must prevent double counting",
+ 503:     is_root_input: true,
+ 504:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 505:     last_verified_against: "v5.0 pilot draft",
+ 506:     source_file: null,
+ 507:     implementation_status: "verified_in_brief",
+ 508:     notes: "",
+ 509:   },
+ 510:   {
+ 511:     node_id: "general_overheads.adjusted_general_overheads_benchmark",
+ 512:     module_name: "general-overheads",
+ 513:     variable_name: "adjusted_general_overheads_benchmark",
+ 514:     display_label: "Adjusted General Overheads Benchmark",
+ 515:     value_source: "output_contract",
+ 516:     formula_text: "adjusted_general_overheads_benchmark = gross_general_overheads_benchmark - asset_finance_interest_excluded_amount",
+ 517:     is_root_input: false,
+ 518:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 519:     last_verified_against: "v5.0 pilot draft",
+ 520:     source_file: null,
+ 521:     implementation_status: "verified_in_brief",
+ 522:     notes: "",
+ 523:   },
+ 524:   {
+ 525:     node_id: "general_overheads.net_general_overheads",
+ 526:     module_name: "general-overheads",
+ 527:     variable_name: "net_general_overheads",
+ 528:     display_label: "Net General Overheads",
+ 529:     value_source: "output_contract",
+ 530:     formula_text: "net_general_overheads = overhead total after valid exclusions",
+ 531:     is_root_input: false,
+ 532:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 533:     last_verified_against: "v5.0 pilot draft",
+ 534:     source_file: null,
+ 535:     implementation_status: "verified_in_brief",
+ 536:     notes: "",
+ 537:   },
+ 538:   {
+ 539:     node_id: "general_overheads.total_general_overheads",
+ 540:     module_name: "general-overheads",
+ 541:     variable_name: "total_general_overheads",
+ 542:     display_label: "Total General Overheads",
+ 543:     value_source: "output_contract",
+ 544:     formula_text: "total_general_overheads = sum of active general_overhead_categories annual_amount after exclusions and adjustments defined in this module",
+ 545:     is_root_input: false,
+ 546:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 547:     last_verified_against: "v5.0 pilot draft",
+ 548:     source_file: "lib/calculations/generalOverheadCalculations.js",
+ 549:     implementation_status: "verified_in_brief",
+ 550:     notes: "",
+ 551:   },
+ 552:   {
+ 553:     node_id: "general_overheads.general_overhead_categories",
+ 554:     module_name: "general-overheads",
+ 555:     variable_name: "general_overhead_categories",
+ 556:     display_label: "General Overhead Categories",
+ 557:     value_source: "raw_source_import",
+ 558:     formula_text: "Root source category container fed by P&L operating expense classifications, manual overhead entries, saved overhead categories, imported operating expense lines, future Xero API import, or future database-backed profile records; each category annual_amount feeds total_general_overheads after exclusions and adjustments",
+ 559:     is_root_input: true,
+ 560:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 561:     last_verified_against: "v5.0 pilot draft",
+ 562:     source_file: null,
+ 563:     implementation_status: "verified_in_brief",
+ 564:     notes: "",
+ 565:   },
+ 566:   {
+ 567:     node_id: "general_overheads.total_business_overheads",
+ 568:     module_name: "general-overheads",
+ 569:     variable_name: "total_business_overheads",
+ 570:     display_label: "Total Business Overheads",
+ 571:     value_source: "output_contract",
+ 572:     formula_text: "Cost Summary uses total_general_overheads as total_business_overheads",
+ 573:     is_root_input: false,
+ 574:     brief_reference: "05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt",
+ 575:     last_verified_against: "v5.0 pilot draft",
+ 576:     source_file: null,
+ 577:     implementation_status: "verified_in_brief",
+ 578:     notes: "",
+ 579:   },
+ 580: ];

@@ -176,6 +176,7 @@ function BridgeReconciliationProof({
   asset_finance_variance = 0,
   overhead_variance = 0,
   other_income_treatment = 0,
+  other_classification_difference = 0,
   qs_tools_operating_position = 0,
 }) {
   return (
@@ -198,22 +199,27 @@ function BridgeReconciliationProof({
 
         <BridgeProofRow
           label="Less labour variance"
-          value={-Math.abs(to_number(labour_variance))}
+          value={-to_number(labour_variance)}
         />
 
         <BridgeProofRow
           label="Less asset finance variance"
-          value={-Math.abs(to_number(asset_finance_variance))}
+          value={-to_number(asset_finance_variance)}
         />
 
         <BridgeProofRow
           label="Less overhead variance"
-          value={-Math.abs(to_number(overhead_variance))}
+          value={-to_number(overhead_variance)}
         />
 
         <BridgeProofRow
           label="Less Other Income excluded"
-          value={-Math.abs(to_number(other_income_treatment))}
+          value={-to_number(other_income_treatment)}
+        />
+
+        <BridgeProofRow
+          label="Less other classification differences"
+          value={-to_number(other_classification_difference)}
         />
 
         <BridgeProofRow
@@ -235,6 +241,7 @@ function OperationalRealityBridge({
 
   general_overheads_benchmark_total = 0,
   total_business_overheads = 0,
+  total_asset_cost_annual = 0,
 
   other_income = 0,
   pnl_net_profit = 0,
@@ -251,16 +258,37 @@ function OperationalRealityBridge({
     to_number(general_overheads_benchmark_total) -
     to_number(asset_finance_benchmark_total);
 
+  // Running costs moved from General Overheads into Assets (fuel, insurance,
+  // repairs, rego) are still overheads for this comparison. Without them the
+  // overhead line under-states by the transferred amount and the proof below
+  // cannot close.
+  const asset_running_costs_moved = Math.max(
+    to_number(total_asset_cost_annual) - to_number(total_asset_interest_annual),
+    0
+  );
+  const overheads_incl_moved_running_costs =
+    to_number(total_business_overheads) + asset_running_costs_moved;
+
   const overhead_variance =
-    to_number(total_business_overheads) - adjusted_overheads_benchmark;
+    overheads_incl_moved_running_costs - adjusted_overheads_benchmark;
 
   const operational_pressure_adjustment =
     labour_variance + asset_finance_variance + overhead_variance;
 
   const other_income_treatment = to_number(other_income);
 
+  // Whatever the named lines do not explain (e.g. P&L lines classified outside
+  // labour / asset finance / general overheads). Zero when fully reconciled.
+  const other_classification_difference =
+    to_number(pnl_net_profit) -
+    operational_pressure_adjustment -
+    other_income_treatment -
+    to_number(qs_tools_operating_position);
+
   const total_bridge_adjustment =
-    operational_pressure_adjustment + other_income_treatment;
+    operational_pressure_adjustment +
+    other_income_treatment +
+    other_classification_difference;
 
   return (
     <div className="ui-panel ui-stack">
@@ -302,12 +330,12 @@ function OperationalRealityBridge({
 
         <BridgeRow
           title="General overheads reconciliation"
-          help="General Overheads is checked after asset finance interest is removed from the P&L overhead benchmark, because asset finance is reviewed separately against Assets."
+          help="General Overheads is checked after asset finance interest is removed from the P&L overhead benchmark, because asset finance is reviewed separately against Assets. Running costs moved into Assets (fuel, insurance, repairs, rego) are added back so both sides cover the same costs."
           benchmark={adjusted_overheads_benchmark}
-          module_total={total_business_overheads}
+          module_total={overheads_incl_moved_running_costs}
           variance={overhead_variance}
           benchmark_label="Adjusted P&L overhead benchmark"
-          module_label="Net General Overheads"
+          module_label="General Overheads incl. running costs moved to Assets"
         />
 
         <OtherIncomeBridgeRow other_income={other_income_treatment} />
@@ -336,6 +364,7 @@ function OperationalRealityBridge({
         asset_finance_variance={asset_finance_variance}
         overhead_variance={overhead_variance}
         other_income_treatment={other_income_treatment}
+        other_classification_difference={other_classification_difference}
         qs_tools_operating_position={qs_tools_operating_position}
       />
     </div>
@@ -517,6 +546,7 @@ export default function BusinessSummaryMacroPositionCard({
               general_overheads_benchmark_total
             }
             total_business_overheads={total_business_overheads}
+            total_asset_cost_annual={total_asset_cost_annual}
             other_income={other_income}
             pnl_net_profit={pnl_net_profit}
             qs_tools_operating_position={net_position}
