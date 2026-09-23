@@ -1,0 +1,108 @@
+
+=== FILE: components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx (722 lines) - 563-650 ===
+  563:   // Capacity coverage gap (2026-09-11, replaces the old labour_coverage_gaps
+  564:   // message - this supersedes it: same underlying hours, but bidirectional
+  565:   // (also catches overstaffing, not just shortfall) and includes a dollar
+  566:   // value, not just hours. Deferred to Things to check, sorted worst-first
+  567:   // by dollar value, with a link to the full per-group table.
+  568:   if (Array.isArray(capacity_coverage_gap)) {
+  569:     const flagged_gaps = capacity_coverage_gap
+  570:       .filter((g) => g.gap_type !== "none" && g.gap_dollar_value !== null)
+  571:       .sort((a, b) => Math.abs(b.gap_dollar_value) - Math.abs(a.gap_dollar_value));
+  572: 
+  573:     flagged_gaps.forEach((g) => {
+  574:       const abs_hours = Math.round(Math.abs(g.gap_hours));
+  575:       const abs_dollars = format_currency(Math.abs(g.gap_dollar_value));
+  576:       if (g.gap_type === "revenue_at_risk" && g.labour_hours === 0) {
+  577:         things_to_check.push([
+  578:           { type: "text", text: `${g.group_name}'s entire ` },
+  579:           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
+  580:           { type: "text", text: ` in revenue and profit assumes this asset runs ${abs_hours} hours a year - but with zero labour hours assigned, there's currently nobody to actually run it for those hours. Right now this group's real output is limited by labour, not by the asset, so the true achievable revenue here is likely well below what's currently being counted.` },
+  581:         ]);
+  582:       } else if (g.gap_type === "revenue_at_risk") {
+  583:         things_to_check.push([
+  584:           { type: "text", text: `${g.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${abs_hours} fewer hours than this asset runs each year, so ` },
+  585:           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
+  586:           { type: "text", text: " of the revenue counted above assumes hours the asset is running without anyone there to actually cover them." },
+  587:         ]);
+  588:       } else if (g.gap_type === "wasted_cost") {
+  589:         things_to_check.push([
+  590:           { type: "text", text: `${g.group_name} is currently overstaffed relative to what it runs: assigned labour exceeds the asset's hours by about ${abs_hours}, costing about ` },
+  591:           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
+  592:           { type: "text", text: " that current revenue doesn't account for." },
+  593:         ]);
+  594:       } else if (g.gap_type === "opportunity") {
+  595:         things_to_check.push([
+  596:           { type: "text", text: `${g.group_name}'s asset is running about ${abs_hours} more hours than assigned labour, worth ` },
+  597:           { type: "text", text: `${abs_dollars} a year`, class: "value-neutral" },
+  598:           { type: "text", text: " in capacity that isn't currently being converted to revenue." },
+  599:         ]);
+  600:       } else if (g.gap_type === "data_check") {
+  601:         things_to_check.push([
+  602:           { type: "text", text: `${g.group_name}'s assigned labour hours exceed the asset's actual running time by about ${abs_hours} - worth checking whether this is a data or scheduling oddity.` },
+  603:         ]);
+  604:       }
+  605:     });
+  606: 
+  607:     if (flagged_gaps.length > 0) {
+  608:       things_to_check.push([
+  609:         { type: "text", text: "See the " },
+  610:         { type: "link", label: "capacity coverage table", target_id: "capacity-coverage-gap-panel", ancestor_ids: ["how-the-numbers-are-calculated"], pre_toggle_labels: ["Show breakdown"] },
+  611:         { type: "text", text: " below for the full breakdown of every source." },
+  612:       ]);
+  613:       options_added = true;
+  614:     }
+  615: 
+  616:     // Liquidity-as-constraint cross-check (2026-09-12) - connects two
+  617:     // pieces of real data already shown separately on this page:
+  618:     // Balance Sheet's working capital, and a genuine "revenue_at_risk"
+  619:     // coverage gap (where the fix means ADDING labour cost, per Section
+  620:     // 9 of the original session brief - not the simple wasted_cost
+  621:     // case). Only fires when BOTH are real and negative-for-affordability -
+  622:     // a standalone insight, does not require Business Modelling to exist.
+  623:     const revenue_at_risk_gaps = flagged_gaps.filter((g) => g.gap_type === "revenue_at_risk");
+  624:     if (
+  625:       revenue_at_risk_gaps.length > 0 &&
+  626:       Number.isFinite(Number(balance_sheet_working_capital)) &&
+  627:       Number(balance_sheet_working_capital) < 0
+  628:     ) {
+  629:       const worst_gap = revenue_at_risk_gaps[0];
+  630:       things_to_check.push([
+  631:         { type: "text", text: `Fixing ${worst_gap.group_name}'s coverage gap the right way means adding real labour cost, before that revenue becomes genuinely achievable. But your working capital is currently ` },
+  632:         { type: "text", text: format_currency(Math.abs(balance_sheet_working_capital)), class: "value-bad" },
+  633:         { type: "text", text: " negative - meaning short-term bills already exceed what's available to cover them. Adding cost now, before the extra revenue arrives, could genuinely strain cash flow in the meantime, even though it's the right move long-term. Worth checking this is affordable right now, not just correct - see the Balance Sheet's working capital and liquidity ratios above." },
+  634:       ]);
+  635:     }
+  636:   }
+  637: 
+  638:   // === 5. CLOSING ===
+  639: 
+  640:   if (options_added) {
+  641:     paragraphs.push(
+  642:       "It's a picture of where things stand today, and a place to start if you want to explore what changing something would look like. The decisions from here are yours to make - Business Modelling is there when you want to test them out."
+  643:     );
+  644:   }
+  645: 
+  646:   // === 6. THINGS TO CHECK ===
+  647:   if (things_to_check.length > 0) {
+  648:     paragraphs.push({ is_header: true, text: "Things to check" });
+  649:     things_to_check.forEach((item) => paragraphs.push(item));
+  650:   }
+
+=== REFS: 'at risk' / 'assumes' / 'riding' / seat wording ===
+components\business-outcome-truth\BusinessOutcomeCapacityCoverageGapTable.jsx:15: revenue_at_risk: "Revenue at risk",
+components\business-outcome-truth\BusinessOutcomeCapacityCoverageGapTable.jsx:23: revenue_at_risk: "value-bad",
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:576: if (g.gap_type === "revenue_at_risk" && g.labour_hours === 0) {
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:580: { type: "text", text: ` in revenue and profit assumes this asset runs ${abs_hours} hours a year - but with zero labour hours assigned, there's currently nobody to actually run it for those hours. Right now this group's real output is limited by labour, not by the asset, so the true achievable revenue here is likely well below what's currently being counted.` },
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:582: } else if (g.gap_type === "revenue_at_risk") {
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:618: // Balance Sheet's working capital, and a genuine "revenue_at_risk"
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:623: const revenue_at_risk_gaps = flagged_gaps.filter((g) => g.gap_type === "revenue_at_risk");
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:625: revenue_at_risk_gaps.length > 0 &&
+components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx:629: const worst_gap = revenue_at_risk_gaps[0];
+hooks\useBusinessOutcomePerSourceRevenue.js:268: // covers: min(asset seat hours, sum of assigned labour hours). A group with
+hooks\useBusinessOutcomePerSourceRevenue.js:322: // own assigned-hours share - never the full seat hours each, which
+hooks\useBusinessOutcomePerSourceRevenue.js:329: // above where labour is short): seat hours are capped at the hours the
+hooks\useBusinessOutcomePerSourceRevenue.js:420: // asset's seat hours (group.group_recovery_hours) against labour's own
+hooks\useBusinessOutcomePerSourceRevenue.js:429: //     (key name revenue_at_risk kept so existing consumers still match).
+hooks\useBusinessOutcomePerSourceRevenue.js:431: //     revenue capped at seat hours regardless of headcount (wasted_cost).
+hooks\useBusinessOutcomePerSourceRevenue.js:483: gap_type = "revenue_at_risk";

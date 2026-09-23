@@ -1,0 +1,1274 @@
+
+=== FILE: lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js (143 lines) - 1-143 ===
+    1: function to_number(value) {
+    2:   const n = Number(value);
+    3:   return Number.isFinite(n) ? n : 0;
+    4: }
+    5: 
+    6: function safe_array(value) {
+    7:   return Array.isArray(value) ? value : [];
+    8: }
+    9: 
+   10: function totals_by_group(groups, members_key) {
+   11:   const by_group = new Map();
+   12:   safe_array(groups).forEach((g) => {
+   13:     const members = safe_array(g?.[members_key]);
+   14:     let direct_cost = 0;
+   15:     let overhead = 0;
+   16:     members.forEach((m) => {
+   17:       direct_cost += to_number(m?.direct_cost);
+   18:       overhead += to_number(m?.overhead_share);
+   19:     });
+   20:     by_group.set(g.group_id, {
+   21:       direct_cost,
+   22:       overhead,
+   23:       group_true_cost_known: g?.group_true_cost !== undefined ? to_number(g.group_true_cost) : null,
+   24:     });
+   25:   });
+   26:   return by_group;
+   27: }
+   28: 
+   29: export function buildNetProfitBuildUpRows(selected_output) {
+   30:   if (
+   31:     !selected_output ||
+   32:     selected_output.data_status !== "ready" ||
+   33:     !selected_output.headline_real_capacity
+   34:   ) {
+   35:     return null;
+   36:   }
+   37: 
+   38:   const { all_sources, total_net_profit } = selected_output.headline_real_capacity;
+   39:   const labour_totals = totals_by_group(selected_output.labour_groups, "staff");
+   40:   const asset_totals = totals_by_group(selected_output.asset_groups, "assets");
+   41: 
+   42:   // As-priced (naive, no cascade) figures - independent of the smoothed
+   43:   // final_net_profit shown elsewhere. Groups: real_capacity.group_real_capacity's
+   44:   // own naive_net_profit. Materials: selected_output.materials.net_profit,
+   45:   // which IS the naive figure (real_capacity_net_profit is the floored/
+   46:   // smoothed one, kept separate).
+   47:   const naive_by_group_id = new Map(
+   48:     safe_array(selected_output.real_capacity?.group_real_capacity).map((g) => [g.group_id, to_number(g.naive_net_profit)])
+   49:   );
+   50:   const materials_naive_net_profit = to_number(selected_output.materials?.net_profit);
+   51: 
+   52:   const rows = safe_array(all_sources).map((source) => {
+   53:     if (source.type === "materials") {
+   54:       return {
+   55:         key: source.key,
+   56:         name: source.name,
+   57:         is_materials: true,
+   58:         modelled_revenue: to_number(source.modelled_revenue),
+   59:         net_profit: to_number(source.net_profit),
+   60:         naive_net_profit: materials_naive_net_profit,
+   61:         revenue_members: [],
+   62:       };
+   63:     }
+   64: 
+   65:     const group_id = source.key;
+   66:     const labour = labour_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+   67:     const asset = asset_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+   68: 
+   69:     const regrouped_true_cost =
+   70:       labour.direct_cost + labour.overhead + asset.direct_cost + asset.overhead;
+   71: 
+   72:     const known_true_cost_parts = [labour.group_true_cost_known, asset.group_true_cost_known].filter(
+   73:       (v) => v !== null
+   74:     );
+   75:     const known_true_cost =
+   76:       known_true_cost_parts.length > 0 ? known_true_cost_parts.reduce((a, b) => a + b, 0) : null;
+   77:     const true_cost_variance =
+   78:       known_true_cost === null ? 0 : Math.round((regrouped_true_cost - known_true_cost) * 100) / 100;
+   79:     const true_cost_reconciles = known_true_cost === null ? true : Math.abs(true_cost_variance) < 1;
+   80: 
+   81:     const revenue_members = [];
+   82:     safe_array(selected_output.labour_groups).forEach((g) => {
+   83:       if (g.group_id !== group_id) return;
+   84:       safe_array(g.staff).forEach((m) => {
+   85:         revenue_members.push({ name: m.staff_type_name || "Unnamed labour source", modelled_revenue: to_number(m.modelled_revenue), type: "labour" });
+   86:       });
+   87:     });
+   88:     safe_array(selected_output.asset_groups).forEach((g) => {
+   89:       if (g.group_id !== group_id) return;
+   90:       safe_array(g.assets).forEach((m) => {
+   91:         revenue_members.push({ name: m.asset_name || "Unnamed asset", modelled_revenue: to_number(m.modelled_revenue), type: "asset" });
+   92:       });
+   93:     });
+   94: 
+   95:     return {
+   96:       key: group_id,
+   97:       name: source.name,
+   98:       is_materials: false,
+   99:       modelled_revenue: to_number(source.modelled_revenue),
+  100:       labour_direct_cost: labour.direct_cost,
+  101:       labour_overhead: labour.overhead,
+  102:       asset_direct_cost: asset.direct_cost,
+  103:       asset_overhead: asset.overhead,
+  104:       total_overhead: labour.overhead + asset.overhead,
+  105:       true_cost_reconciles,
+  106:       true_cost_variance,
+  107:       net_profit: to_number(source.net_profit),
+  108:       naive_net_profit: naive_by_group_id.has(group_id) ? naive_by_group_id.get(group_id) : null,
+  109:       revenue_members,
+  110:     };
+  111:   });
+  112: 
+  113:   const unassigned_lines = safe_array(selected_output.unassigned?.lines).map((l) => ({
+  114:     label: l.label,
+  115:     amount: to_number(l.amount),
+  116:     hint: l.hint || null,
+  117:   }));
+  118:   const total_unassigned = to_number(selected_output.unassigned?.total);
+  119: 
+  120:   const sum_of_rows = rows.reduce((sum, r) => sum + r.net_profit, 0);
+  121:   const total_net_profit_value = to_number(total_net_profit);
+  122:   const headline_variance =
+  123:     Math.round((sum_of_rows - total_unassigned - total_net_profit_value) * 100) / 100;
+  124: 
+  125:   // As-priced total uses the SAME headline total_net_profit - the cascade
+  126:   // is zero-sum across sources (proven: naive sum - unassigned = the same
+  127:   // total_net_profit shown elsewhere), so the as-priced view's own total
+  128:   // row reconciles against that identical figure, not a separate one.
+  129:   const sum_of_naive_rows = rows.reduce((sum, r) => sum + (r.naive_net_profit ?? 0), 0);
+  130:   const naive_headline_variance =
+  131:     Math.round((sum_of_naive_rows - total_unassigned - total_net_profit_value) * 100) / 100;
+  132: 
+  133:   return {
+  134:     rows,
+  135:     unassigned_lines,
+  136:     total_unassigned,
+  137:     total_net_profit: total_net_profit_value,
+  138:     reconciles_to_headline: Math.abs(headline_variance) < 1,
+  139:     headline_variance,
+  140:     naive_reconciles_to_headline: Math.abs(naive_headline_variance) < 1,
+  141:     naive_headline_variance,
+  142:   };
+  143: }
+
+=== FILE: lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js (713 lines) - 40-330 ===
+   40: function group_sources_by_group(sources, member_key) {
+   41:   const groups = new Map();
+   42: 
+   43:   sources.forEach((row) => {
+   44:     const key = row.group_id || "ungrouped";
+   45:     if (!groups.has(key)) {
+   46:       groups.set(key, {
+   47:         group_id: row.group_id,
+   48:         group_name: row.group_name || "Unnamed group",
+   49:         [member_key]: [],
+   50:         group_modelled_revenue: 0,
+   51:         group_true_cost: 0,
+   52:         group_overhead_share: 0,
+   53:         current_rate: null,
+   54:         minimum_recoverable_rate: null,
+   55:         group_net_profit: 0,
+   56:         group_implied_revenue: 0,
+   57:         group_implied_net_profit: 0,
+   58:         group_real_capacity_net_profit: 0,
+   59:         group_has_unavailable: false,
+   60:       });
+   61:     }
+   62: 
+   63:     const group = groups.get(key);
+   64:     group[member_key].push(row);
+   65:     group.group_modelled_revenue += row.modelled_revenue ?? 0;
+   66:     group.group_true_cost += row.true_cost ?? 0;
+   67:     group.group_overhead_share += row.overhead_share ?? 0;
+   68:     const row_current_rate = row.blended_rate ?? row.charge_out_rate ?? null;
+   69:     if (group.current_rate === null && row_current_rate !== null && row_current_rate !== undefined) group.current_rate = row_current_rate;
+   70:     if (group.minimum_recoverable_rate === null && row.minimum_recoverable_rate_per_hour !== null && row.minimum_recoverable_rate_per_hour !== undefined) group.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+   71:     group.group_net_profit += row.net_profit ?? 0;
+   72:     // STEP 4 (S30 brief): implied figures roll up the same way as
+   73:     // assumed figures - summed per group from each individual source.
+   74:     // Falls back to the assumed value when implied is not present (no
+   75:     // ceiling breach), so this sum is always safe to read regardless of
+   76:     // breach state.
+   77:     group.group_implied_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
+   78:     group.group_implied_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
+   79:     // REAL CAPACITY (two-phase cascade, hand-verified in a spreadsheet
+   80:     // before this was coded): same roll-up pattern as implied above -
+   81:     // falls back to the assumed net_profit when real_capacity_net_profit
+   82:     // is not present, always safe to read.
+   83:     group.group_real_capacity_net_profit += row.real_capacity_net_profit ?? row.net_profit ?? 0;
+   84:     if (!row.available) {
+   85:       group.group_has_unavailable = true;
+   86:     }
+   87:   });
+   88: 
+   89:   return Array.from(groups.values())
+   90:     .map((group) => ({
+   91:       ...group,
+   92:       group_verdict: group.group_has_unavailable
+   93:         ? null
+   94:         : verdict_for(group.group_net_profit),
+   95:       [member_key]: group[member_key].sort(
+   96:         (a, b) => (b.modelled_revenue ?? -Infinity) - (a.modelled_revenue ?? -Infinity)
+   97:       ),
+   98:     }))
+   99:     .sort(
+  100:       (a, b) => (b.group_modelled_revenue ?? -Infinity) - (a.group_modelled_revenue ?? -Infinity)
+  101:     );
+  102: }
+  103: 
+  104: // SHARED MERGE (fixes S30 drill/headline split): a real Cost Allocation
+  105: // group like "2inc Line" or "PC55" can carry BOTH labour and asset
+  106: // members. Building separate labour-group and asset-group entries and
+  107: // never merging them produces two sibling entries sharing one display
+  108: // name instead of one entry with two children. This is the single
+  109: // source of truth for that merge, used by both this selector's
+  110: // headline/being-carried list and the drill component, so both
+  111: // surfaces agree. Implied-aware: reads implied figures when
+  112: // use_implied is true, same convention as group_sources_by_group.
+  113: export function merge_groups_by_id(labour_groups, asset_groups, materials, use_implied) {
+  114:   const by_group_id = new Map();
+  115: 
+  116:   function get_or_create(group_id, group_name) {
+  117:     const key = group_id || `unkeyed_${group_name}`;
+  118:     if (!by_group_id.has(key)) {
+  119:       by_group_id.set(key, {
+  120:         key,
+  121:         label: group_name,
+  122:         net_profit: 0,
+  123:         modelled_revenue: 0,
+  124:         total_cost: 0,
+  125:         overhead_share: 0,
+  126:         current_rate_sum: 0,
+  127:         current_rate_count: 0,
+  128:         minimum_recoverable_rate: null,
+  129:         children: [],
+  130:         has_unavailable: false,
+  131:       });
+  132:     }
+  133:     return by_group_id.get(key);
+  134:   }
+  135: 
+  136:   labour_groups.forEach((g) => {
+  137:     const entry = get_or_create(g.group_id, g.group_name);
+  138:     entry.net_profit += (use_implied ? g.group_implied_net_profit : g.group_net_profit) ?? 0;
+  139:     entry.total_cost += g.group_true_cost ?? 0;
+  140:     entry.overhead_share += g.group_overhead_share ?? 0;
+  141:     if (g.current_rate !== null && g.current_rate !== undefined) {
+  142:       entry.current_rate_sum += g.current_rate;
+  143:       entry.current_rate_count += 1;
+  144:     }
+  145:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+  146:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+  147:     if (g.group_has_unavailable) entry.has_unavailable = true;
+  148:     g.staff.forEach((s) => {
+  149:       const verdict = use_implied ? s.implied_verdict : s.verdict;
+  150:       entry.children.push({
+  151:         key: s.staff_type_id,
+  152:         label: s.staff_type_name,
+  153:         net_profit: (use_implied ? s.implied_net_profit : s.net_profit) ?? 0,
+  154:         modelled_revenue: s.modelled_revenue,
+  155:         available: s.available,
+  156:         unavailable_reason: s.unavailable_reason,
+  157:         verdict,
+  158:         verdict_label: verdict_label(verdict),
+  159:       });
+  160:     });
+  161:   });
+  162: 
+  163:   asset_groups.forEach((g) => {
+  164:     const entry = get_or_create(g.group_id, g.group_name);
+  165:     entry.net_profit += (use_implied ? g.group_implied_net_profit : g.group_net_profit) ?? 0;
+  166:     entry.total_cost += g.group_true_cost ?? 0;
+  167:     entry.overhead_share += g.group_overhead_share ?? 0;
+  168:     if (g.current_rate !== null && g.current_rate !== undefined) {
+  169:       entry.current_rate_sum += g.current_rate;
+  170:       entry.current_rate_count += 1;
+  171:     }
+  172:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+  173:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+  174:     if (g.group_has_unavailable) entry.has_unavailable = true;
+  175:     g.assets.forEach((a) => {
+  176:       const verdict = use_implied ? a.implied_verdict : a.verdict;
+  177:       entry.children.push({
+  178:         key: a.asset_id,
+  179:         label: a.asset_name,
+  180:         net_profit: (use_implied ? a.implied_net_profit : a.net_profit) ?? 0,
+  181:         modelled_revenue: a.modelled_revenue,
+  182:         available: a.available,
+  183:         unavailable_reason: a.unavailable_reason,
+  184:         verdict,
+  185:         verdict_label: verdict_label(verdict),
+  186:       });
+  187:     });
+  188:   });
+  189: 
+  190:   const merged_entries = Array.from(by_group_id.values()).map((entry) => {
+  191:     const current_rate = entry.current_rate_count > 0 ? entry.current_rate_sum / entry.current_rate_count : null;
+  192:     const verdict = entry.has_unavailable ? null : verdict_for(entry.net_profit);
+  193:     return {
+  194:       ...entry,
+  195:       type: "group",
+  196:       current_rate,
+  197:       verdict,
+  198:       verdict_label: verdict_label(verdict),
+  199:     };
+  200:   });
+  201: 
+  202:   merged_entries.push({
+  203:     key: "materials",
+  204:     label: "Materials / COGS",
+  205:     net_profit: materials.net_profit,
+  206:     modelled_revenue: materials.revenue,
+  207:     verdict: materials.verdict,
+  208:     verdict_label: verdict_label(materials.verdict),
+  209:     children: [],
+  210:     type: "materials",
+  211:   });
+  212: 
+  213:   return merged_entries;
+  214: }
+  215: 
+  216: // REAL CAPACITY MERGE - same merge-by-group_id logic as merge_groups_by_id
+  217: // above, but always reads the real_capacity_* fields computed by
+  218: // apply_real_capacity in the hook (two-phase cascade: Materials floored
+  219: // at $0, shortfall absorbed by still-profitable sources weighted by
+  220: // current margin, any leftover spread by revenue share once every
+  221: // source's margin is exhausted - see hook comments for full mechanism).
+  222: // Unlike use_implied above, there is no boolean toggle here -
+  223: // real_capacity_net_profit already equals net_profit exactly whenever
+  224: // nothing is breached, so it is always safe to read directly.
+  225: export function merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials) {
+  226:   const by_group_id = new Map();
+  227: 
+  228:   function get_or_create(group_id, group_name) {
+  229:     const key = group_id || `unkeyed_${group_name}`;
+  230:     if (!by_group_id.has(key)) {
+  231:       by_group_id.set(key, {
+  232:         key,
+  233:         label: group_name,
+  234:         net_profit: 0,
+  235:         modelled_revenue: 0,
+  236:         total_cost: 0,
+  237:         overhead_share: 0,
+  238:         current_rate_sum: 0,
+  239:         current_rate_count: 0,
+  240:         minimum_recoverable_rate: null,
+  241:         children: [],
+  242:         has_unavailable: false,
+  243:       });
+  244:     }
+  245:     return by_group_id.get(key);
+  246:   }
+  247: 
+  248:   labour_groups.forEach((g) => {
+  249:     const entry = get_or_create(g.group_id, g.group_name);
+  250:     entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+  251:     entry.total_cost += g.group_true_cost ?? 0;
+  252:     entry.overhead_share += g.group_overhead_share ?? 0;
+  253:     if (g.current_rate !== null && g.current_rate !== undefined) {
+  254:       entry.current_rate_sum += g.current_rate;
+  255:       entry.current_rate_count += 1;
+  256:     }
+  257:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+  258:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+  259:     if (g.group_has_unavailable) entry.has_unavailable = true;
+  260:     g.staff.forEach((s) => {
+  261:       const verdict = s.real_capacity_verdict;
+  262:       const child_true_cost = s.true_cost ?? 0;
+  263:       const child_net_profit = s.real_capacity_net_profit ?? 0;
+  264:       const child_achieved_revenue = child_true_cost + child_net_profit;
+  265:       const child_hours = s.hours ?? 0;
+  266:       const child_current_rate = s.charge_out_rate ?? s.blended_rate ?? null;
+  267:       entry.children.push({
+  268:         key: s.staff_type_id,
+  269:         label: s.staff_type_name,
+  270:         net_profit: child_net_profit,
+  271:         modelled_revenue: s.modelled_revenue,
+  272:         achieved_revenue: child_achieved_revenue,
+  273:         available: s.available,
+  274:         unavailable_reason: s.unavailable_reason,
+  275:         verdict,
+  276:         verdict_label: verdict_label(verdict),
+  277:         total_cost: child_true_cost,
+  278:         overhead_share: s.overhead_share ?? 0,
+  279:         current_rate: child_current_rate,
+  280:         minimum_recoverable_rate: s.minimum_recoverable_rate_per_hour ?? null,
+  281:         achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+  282:         achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+  283:       });
+  284:     });
+  285:   });
+  286: 
+  287:   asset_groups.forEach((g) => {
+  288:     const entry = get_or_create(g.group_id, g.group_name);
+  289:     entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+  290:     entry.total_cost += g.group_true_cost ?? 0;
+  291:     entry.overhead_share += g.group_overhead_share ?? 0;
+  292:     if (g.current_rate !== null && g.current_rate !== undefined) {
+  293:       entry.current_rate_sum += g.current_rate;
+  294:       entry.current_rate_count += 1;
+  295:     }
+  296:     if (entry.minimum_recoverable_rate === null && g.minimum_recoverable_rate !== null && g.minimum_recoverable_rate !== undefined) entry.minimum_recoverable_rate = g.minimum_recoverable_rate;
+  297:     entry.modelled_revenue += g.group_modelled_revenue ?? 0;
+  298:     if (g.group_has_unavailable) entry.has_unavailable = true;
+  299:     g.assets.forEach((a) => {
+  300:       const verdict = a.real_capacity_verdict;
+  301:       const child_true_cost = a.true_cost ?? 0;
+  302:       const child_net_profit = a.real_capacity_net_profit ?? 0;
+  303:       const child_achieved_revenue = child_true_cost + child_net_profit;
+  304:       const child_hours = a.hours ?? 0;
+  305:       const child_current_rate = a.blended_rate ?? a.charge_out_rate ?? null;
+  306:       entry.children.push({
+  307:         key: a.asset_id,
+  308:         label: a.asset_name,
+  309:         net_profit: child_net_profit,
+  310:         modelled_revenue: a.modelled_revenue,
+  311:         achieved_revenue: child_achieved_revenue,
+  312:         available: a.available,
+  313:         unavailable_reason: a.unavailable_reason,
+  314:         verdict,
+  315:         verdict_label: verdict_label(verdict),
+  316:         total_cost: child_true_cost,
+  317:         overhead_share: a.overhead_share ?? 0,
+  318:         current_rate: child_current_rate,
+  319:         minimum_recoverable_rate: a.minimum_recoverable_rate_per_hour ?? null,
+  320:         achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+  321:         achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+  322:       });
+  323:     });
+  324:   });
+  325: 
+  326:   const merged_entries = Array.from(by_group_id.values()).map((entry) => {
+  327:     const current_rate = entry.current_rate_count > 0 ? entry.current_rate_sum / entry.current_rate_count : null;
+  328:     const verdict = entry.has_unavailable ? null : verdict_for(entry.net_profit);
+  329:     return {
+  330:       ...entry,
+
+=== REFS: real_capacity|headline_real_capacity  (path ~ businessOutcomePerSourceRevenueSelectors) ===
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:58: group_real_capacity_net_profit: 0,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:81: // falls back to the assumed net_profit when real_capacity_net_profit
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:83: group.group_real_capacity_net_profit += row.real_capacity_net_profit ?? row.net_profit ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:217: // above, but always reads the real_capacity_* fields computed by
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:218: // apply_real_capacity in the hook (two-phase cascade: Materials floored
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:223: // real_capacity_net_profit already equals net_profit exactly whenever
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:225: export function merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials) {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:250: entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:261: const verdict = s.real_capacity_verdict;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:263: const child_net_profit = s.real_capacity_net_profit ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:289: entry.net_profit += g.group_real_capacity_net_profit ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:300: const verdict = a.real_capacity_verdict;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:302: const child_net_profit = a.real_capacity_net_profit ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:341: net_profit: materials.real_capacity_net_profit,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:343: verdict: materials.real_capacity_verdict,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:344: verdict_label: verdict_label(materials.real_capacity_verdict),
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:523: // parallel and additive, reading real_capacity figures instead of
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:527: const all_group_level_entries_real_capacity = merge_groups_by_id_real_capacity(
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:540: const total_source_net_profit_real_capacity = all_group_level_entries_real_capacity.reduce(
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:546: // subtracted here - total_source_net_profit_real_capacity already
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:547: // reflects it, since each working unit's own real_capacity_net_profit
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:553: const total_net_profit_real_capacity =
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:554: total_source_net_profit_real_capacity -
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:560: const being_carried_real_capacity = all_group_level_entries_real_capacity
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:564: const all_sources_real_capacity = [...all_group_level_entries_real_capacity].sort(
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:568: const headline_real_capacity = {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:569: total_net_profit: total_net_profit_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:572: total_group_count: all_group_level_entries_real_capacity.length,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:573: being_carried_count: being_carried_real_capacity.length,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:574: being_carried: being_carried_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:575: all_sources: all_sources_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:576: all_good: being_carried_real_capacity.length === 0,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:591: // entirely from view_b.real_capacity.group_real_capacity, already
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:598: let view_b_headline_real_capacity = null;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:599: if (view_b && view_b.real_capacity) {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:600: const view_b_group_entries = (view_b.real_capacity.group_real_capacity || []).map((g) => {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:614: view_b_headline_real_capacity = {
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:656: real_capacity: per_source_result.real_capacity ?? null,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:660: headline_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:661: view_b_headline_real_capacity,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:668: real_capacity_verdict_label: verdict_label(materials.real_capacity_verdict),
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:687: // total_net_profit_real_capacity above; exposed here too so the
+-- 42 hits
+
+=== REFS: selectNetProfitBuildUp|businessOutcomeNetProfitBuildUpSelectors  (path ~ .) ===
+components\business-outcome\BusinessOutcomeWaterfall.jsx:4: import { buildNetProfitBuildUpRows } from "@/lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors";
+components\business-outcome-truth\BusinessOutcomeNetProfitBuildUp.jsx:5: import { buildNetProfitBuildUpRows } from "@/lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors";
+-- 2 hits
+
+=== FILE: hooks\useBusinessOutcomeLabourRecovery.js (253 lines) - 1-253 ===
+    1: "use client";
+    2: 
+    3: import { useEffect, useState } from "react";
+    4: import { useMemo } from "react";
+    5: 
+    6: import { useLabour } from "@/hooks/useLabour";
+    7: import useCostAllocation from "@/hooks/useCostAllocation";
+    8: import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
+    9: 
+   10: function to_number(value) {
+   11:   const parsed = Number(value);
+   12:   return Number.isFinite(parsed) ? parsed : 0;
+   13: }
+   14: 
+   15: function round_currency(value) {
+   16:   return Number(to_number(value).toFixed(2));
+   17: }
+   18: 
+   19: function build_overhead_rate_map(rate_builder_labour_recovery_rows = []) {
+   20:   const map = new Map();
+   21: 
+   22:   rate_builder_labour_recovery_rows.forEach((row) => {
+   23:     map.set(row.labour_source_type_id, {
+   24:       allocated_business_overhead_recovery_rate: to_number(
+   25:         row.allocated_business_overhead_recovery_rate
+   26:       ),
+   27:       has_overhead_data: true,
+   28:     });
+   29:   });
+   30: 
+   31:   return map;
+   32: }
+   33: 
+   34: function build_labour_recovery_rows(
+   35:   productive_staff_type_rates = [],
+   36:   overhead_rate_map,
+   37:   charge_out_rates_by_labour_source = {}
+   38: ) {
+   39:   return productive_staff_type_rates.map((staff_type) => {
+   40:     const labour_source_type_id = staff_type.staff_type_id;
+   41:     const labour_cost_rate = to_number(staff_type.weighted_productive_hourly_rate);
+   42:     const productive_hours = to_number(staff_type.total_productive_hours);
+   43: 
+   44:     const overhead_entry = overhead_rate_map.get(labour_source_type_id);
+   45:     const overhead_rate = overhead_entry
+   46:       ? overhead_entry.allocated_business_overhead_recovery_rate
+   47:       : 0;
+   48:     const has_overhead_data = Boolean(overhead_entry);
+   49: 
+   50:     const true_cost_per_hour = labour_cost_rate + overhead_rate;
+   51: 
+   52:     const charge_out_rate = to_number(
+   53:       charge_out_rates_by_labour_source?.[labour_source_type_id]
+   54:     );
+   55: 
+   56:     const has_rate = charge_out_rate > 0;
+   57:     const rate_gap = round_currency(charge_out_rate - true_cost_per_hour);
+   58: 
+   59:     const recovery_status = !has_rate
+   60:       ? "not_ready"
+   61:       : rate_gap >= 0
+   62:       ? "recovering"
+   63:       : "shortfall";
+   64: 
+   65:     return {
+   66:       labour_source_type_id,
+   67:       labour_source_type_name: staff_type.staff_type_name,
+   68:       // NEW (this session, per user request): labour cost and overhead
+   69:       // were always computed separately here but only their sum
+   70:       // (true_cost_per_hour) was ever returned - exposing both so the
+   71:       // display can show a build-up (Labour cost + Overhead = True
+   72:       // cost) instead of a single opaque figure, making the effect of
+   73:       // allocated overhead on margin visible.
+   74:       labour_cost_per_hour: round_currency(labour_cost_rate),
+   75:       overhead_per_hour: round_currency(overhead_rate),
+   76:       true_cost_per_hour: round_currency(true_cost_per_hour),
+   77:       charge_out_rate: round_currency(charge_out_rate),
+   78:       productive_hours,
+   79:       rate_gap,
+   80:       has_overhead_data,
+   81:       recovery_status,
+   82:     };
+   83:   });
+   84: }
+   85: 
+   86: function build_weighted_summary(labour_recovery_rows = []) {
+   87:   const total_hours = labour_recovery_rows.reduce(
+   88:     (sum, row) => sum + to_number(row.productive_hours),
+   89:     0
+   90:   );
+   91: 
+   92:   const rows_with_rate = labour_recovery_rows.filter(
+   93:     (row) => row.recovery_status !== "not_ready"
+   94:   );
+   95:   const hours_with_rate = rows_with_rate.reduce(
+   96:     (sum, row) => sum + to_number(row.productive_hours),
+   97:     0
+   98:   );
+   99: 
+  100:   const weighted_labour_cost_per_hour =
+  101:     total_hours > 0
+  102:       ? round_currency(
+  103:           labour_recovery_rows.reduce(
+  104:             (sum, row) => sum + row.labour_cost_per_hour * to_number(row.productive_hours),
+  105:             0
+  106:           ) / total_hours
+  107:         )
+  108:       : 0;
+  109: 
+  110:   const weighted_overhead_per_hour =
+  111:     total_hours > 0
+  112:       ? round_currency(
+  113:           labour_recovery_rows.reduce(
+  114:             (sum, row) => sum + row.overhead_per_hour * to_number(row.productive_hours),
+  115:             0
+  116:           ) / total_hours
+  117:         )
+  118:       : 0;
+  119: 
+  120:   const weighted_true_cost_per_hour =
+  121:     total_hours > 0
+  122:       ? round_currency(
+  123:           labour_recovery_rows.reduce(
+  124:             (sum, row) => sum + row.true_cost_per_hour * to_number(row.productive_hours),
+  125:             0
+  126:           ) / total_hours
+  127:         )
+  128:       : 0;
+  129: 
+  130:   const weighted_charge_out_rate =
+  131:     hours_with_rate > 0
+  132:       ? round_currency(
+  133:           rows_with_rate.reduce(
+  134:             (sum, row) => sum + row.charge_out_rate * to_number(row.productive_hours),
+  135:             0
+  136:           ) / hours_with_rate
+  137:         )
+  138:       : 0;
+  139: 
+  140:   const weighted_profit_per_hour =
+  141:     hours_with_rate > 0
+  142:       ? round_currency(
+  143:           rows_with_rate.reduce(
+  144:             (sum, row) => sum + row.rate_gap * to_number(row.productive_hours),
+  145:             0
+  146:           ) / hours_with_rate
+  147:         )
+  148:       : 0;
+  149: 
+  150:   // Markup % - profit over true cost (standard markup definition,
+  151:   // distinct from margin over charged rate) - added this session per
+  152:   // user request to state the overall labour markup explicitly rather
+  153:   // than leaving the reader to work it out from the two $/hr figures.
+  154:   const weighted_markup_percent =
+  155:     weighted_true_cost_per_hour > 0
+  156:       ? round_currency((weighted_profit_per_hour / weighted_true_cost_per_hour) * 100)
+  157:       : 0;
+  158: 
+  159:   return {
+  160:     weighted_labour_cost_per_hour,
+  161:     weighted_overhead_per_hour,
+  162:     weighted_true_cost_per_hour,
+  163:     weighted_charge_out_rate,
+  164:     weighted_profit_per_hour,
+  165:     weighted_markup_percent,
+  166:     hours_covered_by_saved_rate: hours_with_rate,
+  167:     total_hours,
+  168:     rate_coverage_percent:
+  169:       total_hours > 0 ? round_currency((hours_with_rate / total_hours) * 100) : 0,
+  170:   };
+  171: }
+  172: 
+  173: export default function useBusinessOutcomeLabourRecovery() {
+  174:   const labour = useLabour();
+  175:   const cost_allocation = useCostAllocation();
+  176: 
+  177:   const [charge_out_rates_by_labour_source, set_charge_out_rates] = useState({});
+  178: 
+  179:   useEffect(() => {
+  180:     set_charge_out_rates(readRateBuilderLabourSourceRates());
+  181:   }, []);
+  182: 
+  183:   const productive_staff_type_rates =
+  184:     labour?.output_contract?.productive_staff_type_rates ?? [];
+  185: 
+  186:   const rate_builder_labour_recovery_rows =
+  187:     cost_allocation?.output_contract?.rate_builder_labour_recovery_rows ?? [];
+  188: 
+  189:   const overhead_rate_map = useMemo(() => {
+  190:     return build_overhead_rate_map(rate_builder_labour_recovery_rows);
+  191:   }, [rate_builder_labour_recovery_rows]);
+  192: 
+  193: 
+  194:   const labour_recovery_rows = useMemo(() => {
+  195:     return build_labour_recovery_rows(
+  196:       productive_staff_type_rates,
+  197:       overhead_rate_map,
+  198:       charge_out_rates_by_labour_source
+  199:     );
+  200:   }, [productive_staff_type_rates, overhead_rate_map, charge_out_rates_by_labour_source]);
+  201: 
+  202:   const shortfall_rows = labour_recovery_rows.filter(
+  203:     (row) => row.recovery_status === "shortfall"
+  204:   );
+  205: 
+  206:   const not_ready_rows = labour_recovery_rows.filter(
+  207:     (row) => row.recovery_status === "not_ready"
+  208:   );
+  209: 
+  210:   const missing_overhead_rows = labour_recovery_rows.filter(
+  211:     (row) => !row.has_overhead_data
+  212:   );
+  213: 
+  214:   const sorted_by_gap = [...labour_recovery_rows].sort(
+  215:     (a, b) => a.rate_gap - b.rate_gap
+  216:   );
+  217: 
+  218:   const weakest_contribution_area = sorted_by_gap[0]
+  219:     ? {
+  220:         value: {
+  221:           labour_source_type_name: sorted_by_gap[0].labour_source_type_name,
+  222:           rate_gap: sorted_by_gap[0].rate_gap,
+  223:         },
+  224:         status: "available",
+  225:       }
+  226:     : { value: null, status: "deferred", reason: "No labour recovery rows available." };
+  227: 
+  228:   const strongest_contribution_area = sorted_by_gap[sorted_by_gap.length - 1]
+  229:     ? {
+  230:         value: {
+  231:           labour_source_type_name:
+  232:             sorted_by_gap[sorted_by_gap.length - 1].labour_source_type_name,
+  233:           rate_gap: sorted_by_gap[sorted_by_gap.length - 1].rate_gap,
+  234:         },
+  235:         status: "available",
+  236:       }
+  237:     : { value: null, status: "deferred", reason: "No labour recovery rows available." };
+  238: 
+  239:   const weighted_summary = build_weighted_summary(labour_recovery_rows);
+  240: 
+  241:   return {
+  242:     labour_recovery_rows,
+  243:     shortfall_row_count: shortfall_rows.length,
+  244:     shortfall_rows,
+  245:     not_ready_row_count: not_ready_rows.length,
+  246:     not_ready_rows,
+  247:     missing_overhead_row_count: missing_overhead_rows.length,
+  248:     weighted_summary,
+  249:     strongest_contribution_area,
+  250:     weakest_contribution_area,
+  251:     data_status: labour_recovery_rows.length > 0 ? "ready" : "no_labour_sources",
+  252:   };
+  253: }
+
+=== FILE: hooks\useBusinessOutcomePerSourceRevenue.js (1392 lines) - 55-135 ===
+   55: // this new, independent calculation. Same driver-quantity logic, exact
+   56: // copy.
+   57: function getRecoveryDriverQuantity(lineTotals, outputDriverQuantity) {
+   58:   const timeLineQuantity = lineTotals
+   59:     .filter((line) => line.type === "time")
+   60:     .reduce((total, line) => total + to_number(line.quantity), 0);
+   61: 
+   62:   return timeLineQuantity > 0 ? timeLineQuantity : outputDriverQuantity;
+   63: }
+   64: 
+   65: // Group's blended $/hr rate, computed fresh and independently here -
+   66: // deliberately NOT reusing businessOutcomeAssetSplitCalculations.js's
+   67: // asset revenue figure, since that figure is derived by subtraction
+   68: // against the stale labour rate (S29 Section confirming this
+   69: // contamination) and must not be propagated into this new, corrected
+   70: // view.
+   71: function get_group_blended_rate(group, calculators) {
+   72:   const calculator = calculators.find(
+   73:     (calc) => calc?.linked_cost_allocation_group_id === group.group_id
+   74:   );
+   75: 
+   76:   if (!calculator || !Array.isArray(calculator.lines) || calculator.lines.length === 0) {
+   77:     return { blended_rate: null, reason: "No Rate Builder calculator linked to this group" };
+   78:   }
+   79: 
+   80:   const preview = calculateRateBuilderQuotePreview(calculator.lines);
+   81:   const recovery_driver_quantity = getRecoveryDriverQuantity(
+   82:     preview.line_totals,
+   83:     preview.output_driver_quantity
+   84:   );
+   85: 
+   86:   if (recovery_driver_quantity <= 0 || !to_number(preview.total_charge)) {
+   87:     return { blended_rate: null, reason: "Calculator recovery driver not set" };
+   88:   }
+   89: 
+   90:   return {
+   91:     blended_rate: to_number(preview.total_charge) / recovery_driver_quantity,
+   92:     reason: null,
+   93:   };
+   94: }
+   95: 
+   96: // S29 Section 4, CONFIRMED (corrected from the routed-to-one-side draft):
+   97: // a mixed group's overhead is split between labour and asset by each
+   98: // side's share of the group's own cost - assigned_labour_cost vs
+   99: // assigned_asset_burden - then combined with each side's other true
+  100: // cost, per the user's confirmation this session. This mirrors how
+  101: // group_cost_stacks already keeps labour and asset cost as separate
+  102: // figures on the same row, never blended - overhead now follows the
+  103: // same pattern instead of being routed all-or-nothing by the group's
+  104: // (unrelated) recovery-hours driver choice. Cost Allocation has already
+  105: // computed assigned_overhead_amount for the group upstream of this hook
+  106: // - this only divides that already-correct figure, it does not
+  107: // recalculate overhead itself.
+  108: function split_group_overhead(group) {
+  109:   const overhead = to_number(group.assigned_overhead_amount);
+  110:   const labour_cost = to_number(group.assigned_labour_cost);
+  111:   const asset_cost = to_number(group.assigned_asset_burden);
+  112:   const total_cost = labour_cost + asset_cost;
+  113: 
+  114:   if (total_cost <= 0) {
+  115:     return { labour_overhead_pool: 0, asset_overhead_pool: 0 };
+  116:   }
+  117: 
+  118:   return {
+  119:     labour_overhead_pool: overhead * (labour_cost / total_cost),
+  120:     asset_overhead_pool: overhead * (asset_cost / total_cost),
+  121:   };
+  122: }
+  123: 
+  124: function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}) {
+  125:   const rows = [];
+  126:   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
+  127: 
+  128:   operational_group_cost_rows.forEach((group) => {
+  129:     const asset_assignments = Array.isArray(group.asset_group_assignments)
+  130:       ? group.asset_group_assignments
+  131:       : [];
+  132: 
+  133:     if (asset_assignments.length === 0) {
+  134:       return;
+  135:     }
+
+=== FILE: lib\calculations\businessOutcomeAssetSplitCalculations.js (253 lines) - 100-140 ===
+  100:     const assignedOverheadCost = Number(group?.assigned_overhead_amount || 0);
+  101:     const hasLabour = assignedLabourCost > 0;
+  102:     const hasAsset = assignedAssetCost > 0;
+  103:     const labourAssignments = buildLabourAssignments(group, chargeRowByName);
+  104: 
+  105:     const nonProductiveLabourCost = Number(
+  106:       group?.assigned_non_productive_labour_cost || 0
+  107:     );
+  108:     const nonProductiveAssetCost = Number(
+  109:       group?.assigned_non_productive_asset_cost || 0
+  110:     );
+  111: 
+  112:     const calculator = calculators.find(
+  113:       (calc) => calc?.linked_cost_allocation_group_id === groupId
+  114:     );
+  115: 
+  116:     const base = {
+  117:       groupId,
+  118:       groupName,
+  119:       totalGroupCost,
+  120:       hasLabour,
+  121:       hasAsset,
+  122:       nonProductiveLabourCost,
+  123:       nonProductiveAssetCost,
+  124:       calculatorName: calculator?.name || null,
+  125:       hasCalculator: Boolean(calculator?.lines?.length),
+  126:     };
+  127: 
+  128:     if (!calculator || !Array.isArray(calculator.lines) || calculator.lines.length === 0) {
+  129:       if (hasAsset) {
+  130:         return {
+  131:           ...base,
+  132:           totalCharged: null,
+  133:           profitOrLoss: null,
+  134:           percentOfRevenue: null,
+  135:           reason: "No Rate Builder calculator linked to this group",
+  136:           detail: null,
+  137:         };
+  138:       }
+  139: 
+  140:       const labourChargedAnnual = sumLabourAssignmentsCharged(labourAssignments);
+
+=== FILE: components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx (3027 lines) - 770-870 ===
+  770:   // same convention as View A (materials never has children either).
+  771:   [...view_b.labour_sources, ...view_b.asset_sources].forEach((row) => {
+  772:     const entry = get_or_create(row.group_id, row.group_name);
+  773:     entry.modelled_revenue += row.modelled_revenue ?? 0;
+  774:     entry.total_cost += row.true_cost ?? 0;
+  775:     entry.overhead_share += row.overhead_share ?? 0;
+  776:     entry.assumed_revenue += row.implied_revenue ?? row.modelled_revenue ?? 0;
+  777:     entry.assumed_net_profit += row.implied_net_profit ?? row.net_profit ?? 0;
+  778:     const row_rate = row.blended_rate ?? row.charge_out_rate ?? null;
+  779:     if (entry.current_rate === null && row_rate !== null && row_rate !== undefined) entry.current_rate = row_rate;
+  780:     if (
+  781:       entry.minimum_recoverable_rate === null &&
+  782:       row.minimum_recoverable_rate_per_hour !== null &&
+  783:       row.minimum_recoverable_rate_per_hour !== undefined
+  784:     ) {
+  785:       entry.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+  786:     }
+  787: 
+  788:     const child_net_profit =
+  789:       capacity_mode === "assumed"
+  790:         ? row.implied_net_profit ?? row.net_profit ?? 0
+  791:         : row.real_capacity_net_profit ?? row.net_profit ?? 0;
+  792:     const child_achieved_revenue =
+  793:       capacity_mode === "assumed"
+  794:         ? row.implied_revenue ?? row.modelled_revenue ?? 0
+  795:         : (row.true_cost ?? 0) + child_net_profit;
+  796:     const child_verdict = child_net_profit >= 0 ? "paying_its_way" : "being_carried";
+  797:     // Labour children get their own genuinely distinct, individually-
+  798:     // set rate (e.g. Owner/Director $120/hr vs Senior Operator $75/hr -
+  799:     // confirmed real, separately-set numbers). Asset children within a
+  800:     // co-deployed group (e.g. a pump + its tow vehicle) share ONE
+  801:     // blended group rate (current_rate is the same number on every
+  802:     // asset in that group) - the rate itself is real, just shared, not
+  803:     // independently set per asset. achieved_rate for assets is still
+  804:     // computed per-asset (own hours, own cost-share-allocated revenue),
+  805:     // same as labour - confirmed with user this session as an accepted
+  806:     // basis, matching the same allocation logic already used for the
+  807:     // group-level asset revenue split elsewhere in this codebase.
+  808:     const is_labour_row = Boolean(row.staff_type_id);
+  809:     const child_hours = row.hours ?? 0;
+  810:     const child_current_rate = row.charge_out_rate ?? row.blended_rate ?? null;
+  811: 
+  812:     entry.children.push({
+  813:       key: row.staff_type_id || row.asset_id,
+  814:       label: row.staff_type_name || row.asset_name,
+  815:       net_profit: child_net_profit,
+  816:       modelled_revenue: row.modelled_revenue ?? 0,
+  817:       achieved_revenue: child_achieved_revenue,
+  818:       available: row.available ?? true,
+  819:       unavailable_reason: row.unavailable_reason ?? null,
+  820:       verdict: child_verdict,
+  821:       verdict_label: child_verdict === "being_carried" ? "Being carried" : "Paying its way",
+  822:       is_labour: is_labour_row,
+  823:       total_cost: row.true_cost ?? 0,
+  824:       current_rate: child_current_rate,
+  825:       minimum_recoverable_rate: row.minimum_recoverable_rate_per_hour ?? null,
+  826:       achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,
+  827:       achieved_hours: child_current_rate > 0 ? child_achieved_revenue / child_current_rate : null,
+  828:       overhead_share: row.overhead_share ?? 0,
+  829:     });
+  830:   });
+  831: 
+  832:   if (view_b.materials) {
+  833:     const m = view_b.materials;
+  834:     const entry = get_or_create(m.group_id, m.group_name);
+  835:     entry.modelled_revenue += m.modelled_revenue ?? 0;
+  836:     entry.total_cost += m.true_cost ?? 0;
+  837:     entry.overhead_share += m.overhead_share ?? 0;
+  838:     entry.assumed_revenue += m.implied_revenue ?? m.modelled_revenue ?? 0;
+  839:     entry.assumed_net_profit += m.implied_net_profit ?? m.net_profit ?? 0;
+  840:     entry.current_rate = m.current_markup_percent ?? null;
+  841:     entry.minimum_recoverable_rate = m.minimum_recoverable_markup_percent ?? null;
+  842:   }
+  843: 
+  844:   const cascade_by_group_id = new Map(
+  845:     (view_b.real_capacity?.group_real_capacity || []).map((g) => [g.group_id, g])
+  846:   );
+  847: 
+  848:   return Array.from(by_group_id.values()).map((entry) => {
+  849:     const cascade_entry = cascade_by_group_id.get(entry.key);
+  850:     const group_recovery_hours = cascade_entry?.group_recovery_hours ?? 0;
+  851: 
+  852:     // FIX (2026-09-18): entry.total_cost above was summed from raw,
+  853:     // UNINJECTED row.true_cost - non-productive cost (e.g. Accountant's
+  854:     // distributed wage) was never included. Confirmed live: Foreman's
+  855:     // true cost shown here didn't match the real, already-correct
+  856:     // figure in real_capacity.group_real_capacity by exactly the
+  857:     // non-productive cost total. cascade_entry.true_cost IS correct
+  858:     // (this same lookup already correctly feeds group_recovery_hours
+  859:     // above) - use it here too. Falls back to the raw sum only if
+  860:     // genuinely unavailable (materials never receives a non-productive
+  861:     // share, so its raw sum is already correct either way).
+  862:     const true_cost = cascade_entry?.true_cost ?? entry.total_cost;
+  863: 
+  864:     // FIX (2026-09-18, second pass): entry.assumed_net_profit was still
+  865:     // using the old, uninjected figure (accumulated from row.implied_net_profit,
+  866:     // itself computed by apply_revenue_ceiling_v2 from raw, uninjected
+  867:     // true_cost - a completely separate mechanism never touched by the
+  868:     // non-productive fix). Recomputed directly from assumed_revenue
+  869:     // minus the now-corrected true_cost instead of trusting that field.
+  870:     const net_profit =
+
+=== REFS: export (function|const) (scaleAnnualValue|scalePeriodValue)  (path ~ .) ===
+components\business-summary\BusinessSummaryCardUtils.js:37: export function scaleAnnualValue(
+components\business-summary\BusinessSummaryCardUtils.js:65: export function scalePeriodValue(
+components\cost-summary\cost-summary-card\costSummaryFormatters.js:39: export function scaleAnnualValue(
+-- 3 hits
+
+=== REFS: net_annual_business_open_days|annual_open_weeks|net_annual_business_open_hours  (path ~ business-outcome|BusinessOutcome) ===
+hooks\useBusinessOutcomePerSourceRevenue.js:1283: net_annual_business_open_hours: to_number(bs.net_annual_business_open_hours),
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:378: net_annual_business_open_hours,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:653: net_annual_business_open_hours,
+components\business-outcome\BusinessOutcomeResultHero.jsx:24: net_annual_business_open_hours = 0,
+components\business-outcome\BusinessOutcomeResultHero.jsx:34: net_annual_business_open_hours
+components\business-outcome\BusinessOutcomeResultHero.jsx:39: net_annual_business_open_hours
+components\business-outcome\BusinessOutcomeResultHero.jsx:44: net_annual_business_open_hours
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2491: per_source.net_annual_business_open_hours
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2521: per_source.net_annual_business_open_hours
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2563: scaleAnnualValue(breakeven_revenue, time_scale, null, per_source.net_annual_business_open_hours)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2576: scaleAnnualValue(breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2586: scaleAnnualValue(-breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2809: <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2818: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2900: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2911: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2920: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2932: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2946: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2954: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2961: open_hours={per_source.net_annual_business_open_hours}
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2969: open_hours={per_source.net_annual_business_open_hours}
+-- 22 hits
+
+=== FILE: app\business-outcome\page.jsx (152 lines) - 1-152 ===
+    1: "use client";
+    2: import { useState } from "react";
+    3: 
+    4: import useBusinessOutcomeTruth from "@/hooks/useBusinessOutcomeTruth";
+    5: import useBusinessOutcomeLabourRecovery from "@/hooks/useBusinessOutcomeLabourRecovery";
+    6: import NextStepFooter from "@/components/navigation/NextStepFooter";
+    7: import BusinessOutcomeViewSwitcher from "@/components/navigation/BusinessOutcomeViewSwitcher";
+    8: import BusinessOutcomeTruthStatusStrip from "@/components/business-outcome-truth/BusinessOutcomeTruthStatusStrip";
+    9: 
+   10: import BusinessOutcomeTruthLabourRecoveryCard from "@/components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard";
+   11: import useBusinessOutcomeRevenueSplit from "@/hooks/useBusinessOutcomeRevenueSplit";
+   12: import BusinessOutcomeTruthRevenueSplitCard from "@/components/business-outcome-truth/BusinessOutcomeTruthRevenueSplitCard";
+   13: import useBusinessOutcomeWaterfall from "@/hooks/useBusinessOutcomeWaterfall";
+   14: import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
+   15: import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
+   16: import BusinessOutcomePerSourceRevenueCard from "@/components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard";
+   17: import { selectBusinessOutcomeWaterfall } from "@/lib/selectors/business-outcome/businessOutcomeWaterfallSelectors";
+   18: 
+   19: import BusinessOutcomeTruthWarningsPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel";
+   20: import BusinessOutcomeTruthHelpPanel from "@/components/business-outcome-truth/BusinessOutcomeTruthHelpPanel";
+   21: import BusinessOutcomeNetProfitBuildUp from "@/components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp";
+   22: import CollapsibleSection from "@/components/common/CollapsibleSection";
+   23: import useBalanceSheet from "@/hooks/useBalanceSheet";
+   24: import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";
+   25: import Link from "next/link";
+   26: import useAssets from "@/hooks/useAssets";
+   27: import { calculateFixedAssetsReconciliation } from "@/lib/calculations/balanceSheetCalculations";
+   28: import BusinessOutcomeEbitSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeEbitSummaryCard";
+   29: 
+   30: // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
+   31: // This is the new v5.0 truth-chain Business Outcome page, built on top of
+   32: // the Stage 2 useBusinessOutcomeTruth hook. It answers "is this business
+   33: // commercially viable?" using real revenue/COG/cost-burden data. It is
+   34: // distinct from, and does not share state with, the preserved
+   35: // Recovery & Rate Justification page at /recovery-outcome.
+   36: //
+   37: // STAGE 4 ADDITION (2026-08-11): added the labour recovery breakdown, via
+   38: // the separate useBusinessOutcomeLabourRecovery hook. This is additive only
+   39: // - it does not modify useBusinessOutcomeTruth.js or its output_contract.
+   40: // It compares real cost per labour source (Cost Allocation) against the
+   41: // real saved charge-out rate for that source (Rate Builder).
+   42: export default function BusinessOutcomePage() {
+   43:   const [smoothing_mode, set_smoothing_mode] = useState("smoothed");
+   44:   const [view_mode_ab, set_view_mode_ab] = useState("a");
+   45:   const { output_contract } = useBusinessOutcomeTruth();
+   46:   const labour_recovery = useBusinessOutcomeLabourRecovery();
+   47:   const revenue_split = useBusinessOutcomeRevenueSplit();
+   48:   const waterfall_calculation = useBusinessOutcomeWaterfall();
+   49:   const waterfall = selectBusinessOutcomeWaterfall(waterfall_calculation);
+   50:   const per_source_calculation = useBusinessOutcomePerSourceRevenue();
+   51:   const per_source = selectBusinessOutcomePerSourceRevenue(per_source_calculation);
+   52:   const { ratios: balance_sheet_ratios, has_data: has_balance_sheet_data, as_at_date: balance_sheet_as_at_date, accounts: balance_sheet_accounts } = useBalanceSheet();
+   53:   const balance_sheet_current_year_earnings = has_balance_sheet_data
+   54:     ? balance_sheet_accounts.find(
+   55:         (a) => String(a.account_name || "").trim().toLowerCase() === "current year earnings"
+   56:       )?.amount ?? null
+   57:     : null;
+   58:   const { active_assets } = useAssets();
+   59:   const total_asset_purchase_price = (active_assets || []).reduce(
+   60:     (sum, asset) => sum + (Number(asset.purchase_price) || 0),
+   61:     0
+   62:   );
+   63:   const fixed_assets_reconciliation = has_balance_sheet_data
+   64:     ? calculateFixedAssetsReconciliation({
+   65:         accounts: balance_sheet_accounts,
+   66:         total_purchase_price: total_asset_purchase_price,
+   67:       })
+   68:     : null;
+   69: 
+   70:   return (
+   71:     <div className="space-y-6 p-6">
+   72:       <div className="ui-panel ui-stack-sm">
+   73:         <div className="ui-kicker">Business Outcome</div>
+   74:         <div className="ui-display">Is your business actually working?</div>
+   75:       </div>
+   76:       <BusinessOutcomeViewSwitcher />
+   77:       <BusinessOutcomeTruthStatusStrip output_contract={output_contract} />
+   78:       <BusinessOutcomeTruthRevenueSplitCard revenue_split={revenue_split} />
+   79: 
+   80:       <div className="ui-panel">
+   81:         {has_balance_sheet_data ? (
+   82:           <>
+   83:             <p className="ui-help" style={{ marginTop: 0 }}>
+   84:               From your imported Balance Sheet, as at {balance_sheet_as_at_date || "unknown date"}.
+   85:             </p>
+   86:             <BalanceSheetRatiosCard ratios={balance_sheet_ratios} />
+   87:           </>
+   88:         ) : (
+   89:           <p className="ui-help" style={{ marginTop: 0 }}>
+   90:             Import a <Link href="/balance-sheet" className="ui-inline-link">Balance Sheet</Link> to see working
+   91:             capital and liquidity ratios alongside your revenue and profit numbers here.
+   92:           </p>
+   93:         )}
+   94:       </div>
+   95: 
+   96:       <div className="ui-panel">
+   97:         <BusinessOutcomeEbitSummaryCard
+   98:           real_capacity={per_source.real_capacity}
+   99:           materials={per_source.materials}
+  100:           unassigned={per_source.unassigned}
+  101:         />
+  102:       </div>
+  103:       <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.25rem" }}>
+  104:         <button
+  105:           type="button"
+  106:           className={`business-outcome-view-toggle-btn ${smoothing_mode === "smoothed" ? "active" : ""}`}
+  107:           onClick={() => set_smoothing_mode("smoothed")}
+  108:         >
+  109:           How the Business Runs
+  110:         </button>
+  111:         <button
+  112:           type="button"
+  113:           className={`business-outcome-view-toggle-btn ${smoothing_mode === "naive" ? "active" : ""}`}
+  114:           onClick={() => {
+  115:             // FIX (2026-09-17): Best Case only exists in View A - rather
+  116:             // than showing a disabled button or a fallback banner, just
+  117:             // assert View A directly when Best Case is selected. Closes
+  118:             // the "Best Case + View B" combination at the source instead
+  119:             // of only blocking one of the two paths into it.
+  120:             set_smoothing_mode("naive");
+  121:             if (view_mode_ab === "b") {
+  122:               set_view_mode_ab("a");
+  123:             }
+  124:           }}
+  125:         >
+  126:           Best Case (100% of Entered Rates & Hours)
+  127:         </button>
+  128:       </div>
+  129:       <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", margin: "0 0 0.75rem", lineHeight: "1.5" }}>
+  130:         <strong style={{ color: "var(--text-primary)" }}>How the Business Runs</strong> answers: is the business
+  131:         making money overall, and who&apos;s carrying who? <strong style={{ color: "var(--text-primary)" }}>Best
+  132:         Case (100% of Entered Rates & Hours)</strong> answers: what would happen if every part achieved 100% of
+  133:         the rates and hours you&apos;ve entered, with no cap to real revenue and no help from anywhere else.
+  134:       </p>
+  135: 
+  136:       <BusinessOutcomePerSourceRevenueCard
+  137:         per_source={per_source}
+  138:         output_contract={output_contract}
+  139:         labour_recovery={labour_recovery}
+  140:         smoothing_mode={smoothing_mode}
+  141:         set_smoothing_mode={set_smoothing_mode}
+  142:         view_mode_ab={view_mode_ab}
+  143:         set_view_mode_ab={set_view_mode_ab}
+  144:         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
+  145:         fixed_assets_reconciliation={fixed_assets_reconciliation}
+  146:         balance_sheet_working_capital={has_balance_sheet_data ? balance_sheet_ratios?.working_capital : null}
+  147:       />
+  148:       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
+  149:     </div>
+  150:   );
+  151: }
+  152: 
+
+=== FILE: components\navigation\BusinessOutcomeViewSwitcher.jsx (44 lines) - 1-44 ===
+    1: "use client";
+    2: 
+    3: import Link from "next/link";
+    4: import { usePathname } from "next/navigation";
+    5: 
+    6: const views = [
+    7:   {
+    8:     href: "/business-outcome",
+    9:     label: "Business Outcome",
+   10:     description: "Is the business commercially viable? (revenue, COGS, margin, cost burden)",
+   11:   },
+   12:   {
+   13:     href: "/recovery-outcome",
+   14:     label: "Recovery & Rate Justification",
+   15:     description: "What rate do we need to charge? (labour/asset recovery, rate build-up)",
+   16:   },
+   17: ];
+   18: 
+   19: export default function BusinessOutcomeViewSwitcher() {
+   20:   const pathname = usePathname();
+   21: 
+   22:   return (
+   23:     <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-card)] p-2 flex gap-2">
+   24:       {views.map((view) => {
+   25:         const is_active = pathname === view.href;
+   26: 
+   27:         return (
+   28:           <Link
+   29:             key={view.href}
+   30:             href={view.href}
+   31:             className={`flex-1 rounded-md px-4 py-2 text-sm transition-colors ${
+   32:               is_active
+   33:                 ? "bg-[var(--info)] text-white font-semibold"
+   34:                 : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+   35:             }`}
+   36:             title={view.description}
+   37:           >
+   38:             {view.label}
+   39:           </Link>
+   40:         );
+   41:       })}
+   42:     </div>
+   43:   );
+   44: }
+
+=== FILE: hooks\useGeneralOverheads.js (366 lines) - 50-72 ===
+   50:   // (for asset_overhead_pools). Going through useAssets here would create
+   51:   // a circular hook dependency. Reading storage directly breaks that
+   52:   // cycle: this pulls the same saved asset records Assets itself reads,
+   53:   // with no dependency on Assets' calculated output.
+   54:   const { saved_assets, has_hydrated: assets_has_hydrated } =
+   55:     useAssetStorage();
+   56: 
+   57:   const assets_finance_interest_total = useMemo(() => {
+   58:     if (!assets_has_hydrated) {
+   59:       return 0;
+   60:     }
+   61: 
+   62:     return (saved_assets ?? [])
+   63:       .filter((asset) => !asset.is_retired)
+   64:       .reduce(
+   65:         (sum, asset) =>
+   66:           sum + Number(asset.asset_interest_annual ?? asset.interest_annual ?? 0),
+   67:         0
+   68:       );
+   69:   }, [saved_assets, assets_has_hydrated]);
+   70: 
+   71:   const pnl_output_contract = useMemo(() => {
+   72:     return calculateProfitAndLoss(profit_and_loss_state);
+
+=== FILE: hooks\general-overheads\generalOverheadOutputContract.js (70 lines) - 15-50 ===
+   15:     calculated.overhead_rows,
+   16:     overhead_state
+   17:   );
+   18: 
+   19:   // A flagged row is now expected to carry a partial, nonzero
+   20:   // active_amount (P&L amount minus the Assets module's confirmed real
+   21:   // finance-interest amount) - that is the correct, intended behaviour,
+   22:   // not a duplication problem. The genuine data-quality issue to watch
+   23:   // for instead is: Assets claiming MORE finance interest exists than
+   24:   // the flagged P&L line(s) even show in total. That would mean Assets
+   25:   // has asset finance entries that aren't reflected in the P&L at all.
+   26:   const flagged_pnl_total = calculated.overhead_rows
+   27:     .filter((row) => row.is_asset_finance_interest === true)
+   28:     .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+   29: 
+   30:   const has_asset_finance_interest_duplication =
+   31:     Number(calculated.assets_finance_interest_total ?? 0) >
+   32:     flagged_pnl_total + 0.01;
+   33: 
+   34:   return {
+   35:     total_general_overheads: calculated.total_general_overheads,
+   36:     category_totals,
+   37:     general_overheads_ready:
+   38:       Number.isFinite(Number(calculated.total_general_overheads)) &&
+   39:       category_totals.length > 0 &&
+   40:       !has_asset_finance_interest_duplication,
+   41:     non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
+   42:     overhead_rows: allocation_outputs.allocation_rows,
+   43:     synced_pnl_overhead_items: overhead_state.synced_pnl_overhead_items ?? [],
+   44:     imported_pnl_overhead_rows: allocation_outputs.allocation_rows.filter(
+   45:       (row) => row.is_synced_from_pnl
+   46:     ),
+   47:     asset_overhead_pools: allocation_outputs.asset_overhead_pools,
+   48:     total_asset_overhead_pool_amount:
+   49:       allocation_outputs.total_asset_overhead_pool_amount,
+   50:     asset_related_pool_total:
+
+=== REFS: non_asset_interest_annual|has_asset_finance_interest_duplication|asset_finance_interest_matched  (path ~ .) ===
+hooks\general-overheads\generalOverheadOutputContract.js:30: const has_asset_finance_interest_duplication =
+hooks\general-overheads\generalOverheadOutputContract.js:40: !has_asset_finance_interest_duplication,
+hooks\general-overheads\generalOverheadOutputContract.js:41: non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
+lib\calculations\generalOverheadCalculations.js:253: const non_asset_interest_annual = overhead_rows.reduce((sum, row) => {
+lib\calculations\generalOverheadCalculations.js:264: non_asset_interest_annual,
+-- 5 hits

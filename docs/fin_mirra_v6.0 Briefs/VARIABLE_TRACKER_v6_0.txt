@@ -179,7 +179,15 @@ VERIFIED: contract totals recomputed by hand and matched on screen; see brief s4
 5. MATERIALS - STAGE BY STAGE
 ===============================================================================
 
--- Not yet started. Path not yet confirmed - see Section 1 note. --
+PARTIAL (2026-09-23, Business Outcome pass): Business Outcome reads total COGS
+and the Rate Builder materials markup (Path C) inside
+hooks/useBusinessOutcomePerSourceRevenue.js. View A: materials revenue = real
+revenue less labour and asset modelled revenue (residual). View B: materials
+is a peer, revenue = COGS x (1 + markup), true cost = COGS + any positive
+residual overhead (build_materials_source, businessOutcomeViewBCalculations.js).
+Materials true cost equalled the P&L cost-of-sales total exactly (see Business
+Outcome brief). Hop from Revenue/COGS and the Path C markup read: NOT traced -
+Business Outcome brief F6.
 
 ===============================================================================
 6. COST ALLOCATION - OVERHEAD DISTRIBUTION (the hinge - see kickoff doc)
@@ -557,7 +565,8 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
   flagged - P&L one unconfirmed, others outside the chain. check_field_parity.py
   flattens row-level fields into top-level results.
 - Hours/units coverage: Assets is hours-native and does not read business_type.
-- Test data: which assets are the synthetic additions is not yet confirmed.
+- Test data: CONFIRMED 2026-09-23 (Business Outcome pass) - synthetic assets are
+  PC15 and 2inc Line Pump 2. Mini Truck is real; reclassified to support.
 
 ===============================================================================
 14. COST ALLOCATION GAPS / OPEN QUESTIONS (P2.5, 2026-09-23) - full register C1-C24 in the Cost Allocation brief
@@ -596,7 +605,7 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
   check_field_parity compared calculation_inputs, not the contract.
 - Hours/units: passthrough only; group_cost_per_unit hard-coded 0.
 - Business Outcome file map not changed by this pass.
-- Test data: synthetic strip-or-carry decision due at this close-out (kickoff s3).
+- Test data: strip-or-carry DECIDED at this close-out - carry (commit 1e5009f).
 
 ===============================================================================
 15. RECOVERY SUMMARY - A11 FIX (2026-09-23) - record in A11_RecoverySummary_v6_0_BRIEF_VERIFIED_2026-09-23.txt
@@ -795,3 +804,77 @@ NOTES: none exists. Rate Builder reads no readiness / trust field.
   test-data decision (H7).
 - Hours/units: hours-native; business_type not read.
 - Business Outcome file map not changed by this pass.
+
+===============================================================================
+20. BUSINESS OUTCOME (2026-09-23) - record in BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt
+===============================================================================
+STATUS: core chain verified live 2026-09-23 (commits ab7d721, b668bbd).
+  Display follow-ups open (brief s6).
+
+STAGE: Labour sources
+FIELD NAMES: labour_sources[] - hours (revenue hours), direct_cost,
+  overhead_share, true_cost, charge_out_rate, modelled_revenue,
+  minimum_recoverable_rate_per_hour (group rate, BO-3)
+FILE / FUNCTION: hooks/useBusinessOutcomePerSourceRevenue.js build_labour_sources
+INPUTS: Cost Allocation operational_group_cost_rows[].labour_group_assignments
+  (assigned_cost, assigned_hours), assigned_overhead_amount; Rate Builder saved
+  charge rates via useBusinessOutcomeLabourRecovery (keyed staff_type_id).
+NOTES: one row per (group, staff type). Group overhead split labour/asset by
+  cost share, then by hours share. Revenue hours: labour-driven group = own
+  hours; asset-driven = covered hours x hours share.
+
+STAGE: Asset sources
+FIELD NAMES: asset_sources[] - blended_rate, modelled_revenue, direct_cost,
+  overhead_share, true_cost
+FILE / FUNCTION: build_asset_sources (same hook); get_group_blended_rate
+  (calculator keyed linked_cost_allocation_group_id)
+NOTES: revenue = blended rate x covered hours, shared by asset direct-cost share.
+
+STAGE: Covered hours (BO-6)
+FIELD NAMES: get_group_covered_hours(group);
+  group_real_capacity[].group_recovery_hours (now covered hours)
+NOTES: asset-driven = min(seat hours, sum of assigned labour hours); zero
+  labour = zero revenue. Business Modelling lever calculations read
+  group_real_capacity hours, so they follow automatically.
+
+STAGE: Non-productive distribution and cascades
+FIELD NAMES: non_productive_cost_distributed_total, pure_support_groups,
+  real_capacity.group_real_capacity[] (true_cost, non_productive_cost,
+  naive_net_profit, final_net_profit), view_b.real_capacity,
+  headline_real_capacity, view_b_headline_real_capacity
+FILE / FUNCTION: distribute_non_productive_cost, apply_real_capacity (hook);
+  apply_real_capacity_v2 (businessOutcomeViewBCalculations.js); selector builds
+  headlines.
+FEEDS INTO: Business Modelling (per_source: headline_real_capacity,
+  view_b_headline_real_capacity, group_real_capacity).
+NOTES: injected true cost lives ONLY in group_real_capacity; source rows keep
+  uninjected cost (BO-1). all_sources[] has no total_cost. Headline = real
+  revenue less total true cost less unassigned, both views.
+
+STAGE: Capacity coverage gap
+FIELD NAMES: capacity_coverage_gap[] (gap_type, gap_hours, gap_dollar_value),
+  labour_coverage_gaps
+NOTES: revenue_at_risk now means revenue NOT earned (excluded by BO-6), valued
+  at asset blended rate + assigned labour weighted charge rate.
+
+STAGE: Readiness
+NOTES: per-source hook reads no readiness field; useBusinessOutcomeTruth gates on
+  revenue_cogs_ready, cost_summary_ready, business_summary_ready only.
+HOURS/UNITS AWARE: hours-native throughout; business_type not read.
+
+===============================================================================
+21. BUSINESS OUTCOME GAPS (2026-09-23) - full register BO-1..BO-10 in the brief
+===============================================================================
+- FIXED: BO-6 covered-hours cap (calculation + wording).
+- OPEN display: BO-1 stale cost columns; BO-3 label "Group minimum rate";
+  BO-4 dead waterfall computation; S-H2 day / week scaling.
+- OPEN design: BO-2 Labour Recovery card overhead basis; unattended /
+  dry-hire exemption; concurrent attendance; S28 per-asset linking.
+- LATENT: BO-8 gap valuation ignores Business Modelling overrides.
+- QUESTION: BO-9 View B minimum markup source.
+- CLOSED: H1, H2 (handled), H4, H6/S-G1 (BO-7 explains the interest excess),
+  H7 (carry, 1e5009f).
+- Test data: PC15 and 2inc Line Pump 2 synthetic; Accountant assumed synthetic;
+  Mini Truck reclassified to support. Breakeven revenue still loaded (drop in
+  follow-up F5).
+- Business Outcome file map updated by this pass (gotcha #5, BO-6).

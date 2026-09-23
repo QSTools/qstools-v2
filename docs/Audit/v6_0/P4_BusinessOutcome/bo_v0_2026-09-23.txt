@@ -1,0 +1,393 @@
+=== GIT STATUS ===
+
+
+=== GIT LOG ===
+2016512 docs(v6.0): Rate Builder brief [VERIFIED 2026-09-23, code-traced] (folds v4/v5 sources, RB-1..17, hand-offs H1-H7); tracker s18-19; kickoff step 7 done, next Business Outcome
+9d2a83a docs(v6.0): P2.6 Summaries brief [VERIFIED 2026-09-23] (folds A11 record); tracker s15-17; kickoff step 6 done, s3 test-data correction, next step Rate Builder
+51e2e08 fix(cost-summary): F18 business_recovery_hours = total productive person-hours (was one average person); Recovery Summary labour rate now per person-hour
+13f3c58 fix(business-summary): P&L bridge overhead line adds back running costs moved to Assets; signed proof rows; other classification differences line so proof closes
+e517b39 fix(business-summary): A11 asset groups use full burden; hour view and Open-Hour Reality on open hours (F18); per day / per week use open days and open weeks
+47ca86d feat(opening-hours, cost-summary): per day / per week use open days and open weeks (net_annual_business_open_days)
+91c6350 fix(recovery-summary): A11 full productive asset burden (own + assigned pools) for rate, asset stream and split basis; return asset_recovery_status (R1). Docs: A11 record, Assets, Cost Allocation, variable tracker, kickoff s2 step 6.
+dd926d4 fix(recovery-summary): A11 full productive asset burden (own + assigned pools) for rate, asset stream and split basis; return asset_recovery_status (R1). Briefs: A11 record, Assets, Cost Allocation, variable tracker.
+1e5009f docs(v6.0): P2.5 record strip-or-carry decision (carry; empty groups removed)
+ffe1735 docs(v6.0): P2.5 Cost Allocation brief [VERIFIED 2026-09-23]; tracker s6 + s14
+
+=== S-G1 FILE: lib\calculations\generalOverheadCalculations.js (268 lines) - lines 195-260 ===
+  195:       source_pnl_line_id: item.source_pnl_line_id || "",
+  196:       source_line_name: item.source_line_name || "",
+  197:       source_review_subcategory: item.source_review_subcategory || "",
+  198:       source_category: item.source_category || "",
+  199:       interest_treatment: item.interest_treatment || "",
+  200:       contains_asset_finance_interest:
+  201:         item.contains_asset_finance_interest === true,
+  202:     })
+  203:   );
+  204: 
+  205:   const all_rows = [...fixed_rows, ...synced_pnl_rows, ...custom_rows].map(
+  206:     (row) => ({
+  207:       ...row,
+  208:       is_asset_finance_interest: is_asset_finance_interest_row(row),
+  209:     })
+  210:   );
+  211: 
+  212:   // Rows flagged "contains asset finance interest" get the Assets module's
+  213:   // real, confirmed finance-interest amount subtracted from the P&L amount -
+  214:   // not zeroed, and not left untouched. If there is ever more than one
+  215:   // flagged row at once, the Assets total is split across them in
+  216:   // proportion to each row's own P&L amount. With a single flagged row
+  217:   // (the normal case) this is identical to subtracting the full Assets
+  218:   // total from that one row.
+  219:   const flagged_rows_total = all_rows
+  220:     .filter((row) => row.is_asset_finance_interest)
+  221:     .reduce((sum, row) => sum + to_number(row.amount), 0);
+  222: 
+  223:   const safe_assets_finance_interest_total = Math.max(
+  224:     to_number(assets_finance_interest_total),
+  225:     0
+  226:   );
+  227: 
+  228:   const overhead_rows = all_rows.map((row) => {
+  229:     if (!row.is_asset_finance_interest) {
+  230:       return {
+  231:         ...row,
+  232:         active_amount: to_number(row.amount),
+  233:       };
+  234:     }
+  235: 
+  236:     const row_amount = to_number(row.amount);
+  237:     const row_share_of_assets_total =
+  238:       flagged_rows_total > 0
+  239:         ? (row_amount / flagged_rows_total) * safe_assets_finance_interest_total
+  240:         : 0;
+  241: 
+  242:     return {
+  243:       ...row,
+  244:       active_amount: Math.max(row_amount - row_share_of_assets_total, 0),
+  245:     };
+  246:   });
+  247: 
+  248:   const total_general_overheads = overhead_rows.reduce(
+  249:     (sum, row) => sum + to_number(row.active_amount),
+  250:     0
+  251:   );
+  252: 
+  253:   const non_asset_interest_annual = overhead_rows.reduce((sum, row) => {
+  254:     if (!is_interest_row(row) || is_asset_finance_interest_row(row)) {
+  255:       return sum;
+  256:     }
+  257: 
+  258:     return sum + to_number(row.active_amount);
+  259:   }, 0);
+  260: 
+
+=== REFS: interest  (path ~ general-overheads|generalOverhead) ===
+hooks\general-overheads\generalOverheadOutputContract.js:21: // finance-interest amount) - that is the correct, intended behaviour,
+hooks\general-overheads\generalOverheadOutputContract.js:23: // for instead is: Assets claiming MORE finance interest exists than
+hooks\general-overheads\generalOverheadOutputContract.js:27: .filter((row) => row.is_asset_finance_interest === true)
+hooks\general-overheads\generalOverheadOutputContract.js:30: const has_asset_finance_interest_duplication =
+hooks\general-overheads\generalOverheadOutputContract.js:31: Number(calculated.assets_finance_interest_total ?? 0) >
+hooks\general-overheads\generalOverheadOutputContract.js:40: !has_asset_finance_interest_duplication,
+hooks\general-overheads\generalOverheadOutputContract.js:41: non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
+hooks\general-overheads\generalOverheadPnlSync.js:36: function is_interest_line(line) {
+hooks\general-overheads\generalOverheadPnlSync.js:37: return normalise_name(line?.line_name).includes("interest");
+hooks\general-overheads\generalOverheadPnlSync.js:40: function normalise_interest_treatment(value) {
+hooks\general-overheads\generalOverheadPnlSync.js:43: return "contains_asset_finance_interest";
+hooks\general-overheads\generalOverheadPnlSync.js:45: return "no_asset_finance_interest";
+hooks\general-overheads\generalOverheadPnlSync.js:57: function create_synced_interest_item(line, amount, index) {
+hooks\general-overheads\generalOverheadPnlSync.js:58: const interest_treatment = normalise_interest_treatment(
+hooks\general-overheads\generalOverheadPnlSync.js:59: line?.interest_treatment
+hooks\general-overheads\generalOverheadPnlSync.js:65: synced_overhead_id: `pnl-interest-${source_id}`,
+hooks\general-overheads\generalOverheadPnlSync.js:66: synced_overhead_name: line?.line_name || "P&L Interest",
+hooks\general-overheads\generalOverheadPnlSync.js:73: overhead_category_key: "finance_interest",
+hooks\general-overheads\generalOverheadPnlSync.js:74: interest_treatment,
+hooks\general-overheads\generalOverheadPnlSync.js:75: contains_asset_finance_interest:
+hooks\general-overheads\generalOverheadPnlSync.js:76: interest_treatment === "contains_asset_finance_interest",
+hooks\general-overheads\generalOverheadPnlSync.js:91: case "finance_interest":
+hooks\general-overheads\generalOverheadPnlSync.js:92: return "finance_interest";
+hooks\general-overheads\generalOverheadPnlSync.js:210: if (is_interest_line(line)) {
+hooks\general-overheads\generalOverheadPnlSync.js:211: return create_synced_interest_item(line, amount, index);
+hooks\general-overheads\generalOverheadPnlSync.js:228: interest_treatment: "",
+hooks\general-overheads\generalOverheadPnlSync.js:229: contains_asset_finance_interest: false,
+hooks\general-overheads\generalOverheadPnlSync.js:249: interest_treatment: line?.interest_treatment || "",
+hooks\useGeneralOverheads.js:57: const assets_finance_interest_total = useMemo(() => {
+hooks\useGeneralOverheads.js:66: sum + Number(asset.asset_interest_annual ?? asset.interest_annual ?? 0),
+hooks\useGeneralOverheads.js:126: assets_finance_interest_total
+hooks\useGeneralOverheads.js:128: }, [overhead_state, assets_finance_interest_total]);
+lib\calculations\generalOverheadCalculations.js:6: function is_asset_finance_interest_row(row = {}) {
+lib\calculations\generalOverheadCalculations.js:8: row.contains_asset_finance_interest === true ||
+lib\calculations\generalOverheadCalculations.js:9: row.interest_treatment === "contains_asset_finance_interest"
+lib\calculations\generalOverheadCalculations.js:13: function is_interest_row(row = {}) {
+lib\calculations\generalOverheadCalculations.js:15: row.overhead_category_key === "finance_interest" ||
+lib\calculations\generalOverheadCalculations.js:16: String(row.label || "").toLowerCase().includes("interest") ||
+lib\calculations\generalOverheadCalculations.js:17: String(row.source_line_name || "").toLowerCase().includes("interest")
+lib\calculations\generalOverheadCalculations.js:23: assets_finance_interest_total = 0
+lib\calculations\generalOverheadCalculations.js:107: key: "finance_interest_cost",
+lib\calculations\generalOverheadCalculations.js:108: label: "Finance / Interest",
+lib\calculations\generalOverheadCalculations.js:109: amount: to_number(overhead_state.finance_interest_cost),
+lib\calculations\generalOverheadCalculations.js:181: interest_treatment: item.interest_treatment || "",
+lib\calculations\generalOverheadCalculations.js:182: contains_asset_finance_interest:
+lib\calculations\generalOverheadCalculations.js:183: item.contains_asset_finance_interest === true,
+lib\calculations\generalOverheadCalculations.js:199: interest_treatment: item.interest_treatment || "",
+lib\calculations\generalOverheadCalculations.js:200: contains_asset_finance_interest:
+lib\calculations\generalOverheadCalculations.js:201: item.contains_asset_finance_interest === true,
+lib\calculations\generalOverheadCalculations.js:208: is_asset_finance_interest: is_asset_finance_interest_row(row),
+lib\calculations\generalOverheadCalculations.js:212: // Rows flagged "contains asset finance interest" get the Assets module's
+lib\calculations\generalOverheadCalculations.js:213: // real, confirmed finance-interest amount subtracted from the P&L amount -
+lib\calculations\generalOverheadCalculations.js:220: .filter((row) => row.is_asset_finance_interest)
+lib\calculations\generalOverheadCalculations.js:223: const safe_assets_finance_interest_total = Math.max(
+lib\calculations\generalOverheadCalculations.js:224: to_number(assets_finance_interest_total),
+lib\calculations\generalOverheadCalculations.js:229: if (!row.is_asset_finance_interest) {
+lib\calculations\generalOverheadCalculations.js:239: ? (row_amount / flagged_rows_total) * safe_assets_finance_interest_total
+lib\calculations\generalOverheadCalculations.js:253: const non_asset_interest_annual = overhead_rows.reduce((sum, row) => {
+lib\calculations\generalOverheadCalculations.js:254: if (!is_interest_row(row) || is_asset_finance_interest_row(row)) {
+lib\calculations\generalOverheadCalculations.js:264: non_asset_interest_annual,
+lib\calculations\generalOverheadCalculations.js:266: assets_finance_interest_total: safe_assets_finance_interest_total,
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:36: if (row.is_asset_finance_interest) {
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:37: return "asset_finance_interest";
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:109: if (category_key === "finance_interest") {
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:115: return "asset_finance_interest";
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:202: // Use the row's net/active amount (post asset-finance-interest exclusion)
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:338: // asset finance interest has already had the Assets module's matched
+lib\selectors\general-overheads\generalOverheadAllocationSelectors.js:339: // finance-interest portion subtracted in active_amount. The category
+lib\selectors\general-overheads\generalOverheadDefinitions.js:4: { key: "finance_interest", label: "Finance / Interest" },
+lib\selectors\general-overheads\generalOverheadDefinitions.js:23: finance_interest_cost: "finance_interest",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:75: category_key: "finance_interest",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:76: parent_key: "finance_interest_cost",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:143: finance_interest: {
+lib\selectors\general-overheads\generalOverheadDefinitions.js:144: parent_key: "finance_interest_cost",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:147: key: "finance_interest_split_asset_finance_portion",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:149: system_allocation_type: "asset_finance_interest",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:154: key: "finance_interest_split_business_finance_balance",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:183: { key: "asset_finance_interest", label: "Asset finance / interest" },
+lib\selectors\general-overheads\generalOverheadDefinitions.js:201: asset_finance_interest: "asset_finance_interest_pool",
+lib\selectors\general-overheads\generalOverheadDefinitions.js:212: asset_finance_interest_pool: "Asset finance / interest pool",
+lib\storage\generalOverheadStorage.js:39: finance_interest_cost: 0,
+components\general-overheads\GeneralOverheadReclassificationSection.jsx:20: case "finance_interest":
+components\general-overheads\GeneralOverheadReclassificationSection.jsx:21: return "Finance / Interest stays in General Overheads unless it includes asset finance. Enter only the asset finance portion that relates to vehicles, plant, equipment, or financed assets. The remaining balance stays as business finance overhead.";
+components\general-overheads\GeneralOverheadSummaryCard.jsx:13: function get_interest_treatment_label(row) {
+components\general-overheads\GeneralOverheadSummaryCard.jsx:14: switch (row?.interest_treatment) {
+components\general-overheads\GeneralOverheadSummaryCard.jsx:15: case "contains_asset_finance_interest":
+components\general-overheads\GeneralOverheadSummaryCard.jsx:16: return "Contains asset finance interest";
+components\general-overheads\GeneralOverheadSummaryCard.jsx:17: case "no_asset_finance_interest":
+components\general-overheads\GeneralOverheadSummaryCard.jsx:18: return "Does not contain asset finance interest";
+components\general-overheads\GeneralOverheadSummaryCard.jsx:20: return "Interest not reviewed";
+components\general-overheads\GeneralOverheadSummaryCard.jsx:27: const interest_treatment_label = get_interest_treatment_label(row);
+components\general-overheads\GeneralOverheadSummaryCard.jsx:38: {interest_treatment_label ? (
+components\general-overheads\GeneralOverheadSummaryCard.jsx:39: <div className="ui-help">{interest_treatment_label}</div>
+components\general-overheads\GeneralOverheadSummaryCard.jsx:118: Asset finance / interest lines are excluded from this total when
+components\general-overheads\GeneralOverheadSummaryCard.jsx:120: finance / interest cost in Model Readiness.
+components\general-overheads\GeneralOverheadSummaryCard.jsx:130: asset finance / interest amount has been removed from General
+-- 96 hits
+
+=== REFS: readRateBuilderLabourSourceRates|qstools_rate_builder_labour_source_rates_v1  (path ~ .) ===
+hooks\rate-builder\useRateBuilderLabourRates.js:47: import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
+hooks\rate-builder\useRateBuilderLabourRates.js:75: const saved_labour_source_rates = readRateBuilderLabourSourceRates();
+hooks\useBusinessOutcomeLabourRecovery.js:8: import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
+hooks\useBusinessOutcomeLabourRecovery.js:180: set_charge_out_rates(readRateBuilderLabourSourceRates());
+lib\actions\rate-builder\rateBuilderLabourRateModelActions.js:12: readRateBuilderLabourSourceRates,
+lib\actions\rate-builder\rateBuilderLabourRateModelActions.js:209: saved_labour_source_rates: readRateBuilderLabourSourceRates(),
+lib\storage\rateBuilderLabourSourceRatesStorage.js:2: "qstools_rate_builder_labour_source_rates_v1";
+lib\storage\rateBuilderLabourSourceRatesStorage.js:21: export function readRateBuilderLabourSourceRates() {
+lib\storage\rateBuilderLabourSourceRatesStorage.js:78: const existing_rates = readRateBuilderLabourSourceRates();
+lib\storage\rateBuilderLabourSourceRatesStorage.js:91: const existing_rates = readRateBuilderLabourSourceRates();
+-- 10 hits
+
+=== REFS: qs_tools_rate_builder_calculators_v1|linked_cost_allocation_group_id  (path ~ business-outcome|BusinessOutcome|rateBuilderStorage) ===
+hooks\useBusinessOutcomePerSourceRevenue.js:73: (calc) => calc?.linked_cost_allocation_group_id === group.group_id
+lib\calculations\businessOutcomeAssetSplitCalculations.js:113: (calc) => calc?.linked_cost_allocation_group_id === groupId
+lib\storage\rateBuilderStorage.js:1: const RATE_BUILDER_STORAGE_KEY = "qs_tools_rate_builder_calculators_v1";
+-- 3 hits
+
+=== REFS: minimum_recoverable_rate_per_hour|mixed_unit_non_productive_policy|charge_to_self  (path ~ business-outcome|BusinessOutcome) ===
+hooks\useBusinessOutcomePerSourceRevenue.js:126: const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
+hooks\useBusinessOutcomePerSourceRevenue.js:231: minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
+hooks\useBusinessOutcomePerSourceRevenue.js:267: const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
+hooks\useBusinessOutcomePerSourceRevenue.js:379: minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(agg.group_id) ?? null,
+hooks\useBusinessOutcomePerSourceRevenue.js:656: //   "charge_to_self" (default) or "spread_as_overhead".
+hooks\useBusinessOutcomePerSourceRevenue.js:715: // Mixed unit, charge_to_self policy.
+hooks\useBusinessOutcomePerSourceRevenue.js:976: const [mixed_unit_non_productive_policy, set_mixed_unit_non_productive_policy] = useState("charge_to_self");
+hooks\useBusinessOutcomePerSourceRevenue.js:978: set_mixed_unit_non_productive_policy(
+hooks\useBusinessOutcomePerSourceRevenue.js:979: readNonProductiveCostPolicy().mixed_unit_non_productive_policy
+hooks\useBusinessOutcomePerSourceRevenue.js:1030: mixed_unit_non_productive_policy
+hooks\useBusinessOutcomePerSourceRevenue.js:1361: }, [operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows, bs, allocation_contract, materials_markup_percent, overrides, mixed_unit_non_productive_policy]);
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:70: if (group.minimum_recoverable_rate === null && row.minimum_recoverable_rate_per_hour !== null && row.minimum_recoverable_rate_per_hour !== undefined) group.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:280: minimum_recoverable_rate: s.minimum_recoverable_rate_per_hour ?? null,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:319: minimum_recoverable_rate: a.minimum_recoverable_rate_per_hour ?? null,
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:12: //   "charge_to_self" (default) - that unit's own rate must cover it.
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:16: //     Confirmed needed because charge_to_self can push one person's
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:26: mixed_unit_non_productive_policy: "charge_to_self",
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:44: const policy = parsed.mixed_unit_non_productive_policy;
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:46: mixed_unit_non_productive_policy:
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:47: policy === "spread_as_overhead" ? "spread_as_overhead" : "charge_to_self",
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:54: export function writeNonProductiveCostPolicy(mixed_unit_non_productive_policy) {
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:62: mixed_unit_non_productive_policy:
+lib\storage\businessOutcomeNonProductivePolicyStorage.js:63: mixed_unit_non_productive_policy === "spread_as_overhead" ? "spread_as_overhead" : "charge_to_self",
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:782: row.minimum_recoverable_rate_per_hour !== null &&
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:783: row.minimum_recoverable_rate_per_hour !== undefined
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:785: entry.minimum_recoverable_rate = row.minimum_recoverable_rate_per_hour;
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:825: minimum_recoverable_rate: row.minimum_recoverable_rate_per_hour ?? null,
+-- 27 hits
+
+=== REFS: all_productive|rate_builder_labour_recovery_rows|labour_share_percent  (path ~ business-outcome|BusinessOutcome) ===
+hooks\useBusinessOutcomeLabourRecovery.js:19: function build_overhead_rate_map(rate_builder_labour_recovery_rows = []) {
+hooks\useBusinessOutcomeLabourRecovery.js:22: rate_builder_labour_recovery_rows.forEach((row) => {
+hooks\useBusinessOutcomeLabourRecovery.js:186: const rate_builder_labour_recovery_rows =
+hooks\useBusinessOutcomeLabourRecovery.js:187: cost_allocation?.output_contract?.rate_builder_labour_recovery_rows ?? [];
+hooks\useBusinessOutcomeLabourRecovery.js:190: return build_overhead_rate_map(rate_builder_labour_recovery_rows);
+hooks\useBusinessOutcomeLabourRecovery.js:191: }, [rate_builder_labour_recovery_rows]);
+-- 6 hits
+
+=== REFS: cost_allocation_ready|model_trust_state|model_readiness|recovery_summary_ready|_ready\b  (path ~ business-outcome|BusinessOutcome) ===
+hooks\useBusinessOutcome.js:86: recoverySummaryTrustState: recovery.model_trust_state || 'blocked',
+hooks\useBusinessOutcomeLabourRecovery.js:60: ? "not_ready"
+hooks\useBusinessOutcomeLabourRecovery.js:93: (row) => row.recovery_status !== "not_ready"
+hooks\useBusinessOutcomeLabourRecovery.js:207: (row) => row.recovery_status === "not_ready"
+hooks\useBusinessOutcomeRevenueSplit.js:34: const is_ready = total_revenue > 0;
+hooks\useBusinessOutcomeRevenueSplit.js:47: is_ready &&
+hooks\useBusinessOutcomeRevenueSplit.js:66: is_ready,
+hooks\useBusinessOutcomeTruth.js:27: // opening_hours, model_readiness } to produce real figures (see how
+hooks\useBusinessOutcomeTruth.js:73: "downstream_ready",
+hooks\useBusinessOutcomeTruth.js:94: const revenue_cogs_ready = rc.revenue_cogs_ready === true;
+hooks\useBusinessOutcomeTruth.js:95: const cost_summary_ready = bs.cost_summary_ready === true;
+hooks\useBusinessOutcomeTruth.js:96: const business_summary_ready = bs.business_summary_ready === true;
+hooks\useBusinessOutcomeTruth.js:98: const all_sources_ready =
+hooks\useBusinessOutcomeTruth.js:99: revenue_cogs_ready && cost_summary_ready && business_summary_ready;
+hooks\useBusinessOutcomeTruth.js:101: const data_status = all_sources_ready
+hooks\useBusinessOutcomeTruth.js:103: : revenue_cogs_ready || cost_summary_ready || business_summary_ready
+hooks\useBusinessOutcomeTruth.js:137: const cost_absorption_status = !all_sources_ready
+hooks\useBusinessOutcomeTruth.js:157: if (!revenue_cogs_ready) {
+hooks\useBusinessOutcomeTruth.js:160: if (!cost_summary_ready) {
+hooks\useBusinessOutcomeTruth.js:163: if (!business_summary_ready) {
+hooks\useBusinessOutcomeTruth.js:172: const downstream_ready = all_sources_ready && warning_list.length === 0;
+hooks\useBusinessOutcomeTruth.js:246: downstream_ready: available(downstream_ready),
+hooks\useBusinessOutcomeWaterfall.js:32: const model_readiness = useModelReadiness();
+hooks\useBusinessOutcomeWaterfall.js:44: const assets_contract = model_readiness.modules?.assets?.output_contract ?? {};
+lib\selectors\businessOutcomeSelectors.js:331: business_outcome_model_trust_state: businessOutcomeModelTrustState,
+components\business-outcome\BusinessOutcomeStatusStrip.jsx:3: const { business_outcome_model_trust_state, warningCount } = outcome;
+components\business-outcome\BusinessOutcomeStatusStrip.jsx:5: business_outcome_model_trust_state === "blocked"
+components\business-outcome\BusinessOutcomeStatusStrip.jsx:9: business_outcome_model_trust_state === "blocked"
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:17: not_ready: "business-outcome-ledger-status-tag neutral",
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:23: not_ready: "No rate saved",
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:33: const not_ready = row.recovery_status === "not_ready";
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:44: <span>{not_ready ? "N/A" : `${formatCurrency(row.charge_out_rate)}/hr`}</span>
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:45: <span className={not_ready ? "" : row.rate_gap >= 0 ? "value-good" : "value-bad"}>
+components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx:46: {not_ready ? "N/A" : `${row.rate_gap >= 0 ? "+" : ""}${formatCurrency(row.rate_gap)}/hr`}
+components\business-outcome-truth\BusinessOutcomeTruthRevenueSplitCard.jsx:15: const { is_ready, is_over_committed, total_revenue, segments = [] } = revenue_split || {};
+components\business-outcome-truth\BusinessOutcomeTruthRevenueSplitCard.jsx:17: if (!is_ready) {
+components\business-outcome-truth\BusinessOutcomeTruthStatusStrip.jsx:4: const { data_status, downstream_ready, warning_list, data_quality_list, reconciliation_status } =
+components\business-outcome-truth\BusinessOutcomeTruthStatusStrip.jsx:75: {downstream_ready?.value ? "Ready for downstream use" : "Not yet ready for downstream use"}
+-- 38 hits
+
+=== REFS: scaleAnnualValue|scalePeriodValue|createDisplayScalers  (path ~ business-outcome|BusinessOutcome) ===
+components\business-outcome\BusinessOutcomeResultHero.jsx:6: scalePeriodValue,
+components\business-outcome\BusinessOutcomeResultHero.jsx:31: const scaled_required = scalePeriodValue(
+components\business-outcome\BusinessOutcomeResultHero.jsx:36: const scaled_achieved = scalePeriodValue(
+components\business-outcome\BusinessOutcomeResultHero.jsx:41: const scaled_result = scalePeriodValue(
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:7: scaleAnnualValue,
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:147: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:241: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:359: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:453: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:507: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:944: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:1307: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:1494: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:1697: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:1859: const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours);
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2487: scaleAnnualValue(
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2517: scaleAnnualValue(
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2563: scaleAnnualValue(breakeven_revenue, time_scale, null, per_source.net_annual_business_open_hours)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2576: scaleAnnualValue(breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:2586: scaleAnnualValue(-breakeven_gap, time_scale, null, per_source.net_annual_business_open_hours)
+-- 20 hits
+
+=== REFS: group_true_cost|entry\.total_cost  (path ~ business-outcome|BusinessOutcome) ===
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js:23: group_true_cost_known: g?.group_true_cost !== undefined ? to_number(g.group_true_cost) : null,
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js:66: const labour = labour_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js:67: const asset = asset_totals.get(group_id) || { direct_cost: 0, overhead: 0, group_true_cost_known: null };
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js:72: const known_true_cost_parts = [labour.group_true_cost_known, asset.group_true_cost_known].filter(
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:51: group_true_cost: 0,
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:66: group.group_true_cost += row.true_cost ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:139: entry.total_cost += g.group_true_cost ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:166: entry.total_cost += g.group_true_cost ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:251: entry.total_cost += g.group_true_cost ?? 0;
+lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js:290: entry.total_cost += g.group_true_cost ?? 0;
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:366: // merge_view_b_groups - the selector's own group_true_cost is summed
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:774: entry.total_cost += row.true_cost ?? 0;
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:836: entry.total_cost += m.true_cost ?? 0;
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:852: // FIX (2026-09-18): entry.total_cost above was summed from raw,
+components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx:862: const true_cost = cascade_entry?.true_cost ?? entry.total_cost;
+-- 15 hits
+
+=== BO FILE SIZES ===
+   152  app\business-outcome\page.jsx
+    94  hooks\useBusinessOutcome.js
+   253  hooks\useBusinessOutcomeLabourRecovery.js
+    26  hooks\useBusinessOutcomeOutputContract.js
+  1392  hooks\useBusinessOutcomePerSourceRevenue.js
+    74  hooks\useBusinessOutcomeRevenueSplit.js
+   273  hooks\useBusinessOutcomeTruth.js
+   111  hooks\useBusinessOutcomeWaterfall.js
+   253  lib\calculations\businessOutcomeAssetSplitCalculations.js
+   413  lib\calculations\businessOutcomeCalculations.js
+    88  lib\calculations\businessOutcomeEbitCalculations.js
+   296  lib\calculations\businessOutcomeViewBCalculations.js
+   143  lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js
+    37  lib\selectors\business-outcome\businessOutcomeOutputContractSelectors.js
+   713  lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js
+   171  lib\selectors\business-outcome\businessOutcomeWaterfallSelectors.js
+   337  lib\selectors\businessOutcomeSelectors.js
+    66  lib\storage\businessOutcomeNonProductivePolicyStorage.js
+   239  components\business-outcome\BusinessOutcomeAssetSplit.jsx
+    26  components\business-outcome\BusinessOutcomeHelpPanel.jsx
+   253  components\business-outcome\BusinessOutcomeLabourSplit.jsx
+   136  components\business-outcome\BusinessOutcomeMainCard.jsx
+    71  components\business-outcome\BusinessOutcomeRecoveryNarrative.jsx
+   116  components\business-outcome\BusinessOutcomeResultHero.jsx
+    25  components\business-outcome\BusinessOutcomeStatusStrip.jsx
+   110  components\business-outcome\BusinessOutcomeWaterfall.jsx
+   105  components\business-outcome-truth\BusinessOutcomeCapacityCoverageGapTable.jsx
+    96  components\business-outcome-truth\BusinessOutcomeEbitByUnitTable.jsx
+    70  components\business-outcome-truth\BusinessOutcomeEbitSummaryCard.jsx
+   130  components\business-outcome-truth\BusinessOutcomeHealthGauge.jsx
+   137  components\business-outcome-truth\BusinessOutcomeHealthGaugeExplainer.jsx
+   231  components\business-outcome-truth\BusinessOutcomeIndependentBreakevenLedger.jsx
+   233  components\business-outcome-truth\BusinessOutcomeNetProfitBuildUp.jsx
+  3027  components\business-outcome-truth\BusinessOutcomePerSourceRevenueCard.jsx
+   143  components\business-outcome-truth\BusinessOutcomeRevenueSnapshotTable.jsx
+    84  components\business-outcome-truth\BusinessOutcomeTruthHelpPanel.jsx
+   141  components\business-outcome-truth\BusinessOutcomeTruthLabourRecoveryCard.jsx
+   107  components\business-outcome-truth\BusinessOutcomeTruthRevenueSplitCard.jsx
+   722  components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx
+    79  components\business-outcome-truth\BusinessOutcomeTruthStatusStrip.jsx
+   109  components\business-outcome-truth\BusinessOutcomeTruthSummaryCard.jsx
+    69  components\business-outcome-truth\BusinessOutcomeTruthWarningsPanel.jsx
+   123  components\business-outcome-truth\BusinessOutcomeViewABComparisonTable.jsx
+   135  components\business-outcome-truth\BusinessOutcomeWaterfallCard.jsx
+    44  components\navigation\BusinessOutcomeViewSwitcher.jsx
+
+=== v5 BUSINESS OUTCOME DOCS ===
+2026-08-27      5584  docs\Mirra_v5_Briefs\Business Outcome\# Mirra v5.1 - Business Outcome Net.txt
+2026-08-27      9630  docs\Mirra_v5_Briefs\Business Outcome\# Mirra v5.1 - Business Outcome Per.txt
+2026-09-16     20977  docs\Mirra_v5_Briefs\Business Outcome\BUSINESS_OUTCOME_SESSION_BRIEF_v5_1.txt
+2026-09-17      7302  docs\Mirra_v5_Briefs\Business Outcome\EACH_PART_ON_ITS_OWN_REVENUE_BASIS_QUESTION_2026-09-17.txt
+2026-09-18     25806  docs\Mirra_v5_Briefs\Business Outcome\NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION_2026-09-17.txt
+2026-08-27     12830  docs\Mirra_v5_Briefs\Business Outcome\S23_BUSINESS_OUTCOME_NET_PROFIT_STREAM_UNPACKING_BUILD_BRIEF_v5_0.txt
+2026-08-27      3680  docs\Mirra_v5_Briefs\Business Outcome\S24_BUSINESS_OUTCOME_S16_RECONCILIATION_NOTE_v5_0.txt
+2026-08-28     11462  docs\Mirra_v5_Briefs\Business Outcome\S26_BUSINESS_OUTCOME_PER_SOURCE_REVENUE_ATTRIBUTION_v5_1.txt
+2026-08-28      6614  docs\Mirra_v5_Briefs\Business Outcome\S27_PER_SOURCE_REVENUE_ATTRIBUTION_SCOPING_DECISIONS_v5_1.txt
+2026-08-28     10034  docs\Mirra_v5_Briefs\Business Outcome\S28_RATE_BUILDER_PER_SOURCE_LINKING_v5_1.txt
+2026-09-11     13955  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\Asset Utilisation Downtime — Implementation Spec.txt
+2026-09-11     10730  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\Asset Utilisation Hours Full Consumer Trace Findings Brief.txt
+2026-09-15      8171  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\BUSINESS_MODELLING_SCENARIO_REDESIGN_DECISION_LOCK_2026-09-12.txt
+2026-09-14     17777  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\CFO_REQUIREMENTS_GAP_2026-09-12.txt
+2026-09-14     18619  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\FIXED_ASSET_REGISTER_IMPORT_SCOPING_BRIEF_2026-09-12.txt
+2026-09-14      6484  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\FUTURE_XERO_IMPORTS_IDEAS_LOG_2026-09-12.txt
+2026-09-12      7088  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\HEALTH_GAUGE_EXPLAINER_BUILD_2026-09-12.txt
+2026-08-27      3353  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\KNOWN_ISSUE_cost_burden_breakdown_dead_field_2026-08-27.txt
+2026-09-04     10719  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\S23 - MIRRA REVENUE RECONCILIATION.txt
+2026-09-04      9496  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\S25 - MIRRA BUSINESS OUTCOME No Overheads.txt
+2026-09-07     29698  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\S26_-_MIRRA_MATERIALS_COG_TARGET_MARKUP_VARIANCE.txt
+2026-09-11      7311  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\S31 — ASSET UTILISATION_DOWNTIME.txt
+2026-09-07     26761  docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\SESSION_HANDOVER_2026-09-04_MIRRA_REFERENCE.txt

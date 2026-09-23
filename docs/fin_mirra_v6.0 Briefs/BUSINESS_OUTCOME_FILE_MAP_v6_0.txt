@@ -1,4 +1,9 @@
 # Business Outcome - File Map & Quick Reference
+**Updated 2026-09-23 (v6.0 Business Outcome pass):** covered-hours cap added
+(BO-6, commits ab7d721 + b668bbd) - new helper get_group_covered_hours in
+the main hook, see Section 3 and gotcha #5. Gotcha #4 now has one more
+confirmed stale reader (businessOutcomeNetProfitBuildUpSelectors.js, BO-1).
+Verified record: BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt.
 **Updated 2026-09-18:** Non-productive cost allocation built end-to-end
 (mixed working units vs pure-support units, real policy setting), a real
 Step 2 cascade bug found and fixed, View B brought to full parity with
@@ -62,7 +67,7 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 ## 3. Core calculation files
 
-- hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge.
+- hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_covered_hours() (v6.0 BO-6 - asset-driven units earn only on labour-covered hours; also feeds group_real_capacity.group_recovery_hours), get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge.
 - lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js - Reshapes the hook's raw output into per_source. Key functions: group_sources_by_group(), merge_groups_by_id(), merge_groups_by_id_real_capacity(), selectBusinessOutcomePerSourceRevenue().
 - lib/calculations/businessOutcomeViewBCalculations.js - View B's own cascade: build_materials_source(), apply_revenue_ceiling_v2(), apply_real_capacity_v2().
 - lib/calculations/businessModellingIndependentCalculations.js - ON THE "LEAVE UNTOUCHED" LIST (see Section 7). Contains calculateGaugeInput() and calculateIndependentMaterialsBreakeven(). CLARIFIED 2026-09-12: this is NOT abandoned/unused - it is Business Modelling's real, active "live lever" calculation engine (System 2, see session brief Section 2A), gained 254 lines in the "S31 Phase 2-3" commit (f98b9f3). Untouched-list status is because it's already-verified, load-bearing code, not because it's dead. Do not extend this file - create a new file instead if new calculation is ever needed (confirmed acceptable 2026-09-12).
@@ -84,7 +89,7 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 ---
 
-## 4. The three recurring gotchas
+## 4. The recurring gotchas
 
 **1. The blurb has two separate prop lists.** File: BusinessOutcomeTruthSituationSummary.jsx. A new prop must be added in three places: the Card's JSX call, the wrapper's destructuring, and the wrapper's forwarding call into build_situation_summary. Miss the middle one and the paragraph silently doesn't render.
 
@@ -92,7 +97,9 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 **3. Links into "How the Numbers Are Calculated" need the pre-toggle.** Any ScrollToSectionLink or scroll_to_section() call pointing there needs pre_toggle_labels: ["Show breakdown"] in addition to ancestor_ids.
 
-**4. THERE ARE TWO true_cost SOURCES, ONE STALE - confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it has NEVER been touched by the non-productive cost injection (that injection only ever lives inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives ONLY in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B - this field did not even exist on View B's return object until 2026-09-18, root cause of that day's bug). ANY table or component that builds its own cost figure by re-summing row.true_cost or reading group_true_cost/entry.total_cost from merge_groups_by_id()/merge_groups_by_id_real_capacity()/merge_view_b_groups() WITHOUT cross-referencing group_real_capacity's own true_cost is showing the stale figure. Confirmed fixed in: CostBuildUpTable, merge_view_b_groups (both call sites: ViewBRealCapacityLedger and ViewBCostBuildUpTable). NOT yet checked: any other component that might independently read group_true_cost/entry.total_cost - grep both terms before trusting a new or unfamiliar cost display.
+**4. THERE ARE TWO true_cost SOURCES, ONE STALE - confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it has NEVER been touched by the non-productive cost injection (that injection only ever lives inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives ONLY in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B - this field did not even exist on View B's return object until 2026-09-18, root cause of that day's bug). ANY table or component that builds its own cost figure by re-summing row.true_cost or reading group_true_cost/entry.total_cost from merge_groups_by_id()/merge_groups_by_id_real_capacity()/merge_view_b_groups() WITHOUT cross-referencing group_real_capacity's own true_cost is showing the stale figure. Confirmed fixed in: CostBuildUpTable, merge_view_b_groups (both call sites: ViewBRealCapacityLedger and ViewBCostBuildUpTable). NOT yet checked: any other component that might independently read group_true_cost/entry.total_cost - grep both terms before trusting a new or unfamiliar cost display. CONFIRMED STALE 2026-09-23 (v6.0 BO-1, open): businessOutcomeNetProfitBuildUpSelectors.js (Revenue / Net Profit table cost columns - its "reconciles" check compares two uninjected figures and always passes) and the children built in merge_groups_by_id_real_capacity (achieved_revenue = raw true_cost + injected net profit). headline_real_capacity.all_sources[] carries no total_cost, so Business Modelling cannot pick up the stale figure.
+
+**5. SEAT HOURS vs COVERED HOURS (v6.0 BO-6, 2026-09-23).** group.group_recovery_hours from Cost Allocation is the asset's SEAT hours. Business Outcome revenue must use get_group_covered_hours(group) instead - min(seat hours, assigned labour hours) for asset-driven units. group_real_capacity[].group_recovery_hours is ALREADY covered hours. Any new revenue or lever code that multiplies a rate by the raw Cost Allocation hours re-introduces revenue for hours nobody works. The older "seat-hours" comment above build_labour_sources is superseded where labour is short.
 
 ---
 
@@ -105,6 +112,8 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 - per_source.view_b_headline_real_capacity - NEW 2026-09-18. Same shape as headline_real_capacity, built for Business Modelling's real-engine rerun specifically (View B is the only cascade where materials has genuinely independent, lever-movable economics). Built inline in selectBusinessOutcomePerSourceRevenue(), deliberately NOT reusing merge_view_b_groups (a UI-layer function in the Card component - a selector importing from a UI component would be backwards).
 - Assumed Capacity mode's net_profit (implied_net_profit / assumed_net_profit, via apply_revenue_ceiling/apply_revenue_ceiling_v2) is a SEPARATE mechanism from the real-capacity cascade, never touched by the non-productive injection - as of 2026-09-18, CostBuildUpTable and merge_view_b_groups both now recompute it directly as (assumed revenue - corrected true_cost) rather than trusting that field, for exactly this reason.
 - Per-source direct/overhead cost IS tracked separately: direct_cost, overhead_share, summed to true_cost - confirmed in useBusinessOutcomePerSourceRevenue.js and carried through the selector as group_true_cost, group_overhead_share.
+- capacity_coverage_gap[].gap_type "revenue_at_risk" - key name kept, but since v6.0 BO-6 it means revenue NOT earned (already excluded from modelled revenue), valued at asset blended rate + assigned labour weighted charge rate. UI label: "Revenue not earned".
+- minimum_recoverable_rate_per_hour on staff / asset rows is the GROUP's rate (Cost Allocation group cost / group hours, excludes non-productive cost) - by design (v6.0 BO-3), not the person's own.
 - Always grep for an existing working consumer of a field before writing new code that reads it.
 
 ---
@@ -137,6 +146,8 @@ Full detail in "Working_Conventions - PowerShell Patching, CSS, and Numeric Veri
 ---
 
 ## 8. Brief documents index
+
+- BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt (docs\fin_mirra_v6.0 Briefs\) - the ONE current Business Outcome brief. Folds in every docs/Mirra_v5_Briefs/Business Outcome/ document listed below and in that folder (archived out of project knowledge, kept in the repo).
 
 - Main running session brief - RESOLVED 2026-09-20. See V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt in this same folder, now the real, saved entry point.
 - ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_2026-09-10.md - Superseded. Detailed Q&A lives in Business Outcome/Business Outcome New Additions/S31 - ASSET UTILISATION_DOWNTIME.txt.
