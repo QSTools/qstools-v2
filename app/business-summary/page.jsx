@@ -126,6 +126,8 @@ export default function BusinessSummaryPage() {
           required_labour_burden_rate={card.required_labour_burden_rate}
           macro_required_operating_hour_rate={card.macro_required_operating_hour_rate}
           net_annual_business_open_hours={card.net_annual_business_open_hours}
+          net_annual_business_open_days={card.net_annual_business_open_days}
+          annual_open_weeks={card.annual_open_weeks}
           total_productive_output={card.total_productive_output}
         />
 

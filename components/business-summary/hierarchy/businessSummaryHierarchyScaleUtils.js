@@ -36,6 +36,8 @@ export function sumAssetCost(assetRows = []) {
 export function createDisplayScalers({
   active_time_scale,
   open_hours_used,
+  open_days_used = 0,
+  open_weeks_used = 0,
   product_mode_active,
 }) {
   function scaleDisplayAnnualValue(annualValue, hourlyValue = 0) {
@@ -45,14 +47,22 @@ export function createDisplayScalers({
           annualValue,
           active_time_scale,
           hourlyValue,
-          open_hours_used
+          open_hours_used,
+          open_days_used,
+          open_weeks_used
         );
   }
 
   function scaleDisplayPeriodValue(annualValue) {
     return product_mode_active
       ? scaleProductAnnualValue(annualValue, active_time_scale)
-      : scalePeriodValue(annualValue, active_time_scale, open_hours_used);
+      : scalePeriodValue(
+          annualValue,
+          active_time_scale,
+          open_hours_used,
+          open_days_used,
+          open_weeks_used
+        );
   }
 
   return {

@@ -3,9 +3,24 @@ import {
   formatNumber,
 } from "@/components/business-summary/BusinessSummaryCardUtils";
 import {
-  sumAssetCost,
   sumStaffCost,
 } from "@/components/business-summary/hierarchy/businessSummaryHierarchyScaleUtils";
+
+// A11: full annual burden per asset (own cost + assigned overhead pools).
+// total_asset_cost_annual is own cost only and must not be summed as the burden.
+function getAssetBurden(asset) {
+  const value = Number(
+    asset?.asset_recovery_cost_annual ?? asset?.total_asset_cost_annual ?? 0
+  );
+  return Number.isFinite(value) ? value : 0;
+}
+
+function sumAssetBurden(assetRows = []) {
+  return (Array.isArray(assetRows) ? assetRows : []).reduce(
+    (total, asset) => total + getAssetBurden(asset),
+    0
+  );
+}
 
 export function buildBusinessSummaryHierarchyChildren({
   active_assets,
@@ -59,7 +74,7 @@ export function buildBusinessSummaryHierarchyChildren({
 
   function buildAssetRows(assetRows = []) {
     return assetRows.map((asset, index) => {
-      const asset_cost = scaleDisplayPeriodValue(asset.total_asset_cost_annual);
+      const asset_cost = scaleDisplayPeriodValue(getAssetBurden(asset));
 
       return {
         key: `${asset.asset_id || asset.asset_name || "asset"}-${index}`,
@@ -101,10 +116,10 @@ export function buildBusinessSummaryHierarchyChildren({
   const productive_staff_children = buildStaffRows(productive_staff);
   const non_productive_staff_children = buildStaffRows(non_productive_staff);
   const productive_asset_cost = scaleDisplayPeriodValue(
-    sumAssetCost(productive_assets)
+    sumAssetBurden(productive_assets)
   );
   const support_asset_cost = scaleDisplayPeriodValue(
-    sumAssetCost(support_assets)
+    sumAssetBurden(support_assets)
   );
   const productive_asset_children = buildAssetRows(productive_assets);
   const support_asset_children = buildAssetRows(support_assets);

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 
@@ -131,6 +131,9 @@ export default function useBusinessSummary() {
         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
       net_annual_business_open_hours:
         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+      net_annual_business_open_days:
+        cost_summary_output_contract.net_annual_business_open_days ?? 0,
+      annual_open_weeks: cost_summary_output_contract.annual_open_weeks ?? 0,
 
       cost_burden_breakdown:
         cost_summary_output_contract.cost_burden_breakdown ?? {
@@ -267,6 +270,9 @@ export default function useBusinessSummary() {
         cost_summary_output_contract.macro_required_operating_hour_rate ?? 0,
       net_annual_business_open_hours:
         cost_summary_output_contract.net_annual_business_open_hours ?? 0,
+      net_annual_business_open_days:
+        cost_summary_output_contract.net_annual_business_open_days ?? 0,
+      annual_open_weeks: cost_summary_output_contract.annual_open_weeks ?? 0,
     };
 
     return {

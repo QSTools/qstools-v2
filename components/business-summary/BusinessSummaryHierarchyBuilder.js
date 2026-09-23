@@ -32,6 +32,8 @@ export function buildBusinessSummaryHierarchyState({
   non_people_cost_burden_per_recovery_hour = 0,
   recovery_hours_used = 0,
   net_annual_business_open_hours = 0,
+  net_annual_business_open_days = 0,
+  annual_open_weeks = 0,
   units_sold_annual = 0,
   business_type = "labour_based",
   is_product_based = false,
@@ -66,10 +68,14 @@ export function buildBusinessSummaryHierarchyState({
     product_mode_active && timeScale === "hour" ? "day" : timeScale;
 
   const open_hours_used = Number(net_annual_business_open_hours) || 0;
+  const open_days_used = Number(net_annual_business_open_days) || 0;
+  const open_weeks_used = Number(annual_open_weeks) || 0;
   const { scaleDisplayAnnualValue, scaleDisplayPeriodValue } =
     createDisplayScalers({
       active_time_scale,
       open_hours_used,
+      open_days_used,
+      open_weeks_used,
       product_mode_active,
     });
 
@@ -145,26 +151,14 @@ export function buildBusinessSummaryHierarchyState({
   const scaled_revenue = scaleDisplayPeriodValue(total_revenue);
   const scaled_direct_costs = scaleDisplayPeriodValue(total_direct_costs);
   const scaled_margin_pool = scaleDisplayPeriodValue(margin_pool);
-  const scaled_people_cost =
-    active_time_scale === "hour"
-      ? people_cost_per_recovery_hour
-      : scaleDisplayPeriodValue(total_people_cost_annual);
-  const scaled_margin_after_labour =
-    active_time_scale === "hour"
-      ? margin_after_labour_per_recovery_hour
-      : scaleDisplayPeriodValue(margin_after_labour);
-  const scaled_asset_cost =
-    active_time_scale === "hour"
-      ? asset_cost_per_recovery_hour
-      : scaleDisplayPeriodValue(total_asset_cost_annual);
-  const scaled_general_overheads =
-    active_time_scale === "hour"
-      ? business_overheads_per_recovery_hour
-      : scaleDisplayPeriodValue(total_business_overheads);
-  const scaled_non_people_cost_burden =
-    active_time_scale === "hour"
-      ? non_people_cost_burden_per_recovery_hour
-      : scaleDisplayPeriodValue(non_people_cost_burden);
+  // F18 display fix: every period, including hour, scales by net annual
+  // business open hours so the tree lines add up to the open-hour headline.
+  // The *_per_recovery_hour props are no longer used for display here.
+  const scaled_people_cost = scaleDisplayPeriodValue(total_people_cost_annual);
+  const scaled_margin_after_labour = scaleDisplayPeriodValue(margin_after_labour);
+  const scaled_asset_cost = scaleDisplayPeriodValue(total_asset_cost_annual);
+  const scaled_general_overheads = scaleDisplayPeriodValue(total_business_overheads);
+  const scaled_non_people_cost_burden = scaleDisplayPeriodValue(non_people_cost_burden);
   const scaled_net_position = scaleDisplayPeriodValue(net_position);
   const product_secondary_result =
     margin_per_unit <= 0

@@ -38,7 +38,9 @@ export function scaleAnnualValue(
   annualValue,
   timeScale,
   hourlyValue = 0,
-  openHours = 0
+  openHours = 0,
+  openDays = 0,
+  openWeeks = 0
 ) {
   const value = Number(annualValue) || 0;
   const recoveryHours = Number(hourlyValue) || 0;
@@ -48,8 +50,12 @@ export function scaleAnnualValue(
     if (hours > 0) return value / hours;
     return 0;
   }
-  if (timeScale === "day") return value / 260;
-  if (timeScale === "week") return value / 52;
+  // Per day / per week follow the opening calendar when passed; 260 / 52 remain
+  // the fallback for callers that do not pass it (e.g. Business Outcome).
+  const days = Number(openDays) || 0;
+  const weeks = Number(openWeeks) || 0;
+  if (timeScale === "day") return days > 0 ? value / days : value / 260;
+  if (timeScale === "week") return weeks > 0 ? value / weeks : value / 52;
   if (timeScale === "month") return value / 12;
   if (timeScale === "quarter") return value / 4;
 
@@ -59,7 +65,9 @@ export function scaleAnnualValue(
 export function scalePeriodValue(
   annualValue,
   timeScale,
-  openHoursUsed = 0
+  openHoursUsed = 0,
+  openDays = 0,
+  openWeeks = 0
 ) {
   const value = Number(annualValue) || 0;
   const hours = Number(openHoursUsed) || 0;
@@ -68,8 +76,10 @@ export function scalePeriodValue(
     return hours > 0 ? value / hours : 0;
   }
 
-  if (timeScale === "day") return value / 260;
-  if (timeScale === "week") return value / 52;
+  const days = Number(openDays) || 0;
+  const weeks = Number(openWeeks) || 0;
+  if (timeScale === "day") return days > 0 ? value / days : value / 260;
+  if (timeScale === "week") return weeks > 0 ? value / weeks : value / 52;
   if (timeScale === "month") return value / 12;
   if (timeScale === "quarter") return value / 4;
 

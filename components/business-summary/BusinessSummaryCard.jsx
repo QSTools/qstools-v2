@@ -67,6 +67,8 @@ export default function BusinessSummaryCard({
   required_labour_burden_rate = 0,
   macro_required_operating_hour_rate = 0,
   net_annual_business_open_hours = 0,
+  net_annual_business_open_days = 0,
+  annual_open_weeks = 0,
 }) {
   const [timeScale, setTimeScale] = useState("hour");
   const [hoveredItemKey, setHoveredItemKey] = useState("");
@@ -106,6 +108,8 @@ export default function BusinessSummaryCard({
     net_position,
     cost_burden_breakdown,
     net_annual_business_open_hours,
+    net_annual_business_open_days,
+    annual_open_weeks,
     timeScale,
   });
 
@@ -117,6 +121,18 @@ export default function BusinessSummaryCard({
     product_mode_active,
     result_table,
   } = hierarchyState;
+
+  // F18 display fix: in hours mode the Open-Hour Reality panel uses net annual
+  // business open hours (macro view). The calculation's *_per_driver fields use
+  // recovery hours and are left unchanged because Recovery Summary reads them.
+  const is_hours_mode = activity_driver_type === "hours";
+  const open_hours = Number(net_annual_business_open_hours) || 0;
+  const cost_per_open_hour =
+    open_hours > 0 ? (Number(total_cost_burden) || 0) / open_hours : 0;
+  const margin_per_open_hour =
+    open_hours > 0 ? (Number(margin_pool) || 0) / open_hours : 0;
+  const open_hour_gap =
+    open_hours > 0 ? margin_per_open_hour - cost_per_open_hour : 0;
 
   const active_node =
     findNodeByPath(business_hierarchy, activePath) ?? business_hierarchy;
@@ -230,15 +246,23 @@ export default function BusinessSummaryCard({
           activity_driver_display_label={activity_driver_display_label}
           activity_driver_suffix={activity_driver_suffix}
           activity_driver_type={activity_driver_type}
-          activity_driver_value={activity_driver_value}
+          activity_driver_value={is_hours_mode ? open_hours : activity_driver_value}
           business_type_label={business_type_label}
           current_margin_label={current_margin_label}
-          current_margin_per_driver={current_margin_per_driver}
+          current_margin_per_driver={
+            is_hours_mode ? margin_per_open_hour : current_margin_per_driver
+          }
           recovery_gap_label={recovery_gap_label}
-          recovery_gap_per_driver={recovery_gap_per_driver}
+          recovery_gap_per_driver={
+            is_hours_mode ? open_hour_gap : recovery_gap_per_driver
+          }
           required_recovery_label={required_recovery_label}
-          required_recovery_per_driver={required_recovery_per_driver}
-          required_recovery_unit_label={required_recovery_unit_label}
+          required_recovery_per_driver={
+            is_hours_mode ? cost_per_open_hour : required_recovery_per_driver
+          }
+          required_recovery_unit_label={
+            is_hours_mode ? "$/open hr" : required_recovery_unit_label
+          }
           total_productive_output={total_productive_output}
           total_recovery_hours={total_recovery_hours}
           units_sold_annual={units_sold_annual}

@@ -9,6 +9,15 @@ function sum_rows(rows = [], field = "") {
   return rows.reduce((total, row) => total + Number(row?.[field] ?? 0), 0);
 }
 
+// A11: an asset's full annual burden is asset_recovery_cost_annual (own cost +
+// assigned General Overheads pools). total_asset_cost_annual is own cost only.
+function get_asset_burden(asset) {
+  const value = Number(
+    asset?.asset_recovery_cost_annual ?? asset?.total_asset_cost_annual ?? 0
+  );
+  return Number.isFinite(value) ? value : 0;
+}
+
 function GroupHeader({ title, count, total }) {
   return (
     <div className="recovery-summary-interactive recovery-summary-row is-active">
@@ -57,9 +66,7 @@ function AssetRow({ asset, index }) {
       </div>
       <div className="labour-summary-table-value">
         {format_currency(
-          asset.asset_interest_annual ??
-            asset.finance_cost_annual ??
-            asset.total_asset_cost_annual
+          get_asset_burden(asset)
         )}
       </div>
     </div>
@@ -215,13 +222,15 @@ export default function BusinessSummaryComponentBreakdown({
     const support_assets = active_assets.filter(
       (asset) => asset.asset_type !== "productive"
     );
-    const productive_asset_cost = sum_rows(
-      productive_assets,
-      "total_asset_cost_annual"
+    // A11: group totals use full burden so they reconcile to the Cost Summary
+    // asset line (total_asset_recovery_cost_annual) shown as the header.
+    const productive_asset_cost = productive_assets.reduce(
+      (total, asset) => total + get_asset_burden(asset),
+      0
     );
-    const support_asset_cost = sum_rows(
-      support_assets,
-      "total_asset_cost_annual"
+    const support_asset_cost = support_assets.reduce(
+      (total, asset) => total + get_asset_burden(asset),
+      0
     );
     const asset_cost_total =
       assets.total_asset_cost_annual ?? values.total_asset_cost_annual ?? 0;
