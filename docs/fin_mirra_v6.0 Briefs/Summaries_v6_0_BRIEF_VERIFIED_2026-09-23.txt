@@ -1,0 +1,474 @@
+MIRRA v6.0 - COST SUMMARY / BUSINESS SUMMARY / RECOVERY SUMMARY
+STATUS: [VERIFIED 2026-09-23] - Phase 2 step 6 (kickoff s2). Consolidated brief
+  for the three summary modules. Folds in the A11 Recovery Summary record as
+  its first [VERIFIED] entry (Section 9, verbatim).
+COMMITS (in order):
+  91c6350  A11 Recovery Summary half + R1 (earlier session, see Section 9)
+  47ca86d  Opening Hours / Cost Summary: per day / per week on open days / weeks
+  e517b39  Business Summary: A11 asset groups; hour view + Open-Hour Reality on
+           open hours (F18 display); per day / per week on open days / weeks
+  13f3c58  Business Summary: P&L bridge overhead basis, signed proof, other
+           classification differences line
+  51e2e08  Cost Summary: F18 business_recovery_hours = total productive
+           person-hours
+EVIDENCE: docs\Audit\v6_0\P2.6_Summaries\ (v6_p26_dump.txt to
+  v6_p26_dump6_bridge.txt - code dumps with line numbers);
+  docs\Audit\v6_0\A11_RecoverySummary\ (A11 step dumps).
+RELATED: Labour_v6_0_BRIEF_VERIFIED_2026-09-21.txt (F18 origin, F12, F17),
+  Assets_v6_0_BRIEF_VERIFIED_2026-09-23.txt (A4, A11),
+  Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt (C3b, C10, C16, C24).
+
+RULE CARRIED FROM KICKOFF: numbers here are point-in-time evidence for
+2026-09-23 on the test dataset, not claims about current data. Asset interest
+is dated to today (Assets A4), so asset figures drift slightly day to day.
+
+===============================================================================
+1. WHAT THESE MODULES ARE FOR (decided this session)
+===============================================================================
+
+Two different "per hour" questions exist in the tool. They are now kept apart.
+
+  MACRO VIEW - Cost Summary, Business Summary.
+    "What does the business cost to keep open?" Per open hour, per open day,
+    per open week. Denominators come from Opening Hours only.
+
+  PRICING VIEW - Recovery Summary (and downstream Cost Allocation, Rate
+    Builder; outside the core tool, Quote Engine and legacy Business
+    Modelling).
+    "What must each productive person-hour recover?" Denominator is the whole
+    productive team's hours (person-hours).
+
+Before this session both views were mixed on Business Summary, and the
+pricing view used one average person's hours (Labour F18), which produced a
+crew rate labelled as an hourly rate.
+
+Chain (mechanism detail in the variable tracker, Sections 15-16):
+  Opening Hours -> Cost Summary -> Business Summary -> Recovery Summary
+    -> Cost Allocation
+  Labour / Assets / General Overheads -> Cost Summary (via Model Readiness
+    modules)
+
+===============================================================================
+2. WHAT CHANGED
+===============================================================================
+
+S1  Business Summary half of A11 (e517b39)
+    BusinessSummaryComponentBreakdown.jsx and hierarchy/
+    businessSummaryHierarchyChildren.js summed total_asset_cost_annual (own
+    cost) per asset while the header total was the full burden from Cost
+    Summary, so productive + support did not add up to the asset total. Both
+    now sum asset_recovery_cost_annual (own + pools, falling back to own).
+    Asset rows show the full burden too; the own / pools split stays on the
+    Assets page.
+
+S2  Business Summary display on open hours (e517b39)
+    - BusinessSummaryHierarchyBuilder.js: in hour view, people cost, margin
+      after labour, asset cost, overheads and non-people burden used
+      *_per_recovery_hour (one-person hours). All now scale by net annual
+      business open hours, so the tree adds up to the open-hour headline.
+    - BusinessSummaryCard.jsx: the "Open-Hour Reality" panel (ModePanel)
+      showed recovery hours labelled as open hours and a cost per "open hour"
+      computed on recovery hours. In hours mode the card now computes cost,
+      margin and gap per open hour from annual totals / net open hours.
+    - Business Summary CALCULATION fields (*_per_driver, *_per_recovery_hour,
+      activity_driver_value) are deliberately unchanged: Recovery Summary
+      reads them (calculateRecoverySummary lines 41-48).
+
+S3  Per day / per week follow the opening calendar (47ca86d, e517b39)
+    - Opening Hours publishes net_annual_business_open_days = net annual open
+      hours / standard daily open hours (shutdowns, public holidays and
+      part-closed days are already inside net open hours; day = hour x normal
+      day by construction).
+    - Cost Summary calc reads net_annual_business_open_days and
+      annual_open_weeks and carries both through its output contract, card
+      selector, page, card, drill rows and formatter.
+    - Business Summary carries both from the Cost Summary contract through
+      display details, output contract, card selector, page, card, hierarchy
+      builder and scale helpers.
+    - Shared helpers (costSummaryFormatters.scaleAnnualValue,
+      BusinessSummaryCardUtils.scaleAnnualValue / scalePeriodValue) take days
+      and weeks as optional parameters and fall back to 260 / 52 when not
+      passed. Business Outcome calls them without the new parameters and is
+      intentionally unchanged (see S-H2).
+
+S4  Business Summary P&L bridge (13f3c58, BusinessSummaryMacroPositionCard.jsx)
+    - Overhead line compared General Overheads AFTER the running-cost pools
+      moved to Assets against the full adjusted P&L overhead benchmark. The
+      module side now adds the moved running costs back
+      (total_asset_cost_annual - total_asset_interest_annual).
+    - Proof rows used -Math.abs(), so any variance running the other way had
+      the wrong sign. Rows are now signed.
+    - New "other classification differences" line = whatever the named lines
+      do not explain. Zero when fully reconciled; included in the total
+      difference so the proof always closes and a gap can only be surfaced,
+      never hidden.
+
+S5  F18 at source (51e2e08, lib/selectors/costSummarySelectors.js)
+    getBusinessRecoveryHours returned total_productive_output /
+    productive_staff_count (one average person). It now returns
+    total_productive_output (whole productive team). This moves
+    business_recovery_hours, required_recovery_rate, Business Summary
+    recovery_hours_used / *_per_driver, and Recovery Summary
+    recovery_hours_used / required labour rate. Macro views do not read it.
+
+===============================================================================
+3. [VERIFIED 2026-09-23] LIVE RESULTS
+===============================================================================
+
+All read from screen via console snippets unless marked derived.
+
+3a. Business Summary asset groups (S1)
+    Productive assets (7)         84,418.00
+    Support assets (3)             1,413.41
+    Sum                           85,831.41
+    Total Asset Cost              85,831.41   matches
+    Cost Summary asset line       85,831.41   matches
+
+3b. Business Summary hour view (S2)       Before      After
+    Open-Hour Reality required cost       523         218 /open hr
+    Open-Hour Reality actual margin       523         218
+    Open-hour gap                         -           0
+    Net annual business open hours        1,414       3,390
+    People cost / hr                      -           178
+    Margin after labour / hr              97          40
+    Assets + overheads / hr               97          40
+    Headline (unchanged, already correct) 218 = 739,332 / 3,390.2
+
+3c. Opening calendar (S3)
+    Opening Hours: 5 open days, 67 hrs/week (13.4 hrs per open day), 52 open
+    weeks, 7 public holiday days, net 3,390.2 open hours.
+    Open days = 3,390.2 / 13.4 = 253 (= 5 x 52 - 7).
+    Cost Summary      hour 218, day 2,922 (was 2,844 on /260), week 14,218,
+                      month 61,611, quarter 184,833, year 739,332.
+    Day = hour x normal day: 218.08 x 13.4 = 2,922. Week unchanged because
+    shutdown weeks are 0 (optional shutdown test not run).
+    Business Summary  day: revenue 7,824 (was 7,614), margin 2,923 (2,844),
+                      required cost 2,922 (2,844), people 2,381 (2,317).
+
+3d. P&L bridge (S4)                            Before       After
+    GO module side                             51,166.40    95,866.40
+    Overhead variance                          -24,700.00   +20,000.00
+    Other classification differences           -            +20,000.00
+    Total difference to P&L net profit         270,031.50   294,731.50
+    Proof: 294,863.98 - 270,991.53 - 21,131.41 - 20,000.00 - 2,608.56
+           + 20,000.00 = 132.48 = QS Tools operating position. Before the fix
+           the listed rows summed to -24,567.52 against a stated 132.48.
+
+3e. F18 (S5)                                  Before       After
+    Recovery Summary recovery hours            1,414        7,071
+    Required labour recovery rate              425.94 /hr   85.19 /hr
+    Annual asset utilisation                   12,672 hrs   12,672 (unchanged)
+    Required asset recovery rate               6.66 /hr     6.66 (unchanged)
+    Cost Allocation: PC55 100,039, Foreman 257,374, Accountant 110,204,
+    overhead pool 51,166 - all unchanged (user eyeball check). C10 fallback
+    not triggered.
+    Derived, not screen-read: Cost Summary required_recovery_rate
+    739,332 / 7,071 = about 104.56 /hr (was about 523). Legacy Business
+    Modelling baseline not checked live.
+
+3f. Breakeven residual: net position 132.48 on the day of testing.
+
+===============================================================================
+4. MODEL READINESS / TRUST (C16) - DIAGNOSED, WORKING AS DESIGNED
+===============================================================================
+
+Mechanism: Module Reconciliation checks -> calculateModelReadiness (any check
+with is_blocking -> "blocked") -> Cost Summary model_readiness_status ->
+Business Summary model_trust_state -> Recovery Summary "not_trusted" when the
+state is neither ready nor warning -> recovery_summary_ready false -> Cost
+Allocation status "not_supported". Warnings do not block.
+
+On this data one blocking check: "Business cost benchmark reconciliation".
+    P&L benchmark total business cost        447,209
+    QS Tools module total                    739,332
+    Variance                                 292,123
+      Labour         331,342 vs 602,334      270,992 (81.8%)
+      Asset finance   20,000 vs  41,131       21,131
+      General OH      75,866 vs  95,866       20,000 (see S-G1)
+Model Readiness baseline inputs also showed Operating Recovery Hours 7,071
+(before the F18 commit), i.e. Module Reconciliation already used team hours.
+
+Conclusion: the gate is behaving correctly - the test data does not match the
+P&L. Test data note: the P&L and Balance Sheet were NOT updated for the
+synthetic staff and assets; only revenue was changed (to force breakeven).
+The synthetic items exist in the tool only. Kickoff Section 3 corrected.
+
+No code change. Design question left open: whether Cost Allocation should
+say "calculated, not trusted" rather than "not supported" when its own
+numbers reconcile.
+
+===============================================================================
+5. FINDINGS REGISTER (this session)
+===============================================================================
+
+FIXED
+  S1  Business Summary A11 asset groups (e517b39).
+  S2  Business Summary mixed hour bases (e517b39).
+  S3  Per day /260 and per week /52 ignored the opening calendar (47ca86d,
+      e517b39).
+  S4  P&L bridge did not add up; abs() signs (13f3c58).
+  F18 / R5  business_recovery_hours was one person's average (51e2e08).
+
+RECLASSIFIED
+  R3  Support asset cost in no Recovery Summary stream: BY DESIGN. Cost
+      Allocation uses Recovery Summary overhead_absorbed_cost as its overhead
+      pool (hours mode = total_business_overheads) and distributes support
+      assets through its own non-productive asset pool. Adding support cost to
+      the overhead stream would double count it in Cost Allocation. Only
+      effect: stream shares are computed on a total short by the support
+      asset cost. Handed to Rate Builder with C24 (only consumer of the
+      share).
+  C16 See Section 4.
+
+LOGGED - DESIGN
+  R2  Saved split controls never reach any output (streams overwritten in
+      both modes). Remove the controls or give them an effect.
+  S-D1 Cost Allocation "not_supported" wording when blocked only by upstream
+      trust (Section 4).
+  S-D2 Product mode: Business Summary per day uses /365 via
+      scaleProductAnnualValue. Untouched - parked business_type gap.
+
+LOGGED - OPEN CHECKS
+  S-G1 Possible interest double count. General Overheads module total equals
+      the gross P&L GO benchmark, which includes the P&L line marked as asset
+      finance (user confirmed the P&L has this line). Assets separately
+      calculates finance interest. Two readings fit the totals: (a) the GO
+      module includes the P&L interest line and Assets adds its own interest
+      on top (double count); (b) the GO module holds the P&L asset/equipment
+      operating lines instead and the equal amounts are coincidence. CHECK:
+      on Business Inputs -> General Overheads, is the P&L interest line listed
+      among the overhead rows? If yes, (a).
+  S-L1 Labour variance vs P&L: synthetic non-productive staff explain part
+      (Accountant group about 110k); remainder about 160k unexplained. For a
+      Labour / P&L classification review, not this module.
+  S-O1 Opening Hours test data: Monday 09:00-04:00 (19 hrs) and Tuesday
+      09:00-09:00 (24 hrs). Raises hours per open day to 13.4 and inflates
+      every per-open-hour figure. Confirm whether intended.
+
+LOGGED - HANDED ON
+  S-H1 C24 + R3 share effect -> Rate Builder pass.
+  S-H2 Business Outcome (BusinessOutcomeResultHero, BusinessOutcomePer
+      SourceRevenueCard) calls the shared scale helpers without days / weeks,
+      so it still uses /260 and /52. Wire net_annual_business_open_days and
+      annual_open_weeks in the Business Outcome pass.
+  S-H3 Quote Engine (out of core scope) prices labour_hours_allowed x
+      required_recovery_rate. It was a crew rate (overpriced by the number of
+      productive staff); after 51e2e08 it is per person-hour. Not verified.
+  S-H4 Legacy Business Modelling baseline reads required_recovery_rate; new
+      value applies only after a baseline re-lock (Labour F17).
+
+LOGGED - CLEANUP
+  R4  RecoverySummaryStatusStrip.jsx and main-card/
+      RecoverySupportingEvidenceDetail.jsx duplicated.
+  S-C1 BusinessSummaryHierarchyBuilder still receives *_per_recovery_hour
+      props it no longer uses for display.
+  S-C2 sumAssetCost (businessSummaryHierarchyScaleUtils.js) no longer
+      imported anywhere in Business Summary.
+  S-C3 required_labour_burden_rate (Cost Summary) = total cost burden /
+      total_productive_output, now numerically the same as
+      required_recovery_rate. Redundant name.
+
+HOURS / UNITS COVERAGE
+  Cost Summary and Business Summary macro views: hours mode uses the opening
+  calendar; product mode unchanged (units). Recovery Summary: hours mode
+  person-hours; product mode zeroes every stream except overhead (C3b).
+  business_type still not read by Labour, Assets or anything downstream of
+  Cost Allocation.
+
+TOOLING
+  find_field_references.py accepts several names in one run but overwrites
+  field_references_report.txt each run (now in .gitignore).
+  Console snippets: pasting a snippet's printed output back into the console
+  raises a harmless SyntaxError.
+
+===============================================================================
+6. STILL OPEN BEFORE RATE BUILDER
+===============================================================================
+
+  - Synthetic data strip-or-carry decision (kickoff s3) - still not made.
+  - S-G1 check (one look at the General Overheads page).
+  - Breakeven: dropped once Rate Builder / Business Outcome starts (kickoff
+    s3).
+
+===============================================================================
+7. FILES IN SCOPE (for the next person)
+===============================================================================
+
+  lib/calculations/openingHoursCalculations.js
+  lib/calculations/costSummaryCalculations.js
+  lib/selectors/costSummarySelectors.js (getBusinessRecoveryHours)
+  hooks/useCostSummary.js
+  components/cost-summary/* (card, drill, formatters)
+  lib/calculations/businessSummaryCalculations.js
+  lib/selectors/businessSummarySelectors.js
+  hooks/useBusinessSummary.js
+  components/business-summary/* (card, hierarchy builder, scale utils,
+    card utils, component breakdown, macro position card, mode panel)
+  lib/calculations/recovery-summary/calculateRecoverySummary.js
+  hooks/useRecoverySummary.js
+  lib/selectors/recovery-summary/recoverySummaryStatusSelector.js
+  lib/calculations/modelReadinessCalculations.js, hooks/useModelReadiness.js
+
+===============================================================================
+8. BUSINESS OUTCOME FILE MAP
+===============================================================================
+
+  Not changed by this pass. S-H2 adds two fields Business Outcome should read.
+
+===============================================================================
+9. [VERIFIED 2026-09-23] A11 RECOVERY SUMMARY RECORD (folded in verbatim)
+===============================================================================
+
+MIRRA v6.0 - A11 FIX IN RECOVERY SUMMARY
+STATUS: [VERIFIED 2026-09-23] - follow-on fix handed from Assets (P2.4) via
+  Cost Allocation (P2.5). Recovery Summary half of A11 only.
+COMMIT: fix(recovery-summary): A11 full productive asset burden + return
+  asset_recovery_status (see git log for hash).
+EVIDENCE: docs\Audit\v6_0\A11_RecoverySummary\ (step1-3 code dumps).
+RELATED: Assets_v6_0_BRIEF_VERIFIED_2026-09-23.txt (A11 origin and fix spec),
+  Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt (C1, C24).
+
+RULE CARRIED FROM KICKOFF: numbers here are point-in-time evidence for
+2026-09-23 on the padded test dataset, not claims about current data.
+
+===============================================================================
+1. WHAT WAS WRONG
+===============================================================================
+
+calculateRecoverySummary.js used productive_asset_cost as the full productive
+asset burden. That field is OWN cost only (finance interest). It excludes the
+General Overheads running-cost pools assigned to productive assets (fuel,
+insurance, repairs, registration). In hours mode, General Overheads is already
+net of those pools, so the pools were missing from every recovery stream.
+
+Effect: required asset recovery rate, asset_recovery_cost, the suggested split
+basis and the output shares (labour / asset / overhead) were all wrong.
+Recovery streams summed to less than the cost burden by the whole pool amount.
+
+===============================================================================
+2. CORRECTION TO THE ASSETS BRIEF FIX SPEC
+===============================================================================
+
+The Assets brief said useRecoverySummary "already passes"
+productive_asset_assigned_overhead_cost_annual in (~line 149). It does not.
+Lines 148-153 of useRecoverySummary are the OUTPUT contract passthrough. The
+calculation receives Business Summary outputs spread at top level plus the
+Assets contract nested as input.assets. Business Summary does not publish the
+pool figure. The fix therefore reads it from input.assets (the same source the
+output passthrough uses), with input.* checked first.
+
+===============================================================================
+3. WHAT CHANGED (lib/calculations/recovery-summary/calculateRecoverySummary.js)
+===============================================================================
+
+  P1 New constants: productive_asset_assigned_overhead_cost (from the Assets
+     contract) and productive_asset_recovery_cost = own + pools.
+  P2 required_asset_recovery_rate uses the full burden.
+  P3 Suggested split basis uses the full burden.
+  P4 asset_recovery_status base check uses the full burden.
+  P5 Hours-mode asset_recovery_cost = full burden.
+  P6 asset_recovery_included uses the full burden.
+  P7 Publishes productive_asset_assigned_overhead_cost and
+     productive_asset_recovery_cost_annual. productive_asset_cost and
+     productive_asset_cost_annual are UNCHANGED (own cost) - naming trap.
+  P8 Returns asset_recovery_status. It was computed but never returned, so the
+     card always showed "Not selected" and the output contract published
+     undefined (dropped-field bug class (b)). Found live during this fix.
+
+P4 and P6 go slightly beyond the Assets brief spec: they keep the "has a
+productive asset base" checks consistent with the stream they describe.
+
+No UI change needed: the "Productive asset cost" row on the Recovery Summary
+evidence panel displays asset_recovery_cost, not productive_asset_cost.
+
+===============================================================================
+4. DOUBLE-COUNT CHECKS (code, before patching)
+===============================================================================
+
+  - Legacy useBusinessOutcome: productive asset cost is built from
+    productive_asset_cost + productive_asset_assigned_overhead_cost_annual
+    (businessOutcomeCalculations.js 122-123). asset_recovery_cost is used only
+    as the asset stream recoveryTarget (line 324). After the fix the target
+    equals the productive asset cost. No double count.
+  - useCostAllocation.js 99-101: asset_recovery_cost feeds
+    working_unit_recovery_cost -> working_unit_recovery_rate_per_hour (C1,
+    stale, unread; group recovery rows are overwritten from cost rows).
+  - useRecoverySummary returns only status, card and output_contract - the
+    raw calculated object never leaves the hook.
+
+===============================================================================
+5. [VERIFIED 2026-09-23] LIVE RESULTS
+===============================================================================
+
+Recovery Summary evidence panel (screen, after patch):
+                              Before          After
+  Asset recovery status       Not selected    Ready
+  Productive asset cost       39,718.00       84,418.00
+  Annual asset utilisation    12,672 hrs      12,672 hrs
+  Required asset rate         3.13 /hr        6.66 /hr
+  Labour cost / hours / rate  602,334.01 / 1,414 hrs / 425.94 /hr (unchanged)
+  Material margin pool        739,464.30, 37.4% (unchanged)
+
+Output shares (DERIVED from code lines 333-345, not screen-read; stream costs
+labour 602,334.01, overhead 51,166.59 per Cost Allocation brief s4):
+                              Before          After
+  Labour share                86.89%          81.63%
+  Asset share                  5.73%          11.44%
+  Overhead share               7.38%           6.93%
+  Stream total                693,218.60      737,918.60
+  Short of cost burden        46,113.22        1,413.22
+  (739,331.82)
+
+Cost Allocation page (console text check vs Cost Allocation brief s4, after
+patch): 16/17 figures found unchanged - labour pool 602,334, productive asset
+84,418, non-productive asset 1,413, overhead pool 51,166, and every group
+total and overhead split (PC55 100,039 / 8,022; 2inc Line 136,686 / 9,749;
+Site Crew 98,646 / 9,157; Foreman 257,374 / 24,239; PC15 11,829; Mini Truck
+7,500; 2inc Line Pump 2 17,053; Accountant 110,204). The one miss (combined
+grouped operating cost) is not displayed as a single figure. C1 live-confirmed.
+
+C24 (Rate Builder all_productive overhead = overhead pool x labour share),
+derived: 44,458.65 before -> 41,767.29 after. Evidence for the Rate Builder
+pass; Rate Builder not touched.
+
+===============================================================================
+6. NEW FINDINGS (R1-R5)
+===============================================================================
+
+  R1 FIXED (P8) asset_recovery_status computed, never returned.
+  R2 LOGGED The saved split (recoverySummaryStorage.js, split controls on the
+     card) never reaches any output. Hours mode and product mode both overwrite
+     all four stream costs (calculateRecoverySummary 255-267), and published
+     shares are derived from stream costs. The controls affect the card display
+     only. Design decision: remove the controls or give them a real effect.
+  R3 LOGGED Support asset own cost (and any support pools) sits in no hours-mode
+     stream. Stream total falls short of cost burden by exactly that amount
+     (1,413.22 here = Van Nissan own cost 1,413.41, rounding). Natural home is
+     the overhead stream. Not patched - outside the A11 spec.
+  R4 LOGGED RecoverySummaryStatusStrip.jsx and main-card/
+     RecoverySupportingEvidenceDetail.jsx appear to be the same component
+     duplicated (matching content at lines 195-354).
+  R5 LOGGED Recovery hours 1,414 (labour rate 425.94 /hr) is Labour F18
+     (business_recovery_hours = one productive person's average). Unchanged
+     by this fix.
+
+===============================================================================
+7. STILL OPEN FROM A11
+===============================================================================
+
+  Business Summary half of A11 (BusinessSummaryComponentBreakdown.jsx ~218-224,
+  businessSummaryHierarchyChildren.js ~103-106: sum asset_recovery_cost_annual
+  per row, not total_asset_cost_annual). Not started - separate pass.
+  C24 Rate Builder all_productive row - prerequisite now met; handed to the
+  Rate Builder pass.
+
+===============================================================================
+8. TOOLING NOTE
+===============================================================================
+
+  Browser console checks: DevTools copy() is unavailable after an await inside
+  an async snippet (throws "copy is not defined", caught by the Next.js dev
+  overlay - harmless). Capture it first: const cp = typeof copy === "function"
+  ? copy : null. Collapsed sections are invisible to innerText - expand first.
+  Auto-clicking aria-expanded="false" controls can hide panels on the Recovery
+  Summary page; expand by hand there.

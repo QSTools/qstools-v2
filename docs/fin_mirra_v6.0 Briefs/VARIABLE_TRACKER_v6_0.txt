@@ -165,8 +165,10 @@ FIELD NAMES: total_asset_recovery_cost_annual (full burden), total_asset_cost_an
 FILE / FUNCTION: hooks/assets/assetOutputContract.js
 FEEDS INTO (by field name, code search 2026-09-23):
   - total_asset_recovery_cost_annual: Cost Summary Assets line
-  - productive_asset_cost: Recovery Summary (as full burden - WRONG, A11),
-    Business Outcome (adds assigned overhead - correct), Business Summary
+  - productive_asset_cost: Recovery Summary (own; full burden now built from
+    pools, A11 fixed 91c6350), Business Outcome (adds assigned overhead -
+    correct), Business Summary (asset groups now sum per-row
+    asset_recovery_cost_annual, A11 fixed e517b39)
   - active_assets rows: Cost Allocation asset overlay, reconciliationRules,
     Business Summary / Recovery Summary breakdowns
   - asset_pool_guardrail_status: no consumer yet
@@ -513,7 +515,7 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
   compares amounts only.
 - Business Summary required_labour_burden_rate reads a field its calculation never produces, so it shows zero (F16).
 - Legacy Business Modelling baseline snapshots keep old hours until re-locked (F17).
-- DESIGN QUESTION (F18): business_recovery_hours is one productive person's average hours (productive output / productive staff count), and every whole-business recovery rate divides total business cost by it. Intent undecided; for the Cost Summary and Business Summary passes.
+- FIXED 2026-09-23 (F18, commit 51e2e08): business_recovery_hours was one productive person's average hours (productive output / productive staff count). Decided: pricing views use total productive person-hours; macro views use the opening calendar. getBusinessRecoveryHours now returns total_productive_output. See Summaries v6.0 brief S5 and tracker Section 16.
 - FIXED 2026-09-22 (commit 25644b8): statutory NZ rest breaks were not deducted from
   productive hours (F19, full detail in Labour brief). New jurisdiction-pluggable break-
   rule module; labourCalculations.js now derives worked days from leave, then folds paid
@@ -539,7 +541,7 @@ FEEDS INTO: reconciliationRules (P&L side), Business Summary page, Model
 - FOR P2.5 (A11): Recovery Summary rate / asset_recovery_cost / split basis and
   the Business Summary asset breakdowns treat own cost as the full burden. Fix spec
   in the Assets brief s5. Recovery Summary half FIXED 2026-09-23 (see Section 15);
-  Business Summary half still open.
+  Business Summary half FIXED 2026-09-23 (e517b39, Summaries brief S1).
 - FOR P2.5 (A12/A13): General Overheads publishes clashing asset_* field names
   and reads saved assets through its own storage instance.
 - DESIGN: A1 own cost is interest only (no depreciation / lease / ownership
@@ -622,10 +624,116 @@ GAPS (mechanism only):
 - R1 FIXED: asset_recovery_status computed but not returned (card showed
   "Not selected", contract published undefined).
 - R2: saved split controls never reach any output (streams overwritten in both
-  modes). Design decision.
-- R3: support asset own cost (and support pools) sit in no hours-mode stream;
-  stream total falls short of cost burden by that amount.
+  modes). Design decision - logged, not patched.
+- R3: support asset own cost (and support pools) sit in no hours-mode stream.
+  RECLASSIFIED BY DESIGN 2026-09-23: Cost Allocation takes overhead_absorbed_cost
+  as its overhead pool and distributes support assets through its own
+  non-productive asset pool, so adding them to the overhead stream would double
+  count. Only the stream shares are affected; handed to Rate Builder with C24.
 - R4: RecoverySummaryStatusStrip.jsx duplicates main-card/
-  RecoverySupportingEvidenceDetail.jsx.
-- Business Summary half of A11 still open.
+  RecoverySupportingEvidenceDetail.jsx. Cleanup - logged.
+- R5 = Labour F18. FIXED 51e2e08 (Section 16).
+- Business Summary half of A11 FIXED e517b39.
 - Business Outcome file map not changed by this fix.
+
+===============================================================================
+16. OPENING HOURS / COST SUMMARY / BUSINESS SUMMARY (P2.6, 2026-09-23) - numbers in Summaries_v6_0_BRIEF_VERIFIED_2026-09-23.txt
+===============================================================================
+STATUS: P2.6 verified 2026-09-23 (commits 47ca86d, e517b39, 13f3c58, 51e2e08).
+
+TWO HOUR BASES (decided 2026-09-23) - keep apart:
+  MACRO (Cost Summary, Business Summary display): per open hour / open day /
+    open week, from Opening Hours only.
+  PRICING (Recovery Summary and everything downstream): total productive
+    person-hours (business_recovery_hours).
+
+STAGE: Opening calendar
+FIELD NAMES: net_annual_business_open_hours, net_annual_business_open_days
+  (new), annual_open_weeks, standard_daily_open_hours
+FILE / FUNCTION: lib/calculations/openingHoursCalculations.js
+FEEDS INTO: Cost Summary via useModelReadiness().modules.openingHours
+  (read as .calculated first - the raw calculation return); Assets reads
+  annual_open_weeks the same way.
+NOTES: open days = net open hours / standard daily open hours, so shutdowns,
+  public holidays and part-closed days are already inside it and day = hour x
+  normal day by construction.
+
+STAGE: Cost Summary calculation
+FIELD NAMES: total_cost_burden (labour total + asset recovery cost incl pools
+  + general overheads after pool transfer), macro_required_operating_hour_rate
+  (= burden / net open hours), net_annual_business_open_days,
+  annual_open_weeks, business_recovery_hours, required_recovery_rate
+  (= burden / business_recovery_hours), required_labour_burden_rate
+FILE / FUNCTION: lib/calculations/costSummaryCalculations.js;
+  lib/selectors/costSummarySelectors.js (selectCostSummaryLabour,
+  getBusinessRecoveryHours; card selector); hooks/useCostSummary.js
+FEEDS INTO: useCostSummary output_contract -> useBusinessSummary; card ->
+  app/cost-summary/page.jsx -> CostSummaryCard / CostSummaryDrill.
+HOURS/UNITS AWARE: hours only; business_type not read.
+NOTES: every hop is an explicit field list (bug class b) - a new field must
+  be added at the calculation return, the output contract, the card selector,
+  the page and the card. required_recovery_rate is read outside the core
+  chain by Quote Engine, recovery analysis, Model Readiness panels and legacy
+  Business Modelling. Model readiness enters as useModelReadiness().status.
+
+STAGE: Business Summary calculation
+FIELD NAMES: recovery_hours_used, activity_driver_value,
+  required_recovery_per_driver, current_margin_per_driver,
+  recovery_gap_per_driver, *_per_recovery_hour, actual_recovery_rate,
+  profit_or_deficit_per_recovery_hour
+FILE / FUNCTION: lib/calculations/businessSummaryCalculations.js;
+  hooks/useBusinessSummary.js (calculation input, status input,
+  display_details -> card, output_contract - four separate explicit lists)
+FEEDS INTO: spread at top level into the Recovery Summary calculation input.
+NOTES: these fields are on the PRICING basis (person-hours) and exist for
+  Recovery Summary. The Business Summary screen no longer displays them in
+  hours mode.
+
+STAGE: Business Summary display
+FIELD NAMES: net_annual_business_open_hours, net_annual_business_open_days,
+  annual_open_weeks (from the Cost Summary contract)
+FILE / FUNCTION: BusinessSummaryCard.jsx (Open-Hour Reality values computed
+  in the card), BusinessSummaryHierarchyBuilder.js,
+  hierarchy/businessSummaryHierarchyScaleUtils.js (createDisplayScalers),
+  BusinessSummaryCardUtils.js (scaleAnnualValue, scalePeriodValue),
+  BusinessSummaryMacroPositionCard.jsx (P&L bridge)
+NOTES: shared helpers take days / weeks as optional parameters and fall back
+  to 260 / 52 - Business Outcome still calls them without (S-H2). Product
+  mode uses scaleProductAnnualValue (/365), untouched. P&L bridge: overhead
+  line adds back running costs moved to Assets; proof rows signed; "other
+  classification differences" closes the proof.
+
+STAGE: Trust / readiness
+FIELD NAMES: model_readiness_status -> model_trust_state ->
+  recovery_summary_status / recovery_summary_ready -> Cost Allocation status
+FILE / FUNCTION: lib/calculations/modelReadinessCalculations.js (any
+  reconciliation check with is_blocking -> blocked);
+  recoverySummaryStatusSelector.js; costAllocationStatus.js
+NOTES: warnings pass; a single blocking reconciliation check sets Cost
+  Allocation to not_supported. Working as designed (C16 diagnosed).
+
+===============================================================================
+17. SUMMARIES GAPS / OPEN QUESTIONS (P2.6, 2026-09-23) - full register in the Summaries brief s5
+===============================================================================
+[2026-09-23] P2.6 findings, mechanism only:
+- FIXED: Business Summary A11 groups; mixed hour bases on Business Summary;
+  per day / per week ignored the opening calendar; P&L bridge did not close;
+  F18 at source.
+- C16 DIAGNOSED: blocked by the business cost benchmark reconciliation. The
+  test data's synthetic staff and assets are not in the P&L, so this is
+  expected. No code change; wording question logged.
+- R3 RECLASSIFIED by design (Section 15).
+- OPEN CHECK (S-G1): whether the General Overheads module includes the P&L
+  line marked as asset finance interest while Assets also calculates
+  interest (possible double count).
+- OPEN (S-L1): labour variance vs P&L only partly explained by synthetic
+  staff - Labour / P&L classification review.
+- OPEN (S-O1): Opening Hours test data has 19-hour and 24-hour days.
+- HANDED ON: C24 + R3 share -> Rate Builder; Business Outcome day / week
+  wiring (S-H2); Quote Engine now per person-hour, unverified (S-H3); legacy
+  Business Modelling baseline needs re-lock (S-H4).
+- CLEANUP: R4 duplicate strip; unused *_per_recovery_hour props and
+  sumAssetCost; required_labour_burden_rate now redundant.
+- Hours/units: macro views hours-mode only; product mode untouched.
+- Business Outcome file map not changed by this pass.
+
