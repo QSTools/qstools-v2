@@ -792,7 +792,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
     const child_achieved_revenue =
       capacity_mode === "assumed"
         ? row.implied_revenue ?? row.modelled_revenue ?? 0
-        : (row.true_cost ?? 0) + child_net_profit;
+        : (row.true_cost ?? 0) + (row.non_productive_share ?? 0) + child_net_profit;
     const child_verdict = child_net_profit >= 0 ? "paying_its_way" : "being_carried";
     // Labour children get their own genuinely distinct, individually-
     // set rate (e.g. Owner/Director $120/hr vs Senior Operator $75/hr -
@@ -820,7 +820,7 @@ function merge_view_b_groups(view_b, capacity_mode) {
       verdict: child_verdict,
       verdict_label: child_verdict === "being_carried" ? "Being carried" : "Paying its way",
       is_labour: is_labour_row,
-      total_cost: row.true_cost ?? 0,
+      total_cost: (row.true_cost ?? 0) + (row.non_productive_share ?? 0),
       current_rate: child_current_rate,
       minimum_recoverable_rate: row.minimum_recoverable_rate_per_hour ?? null,
       achieved_rate: child_hours > 0 ? child_achieved_revenue / child_hours : null,

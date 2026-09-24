@@ -895,6 +895,8 @@ function apply_real_capacity(labour_sources, asset_sources, materials_naive_reve
       }
 
       const row_non_productive_share = row_non_productive_share_by_row.get(row) ?? 0;
+      // BO-1 (8b): kept on the row so display layers can show child cost incl. its support share.
+      row.non_productive_share = row_non_productive_share;
       const adjusted_net_profit = to_number(row.net_profit) - row_non_productive_share;
 
       const inner_after_phase1 =
