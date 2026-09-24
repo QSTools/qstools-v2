@@ -14,6 +14,8 @@ import BusinessModellingLeverCard from "@/components/business-modelling/Business
 import BusinessModellingRealStateCard from "@/components/business-modelling/BusinessModellingRealStateCard";
 import useBusinessModellingScenario from "@/hooks/useBusinessModellingScenario";
 import BusinessModellingScenarioSection from "@/components/business-modelling/BusinessModellingScenarioSection";
+import useBusinessModellingLevers from "@/hooks/useBusinessModellingLevers";
+import BusinessModellingLeverPanel from "@/components/business-modelling/BusinessModellingLeverPanel";
 
 export default function BusinessModellingPage() {
   const [hasMounted, setHasMounted] = useState(false);
@@ -59,6 +61,9 @@ export default function BusinessModellingPage() {
     clearUpsideScenario,
   } = useBusinessModellingScenario(per_source);
 
+  // v6.0 redesign (2026-09-24) - additive lever model, View A achieved base.
+  const bm_levers = useBusinessModellingLevers(per_source);
+
   // Before mount, render stable placeholder to avoid hydration mismatch
   if (!hasMounted) {
     return (
@@ -80,6 +85,8 @@ export default function BusinessModellingPage() {
     <main className="ui-page">
       <div className="ui-page-stack">
         <BusinessModellingRealStateCard per_source={per_source} />
+
+        <BusinessModellingLeverPanel model={bm_levers} />
 
         <BusinessModellingLeverCard
           headline={live_headline}
