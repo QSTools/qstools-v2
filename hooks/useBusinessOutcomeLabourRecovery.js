@@ -1,10 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useMemo } from "react";
 
 import { useLabour } from "@/hooks/useLabour";
-import useCostAllocation from "@/hooks/useCostAllocation";
 import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
 
 function to_number(value) {
@@ -16,15 +15,37 @@ function round_currency(value) {
   return Number(to_number(value).toFixed(2));
 }
 
-function build_overhead_rate_map(rate_builder_labour_recovery_rows = []) {
-  const map = new Map();
+function build_overhead_rate_map(labour_groups = []) {
+  // F7 (8b, 2026-09-23): overhead-per-hour now sourced from Business
+  // Outcome's own per-group cost-share split (build_labour_sources /
+  // split_group_overhead in useBusinessOutcomePerSourceRevenue.js), the
+  // same split every other figure on this page uses - NOT Rate
+  // Builder's rows, which put 100% of group overhead on labour (RB-1).
+  // A staff type working across several groups gets one hours-weighted
+  // rate: sum(overhead_share) / sum(hours) across every group it
+  // appears in. Optional/defaulted to [] because the internal caller
+  // inside useBusinessOutcomePerSourceRevenue.js only reads
+  // charge_out_rate / labour_source_type_name off the returned rows,
+  // never the overhead fields - so it is unaffected by this change.
+  const totals = new Map();
 
-  rate_builder_labour_recovery_rows.forEach((row) => {
-    map.set(row.labour_source_type_id, {
-      allocated_business_overhead_recovery_rate: to_number(
-        row.allocated_business_overhead_recovery_rate
-      ),
-      has_overhead_data: true,
+  labour_groups.forEach((group) => {
+    (group.staff || []).forEach((row) => {
+      const id = row.staff_type_id;
+      const prior = totals.get(id) || { hours: 0, overhead: 0 };
+      totals.set(id, {
+        hours: prior.hours + to_number(row.hours),
+        overhead: prior.overhead + to_number(row.overhead_share),
+      });
+    });
+  });
+
+  const map = new Map();
+  totals.forEach((totals_for_id, id) => {
+    map.set(id, {
+      allocated_business_overhead_recovery_rate:
+        totals_for_id.hours > 0 ? totals_for_id.overhead / totals_for_id.hours : 0,
+      has_overhead_data: totals_for_id.hours > 0,
     });
   });
 
@@ -170,9 +191,8 @@ function build_weighted_summary(labour_recovery_rows = []) {
   };
 }
 
-export default function useBusinessOutcomeLabourRecovery() {
+export default function useBusinessOutcomeLabourRecovery(labour_groups = []) {
   const labour = useLabour();
-  const cost_allocation = useCostAllocation();
 
   const [charge_out_rates_by_labour_source, set_charge_out_rates] = useState({});
 
@@ -183,12 +203,9 @@ export default function useBusinessOutcomeLabourRecovery() {
   const productive_staff_type_rates =
     labour?.output_contract?.productive_staff_type_rates ?? [];
 
-  const rate_builder_labour_recovery_rows =
-    cost_allocation?.output_contract?.rate_builder_labour_recovery_rows ?? [];
-
   const overhead_rate_map = useMemo(() => {
-    return build_overhead_rate_map(rate_builder_labour_recovery_rows);
-  }, [rate_builder_labour_recovery_rows]);
+    return build_overhead_rate_map(labour_groups);
+  }, [labour_groups]);
 
 
   const labour_recovery_rows = useMemo(() => {

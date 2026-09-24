@@ -40,10 +40,13 @@ export default function BusinessOutcomePage() {
   const [smoothing_mode, set_smoothing_mode] = useState("smoothed");
   const [view_mode_ab, set_view_mode_ab] = useState("a");
   const { output_contract } = useBusinessOutcomeTruth();
-  const labour_recovery = useBusinessOutcomeLabourRecovery();
   const revenue_split = useBusinessOutcomeRevenueSplit();
   const per_source_calculation = useBusinessOutcomePerSourceRevenue();
   const per_source = selectBusinessOutcomePerSourceRevenue(per_source_calculation);
+  // F7 (8b): pass Business Outcome's own labour_groups so the Labour
+  // Recovery card's overhead-per-hour uses this page's own cost-share
+  // split instead of Rate Builder's all-on-labour basis (RB-1).
+  const labour_recovery = useBusinessOutcomeLabourRecovery(per_source?.labour_groups ?? []);
   const { ratios: balance_sheet_ratios, has_data: has_balance_sheet_data, as_at_date: balance_sheet_as_at_date, accounts: balance_sheet_accounts } = useBalanceSheet();
   const balance_sheet_current_year_earnings = has_balance_sheet_data
     ? balance_sheet_accounts.find(
