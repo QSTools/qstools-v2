@@ -1,0 +1,272 @@
+MIRRA v6.0 - RATE BUILDER COST-ONLY GROUPS + UNITS-MODE PASS (SCOPING BRIEF)
+STATUS: SCOPING - NOT VERIFIED. Nothing in this brief has been re-checked in
+  code this session. Every claim below is sourced to the variable tracker, the
+  Rate Builder brief or the kickoff, as named. First job of the build session
+  is the code check in s3.
+DATE: 2026-09-24
+PHASE: proposed after kickoff s2 step 8b (Business Outcome follow-up) and
+  step 9 (Business Modelling). Owner's call 2026-09-24: once the current
+  pass-throughs and Business Modelling are done, the units driver is the next
+  major piece of infrastructure - the tool must be able to analyse either an
+  hours-based or a units-based business.
+LOCATION: docs\fin_mirra_v6.0 Briefs\
+
+RULE: no dollar figures outside a dated [VERIFIED] entry (kickoff s4). The
+  worked example in s2 is described by mechanism only.
+
+Two items, kept separate on purpose. They are related but are NOT the same
+issue, and fixing one does not close the other:
+
+  ITEM 1 - Rate Builder cannot price a cost-only working group (no asset).
+  ITEM 2 - Units-mode (business_type = product_based) has never been
+           exercised with real unit-driver data anywhere in the chain.
+
+===============================================================================
+1. HOW THIS SURFACED
+===============================================================================
+
+Raised while testing whether Mirra's own engine can model a subscription
+software business (working groups such as invoice processing, core platform,
+timekeeping - metered by count, not by hours worked). Question asked:
+"can Rate Builder price a working group that has no labour and no asset?"
+
+The first framing (units-mode needs its own Path B) was tested against an
+hours-based business and REFRAMED - see s2. The owner confirmed the reframed
+finding is the correct one. The SaaS case is only the sharpest example; it is
+not the reason the bug exists.
+
+===============================================================================
+2. ITEM 1 - COST-ONLY WORKING GROUPS CANNOT BE PRICED
+===============================================================================
+
+SOURCE OF CLAIM: variable tracker s18 (Rate Builder, code-traced 2026-09-23),
+Rate Builder brief. NOT re-verified in code since.
+
+WHAT THE TRACKER SAYS
+- Customer Charge Calculator (Path B) reads Cost Allocation
+  operational_group_cost_rows (group_cost_per_hour, labour/asset/overhead
+  recovery rates, group_recovery_hours).
+- "Only groups with assigned_asset_burden > 0 offered."
+- Recovery hours = sum of "hr" line quantities, else the output-driver
+  quantity (RB-13). Rate Builder is hours-native; business_type is not read.
+- Path A (Labour Rates Builder) prices labour groups on their own. Saved
+  charge rates key by staff_type_id; saved calculators key by
+  linked_cost_allocation_group_id; both are read by Business Outcome.
+
+HOW PRICING LAYERS TODAY (owner-confirmed 2026-09-24)
+- Labour is priced first, as its own line (Path A).
+- An asset operated by that labour is then priced as the combined
+  labour-plus-asset rate; the asset's own incremental charge is the DIFFERENCE
+  between the combined rate and the labour rate. Not the combined rate
+  standing alone.
+- Consequence: a pure labour group (people, no asset) is already covered by
+  Path A. The asset-burden gate does not wrongly exclude hours-based labour
+  groups.
+
+THE GAP (reframed)
+- A working group with real cost but neither billable labour hours nor an
+  asset has no pricing path. Examples:
+    - hours-based business: a fabrication shop, stores or yard function,
+      or any cost-only support group that is meant to be recovered through
+      pricing rather than spread purely as overhead;
+    - units-based business: a metered-cost group (for example a per-document
+      processing cost) with no person or machine attached.
+- This is NOT a business_type / mode problem. It is "Path B assumes every
+  priceable working group contains an asset". The same defect would appear in
+  a purely hours-based business. Do not scope it as "add a units-mode Path B".
+
+WHAT IS NOT YET KNOWN (must be answered by the code check)
+- Q1. Is assigned_asset_burden > 0 a hard gate in the group picker, or an
+  unexercised assumption that another path already handles?
+- Q2. Where does the gate live (line calculator hook, selector, or Cost
+  Allocation rate-builder selector)?
+- Q3. If a cost-only group is offered, what does group_cost_per_hour mean for
+  a group whose recovery driver is units, not hours? (group_cost_per_unit is
+  hard-coded 0 in Cost Allocation - tracker s6, "hours-native".)
+- Q4. Does Business Outcome (build_asset_sources, get_group_blended_rate,
+  get_group_covered_hours) have any way to earn revenue from a group with no
+  asset and no assigned labour? BO-6 currently says a asset-driven unit with
+  no labour earns nothing; a cost-only group is neither asset-driven nor
+  labour-driven. Check what it does today.
+- Q5. Are there Rate Builder group pickers other than Path B with the same
+  gate?
+
+OPTIONS TO EVALUATE (not decided)
+  A. Relax the Path B gate so any group with cost is offered, pricing on the
+     group's recovery driver. Smallest change; depends on Q3 and Q4.
+  B. New pricing path for cost-only / metered groups (per-driver-unit charge),
+     stored separately, read by Business Outcome the same way calculators are.
+     Larger; needed if A cannot express a per-unit charge.
+  C. Workaround: give the group a nominal asset line to unlock Path B.
+     REJECTED as a design - it distorts asset cost and utilisation and would
+     pollute Cost Allocation. Listed only so it is not proposed again.
+Expect the answer to be A or B depending on Q3/Q4; decide after the code read.
+
+CONSTRAINTS FROM EXISTING CONVENTIONS
+- Rate Builder has no output contract; only stored user inputs reach Business
+  Outcome (tracker s18). Any new stored pricing input needs: has_loaded guard
+  on the save effect, an explicit read in Business Outcome, and a check for
+  bug class (b) (storage/selector layer dropping unlisted fields).
+- Keep new files under ~600 lines; do not grow the large Business Outcome
+  files (file map s7, conventions rule 7).
+- The five untouchable files (file map s7) stay untouched.
+
+===============================================================================
+3. FIRST STEPS FOR THE BUILD SESSION (code check, no edits)
+===============================================================================
+
+1. python Py\audit-scripts\find_field_references.py assigned_asset_burden
+   Locate every read of the gate. Answers Q1, Q2, Q5.
+2. View components\rate-builder\line-calculator\useRateBuilderLineCalculator.js
+   and lib\calculations\rateBuilderCalculations.js fresh. Answers Q3.
+3. Trace in useBusinessOutcomePerSourceRevenue.js what a group with cost, no
+   asset and no labour assignment produces (build_asset_sources,
+   get_group_blended_rate, get_group_covered_hours, capacity gap). Answers Q4.
+4. Test-data check: does the loaded data contain a cost-only group? Pure
+   support groups exist (Accountant; Mini Truck as a support asset) but those
+   are labour/asset members that Business Outcome spreads as overhead. Confirm
+   whether any group has cost and NEITHER; if none, a small synthetic one is
+   needed and must be recorded as synthetic in the tracker s13 pattern.
+5. Write the findings into this brief as a dated [VERIFIED] entry before any
+   patch. Numbers only in that entry.
+
+===============================================================================
+4. ITEM 2 - UNITS-MODE VERIFICATION PASS (still owed)
+===============================================================================
+
+SOURCE OF CLAIM: kickoff s1 (parked business_type gap), tracker s8 (P2.1
+findings), s9 (chain), s12-s21 hours/units notes.
+
+WHAT IS KNOWN
+- The setting is business_type (labour_based / product_based), storage key
+  qs_tools_business_setup_v1. Default labour_based everywhere. The
+  completeness check Boolean(business_type) can never fail (tracker s8).
+- Four mode vocabularies exist and all derive one-way from business_type:
+  business_type, commercial_driver_mode (Revenue/COGS), recovery_mode
+  (Recovery Summary), activity_driver_type (Business Summary).
+- Mode-aware today: Business Setup, Revenue/COGS, Business Summary (driver
+  and hierarchy heading), Recovery Summary (driver card; product mode zeroes
+  every stream except overhead).
+- Passthrough only: Cost Allocation (business_type, activity_driver_type
+  carried as data; driver label built but not rendered; group_cost_per_unit
+  hard-coded 0).
+- Hours-native, business_type NOT read: Labour, Assets, Cost Allocation
+  branching, Business Outcome, Business Modelling, Rate Builder, Quote Engine.
+- Known product-mode defects logged, not fixed:
+    C3b  product mode overhead pool would double count (uses
+         total_cost_burden instead of the net figure).
+    Business Summary "Current business mirror" uses open hours in both modes.
+    R2/R3 Recovery Summary stream logic in product mode.
+    BO-6  product / throughput businesses parked as outside the hours-native
+          model.
+- Live checking so far was WIRING ONLY: the test dataset has no unit-driver
+  data, so no product-mode number has ever been exercised.
+
+WHAT THE PASS MUST ANSWER
+- U1. What is the unit driver, where is it entered, and where does it live in
+  storage? (Revenue/COGS holds commercial_driver_mode; confirm whether a real
+  units quantity is stored anywhere.)
+- U2. How does a unit driver reach Cost Allocation so that a group can be
+  recovered per unit, not per hour? (group_cost_per_unit is 0 today.)
+- U3. How does Rate Builder charge per unit (this is where Item 1 and Item 2
+  meet - a metered group needs a per-unit charge with a real unit quantity).
+- U4. How does Business Outcome convert units x price into modelled revenue
+  and reconcile to real revenue, including the View A residual and View B peer
+  cascades, covered-hours logic (BO-6) and the capacity coverage gap?
+- U5. What happens to overhead and the non-productive cost policy when the
+  recovery driver is units? (C3b, C6, distribute_non_productive_cost.)
+- U6. Mixed businesses: an hours-based business that also sells fixed-price
+  or per-unit lines beside its hourly rates (e.g. per-area or flat-fee jobs).
+  commercial_driver_mode already has a mixed_unit_based value; confirm what,
+  if anything, consumes it. Decide whether one business can carry both
+  drivers at once.
+- U7. Macro views (Cost Summary / Business Summary) use open hours; decide
+  what the units-mode macro basis is.
+
+DEFINITION OF DONE (proposed)
+- A units-based dataset is loaded (deliberately synthetic, documented) and a
+  number is traced by hand from unit driver to Business Outcome headline, with
+  the same breakeven discipline used in the core pass (revenue at breakeven,
+  headline approximately zero) before real margin is tested.
+- Every module's hours/units note in the tracker is updated from "assumed" to
+  "confirmed".
+- Each of C3b, Business Summary mirror basis, R2/R3 and BO-6's product-mode
+  limit is either fixed or explicitly decided.
+
+SUGGESTED SEQUENCE
+  S1  Item 1 code check (s3) and verified finding. One short session.
+  S2  Design decision for Items 1+2 together: how a unit driver is entered
+      and how Rate Builder prices it (U1-U3). Decision only, no code.
+  S3  Build the driver through Cost Allocation and Rate Builder.
+  S4  Business Outcome and Business Modelling consumption (U4-U5), with
+      breakeven verification.
+  S5  Macro views and mixed-mode (U6-U7); tracker close-out.
+One module per chat session, per kickoff s4. Do not start S3 before S2 is
+signed off.
+
+===============================================================================
+5. WHY THIS IS INFRASTRUCTURE, NOT A NICE-TO-HAVE
+===============================================================================
+
+- Without a working unit driver the tool only analyses hours-based businesses.
+  Any product, throughput, subscription or metered-cost business would get
+  numbers that look plausible but are hours-shaped.
+- The first real units-based test case is planned to be the owner's own
+  software business (one operating group; several working groups inside it;
+  pricing tiers built in Rate Builder on top of the shared groups). That case
+  is business planning and lives OUTSIDE the repo. This brief carries only the
+  engineering requirement it exposes.
+- A metered-cost group is the cleanest test of Item 1 because it has no
+  labour and no asset by construction.
+
+===============================================================================
+6. RELATED ITEMS (for cross-reference only)
+===============================================================================
+
+- Rate Builder brief RB-13 (recovery hours vs output-driver quantity) and
+  RB-12 (group rate vs Labour-tab minimum rate) - read before touching the
+  line calculator.
+- Business Outcome brief BO-6 known limits (unattended units; concurrent
+  attendance; product / throughput parked).
+- Cost Allocation C3b, C6, C7.
+- Tracker s8 open design question on Business Summary open-hours denominator
+  for product businesses.
+- Kickoff s7: labour/product-based coverage gap is tracked per module, not
+  fixed inline. This brief is the dedicated pass that note anticipated.
+
+===============================================================================
+7. HOUSEKEEPING WHEN THIS SESSION STARTS
+===============================================================================
+
+- Upload only: kickoff, tracker, file map, and this brief (plus the Rate
+  Builder brief while Item 1 is live).
+- Confirm git status before any commit. Build after every batch of patches.
+- On close-out: add a tracker section (mechanism only, no dollar figures),
+  mark this brief [VERIFIED YYYY-MM-DD] with numbers in the dated entry only.
+
+===============================================================================
+8. ADDENDUM 2026-09-24 (late) - links found while building the calculation map
+===============================================================================
+SOURCE: CALCULATION_MAP_v6_0.txt (docs\Audit\v6_0\), built from a code
+  extract the same day. Still NOT a code check of this brief's questions.
+
+- CM-1 LINK. The owner-confirmed layering in s2 ("the asset's own charge is
+  the DIFFERENCE between the combined rate and the labour rate") is the rule
+  Business Outcome currently breaks: it adds labour's charge rate ON TOP of
+  the calculator rate in asset-driven units (calc map s12 CM-1). Rate Builder's
+  result panel, Quick Start and the legacy asset split already follow the s2
+  rule. CM-1 is fixed first (kickoff s8), using s2 of this brief as the
+  signed-off definition. Units mode must build on the corrected split.
+- Q4 LEAD (to confirm in code). Per the calc map, a working group's cost
+  comes only from assigned labour, assigned assets, non-productive members
+  and its overhead share; overhead is weighted by labour cost whenever any
+  productive labour exists (C5), so a group with no labour gets ZERO
+  overhead. A group with neither labour nor asset may therefore carry no
+  cost at all today - i.e. it cannot be CREATED as a cost-only group, not
+  merely priced. If confirmed, Item 1 starts in Cost Allocation (a direct
+  cost input or a different overhead method), then Rate Builder.
+- SEQUENCE. This brief starts after CM-1 and after Business Modelling
+  (kickoff s2 step 9), as s0 already says.
+- UPLOAD LIST (replaces s7's first line): kickoff, tracker, file map,
+  CALCULATION_MAP_v6_0.txt (this is calculation work - kickoff s4 load
+  rule), and this brief (plus the Rate Builder brief while Item 1 is live).
