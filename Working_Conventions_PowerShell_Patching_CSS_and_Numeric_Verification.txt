@@ -119,3 +119,18 @@ returns what's actually been uploaded - a repo file being current does
 NOT mean Claude's project knowledge reflects it. This was discovered
 2026-09-14 when project_knowledge_search returned only July-dated docs
 despite two full days of shipped work having happened in between.
+
+ADDED 2026-09-24: PASTED COMMANDS AND DATA CAPTURE
+- A multi-line command pasted into PowerShell runs ONE LINE AT A TIME. A
+  guard such as if (...) { return } only stops its own line; every later
+  line still runs. Any command with a gate (build must pass, patch must
+  land, hash must match) is wrapped in & { ... } so return stops the lot.
+- Never set $ErrorActionPreference = "Stop" at the top level. It persists
+  for the whole window and turns the first stderr line (e.g. a Turbopack
+  warning) into a fatal error. Set it only inside & { ... } if at all.
+- Gate commits on the build's exit code ($LASTEXITCODE -eq 0), not on
+  red text. Build warnings arrive on stderr and look like errors.
+- Capture browser/console data (per_source snapshots etc.) by DOWNLOADING
+  it as a file. Clipboard capture failed twice on 2026-09-24 by saving the
+  PowerShell command instead of the JSON. Check the saved file's size and
+  first characters before trusting it.
