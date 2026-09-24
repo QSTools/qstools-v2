@@ -1,5 +1,6 @@
 MIRRA v6.0 - BUSINESS MODELLING - CONSOLIDATED BRIEF (REDESIGN AS SPINE)
-STATUS: DESIGN CONFIRMED BY OWNER 2026-09-24 - NOT BUILT - NOT YET VERIFIED
+STATUS: DESIGN CONFIRMED 2026-09-24 - REBUILD STEPS 1-4 BUILT (s11) - BLOCKED ON CM-1 FOR
+  ASSET-DRIVEN UNITS - NOT YET VERIFIED END TO END
 DATE: 2026-09-24 (rewrite of the earlier same-day consolidation; that version treated the
   existing page as the base - wrong. The redesign is the base; existing code is a parts list.)
 SUPERSEDES (fold-in, then archive out of project knowledge; repo copies kept):
@@ -146,8 +147,8 @@ business_type is not read by any Modelling file (matches tracker) - log only.
 7. OPEN DECISIONS AND DISCOVERY (in this order)
 ===============================================================================
 Q1  Net profit display: today fixed + modelled + change (proposed) vs move the headline.
-Q2  Compute the modelled figure via the existing calculators (override rerun) or via the additive
-    lever maths - decided by the s4 re-test.
+Q2  RESOLVED 2026-09-24: the additive per-source model is the model; the override rerun is inert
+    (s11) and kept only as a cross-check.
 Q3  Overheads step: discovery of where remaining Cost Summary overhead enters the chain
     (costAllocationOverheadPoolBuilder.js build_overhead_pool conserves the total per 09-16 algebra;
     unconfirmed as the injection point) and which lines are levers (is_lever).
@@ -172,7 +173,7 @@ Reconciliation session), debt-to-equity scenario context, ~$20 Outcome-vs-Modell
 ===============================================================================
 9. VERIFICATION PLAN
 ===============================================================================
-V1  Re-test the override rerun: does modelled_per_source move when a lever changes (View A and B)?
+V1  DONE 2026-09-24: it does not move (s11).
 V2  Ceiling: confirm per-source ceiling and whole-business Best Case against Business Outcome.
 V3  Overhead injection discovery (Q3), read-only first; grep every caller of any hook before
     changing it (8b rule); find_field_references / check_field_parity on the affected pairs.
@@ -187,3 +188,63 @@ V6  has_loaded guard check on Modelling hooks; update tracker with dated figures
 ===============================================================================
 Remove the seven docs above plus the three S05 v5.0 docs from project knowledge; upload this brief
 (renamed [VERIFIED] once proven). Keep the kickoff, variable tracker and file map. Repo copies stay.
+===============================================================================
+11. SESSION 1 RECORD (2026-09-24) - decisions, build, evidence
+===============================================================================
+DECISIONS
+- REBUILD, DON'T PATCH. New hook + components; per_source read-only. Old LeverCard, DEBUG block and
+  Baseline/Upside/Downside left in place until step 5.
+- Q2: additive per-source model (below) is the model.
+- D-VIEW (owner): View A achieved figures are the base. Materials is floored at cost: START = 0%
+  markup, FLOOR 0%, CEILING = Rate Builder markup. View B's negative achieved markup is a View B
+  artefact, not used. Owner notes the View A/B question is still discussed; recorded as decided
+  so it is not reopened without cause.
+MODEL (mechanism; see CALCULATION_MAP_v6_0.txt s10)
+- Row achieved revenue = true_cost + non_productive_share + real_capacity_net_profit
+  (per_source.labour_groups[].staff[], asset_groups[].assets[]).
+- Basis = the unit's COVERED hours (never seat hours). Materials basis = COGS / 100.
+- START = achieved / basis; FLOOR = (true_cost + non_productive_share) / basis (full breakeven;
+  group_min_rate kept separately); CEILING = entered rate.
+- Effect = (target - START) x basis. Modelled = today's real net profit + sum of effects of ONLY
+  the rows touched.
+- Rows are per working unit x staff type (Business Outcome's own grain). Assets: one row per unit
+  (blended rate; S28 per-asset linking not built). Name trap: working unit "Site Crew" holds staff
+  type Operator; staff type "Site Crew" sits in PC55 - label every row "unit / staff type".
+FILES (new)
+  lib/calculations/businessModellingSourceRows.js (buildSourceRows)
+  lib/calculations/businessModellingAdditiveModel.js (applyAdditiveLevers)
+  lib/storage/businessModellingLeverStorage.js (key qs_tools_business_modelling_levers_v1)
+  hooks/useBusinessModellingLevers.js (lazy useState read; has_loaded made redundant - documented)
+  components/business-modelling/businessModellingFormat.js, BusinessModellingNetProfitBar.jsx,
+    BusinessModellingSourceRow.jsx, BusinessModellingLeverPanel.jsx; page.jsx wired above LeverCard
+COMMITS: 7685d66 (step 1); step 2 committed; step 3 commit + step 4 patch (text inputs,
+  inputMode decimal, regex filter - number fields drifted on mouse wheel) issued but NOT confirmed.
+[VERIFIED 2026-09-24] live, real revenue
+  V1: modelled View A/B totals stayed -406,922.98 / -406,922.97 through Site Crew target, Materials
+  5% and both; the additive lever card moved -94,745.82, -124,009.07 and -218,754.89 (exactly
+  additive). Offline identity tests on the real per_source snapshot: 6/6 PASS (no levers = today;
+  own start rate = zero effect; additivity; asset basis = covered hours; reconciliation exact;
+  zero-hour rows ignored). Reconciliation: groups' achieved 332,382.26 + materials at cost
+  1,240,090.70 = 1,572,472.96 vs real revenue 1,572,472.95.
+  Row floors x hours sum exactly to each unit's true cost.
+  Lever panel: Site Crew/Operator at $80 = +49,689.90; Materials 5% = +62,004.54; change
+  +111,694.43; modelled -295,228.55. Persists across reload; Reset returns to -406,923 / 0.
+FOUND - CM-1 (calc map s12): in asset-driven units Business Outcome adds labour's charge rate on
+  top of the calculator rate; the owner bills the calculator rate all-in (PC55: calculator rate
+  includes the operator). The lever panel's labour rows inside asset-driven units (Senior Operator
+  in 2inc Line, Site Crew in PC55) and the asset rows' ceilings are therefore wrong. Fix CM-1 in
+  Business Outcome first; then asset-driven units become ONE lever (the all-in unit rate) and their
+  labour rows become cost-only.
+PENDING (next session, after CM-1)
+  Step 5 (decisions): remove old LeverCard (its standalone headline contradicts reality); remove
+    DEBUG block; hide Baseline/Upside/Downside behind a collapsed "Previous tools" section
+    (recommended - its baseline is the independent engine, not today); fix the pre-existing
+    hasMounted set-state-in-effect lint error in page.jsx.
+  Open design: per-staff-type lever across units (one rate for Senior Operator everywhere) vs
+    per-unit rows. Recommendation: keep per unit, add "set this rate everywhere" later - revisit
+    after CM-1, since asset-driven units will no longer carry separate labour levers.
+  Audit snapshot docs/Audit/v6_0/ps.json - rename to bm_per_source_2026-09-24.json and commit, or
+    delete (may be untracked).
+  Overheads step still has no injection point (Q3).
+  Close-out: file map s7 (LeverCard / independent calculations no longer "leave untouched"),
+    tracker Business Modelling section, V5/V6.

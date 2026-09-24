@@ -1,0 +1,472 @@
+MIRRA v6.0 - CALCULATION MAP
+STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+LOCATION: docs\Audit\v6_0\CALCULATION_MAP_v6_0.txt
+  (NOT inside docs\Audit\v6_0\calc_map\ - the script clears that folder on
+  every run and would delete this file)
+COMPANIONS: BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (where things live),
+  VARIABLE_TRACKER_v6_0.txt (which field feeds which). This file adds the
+  third thing neither of those holds: the FORMULA.
+
+===============================================================================
+0. HOW TO READ AND MAINTAIN THIS FILE
+===============================================================================
+- One line per money-moving figure: formula in words, then
+  `function` Lnnn (file). Formulas are as the code computes them today,
+  not as they should be. Where the code is wrong or inconsistent, the line
+  carries a [CM-n] tag pointing to Section 12.
+- NO DOLLAR FIGURES (same rule as the tracker). Numbers go in dated
+  [VERIFIED] brief entries only.
+- Line numbers are as of the 2026-09-24 extract and WILL drift. Search by
+  function name; the line number is only a hint.
+- "x" means multiply, "/" divide. "sum of" means a reduce over the rows named.
+- Items marked (tracker) were not in the extract (no arithmetic on that
+  line) and are taken from VARIABLE_TRACKER_v6_0.txt.
+- Regenerate the raw extract (read-only, ~1 min):
+    python Py\audit-scripts\extract_calc_map.py
+  Output: docs\Audit\v6_0\calc_map\ - 00_COVERAGE.txt first (should be
+  short and explainable), 01_FIELD_INDEX.txt to find every place a field
+  is calculated, then the per-module dumps.
+- WHEN A CALCULATION CHANGES (required - kickoff s4 checklist):
+  re-run the extract after the patch builds and live-tests, update the
+  formula AND line numbers here from the new dump, close or amend any CM-n
+  entry in s12, re-date the header, and commit with the code change.
+  A calculation change is not done until this file matches the code.
+- Coverage of the 2026-09-24 extract: 2,388 functions parsed, 2,182
+  calculation statements. 84 "not parsed" declarations checked by hand:
+  37 were captured as statements anyway, 47 are list/JSX values with no
+  maths. 5 statements outside functions are module constants. Nothing
+  material missing.
+
+===============================================================================
+1. P&L AND REVENUE / COGS
+===============================================================================
+P&L (lib/calculations/profitAndLossCalculations.js, calculateProfitAndLoss)
+- gross_profit = total_trading_income - total_cost_of_sales            L224
+- net_profit = gross_profit + total_other_income - total_operating_expenses  L225
+- total_direct_costs = sum of direct_cost_category_totals[].total      L290
+  (section pair vs category pair can diverge silently - tracker s10)
+- total_assigned_business_costs = labour_benchmark_total
+    + assets_benchmark_total + general_overheads_benchmark_total        L339
+- total_business_costs = total_assigned_business_costs + unassigned_balance  L344
+
+Revenue / COGS (lib/calculations/revenueCogsCalculations.js)
+- margin_pool = revenue_total - direct_cost_total                      L172
+- gross_margin_percent = margin_pool / revenue_total (a FRACTION, not x100)  L173
+- unit rows: annual_revenue = revenue_total x revenue_share_percent/100;
+  annual_margin_pool = margin_pool x share/100     calculate_unit_driver_rows L65-66
+
+===============================================================================
+2. OPENING HOURS (lib/calculations/openingHoursCalculations.js)
+===============================================================================
+- daily_open_hours = (close - open [+24h if overnight] - break) / 60
+                                                calculate_daily_open_hours L63-71
+- standard_weekly_open_hours = sum of daily_open_hours           calculate_opening_hours L129
+- standard_daily_open_hours = weekly / open day count                     L137
+- annual_open_weeks = 52 - seasonal_shutdown_weeks                        L147
+- annual_business_open_hours = weekly x annual_open_weeks                 L166
+- net_annual_business_open_hours = annual - public_holiday_days x daily
+    - additional closed hours                                             L175-191
+- net_annual_business_open_days = net open hours / standard daily hours   L217
+
+===============================================================================
+3. LABOUR
+===============================================================================
+Per staff member (lib/calculations/labourCalculations.js, calculateLabourOutputs)
+- paid_hours_per_year = hours_per_week x 52                               L318
+- daily_hours = hours_per_week / days_per_week                            L320
+- leave hours: annual = weeks x hours_per_week; public holiday, sick,
+  bereavement, family violence = days x daily_hours                       L322-326
+- leave_non_productive_hours = sum of the five leave hour figures         L328
+- worked_days_per_year = (paid hours - leave hours) / daily_hours         L341
+- break_hours_annual = worked days x paid rest minutes per day / 60 (NZ rule
+  module, lib/calculations/compliance/breakRules/nz.js)                   L349
+- non_productive_paid_hours = leave hours + break hours                   L352
+- productive_hours = (paid hours - non_productive_paid_hours)
+    x productivity_percent/100                                            L355
+- base_labour_cost_annual = labour_rate x paid_hours_per_year
+  (leave is paid INSIDE this, not added on top)                           L364
+- entitlements_annual = labour_rate x non_productive_paid_hours (display
+  split of base, not an extra cost)                                       L375
+- employer_kiwisaver_gross = gross_wages x employer rate (if enabled)     L379
+- esct_amount = employer KiwiSaver x ESCT rate                            L389
+- acc_work_levy_annual = gross_wages x acc_rate/100                       L393
+- total_employer_contribution_cost = KiwiSaver + ESCT + ACC               L397
+- total_labour_cost_annual = base_labour_cost_annual + employer contributions  L400
+- loaded_labour_cost_rate = total cost / paid hours                       L403
+- productive_labour_cost_rate = total cost / productive_hours             L408
+- minimum_charge_out_rate = productive rate / (1 - margin target)         L415
+- profit_per_hour = charge_out_rate - productive_labour_cost_rate         L427
+
+Per staff type (calculateProductiveStaffTypeRates, same file)
+- weighted_productive_hourly_rate = type total cost / type productive hours  L173
+- weighted_all_productive_labour_rate = all productive cost / all
+  productive hours                                                        L204
+- P&L-derived: labour_recovery_pool = (revenue - COGS) - net profit
+    - non-labour overheads; pnl_derived_recovered_labour_rate = pool /
+    productive hours           calculatePnlDerivedLabourRecovery L236-241
+
+Output contract (lib/selectors/labour/labourOutputContractSelectors.js)
+- total_non_productive_labour_cost = total_labour_cost_annual
+    - total_productive_labour_cost                                        L133
+- productive_labour_cost_rate = total cost (ALL staff) / total_productive_output
+  (productive staff hours only since F12)                                 L161
+
+Employee overheads (lib/calculations/employeeOverheadCalculations.js)
+- per profile = training + PPE + transport + phone + active custom rows   L23
+  Status: genuine lever candidates for Business Modelling (brief s4).
+  Confirm whether this total reaches Cost Summary before relying on it.
+
+===============================================================================
+4. GENERAL OVERHEADS (lib/calculations/generalOverheadCalculations.js)
+===============================================================================
+- row_share_of_assets_total = (row amount / flagged interest rows total)
+    x Assets module interest total                   calculate_general_overheads L237
+- active_amount = max(row amount - row_share_of_assets_total, 0)
+  (floors the P&L asset-finance interest line at 0 - BO-7)                L244
+- total_general_overheads = sum of active_amount                          L248
+- asset overhead pools: pool.amount += row amount for rows moved to an
+  asset pool          build_asset_overhead_pools (generalOverheadPoolSelectors.js) L56
+
+===============================================================================
+5. ASSETS
+===============================================================================
+Per asset (lib/calculations/assetCalculations.js)
+- utilisation_hours_annual = weekly hours x annual_weeks_used
+  (weeks: asset override -> Opening Hours -> 48)       get_asset_utilisation L55
+- finance payment = standard amortisation: P x r / (1 - (1+r)^-n), monthly,
+  x 12                                  calculate_total_finance_payment_annual L253
+- asset_interest_annual = purchase_price x (1 - elapsed/term) x rate
+  (straight-line remaining balance, dated to TODAY - drifts daily, A4)
+                                           calculate_forward_asset_interest L294-296
+- principal repayment = finance payment - interest (cash only, not cost)  L319
+- total_asset_cost_annual = asset_interest_annual + running_cost_annual
+  (running cost hard-coded 0 - A1)                  calculateAssetOutputs L426
+- depreciation estimate = book value x rate/100 (opt-in, per-asset rate
+  only, never in any total - A2)  fixedAssetRegisterCalculations.js L20
+
+Burden and rate (hooks/assets/assetHookUtils.js, assetOutputContract.js)
+- asset_recovery_cost_annual = own cost + allocated pool overhead
+                                         build_asset_recovery_fields L203; contract L86
+- required_asset_recovery_rate = (recovery cost + opted-in depreciation)
+    / utilisation hours                         get_asset_utilisation_fields L180
+- over-assigned pool scaled pro-rata: amount x available / assigned
+                                          get_effective_asset_pool_assignments L123
+- contract totals: productive_asset_cost / support_asset_cost = OWN cost
+  only (exclude pools - naming trap); productive_asset_recovery_cost_annual
+  = own + pools; productive_asset_recovery_rate = productive recovery cost
+  / productive utilisation hours                          contract L118-197
+
+===============================================================================
+6. COST SUMMARY / BUSINESS SUMMARY / RECOVERY SUMMARY
+===============================================================================
+Cost Summary
+- general overheads after asset pools = max(GO total - assigned asset pool
+  overhead, 0)                                     useCostSummary.js L32
+- total_cost_burden = people cost + asset cost (incl pools) + business
+  overheads                   costSummaryCalculations.js calculateCostSummary L41
+- required_recovery_rate = required_revenue / total_recovery_hours
+  (pricing basis: productive person-hours, F18)                           L48
+- macro_required_operating_hour_rate = burden / net open hours (macro basis)  L74
+
+Business Summary (lib/calculations/businessSummaryCalculations.js)
+- net_position = margin_pool - operating_cost_total                       L115
+- margin_after_labour = margin_pool - people_cost_total                   L116
+- non_people_cost_burden = asset cost + business overheads                L117
+
+Recovery Summary (lib/calculations/recovery-summary/calculateRecoverySummary.js)
+- productive_asset_recovery_cost = own + assigned pools (A11 fix)         L106
+- stream costs = total_cost_burden x each share percent: labour, asset,
+  material, and overhead_absorbed = 100 - the other three                 L227-246
+- overhead_absorbed_cost -> Cost Allocation's overhead pool (the hinge input)
+- per recovery hour = stream cost / recovery_hours_used                   L284-304
+- output shares re-derived from stream costs, never the saved split (R2)  L345-362
+
+===============================================================================
+7. COST ALLOCATION (the hinge)
+===============================================================================
+Pools
+- labour assigned_hours = available hours x assignment_percent/100;
+  assigned_cost = available cost x percent/100 (assigned_staff_count
+  ignored - C13)     costAllocationLabourPoolBuilders.js build_productive_labour_pool L66-77
+- non-productive labour: same, cost only                                  L271
+- asset assigned cost/hours = asset available x percent/100
+                        costAllocationAssetPoolBuilders.js L56-59 (non-productive L220)
+- over-allocation computed, never capped (C14)                  L131-136, L157-160
+
+Overhead distribution (costAllocationOverheadPoolBuilder.js build_overhead_pool)
+- method inferred: labour-cost-weighted if any productive labour, else
+  asset-burden-weighted, else equal split
+- assigned_overhead_amount = overhead pool x (group labour cost / total
+  labour cost)  [or x asset burden share, or / group count]               L40-63
+  Groups with no productive labour get ZERO under labour weighting (C5).
+
+Group cost row (costAllocationGroupCostBuilder.js build_operational_group_cost_rows)
+- assigned_labour_cost / hours = sum of labour assignments               L38-43
+- assigned_asset_burden = SUM of asset assignment cost                    L54
+- assigned_asset_hours = MAX of asset assignment hours (not the sum)      L59
+- total_group_cost = labour + asset + overhead + non-productive labour
+    + non-productive asset                                                L106
+- group_recovery_hours = asset hours if a productive asset is present,
+  else labour hours (tracker)
+- labour / asset / overhead_recovery_rate = each stream / group recovery
+  hours (these three EXCLUDE non-productive cost - C6)                   L115-121
+- group_cost_per_hour = total_group_cost / group recovery hours           L126
+- labour_coverage_gap_hours = asset hours - labour hours where asset
+  hours drive and exceed labour (computed, not shown - C22)               L134
+
+Group recovery row (hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js,
+then overwritten in useCostAllocation.js L181-183)
+- minimum_recoverable_rate_per_hour = labour rate + asset rate + overhead
+  burden rate (group-level; the "Group min rate" on Business Outcome, BO-3)
+
+Grand totals (costAllocationRuleBuildContext.js)
+- total_grouped_operating_cost = labour + asset + overhead + non-prod
+  labour + non-prod asset                                                 L340
+- total_unassigned_cost = unassigned labour + asset + overhead           L362
+
+===============================================================================
+8. RATE BUILDER (stored user inputs + display maths; no output contract)
+===============================================================================
+Labour tab
+- per staff type overhead: allocated overhead = group overhead x (type
+  labour cost / group labour cost)  -> 100% of group overhead on labour,
+  regardless of assets (RB-1)  costAllocationRateBuilderSelectors.js L65-66
+- allocated_business_overhead_recovery_rate = allocated overhead /
+  assigned labour hours                                                   L99
+- minimum_recoverable_charge_out_rate = labour cost rate + that overhead
+  rate                          rateBuilderLabourSourceSelectors.js L128
+- saved charge-out rates -> storage qstools_rate_builder_labour_source_rates_v1
+  keyed by staff_type_id -> read by Business Outcome
+
+Customer Charge Calculator (asset groups)
+- line total = rate x quantity; total_charge = sum of lines
+                               rateBuilderCalculations.js calculateRateBuilderQuotePreview L25-35
+- blended rate (as Business Outcome reads it) = total_charge / recovery
+  driver quantity (sum of "time"/"hr" line quantities, else output driver)
+- Result panel margin per hour = blended rate - (labour minimum rate +
+  group asset rate)   RateBuilderResultPanel.jsx L271-272
+  => Rate Builder treats the calculator rate as ALL-IN (labour inside it).
+     Business Outcome does not [CM-1].
+
+Materials (Path C)
+- sell_revenue = COGS x (1 + markup/100); profit = sell - COGS
+                           rateBuilderMaterialsMarkupCalculations.js L34-35
+- margin % = markup / (1 + markup); markup % = margin / (1 - margin)     L12, L22
+
+===============================================================================
+9. BUSINESS OUTCOME (hooks/useBusinessOutcomePerSourceRevenue.js unless noted)
+===============================================================================
+9.1 Hours
+- covered hours (asset-driven group) = min(seat hours, sum of assigned
+  labour hours); otherwise group recovery hours   get_group_covered_hours L283 (BO-6)
+- labour row revenue_hours: asset-driven group = covered hours x (own hours
+  / group labour hours); labour-driven group = own hours   build_labour_sources L360-361
+
+9.2 Overhead split per group
+- labour_overhead_pool = group overhead x labour cost / (labour + asset
+  cost); asset_overhead_pool = the rest      split_group_overhead L112-120
+- labour row overhead_share = labour pool x own hours share               L364
+- asset row overhead_share = asset pool x own asset hours / group asset hours  L174
+
+9.3 Source rows
+LABOUR (build_labour_sources)
+- true_cost = assigned labour cost + overhead_share                       L390
+- modelled_revenue = charge_out_rate x revenue_hours [CM-1]               L391
+- net_profit = modelled_revenue - true_cost                               L392
+ASSET (build_asset_sources)
+- blended_rate = calculator total_charge / driver quantity  get_group_blended_rate L91
+- true_cost = assigned asset cost + overhead_share                        L179
+- group_asset_revenue = blended_rate x covered hours [CM-1]               L196
+- row modelled_revenue = group asset revenue x (asset cost / group asset
+  cost) - shared across co-deployed assets by cost share                  L199-202
+- net_profit = modelled_revenue - true_cost                               L205
+- interest / depreciation per row = asset figure x assignment % (EBIT
+  display only)                                                           L215-217
+MATERIALS (in the main hook)
+- true_cost = total COGS + max(residual overhead, 0), where residual
+  overhead = business overheads - overhead assigned to groups             L1083, L1189
+- View A revenue = real revenue - labour modelled revenue - asset
+  modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1194
+- View B revenue = COGS x (1 + effective markup/100)
+                        businessOutcomeViewBCalculations.js build_materials_source L66
+- materials_independent_revenue (Best Case) = same formula                L1243
+
+9.4 Non-productive cost (distribute_non_productive_cost)
+- own non-productive cost = assigned non-prod labour + non-prod asset     L721
+- pure-support units: pooled and spread; mixed units follow policy
+  (default charge_to_self)
+- spread weight = unit labour cost / total (or asset cost share, or equal) L775-779
+- share = pool x weight                                                   L782
+- row.non_productive_share = unit non-prod cost x row revenue / unit
+  revenue (equal split if no revenue)          apply_real_capacity L869; View B L213
+
+9.5 View A real-capacity cascade (apply_real_capacity)
+- group true_cost += non-productive cost                                  L811
+- naive_net_profit = modelled revenue - true cost                         L815
+- shortfall = max(0, materials true cost - materials residual revenue)    L818
+- Phase 1: profitable groups give up profit pro-rata to profit:
+  factor = min(shortfall, sum of positive profit) / sum of positive profit L821-829
+- Phase 2: any leftover spread by revenue share                           L830
+- final_net_profit = after phase 1 - phase 2 deduction                    L834
+- same two phases repeated INSIDE each group across its rows ->
+  real_capacity_net_profit per row                                        L879-910
+- materials final revenue = max(residual, true cost) -> materials never
+  below cost in View A                                                    L916-917
+- row achieved revenue = true_cost + non_productive_share +
+  real_capacity_net_profit  (selector merge_groups_by_id_real_capacity L262-264)
+
+9.6 View B real-capacity cascade (businessOutcomeViewBCalculations.js apply_real_capacity_v2)
+- materials is a peer row; shortfall = max(0, all modelled revenue - real
+  revenue); surplus = max(0, real - modelled)                             L180-182
+- same Phase 1 / Phase 2 and inner-row pass as View A                     L183-250
+- achieved markup (labelled "Achieved markup", BO-9) = (achieved revenue /
+  true cost - 1) x 100                                                    L255-256
+- headline adds surplus back as unexplained_revenue (BO-11)
+                                     selector L630-633 (not a breakdown row - BO-12)
+
+9.7 Assumed capacity / Best Case
+- scale_factor = real revenue / combined modelled revenue; implied revenue
+  = modelled x scale; implied net profit = implied - true cost
+                                     apply_revenue_ceiling L563-575 (View B: _v2 L115-126)
+- Best Case total_modelled_revenue = labour + asset modelled revenue +
+  materials at markup [inflated by CM-1]                                  L1247
+
+9.8 Headlines and checks
+- total_true_cost = labour + asset + materials true cost + unassigned     L1252
+- cost check: total_true_cost vs Cost Summary burden + P&L direct costs
+  (reconciles if < $1)                                                    L1293-1296
+- smoothed_net_profit (gauge input) = sum of group final profit + materials
+  real-capacity profit - unassigned                                       L1397
+- selector View A headline = sum of group real-capacity profit - unassigned
+                          businessOutcomePerSourceRevenueSelectors.js L553-566
+- health_ratio = smoothed net profit / (sum of each source's positive
+  standalone profit)    businessModellingIndependentCalculations.js calculateGaugeInput L276-285
+
+9.9 Capacity coverage gap (calculate_capacity_coverage_gap)
+- gap_hours = asset hours - labour hours                                  L475
+- asset-driven, labour short ("revenue not earned") = gap hours x
+  (blended rate + weighted labour charge rate) [CM-1]                     L484
+- labour over = |gap| x labour true cost rate (wasted cost)               L487
+- weighted labour charge rate = sum of hours x charge rate / labour hours L463
+
+9.10 Labour Recovery card (hooks/useBusinessOutcomeLabourRecovery.js)
+- overhead per hour per staff type = sum of overhead_share / sum of hours
+  across every group the type works in (F7)   build_overhead_rate_map L37-46
+- true_cost_per_hour = labour cost rate + overhead rate                   L71
+- rate_gap = charge_out_rate - true_cost_per_hour                         L78
+- weighted figures = hours-weighted averages of the above                 L121-175
+
+9.11 Display-layer recomputations (the gotcha #4 class - money maths in JSX)
+components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx:
+- CostBuildUpTable: net_profit = modelled revenue - corrected total cost  L390
+- RankedGroupsDrill / ViewBGroupsDrill "contribution" = net profit +
+  overhead_share                                                 L531, L556, L1002
+- merge_view_b_groups: child achieved revenue = true cost +
+  non_productive_share + net profit; achieved rate = / hours              L792-881
+- ViewBGroupsDrill credits View B surplus to profitable groups pro-rata
+  to profit, IN THE COMPONENT ONLY [CM-6]                                 L948-961
+- Ledgers re-sum totals from group rows (RealCapacityLedger L1502-1532,
+  AssumedCapacityLedger L1315-1336, ViewBRealCapacityLedger L1704-1705)
+Net Profit build-up (lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors.js)
+- shortfall carried = source net profit - (revenue - materials true cost) L69
+- check: labour + asset direct + overhead + non-prod vs injected true cost L95
+
+9.12 Legacy (not on /business-outcome)
+- lib/calculations/businessOutcomeAssetSplitCalculations.js
+  calculateOperatingGroupSplit: group charged = blended rate x recovery
+  hours; asset charged = group charged - labour charged  L198-207
+  => the LEGACY code treated the calculator rate as all-in [CM-1]
+- lib/calculations/businessOutcomeCalculations.js calculateBusinessOutcome
+  (/recovery-outcome): netProfit = margin - labour shortfall - non-prod
+  labour - asset costs - overheads                                        L125-129
+
+===============================================================================
+10. BUSINESS MODELLING
+===============================================================================
+Current rebuild (2026-09-24, the live model - View A base)
+- lib/calculations/businessModellingSourceRows.js buildSourceRows
+  - labour row: achieved revenue = true_cost + non_productive_share +
+    real_capacity_net_profit                                              L44
+  - start_rate = achieved revenue / basis (covered hours)                 L56
+  - floor_rate = (true_cost + non_productive_share) / basis               L57
+  - asset unit: achieved = sum over assets; ceiling_rate = sum of entered
+    (modelled) revenue / basis                                            L69-87
+  - materials: basis = COGS / 100 (so the "rate" is markup %), start 0    L103
+- lib/calculations/businessModellingAdditiveModel.js applyAdditiveLevers
+  - effect = (target - start_rate) x basis                                L34
+  - modelled_net_profit = today's real net profit + sum of effects        L49
+  [CM-1 affects asset-driven units: labour and asset rows are separate
+   levers but share one billed rate]
+
+Older engines (still in code; see brief s6 for disposition)
+- Independent group lever: revenue delta = rate delta x group recovery
+  hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105
+- breakeven rate = current rate + (true cost - revenue) / hours           L70-77
+- materials breakeven markup = (true cost / COGS - 1) x 100               L178
+- materials lever: revenue = COGS x (1 + markup/100)                      L206
+- group-level cascade copy (third copy of the Phase 1/2 logic) [CM-5]
+                 businessModellingLeverCalculations.js run_group_level_cascade L35-79
+- proportional targets: weight = unit naive profit / total eligible
+  profit; suggested rate delta = required delta x weight / hours          L267-281
+- Baseline/Upside/Downside baseline = buildLiveLeverHeadline with no levers
+  (independent engine - shows standalone profit, NOT real net profit)
+- legacy scenario (businessModellingCalculations.js buildScenarioState):
+  revenue = direct costs + charge rate x productive output; effects split
+  into charge rate / productivity / volume                                L130-199
+
+===============================================================================
+11. SIDE TOOLS (outside the core chain - consistency reference only)
+===============================================================================
+- Quick Start asset + operator (quickStartCalculations.js build_asset_operator):
+  hourly buffer = charge_out_rate - (machine rate + operator rate)  L237-238
+  => treats the charge-out rate as ALL-IN [CM-1]
+- Quote Engine (quoteEngineCalculations.js): COG sell = cost x (1 +
+  markup); labour charge = quote price - COG sell; business recovery
+  required = hours x required_recovery_rate; quote gap = margin pool -
+  recovery required                                                       L32-128
+- Quote Checker: implied labour rate = labour charge / hours; gap vs
+  required labour recovery                                                L63-86
+- Reconciliation (reconciliationRules.js): variance = module - P&L;
+  module total = labour + asset + general overheads; asset finance
+  interest covered = min(P&L flagged interest, Assets interest), moved
+  from GO benchmark to Assets benchmark                                   L733-813
+
+===============================================================================
+12. KNOWN INCONSISTENCIES (found by reading formulas side by side)
+===============================================================================
+CM-1 OPEN - HIGH. Asset-driven units stack labour on top of the calculator
+  rate. Business Outcome: asset revenue = blended rate x covered hours
+  (L196) AND labour revenue = charge rate x hours (L391), summed (L550,
+  L1175-1179). The owner bills the calculator rate ALL-IN (e.g. machine
+  rate includes the operator). Rate Builder's own result panel, the legacy
+  asset split and Quick Start all treat it as all-in; only the current
+  Business Outcome hook stacks. Effect: every asset-driven unit's entered /
+  Best Case revenue is overstated by its crew's charge rate x hours; the
+  coverage gap value (L484) likewise. Real net profit is NOT affected (the
+  cascades reconcile to real revenue) but the split of who carries whom,
+  View A materials residual, View B shortfall, Best Case, and Business
+  Modelling ceilings all are. FIX PENDING - Business Outcome, own session
+  step, separate confirmation + live test.
+CM-2 NOTE. Two overhead-per-labour-hour bases coexist by design: Rate
+  Builder puts 100% of group overhead on labour (RB-1); Business Outcome
+  splits by cost share (F7). Only matters if a new display reads the
+  Rate Builder rows.
+CM-3 NOTE. Group minimum rate (Cost Allocation) excludes non-productive
+  cost; Business Outcome true cost includes it (C6, BO-3 by design).
+  Business Modelling floor uses the full figure.
+CM-4 NOTE. assigned_asset_hours is the MAX of a group's asset hours while
+  assigned_asset_burden is the SUM of their cost (Cost Allocation L54-59).
+  Intended (co-deployed assets run at the same time); keep in mind for any
+  per-asset rate.
+CM-5 CLEANUP. The Phase 1 / Phase 2 cascade exists three times:
+  apply_real_capacity (hook), apply_real_capacity_v2 (View B),
+  run_group_level_cascade (Business Modelling). A change to one must be
+  mirrored or the copies disagree.
+CM-6 WATCH. ViewBGroupsDrill credits View B surplus to profitable groups
+  inside the component (L948-961). The selector does not (BO-12). Any
+  consumer other than that drill sees uncredited figures.
+CM-7 NOTE. "required recovery rate" exists in several forms: Cost Summary
+  (burden-based per person-hour), Recovery Summary (per stream), Labour
+  (minimum charge-out with margin target), Rate Builder (labour cost +
+  overhead), Cost Allocation (group minimum). They are different
+  quantities with similar names - name the source when quoting one.
