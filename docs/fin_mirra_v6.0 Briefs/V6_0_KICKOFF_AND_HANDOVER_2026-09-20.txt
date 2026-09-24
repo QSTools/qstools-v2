@@ -1,7 +1,9 @@
 MIRRA v6.0 - KICKOFF & HANDOVER
 STATUS: ACTIVE - START HERE FOR ANY V6.0 SESSION
 DATE: 2026-09-20 (updated 2026-09-23 after Business Outcome core close-out;
-  updated again 2026-09-23 after the 8b follow-up session closed same day)
+  updated again 2026-09-23 after the 8b follow-up session closed same day;
+  updated 2026-09-24 at the close of the first step-9 session - calculation
+  map added, CM-1 found, see s2 step 9 and s8)
 SUPERSEDES: all v5.x briefs as the entry point (individual v5.x briefs are
 not deleted - see Section 6 for how they get folded in / archived as each
 module is reached).
@@ -132,6 +134,22 @@ Phase 2 - Sequential module verification (one module per chat session)
      support today. First job next session: brief s9 V1 (re-test whether the override
      rerun moves the total). Also found 2026-09-24: Baseline card contradicts real
      net profit; five uncommitted Business Outcome files were committed (5bacc34).
+     SESSION 1 CLOSED 2026-09-24. Done: V1 answered - the override rerun
+     (modelled_per_source) does NOT move when a lever changes; the additive
+     per-source model is the model (Q2 settled). View A chosen as the base
+     (owner). Page rebuild steps 1-4 built: source rows + additive model
+     (7685d66), full-breakeven floor + lever storage/hook, lever panel on the
+     page (live-verified), text inputs instead of number fields (step 3/4
+     commit - CONFIRM in git log at the start of next session). Full record:
+     Business Modelling brief s11.
+     FOUND: CM-1 - Business Outcome stacks the operator's charge rate ON TOP
+     of the asset calculator rate in asset-driven units; the owner bills the
+     calculator rate ALL-IN (Rate Builder, Quick Start and the legacy split
+     already treat it that way). Overstates every asset-driven unit's
+     modelled/Best Case revenue and the coverage gap; real net profit is
+     unaffected. Blocks Business Modelling's asset-driven levers.
+     BUILT: CALCULATION_MAP_v6_0.txt (docs\Audit\v6_0\) + extract script
+     Py\audit-scripts\extract_calc_map.py (v2, with a coverage report).
 
 Phase 3 - Per-module close-out (repeat for each module in Phase 2)
   - Update that module's ONE consolidated brief with [VERIFIED] status,
@@ -198,6 +216,28 @@ authoritative.
   treated as a continuation of the same Business Outcome module, not a new
   module, and was completed the same day as the core pass - this is
   consistent with the rule, since it is still one module.)
+- CHANGED 2026-09-24: project knowledge now also holds
+  CALCULATION_MAP_v6_0.txt permanently (five documents, not four). It is
+  mechanism only, like the tracker.
+- CALCULATION CHANGE CHECKLIST (any formula added, removed or changed):
+  1. After the patch builds and live-tests, re-run
+     python Py\audit-scripts\extract_calc_map.py
+  2. Paste back 00_COVERAGE.txt and the changed module's dump section.
+  3. Update the matching line(s) in CALCULATION_MAP_v6_0.txt - formula AND
+     line numbers (they drift) - and any CM-n entry the change resolves.
+  4. Commit the code, the map and the brief entry TOGETHER. Re-upload the
+     map to project knowledge at session close.
+  A calculation change is not done until the map matches the code.
+- WHEN TO LOAD THE CALCULATION MAP (decided per session, stated in s8's
+  upload list for the next session):
+  LOAD IT for any session that reads, verifies, changes or builds on a
+  calculation - module verification, Business Outcome / Business Modelling
+  work, any CM-n fix, anything touching revenue, cost, rates or profit.
+  LEAVE IT OUT for sessions with no calculation work - CSS consolidation,
+  import consolidation scoping, docs-only tidy-ups, UI copy or layout.
+  It adds context to every turn, so it only earns its place when a
+  formula is in play. If a no-map session hits a calculation question,
+  stop and add it back rather than tracing from code.
 - Project knowledge for each session holds ONLY: this kickoff document,
   the variable tracker, the file map, and the ONE module brief currently
   being worked. Nothing else. Swap the module brief out before starting
@@ -260,6 +300,16 @@ Location: D:\QSTools\qstools-web\Py\audit-scripts\
                                     (bug class (b) below). Usage:
                                     check_field_parity.py <hook_file>
                                     <selector_file>
+  - extract_calc_map.py (NEW 2026-09-24, v2) - read-only. Extracts every
+                                    calculation statement in app/components/
+                                    hooks/lib by module (chain order), with
+                                    callers, a field index, and a coverage
+                                    report of anything it could not parse.
+                                    Output: docs\Audit\v6_0\calc_map\
+                                    (cleared each run - never save other
+                                    files there). Run before changing a
+                                    calculation you have not traced, and
+                                    paste back 00_COVERAGE.txt first.
   - check_has_loaded_guard.py    - scans the repo for hooks that write
                                     to localStorage inside a useEffect
                                     and flags any missing a has_loaded
@@ -366,6 +416,27 @@ closed. What's left from Business Outcome is logged, not blocking: BO-8
 (latent), BO-10 (cosmetic), BO-12 (new, small, self-contained), and the new
 owner-remuneration design item (belongs to a future Labour/Reconciliation
 session, not Business Modelling).
+
+NEXT SESSION (set 2026-09-24, step 9 session 2):
+  1. git log --oneline -8 and git status: confirm the step 3/4 Business
+     Modelling commit landed (brief s11 PENDING).
+  2. Fix CM-1 in Business Outcome FIRST (calc map s12). Settle with the
+     owner before patching: in an asset-driven unit, the calculator rate is
+     the unit's whole revenue; labour's share comes out of it (Rate Builder
+     result panel formula) rather than being added. Touches build_labour_
+     sources, build_asset_sources, calculate_capacity_coverage_gap and the
+     combined totals in useBusinessOutcomePerSourceRevenue.js - a core file,
+     so read fresh, confirm, patch, build, live-test, then follow the s4
+     CALCULATION CHANGE CHECKLIST (re-run the extract, update the calc map
+     lines and close CM-1 there), and commit code + calc map + BO brief +
+     file map together.
+  3. Then resume Business Modelling at step 5 (brief s11): asset-driven
+     units become ONE lever (the all-in unit rate) once CM-1 is fixed.
+  Upload for that session: this document, the variable tracker, the file
+  map, CALCULATION_MAP_v6_0.txt, and the Business Modelling brief (updated
+  2026-09-24). The Business Outcome brief is NOT uploaded - the calc map and
+  file map carry the mechanism; record the CM-1 fix as a new dated entry in
+  the Business Outcome brief in the repo.
 
 UPDATE 2026-09-24: the consolidation described below is DONE. For the step-9 session
 upload only: this document, the variable tracker, the file map, and
