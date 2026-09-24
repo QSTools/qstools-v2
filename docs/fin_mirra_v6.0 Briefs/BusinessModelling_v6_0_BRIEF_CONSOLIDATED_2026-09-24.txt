@@ -1,0 +1,186 @@
+MIRRA v6.0 - BUSINESS MODELLING - CONSOLIDATED BRIEF
+STATUS: CONSOLIDATED 2026-09-24 - NOT YET VERIFIED (v6.0 Phase 2, step 9)
+DATE: 2026-09-24
+SUPERSEDES (fold-in, then archive out of project knowledge; repo copies kept):
+  S05_BUSINESS_MODELLING_BUILD_BRIEF / IMPLEMENTED_STATUS / STAGE_LOCK_HANDOVER (v5.0, July)
+  BUSINESS_MODELLING_NEW_CHAT_HANDOVER_2026-09-14
+  BUSINESS_MODELLING_COMPLETE_REBUILD_SCOPING_BRIEF_2026-09-16
+  BUSINESS_MODELLING_REBUILD_HANDOVER_2026-09-16
+  MIRRA_v5_2_Business_Modelling_Orchestration_and_Page_Flow_Brief_2026-09-16
+  MIRRA_v5_2_Business_Outcome_and_Modelling_Concept_Decision_Record_2026-09-16
+  BUSINESS_MODELLING_FULL_CIRCLE_ARCHITECTURE_HANDOVER_2026-09-18
+NOT READ / NOT FOLDED IN (in repo, referenced only): S25_..._MODELLING_NEXT_STEPS_v5_1,
+  S30_MODELLING_AND_OUTCOME_COMPLETE_BUILD_BRIEF_v5_1. Read only if the session needs them.
+KEPT AS A LIVE SOURCE (not folded): BUSINESS_MODELLING_SCENARIO_REDESIGN_DECISION_LOCK_2026-09-12
+  (docs\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\) - the original
+  Baseline/Upside/Downside decision.
+
+Numbers below are historical evidence tied to a date, not claims about today's data.
+
+===============================================================================
+1. WHAT BUSINESS MODELLING IS (principle - KEPT)
+===============================================================================
+A what-if tool: "what happens if I change a rate, a markup, or a cost?" Built on Business
+Outcome's real per_source data. Rule: Business Modelling OWNS STATE, NOT BUSINESS
+CALCULATIONS. It starts from the unchanged Business Outcome baseline, applies explicit
+adjustments through the existing calculation owners, never mutates Outcome, and shows
+current vs modelled. Revenue / net profit / cash are consequences, not levers.
+Levers are real business decisions (charge-out rates, markup, overhead lines that are a
+genuine choice, training/PPE/allowances, staffing/hours, financing choices).
+Structurally fixed facts are NEVER levers: ACC rate, employer KiwiSaver, ESCT, insurance
+premiums, market fuel prices. (acc_manual_override corrects a real rate; it is not a lever.)
+Locked boundaries (S05, still valid): does not overwrite Labour/Assets/General Overheads/
+Cost Summary/Revenue Summary/Business Summary; does not override Model Readiness; does not
+infer or patch missing source truth.
+Copilot briefs (09-16) are authoritative for CONCEPT only. Their 8-phase sequencing/effort
+was reasoned without repo access and was NOT adopted.
+
+===============================================================================
+2. CODE STATE (audited 2026-09-24 by search/grep output; behaviour NOT yet verified)
+===============================================================================
+Files (line counts at audit):
+  hooks/useBusinessModelling.js (130) - slim orchestrator; calls useBusinessSummary,
+    the per-source hook + selector, and the legacy scenario hook. Also makes a SECOND call to
+    useBusinessOutcomePerSourceRevenue with overrides -> modelled_per_source (3a2ea39).
+  hooks/useBusinessModellingLegacyScenario.js (502) - legacy baseline/upside/downside,
+    fed from useBusinessSummary. Rendered collapsed as "Previous scenario tools".
+  hooks/useBusinessModellingScenario.js (114) - new Baseline/Upside/Downside; takes
+    per_source as input; has_loaded guard reported present (re-verify).
+  lib/selectors/businessModellingLeverSelectors.js (348) - buildLiveLeverHeadline,
+    buildBreakevenSummary, buildGroupLeverRows, buildMaterialsLeverRow,
+    buildProportionalSuggestions, build_materials_input (shared), resolveLeverOverrides
+    (~lines 349-401, working-unit lever -> override shape), buildRealEngineLeverHeadline
+    (exists, line 69; referenced in hook line 47 - comment vs live use UNVERIFIED).
+  lib/calculations/businessModellingIndependentCalculations.js (265) - independent engine.
+  lib/calculations/businessModellingLeverCalculations.js (269) - EXISTS, not in the file map.
+  lib/calculations/businessModellingScenarioCalculations.js (102) - buildBaselineSnapshotFromLive
+    (still calls buildLiveLeverHeadline(per_source, {}, null)), buildUpsideHeadline,
+    calculateDownsideAsBreakeven.
+  lib/storage/businessModellingScenarioStorage.js (120), businessModellingStorage.js (67, legacy).
+  lib/calculations/businessModellingCalculations.js (239), lib/selectors/businessModellingSelectors.js (191)
+    - legacy/S05 era; role to confirm.
+  components/business-modelling/: LeverCard (317), RealStateCard (76), ScenarioSection (149),
+    ScenarioControls (137), ScenarioResult (93), BaselineCard (103), DeltaCard (54),
+    StatusStrip (174), HelpPanel (29).
+  app/business-modelling/page.jsx (190).
+Page render order: RealStateCard -> LeverCard -> orange DASHED "DEBUG: real engine rerun
+  check" block (temporary, still present) -> ScenarioSection -> collapsed legacy "Previous
+  scenario tools" (StatusStrip, BaselineCard, ScenarioControls, ScenarioResult, DeltaCard,
+  HelpPanel) -> NextStepFooter.
+Selector fields consumed from Outcome: headline_real_capacity, view_b_headline_real_capacity,
+  real_capacity.group_real_capacity, view_b.materials.modelled_revenue, reconciliation.
+Override mechanism in the per-source hook: labour_charge_out_rate_overrides,
+  asset_blended_rate_overrides, materials_markup_percent_override (feeds
+  effective_materials_markup_percent).
+Not found anywhere in code: minimum_model, business_modelling_output_contract (the S05 July
+  output contract). business_type is not read by any Modelling file (matches tracker).
+
+===============================================================================
+3. DECISION LOG (status as of 2026-09-24)
+===============================================================================
+D1  Orchestration principle, single source of truth - KEPT (concept).
+D2  Materials lever reads View B real markup (cogs x stored markup) - IMPLEMENTED (ed9c5f3).
+    Resolves the 09-14 "View A vs View B" open question.
+D3  Baseline/Upside/Downside redesign (12 Sep lock, built 14 Sep) - IMPLEMENTED. Downside =
+    live breakeven, never stored. Baseline SOURCE is still the independent engine (see D4).
+    Historical: storage normaliser dropped the 'available' flag (fixed 8339965) - bug class (b).
+D4  Baseline switches to per_source.headline_real_capacity (decided 09-16) - DECIDED, NOT BUILT.
+    Conflicts with / is bound up in T1-T2.
+D5  Section A / Section B split (09-16 morning) - SUPERSEDED the same day by the real-engine
+    rerun. BUT RealStateCard was built, committed (3a2ea39) and is still rendered - the older
+    note that it was uncommitted is wrong.
+D6  Real-engine rerun mechanism (09-17): resolveLeverOverrides + second hook call ->
+    modelled_per_source. IMPLEMENTED as mechanism. Asset-only and single-labour-type working
+    units map cleanly; mixed / multi-type units are flagged unsupported, not guessed.
+D7  View B modelled headline (2d3c387, 09-18) - BUILT in selector. Wired into lever card
+    headline then REVERTED same day (see s4); live_headline reads buildLiveLeverHeadline.
+D8  "Only touch what changed" lever behaviour (09-18) - AGREED, NOT BUILT. Touch one lever,
+    recalculate only that unit from its real cost and new rate, leave every other unit at
+    today's real achieved figure. Total = today's real total + the effect of the one change.
+D9  "Full circle" injection points (09-18) - direction AGREED, NOT BUILT. Cost Summary
+    remaining-overhead lines: ZERO lever support today (genuinely new). Labour rates/on-costs and
+    Rate Builder working-unit pricing: partly exist via the override mechanism (verify).
+D10 Lever vs fixed classification: overhead is already tracked per P&L line with a category;
+    needs an is_lever flag per line/category - a data addition, not new architecture. NOT BUILT.
+D11 Legacy "Previous scenario tools" kept as a safety net - retirement is a separate decision.
+D12 "Leave untouched" status REVOKED for BusinessModellingLeverCard.jsx and
+    businessModellingIndependentCalculations.js (09-16). The Business Outcome file map (s7)
+    still lists them as untouched - file map needs correcting.
+D13 S05 readiness gate: StatusStrip exists (inside the legacy collapsed section); the July
+    output contract no longer exists by name - decide whether Model Readiness gating and an
+    output contract are still required for Business Modelling (Dashboard / AI Export consumers).
+
+===============================================================================
+4. WHY TWO ATTEMPTS FAILED (09-18) - KEEP, DO NOT REPEAT
+===============================================================================
+Attempt 1 - lever card headline from View B real-capacity cascade: the cascade is designed to
+  reconcile to today's real revenue minus real cost, so the TOTAL cannot move whatever the
+  lever; only WHICH sources are "carried" moves. Reverted.
+Attempt 2 - buildLiveLeverHeadline (independent engine): sums every unit's own uncapped
+  claim (rate x assumed hours, no cross-subsidy), so untouched units jump to their standalone
+  ceiling and dominate; arithmetic correct, meaning useless for "what if I change one thing".
+Both were found 09-18, BEFORE the 09-23 Business Outcome changes (BO-6 covered-hours cap,
+  non-productive distribution, F8 unexplained revenue in View B headline). Re-test against
+  current code before relying on either conclusion.
+
+===============================================================================
+5. OPEN TENSIONS - EXPLICIT DECISIONS NEEDED (in this order)
+===============================================================================
+T1  Which engine drives the lever headline? Candidates: (a) independent engine (current);
+    (b) real-capacity rerun via overrides (pins the total per Attempt 1); (c) D8: real total
+    plus per-unit delta. The Copilot concept says rerun the same engine; the live finding
+    says the cascade pins the total. Reconcile explicitly.
+T2  Baseline source (D4) - follows from T1. If (c), Baseline = headline_real_capacity and the
+    independent view leaves the headline.
+T3  Page clutter: RealStateCard, LeverCard, ScenarioSection, DEBUG block and legacy tools
+    coexist. Decide what stays, is relabelled (LeverCard headline still reads "currently
+    making" on an independent basis), or retires. DEBUG block must go before this closes.
+T4  Uncommitted Business Outcome working-tree changes found at audit (Card, per-source hook,
+    ViewB calculations, per-source selector + docs). Identify and commit or revert BEFORE
+    Business Modelling work starts, since Modelling reads directly from these.
+T5  The six 09-18 "full circle" checks (fuel/vehicle direct attribution; same for insurance/
+    finance; labour on-costs from P&L; Cost Summary remaining pool surfaces variance; pool
+    distributes with no loss/double count; circle closes to achieved rate). Map each to the
+    verified Summaries / Cost Allocation / Labour / Assets / Rate Builder briefs; only re-trace
+    what those briefs do not already prove.
+T6  COG/Materials cascade question (does the cascade lean on Materials correctly when it is the
+    largest margin source?). Re-check on the carried (documented-synthetic) data.
+
+===============================================================================
+6. PARKED / CARRIED ITEMS (log, do not fix inline)
+===============================================================================
+BO-8  rate overrides do not reach the capacity coverage gap valuation (latent; Modelling-side).
+BO-10 cosmetic "TEST" group.  BO-12 View B breakdown list lacks unexplained-revenue row.
+S-H4  legacy Baseline snapshots keep old hours until re-locked.
+business_type (labour vs product) not read by Business Modelling - note only.
+Owner-remuneration setting - belongs to a future Labour + Reconciliation session.
+Debt-to-equity as scenario context (CFO gap item 4) - not scoped.
+~$20 discrepancy between Outcome and Modelling net profit (flagged earlier, never resolved) -
+  re-check now that Modelling reads per_source directly.
+Legacy tool retirement. LeverCard.jsx (317) and the hook/selector files stay under ~600 lines;
+  useBusinessOutcomePerSourceRevenue.js is 1000+ and is the file the injection work touches most.
+
+===============================================================================
+7. VERIFICATION PLAN FOR THIS SESSION (v6.0 style)
+===============================================================================
+V0  Pre-flight: resolve T4, confirm git status clean.
+V1  Trace inputs: find_field_references.py for headline_real_capacity,
+    view_b_headline_real_capacity, modelled_per_source; grep EVERY caller of
+    useBusinessOutcomePerSourceRevenue (now also called twice inside useBusinessModelling);
+    check_field_parity.py on the per-source hook/selector pair as it reaches Modelling.
+V2  Identity test on current code: no levers -> modelled equals real (View A and View B).
+V3  Live-read figures from rendered React props in the console (Business Outcome brief s2A),
+    real revenue, not transcribed from screen.
+V4  Decide T1/T2, then test each lever type (labour rate, asset rate, materials markup)
+    against the chosen behaviour; mixed / multi-type units explicitly reported unsupported.
+V5  Re-verify Baseline/Upside/Downside after any Baseline source change; re-lock legacy (S-H4).
+V6  check_has_loaded_guard.py over Modelling hooks (scenario + legacy).
+V7  Cleanup: remove DEBUG block; settle RealStateCard; fix file map s7 (D12) and add
+    businessModellingLeverCalculations.js; update tracker with dated, tied figures.
+
+===============================================================================
+8. DOC DISPOSITION AT SESSION CLOSE
+===============================================================================
+Remove the seven superseded Business Modelling docs above (and the three S05 v5.0 docs)
+from project knowledge; upload this brief (renamed [VERIFIED] with real figures once done).
+Repo copies stay for history. Keep the kickoff, variable tracker and file map loaded.

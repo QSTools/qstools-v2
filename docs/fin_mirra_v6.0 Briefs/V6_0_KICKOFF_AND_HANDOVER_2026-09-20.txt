@@ -1,6 +1,7 @@
 MIRRA v6.0 - KICKOFF & HANDOVER
 STATUS: ACTIVE - START HERE FOR ANY V6.0 SESSION
-DATE: 2026-09-20 (updated 2026-09-23 after Business Outcome core close-out)
+DATE: 2026-09-20 (updated 2026-09-23 after Business Outcome core close-out;
+  updated again 2026-09-23 after the 8b follow-up session closed same day)
 SUPERSEDES: all v5.x briefs as the entry point (individual v5.x briefs are
 not deleted - see Section 6 for how they get folded in / archived as each
 module is reached).
@@ -38,6 +39,13 @@ wired through every downstream module yet. As each module is verified,
 explicitly note whether it correctly respects this setting or silently
 assumes one. Do not fix this inline unless trivial - log it, keep moving,
 fix as a dedicated pass once the gaps are fully known.
+
+A SECOND parked item, added 2026-09-23 during the Business Outcome 8b
+session: an owner-remuneration setting (payroll / shareholder salary /
+drawings) surfaced while reconciling the P&L cost-gap against Labour's
+figures. Logged for a future Labour + Reconciliation session - see the
+variable tracker Section 12 and the Business Outcome brief s5 for the
+full note. Not fixed inline, per the same rule above.
 
 ===============================================================================
 2. BUILD PATH (in order)
@@ -83,11 +91,38 @@ Phase 2 - Sequential module verification (one module per chat session)
      actually covers; a unit with no labour earns nothing and is flagged.
      Verification now reads live figures from the rendered card's React props
      in the browser console (brief s2A) instead of transcribing the screen.
-  8b. Business Outcome follow-up - NEXT. Short session: brief s6 F1-F7
-     (day / week scaling S-H2, BO-1 cost columns, BO-3 label, BO-4 dead
-     waterfall, drop breakeven for a real-margin check, materials markup path
-     H5, BO-2 decision).
-  9. Business Modelling.
+  8b. Business Outcome follow-up. DONE [VERIFIED 2026-09-23, live, SAME DAY
+     as the core pass] - commits a401c5e (F1/F3/F4), d4aa80c (F2/F8/BO-9),
+     4bdaad4 (F7). All seven planned items (F1-F7) plus one added mid-session
+     (F8, BO-11) resolved:
+       F1 (S-H2) day/week scaling follows the opening calendar.
+       F2 (BO-1) build-up table and ranked drill both show/use the correct,
+         non-productive-cost-injected true cost, at parent AND child level.
+       F3 (BO-3) child row label -> "Group min rate".
+       F4 (BO-4) dead waterfall computation removed from the page.
+       F5 breakeven revenue dropped; real revenue restored and re-verified.
+       F6 (H5) materials markup path (Rate Builder Path C -> View B) traced;
+         also resolves BO-9 (the View B "minimum markup" field is actually
+         the ACHIEVED markup, relabelled).
+       F7 (BO-2) Labour Recovery card's overhead-per-hour now uses Business
+         Outcome's own per-group cost-share split, not Rate Builder's
+         all-on-labour basis - user decision: consistency with the rest of
+         the page over matching Rate Builder. Same fix applied to the output
+         contract hook so AI Export / Dashboard / Business Modelling see the
+         same basis.
+       F8 (new, BO-11) View B's headline now counts real revenue above what
+         its modelled sources explain (a return value that existed in the
+         cascade but was never consumed) - user decision: option (a), add it
+         to the headline with an explanatory line, over leaving it silently
+         excluded.
+     One item found but NOT built this session, logged for later: BO-12 -
+     View B's own breakdown list doesn't yet carry the new unexplained-
+     revenue figure as its own row, so it can visually undercount vs the
+     stated headline. Small, self-contained, does not block step 9.
+     Full detail, all live numbers, and the three file-map corrections found
+     along the way: BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt s5-7,
+     BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (both files updated 2026-09-23 8b).
+  9. Business Modelling.  <-- NEXT
 
 Phase 3 - Per-module close-out (repeat for each module in Phase 2)
   - Update that module's ONE consolidated brief with [VERIFIED] status,
@@ -108,8 +143,9 @@ Phase 3 - Per-module close-out (repeat for each module in Phase 2)
   variety to test overhead distribution properly. Kept minimal - roughly
   one non-productive staff member and two extra assets.
 - CORRECTED 2026-09-23: the P&L and Balance Sheet were NOT updated for
-  these additions. The only P&L change is revenue (set to breakeven, below).
-  The synthetic staff and assets exist in the tool only, so Module
+  these additions. The only P&L change is revenue (set to breakeven, below,
+  then DROPPED 2026-09-23 in the 8b session - see next bullet). The
+  synthetic staff and assets exist in the tool only, so Module
   Reconciliation / Model Readiness is expected to be blocked on this data
   (business cost benchmark reconciliation). Any reconciliation check during
   this phase is checking "does the distribution logic work correctly", not
@@ -121,7 +157,13 @@ Phase 3 - Per-module close-out (repeat for each module in Phase 2)
   something in the cost distribution didn't reconcile. Breakeven is
   dropped once verification moves on to Rate Builder / Business Outcome,
   which are about revenue and margin and need real figures to test
-  properly.
+  properly. DROPPED 2026-09-23 (8b, F5): real revenue (the actual P&L
+  Sales figure) restored and every 8b live check re-verified against it.
+  A same-day cost-gap reconciliation exercise (see variable tracker
+  Section 12, Business Outcome brief s5) fully accounted for the
+  previously-unexplained variance between the P&L's labour/interest
+  benchmarks and the tool's totals - mostly Owner/Director's own labour
+  cost, which surfaced the new owner-remuneration design item (Section 1).
 - Once Cost Allocation is proven against this padded-but-consistent
   dataset, decide explicitly whether to strip the synthetic entries back
   out before testing downstream, or carry them through as now-genuinely-
@@ -131,7 +173,8 @@ Phase 3 - Per-module close-out (repeat for each module in Phase 2)
   synthetic non-productive staff = Accountant (assumed). Mini Truck is real
   and was reclassified to a support asset in its own working unit.
 - Breakeven revenue was KEPT through the Business Outcome core pass on
-  purpose (headline ~ 0 was the test for every change). Drop it in 8b.
+  purpose (headline ~ 0 was the test for every change). Dropped 8b (F5) -
+  real revenue used for every 8b live verification from that point on.
 
 ===============================================================================
 4. PROCESS RULES FOR EVERY V6.0 SESSION
@@ -142,7 +185,10 @@ Verification" (repo root) - this section is a summary, that document is
 authoritative.
 
 - One module per chat session. Do not carry v6.0 work for multiple
-  modules in one long conversation.
+  modules in one long conversation. (Note: the 8b follow-up session was
+  treated as a continuation of the same Business Outcome module, not a new
+  module, and was completed the same day as the core pass - this is
+  consistent with the rule, since it is still one module.)
 - Project knowledge for each session holds ONLY: this kickoff document,
   the variable tracker, the file map, and the ONE module brief currently
   being worked. Nothing else. Swap the module brief out before starting
@@ -153,7 +199,11 @@ authoritative.
 - All edits via PowerShell, Apply-Patch (IndexOf/Substring), UTF-8-no-BOM
   I/O. Never Set-Content for writing code.
 - Require an explicit "Patched:" / "NOT FOUND:" / "AMBIGUOUS" confirmation
-  for every patch. A passing build does not confirm a patch landed.
+  for every patch. A passing build does not confirm a patch landed. NOTE
+  (8b): a NOT FOUND result can also mean a CRLF/LF mismatch in the patch
+  script's own string comparison, not necessarily a real content mismatch -
+  normalize line endings before comparing, then re-check the file directly
+  if a patch unexpectedly fails to match.
 - Build after every batch of patches.
 - Live-test against real (or deliberately-padded-and-documented) data
   before trusting a fix, not just a clean build.
@@ -167,6 +217,14 @@ authoritative.
   a script before assuming a manual trace is needed - see Section 5:
   check_field_parity.py for (b)-style field drops, check_has_loaded_guard.py
   for the has_loaded race condition.
+- NEW (8b): before changing what a shared hook reads or returns, grep for
+  EVERY caller of that hook, not just the one you're trying to fix - a hook
+  can be called from more than one place (on-page component, an output-
+  contract composer, even from INSIDE another core calculation hook). Check
+  what each caller actually reads from the return value before assuming a
+  change is safe; a narrower dependency than it first appears (e.g. only
+  two of a hook's many fields are actually consumed by a given caller) can
+  turn an apparent circular-dependency blocker into a safe, scoped change.
 - Numbers in living reference docs (file map, variable tracker): NOT
   ALLOWED. These describe mechanism, not current state - they must stay
   true regardless of what data is loaded. Numbers belong only in dated,
@@ -212,7 +270,10 @@ irrelevant output):
   - find_field_references.py - run when verifying a specific module in
     Phase 2, to confirm a field genuinely exists (or doesn't) across the
     hook/selector/component chain BEFORE spending tokens tracing it by
-    reading files manually.
+    reading files manually. Also useful (8b) for finding every CALLER of a
+    hook, not just every reader of a field - a simple grep across the repo
+    (not limited to this script) served the same purpose in 8b when the
+    question was "who else calls this hook", not "who reads this field".
 
   - check_field_parity.py - run once per hook/selector pair, at the
     point that pair's module is actually reached in Phase 2. Not useful
@@ -244,7 +305,8 @@ the repo - kept for history, just not part of the active working set).
 Business Outcome alone currently has ~8-9 separate v5.x documents
 (S23, S24, S26, S27, S28, the file map, the CFO gap doc, the session
 brief). These consolidate into one Business Outcome v6.0 brief when that
-module is reached in Phase 2.
+module is reached in Phase 2. DONE 2026-09-23 (core pass) - both the core
+pass and the same-day 8b follow-up are recorded in that one brief.
 
 Do NOT consolidate ahead of time for modules not yet being worked -
 do it just-in-time, as part of that module's own session, since the
@@ -270,21 +332,36 @@ far better than consolidating blind.
   page - populating proven data, not discovering it live.
 - Labour/product-based (business_type) coverage gap - tracked as a running note per module
   (Section 1), not fixed inline unless trivial.
+- Owner remuneration setting (NEW 2026-09-23, 8b) - a payroll / shareholder
+  salary / drawings setting for reconciliation, surfaced during the Business
+  Outcome 8b session's cost-gap reconciliation. Belongs to a future Labour +
+  Reconciliation session, not this pass's remaining modules. See Section 1.
+- BO-12 (NEW 2026-09-23, 8b) - View B's breakdown list needs its own
+  unexplained-revenue row to match its headline total when surplus is
+  non-zero. Small, self-contained, logged in the Business Outcome brief s6,
+  can be picked up whenever - does not block step 9.
+- BO-8, BO-10 (carried from the core pass, still open, not scheduled) -
+  Business Modelling rate overrides don't reach the capacity coverage gap
+  valuation; a cosmetic "TEST" group artefact to remove when convenient.
 
 ===============================================================================
 8. NEXT STEP
 ===============================================================================
 
-Phase 1 and Phase 2 steps 1-8 (core) are done (see s2). Next: step 8b,
-the Business Outcome follow-up - work the Business Outcome brief s6, F1-F7.
-Suggested order: F5 first (restore real revenue, so every later check uses
-real margin), then F1 and F2 (display, one batch each), F3/F4 (trivial),
-F6 (materials path), F7 (decision only).
+Phase 1 and Phase 2 steps 1-8, including the 8b follow-up, are all done (see
+s2). Next: step 9, Business Modelling.
 
-S-G1, strip-or-carry, the v5 consolidation and hand-offs H1-H7 are closed or
-recorded in the Business Outcome brief s4.
+Everything handed to Business Outcome (H1-H7, S-G1, S-H2) is closed. Every
+planned 8b follow-up item (F1-F7) plus the one added mid-session (F8) is
+closed. What's left from Business Outcome is logged, not blocking: BO-8
+(latent), BO-10 (cosmetic), BO-12 (new, small, self-contained), and the new
+owner-remuneration design item (belongs to a future Labour/Reconciliation
+session, not Business Modelling).
 
 Upload for the next session only: this document, the variable tracker, the
-file map (BUSINESS_OUTCOME_FILE_MAP_v6_0.txt), and the Business Outcome brief.
-Archive the Rate Builder brief out of project knowledge (its hand-offs are
-resolved in the Business Outcome brief).
+file map (BUSINESS_OUTCOME_FILE_MAP_v6_0.txt - still relevant, since Business
+Modelling reads per_source directly from Business Outcome's own hooks/
+selectors, per Section 3 of that file), and whichever existing Business
+Modelling brief/notes exist to consolidate (see Section 6 - this module has
+not yet had its v5.x documents folded into one v6.0 brief; do that as the
+first step of the step-9 session, same as every other module).

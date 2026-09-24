@@ -1,9 +1,24 @@
 # Business Outcome - File Map & Quick Reference
+**Updated 2026-09-23 (8b follow-up session):** F1-F8 all resolved (commits
+a401c5e, d4aa80c, 4bdaad4). Three corrections to this map found while working
+8b, folded in below at their relevant sections: (1) the Net Profit build-up
+selector actually lives at lib/selectors/business-outcome/
+businessOutcomeNetProfitBuildUpSelectors.js, not lib/calculations/ as an
+earlier version of this map said; (2) BusinessOutcomeResultHero lives under
+components/business-outcome/ (the legacy folder), not components/
+business-outcome-truth/; (3) app/recovery-outcome/page.jsx also renders a
+"How Net Profit Is Actually Built" heading via its own, separate legacy
+component - do not confuse it with the current page's build-up table when
+grepping for that heading text. F7 also changed where the Labour Recovery
+card's overhead-per-hour comes from - see Section 3, useBusinessOutcome
+LabourRecovery.js entry, and new gotcha #6 in Section 4.
 **Updated 2026-09-23 (v6.0 Business Outcome pass):** covered-hours cap added
 (BO-6, commits ab7d721 + b668bbd) - new helper get_group_covered_hours in
 the main hook, see Section 3 and gotcha #5. Gotcha #4 now has one more
-confirmed stale reader (businessOutcomeNetProfitBuildUpSelectors.js, BO-1).
-Verified record: BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt.
+confirmed stale reader (businessOutcomeNetProfitBuildUpSelectors.js, BO-1) -
+FIXED 8b, see gotcha #4's own update.
+Verified record: BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt (both the
+core pass and the 8b follow-up are recorded in that one file, s7).
 **Updated 2026-09-18:** Non-productive cost allocation built end-to-end
 (mixed working units vs pure-support units, real policy setting), a real
 Step 2 cascade bug found and fixed, View B brought to full parity with
@@ -11,9 +26,9 @@ View A (was silently missing the entire fix - real true_cost differed
 by $100k+ between views for the SAME real wage), and a SEPARATE display-
 -layer bug found and fixed (true_cost shown in ledger/cost-build-up
 tables was reading a stale, uninjected source even after the cascade
-fix landed - see Section 4's new gotcha #4, the most likely place for
-this class of bug to recur). "Each Part On Its Own" renamed to "Best
-Case (100% of Entered Rates & Hours)", reframed as a ceiling diagnostic,
+fix landed - see Section 4's gotcha #4, the most likely place for
+this class of bug to recur - FIXED 8b). "Each Part On Its Own" renamed to
+"Best Case (100% of Entered Rates & Hours)", reframed as a ceiling diagnostic,
 not a competing "net profit" claim. Full detail:
 docs/Mirra_v5_Briefs/Business Outcome/NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION_2026-09-17.txt
 and .../EACH_PART_ON_ITS_OWN_REVENUE_BASIS_QUESTION_2026-09-17.txt.
@@ -46,6 +61,11 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 **The #1 rule that bites every time:** a new field added to the hook's return object does NOT automatically reach the Card. It must ALSO be added to the selector's return object (selectBusinessOutcomePerSourceRevenue's own return { ... }, near the existing view_b:, capacity_coverage_gap:, health_gauge: lines). Search per_source_result. in that file to see the existing pattern before adding a new one.
 
+A SEPARATE, parallel path exists for the Net Profit build-up table (see
+Section 2/3 corrections below) - it does not flow through
+BusinessOutcomePerSourceRevenueCard.jsx's own merge functions, it has its own
+selector file and its own component, BusinessOutcomeNetProfitBuildUp.jsx.
+
 ---
 
 ## 2. Component files (what renders what)
@@ -57,27 +77,36 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 - components/business-outcome-truth/BusinessOutcomeHealthGauge.jsx - The health gauge visual (arc + needle). Built 2026-09-11. Exports SCALE_MIN, SCALE_MAX, zone_for_ratio (added 2026-09-12). Now wrapped in a clickable button in the Card - clicking navigates to the explainer panel.
 - components/business-outcome-truth/BusinessOutcomeHealthGaugeExplainer.jsx - NEW 2026-09-12. Lives under "How the Numbers Are Calculated" as CollapsibleSection id="health-gauge-explainer-panel". Explains health_ratio, shows the two headline inputs (smoothed_net_profit, independent_net_profit_floored) as ledger-metric cards, links to the real Revenue/Net Profit table for full per-source proof, and shows a 3-zone legend built from the gauge's own SCALE_MIN/SCALE_MAX/zone_for_ratio. Also surfaces the "N of M sources not paying their way" line, reusing active_headline.being_carried/total_group_count.
 - components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable.jsx - The 4-metric Revenue Snapshot panel. Contains "Projected Net Profit" - still flagged as needing verification.
-- components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp.jsx - The "Revenue / Net Profit" table, linked from the blurb AND (new 2026-09-12) the Health Gauge explainer.
+- components/business-outcome-truth/BusinessOutcomeNetProfitBuildUp.jsx - The "Revenue / Net Profit" table, linked from the blurb AND (new 2026-09-12) the Health Gauge explainer. REWORKED 8b (BO-1, F2): now shows Revenue, Labour, Asset, Overhead, Non-productive support share, Share of materials shortfall carried, Contribution per group, and a corrected Check that compares against the cascade's injected true_cost.
 - components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger.jsx - The Revenue Claim Test / Independent Breakeven panel.
-- components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard.jsx - Labour recovery, by source.
+- components/business-outcome-truth/BusinessOutcomeTruthLabourRecoveryCard.jsx - Labour recovery, by source. Columns: Labour cost, Overhead, True cost, Charged rate, Profit/hr. As of 8b (F7/BO-2), the Overhead column's data comes from useBusinessOutcomeLabourRecovery.js's NEW per_source-based aggregation, not Rate Builder - this component itself was NOT changed, only its data source was.
 - components/business-outcome-truth/BusinessOutcomeTruthWarningsPanel.jsx / BusinessOutcomeTruthHelpPanel.jsx - Warnings and the "About Business Outcome" help panel.
 - components/common/ScrollToSectionLink.jsx - Shared inline text-link component. Refactored 2026-09-12 to delegate to lib/utils/scrollToSection.js.
+
+**CORRECTION (8b):** components/business-outcome/BusinessOutcomeResultHero.jsx
+lives under the LEGACY components/business-outcome/ folder (used by
+/recovery-outcome), NOT under components/business-outcome-truth/ where the
+rest of this section's files live. It was out of scope for F1 (day/week
+scaling) for this reason - do not assume it shares scaling helpers with the
+current page's components without checking.
 
 ---
 
 ## 3. Core calculation files
 
-- hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_covered_hours() (v6.0 BO-6 - asset-driven units earn only on labour-covered hours; also feeds group_real_capacity.group_recovery_hours), get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge.
-- lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js - Reshapes the hook's raw output into per_source. Key functions: group_sources_by_group(), merge_groups_by_id(), merge_groups_by_id_real_capacity(), selectBusinessOutcomePerSourceRevenue().
-- lib/calculations/businessOutcomeViewBCalculations.js - View B's own cascade: build_materials_source(), apply_revenue_ceiling_v2(), apply_real_capacity_v2().
+- hooks/useBusinessOutcomePerSourceRevenue.js - The main hook. Key functions: get_group_covered_hours() (v6.0 BO-6 - asset-driven units earn only on labour-covered hours; also feeds group_real_capacity.group_recovery_hours), get_group_blended_rate(), split_group_overhead(), build_asset_sources(), build_labour_sources(), group_rows_by_group_id(), apply_revenue_ceiling(), apply_real_capacity() (the two-phase shortfall cascade), calculate_capacity_coverage_gap(). Also calls calculateGaugeInput() to build health_gauge. Also calls useBusinessOutcomeLabourRecovery() internally (no arguments) purely to get charge_out_rate / labour_source_type_name for build_labour_sources and calculate_capacity_coverage_gap - this internal call does NOT read the overhead fields, so it was unaffected by the 8b F7 change to that hook (traced and confirmed 8b, see gotcha #6).
+- hooks/useBusinessOutcomeLabourRecovery.js - Labour recovery card's data hook. REWORKED 8b (F7, commit 4bdaad4): now takes labour_groups (i.e. per_source.labour_groups) as its only parameter, default []. build_overhead_rate_map aggregates overhead_share and hours per staff type across every group that staff type appears in (hours-weighted average), reading Business Outcome's own per_source data instead of Rate Builder's rate_builder_labour_recovery_rows. useCostAllocation import REMOVED (no longer used). Called from app/business-outcome/page.jsx with per_source.labour_groups, and from hooks/useBusinessOutcomeOutputContract.js (which now computes its own per_source_calculation + per_source the same way page.jsx does, so it stays on the same basis - see that hook's own entry below). Still called a THIRD way, with no arguments, from inside useBusinessOutcomePerSourceRevenue.js itself - see that entry above for why this is safe.
+- hooks/useBusinessOutcomeOutputContract.js - Composes useBusinessOutcomeTruth + useBusinessOutcomeLabourRecovery into the one documented output_contract read by AI Export, Dashboard, and Business Modelling. UPDATED 8b (F7): now also calls useBusinessOutcomePerSourceRevenue() + selectBusinessOutcomePerSourceRevenue() itself (same two-line pattern as page.jsx) so it can pass per_source.labour_groups into useBusinessOutcomeLabourRecovery() - without this, the output contract would have kept showing the old Rate-Builder-based overhead figures even after the on-page card was fixed.
+- lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js - Reshapes the hook's raw output into per_source. Key functions: group_sources_by_group(), merge_groups_by_id(), merge_groups_by_id_real_capacity(), selectBusinessOutcomePerSourceRevenue(). merge_groups_by_id_real_capacity UPDATED 8b (BO-1): child_true_cost now = (s.true_cost ?? 0) + (s.non_productive_share ?? 0) for both staff (s) and asset (a) rows.
+- lib/calculations/businessOutcomeViewBCalculations.js - View B's own cascade: build_materials_source(), apply_revenue_ceiling_v2(), apply_real_capacity_v2(). UPDATED 8b: row.non_productive_share now stamped on every row (BO-1 Part B); apply_real_capacity_v2's existing surplus return value is now actually consumed (BO-11/F8) - see build_view_b_headline entries below.
+- **CORRECTED PATH (8b):** lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors.js - Feeds BusinessOutcomeNetProfitBuildUp.jsx. This file lives under lib/selectors/, NOT lib/calculations/ as an earlier version of this map said - fixed 8b after tracing the actual import in the component. REWORKED 8b (BO-1, F2): computes Revenue, Labour, Asset, Overhead, Non-productive support share, Share of materials shortfall carried, Contribution per group; materials block shows real Material cost and Shortfall carried by others as separate lines; "Check" fixed from a dead `view_mode === "naive"` test to the correct `view_mode === "profit" && smoothing_mode === "naive"`, and now compares against the cascade's injected true_cost rather than the stale raw figure.
 - lib/calculations/businessModellingIndependentCalculations.js - ON THE "LEAVE UNTOUCHED" LIST (see Section 7). Contains calculateGaugeInput() and calculateIndependentMaterialsBreakeven(). CLARIFIED 2026-09-12: this is NOT abandoned/unused - it is Business Modelling's real, active "live lever" calculation engine (System 2, see session brief Section 2A), gained 254 lines in the "S31 Phase 2-3" commit (f98b9f3). Untouched-list status is because it's already-verified, load-bearing code, not because it's dead. Do not extend this file - create a new file instead if new calculation is ever needed (confirmed acceptable 2026-09-12).
 - hooks/useBusinessModelling.js - SPLIT 2026-09-16 (was one large file covering three jobs, now a slim orchestrator). Calls useBusinessSummary(), useBusinessOutcomePerSourceRevenue()/selectBusinessOutcomePerSourceRevenue(), and useBusinessModellingLegacyScenario() (see below), then merges the legacy hook's result with the live-lever system's own state/derived values (live_headline, lever_rows, materials_lever_row, proportional_suggestions, per_source - rendered as the primary BusinessModellingLeverCard). Return shape is unchanged from before the split - same flat key list, just assembled from two hooks instead of one. This IS the real Outcome-to-Modelling handoff point.
 - hooks/useBusinessModellingLegacyScenario.js - NEW 2026-09-16, extracted out of useBusinessModelling.js (pure extraction, no behaviour change - see commit same date). The legacy baseline/upside/downside scenario system, fed from useBusinessSummary (NOT useBusinessOutcomePerSourceRevenue), rendered collapsed on the page as "Previous scenario tools." Takes business_summary as a parameter rather than calling useBusinessSummary() itself. Left in place as a safety net alongside the live-lever system and the separate Baseline/Upside/Downside scenario redesign below - not yet retired, per the 2026-09-12 decision lock.
-- lib/selectors/businessModellingLeverSelectors.js - buildLiveLeverHeadline(), buildBreakevenSummary(), buildGroupLeverRows(), buildMaterialsLeverRow(), buildProportionalSuggestions() - the live lever system's selector layer, consumes per_source directly.
-- lib/calculations/businessOutcomeNetProfitBuildUpSelectors.js - Feeds BusinessOutcomeNetProfitBuildUp.jsx.
+- lib/selectors/businessModellingLeverSelectors.js - buildLiveLeverHeadline(), buildBreakevenSummary(), buildGroupLeverRows(), buildMaterialsLeverRow(), buildProportionalSuggestions() - the live lever system's selector layer, consumes per_source directly. buildRealEngineLeverHeadline() needed NO change for BO-11/F8 - confirmed 8b it was already reading the corrected View B total.
 - lib/utils/scrollToSection.js - NEW 2026-09-12. Extracted from ScrollToSectionLink.jsx - exports scroll_to_section() and open_if_closed(). One shared navigation engine used by both the text-link component AND the Health Gauge's click-through.
 - lib/storage/businessOutcomeNonProductivePolicyStorage.js - NEW 2026-09-17. readNonProductiveCostPolicy()/writeNonProductiveCostPolicy() - the mixed_unit_non_productive_policy setting ("charge_to_self" default, or "spread_as_overhead"). Pure-support working units (no productive member at all) always spread, regardless of this setting - it only governs mixed working units (real productive members + a non-productive item riding along, e.g. a company car). No settings UI exists yet - the value can currently only be changed by editing localStorage directly.
-- distribute_non_productive_cost() (in useBusinessOutcomePerSourceRevenue.js, near apply_real_capacity) - decides per working unit how its own non-productive cost affects true_cost: pure-support units always spread (weighted the same way General Overheads' own build_overhead_pool spreads its pool - labour-cost-weighted / asset-burden-weighted / equal-split), mixed units follow the stored policy above. Computed ONCE, early in the hook (moved there 2026-09-18 after a real "cannot access before initialization" runtime error - View B's cascade call happens earlier in the function than where this was originally declared), the same map is passed into BOTH apply_real_capacity (View A) and apply_real_capacity_v2 (View B).
+- distribute_non_productive_cost() (in useBusinessOutcomePerSourceRevenue.js, near apply_real_capacity) - decides per working unit how its own non-productive cost affects true_cost: pure-support units always spread (weighted the same way General Overheads' own build_overhead_pool spreads its pool - labour-cost-weighted / asset-burden-weighted / equal-split), mixed units follow the stored policy above. Computed ONCE, early in the hook (moved there 2026-09-18 after a real "cannot access before initialization" runtime error - View B's cascade call happens earlier in the function than where this was originally declared), the same map is passed into BOTH apply_real_capacity (View A) and apply_real_capacity_v2 (View B). UPDATED 8b: also stamps row.non_productive_share on every row in both cascades (BO-1 Part B), so display layers no longer need to re-derive it.
 
 **RESOLVED same day (2026-09-18):** View B's "Assumed Capacity ledger" detailed step-by-step trace panel (Starting point -> Scale check -> Final allocation, mirroring View A's own) is now built - ViewBAssumedCapacityLedger, same file. Genuinely simple once the underlying data was already correct: materials is a real peer here (same as ViewBRealCapacityLedger), so it's one merge_view_b_groups(view_b, "assumed") call plus view_b.revenue_ceiling for the scale-check section - purely additive display, no new calculation. Live-verified matching the already-tested Cost build-up (Assumed Capacity) table exactly. View A and View B are now at FULL parity - every table, every mode, no known gaps remaining.
 
@@ -97,23 +126,28 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 
 **3. Links into "How the Numbers Are Calculated" need the pre-toggle.** Any ScrollToSectionLink or scroll_to_section() call pointing there needs pre_toggle_labels: ["Show breakdown"] in addition to ancestor_ids.
 
-**4. THERE ARE TWO true_cost SOURCES, ONE STALE - confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it has NEVER been touched by the non-productive cost injection (that injection only ever lives inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives ONLY in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B - this field did not even exist on View B's return object until 2026-09-18, root cause of that day's bug). ANY table or component that builds its own cost figure by re-summing row.true_cost or reading group_true_cost/entry.total_cost from merge_groups_by_id()/merge_groups_by_id_real_capacity()/merge_view_b_groups() WITHOUT cross-referencing group_real_capacity's own true_cost is showing the stale figure. Confirmed fixed in: CostBuildUpTable, merge_view_b_groups (both call sites: ViewBRealCapacityLedger and ViewBCostBuildUpTable). NOT yet checked: any other component that might independently read group_true_cost/entry.total_cost - grep both terms before trusting a new or unfamiliar cost display. CONFIRMED STALE 2026-09-23 (v6.0 BO-1, open): businessOutcomeNetProfitBuildUpSelectors.js (Revenue / Net Profit table cost columns - its "reconciles" check compares two uninjected figures and always passes) and the children built in merge_groups_by_id_real_capacity (achieved_revenue = raw true_cost + injected net profit). headline_real_capacity.all_sources[] carries no total_cost, so Business Modelling cannot pick up the stale figure.
+**4. THERE ARE TWO true_cost SOURCES - FIXED 8b (2026-09-23, BO-1). Originally confirmed 2026-09-18, cost a full session to find.** The selector's group_sources_by_group()/group_true_cost (businessOutcomePerSourceRevenueSelectors.js) sums RAW, per-row true_cost - it was NEVER touched by the non-productive cost injection (that injection only ever lived inside apply_real_capacity/apply_real_capacity_v2's own ephemeral `groups` calculation, never written back to the original row objects). The CORRECT, injected figure lives in real_capacity.group_real_capacity[].true_cost (View A) and view_b.real_capacity.group_real_capacity[].true_cost (View B). FIXED in: CostBuildUpTable, merge_view_b_groups (both call sites), and - 8b - merge_groups_by_id_real_capacity (both staff and asset rows) and businessOutcomeNetProfitBuildUpSelectors.js (the Revenue / Net Profit table). The mechanism used for the 8b fix: distribute_non_productive_cost() now stamps row.non_productive_share directly onto each row in both cascades, so any consumer can add it to the row's own true_cost without needing to cross-reference group_real_capacity separately. Grep both group_true_cost and entry.total_cost before trusting any NEW or unfamiliar cost display that isn't listed as fixed here - this class of bug can still recur in a component not yet built.
 
 **5. SEAT HOURS vs COVERED HOURS (v6.0 BO-6, 2026-09-23).** group.group_recovery_hours from Cost Allocation is the asset's SEAT hours. Business Outcome revenue must use get_group_covered_hours(group) instead - min(seat hours, assigned labour hours) for asset-driven units. group_real_capacity[].group_recovery_hours is ALREADY covered hours. Any new revenue or lever code that multiplies a rate by the raw Cost Allocation hours re-introduces revenue for hours nobody works. The older "seat-hours" comment above build_labour_sources is superseded where labour is short.
+
+**6. TWO overhead-per-hour BASES USED TO EXIST FOR LABOUR - FIXED 8b (F7/BO-2, 2026-09-23).** Rate Builder's rate_builder_labour_recovery_rows puts 100% of a group's overhead on labour regardless of assets (RB-1, still true INSIDE Rate Builder itself - this was never a Rate Builder bug, just a different, valid basis for a different purpose). Business Outcome's own split_group_overhead divides a group's overhead between labour and asset by cost share. The Labour Recovery card used to read the Rate Builder basis while every other figure on the page used Business Outcome's own split - they agreed only for asset-less groups. FIXED: useBusinessOutcomeLabourRecovery.js now builds its overhead map from per_source.labour_groups directly (hours-weighted average per staff type across every group they appear in), so the whole page is on one consistent basis. Watch for this pattern recurring if a new display ever reads rate_builder_labour_recovery_rows directly for a per-staff-type overhead figure instead of going through per_source.
 
 ---
 
 ## 5. Field-name traps
 
 - per_source.labour_groups[] / asset_groups[] use .group_modelled_revenue / .group_true_cost, NOT .modelled_revenue/.total_cost.
+- per_source.labour_groups[].staff[] rows (and asset_groups[].assets[] rows) carry .non_productive_share as of 8b (BO-1 Part B) - the row's own slice of its working unit's non-productive cost, stamped by distribute_non_productive_cost() in both cascades. A row's full true cost incl. support share = (row.true_cost ?? 0) + (row.non_productive_share ?? 0).
 - per_source.materials uses .revenue for View A's residual figure, NOT .modelled_revenue.
 - per_source.view_b.labour_sources[] / .asset_sources[] / .materials DO use .modelled_revenue directly.
 - real_capacity.group_real_capacity[] has both naive_net_profit and final_net_profit - pick deliberately. Also has true_cost (the CORRECT, non-productive-cost-injected figure - see gotcha #4 above) and non_productive_cost (added 2026-09-17/18) - both present on View A's array from the start, both added to View B's array only on 2026-09-18. modelled_revenue was ALSO missing from View B's array until 2026-09-18 (second pass, same day) - check any new consumer of this array works from BOTH views, since View A always had every field View B has only recently caught up to.
-- per_source.view_b_headline_real_capacity - NEW 2026-09-18. Same shape as headline_real_capacity, built for Business Modelling's real-engine rerun specifically (View B is the only cascade where materials has genuinely independent, lever-movable economics). Built inline in selectBusinessOutcomePerSourceRevenue(), deliberately NOT reusing merge_view_b_groups (a UI-layer function in the Card component - a selector importing from a UI component would be backwards).
+- per_source.view_b_headline_real_capacity - Same shape as headline_real_capacity, built for Business Modelling's real-engine rerun specifically (View B is the only cascade where materials has genuinely independent, lever-movable economics). Built inline in selectBusinessOutcomePerSourceRevenue(), deliberately NOT reusing merge_view_b_groups (a UI-layer function in the Card component - a selector importing from a UI component would be backwards). As of 8b (BO-11/F8), this object's net_profit includes any View B surplus (unexplained_revenue) - see gotcha entries above.
+- view_b_headline_real_capacity.unexplained_revenue - NEW 8b (BO-11/F8). Real revenue above what View B's modelled sources explain, added into net_profit; 0 whenever real revenue does not exceed modelled. NOT yet broken out as its own row in the visible breakdown list (BO-12, logged, not built).
 - Assumed Capacity mode's net_profit (implied_net_profit / assumed_net_profit, via apply_revenue_ceiling/apply_revenue_ceiling_v2) is a SEPARATE mechanism from the real-capacity cascade, never touched by the non-productive injection - as of 2026-09-18, CostBuildUpTable and merge_view_b_groups both now recompute it directly as (assumed revenue - corrected true_cost) rather than trusting that field, for exactly this reason.
 - Per-source direct/overhead cost IS tracked separately: direct_cost, overhead_share, summed to true_cost - confirmed in useBusinessOutcomePerSourceRevenue.js and carried through the selector as group_true_cost, group_overhead_share.
 - capacity_coverage_gap[].gap_type "revenue_at_risk" - key name kept, but since v6.0 BO-6 it means revenue NOT earned (already excluded from modelled revenue), valued at asset blended rate + assigned labour weighted charge rate. UI label: "Revenue not earned".
-- minimum_recoverable_rate_per_hour on staff / asset rows is the GROUP's rate (Cost Allocation group cost / group hours, excludes non-productive cost) - by design (v6.0 BO-3), not the person's own.
+- minimum_recoverable_rate_per_hour on staff / asset rows is the GROUP's rate (Cost Allocation group cost / group hours, excludes non-productive cost) - by design (v6.0 BO-3), not the person's own. Label "Group min rate" as of 8b (F3).
+- minimum_recoverable_markup_percent (View B materials) is the ACHIEVED markup, computed post-cascade in apply_real_capacity_v2 - resolved 8b (BO-9), labelled "Achieved markup" on the card. Not a stored/set minimum despite the field name.
 - Always grep for an existing working consumer of a field before writing new code that reads it.
 
 ---
@@ -127,10 +161,13 @@ components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
 - Shared scroll/navigation engine -> lib/utils/scrollToSection.js -> search "scroll_to_section"
 - Blurb "who's healthy" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "WHO'S HEALTHY"
 - Blurb "things to check" section -> BusinessOutcomeTruthSituationSummary.jsx -> search "THINGS TO CHECK"
-- View B "N of M not paying their way" -> BusinessOutcomePerSourceRevenueCard.jsx -> search "isn't paying its way"
+- View B "N of M not paying their way" -> BusinessOutcomePerSourceRevenueCard.jsx -> search "isn't paying its way" (as of 8b, wording is plural "sources aren't paying their way" where applicable)
 - Capacity coverage gap narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "Capacity coverage gap (2026-09-11"
 - View A/B materials variance narrative -> BusinessOutcomeTruthSituationSummary.jsx -> search "MATERIALS MARKUP VARIANCE"
 - CollapsibleSection nesting (all panels) -> BusinessOutcomePerSourceRevenueCard.jsx -> search "how-the-numbers-are-calculated"
+- Labour Recovery overhead basis (8b) -> hooks/useBusinessOutcomeLabourRecovery.js -> search "build_overhead_rate_map"
+- View B unexplained revenue (8b) -> lib/calculations/businessOutcomeViewBCalculations.js -> search "surplus"; also lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js and BusinessOutcomePerSourceRevenueCard.jsx -> search "unexplained_revenue"
+- Day/week scaling (8b F1) -> components/business-summary/BusinessSummaryCardUtils.js -> search "scaleAnnualValue"
 
 ---
 
@@ -147,9 +184,9 @@ Full detail in "Working_Conventions - PowerShell Patching, CSS, and Numeric Veri
 
 ## 8. Brief documents index
 
-- BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt (docs\fin_mirra_v6.0 Briefs\) - the ONE current Business Outcome brief. Folds in every docs/Mirra_v5_Briefs/Business Outcome/ document listed below and in that folder (archived out of project knowledge, kept in the repo).
+- BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt (docs\fin_mirra_v6.0 Briefs\) - the ONE current Business Outcome brief. Covers BOTH the 2026-09-23 core pass AND the same-day 8b follow-up session (F1-F8). Folds in every docs/Mirra_v5_Briefs/Business Outcome/ document listed below and in that folder (archived out of project knowledge, kept in the repo).
 
-- Main running session brief - RESOLVED 2026-09-20. See V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt in this same folder, now the real, saved entry point.
+- Main running session brief - RESOLVED 2026-09-20. See V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt in this same folder, now the real, saved entry point. Step 8b marked done there as of this update - next step is 9, Business Modelling.
 - ASSET_UTILISATION_DOWNTIME_SCOPING_BRIEF_2026-09-10.md - Superseded. Detailed Q&A lives in Business Outcome/Business Outcome New Additions/S31 - ASSET UTILISATION_DOWNTIME.txt.
 - OPENING_HOURS_CAPACITY_CHECK_SCOPING_BRIEF_2026-09-11.md - Deleted. Idea investigated and rejected.
 - Working_Conventions - PowerShell Patching, CSS, and Numeric Verification - Repo root. The authoritative process doc.

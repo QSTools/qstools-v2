@@ -1,8 +1,9 @@
 MIRRA v6.0 - BUSINESS OUTCOME BRIEF
-STATUS: [VERIFIED 2026-09-23] - CORE CHAIN VERIFIED LIVE (s7). One calculation
-  fix shipped (BO-6, commits ab7d721 + b668bbd). Display follow-ups open (s6),
-  to be worked in a short follow-up session before Business Modelling.
-PHASE: kickoff s2 step 8
+STATUS: [VERIFIED 2026-09-23] - CORE CHAIN VERIFIED LIVE (s7). Core calculation
+  fix shipped (BO-6, commits ab7d721 + b668bbd). 8b FOLLOW-UP SESSION COMPLETE
+  same day: F1-F8 all resolved (commits a401c5e, d4aa80c, 4bdaad4). Step 8b is
+  DONE - see kickoff s2 step 8b and s8. Next: step 9, Business Modelling.
+PHASE: kickoff s2 step 8 (core) + step 8b (follow-up) - both done
 LOCATION: docs\fin_mirra_v6.0 Briefs\
 
 FOLDS IN (archive out of project knowledge; keep in repo for history):
@@ -25,14 +26,16 @@ FOLDS IN (archive out of project knowledge; keep in repo for history):
       session handover 2026-09-04)
   - RateBuilder_v6_0_BRIEF_VERIFIED_2026-09-23.txt s7 hand-offs H1-H7
   - Cost Allocation C6; Summaries S-H2; S-G1 (tracker s17)
-  - Audit dumps: docs\Audit\v6_0\P4_BusinessOutcome\bo_v0..v4_2026-09-23.txt
+  - Audit dumps: docs\Audit\v6_0\P4_BusinessOutcome\bo_v0..v4_2026-09-23.txt,
+    bo_8b_reads_2026-09-23.txt through bo_8b_reads7_2026-09-23.txt
 
 HONESTY NOTE ON THE FOLD-IN: the v5 documents above were NOT re-read line by
 line in this pass. This brief records what the code and live data proved on
-2026-09-23. Anything in a v5 document that is not restated here is history,
-not current truth. Items from them known to be still open are carried in s6
-(S28 per-asset linking; CFO gap doc and fixed asset register scoping belong to
-the deferred import-consolidation brief, kickoff s7).
+2026-09-23 (core pass) and the same date's 8b follow-up session. Anything in a
+v5 document not restated here is history, not current truth. Items from them
+known to be still open are carried in s6 (S28 per-asset linking; CFO gap doc
+and fixed asset register scoping belong to the deferred import-consolidation
+brief, kickoff s7).
 
 RULE: no dollar figures outside a dated [VERIFIED] entry (kickoff s4).
 
@@ -53,41 +56,57 @@ interest / depreciation (EBIT display only).
 Owns: per-source modelled revenue and true cost; non-productive cost
 distribution to working units; View A and View B cascades; capacity coverage
 gap; health gauge baseline; per_source, the hand-off object Business Modelling
-reads.
+reads; the Labour Recovery overhead-per-hour figure (as of 8b F7 - previously
+this one figure was sourced from Rate Builder instead, see s5 BO-2).
 
 ===============================================================================
-2. WHAT EXISTS IN CODE (2026-09-23)
+2. WHAT EXISTS IN CODE (2026-09-23, updated by 8b)
 ===============================================================================
 
 Page app\business-outcome\page.jsx renders: BusinessOutcomeViewSwitcher,
 BusinessOutcomeTruthStatusStrip (useBusinessOutcomeTruth),
 BusinessOutcomeTruthRevenueSplitCard, BalanceSheetRatiosCard,
 BusinessOutcomeEbitSummaryCard, and the main BusinessOutcomePerSourceRevenueCard
-(per_source + labour_recovery + output_contract).
+(per_source + labour_recovery + output_contract). Dead useBusinessOutcomeWaterfall
+call REMOVED 8b (F4, BO-4, commit a401c5e).
 
-Core: hooks\useBusinessOutcomePerSourceRevenue.js (about 1,430 lines) ->
+Core: hooks\useBusinessOutcomePerSourceRevenue.js (~1,430 lines) ->
 lib\selectors\business-outcome\businessOutcomePerSourceRevenueSelectors.js
-(713) -> BusinessOutcomePerSourceRevenueCard.jsx (3,027). View B cascade:
-lib\calculations\businessOutcomeViewBCalculations.js. Labour charge rates:
-hooks\useBusinessOutcomeLabourRecovery.js.
+(~715) -> BusinessOutcomePerSourceRevenueCard.jsx (~3,030). View B cascade:
+lib\calculations\businessOutcomeViewBCalculations.js. Labour charge rates AND
+(as of 8b F7) labour overhead-per-hour: hooks\useBusinessOutcomeLabourRecovery.js
+- now takes per_source.labour_groups as a parameter (default []); no longer
+imports useCostAllocation directly (unused after F7).
 
-Legacy, not on this page: components\business-outcome\*, hooks\useBusinessOutcome.js
-(serve /recovery-outcome, outside the core chain). useBusinessOutcomeWaterfall
-is called on this page but never rendered (BO-4).
+BUILD-UP TABLE - CORRECTED PATH: lives in
+lib\selectors\business-outcome\businessOutcomeNetProfitBuildUpSelectors.js
+(NOT lib\calculations\ as an earlier file-map version said - corrected 8b,
+see file map s1 footnote).
+
+Legacy, not on this page: components\business-outcome\* (including
+BusinessOutcomeResultHero, which lives here, not under business-outcome-truth
+- corrected 8b, see file map), hooks\useBusinessOutcome.js (serve
+/recovery-outcome, outside the core chain). /recovery-outcome also renders a
+"How Net Profit Is Actually Built" heading - a SEPARATE legacy component, not
+the same one as the current page's build-up table (confirmed 8b, do not
+confuse the two when grepping).
 
 Large files: do not split in this pass (conventions rule 7).
 
 ===============================================================================
-2A. BROWSER CONSOLE VERIFICATION (new method, 2026-09-23)
+2A. BROWSER CONSOLE VERIFICATION (method used throughout, incl. 8b)
 ===============================================================================
 
-Live figures are read straight from the rendered card's React props instead of
-being transcribed from screen. Pattern: walk DOM elements, read the
-__reactFiber$ key, climb .return until memoizedProps has per_source AND
-labour_recovery; build a text summary; copy() it to the clipboard. The snippet
-must run on /business-outcome (the card only exists there). The nextjs-portal
-element is always present in dev and is NOT a crash signal. Snippets used this
-pass are in the chat record; re-create from this description if needed.
+Live figures are read straight from the rendered card's React props or, for
+the 8b pass, directly from the rendered page text (document.body.innerText)
+via small console snippets, then copied to clipboard. Pattern for props:
+walk DOM elements, read the __reactFiber$ key, climb .return until
+memoizedProps has per_source AND labour_recovery. Pattern for page-text
+snippets (8b): split innerText into lines, grep for a heading or a value
+pattern (e.g. /^Cost \$/), slice out the surrounding block. Both must run on
+/business-outcome (the card only exists there). The nextjs-portal element is
+always present in dev and is NOT a crash signal. Snippets used this pass are
+in the chat record; re-create from this description if needed.
 
 ===============================================================================
 3. MECHANISM (verified by code read + live data)
@@ -112,19 +131,39 @@ edited.
 
 Non-productive cost (distribute_non_productive_cost): pure-support working
 units always spread; mixed units follow the stored policy (default
-charge_to_self). Injected into group_real_capacity.true_cost only - never
-written back to source rows (file map gotcha #4; BO-1 is this).
+charge_to_self). Injected into group_real_capacity.true_cost - AND, as of 8b
+Part B, also stamped onto each row as row.non_productive_share, so every
+display layer (parent, ranked-drill child, build-up table) can show a child's
+cost inclusive of its own support share without re-deriving it (file map
+gotcha #4; BO-1, fixed 8b - see s5).
 
 Cascades: View A - materials revenue is the residual (real revenue less labour
 and asset modelled revenue); a materials shortfall is absorbed first by
 profitable groups by margin, then by revenue share. View B - materials is a peer
 priced at the Rate Builder markup; one global ceiling. Both headlines equal
-real revenue less total true cost less unassigned.
+real revenue less total true cost less unassigned. As of 8b F8/BO-11, View B's
+headline also adds back any surplus (real revenue above what modelled sources
+explain) as unexplained_revenue - see s5 BO-11.
 
 Capacity coverage gap (calculate_capacity_coverage_gap): asset-driven,
 labour short = revenue_at_risk (key kept; now means revenue NOT earned, valued
 at asset blended rate + assigned labour's weighted charge rate); labour over =
 wasted_cost; labour-driven: opportunity / data_check.
+
+Labour Recovery overhead-per-hour (build_overhead_rate_map, 8b F7): as of this
+fix, aggregated directly from per_source.labour_groups[].staff[] - summing
+each staff type's overhead_share and hours across every group it appears in,
+then dividing (hours-weighted average). Previously sourced from Rate Builder's
+rate_builder_labour_recovery_rows, which puts 100% of a group's overhead on
+labour regardless of assets (RB-1) - a different basis from every other figure
+on this page. For a staff type working only in asset-less groups the two
+bases are mathematically identical (asset_cost = 0 in split_group_overhead
+collapses to the same 100%-on-labour result), so those rows are provably
+unchanged by this fix; only staff working a productive-asset group can shift.
+useBusinessOutcomeOutputContract.js was updated the same way (it now computes
+its own per_source and passes labour_groups through) so AI Export, Dashboard
+and Business Modelling see the same basis as the on-page card - not a stale
+Rate-Builder-based copy.
 
 Readiness: the per-source hook reads no readiness field. useBusinessOutcomeTruth
 gates on revenue_cogs_ready, cost_summary_ready, business_summary_ready - NOT on
@@ -144,112 +183,196 @@ Hours/units: hours-native; business_type not read.
      linking NOT built - carried as design item.
   H3 C6 / RB-15: see BO-3 (design decision taken).
   H4 C24 all_productive row: CLOSED - never read (map keyed by real staff ids).
-  H5 Materials markup (Rate Builder Path C): NOT READ - open (F6).
+  H5 Materials markup (Rate Builder Path C): CLOSED 8b (F6). Saved by
+     lib\storage\rateBuilderMaterialsMarkupStorage.js, read once in the hook,
+     overridable by Business Modelling (effective_materials_markup_percent),
+     priced in build_materials_source as COGS x (1 + markup). Also answers BO-9
+     (see s5).
   H6 S-G1: CLOSED - see BO-7.
   H7 Strip-or-carry: already decided at P2.5 (commit 1e5009f: carry, empty
-     groups removed). Breakeven revenue KEPT for this pass on purpose - it made
-     "headline ~ 0" the reconciliation test for every change. Drop it in the
-     follow-up (F5).
-  S-H2 day / week scaling: CONFIRMED open (F1).
+     groups removed). Breakeven revenue was kept through the core pass on
+     purpose. Dropped 8b (F5) - real revenue (1,572,472.95) restored and
+     re-verified, see s7.
+  S-H2 day / week scaling: CLOSED 8b (F1, commit a401c5e).
 
 ===============================================================================
 5. FINDINGS REGISTER
 ===============================================================================
 
-BO-1 DISPLAY (open, F2). Revenue / Net Profit table
-  (businessOutcomeNetProfitBuildUpSelectors.js) shows direct + overhead cost
+BO-1 FIXED (8b, commits a401c5e / d4aa80c). Was: Revenue / Net Profit table
+  (businessOutcomeNetProfitBuildUpSelectors.js) showed direct + overhead cost
   without the non-productive share, so revenue less shown cost != shown net
-  profit for any group carrying non-productive cost. Its "reconciles" check
-  compares two uninjected figures and always passes. Same flaw in
-  merge_groups_by_id_real_capacity children (achieved_revenue = raw true_cost +
-  injected net profit). Net profit itself is correct everywhere.
-  all_sources[] carries no total_cost, so Business Modelling cannot read the
-  stale cost. Fix: read group_real_capacity[].true_cost / non_productive_cost.
+  profit for any group carrying non-productive cost; its "reconciles" check
+  compared two uninjected figures and always passed. Same flaw in
+  merge_groups_by_id_real_capacity children (achieved_revenue used raw
+  true_cost + injected net profit).
+  FIX: every group and child row now shows Revenue, Labour, Asset, Overhead,
+  Non-productive support share, Share of materials shortfall carried,
+  Contribution - every block adds up. Materials shows real Material cost and
+  Shortfall carried by others separately. "Check" now compares shown lines vs
+  the injected true_cost. Ranked drill (parent AND child rows) now uses the
+  cascade's injected true_cost (Part B, same session) instead of the raw,
+  uninjected row.true_cost - both merge_groups_by_id_real_capacity (selector)
+  and the card's own merge function were fixed, plus the row-level
+  non_productive_share is now stamped in both cascades (hook + View B) so
+  every consumer can reach it without re-deriving.
+  VERIFIED live 8b: Foreman children Owner/Director $185,803 (was $151,489) and
+  Senior Operator $127,331 (was $105,885), summing exactly to Foreman's group
+  cost $313,134; achieved rates rose from $48/hr and $30/hr to $72/hr and
+  $45/hr. Build-up table ties for every group; NET PROFIT row ties to headline;
+  no Check-mismatch tags. all_sources[] still carries no total_cost by design,
+  so Business Modelling was never exposed to the stale figure.
 
-BO-2 DESIGN / DISPLAY (open, F7). Labour Recovery card overhead per hour uses
-  Rate Builder rows (100% of group overhead on labour, RB-1); per-source rows
-  split group overhead labour/asset by cost share. They differ in any group
-  with a productive asset. Decide which the card should show.
+BO-2 RESOLVED (8b F7, commit 4bdaad4). Was: Labour Recovery card's overhead
+  per hour came from Rate Builder (100% of group overhead on labour, RB-1);
+  every other figure on this page splits group overhead between labour and
+  asset by cost share (split_group_overhead). They differed in any group with
+  a productive asset (e.g. PC55, 2inc Line).
+  DECISION (user, 2026-09-23): option (a) - the card now uses Business
+  Outcome's own split, consistent with the rest of the page, rather than
+  keeping Rate Builder's basis with a label. "We shouldn't be recalculating
+  the number... it should be split evenly and proportionately like it is
+  everywhere else in the tool."
+  FIX: build_overhead_rate_map (useBusinessOutcomeLabourRecovery.js)
+  aggregates overhead_share and hours per staff type straight from
+  per_source.labour_groups[].staff[] (hours-weighted average across every
+  group that staff type appears in), instead of reading
+  rate_builder_labour_recovery_rows. useCostAllocation import removed (no
+  longer used in this hook). useBusinessOutcomeOutputContract.js updated the
+  same way, so AI Export / Dashboard / Business Modelling see this basis too,
+  not a stale Rate-Builder-based copy.
+  Internal caller safety: useBusinessOutcomePerSourceRevenue.js also calls
+  this hook (to get charge_out_rate / labour_source_type_name for its own
+  build_labour_sources / calculate_capacity_coverage_gap) - traced and
+  confirmed it never reads the overhead fields, so making labour_groups an
+  optional parameter (default []) left that internal call unaffected. No
+  circular dependency.
+  VERIFIED live 8b: for Foreman (no productive asset), overhead-per-hour is
+  mathematically guaranteed identical to the old Rate Builder basis (asset_cost
+  = 0 collapses split_group_overhead to 100%-on-labour either way) - Owner/
+  Director $8.57/hr, Senior Operator $6.83/hr. Real-cost reconciliation line
+  unchanged (Real cost across every source: $1,979,396 vs $1,979,396 reported)
+  confirming the change only redistributes display, no total moved. Full card
+  read at real revenue: Operator $6.48/hr, Owner/Director $8.57/hr, Senior
+  Operator $6.83/hr, Site Crew $5.61/hr; weighted average $6.86/hr overhead,
+  $76.47/hr true cost vs $83.00/hr charged, +$6.53/hr profit.
 
-BO-3 DESIGN DECISION (label open, F3). Minimum recoverable rate shown on each
-  staff row is the GROUP's staff-type weighted rate (Cost Allocation group cost
-  / group hours), excluding non-productive cost (C6). User decision 2026-09-23:
-  correct by design - people are pooled at working-unit level, not assigned
-  individually to an asset. Follow-up: label it "Group minimum rate".
+BO-3 DESIGN DECISION, CLOSED (8b F3, commit a401c5e). Minimum recoverable rate
+  shown on each staff row is the GROUP's staff-type weighted rate (Cost
+  Allocation group cost / group hours), excluding non-productive cost (C6).
+  User decision 2026-09-23 (core pass): correct by design - people are pooled
+  at working-unit level, not assigned individually to an asset. Label changed
+  to "Group min rate".
 
-BO-4 CLEANUP (open, F4). page.jsx calls useBusinessOutcomeWaterfall and
-  selectBusinessOutcomeWaterfall (incl. a useModelReadiness call) and never
-  renders the result.
+BO-4 CLEANUP, CLOSED (8b F4, commit a401c5e). page.jsx no longer calls
+  useBusinessOutcomeWaterfall / selectBusinessOutcomeWaterfall (incl. the
+  useModelReadiness call inside it) - was computed and never rendered.
 
-BO-5 EXPLAINED (closed). Per-source cost per hour differs from Labour's rate
-  where revenue hours differ from the staff type's own hours (asset-driven
-  groups). Cost itself matches Labour to within a few dollars. The over-claim
-  case it exposed is fixed by BO-6.
+BO-5 EXPLAINED (closed, core pass). Per-source cost per hour differs from
+  Labour's rate where revenue hours differ from the staff type's own hours
+  (asset-driven groups). Cost itself matches Labour to within a few dollars.
+  The over-claim case it exposed is fixed by BO-6.
 
-BO-6 FIXED (ab7d721, b668bbd). Covered-hours cap. Before: asset-driven groups
-  billed the asset's full seat hours for both labour and asset even where
-  assigned labour covered fewer hours, or none (an earlier "seat-hours" rule,
-  recorded in code as user-confirmed; relief-cover rationale). User decision
-  2026-09-23: an asset cannot earn for hours nobody is there to run it; a group
-  with no labour earns nothing and is flagged to add labour. Applies to both
-  "How the Business Runs" and "Best Case" (both start from modelled revenue).
-  Known limits, logged not built:
-    - Unattended / dry-hire / automated units need a per-working-unit "runs
-      without our labour" exemption (Cost Allocation storage change).
-    - One person attending several SEPARATELY billed units at the same moment
-      is not modelled; put those assets in one working unit (seat = longest
-      asset, one operator covers all).
-    - Product / throughput businesses (e.g. quick-service food) are outside the
-      hours-native model - parked with the business_type gap (kickoff s1).
+BO-6 FIXED (core pass, ab7d721, b668bbd). Covered-hours cap. Before: asset-
+  driven groups billed the asset's full seat hours for both labour and asset
+  even where assigned labour covered fewer hours, or none. User decision: an
+  asset cannot earn for hours nobody is there to run it; a group with no
+  labour earns nothing and is flagged to add labour. Applies to both "How the
+  Business Runs" and "Best Case". Known limits, logged not built: unattended /
+  dry-hire exemption; concurrent attendance across separately billed units;
+  product / throughput businesses outside the hours-native model.
 
-BO-7 DATA (explained). Assets' calculated interest exceeds the flagged P&L
-  interest line; General Overheads floors the line at zero (no double count)
-  and sets general_overheads_ready false via
-  has_asset_finance_interest_duplication. Excess = synthetic assets' interest +
-  a small overshoot of Assets' today-dated estimate (A4). Feeds the known C16
-  benchmark block. non_asset_interest_annual has no reader (dead).
+BO-7 DATA (explained, core pass). Assets' calculated interest exceeds the
+  flagged P&L interest line; General Overheads floors the line at zero (no
+  double count) and sets general_overheads_ready false. Excess = synthetic
+  assets' interest + a small overshoot of Assets' today-dated estimate (A4).
+  Feeds the known C16 benchmark block. non_asset_interest_annual has no reader
+  (dead).
 
-BO-8 LATENT. capacity_coverage_gap values use live rates only - Business
-  Modelling's rate overrides do not reach the gap valuation.
+BO-8 LATENT (open, not scheduled). capacity_coverage_gap values use live rates
+  only - Business Modelling's rate overrides do not reach the gap valuation.
 
-BO-9 QUESTION. View B materials shows a minimum_recoverable_markup_percent
-  although build_materials_source sets it null; where it is set and what it
-  means is unverified.
+BO-9 RESOLVED (8b, commit d4aa80c). Was a question: View B's
+  minimum_recoverable_markup_percent shows a value although
+  build_materials_source sets it null; source and meaning unverified.
+  RESOLVED: it is the ACHIEVED markup, computed post-cascade in
+  apply_real_capacity_v2 (businessOutcomeViewBCalculations.js, lines ~252-256),
+  not a stored/set minimum. Card label changed to "Achieved markup". e.g.
+  -16.79% at real revenue (materials absorbing shortfall pushes it negative),
+  15% at a test revenue of 2,500,000.
 
-BO-10 TEST DATA. Group "TEST" (Test Machine, zero cost, no calculator) is a test
-  artefact; harmless (gap_type none). Remove when convenient.
+BO-10 TEST DATA (open, cosmetic). Group "TEST" (Test Machine, zero cost, no
+  calculator) is a test artefact; harmless (gap_type none). Remove when
+  convenient.
 
-Test data identified 2026-09-23: synthetic assets = PC15 and 2inc Line Pump 2
-  (closes Assets s13 open item); synthetic non-productive staff = Accountant
-  (assumed - confirm). Mini Truck is real but was saved as productive; user
-  reclassified it to support in its own working unit (pure support) on
-  2026-09-23, re-adding the Cost Allocation assignment so C17's frozen
-  productive flag was refreshed.
+BO-11 FIXED (8b F8 option a, commit d4aa80c). View B's cascade
+  (apply_real_capacity_v2) already returned surplus (real revenue above
+  modelled, when real is higher) but it was never consumed - View B's headline
+  net profit silently excluded any revenue above what sources explained.
+  FIX: surplus added to total_net_profit and published as unexplained_revenue
+  in both the selector's view_b_headline_real_capacity and the card's
+  build_view_b_headline (function-scoped patch - a naive-headline copy of the
+  same pattern exists and was deliberately left alone). Card now shows
+  "Includes $X of revenue your rates and markup don't explain...". At real
+  revenue, surplus is 0 (revenue is below cost) and nothing changes; VERIFIED
+  live at a test revenue of 2,500,000: both View A and View B now report
+  $520,604 (View B was $260,480 before the fix); line reads $260,098.
+  useBusinessModellingLeverSelectors.js buildRealEngineLeverHeadline needed no
+  change - it was already reading the corrected total.
+
+BO-12 NEW (8b, logged, not built). View B's own breakdown/source list does not
+  include the unexplained revenue as a row of its own, so at a revenue where
+  surplus is non-zero (e.g. the 2,500,000 test) the visible rows sum to a
+  smaller figure than the stated headline (~260k rows vs 520k headline). This
+  affects the "N of M sources" being-carried count and the list Business
+  Modelling reads. Should mirror the existing unassigned-cost row mechanism.
+  Needs its own small pass - not done this session, logged for a future one
+  (not blocking step 9).
+
+OWNER REMUNERATION - DESIGN ITEM (new, 8b, logged for a LATER session - Labour
+  + Reconciliation, NOT Business Outcome). Investigating the 8b cost-gap
+  reconciliation (see tracker s12 S-L1) traced ~139,369.69 of the gap to
+  Owner/Director alone. User's working theory: the owner may be on payroll, OR
+  drawing a shareholder salary, OR taking drawings only, and today's tool has
+  no explicit setting for which. Logged as a future design item: an owner-
+  remuneration setting (payroll / shareholder salary / drawings), read by
+  reconciliation, optionally surfaced on Business Outcome as "P&L shows X,
+  after paying the owner a fair wage it's Y". Not scoped or built this
+  session. S-L1 is now "largely explained by Owner/Director 139,369.69, ~21k
+  residual to check" rather than fully open.
+
+Test data identified 2026-09-23 (core pass): synthetic assets = PC15 and 2inc
+  Line Pump 2 (closes Assets s13 open item); synthetic non-productive staff =
+  Accountant (assumed - confirm). Mini Truck is real but was saved as
+  productive; user reclassified it to support in its own working unit (pure
+  support) on 2026-09-23, re-adding the Cost Allocation assignment so C17's
+  frozen productive flag was refreshed.
 
 ===============================================================================
-6. OPEN - FOLLOW-UP SESSION (before Business Modelling)
+6. OPEN - CARRIED FORWARD (nothing blocks step 9)
 ===============================================================================
 
-  F1 S-H2: pass net_annual_business_open_days / annual_open_weeks through hook
-     -> selector -> Card; 15 scaleAnnualValue call sites plus
-     BusinessOutcomeResultHero scalePeriodValue. Signature confirmed:
-     scaleAnnualValue(value, scale, hourly, openHours, openDays, openWeeks).
-  F2 BO-1 cost columns / drill children.
-  F3 BO-3 label.
-  F4 BO-4 remove dead waterfall computation.
-  F5 Drop breakeven revenue; restore real revenue; check margin behaviour.
-  F6 H5 materials path: Rate Builder Path C -> View B materials; also answers
-     BO-9 and completes tracker s5.
-  F7 BO-2 decision.
-Design items (logged, not scheduled): unattended exemption; concurrent
-  attendance; S28 per-asset calculator linking; product mode.
+  8b follow-up brief (F1-F8) is FULLY RESOLVED - nothing carried from it except
+  the two logged-not-built items below.
+
+  BO-8 (latent): Business Modelling rate overrides don't reach the capacity
+    coverage gap valuation. Not scheduled.
+  BO-10 (cosmetic): remove the "TEST" group when convenient.
+  BO-12 (new, 8b): View B breakdown list needs its own unexplained-revenue row
+    to match the headline total. Small, self-contained pass - can be picked up
+    whenever, does not block Business Modelling.
+  Owner remuneration design item (new, 8b): logged for a future Labour /
+    Reconciliation session, not Business Outcome.
+  Design items already logged, unscheduled: unattended exemption; concurrent
+    attendance; S28 per-asset calculator linking; product mode (business_type
+    gap, kickoff s1).
 
 ===============================================================================
 7. [VERIFIED] ENTRIES
 ===============================================================================
 
-[VERIFIED 2026-09-23] Live, console-read from the rendered card props.
-  Data: synthetic entries carried; revenue at breakeven 1,979,555.
+[VERIFIED 2026-09-23, CORE PASS] Live, console-read from the rendered card
+  props. Data: synthetic entries carried; revenue at breakeven 1,979,555.
 
   Breakeven: headline View A 132.49, View B 132.47 (132.48 / 132.51 at earlier
   reads). Residual consistent with Assets A4 interest decay - PASS.
@@ -285,3 +408,64 @@ Design items (logged, not scheduled): unattended exemption; concurrent
   Overheads line floored to 0 - no double count.
 
   Commits: ab7d721 (BO-6 calculation), b668bbd (BO-6 wording).
+
+[VERIFIED 2026-09-23, 8b FOLLOW-UP SESSION] Live, console-read from rendered
+  page text and React props. Data: synthetic entries carried; real revenue
+  restored per F5 (1,572,472.95, the real P&L Sales figure - breakeven
+  dropped).
+
+  Cost gap reconciliation (S-L1, prerequisite for F5 trust): the previously
+  unexplained ~160k gap between P&L operating-expense benchmarks and tool
+  totals is now fully accounted for: labour +270,991.08 (tool productive
+  staff + Accountant 602,334.01 vs P&L wages+ACC+KiwiSaver 331,342.93),
+  interest +39,395.19, penalties -319.30, netting to the known 310,066.98
+  total gap. Owner/Director alone = 139,369.69 of the labour variance -
+  see s5 owner remuneration design item.
+
+  Headline at real revenue: View A -406,949.56, View B -406,949.58 (drifted to
+  -406,922.98 / -406,923 at a later same-day read - consistent with the known
+  ~$26/day Assets A4 interest-decay drift, not a regression).
+  Per-day (F1): -$1,608/day (= headline / 253 open days, not /260) confirmed
+  on screen. Breakeven per-day $7,824/day.
+  Group true cost 739,331.83; materials true cost 1,240,090.70; open hours
+  3,390.2; open days 253; open weeks 52; non-productive distributed 117,703.60.
+
+  BO-1 fix, live: Foreman build-up ties exactly - Revenue 275,753, Labour
+  -233,136, Asset -0, Overhead -24,239, Non-productive support share -55,759,
+  Share of materials shortfall carried -110,810, Contribution -148,191. PC55,
+  2inc Line, Site Crew build-up rows all tie the same way; four groups' carried
+  shares sum exactly to the shortfall total (481,416); NET PROFIT row ties to
+  headline -406,923; no Check-mismatch tags anywhere.
+  Ranked drill (BO-1 part 1+2, Part B): Foreman Cost $313,134 (was $257,374) =
+  Owner/Director $185,803 (was $151,489) + Senior Operator $127,331 (was
+  $105,885). PC55 $118,488, 2inc Line $159,103, Site Crew $119,710 (all now
+  include non-productive share).
+
+  BO-9/Achieved markup, live: -16.79% at real revenue; 15% confirmed at a test
+  revenue of 2,500,000.
+
+  BO-11/F8, live at test revenue 2,500,000: View A and View B headlines both
+  $520,604 (View B was $260,480 pre-fix); unexplained-revenue line reads
+  $260,098. At real revenue, surplus = 0, no visible change (expected).
+
+  BO-2/F7, live (real revenue): Labour Recovery card - Operator $62.28 labour
+  + $6.48 overhead = $68.76/hr true cost vs $75.00/hr charged (+$6.24/hr);
+  Owner/Director $98.56 + $8.57 = $107.13/hr vs $120.00/hr (+$12.87/hr);
+  Senior Operator $66.31 + $6.83 = $73.14/hr vs $75.00/hr (+$1.86/hr); Site
+  Crew $54.56 + $5.61 = $60.16/hr vs $70.00/hr (+$9.84/hr). Weighted average
+  $69.60 + $6.86 = $76.47/hr true cost vs $83.00/hr charged, +$6.53/hr profit.
+  Real-cost reconciliation unchanged before/after this patch: "Real cost across
+  every source: $1,979,396 vs. $1,979,396 reported" (this figure is total true
+  cost = breakeven revenue by construction, not a coincidence with the core
+  pass's breakeven read of 1,979,555 - the ~159 difference is the same A4
+  interest-decay drift, days apart).
+
+  Business Health Gauge at real revenue: -2.64, "Unhealthy - real loss despite
+  individual sources being viable on their own."
+
+  Commits: a401c5e (F1/F3/F4), d4aa80c (F2/F8 + BO-9 label), 4bdaad4 (F7).
+
+  Session close: F1-F8 all resolved. BO-1, BO-2, BO-3, BO-4, BO-9, BO-11 all
+  closed. BO-8, BO-10, BO-12 open/logged, not blocking. Owner remuneration
+  logged as a future Labour/Reconciliation design item. Step 8b is DONE -
+  see kickoff s2 step 8b and s8 for next step (9, Business Modelling).
