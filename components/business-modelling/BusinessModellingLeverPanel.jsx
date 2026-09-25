@@ -1,6 +1,6 @@
 // components/business-modelling/BusinessModellingLeverPanel.jsx
-// v6.0 Business Modelling redesign - the chain in order: overheads (not yet
-// available) > labour > assets and materials margin. Receives the whole
+// v6.0 Business Modelling redesign - the chain in order: overheads > labour
+// > assets and materials margin. Receives the whole
 // useBusinessModellingLevers() result as `model`. Display only.
 import BusinessModellingNetProfitBar from "@/components/business-modelling/BusinessModellingNetProfitBar";
 import BusinessModellingSourceRow from "@/components/business-modelling/BusinessModellingSourceRow";
@@ -16,6 +16,7 @@ export default function BusinessModellingLeverPanel({ model }) {
   }
 
   const { rows, levers, effects, today_net_profit, modelled_net_profit, total_effect, setLever, resetLevers } = model;
+  const overheads = rows.filter((r) => r.kind === "overhead");
   const labour = rows.filter((r) => r.kind === "staff");
   const assets_and_materials = rows.filter((r) => r.kind === "assets" || r.kind === "materials");
   const has_changes = Object.keys(levers).length > 0;
@@ -41,7 +42,11 @@ export default function BusinessModellingLeverPanel({ model }) {
       </p>
 
       <div className="ui-card-title-sm">1. Overheads</div>
-      <p className="ui-help">Not available yet - overhead lines can&apos;t be modelled until that step is built.</p>
+      {overheads.length > 0 ? (
+        overheads.map(render_row)
+      ) : (
+        <p className="ui-help">No overhead categories found.</p>
+      )}
 
       <div className="ui-card-title-sm">2. Labour</div>
       {labour.map(render_row)}

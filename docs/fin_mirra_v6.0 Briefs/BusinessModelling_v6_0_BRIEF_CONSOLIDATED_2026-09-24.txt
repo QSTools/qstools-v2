@@ -438,6 +438,32 @@ STILL OPEN (deferred, not part of this session): asset-driven units becoming ONE
   all-in unit rate) with their labour rows made cost-only (Q5's other half). Real remaining
   work - businessModellingSourceRows.js still treats every staff row as independently
   leverable regardless of whether its working unit is asset-driven.
+DESIGN AGREED 2026-09-25 (owner): labour->asset LIVE REPRICING. Moving a labour lever inside an
+  asset-driven unit keeps the unit's all-in rate fixed; the asset row re-derives as
+  all-in - new labour rate, using Rate Builder's own calculate_labour_mix_charge_rate /
+  calculate_net_asset_rate (no second copy of the formula). Flag for asset-driven:
+  group.group_recovery_hour_source === "asset_hours" - NOT yet carried to per_source rows:
+  build_labour_sources / build_asset_sources rows omit it, and group_sources_by_group
+  (businessOutcomePerSourceRevenueSelectors.js L46-60) REBUILDS the group object from a fixed
+  list, so it would drop it anyway (bug class 6b). Both need the field added.
+  Baseline: docs\Audit\v6_0\bm_baseline_pre_asset_driven_lever_2026-09-25.json.
+[SHIPPED / VERIFIED 2026-09-26] OVERHEADS LEVER (chain step 1), category level.
+  - Overhead categories become rows in buildSourceRows (kind "overhead", row_id
+    "overhead:<category_key>", basis 1, start = category total_amount, floor 0, no ceiling).
+  - Source: useGeneralOverheads().card.summary.grouped_overhead_rows, READ-ONLY. Business
+    Modelling never calls a General Overheads write action. Side effect noted: mounting
+    useGeneralOverheads on this page runs its own hydrate/save and P&L-sync effects, same as
+    opening the General Overheads page (is_hydrated guard present).
+  - applyAdditiveLevers: new is_cost_row flag inverts the effect,
+    (start - target) x basis. Other row kinds unchanged.
+  - Uses the existing lever storage/hook - no separate overhead storage.
+  - Live 2026-09-26: 10 categories sum $95,866.40 = General Overheads net total (baseline
+    docs\Audit\v6_0\go_baseline_pre_overheads_lever_2026-09-26.json). No levers: modelled ==
+    today (-$406,870). Vehicle Running Costs 38,700.44 -> 30,000: modelled -$398,169
+    (+$8,700). Labour/asset/materials rows unchanged. General Overheads page unchanged.
+  - Display: overhead rows show annual dollars (BusinessModellingSourceRow.jsx).
+REMAINING CALC ITEMS (agreed order): labour->asset live repricing (above), BO-8, CM-8. Then
+  consider a hybrid Rate Builder / Modelling UI (owner idea, 2026-09-25) - not decided.
 LOGGED: CM-8 (legacy split still type-based), CM-9 (panel uses one labour
   source; orphan calculators; missing line type field). Owner data check:
   Pump 2's m3 line has unit "m2".

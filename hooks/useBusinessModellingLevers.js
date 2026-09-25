@@ -9,6 +9,7 @@ import {
   writeModellingLevers,
   clearModellingLevers,
 } from "@/lib/storage/businessModellingLeverStorage";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 
 // Business Modelling levers (v6.0 redesign, step 2). Owns lever STATE only;
 // all maths lives in the two pure calculation files. Takes per_source as a
@@ -27,7 +28,17 @@ export default function useBusinessModellingLevers(per_source) {
   // mounted, so nothing rendered can mismatch.
   const [levers, set_levers] = useState(() => readModellingLevers());
 
-  const source = useMemo(() => buildSourceRows(per_source), [per_source]);
+  // Overheads lever (v6.0 step 5b) - read-only General Overheads category
+  // totals feed buildSourceRows as extra cost rows. Business Modelling
+  // never calls any General Overheads write/update action - real overhead
+  // data (GENERAL_OVERHEAD_STORAGE_KEY) is read, never touched.
+  const general_overheads = useGeneralOverheads();
+  const overhead_categories = general_overheads?.card?.summary?.grouped_overhead_rows ?? [];
+
+  const source = useMemo(
+    () => buildSourceRows(per_source, overhead_categories),
+    [per_source, overhead_categories]
+  );
 
   // Stable string so the save effect does not re-run on every render.
   const row_ids_key = source.available ? source.rows.map((r) => r.row_id).join("|") : "";
