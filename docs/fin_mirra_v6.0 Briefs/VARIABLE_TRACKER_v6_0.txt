@@ -1001,3 +1001,58 @@ HOURS/UNITS AWARE: hours-native throughout; business_type not read.
   BO-11 - see BUSINESS_OUTCOME_FILE_MAP_v6_0.txt's own dated update lines).
 - SESSION CLOSE (8b): all follow-up items (F1-F8) resolved same day as the
   core pass. Nothing carried forward blocks step 9 (Business Modelling).
+
+===============================================================================
+22. BUSINESS MODELLING - STAGE BY STAGE
+===============================================================================
+
+STATUS: step 5 UI cleanup [VERIFIED 2026-09-25]; numbers live in
+  BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt, not here. Asset-driven
+  units as ONE lever (labour rows cost-only) NOT yet built - see that brief's
+  STILL OPEN note. OPEN: a small unexplained drift exists between the
+  2026-09-24 and 2026-09-25 dated real-net-profit figures in that brief -
+  cause not yet identified (data edit vs calc-path change not yet
+  distinguished); verify before trusting either dated figure as current.
+
+STAGE: Source rows (per lever-able source)
+FIELD NAMES: buildSourceRows() output - basis, achieved_revenue, start_rate,
+  floor_rate, ceiling_rate, group_min_rate, status, leverable
+FILE / FUNCTION: lib/calculations/businessModellingSourceRows.js (buildSourceRows)
+FEEDS INTO: lib/calculations/businessModellingAdditiveModel.js (applyAdditiveLevers)
+HOURS/UNITS AWARE: hours-native (covered hours as basis); business_type not
+  read by any Business Modelling file (matches Section 1's kickoff-level note).
+VERIFIED: See Business Modelling brief, [VERIFIED 2026-09-25] entry (identity
+  checks: no levers = today, own-start = ~zero effect, additivity - all PASS,
+  small residuals traced to display rounding of the unrounded internal
+  start_rate, not a calc defect).
+NOTES: reads Business Outcome's per_source directly (real_capacity.
+  group_real_capacity for covered hours; labour_groups[].staff[] and
+  asset_groups[].assets[] for achieved revenue). Every staff row is currently
+  treated as independently leverable regardless of whether its working unit
+  is asset-driven - the still-open half of step 5 (asset-driven units as ONE
+  lever) will change this file's per-row leverable/basis logic once the
+  asset-driven-vs-labour-driven flag is confirmed from the real selector code
+  (not yet confirmed as of 2026-09-25 - do not assume a field name; candidates
+  to check: asset_driven, net_asset_rate, blended_rate, labour_mix_charge_rate).
+
+STAGE: Additive lever model
+FIELD NAMES: applyAdditiveLevers() output - effects{}, total_effect,
+  modelled_net_profit
+FILE / FUNCTION: lib/calculations/businessModellingAdditiveModel.js
+FEEDS INTO: hooks/useBusinessModellingLevers.js (state) ->
+  components/business-modelling/BusinessModellingLeverPanel.jsx (display)
+HOURS/UNITS AWARE: passthrough from source rows.
+VERIFIED: See Business Modelling brief, [VERIFIED 2026-09-25] entry.
+NOTES: pure function - effect = (target - start_rate) x basis for every row
+  with a lever set; untouched rows are not recalculated, they stay at their
+  achieved_revenue (rule agreed 2026-09-18/24 - touch one lever, everything
+  else stays at today's real achieved figure).
+
+STAGE: Lever persistence
+FIELD NAME: qs_tools_business_modelling_levers_v1 (localStorage key)
+FILE / FUNCTION: lib/storage/businessModellingLeverStorage.js;
+  hooks/useBusinessModellingLevers.js (lazy useState read - has_loaded guard
+  made redundant by this pattern, documented inline in the hook)
+NOTES: stale row ids (a row that no longer exists in the current source list)
+  are dropped from storage once the current row list is known, so switching
+  data sets can't leave a phantom lever silently affecting the total.
