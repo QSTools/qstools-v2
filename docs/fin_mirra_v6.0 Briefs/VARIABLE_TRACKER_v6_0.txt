@@ -980,11 +980,30 @@ HOURS/UNITS AWARE: hours-native throughout; business_type not read.
   rate" (F3); BO-4 dead waterfall computation removed (F4); BO-9 View B
   minimum markup resolved and relabelled "Achieved markup"; BO-11 View B
   headline now counts unexplained revenue (F8 option a).
-- OPEN, logged, not scheduled: BO-8 gap valuation ignores Business Modelling
-  overrides (latent). BO-10 test artefact group "TEST" - cosmetic, remove
-  when convenient. BO-12 (NEW 8b) - View B's breakdown list doesn't yet carry
-  unexplained_revenue as its own row, so it can undercount vs the headline
-  when surplus is non-zero; small self-contained pass, not blocking step 9.
+- CLOSED 2026-09-26 (not fixed - confirmed not applicable): BO-8. Investigated:
+  calculate_capacity_coverage_gap ignores its overrides parameter entirely, so
+  modelled_per_source.capacity_coverage_gap never reflects a lever. BUT this
+  only affects the override-rerun mechanism (modelled_per_source), which is
+  inert cross-check infrastructure - the live Business Modelling page is
+  driven by the additive model, not this rerun, and nothing anywhere reads
+  modelled_per_source.capacity_coverage_gap. No visible bug. Re-open only if
+  the override-rerun is ever wired to something displayed.
+- OPEN, logged, not scheduled: BO-10 test artefact group "TEST" - cosmetic,
+  remove when convenient. BO-12 (NEW 8b) - View B's breakdown list doesn't yet
+  carry unexplained_revenue as its own row, so it can undercount vs the
+  headline when surplus is non-zero; small self-contained pass, not blocking
+  step 9.
+- CM-8 CLOSED 2026-09-26 - see CALCULATION_MAP_v6_0.txt s9.12 and s12 for
+  detail. /recovery-outcome's legacy operating-group split
+  (businessOutcomeAssetSplitCalculations.js) now uses the shared
+  get_calculator_recovery_hours rule (unit === "hr" lines), same as CM-1b -
+  was silently reading a dead type === "time" field and falling back to the
+  output-driver quantity on every asset-backed group. Verified live: all
+  asset-backed groups (2inc Line, 2inc Line Pump 2, PC15, PC55) now resolve
+  with reason=null. SEPARATE FINDING, not fixed: the page's "Asset
+  utilization data not available" message prints identical wording for two
+  different conditions - a display defect, not chased this session.
+  Commit 67b00ec.
 - OPEN design (unchanged from core pass): unattended / dry-hire exemption;
   concurrent attendance; S28 per-asset linking; product mode (business_type
   gap, kickoff s1).
