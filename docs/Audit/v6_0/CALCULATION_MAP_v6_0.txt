@@ -421,7 +421,26 @@ Current rebuild (2026-09-24, the live model - View A base)
   - modelled_net_profit = today's real net profit + sum of effects        L49
   [CM-1 FIXED 2026-09-25 in Business Outcome. Asset-driven units still
    show separate labour and asset lever rows here; making each asset-driven
-   unit ONE lever (the all-in rate) is Business Modelling step 5]
+   unit ONE lever (the all-in rate) is Business Modelling step 5 - DONE 2026-09-26, see below]
+
+Added 2026-09-26 (line numbers above pre-date these edits - re-run the extract)
+- applyAdditiveLevers: cost rows (is_cost_row: true) invert the sign:
+    effect = (start_rate - target) x basis; all other rows unchanged
+- buildSourceRows(per_source, overhead_categories):
+  - overhead row per General Overheads category (read-only source
+    useGeneralOverheads().card.summary.grouped_overhead_rows):
+    start_rate = category total_amount, basis 1, floor 0, no ceiling,
+    is_cost_row true. Live: 10 categories = $95,866.40 = GO net total
+  - asset-driven unit (asset row is_asset_driven, i.e.
+    group_recovery_hour_source === "asset_hours") -> ONE "unit:<id>" row:
+    start = (labour achieved + machine achieved) / covered hours;
+    floor = (both rows' true_cost + non_productive_share) / covered hours;
+    guide (not a cap) = assets[0].blended_rate (all-in). Its labour rows
+    get status in_unit_rate, not leverable; achieved_total excludes them
+- BusinessModellingSourceRow: machine share shown = calculate_net_asset_rate
+  (target all-in, labour_mix_charge_rate) - Rate Builder's own formula
+- useBusinessOutcomePerSourceRevenue build_asset_sources: new row field
+  is_asset_driven (additive, no formula change)
 
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
