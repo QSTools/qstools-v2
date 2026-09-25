@@ -3,6 +3,8 @@ STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
   UPDATED 2026-09-25: CM-1 and CM-1b FIXED (s8, s9.3, s9.7, s9.9, s9.12, s10,
   s12). Line numbers refreshed only in the entries touched; other s9 hook
   line numbers drifted with the edit - refresh from the dump before quoting.
+  UPDATED 2026-09-26: CM-8 FIXED (s12). Extract re-run same day; line
+  numbers elsewhere unchanged by this edit (single-file, additive fix).
 LOCATION: docs\Audit\v6_0\CALCULATION_MAP_v6_0.txt
   (NOT inside docs\Audit\v6_0\calc_map\ - the script clears that folder on
   every run and would delete this file)
@@ -393,13 +395,16 @@ Net Profit build-up (lib/selectors/business-outcome/businessOutcomeNetProfitBuil
 - shortfall carried = source net profit - (revenue - materials true cost) L69
 - check: labour + asset direct + overhead + non-prod vs injected true cost L95
 
-9.12 Legacy (not on /business-outcome)
+9.12 Legacy (not on /business-outcome; live on /recovery-outcome)
 - lib/calculations/businessOutcomeAssetSplitCalculations.js
   calculateOperatingGroupSplit: group charged = blended rate x recovery
-  hours; asset charged = group charged - labour charged  L198-207
-  => the LEGACY code treated the calculator rate as all-in, BUT it still
-     reads recovery hours from the old line type === "time" field that
-     current calculators no longer carry [CM-8]  getRecoveryDriverQuantity L3-9
+  hours; asset charged = group charged - labour charged  L192-201
+  => the LEGACY code treats the calculator rate as all-in. CM-8 FIXED
+     2026-09-26: recovery hours now read via the shared
+     get_calculator_recovery_hours (unit === "hr" lines), same rule as
+     CM-1b - see s12 for full detail. Was: read the old line type ===
+     "time" field that current calculators no longer carry, so it
+     silently fell back to the output-driver quantity on every row.
 - lib/calculations/businessOutcomeCalculations.js calculateBusinessOutcome
   (/recovery-outcome): netProfit = margin - labour shortfall - non-prod
   labour - asset costs - overheads                                        L125-129
@@ -501,12 +506,37 @@ CM-1b FIXED 2026-09-25. Business Outcome read a calculator's recovery hours
   was $69.25 + $75. One shared rule now, get_calculator_recovery_hours
   (rateBuilderCalculations.js L152-157: unit "hr" lines, else output
   driver), used by Rate Builder's panel AND Business Outcome.
-CM-8 OPEN - LOW. Third copy of the old type === "time" rule:
-  businessOutcomeAssetSplitCalculations.js getRecoveryDriverQuantity L3-9,
-  feeding the legacy split via businessOutcomeCalculations.js
-  calculateOperatingGroupSplit. Same defect as CM-1b. Not changed on
-  2026-09-25 because its screen was not traced or live-tested. Fix: call
-  get_calculator_recovery_hours, trace the screen, verify.
+CM-8 FIXED 2026-09-26. Third copy of the type === "time" dead-field rule,
+  in businessOutcomeAssetSplitCalculations.js getRecoveryDriverQuantity,
+  feeding the legacy split (calculateOperatingGroupSplit) on the LIVE,
+  reachable /recovery-outcome page (sidebar "Recovery & Rate
+  Justification"). Same defect as CM-1b - 	ype is not stored on any
+  current calculator, so the filter always returned 0 and silently fell
+  back to the output-driver quantity, understating/misstating every
+  asset group's recovery hours. Fix: removed the local function, call
+  site now uses the shared get_calculator_recovery_hours
+  (rateBuilderCalculations.js, unit === "hr" lines) - the same rule
+  CM-1b already gave Rate Builder's panel and Business Outcome.
+  Confirmed safe: the "deliberately not reusing businessOutcomeAsset
+  SplitCalculations.js" comment in useBusinessOutcomePerSourceRevenue.js
+  (get_group_blended_rate) concerns a DIFFERENT, unrelated defect (S29
+  stale-labour-rate contamination in the old subtraction-based asset
+  split), not the recovery-hours-quantity rule - this fix does not touch
+  what that comment protects.
+  VERIFIED live 2026-09-26 (console diagnostic on groupSplit.rows,
+  removed after use): all four asset-backed groups now resolve with
+  reason=null and a real totalCharged - 2inc Line, 2inc Line Pump 2,
+  PC15, PC55 - where "Calculator or group recovery hours not set" would
+  previously have masked a wrong number instead of a missing one.
+  SEPARATE FINDING (not fixed, logged only): the page's "Asset
+  utilization data not available" message (businessOutcomeCalculations.js
+  ~L329) prints the same wording for two different conditions (a genuine
+  missing-data case and an at-loss-group case) - a display/wording defect,
+  unrelated to CM-8, not chased further this session.
+  Files: lib/calculations/businessOutcomeAssetSplitCalculations.js
+  (function removed, call site updated); lib/calculations/
+  businessOutcomeCalculations.js (unaffected by the fix itself -
+  diagnostic added and removed only, same session).
 CM-9 NOTE. Rate Builder's result panel subtracts the ONE labour source
   selected on the calculator (labour_job_charge,
   useRateBuilderLineCalculator.js L149); Business Outcome subtracts the
