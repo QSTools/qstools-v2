@@ -462,8 +462,27 @@ DESIGN AGREED 2026-09-25 (owner): labour->asset LIVE REPRICING. Moving a labour 
     today (-$406,870). Vehicle Running Costs 38,700.44 -> 30,000: modelled -$398,169
     (+$8,700). Labour/asset/materials rows unchanged. General Overheads page unchanged.
   - Display: overhead rows show annual dollars (BusinessModellingSourceRow.jsx).
-REMAINING CALC ITEMS (agreed order): labour->asset live repricing (above), BO-8, CM-8. Then
-  consider a hybrid Rate Builder / Modelling UI (owner idea, 2026-09-25) - not decided.
+[SHIPPED / VERIFIED 2026-09-26] ASSET-DRIVEN UNITS = ONE LEVER (the all-in rate).
+  - Design as built (owner, 2026-09-26): the customer pays ONE all-in rate, so changing labour
+    alone only moves money between the labour and machine shares - it cannot move profit. Each
+    asset-driven unit gets one lever (row_id "unit:<group_id>", kind "unit"); its labour rows
+    stay visible with status "in_unit_rate", not leverable. The split is shown live using Rate
+    Builder's own calculate_net_asset_rate (machine share = target all-in - labour charge-out).
+    The all-in guide is NOT a cap: above it shows a gentle note only.
+  - Flag: is_asset_driven (group_recovery_hour_source === "asset_hours") added to asset rows in
+    useBusinessOutcomePerSourceRevenue.js. Rows pass through the selector via ...row spreads,
+    so no selector change was needed. Old "assets:<id>" levers for these units are pruned
+    automatically (row id changed).
+  - Unit row: basis = covered hours; start = (labour + machine achieved) / hours; floor = both
+    rows' true cost + non-productive share / hours; guide = assets[0].blended_rate.
+    achieved_total excludes in_unit_rate labour rows (no double count).
+  - Live 2026-09-26: 2inc Line start $29.61 (= 45.84 + -16.23), floor $112.50 (= 77.13 +
+    35.37), guide $207.75; PC55 start $50.86, floor $98.73, guide $120. No levers: no change.
+    2inc Line at 39.61: +$14,139 (= $10 x 1,414 h); machine share -$35.39. At 220: +$269,231,
+    machine share $145, above-guide note shown. PC15, 2inc Line Pump 2, TEST also show as
+    units with no covered hours (correct).
+REMAINING CALC ITEMS (agreed order): BO-8, CM-8. Then consider a hybrid Rate Builder /
+  Modelling UI (owner idea, 2026-09-25) - not decided.
 LOGGED: CM-8 (legacy split still type-based), CM-9 (panel uses one labour
   source; orphan calculators; missing line type field). Owner data check:
   Pump 2's m3 line has unit "m2".

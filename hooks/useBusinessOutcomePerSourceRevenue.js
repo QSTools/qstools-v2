@@ -223,6 +223,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
         net_asset_rate: net_asset_rate !== null ? round_currency(net_asset_rate) : null,
         labour_mix_charge_rate: round_currency(labour_mix_charge_rate),
+        is_asset_driven: group.group_recovery_hour_source === "asset_hours",
         minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
         net_profit: net_profit !== null ? round_currency(net_profit) : null,

@@ -18,7 +18,7 @@ export default function BusinessModellingLeverPanel({ model }) {
   const { rows, levers, effects, today_net_profit, modelled_net_profit, total_effect, setLever, resetLevers } = model;
   const overheads = rows.filter((r) => r.kind === "overhead");
   const labour = rows.filter((r) => r.kind === "staff");
-  const assets_and_materials = rows.filter((r) => r.kind === "assets" || r.kind === "materials");
+  const assets_and_materials = rows.filter((r) => r.kind === "unit" || r.kind === "assets" || r.kind === "materials");
   const has_changes = Object.keys(levers).length > 0;
 
   const render_row = (row) => (
