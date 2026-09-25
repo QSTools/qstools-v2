@@ -252,3 +252,131 @@ PENDING (next session, after CM-1)
   Overheads step still has no injection point (Q3).
   Close-out: file map s7 (LeverCard / independent calculations no longer "leave untouched"),
     tracker Business Modelling section, V5/V6.
+
+===============================================================================
+12. SESSION 2 RECORD (2026-09-25) - CM-1 LOCATION PIVOT + FULL Q&A CLOSE-OUT
+===============================================================================
+STATUS: design-only session (voice-driven), no code changed. Resolves every
+  open question logged in Section 7 except the parts of Q3/Q4 needing an
+  actual injection point built (still pending, see below), and adds several
+  new decisions not previously logged anywhere. CM-1 (s12 of the calc map)
+  also pivoted location - see V6_0_KICKOFF_AND_HANDOVER s8 and
+  CALCULATION_MAP_v6_0.txt s12 for that entry; not duplicated here beyond
+  the cross-reference below.
+
+Q1 RESOLVED - net profit display: keep TODAY fixed as an anchor, show
+  MODELLED alongside it, and show the CHANGE/delta between them (e.g.
+  "Today -$407k -> Modelled -$291k, +$116k"). Do not move the headline
+  itself. Rationale: keeps the gap still needing to be closed to reach
+  breakeven visible at all times.
+
+Q3 + Q4 RESOLVED (merged) - overhead and on-cost levers:
+  - Business Modelling only ever touches the UNDISTRIBUTED General Overheads
+    pool (the residual left after General Overheads' own distribution runs),
+    never an already-distributed line (e.g. fuel already allocated to a
+    specific digger) - changing those would corrupt Cost Allocation's
+    distribution.
+  - Within the undistributed pool, bring the ENTIRE ledger into Business
+    Modelling LINE BY LINE (not one blended total) - each line its own
+    named, individually adjustable lever.
+  - Lock/constrain flags per line: employer contributions (KiwiSaver etc.) =
+    hard-locked, never a lever. ACC = constrained/flagged (small legislated
+    adjustment band only, not freely open). Everything else in the
+    undistributed pool = open lever by default.
+  - Labour on-costs / PPE / training: NO separate lever mechanism needed.
+    These are not currently broken out per staff type in Labour - they
+    already sit inside the undistributed General Overheads pool and are
+    automatically covered by the line-by-line mechanism above. (If PPE/
+    training are ever broken out per-staff-type in a future Labour change,
+    that reopens this as a new, separate question - not now.)
+  - Q3's injection-point discovery itself (where remaining Cost Summary
+    overhead actually enters the chain, and which lines qualify as
+    is_lever) is STILL OPEN/NOT BUILT - this session decided the RULE, not
+    the wiring. Remains the first real build task once this module's
+    session starts (see brief s9 V3/V4, unchanged).
+
+Q5 RESOLVED - Baseline/Upside/Downside and legacy scenario tools: DELETE
+  the old Baseline/Upside/Downside cards and legacy scenario tools from the
+  Business Modelling PAGE (not just hide behind a collapsed section, as
+  s11's PENDING notes had proposed). Reason: the Baseline card showed a
+  contradictory figure (+$630k, from the independent engine with no levers)
+  against real net profit (-$407k), actively misleading rather than merely
+  stale. The underlying engine
+  (lib\calculations\businessModellingIndependentCalculations.js) is NOT
+  deleted - it remains the correct, load-bearing engine for the Business
+  Outcome health gauge (calculateGaugeInput) and stays on the untouched-list
+  in the file map for that reason. Only the Business Modelling PAGE's own
+  UI/cards for Baseline/Upside/Downside and the legacy scenario system are
+  removed. Recoverable via git history if ever needed again.
+
+Q6 RESOLVED - materials flooring at $0: CONFIRMED CORRECT, not a bug.
+  Materials nets to zero markup because the real-capacity cascade has
+  already floored it (cannot go negative in View A). This is read as a
+  genuine business finding, not a defect: materials markup may be
+  cross-subsidising / propping up labour and asset profitability today.
+  Materials START = $0, FLOOR = $0, CEILING = whatever Rate Builder's
+  markup setting would allow (unchanged from s11's D-VIEW decision).
+
+Q7 RESOLVED - whole-business ceiling: no separate reconciliation of the old
+  lever card's ~$141k ceiling against Business Outcome's Best Case is
+  needed up front (the s3 "gap" note in this brief is now moot, since the
+  old lever card is being deleted per Q5). New approach: whole-business
+  ceiling = SUM of each individual source's own per-source ceiling, all
+  built from the same real data - verified as a natural side effect of the
+  rebuild rather than as a standalone reconciliation task.
+
+NEW DECISION - shortfall distribution method: stays PRO-RATA (every
+  profitable source gives up the same percentage of its own profit
+  simultaneously), NOT a waterfall (drain the top earner first, then the
+  next). Chosen because pro-rata is order-independent and doesn't hide risk
+  concentration in the single best-performing source; a waterfall's result
+  depends arbitrarily on which source you drain first. This matches the
+  cascade's existing Phase 1/2 mechanism (CM-5 in the calc map) - no change
+  needed to the mechanism itself, this decision just confirms it's the
+  right one to keep going forward.
+  OPEN NOTE, carried forward: verify against REAL (not baseline placeholder)
+  figures which source is the actual top net-profit driver - PC15 showed
+  zero covered hours in the pre-fix baseline (bo_per_source_PRE_CM1_
+  2026-09-24.json) so may not currently be it. Confirm the Phase 1 cascade
+  treats whichever source it actually is fairly under pro-rata once real,
+  current data is checked.
+
+NEW DECISION - lever granularity: BOTH per-staff-type AND per-unit, not
+  either/or. Labour rate levers = per staff type (e.g. "Senior Operator" is
+  one shared rate that moves every unit that staff type appears in
+  simultaneously - it's the real billed rate for that skill level
+  regardless of which machine they're on). Asset rate levers = per unit
+  (each machine's resulting net rate differs based on its own cost
+  structure, by construction of the CM-1 net-asset-rate subtraction).
+
+NEW DECISION - reverse-lever direction: Business Modelling should let the
+  user set a TARGET labour rate for a staff type (e.g. bump Senior Operator
+  to $85) and show what the total invoiced/calculator rate per affected
+  unit would need to become to still leave that labour rate covered, plus
+  what's left over for the asset - not just show the effect of changing the
+  asset side.
+
+NEW DECISION - multi-line-item calculators: for a unit whose invoice has
+  several components (e.g. a setup fee + an hourly rate + a per-cubic-metre
+  rate, all rolled into one calculator total today), Business Modelling
+  (NOT a Rate Builder rebuild) must surface EACH component as its own
+  separately adjustable lever, not just one blended target total. The
+  reconciliation/redistribution logic for this belongs in Business
+  Modelling.
+
+CROSS-REFERENCE - CM-1 fix location pivoted 2026-09-25 (see
+  CALCULATION_MAP_v6_0.txt s12 and V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt
+  s8 for the current, authoritative plan): the calculator-rate-minus-
+  labour-rate subtraction moves into Rate Builder, not Business Outcome.
+  Once that lands, asset-driven units become ONE lever (the all-in unit
+  rate) per s11's PENDING note - unchanged by the pivot, since the pivot
+  only moves WHERE the subtraction is calculated, not the resulting lever
+  shape Business Modelling presents.
+
+LOGGED, NOT PART OF THIS MODULE - units mode: a full future-build brief was
+  written this session, UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt
+  (docs\fin_mirra_v6.0 Briefs\), covering whether/how this Business
+  Modelling floor/start/ceiling design extends to a units (not hours)
+  basis. Read that brief in full before ever opening a units-mode session -
+  do not re-derive; explicitly out of scope for the current CM-1 / step 9
+  work.

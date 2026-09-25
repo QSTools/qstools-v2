@@ -1,0 +1,373 @@
+MIRRA v6.0 - UNITS MODE - FUTURE BUILD BRIEF (SCOPING, NOT STARTED)
+STATUS: LOGGED FOR LATER - explicitly parked behind step 9 (Business Modelling) and
+  the CM-1 fix. Do NOT start this work until both are closed and the owner
+  deliberately opens a dedicated units-mode session.
+DATE: 2026-09-25 (voice-driven design discussion, Business Modelling step 9 session 2,
+  same session as the CM-1 Rate Builder pivot - see V6_0_KICKOFF_AND_HANDOVER for that
+  session's other outcomes, not duplicated here).
+PURPOSE: capture a long, ground-covering design discussion so none of it has to be
+  re-derived from scratch when this work is eventually picked up. This is scoping and
+  decisions, not a build plan with line numbers - re-trace the actual code fresh
+  whenever this session starts, per standing convention (view files fresh, never patch
+  against old chat context).
+
+===============================================================================
+1. WHY THIS EXISTS / THE CORE WORRY THAT STARTED IT
+===============================================================================
+The whole tool (Cost Allocation, Business Outcome, Business Modelling's new
+floor/start/ceiling model) is built hours-native: covered hours, revenue hours,
+recovery hours, assignment percentages of time. The owner's worry: building
+Business Modelling's floor/start/ceiling model now, for hours, then having to
+reopen and redesign it later for a units-based business (e.g. product sales,
+SaaS subscriptions) - effectively tripling the workload.
+
+CONCLUSION REACHED (important, changes the risk profile): this worry is largely
+UNFOUNDED, once traced through properly. floor/start/ceiling, true cost, pro-rata
+shortfall distribution, and Cost Allocation's group-and-assignment mechanism are
+ALL basis-agnostic - they don't care whether the denominator is hours or units,
+they just divide a true cost by "however much of this thing there is." The
+actual gap is narrow: (a) some fields are currently one-name-does-one-thing
+(e.g. get_group_covered_hours assumes hours), and (b) two genuinely new pieces
+are needed for the SaaS/zero-labour case specifically (see Section 4).
+This means units mode does NOT require doubling the Business Modelling rebuild.
+It requires: Cost Allocation gaining a second valid recovery basis (unit count,
+alongside hours), and Rate Builder gaining a per-unit pricing path (flat and
+tiered) alongside its existing hourly calculator. Business Outcome and Business
+Modelling's floor/start/ceiling logic downstream should work unchanged once fed
+a true-cost-per-unit instead of a true-cost-per-hour - THIS IS AN ASSUMPTION,
+not yet proven against real code; first task of the actual session is to verify
+it rather than assume it (see Section 8).
+
+===============================================================================
+2. WHAT ALREADY EXISTS - CONFIRMED LIVE 2026-09-25 (do not re-investigate this
+   part, it is settled)
+===============================================================================
+Traced live via find_field_references.py and targeted Get-ChildItem -Recurse
+searches (PowerShell 5.1 - note Select-String -Path with ** globs does NOT
+reliably recurse on this system; use Get-ChildItem -Recurse -Include first,
+then pipe to Select-String, or find_field_references.py directly).
+
+CONFIRMED TO EXIST:
+- Revenue/COGS already has a "define commercial units" tab/section (real UI,
+  not a proposal - the owner walked through it live: choose single vs mixed
+  units, per unit define unit_type (e.g. "square meters"), revenue_share_percent
+  (e.g. 50%), average_sale_rate (e.g. $13)).
+- Storage/fields confirmed in: lib\storage\revenueCogsStorage.js,
+  hooks\useRevenueCogs.js, lib\calculations\revenueCogsCalculations.js,
+  lib\selectors\revenueCogsSelectors.js, components\revenue-cogs\
+  RevenueCogsCard.jsx. Field names confirmed live: unit_type,
+  average_sale_rate, revenue_share_percent (NOT a single combined
+  "commercial_unit" object - that literal name does not exist anywhere,
+  confirmed empty search).
+- unit_type reaches ONE hop downstream into Recovery Summary:
+  hooks\useRecoverySummary.js, lib\calculations\recovery-summary\
+  calculateRecoverySummary.js, lib\calculations\recovery-summary\
+  sharedRecoverySummaryHelpers.js, lib\selectors\recovery-summary\
+  recoverySummaryCardSelector.js.
+- Confirmed matches existing tracker note (VARIABLE_TRACKER_v6_0.txt s8):
+  commercial_driver_mode (hours_based/unit_based/mixed_unit_based) and
+  activity_driver_type (hours/units) exist and are read at the Revenue/COGS
+  and Business Summary hops - this session's trace narrows it further to the
+  SPECIFIC per-unit fields (unit_type, average_sale_rate, revenue_share_percent),
+  not just the mode flag.
+
+CONFIRMED NOT TO EXIST (genuine, clean dead end - both searches returned
+  EMPTY against a corrected, verified Get-ChildItem -Recurse search, not the
+  first, unreliable Select-String -Path attempt):
+- Cost Allocation (lib\calculations\cost-allocation\*, hooks\cost-allocation\*,
+  hooks\useCostAllocation.js) reads NONE of unit_type, average_sale_rate,
+  revenue_share_percent, or any "commercial_unit" name. Zero references.
+- Rate Builder (any file under a rate-builder path) reads NONE of these either.
+  Zero references.
+
+TAKEAWAY: the units DATA ENTRY already exists and works, and travels as far as
+Recovery Summary. It dead-ends there. It never reaches Cost Allocation (the
+hinge) or Rate Builder. This is a much smaller gap than "build units mode from
+scratch" - it is specifically two wiring hops: Recovery Summary -> Cost
+Allocation, and Cost Allocation/Recovery Summary -> Rate Builder.
+
+===============================================================================
+3. THE CORE MECHANISM DECISION (how units mode should work, conceptually)
+===============================================================================
+DECIDED: Cost Allocation does NOT need to change its fundamental mechanism.
+It already does exactly what it needs to: take real costs (labour, asset,
+overhead), distribute them into a working group via assignment shares, and
+produce one true annual cost for that group. Whether that group's eventual
+rate is "per hour" or "per unit" is invisible to Cost Allocation - it just
+produces a total dollar figure. The SAME assignment-percentage mechanism
+already used for labour/asset hours works unchanged for unit shares (e.g. "the
+Screen Printing group's cost splits 30% Pants / 70% T-Shirts" is structurally
+identical to "PC55 gets 50% of the Operator's hours").
+
+THE ENTIRE UNITS-MODE CHANGE LIVES IN RATE BUILDER: instead of dividing a
+group's true annual cost by hours to get an hourly rate, Rate Builder needs a
+new path that divides by a manually-entered unit count (invoices processed,
+t-shirts printed, subscriptions sold) to get a true cost PER UNIT, then prices
+from there - either a flat per-unit markup (reusing the existing materials-
+markup pattern: cost x (1 + markup%)) or a tiered plan price (new, see Section
+4). Business Outcome / Business Modelling's floor/start/ceiling logic should
+then work off "true cost per unit" and "price per unit" exactly as it works
+off "true cost per hour" and "charge-out rate per hour" today - ASSUMED, not
+verified against real downstream code yet (see Section 8, first task).
+
+EXCEPTION / GENUINE COST ALLOCATION CHANGE STILL NEEDED: a group with NO
+productive labour and NO productive assets (e.g. a pure SaaS OCR service - see
+Section 5) has nothing for Cost Allocation's hours-based recovery mechanism to
+divide by; recovery hours would be zero and the tool would produce nonsense
+or divide-by-zero. Cost Allocation DOES need a genuine new recovery basis
+option for a group: "unit count" as an alternative to "labour hours" / "asset
+hours", so a group with a real cost but zero productive hours can still get a
+non-zero, meaningful recovery basis. This is the one place Cost Allocation
+itself needs new logic, not just new inputs.
+
+===============================================================================
+4. WORKED EXAMPLE 1 - T-SHIRTS AND PANTS (simple per-unit pricing, product
+   business, existing mechanism mostly sufficient)
+===============================================================================
+Setup: one operating group ("Clothing"), shared labour (press operator) and
+overhead. Two working-unit lines underneath it, T-Shirts and Pants, each with
+an assignment share of the group's capacity (e.g. "Pants get 30% of the
+press's output") - structurally identical to today's labour/asset assignment
+percentage mechanism, just relabelled as a quantity share instead of an hours
+share. Cost Allocation distributes the group's true cost across the two lines
+by that share. Rate Builder then prices each line off its own true cost per
+unit, using a pattern similar to the existing materials markup tab (cost per
+unit x markup).
+
+KNOWN, ACCEPTED LIMITATION (do not try to solve this - explicitly out of
+scope, discussed and closed): this only works at the LINE level (T-Shirts vs
+Pants), not per-SKU. If "Pants" contains many different styles at genuinely
+different costs (cargo pants vs plain pants), Cost Allocation has no mechanism
+to see inside a line and split further - it would give one blended average
+true cost for the whole "Pants" line. For a business with a small, stable
+number of distinct product lines (a handful), this is fine. For a high-SKU
+retailer (owner's own example: "if you were Bunnings" - thousands of
+constantly-changing items, a $5 packet of screws next to a $3,000 laser in
+the same group), this mechanism genuinely does not and should not try to work.
+DECIDED: Cost Allocation's full chain (Cost Allocation -> Business Outcome ->
+Business Modelling) is explicitly scoped for "a business with a few distinct,
+reasonably stable product or service lines" - NOT high-SKU retail. That is a
+different category of problem (retail inventory / per-SKU margin management)
+and is out of scope for this tool, not a gap to be closed later.
+
+IMPORTANT SEPARATE FINDING FROM THIS DISCUSSION: Rate Builder's
+cost-per-unit-times-markup mechanism (the existing materials markup pattern)
+is DECOUPLED from Cost Allocation - it works standalone for any single item's
+margin check regardless of volume. This means a high-SKU retailer, explicitly
+out of scope for the full Cost-Allocation-through-Business-Outcome chain,
+could still get value from Rate Builder's markup tool used standalone, item by
+item, without ever touching Cost Allocation. Worth remembering as a "what CAN
+this tool still offer a high-SKU business" answer if ever asked, without
+implying the full chain will ever support them.
+
+===============================================================================
+5. WORKED EXAMPLE 2 - SAAS / TIERED USAGE PRICING (own tool as the test case;
+   genuinely new mechanism needed, not just relabelling)
+===============================================================================
+Setup discussed: the tool (Fin Mirror) pricing itself. Two working groups:
+  - "Basic Subscription": one person/flat-fee basis, near-zero marginal cost
+    per additional user. Straightforward - effectively today's mechanism
+    applies with unit count = 1 subscription. No new mechanism needed here.
+  - "OCR" (invoice-reading via Azure Document Intelligence, used to
+    auto-reconcile invoices against POs): NO labour attached at all - pure
+    external per-page vendor cost. This is the case that breaks the existing
+    hours-based recovery mechanism (see Section 3's "exception" above) and
+    exposes a genuinely missing cost-input concept (below).
+
+5A. AZURE OCR PRICING - FACT-CHECKED LIVE 2026-09-25 (web search, keep for
+    reference, re-verify pricing if this is ever actually built - rates
+    change): flat pay-as-you-go per page, NOT tiered by volume on Azure's own
+    side. ~$1.50 per 1,000 pages for basic Read/OCR model; ~$10 per 1,000
+    pages for the prebuilt Invoice model (the one actually relevant here).
+    Azure's own "commitment tiers" are a discount for committing to volume
+    upfront (Azure's cost to you, not a thing to model), NOT usage-based
+    tiers charged to your own customers. CONCLUSION: no tiering complexity on
+    the input/cost side - it's a flat rate per page. Any tiering is entirely
+    the SELLER'S (Fin Mirror's) own pricing strategy layered on top of a flat
+    underlying cost, not something forced by the vendor's pricing shape.
+
+5B. THE MISSING COST-INPUT CONCEPT (genuine gap, needs a real design decision,
+    not yet made): there is currently NO field anywhere in the tool for "a
+    manually-entered external per-unit vendor cost" (e.g. $0.01/page from
+    Azure). Every existing cost input comes from one of three places: Labour
+    (needs a person + hours), Assets (needs a purchase price + finance
+    terms), or the P&L import (a real historical total, already blended into
+    whatever category it landed in). None of these fit "I know my exact
+    per-unit rate from a vendor's published pricing, but it's not separately
+    broken out in my P&L, and even if it were, that's a TOTAL not a per-unit
+    rate."
+    IMPORTANT DISTINCTION SURFACED AND RESOLVED IN THIS SESSION (do not
+    reopen without cause - this is the actual answer): these are TWO SEPARATE
+    problems that were initially conflated:
+      (i) Getting the right TOTAL DOLLAR cost into Cost Allocation for the
+          OCR group. RESOLVED: if you have been trading and the Azure cost is
+          already inside your real P&L (even blended into a generic
+          "Subscriptions" line), it is ALREADY flowing through General
+          Overheads and Cost Allocation correctly in TOTAL DOLLAR terms - no
+          new input mechanism needed for this part at all. Splitting your P&L
+          so Azure has its own line (rather than being buried in a blended
+          Subscriptions line) is just better bookkeeping/categorisation,
+          entirely outside this tool, not a tool change.
+      (ii) Getting a PER-UNIT rate (cost per page / per invoice) to build a
+          price against. RESOLVED: this is NOT a cost problem at all, it's a
+          UNIT ECONOMICS INPUT - you already know it (from Azure's own
+          pricing page, or by dividing your real total OCR cost by how many
+          invoices you actually processed that year). The fix is NOT a new
+          cost category or module. It's Rate Builder needing a place to enter
+          "how many units did this group's true cost actually produce" (a
+          real, user-entered unit count), so Rate Builder can do
+          true_cost_per_unit = group's true annual cost (already correctly
+          computed by Cost Allocation, unchanged) / unit count (new input,
+          entered in Rate Builder). NO new module, no new cost category
+          alongside Labour/Assets - just one new input field in Rate Builder's
+          units-mode pricing path, dividing an already-correct total.
+    AN EARLIER IDEA DURING THIS DISCUSSION - "add a whole new cost module
+    alongside Labour/Assets for external per-unit vendor costs" - was
+    considered and then SUPERSEDED by the resolution above. Do not rebuild
+    that earlier idea; the P&L-already-has-it-as-a-total-plus-Rate-Builder-
+    divides-by-a-unit-count answer is the one to build from.
+
+5C. TIERED PRICING - NEW MECHANISM, GENUINELY DOES NOT EXIST TODAY (Rate
+    Builder's calculator today = rate x quantity, one number per unit; a
+    tiered plan is NOT pricing per unit, it's pricing per PLAN - a flat
+    monthly fee bundling an allowance of units). Worked example given by
+    owner (arbitrary numbers): 250 invoices/month for $100; 500 for $150;
+    1,000 for $200. REQUIRED NEW BUILDING BLOCK: a tiered-plan pricing tool
+    in Rate Builder, separate from (but alongside) the simple flat
+    per-unit-times-markup tool, that does:
+      - user-defined tier BOUNDARIES and PRICES as inputs (NOT hardcoded to
+        three tiers, or any fixed number - arbitrary count and values, fully
+        configurable by the owner/user per plan)
+      - margin at FULL/WORST-CASE usage per tier (plan fee minus true cost at
+        that tier's included volume ceiling) - this is the safety/floor check
+      - margin at TYPICAL/EXPECTED usage per tier (owner raised using a
+        Pareto-style distribution assumption - e.g. "most customers on the
+        500-1000 tier actually only use 500-700" - to get a realistic, not
+        worst-case, margin picture). This needs a way to capture or estimate
+        that expected-usage distribution per tier; NOT yet designed HOW
+        (manual estimate entry? historical usage data if/when the tool has
+        real customers on it? open question, not answered this session).
+    This tiered tool does not need Cost Allocation to change at all beyond
+    the unit-count recovery basis in Section 3's exception - it is entirely a
+    Rate Builder-side pricing mechanism sitting on top of an already-correct
+    true-cost-per-unit figure.
+
+===============================================================================
+6. RELATED BUT SEPARATE FINDING - OPERATING GROUP CAPACITY UTILISATION
+   (BIG, LOGGED AS ITS OWN FUTURE ITEM - NOT PART OF UNITS MODE SPECIFICALLY)
+===============================================================================
+Raised by the owner as a related but distinct idea while discussing tier
+customer-distribution percentages: every operating group in the tool TODAY
+implicitly assumes it is running at its full, accounted-for capacity. If a
+group (e.g. a digger assigned 100% to a working unit) is actually only
+earning revenue some percentage of that assigned capacity (e.g. genuinely
+utilised/earning 60% of the time), that gap is currently INVISIBLE anywhere in
+the tool unless someone manually and explicitly captures it. This is a real,
+structural blind spot across the ENTIRE tool, not specific to units mode - it
+applies equally to every hours-based group today.
+OWNER'S OWN ASSESSMENT: likely why this is hard, and possibly why similar
+tools don't attempt it - most users probably couldn't honestly answer "what
+percentage is each group actually running at" even if asked.
+CONNECTION TO UNITS MODE: the tiered-plan customer-distribution percentage
+(Section 5C's Pareto idea - what % of customers land in which tier) is
+STRUCTURALLY THE SAME KIND OF INPUT as an operating-group utilisation
+percentage would be - both are "what fraction of theoretical capacity is
+actually realised" questions.
+DECISION: log this as its OWN, SEPARATE, standalone future design item -
+larger in scope than units mode alone (applies to every group, hours or
+units). Do NOT fold it into the units-mode build. Revisit only as a
+deliberate, separate future session once units mode (and everything ahead of
+it) is done.
+
+===============================================================================
+7. WHAT UNITS MODE NEEDS TO BUILD - CONSOLIDATED LIST (this is the actual
+   scope, once that future session starts)
+===============================================================================
+A. Cost Allocation: add "unit count" as a second valid recovery basis for a
+   group, alongside labour hours / asset hours, specifically for groups with
+   zero productive labour and zero productive assets (Section 3 exception,
+   Section 5B). Existing assignment-percentage mechanism for splitting a
+   group's cost across multiple lines (Section 4's T-Shirts/Pants) should NOT
+   need new code - confirm this live rather than assume (see Section 8).
+B. Wire the two confirmed-dead-end hops (Section 2): Recovery Summary's
+   unit_type/average_sale_rate/revenue_share_percent -> Cost Allocation, and
+   Cost Allocation (or Recovery Summary directly) -> Rate Builder. Trace and
+   decide the cleanest hop path live in that session; do not assume Recovery
+   Summary is necessarily the right intermediary just because it's where data
+   currently stops.
+C. Rate Builder - simple per-unit pricing path: reuse the existing materials-
+   markup pattern (cost per unit x markup%) for a units-mode working unit,
+   analogous to how the hourly calculator prices an hours-mode working unit.
+D. Rate Builder - NEW tiered-plan pricing tool (Section 5C): user-defined
+   tier boundaries/prices (arbitrary count), margin at full/worst-case usage
+   per tier, margin at typical/expected usage per tier (distribution
+   mechanism TBD - open question, not designed).
+E. Rate Builder - unit-count input for a units-mode working unit, letting the
+   tool compute true_cost_per_unit = group's already-correct true annual cost
+   (from Cost Allocation, unchanged mechanism) / user-entered unit count
+   (Section 5B(ii)). NOT a new cost category or module - confirmed resolution,
+   do not rebuild the earlier "new module" idea.
+F. Business Outcome / Business Modelling downstream: VERIFY (not assumed) that
+   floor/start/ceiling, true cost, and the additive lever model work unchanged
+   once fed a true-cost-per-unit and price-per-unit instead of true-cost-per-
+   hour and charge-out-rate-per-hour. This is the first concrete task of the
+   actual build session (Section 8) - trace the real code, don't assume the
+   analogy holds everywhere (e.g. get_group_covered_hours and every other
+   hours-named field in useBusinessOutcomePerSourceRevenue.js explicitly
+   assumes hours today - see CALCULATION_MAP_v6_0.txt s9.1-9.2 - these would
+   need to become basis-aware, reading either a covered-hours or a
+   covered-units figure depending on the group's mode).
+NOT IN SCOPE (explicitly, per Section 4 and Section 6):
+  - Per-SKU / high-volume retail granularity (Section 4's Bunnings example) -
+    permanently out of scope for the full chain, not a future phase of units
+    mode.
+  - Operating group capacity utilisation / realised-vs-assigned-capacity gap
+    (Section 6) - real, but a separate, larger, standalone future item.
+
+===============================================================================
+8. FIRST TASKS WHEN THIS SESSION ACTUALLY STARTS (in order)
+===============================================================================
+1. Re-verify Section 2's "confirmed to exist / confirmed not to exist" findings
+   are still true (re-run the corrected Get-ChildItem -Recurse searches fresh -
+   do not trust this brief's findings without re-confirming; code may have
+   moved since 2026-09-25).
+2. Trace fresh whether Business Outcome / Business Modelling's floor/start/
+   ceiling and additive-lever logic genuinely works unchanged once given a
+   true-cost-per-unit and price-per-unit basis instead of hours (Section 7F) -
+   this determines whether the "small, contained" scope estimate in this brief
+   is actually correct or optimistic. Do this BEFORE writing any code.
+3. Decide the exact wiring path for Section 7B (which file/hook actually
+   carries unit_type etc. from Recovery Summary into Cost Allocation) by
+   reading the real, current costAllocationInputBuilder.js and
+   useRecoverySummary.js output_contract - do not assume the path from this
+   brief's description.
+4. Design the tiered-plan usage-distribution mechanism (Section 5C's open
+   question - how "typical usage per tier" gets entered or estimated) before
+   building the tiered pricing tool - this was explicitly left unresolved
+   this session.
+5. Consolidate this brief's findings into the project's standing v6.0
+   documents (file map, variable tracker, calculation map) as that Phase 2
+   module is formally reached, per the kickoff doc's Section 6 consolidation
+   rule - this brief is the pre-work, not the final consolidated brief.
+
+===============================================================================
+9. CROSS-REFERENCES
+===============================================================================
+- V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt Section 7 ("Deferred / out of scope
+  for this pass") - units mode and the Rate Builder cost-only-groups scoping
+  brief are listed there as queued to start after step 9 / CM-1.
+- VARIABLE_TRACKER_v6_0.txt Section 8 (P2.1 findings) - the original
+  commercial_driver_mode / activity_driver_type / business_type discovery this
+  session's live trace builds on and narrows.
+- CALCULATION_MAP_v6_0.txt Section 9.1-9.2 - the specific hours-native
+  formulas (get_group_covered_hours, split_group_overhead) that would need to
+  become basis-aware for Section 7F.
+- BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt - the floor/start/
+  ceiling model this brief assumes (unverified) extends cleanly to a units
+  basis.
+- This session ALSO covered the CM-1 fix pivot (Rate Builder, not Business
+  Outcome) and a full Business Modelling Q&A (pro-rata shortfall, per-staff-
+  type vs per-unit levers, legacy card deletion, overhead lever line-by-line
+  build, etc.) - NOT part of this brief. Recorded separately in the kickoff
+  doc's next-step section and (once actioned) as dated entries in the
+  Business Outcome and Business Modelling briefs in the repo.

@@ -3,7 +3,11 @@ STATUS: ACTIVE - START HERE FOR ANY V6.0 SESSION
 DATE: 2026-09-20 (updated 2026-09-23 after Business Outcome core close-out;
   updated again 2026-09-23 after the 8b follow-up session closed same day;
   updated 2026-09-24 at the close of the first step-9 session - calculation
-  map added, CM-1 found, see s2 step 9 and s8)
+  map added, CM-1 found, see s2 step 9 and s8;
+  updated 2026-09-25 after step-9 session 2 - CM-1 fix location pivoted to
+  Rate Builder [not Business Outcome as s8 previously said], full Business
+  Modelling Q&A close-out recorded in that brief's own s12, units-mode
+  future-build brief written and logged in s7)
 SUPERSEDES: all v5.x briefs as the entry point (individual v5.x briefs are
 not deleted - see Section 6 for how they get folded in / archived as each
 module is reached).
@@ -402,6 +406,11 @@ far better than consolidating blind.
 - BO-8, BO-10 (carried from the core pass, still open, not scheduled) -
   Business Modelling rate overrides don't reach the capacity coverage gap
   valuation; a cosmetic "TEST" group artefact to remove when convenient.
+- Units mode (NEW 2026-09-25) - a full future-build scoping brief exists:
+  docs\fin_mirra_v6.0 Briefs\UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt.
+  Confirmed queued to start after step 9 and CM-1, per this section's
+  standing rule. Read that brief in full when it's picked up - do not
+  re-derive the design discussion that produced it.
 
 ===============================================================================
 8. NEXT STEP
@@ -443,9 +452,41 @@ NEXT SESSION (set 2026-09-24, step 9 session 2):
     saved the PowerShell command instead of the JSON twice on 2026-09-24).
   - QUEUE after step 9: RateBuilder_PathB_and_UnitsMode_v6_0_SCOPING_BRIEF
     (cost-only groups + units mode) - its s8 addendum builds on CM-1.
+  UPDATE (2026-09-25) - PIVOTS ITEM 2 BELOW, READ THIS FIRST: the CM-1
+    subtraction (calculator rate minus labour charge-out rate) will be
+    calculated INSIDE RATE BUILDER, not inside Business Outcome as item 2
+    below still literally says. Rate Builder already holds both numbers on
+    separate tabs of the same module (the calculator's total charge, and
+    the saved per-staff-type charge-out rates in
+    qstools_rate_builder_labour_source_rates_v1) - no new cross-module
+    plumbing needed. Rate Builder publishes the resulting net asset rate as
+    a new field (exact name/shape: decide while reading the real calculator
+    selector code fresh next session, do not assume one from this note).
+    Business Outcome's build_asset_sources then READS that field directly
+    instead of computing the subtraction itself, and no longer needs a
+    labour_sources parameter passed into it at all. calculate_capacity_
+    coverage_gap gets the same treatment - its asset-driven positive-gap
+    value becomes gap_hours x blended_rate only, with nothing added for
+    labour on top. The three code-design points item 2 flags as "still to
+    settle" are ALL answered, unchanged by the pivot: do NOT clamp a
+    negative net asset rate (report it honestly, it is a genuine
+    underpricing signal); do NOT add a warning/flag field for it inside
+    Business Outcome (that judgment belongs to Business Modelling's floor/
+    start/ceiling display, not to Business Outcome's retrospective
+    reporting); BO-6's covered-hours mechanism needs no change at all. A
+    labour-driven unit that also carries a calculator rate is a data-entry
+    mistake, not a case to special-case in code. Full Business Modelling
+    Q&A from this same session (net profit display, overhead levers,
+    legacy card deletion, materials floor, whole-business ceiling,
+    shortfall distribution, lever granularity, reverse-lever direction,
+    multi-component calculators) is recorded in
+    BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt s12 - read
+    that section too before resuming step 3 below. A units-mode scoping
+    discussion also happened this session and produced its own standalone
+    brief - see s7 above, not repeated here.
   1. git log --oneline -8 and git status: confirm the step 3/4 Business
      Modelling commit landed (brief s11 PENDING).
-  2. Fix CM-1 in Business Outcome FIRST (calc map s12). Settle with the
+  2. SUPERSEDED 2026-09-25 (see the update above) - kept for history. Fix CM-1 in Business Outcome FIRST (calc map s12). Settle with the
      owner before patching: in an asset-driven unit, the calculator rate is
      the unit's whole revenue; labour's share comes out of it (Rate Builder
      result panel formula) rather than being added. Touches build_labour_
@@ -459,7 +500,8 @@ NEXT SESSION (set 2026-09-24, step 9 session 2):
      units become ONE lever (the all-in unit rate) once CM-1 is fixed.
   Upload for that session: this document, the variable tracker, the file
   map, CALCULATION_MAP_v6_0.txt, and the Business Modelling brief (updated
-  2026-09-24). The Business Outcome brief is NOT uploaded - the calc map and
+  2026-09-24, now with a 2026-09-25 s12 addendum recording the
+  full Q&A close-out - read that section too). The Business Outcome brief is NOT uploaded - the calc map and
   file map carry the mechanism; record the CM-1 fix as a new dated entry in
   the Business Outcome brief in the repo.
 
