@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   calculateRateBuilderQuotePreview,
   calculateRateBuilderRecoveryPreview,
+  get_calculator_recovery_hours,
 } from "@/lib/calculations/rateBuilderCalculations";
 
 import {
@@ -126,16 +127,9 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
   const has_labour_rate_context = labour_charge_out_rate > 0;
 
+  // CM-1b: the shared rule - the same function Business Outcome uses.
   const recovery_driver_quantity = useMemo(() => {
-    const time_line_quantity = preview.line_totals
-      .filter((line) => line.unit === "hr")
-      .reduce((total, line) => total + Number(line.quantity || 0), 0);
-
-    if (time_line_quantity > 0) {
-      return time_line_quantity;
-    }
-
-    return preview.output_driver_quantity;
+    return get_calculator_recovery_hours(preview.line_totals, preview.output_driver_quantity);
   }, [preview.line_totals, preview.output_driver_quantity]);
 
   const recovery_preview = useMemo(() => {

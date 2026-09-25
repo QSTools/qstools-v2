@@ -1,5 +1,8 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-09-25: CM-1 and CM-1b FIXED (s8, s9.3, s9.7, s9.9, s9.12, s10,
+  s12). Line numbers refreshed only in the entries touched; other s9 hook
+  line numbers drifted with the edit - refresh from the dump before quoting.
 LOCATION: docs\Audit\v6_0\CALCULATION_MAP_v6_0.txt
   (NOT inside docs\Audit\v6_0\calc_map\ - the script clears that folder on
   every run and would delete this file)
@@ -241,12 +244,25 @@ Labour tab
 Customer Charge Calculator (asset groups)
 - line total = rate x quantity; total_charge = sum of lines
                                rateBuilderCalculations.js calculateRateBuilderQuotePreview L25-35
-- blended rate (as Business Outcome reads it) = total_charge / recovery
-  driver quantity (sum of "time"/"hr" line quantities, else output driver)
-- Result panel margin per hour = blended rate - (labour minimum rate +
-  group asset rate)   RateBuilderResultPanel.jsx L271-272
-  => Rate Builder treats the calculator rate as ALL-IN (labour inside it).
-     Business Outcome does not [CM-1].
+- recovery hours = sum of quantities on lines with unit "hr"; only if none,
+  the output driver quantity [CM-1b - ONE shared rule]
+                  rateBuilderCalculations.js get_calculator_recovery_hours L152-157
+  used by BOTH the result panel (useRateBuilderLineCalculator.js) and
+  Business Outcome (get_group_blended_rate). The output driver only sets the
+  "per unit" display price; it never changes the hourly rate.
+- all-in (combined) rate = total_charge / recovery hours
+  (Business Outcome field blended_rate)
+- labour mix charge rate = sum(assigned hours x saved charge-out rate) /
+  sum(assigned hours), over the labour Cost Allocation assigns to the unit
+                                  calculate_labour_mix_charge_rate L166-177
+- net asset rate = all-in rate - labour mix charge rate; NOT clamped
+  (negative = underpricing signal)      calculate_net_asset_rate L179-184 [CM-1]
+- Result panel is a MARGIN CHECK, not a revenue split: Asset charge =
+  (total_charge - labour charge-out x recovery hours) / recovery hours,
+  floored at 0 for display; margin per hour = all-in rate - (labour minimum
+  rate + group asset rate)        RateBuilderResultPanel.jsx L256, L271-272
+  The panel subtracts the ONE labour source selected on the calculator;
+  Business Outcome subtracts the assigned-labour mix [CM-9].
 
 Materials (Path C)
 - sell_revenue = COGS x (1 + markup/100); profit = sell - COGS
@@ -270,18 +286,23 @@ Materials (Path C)
 
 9.3 Source rows
 LABOUR (build_labour_sources)
-- true_cost = assigned labour cost + overhead_share                       L390
-- modelled_revenue = charge_out_rate x revenue_hours [CM-1]               L391
-- net_profit = modelled_revenue - true_cost                               L392
+- true_cost = assigned labour cost + overhead_share                       L385
+- modelled_revenue = charge_out_rate x revenue_hours                     L386
+- net_profit = modelled_revenue - true_cost                               L387
 ASSET (build_asset_sources)
-- blended_rate = calculator total_charge / driver quantity  get_group_blended_rate L91
-- true_cost = assigned asset cost + overhead_share                        L179
-- group_asset_revenue = blended_rate x covered hours [CM-1]               L196
+- blended_rate (ALL-IN) = total_charge / get_calculator_recovery_hours
+                                          get_group_blended_rate L77 [CM-1b]
+- labour_mix_charge_rate, net_asset_rate per unit (Rate Builder functions,
+  fed the SAME charge-out map as the labour rows, overrides included)  L144-145
+  both published on every asset row                                     L224-225
+- true_cost = assigned asset cost + overhead_share                        L172
+- group_asset_revenue = net_asset_rate x covered hours                    L189
+  => a unit's labour rows + asset rows = all-in rate x covered hours
 - row modelled_revenue = group asset revenue x (asset cost / group asset
-  cost) - shared across co-deployed assets by cost share                  L199-202
-- net_profit = modelled_revenue - true_cost                               L205
+  cost) - shared across co-deployed assets by cost share                  L192-195
+- net_profit = modelled_revenue - true_cost                               L198
 - interest / depreciation per row = asset figure x assignment % (EBIT
-  display only)                                                           L215-217
+  display only)                                                           L208-210
 MATERIALS (in the main hook)
 - true_cost = total COGS + max(residual overhead, 0), where residual
   overhead = business overheads - overhead assigned to groups             L1083, L1189
@@ -289,7 +310,7 @@ MATERIALS (in the main hook)
   modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1194
 - View B revenue = COGS x (1 + effective markup/100)
                         businessOutcomeViewBCalculations.js build_materials_source L66
-- materials_independent_revenue (Best Case) = same formula                L1243
+- materials_independent_revenue (Best Case) = same formula                L1228
 
 9.4 Non-productive cost (distribute_non_productive_cost)
 - own non-productive cost = assigned non-prod labour + non-prod asset     L721
@@ -329,7 +350,7 @@ MATERIALS (in the main hook)
   = modelled x scale; implied net profit = implied - true cost
                                      apply_revenue_ceiling L563-575 (View B: _v2 L115-126)
 - Best Case total_modelled_revenue = labour + asset modelled revenue +
-  materials at markup [inflated by CM-1]                                  L1247
+  materials at markup (no longer inflated - CM-1 fixed 2026-09-25)       L1232
 
 9.8 Headlines and checks
 - total_true_cost = labour + asset + materials true cost + unassigned     L1252
@@ -343,11 +364,12 @@ MATERIALS (in the main hook)
   standalone profit)    businessModellingIndependentCalculations.js calculateGaugeInput L276-285
 
 9.9 Capacity coverage gap (calculate_capacity_coverage_gap)
-- gap_hours = asset hours - labour hours                                  L475
-- asset-driven, labour short ("revenue not earned") = gap hours x
-  (blended rate + weighted labour charge rate) [CM-1]                     L484
-- labour over = |gap| x labour true cost rate (wasted cost)               L487
-- weighted labour charge rate = sum of hours x charge rate / labour hours L463
+- gap_hours = asset hours - labour hours                                  L458
+- asset-driven, labour short ("revenue not earned") = gap hours x ALL-IN
+  blended rate (labour is already inside it - CM-1 fixed 2026-09-25)      L467
+- labour over = |gap| x labour true cost rate (wasted cost)               L470
+- labour-driven: opportunity = gap hours x blended rate; data_check =
+  |gap| x labour true cost rate                                           L478-481
 
 9.10 Labour Recovery card (hooks/useBusinessOutcomeLabourRecovery.js)
 - overhead per hour per staff type = sum of overhead_share / sum of hours
@@ -375,7 +397,9 @@ Net Profit build-up (lib/selectors/business-outcome/businessOutcomeNetProfitBuil
 - lib/calculations/businessOutcomeAssetSplitCalculations.js
   calculateOperatingGroupSplit: group charged = blended rate x recovery
   hours; asset charged = group charged - labour charged  L198-207
-  => the LEGACY code treated the calculator rate as all-in [CM-1]
+  => the LEGACY code treated the calculator rate as all-in, BUT it still
+     reads recovery hours from the old line type === "time" field that
+     current calculators no longer carry [CM-8]  getRecoveryDriverQuantity L3-9
 - lib/calculations/businessOutcomeCalculations.js calculateBusinessOutcome
   (/recovery-outcome): netProfit = margin - labour shortfall - non-prod
   labour - asset costs - overheads                                        L125-129
@@ -395,8 +419,9 @@ Current rebuild (2026-09-24, the live model - View A base)
 - lib/calculations/businessModellingAdditiveModel.js applyAdditiveLevers
   - effect = (target - start_rate) x basis                                L34
   - modelled_net_profit = today's real net profit + sum of effects        L49
-  [CM-1 affects asset-driven units: labour and asset rows are separate
-   levers but share one billed rate]
+  [CM-1 FIXED 2026-09-25 in Business Outcome. Asset-driven units still
+   show separate labour and asset lever rows here; making each asset-driven
+   unit ONE lever (the all-in rate) is Business Modelling step 5]
 
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
@@ -434,28 +459,46 @@ Older engines (still in code; see brief s6 for disposition)
 ===============================================================================
 12. KNOWN INCONSISTENCIES (found by reading formulas side by side)
 ===============================================================================
-CM-1 OPEN - HIGH. Asset-driven units stack labour on top of the calculator
-  rate. Business Outcome: asset revenue = blended rate x covered hours
-  (L196) AND labour revenue = charge rate x hours (L391), summed (L550,
-  L1175-1179). The owner bills the calculator rate ALL-IN (e.g. machine
-  rate includes the operator). Rate Builder's own result panel, the legacy
-  asset split and Quick Start all treat it as all-in; only the current
-  Business Outcome hook stacks. Effect: every asset-driven unit's entered /
-  Best Case revenue is overstated by its crew's charge rate x hours; the
-  coverage gap value (L484) likewise. Real net profit is NOT affected (the
-  cascades reconcile to real revenue) but the split of who carries whom,
-  View A materials residual, View B shortfall, Best Case, and Business
-  Modelling ceilings all are. FIX LOCATION PIVOTED 2026-09-25: the
-  subtraction (calculator rate minus labour charge-out rate) will be
-  computed in RATE BUILDER, not here - Rate Builder already holds both
-  numbers on separate tabs of the same module. Business Outcome's
-  build_asset_sources and calculate_capacity_coverage_gap will READ the
-  resulting net asset rate as a field rather than compute the subtraction
-  themselves. Signed-off rule (owner, 2026-09-24, unchanged by the pivot):
-  asset row revenue = (combined rate - labour charge-out rate) x hours;
-  labour row keeps charge-out rate x its hours; do not clamp a negative
-  result. See V6_0_KICKOFF_AND_HANDOVER s8 for the current session plan.
-  STILL OPEN - own session step, separate confirmation + live test.
+CM-1 FIXED 2026-09-25 (was OPEN - HIGH). Asset-driven units stacked labour
+  on top of the calculator rate. Fix (owner rule 2026-09-24; location Rate
+  Builder per the 2026-09-25 pivot): the calculator rate is ALL-IN. Rate
+  Builder's calculate_net_asset_rate takes off the hours-weighted saved
+  charge-out rate of the labour Cost Allocation assigns to the unit
+  (calculate_labour_mix_charge_rate). Business Outcome's build_asset_sources
+  calls both (L144-145) and earns asset revenue at the net rate (L189);
+  labour rows unchanged; not clamped. Coverage gap values revenue not earned
+  at the all-in rate only (L467). Identity verified live on every unit:
+  labour rows + asset rows = all-in rate x covered hours. Design note: the
+  pivot said Rate Builder would "publish a field"; Rate Builder has no
+  output contract and stores no derived values, so it publishes the
+  FORMULA (pure functions) and Business Outcome calls it - no stored value
+  to go stale. Evidence: docs\Audit\v6_0\bo_per_source_POST_CM1_2026-09-25.json
+  vs bo_per_source_PRE_CM1_2026-09-24.json; Business Modelling brief s13.
+CM-1b FIXED 2026-09-25. Business Outcome read a calculator's recovery hours
+  from lines with type === "time" - a field current calculators no longer
+  store - so it fell back to the OUTPUT DRIVER and the hourly rate moved
+  with a display choice (2inc Line, m3 driver: $831 / 12 = $69.25 instead
+  of $831 / 4 h = $207.75). Pre-existing: the 2026-09-24 "entered $144.25"
+  was $69.25 + $75. One shared rule now, get_calculator_recovery_hours
+  (rateBuilderCalculations.js L152-157: unit "hr" lines, else output
+  driver), used by Rate Builder's panel AND Business Outcome.
+CM-8 OPEN - LOW. Third copy of the old type === "time" rule:
+  businessOutcomeAssetSplitCalculations.js getRecoveryDriverQuantity L3-9,
+  feeding the legacy split via businessOutcomeCalculations.js
+  calculateOperatingGroupSplit. Same defect as CM-1b. Not changed on
+  2026-09-25 because its screen was not traced or live-tested. Fix: call
+  get_calculator_recovery_hours, trace the screen, verify.
+CM-9 NOTE. Rate Builder's result panel subtracts the ONE labour source
+  selected on the calculator (labour_job_charge,
+  useRateBuilderLineCalculator.js L149); Business Outcome subtracts the
+  assigned-labour mix. They differ when the assigned staff differ from the
+  selected source (PC55: panel $75 vs assigned Site Crew $70). Panel is a
+  margin check (owner); pointing it at calculate_labour_mix_charge_rate is
+  display-only, later. Also found 2026-09-25: six orphan calculators in
+  qs_tools_rate_builder_calculators_v1 linked to working-unit ids that no
+  longer exist, plus one unlinked; and the line `type` field is absent on
+  every current calculator (check the storage normaliser for a
+  field-dropping rebuild - bug class 6b).
 CM-2 NOTE. Two overhead-per-labour-hour bases coexist by design: Rate
   Builder puts 100% of group overhead on labour (RB-1); Business Outcome
   splits by cost share (F7). Only matters if a new display reads the

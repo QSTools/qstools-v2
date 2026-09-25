@@ -380,3 +380,51 @@ LOGGED, NOT PART OF THIS MODULE - units mode: a full future-build brief was
   basis. Read that brief in full before ever opening a units-mode session -
   do not re-derive; explicitly out of scope for the current CM-1 / step 9
   work.
+
+===============================================================================
+13. SESSION 3 RECORD (2026-09-25) - CM-1 + CM-1b FIXED, VERIFIED LIVE
+===============================================================================
+STATUS: CM-1 and CM-1b fixed and verified live (calc map s12). The block on
+  asset-driven units is lifted; step 5 can start.
+CODE: lib/calculations/rateBuilderCalculations.js (get_calculator_recovery_hours,
+  calculate_labour_mix_charge_rate, calculate_net_asset_rate);
+  hooks/useBusinessOutcomePerSourceRevenue.js (asset rows at the net asset
+  rate; coverage gap at the all-in rate; old type-based driver copy
+  removed); components/rate-builder/line-calculator/useRateBuilderLineCalculator.js
+  (panel calls the shared hours rule - no behaviour change).
+OWNER DECISION: the labour share of a unit = the charge-out rates set first
+  on the Labour tab, weighted by the hours Cost Allocation assigns each
+  staff type to that unit (NOT the one labour source selected on the
+  calculator). Cost differences per unit stay in true_cost.
+[VERIFIED 2026-09-25] live, real revenue
+  Net profit View A -406,896.41 / View B -406,896.40; cost variance 0.00.
+  (09-24 was -406,922.98: the $27 is A4 asset-interest date drift on the
+  COST side - total cost 1,979,369.35 vs 1,979,396 - not CM-1.)
+  CM-1 alone: PC55 120 - 70 = 50 net, asset 60,000 + labour 84,000 = 120 x
+    1,200. 2inc Line 69.25 - 75 = -5.75 net (shown unclamped) - owner
+    queried it, which exposed CM-1b.
+  CM-1 + CM-1b (final):
+    2inc Line  all-in 207.75, labour mix 75.00, net 132.75, covered
+               1,414.12 h, asset 187,723.99, labour 106,058.75
+    PC55       all-in 120.00, labour mix 70.00, net 50.00, covered 1,200 h,
+               asset 60,000.00, labour 84,000.00
+    PC15       all-in 160.00, no labour, 0 covered h, earns 0
+    Pump 2     all-in 194.75 (was 97.38 via its m2 driver), no labour, 0
+    Identity (asset + labour - all-in x covered) = 0.00 on every unit.
+    Coverage gap: 2inc Line 505.88 h x 207.75 = 105,096.57; Pump 2 1,920 h
+    x 194.75 = 373,920.00; PC15 1,920 h x 160 = 307,200.00; PC55 wasted
+    cost 11,682.27. Independent modelled revenue 2,245,698.55.
+  Rate Builder panel, 2inc Line with the m3 driver: per m3 $69.25 (display
+    only), recovery hours 4.00, Total/hr 207.75, Labour 75, Asset 132.75 -
+    matches Business Outcome.
+NOT YET RE-CHECKED: the Business Modelling page itself. Its source rows
+  read per_source, whose asset revenue and carry split changed with CM-1.
+  First job next session: re-run the s11 identity checks (no levers =
+  today; own start = zero effect; reconciliation) on the lever panel.
+NEXT (step 5, s11/s12): asset-driven units become ONE lever (the all-in
+  unit rate), their labour rows cost-only; remove old LeverCard + DEBUG
+  block; delete the Baseline/Upside/Downside cards (Q5); fix the
+  hasMounted lint error.
+LOGGED: CM-8 (legacy split still type-based), CM-9 (panel uses one labour
+  source; orphan calculators; missing line type field). Owner data check:
+  Pump 2's m3 line has unit "m2".

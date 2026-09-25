@@ -192,3 +192,10 @@ Full detail in "Working_Conventions - PowerShell Patching, CSS, and Numeric Veri
 - Working_Conventions - PowerShell Patching, CSS, and Numeric Verification - Repo root. The authoritative process doc.
 
 Run git log --oneline -15 to confirm commit history is current.
+
+---
+
+## 2026-09-25 - CM-1 / CM-1b (Rate Builder <-> Business Outcome)
+- lib/calculations/rateBuilderCalculations.js - NEW exports: get_calculator_recovery_hours (the ONE calculator-hours rule), calculate_labour_mix_charge_rate, calculate_net_asset_rate. Called by hooks/useBusinessOutcomePerSourceRevenue.js AND components/rate-builder/line-calculator/useRateBuilderLineCalculator.js - a change here moves both screens.
+- hooks/useBusinessOutcomePerSourceRevenue.js - build_asset_sources takes a 7th parameter, charge_out_rate_by_staff_type_id, built from labour_sources at the call site so Business Modelling overrides match the labour rows. Asset rows now carry net_asset_rate and labour_mix_charge_rate beside blended_rate (all-in); they reach the Card through the selector's ...row spreads. The old getRecoveryDriverQuantity copy is gone; calculate_capacity_coverage_gap no longer takes labour_recovery_rows.
+- lib/calculations/businessOutcomeAssetSplitCalculations.js - still has the old type-based getRecoveryDriverQuantity [CM-8, calc map s12].

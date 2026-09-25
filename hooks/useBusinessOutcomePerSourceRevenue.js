@@ -8,7 +8,7 @@ import useBusinessSummary from "@/hooks/useBusinessSummary";
 import useAssets from "@/hooks/useAssets";
 import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
-import { calculateRateBuilderQuotePreview } from "@/lib/calculations/rateBuilderCalculations";
+import { calculateRateBuilderQuotePreview, calculate_labour_mix_charge_rate, calculate_net_asset_rate, get_calculator_recovery_hours } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
 import { readNonProductiveCostPolicy } from "@/lib/storage/businessOutcomeNonProductivePolicyStorage";
 import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
@@ -48,20 +48,6 @@ export function verdict_for(net_profit) {
   return net_profit >= 0 ? "paying_its_way" : "being_carried";
 }
 
-// Duplicated intentionally from businessOutcomeAssetSplitCalculations.js
-// rather than importing/exporting it, per S29's final principle - that
-// file's own group-split logic is being left alone (still in use
-// elsewhere, still correct for what it does), not modified to serve
-// this new, independent calculation. Same driver-quantity logic, exact
-// copy.
-function getRecoveryDriverQuantity(lineTotals, outputDriverQuantity) {
-  const timeLineQuantity = lineTotals
-    .filter((line) => line.type === "time")
-    .reduce((total, line) => total + to_number(line.quantity), 0);
-
-  return timeLineQuantity > 0 ? timeLineQuantity : outputDriverQuantity;
-}
-
 // Group's blended $/hr rate, computed fresh and independently here -
 // deliberately NOT reusing businessOutcomeAssetSplitCalculations.js's
 // asset revenue figure, since that figure is derived by subtraction
@@ -78,7 +64,7 @@ function get_group_blended_rate(group, calculators) {
   }
 
   const preview = calculateRateBuilderQuotePreview(calculator.lines);
-  const recovery_driver_quantity = getRecoveryDriverQuantity(
+  const recovery_driver_quantity = get_calculator_recovery_hours( // CM-1b shared rule (Rate Builder)
     preview.line_totals,
     preview.output_driver_quantity
   );
@@ -121,7 +107,7 @@ function split_group_overhead(group) {
   };
 }
 
-function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}) {
+function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}, charge_out_rate_by_staff_type_id = new Map()) {
   const rows = [];
   const recovery_rate_by_group_id = new Map(operational_group_recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
 
@@ -150,6 +136,13 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       : live_blended_rate_result.blended_rate;
     const reason = has_blended_rate_override ? null : live_blended_rate_result.reason;
     const { asset_overhead_pool } = split_group_overhead(group);
+    // CM-1 (v6.0, 2026-09-25): blended_rate is the ALL-IN calculator rate.
+    // Take off the charge-out rate of the labour actually assigned to this
+    // unit (hours-weighted, the same rates the labour rows use, Business
+    // Modelling overrides included); the asset earns the rest. Labour rows
+    // + asset rows now sum to calculator rate x covered hours.
+    const labour_mix_charge_rate = calculate_labour_mix_charge_rate(group.labour_group_assignments, charge_out_rate_by_staff_type_id);
+    const net_asset_rate = calculate_net_asset_rate(blended_rate, labour_mix_charge_rate);
 
     // Real sum of this group's own per-asset hours - deliberately NOT
     // group.assigned_asset_hours, which is a MAX across assignments
@@ -194,7 +187,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       // them re-introduced the same double-count this fix was meant to
       // remove, just one level up.
       const group_asset_revenue =
-        blended_rate !== null ? blended_rate * get_group_covered_hours(group) : null; // v6.0 BO-6 covered hours
+        net_asset_rate !== null ? net_asset_rate * get_group_covered_hours(group) : null; // v6.0 BO-6 covered hours; CM-1 net asset rate
 
       const asset_cost_share =
         group_asset_cost_sum > 0 ? asset_cost / group_asset_cost_sum : 0;
@@ -228,6 +221,8 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         asset_interest_annual: round_currency(asset_interest_annual),
         asset_depreciation_annual: round_currency(asset_depreciation_annual),
         blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
+        net_asset_rate: net_asset_rate !== null ? round_currency(net_asset_rate) : null,
+        labour_mix_charge_rate: round_currency(labour_mix_charge_rate),
         minimum_recoverable_rate_per_hour: recovery_rate_by_group_id.get(group.group_id) ?? null,
         modelled_revenue: modelled_revenue !== null ? round_currency(modelled_revenue) : null,
         net_profit: net_profit !== null ? round_currency(net_profit) : null,
@@ -425,7 +420,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 // (group_recovery_hour_source === "asset_hours" or not):
 //   asset-driven, gap > 0: v6.0 BO-6 (2026-09-23) - these hours are
 //     REMOVED from modelled revenue (covered-hours cap); the gap is the
-//     revenue NOT earned, valued at asset + assigned labour charge rate
+//     revenue NOT earned, valued at the all-in calculator rate (CM-1)
 //     (key name revenue_at_risk kept so existing consumers still match).
 //   asset-driven, gap < 0: genuinely overstaffed - extra labour paid,
 //     revenue capped at seat hours regardless of headcount (wasted_cost).
@@ -434,10 +429,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 //   labour-driven, gap < 0: labour logged beyond the asset's actual
 //     running time - a data/scheduling oddity, not a cost claim
 //     (data_check).
-function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators, labour_recovery_rows = []) {
-  const charge_out_rate_by_id = new Map(
-    labour_recovery_rows.map((row) => [row.labour_source_type_id, to_number(row.charge_out_rate)])
-  );
+function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators) {
   return operational_group_cost_rows
     .filter((group) => {
       const asset_assignments = Array.isArray(group.asset_group_assignments)
@@ -458,15 +450,6 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
       0
     );
     const labour_true_cost_rate = labour_hours > 0 ? labour_cost / labour_hours : null;
-    // v6.0 BO-6: weighted charge-out rate of the labour actually assigned, so a
-    // coverage shortfall is valued at the revenue it removes (asset + labour).
-    const weighted_labour_charge_rate =
-      labour_hours > 0
-        ? labour_assignments.reduce(
-            (sum, a) => sum + to_number(a.assigned_hours) * (charge_out_rate_by_id.get(a.staff_type_id) ?? 0),
-            0
-          ) / labour_hours
-        : 0;
 
     const asset_hours = to_number(group.group_recovery_hours);
     const { blended_rate } = get_group_blended_rate(group, calculators);
@@ -481,7 +464,7 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
       if (is_asset_driven) {
         if (gap_hours > 0) {
           gap_type = "revenue_at_risk";
-          gap_dollar_value = round_currency(gap_hours * (blended_rate + weighted_labour_charge_rate));
+          gap_dollar_value = round_currency(gap_hours * blended_rate); // CM-1: blended_rate is already all-in
         } else {
           gap_type = "wasted_cost";
           gap_dollar_value =
@@ -1054,7 +1037,9 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       operational_group_recovery_rows,
       asset_interest_by_id,
       asset_depreciation_by_id,
-      overrides?.asset_blended_rate_overrides
+      overrides?.asset_blended_rate_overrides,
+      // CM-1: the same charge-out rates the labour rows above use (live + overrides)
+      new Map(labour_sources.map((row) => [row.staff_type_id, to_number(row.charge_out_rate)]))
     );
 
     // FIX (2026-09-18): moved earlier (was originally right before View
@@ -1376,7 +1361,7 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
         cost_reconciles,
       },
       view_b,
-      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators, labour_recovery.labour_recovery_rows ?? []),
+      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
       // Health gauge baseline (2026-09-11, moved here from Business Modelling
       // per user decision - Outcome computes the trusted baseline once,
       // Modelling consumes it downstream, same "reuse the engine" principle

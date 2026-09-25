@@ -884,12 +884,17 @@ NOTES: one row per (group, staff type). Group overhead split labour/asset by
   hours; asset-driven = covered hours x hours share.
 
 STAGE: Asset sources
-FIELD NAMES: asset_sources[] - blended_rate, modelled_revenue, direct_cost,
+FIELD NAMES: asset_sources[] - blended_rate (ALL-IN), net_asset_rate, labour_mix_charge_rate (NEW 2026-09-25), modelled_revenue, direct_cost,
   overhead_share, true_cost, non_productive_share (NEW 8b, same mechanism as
   labour sources above)
 FILE / FUNCTION: build_asset_sources (same hook); get_group_blended_rate
   (calculator keyed linked_cost_allocation_group_id)
-NOTES: revenue = blended rate x covered hours, shared by asset direct-cost share.
+NOTES: (2026-09-25, CM-1/CM-1b) blended_rate = total_charge /
+  get_calculator_recovery_hours (unit "hr" lines) = the ALL-IN unit rate;
+  net_asset_rate = blended_rate - labour_mix_charge_rate (hours-weighted
+  saved charge-out rates of the unit's assigned labour); revenue =
+  net_asset_rate x covered hours, shared by asset direct-cost share. A
+  unit's labour + asset revenue = all-in rate x covered hours.
 
 STAGE: Covered hours (BO-6)
 FIELD NAMES: get_group_covered_hours(group);
