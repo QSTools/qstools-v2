@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import useBusinessModelling from "@/hooks/useBusinessModelling";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import BusinessModellingStatusStrip from "@/components/business-modelling/BusinessModellingStatusStrip";
@@ -10,7 +10,6 @@ import BusinessModellingScenarioResult from "@/components/business-modelling/Bus
 import BusinessModellingDeltaCard from "@/components/business-modelling/BusinessModellingDeltaCard";
 import BusinessModellingHelpPanel from "@/components/business-modelling/BusinessModellingHelpPanel";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
-import BusinessModellingLeverCard from "@/components/business-modelling/BusinessModellingLeverCard";
 import BusinessModellingRealStateCard from "@/components/business-modelling/BusinessModellingRealStateCard";
 import useBusinessModellingScenario from "@/hooks/useBusinessModellingScenario";
 import BusinessModellingScenarioSection from "@/components/business-modelling/BusinessModellingScenarioSection";
@@ -18,11 +17,11 @@ import useBusinessModellingLevers from "@/hooks/useBusinessModellingLevers";
 import BusinessModellingLeverPanel from "@/components/business-modelling/BusinessModellingLeverPanel";
 
 export default function BusinessModellingPage() {
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  const hasMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const {
     status,
@@ -35,19 +34,9 @@ export default function BusinessModellingPage() {
     refreshBaseline,
     resetScenarioToBaseline,
     selectModel,
-    live_headline,
-    breakeven_summary,
-    lever_rows,
     rate_target_by_group_id,
-    updateLeverTargetRate,
-    materials_lever_row,
     materials_markup_percent,
-    updateMaterialsMarkupPercent,
-    proportional_suggestions,
-    applyProportionalSuggestions,
     per_source,
-    modelled_per_source,
-    unsupported_lever_group_ids,
   } = useBusinessModelling();
 
   const {
@@ -88,56 +77,11 @@ export default function BusinessModellingPage() {
 
         <BusinessModellingLeverPanel model={bm_levers} />
 
-        <BusinessModellingLeverCard
-          headline={live_headline}
-          real_headline={per_source?.headline_real_capacity}
-          breakeven_summary={breakeven_summary}
-          lever_rows={lever_rows}
-          rate_target_by_group_id={rate_target_by_group_id}
-          onTargetRateChange={updateLeverTargetRate}
-          proportional_suggestions={proportional_suggestions}
-          onApplyProportional={applyProportionalSuggestions}
-          materials_lever_row={materials_lever_row}
-          materials_markup_percent={materials_markup_percent}
-          onMaterialsMarkupChange={updateMaterialsMarkupPercent}
-        />
-
-        {/* TEMPORARY DEBUG (2026-09-17) - proves the real-engine-rerun
-            override mechanism works end-to-end against real data.
-            Remove once confirmed and a real display is decided. */}
-        <div className="ui-panel ui-stack-sm" style={{ border: "2px dashed orange" }}>
-          <div className="ui-kicker">DEBUG: real engine rerun check</div>
-          <div className="ui-row-between">
-            <span>Real total net profit - View A (headline_real_capacity)</span>
-            <strong>{per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
-          </div>
-          <div className="ui-row-between">
-            <span>Modelled total net profit - View A (headline_real_capacity)</span>
-            <strong>{modelled_per_source?.headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
-          </div>
-          {/* Added 2026-09-18 - View B is the only cascade where materials
-              has genuinely independent, lever-movable economics (View
-              A's materials is a residual, nothing for the markup
-              override to affect). These two rows are the real proof: if
-              the materials lever is genuinely wired correctly, changing
-              markup% should move the View B modelled figure while the
-              View A figures above stay comparatively unaffected by that
-              specific lever (labour/asset rate levers correctly move
-              both, since both views share the same labour/asset input). */}
-          <div className="ui-row-between">
-            <span>Real total net profit - View B (view_b_headline_real_capacity)</span>
-            <strong>{per_source?.view_b_headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
-          </div>
-          <div className="ui-row-between">
-            <span>Modelled total net profit - View B (view_b_headline_real_capacity)</span>
-            <strong>{modelled_per_source?.view_b_headline_real_capacity?.total_net_profit ?? "n/a"}</strong>
-          </div>
-          <div className="ui-row-between">
-            <span>Unsupported working units (ambiguous lever)</span>
-            <strong>{JSON.stringify(unsupported_lever_group_ids ?? [])}</strong>
-          </div>
-        </div>
-
+        <CollapsibleSection
+          title="Previous scenario tools"
+          summary="Legacy baseline / upside / downside controls - being replaced"
+          defaultOpen={false}
+        >
         <section className="ui-section">
           <div className="ui-panel">
             <BusinessModellingScenarioSection
@@ -155,12 +99,6 @@ export default function BusinessModellingPage() {
             />
           </div>
         </section>
-
-        <CollapsibleSection
-          title="Previous scenario tools"
-          summary="Legacy baseline / upside / downside controls - being replaced"
-          defaultOpen={false}
-        >
         <BusinessModellingStatusStrip
           baseline_date={status.baseline_date}
           selected_model_name={status.selected_model_name}

@@ -1,6 +1,8 @@
 MIRRA v6.0 - BUSINESS MODELLING - CONSOLIDATED BRIEF (REDESIGN AS SPINE)
-STATUS: DESIGN CONFIRMED 2026-09-24 - REBUILD STEPS 1-4 BUILT (s11) - BLOCKED ON CM-1 FOR
-  ASSET-DRIVEN UNITS - NOT YET VERIFIED END TO END
+STATUS: DESIGN CONFIRMED 2026-09-24 - REBUILD STEPS 1-4 BUILT (s11) - CM-1 FIXED 2026-09-25,
+  IDENTITY CHECKS RE-VERIFIED LIVE ON POST-CM-1 DATA - STEP 5 UI CLEANUP DONE (old LeverCard
+  + DEBUG block removed, Baseline/Upside/Downside collapsed into "Previous scenario tools",
+  hasMounted lint fixed) - STILL OPEN: asset-driven units as ONE lever (labour rows cost-only)
 DATE: 2026-09-24 (rewrite of the earlier same-day consolidation; that version treated the
   existing page as the base - wrong. The redesign is the base; existing code is a parts list.)
 SUPERSEDES (fold-in, then archive out of project knowledge; repo copies kept):
@@ -417,14 +419,25 @@ OWNER DECISION: the labour share of a unit = the charge-out rates set first
   Rate Builder panel, 2inc Line with the m3 driver: per m3 $69.25 (display
     only), recovery hours 4.00, Total/hr 207.75, Labour 75, Asset 132.75 -
     matches Business Outcome.
-NOT YET RE-CHECKED: the Business Modelling page itself. Its source rows
-  read per_source, whose asset revenue and carry split changed with CM-1.
-  First job next session: re-run the s11 identity checks (no levers =
-  today; own start = zero effect; reconciliation) on the lever panel.
-NEXT (step 5, s11/s12): asset-driven units become ONE lever (the all-in
-  unit rate), their labour rows cost-only; remove old LeverCard + DEBUG
-  block; delete the Baseline/Upside/Downside cards (Q5); fix the
-  hasMounted lint error.
+[VERIFIED 2026-09-25] Identity checks re-run live on the Business Modelling lever panel
+  against post-CM-1 per_source data: no-levers-set modelled net profit matched today's real
+  net profit exactly (View A -$406,896.41, View B -$406,896.40, both before the code
+  change; reconfirmed at $0 change on the live per_source snapshot after CM-1). Own-start-
+  rate test on a labour row (Site Crew/Operator/Delivery Staff, start $45.08/hr) showed a
+  ~$6 residual, traced to display-rounding of the unrounded internal start_rate, not a
+  calculation defect. Additivity test (two rows changed at once, one labour + one asset)
+  matched the sum of individual effects within the same rounding margin. All three PASS.
+STEP 5 UI CLEANUP DONE (2026-09-25, app/business-modelling/page.jsx only): removed the old
+  LeverCard and the DEBUG block entirely; moved BusinessModellingScenarioSection (Baseline/
+  Upside/Downside) inside the existing "Previous scenario tools" CollapsibleSection
+  alongside the older status-strip/baseline-card system (collapsed by default on reload,
+  confirmed live); fixed the pre-existing hasMounted lint error via useSyncExternalStore
+  instead of useState+useEffect (same SSR-safe placeholder behaviour, no visible change).
+  Build clean, live-tested.
+STILL OPEN (deferred, not part of this session): asset-driven units becoming ONE lever (the
+  all-in unit rate) with their labour rows made cost-only (Q5's other half). Real remaining
+  work - businessModellingSourceRows.js still treats every staff row as independently
+  leverable regardless of whether its working unit is asset-driven.
 LOGGED: CM-8 (legacy split still type-based), CM-9 (panel uses one labour
   source; orphan calculators; missing line type field). Owner data check:
   Pump 2's m3 line has unit "m2".
