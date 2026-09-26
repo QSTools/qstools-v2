@@ -1,0 +1,82 @@
+MIRRA v6.0 - CALCULATION TRACE / VERIFICATION LAYER - FUTURE BUILD BRIEF
+STATUS: SCOPED, NOT STARTED - written 2026-09-26 (session 8)
+ORIGIN: entitlements/P&L reconciliation session. Manually console-capturing
+  one page at a time to verify each module is slow and will not scale
+  across the remaining labour/asset/product-mode test passes.
+
+===============================================================================
+1. WHAT ALREADY EXISTS
+===============================================================================
+lib/calculation-trace/ - app page already exists. Per kickoff doc s7 (as of
+2026-09-25): status "code verification deferred", not built out further
+during the v6.0 pass, intended to be populated with proven nodes/edges only
+after a module's numbers are already verified elsewhere - not to discover
+numbers live.
+
+Owner confirms this page was built deliberately for this exact purpose: a
+CFO-grade, click-through audit trail from a headline number down to its
+source, top to bottom, not a throwaway debug page.
+
+FIRST JOB, before any further smoke test steps: open and read the actual
+current code/state of lib/calculation-trace/ and its app page fresh. Do
+NOT assume scope from this brief or from memory - confirm what's actually
+wired versus still scaffold before deciding whether to extend it.
+
+===============================================================================
+2. WHY NOW, NOT LATER
+===============================================================================
+Building this as a byproduct of the verification work already underway
+(rather than as a separate project after) means the module tracing already
+being done by hand becomes the page's real content, instead of having to
+re-derive it all again later. Explicit owner decision: build incrementally
+as each module is verified, not as a single later push.
+
+===============================================================================
+3. DESIGN DIRECTION (discussed, NOT yet decided/built)
+===============================================================================
+- Root: Business Modelling (the top of the chain, what a user actually
+  looks at first).
+- Branches downward through: Business Outcome (per-source labour/asset) ->
+  Cost Allocation groups -> individual staff/assets -> P&L / Opening Hours
+  inputs at the leaves.
+- NOT a strict tree. Known shared/parallel connections that need explicit
+  handling in the display, not just nested nodes:
+    - one general-overhead pool feeding multiple working groups at once
+    - an asset shared/co-deployed across multiple groups
+    - a staff member split across multiple groups
+  Design needs a way to show "this value is shared - see everywhere else
+  it feeds" rather than assuming every branch is self-contained.
+- Exact JSON shape and UI hierarchy component: NOT decided - settle once
+  the existing page's current code is actually read (Section 1).
+
+===============================================================================
+4. SECOND USE CASE - SAME INITIATIVE, NOT A SEPARATE ONE
+===============================================================================
+The same structured JSON output this page produces for human audit is also
+exactly what an AI agent would need to answer "why is this number what it
+is" without re-tracing the whole codebase each session. Treat this as one
+build, not two - a byproduct of building the audit page properly, not an
+extra scope item.
+
+This is the same underlying idea as some existing summary modules (Model
+Readiness, Recovery Summary, etc.) being considered for a future
+JSON-for-reporting/agent layer - noted as a related but separate
+observation, not to be conflated with rebuilding those modules now.
+
+===============================================================================
+5. NOT IN SCOPE FOR THIS BRIEF
+===============================================================================
+- Retail/product-based unit-driver support (separate, logged gap).
+- Multiple working groups / shared assets across groups / split staff
+  across groups (separate, logged test gaps - see
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10).
+- Any new calculation logic. This page only displays and traces numbers
+  that already exist elsewhere in the chain.
+
+===============================================================================
+6. NEXT STEP
+===============================================================================
+Before resuming the smoke test (SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10):
+open lib/calculation-trace/ and its app page, read fresh, report back what
+exists versus what's still a shell, then decide together whether it
+becomes the live verification tool for the rest of this pass.

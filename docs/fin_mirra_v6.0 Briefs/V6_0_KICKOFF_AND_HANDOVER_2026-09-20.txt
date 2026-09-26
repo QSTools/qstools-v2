@@ -388,11 +388,30 @@ far better than consolidating blind.
 - CSS consolidation (de-duplicating and tidying stylesheets for easier
   future visual updates). Same treatment - own scoping brief, after v6.0
   verification, informed by the file map.
-- Calculation Trace pilot page (lib/calculation-trace/, app page already
-  exists, status: code verification deferred). NOT built out further
-  during this pass. Once a module's numbers are proven via the plain-text
-  variable tracker, THEN that module's real nodes/edges get added to this
-  page - populating proven data, not discovering it live.
+- Calculation Trace / verification layer (NEW 2026-09-26) - full scoping
+  brief now exists: docs\fin_mirra_v6.0 Briefs\
+  CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt.
+  Owner decision: build incrementally, populating proven nodes as each
+  module is verified in the smoke test pass, not as a single later push.
+  Read that brief in full before touching lib/calculation-trace/.
+- Cost Allocation page simplification (NEW 2026-09-26) - hide the page's
+  internal recovery-rate outputs (minimum_recoverable_rate_per_hour etc.)
+  from the UI, keep them purely as calculated internal values feeding
+  Rate Builder/Business Outcome. Owner rationale: Cost Allocation's rate
+  and Business Outcome's rate diverge by design once non-productive
+  labour exists (CM-3) - showing both confuses users rather than proving
+  the mechanism. Scoping only, not built - own session later.
+- Opening Hours vs Labour coverage gap (NEW 2026-09-26, confirmed real
+  gap during smoke test session 8) - no mechanism compares
+  net_annual_business_open_hours against actual productive labour hours;
+  only labour-vs-asset coverage is checked today. Confirmed out of scope
+  for this pass - would need new plumbing, not a tweak. See
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10.
+
+STANDING RULE (added 2026-09-26): keep this document lean - status, next
+step, and pointers only. Anything with real design discussion or detail
+gets its own standalone brief with a one-line pointer here, same pattern
+as the items above.
 - Labour/product-based (business_type) coverage gap - tracked as a running note per module
   (Section 1), not fixed inline unless trivial.
 - Owner remuneration setting (NEW 2026-09-23, 8b) - a payroll / shareholder
@@ -503,33 +522,6 @@ UPDATE (2026-09-26, session 7) - READ THIS FIRST; supersedes session 6's
   can be dropped from this session's upload; nothing in this thread touches
   Business Modelling.
 
-UPDATE (2026-09-26, session 6) - READ THIS FIRST; supersedes session 5's
-  note below. BO-8 and CM-8 (session 5's "NEXT, in order" items) are both
-  closed:
-    BO-8 CLOSED (not fixed - confirmed not applicable). Investigated:
-    calculate_capacity_coverage_gap ignores its overrides parameter, so
-    modelled_per_source.capacity_coverage_gap never reflects a lever -
-    but that mechanism is inert cross-check infrastructure (Q2, brief
-    s11); the live page runs on the additive model instead, and nothing
-    reads modelled_per_source.capacity_coverage_gap. No visible bug.
-    CM-8 FIXED, verified live, committed (67b00ec). Third copy of the
-    dead type === "time" recovery-hours rule, in
-    businessOutcomeAssetSplitCalculations.js, feeding the LIVE
-    /recovery-outcome page. Now uses the shared
-    get_calculator_recovery_hours rule (same as CM-1b). All four
-    asset-backed groups (2inc Line, 2inc Line Pump 2, PC15, PC55) verified
-    live with reason=null and a real totalCharged.
-  Both entries closed in CALCULATION_MAP_v6_0.txt (s12) and
-  VARIABLE_TRACKER_v6_0.txt (commit 9846381).
-  SEPARATE FINDING, logged only, not fixed: /recovery-outcome's "Asset
-  utilization data not available" message prints identical wording for
-  two different underlying conditions - display defect, not chased.
-  NEXT: owner wants to consider a hybrid Rate Builder / Modelling UI -
-  not decided, not scoped. No other item is queued ahead of it as of
-  this note.
-  Upload for next chat: this file, the variable tracker, the calc map,
-  the Business Modelling brief, the file map (unchanged from session 5's
-  list).
 UPDATE (2026-09-26, session 5) - READ THIS FIRST; supersedes session 4's
   note below. SHIPPED, verified live, committed: (1) OVERHEADS LEVER -
   General Overheads categories are cost rows in Business Modelling

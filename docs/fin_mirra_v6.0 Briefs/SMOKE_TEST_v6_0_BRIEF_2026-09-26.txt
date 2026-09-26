@@ -313,3 +313,99 @@ RESULT:
 ===============================================================================
 9. ISSUES FOUND (log only, do not fix inline unless trivial per kickoff s4)
 ===============================================================================
+
+===============================================================================
+10. REVISED PLAN LOCKED IN (2026-09-26, session 8)
+===============================================================================
+FIRST: read the Calculation Trace future-build brief and review the actual
+  current lib/calculation-trace/ code before touching any step below -
+  see CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt.
+
+STEP A - P&L correction:
+  Uploaded reference P&L had Salary & Wages entered net of entitlements
+  ($83,183 instead of the full loaded $104,000 - base_labour_cost_annual
+  already includes paid non-productive hours per calc map s3, entitlements
+  is a display split, not an extra cost). Fix: correct Salary & Wages to
+  the full loaded figure. Verify: Business Outcome net profit reconciles
+  to $30,083.60 exactly (matches step 7's health_gauge figure).
+
+STEP B - Entitlements widget fix (small, display-only):
+  The Entitlements cost-composition breakdown (Annual Leave/Public
+  Holidays/Sick/Bereavement/Family Violence) sums to less than its stated
+  Total - the gap is NZ paid rest breaks, included in the total but with
+  no row of its own. Add a "Paid Rest Breaks" row to the breakdown on
+  BOTH Cost Summary and Business Summary, alongside the existing leave
+  categories. This is a visibility fix only - the dollar figure is already
+  inside total labour cost. Verify: net profit is UNCHANGED after adding
+  the row (if it moves, something got added as a real cost, not a display
+  split - that would be a bug).
+
+STEP C - Model Readiness status check (blocking-check sweep).
+
+STEP D - Extended labour pass (before touching assets):
+  1. Add a 2nd productive staff member, same rate as Paul, DIFFERENT
+     labour type (so the staff-type rollup doesn't blend them). Confirm
+     the $1,000 overhead splits 50/50.
+  2. Change the 2nd staff member's rate. Confirm the split moves
+     proportionately to the new labour-cost ratio (per calc map: pool x
+     group labour cost / total labour cost).
+  3. Add 1 non-productive staff member. Confirm their cost flows through
+     the SEPARATE non-productive labour pool (not general overhead):
+     excluded from Cost Allocation's minimum_recoverable_rate_per_hour
+     (CM-3, by design), but included in Business Outcome's true_cost.
+     The two numbers are SUPPOSED to diverge once non-productive labour
+     exists - not a bug to chase.
+  Checkpoints within this step:
+     - 2nd productive staff with different hours/productivity% still
+       produces independent, correct productive hours (no cross-
+       contamination between staff).
+     - total_productive_output and total_productive_labour_hours still
+       agree with two productive staff (F12 fix, previously proven with
+       one).
+     - Rate Builder's all-on-labour overhead basis (CM-2) will differ
+       from Business Outcome's cost-share basis - expected, logged,
+       not a new bug.
+     - labour_ready stays true throughout, across the mix of productive
+       and non-productive staff.
+  4. Add a small, controlled set of multiple general-overhead categories
+     with known dollar amounts (not just the single $1,000 test category).
+     Confirm the labour-cost-weighted split still holds correctly across
+     all categories.
+
+STEP E - Resume asset test (step 8), clean, before layering any
+  asset-specific overhead on top:
+  1. Add one productive asset to the group.
+  2. Add a second productive asset CO-DEPLOYED with the first in the SAME
+     group (ute + pump pattern). Confirm assigned_asset_hours = MAX of
+     the two, NOT the sum (CM-4, deliberate - co-deployed assets run
+     simultaneously), and assigned_asset_burden = SUM of both.
+  3. Assign one of the already-tested productive staff to the
+     asset-backed group. Deliberately test MISMATCHED labour vs asset
+     hours (both directions) to confirm the capacity coverage gap
+     (gap_hours = asset_hours - labour_hours, valued at the blended
+     rate) calculates correctly - both the "labour short, revenue gap"
+     case and the "labour surplus, wasted cost" case.
+  4. Only once assets prove clean on their own, layer an asset-specific
+     overhead (e.g. fuel) back on top, then other running costs, to
+     build up real operating costs deliberately and traceably.
+
+STEP F - Business-type flip check (quick, final):
+  Flip business_type from labour_based to product_based on the SAME
+  proven dataset. Walk every module, log whatever changes or breaks.
+  Product mode has never been exercised with real unit-driver data -
+  this is genuinely new ground, not a repeat of anything already proven.
+
+CONFIRMED GAPS - logged, explicitly OUT OF SCOPE for this pass:
+  - Opening Hours vs Labour coverage: NO mechanism exists comparing
+    net_annual_business_open_hours (macro, Cost Summary/Business Summary)
+    against actual productive labour hours. This is separate from the
+    labour-vs-asset coverage gap, which DOES exist. A real, confirmed
+    missing check - not to be built now. Would need new plumbing (a
+    module that reads both figures together for comparison), not a
+    tweak. Logged for a dedicated future session.
+  - Multiple working groups sharing one overhead pool - untested.
+  - An asset or staff member shared/split across two different groups -
+    untested.
+  - Genuine product/unit-based mode with real unit-driver data - never
+    exercised with real numbers beyond code-path wiring (this pass's
+    Step F is the first real test of it).
