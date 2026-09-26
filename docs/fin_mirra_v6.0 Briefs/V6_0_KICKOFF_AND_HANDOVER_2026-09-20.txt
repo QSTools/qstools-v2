@@ -452,6 +452,37 @@ closed. What's left from Business Outcome is logged, not blocking: BO-8
 owner-remuneration design item (belongs to a future Labour/Reconciliation
 session, not Business Modelling).
 
+UPDATE (2026-09-27, session 11) - READ THIS FIRST; supersedes sessions
+  9-10's note below. Calculation Trace extended to Rate Builder (commit
+  9ac218d): new lib/calculation-trace/pilot-map/rateBuilderTraceNodes.js -
+  one boundary node for the rate_builder_labour_recovery_rows
+  aggregation, one node per labour source's
+  minimum_recoverable_charge_out_rate. Deliberately modelled as a
+  boundary, not a direct edge into a specific Cost Allocation group,
+  since the recovery-rows aggregation spans groups per staff type
+  (many-to-one) - not the same edge as
+  cost_allocation.group.<id>.total_group_cost. Reuses the existing
+  model_readiness.modules.labour and cost_allocation_result mounts
+  already in calculationTraceLiveValues.js (no second hook mount) via
+  the same composition useRateBuilderLabourRates.js itself uses.
+  DELIBERATELY STILL ORPHANED, same as Cost Allocation - Rate Builder
+  feeds Business Outcome / Business Modelling, not the current Business
+  Summary root.
+  LIVE-TEST VERIFICATION (same smoke-test data as sessions 9-10):
+  rate_builder.labour_rate.supervisor_team_lead resolved 78.73,
+  matching the live /rate-builder page's minimum recoverable charge-out
+  rate for the same staff type exactly. Recovery-rows boundary node
+  resolved row count 2 (all_productive + supervisor_team_lead). No
+  duplicate node IDs, no missing endpoints. Node count 37, edge count
+  27 (up from session 10's 34/25). Snapshot: docs/Audit/v6_0/
+  smoke_test/1.9_calculation_trace_rate_builder/.
+  NEXT: Business Outcome is the natural next slice, then Business
+  Modelling, reaching this brief's originally specified root - at which
+  point page.jsx's root-selector question becomes real and needs its
+  own decision. Smoke test thread remains separately parked.
+  Upload for next chat: this file, variable tracker, calc-trace brief.
+  Drop Business Modelling brief, file map, smoke test brief (unchanged).
+
 UPDATE (2026-09-27, sessions 9-10) - READ THIS FIRST; supersedes session
   8's note below. SEPARATE THREAD from the smoke test. Full detail:
   CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt

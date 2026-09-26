@@ -1,5 +1,5 @@
 MIRRA v6.0 - CALCULATION TRACE / VERIFICATION LAYER - FUTURE BUILD BRIEF
-STATUS: [SHIPPED - PARTIAL, Business Summary slice] live as of 2026-09-27 (session 9). Originally written 2026-09-26 (session 8).
+STATUS: [SHIPPED - PARTIAL, Business Summary + Cost Allocation + Rate Builder slices] live as of 2026-09-27 (sessions 9-11). Originally written 2026-09-26 (session 8).
 ORIGIN: entitlements/P&L reconciliation session. Manually console-capturing
   one page at a time to verify each module is slow and will not scale
   across the remaining labour/asset/product-mode test passes.
@@ -201,3 +201,62 @@ export). After that, Business Outcome, then Business Modelling, reaching
 this brief's originally specified root - at which point page.jsx's
 root-selector question (Section 8's "orphaned subgraph" note) becomes
 real and needs its own decision.
+
+===============================================================================
+9. [SHIPPED 2026-09-27] SESSION 11 - RATE BUILDER SLICE
+===============================================================================
+WHAT SHIPPED: Rate Builder nodes added to the trace graph (commit 9ac218d) -
+new lib/calculation-trace/pilot-map/rateBuilderTraceNodes.js: one boundary
+node for the rate_builder_labour_recovery_rows aggregation
+(cost_allocation.rate_builder_labour_recovery_rows) and one node per
+labour source's minimum_recoverable_charge_out_rate
+(rate_builder.labour_rate.<labour_source_type_id>).
+
+DESIGN DECISION - BOUNDARY NODE, NOT A DIRECT GROUP EDGE:
+minimum_recoverable_charge_out_rate is built from two legs, neither a
+single traced hop: (1) labour_cost_rate, Labour's per-staff-type weighted
+rate - Labour's only node in the graph is the total_people_cost_annual
+aggregate, not the per-staff-type rate, so this leg has no real upstream
+node to point at yet; (2) allocated_business_overhead_recovery_rate, built
+inside Cost Allocation by build_rate_builder_labour_recovery_rows, which
+aggregates across every operational group a staff type is assigned to
+(many-to-one) - NOT the same edge as
+cost_allocation.group.<id>.total_group_cost. Pointing there would
+overstate what's actually traced, so the recovery-rows stream got its own
+boundary node instead, marked live_traced_via_hook (arithmetic not
+re-derived), and both Rate Builder nodes point only at that boundary.
+
+calculationTraceLiveValues.js reuses the existing
+model_readiness.modules.labour and cost_allocation_result mounts already
+in the file (no second hook mount) via extract_labour_output ->
+build_cost_allocation_output_contract -> build_labour_source_options - the
+same composition useRateBuilderLabourRates.js itself uses. Zero changes
+to any shipped Rate Builder file.
+
+STILL ORPHANED, BY DESIGN: same as Cost Allocation (Section 8) - Rate
+Builder feeds Business Outcome / Business Modelling, not the current
+Business Summary root. Not reachable from the page's upstream trace path
+yet.
+
+LIVE-TEST VERIFICATION (same smoke-test data as sessions 9-10 - Paul,
+Supervisor/Team Lead, no assets, $1,000 overheads, one operational group
+"Single Labour"): captured via the Download trace JSON button.
+  cost_allocation.rate_builder_labour_recovery_rows = 2 (row count:
+    all_productive + supervisor_team_lead)
+  rate_builder.labour_rate.supervisor_team_lead = 78.73
+    (cross-checked live against the /rate-builder page's own minimum
+    recoverable charge-out rate for the same staff type - exact match)
+  rate_builder.labour_rate.all_productive = 78.72 (one cent off
+    supervisor_team_lead's row - plausible, both round_currency separately
+    before summing different overhead-share bases, but not independently
+    re-derived this session; worth a look if it recurs on multi-staff data)
+No NaN, no missing endpoints, no duplicate node IDs. Node count 37, edge
+count 27 (up from session 10's 34/25). Full snapshot: docs/Audit/v6_0/
+smoke_test/1.9_calculation_trace_rate_builder/.
+NOT tested: multi-staff-type / multi-group data (same gap noted in
+Section 8).
+
+NEXT: Business Outcome is the natural next slice. After that, Business
+Modelling, reaching this brief's originally specified root - at which
+point page.jsx's root-selector question becomes real and needs its own
+decision. Smoke test thread remains separately parked.
