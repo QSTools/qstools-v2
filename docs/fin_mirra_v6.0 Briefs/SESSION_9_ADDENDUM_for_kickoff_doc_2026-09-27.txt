@@ -1,0 +1,119 @@
+MIRRA v6.0 - SESSION 9 ADDENDUM (2026-09-27)
+FOR: V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt
+STATUS OF THIS FILE: standalone addendum, NOT yet merged into the kickoff
+  doc itself. I did not have a fresh view of the kickoff doc's current full
+  content this session, so rather than patch it blind (risking a stale-
+  content mismatch), this is written as a separate note. Prepend/merge into
+  the kickoff doc by hand, or paste this in at the next session's start
+  alongside the kickoff doc, whichever is easier.
+
+===============================================================================
+SESSION 9 SUMMARY - CALCULATION TRACE REBUILD
+===============================================================================
+Per session 8's own "first job" instruction, opened and read the actual
+current code of lib/calculation-trace/ fresh before touching anything else.
+Found it was static/hand-authored (representative-proof-only, explicitly
+labelled "not live business data"), citing pre-v6.0 briefs
+(v4.0_LOCKED / v5.0 pilot draft), and rooted at Business Summary rather
+than the future-build brief's specified root (Business Modelling).
+
+DECISION MADE: rebuild rather than extend, since the page as found could
+not serve as a live verification tool (brief's stated goal). Rebuilt using
+Option A - a self-contained hook composition (useModelReadiness,
+useRevenueCogs, useCostSummary, calculateBusinessSummary - the same chain
+useBusinessSummary.js already uses internally) with zero changes to any
+shipped/core hook.
+
+SCOPE SHIPPED THIS SESSION: the Business Summary / Cost Summary / Labour /
+Assets / General Overheads / Revenue-COGS slice - i.e. the module set
+already mapped in the old static pilot data. Nodes now resolve live
+values; edges are generated from each node's own inputs[] list instead of
+a hand-duplicated edges file; dynamic per-asset/per-staff/per-pool nodes
+are built at render time, which is what makes the "shared node" case
+(one overhead pool feeding several assets) actually visible in the UI -
+an "Also feeds" panel shows every downstream consumer of a shared value.
+
+NOT YET SHIPPED: Cost Allocation, Rate Builder, Business Outcome, Business
+Modelling are still outside the trace graph. The brief's originally
+specified root (Business Modelling) has not been reached yet - this
+session proved the live-resolver pattern on the already-mapped slice
+first, per the brief's own "build incrementally" instruction.
+
+GENUINE DRIFT FOUND (both confirmed against live code, not assumed - see
+the calc-trace brief's new Section 7 for full detail):
+  1. Assets' old 7-piece itemized cost model (ownership/finance/lease/
+     depreciation/insurance/registration/other) does not exist live.
+     Today: total_asset_cost_annual = asset_interest_annual +
+     running_cost_annual, and running_cost_annual is a hardcoded 0.
+  2. What replaced it: those costs are now entered on General Overheads,
+     auto-tagged into a shared pool, then assigned back to specific
+     assets (allocated_asset_overhead_cost_annual). True per-asset cost
+     = total_asset_cost_annual + allocated_asset_overhead_cost_annual.
+     Confirmed with the owner this is the correct, expected mechanism.
+  3. General Overheads' old "gross benchmark minus excluded amount"
+     single-subtraction model does not exist live; each flagged row is
+     reduced individually, then summed.
+
+LIVE-TEST VERIFICATION: real saved smoke-test data (Paul, Supervisor/Team
+Lead, no assets, $1,000 general overheads) - full chain reconciled
+exactly, arithmetic checked by hand against the JSON dump:
+  labour.total_labour_cost_annual = 110,328.40
+  cost_summary.total_cost_burden = 111,328.40
+    (= 110,328.40 + 0 asset + 1,000 overhead, exact)
+  business_summary.required_recovery_per_driver = 78.72646057020282
+    (= 111,328.40 / 1,414.1166666666668, exact)
+No discrepancies. Full JSON snapshot and notes:
+  docs/Audit/v6_0/smoke_test/1.7_calculation_trace_page/
+
+SIDE FINDING (not a trace-page bug, flagged for awareness): with this
+test dataset, cost_summary.model_readiness_status = "blocked" because no
+assets are saved and no explicit "no active assets" confirmation exists.
+Expected for zero-asset test data - worth a quick check against the real
+production dataset if this shows up unexpectedly there.
+
+FILES CHANGED (all uncommitted as of end of session 9 - owner to review
+git status and commit when ready):
+  Deleted: lib/calculation-trace/pilot-map/traceEdges.js,
+    lib/calculation-trace/pilot-map/index.js (confirmed unused),
+    lib/calculation-trace/pilot-map/traceLookup.js (duplicate logic),
+    lib/calculation-trace/calculationTracePilotMap.js
+  Created: lib/calculation-trace/calculationTraceLiveValues.js,
+    lib/calculation-trace/pilot-map/dynamicTraceNodes.js
+  Rewritten: lib/calculation-trace/pilot-map/traceNodes.js,
+    lib/calculation-trace/calculationTraceSelectors.js,
+    app/calculation-trace/page.jsx
+  Patched: lib/calculation-trace/pilot-map/pilotMeta.js (status fields)
+  Briefs updated: CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_
+    2026-09-26.txt (new Section 7), SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt
+    (Section 10 prerequisite marked DONE)
+  New audit folder: docs/Audit/v6_0/smoke_test/1.7_calculation_trace_page/
+
+UNRELATED ITEM NOTICED IN git status, NOT FROM THIS SESSION:
+  docs/Audit/v6_0/smoke_test/Profit_and_Loss Smoke Test.xlsx shows as
+  modified. Nothing in this session's work touched it - owner confirmed
+  it's their live P&L working file, unrelated to the trace rebuild.
+  Flagged only so it isn't mistaken for trace-rebuild fallout when
+  reviewing git status/diff before committing.
+
+===============================================================================
+NEXT STEP FOR NEXT CHAT
+===============================================================================
+Two independent threads are now both open, and the next session should
+pick ONE, not both:
+
+A) Continue the calculation trace build - extend the live-resolver
+   pattern outward to Cost Allocation -> Rate Builder -> Business Outcome
+   -> Business Modelling, reaching the future-build brief's originally
+   specified root. Cost Allocation is the natural next slice (already the
+   longest-verified module - see hooks/useCostAllocation.js and its ~20
+   supporting files under lib/calculations/cost-allocation/ and
+   lib/selectors/cost-allocation/, not yet explored for trace purposes).
+
+B) Resume the smoke test at SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt Section
+   10, Step A onward (P&L correction, entitlements widget fix, Model
+   Readiness sweep, extended labour pass, then Step 8's asset test) - the
+   trace-page prerequisite that was blocking this is now done, so this
+   is fully unblocked.
+
+Recommend starting the next chat by asking the owner which thread to
+pick up, rather than assuming.

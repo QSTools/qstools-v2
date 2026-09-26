@@ -1,5 +1,5 @@
 MIRRA v6.0 - CALCULATION TRACE / VERIFICATION LAYER - FUTURE BUILD BRIEF
-STATUS: SCOPED, NOT STARTED - written 2026-09-26 (session 8)
+STATUS: [SHIPPED - PARTIAL, Business Summary slice] live as of 2026-09-27 (session 9). Originally written 2026-09-26 (session 8).
 ORIGIN: entitlements/P&L reconciliation session. Manually console-capturing
   one page at a time to verify each module is slow and will not scale
   across the remaining labour/asset/product-mode test passes.
@@ -7,6 +7,15 @@ ORIGIN: entitlements/P&L reconciliation session. Manually console-capturing
 ===============================================================================
 1. WHAT ALREADY EXISTS
 ===============================================================================
+STANDING TOOL (added session 10, 2026-09-27): the page has a "Download
+trace JSON" button (top-right of the header) that exports every node's
+resolved value, the integrity report, and the raw cost_allocation
+output_contract as one JSON file. This is now the preferred way to pull
+numbers off this page for verification - replaces the manual console
+localStorage-dump / fiber-tree-walk methods (SMOKE_TEST_v6_0_BRIEF_
+2026-09-26.txt s0) for anything already wired into the trace graph. Use
+it every session going forward rather than re-deriving a console script.
+
 lib/calculation-trace/ - app page already exists. Per kickoff doc s7 (as of
 2026-09-25): status "code verification deferred", not built out further
 during the v6.0 pass, intended to be populated with proven nodes/edges only
@@ -80,3 +89,115 @@ Before resuming the smoke test (SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10):
 open lib/calculation-trace/ and its app page, read fresh, report back what
 exists versus what's still a shell, then decide together whether it
 becomes the live verification tool for the rest of this pass.
+
+===============================================================================
+7. [SHIPPED 2026-09-27] SESSION 9 - BUSINESS SUMMARY SLICE LIVE
+===============================================================================
+Rebuilt as a live tool, per Section 1's finding that the existing page was
+static/representative-proof-only, not code-verified, and rooted at the wrong
+end of the chain (Business Summary, not Business Modelling as this brief's
+Section 3 specifies).
+
+WHAT SHIPPED: Business Summary, Cost Summary, Labour, Assets, General
+Overheads, and Revenue/COGS - the module set already mapped in the old
+static pilot data - now resolve live from the same output_contracts the
+real app pages read (Option A: self-contained hook composition, no shipped
+hook modified). Dynamic nodes for individual assets, staff, and overhead
+pools are built at render time, giving the shared-node/web display this
+brief's Section 3 called for: a shared overhead pool shows every asset
+drawing on it via an "Also feeds" panel, not just its own upstream path.
+
+NOT YET SHIPPED: Business Modelling, Business Outcome, Cost Allocation,
+Rate Builder are still outside the graph. Section 3's "root: Business
+Modelling" design is not yet built - this session proved the live-resolver
+pattern on the already-mapped slice first, per this brief's own Section 2
+instruction to build incrementally.
+
+DRIFT FOUND vs the old v4.0/v5.0 lineage map this pilot was generated from
+(both confirmed against live code, not assumed):
+  - Assets' old 7-field itemized ownership-cost model does not exist live.
+    total_asset_cost_annual = asset_interest_annual + running_cost_annual,
+    and running_cost_annual is currently hardcoded to 0.
+  - What replaced it: overhead lines (insurance, registration, fuel, etc.)
+    are entered on General Overheads, auto-tagged into a shared pool, then
+    assigned back to specific assets as allocated_asset_overhead_cost_annual.
+    True per-asset cost = total_asset_cost_annual +
+    allocated_asset_overhead_cost_annual = asset_recovery_cost_annual.
+  - General Overheads' old single top-level "gross benchmark minus excluded
+    amount" model does not exist live; each flagged row is reduced
+    individually (active_amount), then summed.
+
+LIVE-TEST VERIFICATION (real saved data, one staff member, no assets,
+$1,000 general overheads): full chain reconciled exactly -
+cost_summary.total_cost_burden = labour + assets + overheads exactly;
+business_summary.required_recovery_per_driver = total_cost_burden /
+activity_driver_value exactly. Full detail and JSON snapshot: docs/Audit/
+v6_0/smoke_test/1.7_calculation_trace_page/.
+
+NEXT (superseded by Section 8 below): extend the same live-resolver
+pattern to Cost Allocation -> Rate Builder -> Business Outcome -> Business
+Modelling, reaching this brief's originally specified root.
+
+===============================================================================
+8. [SHIPPED - PARTIAL, orphaned subgraph] SESSION 10 - COST ALLOCATION SLICE
+===============================================================================
+WHAT SHIPPED: Cost Allocation nodes added to the trace graph - one root
+node per labour type (staff_type_id) and per asset (asset_id), one shared
+overhead-pool node, and one cost/rate node pair per operational group. New
+file: lib/calculation-trace/pilot-map/costAllocationTraceNodes.js, reusing
+Cost Allocation's own identity helpers (costAllocationSharedHelpers.js) so
+node identity can never drift from what the real allocation code resolves.
+useCostAllocation() mounted as a separate hook instance in
+calculationTraceLiveValues.js (same proven-tolerated double-mount pattern
+as the existing hooks) - zero changes to any shipped Cost Allocation file.
+
+IMPORTANT - ORPHANED SUBGRAPH, BY DESIGN: Cost Allocation feeds Rate
+Builder / Business Outcome / Business Modelling, not Business Summary (the
+page's current hardcoded root - calculationTracePilotMeta.
+selected_initial_output). These new nodes are NOT reachable from the
+page's upstream trace path yet - no edge connects them to the current
+root, because nothing currently traced consumes Cost Allocation output.
+They exist in the graph (visible via getTraceIntegrityReport /
+getTraceNodesByModule, and in the new JSON export) so this work doesn't
+need to be redone once Rate Builder/Business Outcome wiring gives them a
+real root to connect to. Deliberate decision (owner + session 10), not an
+oversight - do not "fix" by picking a new hardcoded root without a
+separate decision, since page.jsx's root-selection logic was explicitly
+left untouched this session per the risk rules (touches multiple modules).
+
+SHARED-NODE CASES CONFIRMED: a labour type or asset assigned across
+multiple operational groups will show multiple outgoing edges from its
+source node (same "Also feeds" mechanism as the existing overhead-pool ->
+asset case) - edges are built from each group node's own assignment
+arrays, not assumed. Not yet live-tested with a genuinely multi-group
+asset/labour split (current smoke-test data has one group, one staff
+member, no assets) - worth a follow-up live test once such data exists.
+
+LIVE-TEST VERIFICATION (same smoke-test data as Section 7 - Paul,
+Supervisor/Team Lead, no assets, $1,000 overheads, one operational group
+"Single Labour"): captured via the new Download trace JSON button.
+  cost_allocation.labour_type.supervisor_team_lead = 110,328.40
+    (exact match to labour.total_people_cost_annual)
+  cost_allocation.overhead_pool = 1,000
+    (exact match to general_overheads.total_general_overheads)
+  cost_allocation.group.<id>.total_group_cost = 111,328.40
+    (= 110,328.40 + 1,000 exact; matches cost_summary.total_cost_burden
+    and business_summary.total_cost_burden)
+  cost_allocation.group.<id>.group_cost_per_hour = 78.72646057020282
+    (matches business_summary.required_recovery_per_driver to every
+    decimal - strong cross-check given nothing currently wires these two
+    nodes together in the graph)
+No NaN, no missing endpoints, no duplicate node IDs. Node count 34, edge
+count 25 (up from Section 7's slice). Full snapshot: docs/Audit/v6_0/
+smoke_test/1.8_calculation_trace_cost_allocation/ (session 10 JSON export
+to be saved there - see Section 9 handover note).
+NOT tested: asset-linked group (no assets in current smoke-test data - see
+"SHARED-NODE CASES CONFIRMED" above).
+
+NEXT: Rate Builder is the natural next slice (Cost Allocation's
+rate_builder_labour_recovery_rows already sits in output_contract, unused
+by the trace graph so far - confirmed present in the session 10 JSON
+export). After that, Business Outcome, then Business Modelling, reaching
+this brief's originally specified root - at which point page.jsx's
+root-selector question (Section 8's "orphaned subgraph" note) becomes
+real and needs its own decision.

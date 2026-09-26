@@ -35,8 +35,8 @@ Two console methods used this smoke test:
 
 (() => {
   function getFiberRoot() {
-    const rootEl = document.getElementById(""__next"") || document.body;
-    const key = Object.keys(rootEl).find(k => k.startsWith(""__reactFiber$"") || k.startsWith(""__reactContainer$""));
+    const rootEl = document.getElementById("__next") || document.body;
+    const key = Object.keys(rootEl).find(k => k.startsWith("__reactFiber$") || k.startsWith("__reactContainer$"));
     return rootEl[key];
   }
   function collect(fiber, seen, results) {
@@ -44,10 +44,10 @@ Two console methods used this smoke test:
     seen.add(fiber);
     try {
       const props = fiber.memoizedProps;
-      if (props && typeof props === ""object"") {
+      if (props && typeof props === "object") {
         const keys = Object.keys(props);
         if (keys.some(k => /rate|cost|hours|profit|revenue|ready|burden|margin|labour|staff|overhead|pool|group|assign|recovery|basis|start|floor|ceiling|effect|lever|row_id|status|modelled|target|source|headline|capacity|gap|markup|true_cost|net_profit/i.test(k))) {
-          const name = (fiber.type && (fiber.type.displayName || fiber.type.name)) || String(fiber.elementType || ""unknown"");
+          const name = (fiber.type && (fiber.type.displayName || fiber.type.name)) || String(fiber.elementType || "unknown");
           results.push({ component: name, props });
         }
       }
@@ -61,12 +61,12 @@ Two console methods used this smoke test:
   function safeStringify(obj) {
     const objSeen = new WeakSet();
     return JSON.stringify(obj, function (key, value) {
-      if (typeof value === ""function"") return undefined;
-      if (value instanceof Node) return ""[DOM Node]"";
-      if (value && typeof value === ""object"") {
-        if (objSeen.has(value)) return ""[Circular]"";
+      if (typeof value === "function") return undefined;
+      if (value instanceof Node) return "[DOM Node]";
+      if (value && typeof value === "object") {
+        if (objSeen.has(value)) return "[Circular]";
         objSeen.add(value);
-        if (key.startsWith(""__react"") || key === ""_owner"" || key === ""stateNode"" || key === ""return"" || key === ""child"" || key === ""sibling"" || key === ""alternate"") {
+        if (key.startsWith("__react") || key === "_owner" || key === "stateNode" || key === "return" || key === "child" || key === "sibling" || key === "alternate") {
           return undefined;
         }
       }
@@ -74,10 +74,10 @@ Two console methods used this smoke test:
     }, 2);
   }
   const text = safeStringify(results);
-  const blob = new Blob([text], { type: ""text/plain"" });
+  const blob = new Blob([text], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement(""a"");
-  const ts = new Date().toISOString().replace(/[:.]/g, ""-"");
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
   a.href = url;
   a.download = `PAGE_NAME_smoke_test_${ts}.txt`;
   document.body.appendChild(a);
@@ -88,7 +88,7 @@ Two console methods used this smoke test:
 
 3. Raw localStorage dump (inputs only):
 (() => {
-  const keys = Object.keys(localStorage).filter(k => k.startsWith(""qs_tools_"") || k.startsWith(""qstools_""));
+  const keys = Object.keys(localStorage).filter(k => k.startsWith("qs_tools_") || k.startsWith("qstools_"));
   const dump = {};
   keys.forEach(k => {
     try { dump[k] = JSON.parse(localStorage.getItem(k)); }
@@ -320,6 +320,15 @@ RESULT:
 FIRST: read the Calculation Trace future-build brief and review the actual
   current lib/calculation-trace/ code before touching any step below -
   see CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt.
+  [DONE 2026-09-27, session 9] Read fresh, confirmed static/representative-
+  proof-only and wrongly-rooted per that brief's Section 1 finding. Rebuilt
+  as a live tool for the already-mapped Business Summary/Cost Summary/
+  Labour/Assets/General Overheads/Revenue-COGS slice; live-tested against
+  real saved data, full chain reconciled exactly. Business Modelling/
+  Business Outcome/Cost Allocation/Rate Builder tracing NOT yet built -
+  next incremental slice, not required before resuming Step 8 below. Full
+  detail: docs/Audit/v6_0/smoke_test/1.7_calculation_trace_page/ and the
+  future-build brief's new Section 7.
 
 STEP A - P&L correction:
   Uploaded reference P&L had Salary & Wages entered net of entitlements

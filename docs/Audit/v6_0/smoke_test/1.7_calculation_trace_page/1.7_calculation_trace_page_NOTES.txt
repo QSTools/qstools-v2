@@ -1,0 +1,97 @@
+MIRRA v6.0 - SMOKE TEST - STEP 1.7 - CALCULATION TRACE PAGE REBUILD
+DATE: 2026-09-27
+
+WHAT WAS DONE
+Rebuilt lib/calculation-trace/ and app/calculation-trace/page.jsx from a
+static, hand-authored pilot map (representative-proof-only, not live data)
+into a live tool that resolves real values from the same output_contracts
+the actual app pages read. Root scope for this pass: Business Summary,
+Cost Summary, Labour, Assets, General Overheads, Revenue/COGS - the module
+set already mapped in the pre-existing pilot data. Rate Builder, Business
+Outcome, and Business Modelling tracing are NOT yet built into this graph -
+that is the next incremental step, per the future-build brief's own
+"build incrementally, not as one push" instruction.
+
+ARCHITECTURE
+- Option A (self-contained): the trace page mounts its own
+  useModelReadiness() / useRevenueCogs() / useCostSummary() chain and calls
+  calculateBusinessSummary() directly - the same composition
+  useBusinessSummary.js uses internally. No shipped hook was modified.
+- Nodes carry an inputs[] array (feeding node IDs) and a resolve(liveValues)
+  function; edges are generated from inputs[] rather than hand-duplicated
+  in a separate file.
+- Dynamic nodes (individual assets, individual staff, individual overhead
+  pools) are built at render time from live data, not hardcoded - this is
+  what makes the shared-pool / shared-asset "web, not tree" case (brief
+  section 3) work: a pool node has no inputs of its own, and every asset
+  or line drawing on it lists the pool's node_id in ITS inputs, so the
+  page can show both "fed by" and "also feeds" for any shared node.
+
+DRIFT FOUND VS THE OLD v4.0/v5.0 LINEAGE MAP
+1. Assets - the old itemized ownership-cost model (7 separate cost fields:
+   ownership, finance interest, lease, depreciation, insurance,
+   registration, other) does not exist in live code. Real code
+   (assetCalculations.js) computes total_asset_cost_annual as
+   asset_interest_annual + running_cost_annual, where running_cost_annual
+   is currently a hardcoded 0 - no input feeds it.
+2. What replaced the itemized model: insurance, registration, fuel,
+   vehicle maintenance etc. are now entered on the General Overheads page,
+   auto-tagged into a shared "pool" (asset_overhead_pools), then each
+   asset is assigned a slice of the relevant pool
+   (allocated_asset_overhead_cost_annual). An asset's true total recovery
+   cost is total_asset_cost_annual + allocated_asset_overhead_cost_annual
+   = asset_recovery_cost_annual. Confirmed with the owner this is the
+   correct/expected mechanism, not a regression.
+3. General Overheads - the old "gross_general_overheads_benchmark minus
+   asset_finance_interest_excluded_amount" single top-level subtraction
+   model does not exist. Real code (generalOverheadCalculations.js)
+   reduces each flagged row individually (active_amount), then sums.
+
+LIVE-TEST VERIFICATION (this session, real saved data - one staff member,
+Paul, Supervisor/Team Lead, no assets saved, $1,000 general overheads)
+Full live-values dump: calculation_trace_smoke_test_2026-09-27.json
+
+  labour.total_labour_cost_annual        = 110,328.40
+  assets.total_asset_cost_annual         = 0 (no assets saved)
+  general_overheads.total_general_overheads = 1,000
+  cost_summary.total_cost_burden         = 111,328.40
+    check: 110,328.40 + 0 + 1,000 = 111,328.40 - EXACT MATCH
+  business_summary.required_recovery_per_driver = 78.72646057020282
+    check: 111,328.40 / 1,414.1166666666668 = 78.726... - EXACT MATCH
+
+All four resolved values traced correctly against their live source
+hooks. No discrepancy found between the trace page and the real
+Business Summary / Cost Summary pages for this dataset.
+
+SIDE NOTE (not a trace-page bug, flagged for awareness)
+cost_summary.model_readiness_status = "blocked", blocking_modules:
+["Assets"] - "No active assets are saved and no explicit no-active-assets
+confirmation exists." Expected given this test dataset has zero assets;
+worth checking against the owner's actual working data if this shows up
+unexpectedly there.
+
+FILES CHANGED
+  Deleted:
+    lib/calculation-trace/pilot-map/traceEdges.js
+    lib/calculation-trace/pilot-map/index.js (confirmed unused)
+    lib/calculation-trace/pilot-map/traceLookup.js (duplicate of selectors)
+    lib/calculation-trace/calculationTracePilotMap.js
+  Created:
+    lib/calculation-trace/calculationTraceLiveValues.js
+    lib/calculation-trace/pilot-map/dynamicTraceNodes.js
+  Rewritten:
+    lib/calculation-trace/pilot-map/traceNodes.js
+    lib/calculation-trace/calculationTraceSelectors.js
+    app/calculation-trace/page.jsx
+  Patched:
+    lib/calculation-trace/pilot-map/pilotMeta.js
+      status: "locked_within_source_module_pilot_scope" ->
+        "live_partial_business_summary_slice"
+      code_verification_status: "deferred" -> "in_progress"
+
+NEXT STEP
+Extend the same pattern outward to Cost Allocation -> Rate Builder ->
+Business Outcome -> Business Modelling, per the future-build brief's
+incremental-build instruction. Cost Allocation is the natural next slice
+(already the longest-verified module, ~23 files deep - hook composition
+not yet explored for trace purposes).
