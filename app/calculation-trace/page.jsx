@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import ExportJsonButton from "@/components/dev-tools/ExportJsonButton";
 import { calculationTracePilotMeta } from "@/lib/calculation-trace/pilot-map/pilotMeta";
 import { useCalculationTraceLiveValues } from "@/lib/calculation-trace/calculationTraceLiveValues";
 import {
@@ -190,18 +191,6 @@ function buildTraceSnapshot(graph, liveValues, integrityReport) {
   };
 }
 
-function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
 function flattenUpstreamTrace(trace, depth = 0, rows = []) {
   if (!trace?.node) {
     return rows;
@@ -249,18 +238,12 @@ export default function CalculationTracePage() {
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <StatusPill>{calculationTracePilotMeta.status}</StatusPill>
               {!liveValues.is_hydrated ? <WarningPill>waiting for data to load</WarningPill> : null}
-              <button
-                type="button"
-                onClick={() =>
-                  downloadJson(
-                    `calculation_trace_snapshot_${Date.now()}.json`,
-                    buildTraceSnapshot(graph, liveValues, integrityReport)
-                  )
-                }
+              <ExportJsonButton
+                data={buildTraceSnapshot(graph, liveValues, integrityReport)}
+                filenamePrefix="calculation_trace_snapshot"
+                label="Download trace JSON"
                 className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-100 hover:bg-cyan-400/20"
-              >
-                Download trace JSON
-              </button>
+              />
             </div>
           </div>
         </section>
