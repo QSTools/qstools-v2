@@ -454,6 +454,82 @@ UPDATE (2026-09-26, session 6) - READ THIS FIRST; supersedes session 5's
   the Business Modelling brief, the file map (unchanged from session 5's
   list).
 
+UPDATE (2026-09-26, session 7) - READ THIS FIRST; supersedes session 6's
+  note below. SEPARATE THREAD, not calc work on the real dataset: a manual
+  smoke test on an isolated instance (localhost:3004, separate localStorage
+  origin, zero risk to real data) - one synthetic labour-hire business
+  (Paul, $50/hr) walked end to end: Labour -> Cost Allocation -> Rate
+  Builder (Path A) -> Business Outcome -> Business Modelling identity check,
+  then a $1,000 overhead layered on top and re-verified through the whole
+  chain. EVERY figure reconciled exactly against CALCULATION_MAP_v6_0.txt at
+  every stage, no discrepancies found. Confirmed along the way: General
+  Overheads auto-syncs P&L lines tagged category=general_overheads via
+  synced_pnl_overhead_items (qs_tools_general_overhead_state) - no separate
+  manual entry needed, working as designed.
+  PAUSED MID-SCENARIO, not abandoned: asset phase (adding a productive asset
+  to the group, to exercise CM-1's net_asset_rate/labour_mix_charge_rate via
+  Rate Builder's Customer Charge Calculator - Path B, not Path A) was
+  started but not completed. Resume at folder 1.7 in
+  docs/Audit/v6_0/smoke_test/ when picked back up.
+  PIVOT for next session: NOT resuming the asset test next. Instead testing
+  the REAL P&L Excel import feature (lib/p-and-l/profitAndLossExcelImporter.js,
+  app/api/pnl-import/) - manual entry bypasses this code entirely, so this is
+  genuinely new ground. VARIABLE_TRACKER_v6_0.txt s8/s11 already logs several
+  specific, real gaps here, not yet re-verified against v6.0 code: financial_year
+  defaults from today's date and is NOT read from the report header (has
+  silently disagreed with a correctly dated Balance Sheet before, on real
+  data); period_month is left blank on import; the two internal P&L totals
+  (section-based vs category-based) can diverge silently if a line's
+  category/section tagging is off - /dev/cross-import-check tests this but
+  nothing enforces it at runtime; the labour on-cost split (ACC/KiwiSaver
+  detection) uses fragile line-name substring matching; several fields are
+  dead/display-only despite looking real (materials_cost, subcontract_cost,
+  hired_equipment_cost, employee_overheads_benchmark_total). Check all of
+  these specifically after the import, not just whether numbers look right.
+  This does NOT touch or resolve the REMAINING CALC ITEMS queue (still
+  empty) or the hybrid Rate Builder/Modelling UI idea (still undecided,
+  unscoped) - both untouched, as they were at the end of session 6.
+  ALSO FOUND, fixed this session: this kickoff doc had silently drifted
+  from project knowledge - a session 6 update existed in project knowledge
+  but was never saved back to this file on disk. Backfilled below. A
+  duplicate, much staler copy of this file (295 lines, no UPDATE history at
+  all) was also found at the repo root - renamed, not deleted, see repo
+  root for _STALE_DO_NOT_USE copy. Going forward: this docs\fin_mirra_v6.0
+  Briefs\ copy is the ONLY one to edit.
+  Upload for next chat: this file, the variable tracker, the calc map, the
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt (now covers both the labour/overhead
+  scenario AND the upcoming Excel-import findings - append to it, don't
+  create a second smoke-test brief). Business Modelling brief and file map
+  can be dropped from this session's upload; nothing in this thread touches
+  Business Modelling.
+
+UPDATE (2026-09-26, session 6) - READ THIS FIRST; supersedes session 5's
+  note below. BO-8 and CM-8 (session 5's "NEXT, in order" items) are both
+  closed:
+    BO-8 CLOSED (not fixed - confirmed not applicable). Investigated:
+    calculate_capacity_coverage_gap ignores its overrides parameter, so
+    modelled_per_source.capacity_coverage_gap never reflects a lever -
+    but that mechanism is inert cross-check infrastructure (Q2, brief
+    s11); the live page runs on the additive model instead, and nothing
+    reads modelled_per_source.capacity_coverage_gap. No visible bug.
+    CM-8 FIXED, verified live, committed (67b00ec). Third copy of the
+    dead type === "time" recovery-hours rule, in
+    businessOutcomeAssetSplitCalculations.js, feeding the LIVE
+    /recovery-outcome page. Now uses the shared
+    get_calculator_recovery_hours rule (same as CM-1b). All four
+    asset-backed groups (2inc Line, 2inc Line Pump 2, PC15, PC55) verified
+    live with reason=null and a real totalCharged.
+  Both entries closed in CALCULATION_MAP_v6_0.txt (s12) and
+  VARIABLE_TRACKER_v6_0.txt (commit 9846381).
+  SEPARATE FINDING, logged only, not fixed: /recovery-outcome's "Asset
+  utilization data not available" message prints identical wording for
+  two different underlying conditions - display defect, not chased.
+  NEXT: owner wants to consider a hybrid Rate Builder / Modelling UI -
+  not decided, not scoped. No other item is queued ahead of it as of
+  this note.
+  Upload for next chat: this file, the variable tracker, the calc map,
+  the Business Modelling brief, the file map (unchanged from session 5's
+  list).
 UPDATE (2026-09-26, session 5) - READ THIS FIRST; supersedes session 4's
   note below. SHIPPED, verified live, committed: (1) OVERHEADS LEVER -
   General Overheads categories are cost rows in Business Modelling

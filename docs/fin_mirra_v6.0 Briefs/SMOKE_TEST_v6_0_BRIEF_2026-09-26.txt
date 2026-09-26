@@ -1,0 +1,315 @@
+MIRRA v6.0 - SMOKE TEST - MINIMAL END-TO-END WALKTHROUGH
+STATUS: IN PROGRESS - started 2026-09-26
+PHASE 1 COMPLETE (2026-09-25/26): single labour-hire scenario, no asset -
+  Labour -> Cost Allocation -> Rate Builder (Path A) -> Business Outcome ->
+  Business Modelling identity check, then overhead $1,000 layered on top.
+  All figures reconciled exactly against CALCULATION_MAP_v6_0.txt at every
+  stage. Folder set: 1.0 through 1.6 in docs/Audit/v6_0/smoke_test/.
+PHASE 2 STARTING: add a productive asset to the group. Expect
+  group_recovery_hour_source to switch from "labour_hours" to asset-driven
+  (calc map s7). CM-1 fields (net_asset_rate, labour_mix_charge_rate) are
+  tied to Rate Builder's Customer Charge Calculator (Path B), NOT the Path A
+  labour charge-out rate used in phase 1 - may need to re-price the group via
+  the calculator this time to see them populate. Folder set: 1.7 onward.
+PURPOSE: manual, minimal-data walkthrough of the full chain (P&L -> Labour ->
+  Cost Allocation -> Rate Builder -> Business Outcome -> Business Modelling)
+  on an ISOLATED instance (localhost:3004, separate localStorage origin from
+  the real :3000 instance) to sanity-check each stage responds correctly to
+  a single, traceable change before trusting the chain on real data.
+METHOD: one staff member, one working/operating group, priced via Rate
+  Builder; then add overhead, then an asset, checking Business Outcome and
+  Business Modelling after each addition. Console snapshot after each step
+  (localStorage dump, see s0). Numbers ARE allowed in this brief (point-in-
+  time smoke-test record, not a living mechanism doc).
+
+===============================================================================
+0. SNAPSHOT METHOD
+===============================================================================
+Two console methods used this smoke test:
+1. localStorage dump (raw inputs only) - see method below.
+2. Full-fiber-tree walk (calculated/derived props, works regardless of card
+   collapse state) - REQUIRES a circular-safe JSON.stringify replacer as of
+   the Business Modelling page (2026-09-25 22:09) - a plain stringify threw
+   "Converting circular structure to JSON" there (DOM/fiber back-reference).
+   Use the circular-safe version for every page from here on:
+
+(() => {
+  function getFiberRoot() {
+    const rootEl = document.getElementById(""__next"") || document.body;
+    const key = Object.keys(rootEl).find(k => k.startsWith(""__reactFiber$"") || k.startsWith(""__reactContainer$""));
+    return rootEl[key];
+  }
+  function collect(fiber, seen, results) {
+    if (!fiber || seen.has(fiber)) return;
+    seen.add(fiber);
+    try {
+      const props = fiber.memoizedProps;
+      if (props && typeof props === ""object"") {
+        const keys = Object.keys(props);
+        if (keys.some(k => /rate|cost|hours|profit|revenue|ready|burden|margin|labour|staff|overhead|pool|group|assign|recovery|basis|start|floor|ceiling|effect|lever|row_id|status|modelled|target|source|headline|capacity|gap|markup|true_cost|net_profit/i.test(k))) {
+          const name = (fiber.type && (fiber.type.displayName || fiber.type.name)) || String(fiber.elementType || ""unknown"");
+          results.push({ component: name, props });
+        }
+      }
+    } catch (e) {}
+    collect(fiber.child, seen, results);
+    collect(fiber.sibling, seen, results);
+  }
+  const root = getFiberRoot();
+  const results = [];
+  collect(root, new WeakSet(), results);
+  function safeStringify(obj) {
+    const objSeen = new WeakSet();
+    return JSON.stringify(obj, function (key, value) {
+      if (typeof value === ""function"") return undefined;
+      if (value instanceof Node) return ""[DOM Node]"";
+      if (value && typeof value === ""object"") {
+        if (objSeen.has(value)) return ""[Circular]"";
+        objSeen.add(value);
+        if (key.startsWith(""__react"") || key === ""_owner"" || key === ""stateNode"" || key === ""return"" || key === ""child"" || key === ""sibling"" || key === ""alternate"") {
+          return undefined;
+        }
+      }
+      return value;
+    }, 2);
+  }
+  const text = safeStringify(results);
+  const blob = new Blob([text], { type: ""text/plain"" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement(""a"");
+  const ts = new Date().toISOString().replace(/[:.]/g, ""-"");
+  a.href = url;
+  a.download = `PAGE_NAME_smoke_test_${ts}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  console.log(`Captured ${results.length} components.`);
+})();
+
+3. Raw localStorage dump (inputs only):
+(() => {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith(""qs_tools_"") || k.startsWith(""qstools_""));
+  const dump = {};
+  keys.forEach(k => {
+    try { dump[k] = JSON.parse(localStorage.getItem(k)); }
+    catch { dump[k] = localStorage.getItem(k); }
+  });
+  console.log(JSON.stringify(dump, null, 2));
+})();
+
+Derived/computed figures not caught by the fiber-walk regex: read off the
+rendered page and record the displayed number.
+
+===============================================================================
+1. STEP 1 - P&L MINIMAL DATA
+===============================================================================
+[ ] entered
+DATA ENTERED:
+RESULT:
+SNAPSHOT:
+
+===============================================================================
+2. STEP 2 - LABOUR: ONE STAFF MEMBER
+===============================================================================
+[x] entered
+DATA ENTERED: Paul, Supervisor/Team Lead, productive, 40 h/wk, 5 days/wk,
+  labour_rate $50, charge_out_rate 0 (not set yet - by design, revenue comes
+  after Cost Allocation + Rate Builder), productivity 85%, margin target 20%,
+  standard NZ leave/ACC defaults, KiwiSaver + ACC enabled.
+RESULT: labour_ready = True. All output_contract figures verified exactly
+  against CALCULATION_MAP_v6_0.txt s3 (captured via full-fiber-tree console
+  script, not manual card inspection - see s0):
+    paid_hours_per_year = 2,080 (40 x 52)
+    non_productive_paid_hours = 416.333 (leave 344 + NZ paid rest breaks 72.333)
+    productive_hours = 1,414.117 ((2,080-416.333) x 0.85)
+    base_labour_cost_annual = 104,000 (50 x 2,080)
+    employer_kiwisaver_gross = 3,640.00 (104,000 x 3.5%)
+    esct_amount = 1,201.20 (3,640 x 33%)
+    acc_work_levy_annual = 1,487.20 (104,000 x 1.43%)
+    total_employer_contribution_cost = 6,328.40
+    total_labour_cost_annual = 110,328.40
+    loaded_labour_cost_rate = 53.0425 (/paid hours)
+    productive_labour_cost_rate = 78.0193 (/productive hours)
+    minimum_charge_out_rate = 97.5241 (productive rate / (1-20%))
+    profit_per_hour = -78.0193 (0 charge-out - 78.0193 cost; expected, no
+      charge-out rate set yet)
+  NO DISCREPANCIES. Every formula matched calc map s3 exactly.
+SNAPSHOT: labour_smoke_test_2026-09-25T21-22-06-445Z.txt (full-fiber-tree
+  dump, 3 components captured: LabourCompactWorkspaceCard, DetailPanel,
+  AdvancedDetail - all three carried the identical full labour object, so
+  card-collapse state did not matter for this capture method).
+
+===============================================================================
+3. STEP 3 - COST ALLOCATION: WORKING GROUP + ASSIGN STAFF
+===============================================================================
+[x] entered
+DATA ENTERED: operational group "Single Labour" created; Paul assigned at
+  100% (productive labour pool).
+NOTE: first console capture was taken BEFORE the assignment saved - showed
+  all zeros, caused a "hmm" moment, re-captured after confirming via the
+  Reconciliation tab screenshot that assignment had landed. Not a bug -
+  logged as a process note (capture AFTER the save, not right after the
+  click) rather than a code finding.
+RESULT: verified exactly against CALCULATION_MAP_v6_0.txt s7:
+    assigned_labour_cost = 110,328.40 (= available x 100% assignment_percent)
+    group_recovery_hours = 1,414.117 (= labour hours; group_recovery_hour_source
+      = "labour_hours" - correctly labour-driven, no asset assigned yet)
+    total_group_cost = 110,328.40 (labour only; asset/overhead legitimately 0)
+    labour_recovery_rate = 78.0193 (= assigned_labour_cost / group_recovery_hours)
+    group_cost_per_hour = 78.0193 (= total_group_cost / group_recovery_hours)
+    minimum_recoverable_rate_per_hour = 78.0193 (labour + asset(0) + overhead(0))
+    overhead: assignment_percent 100%, assigned_overhead_amount = 0 (100% of
+      an empty overhead pool - correct, no P&L overhead entered yet)
+  NO DISCREPANCIES once captured post-save.
+SNAPSHOT: cost_allocation_smoke_test_2026-09-25T21-58-29-692Z.txt (pre-save,
+  all zero - kept for the process note above), cost_allocation_smoke_test_
+  2026-09-25T22-02-20-328Z.txt (post-save, verified figures above).
+
+===============================================================================
+4. STEP 4 - RATE BUILDER: PRICE THE GROUP
+===============================================================================
+[x] entered
+DATA ENTERED: $100 entered as Paul's charge-out rate on the Labour tab (Path
+  A). Confirmed via localStorage read, NOT the fiber-walk script (localStorage
+  is the source of truth for this input - Rate Builder has no output
+  contract per calc map s18):
+    qstools_rate_builder_labour_source_rates_v1 = {"supervisor_team_lead":100}
+    qs_tools_rate_builder_calculators_v1 = null (Customer Charge Calculator /
+      Path B untouched - correct, not needed for a labour-driven group with
+      no asset; that path is for step 8's asset-backed unit)
+RESULT: sanity-checked against Cost Allocation's group minimum
+  (minimum_recoverable_rate_per_hour = 78.0193, calc map s7) - $100 clears it
+  by $21.98/hr, a genuine margin. Expected Business Outcome figures (calc map
+  s9.1, s9.3, labour-driven group, no overhead yet):
+    modelled_revenue = 100 x 1,414.117 h = ~141,411.67
+    true_cost = ~110,328.40 (matches Labour total cost exactly, no overhead
+      share yet since overhead pool is still $0)
+    net_profit = ~31,083.27
+  TO CONFIRM once on the Business Outcome page (step 5).
+SNAPSHOT: n/a (localStorage read only, no fiber-walk file this step).
+
+===============================================================================
+5. STEP 5 - BUSINESS OUTCOME CHECK (labour-driven, no asset yet)
+===============================================================================
+[x] checked
+DATA ENTERED: P&L Sales set to 141,412 (to roughly cover the projected labour
+  revenue from step 4).
+RESULT: every figure verified exactly against CALCULATION_MAP_v6_0.txt s9.1/
+  s9.3 - no discrepancies:
+    labour_groups[0].staff[0].modelled_revenue = 141,411.67 (= 100 x 1,414.117 h)
+    true_cost = 110,328.40 (exact match to Labour total cost - no overhead yet)
+    naive_net_profit = final_net_profit = 31,083.27 (no shortfall cascade
+      triggered - group is fully profitable, Phase 1/2 pro-rata not exercised
+      with only one source)
+    charge_out_rate = 100 (confirms Rate Builder -> Business Outcome handoff,
+      calc map s20, readRateBuilderLabourSourceRates)
+    non_productive_share = 0 (correct - single fully-assigned staff, nothing
+      to spread)
+  Materials residual (calc map s9.3, View A = real revenue - labour modelled
+  - asset modelled): net_profit = 0.33, explained exactly by the $0.33 gap
+  between entered P&L Sales (141,412.00) and exact labour modelled revenue
+  (141,411.67). NOT a bug - materials is designed as the absorbing/residual
+  row. Reconciles: 141,411.67 + 0.33 = 141,412.00 exactly.
+  health_gauge.smoothed_net_profit = 31,083.60 (= 31,083.27 + 0.33) - checks.
+  reconciliation.total_true_cost = 110,328.40 - checks (labour only).
+SNAPSHOT: business_outcome_smoke_test_2026-09-25T22-06-50-005Z.txt
+
+===============================================================================
+6. STEP 6 - BUSINESS MODELLING CHECK (no levers = today, identity test)
+===============================================================================
+[x] checked
+RESULT: IDENTITY CHECK PASS on live smoke-test data (first time this specific
+  test has been run against fresh, non-synthetic, single-staff data rather
+  than the real production dataset):
+    BusinessModellingNetProfitBar: today = 31,083.60, modelled = 31,083.60,
+      change = 0 - exact, no levers touched.
+  Staff row (Paul, "Single Labour") verified against calc map s10:
+    basis = 1,414.12 h (covered hours)
+    achieved_revenue = 141,411.67 (exact match, Business Outcome)
+    start_rate = 99.9998 (~100 - display-rounding of basis vs unrounded
+      1,414.1167, same documented residual class as brief s13, not a defect)
+    floor_rate = 78.0191 (~group_min_rate 78.0193, same rounding cause)
+    group_min_rate = 78.0193053378434 (exact match, Cost Allocation)
+    ceiling_rate = 100 (= entered charge-out rate, correct per brief s1)
+  10 overhead category rows present, correctly zeroed (is_cost_row true, no
+  P&L overhead entered yet).
+  Materials row correctly flagged status "no_cogs", not shown as a fake
+  range (brief s3 rule) - no COGS entered yet.
+  NO DISCREPANCIES.
+CONSOLE NOTE: this page needed a circular-safe JSON.stringify replacer (DOM
+  node / fiber back-reference caused "Converting circular structure to JSON"
+  on the plain script used for prior pages). Fixed script logged in s0 for
+  reuse on all subsequent pages.
+SNAPSHOT: business_modelling_smoke_test_2026-09-25T22-09-38-369Z.txt
+
+===============================================================================
+7. STEP 7 - ADD OVERHEAD $1,000 TO P&L (FULL SCENARIO, ALL PAGES)
+===============================================================================
+[x] entered
+DATA ENTERED: P&L line "Test Overhead", $1,000, category general_overheads,
+  review_subcategory staff_overheads.
+
+FINDING (process, not a bug): General Overheads page auto-syncs P&L lines
+  tagged category=general_overheads via synced_pnl_overhead_items in
+  qs_tools_general_overhead_state - no manual re-entry needed. The manual
+  per-line fields (staff_overheads_cost etc.) exist only as an override path
+  if auto-categorisation is ever wrong. Confirmed working as designed.
+
+RESULT: full chain walked (P&L -> General Overheads -> Cost Allocation ->
+  Rate Builder -> Business Outcome -> Business Modelling), verified against
+  calc map s6/s7/s9/s10/s13. NO DISCREPANCIES:
+
+  GENERAL OVERHEADS: total_general_overheads = 1,000 (GeneralOverheadSummaryCard),
+    staff_overheads group: source/assigned = 1,000, allocation_pool_status
+    "fully_allocated". All 9 other categories correctly $0.
+
+  COST ALLOCATION: assigned_overhead_amount = 1,000 (100% to the one group);
+    total_group_cost = 111,328.40 (= 110,328.40 labour + 1,000 overhead, exact);
+    overhead_recovery_rate = 0.7072 (= 1,000/1,414.117 h); group_cost_per_hour
+    / minimum_recoverable_rate_per_hour = 78.7265 (= 78.0193 labour +
+    0.7072 overhead). labour_share_percent 99.1 / overhead_absorbed_percent
+    0.9 checked against calc map s6 formula (overhead_absorbed = 100 - labour
+    - asset - material share) - EXACT match (1,000/111,328.40 = 0.898% ~ 0.9%).
+    NOTE: overhead_absorbed_percent is cost-mix share, NOT pool-assignment %
+    (that's assigned_overhead_amount, separately 100%) - confusing field name
+    sitting next to the assignment fields, worth a naming-clarity note for
+    later, not a calc defect.
+
+  BUSINESS OUTCOME: true_cost = 111,328.40 (exact match to CA's
+    total_group_cost); modelled_revenue unchanged 141,411.67 (correct - rate x
+    hours, not cost-dependent); net_profit = 30,083.27 = exactly $1,000 less
+    than pre-overhead baseline (31,083.27), i.e. the added cost flowed through
+    dollar-for-dollar with no leakage.
+
+  BUSINESS MODELLING: overhead:staff_overheads row now start_rate = 1,000
+    (was 0), achieved_revenue = -1,000 (cost shown as negative contribution,
+    correct), floor_rate = 0. Staff row's floor_rate/group_min_rate updated
+    to 78.7263/78.7265, exact match to CA. IDENTITY CHECK STILL PASSES:
+    today = modelled = 30,083.60 (30,083.27 + 0.33 materials residual, same
+    residual as before, unaffected by overhead change), change = 0, zero
+    levers touched. All 9 other overhead rows still correctly $0.
+
+CONCLUSION: overhead cost change propagated correctly through every stage
+  with no drift, no dropped fields, no double-counting. Identity check holds
+  after a real cost change, not just at zero-state.
+SNAPSHOT: general_overheads_baseline_2026-09-25T22-55-46-297Z.txt (pre-entry
+  baseline, confirmed dedicated storage key), mirra_smoke_test_FULL_CHAIN_
+  overhead1000_2026-09-25T23-01-31-080Z.txt (4 of 5 stages, download fired
+  before Business Modelling capture - process note: fire download AFTER the
+  final stage capture confirms in console, not immediately after clicking),
+  mirra_smoke_test_FULL_CHAIN_overhead1000_v2_2026-09-25T23-03-24-591Z.txt
+  (complete 5-stage capture, all figures above verified from this file).
+
+===============================================================================
+8. STEP 8 - ADD AN ASSET, ASSIGN TO THE GROUP
+===============================================================================
+[ ] entered
+EXPECTED: group becomes asset-driven; Business Outcome shows net_asset_rate /
+  labour_mix_charge_rate split (CM-1); Business Modelling collapses the
+  group's separate labour + asset rows into ONE "unit:<group_id>" lever, the
+  labour row shown as status in_unit_rate (not leverable).
+RESULT:
+
+===============================================================================
+9. ISSUES FOUND (log only, do not fix inline unless trivial per kickoff s4)
+===============================================================================
