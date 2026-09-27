@@ -1,5 +1,5 @@
 MIRRA v6.0 - CALCULATION TRACE / VERIFICATION LAYER - FUTURE BUILD BRIEF
-STATUS: [SHIPPED - PARTIAL, Business Summary + Cost Allocation + Rate Builder + Business Outcome (naive + real_capacity + View B slices)] live as of 2026-09-27 (sessions 9-13). Originally written 2026-09-26 (session 8).
+STATUS: [SHIPPED - Business Summary + Cost Allocation + Rate Builder + Business Outcome (ALL FOUR mechanisms: naive, real_capacity/View B, assumed_capacity/Best Case, non-productive distribution)] live as of 2026-09-27 (sessions 9-13). Originally written 2026-09-26 (session 8).
 
 UPDATE (2026-09-27, session 13) - READ THIS FIRST; supersedes session 12's
   note below. Calculation Trace extended to Business Outcome's two real-
@@ -83,18 +83,59 @@ UPDATE (2026-09-27, session 13) - READ THIS FIRST; supersedes session 12's
   Revisit when such a dataset is available, or deliberately pad test data
   to trigger it (same padding precedent as the Cost Allocation P2.5
   pass) and note that choice explicitly if done.
-  STILL NOT WIRED, logged not built: the non-productive cost distribution
-  mechanism ("How the Business Runs" - distribute_non_productive_cost,
-  pure_support_groups, calc map s9.4) - how a pure-support unit's own
-  unrecovered cost spreads across productive units by labour/asset cost
-  share, vs shown as its own visible row. Independent of both cascades
-  above (cost-side spreading, not revenue-side scaling/redistribution) -
-  does not need to land together with either.
-  NEXT: either the non-productive distribution mechanism above, finding/
-  padding a dataset that exercises the two untested redistribution paths,
-  or Business Modelling itself (this brief's originally specified root) -
-  page.jsx's root-selector decision becomes live once Modelling is wired
-  in. Smoke test thread remains separately parked.
+  ALSO THIS SESSION: the non-productive cost distribution mechanism
+  ("How the Business Runs" - distribute_non_productive_cost, calc map
+  s9.4) - new lib/calculation-trace/pilot-map/
+  businessOutcomeNonProductiveDistributionTraceNodes.js. Confirmed by
+  reading the function AND its call site that this mechanism runs ONCE,
+  shared by BOTH cascades identically (the same non_productive_cost_by_group_id
+  map feeds apply_real_capacity and apply_real_capacity_v2 - unlike
+  real_capacity and assumed_capacity, there is no separate View A/View B
+  version here). HONESTY CONSTRAINT deliberately built in: a group's own
+  non-productive cost comes from ONE of two paths (pooled-and-spread for
+  pure-support/spread_as_overhead groups, vs charged-to-self for the
+  default policy on a mixed unit) and the exposed data does not say
+  per-group which path applied - so the pool node is modelled as a
+  standalone, informational figure with NO edge asserted into every
+  group's node (that would misrepresent charge_to_self groups); both
+  paths are described in the group node's own formula_text instead. What
+  IS unambiguous and correctly wired: each group's resulting
+  non_productive_cost genuinely feeds that group's true_cost inside BOTH
+  cascades - added as a corrective extra input on the existing
+  real_capacity group nodes from earlier this session (small, deliberate
+  edit to an already-shipped file, not new module surface).
+  LIVE-TEST VERIFICATION: same single-fully-assigned-staff dataset as
+  every check this session - no pure-support unit exists, so pool and
+  every group's non_productive_cost resolved 0, as expected (correct
+  passthrough, not exercised). The two real_capacity group nodes still
+  resolved their unchanged values (30083.27 both) after gaining the new
+  input, confirming the correction only added graph metadata, not a
+  resolve() side effect. Node count 60 -> 62 (+2, exactly one pool node
+  and one group node, no pure-support nodes), edge count 57 -> 59 (+2,
+  exactly the two new edges into the real_capacity group nodes),
+  integrity clean throughout (0 duplicate IDs, 0 missing endpoints)
+  across all four patches this session.
+  ALL FOUR BUSINESS OUTCOME MECHANISMS from this brief's original scope
+  (calc map s9.1-9.4) are now wired: naive per-source, real_capacity
+  (View A + View B), assumed_capacity/ceiling (View A + View B),
+  non-productive distribution. STILL NOT LIVE-TESTED, logged not built
+  (unchanged from earlier - now spans three of the four mechanisms):
+  real_capacity's proportional redistribution (needs a genuine shortfall),
+  assumed_capacity's ceiling scaling (needs a genuine breach), and
+  non-productive distribution's actual pooling/weighting math (needs a
+  genuine pure-support unit or a spread_as_overhead mixed unit in the
+  dataset) - none of these three paths has been exercised against real
+  numbers, only their zero-value passthrough confirmed correct. Needs a
+  dataset with: a pure-support working unit (zero productive labour/asset
+  cost, some non-productive cost) AND/OR a genuine shortfall/breach, to
+  properly verify. Revisit when such a dataset is available, or
+  deliberately pad test data to trigger these paths (same padding
+  precedent as the Cost Allocation P2.5 pass) and note that choice
+  explicitly if done.
+  NEXT: either find/pad a dataset that exercises the three untested paths
+  above, or move to Business Modelling itself (this brief's originally
+  specified root) - page.jsx's root-selector decision becomes live once
+  Modelling is wired in. Smoke test thread remains separately parked.
   Upload for next chat: this file, variable tracker, calc-trace brief.
 
 UPDATE (2026-09-27, session 12) - READ THIS FIRST; supersedes session 11's
