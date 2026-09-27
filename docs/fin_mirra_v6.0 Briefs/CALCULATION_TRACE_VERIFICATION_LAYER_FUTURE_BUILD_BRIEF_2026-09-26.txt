@@ -1,5 +1,49 @@
 MIRRA v6.0 - CALCULATION TRACE / VERIFICATION LAYER - FUTURE BUILD BRIEF
-STATUS: [SHIPPED - PARTIAL, Business Summary + Cost Allocation + Rate Builder slices] live as of 2026-09-27 (sessions 9-11). Originally written 2026-09-26 (session 8).
+STATUS: [SHIPPED - PARTIAL, Business Summary + Cost Allocation + Rate Builder + Business Outcome (naive slice) slices] live as of 2026-09-27 (sessions 9-12). Originally written 2026-09-26 (session 8).
+
+UPDATE (2026-09-27, session 12) - READ THIS FIRST; supersedes session 11's
+  note below. Calculation Trace extended to Business Outcome (naive slice
+  only): new lib/calculation-trace/pilot-map/businessOutcomeTraceNodes.js -
+  one boundary node (business_outcome.per_source_revenue), per-labour-source
+  and per-asset-source modelled_revenue/net_profit nodes, one materials
+  node, per-Cost-Allocation-group rollup nodes. Mounts
+  useBusinessOutcomePerSourceRevenue() a second time with NO overrides,
+  matching useBusinessModelling.js's own naive `per_source` exactly (not
+  modelled_per_source) - confirmed via that file's own revert comment: the
+  real_capacity/View B cascades are designed to always reconcile to real
+  P&L revenue regardless of any lever, so they cannot be what live
+  modelling actually runs on. Labour/asset source nodes point back at the
+  SAME shared cost_allocation.labour_type.<id> / cost_allocation.asset.<id>
+  nodes Cost Allocation's own slice (session 10) already created - a real
+  shared-node edge, not a new root; confirmed live (see below).
+  DELIBERATELY OUT OF SCOPE this slice, logged not built: the real_capacity
+  two-phase cascade (naive_net_profit -> final_net_profit) and View B's
+  parallel cascade - both are genuinely different "true" net-profit figures
+  from the naive rows traced here and need their own explicit node design,
+  not a silent collapse into one number.
+  LIVE-TEST VERIFICATION: dataset has one labour source
+  (supervisor_team_lead) and no priced assets. Downloaded trace JSON:
+  integrity report clean (0 duplicate node IDs, 0 missing endpoints),
+  node count 37 -> 44 (+7), edge count 27 -> 34 (+7, exactly matching the
+  edges this dataset's node set should produce with zero asset sources).
+  cost_allocation.labour_type.supervisor_team_lead resolved 110328.4 with a
+  real outgoing edge into the new labour-source node - confirms the shared-
+  node wiring is genuine, not orphaned. business_outcome.labour_source.
+  ....modelled_revenue resolved 141411.67, .net_profit resolved 30083.27;
+  business_outcome.materials resolved 0.33 both fields. Sum
+  (141411.67 + 0.33 = 141412.00) matched /business-outcome's own displayed
+  total revenue ($141,412) exactly; net profit sum (30083.27 + 0.33 =
+  30083.60, rounds to $30,084) matched the page's displayed net profit
+  exactly. No per-asset-source nodes exist yet in the graph (correct for
+  this dataset - buildBusinessOutcomeAssetSourceNodes returned nothing
+  rather than fabricating empty nodes; not live-tested against real asset
+  data this session since none exists in the smoke-test set).
+  NEXT: either extend Business Outcome to the real_capacity/View B
+  cascades (deferred above), or move on to Business Modelling itself (this
+  brief's originally specified root) - page.jsx's root-selector decision
+  becomes live and real once Modelling is wired in. Smoke test thread
+  remains separately parked.
+  Upload for next chat: this file, variable tracker, calc-trace brief.
 ORIGIN: entitlements/P&L reconciliation session. Manually console-capturing
   one page at a time to verify each module is slow and will not scale
   across the remaining labour/asset/product-mode test passes.
