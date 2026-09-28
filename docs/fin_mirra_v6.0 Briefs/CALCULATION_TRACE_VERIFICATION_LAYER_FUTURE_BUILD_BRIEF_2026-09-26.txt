@@ -612,3 +612,75 @@ UPDATE (2026-09-28, session 14 FOLLOW-UP) - READ THIS FIRST; supersedes the
   but is not separately listed, so it has no edge into the pool.
   NEXT: remaining options are (b) the untested pool paths, (c) the
   contribution-margin lens, (d) Business Modelling as trace root.
+UPDATE (2026-09-28, session 15) - READ THIS FIRST; supersedes the NEXT line
+  of the session 14 FOLLOW-UP above for item (b) "untested pool paths".
+  [VERIFIED - LOGIC ONLY, NO CODE CHANGED] distribute_non_productive_cost and
+  both cascades, tested with a throwaway harness (temp file, deleted) that
+  extracted the REAL functions from hooks/useBusinessOutcomePerSourceRevenue.js
+  and lib/calculations/businessOutcomeViewBCalculations.js and ran them on
+  synthetic groups against hand-computed expectations. 6/6 pool cases and
+  24/24 View A / View B checks passed.
+  PASSED: labour-weighted spread; asset-burden weighting (no recipient has
+  labour); asset-only recipient beside a labour recipient gets $0; mixed unit
+  under charge_to_self keeps own cost plus its pool share; mixed unit under
+  spread_as_overhead pays in and receives its share back; View A vs View B
+  with materials > 0 at four revenue levels (exact match, modest shortfall,
+  surplus, shortfall above all profit). Both views reconcile to real revenue
+  minus real cost incl. pooled support cost (View B surplus counted
+  separately; $0.01 rounding residual in the phase-2 case).
+  Where the views differ, as designed: shortfall case - View A floors
+  materials at $0 and groups absorb it; View B spreads it across all peers
+  and materials can go negative. Surplus case - View A gives materials the
+  whole surplus; View B holds materials at its modelled profit and reports
+  the surplus unallocated (this is BO-12's unexplained-revenue amount).
+  FINDINGS (logged, nothing fixed):
+  F1 equal_split weight basis is UNREACHABLE. A group is only a recipient if
+     productive labour or asset cost > 0, so total_labour or total_asset is
+     always > 0 whenever a recipient exists. The trace node text and calc map
+     describe it as a live fallback - wording should say unreachable.
+  F2 An asset-only group gets $0 of the pool whenever any other group has
+     productive labour (same rule as overhead C5). Probably intended; the
+     labour groups then carry all support cost. Design question, not a defect.
+  F3 Pool can vanish: pure-support cost with NO productive group is reported
+     in non_productive_cost_distributed_total but paid by nobody. Needs zero
+     productive groups; not realistic, logged only.
+  F4 DEAD SETTING: mixed_unit_non_productive_policy = spread_as_overhead has
+     NO writer. writeNonProductiveCostPolicy has no callers and the storage
+     key appears only in its own file. Every user is on charge_to_self; the
+     only route is a console localStorage.setItem plus reload. The hook also
+     reads the policy once in a mount effect, so a UI toggle would need the
+     hook to re-read it (state or storage event), not just a write.
+  F5 Trace node file businessOutcomeNonProductiveDistributionTraceNodes.js
+     contains doubled apostrophes inside double-quoted strings (group''s,
+     mixed unit''s) - they will display literally. Cosmetic, not fixed.
+  NOT PROVEN: the harness proves branch logic and cascade math, not the
+  hook wiring (e.g. how materials' naive revenue is derived, which was
+  assumed to be real revenue minus group modelled revenue), and not the
+  design. No live run of a mixed unit or of materials > 0 has happened; the
+  smoke-test dataset has no mixed unit and materials = $0.
+  [SHIPPED] F4 policy toggle (session 15). New component
+  components/business-outcome-truth/NonProductivePolicyToggle.jsx, rendered
+  on /business-outcome above the group card. writeNonProductiveCostPolicy now
+  dispatches "qstools:non-productive-policy-changed"; the hook's existing
+  mount effect (useBusinessOutcomePerSourceRevenue.js) also subscribes to it
+  and re-reads, so every hook instance recomputes without a reload. No
+  formula changed (calc map untouched). Build passed; all six patches
+  confirmed "Patched:".
+  VERIFIED LIVE via Download trace JSON, real data, Sarah ($108,841.20 non-
+  productive labour) moved INTO Single Labour so it is a mixed unit:
+    charge_to_self:     pool $0, Single Labour $108,841.20, Junior $0
+    spread_as_overhead: pool $108,841.20, Single Labour $64,050.34,
+                        Junior $44,790.86 (sums to pool exactly)
+  Both snapshots: 83 nodes, 88 edges, 0 duplicate IDs, 0 missing endpoints.
+  Storage value and highlighted button agreed on both clicks (console check).
+  NOT CONFIRMED: numbers moving on /business-outcome itself with no reload
+  between clicks (trace page mounts fresh, so it is a weaker test of the
+  live event path). A stale highlight seen once before the patches landed
+  was put down to a long Fast Refresh session and did not recur.
+  DATASET NOTE: the smoke-test dataset changed this session - Sarah now sits
+  in Single Labour (mixed unit); there is an empty "Acoounts Team Test" group;
+  the pure-support node is therefore absent and the pool node has no input
+  edges. Do not treat pre-session-15 numbers as the current baseline.
+  Trace pool node text still calls equal_split a live fallback (F1) - not
+  yet reworded.
+  NEXT: (c) contribution-margin lens, (d) Business Modelling as trace root.

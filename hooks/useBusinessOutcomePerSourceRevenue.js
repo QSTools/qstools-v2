@@ -10,7 +10,10 @@ import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview, calculate_labour_mix_charge_rate, calculate_net_asset_rate, get_calculator_recovery_hours } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
-import { readNonProductiveCostPolicy } from "@/lib/storage/businessOutcomeNonProductivePolicyStorage";
+import {
+  readNonProductiveCostPolicy,
+  NON_PRODUCTIVE_POLICY_CHANGED_EVENT,
+} from "@/lib/storage/businessOutcomeNonProductivePolicyStorage";
 import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
 import { calculateGaugeInput } from "@/lib/calculations/businessModellingIndependentCalculations";
 
@@ -1000,9 +1003,15 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
   }, []);
   const [mixed_unit_non_productive_policy, set_mixed_unit_non_productive_policy] = useState("charge_to_self");
   useEffect(() => {
-    set_mixed_unit_non_productive_policy(
-      readNonProductiveCostPolicy().mixed_unit_non_productive_policy
-    );
+    const reload_policy = () =>
+      set_mixed_unit_non_productive_policy(
+        readNonProductiveCostPolicy().mixed_unit_non_productive_policy
+      );
+    reload_policy();
+    // Every hook instance re-reads when the toggle writes (dispatched by
+    // writeNonProductiveCostPolicy), so all pages/cascades stay in step.
+    window.addEventListener(NON_PRODUCTIVE_POLICY_CHANGED_EVENT, reload_policy);
+    return () => window.removeEventListener(NON_PRODUCTIVE_POLICY_CHANGED_EVENT, reload_policy);
   }, []);
 
   const bs = business_summary.output_contract ?? {};

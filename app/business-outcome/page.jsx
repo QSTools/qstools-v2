@@ -23,6 +23,7 @@ import Link from "next/link";
 import useAssets from "@/hooks/useAssets";
 import { calculateFixedAssetsReconciliation } from "@/lib/calculations/balanceSheetCalculations";
 import BusinessOutcomeEbitSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeEbitSummaryCard";
+import NonProductivePolicyToggle from "@/components/business-outcome-truth/NonProductivePolicyToggle";
 
 // STAGE 3 NOTE (Business Outcome dual-view rebuild, 2026-08-05):
 // This is the new v5.0 truth-chain Business Outcome page, built on top of
@@ -131,6 +132,7 @@ export default function BusinessOutcomePage() {
         the rates and hours you&apos;ve entered, with no cap to real revenue and no help from anywhere else.
       </p>
 
+      <NonProductivePolicyToggle />
       <BusinessOutcomePerSourceRevenueCard
         per_source={per_source}
         output_contract={output_contract}
