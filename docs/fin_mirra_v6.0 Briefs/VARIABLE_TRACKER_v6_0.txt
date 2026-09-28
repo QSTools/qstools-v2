@@ -921,6 +921,21 @@ NOTES: injected true cost lives ONLY in group_real_capacity; source rows keep
   and file map gotcha #4). all_sources[] has no total_cost, so Business
   Modelling cannot pick up the stale figure (unaffected either way).
 
+STAGE: Non-productive policy setting (added 2026-09-28, session 15)
+FIELD NAMES: mixed_unit_non_productive_policy ("charge_to_self" default |
+  "spread_as_overhead")
+FILE / FUNCTION: lib/storage/businessOutcomeNonProductivePolicyStorage.js
+  (read/write; key qstools_business_outcome_non_productive_policy_v1; write
+  dispatches qstools:non-productive-policy-changed). Read by the mount effect
+  in useBusinessOutcomePerSourceRevenue.js, which also re-reads on the event.
+  Set by components/business-outcome-truth/NonProductivePolicyToggle.jsx on
+  /business-outcome.
+FEEDS INTO: distribute_non_productive_cost -> both cascades (View A, View B).
+NOTES: business-wide; affects MIXED units only (pure-support units always
+  spread). Before session 15 nothing could write it, so every user was on
+  charge_to_self. Weight basis for the pool is labour cost, else asset burden;
+  equal_split is unreachable (F1). An asset-only group gets $0 of the pool
+  while any other group has productive labour (F2, same rule as overhead C5).
 STAGE: Capacity coverage gap
 FIELD NAMES: capacity_coverage_gap[] (gap_type, gap_hours, gap_dollar_value),
   labour_coverage_gaps
