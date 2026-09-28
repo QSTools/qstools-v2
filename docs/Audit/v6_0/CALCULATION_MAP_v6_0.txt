@@ -5,6 +5,15 @@ STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
   line numbers drifted with the edit - refresh from the dump before quoting.
   UPDATED 2026-09-26: CM-8 FIXED (s12). Extract re-run same day; line
   numbers elsewhere unchanged by this edit (single-file, additive fix).
+  UPDATED 2026-09-28 (session 15): extract re-run (2,475 functions, 2,192
+  calculation statements, 94 not-parsed declarations - local consts, not
+  re-checked by hand - and 5 module constants). s9.4 and s9.5 hook line
+  numbers refreshed from that dump (toggle commit bf67d15 added 3 lines
+  above the distribution function and 9 below the mount effect). s9.4
+  spread-weight wording corrected (equal split unreachable, F1). Other s9
+  hook line numbers (9.1-9.3, 9.8-9.11) are STILL stale from before this
+  session - refresh from docs\Audit\v6_0\calc_map\08_business_outcome.txt
+  before quoting them. No formula changed this session.
 LOCATION: docs\Audit\v6_0\CALCULATION_MAP_v6_0.txt
   (NOT inside docs\Audit\v6_0\calc_map\ - the script clears that folder on
   every run and would delete this file)
@@ -314,27 +323,32 @@ MATERIALS (in the main hook)
                         businessOutcomeViewBCalculations.js build_materials_source L66
 - materials_independent_revenue (Best Case) = same formula                L1228
 
-9.4 Non-productive cost (distribute_non_productive_cost)
-- own non-productive cost = assigned non-prod labour + non-prod asset     L721
+9.4 Non-productive cost (distribute_non_productive_cost L692-779)
+- own non-productive cost = assigned non-prod labour + non-prod asset     L708
 - pure-support units: pooled and spread; mixed units follow policy
-  (default charge_to_self)
-- spread weight = unit labour cost / total (or asset cost share, or equal) L775-779
-- share = pool x weight                                                   L782
+  (default charge_to_self; user-settable on /business-outcome since
+  2026-09-28 - spread_as_overhead pools a mixed unit's cost with pure-support)
+- spread weight = recipient labour cost / total recipient labour cost; only if
+  NO recipient has labour cost, asset burden / total asset burden. The code's
+  equal-split branch (L766) is UNREACHABLE: a recipient always has labour or
+  asset cost > 0 (session 15 harness, F1). An asset-only group gets ZERO
+  while any recipient has labour cost (F2).                                L762-766
+- share = pool x weight                                                   L769
 - row.non_productive_share = unit non-prod cost x row revenue / unit
-  revenue (equal split if no revenue)          apply_real_capacity L869; View B L213
+  revenue (equal split if no revenue)          apply_real_capacity L856; View B L213
 
-9.5 View A real-capacity cascade (apply_real_capacity)
-- group true_cost += non-productive cost                                  L811
-- naive_net_profit = modelled revenue - true cost                         L815
-- shortfall = max(0, materials true cost - materials residual revenue)    L818
+9.5 View A real-capacity cascade (apply_real_capacity L781-943)
+- group true_cost += non-productive cost                                  L798
+- naive_net_profit = modelled revenue - true cost                         L802
+- shortfall = max(0, materials true cost - materials residual revenue)    L805
 - Phase 1: profitable groups give up profit pro-rata to profit:
-  factor = min(shortfall, sum of positive profit) / sum of positive profit L821-829
-- Phase 2: any leftover spread by revenue share                           L830
-- final_net_profit = after phase 1 - phase 2 deduction                    L834
+  factor = min(shortfall, sum of positive profit) / sum of positive profit L808-811
+- Phase 2: any leftover spread by revenue share                           L817
+- final_net_profit = after phase 1 - phase 2 deduction                    L821
 - same two phases repeated INSIDE each group across its rows ->
-  real_capacity_net_profit per row                                        L879-910
+  real_capacity_net_profit per row                                        L851-901
 - materials final revenue = max(residual, true cost) -> materials never
-  below cost in View A                                                    L916-917
+  below cost in View A                                                    L903-904
 - row achieved revenue = true_cost + non_productive_share +
   real_capacity_net_profit  (selector merge_groups_by_id_real_capacity L262-264)
 
