@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import ExportJsonButton from "@/components/dev-tools/ExportJsonButton";
 import { calculationTracePilotMeta } from "@/lib/calculation-trace/pilot-map/pilotMeta";
@@ -210,7 +210,7 @@ export default function CalculationTracePage() {
 
   const graph = useMemo(() => buildTraceGraph(liveValues), [liveValues]);
 
-  const selectedNodeId = calculationTracePilotMeta.selected_initial_output;
+  const [selectedNodeId, setSelectedNodeId] = useState(calculationTracePilotMeta.selected_initial_output);
   const selectedNode = getTraceNode(graph, selectedNodeId);
   const integrityReport = getTraceIntegrityReport(graph);
   const upstreamTrace = getUpstreamTrace(graph, selectedNodeId);
@@ -237,6 +237,14 @@ export default function CalculationTracePage() {
 
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <StatusPill>{calculationTracePilotMeta.status}</StatusPill>
+              <select
+                value={selectedNodeId}
+                onChange={(event) => setSelectedNodeId(event.target.value)}
+                className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs text-slate-100"
+              >
+                <option value="business_summary.required_recovery_per_driver">Root: Business Summary</option>
+                <option value="business_modelling.modelled_net_profit">Root: Business Modelling</option>
+              </select>
               {!liveValues.is_hydrated ? <WarningPill>waiting for data to load</WarningPill> : null}
               <ExportJsonButton
                 data={buildTraceSnapshot(graph, liveValues, integrityReport)}
@@ -324,8 +332,8 @@ export default function CalculationTracePage() {
               P&L / Module Reconciliation trace layer is deferred.
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
-              Rate Builder, Business Outcome and Business Modelling tracing are not yet built into
-              this graph - Business Summary is the current root.
+              Business Modelling: source rows and saved lever inputs are traced read-only; the legacy
+              Baseline/Upside/Downside tools and the modelled_per_source rerun are not.
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
               cost_summary.total_cost_burden's internal arithmetic (costSummaryCalculations.js)

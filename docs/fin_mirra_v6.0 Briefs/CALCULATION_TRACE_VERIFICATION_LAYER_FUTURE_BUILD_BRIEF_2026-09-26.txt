@@ -684,3 +684,50 @@ UPDATE (2026-09-28, session 15) - READ THIS FIRST; supersedes the NEXT line
   Trace pool node text still calls equal_split a live fallback (F1) - not
   yet reworded (SINCE FIXED - see F1 CLOSED above).
   NEXT: (c) contribution-margin lens, (d) Business Modelling as trace root.
+
+UPDATE (2026-09-28, session 16) - READ THIS FIRST; supersedes the NEXT line
+  of the session 15 entry above for item (d).
+  [SHIPPED] Business Modelling as a trace root, read-only. New file
+  lib/calculation-trace/pilot-map/businessModellingTraceNodes.js (215 lines);
+  wired through calculationTraceSelectors.js, calculationTraceLiveValues.js
+  (read-only Modelling slice: buildSourceRows + applyAdditiveLevers +
+  readModellingLevers in an effect; never calls the levers hook, writes
+  nothing, does not touch General Overheads data), page.jsx (root dropdown:
+  Business Summary / Business Modelling; stale "Deferred boundaries" text
+  corrected), pilotMeta.js (status text). Build passed; all 13 patch/create
+  steps confirmed.
+  Nodes: one achieved_revenue node per Modelling row (edges to the View A
+  real_capacity_net_profit node(s) it builds on), and per applied lever a
+  root target node plus an effect node; then total_effect, today_net_profit
+  (inputs: group real_capacity_net_profit nodes + floored materials) and
+  modelled_net_profit = today + total_effect.
+  VERIFIED LIVE (browser console, Download trace JSON, real saved levers:
+  overhead:travel = 1000, Supervisor/Team Lead = 150): 103 nodes, 112 edges,
+  0 duplicate IDs, 0 missing endpoints. Identity PASS (-155,911.04 +
+  130,311.14 = -25,599.90); effect nodes sum to total_effect (131,311.14 +
+  -1,000.00); today_net_profit inputs sum to it exactly (diff 0.00). The
+  Modelling page shows Modelled net profit -$25,600 and Today -$155,911 -
+  both agree with the trace. Implied Team Lead basis 1,414.12 h at start
+  $57.14/hr, matching the page's start rate. Snapshot:
+  docs/Audit/v6_0/calc_trace_business_modelling_root_2026-09-28.json.
+  Also FIXED: F5 (doubled apostrophes in displayed node text in
+  businessOutcomeNonProductiveDistributionTraceNodes.js; the remaining ''
+  hits are in // comments and never display).
+  LIMITS (logged, nothing hidden): (1) overhead rows have only the whole
+  general_overheads.total_general_overheads node as upstream - General
+  Overheads has no per-category trace node, so the Travel row shows the
+  $1,000 total as its input, not a Travel-specific figure. (2) Each row's
+  true_cost and non_productive_share legs are read from the same per_source
+  row and are not separately traced; only real_capacity_net_profit is an
+  edge. (3) Not exercised by this dataset: asset-driven unit: rows,
+  asset:-kind rows, materials with a non-zero markup lever - the asset node
+  ID pattern used for their edges is unproven live. (4) The legacy
+  Baseline/Upside/Downside tools and modelled_per_source are not traced.
+  (5) The identity check compares the trace with the Modelling page's
+  displayed figures; it does not independently recompute them.
+  BUILD WARNING, pre-existing, logged not fixed: Turbopack "unexpected file
+  in NFT list" - next.config.ts traced via app/api/pnl-import/route.js
+  (file-system calls). Neither file was changed this session.
+  NEXT: (c) contribution-margin lens (needs scoping first), or exercise the
+  untested rows (asset-driven unit, materials markup lever) live and fix any
+  missing-endpoint edges found.
