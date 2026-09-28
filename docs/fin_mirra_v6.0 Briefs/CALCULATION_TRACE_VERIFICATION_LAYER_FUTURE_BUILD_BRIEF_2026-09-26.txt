@@ -593,3 +593,22 @@ UPDATE (2026-09-28, session 14 CLOSE-OUT) - READ THIS FIRST; supersedes the
   untested pool paths above, (c) build the contribution-margin lens logged
   earlier in session 14, (d) move to Business Modelling (originally
   specified root).
+UPDATE (2026-09-28, session 14 FOLLOW-UP) - READ THIS FIRST; supersedes the
+  NEXT line of the session 14 close-out above for item (a).
+  [SHIPPED] Pure-support / non-productive pool edges (commit c8381fb).
+  lib/calculation-trace/pilot-map/businessOutcomeNonProductiveDistributionTraceNodes.js
+  only. Two changes: (1) each pure-support node now takes
+  cost_allocation.group.<id>.total_group_cost as its input (and is no longer
+  flagged is_root_input); (2) the pool node takes every pure-support node as
+  inputs. Verified live via Download trace JSON: 84 nodes, 90 edges (was 88),
+  0 duplicate IDs, 0 missing endpoints. Chain is now followable: Sarah's
+  total_group_cost ($108,841.20) -> pure-support node ($108,841.20) -> pool
+  ($108,841.20); groups' non_productive_cost nodes ($64,050.34 + $44,790.86)
+  sum to the pool exactly.
+  STILL DELIBERATELY NOT WIRED: pool -> each group's non_productive_cost.
+  Which path a group took (pooled vs charge_to_self) is not exposed, so an
+  edge would misrepresent charge_to_self groups (session 13 decision, stands).
+  Also partial by design: a spread_as_overhead mixed unit pays into the pool
+  but is not separately listed, so it has no edge into the pool.
+  NEXT: remaining options are (b) the untested pool paths, (c) the
+  contribution-margin lens, (d) Business Modelling as trace root.
