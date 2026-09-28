@@ -441,3 +441,155 @@ NEXT: Business Outcome is the natural next slice. After that, Business
 Modelling, reaching this brief's originally specified root - at which
 point page.jsx's root-selector question becomes real and needs its own
 decision. Smoke test thread remains separately parked.
+
+UPDATE (2026-09-27, session 14) - READ THIS FIRST; supersedes session 13's
+  note above (still the authoritative record for sessions 12-13's build).
+  Deliberately padded the smoke-test dataset (Lever 1) to exercise the two
+  previously-untested Business Outcome mechanisms: raised Paul's Rate
+  Builder charge-out rate from $100/hr to $200/hr, real P&L revenue and
+  cost left untouched. Confirmed live via Download trace JSON:
+    business_outcome.real_capacity_a.cascade = 141411.33
+    business_outcome.real_capacity_b.cascade = 141411.33
+    business_outcome.assumed_capacity_a.ceiling (scale_factor) = 0.500001...
+    business_outcome.assumed_capacity_b.ceiling (scale_factor) = 0.500001...
+  real_capacity.shortfall = 141411.33, phase1_factor = 0.8246,
+  phase1_absorbed = 141411.33, leftover = 0 - the actual proportional
+  redistribution math, not the zero-passthrough. Materials correctly
+  floored to $0 in View A (residual went negative, floored per calc map
+  s9.5). Arithmetic verified to the cent: naive_net_profit (171494.93) -
+  total_adjustment (141411.33) = final_net_profit (30083.6) exactly.
+  Integrity report clean: 62 nodes, 59 edges, 0 duplicate IDs, 0 missing
+  endpoints. Two of the three untested mechanisms now genuinely exercised
+  and correct - real_capacity's redistribution and assumed_capacity's
+  ceiling scaling. NOTE: View A and View B numerically coincided this run
+  because materials = $0 in this dataset - expected, not proof the two
+  mechanisms are identical in general (already established they diverge
+  when materials carries real weight).
+  Non-productive distribution's pooling math (Lever 2, a genuine
+  pure-support group) NOT YET DONE - session continuing.
+
+  DESIGN FINDING (logged, not built - methodological, not a calc bug):
+  "achieved revenue" at the per-row level (calc map s9.5: true_cost +
+  non_productive_share + real_capacity_net_profit) is a model-derived
+  REDISTRIBUTION ALLOCATION, not a per-person measurement, once more than
+  one staff member exists. With a single labour source (this session's
+  test) it coincidentally equals real P&L revenue exactly, because
+  there's only one row to attribute anything to - so the page correctly
+  read as "you've entered too much labour" with zero ambiguity. That
+  reads unambiguous only because n=1. Real_capacity_net_profit per row is
+  the OUTPUT of Phase 1's proportional redistribution (shortfall shared
+  by naive-profit weight, calc map s9.5 Phase 1), not an independent
+  observation - the P&L gives one revenue number, never broken out by
+  staff member. So with 2+ staff, "achieved rate" per person tells you
+  how the shortfall got SHARED, weighted by profitability - not WHICH
+  person's rate actually caused it. Needs a future design pass on how to
+  communicate this distinction once genuinely multi-staff data exists
+  (SMOKE_TEST brief Step D.1/D.2 will be the first dataset that can
+  actually surface this). Not fixed inline per kickoff s4 - logged only.
+DESIGN FINDING, SESSION 14 CONTINUED (2026-09-27) - CONTRIBUTION MARGIN VS
+  FULLY-LOADED COST (logged, not built - new lens, not a calc bug):
+  Surfaced live-testing the two-staff overhead split (Paul $50/hr vs Junior
+  $35/hr, equal hours). Owner's question: at what point is a lower-earning
+  team member actually COSTING the business money, vs. simply carrying a
+  smaller-but-still-positive contribution toward fixed overhead that would
+  otherwise fall entirely on someone else?
+  THE GAP: the page currently answers only ONE of two genuinely different
+  questions -
+    Q1 (shown today): does this source's revenue cover its FULLY-LOADED
+      cost, including its allocated share of overhead? (net_profit =
+      modelled_revenue - true_cost, true_cost includes overhead_share)
+    Q2 (NOT shown, the one that actually matters for "am I quietly going
+      out of business"): does this source's revenue at least cover its
+      OWN DIRECT cost (wage only, no overhead)? If yes, removing that
+      source would make the business WORSE off, not better, even if Q1
+      is negative for them - because overhead is mostly fixed and would
+      simply fall on whoever remains.
+  This is the standard contribution-margin-vs-fully-allocated-cost
+  distinction from cost accounting - a source can correctly show red on
+  Q1 (fully-loaded) while still being a net positive on Q2 (contribution).
+  The current page conflates the two, so a source flagged as "not paying
+  its way" cannot currently be distinguished from "would make things
+  worse if removed" vs. "would make things better if removed" - a real
+  gap for the stated purpose of this tool (surfacing where a business is
+  quietly losing money) and explicitly relevant to a future agent-driven
+  "analyze where the business is leaking money" use case (this brief
+  Section 4 - the same structured output built for a human audit trail
+  is meant to serve an AI agent's analysis too).
+  DATA ALREADY EXISTS, not yet surfaced as a comparison: each labour
+  source's own direct cost is already its own node
+  (cost_allocation.labour_type.<id>), separate from true_cost
+  (which folds in the overhead share). No new calculation needed - this
+  is a missing VIEW/comparison, not missing data.
+  FUTURE BUILD: add a contribution-margin figure (revenue - direct cost
+  only, overhead excluded) alongside the existing fully-loaded profit
+  figure, so a source can be shown as e.g. "losing money fully-loaded,
+  but still a net contributor - removing this source would increase,
+  not decrease, the shortfall on everyone else" rather than just a flat
+  red flag. Needs its own design/build session - not fixed inline.
+UPDATE (2026-09-28, session 14 CLOSE-OUT) - READ THIS FIRST; supersedes the
+  earlier session 14 note that said Lever 2 was NOT YET DONE.
+  BUSINESS OUTCOME VERIFICATION: MAIN PATHS VERIFIED (not "fully closed" -
+  see known gaps below). Smoke-test dataset (localhost:3004) was deliberately
+  padded across the session; numbers below are point-in-time, not baseline.
+  Current dataset state: Paul (supervisor_team_lead) $100/hr charge-out,
+  Junior Trainee $75/hr charge-out and $35/hr pay rate, Sarah non-productive
+  $50/hr 40h/wk. Three operational groups: Paul's, Junior's (separate group),
+  Sarah's (pure-support, no productive staff or assets).
+  CONFIRMED WITH REAL NUMBERS (final trace: 84 nodes, 88 edges, 0 duplicate
+  IDs, 0 missing endpoints):
+  1. real_capacity redistribution (Lever 1 and later, natural headcount
+     growth against fixed real revenue): shortfall exceeded combined profit,
+     so Phase 1 absorbed all profit and the leftover was spread by revenue
+     share (Phase 2). Group results reconciled to the cent.
+  2. assumed_capacity ceiling scaling: scale_factor = real revenue / total
+     modelled, matched every run (0.5000 two-staff same group, 0.5714 two
+     groups).
+  3. non_productive pooling: FIRST TIME the path has run on real numbers.
+     Sarah's group cost $108,841.20 = pool $108,841.20. Split by productive
+     labour cost: Paul's group $64,050.34 (58.85%), Junior's group
+     $44,790.86 (41.15%), sums to the pool exactly. Pooled cost then flowed
+     into both groups' true_cost inside the real_capacity cascades; results
+     reconciled (Paul's group -$94,160.36, Junior's -$61,750.68).
+     buildBusinessOutcomePureSupportGroupNodes emitted its node for the
+     first time.
+  4. Overhead split, two different documented bases, both confirmed:
+     WITHIN one group, Business Outcome's per-source overhead share is
+     hours-weighted (equal hours = $500/$500 despite 1.43:1 cost).
+     ACROSS groups it is labour-cost-weighted ($588.48 / $411.52).
+     Rate Builder's own recovery rows are cost-weighted separately (RB-1,
+     intentionally different). Not a bug; recorded so it is not mistaken
+     for one later.
+  5. Charge-out rate changes do not affect overhead split (only revenue
+     and profit downstream), as designed.
+  KNOWN GAPS - NOT VERIFIED:
+  - Verification compared the trace to the hook output and documented
+    formulas. It does not independently check the hook's design.
+  - Asset-burden weighting and equal-split fallback of the pool: not run.
+  - mixed_unit_non_productive_policy = spread_as_overhead: not run.
+  - View A vs View B under pooling with materials > 0: not run (materials
+    was $0 throughout, so both views coincided).
+  - Naive and assumed-capacity (implied) net profit did NOT change when
+    Sarah's cost was added; only the real_capacity cascades include it.
+    Matches the trace node text but not confirmed as the intended design.
+  - Hours vs revenue weighting for within-group overhead: owner decided to
+    park the design discussion, no change requested.
+  TRACE WIRING GAP (logged, not built): the non-productive pool node and
+  the new pure-support node have NO edges. Existing edges only run
+  group.non_productive_cost -> real_capacity_net_profit (View A and B).
+  The pool to group omission is deliberate (session 13 code comment:
+  charge_to_self groups never touch the pool). The pure-support node
+  should be linkable to the pool (a pure-support group always pays in),
+  and cost_allocation.group.<id>.total_group_cost to the pure-support
+  node. Result today: values are correct but the chain from Sarah's
+  cost through the pool to the groups cannot be followed visually.
+  Fix is a small change in
+  lib/calculation-trace/pilot-map/businessOutcomeNonProductiveDistributionTraceNodes.js
+  plus build and live re-check. Its own step.
+  HOUSEKEEPING: snapshots from this session sit in
+  docs/Audit/v6_0/smoke_test/1.9_calculation_trace_rate_builder/ but test
+  Business Outcome, not Rate Builder; consider a
+  1.10_calculation_trace_business_outcome/ folder when filing.
+  NEXT: decide between (a) add the missing pure-support edges, (b) run the
+  untested pool paths above, (c) build the contribution-margin lens logged
+  earlier in session 14, (d) move to Business Modelling (originally
+  specified root).
