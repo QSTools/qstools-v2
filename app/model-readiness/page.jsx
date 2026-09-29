@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import useModelReadiness from "@/hooks/useModelReadiness";
 
@@ -118,7 +118,7 @@ export default function Page() {
 
         <ModelReadinessStatusStrip status={status} />
 
-        <ModelReadinessVarianceBreakdown status={status} />
+        <ModelReadinessVarianceBreakdown status={status} assets={modules?.assets} />
 
         <ModelReadinessBaselineInputsCard status={status} />
 

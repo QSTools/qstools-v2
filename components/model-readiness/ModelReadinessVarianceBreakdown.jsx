@@ -1,3 +1,5 @@
+import ModelReadinessNoAssetsConfirm from "@/components/model-readiness/ModelReadinessNoAssetsConfirm";
+
 function to_number(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -109,6 +111,7 @@ function VarianceBlock({
   override_title = "",
   extra_rows = [],
   direction_override = "",
+  children = null,
 }) {
   const variance_percent = get_variance_percent(variance, pnl);
   const variance_level = get_variance_level(variance, pnl, override_title);
@@ -146,11 +149,12 @@ function VarianceBlock({
         <p className="ui-help">{direction_text}</p>
         <p className="ui-help">{note}</p>
       </div>
+      {children}
     </div>
   );
 }
 
-export default function ModelReadinessVarianceBreakdown({ status = {} }) {
+export default function ModelReadinessVarianceBreakdown({ status = {}, assets = null }) {
   const normalised = status.normalised_reconciliation_inputs ?? {};
 
   const pnl_labour = to_number(
@@ -295,7 +299,11 @@ export default function ModelReadinessVarianceBreakdown({ status = {} }) {
               override_title={row.override_title}
               extra_rows={row.extra_rows}
               direction_override={row.direction_override}
-            />
+            >
+              {row.label === "Asset Finance" ? (
+                <ModelReadinessNoAssetsConfirm assets={assets} />
+              ) : null}
+            </VarianceBlock>
           ))}
         </div>
 
