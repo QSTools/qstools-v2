@@ -459,3 +459,30 @@ UPDATE (2026-09-29, session 17 - LABOUR SIGN-OFF): Steps B, C and D.1-D.4 are
      Accounting 600; Office/Admin 400): pool 4,400, 2,200 per group.
   Snapshots: 1.10_calc_trace_labour_overhead/. Steps E and F remain deferred
   until the owner signs labour off.
+
+P&L TYPING BUG (logged 2026-09-29, NOT FIXED - found while entering D.4 lines):
+  SYMPTOM: on /p-and-l, typing "Accounting Fees" one character at a time into a
+    custom line left the stored name "acc" with category Labour.
+  PROBABLE CAUSE (from the code, not proven live): handle_line_name_change in
+    ProfitAndLossSectionBlock.jsx re-classifies on every keystroke. The exact
+    text "acc" matches the labour rule (profitAndLossClassificationRules.js),
+    the category flips to Labour, the row moves into the Labour group
+    (group_operating_expense_lines groups rows by category), the input is
+    redrawn and loses focus, and the remaining keystrokes are lost. Any name
+    that begins with a keyword can do the same.
+  RULED OUT: update_pnl_line (profitAndLossStorage.js) uses functional updates.
+  WORKAROUND: paste the full name in one go.
+  PROPOSED FIX: classify when the name box loses focus, not per keystroke
+    (about six files: ProfitAndLossSectionBlock.jsx and the row/editor/group
+    components). Keep the rule that a category the classifier chose for the
+    previous name counts as automatic and a hand pick is protected. Cheaper
+    option: a ~750 ms pause before classifying (one file, not airtight).
+  TRIED AND REVERTED 2026-09-29: making the auto-category follow the name on
+    each keystroke. It cannot help, because focus is lost on the first flip.
+  TEST LIST FOR THE FIX: (1) type "Accounting Fees" slowly - ends in General
+    Overheads / Accounting-Admin with the full name kept; (2) "ACC Levy" stays
+    Labour; (3) a hand-picked category survives renaming; (4) type "Acc" then
+    delete it - the line returns to unassigned.
+  RELATED: two copies of the detection rules exist (components/p-and-l/
+    operating-expenses/operatingExpenseDetection.js and lib/p-and-l/
+    profitAndLossClassificationRules.js); keep them in step or merge them.
