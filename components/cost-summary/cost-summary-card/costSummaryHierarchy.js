@@ -90,6 +90,11 @@ export function buildCostSummaryHierarchy({
         label: "Family Violence Leave",
         amount: detail.family_violence_leave_cost_annual,
       }),
+      makeNode({
+        key: `${prefix}-paid-rest-breaks`,
+        label: "Paid Rest Breaks",
+        amount: detail.paid_rest_break_cost_annual,
+      }),
     ];
   }
 
