@@ -86,6 +86,8 @@ function get_overhead_category_key_for_line(line = {}) {
       return "staff_overheads";
     case "office_admin":
       return "office_admin";
+    case "facilities_premises":
+      return "facilities_premises";
     case "finance_admin":
       return "financial_admin";
     case "finance_interest":

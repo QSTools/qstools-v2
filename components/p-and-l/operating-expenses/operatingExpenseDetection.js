@@ -84,6 +84,14 @@ export function detect_operating_expense_subcategory(line_name = "") {
     };
   }
 
+  if (/\b(rent|rental|rentals|premises|electricity|cleaning|cleaner|cleaners|storage)\b/.test(normalized)) {
+    return {
+      category: "general_overheads",
+      subcategory: "facilities_premises",
+      label: "Facilities / Premises",
+    };
+  }
+
   if (
     normalized.includes("computer") ||
     normalized.includes("printing") ||

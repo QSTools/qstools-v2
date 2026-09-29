@@ -42,6 +42,12 @@ export const OPERATING_EXPENSE_CLASSIFICATION_OPTIONS = [
     label: "Office / Admin → General Overheads",
   },
   {
+    value: "facilities_premises",
+    category: "general_overheads",
+    review_subcategory: "facilities_premises",
+    label: "Facilities / Premises → General Overheads",
+  },
+  {
     value: "finance_admin",
     category: "general_overheads",
     review_subcategory: "finance_admin",
