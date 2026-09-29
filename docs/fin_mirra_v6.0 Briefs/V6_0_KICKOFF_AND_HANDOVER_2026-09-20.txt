@@ -461,6 +461,50 @@ closed. What's left from Business Outcome is logged, not blocking: BO-8
 owner-remuneration design item (belongs to a future Labour/Reconciliation
 session, not Business Modelling).
 
+UPDATE (2026-09-29, session 17) - READ THIS FIRST; supersedes session 16's
+  NEXT line. LABOUR SMOKE TEST COMPLETE (Steps B, C, D.1-D.4), run on the
+  isolated :3004 instance after a reset to a clean dataset (padded dataset
+  backed up in docs/Audit/v6_0/smoke_test/padded_dataset_backup/, restore
+  script in console_scripts/).
+  [SHIPPED 795517e] Step B: Paid Rest Breaks row in Cost Summary's
+    Entitlements breakdown (display split only; net profit unchanged, verified
+    live). CORRECTION: Business Summary has no entitlements breakdown, so the
+    row is Cost Summary only.
+  [VERIFIED live] Step C: on clean labour data every labour check passes and
+    the P&L variance is 0. The Assets check blocks readiness until "no active
+    assets" is confirmed. [SHIPPED d423152] in-card confirm button on Model
+    Readiness (Asset Finance card).
+  [SHIPPED 55ae276] P&L Facilities / Premises category (dropdown option, rent/
+    premises/electricity/cleaning/storage rule in both classifier copies,
+    General Overheads sync case).
+  OWNER DECISION 2026-09-29, [SHIPPED de78ec0]: overhead follows RECOVERED
+    HOURS everywhere. Changed in Cost Allocation build_overhead_pool and
+    Business Outcome distribute_non_productive_cost. Calc map and Cost
+    Allocation brief updated (entry "OVERHEAD DRIVER CHANGE 2026-09-29").
+  D.4 evidence (trace snapshot 1790674733871, folder
+    1.10_calc_trace_labour_overhead/): overhead pool 4,400; group totals
+    112,528.40 / 134,594.08 / 110,328.40 (overhead 2,200 each; Sarah's
+    pure-support group is cost only); Sarah's pooled cost 55,164.20 each;
+    integrity clean.
+  DATASET NOTE: the reset cleared Rate Builder charge-out rates, so Business
+    Outcome revenue reads 0 until they are re-entered. The Labour module now
+    exceeds the P&L labour benchmark because Jack and Sarah are not in the P&L;
+    that variance is by design of this dataset, do not edit the P&L to hide it.
+  OPEN (logged, not fixed): (1) P&L typing bug - the auto-category changes
+    while a name is typed, the row moves group and loses focus, leaving names
+    like "acc"; needs classify-on-blur (~6 files). A partial patch in
+    ProfitAndLossSectionBlock.jsx is uncommitted and does not fix it alone.
+    (2) Two copies of the P&L detection rules (components/p-and-l/operating-
+    expenses/ and lib/p-and-l/). (3) The saved General Overheads copy lags the
+    P&L until a page that loads useGeneralOverheads is visited. (4) Rate Builder
+    recovery rows are still cost-weighted (RB-1) - needs an owner decision under
+    "one rule everywhere". (5) Traceability readiness group is hardcoded/stale.
+    (6) Model Readiness raw snapshot shows n/a for several fields. (7) Card
+    direction text says "higher than benchmark" for sub-$1 variances.
+    (8) Overhead recovery rate displays $0/hr (rounding). (9) Calc map s9.3
+    hook line references unverified after the +9 shift.
+  NEXT: owner decisions on the typing fix and RB-1; then Step E (assets) is
+    unblocked once the owner signs labour off; Step F after that.
 UPDATE (2026-09-28, session 16) - READ THIS FIRST; supersedes session 15's
   NEXT line and the "NEXT" in the session 14 entries below.
   [SHIPPED] Business Modelling as a read-only Calculation Trace root (commit
