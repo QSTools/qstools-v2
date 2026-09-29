@@ -718,6 +718,7 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
         group_id: group.group_id,
         productive_labour_cost,
         productive_asset_cost,
+        group_recovery_hours: to_number(group.group_recovery_hours),
       });
     }
 
@@ -752,13 +753,21 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
     const total_labour_cost = recipients.reduce((sum, r) => sum + r.productive_labour_cost, 0);
     const total_asset_cost = recipients.reduce((sum, r) => sum + r.productive_asset_cost, 0);
 
+    const total_recovery_hours = recipients.reduce((sum, r) => sum + r.group_recovery_hours, 0);
+
+    // Owner decision 2026-09-29: one rule everywhere - the pool follows recovered
+    // hours, same as General Overheads in Cost Allocation. Older bases remain only
+    // as fallbacks when no group has recovered hours.
     let weight_basis = "equal_split";
-    if (total_labour_cost > 0) weight_basis = "labour_cost_weighted";
+    if (total_recovery_hours > 0) weight_basis = "recovery_hours_weighted";
+    else if (total_labour_cost > 0) weight_basis = "labour_cost_weighted";
     else if (total_asset_cost > 0) weight_basis = "asset_burden_weighted";
 
     recipients.forEach((r) => {
       let weight = 0;
-      if (weight_basis === "labour_cost_weighted") {
+      if (weight_basis === "recovery_hours_weighted") {
+        weight = total_recovery_hours > 0 ? r.group_recovery_hours / total_recovery_hours : 0;
+      } else if (weight_basis === "labour_cost_weighted") {
         weight = total_labour_cost > 0 ? r.productive_labour_cost / total_labour_cost : 0;
       } else if (weight_basis === "asset_burden_weighted") {
         weight = total_asset_cost > 0 ? r.productive_asset_cost / total_asset_cost : 0;

@@ -2568,7 +2568,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             <div className="ui-help" style={{ margin: "0.5rem 0" }}>
               <strong>{format_currency(per_source.non_productive_cost_distributed_total)}</strong>{" "}
               of non-productive support cost (e.g. admin, management - not tied to any billable
-              job) has been spread across the sources below, weighted by their own real cost.
+              job) has been spread across the sources below, weighted by their recovered hours.
               See &quot;Best Case (100% of Entered Rates &amp; Hours)&quot; to see this cost on its own, undistributed.
             </div>
           )}

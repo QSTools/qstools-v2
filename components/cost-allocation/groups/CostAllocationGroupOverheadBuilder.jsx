@@ -44,7 +44,9 @@ export default function CostAllocationGroupOverheadBuilder({
 
               <p className="ui-help">
                 Method:{" "}
-                {assignment.allocation_method === "labour_cost_weighted"
+                {assignment.allocation_method === "recovery_hours_weighted"
+                  ? "Recovery hours weighted"
+                  : assignment.allocation_method === "labour_cost_weighted"
                   ? "Labour cost weighted"
                   : assignment.allocation_method === "asset_burden_weighted"
                     ? "Asset burden weighted"

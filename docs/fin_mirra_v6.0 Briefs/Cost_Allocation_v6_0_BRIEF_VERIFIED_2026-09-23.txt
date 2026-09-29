@@ -535,3 +535,51 @@ HANDED ON
   p25_step6_c19_pool_display_2026-09-23.txt         pool panel components
   p25_step7_cards_ratebuilder_2026-09-23.txt        card builder, Rate Builder rows
   p25_step8_c19_patch_c9b_grep_2026-09-23.txt       C9b consumer grep
+
+===============================================================================
+OVERHEAD DRIVER CHANGE 2026-09-29 (labour smoke test, Step D) [VERIFIED, live]
+===============================================================================
+DECISION (owner, 2026-09-29): overhead is shared by RECOVERED (productive)
+hours everywhere - one rule, not hours in one place and labour cost in another.
+Reasoning: overhead is recovered through the hourly rate; a pay rise should not
+change how much overhead someone carries; and the result should not depend on
+how working groups are drawn.
+
+WHAT CHANGED (two places, same rule):
+1. Cost Allocation build_overhead_pool (costAllocationOverheadPoolBuilder.js):
+   new first-choice method recovery_hours_weighted (weight = group_recovery_hours
+   / total). Old bases (labour cost, asset burden, equal split) remain only as
+   fallbacks when no group has recovered hours.
+2. Business Outcome distribute_non_productive_cost
+   (useBusinessOutcomePerSourceRevenue.js): the pooled non-productive / pure-
+   support cost is spread by recipient group_recovery_hours, same fallbacks.
+Display text updated to match: Overhead Builder method label, non-productive
+policy toggle copy, per-source card text, and the trace node descriptions.
+
+LIVE EVIDENCE (isolated instance :3004, clean dataset, Paul + Jack at 40h,
+Jack's rate 60, Sarah non-productive in a pure-support group):
+- Before: overhead $455 / $545 (labour-cost weighted); Sarah's pooled cost
+  $50,149.27 / $60,179.13.
+- After: overhead $500 / $500 (Cost Allocation and Business Outcome, sum $1,000);
+  Sarah's pooled cost $55,164.20 / $55,164.20 (sum $110,328.40 = pool).
+  Trace snapshot integrity clean (100 nodes, 108 edges). Snapshots in
+  docs/Audit/v6_0/smoke_test/1.10_calc_trace_labour_overhead/.
+
+BEHAVIOUR CHANGES TO KNOW ABOUT:
+- A group with no recovered hours gets no overhead / no pooled cost.
+- An asset-only group that has recovered hours (asset hours) now earns a share;
+  previously it got ZERO while any recipient had labour cost (F2 in the calc map).
+- Within-group overhead split (Business Outcome per-source rows) was already
+  hours-weighted and is unchanged.
+
+OPEN ITEMS (not changed):
+- Rate Builder recovery rows are still cost-weighted (RB-1, previously
+  "intentionally different"). Under "one rule everywhere" this needs a separate
+  owner decision.
+- Group Cost Summary shows the raw allocation_method string for overhead
+  assignments (pre-existing; not changed here).
+- Cost Allocation "Overhead recovery rate" displays $0/hr because of whole-dollar
+  rounding (pre-existing).
+- Calc map: hook line references after L778 were shifted +9 for s9.3-s9.5;
+  lines 400, 402, 404-406 were not attributed to a file and were left. s9.3 hook references (L1092-L1406) were shifted by the same offset but are UNVERIFIED (spot checks at L1198/L1203 did not clearly match the map text; the map header says only s9.4/s9.5 were hand-checked). Re-run
+  extract_calc_map.py at the next calculation session and re-check them.

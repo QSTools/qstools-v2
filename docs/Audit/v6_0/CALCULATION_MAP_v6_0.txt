@@ -208,11 +208,11 @@ Pools
 - over-allocation computed, never capped (C14)                  L131-136, L157-160
 
 Overhead distribution (costAllocationOverheadPoolBuilder.js build_overhead_pool)
-- method inferred: labour-cost-weighted if any productive labour, else
+- method inferred (CHANGED 2026-09-29, owner decision - overhead follows recovered hours everywhere): recovery-hours-weighted if any group has recovered hours, else labour-cost-weighted if any productive labour, else
   asset-burden-weighted, else equal split
-- assigned_overhead_amount = overhead pool x (group labour cost / total
-  labour cost)  [or x asset burden share, or / group count]               L40-63
-  Groups with no productive labour get ZERO under labour weighting (C5).
+- assigned_overhead_amount = overhead pool x (group_recovery_hours / total group_recovery_hours); fallback bases below use (group labour cost / total
+  labour cost)  [or x asset burden share, or / group count]   L33-36 select, L48 hours weight, L78 equal split
+  Groups with no productive labour get ZERO under labour weighting (C5); under recovered-hours weighting a group with no recovered hours gets ZERO.
 
 Group cost row (costAllocationGroupCostBuilder.js build_operational_group_cost_rows)
 - assigned_labour_cost / hours = sum of labour assignments               L38-43
@@ -316,39 +316,38 @@ ASSET (build_asset_sources)
   display only)                                                           L208-210
 MATERIALS (in the main hook)
 - true_cost = total COGS + max(residual overhead, 0), where residual
-  overhead = business overheads - overhead assigned to groups             L1083, L1189
+  overhead = business overheads - overhead assigned to groups             L1092, L1198
 - View A revenue = real revenue - labour modelled revenue - asset
-  modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1194
+  modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1203
 - View B revenue = COGS x (1 + effective markup/100)
                         businessOutcomeViewBCalculations.js build_materials_source L66
-- materials_independent_revenue (Best Case) = same formula                L1228
+- materials_independent_revenue (Best Case) = same formula                L1237
 
 9.4 Non-productive cost (distribute_non_productive_cost L692-779)
 - own non-productive cost = assigned non-prod labour + non-prod asset     L708
 - pure-support units: pooled and spread; mixed units follow policy
   (default charge_to_self; user-settable on /business-outcome since
   2026-09-28 - spread_as_overhead pools a mixed unit's cost with pure-support)
-- spread weight = recipient labour cost / total recipient labour cost; only if
+- spread weight (CHANGED 2026-09-29, owner decision) = recipient group_recovery_hours / total recipient group_recovery_hours; only if NO recipient has recovered hours, fall back to: recipient labour cost / total recipient labour cost; only if
   NO recipient has labour cost, asset burden / total asset burden. The code's
-  equal-split branch (L766) is UNREACHABLE: a recipient always has labour or
-  asset cost > 0 (session 15 harness, F1). An asset-only group gets ZERO
-  while any recipient has labour cost (F2).                                L762-766
-- share = pool x weight                                                   L769
+  equal-split branch (L775) is UNREACHABLE: a recipient always has labour or
+  asset cost > 0 (session 15 harness, F1). Under the fallback labour-cost basis an asset-only group gets ZERO (F2); under recovered hours it earns a share if it has recovered hours.   L762-775
+- share = pool x weight   L778
 - row.non_productive_share = unit non-prod cost x row revenue / unit
-  revenue (equal split if no revenue)          apply_real_capacity L856; View B L213
+  revenue (equal split if no revenue)          apply_real_capacity L865; View B L213
 
-9.5 View A real-capacity cascade (apply_real_capacity L781-943)
-- group true_cost += non-productive cost                                  L798
-- naive_net_profit = modelled revenue - true cost                         L802
-- shortfall = max(0, materials true cost - materials residual revenue)    L805
+9.5 View A real-capacity cascade (apply_real_capacity L790-952)
+- group true_cost += non-productive cost                                  L807
+- naive_net_profit = modelled revenue - true cost                         L811
+- shortfall = max(0, materials true cost - materials residual revenue)    L814
 - Phase 1: profitable groups give up profit pro-rata to profit:
-  factor = min(shortfall, sum of positive profit) / sum of positive profit L808-811
-- Phase 2: any leftover spread by revenue share                           L817
-- final_net_profit = after phase 1 - phase 2 deduction                    L821
+  factor = min(shortfall, sum of positive profit) / sum of positive profit L817-820
+- Phase 2: any leftover spread by revenue share                           L826
+- final_net_profit = after phase 1 - phase 2 deduction                    L830
 - same two phases repeated INSIDE each group across its rows ->
-  real_capacity_net_profit per row                                        L851-901
+  real_capacity_net_profit per row                                        L860-910
 - materials final revenue = max(residual, true cost) -> materials never
-  below cost in View A                                                    L903-904
+  below cost in View A                                                    L912-913
 - row achieved revenue = true_cost + non_productive_share +
   real_capacity_net_profit  (selector merge_groups_by_id_real_capacity L262-264)
 
@@ -366,14 +365,14 @@ MATERIALS (in the main hook)
   = modelled x scale; implied net profit = implied - true cost
                                      apply_revenue_ceiling L563-575 (View B: _v2 L115-126)
 - Best Case total_modelled_revenue = labour + asset modelled revenue +
-  materials at markup (no longer inflated - CM-1 fixed 2026-09-25)       L1232
+  materials at markup (no longer inflated - CM-1 fixed 2026-09-25)       L1241
 
 9.8 Headlines and checks
-- total_true_cost = labour + asset + materials true cost + unassigned     L1252
+- total_true_cost = labour + asset + materials true cost + unassigned     L1261
 - cost check: total_true_cost vs Cost Summary burden + P&L direct costs
-  (reconciles if < $1)                                                    L1293-1296
+  (reconciles if < $1)                                                    L1302-1305
 - smoothed_net_profit (gauge input) = sum of group final profit + materials
-  real-capacity profit - unassigned                                       L1397
+  real-capacity profit - unassigned                                       L1406
 - selector View A headline = sum of group real-capacity profit - unassigned
                           businessOutcomePerSourceRevenueSelectors.js L553-566
 - health_ratio = smoothed net profit / (sum of each source's positive

@@ -43,7 +43,7 @@ export default function NonProductivePolicyToggle() {
       <p className="ui-help" style={{ margin: 0 }}>
         Applies only to a working unit that has both billable work and its own support cost (for example a
         shared vehicle). Charge to that unit: its own rate must cover it. Spread across all units: it is
-        shared with pure-support cost, weighted by labour cost. Units with no billable work always spread.
+        shared with pure-support cost, weighted by recovered hours. Units with no billable work always spread.
       </p>
     </div>
   );
