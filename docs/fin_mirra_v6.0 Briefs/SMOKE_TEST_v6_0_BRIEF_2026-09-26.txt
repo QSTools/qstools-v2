@@ -460,7 +460,29 @@ UPDATE (2026-09-29, session 17 - LABOUR SIGN-OFF): Steps B, C and D.1-D.4 are
   Snapshots: 1.10_calc_trace_labour_overhead/. Steps E and F remain deferred
   until the owner signs labour off.
 
-P&L TYPING BUG (logged 2026-09-29, NOT FIXED - found while entering D.4 lines):
+P&L TYPING BUG [SHIPPED c2fa03a, 2026-09-30] - the write-up below is the original
+  diagnosis, kept for history. What shipped:
+  - New components/p-and-l/ProfitAndLossLineNameInput.jsx: name is a local
+    draft while typing; handle_line_name_change (so classification) runs once,
+    on blur or Enter. Used by ProfitAndLossLineEditor.jsx, ProfitAndLossLineRow.jsx
+    and ProfitAndLossCostOfSalesLineRow.jsx.
+  - ProfitAndLossSectionBlock.jsx: a category equal to what the classifier
+    suggests for the PREVIOUS committed name counts as automatic; a hand pick is
+    protected. If the new name matches no rule, an automatic category resets to
+    unassigned (test 4).
+  - After a name commit that changes the row's group: the destination group opens,
+    the page scrolls to the row and it flashes blue for ~2s. No scroll if the
+    group did not change. Implemented with an OPTIONAL force_open_token prop on
+    components/common/CollapsibleSection.jsx (default behaviour unchanged) and
+    id="pnl-group-<key>" / id="pnl-line-<id>" on groups and rows.
+  - Verified live (owner, :3004): tests 1-4 below plus Cost of Sales and other
+    collapsible pages. Build clean. The Turbopack next.config.ts NFT warning is
+    unrelated and not new work.
+  - Side effect: the grey "suggested category" hint under the name now updates
+    on blur, not per keystroke.
+  - NOT done: the two copies of the detection rules are still separate.
+
+P&L TYPING BUG (logged 2026-09-29, original write-up - see SHIPPED entry above):
   SYMPTOM: on /p-and-l, typing "Accounting Fees" one character at a time into a
     custom line left the stored name "acc" with category Labour.
   PROBABLE CAUSE (from the code, not proven live): handle_line_name_change in
