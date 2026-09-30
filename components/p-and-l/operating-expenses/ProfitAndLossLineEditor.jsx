@@ -1,4 +1,5 @@
 import Tooltip from "@/components/common/Tooltip";
+import ProfitAndLossLineNameInput from "@/components/p-and-l/ProfitAndLossLineNameInput";
 import { MoneyInput } from "@/components/p-and-l/operating-expenses/operatingExpenseFormatting";
 import {
   build_line_category_options,
@@ -31,16 +32,12 @@ export default function ProfitAndLossLineEditor({
       : line.category || "unassigned";
 
   return (
-    <div className="ui-panel ui-stack-sm">
+    <div id={`pnl-line-${line.pnl_line_id}`} className="ui-panel ui-stack-sm">
       <div className="ui-stack-sm">
         <span className="ui-label">Line Name</span>
-        <input
-          className="ui-input"
-          value={line.line_name}
-          placeholder="Enter line name"
-          onChange={(event) =>
-            handle_line_name_change(line, event.target.value)
-          }
+        <ProfitAndLossLineNameInput
+          line={line}
+          handle_line_name_change={handle_line_name_change}
         />
 
         {suggested_category_text ? (

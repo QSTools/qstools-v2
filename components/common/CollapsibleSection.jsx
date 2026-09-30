@@ -8,8 +8,19 @@ export default function CollapsibleSection({
   defaultOpen = true,
   children,
   id,
+  force_open_token = undefined,
 }) {
-  const [is_open, set_is_open] = useState(defaultOpen);
+  const [is_open, set_is_open] = useState(
+    Boolean(defaultOpen) || Boolean(force_open_token),
+  );
+  const [seen_open_token, set_seen_open_token] = useState(force_open_token);
+
+  // Opt-in: opens the section when the parent hands down a new token.
+  // Callers that never pass force_open_token behave exactly as before.
+  if (force_open_token !== seen_open_token) {
+    set_seen_open_token(force_open_token);
+    if (force_open_token) set_is_open(true);
+  }
 
   function toggle_section() {
     set_is_open((current) => !current);

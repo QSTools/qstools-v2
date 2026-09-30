@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import ProfitAndLossCostOfSalesGroup from "@/components/p-and-l/ProfitAndLossCostOfSalesGroup";
 import ProfitAndLossCustomDirectCostCategoryPanel from "@/components/p-and-l/ProfitAndLossCustomDirectCostCategoryPanel";
@@ -90,7 +91,43 @@ export default function ProfitAndLossSectionBlock({
     subtotal_value = summary.total_operating_expenses;
   }
 
+  const [moved_line, set_moved_line] = useState(null);
+
+  useEffect(() => {
+    if (!moved_line) return undefined;
+
+    const timer = setTimeout(() => {
+      const row = document.getElementById(`pnl-line-${moved_line.line_id}`);
+      if (!row) return;
+
+      const group_id = row.closest('[id^="pnl-group-"]')?.id ?? null;
+      if (group_id === moved_line.previous_group_id) return;
+
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.style.transition = "box-shadow 0.4s ease";
+      row.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.6)";
+      setTimeout(() => {
+        row.style.boxShadow = "";
+      }, 2000);
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [moved_line]);
+
   function handle_line_name_change(line, next_line_name) {
+    const previous_group_id =
+      typeof document !== "undefined"
+        ? (document
+            .getElementById(`pnl-line-${line.pnl_line_id}`)
+            ?.closest('[id^="pnl-group-"]')?.id ?? null)
+        : null;
+
+    set_moved_line({
+      line_id: line.pnl_line_id,
+      token: Date.now(),
+      previous_group_id,
+    });
+
     actions.update_pnl_line(line.pnl_line_id, "line_name", next_line_name);
 
     if (
@@ -134,11 +171,28 @@ export default function ProfitAndLossSectionBlock({
       specific_classification?.category ||
       infer_category_from_line_name(next_line_name);
 
-    if (!suggested_category) return;
-
     const current_category = line.category ?? "unassigned";
-    const is_current_manual =
+
+    // line.line_name is still the previously committed name here, so a
+    // category equal to what the classifier suggests for it was automatic.
+    const previous_classification = detect_operating_expense_subcategory(
+      line.line_name ?? "",
+    );
+    const previous_suggested_category =
+      previous_classification?.category ||
+      infer_category_from_line_name(line.line_name ?? "");
+
+    const is_current_assigned =
       current_category !== "unassigned" && current_category !== "";
+    const is_current_manual =
+      is_current_assigned && current_category !== previous_suggested_category;
+
+    if (!suggested_category) {
+      if (is_current_assigned && !is_current_manual) {
+        actions.update_pnl_line(line.pnl_line_id, "category", "unassigned");
+      }
+      return;
+    }
 
     if (!is_current_manual) {
       actions.update_pnl_line(
@@ -234,6 +288,7 @@ export default function ProfitAndLossSectionBlock({
               <ProfitAndLossCostOfSalesGroup
                 key={group.key}
                 group={group}
+                moved_line={moved_line}
                 state={state}
                 actions={actions}
                 handle_line_name_change={handle_line_name_change}
@@ -274,6 +329,8 @@ export default function ProfitAndLossSectionBlock({
             {operating_expense_groups.map((group) => (
               <ProfitAndLossOperatingExpenseGroup
                 key={group.key}
+                group_key={group.key}
+                moved_line={moved_line}
                 title={group.title}
                 help={group.help}
                 lines={group.lines}

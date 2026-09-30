@@ -15,8 +15,13 @@ export default function ProfitAndLossOperatingExpenseGroup({
   handle_line_name_change,
   get_suggested_category_text,
   defaultOpen = false,
+  group_key = "",
+  moved_line = null,
 }) {
   const subtotal = get_line_amount_total(lines);
+  const contains_moved_line = Boolean(
+    moved_line && lines.some((line) => line.pnl_line_id === moved_line.line_id),
+  );
 
   if (lines.length === 0) return null;
 
@@ -25,6 +30,8 @@ export default function ProfitAndLossOperatingExpenseGroup({
       title={title}
       summary={format_money(subtotal)}
       defaultOpen={defaultOpen}
+      id={group_key ? `pnl-group-${group_key}` : undefined}
+      force_open_token={contains_moved_line ? moved_line.token : undefined}
     >
       <div className="ui-stack-sm">
         <div className="ui-panel ui-stack-sm">

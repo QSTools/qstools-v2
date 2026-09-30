@@ -1,6 +1,7 @@
 "use client";
 
 import Tooltip from "@/components/common/Tooltip";
+import ProfitAndLossLineNameInput from "@/components/p-and-l/ProfitAndLossLineNameInput";
 import {
   get_category_help_text,
   is_wip_line,
@@ -43,14 +44,16 @@ export default function ProfitAndLossCostOfSalesLineRow({
       : line.category || "unassigned";
 
   return (
-    <div key={line.pnl_line_id} className="ui-panel ui-stack-sm">
+    <div
+      key={line.pnl_line_id}
+      id={`pnl-line-${line.pnl_line_id}`}
+      className="ui-panel ui-stack-sm"
+    >
       <div className="ui-stack-sm">
         <span className="ui-label">Line Name</span>
-        <input
-          className="ui-input"
-          value={line.line_name}
-          placeholder="Enter line name"
-          onChange={(event) => handle_line_name_change(line, event.target.value)}
+        <ProfitAndLossLineNameInput
+          line={line}
+          handle_line_name_change={handle_line_name_change}
         />
       </div>
 

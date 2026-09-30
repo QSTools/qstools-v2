@@ -13,8 +13,13 @@ export default function ProfitAndLossCostOfSalesGroup({
   state,
   actions,
   handle_line_name_change,
+  moved_line = null,
 }) {
   const subtotal = get_line_amount_total(group.lines);
+  const contains_moved_line = Boolean(
+    moved_line &&
+      group.lines.some((line) => line.pnl_line_id === moved_line.line_id),
+  );
   const active_line_count = group.lines.filter(
     (line) => !is_empty_placeholder_line(line),
   ).length;
@@ -39,6 +44,8 @@ export default function ProfitAndLossCostOfSalesGroup({
       title={group.title}
       summary={`${format_money(subtotal)} · ${active_line_count} ${line_label}`}
       defaultOpen={group.defaultOpen}
+      id={`pnl-group-${group.key}`}
+      force_open_token={contains_moved_line ? moved_line.token : undefined}
     >
       <div className="ui-stack-sm">
         <div className="ui-panel ui-stack-sm">
