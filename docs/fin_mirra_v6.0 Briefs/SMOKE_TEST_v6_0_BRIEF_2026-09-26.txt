@@ -383,7 +383,22 @@ STEP D - Extended labour pass (before touching assets):
 
 STEP E - Resume asset test (step 8), clean, before layering any
   asset-specific overhead on top:
+  ADDED 2026-10-01: Step E is now ALSO the proof for the RB-1 fix
+  (commit 3845abf). That fix changed how Rate Builder splits overhead, but
+  neither changed path can show on asset-free data. Read
+  RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt s5b-i and s5c before starting.
+  Before-asset baseline (minimum_recoverable_charge_out_rate):
+    Supervisor / Team Lead 79.58, Operator / Delivery Staff 95.18,
+    All productive weighted 87.36.
+  Capture route: /calculation-trace -> Root: Rate Builder -> Download JSON.
   1. Add one productive asset to the group.
+     RB-1 CHECK: every labour floor in that group must FALL below the
+     baseline above, because labour no longer carries the asset's share
+     of overhead. If a floor stays at 79.58 / 95.18, STOP - the fix is
+     not taking effect.
+     RB-1 CROSS-CHECK: Rate Builder's labour overhead pool for the group
+     must now equal Business Outcome's labour_overhead_pool for the same
+     group. These differed before the fix.
   2. Add a second productive asset CO-DEPLOYED with the first in the SAME
      group (ute + pump pattern). Confirm assigned_asset_hours = MAX of
      the two, NOT the sum (CM-4, deliberate - co-deployed assets run
@@ -394,6 +409,12 @@ STEP E - Resume asset test (step 8), clean, before layering any
      (gap_hours = asset_hours - labour_hours, valued at the blended
      rate) calculates correctly - both the "labour short, revenue gap"
      case and the "labour surplus, wasted cost" case.
+     ADDED 2026-10-01 (RB-1 hours basis): also put TWO staff types of
+     DIFFERENT pay rates in ONE group on equal hours. Step E as originally
+     written is one staff member, so it does NOT exercise the hours-vs-cost
+     weighting change. Expect the expensive type's floor to FALL and the
+     cheap type's to RISE relative to a cost-weighted split. If neither
+     moves, the hours basis is not taking effect.
   4. Only once assets prove clean on their own, layer an asset-specific
      overhead (e.g. fuel) back on top, then other running costs, to
      build up real operating costs deliberately and traceably.

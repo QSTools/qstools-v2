@@ -457,4 +457,21 @@ STATE AS OF 2026-10-01. The dated update log is archived verbatim in KICKOFF_UPD
 
 DONE: Phase 1 and 2 steps 1-8. Labour smoke test signed off session 17 (2026-09-29), Steps B, C, D.1-D.4. Session 18 P&L typing bug fixed, c2fa03a.
 
-NEXT: 1) Owner decision on RB-1 (Rate Builder recovery rows still cost-weighted). 2) Step E assets, then Step F business-type flip. Step E is isolated: one staff member, single 1,000 overhead category, asset-specific overhead as a later step.
+RB-1 CLOSED-AS-BUILT 2026-10-01 (session 19, commit 3845abf). Owner decision
+was: do not duplicate the rule - share it. Rate Builder no longer derives its
+own overhead split; it calls lib/calculations/shared/overheadSplit.js
+split_group_overhead, the same function Business Outcome uses, then weights
+across staff types by HOURS (was labour cost). Business Outcome verified
+UNCHANGED. Calc map s8 + CM-2 updated; CM-2 is resolved.
+NOT PROVEN: both changed paths are no-ops on the current dataset (no assets,
+one staff type per group). Step E.1 must prove it - before-asset baseline
+recorded in RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt s5b-i.
+NEW, OPEN: RB-1b - the all_productive row still uses labour_share_percent,
+a different split basis from the per-staff-type rows (visible live: 87.36 vs
+per-type 79.58 / 95.18). Logged, not fixed.
+
+NEXT: Step E (assets), then Step F (business-type flip). Step E is isolated:
+one staff member, single 1,000 overhead category, asset-specific overhead as
+a later step. Step E.1 MUST also verify RB-1 (see the brief's s5c) and E.3
+MUST add the two-staff-types-in-one-group case, which Step E as written does
+not cover.
