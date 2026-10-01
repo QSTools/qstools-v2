@@ -5,6 +5,7 @@ import {
 } from "@/lib/formatters/numberFormatters";
 import useFixedAssetRegister from "@/hooks/useFixedAssetRegister";
 import AssetRegisterNameCombobox from "@/components/assets/AssetRegisterNameCombobox";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
 import { estimateAnnualDepreciation } from "@/lib/calculations/fixedAssetRegisterCalculations";
 
 const setup_fields = [];
@@ -39,12 +40,17 @@ function render_input({ field_name, label, type = "number", value, on_change }) 
   );
 }
 
+function section_summary(text) {
+  return text;
+}
+
 export default function AssetForm({
   values,
   on_change,
   on_bulk_change,
   on_reset,
   default_annual_weeks = 48,
+  running_costs_slot = null,
 }) {
   const asset_type = values.asset_type === "support" ? "support" : "productive";
   const asset_status = values.is_retired ? "retired" : "active";
@@ -234,8 +240,12 @@ export default function AssetForm({
           </div>
         </div>
 
+        <CollapsibleSection
+          title="Asset Setup"
+          summary="Name and type"
+          defaultOpen={false}
+        >
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Asset Setup</div>
 
           <label className="ui-stack-sm">
             <span className="ui-label">Asset Name</span>
@@ -295,6 +305,15 @@ export default function AssetForm({
             </select>
           </label>
 
+        </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Asset Utilisation"
+          summary="Hours and downtime"
+          defaultOpen={false}
+        >
+        <div className="ui-stack-sm">
           {asset_type === "productive" ? (
             <>
               <label className="ui-stack-sm">
@@ -413,9 +432,14 @@ export default function AssetForm({
             />
           </label>
         </div>
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Status"
+          summary="Lifecycle"
+          defaultOpen={false}
+        >
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Status</div>
 
           <label className="ui-stack-sm">
             <span className="ui-label">Asset Status</span>
@@ -457,9 +481,14 @@ export default function AssetForm({
             <span>No active assets to include</span>
           </label>
         </div>
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Finance"
+          summary="Purchase and finance terms"
+          defaultOpen={false}
+        >
         <div className="ui-stack-sm">
-          <div className="ui-kicker">Finance</div>
 
           <label className="ui-stack-sm">
             <span className="ui-label">Purchase Price</span>
@@ -547,6 +576,16 @@ export default function AssetForm({
             </div>
           </div>
         ) : null}
+
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Running Costs"
+          summary="Overhead pool assignment"
+          defaultOpen={false}
+        >
+          {running_costs_slot ?? null}
+        </CollapsibleSection>
 
         <div className="ui-actions">
           <button

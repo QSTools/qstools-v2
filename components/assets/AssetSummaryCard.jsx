@@ -52,7 +52,7 @@ function PortfolioSummaryCard({ portfolio_summary = {} }) {
   );
 }
 
-function AssetOverheadPoolAssignmentCard({
+export function AssetOverheadPoolAssignmentCard({
   pool_summary = [],
   on_change_asset_overhead_pool_assignment,
 }) {
@@ -295,12 +295,6 @@ function SelectedAssetDetailCard({
             </div>
           </div>
 
-          <AssetOverheadPoolAssignmentCard
-            pool_summary={asset_overhead_pool_summary}
-            on_change_asset_overhead_pool_assignment={
-              on_change_asset_overhead_pool_assignment
-            }
-          />
 
           <div className="ui-panel">
             <div className="ui-stack-sm">

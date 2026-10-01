@@ -4,8 +4,10 @@ import useAssets from "@/hooks/useAssets";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import AssetMainCard from "@/components/assets/AssetMainCard";
 import AssetStatusStrip from "@/components/assets/AssetStatusStrip";
+import AssetListCard from "@/components/assets/AssetListCard";
 import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 import AssetFinancePnlMatchCard from "@/components/assets/AssetFinancePnlMatchCard";
+import CollapsibleSection from "@/components/common/CollapsibleSection";
 import AssetTotalPurchasePriceCard from "@/components/assets/AssetTotalPurchasePriceCard";
 
 export default function AssetsPage() {
@@ -29,14 +31,10 @@ export default function AssetsPage() {
           {...card}
           status={status}
           default_annual_weeks={business_default_annual_weeks}
+          asset_finance_pnl_match={asset_finance_pnl_match}
+          active_assets={active_assets}
         />
-        <AssetStatusStrip {...status} />
-        <AssetFinancePnlMatchCard asset_finance_pnl_match={asset_finance_pnl_match} />
-        <section className="ui-section">
-          <div className="ui-panel">
-            <AssetTotalPurchasePriceCard active_assets={active_assets} />
-          </div>
-        </section>
+
         <AssetHelpPanel />
         <NextStepFooter
           nextHref="/opening-hours"
