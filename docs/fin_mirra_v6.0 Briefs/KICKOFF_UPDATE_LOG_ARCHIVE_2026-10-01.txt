@@ -1,0 +1,485 @@
+MIRRA v6.0 - KICKOFF UPDATE LOG ARCHIVE
+History only. Do NOT load into project knowledge.
+
+Phase 1 and Phase 2 steps 1-8, including the 8b follow-up, are all done (see
+s2). Next: step 9, Business Modelling.
+
+Everything handed to Business Outcome (H1-H7, S-G1, S-H2) is closed. Every
+planned 8b follow-up item (F1-F7) plus the one added mid-session (F8) is
+closed. What's left from Business Outcome is logged, not blocking: BO-8
+(latent), BO-10 (cosmetic), BO-12 (new, small, self-contained), and the new
+owner-remuneration design item (belongs to a future Labour/Reconciliation
+session, not Business Modelling).
+
+UPDATE (2026-09-30, session 18) - READ THIS FIRST; supersedes session 17's
+  NEXT line. [SHIPPED c2fa03a] P&L typing bug fixed: name commits (and
+  classifies) on blur/Enter via ProfitAndLossLineNameInput.jsx; destination
+  group opens and the moved row scrolls into view with a brief highlight
+  (optional force_open_token prop added to CollapsibleSection; default
+  behaviour unchanged). Verified live. Detail in the smoke-test brief.
+  Session 17 open item (1) is CLOSED; items (2)-(9) unchanged.
+  NEXT: owner decision on RB-1 (Rate Builder recovery rows still cost-weighted,
+  open item 4); then sign-off of labour; then Step E (assets), then Step F.
+UPDATE (2026-09-29, session 17) - READ THIS FIRST; supersedes session 16's
+  NEXT line. LABOUR SMOKE TEST COMPLETE (Steps B, C, D.1-D.4), run on the
+  isolated :3004 instance after a reset to a clean dataset (padded dataset
+  backed up in docs/Audit/v6_0/smoke_test/padded_dataset_backup/, restore
+  script in console_scripts/).
+  [SHIPPED 795517e] Step B: Paid Rest Breaks row in Cost Summary's
+    Entitlements breakdown (display split only; net profit unchanged, verified
+    live). CORRECTION: Business Summary has no entitlements breakdown, so the
+    row is Cost Summary only.
+  [VERIFIED live] Step C: on clean labour data every labour check passes and
+    the P&L variance is 0. The Assets check blocks readiness until "no active
+    assets" is confirmed. [SHIPPED d423152] in-card confirm button on Model
+    Readiness (Asset Finance card).
+  [SHIPPED 55ae276] P&L Facilities / Premises category (dropdown option, rent/
+    premises/electricity/cleaning/storage rule in both classifier copies,
+    General Overheads sync case).
+  OWNER DECISION 2026-09-29, [SHIPPED de78ec0]: overhead follows RECOVERED
+    HOURS everywhere. Changed in Cost Allocation build_overhead_pool and
+    Business Outcome distribute_non_productive_cost. Calc map and Cost
+    Allocation brief updated (entry "OVERHEAD DRIVER CHANGE 2026-09-29").
+  D.4 evidence (trace snapshot 1790674733871, folder
+    1.10_calc_trace_labour_overhead/): overhead pool 4,400; group totals
+    112,528.40 / 134,594.08 / 110,328.40 (overhead 2,200 each; Sarah's
+    pure-support group is cost only); Sarah's pooled cost 55,164.20 each;
+    integrity clean.
+  DATASET NOTE: the reset cleared Rate Builder charge-out rates, so Business
+    Outcome revenue reads 0 until they are re-entered. The Labour module now
+    exceeds the P&L labour benchmark because Jack and Sarah are not in the P&L;
+    that variance is by design of this dataset, do not edit the P&L to hide it.
+  OPEN (logged, not fixed): (1) [FIXED c2fa03a 2026-09-30] P&L typing bug - the auto-category changes
+    while a name is typed, the row moves group and loses focus, leaving names
+    like "acc"; needs classify-on-blur (~6 files). A partial patch was tried and reverted 2026-09-29 (details in the smoke-test brief).
+    (2) Two copies of the P&L detection rules (components/p-and-l/operating-
+    expenses/ and lib/p-and-l/). (3) The saved General Overheads copy lags the
+    P&L until a page that loads useGeneralOverheads is visited. (4) Rate Builder
+    recovery rows are still cost-weighted (RB-1) - needs an owner decision under
+    "one rule everywhere". (5) Traceability readiness group is hardcoded/stale.
+    (6) Model Readiness raw snapshot shows n/a for several fields. (7) Card
+    direction text says "higher than benchmark" for sub-$1 variances.
+    (8) Overhead recovery rate displays $0/hr (rounding). (9) Calc map s9.3
+    hook line references unverified after the +9 shift.
+  NEXT: owner decisions on the typing fix and RB-1; then Step E (assets) is
+    unblocked once the owner signs labour off; Step F after that.
+UPDATE (2026-09-28, session 16) - READ THIS FIRST; supersedes session 15's
+  NEXT line and the "NEXT" in the session 14 entries below.
+  [SHIPPED] Business Modelling as a read-only Calculation Trace root (commit
+  2ec4097): root dropdown on /calculation-trace, rows / lever effects /
+  modelled net profit traced, F5 apostrophe text fixed. Verified live against
+  saved levers (overhead:travel = 1000, Supervisor/Team Lead = 150): 103
+  nodes, 112 edges, integrity clean, today + effect = modelled (-155,911.04 +
+  130,311.14 = -25,599.90), matches the Modelling page. No formula changed;
+  calc map and variable tracker untouched. Detail, limits and snapshot: calc-
+  trace brief, session 16 entry.
+  OWNER DECISION (2026-09-28): the contribution-margin lens and any asset
+  work are ON HOLD. LABOUR testing is finished first, before anything else
+  goes into the tool. The smoke test thread is UNPARKED.
+  NEXT: SMOKE_TEST_v6_0_BRIEF s10 labour steps. Start of session: confirm
+  the state of Step B (Paid Rest Breaks row - logged, not fixed as of
+  session 8) and Step C (Model Readiness sweep - checked once with zero
+  assets, not yet confirmed live), then Step D (D.1-D.3 need a formal pass
+  on a CLEAN dataset; the current dataset is padded - Sarah in Single
+  Labour, an empty "Acoounts Team Test" group - so decide first whether to
+  reset or back up before starting; D.4 multiple overhead categories not yet
+  done). Steps E (assets) and F (business-type flip) stay deferred until
+  labour is signed off. Use Download trace JSON on /calculation-trace to pull
+  numbers instead of console scripts.
+  Not exercised by the session 16 trace check (asset-driven unit rows, asset
+  rows, materials markup lever) - belongs with the deferred asset pass.
+  Upload for next chat: this file, variable tracker, smoke-test brief, calc
+  map, calc-trace brief. Fresh chat recommended (one module per chat).
+UPDATE (2026-09-28, session 15) - READ THIS FIRST; supersedes session 14
+  FOLLOW-UP's NEXT line. Owner chose "build in order", so the untested pool
+  paths came first. Commit bf67d15.
+  [VERIFIED, no code change] untested pool paths: throwaway harness ran the
+  REAL distribute_non_productive_cost and both cascades (View A, View B) on
+  synthetic groups - 6/6 pool cases and 24/24 cascade checks passed, incl.
+  materials > 0. Findings F1-F5 (equal_split unreachable; asset-only group
+  gets $0 of pool; pool can vanish with no productive group; dead policy
+  setting; doubled-apostrophe text in trace node strings) are in the
+  calc-trace brief, session 15 entry.
+  [SHIPPED] mixed-unit policy toggle (F4): NonProductivePolicyToggle on
+  /business-outcome; storage write dispatches an event and the hook
+  re-reads it. No formula changed. Verified live via trace JSON (charge:
+  pool $0; spread: pool $108,841.20 = $64,050.34 + $44,790.86).
+  DATASET CHANGED: Sarah now sits in Single Labour (mixed unit), plus an
+  empty "Acoounts Team Test" group. Pre-session-15 numbers are not the
+  baseline. Snapshots: docs/Audit/v6_0/smoke_test/1.10_calculation_trace_
+  total_group_cost/.
+  STILL OPEN: (1) page-side live check - click the toggle on /business-outcome
+  and confirm the group figures move with no reload (trace page confirmed,
+  page itself now CONFIRMED 2026-09-28: toggle clicked both ways on /business-outcome, no reload, figures matched trace snapshots to the cent - CLOSED); (2) F1 wording fix - DONE (trace node text reworded; calc map s9.4 was already corrected in session 15).
+  NEXT: the contribution-margin lens, then Business Modelling as trace root.
+  Before touching lib/calculation-trace/, read its current code fresh; read
+  the calc-trace brief's session 14 "CONTRIBUTION MARGIN VS..." finding, do
+  not re-derive it. Fresh chat recommended (one module per chat).
+  Upload for next chat: this file, variable tracker, calc-trace brief, calc
+  map. Smoke-test brief and Business Modelling brief can be dropped.
+UPDATE (2026-09-28, session 14 FOLLOW-UP) - READ THIS FIRST; supersedes the
+  session 14 note below where they differ. [SHIPPED] pure-support / pool
+  trace edges (c8381fb, docs 070c447): 84 nodes, 90 edges, integrity clean.
+  Detail, numbers and what is deliberately unwired: calc-trace brief,
+  session 14 FOLLOW-UP entry.
+  START OF SESSION: if the owner names an option, start it. If not, do not
+  begin work - ask which: (a) run the untested pool paths, (b) build the
+  contribution-margin lens, (c) Business Modelling as trace root. Before
+  touching lib/calculation-trace/, read its current code fresh.
+  Upload for next chat: this file, variable tracker, calc-trace brief,
+  smoke-test brief (plus Business Modelling brief and calc map for (c)).
+UPDATE (2026-09-28, session 14) - READ THIS FIRST; supersedes sessions
+  12-13's "STILL NOT LIVE-TESTED" and NEXT notes below (their build record
+  still stands). Business Outcome verification: MAIN PATHS VERIFIED with
+  real numbers on a deliberately padded smoke-test dataset - real_capacity
+  redistribution (Phase 1 and Phase 2), assumed_capacity ceiling scaling,
+  and non-productive pooling (first live run; pure-support node emitted
+  for the first time). Overhead split confirmed on two documented bases:
+  hours-weighted within a group, labour-cost-weighted across groups
+  (Rate Builder's own rows are cost-weighted separately, RB-1, not a bug).
+  NO CODE CHANGED this session; docs and snapshots only (commit 8bc77f9).
+  Full numbers, known gaps and next options: calc-trace brief, session 14
+  entries. Not "fully closed": asset-burden and equal-split pool weighting,
+  spread_as_overhead policy, and View A vs B under pooling with materials
+  above zero are untested.
+  LOGGED, NOT BUILT (each its own session): (1) trace wiring gap - pool
+  node and pure-support node have no edges; (2) contribution-margin lens -
+  show revenue vs own direct cost alongside fully-loaded profit, so a
+  source that looks red can be told apart from one whose removal would
+  make the business worse off (and the reverse: who is quietly propping
+  everyone else up); (3) design finding - per-row "achieved revenue" is a
+  redistribution allocation, not a per-person measurement, once there is
+  more than one staff member; (4) owner parked the question of whether
+  within-group overhead should follow hours or revenue - no change asked.
+  NEXT (owner choice): add the missing pure-support edges, run the
+  untested pool paths, build the contribution-margin lens, or move to
+  Business Modelling (this brief's original root; the page.jsx
+  root-selector decision becomes live then).
+  Upload for next chat: this file, variable tracker, calc-trace brief,
+  smoke-test brief.
+UPDATE (2026-09-27, sessions 12-13) - READ THIS FIRST; supersedes session
+  11 below. Calculation Trace extended through ALL FOUR Business Outcome
+  mechanisms - session 12: naive per-source slice. Session 13: the
+  real_capacity cascade (View A and View B, genuinely different
+  mechanisms - materials floored and special-cased in View A, a full peer
+  in View B), the assumed_capacity Best Case ceiling (same View A/B
+  asymmetry), and the non-productive cost distribution mechanism (How the
+  Business Runs - runs once, shared by both cascades). One bug found and
+  fixed live in the same session (View B materials real_capacity was
+  wired to the View A naive materials node by mistake - caught by the
+  live test itself, not by re-reading code). Full detail, all live-test
+  numbers, and the bug-fix record: CALCULATION_TRACE_VERIFICATION_LAYER_
+  FUTURE_BUILD_BRIEF_2026-09-26.txt (session 12 and session 13 entries) -
+  read those, not repeated here.
+  STILL NOT LIVE-TESTED (logged in the calc-trace brief): three of the
+  four Business Outcome mechanisms have only had their zero-value
+  passthrough confirmed correct - the actual proportional redistribution
+  (real_capacity), scaling (assumed_capacity), and pooling (non-
+  productive distribution) math has never been exercised, because this
+  session data set has no shortfall, no ceiling breach, and no pure-
+  support unit. Needs a data set with one of those properties, or a
+  deliberate, documented padding decision (same precedent as the Cost
+  Allocation P2.5 pass).
+  NEXT: Business Modelling itself (this brief originally specified root)
+  - the page.jsx root-selector decision becomes live once Modelling is
+  wired in - OR find or pad a data set to close the live-test gap above
+  first. Owner choice, not yet decided as of session end.
+  Upload for next chat: this file, variable tracker, calc-trace brief.
+
+UPDATE (2026-09-27, session 11) - READ THIS FIRST; supersedes sessions
+  9-10's note below. Calculation Trace extended to Rate Builder (commit
+  9ac218d): new lib/calculation-trace/pilot-map/rateBuilderTraceNodes.js -
+  one boundary node for the rate_builder_labour_recovery_rows
+  aggregation, one node per labour source's
+  minimum_recoverable_charge_out_rate. Deliberately modelled as a
+  boundary, not a direct edge into a specific Cost Allocation group,
+  since the recovery-rows aggregation spans groups per staff type
+  (many-to-one) - not the same edge as
+  cost_allocation.group.<id>.total_group_cost. Reuses the existing
+  model_readiness.modules.labour and cost_allocation_result mounts
+  already in calculationTraceLiveValues.js (no second hook mount) via
+  the same composition useRateBuilderLabourRates.js itself uses.
+  DELIBERATELY STILL ORPHANED, same as Cost Allocation - Rate Builder
+  feeds Business Outcome / Business Modelling, not the current Business
+  Summary root.
+  LIVE-TEST VERIFICATION (same smoke-test data as sessions 9-10):
+  rate_builder.labour_rate.supervisor_team_lead resolved 78.73,
+  matching the live /rate-builder page's minimum recoverable charge-out
+  rate for the same staff type exactly. Recovery-rows boundary node
+  resolved row count 2 (all_productive + supervisor_team_lead). No
+  duplicate node IDs, no missing endpoints. Node count 37, edge count
+  27 (up from session 10's 34/25). Snapshot: docs/Audit/v6_0/
+  smoke_test/1.9_calculation_trace_rate_builder/.
+  NEXT: Business Outcome is the natural next slice, then Business
+  Modelling, reaching this brief's originally specified root - at which
+  point page.jsx's root-selector question becomes real and needs its
+  own decision. Smoke test thread remains separately parked.
+  Upload for next chat: this file, variable tracker, calc-trace brief.
+  Drop Business Modelling brief, file map, smoke test brief (unchanged).
+
+UPDATE (2026-09-27, sessions 9-10) - READ THIS FIRST; supersedes session
+  8's note below. SEPARATE THREAD from the smoke test. Full detail:
+  CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt
+  s7 (session 9) and s8 (session 10) - read those, not repeated here.
+  SESSION 9: existing lib/calculation-trace/ page was static/
+  representative-proof-only, rooted at Business Summary not this doc's
+  Section 3 root (Business Modelling). Rebuilt as a live tool: nodes
+  resolve from the same output_contract fields the real app pages read,
+  self-contained hook composition, zero changes to any shipped hook.
+  Slice shipped: Business Summary / Cost Summary / Labour / Assets /
+  General Overheads / Revenue-COGS. Live-tested against real data.
+  SESSION 10: extended the pattern to Cost Allocation (new file
+  costAllocationTraceNodes.js) - labour type, asset, overhead-pool
+  source nodes, per-group cost/rate nodes with real shared-node edges.
+  DELIBERATELY ORPHANED for now - not reachable from the current root,
+  page.jsx's root-selector left untouched pending its own decision. Also
+  added a reusable Download JSON dev-tool (lib/dev-tools/downloadJson.js,
+  components/dev-tools/ExportJsonButton.jsx) - drop it into any page for
+  the same verify workflow, no more console scripts. Both sessions
+  committed (5751dd8, 0fded81).
+  NEXT: Rate Builder is the natural next slice, then Business Outcome,
+  then Business Modelling (this doc's Section 3 root). Smoke test
+  thread (SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10) remains separately
+  parked, fully unblocked, still an open choice.
+  Upload for next chat: this file, variable tracker, calc-trace brief,
+  smoke test brief. Drop Business Modelling brief and file map.
+
+UPDATE (2026-09-26, session 6) - READ THIS FIRST; supersedes session 5's
+  note below. BO-8 and CM-8 (session 5's "NEXT, in order" items) are both
+  closed:
+    BO-8 CLOSED (not fixed - confirmed not applicable). Investigated:
+    calculate_capacity_coverage_gap ignores its overrides parameter, so
+    modelled_per_source.capacity_coverage_gap never reflects a lever -
+    but that mechanism is inert cross-check infrastructure (Q2, brief
+    s11); the live page runs on the additive model instead, and nothing
+    reads modelled_per_source.capacity_coverage_gap. No visible bug.
+    CM-8 FIXED, verified live, committed (67b00ec). Third copy of the
+    dead type === "time" recovery-hours rule, in
+    businessOutcomeAssetSplitCalculations.js, feeding the LIVE
+    /recovery-outcome page. Now uses the shared
+    get_calculator_recovery_hours rule (same as CM-1b). All four
+    asset-backed groups (2inc Line, 2inc Line Pump 2, PC15, PC55) verified
+    live with reason=null and a real totalCharged.
+  Both entries closed in CALCULATION_MAP_v6_0.txt (s12) and
+  VARIABLE_TRACKER_v6_0.txt (commit 9846381).
+  SEPARATE FINDING, logged only, not fixed: /recovery-outcome's "Asset
+  utilization data not available" message prints identical wording for
+  two different underlying conditions - display defect, not chased.
+  NEXT: owner wants to consider a hybrid Rate Builder / Modelling UI -
+  not decided, not scoped. No other item is queued ahead of it as of
+  this note.
+  Upload for next chat: this file, the variable tracker, the calc map,
+  the Business Modelling brief, the file map (unchanged from session 5's
+  list).
+
+
+UPDATE (2026-09-26, session 8) - READ THIS FIRST; supersedes session 7's
+  note below. Continuation of session 7's smoke test thread (the Excel-
+  import pivot session 7 flagged did NOT happen yet).
+  FOUND & FIXED (owner): reference P&L had Salary & Wages net of
+  entitlements - corrected, now reconciles.
+  FOUND, logged not fixed: Entitlements breakdown widget undersums its
+  own total (missing a Paid Rest Breaks row) - small display fix.
+  Model Reconciliation checked with zero assets: Blocking 0, Warnings 0 -
+  the Assets "Attention" readiness item is NOT a blocking reconciliation
+  check (per tracker s16); read as non-blocking, not yet confirmed live.
+  Full revised queue for the rest of this pass locked in:
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s10 - read that, not repeated here.
+  New future-build brief:
+  CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt -
+  FIRST JOB next session, before any s10 step: read it and review the
+  actual current lib/calculation-trace/ code fresh.
+  Also logged, not built (s7): Cost Allocation page simplification idea.
+  This doc tidied: duplicate session-6 block removed; "keep this doc
+  lean" standing rule added to s7 (this entry follows that rule).
+  Upload for next chat: this file, variable tracker, calc map,
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt, the new calc-trace brief. Drop
+  Business Modelling brief and file map - untouched this session.
+
+UPDATE (2026-09-26, session 7) - READ THIS FIRST; supersedes session 6's
+  note below. SEPARATE THREAD, not calc work on the real dataset: a manual
+  smoke test on an isolated instance (localhost:3004, separate localStorage
+  origin, zero risk to real data) - one synthetic labour-hire business
+  (Paul, $50/hr) walked end to end: Labour -> Cost Allocation -> Rate
+  Builder (Path A) -> Business Outcome -> Business Modelling identity check,
+  then a $1,000 overhead layered on top and re-verified through the whole
+  chain. EVERY figure reconciled exactly against CALCULATION_MAP_v6_0.txt at
+  every stage, no discrepancies found. Confirmed along the way: General
+  Overheads auto-syncs P&L lines tagged category=general_overheads via
+  synced_pnl_overhead_items (qs_tools_general_overhead_state) - no separate
+  manual entry needed, working as designed.
+  PAUSED MID-SCENARIO, not abandoned: asset phase (adding a productive asset
+  to the group, to exercise CM-1's net_asset_rate/labour_mix_charge_rate via
+  Rate Builder's Customer Charge Calculator - Path B, not Path A) was
+  started but not completed. Resume at folder 1.7 in
+  docs/Audit/v6_0/smoke_test/ when picked back up.
+  PIVOT for next session: NOT resuming the asset test next. Instead testing
+  the REAL P&L Excel import feature (lib/p-and-l/profitAndLossExcelImporter.js,
+  app/api/pnl-import/) - manual entry bypasses this code entirely, so this is
+  genuinely new ground. VARIABLE_TRACKER_v6_0.txt s8/s11 already logs several
+  specific, real gaps here, not yet re-verified against v6.0 code: financial_year
+  defaults from today's date and is NOT read from the report header (has
+  silently disagreed with a correctly dated Balance Sheet before, on real
+  data); period_month is left blank on import; the two internal P&L totals
+  (section-based vs category-based) can diverge silently if a line's
+  category/section tagging is off - /dev/cross-import-check tests this but
+  nothing enforces it at runtime; the labour on-cost split (ACC/KiwiSaver
+  detection) uses fragile line-name substring matching; several fields are
+  dead/display-only despite looking real (materials_cost, subcontract_cost,
+  hired_equipment_cost, employee_overheads_benchmark_total). Check all of
+  these specifically after the import, not just whether numbers look right.
+  This does NOT touch or resolve the REMAINING CALC ITEMS queue (still
+  empty) or the hybrid Rate Builder/Modelling UI idea (still undecided,
+  unscoped) - both untouched, as they were at the end of session 6.
+  ALSO FOUND, fixed this session: this kickoff doc had silently drifted
+  from project knowledge - a session 6 update existed in project knowledge
+  but was never saved back to this file on disk. Backfilled below. A
+  duplicate, much staler copy of this file (295 lines, no UPDATE history at
+  all) was also found at the repo root - renamed, not deleted, see repo
+  root for _STALE_DO_NOT_USE copy. Going forward: this docs\fin_mirra_v6.0
+  Briefs\ copy is the ONLY one to edit.
+  Upload for next chat: this file, the variable tracker, the calc map, the
+  SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt (now covers both the labour/overhead
+  scenario AND the upcoming Excel-import findings - append to it, don't
+  create a second smoke-test brief). Business Modelling brief and file map
+  can be dropped from this session's upload; nothing in this thread touches
+  Business Modelling.
+
+UPDATE (2026-09-26, session 5) - READ THIS FIRST; supersedes session 4's
+  note below. SHIPPED, verified live, committed: (1) OVERHEADS LEVER -
+  General Overheads categories are cost rows in Business Modelling
+  (read-only, real GO data never written; $95,866 matched; Vehicle
+  Running Costs -$8,700 -> profit +$8,700). (2) ASSET-DRIVEN UNITS = ONE
+  all-in lever (2inc Line, PC55); their labour rows show but are not
+  levers; the labour/machine split is shown live via Rate Builder's
+  calculate_net_asset_rate. Full record: Business Modelling brief
+  [SHIPPED] entries; formulas: calc map s10 "Added 2026-09-26".
+  NEXT, in order: BO-8 (Business Modelling overrides do not reach the
+  capacity coverage-gap valuation), then CM-8 (third copy of the old
+  type === "time" calculator-hours rule, legacy split path). Then owner
+  wants to consider a hybrid Rate Builder / Modelling UI - not decided.
+  Calc map line numbers in s10 are stale after these edits: re-run
+  Py\audit-scripts\extract_calc_map.py when next in a calculation session.
+  Upload for next chat: this file, the variable tracker, the calc map,
+  the Business Modelling brief, the file map.
+
+UPDATE (2026-09-25, session 4) - READ THIS FIRST; supersedes session 3's
+  note below. Business Modelling step 5 UI CLEANUP DONE and committed
+  (page.jsx only): old LeverCard + DEBUG block removed, Baseline/Upside/
+  Downside collapsed into "Previous scenario tools", hasMounted lint
+  fixed. Identity checks (no levers = today; own start = ~zero effect;
+  additivity) re-run live against post-CM-1 per_source data - all PASS
+  (small residuals traced to display rounding, not a calc defect). Full
+  detail in the Business Modelling brief (updated 2026-09-25).
+  Next session = Business Modelling step 5, remaining half: asset-driven
+  units become ONE lever (the all-in unit rate), their labour rows
+  cost-only. First job: confirm how the data actually flags a unit as
+  asset-driven vs labour-driven (grep useBusinessOutcomePerSourceRevenue.js
+  and businessOutcomePerSourceRevenueSelectors.js for asset_driven /
+  net_asset_rate / blended_rate / labour_mix_charge_rate - NOT yet
+  confirmed, do not assume a field name) before touching
+  businessModellingSourceRows.js. Calculation-adjacent, not pure UI: read
+  fresh, confirm the approach with the owner, then patch, build,
+  live-test, and follow the CALCULATION CHANGE CHECKLIST if any formula
+  changes. Load the calc map (calculation session).
+
+UPDATE (2026-09-25, session 3) - READ THIS FIRST; supersedes every CM-1
+  item below. CM-1 FIXED and CM-1b (calculator recovery hours read from a
+  missing line type field) FIXED, verified live, committed with the calc
+  map (s12) and Business Modelling brief s13. Next session = Business
+  Modelling step 5 (brief s13 NEXT). First job: re-run the Business
+  Modelling identity checks - its source rows read per_source, whose asset
+  rows changed with CM-1. Load the calc map (calculation session).
+
+NEXT SESSION (set 2026-09-24, step 9 session 2):
+  UPDATE (late 2026-09-24) - supersedes item 1 below and adds CM-1 inputs:
+  - Item 1 DONE: steps 3-4 committed (89bdd1b), build OK; tree clean.
+  - SIGNED-OFF RULE for CM-1 (owner, recorded in the Rate Builder units
+    scoping brief s2): in an asset-driven unit the calculator rate is the
+    combined labour-plus-asset rate; the asset's own charge is the
+    DIFFERENCE between the combined rate and the labour rate. Labour is
+    not added on top.
+    CLARIFIED (owner, late 2026-09-24): 'the labour rate' = the operator's
+    saved CHARGE-OUT rate from Rate Builder (what they'd bill alone), NOT
+    their cost or minimum rate - cost and overhead already sit in each
+    row's true_cost, so subtracting cost would count it twice. Asset row
+    revenue = (combined rate - labour charge-out rate) x hours; labour row
+    keeps charge-out rate x its hours. Rate Builder's result panel
+    (combined - minimum rate) is a MARGIN CHECK, not a revenue split -
+    leave it as is. Still for the session to settle in code: combined
+    rate below the labour rate (negative asset share), unattended units
+    (BO-6), labour-driven units that also have a calculator.
+  - PRE-FIX BASELINE committed (b4f33be):
+    docs\Audit\v6_0\bo_per_source_PRE_CM1_2026-09-24.json, plus Rate
+    Builder calculators, Recovery Outcome and Business Outcome page text
+    in the same folder. Compare the post-fix snapshot against it.
+  - CAPTURE snapshots by browser DOWNLOAD, never clipboard (clipboard
+    saved the PowerShell command instead of the JSON twice on 2026-09-24).
+  - QUEUE after step 9: RateBuilder_PathB_and_UnitsMode_v6_0_SCOPING_BRIEF
+    (cost-only groups + units mode) - its s8 addendum builds on CM-1.
+  UPDATE (2026-09-25) - PIVOTS ITEM 2 BELOW, READ THIS FIRST: the CM-1
+    subtraction (calculator rate minus labour charge-out rate) will be
+    calculated INSIDE RATE BUILDER, not inside Business Outcome as item 2
+    below still literally says. Rate Builder already holds both numbers on
+    separate tabs of the same module (the calculator's total charge, and
+    the saved per-staff-type charge-out rates in
+    qstools_rate_builder_labour_source_rates_v1) - no new cross-module
+    plumbing needed. Rate Builder publishes the resulting net asset rate as
+    a new field (exact name/shape: decide while reading the real calculator
+    selector code fresh next session, do not assume one from this note).
+    Business Outcome's build_asset_sources then READS that field directly
+    instead of computing the subtraction itself, and no longer needs a
+    labour_sources parameter passed into it at all. calculate_capacity_
+    coverage_gap gets the same treatment - its asset-driven positive-gap
+    value becomes gap_hours x blended_rate only, with nothing added for
+    labour on top. The three code-design points item 2 flags as "still to
+    settle" are ALL answered, unchanged by the pivot: do NOT clamp a
+    negative net asset rate (report it honestly, it is a genuine
+    underpricing signal); do NOT add a warning/flag field for it inside
+    Business Outcome (that judgment belongs to Business Modelling's floor/
+    start/ceiling display, not to Business Outcome's retrospective
+    reporting); BO-6's covered-hours mechanism needs no change at all. A
+    labour-driven unit that also carries a calculator rate is a data-entry
+    mistake, not a case to special-case in code. Full Business Modelling
+    Q&A from this same session (net profit display, overhead levers,
+    legacy card deletion, materials floor, whole-business ceiling,
+    shortfall distribution, lever granularity, reverse-lever direction,
+    multi-component calculators) is recorded in
+    BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt s12 - read
+    that section too before resuming step 3 below. A units-mode scoping
+    discussion also happened this session and produced its own standalone
+    brief - see s7 above, not repeated here.
+  1. git log --oneline -8 and git status: confirm the step 3/4 Business
+     Modelling commit landed (brief s11 PENDING).
+  2. SUPERSEDED 2026-09-25 (see the update above) - kept for history. Fix CM-1 in Business Outcome FIRST (calc map s12). Settle with the
+     owner before patching: in an asset-driven unit, the calculator rate is
+     the unit's whole revenue; labour's share comes out of it (Rate Builder
+     result panel formula) rather than being added. Touches build_labour_
+     sources, build_asset_sources, calculate_capacity_coverage_gap and the
+     combined totals in useBusinessOutcomePerSourceRevenue.js - a core file,
+     so read fresh, confirm, patch, build, live-test, then follow the s4
+     CALCULATION CHANGE CHECKLIST (re-run the extract, update the calc map
+     lines and close CM-1 there), and commit code + calc map + BO brief +
+     file map together.
+  3. Then resume Business Modelling at step 5 (brief s11): asset-driven
+     units become ONE lever (the all-in unit rate) once CM-1 is fixed.
+  Upload for that session: this document, the variable tracker, the file
+  map, CALCULATION_MAP_v6_0.txt, and the Business Modelling brief (updated
+  2026-09-24, now with a 2026-09-25 s12 addendum recording the
+  full Q&A close-out - read that section too). The Business Outcome brief is NOT uploaded - the calc map and
+  file map carry the mechanism; record the CM-1 fix as a new dated entry in
+  the Business Outcome brief in the repo.
+
+UPDATE 2026-09-24: the consolidation described below is DONE. For the step-9 session
+upload only: this document, the variable tracker, the file map, and
+BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt. Do NOT re-consolidate; the
+v5.x Business Modelling docs are superseded and archived out of project knowledge.
+(The original wording follows, kept for history.)
+
+Upload for the next session only: this document, the variable tracker, the
+file map (BUSINESS_OUTCOME_FILE_MAP_v6_0.txt - still relevant, since Business
+Modelling reads per_source directly from Business Outcome's own hooks/
+selectors, per Section 3 of that file), and whichever existing Business
+Modelling brief/notes exist to consolidate (see Section 6 - this module has
+not yet had its v5.x documents folded into one v6.0 brief; do that as the
+first step of the step-9 session, same as every other module).
