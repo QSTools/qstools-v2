@@ -244,6 +244,9 @@ export default function CalculationTracePage() {
               >
                 <option value="business_summary.required_recovery_per_driver">Root: Business Summary</option>
                 <option value="business_modelling.modelled_net_profit">Root: Business Modelling</option>
+                <option value="rate_builder.labour_rate.supervisor_team_lead">Root: Rate Builder - Supervisor / Team Lead</option>
+                <option value="rate_builder.labour_rate.operator_delivery_staff">Root: Rate Builder - Operator / Delivery Staff</option>
+                <option value="rate_builder.labour_rate.all_productive">Root: Rate Builder - All Productive</option>
               </select>
               {!liveValues.is_hydrated ? <WarningPill>waiting for data to load</WarningPill> : null}
               <ExportJsonButton

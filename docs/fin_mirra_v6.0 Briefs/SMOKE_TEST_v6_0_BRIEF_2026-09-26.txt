@@ -383,6 +383,9 @@ STEP D - Extended labour pass (before touching assets):
 
 STEP E - Resume asset test (step 8), clean, before layering any
   asset-specific overhead on top:
+  STATUS 2026-10-01: E.1 PASSED. E.2 PASSED. E.3 PASSED (hours-basis test
+  and labour coverage gap, both directions). E.4 NOT STARTED - next
+  session. Results and figures recorded at the end of Step E below.
   ADDED 2026-10-01: Step E is now ALSO the proof for the RB-1 fix
   (commit 3845abf). That fix changed how Rate Builder splits overhead, but
   neither changed path can show on asset-free data. Read
@@ -418,6 +421,53 @@ STEP E - Resume asset test (step 8), clean, before layering any
   4. Only once assets prove clean on their own, layer an asset-specific
      overhead (e.g. fuel) back on top, then other running costs, to
      build up real operating costs deliberately and traceably.
+
+  RESULT 2026-10-01 - ASSET PASS (isolated instance :3004)
+  Dataset: Paul (Supervisor/Team Lead, 1,414.1167 hrs), Jack (Operator/
+  Delivery Staff, 1,414.1167 hrs), Sarah (non-productive). Assets:
+  RB1 Test Asset (1,440 hrs/yr, 20,000 annual burden) and RB1 Pump
+  (960 hrs/yr, 5,000). Overhead pool 4,400.
+
+  E.1 PASSED - one productive asset in Paul's group.
+    Every floor fell: 79.58 -> 79.35, 95.18 -> 95.16, 87.36 -> 87.28.
+    RB-1 fix confirmed taking effect on real data.
+    CROSS-CHECK PASSED: Rate Builder labour overhead pool 1,879.28 =
+    Business Outcome labour pool 1,879.28 for the same group. Verified
+    via the Business Outcome rows and the trace, NOT by reading a field
+    literally named labour_overhead_pool in the selector - a stricter
+    check would need that code read.
+    group_recovery_hour_source = asset_hours, group_recovery_hours 1,440,
+    labour_coverage_gap_hours 25.88, warning raised correctly.
+    Trace: calculation_trace_snapshot_1790883926749.json
+
+  E.2 PASSED - second co-deployed asset, same group.
+    assigned_asset_hours 1,440 = MAX, not the 2,400 sum. CM-4 confirmed.
+    assigned_asset_burden 25,000 = SUM. Confirmed.
+    Floors 79.30 / 95.16 / 87.26. The other group's overhead stayed at
+    2,180.0487 - correct, the pump did not change Paul's recovery hours.
+    NOTE: the asset-side pool split between the two assets uses the SUM
+    of asset hours (2,400 -> 246.06 / 164.04) while recovery hours use
+    the MAX. Two different hour bases, side by side, deliberately.
+    Trace: calculation_trace_snapshot_1790884959202.json
+
+  E.3 PASSED - mismatched hours plus the hours-basis test.
+    Hours basis: two staff types, different pay, equal hours, one group.
+    Supervisor 79.30 -> 79.43 (cheap type ROSE), Operator 95.16 -> 95.03
+    (expensive type FELL). Both carried identical overhead 1,994.5634
+    (1.41/hr); a cost-weighted split would have given 1,813.24 / 2,175.89.
+    Hours basis confirmed live.
+    Labour short: the standing 26-hour gap from E.1/E.2 was counted
+    rather than engineering a larger shortfall. [DECISION]
+    Labour surplus: 2,828 labour hours against 1,440 asset hours gave
+    NO warning and gap 0 - the coverage warning is one-directional.
+    See RB1 brief s5f finding 15. Ruled a design question, off-task here.
+    Traces: _1790885690796.json (before), _1790885745889.json (after)
+
+  E.4 NOT STARTED - asset-specific overhead. Check two logged findings
+    first: assignments are not reconciled when a P&L overhead line is
+    deleted, and hooks/useAssets.js clamps pool assignments (Math.min)
+    rather than pro-rata scaling per the calc map's
+    get_effective_asset_pool_assignments.
 
 STEP F - Business-type flip check (quick, final):
   Flip business_type from labour_based to product_based on the SAME

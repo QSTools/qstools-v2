@@ -76,21 +76,43 @@ definition - not to duplicate the rule a second time.
     than the walk reached).
 
 5c. MUST BE PROVEN DURING SMOKE TEST STEP E - DO NOT SIGN OFF WITHOUT IT
-[ ] E.1 (first asset added to a group): every labour floor
+[x] E.1 (first asset added to a group): every labour floor
     (minimum_recoverable_charge_out_rate) in that group FALLS, because
     labour no longer carries the asset's share of overhead. Capture the
     floor BEFORE adding the asset so there is something to compare to.
-[ ] E.1 cross-check: Rate Builder's labour overhead pool for the group now
+[x] E.1 cross-check: Rate Builder's labour overhead pool for the group now
     equals Business Outcome's labour_overhead_pool for the same group.
     These were different numbers before this fix; they must now agree.
-[ ] HOURS BASIS - NOT covered by Step E as written (Step E is one staff
+[x] HOURS BASIS - NOT covered by Step E as written (Step E is one staff
     member). Add to E.3, which already assigns staff to an asset-backed
     group: put TWO staff types of DIFFERENT pay rates in ONE group on
     equal hours. Expect the expensive type's floor to FALL and the cheap
     type's to RISE relative to the old cost-weighted split. If both stay
     put, the hours basis is not taking effect - investigate before sign-off.
-[ ] Calculation trace page: Rate Builder node text matches the code.
-RESULT:
+[x] Calculation trace page: Rate Builder node text matches the code.
+RESULT: ALL FOUR PROVEN 2026-10-01 (isolated instance :3004).
+    E.1 (RB1 Test Asset, 1,440h, 20,000 interest, into Paul's group):
+      Supervisor / Team Lead   79.58 -> 79.35   (fell, as required)
+      Operator / Delivery      95.18 -> 95.16
+      All productive weighted  87.36 -> 87.28
+    E.1 cross-check: Rate Builder labour pool 1,879.28 = Business Outcome
+      labour pool 1,879.28 for the same group. These now agree.
+    E.2 (RB1 Pump added, 960h, 5,000 interest, same group):
+      group assigned_asset_hours 1,440 (MAX, per CM-4), assigned_asset_burden
+      25,000 (SUM). Asset-side overhead pool 410.10 split between the two
+      assets by SUM of asset hours (2,400): 246.06 / 164.04. Note the two
+      different hour bases are deliberate and sit side by side in one group.
+    HOURS BASIS (Jack moved into Paul's group; two staff types, different
+      pay, equal hours 1,414.12 each):
+      Supervisor / Team Lead   79.30 -> 79.43   (cheap type ROSE)
+      Operator / Delivery      95.16 -> 95.03   (expensive type FELL)
+      Both types now carry an identical overhead pool of 1,994.5634
+      (1.41/h). Under the old cost-weighted split they would have been
+      1,813.24 and 2,175.89. Hours basis confirmed live.
+    Business Outcome cross-check at that state: Supervisor 112,323,
+      Operator 134,389, RB1 Test Asset 20,247, RB1 Pump 5,164 - the four
+      overhead shares sum to 4,400.00, the whole pool, to the cent.
+    Captured via /calculation-trace -> Download trace JSON.
 
 5d. OPEN QUESTION (noted 2026-10-01, not chased)
     pnl_net_profit_actual 26,684 vs total_net_profit 31,083.60 - a
@@ -109,7 +131,54 @@ RESULT:
     qs_tools_ (not qstools_); the rate key is
     qs_tools_rate_builder_labour_rates_v1.
 
-6. CLOSE-OUT (not yet done)
-[ ] python Py\audit-scripts\extract_calc_map.py
-[ ] CALCULATION_MAP_v6_0.txt s8 formula + line numbers; CM-2 note; RB-1 entry
+5f. FINDINGS RAISED DURING THE ASSET PASS (2026-10-01, none fixed inline)
+    LABOUR COVERAGE WARNING IS ONE-DIRECTIONAL.
+    labour_coverage_warning fires when labour hours fall SHORT of the
+    group's asset hours (seen at E.1: 1,414 labour vs 1,440 asset, warned
+    at a 26 hour gap). It does not fire in the opposite direction. With
+    both staff in one group - 2,828 labour hours against 1,440 asset hours,
+    a surplus of about 1,388 hours - no warning fired and
+    labour_coverage_gap_hours read 0. The surplus is visible in the numbers
+    (Business Outcome achieved rates 156 and 187 per hour, roughly double
+    the floors, because each person recovers only about half their paid
+    hours) but nothing tells the user that is what they are looking at.
+
+    WHY IT CANNOT SIMPLY BE MIRRORED (owner call, 2026-10-01).
+    Surplus labour hours are only waste if the labour is tied to the asset.
+    A factory machine operator is on that machine all day, so paid hours
+    beyond the machine's running hours are genuine idle cost. Site labour
+    is not: an operator may run a machine 20 hours a week and spend the
+    rest on other recoverable work, where the same surplus is not waste at
+    all. The tool cannot tell these apart from hours alone - it needs to
+    know whether a labour assignment is machine-bound. That is a setting,
+    not a calculation, and it overlaps the open asset-labour linking and
+    unattended / dry-hire exemption items. Logged as a design question;
+    do not write a mirrored warning until that input exists.
+
+    TRACE PAGE HAD NO RATE BUILDER ROOT (fixed 2026-10-01).
+    app/calculation-trace/page.jsx offered only Business Summary and
+    Business Modelling roots, so the s5c capture route above could not be
+    followed as written. Three options added:
+    rate_builder.labour_rate.supervisor_team_lead / .operator_delivery_staff
+    / .all_productive. Separately: the Download trace JSON button exports
+    the WHOLE graph regardless of the selected root (buildTraceSnapshot is
+    never passed the selection), so earlier captures were complete even
+    without the option. One download per data state is enough. The three
+    options are hard-coded to the current staff types; a new staff type
+    needs another line until the list is built from the graph.
+
+    RB-1b IS WIDENING.
+    The all_productive row's labour overhead pool no longer matches the sum
+    of the per-type rows: 4,061.64 against 3,989.90 at E.2 (gap 72.52),
+    versus a gap of 56.43 at E.1. The gap grows as assets take a larger
+    share, because all_productive still splits on cost mix while the
+    per-type rows split on hours. Known issue, still open, but the
+    headline weighted figure is the least trustworthy of the three.
+
+[x] python Py\audit-scripts\extract_calc_map.py  (re-run 2026-10-01)
+[x] CALCULATION_MAP_v6_0.txt s8 formula + line numbers; CM-2 note; RB-1 entry
+    s8 and CM-2 were already correct in the repo copy from the fix commit;
+    this pass refreshed stale line refs (s8 L76 -> L60/L77-81, L99 -> L113-114,
+    s9.2 split_group_overhead L112-120 -> overheadSplit.js L27-29) and added
+    the header UPDATED entry. The PROJECT KNOWLEDGE copy was the stale one.
 [ ] git status, then commit code + map + brief TOGETHER
