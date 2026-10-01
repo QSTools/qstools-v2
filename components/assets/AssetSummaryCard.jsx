@@ -99,15 +99,21 @@ export function AssetOverheadPoolAssignmentCard({
 
                       {is_over_allocated ? (
                         <div className="ui-help">
-                          This pool is over-allocated by{" "}
+                          <strong className="theme-danger">This pool is over-allocated by{" "}
                           {pool.over_allocated_amount_label}. Reduce the
-                          assigned amount before using this asset downstream.
+                          assigned amount before using this asset downstream.</strong>
                         </div>
                       ) : null}
                     </div>
 
                     <div className="labour-summary-table-value">
-                      {pool.assigned_total_label}
+                      {is_over_allocated ? (
+                        <strong className="theme-danger">
+                          {pool.assigned_total_label}
+                        </strong>
+                      ) : (
+                        pool.assigned_total_label
+                      )}
                     </div>
                   </div>
 
@@ -150,7 +156,7 @@ export function AssetOverheadPoolAssignmentCard({
                     />
                     <SummaryRow
                       label="Assigned Total"
-                      value={pool.assigned_total_label}
+                      value={is_over_allocated ? <strong className="theme-danger">{pool.assigned_total_label}</strong> : pool.assigned_total_label}
                     />
                     <SummaryRow
                       label="Remaining Pool"
@@ -162,8 +168,8 @@ export function AssetOverheadPoolAssignmentCard({
                     />
                     {is_over_allocated ? (
                       <SummaryRow
-                        label="Over Allocated"
-                        value={pool.over_allocated_amount_label}
+                        label={<span className="theme-danger">Over Allocated</span>}
+                        value={<span className="theme-danger">{pool.over_allocated_amount_label}</span>}
                         strong
                       />
                     ) : null}
