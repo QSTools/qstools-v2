@@ -94,21 +94,11 @@ function get_group_blended_rate(group, calculators) {
 // computed assigned_overhead_amount for the group upstream of this hook
 // - this only divides that already-correct figure, it does not
 // recalculate overhead itself.
-function split_group_overhead(group) {
-  const overhead = to_number(group.assigned_overhead_amount);
-  const labour_cost = to_number(group.assigned_labour_cost);
-  const asset_cost = to_number(group.assigned_asset_burden);
-  const total_cost = labour_cost + asset_cost;
-
-  if (total_cost <= 0) {
-    return { labour_overhead_pool: 0, asset_overhead_pool: 0 };
-  }
-
-  return {
-    labour_overhead_pool: overhead * (labour_cost / total_cost),
-    asset_overhead_pool: overhead * (asset_cost / total_cost),
-  };
-}
+// EXTRACTED 2026-10-01 (RB-1): the arithmetic moved verbatim to
+// lib/calculations/shared/overheadSplit.js so Rate Builder applies the
+// SAME rule. Behaviour here is unchanged by design - if ANY Business
+// Outcome figure moves after this change, the extraction is wrong.
+import { split_group_overhead } from "@/lib/calculations/shared/overheadSplit";
 
 function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}, charge_out_rate_by_staff_type_id = new Map()) {
   const rows = [];

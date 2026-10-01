@@ -1,0 +1,98 @@
+RB-1 - RATE BUILDER OVERHEAD BASIS FIX
+DATE: 2026-10-01
+STATUS: BUILT, NOT YET LIVE-VERIFIED
+SEQUENCING: done BEFORE smoke test Step E so the asset pass live-tests it.
+
+1. THE DEFECT
+Rate Builder's per-staff-type overhead recovery rows (build_rate_builder_
+labour_recovery_rows) were wrong in two independent ways:
+  (a) within-group distribution across staff types used labour COST share;
+      Cost Allocation's within-group basis is HOURS.
+  (b) 100% of a group's overhead was loaded onto labour, ignoring assets;
+      Business Outcome splits labour/asset on cost share (F7).
+Effect: the minimum_recoverable_charge_out_rate (the pricing FLOOR shown in
+Rate Builder) was overstated for asset-bearing groups, and mis-weighted
+between staff types of differing pay rates.
+
+2. WHY NOT "JUST READ COST ALLOCATION'S NUMBER"
+Considered and rejected. Cost Allocation produces a GROUP-level overhead
+figure (assigned_overhead_amount, recovered-hours weighted). Nothing upstream
+produces a per-staff-type figure, so Rate Builder must distribute within the
+group. The fix is to make it distribute by the same rule, from one shared
+definition - not to duplicate the rule a second time.
+
+3. WHAT CHANGED
+- NEW lib/calculations/shared/overheadSplit.js - split_group_overhead moved
+  here verbatim from useBusinessOutcomePerSourceRevenue.js.
+- hooks/useBusinessOutcomePerSourceRevenue.js - local copy deleted, imports
+  the shared one. NO behaviour change intended.
+- lib/selectors/cost-allocation/costAllocationRateBuilderSelectors.js -
+  labour pool from the shared split; staff-type weight by hours, with cost
+  weighting as fallback when a group reports no labour hours.
+- lib/calculation-trace/pilot-map/rateBuilderTraceNodes.js - formula_text
+  updated to describe the new rule.
+
+4. NOT CHANGED (deliberate)
+- The all_productive row (costAllocationRateBuilderSelectors.js) still
+  derives its split from labour_share_percent, a DIFFERENT basis from the
+  per-staff-type rows. Pre-existing inconsistency, logged as RB-1b, not
+  folded in here so the diff stays verifiable.
+- Business Outcome's numbers. This is the regression test.
+
+5. VERIFICATION
+
+5a. DONE 2026-10-01 - REGRESSION ONLY (session 19, clean labour dataset)
+[x] Business Outcome UNCHANGED. Live capture confirmed pool 4,400,
+    group_overhead_share 2,200 per group, four synced categories
+    (1,000 / 2,400 / 600 / 400), overhead_per_hour 1.56,
+    group_recovery_hours 1,414.1167. Matches session 17 D.4 exactly.
+    The extraction of split_group_overhead is therefore safe.
+
+5b. NOT YET PROVEN - BOTH CHANGED CODE PATHS ARE NO-OPS ON THIS DATASET
+    This fix has NOT been shown to calculate correctly, only to break
+    nothing. Neither changed path was exercised:
+    - ASSET HALF: no assets exist (qs_tools_saved_assets empty, every
+      asset overhead field 0), so split_group_overhead returns the whole
+      overhead as the labour pool - identical to the old behaviour.
+    - HOURS HALF: session 17 placed each staff type in its OWN group. A
+      single staff type in a group has weight 1 under both hours and cost
+      weighting, so the basis change cannot show.
+
+5c. MUST BE PROVEN DURING SMOKE TEST STEP E - DO NOT SIGN OFF WITHOUT IT
+[ ] E.1 (first asset added to a group): every labour floor
+    (minimum_recoverable_charge_out_rate) in that group FALLS, because
+    labour no longer carries the asset's share of overhead. Capture the
+    floor BEFORE adding the asset so there is something to compare to.
+[ ] E.1 cross-check: Rate Builder's labour overhead pool for the group now
+    equals Business Outcome's labour_overhead_pool for the same group.
+    These were different numbers before this fix; they must now agree.
+[ ] HOURS BASIS - NOT covered by Step E as written (Step E is one staff
+    member). Add to E.3, which already assigns staff to an asset-backed
+    group: put TWO staff types of DIFFERENT pay rates in ONE group on
+    equal hours. Expect the expensive type's floor to FALL and the cheap
+    type's to RISE relative to the old cost-weighted split. If both stay
+    put, the hours basis is not taking effect - investigate before sign-off.
+[ ] Calculation trace page: Rate Builder node text matches the code.
+RESULT:
+
+5d. OPEN QUESTION (noted 2026-10-01, not chased)
+    pnl_net_profit_actual 26,684 vs total_net_profit 31,083.60 - a
+    difference of 4,399.60, effectively the overhead pool. Unrelated to
+    this fix (present before it). Confirm whether this is a known,
+    recorded reconciliation; if not, log it properly.
+
+5e. SNAPSHOT METHOD CORRECTION (2026-10-01)
+    The capture method in SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt s0 no longer
+    works: this build has no #__next element and no __reactContainer key,
+    and reading memoizedProps alone returns almost nothing because the
+    figures live in hook state. Working method: take __reactFiber$<hash>
+    off document.body.firstElementChild, climb to the root via .return,
+    then for each fiber whose type is a function scan BOTH memoizedProps
+    and the memoizedState hook chain. localStorage keys are prefixed
+    qs_tools_ (not qstools_); the rate key is
+    qs_tools_rate_builder_labour_rates_v1.
+
+6. CLOSE-OUT (not yet done)
+[ ] python Py\audit-scripts\extract_calc_map.py
+[ ] CALCULATION_MAP_v6_0.txt s8 formula + line numbers; CM-2 note; RB-1 entry
+[ ] git status, then commit code + map + brief TOGETHER

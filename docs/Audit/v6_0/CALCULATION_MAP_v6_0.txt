@@ -242,9 +242,16 @@ Grand totals (costAllocationRuleBuildContext.js)
 8. RATE BUILDER (stored user inputs + display maths; no output contract)
 ===============================================================================
 Labour tab
-- per staff type overhead: allocated overhead = group overhead x (type
-  labour cost / group labour cost)  -> 100% of group overhead on labour,
-  regardless of assets (RB-1)  costAllocationRateBuilderSelectors.js L65-66
+- per staff type overhead (RB-1 FIXED 2026-10-01, was: group overhead x
+  type labour COST share, 100% on labour regardless of assets):
+  step 1 - labour_overhead_pool = group overhead x group labour cost /
+    (group labour cost + group asset burden)
+    SHARED rule: lib/calculations/shared/overheadSplit.js
+    split_group_overhead - the SAME function Business Outcome calls
+  step 2 - allocated overhead = labour_overhead_pool x (assigned labour
+    HOURS / group labour hours); cost weighting kept only as a fallback
+    when a group reports no labour hours
+                              costAllocationRateBuilderSelectors.js L76
 - allocated_business_overhead_recovery_rate = allocated overhead /
   assigned labour hours                                                   L99
 - minimum_recoverable_charge_out_rate = labour cost rate + that overhead
@@ -561,10 +568,20 @@ CM-9 NOTE. Rate Builder's result panel subtracts the ONE labour source
   longer exist, plus one unlinked; and the line `type` field is absent on
   every current calculator (check the storage normaliser for a
   field-dropping rebuild - bug class 6b).
-CM-2 NOTE. Two overhead-per-labour-hour bases coexist by design: Rate
-  Builder puts 100% of group overhead on labour (RB-1); Business Outcome
-  splits by cost share (F7). Only matters if a new display reads the
-  Rate Builder rows.
+CM-2 RESOLVED 2026-10-01. Was: two overhead-per-labour-hour bases coexisted
+  by design - Rate Builder put 100% of group overhead on labour (RB-1) while
+  Business Outcome split by cost share (F7). Both now call ONE shared
+  function, lib/calculations/shared/overheadSplit.js split_group_overhead,
+  so the labour/asset split is defined in a single place. Within the labour
+  half, Rate Builder distributes across staff types by HOURS (was cost),
+  matching Cost Allocation's within-group basis.
+  NOT yet proven live - see RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt s5b:
+  both changed paths are no-ops on the current asset-free, one-staff-type-
+  per-group dataset. Smoke test Step E must prove it (s5c).
+  STILL OPEN (RB-1b): the all_productive row in the same selector derives
+  its labour/asset split from labour_share_percent, a DIFFERENT basis from
+  the per-staff-type rows. Pre-existing, deliberately not folded into the
+  RB-1 fix so the diff stayed verifiable.
 CM-3 NOTE. Group minimum rate (Cost Allocation) excludes non-productive
   cost; Business Outcome true cost includes it (C6, BO-3 by design).
   Business Modelling floor uses the full figure.
