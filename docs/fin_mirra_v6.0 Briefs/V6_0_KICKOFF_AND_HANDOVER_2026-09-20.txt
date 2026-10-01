@@ -463,15 +463,40 @@ own overhead split; it calls lib/calculations/shared/overheadSplit.js
 split_group_overhead, the same function Business Outcome uses, then weights
 across staff types by HOURS (was labour cost). Business Outcome verified
 UNCHANGED. Calc map s8 + CM-2 updated; CM-2 is resolved.
-NOT PROVEN: both changed paths are no-ops on the current dataset (no assets,
-one staff type per group). Step E.1 must prove it - before-asset baseline
-recorded in RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt s5b-i.
+PROVEN LIVE 2026-10-01 (session 20, commits 96a0d4c + e5b536a). Both changed
+paths exercised on real asset data at Step E.1-E.3. Asset half: every labour
+floor fell, 79.58/95.18/87.36 -> 79.35/95.16/87.28. Hours half: two staff
+types of different pay on equal hours in one group both carried identical
+overhead (1,994.5634, 1.41/hr) - the cheap type's floor ROSE and the
+expensive type's FELL, which a cost-weighted split could not produce.
+Cross-check passed: Rate Builder labour pool = Business Outcome labour pool
+(1,879.28). Figures and trace filenames in SMOKE_TEST_v6_0_BRIEF Step E and
+RB1_OVERHEAD_BASIS_FIX_BRIEF s5c/s5f.
 NEW, OPEN: RB-1b - the all_productive row still uses labour_share_percent,
 a different split basis from the per-staff-type rows (visible live: 87.36 vs
-per-type 79.58 / 95.18). Logged, not fixed.
+per-type 79.58 / 95.18). Logged, not fixed. MEASURED 2026-10-01: the gap
+WIDENS as assets take a larger share of the group - all_productive's labour
+pool against the sum of the per-type rows was 56.43 out at E.1 and 72.52 at
+E.2. The headline weighted rate is the least trustworthy of the three.
 
-NEXT: Step E (assets), then Step F (business-type flip). Step E is isolated:
-one staff member, single 1,000 overhead category, asset-specific overhead as
-a later step. Step E.1 MUST also verify RB-1 (see the brief's s5c) and E.3
-MUST add the two-staff-types-in-one-group case, which Step E as written does
-not cover.
+DONE 2026-10-01 (session 20): Step E.1, E.2, E.3 all PASSED. RB-1 proven (see
+above). Trace page gained Rate Builder roots so Rate Builder nodes can be
+inspected directly. Evidence committed at e5b536a.
+
+NEXT: Step E.4 (asset-specific overhead - fuel, registration, running costs
+layered on top), then Step F (business-type flip).
+
+STARTING STATE FOR E.4, isolated instance :3004:
+  Paul (Supervisor/Team Lead) in "Single Labour Working Unit Test" with BOTH
+  assets - RB1 Test Asset (1,440 hrs/yr, 20,000 burden) and RB1 Pump (960
+  hrs/yr, 5,000). Jack (Operator/Delivery Staff) moved back to "2nd Labour
+  Test Unit". Sarah non-productive. Overhead pool 4,400, no asset-specific
+  pools assigned.
+
+CHECK BEFORE E.4 - two findings from the asset pass bite exactly here:
+  - hooks/useAssets.js CLAMPS pool assignments (Math.min) rather than
+    pro-rata scaling per the calc map's get_effective_asset_pool_assignments.
+    E.4 puts two assets on one pool, which is where this shows.
+  - Deleting a P&L overhead line leaves asset pool assignments orphaned with
+    no reconciliation. This caused real confusion early in session 20.
+Full findings list: RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt s5f.
