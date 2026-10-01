@@ -1,0 +1,190 @@
+MIRRA v6.0 - AI-ASSISTED SETUP AND RESULTS EXPLAINER - FUTURE BUILD BRIEF
+STATUS: [SCOPING ONLY - NOT STARTED] Written 2026-10-01 from a design
+  discussion. Nothing in this brief has been built, patched or verified
+  against the repo. Statements about the codebase are marked VERIFIED
+  (seen in project knowledge) or ASSUMED (inferred, needs a check before
+  relying on it).
+
+===============================================================================
+1. WHY THIS EXISTS
+===============================================================================
+
+The calculation chain is rigorously verified (Labour, Assets in progress,
+Cost Allocation, Summaries, Rate Builder, Business Outcome, Business
+Modelling). The weak point is not the maths - it is getting a new user
+through SETUP. Cost Allocation in particular has enough moving parts that
+a person can get lost just entering their own data correctly.
+
+Real-world signal (owner, 2026-10-01): the tool was tentatively shown to
+one person and their first reaction was that it is far too complicated.
+Once set up the tool largely looks after itself; the barrier is
+onboarding and comprehension, not correctness.
+
+Vision (owner): the user is effectively interviewed about their business.
+A conversational helper asks questions, the user answers, and the right
+numbers land in the right boxes - like working alongside someone who
+already knows the tool. The same helper can later explain what a result
+means in plain language.
+
+===============================================================================
+2. TWO DIFFERENT THINGS - DO NOT CONFLATE
+===============================================================================
+
+A. CALCULATION TRACE (exists, SHIPPED, see
+   CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt)
+   Backward-looking. Explains a number that already exists: "why is net
+   profit this value", every input down to the P&L. An audit trail.
+
+B. THIS BRIEF: forward- and outward-looking
+   - Input helper: "what do I type in this box, and why".
+   - Results explainer: "what does this result mean, is it good or bad".
+   - Guided entry: highlight the right box, step through in order.
+   - Assisted entry: the helper enters the value the user states.
+
+They share foundations (node identity, field names, mechanism knowledge in
+the calc map and variable tracker) but B needs data the trace does not
+carry today. B must reuse A's node conventions so nothing drifts.
+
+===============================================================================
+3. DECISIONS MADE (2026-10-01)
+===============================================================================
+
+D1. EXTEND THE EXISTING NODE PATTERN. Do NOT build a separate static
+    config file per page.
+    Reason: the trace graph is computed live from the real hooks, so it
+    cannot go stale. A hand-maintained per-page config is another explicit
+    list that must be kept in sync by hand - exactly the failure shape of
+    recurring bug class (b) (an explicit list silently omitting a field).
+    Each node file (one per module, VERIFIED pattern) gains optional
+    properties alongside the existing formula_text:
+      - input_guidance        plain-language: what to enter, and why
+      - result_interpretation plain-language: what a good/poor result means
+    Both optional, so existing nodes need no change.
+
+D2. DO NOT RELOCATE EXISTING CALCULATIONS to suit the helper. Moving a
+    calculation between modules means finding and repointing every
+    consumer of the old output contract and re-verifying - rejected.
+    Aggregate questions (e.g. total ACC pool) are answered at the module
+    that already owns the aggregate (Cost Summary / Business Summary), by
+    adding a node/view, not by moving maths. No case has yet needed a
+    number trapped in the wrong module.
+
+D3. SEQUENCING: this work waits until the core verification chain is
+    signed off (Assets step E, then Step F product-mode flip). It is not
+    to be mixed into verification work.
+
+===============================================================================
+4. CAPABILITIES, IN DEPENDENCY ORDER
+===============================================================================
+
+C1. Plain-language guidance on nodes (D1). Content work plus two optional
+    fields per node. Lowest risk. Useful on its own.
+
+C2. Stable element IDs on every input control.
+    Needed so a helper can address a specific box. Precedent (VERIFIED):
+    the P&L typing fix added real element IDs (pnl-line-<id>) to scroll to
+    and highlight a specific row. ASSUMED: most other input fields do NOT
+    have individually addressable IDs today - check with an audit script
+    before sizing this (see section 7).
+    Finding WHAT to tag is easy: the calculation map and variable tracker
+    already list fields by module. The effort is coverage - one small,
+    identical-shaped edit per input across many files.
+
+C3. Entry ORDER ("name first, then this, then that").
+    The trace graph encodes DEPENDENCY, not data-entry sequence. A defined
+    step order per module/page is a new concept and new data. It cannot
+    fall out of C1 for free.
+
+C4. Highlight and step-through. Needs C2 and C3. Conversation form: the
+    helper highlights a box, the user answers, says done, helper moves to
+    the next ("what's next?").
+
+C5. Assisted entry: the user says "put this name and this number in it" and
+    the helper writes it. Needs C2. DESIGN CONSTRAINT: the write must go
+    through the SAME update path the UI uses (same hook state, validation
+    and storage write), never around it. ASSUMED feasible given existing
+    save-guard patterns - NOT yet checked against the real hooks. Treat as
+    needing its own design pass, especially around has_loaded guards,
+    selector field lists and per-module storage keys.
+
+C6. Results explainer: uses result_interpretation (C1) against live values.
+
+C7. The "interview" layer: the helper decides what to ask next based on
+    what is missing, using module readiness status plus C3 order.
+
+===============================================================================
+5. SUGGESTED FIRST MILESTONE (proposed, NOT yet agreed by owner)
+===============================================================================
+
+A small, rough, working demo scoped to LABOUR only: talk to the helper and
+it fills in Labour. Purpose is partly practical (prove C2 + C5 on the
+simplest module, on the clean single-labour dataset) and partly that it
+gives something visible to show people who cannot see backend verification
+work. Confirm or reject this before scoping.
+
+===============================================================================
+6. RISKS AND PROCESS RULES
+===============================================================================
+
+- Adding an ID attribute does not touch any calculation, so it should not
+  move a number. But the risk is real in bulk: a careless edit near the
+  line, or a hook/selector change made while "in there".
+- Both recurring bug classes apply to C5 in particular: (a) a standalone
+  function outside a hook cannot see hook-local variables; (b) a
+  rebuild-not-spread selector silently drops fields not in its list.
+- ID-tagging pass: batch the identical small edits into scripts (Apply-
+  Patch, explicit Patched / NOT FOUND / AMBIGUOUS per patch). Build after
+  each batch. A passing build does not prove a patch landed.
+- After the tagging pass: live-test on the clean single-labour dataset
+  (owner decision) - a regression check, NOT a full re-verification of the
+  chain.
+- New files stay under ~600 lines; any hook with localStorage gets a
+  has_loaded guard from the start.
+- Working_Conventions rule 10 check, before building anything that
+  imports or sends data externally: is it necessary, or can it be framed
+  better than existing tools?
+
+===============================================================================
+7. OPEN QUESTIONS (not decided - do not assume answers)
+===============================================================================
+
+Q1. Which AI integration approach and model, and text-only versus voice.
+Q2. Where the helper lives in the UI (side panel, overlay, separate page).
+Q3. How the helper receives live module state (reuse the trace live-values
+    mounts? read-only context versus read/write).
+Q4. Privacy and cost: the user's financial data would be sent to an AI
+    service. Needs an explicit decision on what is sent, consent wording,
+    and per-use cost.
+Q5. How step order (C3) is stored and who maintains it per module.
+Q6. How to measure ID coverage. Proposed: a read-only audit script in
+    Py\audit-scripts\ (same family as find_inline_css.py) that lists
+    input/select/textarea controls lacking an id, per module. Run only
+    when this work is actually picked up.
+Q7. Whether the guided entry should be allowed to submit/commit values, or
+    only fill them for the user to confirm.
+
+===============================================================================
+8. RELATED LOGGED ITEMS
+===============================================================================
+
+- UI NAVIGATION AND CONSISTENCY PASS (logged 2026-10-01, own scoping brief
+  needed): cross-page navigation is clunky (lots of jumping back and forth
+  to cross-reference values) and layout/patterns have drifted between
+  pages built in different sessions. Treat as a deliberate side-by-side
+  review of every page, not piecemeal tweaks. Owner already knows the main
+  friction points. This work INTERSECTS this brief (consistent pages make
+  C2/C3 cheaper) and should be sequenced with it deliberately.
+- Calculation Trace / verification layer: the foundation this builds on.
+- Import consolidation, CSS consolidation, Cost Allocation page
+  simplification, units-mode future build: unchanged, see kickoff s7.
+
+===============================================================================
+9. SESSION-CLOSE CHECKLIST FOR THIS BRIEF
+===============================================================================
+
+- Add a one-line pointer to this brief in kickoff section 7 (kickoff holds
+  pointers only; detail lives here).
+- Add the UI navigation/consistency item to kickoff section 7 if not
+  already present.
+- Re-upload this brief to project knowledge when it is committed.
+- Update STATUS above when any capability ships, using [SHIPPED].
