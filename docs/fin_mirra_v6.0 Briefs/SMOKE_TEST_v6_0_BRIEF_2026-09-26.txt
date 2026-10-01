@@ -384,8 +384,8 @@ STEP D - Extended labour pass (before touching assets):
 STEP E - Resume asset test (step 8), clean, before layering any
   asset-specific overhead on top:
   STATUS 2026-10-01: E.1 PASSED. E.2 PASSED. E.3 PASSED (hours-basis test
-  and labour coverage gap, both directions). E.4 NOT STARTED - next
-  session. Results and figures recorded at the end of Step E below.
+  and labour coverage gap, both directions). E.4 PASSED 2026-10-02 (session 21).
+  Results and figures recorded at the end of Step E below.
   ADDED 2026-10-01: Step E is now ALSO the proof for the RB-1 fix
   (commit 3845abf). That fix changed how Rate Builder splits overhead, but
   neither changed path can show on asset-free data. Read
@@ -463,13 +463,71 @@ STEP E - Resume asset test (step 8), clean, before layering any
     See RB1 brief s5f finding 15. Ruled a design question, off-task here.
     Traces: _1790885690796.json (before), _1790885745889.json (after)
 
-  E.4 NOT STARTED - asset-specific overhead. Check two logged findings
-    first: assignments are not reconciled when a P&L overhead line is
-    deleted, and hooks/useAssets.js clamps pool assignments (Math.min)
-    rather than pro-rata scaling per the calc map's
-    get_effective_asset_pool_assignments.
+  E.4 PASSED 2026-10-02 (session 21, isolated instance :3004).
+    Data: one P&L line, Vehicle Running Costs, $1,000, categorised into
+    the asset-related fuel pool. Cost Summary and asset card figures were
+    read by the owner; trace figures are from the snapshots named.
+    BASELINE (line in the pool, nothing assigned): General Overheads
+      5,400, Assets 25,000, people 353,051, total cost burden 383,451
+      (ties exactly).
+    SINGLE ASSET: all 1,000 to RB1 Test Asset -> General Overheads 4,400,
+      Assets 26,000, total 383,451 UNCHANGED. Test Asset allocated 1,000,
+      recovery 21,000; Pump untouched (0 / 5,000). Cost Allocation
+      overhead pool 4,400 - the fuel is counted once, on the asset.
+    BALANCED SPLIT 600 / 400: Test Asset 600 / 20,600, Pump 400 / 5,400.
+      Assets 26,000, total 383,451 unchanged.
+    OVER-ASSIGN VIA THE EDITOR: not reachable. The assignment input resets
+      to the maximum (600) on entry (AssetSummaryCard.jsx clamps to
+      max_assignable_to_current_asset).
+    ORPHAN: P&L line deleted -> total cost burden 382,451 (down by exactly
+      1,000; labour 353,051 unchanged; General Overheads 4,400; Assets
+      25,000). The contract computed the stranded assignments as 0. They
+      stayed stored on the asset records until the owner cleared them by
+      hand. Trace _1790888852334.json shows only effective (zero) values.
+    POOL SHRINK: line re-added at 1,000, assigned 600 / 400, then the P&L
+      line reduced to 500. Trace _1790889514109.json: Test Asset 300 /
+      20,300 / 14.10 per hr, Pump 200 / 5,200 / 5.42, Assets 25,500,
+      total cost burden 382,950.88, Cost Allocation overhead pool 4,400.
+      The contract's pro-rata scaling is PROVEN LIVE (code-read only
+      before).
+    FOUND AND FIXED (commit a13d0ba): the Assets page built allocated
+      overhead from the RAW stored assignments in three places (selected
+      asset, portfolio totals, saved-asset list), so at pool 500 the
+      cards read 600 / 400 against the contract's 300 / 200. They now use
+      the contract's get_effective_asset_pool_assignments through a new
+      adapter, get_effective_allocated_asset_overhead_cost
+      (assetOverheadPoolSelectors.js). The over-allocated warning,
+      Assigned Total and Over Allocated row are now red (theme-danger,
+      AssetSummaryCard.jsx). Owner reported it all working after the
+      patch. Card values at pool 500 were pasted (300 / 20,300 and 200 /
+      5,200); the round trip back to 1,000 and the portfolio-total
+      reading were reported working but not individually captured.
+    OPEN, NOT FIXED:
+      - Orphaned pool assignments survive deletion of the P&L line (the
+        contract computes them as 0; the trace cannot see them). Design
+        decision pending: auto-clear on delete vs warn. Whether the pool
+        card warns after an outright delete was NOT checked.
+      - hooks/useAssets.js L78-96 still clamps (entry vs pool less other
+        assets): order-dependent and unlike the contract. It feeds only
+        the card's Required Asset Recovery Rate row (whole dollars, so
+        the difference does not show) and the figures stored on save.
+        Deliberately not changed.
+      - Hook-level active_assets (useAssets.js L247) uses raw
+        assignments. Cost Allocation, Cost Summary and reconciliation
+        read the contract's list. NOT CONFIRMED: whether the Business
+        Summary and Recovery Summary breakdown components read the
+        contract or the hook list, and what
+        useBusinessOutcomePerSourceRevenue.js L960 does with it (name
+        suggests interest only). Check both at an over-assigned state.
+      - npm run build prints a Turbopack warning from next.config.ts
+        ("unexpected file in NFT list"). Not investigated; not known
+        whether it predates today.
 
 STEP F - Business-type flip check (quick, final):
+  STATUS 2026-10-02: NOT STARTED. Owner decision: run it on the CURRENT
+  dataset (includes the $1,000 fuel line with asset pool assignments),
+  not a reset to the E.3 state. Before flipping: back up localStorage,
+  take a baseline trace, and re-read this spec fresh.
   Flip business_type from labour_based to product_based on the SAME
   proven dataset. Walk every module, log whatever changes or breaks.
   Product mode has never been exercised with real unit-driver data -
