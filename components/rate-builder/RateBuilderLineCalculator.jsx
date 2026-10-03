@@ -15,6 +15,8 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
         <RateBuilderGroupSelector
           active_calculator={calculator.active_calculator}
           asset_backed_group_options={calculator.asset_backed_group_options}
+          group_asset_options={calculator.group_asset_options}
+          updateLinkedAsset={calculator.updateLinkedAsset}
           updateLinkedCostAllocationGroup={
             calculator.updateLinkedCostAllocationGroup
           }
@@ -42,6 +44,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
             calculator.selected_cost_allocation_group
           }
           selected_group_asset_rate={calculator.selected_group_asset_rate}
+          selected_asset_cost_summary={calculator.selected_asset_cost_summary}
           selected_group_labour_rate={calculator.selected_group_labour_rate}
           selected_group_overhead_rate={calculator.selected_group_overhead_rate}
           selected_group_recovery_rate={calculator.selected_group_recovery_rate}

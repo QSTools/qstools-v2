@@ -59,7 +59,9 @@ export function verdict_for(net_profit) {
 // view.
 function get_group_blended_rate(group, calculators) {
   const calculator = calculators.find(
-    (calc) => calc?.linked_cost_allocation_group_id === group.group_id
+    (calc) =>
+      calc?.linked_cost_allocation_group_id === group.group_id &&
+      !calc?.linked_asset_id
   );
 
   if (!calculator || !Array.isArray(calculator.lines) || calculator.lines.length === 0) {

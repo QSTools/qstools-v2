@@ -17,6 +17,7 @@ export default function RateBuilderResultPanel({
   recovery_driver_quantity,
   recovery_preview,
   selected_cost_allocation_group,
+  selected_asset_cost_summary,
   selected_group_asset_rate,
   selected_group_labour_rate,
   selected_group_overhead_rate,
@@ -80,6 +81,44 @@ export default function RateBuilderResultPanel({
                   "No cost group selected"}
               </p>
 
+              {selected_asset_cost_summary ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <p className="ui-help sm:col-span-2">
+                    Pricing asset: {selected_asset_cost_summary.asset_name}
+                  </p>
+
+                  <p className="ui-help">
+                    Selected asset hours:{" "}
+                    {Number(selected_asset_cost_summary.asset_hours).toFixed(2)}
+                  </p>
+
+                  <p className="ui-help">
+                    Selected asset direct cost:{" "}
+                    {formatCurrency(selected_asset_cost_summary.asset_cost)}
+                  </p>
+
+                  <p className="ui-help">
+                    Selected asset overhead share:{" "}
+                    {formatCurrency(selected_asset_cost_summary.overhead_share)}
+                  </p>
+
+                  <p className="ui-help">
+                    Cost rate for this asset:{" "}
+                    {formatRate(selected_asset_cost_summary.cost_per_hour, "hr")}
+                  </p>
+
+                  <p className="ui-help">
+                    {has_labour_rate_context
+                      ? "Group labour overhead per hour (reference only):"
+                      : "Labour overhead per hour (added to labour cost rate):"}{" "}
+                    {formatRate(
+                      selected_asset_cost_summary.labour_overhead_per_hour,
+                      "hr"
+                    )}
+                  </p>
+                </div>
+              ) : null}
+
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <p className="ui-help">
                   Labour cost:{" "}
@@ -115,7 +154,8 @@ export default function RateBuilderResultPanel({
                 </p>
 
                 <p className="ui-help">
-                  Asset recovery rate: {formatRate(selected_group_asset_rate, "hr")}
+                  {selected_asset_cost_summary ? "Selected asset cost rate:" : "Asset recovery rate:"}{" "}
+                  {formatRate(selected_group_asset_rate, "hr")}
                 </p>
 
                 <p className="ui-help">
@@ -154,7 +194,9 @@ export default function RateBuilderResultPanel({
                 </p>
 
                 <p className="ui-help sm:col-span-2">
-                  Group recovery rate:{" "}
+                  {selected_asset_cost_summary
+                    ? "Asset calculator cost rate (labour + this asset):"
+                    : "Group recovery rate:"}{" "}
                   {formatRate(selected_group_recovery_rate, "hr")}
                 </p>
               </div>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/storage/rateBuilderStorage";
 
 import useCostAllocation from "@/hooks/useCostAllocation";
+import { split_group_overhead } from "@/lib/calculations/shared/overheadSplit";
 
 import {
   DEFAULT_CALCULATOR,
@@ -93,6 +94,24 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     asset_backed_group_options,
   ]);
 
+  const group_asset_options = useMemo(() => {
+    const assignments = selected_cost_allocation_group?.asset_group_assignments;
+
+    return Array.isArray(assignments)
+      ? assignments.filter((assignment) => assignment?.asset_id)
+      : [];
+  }, [selected_cost_allocation_group]);
+
+  const selected_asset_assignment = useMemo(() => {
+    const linked_asset_id = active_calculator?.linked_asset_id || "";
+
+    return (
+      group_asset_options.find(
+        (assignment) => assignment.asset_id === linked_asset_id
+      ) || null
+    );
+  }, [active_calculator?.linked_asset_id, group_asset_options]);
+
   const selected_group_recovery_hours =
     Number(selected_cost_allocation_group?.group_recovery_hours) || 0;
 
@@ -127,6 +146,85 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
   const has_labour_rate_context = labour_charge_out_rate > 0;
 
+  // Asset-level pricing (2026-10-03): a calculator linked to one asset is
+  // checked against THAT asset's own cost per hour - direct cost plus its
+  // hours-share of the group's asset overhead pool, the same arithmetic
+  // Business Outcome uses for an asset row's true_cost. A legacy group
+  // calculator (no linked asset) falls through to the group figures unchanged.
+  const selected_asset_cost_summary = useMemo(() => {
+    if (!selected_asset_assignment || !selected_cost_allocation_group) {
+      return null;
+    }
+
+    const all_assignments = Array.isArray(
+      selected_cost_allocation_group.asset_group_assignments
+    )
+      ? selected_cost_allocation_group.asset_group_assignments
+      : [];
+
+    const asset_hours =
+      Number(selected_asset_assignment.assigned_asset_hours) || 0;
+    const asset_cost =
+      Number(selected_asset_assignment.assigned_asset_cost) || 0;
+
+    const group_asset_hours_sum = all_assignments.reduce(
+      (sum, assignment) =>
+        sum + (Number(assignment?.assigned_asset_hours) || 0),
+      0
+    );
+
+    const { asset_overhead_pool } = split_group_overhead(
+      selected_cost_allocation_group
+    );
+
+    const overhead_share =
+      group_asset_hours_sum > 0
+        ? (Number(asset_overhead_pool) || 0) *
+          (asset_hours / group_asset_hours_sum)
+        : 0;
+
+    const total_cost = asset_cost + overhead_share;
+
+    // Labour's side of the group overhead = assigned overhead minus the
+    // asset pool (the split is two-way). Needed only when no labour
+    // charge-out rate exists, so the fallback labour cost is not understated.
+    const labour_overhead_pool = Math.max(
+      0,
+      (Number(selected_cost_allocation_group.assigned_overhead_amount) || 0) -
+        (Number(asset_overhead_pool) || 0)
+    );
+    const labour_overhead_per_hour =
+      selected_group_recovery_hours > 0
+        ? labour_overhead_pool / selected_group_recovery_hours
+        : 0;
+
+    return {
+      asset_id: selected_asset_assignment.asset_id,
+      asset_name: selected_asset_assignment.asset_name || "Unnamed asset",
+      asset_hours,
+      asset_cost,
+      overhead_share,
+      total_cost,
+      cost_per_hour: asset_hours > 0 ? total_cost / asset_hours : 0,
+      labour_overhead_per_hour,
+    };
+  }, [selected_asset_assignment, selected_cost_allocation_group]);
+
+  const effective_asset_rate = selected_asset_cost_summary
+    ? selected_asset_cost_summary.cost_per_hour
+    : selected_group_asset_rate;
+
+  // All-in cost per hour for an asset calculator = labour component + this
+  // asset. Labour component is still the one Labour-tab source (CM-9) when a
+  // charge-out rate exists, else the group labour cost rate.
+  const effective_recovery_rate = selected_asset_cost_summary
+    ? (has_labour_rate_context
+        ? labour_minimum_recoverable_rate
+        : selected_group_labour_rate +
+          selected_asset_cost_summary.labour_overhead_per_hour) +
+        selected_asset_cost_summary.cost_per_hour
+    : selected_group_recovery_rate;
+
   // CM-1b: the shared rule - the same function Business Outcome uses.
   const recovery_driver_quantity = useMemo(() => {
     return get_calculator_recovery_hours(preview.line_totals, preview.output_driver_quantity);
@@ -135,7 +233,7 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
   const recovery_preview = useMemo(() => {
     return calculateRateBuilderRecoveryPreview({
       total_charge: preview.total_charge,
-      selected_recovery_rate: selected_group_recovery_rate,
+      selected_recovery_rate: effective_recovery_rate,
       recovery_driver_quantity,
       output_driver_quantity: preview.output_driver_quantity,
     });
@@ -143,7 +241,7 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     preview.total_charge,
     preview.output_driver_quantity,
     recovery_driver_quantity,
-    selected_group_recovery_rate,
+    effective_recovery_rate,
   ]);
 
   const labour_job_charge =
@@ -186,8 +284,64 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
       updateActiveCalculator((calculator) => ({
         ...calculator,
         linked_cost_allocation_group_id: "",
+        linked_asset_id: "",
       }));
 
+      return;
+    }
+
+    const target_group = asset_backed_group_options.find(
+      (group) => group.group_id === value
+    );
+
+    const target_assets = Array.isArray(target_group?.asset_group_assignments)
+      ? target_group.asset_group_assignments.filter(
+          (assignment) => assignment?.asset_id
+        )
+      : [];
+
+    const legacy_group_calculator = calculators.find(
+      (calculator) =>
+        calculator.linked_cost_allocation_group_id === value &&
+        !calculator.linked_asset_id &&
+        Array.isArray(calculator.lines) &&
+        calculator.lines.length > 0
+    );
+
+    if (legacy_group_calculator?.id) {
+      set_active_calculator_id(legacy_group_calculator.id);
+      set_draft_line(EMPTY_LINE);
+      return;
+    }
+
+    if (target_assets.length > 0) {
+      const first_asset = target_assets[0];
+
+      const first_asset_calculator = calculators.find(
+        (calculator) =>
+          calculator.linked_cost_allocation_group_id === value &&
+          calculator.linked_asset_id === first_asset.asset_id
+      );
+
+      if (first_asset_calculator?.id) {
+        set_active_calculator_id(first_asset_calculator.id);
+        set_draft_line(EMPTY_LINE);
+        return;
+      }
+
+      const first_asset_new_calculator = {
+        id: build_id(first_asset.asset_name || "asset_calculator"),
+        name: `${target_group?.group_name || "Asset group"} - ${
+          first_asset.asset_name || "Unnamed asset"
+        } calculator`,
+        linked_cost_allocation_group_id: value,
+        linked_asset_id: first_asset.asset_id,
+        lines: [],
+      };
+
+      set_calculators((current) => [...current, first_asset_new_calculator]);
+      set_active_calculator_id(first_asset_new_calculator.id);
+      set_draft_line(EMPTY_LINE);
       return;
     }
 
@@ -196,7 +350,9 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     );
 
     const existing_calculator = calculators.find(
-      (calculator) => calculator.linked_cost_allocation_group_id === value
+      (calculator) =>
+        calculator.linked_cost_allocation_group_id === value &&
+        !calculator.linked_asset_id
     );
 
     if (existing_calculator?.id) {
@@ -211,6 +367,66 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
         ? `${selected_group.group_name} calculator`
         : "Asset group calculator",
       linked_cost_allocation_group_id: value,
+      linked_asset_id: "",
+      lines: [],
+    };
+
+    set_calculators((current) => [...current, next_calculator]);
+    set_active_calculator_id(next_calculator.id);
+    set_draft_line(EMPTY_LINE);
+  }
+
+  function updateLinkedAsset(asset_id) {
+    const group_id = active_calculator?.linked_cost_allocation_group_id || "";
+
+    if (!group_id) {
+      return;
+    }
+
+    const next_asset_id = asset_id || "";
+
+    if (!next_asset_id) {
+      const legacy_calculator = calculators.find(
+        (calculator) =>
+          calculator.linked_cost_allocation_group_id === group_id &&
+          !calculator.linked_asset_id &&
+          Array.isArray(calculator.lines) &&
+          calculator.lines.length > 0
+      );
+
+      if (legacy_calculator?.id) {
+        set_active_calculator_id(legacy_calculator.id);
+        set_draft_line(EMPTY_LINE);
+      }
+
+      return;
+    }
+    const selected_asset = group_asset_options.find(
+      (assignment) => assignment.asset_id === next_asset_id
+    );
+
+    const existing_calculator = calculators.find(
+      (calculator) =>
+        calculator.linked_cost_allocation_group_id === group_id &&
+        (calculator.linked_asset_id || "") === next_asset_id
+    );
+
+    if (existing_calculator?.id) {
+      set_active_calculator_id(existing_calculator.id);
+      set_draft_line(EMPTY_LINE);
+      return;
+    }
+
+    const group_name =
+      selected_cost_allocation_group?.group_name || "Asset group";
+
+    const next_calculator = {
+      id: build_id(selected_asset?.asset_name || group_name),
+      name: selected_asset?.asset_name
+        ? `${group_name} - ${selected_asset.asset_name} calculator`
+        : `${group_name} calculator`,
+      linked_cost_allocation_group_id: group_id,
+      linked_asset_id: next_asset_id,
       lines: [],
     };
 
@@ -364,14 +580,18 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     recovery_driver_quantity,
     recovery_preview,
     selected_cost_allocation_group,
-    selected_group_asset_rate,
+    group_asset_options,
+    selected_asset_assignment,
+    selected_asset_cost_summary,
+    selected_group_asset_rate: effective_asset_rate,
     selected_group_labour_rate,
     selected_group_overhead_rate,
-    selected_group_recovery_rate,
+    selected_group_recovery_rate: effective_recovery_rate,
     addRateLine,
     deleteRateLine,
     setOutputDriver,
     updateDraftField,
+    updateLinkedAsset,
     updateLinkedCostAllocationGroup,
     updateRateLine,
   };
