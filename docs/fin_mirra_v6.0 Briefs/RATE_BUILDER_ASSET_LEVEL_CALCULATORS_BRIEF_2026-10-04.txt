@@ -1,0 +1,269 @@
+RATE BUILDER - ASSET-LEVEL CUSTOMER CHARGE CALCULATORS (PATH B)
+BRIEF dated 2026-10-04 (session following the 2026-10-03 Step F prep)
+===============================================================================
+
+STATUS
+  Stage 1a  [SHIPPED]   commit 6df2de0 (2026-10-04)
+  Stage 1b  [OPEN]      Business Outcome per-asset revenue - BLOCKED on OPEN-A
+  Path B live test (smoke test Step 8, CM-1 identity)  [NOT DONE]
+  Step F (business-type flip)  [PARKED, unchanged]
+
+WHY THIS EXISTS
+  The Customer Charge Calculator was keyed by Cost Allocation group only
+  (linked_cost_allocation_group_id, no linked_asset_id). One price therefore
+  applied to every asset in the group. Paul's group holds RB1 Test Asset
+  (1,440 hrs) and RB1 Pump (960 hrs), which have different hours and costs.
+  Found 2026-10-03 while preparing the Path B test.
+
+OWNER DECISIONS (2026-10-04)
+  1. Each asset gets its OWN calculator and price, so its charge and cost can
+     be seen individually.
+  2. The group price is the SUM of its assets' prices. It is a result, never
+     an input. "Whole group" is not offered for new pricing.
+  3. A legacy group-level calculator that already has lines stays selectable
+     (otherwise its prices are stranded). Retire it in Stage 1b.
+
+WHAT SHIPPED - STAGE 1a (Rate Builder only)
+  Schema   calculator gains linked_asset_id (string). "" or absent = legacy
+           group-level calculator. Storage layer needed no change: it saves
+           and loads the raw array and the hook uses spread, so no field is
+           dropped (bug class 6b checked and NOT present here).
+  Files    components/rate-builder/RateBuilderLineCalculator.jsx
+           components/rate-builder/line-calculator/RateBuilderGroupSelector.jsx
+           components/rate-builder/line-calculator/RateBuilderResultPanel.jsx
+           components/rate-builder/line-calculator/useRateBuilderLineCalculator.js
+           hooks/useBusinessOutcomePerSourceRevenue.js   (guard only)
+           lib/calculations/businessOutcomeAssetSplitCalculations.js (guard only)
+  Behaviour
+    - Selecting a group opens the calculator for its first asset (creating
+      it if needed); a legacy group calculator with lines takes priority.
+    - "Select asset to price" dropdown lists the group's asset assignments.
+    - Choosing the empty option never creates a group-level calculator.
+    - Result panel, when an asset is linked, uses THAT asset's cost per hour:
+        (assigned_asset_cost + hours-share of the group asset overhead pool)
+        / assigned_asset_hours
+      using the shared split_group_overhead (same arithmetic as Business
+      Outcome asset-row true_cost). Headline cost per hour = labour component
+      + asset cost per hour. Legacy group calculators are unchanged.
+    - Labour component: Labour-tab minimum recoverable rate when a charge-out
+      rate exists; otherwise group labour cost rate PLUS labour overhead per
+      hour (assigned overhead minus asset pool, over group recovery hours).
+    - GUARDS: Business Outcome get_group_blended_rate (hook L60) and the
+      legacy split (businessOutcomeAssetSplitCalculations.js L106) now skip
+      any calculator with a linked_asset_id, so an asset calculator can never
+      be applied as a whole-group rate. No-op until asset calculators hold
+      lines. Consequence: Business Outcome shows "No Rate Builder calculator
+      linked to this group" for a group priced only per asset, until 1b.
+
+VERIFIED LIVE (localhost:3004, 2026-10-04)
+  - Dropdown appears; each asset gets its own calculator; linked_asset_id
+    saves and reloads. Stored ids match the saved assets exactly
+    (05fedaad... = RB1 Test Asset, 8bc4d0c9... = RB1 Pump).
+  - Cost rate per asset matches the pre-flip baseline trace:
+      RB1 Test Asset  $20,578.10 + $253.81 overhead / 1,440 h = $14.47 / hr
+      RB1 Pump        $5,394.52  + $169.21 overhead /   960 h = $5.80 / hr
+  - Panel arithmetic, no-labour-rate branch, test line $120 x 100 h:
+      cost rate $92.33 (= $76.62 + $1.25 + $14.47), job cost $9,233.14,
+      profit $2,766.86, margin 23.06%. The first build understated labour
+      overhead (showed $91.08 / 24.10%); corrected same session.
+  - Pump calculator stayed separate and empty while the Test Asset one was
+    priced.
+
+NOT VERIFIED
+  - With-rate branch of the panel (Labour / Asset / Total-per-hour rows and
+    their identity). Paul has no saved charge-out rate:
+    qstools_rate_builder_labour_source_rates_v1 = null (note: no underscore
+    after "qs"). With nothing saved, calculate_labour_mix_charge_rate returns
+    0 silently (missing staff type), so net_asset_rate would equal the
+    blended rate. Save an explicit rate (earlier smoke test used $100) before
+    any Path B test.
+  - Smoke test brief Step 8 (net_asset_rate / labour_mix_charge_rate via the
+    calculator) is still an unchecked box. CM-1 identity (labour rows + asset
+    rows = blended rate x covered hours) has never been proven live.
+
+OPEN ITEMS
+  OPEN-A  COST ALLOCATION HOURS RULE (core calculation - own session)
+    Group asset hours = MAX of its assets (CM-4), which assumes co-deployed
+    assets under the same labour. Owner states Paul's hours do NOT cover both
+    assets at once, so assets that run one after another would need SUM,
+    capped by the labour available. Related: where supervisors sit (inside
+    the asset group, or a separate management operating group). The code
+    comment at get_group_covered_hours already notes "one person attending
+    several separately billed units at the same time is not modelled".
+    Blocks Stage 1b and the CM-1 identity check.
+  OPEN-B  STAGE 1b - Business Outcome per-asset rates
+    get_group_blended_rate (hook L60-83), build_asset_sources (L103-232,
+    including the direct-cost-share revenue split L167-189, which assumed the
+    group job is charged once), legacy split (asset-split file L106), and
+    Business Modelling asset_blended_rate_overrides, which are keyed by group
+    (lib/selectors/businessModellingLeverSelectors.js ~L349-400).
+    Retire the legacy group-level calculator here.
+  OPEN-C  Group total view: read-only sum of the asset calculators. Not built.
+  OPEN-D  Placeholder "Select asset-backed group" in the group dropdown
+    unlinks the ACTIVE calculator (pre-existing behaviour, not new). On an
+    asset calculator it would clear group and asset links and orphan its
+    lines. Seen in testing: the empty group-level calculator lost its group
+    link. Fix by making the placeholder switch calculators without unlinking.
+  OPEN-E  Panel labour component still uses the one Labour-tab source
+    (CM-9 / RB-12; all-productive minimum was $87.25 in the baseline trace,
+    not Paul's own $79.29).
+  Housekeeping
+    - The unlinked "2-inch line pump calculator" is the default seed that
+      loadRateBuilderCalculators re-creates whenever storage is empty.
+      Harmless; Business Outcome ignores it. Do not treat as an orphan.
+    - Remove the throwaway test line ($120 x 100 h) from the RB1 Test Asset
+      calculator before the real Path B test.
+    - The pre-flip localStorage backup holds only qs_tools_* keys. Before
+      Step F, take a fresh backup that also captures the qstools_* key above
+      and qs_tools_rate_builder_calculators_v1 (created after the old backup).
+
+DOCS TO UPDATE (view fresh before editing; project knowledge copies may be stale)
+  VARIABLE_TRACKER_v6_0.txt  Customer Charge Calculator entry says "No
+    linked_asset_id" - now stale.
+  CALCULATION_MAP_v6_0.txt   Customer Charge Calculator section, CM-9 note
+    and the group-keyed lookups.
+  V6_0_KICKOFF_AND_HANDOVER - keep lean; add only the one-line pointer below.
+
+KICKOFF POINTER (one line)
+  Path B asset-level calculators: Stage 1a SHIPPED 6df2de0, 1b blocked on
+  Cost Allocation hours rule - see RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt
+
+STEP F: unchanged. Parked until Path B is complete. Reuse the 2026-10-03
+  baseline backup/trace only if no calculator or rate data has changed; the
+  calculators key and any saved labour rate now post-date it.
+
+===============================================================================
+ADDENDUM - DESIGN ITEMS RAISED LATER THE SAME SESSION (2026-10-04)
+None built. All parked for dedicated sessions. Supersedes OPEN-A wording above.
+===============================================================================
+
+D1  HOURS GUARDRAIL IN COST ALLOCATION (replaces/extends OPEN-A)
+  Problem: assets are entered on their own, each with standalone hours.
+  Cost Allocation takes the MAX of a group's asset hours, which is right when
+  one operator watches several machines at the same time, and understates the
+  labour needed when the operator does them one after another. Nothing
+  catches a case such as two machines entered at 100 hrs/month each when the
+  operator really gives 50 to each. The two situations give identical numbers.
+  Owner decisions:
+    - The check lives in Cost Allocation only. Not in Assets (an asset does
+      not know its group) and not in Rate Builder (hours are already fixed
+      upstream by then).
+    - If the hours look wrong, the message should send the user back to the
+      Assets module to correct the hours.
+    - A hard "one asset per group" rule is rejected: a factory operator
+      legitimately runs two or three machines at once.
+    - Splitting sequential work into separate groups (Paul: one group for
+      Test Asset, one for Pump) needs NO code change - it is a data setup
+      choice for the test dataset.
+  Existing behaviour to build on: labour_coverage_warning fires when labour
+  hours are SHORT of asset hours (confirmed: 26 hr gap at E.1), not when
+  labour is in surplus. Surplus side was parked in RB1 brief s5f because it
+  needs to know if labour is machine-bound. Option under consideration (NOT
+  decided): one per-group "confirmed as run together" flag that acknowledges
+  the shortfall warning and also records intent for the surplus-side warning.
+  Settled by walkthrough: with asset hours 1,000 and labour hours 900, the
+  group is capped to 900 recoverable hours, total group cost is unchanged,
+  and the cost per hour rises. Owner agrees this is correct: the asset cannot
+  run without its labour.
+
+D2  COST ALLOCATION SHOULD NOT SHOW FINAL NUMBERS
+  Owner: Cost Allocation is for assigning costs. Group totals and rates were
+  shown only to build and verify. Put them behind a reveal; Business Outcome
+  (and possibly Rate Builder) is where final figures are presented. No change
+  to any calculation - display only. Touches every group card.
+
+D3  BUSINESS SUMMARY - IS THE SCREEN STILL NEEDED?
+  Owner's gut feel: it is about existing revenue and may not need displaying.
+  Findings from the project notes:
+    - The calculation half (recovery_hours_used, required_recovery_per_driver
+      and related fields) is spread into the Recovery Summary input and MUST
+      stay. Hours mode no longer displays those fields.
+    - The visible half (Open-Hour Reality card, P&L bridge) is a macro
+      sense-check against the P&L. It does a different job from Business
+      Outcome, so Business Outcome does not replace it.
+    - Open question: keep it as its own screen, fold the bridge into Business
+      Outcome, or hide the screen and let it run in the background.
+
+S1  SMOKE TEST CHECK - P&L ASSET FINANCE INTEREST CHECKBOX (live check, not built)
+  Mechanism is built (BO-7): flagged P&L interest rows are reduced by the
+  Assets module interest total, floored at zero. Verify live with assets that
+  have real finance terms: the amount removed from the P&L interest line
+  equals the Assets module interest total, and each asset's own cost carries
+  its OWN interest (asset_interest_annual), with the remainder staying in
+  General Overheads. CORRECTION to what was said in discussion: the notes
+  show interest reaching assets through each asset's own cost, not through
+  the asset overhead pools that fuel and maintenance use. Confirm which
+  during the check. RB1 Test Asset and RB1 Pump finance terms not yet
+  checked.
+
+===============================================================================
+ADDENDUM 2 - SIMPLE VERSION, SAME SESSION (2026-10-04)
+===============================================================================
+
+D1 RESTATED SIMPLY: two machines, not enough labour hours to run them both.
+  Right now the system quietly knows but says nothing. Needed, as one job:
+    - teach it the difference between one person running two machines at
+      once, vs. one person running them one after another (the checkbox)
+    - actually show the warning on screen when hours don't add up, pointing
+      the user back to Assets to fix it
+
+D4 NEW - too MUCH labour for the asset (the mirror case). Real example from
+  the owner: a civil contractor let go digger drivers who refused to do
+  anything but drive the digger. Work is quiet, so the digger sits idle and
+  that labour is now a genuine loss, not spare capacity doing something
+  useful elsewhere.
+  Needed: a way to mark a labour assignment as tied to one asset only (won't
+  flex to other work). When marked this way, that person's idle hours are a
+  real cost gap, not just surplus - the system should reveal it, not stay
+  silent.
+
+GOVERNING PRINCIPLE (owner, stated plainly): the whole point of this tool is
+  to reveal gaps - where the business is quietly losing money. If a gap is
+  calculated but not shown, the tool is not keeping that promise. Applies to
+  D1, D4, and the existing labour_coverage_warning (C22) alike.
+
+===============================================================================
+WHERE WE ARE AND WHAT IS LEFT (consolidated 2026-10-04 - read this first)
+===============================================================================
+
+DONE AND VERIFIED
+  - Rate Builder Path B Stage 1a (per-asset calculators), commit 6df2de0.
+
+DESIGN AGREED, NOTHING BUILT YET (each needs its own session)
+  D1  Hours warning in Cost Allocation. One job, two parts:
+        a) checkbox: assets in this group run one after another (not at once)
+        b) show the warning on screen when labour hours do not cover the
+           asset hours, telling the user to go back to Assets and fix hours
+      Rule: lives in Cost Allocation only. No "one asset per group" rule.
+      Touches core calculation - confirm before building.
+  D4  Too much labour for the asset. Mark a labour assignment as "tied to
+      this asset only" so idle hours show up as a real cost gap. Not
+      designed in detail yet. Do after D1.
+  D2  Cost Allocation stops showing final numbers (display only). Needs a
+      list of every card affected before starting.
+
+NOT DECIDED
+  D3  Does the Business Summary screen stay, fold into Business Outcome, or
+      hide? Owner has not decided.
+
+TO CHECK BEFORE BUILDING D1
+  - The notes say the shortfall warning is calculated but never shown (C22),
+    yet it was seen firing at test E.1. Find out where it was seen (probably
+    the trace page) so the build starts from the truth.
+
+LIVE CHECKS STILL OWED
+  S1  P&L asset-interest checkbox (needs assets with finance terms).
+  Path B live test (CM-1 identity proof). Paul has no saved charge-out rate.
+  Step F (business-type flip) - parked, not started.
+  Stage 1b (Business Outcome per-asset revenue) - waits on D1 and D2.
+
+GOVERNING PRINCIPLE
+  The tool exists to reveal gaps. A gap that is calculated but not shown
+  breaks that promise.
+
+HOUSEKEEPING (owner)
+  - Save this brief to docs\Mirra_v5_Briefs\ (replace the older copy).
+  - Add a one-line pointer to V6_0_KICKOFF_AND_HANDOVER.
+  - Refresh VARIABLE_TRACKER_v6_0 and CALCULATION_MAP_v6_0 (both stale on
+    linked_asset_id).
+  - Re-upload brief, kickoff doc, tracker and map to project knowledge.
