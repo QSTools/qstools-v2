@@ -265,6 +265,24 @@ Labour tab
   keyed by staff_type_id -> read by Business Outcome
 
 Customer Charge Calculator (asset groups)
+- ADDED 2026-10-04 (Path B Stage 1a, commit 6df2de0): a calculator may carry
+  linked_asset_id ("" or absent = legacy group-level calculator). Each asset
+  in a group gets its OWN calculator. The group price is the SUM of its
+  assets' prices, never an input.
+- GUARDS: Business Outcome get_group_blended_rate
+  (useBusinessOutcomePerSourceRevenue.js L60) and the legacy split
+  (businessOutcomeAssetSplitCalculations.js L106) SKIP any calculator with a
+  linked_asset_id. A group priced only per asset therefore shows no Rate
+  Builder rate in Business Outcome until Stage 1b is built.
+- Result panel, asset-linked: asset cost per hour = (assigned_asset_cost +
+  hours-share of the group asset overhead pool) / assigned_asset_hours, using
+  split_group_overhead (same arithmetic as Business Outcome asset-row
+  true_cost). Headline cost per hour = labour component + asset cost per hour.
+  Labour component = Labour-tab minimum recoverable rate when a charge-out
+  rate exists, else group labour cost rate + labour overhead per hour.
+  Verified live: RB1 Test Asset 14.47/hr, RB1 Pump 5.80/hr.
+- Line numbers in this section pre-date that change and may have drifted.
+  Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt
 - line total = rate x quantity; total_charge = sum of lines
                                rateBuilderCalculations.js calculateRateBuilderQuotePreview L25-35
 - recovery hours = sum of quantities on lines with unit "hr"; only if none,

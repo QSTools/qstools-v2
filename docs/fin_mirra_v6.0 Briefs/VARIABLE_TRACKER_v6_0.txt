@@ -838,7 +838,15 @@ FEEDS INTO: display only. Calculators (user input) go to storage key
   linked_cost_allocation_group_id, read by Business Outcome.
 NOTES: only groups with assigned_asset_burden > 0 offered. Recovery hours =
   sum of "hr" line quantities, else output-driver quantity (RB-13). Card
-  mixes group rate and Labour-tab minimum rate (RB-12). No linked_asset_id.
+  mixes group rate and Labour-tab minimum rate (RB-12).
+  UPDATED 2026-10-04 (Path B Stage 1a, commit 6df2de0): a calculator now
+  carries linked_asset_id ("" or absent = legacy group-level calculator).
+  Storage layer needed no change (raw array saved and loaded, hook spreads,
+  so the field is not dropped). Each asset gets its own calculator; group
+  price = sum of asset prices. get_group_blended_rate and the legacy split
+  skip any calculator with a linked_asset_id (guards only, no-op until asset
+  calculators hold lines). Business Outcome per-asset revenue is Stage 1b,
+  not built. Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt
 
 STAGE: Output contract
 NOTES: none exists. Rate Builder reads no readiness / trust field.
