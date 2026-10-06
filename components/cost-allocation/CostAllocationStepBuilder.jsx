@@ -8,6 +8,7 @@ import AccordionCard from "@/components/cost-allocation/steps/AccordionCard";
 import AutomaticOverheadNote from "@/components/cost-allocation/steps/AutomaticOverheadNote";
 import CurrentSelectionCard from "@/components/cost-allocation/steps/CurrentSelectionCard";
 import GroupRecoveryBasisCard from "@/components/cost-allocation/steps/GroupRecoveryBasisCard";
+import GroupCoverageNotice from "@/components/cost-allocation/steps/GroupCoverageNotice";
 import SelectedContext from "@/components/cost-allocation/steps/SelectedContext";
 import TextField from "@/components/cost-allocation/steps/TextField";
 import { getRows, makeLocalId } from "@/components/cost-allocation/steps/stepBuilderHelpers";
@@ -15,6 +16,7 @@ import { getRows, makeLocalId } from "@/components/cost-allocation/steps/stepBui
 export default function CostAllocationStepBuilder({
   divisions,
   groups,
+  recovery_plan,
   labour_assignment,
   asset_assignment,
   add_division,
@@ -27,6 +29,12 @@ export default function CostAllocationStepBuilder({
 }) {
   const division_rows = getRows(divisions);
   const group_rows = getRows(groups);
+
+  const group_cost_rows = Array.isArray(groups?.operational_group_cost_rows)
+    ? groups.operational_group_cost_rows
+    : Array.isArray(recovery_plan?.operational_group_cost_rows)
+      ? recovery_plan.operational_group_cost_rows
+      : [];
 
   const [open_section, set_open_section] = useState("division");
 
@@ -247,6 +255,11 @@ export default function CostAllocationStepBuilder({
               remove_labour_assignment={remove_labour_assignment}
             />
 
+            <GroupCoverageNotice
+              selected_group={selected_group}
+              group_cost_rows={group_cost_rows}
+            />
+
             <div className="ui-actions">
               <button
                 type="button"
@@ -285,6 +298,11 @@ export default function CostAllocationStepBuilder({
               asset_assignment={asset_assignment}
               add_asset_assignment={add_asset_assignment}
               remove_asset_assignment={remove_asset_assignment}
+            />
+
+            <GroupCoverageNotice
+              selected_group={selected_group}
+              group_cost_rows={group_cost_rows}
             />
 
             <AutomaticOverheadNote />
