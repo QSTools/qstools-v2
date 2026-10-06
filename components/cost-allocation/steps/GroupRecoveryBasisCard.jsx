@@ -10,6 +10,7 @@ export default function GroupRecoveryBasisCard({
   const recovery_source =
     selected_group.group_recovery_hour_source || "labour_hours";
   const manual_hours = selected_group.manual_group_recovery_hours || "";
+  const run_pattern = selected_group.asset_run_pattern || "";
 
   function updateRecoverySource(value) {
     if (!group_id || typeof update_operational_group !== "function") {
@@ -28,6 +29,16 @@ export default function GroupRecoveryBasisCard({
 
     update_operational_group(group_id, {
       manual_group_recovery_hours: value,
+    });
+  }
+
+  function updateRunPattern(value) {
+    if (!group_id || typeof update_operational_group !== "function") {
+      return;
+    }
+
+    update_operational_group(group_id, {
+      asset_run_pattern: value,
     });
   }
 
@@ -66,6 +77,28 @@ export default function GroupRecoveryBasisCard({
               onChange={(event) => updateManualHours(event.target.value)}
               placeholder="Example: 1600"
             />
+          </label>
+        ) : null}
+
+        {recovery_source === "asset_hours" ? (
+          <label className="ui-field">
+            <span className="ui-label">
+              If this working unit has more than one asset, they run
+            </span>
+            <select
+              className="ui-input"
+              value={run_pattern}
+              onChange={(event) => updateRunPattern(event.target.value)}
+            >
+              <option value="">Not answered</option>
+              <option value="together">
+                Together (one operator, at the same time)
+              </option>
+              <option value="sequential">One after another</option>
+            </select>
+            <p className="mt-1 ui-help">
+              Saved with this working unit. It does not change any figure yet.
+            </p>
           </label>
         ) : null}
       </div>
