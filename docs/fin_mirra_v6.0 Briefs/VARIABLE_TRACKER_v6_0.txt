@@ -265,7 +265,7 @@ VERIFIED: every group reconciled to the dollar; see brief s4.
 NOTES: total_group_cost includes non-productive cost; the three stream rates
   do not (C6). Recovery hours default to asset hours when a productive asset is
   present (MAX of the group's asset hours, not the sum), else labour hours.
-  labour_coverage_warning is computed but not surfaced (C22).
+  labour_coverage_warning IS now surfaced (Cost Allocation Step 3/4 notice, D1 piece 1; Business Outcome Things to check). Added 2026-10-06: asset_run_pattern and required_asset_hours on the row; for an asset-driven, sequential group with labour, group_recovery_hours = MIN(required_asset_hours, assigned_labour_hours) (D1 3c). The gap is measured against required_asset_hours.
 
 STAGE: Group recovery rows and Rate Builder rows
 FIELD NAMES: operational_group_recovery_rows[].minimum_recoverable_rate_per_hour;
@@ -946,6 +946,10 @@ NOTES: business-wide; affects MIXED units only (pure-support units always
   charge_to_self. Weight basis for the pool is labour cost, else asset burden;
   equal_split is unreachable (F1). An asset-only group gets $0 of the pool
   while any other group has productive labour (F2, same rule as overhead C5).
+NOTE (2026-10-06, D1 3c): for a sequential asset-driven group with labour, the gap here is measured against
+required_asset_hours (the SUM of its asset hours), not group_recovery_hours (now capped at labour hours), or it
+would read zero. The line needs a charge-out rate to appear; not yet live-verified.
+
 STAGE: Capacity coverage gap
 FIELD NAMES: capacity_coverage_gap[] (gap_type, gap_hours, gap_dollar_value),
   labour_coverage_gaps

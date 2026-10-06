@@ -24,6 +24,8 @@ DATE: 2026-09-20 (updated 2026-09-23 after Business Outcome core close-out;
   updated 2026-09-28 (session 16) - Business Modelling trace root shipped
   (2ec4097); owner decision: finish LABOUR smoke testing before anything
   else, no asset work yet - see s8 UPDATE below)
+UPDATED 2026-10-06 (D1 session close) - D1 shipped (pieces 1, 2, 3a, 3c narrow). See the section
+  "D1 SESSION CLOSE 2026-10-06" at the END of this file for state, findings and next steps.
 SUPERSEDES: all v5.x briefs as the entry point (individual v5.x briefs are
 not deleted - see Section 6 for how they get folded in / archived as each
 module is reached).
@@ -518,3 +520,57 @@ Summary screen undecided, S1 P&L asset-interest checkbox live check.
 Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt - read the
 section "WHERE WE ARE AND WHAT IS LEFT" at the end. Step F still parked.
 Order of next work not yet chosen.
+
+===============================================================================
+D1 SESSION CLOSE 2026-10-06 - START HERE FOR THE NEXT SESSION
+===============================================================================
+FULL DETAIL: docs\fin_mirra_v6.0 Briefs\RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt
+  (Addenda 3, 4 and 5). Note the folder: it is "fin_mirra_v6.0 Briefs", NOT Mirra_v5_Briefs.
+
+SHIPPED (commits, oldest first)
+  a09387f  D1 piece 1   coverage notice in Cost Allocation Step 3 and 4 (GroupCoverageNotice.jsx)
+  31a6ab3  docs         piece 1 shipped, C22 and dead-code corrections
+  409d40b  D1 piece 2   asset_run_pattern stored per working unit (GroupRecoveryBasisCard.jsx)
+  9ab1785  D1 piece 3a  gap measured against required_asset_hours (SUM for sequential groups), no rate change
+  17f2446  docs         pieces 2 and 3a, Option A rejected
+  8b78b3e  D1 piece 3c  sequential groups recover only the hours their labour covers (NARROW)
+  39351a7  D1 3c companion  Business Outcome capacity gap uses required_asset_hours (NOT live-verified)
+  618b4c3  docs         3c shipped, widening logged, interest drift explained
+  Calc map, variable tracker and this handover were updated in the commit after those.
+
+KEY FINDINGS
+  - group cards (CostAllocationGroupCostSummary.jsx and friends) are DEAD CODE - unreachable. The real flow is the
+    4-step builder (CostAllocationStepBuilder.jsx). Group costs are read in Show checks -> Group costs.
+    D2 must be re-scoped against that tab, not the group cards.
+  - Summing asset hours into group_recovery_hours was rejected: it lowers cost per hour and cuts Rate Builder's
+    labour component. The shipped design keeps the MAX for everyone except sequential groups, which are capped.
+  - Asset cost drifts daily (interest uses today's date). Take every before/after test in ONE sitting. The old
+    2026-10-03 and 2026-10-04 baselines cannot be matched exactly. Step F needs a fresh baseline.
+  - The Business Outcome gap line needs a charge-out rate; Paul has none saved, so it cannot appear yet.
+
+OPEN, SUGGESTED ORDER
+  1. D4 - too much labour for the asset (idle labour cost), the mirror of D1. Start read-only; warn first,
+     change the calculation later only if the owner decides to.
+  2. DECISION - widen the 3c cap to together / not answered asset-driven groups short of labour? Open. Revisit
+     once real data shows how often they run short. Widening = drop the sequential condition on is_labour_capped.
+  3. Business Outcome gap line live check - needs Paul's charge-out rate (do with the Path B live test / CM-1 proof).
+  4. D2 (re-scope per the dead-code finding), D3 (Business Summary fate, undecided), S1 (P&L asset-interest
+     checkbox), Step F (fresh baseline), OPEN-C group total view, OPEN-D placeholder dropdown unlink bug,
+     OPEN-E labour component single-source limitation.
+  5. Housekeeping: untracked docs/Audit/v6_0/smoke_test/2.3 Asset Smoke Test/ has shown in git status all
+     session - commit as docs-only evidence or leave it; undecided.
+
+STATE LEFT BEHIND
+  - Test group "Single Labour Working Unit Test" was reset to Not answered. Other two groups: not answered.
+  - Dev server: npm run dev -- -p 3004 (http://localhost:3004). Repo root D:\QSTools\qstools-web.
+
+WORKING NOTES FOR THE ASSISTANT
+  - The owner is non-technical in PowerShell and the browser console. Give ONE complete, copy-paste block,
+    never fragments. Console snippets should open the screens themselves where possible.
+  - The owner often pastes only the "Done: N lines copied to clipboard" line. Ask for Ctrl+V of the actual
+    text. Ask them to clear the console (Ctrl+L) first so only the new output is pasted.
+  - UI labels: the button reads "Show checks (1)" with a count - match it with startsWith, never an exact match.
+  - Use the Apply-Patch pattern (ordinal match, Patched / NOT FOUND / AMBIGUOUS, all-or-nothing writes), run
+    npm run build after every batch, read the live file before patching, stop for confirmation before core
+    calculation files, check git status before commits.
+  - At the end of a session, re-upload changed docs to project knowledge and remove the old copies.

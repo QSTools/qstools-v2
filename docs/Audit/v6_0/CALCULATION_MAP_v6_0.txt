@@ -1,5 +1,8 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-06 (D1 session): group cost row gained asset_run_pattern, required_asset_hours and a labour
+  cap on recovery hours for one-after-another groups - see the Group cost row entry and CM-9. Line numbers in
+  those entries are approximate; refresh from a new extract before quoting.
   UPDATED 2026-10-01 (asset smoke test): RB-1 proven live on real asset data
   - see s8, CM-2, and SMOKE_TEST_v6_0_BRIEF Step E.1-E.3. Extract re-run
   (2,495 functions, 2,206 calculation statements, 96 not-parsed declarations,
@@ -230,6 +233,16 @@ Group cost row (costAllocationGroupCostBuilder.js build_operational_group_cost_r
 - labour / asset / overhead_recovery_rate = each stream / group recovery
   hours (these three EXCLUDE non-productive cost - C6)                   L115-121
 - group_cost_per_hour = total_group_cost / group recovery hours           L126
+- asset_run_pattern (group setting: not answered / together / sequential; set in Cost Allocation Step 2)  [D1, 2026-10-06]
+- required_asset_hours = SUM of asset assignment hours if sequential, else the MAX (= assigned_asset_hours)   (approx L65-80, refresh)
+- is_labour_capped = asset hours drive AND sequential AND assigned_labour_hours > 0. When capped,
+  group_recovery_hours = MIN(required_asset_hours, assigned_labour_hours); otherwise group_recovery_hours is
+  exactly as the line above   (approx L100-125, refresh)  [CM-9]
+- NOTE: the three stream rates, group_cost_per_hour and the overhead weight all follow group_recovery_hours, so a
+  capped group's rates and its overhead share move (overhead is split across groups by recovery hours).
+- NOTE: labour_coverage_gap_hours below is measured against required_asset_hours (not the MAX) and IS shown:
+  Cost Allocation Step 3/4 notice (GroupCoverageNotice.jsx) and Business Outcome Things to check. The
+  "not shown - C22" wording on the next line is out of date.
 - labour_coverage_gap_hours = asset hours - labour hours where asset
   hours drive and exceed labour (computed, not shown - C22)               L134
 
@@ -624,3 +637,16 @@ CM-7 NOTE. "required recovery rate" exists in several forms: Cost Summary
   (minimum charge-out with margin target), Rate Builder (labour cost +
   overhead), Cost Allocation (group minimum). They are different
   quantities with similar names - name the source when quoting one.
+
+CM-9 NOTE (D1, 2026-10-06). One-after-another asset groups.
+  Cost Allocation Step 2 stores asset_run_pattern per working unit. For a sequential, asset-driven group with
+  labour assigned, group_recovery_hours is capped at the labour hours (the asset cannot run without its labour),
+  so its rates rise and its overhead share shifts slightly. Groups set to together or not answered are
+  UNCHANGED - widening the cap to them is an OPEN owner decision (a small shortfall may be logging slack).
+  Summing asset hours into group_recovery_hours was REJECTED: it lowers cost per hour and cuts Rate Builder's
+  labour component per hour. Business Outcome calculate_capacity_coverage_gap uses required_asset_hours for
+  sequential groups with labour; its revenue cap (get_group_covered_hours = MIN of recovery hours and labour
+  hours) is unchanged. That gap line needs a charge-out rate to appear, so it is not yet live-verified.
+  BASELINE DRIFT: asset interest = purchase price x remaining finance-term share x rate, using today's date
+  (assetCalculations.js calculate_forward_asset_interest), so asset cost falls a little every day. Take every
+  before/after comparison in one sitting; old baselines cannot be matched exactly.
