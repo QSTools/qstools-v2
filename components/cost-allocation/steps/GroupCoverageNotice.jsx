@@ -1,3 +1,5 @@
+import GroupIdleLabourNotice from "./GroupIdleLabourNotice";
+
 export default function GroupCoverageNotice({ selected_group, group_cost_rows }) {
   const group_id = selected_group?.group_id || "";
 
@@ -14,7 +16,7 @@ export default function GroupCoverageNotice({ selected_group, group_cost_rows })
   // Same rule as Business Outcome: a group with no labour at all is a
   // different situation from a scheduling gap, so no notice is shown.
   if (!row?.labour_coverage_warning || !has_labour) {
-    return null;
+    return <GroupIdleLabourNotice row={row} has_labour={has_labour} />;
   }
 
   return (

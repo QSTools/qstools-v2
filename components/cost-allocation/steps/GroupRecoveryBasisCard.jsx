@@ -11,6 +11,7 @@ export default function GroupRecoveryBasisCard({
     selected_group.group_recovery_hour_source || "labour_hours";
   const manual_hours = selected_group.manual_group_recovery_hours || "";
   const run_pattern = selected_group.asset_run_pattern || "";
+  const labour_tied = selected_group.labour_tied_to_asset === true;
 
   function updateRecoverySource(value) {
     if (!group_id || typeof update_operational_group !== "function") {
@@ -39,6 +40,16 @@ export default function GroupRecoveryBasisCard({
 
     update_operational_group(group_id, {
       asset_run_pattern: value,
+    });
+  }
+
+  function updateLabourTied(checked) {
+    if (!group_id || typeof update_operational_group !== "function") {
+      return;
+    }
+
+    update_operational_group(group_id, {
+      labour_tied_to_asset: checked === true,
     });
   }
 
@@ -99,6 +110,25 @@ export default function GroupRecoveryBasisCard({
             <p className="mt-1 ui-help">
               Saved with this working unit. It does not change any figure yet.
             </p>
+          </label>
+        ) : null}
+
+        {recovery_source === "asset_hours" ? (
+          <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={labour_tied}
+              onChange={(event) => updateLabourTied(event.target.checked)}
+            />
+            <span>
+              The labour in this working unit is tied to the asset only
+              <span className="block ui-help">
+                Tick this if the people here will not do other work when the
+                asset is idle (for example, a digger driver). Idle hours are
+                then shown as a real cost.
+              </span>
+            </span>
           </label>
         ) : null}
       </div>
