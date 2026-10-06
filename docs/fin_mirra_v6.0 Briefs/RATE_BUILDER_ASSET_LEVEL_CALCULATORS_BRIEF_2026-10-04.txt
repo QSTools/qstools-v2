@@ -313,3 +313,35 @@ D1 REMAINING
 NOTE FOR STEP F: asset costs in the 2026-10-05 snapshot differ slightly from the
   2026-10-03 baseline (Test Asset 20,567.15 vs 20,578.10; Pump 5,391.79 vs
   5,394.52). Cause not investigated. Take a fresh baseline before Step F.
+
+ADDENDUM 4 (2026-10-06) - D1 pieces 2 and 3a [SHIPPED]
+
+PIECE 2 [SHIPPED] commit 409d40b: asset_run_pattern stored per working unit
+(Not answered / together / sequential) in GroupRecoveryBasisCard. Persists
+across reload. Storage normalisers spread unknown fields, so no field is lost.
+
+PIECE 3a [SHIPPED]: costAllocationGroupCostBuilder.js now computes
+required_asset_hours (SUM of asset hours for sequential groups, MAX otherwise)
+and uses it ONLY for labour_coverage_gap_hours and labour_coverage_warning.
+New fields on the group row: required_asset_hours, asset_run_pattern.
+group_recovery_hours, group_cost_per_hour, overhead split and all rates still
+use the MAX (assigned_asset_hours). No dollar figure changes.
+Live verified on Single Labour Working Unit Test: sequential shows
+"need 2400 hours - gap of 986 hours"; Not answered shows the old
+"asset runs 1440 hours - gap of 26 hours"; $96/hr, 1,440 hrs, $138,494 total
+identical in both states.
+
+CORRECTION: the earlier plan to SUM hours into group_recovery_hours (Option A)
+was wrong. It would lower cost per hour (about $96.19 to $57.94), cut Rate
+Builder's labour component (about $76.62 to $45.97/hr) and shift overhead
+between groups. Rejected.
+
+STILL OPEN:
+- 3c: cap group recovery hours at labour hours for sequential groups (cost per
+  hour and rates would rise). Separate decision, needs its own live test.
+- Business Outcome capacity gap (useBusinessOutcomePerSourceRevenue.js
+  calculate_capacity_coverage_gap) still uses group_recovery_hours, so it still
+  shows the 26 hour gap. Align with required_asset_hours only together with
+  the revenue cap decision, so gap hours and revenue at risk stay consistent.
+- Group total cost reads $138,494 now vs $138,507 in the 2026-10-04 snapshot
+  (about $14, asset cost). Not caused by 3a. Cause not yet traced.
