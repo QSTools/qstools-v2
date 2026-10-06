@@ -267,3 +267,49 @@ HOUSEKEEPING (owner)
   - Refresh VARIABLE_TRACKER_v6_0 and CALCULATION_MAP_v6_0 (both stale on
     linked_asset_id).
   - Re-upload brief, kickoff doc, tracker and map to project knowledge.
+
+
+===============================================================================
+ADDENDUM 3 - D1 PIECE 1 [SHIPPED] (2026-10-05, commit a09387f)
+===============================================================================
+D1 piece 1  [SHIPPED]  Labour coverage gap notice in Cost Allocation (display only)
+  New file  components/cost-allocation/steps/GroupCoverageNotice.jsx
+  Wired in  components/cost-allocation/CostAllocationStepBuilder.jsx
+            (Step 3 under labour assignments, Step 4 under asset list)
+  Behaviour Shows the builder's existing labour_coverage_warning message plus
+            "correct them in the Assets module" for the SELECTED working unit.
+            Hidden when the group has no labour assigned (same rule as Business
+            Outcome). No calculation file touched; no numbers change.
+  Verified live (localhost:3004): Single Labour Working Unit Test shows the
+            notice (labour 1,414 h vs asset 1,440 h, gap 26 h). 2nd Labour Test
+            Unit and Accounts show none. Step 3 confirmed; Step 4 not yet confirmed.
+
+CORRECTIONS TO EARLIER NOTES IN THIS BRIEF
+  - labour_coverage_warning (C22) WAS shown, in Business Outcome (capacity
+    coverage gap, "Things to check"). It was NOT shown in Cost Allocation.
+  - The group cards (CostAllocationGroupsCard, CostAllocationOperatingGroupBuilder,
+    CostAllocationGroupCostSummary, "Edit group") are UNREACHABLE: they render
+    only for active_section === "groups" in CostAllocationEvidenceBreakdown,
+    but CollapsedChecks only ever passes pool_reconciliation, group_cost_stacks,
+    structural_warnings or setup_checklist. The visible page is the 4-step
+    builder. A first attempt placing the notice in GroupCostSummary never
+    appeared on screen and was reverted before commit.
+  - D2 impact: the old group cost summary is dead code; the numbers Cost
+    Allocation actually shows are the Group costs tab inside "Show checks".
+    Re-scope D2 against that tab, not the group cards.
+
+D1 REMAINING
+  Piece 2  group field (Not answered / Run together / Run one after another),
+           saved via update_operational_group (costAllocationStorage.js L352,
+           spreads the patch). Still to confirm normalise_operational_groups
+           (storage L112, profile storage L47) do not drop it (bug class 6b).
+           Missing = Not answered.
+  Piece 3  builder hours rule: sum asset hours for "one after another" groups
+           (costAllocationGroupCostBuilder.js L59-63). CORE CALCULATION - own
+           confirmation. Default stays MAX so existing groups are unchanged.
+  Labour-hours-basis groups still show no notice in Cost Allocation (builder
+  only checks asset_hours groups). Business Outcome covers that side.
+
+NOTE FOR STEP F: asset costs in the 2026-10-05 snapshot differ slightly from the
+  2026-10-03 baseline (Test Asset 20,567.15 vs 20,578.10; Pump 5,391.79 vs
+  5,394.52). Cause not investigated. Take a fresh baseline before Step F.
