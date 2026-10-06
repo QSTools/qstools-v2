@@ -345,3 +345,38 @@ STILL OPEN:
   the revenue cap decision, so gap hours and revenue at risk stay consistent.
 - Group total cost reads $138,494 now vs $138,507 in the 2026-10-04 snapshot
   (about $14, asset cost). Not caused by 3a. Cause not yet traced.
+
+ADDENDUM 5 (2026-10-06) - D1 piece 3c [SHIPPED, narrow] and baseline drift finding
+
+PIECE 3c [SHIPPED]: in costAllocationGroupCostBuilder.js, a group that is
+asset-driven, set to "One after another" (asset_run_pattern = sequential) and
+has labour assigned now recovers min(required_asset_hours, assigned_labour_hours).
+All other groups keep the MAX of asset hours exactly as before.
+Live verified (single sitting, 2026-10-06) on Single Labour Working Unit Test:
+  Not answered:      1,440 hrs, $96/hr, labour $77/hr, overhead $2,220, total $138,494
+  One after another: 1,414 hrs, $98/hr, labour $78/hr, overhead $2,200, total $138,474
+  2nd Labour Test Unit unchanged at $95/hr. Pools unchanged, remaining $0.
+Companion edit in hooks/useBusinessOutcomePerSourceRevenue.js
+(calculate_capacity_coverage_gap): for sequential groups with labour, the gap
+is measured against required_asset_hours so it does not vanish once recovery
+hours are capped. NOT live-verified: the line needs a charge-out rate and Paul
+has none saved. Separate commit so it can be reverted alone.
+
+DECISION LOGGED (next): the cap currently applies to "One after another" groups
+only. Whether to widen it to "Together" and "Not answered" asset-driven groups
+that are short of labour is OPEN. For "together", a small shortfall may be
+logging slack rather than a real loss. Revisit once real data shows how often
+those groups run short. Widening is a small follow-up (drop the sequential
+condition on is_labour_capped), but it moves rates for every short group.
+
+BASELINE DRIFT (explained, not a bug): assetCalculations.js
+calculate_forward_asset_interest computes interest from the purchase price times
+the share of the finance term still remaining, using today's date. Asset cost
+therefore falls by roughly $6.8 a day across RB1 Test Asset + RB1 Pump. This
+explains $25,972.62 (brief) -> $25,958.94 (2026-10-04 snapshot) -> about
+$25,945 (2026-10-06). RULE: take every before/after comparison in one sitting;
+old baselines cannot be matched to the dollar. Step F needs a fresh baseline.
+
+NOTE: when a sequential group is capped, its overhead share also moves
+slightly (overhead is split by recovery hours across groups), and Business
+Modelling / non-productive spreading read the same hours.
