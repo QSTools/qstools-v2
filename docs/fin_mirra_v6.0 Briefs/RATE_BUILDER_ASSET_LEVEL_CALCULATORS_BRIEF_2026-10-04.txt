@@ -380,3 +380,38 @@ old baselines cannot be matched to the dollar. Step F needs a fresh baseline.
 NOTE: when a sequential group is capped, its overhead share also moves
 slightly (overhead is split by recovery hours across groups), and Business
 Modelling / non-productive spreading read the same hours.
+
+ADDENDUM 6 (2026-10-07) - D4 idle labour cost [SHIPPED, warn only] commit 3f311a0
+Supersedes the "D4 NEW" entry above (design items) and the D4 line in "WHERE WE ARE AND WHAT IS LEFT".
+
+WHAT IT DOES: a working unit that recovers over asset hours has a tick box, "The labour in this working unit is
+tied to the asset only" (GroupRecoveryBasisCard.jsx), saved as labour_tied_to_asset via update_operational_group
+(storage normalisers spread, so the field is kept; checked by grep and by reload). When ticked, the group cost row
+(costAllocationGroupCostBuilder.js) gets:
+  idle_labour_hours = max(0, assigned_labour_hours - required_asset_hours)   [asset-hours groups, flag on]
+  idle_labour_cost  = idle_labour_hours x (assigned_labour_cost / assigned_labour_hours)
+  idle_labour_warning (severity review, code idle_labour_tied_to_asset)
+New notice GroupIdleLabourNotice.jsx, rendered from GroupCoverageNotice.jsx when there is no shortfall warning.
+It shows in Cost Allocation under the labour assignment list and under the asset assignment list
+(CostAllocationStepBuilder.jsx, two mount points), not next to the tick box.
+NO hours, rate or total changes. Idle cost is already inside group_cost_per_hour (all labour cost is spread over the
+asset hours). It is the mirror of the D1 shortfall: shortfall = asset runs without labour, idle = labour paid with no asset.
+
+LIVE VERIFIED 2026-10-07 (one sitting, Single Labour Working Unit Test, Paul + Jack, 1,440 asset hrs):
+  Box ticked:   labour 2,828.23 hrs, recovery 1,440, $189.63/hr, total $273,067.72, idle 1,388.23 hrs, $119,139.91
+  Box unticked: identical recovery hours, $/hr and total, idle 0
+  Paul alone (labour short by 25.88 hrs): idle 0, shortfall warning unchanged.
+  Baseline restored (Jack back in 2nd Labour Test Unit): $96.18/hr, $138,493.59, no change from before D4.
+  On-screen notice SEEN when ticked (owner, 2026-10-07): "Paid labour hours exceed the asset hours", 1388 extra paid
+  hours, about $119140 a year. Gone when unticked follows from idle_labour_warning being null (idle 0); not separately photographed.
+
+DESIGN CHOICES: flag is per working unit, not per labour assignment (cheap, same route as asset_run_pattern). Revisit
+only if one unit mixes tied and flexible staff. Idle hours are measured against required_asset_hours (SUM for
+one-after-another groups, MAX otherwise).
+
+STILL OPEN (owner decisions, none built):
+  - Should idle cost ever move a rate, or feed Business Outcome as a gap line? Today it is shown on Cost Allocation only.
+  - Idle for labour_hours and manual_hours groups is not measured (no asset hours to compare against).
+  - Cosmetic: notice amounts have no thousands separator ($119140) and the wording says "the asset runs" for any group.
+  - Test-data trap: a snapshot taken with Jack in no working unit puts the whole overhead pool on Paul's group
+    (about $2,180 more). Check lab_hrs before trusting a before/after comparison.

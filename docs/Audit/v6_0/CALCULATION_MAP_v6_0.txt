@@ -650,3 +650,11 @@ CM-9 NOTE (D1, 2026-10-06). One-after-another asset groups.
   BASELINE DRIFT: asset interest = purchase price x remaining finance-term share x rate, using today's date
   (assetCalculations.js calculate_forward_asset_interest), so asset cost falls a little every day. Take every
   before/after comparison in one sitting; old baselines cannot be matched exactly.
+
+D4 (2026-10-07, commit 3f311a0) - idle labour on the group cost row (costAllocationGroupCostBuilder.js), DISPLAY ONLY
+  is_labour_tied        = group.labour_tied_to_asset === true
+  idle_labour_hours     = is_labour_tied AND group_recovery_hour_source == asset_hours AND assigned_labour_hours > required_asset_hours
+                          ? assigned_labour_hours - required_asset_hours : 0
+  idle_labour_cost      = idle_labour_hours x (assigned_labour_cost / assigned_labour_hours)
+  idle_labour_warning   = idle_labour_hours > 0 ? {severity: review, code: idle_labour_tied_to_asset, message} : null
+  Not used by group_recovery_hours, any rate, total_group_cost, overhead split or the 3c cap.
