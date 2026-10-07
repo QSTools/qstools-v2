@@ -442,3 +442,42 @@ NOT VERIFIED: Business Outcome gap line (needs a charge-out rate; Paul has none 
 (labour above asset hours, nothing should be capped) was not re-read after the change.
 STILL OPEN: Business Outcome gap line live check, D2 (re-scoped to Show checks -> Group costs), D3, S1, Step F
 (fresh baseline), OPEN-C/D/E, whether idle cost should ever move a rate.
+
+ADDENDUM 8 (2026-10-07, later same session) - VERIFICATION CLOSE-OUT, NO CODE CHANGES
+Closes the two NOT VERIFIED items in Addendum 7. Method: calculation trace snapshots (one sitting), plus the on-screen
+Capacity Coverage Gap table in Business Outcome.
+
+1. PAUL + JACK IN ONE UNIT [VERIFIED LIVE]. Jack moved into Single Labour Working Unit Test (2nd Labour Test Unit empty):
+   labour 2,828.23 hrs, asset hours 1,440, recovery hours 1,440 (NOT capped, labour exceeds asset hours), labour cost
+   $242,722.48, asset $25,931.55, overhead $4,400 (the whole pool lands on this group because the other unit is empty;
+   expected here, not the trap), total $273,054.03, $189.62/hr (labour $168.56 + asset $18.01 + overhead $3.06). Pool
+   remaining $0, balanced. Sums exactly.
+
+2. BUSINESS OUTCOME GAP LINE [HOURS VERIFIED LIVE, DOLLAR VALUE DEFERRED].
+   - Where it is: Business Outcome, collapsed section "Capacity Coverage Gap" (not "Things to check").
+   - Live reading: Single Labour Working Unit Test, Asset hours 1,440, Labour hours 1,414, Gap column "-".
+     Confirms commit b92e3d1: the gap is measured against required_asset_hours (1,440), not the capped recovery hours.
+   - The dollar value needs a Rate Builder calculator linked to the GROUP itself (linked_cost_allocation_group_id = group,
+     no linked_asset_id) with lines and a recovery driver. get_group_blended_rate returns null otherwise, gap_type stays
+     "none", the table shows "-", and the Situation Summary filters it out (null dollar value).
+   - CORRECTION: earlier notes (handover, Addendum 5, Addendum 7, calc map CM-9) say the gap line needs a charge-out
+     rate. It does not. It needs a group-level calculator. Saving a charge-out rate for Paul did not make it appear.
+   - Still to do if wanted: link a group-level calculator and read the dollar value (expect 25.88 hrs x all-in blended rate).
+
+3. SIDE CHECK. Saving a $150/hr charge-out rate for Paul changed no cost figure (group $138,459.95, $97.91/hr, pool $0).
+   Group modelled revenue went from $0 to $212,117.50 = $150 x 1,414.12 covered hours, as the revenue cap intends.
+
+4. DESIGN FACTS RECORDED
+   - Cost Allocation flags a labour SHORTFALL only (labour_coverage_gap_hours is 0 and no warning when labour exceeds asset
+     hours). Overstaffing is only reported in the Business Outcome gap table, and only with a group-level calculator.
+   - With surplus labour the labour rate is labour cost over asset hours ($242,722 / 1,440 = $168.56), so surplus labour
+     inflates the rate. Ties to the D4 owner decision on whether idle cost should ever move a rate.
+   - Moving a person between units never edits a record: the old assignment goes is_active false and a new one is created.
+     Test people accumulate several inactive assignment rows. Harmless.
+
+TEST DATA RESTORED AND CONFIRMED BY SNAPSHOT (04:13 UTC): Single Labour Working Unit Test $138,459.95, $97.91/hr, overhead
+$2,200, recovery 1,414.12 hrs, gap 25.88; 2nd Labour Test Unit $134,594.08, $95.18/hr; pool $0; both groups modelled revenue
+$0. Paul's saved charge-out rate was removed (the storage key qstools_rate_builder_labour_source_rates_v1 was NULL at the
+start and was removed at the end).
+STILL OPEN: D2 (re-scoped to Show checks -> Group costs), Step F (fresh baseline), D3, S1, OPEN-C/D/E, the D4 owner
+decision on whether idle cost should ever move a rate, and the optional gap-line dollar check above.
