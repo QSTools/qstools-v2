@@ -415,3 +415,30 @@ STILL OPEN (owner decisions, none built):
   - Cosmetic: notice amounts have no thousands separator ($119140) and the wording says "the asset runs" for any group.
   - Test-data trap: a snapshot taken with Jack in no working unit puts the whole overhead pool on Paul's group
     (about $2,180 more). Check lab_hrs before trusting a before/after comparison.
+
+ADDENDUM 7 (2026-10-07) - D1 piece 3c WIDENED [SHIPPED] commits f511214 (cap + dropdown), b92e3d1 (gap line)
+DECISION (owner, 2026-10-07): a shortfall of labour is a shortfall whatever the run pattern. The cap no longer
+needs "one after another". "Not answered" is retired because, once every group is capped, it behaved exactly like
+"together". Reasoning: the group is priced over asset hours but cannot deliver them without labour, so it
+under-recovers; recovering over the labour hours shows that. Sequential is a fringe case (mobile single assets
+moving between jobs), together is the normal case.
+WHAT CHANGED:
+  - costAllocationGroupCostBuilder.js: is_labour_capped = asset hours drive AND assigned_labour_hours > 0.
+    Capped groups recover MIN(required_asset_hours, assigned_labour_hours). Groups with enough labour are unchanged
+    (non-sequential required hours = the MAX, so the MIN gives the same number as before).
+  - useBusinessOutcomePerSourceRevenue.js (calculate_capacity_coverage_gap): measured against required_asset_hours
+    for every asset-driven group with labour (was sequential only). Separate commit b92e3d1 so it reverts alone.
+  - GroupRecoveryBasisCard.jsx: "Not answered" option removed; the dropdown shows Together when nothing is saved;
+    help text now says a labour shortfall spreads the cost over the labour hours. No data migration: old saved
+    blanks already behaved as together.
+LIVE VERIFIED 2026-10-07 (one sitting, Show checks -> Group costs): Single Labour Working Unit Test (Paul only, tied
+box unticked, saved as Not answered, Jack in 2nd Labour Test Unit): 1,414 hrs, $98/hr, labour $78/hr, asset $18/hr,
+overhead $2,200, total $138,460 (labour 110,328 + asset 25,932 + overhead 2,200). Before the change today: 1,440 hrs,
+$96.18/hr, $138,493.59. 2nd Labour Test Unit unchanged at $95/hr. Pools remaining $0 / $0 / $0.
+The $33.59 total fall = cap effect (about $20 as on 2026-10-06) plus asset drift; not separated.
+TEST-DATA TRAP HIT AGAIN: with Jack in no working unit the whole $4,400 overhead pool landed on this group
+($4,400, $99/hr, $140,660). Restoring Jack fixed it. Always check the pool remaining line first.
+NOT VERIFIED: Business Outcome gap line (needs a charge-out rate; Paul has none saved); Paul + Jack in one unit
+(labour above asset hours, nothing should be capped) was not re-read after the change.
+STILL OPEN: Business Outcome gap line live check, D2 (re-scoped to Show checks -> Group costs), D3, S1, Step F
+(fresh baseline), OPEN-C/D/E, whether idle cost should ever move a rate.

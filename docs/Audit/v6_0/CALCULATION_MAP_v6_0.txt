@@ -235,7 +235,7 @@ Group cost row (costAllocationGroupCostBuilder.js build_operational_group_cost_r
 - group_cost_per_hour = total_group_cost / group recovery hours           L126
 - asset_run_pattern (group setting: not answered / together / sequential; set in Cost Allocation Step 2)  [D1, 2026-10-06]
 - required_asset_hours = SUM of asset assignment hours if sequential, else the MAX (= assigned_asset_hours)   (approx L65-80, refresh)
-- is_labour_capped = asset hours drive AND sequential AND assigned_labour_hours > 0. When capped,
+- is_labour_capped = asset hours drive AND assigned_labour_hours > 0 (any run pattern; widened 2026-10-07). When capped,
   group_recovery_hours = MIN(required_asset_hours, assigned_labour_hours); otherwise group_recovery_hours is
   exactly as the line above   (approx L100-125, refresh)  [CM-9]
 - NOTE: the three stream rates, group_cost_per_hour and the overhead weight all follow group_recovery_hours, so a
@@ -642,7 +642,7 @@ CM-9 NOTE (D1, 2026-10-06). One-after-another asset groups.
   Cost Allocation Step 2 stores asset_run_pattern per working unit. For a sequential, asset-driven group with
   labour assigned, group_recovery_hours is capped at the labour hours (the asset cannot run without its labour),
   so its rates rise and its overhead share shifts slightly. Groups set to together or not answered are
-  UNCHANGED - widening the cap to them is an OPEN owner decision (a small shortfall may be logging slack).
+  ALSO CAPPED since 2026-10-07 (owner decision: widened; Not answered retired, a blank value is treated as together).
   Summing asset hours into group_recovery_hours was REJECTED: it lowers cost per hour and cuts Rate Builder's
   labour component per hour. Business Outcome calculate_capacity_coverage_gap uses required_asset_hours for
   sequential groups with labour; its revenue cap (get_group_covered_hours = MIN of recovery hours and labour
