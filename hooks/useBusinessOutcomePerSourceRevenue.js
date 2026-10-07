@@ -447,12 +447,11 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
     );
     const labour_true_cost_rate = labour_hours > 0 ? labour_cost / labour_hours : null;
 
-    // D1 piece 3c: a sequential asset-driven group recovery hours are now
+    // D1 piece 3c: an asset-driven group recovery hours are now
     // capped at labour hours, so the gap must be measured against the hours
     // the assets actually need (required_asset_hours) or it would vanish.
     const asset_hours =
       group.group_recovery_hour_source === "asset_hours" &&
-      group.asset_run_pattern === "sequential" &&
       labour_hours > 0
         ? to_number(group.required_asset_hours) || to_number(group.group_recovery_hours)
         : to_number(group.group_recovery_hours);
