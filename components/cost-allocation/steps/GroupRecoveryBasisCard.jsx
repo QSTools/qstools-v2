@@ -10,7 +10,7 @@ export default function GroupRecoveryBasisCard({
   const recovery_source =
     selected_group.group_recovery_hour_source || "labour_hours";
   const manual_hours = selected_group.manual_group_recovery_hours || "";
-  const run_pattern = selected_group.asset_run_pattern || "";
+  const run_pattern = selected_group.asset_run_pattern || "together";
   const labour_tied = selected_group.labour_tied_to_asset === true;
 
   function updateRecoverySource(value) {
@@ -101,14 +101,14 @@ export default function GroupRecoveryBasisCard({
               value={run_pattern}
               onChange={(event) => updateRunPattern(event.target.value)}
             >
-              <option value="">Not answered</option>
+              
               <option value="together">
                 Together (one operator, at the same time)
               </option>
               <option value="sequential">One after another</option>
             </select>
             <p className="mt-1 ui-help">
-              Saved with this working unit. It does not change any figure yet.
+              Saved with this working unit. If the labour hours are fewer than the hours the assets need, the cost of this working unit is spread over the labour hours instead.
             </p>
           </label>
         ) : null}
