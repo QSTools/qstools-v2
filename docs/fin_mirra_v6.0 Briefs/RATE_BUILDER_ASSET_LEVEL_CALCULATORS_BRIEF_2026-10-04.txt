@@ -481,3 +481,27 @@ $0. Paul's saved charge-out rate was removed (the storage key qstools_rate_build
 start and was removed at the end).
 STILL OPEN: D2 (re-scoped to Show checks -> Group costs), Step F (fresh baseline), D3, S1, OPEN-C/D/E, the D4 owner
 decision on whether idle cost should ever move a rate, and the optional gap-line dollar check above.
+
+ADDENDUM 9 (2026-10-07, later same session) - D2 CLOSED, NO CODE CHANGE
+D2 (Cost Allocation should not show final numbers) is already satisfied. Found by read-only search, nothing built.
+EVIDENCE
+  - Group totals and rates (group_cost_per_hour, total_group_cost, labour/asset/overhead recovery rates) are rendered only in
+    components/cost-allocation/evidence/GroupCostStacksSection.jsx, reached via Show checks -> Group costs. The checks panel
+    starts closed (CostAllocationMainCard.jsx, useState(false) for is_open).
+  - The only other places that render those figures are CostAllocationGroupCostSummary.jsx and
+    CostAllocationOperatingGroupBuilder.jsx: unreachable (see the earlier dead-code finding in Addendum 5).
+  - Money figures on the visible page are pool progress only: PoolPositionCard / PoolSummaryRow in CostAllocationMainCard.jsx
+    (available, assigned, remaining for labour, asset and overhead), rendered by app/cost-allocation/page.jsx.
+  - 4-step builder files (CostAllocationStepBuilder.jsx and steps/*) matched no rate or group-total pattern.
+OWNER DECISION 2026-10-07: pool figures (available / assigned / remaining) STAY visible. They show how much cost is still
+unassigned, which is the working state of the screen, not a result.
+CAVEAT: the search was by field name and money formatter in .js/.jsx files, not a run of every screen state. A group total could
+still reach the page through a path not matched by those patterns. Re-open D2 only if one is seen.
+DEAD CODE (no importer found by name search; a dynamic import would not show up). Separate deliberate decision, NOT done:
+  - components/cost-allocation/CostAllocationStatusStrip.jsx (241 lines; no importer anywhere in the repo)
+  - components/cost-allocation/groups/CostAllocationGroupCostSummary.jsx (415 lines)
+  - components/cost-allocation/groups/CostAllocationOperatingGroupBuilder.jsx (163 lines)
+  - probably CostAllocationGroupsCard.jsx and the other group builders (not checked)
+  These already misled one session (a notice placed in GroupCostSummary never appeared and was reverted). Delete or leave is open.
+STILL OPEN: Step F (fresh baseline, one sitting), D3, S1, OPEN-C/D/E, the D4 owner decision on whether idle cost should ever move
+a rate, the optional gap-line dollar check, the dead-code decision, empty smoke test folders / stale INDEX.txt.
