@@ -1,0 +1,307 @@
+﻿===== components\rate-builder\line-calculator\RateBuilderResultPanel.jsx (total lines: 306) =====
+   1: import {
+   2:   formatCurrency,
+   3:   formatPercent,
+   4:   formatRate,
+   5: } from "@/lib/calculations/rateBuilderCalculations";
+   6: 
+   7: import { get_unit_label } from "./rateBuilderLineCalculatorConstants";
+   8: 
+   9: export default function RateBuilderResultPanel({
+  10:   display_calculator_name,
+  11:   has_labour_rate_context,
+  12:   labour_charge_out_rate,
+  13:   labour_job_charge,
+  14:   labour_minimum_recoverable_rate,
+  15:   labour_per_hr_profit,
+  16:   preview,
+  17:   recovery_driver_quantity,
+  18:   recovery_preview,
+  19:   selected_cost_allocation_group,
+  20:   selected_group_asset_rate,
+  21:   selected_group_labour_rate,
+  22:   selected_group_overhead_rate,
+  23:   selected_group_recovery_rate,
+  24: }) {
+  25:   return (
+  26:         <article className="ui-section">
+  27:           <p className="ui-kicker">Calculator result</p>
+  28: 
+  29:           <h2 className="ui-section-title">
+  30:             Example charge total - {display_calculator_name}
+  31:           </h2>
+  32: 
+  33:           <p className="ui-help">
+  34:             The total charge is divided by the selected output driver quantity
+  35:             to show the effective rate per output unit.
+  36:           </p>
+  37: 
+  38:           <div className="mt-5 grid gap-3">
+  39:             <div className="rate-builder-result-card">
+  40:               <p className="rate-builder-result-label">Total charge</p>
+  41: 
+  42:               <p className="rate-builder-result-value">
+  43:                 {formatCurrency(preview.total_charge)}
+  44:               </p>
+  45:             </div>
+  46: 
+  47:             <div className="rate-builder-result-card">
+  48:               <p className="rate-builder-result-label">
+  49:                 Primary output driver
+  50:               </p>
+  51: 
+  52:               <p className="rate-builder-driver-name">
+  53:                 {preview.output_driver_name}
+  54:               </p>
+  55: 
+  56:               <p className="rate-builder-driver-quantity">
+  57:                 {preview.output_driver_quantity}{" "}
+  58:                 {get_unit_label(preview.output_driver_unit)}
+  59:               </p>
+  60:             </div>
+  61: 
+  62:             <div className="rate-builder-effective-card">
+  63:               <p className="rate-builder-effective-label">Effective rate</p>
+  64: 
+  65:               <p className="rate-builder-result-value">
+  66:                 {formatRate(
+  67:                   preview.effective_rate_per_output_unit,
+  68:                   get_unit_label(preview.output_driver_unit)
+  69:                 )}
+  70:               </p>
+  71:             </div>
+  72: 
+  73:             <div className="rate-builder-result-card">
+  74:               <p className="rate-builder-result-label">
+  75:                 Cost Allocation source
+  76:               </p>
+  77: 
+  78:               <p className="rate-builder-driver-name">
+  79:                 {selected_cost_allocation_group?.group_name ||
+  80:                   "No cost group selected"}
+  81:               </p>
+  82: 
+  83:               <div className="mt-3 grid gap-2 sm:grid-cols-2">
+  84:                 <p className="ui-help">
+  85:                   Labour cost:{" "}
+  86:                   {formatCurrency(
+  87:                     selected_cost_allocation_group?.assigned_labour_cost || 0
+  88:                   )}
+  89:                 </p>
+  90: 
+  91:                 <p className="ui-help">
+  92:                   Labour hours:{" "}
+  93:                   {Number(
+  94:                     selected_cost_allocation_group?.assigned_labour_hours || 0
+  95:                   ).toFixed(2)}
+  96:                 </p>
+  97: 
+  98:                 <p className="ui-help">
+  99:                   Labour recovery rate:{" "}
+ 100:                   {formatRate(selected_group_labour_rate, "hr")}
+ 101:                 </p>
+ 102: 
+ 103:                 <p className="ui-help">
+ 104:                   Asset cost:{" "}
+ 105:                   {formatCurrency(
+ 106:                     selected_cost_allocation_group?.assigned_asset_burden || 0
+ 107:                   )}
+ 108:                 </p>
+ 109: 
+ 110:                 <p className="ui-help">
+ 111:                   Asset hours:{" "}
+ 112:                   {Number(
+ 113:                     selected_cost_allocation_group?.assigned_asset_hours || 0
+ 114:                   ).toFixed(2)}
+ 115:                 </p>
+ 116: 
+ 117:                 <p className="ui-help">
+ 118:                   Asset recovery rate: {formatRate(selected_group_asset_rate, "hr")}
+ 119:                 </p>
+ 120: 
+ 121:                 <p className="ui-help">
+ 122:                   Overhead allocation:{" "}
+ 123:                   {formatCurrency(
+ 124:                     selected_cost_allocation_group?.assigned_overhead_amount || 0
+ 125:                   )}
+ 126:                 </p>
+ 127: 
+ 128:                 <p className="ui-help">
+ 129:                   Overhead recovery rate:{" "}
+ 130:                   {formatRate(selected_group_overhead_rate, "hr")}
+ 131:                 </p>
+ 132: 
+ 133:                 <p className="ui-help">
+ 134:                   Total group cost:{" "}
+ 135:                   {formatCurrency(
+ 136:                     selected_cost_allocation_group?.total_group_cost || 0
+ 137:                   )}
+ 138:                 </p>                <p className="ui-help">
+ 139:                   Recovery basis:{" "}
+ 140:                   {selected_cost_allocation_group?.group_recovery_hour_source ===
+ 141:                   "asset_hours"
+ 142:                     ? "Asset hours"
+ 143:                     : selected_cost_allocation_group?.group_recovery_hour_source ===
+ 144:                         "manual_hours"
+ 145:                       ? "Manual hours"
+ 146:                       : "Labour hours"}
+ 147:                 </p>
+ 148: 
+ 149:                 <p className="ui-help">
+ 150:                   Recovery hours used:{" "}
+ 151:                   {Number(
+ 152:                     selected_cost_allocation_group?.group_recovery_hours || 0
+ 153:                   ).toFixed(2)}
+ 154:                 </p>
+ 155: 
+ 156:                 <p className="ui-help sm:col-span-2">
+ 157:                   Group recovery rate:{" "}
+ 158:                   {formatRate(selected_group_recovery_rate, "hr")}
+ 159:                 </p>
+ 160:               </div>
+ 161:             </div>
+ 162: 
+ 163:             <div className="rate-builder-result-card">
+ 164:               <p className="rate-builder-result-label">Profit / shortfall</p>
+ 165: 
+ 166:               <p className="rate-builder-result-value">
+ 167:                 {formatCurrency(recovery_preview.profit_amount)}
+ 168:               </p>
+ 169: 
+ 170:               <div className="mt-3 grid gap-1 text-xs text-[var(--text-secondary)] sm:grid-cols-3">
+ 171:                 <p>
+ 172:                   Pricing unit:{" "}
+ 173:                   <span className="font-semibold text-[var(--text-primary)]">
+ 174:                     {get_unit_label(preview.output_driver_unit)}
+ 175:                   </span>
+ 176:                 </p>
+ 177:                 <p>
+ 178:                   Output quantity:{" "}
+ 179:                   <span className="font-semibold text-[var(--text-primary)]">
+ 180:                     {preview.output_driver_quantity}{" "}
+ 181:                     {get_unit_label(preview.output_driver_unit)}
+ 182:                   </span>
+ 183:                 </p>
+ 184:                 <p>
+ 185:                   Recovery hours:{" "}
+ 186:                   <span className="font-semibold text-[var(--text-primary)]">
+ 187:                     {recovery_driver_quantity.toFixed(2)} hrs
+ 188:                   </span>
+ 189:                 </p>
+ 190:               </div>
+ 191: 
+ 192:               <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+ 193:                 <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+ 194:                   <div className="px-3 py-2">View</div>
+ 195:                   <div className="px-3 py-2 text-right">Charge</div>
+ 196:                   <div className="px-3 py-2 text-right">Cost</div>
+ 197:                   <div className="px-3 py-2 text-right">Profit / Loss</div>
+ 198:                 </div>
+ 199: 
+ 200:                 <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+ 201:                   <div className="px-3 py-2 font-semibold text-slate-200">
+ 202:                     Total job
+ 203:                   </div>
+ 204:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+ 205:                     {formatCurrency(preview.total_charge)}
+ 206:                   </div>
+ 207:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+ 208:                     {formatCurrency(selected_group_recovery_rate * recovery_driver_quantity)}
+ 209:                   </div>
+ 210:                   <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+ 211:                     {formatCurrency(recovery_preview.profit_amount)}
+ 212:                   </div>
+ 213:                 </div>
+ 214: 
+ 215:                 <div className="grid grid-cols-4 text-xs">
+ 216:                   <div className="px-3 py-2 font-semibold text-slate-200">
+ 217:                     Per {get_unit_label(preview.output_driver_unit)}
+ 218:                   </div>
+ 219:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+ 220:                     {formatCurrency(
+ 221:                       preview.output_driver_quantity > 0
+ 222:                         ? preview.total_charge / preview.output_driver_quantity
+ 223:                         : 0
+ 224:                     )}
+ 225:                   </div>
+ 226:                   <div className="px-3 py-2 text-right font-semibold text-slate-100">
+ 227:                     {formatCurrency(recovery_preview.recovery_cost_per_output_unit)}
+ 228:                   </div>
+ 229:                   <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+ 230:                     {formatCurrency(recovery_preview.profit_per_output_unit)}
+ 231:                   </div>
+ 232:                 </div>
+ 233:               </div>
+ 234: 
+ 235:               <div className="mt-4 overflow-hidden rounded-xl border border-slate-800/80">
+ 236:                 <div className="grid grid-cols-4 border-b border-slate-800/80 bg-slate-950/40 text-xs font-semibold text-slate-300">
+ 237:                   <div className="px-3 py-2">Charge / Cost breakdown</div>
+ 238:                   <div className="px-3 py-2 text-right">Charge</div>
+ 239:                   <div className="px-3 py-2 text-right">Cost</div>
+ 240:                   <div className="px-3 py-2 text-right">Profit / Loss</div>
+ 241:                 </div>
+ 242: 
+ 243:                 {has_labour_rate_context ? (
+ 244:                   <>
+ 245:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+ 246:                       <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+ 247:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_charge_out_rate)}</div>
+ 248:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(labour_minimum_recoverable_rate)}</div>
+ 249:                       <div className={`px-3 py-2 text-right font-semibold ${labour_per_hr_profit >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+ 250:                         {formatCurrency(labour_per_hr_profit)}
+ 251:                       </div>
+ 252:                     </div>
+ 253:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+ 254:                       <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+ 255:                       <div className="px-3 py-2 text-right text-slate-100">
+ 256:                         {formatCurrency(preview.total_charge - labour_job_charge > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity : 0)}
+ 257:                       </div>
+ 258:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+ 259:                       <div className={`px-3 py-2 text-right font-semibold ${(preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+ 260:                         {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge - labour_job_charge) / recovery_driver_quantity - selected_group_asset_rate : 0)}
+ 261:                       </div>
+ 262:                     </div>
+ 263:                     <div className="grid grid-cols-4 text-xs">
+ 264:                       <div className="px-3 py-2 font-semibold text-cyan-300">Total / hr</div>
+ 265:                       <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+ 266:                         {formatCurrency(recovery_driver_quantity > 0 ? preview.total_charge / recovery_driver_quantity : 0)}
+ 267:                       </div>
+ 268:                       <div className="px-3 py-2 text-right font-semibold text-cyan-300">
+ 269:                         {formatCurrency(labour_minimum_recoverable_rate + selected_group_asset_rate)}
+ 270:                       </div>
+ 271:                       <div className={`px-3 py-2 text-right font-semibold ${recovery_driver_quantity > 0 && (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+ 272:                         {formatCurrency(recovery_driver_quantity > 0 ? (preview.total_charge / recovery_driver_quantity) - (labour_minimum_recoverable_rate + selected_group_asset_rate) : 0)}
+ 273:                       </div>
+ 274:                     </div>
+ 275:                   </>
+ 276:                 ) : (
+ 277:                   <>
+ 278:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+ 279:                       <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
+ 280:                       <div className="px-3 py-2 text-right text-slate-400">â€”</div>
+ 281:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_labour_rate)}</div>
+ 282:                       <div className="px-3 py-2 text-right text-slate-400">â€”</div>
+ 283:                     </div>
+ 284:                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+ 285:                       <div className="px-3 py-2 font-semibold text-slate-200">Asset</div>
+ 286:                       <div className="px-3 py-2 text-right text-slate-400">â€”</div>
+ 287:                       <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_group_asset_rate)}</div>
+ 288:                       <div className="px-3 py-2 text-right text-slate-400">â€”</div>
+ 289:                     </div>
+ 290:                     <div className="grid grid-cols-4 text-xs">
+ 291:                       <div className="px-3 py-2 font-semibold text-slate-400 text-xs">Set a charge-out rate in Labour Rates Builder to see charge / profit breakdown.</div>
+ 292:                     </div>
+ 293:                   </>
+ 294:                 )}
+ 295:               </div>
+ 296:               <p className="ui-help mt-3">
+ 297:                 Margin: {formatPercent(recovery_preview.profit_margin_percent)}
+ 298:               </p>
+ 299:               <p className="ui-help">
+ 300:                 Status: {recovery_preview.recovery_status}
+ 301:               </p>
+ 302:             </div>
+ 303:           </div>
+ 304:         </article>
+ 305:   );
+ 306: }
