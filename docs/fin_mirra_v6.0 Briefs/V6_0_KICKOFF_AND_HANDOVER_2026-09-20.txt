@@ -658,3 +658,37 @@ FIRST STEP WHEN WORK RESUMES: read Rate Builder and Business Outcome code fresh 
 (a) whether the three-tier drill-down already exists,
 (b) what the pricing panel's labour component reads today,
 (c) whether asset pricing can currently be opened before labour is priced.
+
+CODE READ FINDINGS 2026-10-08
+Read-only. Nothing changed. Searches were capped, so "not found" means not found by these patterns.
+
+(a) BUSINESS OUTCOME
+- Front page (BusinessOutcomeMainCard.jsx) is "Where is the pressure?", a table by cost STREAM
+  (Labour, Overheads, Assets), not by group. Labour and Assets rows drill into
+  BusinessOutcomeLabourSplit and BusinessOutcomeAssetSplit.
+- Those cards list Cost Allocation groups. The UI header says "Operating Group"; the owner calls
+  these WORKING groups. Naming collision to resolve.
+- Asset card: whole-group cost (labour + asset + overhead) vs Rate Builder calculator charge,
+  profit/(loss), % of revenue. Expand: Labour / Asset / Overhead lines; Labour expands to per-person
+  cost, charged, profit. Profit only for groups with a linked calculator. Asset line is one row per group.
+- Asset-backed groups and labour-assigned groups are two separate lists. No single list of all groups.
+- Cost Allocation HAS divisions (division_id, default main_operations, create-division UI,
+  costAllocationDivisionBuilders.js). Likely = the owner's "operating group". No division hits found in
+  Business Outcome components/hooks; the lib search was capped, so NOT fully confirmed.
+  NEEDS OWNER CONFIRMATION.
+- OPEN-C is therefore a new division tier in Business Outcome plus a decision on how the front page
+  leads. Multi-module, needs its own confirmation before building.
+- The revenue / net profit toggle was not in BusinessOutcomeMainCard.jsx. Not located, not touched.
+
+(b) RATE BUILDER PRICING PANEL LABOUR (confirmed)
+- RateBuilderMainCard.jsx builds ONE labour rate context from the single selected Labour-tab source and
+  passes it to the line calculator. It applies to every group's calculator.
+- Per-staff-type rates exist on the Labour tab (weighted summary card) but the panel reads only one.
+
+(c) HARD BLOCK (confirmed absent, and it would replace a deliberate path)
+- has_labour_rate_context is just labour_charge_out_rate > 0 and only changes what the result panel shows.
+- useRateBuilderLineCalculator.js lines 217-225: with no charge-out rate, the calculator falls back to
+  the group labour cost rate on purpose. Asset pricing works without labour priced, by design.
+- The hard block replaces that path. Needs explicit owner sign-off.
+
+NOT YET READ: idle-cost code (D4); where the revenue/net profit toggle lives.
