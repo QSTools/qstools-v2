@@ -702,3 +702,43 @@ Pre-flip backup for the 2026-10-07 run: 2.5 Business Type Flip Smoke Test\locals
 The calculation trace has NO business_type node, so flip effects must be read from the module screens and trace figures.
 Business type is read by 32 files; only Business Setup changes it. Restore = put back ALL 19 keys, not one key.
 HOUSEKEEPING: empty folders 1.2_rate_builder and 1.13_E1_asset_pass; a folder named "New folder" in smoke_test; INDEX.txt stale.
+
+ASSET SMOKE TEST DESIGN DECISIONS 2026-10-08
+Source: design discussion only. NOTHING below has been checked against the code or built.
+Every statement about what already exists is UNVERIFIED until the code is read.
+
+SCOPE FREEZE: no new work until the asset smoke test items are closed.
+Items to close: OPEN-C, OPEN-D, OPEN-E, the asset-pricing hard block, idle cost (D4 change), S1.
+D3 (Business Summary screen) stays parked as an owner decision. Step F (business-type flip) waits.
+
+DECISIONS MADE
+1. Net profit is the headline figure at every tier of Business Outcome.
+2. OPEN-C (re-scoped): Business Outcome leads with operating groups. Three tiers:
+   operating group -> working group -> asset and labour detail.
+   An operating group with only one working group skips the middle tier.
+   The point is that a leak at asset level must be able to surface through tiers that look healthy.
+   Reuse the existing working group card. Do not build a new summary view.
+   The existing revenue / net profit toggle in Business Outcome is NOT to be touched.
+3. OPEN-E (re-scoped): Rate Builder prices each staff type separately, never one blended group rate.
+   Hours per staff type are read from Cost Allocation, not re-entered. Avoid the word "quotes".
+4. Pricing order: COGS and margin target, then labour rates, then asset pricing.
+   Asset pricing is HARD-BLOCKED until labour is priced for that group.
+   The UI must say why it is blocked.
+5. Idle cost (changes D4): goes into the working group's net profit, the same way a labour shortfall
+   already does. It NEVER moves the charge-out rate. Hours and dollars of the gap show at the
+   working group drill-down in Business Outcome, for both shortfall and surplus.
+   Other tiers show only a lightweight flag in "things to check". Cost Allocation keeps its notice.
+
+STILL OPEN
+- Which rate values idle cost: blended rate (shortfall today) or raw labour cost (idle today).
+- Whether idle cost keeps depending on the "tied to this asset" tick-box. Shortfall is automatic.
+
+KNOWN ASYMMETRY TODAY (from CALCULATION_MAP and Rate Builder brief)
+- Shortfall: gap_hours = asset hours - labour hours, valued at the blended rate, reduces recovery hours.
+- Idle: only when tick-box set, idle_labour_hours = assigned labour hours - required asset hours,
+  valued at the person's labour cost rate, warn-only, changes no number.
+
+FIRST STEP WHEN WORK RESUMES: read Rate Builder and Business Outcome code fresh and check
+(a) whether the three-tier drill-down already exists,
+(b) what the pricing panel's labour component reads today,
+(c) whether asset pricing can currently be opened before labour is priced.
