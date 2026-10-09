@@ -22,6 +22,14 @@ import { scroll_to_section } from "@/lib/utils/scrollToSection";
 import BusinessOutcomeIndependentBreakevenLedger from "@/components/business-outcome-truth/BusinessOutcomeIndependentBreakevenLedger";
 import BusinessOutcomeRevenueSnapshotTable from "@/components/business-outcome-truth/BusinessOutcomeRevenueSnapshotTable";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
+import useCostAllocation from "@/hooks/useCostAllocation";
+import {
+  build_area_lookup,
+  wrap_entries_in_areas,
+  find_entry_with_parent,
+  resolve_selected_key,
+  wrap_headline_rows_in_areas,
+} from "@/lib/selectors/business-outcome/businessOutcomeAreaTierSelectors";
 
 function format_currency(value) {
   const n = Number(value);
@@ -503,15 +511,17 @@ function ViewBCostBuildUpTable({ view_b, time_scale, open_hours, open_days, open
     </div>
   );
 }
-function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
+function RankedGroupsDrill({ area_lookup, headline, real_capacity, labour_groups, asset_groups, materials, view_mode, time_scale, open_hours, open_days, open_weeks, use_implied, capacity_mode, cost_mode, selected_key, set_selected_key }) {
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const suffix = time_scale !== "year" ? getTimeScaleSuffix(time_scale) : "";
   const [hovered_key, set_hovered_key] = useState("");
 
-  const entries =
+  const unwrapped_entries =
     capacity_mode === "real"
       ? merge_groups_by_id_real_capacity(labour_groups, asset_groups, materials, real_capacity?.group_real_capacity)
       : merge_groups_by_id(labour_groups, asset_groups, materials, use_implied);
+
+  const entries = wrap_entries_in_areas(unwrapped_entries, area_lookup);
 
   // S25: contribution-margin lens - overhead_share removed from each
   // group cost, added back to net_profit (pure re-attribution, same
@@ -537,7 +547,7 @@ function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_group
   const total = view_mode === "profit" ? headline.total_net_profit : headline.total_modelled_revenue;
 
   const sorted_top_level = [...cost_adjusted_entries].sort((a, b) => metric(b) - metric(a));
-  const selected_entry = cost_adjusted_entries.find((e) => e.key === selected_key) || null;
+  const { entry: selected_entry, parent: selected_parent } = find_entry_with_parent(cost_adjusted_entries, resolve_selected_key(cost_adjusted_entries, selected_key));
 
   // FIX (this session): the top-level cost_adjusted_entries mapping
   // above only ever touched group-level total_cost/net_profit -
@@ -564,6 +574,7 @@ function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_group
   const breadcrumbs = selected_entry
     ? [
         { key: "root", label: "All operating groups" },
+        ...(selected_parent ? [{ key: selected_parent.key, label: selected_parent.label }] : []),
         { key: selected_entry.key, label: selected_entry.label },
       ]
     : [{ key: "root", label: "All operating groups" }];
@@ -576,7 +587,7 @@ function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_group
             key={crumb.key}
             type="button"
             className="cost-summary-breadcrumb-item"
-            onClick={() => set_selected_key(index === 0 ? null : selected_key)}
+            onClick={() => set_selected_key(index === 0 ? null : (crumb.key ?? selected_key))}
           >
             {crumb.label}
           </button>
@@ -592,7 +603,9 @@ function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_group
       ) : (
       <div className="cost-summary-drill-list">
         {active_list.map((item) => {
-          const has_children =
+          const is_area_member_row = Boolean(selected_entry?.is_area) && !selected_entry.skips_middle_tier;
+          const has_children_in_area = is_area_member_row && Array.isArray(item.children) && item.children.length > 0;
+          const has_children = has_children_in_area ||
             !selected_entry &&
             (entries.find((e) => e.key === item.key)?.children.length > 0 || item.key === "materials");
           const is_active = hovered_key === item.key;
@@ -613,7 +626,12 @@ function RankedGroupsDrill({ headline, real_capacity, labour_groups, asset_group
             <>
               <div className="ui-stack-sm">
                 <div className="cost-summary-drill-label">{item.label}</div>
-                {item.type === "group" && (
+                {item.is_area && (
+                  <div className="ui-help">
+                    Cost {formatCurrencyTruth(item.total_cost)} &middot; {item.skips_middle_tier ? "1 working group" : `${item.children.length} working groups`}
+                  </div>
+                )}
+                {item.type === "group" && !item.is_area && (
                   <div className="ui-help">
                     Cost {formatCurrencyTruth(item.total_cost)} &middot; Group min rate {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined ? `${formatCurrencyTruth(item.minimum_recoverable_rate)}/hr` : "N/A"} &middot; Current rate {item.current_rate !== null && item.current_rate !== undefined ? `${formatCurrencyTruth(item.current_rate)}/hr` : "N/A"}
                   </div>
@@ -936,14 +954,14 @@ function merge_view_b_groups(view_b, capacity_mode) {
 // achieved_hours are recomputed under the credited figures too, using
 // each entry's own group_recovery_hours, so the Rate/Hours Shortfall
 // toggle stays internally consistent even in the hypothetical view.
-function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days, open_weeks, shortfall_mode, capacity_mode, selected_key, set_selected_key, cost_mode }) {
+function ViewBGroupsDrill({ area_lookup, view_b, view_mode, time_scale, open_hours, open_days, open_weeks, shortfall_mode, capacity_mode, selected_key, set_selected_key, cost_mode }) {
   const [show_surplus_distributed, set_show_surplus_distributed] = useState(false);
 
   if (!view_b || !view_b.real_capacity) return null;
 
   const scale = (v) => scaleAnnualValue(v, time_scale, null, open_hours, open_days, open_weeks);
   const surplus = view_b.real_capacity.surplus ?? 0;
-  const raw_entries = merge_view_b_groups(view_b, capacity_mode);
+  const raw_entries = wrap_entries_in_areas(merge_view_b_groups(view_b, capacity_mode), area_lookup);
 
   const total_positive_profit = raw_entries.reduce(
     (sum, e) => (e.net_profit > 0 ? sum + e.net_profit : sum),
@@ -1003,7 +1021,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
         }))
       : entries;
 
-  const selected_entry = cost_adjusted_entries.find((e) => e.key === selected_key) || null;
+  const { entry: selected_entry, parent: selected_parent } = find_entry_with_parent(cost_adjusted_entries, resolve_selected_key(cost_adjusted_entries, selected_key));
   const sorted_top_level = [...cost_adjusted_entries].sort((a, b) => metric(b) - metric(a));
   const active_list = selected_entry
     ? [...selected_entry.children]
@@ -1022,6 +1040,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
   const breadcrumbs = selected_entry
     ? [
         { key: "root", label: "All sources" },
+        ...(selected_parent ? [{ key: selected_parent.key, label: selected_parent.label }] : []),
         { key: selected_entry.key, label: selected_entry.label },
       ]
     : [{ key: "root", label: "All sources" }];
@@ -1039,7 +1058,7 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
             key={crumb.key}
             type="button"
             className="cost-summary-breadcrumb-item"
-            onClick={() => set_selected_key(index === 0 ? null : selected_key)}
+            onClick={() => set_selected_key(index === 0 ? null : (crumb.key ?? selected_key))}
           >
             {crumb.label}
           </button>
@@ -1102,7 +1121,8 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
       {active_list.map((item) => {
         const value = metric(item);
         const share = sum_abs_total > 0 && Math.abs(total) / sum_abs_total > 0.001 ? ((value / total) * 100).toFixed(1) : "N/A";
-        const has_children = !selected_entry && item.children && item.children.length > 0;
+        const is_area_member_row = Boolean(selected_entry?.is_area) && !selected_entry.skips_middle_tier;
+        const has_children = (is_area_member_row || !selected_entry) && item.children && item.children.length > 0;
         return (
           <div
             key={item.key}
@@ -1112,7 +1132,12 @@ function ViewBGroupsDrill({ view_b, view_mode, time_scale, open_hours, open_days
             <div className="ui-stack-sm">
               <div className="cost-summary-drill-label">{item.label}</div>
                 <div className="ui-help">
-                  {item.is_materials ? (
+                  {item.is_area ? (
+                    <>
+                      Cost {formatCurrencyTruth(scale(item.total_cost))} &middot;{" "}
+                      {item.skips_middle_tier ? "1 working group" : `${item.children.length} working groups`}
+                    </>
+                  ) : item.is_materials ? (
                     <>
                       Cost {formatCurrencyTruth(scale(item.total_cost))} &middot; Achieved markup{" "}
                       {item.minimum_recoverable_rate !== null && item.minimum_recoverable_rate !== undefined
@@ -1998,6 +2023,12 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
   // by Module Reconciliation) that modelled/test data has diverged
   // from the actual P&L, not a bug to hide.
   const { output_contract: pnl_output_contract } = useProfitAndLoss();
+  const cost_allocation_state = useCostAllocation();
+  const cost_allocation_contract = cost_allocation_state?.output_contract ?? {};
+  const area_lookup = build_area_lookup(
+    cost_allocation_contract.operational_group_cost_rows,
+    cost_allocation_contract.active_divisions
+  );
   const pnl_net_profit_actual = pnl_output_contract?.net_profit;
   const pnl_trading_income_actual = pnl_output_contract?.total_trading_income;
   const [view_mode, set_view_mode] = useState("profit"); // Default changed (this session, per user request): profit is more directly actionable for a casual owner than revenue - "who is actually making money" vs "who brings in the most money". Also surfaces the Being Carried / Paying its way verdict tags by default, since those only render in profit mode.
@@ -2658,7 +2689,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
 
         {sources_open && (
           <div className="business-outcome-attention-list">
-            {display_rows.map((entry) => (
+            {wrap_headline_rows_in_areas(display_rows, area_lookup).map((entry) => (
               <button
                 type="button"
                 className={`business-outcome-attention-row ${entry.verdict === "paying_its_way" ? "paying" : ""}`}
@@ -2824,9 +2855,9 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
             </div>
 
             {card2_view_mode_ab === "b" ? (
-              <ViewBGroupsDrill view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
+              <ViewBGroupsDrill area_lookup={area_lookup} view_b={per_source.view_b} view_mode={view_mode} time_scale={time_scale} open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks} shortfall_mode={view_b_shortfall_mode} capacity_mode={capacity_mode} selected_key={card2_selected_key} set_selected_key={set_card2_selected_key} cost_mode={cost_mode} />
             ) : (
-              <RankedGroupsDrill real_capacity={per_source.real_capacity}                 headline={active_headline}
+              <RankedGroupsDrill area_lookup={area_lookup} real_capacity={per_source.real_capacity}                 headline={active_headline}
                 labour_groups={per_source.labour_groups}
                 asset_groups={per_source.asset_groups}
                 materials={per_source.materials}
