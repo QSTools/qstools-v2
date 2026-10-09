@@ -5,6 +5,8 @@ BRIEF dated 2026-10-04 (session following the 2026-10-03 Step F prep)
 STATUS
   Stage 1a  [SHIPPED]   commit 6df2de0 (2026-10-04)
   Stage 1b  [SHIPPED]   Business Outcome per-asset revenue - commit 2bb6400 (2026-10-09), see Addendum 10
+  Result panel machine-only cost  [SHIPPED]  commit fa9fadd (2026-10-10), see Addendum 11
+  Best Case per-asset revenue  [OPEN - negative asset revenue]  see Addendum 11
   Path B live test (smoke test Step 8, CM-1 identity)  [NOT DONE]
   Step F (business-type flip)  [PARKED, unchanged]
 
@@ -556,3 +558,58 @@ STILL OPEN
     forces the legacy path.
   - Retire the legacy group-level calculator.
   - This brief's OPEN-C (group total view) not built.
+
+===============================================================================
+ADDENDUM 11 (2026-10-10) - RESULT PANEL MACHINE-ONLY COST [SHIPPED] commit fa9fadd
+===============================================================================
+Closes the first STILL OPEN item in Addendum 10.
+
+PROBLEM
+  An asset-linked calculator prices the MACHINE ONLY (owner decision, Addendum 10),
+  but the Rate Builder result panel still costed it at labour minimum + this asset.
+  RB1 Pump at $120/hr x 5 hr showed cost $85.06/hr (= $79.28 labour + $5.78 machine),
+  profit $174.72, margin 29.12%, and an Asset breakdown row of $0.00 charge / -$35.78,
+  because it subtracted the $150 labour charge-out rate from a machine-only price.
+
+FIX
+  useRateBuilderLineCalculator.js - effective_recovery_rate is this asset's own
+    cost_per_hour when the calculator is asset-linked (no labour component).
+    Legacy group calculators keep the all-in group rate (group_cost_per_hour).
+  RateBuilderResultPanel.jsx - asset-linked branch shows one Machine row
+    (charge/hr vs machine cost/hr) and a note that the operator is charged once,
+    on the labour row. Label now "Machine cost rate (this asset only)". Labour
+    overhead per hour is always shown as reference only. The labour-rate and
+    no-labour-rate branches for legacy calculators are unchanged.
+  No other consumers of recovery_preview / effective_recovery_rate (searched).
+  Business Outcome untouched.
+
+LIVE VERIFIED (2026-10-10, browser console check that recomputes from the panel's inputs)
+  RB1 Pump, $120/hr x 5 hr: cost rate ($5,378.10 + $167.26) / 960 h = $5.78/hr,
+    job cost $28.88, profit $571.12, $114.22/hr, margin 95.19%, status profitable.
+    15 of 15 checks PASS.
+  RB1 Test Asset: all checks PASS at its own machine cost rate.
+
+NEW FINDING - BEST CASE (Business Outcome), NOT FIXED
+  In Best Case (View A), with RB1 Pump at $120/hr and RB1 Test Asset at $119/hr:
+    RB1 Pump        cost $18,189, achieved rate -$21/hr, net -$38,783
+    RB1 Test Asset  cost $39,578, achieved rate -$13/hr, net -$57,712
+  Implied revenue is negative (Pump: -$38,783 + $18,189 = -$20,594, i.e. -$21.45/hr
+  over 960 h). By the Addendum 10 rule, Best Case (100% of hours) should give the
+  Pump $120 x 960 = $115,200 against its own cost of about $5,545. The costs shown
+  are also well above each asset's own true cost.
+  The best-case ceiling lists 3 rows for "4 sources", and $212,042 = $322,370
+  (Single Labour) - $110,328 (Management), so Single Labour Working Unit Test
+  adds nothing to the headline.
+  Suspected cause: Best Case does not take the per-asset path and reads the legacy
+  row.net_asset_rate (all-in minus labour mix, which goes negative for
+  machine-only prices). Addendum 10's live check covered View A / View B under
+  How the Business Runs, not Best Case. Next: read-only trace before any change
+  (core calculation file).
+
+STILL OPEN (carried from Addendum 10, minus the item closed above)
+  - Best Case per-asset rows (finding above).
+  - row.net_asset_rate still carries the legacy group value on per-asset rows.
+  - Legacy asset-split card (businessOutcomeAssetSplitCalculations.js) still group-level only.
+  - Business Modelling asset_blended_rate_overrides keyed by group; an override forces the legacy path.
+  - Retire the legacy group-level calculator.
+  - OPEN-C (group total view) not built.
