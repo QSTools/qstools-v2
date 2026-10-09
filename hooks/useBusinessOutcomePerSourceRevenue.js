@@ -101,6 +101,7 @@ function get_group_blended_rate(group, calculators) {
 // SAME rule. Behaviour here is unchanged by design - if ANY Business
 // Outcome figure moves after this change, the extraction is wrong.
 import { split_group_overhead } from "@/lib/calculations/shared/overheadSplit";
+import { group_has_asset_calculators, get_asset_calculator_rate, get_asset_revenue_hours } from "@/lib/calculations/businessOutcomeAssetCalculatorRates";
 
 function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}, charge_out_rate_by_staff_type_id = new Map()) {
   const rows = [];
@@ -138,6 +139,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
     // + asset rows now sum to calculator rate x covered hours.
     const labour_mix_charge_rate = calculate_labour_mix_charge_rate(group.labour_group_assignments, charge_out_rate_by_staff_type_id);
     const net_asset_rate = calculate_net_asset_rate(blended_rate, labour_mix_charge_rate);
+    const use_asset_calculators = !has_blended_rate_override && group_has_asset_calculators(group.group_id, calculators);
 
     // Real sum of this group's own per-asset hours - deliberately NOT
     // group.assigned_asset_hours, which is a MAX across assignments
@@ -165,6 +167,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
           : 0;
 
       const true_cost = asset_cost + overhead_share;
+      const asset_calc = use_asset_calculators ? get_asset_calculator_rate(group.group_id, assignment.asset_id, calculators) : null;
 
       // Revenue split across co-deployed assets by direct-cost share,
       // NOT full-credit per asset. Assets in the same group sharing the
@@ -188,7 +191,11 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         group_asset_cost_sum > 0 ? asset_cost / group_asset_cost_sum : 0;
 
       const modelled_revenue =
-        group_asset_revenue !== null ? group_asset_revenue * asset_cost_share : null;
+        asset_calc
+          ? asset_calc.rate !== null
+            ? asset_calc.rate * get_asset_revenue_hours(asset_hours, get_group_covered_hours(group), group.required_asset_hours ?? group.assigned_asset_hours)
+            : null
+          : group_asset_revenue !== null ? group_asset_revenue * asset_cost_share : null;
 
       const net_profit =
         modelled_revenue !== null ? modelled_revenue - true_cost : null;
@@ -215,7 +222,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         true_cost: round_currency(true_cost),
         asset_interest_annual: round_currency(asset_interest_annual),
         asset_depreciation_annual: round_currency(asset_depreciation_annual),
-        blended_rate: blended_rate !== null ? round_currency(blended_rate) : null,
+        blended_rate: asset_calc ? (asset_calc.rate !== null ? round_currency(asset_calc.rate) : null) : blended_rate !== null ? round_currency(blended_rate) : null,
         net_asset_rate: net_asset_rate !== null ? round_currency(net_asset_rate) : null,
         labour_mix_charge_rate: round_currency(labour_mix_charge_rate),
         is_asset_driven: group.group_recovery_hour_source === "asset_hours",
@@ -225,7 +232,7 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         verdict: net_profit !== null ? verdict_for(net_profit) : null,
         is_modelled: true,
         available: modelled_revenue !== null,
-        unavailable_reason: modelled_revenue === null ? reason : null,
+        unavailable_reason: modelled_revenue === null ? (asset_calc ? asset_calc.reason : reason) : null,
       });
     });
   });
