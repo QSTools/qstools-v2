@@ -656,14 +656,14 @@ function RankedGroupsDrill({ area_lookup, headline, real_capacity, labour_groups
                       "Being carried" badge). Only meaningful in Net
                       Profit view, where the figure itself reflects the
                       selected capacity model. */}
-                  {view_mode === "profit" && item.verdict && (
+                  {view_mode === "profit" && item.verdict && item.available !== false && (
                     <VerdictTag verdict={item.verdict} label={item.verdict_label} />
                   )}
                 </span>
                 <div style={{ fontSize: "1.2em" }}>
-                  {format_currency(scale(value))}
+                  {view_mode === "profit" && item.available === false ? "Not priced" : format_currency(scale(value))}
                   {suffix}
-                  <span className="ui-help"> ({share}%)</span>
+                  {!(view_mode === "profit" && item.available === false) && <span className="ui-help"> ({share}%)</span>}
                 </div>
               </div>
             </>
@@ -1175,10 +1175,10 @@ function ViewBGroupsDrill({ area_lookup, view_b, view_mode, time_scale, open_hou
               <span className="business-outcome-drill-tags">
                 <ModelledTag />
                 {cost_mode === "contribution" && (<span className="business-outcome-overhead-excluded-tag">Excl. overhead</span>)}
-                {view_mode === "profit" && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
+                {view_mode === "profit" && item.available !== false && <VerdictTag verdict={item.verdict} label={item.verdict_label} />}
               </span>
               <div style={{ fontSize: "1.2em" }}>
-                {formatCurrencyTruth(scale(value))} <span className="ui-help">({share}%)</span>
+                {view_mode === "profit" && item.available === false ? "Not priced" : <>{formatCurrencyTruth(scale(value))} <span className="ui-help">({share}%)</span></>}
               </div>
             </div>
           </div>
