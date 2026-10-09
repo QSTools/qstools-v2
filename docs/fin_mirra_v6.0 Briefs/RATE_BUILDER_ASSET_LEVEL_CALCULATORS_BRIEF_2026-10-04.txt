@@ -6,7 +6,8 @@ STATUS
   Stage 1a  [SHIPPED]   commit 6df2de0 (2026-10-04)
   Stage 1b  [SHIPPED]   Business Outcome per-asset revenue - commit 2bb6400 (2026-10-09), see Addendum 10
   Result panel machine-only cost  [SHIPPED]  commit fa9fadd (2026-10-10), see Addendum 11
-  Best Case per-asset revenue  [OPEN - negative asset revenue]  see Addendum 11
+  Best Case ceiling double count  [SHIPPED]  commit 982736f (2026-10-10), see Addendum 12 (corrects Addendum 11)
+  Best Case breakdown list shows real-capacity rows  [OPEN]  see Addendum 12
   Path B live test (smoke test Step 8, CM-1 identity)  [NOT DONE]
   Step F (business-type flip)  [PARKED, unchanged]
 
@@ -613,3 +614,72 @@ STILL OPEN (carried from Addendum 10, minus the item closed above)
   - Business Modelling asset_blended_rate_overrides keyed by group; an override forces the legacy path.
   - Retire the legacy group-level calculator.
   - OPEN-C (group total view) not built.
+
+===============================================================================
+ADDENDUM 12 (2026-10-10) - BEST CASE CEILING DOUBLE COUNT [SHIPPED] commit 982736f
+CORRECTS ADDENDUM 11 "NEW FINDING - BEST CASE"
+===============================================================================
+CORRECTION TO ADDENDUM 11
+  That section was read from a screenshot, not verified in the console, and is
+  wrong on the cause. Verified live in the browser console (one sitting):
+  - RB1 Pump Best Case revenue is +$113,129.33 = $120 x 960 h x coverage 0.98203
+    (1,414.12 labour h / 1,440 required h, MAX - run together). Net +$107,583.98,
+    paying its way. RB1 Test Asset: +$168,347.22 revenue, +$147,583.95 net.
+    The Addendum 10 per-asset path works correctly in Best Case.
+  - net_asset_rate is null on these rows. It is not the cause.
+  - Single Labour Working Unit Test is NOT missing from the ceiling. "Single
+    Labour" is an AREA holding both labour units.
+  - The on-screen -$38,783 / cost $18,189 / -$21/hr are real_capacity_net_profit
+    and true_cost + non_productive_share ($5,545.36 + $12,643.36): How the
+    Business Runs figures displayed under Best Case. Logged as OPEN below.
+
+DEFECT FOUND AND FIXED
+  build_naive_headline (the Best Case headline) summed each unit's
+  naive_net_profit. That figure already includes the unit's non_productive_cost,
+  here its spread share of Accounts ($55,164.20 per unit). Accounts (pure
+  support, $110,328.40) was ALSO listed as its own row. Accounts was counted
+  twice. Ceiling showed $212,042; correct figure $322,370.17.
+
+OWNER DECISION (2026-10-10)
+  Best Case = each part on its own. Each unit carries only its own costs,
+  including its own non-productive cost under either support-cost policy.
+  Pure-support units appear once, as their own rows. Nothing hidden, every
+  line traceable.
+
+FIX
+  hooks/useBusinessOutcomePerSourceRevenue.js (additive only)
+    distribute_non_productive_cost records own_cost_by_group_id (each MIXED
+    unit's own non-productive cost, whichever policy) and returns it.
+    group_real_capacity entries gain own_non_productive_cost.
+    naive_net_profit and every real-capacity cascade input are unchanged.
+  components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+    build_naive_headline unit line =
+      naive_net_profit + non_productive_cost - own_non_productive_cost
+
+LIVE VERIFIED (2026-10-10, browser console, both support-cost policies)
+  Units: $300,010.95 + $55,164.20 - $0 = $355,175.15 (Working Unit Test);
+         $22,359.22 + $55,164.20 - $0 = $77,523.42 (New 2nd Labour Group test).
+  Rebuilt ceiling $432,698.57 - $110,328.40 = $322,370.17.
+  Independent: revenue $705,711.55 - total cost $383,341.37 = $322,370.18.
+  Screen: Single Labour $432,698, Management -$110,328, ceiling $322,370.
+  Unchanged: naive_net_profit $300,010.95 / $22,359.22; How the Business Runs
+  total -$241,929.37; RB1 Pump real-capacity net -$38,782.57; RB1 Test Asset
+  real-capacity net -$57,712.16.
+  "Charge to that unit" and "Spread across all units": all checks PASS.
+
+RATE BUILDER NOTE (pre-existing, unchanged, display only)
+  The result panel's "Per <unit>" row divides by the output driver quantity,
+  not recovery hours. RB1 Test Asset (two hr lines, 105 h; driver line 100 h)
+  shows "Per Hour" $125.00 while its hourly rate is $119.05.
+
+STILL OPEN
+  - Best Case breakdown list (RankedGroupsDrill) follows capacity_mode, which
+    defaults to "real", so under Best Case it lists real-capacity rows
+    ("being carried"). Next fix.
+  - Health gauge best-case sum reads naive_net_profit (spread-inclusive) -
+    check for the same double count.
+  - Assumed Capacity ledger tables in the card total group naive_net_profit -
+    check whether they need the same pure-support handling.
+  - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
+    asset-split card; Business Modelling overrides keyed by group; retire the
+    legacy group calculator; OPEN-C.
