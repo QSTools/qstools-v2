@@ -214,15 +214,13 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     ? selected_asset_cost_summary.cost_per_hour
     : selected_group_asset_rate;
 
-  // All-in cost per hour for an asset calculator = labour component + this
-  // asset. Labour component is still the one Labour-tab source (CM-9) when a
-  // charge-out rate exists, else the group labour cost rate.
+  // Machine-only pricing (owner decision 2026-10-09, asset calculators brief
+  // Addendum 10): an asset-linked calculator prices the MACHINE ONLY. The
+  // operator is charged once, through the Labour tab rate, on the labour row.
+  // So its cost is this asset's own cost per hour, with no labour component.
+  // A legacy group calculator (no linked asset) keeps the all-in group rate.
   const effective_recovery_rate = selected_asset_cost_summary
-    ? (has_labour_rate_context
-        ? labour_minimum_recoverable_rate
-        : selected_group_labour_rate +
-          selected_asset_cost_summary.labour_overhead_per_hour) +
-        selected_asset_cost_summary.cost_per_hour
+    ? selected_asset_cost_summary.cost_per_hour
     : selected_group_recovery_rate;
 
   // CM-1b: the shared rule - the same function Business Outcome uses.

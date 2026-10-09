@@ -110,7 +110,7 @@ export default function RateBuilderResultPanel({
                   <p className="ui-help">
                     {has_labour_rate_context
                       ? "Group labour overhead per hour (reference only):"
-                      : "Labour overhead per hour (added to labour cost rate):"}{" "}
+                      : "Group labour overhead per hour (reference only):"}{" "}
                     {formatRate(
                       selected_asset_cost_summary.labour_overhead_per_hour,
                       "hr"
@@ -195,7 +195,7 @@ export default function RateBuilderResultPanel({
 
                 <p className="ui-help sm:col-span-2">
                   {selected_asset_cost_summary
-                    ? "Asset calculator cost rate (labour + this asset):"
+                    ? "Machine cost rate (this asset only):"
                     : "Group recovery rate:"}{" "}
                   {formatRate(selected_group_recovery_rate, "hr")}
                 </p>
@@ -282,7 +282,23 @@ export default function RateBuilderResultPanel({
                   <div className="px-3 py-2 text-right">Profit / Loss</div>
                 </div>
 
-                {has_labour_rate_context ? (
+                {selected_asset_cost_summary ? (
+                  <>
+                    <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
+                      <div className="px-3 py-2 font-semibold text-slate-200">Machine</div>
+                      <div className="px-3 py-2 text-right text-slate-100">
+                        {formatCurrency(recovery_driver_quantity > 0 ? preview.total_charge / recovery_driver_quantity : 0)}
+                      </div>
+                      <div className="px-3 py-2 text-right text-slate-100">{formatCurrency(selected_asset_cost_summary.cost_per_hour)}</div>
+                      <div className={`px-3 py-2 text-right font-semibold ${recovery_driver_quantity > 0 && preview.total_charge / recovery_driver_quantity - selected_asset_cost_summary.cost_per_hour >= 0 ? "text-cyan-300" : "text-red-400"}`}>
+                        {formatCurrency(recovery_driver_quantity > 0 ? preview.total_charge / recovery_driver_quantity - selected_asset_cost_summary.cost_per_hour : 0)}
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 text-xs text-slate-400">
+                      This calculator prices the machine only. The operator is charged once, through the Labour tab rate, on the labour row - not here.
+                    </div>
+                  </>
+                ) : has_labour_rate_context ? (
                   <>
                     <div className="grid grid-cols-4 border-b border-slate-800/80 text-xs">
                       <div className="px-3 py-2 font-semibold text-slate-200">Labour</div>
