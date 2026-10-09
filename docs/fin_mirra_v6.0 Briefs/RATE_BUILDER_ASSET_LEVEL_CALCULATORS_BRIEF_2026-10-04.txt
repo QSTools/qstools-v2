@@ -505,3 +505,54 @@ DEAD CODE (no importer found by name search; a dynamic import would not show up)
   These already misled one session (a notice placed in GroupCostSummary never appeared and was reverted). Delete or leave is open.
 STILL OPEN: Step F (fresh baseline, one sitting), D3, S1, OPEN-C/D/E, the D4 owner decision on whether idle cost should ever move
 a rate, the optional gap-line dollar check, the dead-code decision, empty smoke test folders / stale INDEX.txt.
+
+
+===============================================================================
+ADDENDUM 6 (2026-10-09) - STAGE 1b [SHIPPED, Business Outcome rows] commit 2bb6400
+===============================================================================
+FINDING
+  Rate Builder cannot create a group-level calculator for an asset-backed group
+  (useRateBuilderLineCalculator.js updateLinkedCostAllocationGroup /
+  updateLinkedAsset), and Business Outcome skipped every asset-linked
+  calculator. So a unit priced per asset showed "No Rate Builder calculator
+  linked to this group" on every asset row.
+
+OWNER DECISION (2026-10-09)
+  An asset-linked calculator prices the MACHINE ONLY. The operator is charged
+  once, through the Labour tab rate, on the labour row. No CM-1 labour
+  subtraction for asset calculators. Legacy group calculators keep CM-1 all-in.
+  The working unit row stays the combined total; the split shows on drill-down.
+
+RULE
+  asset revenue = asset calculator rate x own assigned hours
+                  x min(1, covered hours / required_asset_hours)
+  rate = total_charge / get_calculator_recovery_hours (CM-1b)
+  covered = get_group_covered_hours; required = SUM (one after another) or
+  MAX (together), from Cost Allocation.
+  Net profit = revenue - the asset's own true cost (unchanged).
+  Per-asset path applies only when the unit has at least one asset calculator
+  with lines and no Business Modelling override. An asset with no lines shows
+  "Not priced" ("No Rate Builder price set for this asset"). All other units
+  use the legacy path unchanged.
+
+FILES
+  NEW  lib/calculations/businessOutcomeAssetCalculatorRates.js
+  hooks/useBusinessOutcomePerSourceRevenue.js build_asset_sources (6 lines)
+
+LIVE VERIFIED
+  RB1 Test Asset priced at $119.05/hr (two hr lines, $12,500 / 105 hr).
+  Totals reconcile to the dollar in View A and View B (see smoke test brief
+  addendum 2026-10-09).
+
+STILL OPEN
+  - Result panel (asset-linked) still compares the price with labour + asset
+    cost. Must compare with machine cost only, or sensible machine prices read
+    "below minimum".
+  - row.net_asset_rate still carries the legacy group value on per-asset rows
+    (not displayed).
+  - Legacy asset-split card (businessOutcomeAssetSplitCalculations.js) still
+    group-level only.
+  - Business Modelling asset_blended_rate_overrides keyed by group; an override
+    forces the legacy path.
+  - Retire the legacy group-level calculator.
+  - This brief's OPEN-C (group total view) not built.

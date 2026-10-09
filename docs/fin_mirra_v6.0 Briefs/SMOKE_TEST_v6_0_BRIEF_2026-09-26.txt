@@ -776,3 +776,66 @@ Read-only. Nothing changed. Searches were capped, so "not found" means not found
 - The hard block replaces that path. Needs explicit owner sign-off.
 
 NOT YET READ: idle-cost code (D4); where the revenue/net profit toggle lives.
+
+
+===============================================================================
+ADDENDUM 2026-10-09 - SMOKE TEST OPEN-C [SHIPPED] + Business Outcome fixes
+===============================================================================
+COMMITS
+  95c90df  Operating area tier in headline breakdown and both drills (OPEN-C)
+  fd0906b  Verdict colours on drill rows (Net Profit view only); unrated rows neutral
+  7fb5ebf  Unpriced drill rows show "Not priced" instead of a false $0
+  2bb6400  Per-asset machine-only pricing (see asset calculators brief, Addendum 6);
+           unpriced rows count their cost in View A roll-ups
+
+OPEN-C RULE (owner confirmed)
+  Operating area (= Cost Allocation division) -> working group -> labour/assets.
+  An area with one working group skips the middle tier. Materials/COGS is its
+  own peer line. Non-productive cost stays spread into working units (unchanged).
+  New file: lib/selectors/business-outcome/businessOutcomeAreaTierSelectors.js
+
+LIVE VERIFIED 2026-10-09 (one sitting)
+  View A and View B headline -$241,943. Groups: 2nd Labour -$86,605 + Single
+  Labour Working Unit Test -$155,338 = -$241,943. Unit rows: RB1 Test Asset
+  -$66,279 + Supervisor -$83,511 + RB1 Pump (unpriced) -$5,548 = -$155,338.
+  Two-level drill and single-group skip work in both views.
+
+BUG FIXED - unpriced rows (no charge-out rate / no calculator)
+  null net profit was coerced to $0 ("Paying its way") in the drill display and
+  in the View A group roll-ups (selector: group_net_profit, implied and real
+  capacity roll-ups). An unpriced row now shows "Not priced" and counts as zero
+  revenue at full cost in totals. This also explains the earlier green $0 on a
+  fully unpriced working unit.
+
+KNOWN, NOT FIXED
+  - View B headline adds unexplained_revenue with no matching row
+    (build_view_b_headline in the card).
+  - View B display rounding can show Materials as "$1".
+  - "Not priced" rows' cost line excludes the non-productive share (that share
+    is revenue-weighted, so 0 when unpriced). Cost rises once priced
+    (Supervisor $112,110 -> $167,274).
+  - View A group row containing an unpriced child shows no verdict tag.
+  - Rate Builder shows the model's single current_charge_out_rate for whatever
+    staff type is selected. Business Outcome only sees rates saved with Save
+    rate (qstools_rate_builder_labour_source_rates_v1, keyed by staff_type_id).
+    Related to OPEN-E.
+  - Business Outcome reads saved labour rates once on load; reload after saving.
+  - Best case mode not explicitly re-checked after 2bb6400.
+
+WORKING RULE
+  Never run npm run build while npm run dev is running - it corrupts .next.
+  Stop the dev server, build, clear .next, restart.
+
+UNPROVEN
+  Support-only area (e.g. Management with no working group), other data shapes,
+  Product mode.
+
+TEST DATA (tidy before comparing with the 2.5 baseline / before Step F)
+  - "New 2nd Labour Group test" working group added.
+  - Operator / Delivery Staff and Supervisor / Team Lead saved at $150/hr.
+  - RB1 Test Asset calculator holds test lines ($120 x 100 hr, $100 x 5 hr).
+  - Backup key qs_tools_rate_builder_calculators_v1_backup_20261009 exists.
+  Take a fresh baseline before Step F.
+
+STILL OPEN FROM THE SCOPE FREEZE
+  OPEN-D, OPEN-E, asset-pricing hard block, idle cost into net profit, S1.
