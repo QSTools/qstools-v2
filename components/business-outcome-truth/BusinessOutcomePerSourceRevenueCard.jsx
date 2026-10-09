@@ -618,6 +618,7 @@ function RankedGroupsDrill({ area_lookup, headline, real_capacity, labour_groups
             has_children ? "clickable" : "static",
             is_active ? "active" : "",
             is_muted ? "muted" : "",
+            (view_mode === "profit" && item.available !== false ? ((item.verdict ?? ((Number(item.net_profit) || 0) >= 0 ? "paying_its_way" : "being_carried")) === "paying_its_way" ? "verdict-paying" : "verdict-carried") : ""),
           ]
             .filter(Boolean)
             .join(" ");
@@ -1126,7 +1127,7 @@ function ViewBGroupsDrill({ area_lookup, view_b, view_mode, time_scale, open_hou
         return (
           <div
             key={item.key}
-            className={`cost-summary-drill-row ${has_children ? "clickable" : "static"}`}
+            className={`cost-summary-drill-row ${has_children ? "clickable" : "static"} ${(view_mode === "profit" && item.available !== false ? ((item.verdict ?? ((Number(item.net_profit) || 0) >= 0 ? "paying_its_way" : "being_carried")) === "paying_its_way" ? "verdict-paying" : "verdict-carried") : "")}`}
             {...(has_children ? { onClick: () => set_selected_key(item.key), role: "button", tabIndex: 0 } : {})}
           >
             <div className="ui-stack-sm">
