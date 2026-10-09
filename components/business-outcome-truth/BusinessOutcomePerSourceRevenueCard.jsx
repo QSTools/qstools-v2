@@ -2160,14 +2160,25 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
       type: "materials",
     };
 
-    const group_entries = groups.map((g) => ({
-      key: g.group_id,
-      name: g.group_name,
-      net_profit: g.naive_net_profit,
-      modelled_revenue: g.modelled_revenue,
-      verdict: g.naive_net_profit >= 0 ? "paying_its_way" : "being_carried",
-      type: "group",
-    }));
+    // Best Case = each part on its own (owner decision 2026-10-10, asset
+    // calculators brief Addendum 12). naive_net_profit already has the
+    // unit's non_productive_cost in it (its own cost under "Charge to that
+    // unit" plus any spread share it received). Add that back and charge
+    // only the unit's own non-productive cost. Pure-support units (e.g.
+    // Accounts) appear once, as their own rows below - previously their
+    // cost was counted twice (spread into units AND as its own row).
+    const group_entries = groups.map((g) => {
+      const best_case_net_profit =
+        (g.naive_net_profit ?? 0) + (g.non_productive_cost ?? 0) - (g.own_non_productive_cost ?? 0);
+      return {
+        key: g.group_id,
+        name: g.group_name,
+        net_profit: best_case_net_profit,
+        modelled_revenue: g.modelled_revenue,
+        verdict: best_case_net_profit >= 0 ? "paying_its_way" : "being_carried",
+        type: "group",
+      };
+    });
 
     // Added 2026-09-17, second pass - pure-support working units (e.g.
     // Accountant) never appear in groups above at all (they contribute

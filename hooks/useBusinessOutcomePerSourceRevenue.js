@@ -709,6 +709,11 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
   // own real row instead of it just vanishing into everyone else's
   // numbers with no visible trace.
   const pure_support_groups = [];
+  // Added 2026-10-10 (Best Case = each part on its own): each MIXED unit's
+  // own non-productive cost, recorded whichever support-cost policy is set,
+  // so Best Case can charge it to that unit and take back any spread share
+  // it received. Additive only - nothing below reads it.
+  const own_cost_by_group_id = new Map();
 
   operational_group_cost_rows.forEach((group) => {
     const own_non_productive_cost =
@@ -718,6 +723,9 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
     const productive_labour_cost = to_number(group.assigned_labour_cost);
     const productive_asset_cost = to_number(group.assigned_asset_burden);
     const is_pure_support = productive_labour_cost <= 0 && productive_asset_cost <= 0;
+    if (!is_pure_support && own_non_productive_cost > 0) {
+      own_cost_by_group_id.set(group.group_id, own_non_productive_cost);
+    }
 
     if (productive_labour_cost > 0 || productive_asset_cost > 0) {
       recipients.push({
@@ -789,6 +797,7 @@ function distribute_non_productive_cost(operational_group_cost_rows, mixed_unit_
   return {
     cost_by_group_id: result_by_group_id,
     pure_support_groups,
+    own_cost_by_group_id,
     pool_total: round_currency(pool_total),
   };
 }
@@ -1232,6 +1241,10 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       operational_group_cost_rows.map((g) => [g.group_id, get_group_covered_hours(g)])
     );
     real_capacity.group_real_capacity = real_capacity.group_real_capacity.map((g) => ({
+      // Added 2026-10-10 - this unit's OWN non-productive cost (mixed units
+      // only; 0 otherwise). Best Case adds back non_productive_cost and takes
+      // this off, so each unit carries exactly its own costs.
+      own_non_productive_cost: round_currency(non_productive_distribution.own_cost_by_group_id.get(g.group_id) ?? 0),
       ...g,
       group_recovery_hours: recovery_hours_by_group_id.get(g.group_id) ?? 0,
     }));
