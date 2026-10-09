@@ -312,3 +312,25 @@ Open questions:
     H7 Strip-or-carry decision and dropping breakeven revenue (kickoff s3).
   Hours/units: Rate Builder does not read business_type; hours-native
     throughout (calculator units are free text, recovery in hours).
+
+===============================================================================
+UPDATE 2026-10-10 (commit fa9fadd) - result panel, asset-linked calculators
+===============================================================================
+- An asset-linked calculator (linked_asset_id set) prices the MACHINE ONLY (owner
+  decision 2026-10-09). The result panel now compares its price with that asset's
+  own cost per hour: (assigned_asset_cost + hours-share of the group's asset
+  overhead pool) / asset hours. No labour component.
+  Code: useRateBuilderLineCalculator.js effective_recovery_rate;
+  RateBuilderResultPanel.jsx shows one Machine row, the label "Machine cost rate
+  (this asset only)", and a note that the operator is charged once, on the
+  labour row.
+- Legacy group calculators unchanged (all-in group_cost_per_hour; Labour / Asset
+  breakdown rows as before).
+- Live verified (browser console, 2026-10-10): RB1 Pump $120/hr x 5 h against
+  $5.78/hr -> job cost $28.88, profit $571.12, margin 95.19%. RB1 Test Asset
+  costed at $14.42/hr (machine only).
+- Supersedes: s7 H2 "S28 per-asset linking not built" - per-asset calculators
+  shipped as Path B Stage 1a (6df2de0) and 1b (2bb6400).
+- Noted, not changed: the "Per <unit>" row divides by the output driver quantity,
+  not recovery hours (RB1 Test Asset shows $125.00 "Per Hour" vs $119.05/hr).
+- Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addendum 11.

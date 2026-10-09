@@ -681,3 +681,29 @@ UPDATE 2026-10-09 (commits 2bb6400, 7fb5ebf) - Customer Charge Calculator / Busi
   (null net profit) now counts as -(true_cost), not 0, in group_net_profit, implied and
   real-capacity roll-ups. Drill rows show "Not priced".
 - Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addendum 10.
+
+UPDATE 2026-10-10 (commits fa9fadd, 982736f, cf93214)
+- Rate Builder result panel, asset-linked calculator: cost rate = this asset's own
+  cost per hour = (assigned_asset_cost + hours-share of the group's asset overhead
+  pool) / asset hours. No labour component (machine only, owner decision
+  2026-10-09). Supersedes, for asset-linked calculators only, the "labour + this
+  asset" basis in the result panel entries (~L290-319) and the CM-9 NOTE (~L596).
+  Legacy group calculators unchanged.
+- Best Case headline (s9.7), View A: each unit line =
+    naive_net_profit + non_productive_cost - own_non_productive_cost
+  plus each pure-support unit once at -own_non_productive_cost, plus materials
+  (View B independent revenue - true cost), minus unassigned. Fixes a double count
+  of pure-support cost (it was spread into the units AND listed as its own row).
+  Identity, checked live in the console:
+    ceiling = independent modelled revenue + materials revenue - total cost
+    $322,370.17 = $705,711.55 + $0 - $383,341.37 (within 1c rounding)
+  naive_net_profit itself (s9.4, ~L811) is unchanged - still spread-inclusive and
+  still the real-capacity cascade input.
+- New field group_real_capacity[].own_non_productive_cost; new return value
+  own_cost_by_group_id from distribute_non_productive_cost (mixed units only).
+- Best Case breakdown list: RankedGroupsDrill gets capacity_mode "naive" and
+  use_implied false -> merge_groups_by_id on net_profit (no ceiling scaling, no
+  real-capacity sharing).
+- Line numbers in useBusinessOutcomePerSourceRevenue.js shift by up to +13 after
+  ~L711. The calc_map\ section files are generated - regenerate, do not hand-edit.
+- Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addenda 11-13.

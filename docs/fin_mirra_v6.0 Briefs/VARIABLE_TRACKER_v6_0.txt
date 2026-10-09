@@ -1125,3 +1125,21 @@ UPDATE 2026-10-09 (2bb6400)
   (not displayed).
 - Business Outcome group roll-ups: unpriced row contributes -(true_cost), not 0.
 - See CALCULATION_MAP_v6_0 update 2026-10-09 and the asset calculators brief Addendum 10.
+
+UPDATE 2026-10-10 (fa9fadd, 982736f, cf93214)
+- Rate Builder result panel: effective_recovery_rate (useRateBuilderLineCalculator.js)
+  for an asset-linked calculator = selected_asset_cost_summary.cost_per_hour only
+  (was labour minimum + asset). Legacy group calculators: group_cost_per_hour, unchanged.
+- NEW own_cost_by_group_id (returned by distribute_non_productive_cost): each MIXED
+  unit's own non-productive cost (assigned_non_productive_labour_cost +
+  assigned_non_productive_asset_cost), recorded under either mixed-unit policy.
+  Pure-support units are not in it - they stay in pure_support_groups.
+- NEW group_real_capacity[].own_non_productive_cost (hook, View A): from the map
+  above, 0 when absent. Read only by build_naive_headline (Best Case).
+- group_real_capacity[].naive_net_profit UNCHANGED - still spread-inclusive
+  (modelled_revenue - true_cost incl. non_productive_cost). Readers: real-capacity
+  cascade, Business Modelling, Net Profit Build-Up, ledger tables, health gauge.
+- Best Case unit line (card build_naive_headline) = naive_net_profit +
+  non_productive_cost - own_non_productive_cost.
+- RankedGroupsDrill under Best Case: capacity_mode "naive", use_implied false.
+- See CALCULATION_MAP_v6_0 update 2026-10-10 and the asset calculators brief Addenda 11-13.

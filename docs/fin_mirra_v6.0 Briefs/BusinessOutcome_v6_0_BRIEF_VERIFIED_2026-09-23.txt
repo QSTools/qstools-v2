@@ -481,3 +481,28 @@ Rate Builder rule (unit "hr" lines, not the output driver). Real net profit
 unchanged (View A -406,896.41 / View B -406,896.40, cost variance 0.00).
 Moved, as intended: View A materials residual, View B shortfall, Best Case
 and the carry split (all were overstated by CM-1). Open: CM-8 (legacy split).
+
+===============================================================================
+BEST CASE FIXES (2026-10-10) - commits 982736f (ceiling), cf93214 (breakdown list)
+===============================================================================
+Owner decision 2026-10-10: Best Case = each part on its own. Each unit carries
+only its own costs, including its own non-productive cost under either
+support-cost policy. Pure-support units (e.g. Accounts) appear once, as their
+own rows. Nothing hidden, every line traceable.
+1. Ceiling double count. build_naive_headline summed naive_net_profit, which
+   already includes each unit's non_productive_cost (here its spread share of
+   Accounts, $55,164.20 per unit), and also listed Accounts ($110,328.40) as its
+   own row. Now each unit line = naive_net_profit + non_productive_cost
+   - own_non_productive_cost. Ceiling $212,042 -> $322,370.17, which equals
+   independent revenue $705,711.55 - total cost $383,341.37.
+2. Breakdown list. RankedGroupsDrill followed capacity_mode ("real" by default),
+   and its other branch used use_implied (ceiling-scaled revenue). Under Best
+   Case it now gets capacity_mode "naive" and use_implied false, so rows show
+   net_profit. RB1 Pump +$107,584 and RB1 Test Asset +$147,584, paying their
+   way (were -$38,783 / -$57,712 real-capacity figures).
+How the Business Runs unchanged, checked in the console: total -$241,929.37,
+RB1 Pump -$38,782.57, RB1 Test Asset -$57,712.16.
+Open: health gauge and Assumed Capacity ledger tables total naive_net_profit
+(spread-inclusive) - check for the same double count. Best Case rows do not
+show the Cost / Current rate / Achieved rate line.
+Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addenda 12-13.

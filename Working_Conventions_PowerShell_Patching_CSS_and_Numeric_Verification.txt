@@ -147,3 +147,31 @@ UPDATE 2026-10-09
   build, clear .next, then restart dev.
 - Doc updates: append a dated addendum rather than editing existing text, so no
   anchor patch is needed; commit only after git shows exactly the expected files.
+
+UPDATE 2026-10-10
+- Output capture: every PowerShell read or check script ends with
+    } *>&1 | Out-String -Width 250 | Set-Clipboard
+  then prints one green "Copied to clipboard" line. No txt files. Paste straight
+  away - copying anything else first replaces the clipboard.
+- Browser numbers are verified with a console snippet that reads the live data
+  (React fiber props, e.g. per_source) and the screen text, recomputes the figures
+  independently, prints PASS / FAIL lines and ends with copy(...). Paste with
+  Ctrl+V straight away. copy() prints "undefined" - that is normal. To check two
+  modes, push each report into a window array and copy them all together.
+  Supersedes the 2026-09-24 note above about downloading console data as a file.
+- Never record a finding in a brief or addendum from a screenshot or an inference.
+  Verify the numbers in the console first. 2026-10-10: Addendum 11 recorded a wrong
+  Best Case cause from a screenshot and had to be corrected by Addendum 12.
+- A check snippet can be wrong too. When a FAIL appears, recompute by hand before
+  blaming the app (2026-10-10: the per-unit row divides by the output driver
+  quantity; a row scraper climbed into the whole list).
+- Do not commit until every mode an addendum claims as checked has been checked in
+  the console (2026-10-10: Addendum 13 was committed before the How the Business
+  Runs check; checked afterwards and passed).
+- PowerShell 5.1 Get-Content reads UTF-8 without a BOM as ANSI, so an em dash shows
+  as three garbage characters. That is a display artefact, not file corruption.
+  Read with -Encoding UTF8 (Apply-Patch already reads bytes as UTF-8).
+- Patch preflight: dot-source .\Apply-Patch.ps1, normalise here-string line endings
+  to the file's own EOL, and count each OldText in the file (exactly 1 required)
+  BEFORE any Apply-Patch call. If any count is wrong, stop with "nothing was
+  changed".
