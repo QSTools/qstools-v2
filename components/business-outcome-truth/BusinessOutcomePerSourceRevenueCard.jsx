@@ -2876,8 +2876,8 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                 view_mode={view_mode}
                 time_scale={time_scale}
                 open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
-                use_implied={per_source.use_implied}
-                capacity_mode={capacity_mode}
+                use_implied={smoothing_mode === "naive" ? false : per_source.use_implied}
+                capacity_mode={smoothing_mode === "naive" ? "naive" : capacity_mode}
                 cost_mode={cost_mode}
                 selected_key={card2_selected_key}
                 set_selected_key={set_card2_selected_key}
