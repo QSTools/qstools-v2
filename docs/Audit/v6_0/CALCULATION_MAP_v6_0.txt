@@ -664,3 +664,20 @@ calculator linked to the group itself, with lines and a recovery driver (get_gro
 sentence above saying it needs a charge-out rate is superseded. Hours side verified live: asset 1,440 vs labour 1,414 on
 Single Labour Working Unit Test. Dollar value not yet verified. Paul + Jack in one unit verified: recovery hours stay at the
 asset hours (1,440), nothing capped, $273,054.03, $189.62/hr.
+
+
+UPDATE 2026-10-09 (commits 2bb6400, 7fb5ebf) - Customer Charge Calculator / Business Outcome
+- SUPERSEDES the GUARDS note for asset-linked calculators. build_asset_sources
+  (useBusinessOutcomePerSourceRevenue.js) now reads them when a working unit has at least
+  one asset-linked calculator with lines and no Business Modelling override:
+    asset revenue = asset calculator rate x own assigned hours
+                    x min(1, get_group_covered_hours / required_asset_hours)
+    rate = total_charge / get_calculator_recovery_hours (CM-1b)
+  MACHINE ONLY - no CM-1 labour subtraction (owner decision 2026-10-09; operator charged
+  once on the labour row). Helper: lib/calculations/businessOutcomeAssetCalculatorRates.js
+- Legacy group-level calculators keep CM-1 all-in, unchanged. The legacy asset-split card
+  (businessOutcomeAssetSplitCalculations.js) still reads group calculators only.
+- Selector roll-ups (businessOutcomePerSourceRevenueSelectors.js): an unpriced row
+  (null net profit) now counts as -(true_cost), not 0, in group_net_profit, implied and
+  real-capacity roll-ups. Drill rows show "Not priced".
+- Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addendum 6.
