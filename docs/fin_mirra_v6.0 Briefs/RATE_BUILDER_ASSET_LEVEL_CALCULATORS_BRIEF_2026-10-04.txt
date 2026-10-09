@@ -7,7 +7,7 @@ STATUS
   Stage 1b  [SHIPPED]   Business Outcome per-asset revenue - commit 2bb6400 (2026-10-09), see Addendum 10
   Result panel machine-only cost  [SHIPPED]  commit fa9fadd (2026-10-10), see Addendum 11
   Best Case ceiling double count  [SHIPPED]  commit 982736f (2026-10-10), see Addendum 12 (corrects Addendum 11)
-  Best Case breakdown list shows real-capacity rows  [OPEN]  see Addendum 12
+  Best Case breakdown list  [SHIPPED]  commit cf93214 (2026-10-10), see Addendum 13
   Path B live test (smoke test Step 8, CM-1 identity)  [NOT DONE]
   Step F (business-type flip)  [PARKED, unchanged]
 
@@ -680,6 +680,56 @@ STILL OPEN
     check for the same double count.
   - Assumed Capacity ledger tables in the card total group naive_net_profit -
     check whether they need the same pure-support handling.
+  - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
+    asset-split card; Business Modelling overrides keyed by group; retire the
+    legacy group calculator; OPEN-C.
+
+===============================================================================
+ADDENDUM 13 (2026-10-10) - BEST CASE BREAKDOWN LIST [SHIPPED] commit cf93214
+===============================================================================
+Closes the first STILL OPEN item in Addendum 12.
+
+PROBLEM
+  Under Best Case, the Revenue / Profit Breakdown list (RankedGroupsDrill)
+  showed How the Business Runs figures. Two causes at the one call site:
+  - capacity_mode (card state, default "real") picked the real-capacity
+    branch, so RB1 Pump showed -$38,783 "being carried" (real_capacity_net_profit,
+    cost incl. non_productive_share) under a card that says "no help from
+    anywhere else".
+  - The other branch was called with use_implied = per_source.use_implied
+    (true here), which selects implied_net_profit - revenue scaled down by the
+    revenue ceiling (scale factor 0.2). Best Case says "no cap to real revenue",
+    so that was also wrong for Best Case.
+
+FIX (card only, no calculation file touched)
+  components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx,
+  RankedGroupsDrill call:
+    use_implied   = smoothing_mode === "naive" ? false   : per_source.use_implied
+    capacity_mode = smoothing_mode === "naive" ? "naive" : capacity_mode
+  Under Best Case the list uses merge_groups_by_id with net_profit
+  (rate x hours x coverage - own true cost). How the Business Runs unchanged.
+
+LIVE VERIFIED (2026-10-10, browser console, both modes)
+  Best Case: drill capacity_mode "naive", use_implied false.
+    RB1 Pump $107,584 (net_profit $107,583.98), paying its way, 33.4%.
+    RB1 Test Asset $147,584 (net_profit $147,583.95), paying its way, 45.8%.
+    Supervisor / Team Lead $100,007 (labour group net $100,007.24), 31.0%.
+    Shares are of the $322,370 ceiling, so the list and the headline agree.
+    Top level: Single Labour / Management / Materials, as on the ceiling card.
+  How the Business Runs: drill capacity_mode "real" (unchanged).
+    RB1 Pump -$38,783, RB1 Test Asset -$57,712, both being carried (unchanged).
+
+NOTED, NOT CHANGED
+  Best Case rows do not show the "Cost / Current rate / Achieved rate" line
+  that How the Business Runs rows show. Display only; a possible addition
+  for traceability.
+
+STILL OPEN
+  - Health gauge best-case sum reads naive_net_profit (spread-inclusive) -
+    check for the Addendum 12 double count.
+  - Assumed Capacity ledger tables in the card total group naive_net_profit -
+    check whether they need the same pure-support handling.
+  - Rate Builder "Per <unit>" row divides by output driver quantity (Addendum 12 note).
   - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
     asset-split card; Business Modelling overrides keyed by group; retire the
     legacy group calculator; OPEN-C.
