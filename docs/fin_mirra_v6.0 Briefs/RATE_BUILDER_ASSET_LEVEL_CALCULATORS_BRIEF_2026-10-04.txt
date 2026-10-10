@@ -733,3 +733,47 @@ STILL OPEN
   - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
     asset-split card; Business Modelling overrides keyed by group; retire the
     legacy group calculator; OPEN-C.
+
+ADDENDUM 14 (2026-10-11) - HEALTH GAUGE AND LEDGER DOUBLE-COUNT CHECK [SHIPPED] commit b5d1443
+===============================================================================
+Closes the first two STILL OPEN items in Addendum 13.
+
+RESULT OF THE CHECK (code read, no change needed)
+  - Health gauge: calculateGaugeInput takes group_real_capacity entries (no
+    net_profit field), so it uses modelled_revenue - true_cost, which is
+    spread-inclusive. smoothed_net_profit sums final_net_profit, also spread-
+    inclusive. Same basis on both sides of the ratio; pure-support units are not
+    in groups. No double count.
+  - View A Real Capacity ledger: totals naive/final net profit, no pure-support
+    rows. Counted once.
+  - View B Real and Assumed ledgers: merge_view_b_groups uses the cascade's
+    true_cost (spread-inclusive) and builds no pure-support rows. Counted once.
+  The Addendum 12 double count came from adding pure-support units back as their
+  own rows on top of spread-inclusive naive_net_profit. No other surface does that.
+
+FOUND AND FIXED (card only, no calculation file touched)
+  View A Assumed Capacity ledger: TRUE TOTAL was too high by the support cost
+  assigned to working units with no revenue source. The ledger sums implied
+  net profit (merge_groups_by_id, which never receives the support-cost
+  injection) and subtracted only unassigned.total, while the page headline
+  (selectors total_net_profit) also subtracts assigned_non_productive_*.
+  Fix: AssumedCapacityLedger takes non_revenue_bearing, subtracts its total
+  in the TRUE TOTAL, and shows a "Support cost assigned to units (no revenue
+  source)" row above it when above zero.
+
+LIVE VERIFIED (2026-10-11, browser console, Assumed mode)
+  Implied total -131,587 + unassigned 0 + support row -110,328 = -241,915 vs
+  TRUE TOTAL -241,916 (rounding). Headline net profit matched the TRUE TOTAL.
+
+NOTED, NOT CHANGED
+  - The Assumed ledger's Naive column (group_real_capacity, spread-inclusive)
+    and Implied column (merge_groups_by_id, no support cost) are on different
+    bases. Labelling only; totals are now correct.
+  - distribute_non_productive_cost drops the pool silently if no unit has
+    productive cost (recipients empty). A leak, not a double count; edge case.
+
+STILL OPEN
+  - Rate Builder "Per <unit>" row divides by output driver quantity (Addendum 12 note).
+  - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
+    asset-split card; Business Modelling overrides keyed by group; retire the
+    legacy group calculator; OPEN-C.
