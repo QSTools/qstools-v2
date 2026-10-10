@@ -328,14 +328,14 @@ Materials (Path C)
 ===============================================================================
 9.1 Hours
 - covered hours (asset-driven group) = min(seat hours, sum of assigned
-  labour hours); otherwise group recovery hours   get_group_covered_hours L283 (BO-6)
+  labour hours); otherwise group recovery hours   get_group_covered_hours L274 (BO-6)
 - labour row revenue_hours: asset-driven group = covered hours x (own hours
-  / group labour hours); labour-driven group = own hours   build_labour_sources L360-361
+  / group labour hours); labour-driven group = own hours   build_labour_sources L359
 
 9.2 Overhead split per group
 - labour_overhead_pool = group overhead x labour cost / (labour + asset
   cost); asset_overhead_pool = the rest      overheadSplit.js L27-29 (called L131, L333)
-- labour row overhead_share = labour pool x own hours share               L364
+- labour row overhead_share = labour pool x own hours share               L363
 - asset row overhead_share = asset pool x own asset hours / group asset hours  L174
 
 9.3 Source rows
@@ -347,7 +347,7 @@ ASSET (build_asset_sources)
 - blended_rate (ALL-IN) = total_charge / get_calculator_recovery_hours
                                           get_group_blended_rate L77 [CM-1b]
 - labour_mix_charge_rate, net_asset_rate per unit (Rate Builder functions,
-  fed the SAME charge-out map as the labour rows, overrides included)  L144-145
+  fed the SAME charge-out map as the labour rows, overrides included)  L140-141
   both published on every asset row                                     L224-225
 - true_cost = assigned asset cost + overhead_share                        L172
 - group_asset_revenue = net_asset_rate x covered hours                    L189
@@ -366,8 +366,8 @@ MATERIALS (in the main hook)
                         businessOutcomeViewBCalculations.js build_materials_source L66
 - materials_independent_revenue (Best Case) = same formula                L1237
 
-9.4 Non-productive cost (distribute_non_productive_cost L692-779)
-- own non-productive cost = assigned non-prod labour + non-prod asset     L708
+9.4 Non-productive cost (distribute_non_productive_cost L698-803)
+- own non-productive cost = assigned non-prod labour + non-prod asset     L719-721
 - pure-support units: pooled and spread; mixed units follow policy
   (default charge_to_self; user-settable on /business-outcome since
   2026-09-28 - spread_as_overhead pools a mixed unit's cost with pure-support)
@@ -375,18 +375,18 @@ MATERIALS (in the main hook)
   NO recipient has labour cost, asset burden / total asset burden. The code's
   equal-split branch (L775) is UNREACHABLE: a recipient always has labour or
   asset cost > 0 (session 15 harness, F1). Under the fallback labour-cost basis an asset-only group gets ZERO (F2); under recovered hours it earns a share if it has recovered hours.   L762-775
-- share = pool x weight   L778
+- share = pool x weight   L792
 - row.non_productive_share = unit non-prod cost x row revenue / unit
   revenue (equal split if no revenue)          apply_real_capacity L865; View B L213
 
-9.5 View A real-capacity cascade (apply_real_capacity L790-952)
-- group true_cost += non-productive cost                                  L807
-- naive_net_profit = modelled revenue - true cost                         L811
-- shortfall = max(0, materials true cost - materials residual revenue)    L814
+9.5 View A real-capacity cascade (apply_real_capacity L805-~967)
+- group true_cost += non-productive cost                                  L822
+- naive_net_profit = modelled revenue - true cost                         L826
+- shortfall = max(0, materials true cost - materials residual revenue)    L829
 - Phase 1: profitable groups give up profit pro-rata to profit:
-  factor = min(shortfall, sum of positive profit) / sum of positive profit L817-820
-- Phase 2: any leftover spread by revenue share                           L826
-- final_net_profit = after phase 1 - phase 2 deduction                    L830
+  factor = min(shortfall, sum of positive profit) / sum of positive profit L832-835
+- Phase 2: any leftover spread by revenue share                           L841-844
+- final_net_profit = after phase 1 - phase 2 deduction                    L845
 - same two phases repeated INSIDE each group across its rows ->
   real_capacity_net_profit per row                                        L860-910
 - materials final revenue = max(residual, true cost) -> materials never
@@ -545,7 +545,7 @@ CM-1 FIXED 2026-09-25 (was OPEN - HIGH). Asset-driven units stacked labour
   Builder's calculate_net_asset_rate takes off the hours-weighted saved
   charge-out rate of the labour Cost Allocation assigns to the unit
   (calculate_labour_mix_charge_rate). Business Outcome's build_asset_sources
-  calls both (L144-145) and earns asset revenue at the net rate (L189);
+  calls both (L140-141) and earns asset revenue at the net rate (L189);
   labour rows unchanged; not clamped. Coverage gap values revenue not earned
   at the all-in rate only (L467). Identity verified live on every unit:
   labour rows + asset rows = all-in rate x covered hours. Design note: the
@@ -697,7 +697,7 @@ UPDATE 2026-10-10 (commits fa9fadd, 982736f, cf93214)
   Identity, checked live in the console:
     ceiling = independent modelled revenue + materials revenue - total cost
     $322,370.17 = $705,711.55 + $0 - $383,341.37 (within 1c rounding)
-  naive_net_profit itself (s9.4, ~L811) is unchanged - still spread-inclusive and
+  naive_net_profit itself (s9.4, ~L826) is unchanged - still spread-inclusive and
   still the real-capacity cascade input.
 - New field group_real_capacity[].own_non_productive_cost; new return value
   own_cost_by_group_id from distribute_non_productive_cost (mixed units only).
@@ -706,4 +706,11 @@ UPDATE 2026-10-10 (commits fa9fadd, 982736f, cf93214)
   real-capacity sharing).
 - Line numbers in useBusinessOutcomePerSourceRevenue.js shift by up to +13 after
   ~L711. The calc_map\ section files are generated - regenerate, do not hand-edit.
-- Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addenda 11-13.
+- Detail: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt, Addenda 11-14.
+- Assumed Capacity ledger fix (2026-10-11, card only, no calculation change): the
+  View A ledger TRUE TOTAL now subtracts non_revenue_bearing.total, matching the
+  headline total_net_profit (s9.4 note: naive_net_profit unchanged). Health gauge and
+  the other ledgers checked, no double count. Commit b5d1443, Addendum 14.
+- Hook line numbers in s9.1-9.3 re-checked 2026-10-11 (moved UP by 1-9); s9.4-9.5
+  re-checked (moved DOWN by 6-15). s9.3 materials lines and everything from
+  L1241 on NOT yet re-checked.
