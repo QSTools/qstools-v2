@@ -340,31 +340,31 @@ Materials (Path C)
 
 9.3 Source rows
 LABOUR (build_labour_sources)
-- true_cost = assigned labour cost + overhead_share                       L385
-- modelled_revenue = charge_out_rate x revenue_hours                     L386
-- net_profit = modelled_revenue - true_cost                               L387
+- true_cost = assigned labour cost + overhead_share                       L388
+- modelled_revenue = charge_out_rate x revenue_hours                     L389
+- net_profit = modelled_revenue - true_cost                               L390
 ASSET (build_asset_sources)
 - blended_rate (ALL-IN) = total_charge / get_calculator_recovery_hours
                                           get_group_blended_rate L77 [CM-1b]
 - labour_mix_charge_rate, net_asset_rate per unit (Rate Builder functions,
   fed the SAME charge-out map as the labour rows, overrides included)  L140-141
-  both published on every asset row                                     L224-225
-- true_cost = assigned asset cost + overhead_share                        L172
-- group_asset_revenue = net_asset_rate x covered hours                    L189
+  both published on every asset row                                     L225-226
+- true_cost = assigned asset cost + overhead_share                        L169
+- group_asset_revenue = net_asset_rate x covered hours                    L188
   => a unit's labour rows + asset rows = all-in rate x covered hours
 - row modelled_revenue = group asset revenue x (asset cost / group asset
-  cost) - shared across co-deployed assets by cost share                  L192-195
-- net_profit = modelled_revenue - true_cost                               L198
+  cost) - shared across co-deployed assets by cost share                  L190-198
+- net_profit = modelled_revenue - true_cost                               L200-201
 - interest / depreciation per row = asset figure x assignment % (EBIT
-  display only)                                                           L208-210
+  display only)                                                           L209-212
 MATERIALS (in the main hook)
 - true_cost = total COGS + max(residual overhead, 0), where residual
-  overhead = business overheads - overhead assigned to groups             L1092, L1198
+  overhead = business overheads - overhead assigned to groups             L1102, L1208
 - View A revenue = real revenue - labour modelled revenue - asset
-  modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1203
+  modelled revenue (RESIDUAL - absorbs any over-claim by the rows above)  L1214
 - View B revenue = COGS x (1 + effective markup/100)
                         businessOutcomeViewBCalculations.js build_materials_source L66
-- materials_independent_revenue (Best Case) = same formula                L1237
+- materials_independent_revenue (Best Case) = same formula                L1266-1268
 
 9.4 Non-productive cost (distribute_non_productive_cost L698-803)
 - own non-productive cost = assigned non-prod labour + non-prod asset     L719-721
@@ -373,11 +373,11 @@ MATERIALS (in the main hook)
   2026-09-28 - spread_as_overhead pools a mixed unit's cost with pure-support)
 - spread weight (CHANGED 2026-09-29, owner decision) = recipient group_recovery_hours / total recipient group_recovery_hours; only if NO recipient has recovered hours, fall back to: recipient labour cost / total recipient labour cost; only if
   NO recipient has labour cost, asset burden / total asset burden. The code's
-  equal-split branch (L775) is UNREACHABLE: a recipient always has labour or
-  asset cost > 0 (session 15 harness, F1). Under the fallback labour-cost basis an asset-only group gets ZERO (F2); under recovered hours it earns a share if it has recovered hours.   L762-775
+  equal-split branch (L789) is UNREACHABLE: a recipient always has labour or
+  asset cost > 0 (session 15 harness, F1). Under the fallback labour-cost basis an asset-only group gets ZERO (F2); under recovered hours it earns a share if it has recovered hours.   L775-790
 - share = pool x weight   L792
 - row.non_productive_share = unit non-prod cost x row revenue / unit
-  revenue (equal split if no revenue)          apply_real_capacity L865; View B L213
+  revenue (equal split if no revenue)          apply_real_capacity L880-884; View B L213
 
 9.5 View A real-capacity cascade (apply_real_capacity L805-~967)
 - group true_cost += non-productive cost                                  L822
@@ -388,7 +388,7 @@ MATERIALS (in the main hook)
 - Phase 2: any leftover spread by revenue share                           L841-844
 - final_net_profit = after phase 1 - phase 2 deduction                    L845
 - same two phases repeated INSIDE each group across its rows ->
-  real_capacity_net_profit per row                                        L860-910
+  real_capacity_net_profit per row                                        L875-~925
 - materials final revenue = max(residual, true cost) -> materials never
   below cost in View A                                                    L912-913
 - row achieved revenue = true_cost + non_productive_share +
@@ -411,11 +411,11 @@ MATERIALS (in the main hook)
   materials at markup (no longer inflated - CM-1 fixed 2026-09-25)       L1241
 
 9.8 Headlines and checks
-- total_true_cost = labour + asset + materials true cost + unassigned     L1261
+- total_true_cost = labour + asset + materials true cost + unassigned     L1275
 - cost check: total_true_cost vs Cost Summary burden + P&L direct costs
-  (reconciles if < $1)                                                    L1302-1305
+  (reconciles if < $1)                                                    L1316-1319
 - smoothed_net_profit (gauge input) = sum of group final profit + materials
-  real-capacity profit - unassigned                                       L1406
+  real-capacity profit - unassigned                                       L1420-1423
 - selector View A headline = sum of group real-capacity profit - unassigned
                           businessOutcomePerSourceRevenueSelectors.js L553-566
 - health_ratio = smoothed net profit / (sum of each source's positive
@@ -545,7 +545,7 @@ CM-1 FIXED 2026-09-25 (was OPEN - HIGH). Asset-driven units stacked labour
   Builder's calculate_net_asset_rate takes off the hours-weighted saved
   charge-out rate of the labour Cost Allocation assigns to the unit
   (calculate_labour_mix_charge_rate). Business Outcome's build_asset_sources
-  calls both (L140-141) and earns asset revenue at the net rate (L189);
+  calls both (L140-141) and earns asset revenue at the net rate (L188);
   labour rows unchanged; not clamped. Coverage gap values revenue not earned
   at the all-in rate only (L467). Identity verified live on every unit:
   labour rows + asset rows = all-in rate x covered hours. Design note: the
