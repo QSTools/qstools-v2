@@ -1323,6 +1323,7 @@ function AssumedCapacityLedger({
   assumed_ledger_groups,
   groups_naive,
   unassigned,
+  non_revenue_bearing,
   time_scale,
   open_hours,
   open_days,
@@ -1359,7 +1360,11 @@ function AssumedCapacityLedger({
 
   const total_implied_net_profit =
     ledger_groups.reduce((sum, g) => sum + (g.implied_net_profit ?? 0), 0) + (materials.net_profit ?? 0);
-  const true_total_implied_net_profit = total_implied_net_profit - unassigned_total;
+  // Added 2026-10-11: the page headline (selectors total_net_profit) also subtracts
+  // support cost assigned to working units with no revenue source. Without this the
+  // TRUE TOTAL below ran too high by exactly that amount.
+  const support_cost_total = non_revenue_bearing?.total ?? 0;
+  const true_total_implied_net_profit = total_implied_net_profit - unassigned_total - support_cost_total;
 
   return (
     <div className="business-outcome-ledger">
@@ -1498,6 +1503,14 @@ function AssumedCapacityLedger({
             <span>Unassigned cost (not attributed to any source)</span>
             <span>-</span>
             <span className="value-bad">{money(-unassigned_total)}</span>
+            <span>-</span>
+          </div>
+        )}
+        {support_cost_total > 0 && (
+          <div className="business-outcome-ledger-row">
+            <span>Support cost assigned to units (no revenue source)</span>
+            <span>-</span>
+            <span className="value-bad">{money(-support_cost_total)}</span>
             <span>-</span>
           </div>
         )}
@@ -2967,6 +2980,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
                   assumed_ledger_groups={per_source.assumed_ledger_groups}
                   groups_naive={per_source.real_capacity?.group_real_capacity}
                   unassigned={per_source.unassigned}
+                  non_revenue_bearing={per_source.non_revenue_bearing}
                   time_scale={time_scale}
                   open_hours={per_source.net_annual_business_open_hours} open_days={per_source.net_annual_business_open_days} open_weeks={per_source.annual_open_weeks}
                 />
