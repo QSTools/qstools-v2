@@ -777,3 +777,22 @@ STILL OPEN
   - Carried from Addendum 11: row.net_asset_rate on per-asset rows; legacy
     asset-split card; Business Modelling overrides keyed by group; retire the
     legacy group calculator; OPEN-C.
+
+ADDENDUM 15 (2026-10-13) - OPEN-D PLACEHOLDER UNLINK BUG [SHIPPED] commit a9e55d3
+
+PROBLEM: choosing the 'Select asset-backed group' placeholder in the group dropdown called
+  updateLinkedCostAllocationGroup('') in useRateBuilderLineCalculator.js, which cleared
+  linked_cost_allocation_group_id and linked_asset_id on the ACTIVE calculator. Its lines stayed but
+  no longer matched any group or asset, so Business Outcome (which matches calculators by those links)
+  stopped counting them. Pre-existing behaviour, seen in Path B testing.
+FIX: an empty value now returns without touching the calculator. The select is controlled, so it snaps
+  back to the current group. Nothing is unlinked. One function, one file, no calculation logic changed.
+DECIDED (owner, 2026-10-13): inert placeholder chosen over switching to an unlinked calculator or
+  unlinking only when the calculator has no lines.
+VERIFIED: build clean (only the known unrelated next.config.ts NFT warning). Owner live-checked on :3004
+  that the placeholder no longer unlinks. Exact calculator and line counts used were not recorded.
+CONSEQUENCE: with the placeholder inert, a calculator can no longer be unlinked from its group in this
+  dropdown at all. Re-pointing means choosing another group, or deleting the calculator.
+CALC MAP: no calculation changed, so the s4 checklist does not apply.
+OPEN-D: CLOSED. Remaining scope-freeze items: OPEN-E, asset-pricing hard block, idle cost into net
+  profit, S1. Step F still parked.
