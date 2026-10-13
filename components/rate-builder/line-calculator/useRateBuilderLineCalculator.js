@@ -15,6 +15,7 @@ import {
 
 import useCostAllocation from "@/hooks/useCostAllocation";
 import { split_group_overhead } from "@/lib/calculations/shared/overheadSplit";
+import { build_labour_staff_type_breakdown } from "@/lib/calculations/rateBuilderLabourByStaffType";
 
 import {
   DEFAULT_CALCULATOR,
@@ -140,10 +141,27 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     Number(selected_cost_allocation_group?.group_cost_per_hour) || 0;
 
 
-  const labour_charge_out_rate =
-    Number(labour_rate_context.current_charge_out_rate) || 0;
-  const labour_minimum_recoverable_rate =
-    Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
+  // OPEN-E (2026-10-13): with a group selected, labour is built per staff type
+  // from the group's own labour assignments (each type's saved charge-out rate x
+  // its hours / group recovery hours), the same weighting Cost Allocation uses
+  // for cost. Incomplete (any unpriced staff type) = 0, so the panel shows the
+  // warning and no number. With no group selected, the old single rate applies.
+  const labour_breakdown = selected_cost_allocation_group
+    ? build_labour_staff_type_breakdown({
+        group: selected_cost_allocation_group,
+        staff_type_rates: labour_rate_context.staff_type_rates,
+        staff_type_floors: labour_rate_context.staff_type_floors,
+        staff_type_names: labour_rate_context.staff_type_names,
+        recovery_hours: selected_group_recovery_hours,
+      })
+    : null;
+
+  const labour_charge_out_rate = labour_breakdown
+    ? labour_breakdown.charge_rate
+    : Number(labour_rate_context.current_charge_out_rate) || 0;
+  const labour_minimum_recoverable_rate = labour_breakdown
+    ? labour_breakdown.floor_rate
+    : Number(labour_rate_context.minimum_recoverable_charge_out_rate) || 0;
   const has_labour_rate_context = labour_charge_out_rate > 0;
 
   // Asset-level pricing (2026-10-03): a calculator linked to one asset is
@@ -563,6 +581,7 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
     display_calculator_name,
     draft_line,
     has_labour_rate_context,
+    labour_breakdown,
     labour_charge_out_rate,
     labour_job_charge,
     labour_job_cost,

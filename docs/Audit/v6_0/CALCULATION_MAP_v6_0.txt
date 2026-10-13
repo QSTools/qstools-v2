@@ -320,8 +320,24 @@ Customer Charge Calculator (asset groups)
   (total_charge - labour charge-out x recovery hours) / recovery hours,
   floored at 0 for display; margin per hour = all-in rate - (labour minimum
   rate + group asset rate)        RateBuilderResultPanel.jsx L256, L271-272
-  The panel subtracts the ONE labour source selected on the calculator;
-  Business Outcome subtracts the assigned-labour mix [CM-9].
+  Result panel labour (OPEN-E, 2026-10-13): with a Cost Allocation group selected the
+  panel builds labour PER STAFF TYPE, mirroring Cost Allocation's cost side:
+    labour charge per group hour = sum(saved charge-out rate x assigned hours) / group_recovery_hours
+    labour cost per hour (floor) = sum(type minimum_recoverable_charge_out_rate x assigned hours)
+                                   / group_recovery_hours
+  over the group's own labour_group_assignments (productive, active; staff types merged by id).
+  INCOMPLETE until EVERY assigned staff type has a saved charge-out rate (and a cost rate): charge
+  and floor are then 0, has_labour_rate_context is false, and the panel shows a warning. There is
+  NO fallback rate. With no group selected the old single selected Labour-tab source still applies.
+    lib/calculations/rateBuilderLabourByStaffType.js build_labour_staff_type_breakdown  L23-126
+    useRateBuilderLineCalculator.js labour_breakdown L149, labour_charge_out_rate L159,
+      labour_minimum_recoverable_rate L162, has_labour_rate_context L165, labour_job_charge L263
+    inputs: RateBuilderMainCard.jsx labour_rate_context.staff_type_rates / staff_type_floors /
+      staff_type_names (from the Labour Rates Builder model and staff-type source options)
+    display: RateBuilderLabourBreakdown.jsx, mounted at RateBuilderResultPanel.jsx L356
+  The weights can sum above 1 (two staff types each covering most of a group's recovery hours),
+  exactly as Cost Allocation's labour_recovery_rate does on the cost side.
+  Business Outcome still subtracts the assigned-labour mix [CM-9b - see CM-9 NOTE UPDATE 2026-10-13].
 
 Materials (Path C)
 - sell_revenue = COGS x (1 + markup/100); profit = sell - COGS
@@ -609,6 +625,15 @@ CM-9 NOTE. Rate Builder's result panel subtracts the ONE labour source
   longer exist, plus one unlinked; and the line `type` field is absent on
   every current calculator (check the storage normaliser for a
   field-dropping rebuild - bug class 6b).
+CM-9 NOTE UPDATE 2026-10-13 (OPEN-E). With a group selected the panel no longer subtracts ONE
+  selected source: it builds labour per staff type from the group's own assignments (s8, "Result
+  panel labour"). CM-9 stays OPEN in a narrower form, CM-9b: the panel's labour charge is
+  sum(rate x hours) / group_recovery_hours, while Business Outcome's labour mix
+  (calculate_labour_mix_charge_rate) is sum(rate x hours) / sum(hours). They agree only when the
+  assigned labour hours equal the recovery hours (one staff type, or labour exactly covering the
+  asset). They differ when several staff types are each assigned most of the recovery hours.
+  Not changed. Owner decision needed on which basis Business Outcome should follow. Calculators
+  with no group selected still use the single selected Labour-tab source.
 CM-2 RESOLVED 2026-10-01. Was: two overhead-per-labour-hour bases coexisted
   by design - Rate Builder put 100% of group overhead on labour (RB-1) while
   Business Outcome split by cost share (F7). Both now call ONE shared

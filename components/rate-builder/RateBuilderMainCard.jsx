@@ -24,11 +24,29 @@ export default function RateBuilderMainCard() {
   const labour_rates_model = useRateBuilderLabourRates();
   const materials_markup_model = useRateBuilderMaterialsMarkup();
 
+  // OPEN-E: per staff type charge-out rates, cost floors and names for the
+  // calculator. Keyed by staff type id. Missing rate = absent (never defaulted).
+  const staff_type_rate_map =
+    labour_rates_model?.active_model?.charge_out_rates_by_labour_source || {};
+  const staff_type_floor_map = {};
+  const staff_type_name_map = {};
+  (labour_rates_model?.labour_source_options || [])
+    .filter((source) => source?.labour_source_kind === "staff_type")
+    .forEach((source) => {
+      staff_type_floor_map[source.labour_source_type_id] =
+        Number(source.minimum_recoverable_charge_out_rate) || 0;
+      staff_type_name_map[source.labour_source_type_id] =
+        source.labour_source_type_name;
+    });
+
   const labour_rate_context = {
     current_charge_out_rate:
       Number(labour_rates_model?.current_charge_out_rate) || 0,
     minimum_recoverable_charge_out_rate:
       Number(labour_rates_model?.minimum_recoverable_charge_out_rate) || 0,
+    staff_type_rates: staff_type_rate_map,
+    staff_type_floors: staff_type_floor_map,
+    staff_type_names: staff_type_name_map,
   };
 
   return (

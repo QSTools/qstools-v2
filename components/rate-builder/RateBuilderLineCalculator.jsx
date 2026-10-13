@@ -31,6 +31,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
         <RateBuilderResultPanel
           display_calculator_name={calculator.display_calculator_name}
           has_labour_rate_context={calculator.has_labour_rate_context}
+          labour_breakdown={calculator.labour_breakdown}
           labour_charge_out_rate={calculator.labour_charge_out_rate}
           labour_job_charge={calculator.labour_job_charge}
           labour_minimum_recoverable_rate={

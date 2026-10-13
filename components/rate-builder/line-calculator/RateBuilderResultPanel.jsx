@@ -5,10 +5,12 @@ import {
 } from "@/lib/calculations/rateBuilderCalculations";
 
 import { get_unit_label } from "./rateBuilderLineCalculatorConstants";
+import RateBuilderLabourBreakdown from "./RateBuilderLabourBreakdown";
 
 export default function RateBuilderResultPanel({
   display_calculator_name,
   has_labour_rate_context,
+  labour_breakdown,
   labour_charge_out_rate,
   labour_job_charge,
   labour_minimum_recoverable_rate,
@@ -351,6 +353,7 @@ export default function RateBuilderResultPanel({
                   </>
                 )}
               </div>
+              <RateBuilderLabourBreakdown labour_breakdown={labour_breakdown} />
               <p className="ui-help mt-3">
                 Margin: {formatPercent(recovery_preview.profit_margin_percent)}
               </p>

@@ -796,3 +796,52 @@ CONSEQUENCE: with the placeholder inert, a calculator can no longer be unlinked 
 CALC MAP: no calculation changed, so the s4 checklist does not apply.
 OPEN-D: CLOSED. Remaining scope-freeze items: OPEN-E, asset-pricing hard block, idle cost into net
   profit, S1. Step F still parked.
+
+
+ADDENDUM 16 (2026-10-13) - OPEN-E LABOUR BY STAFF TYPE [SHIPPED] (code, map and this addendum committed together)
+
+PROBLEM: the Customer Charge Calculator panel read ONE labour source (the single staff type or the
+  all-productive summary selected on the Labour tab) for every group, regardless of who is assigned
+  to the group in Cost Allocation (CM-9 / RB-12 / OPEN-E).
+DECISIONS (owner, 2026-10-13): (1) rates come from the saved per-staff-type charge-out rates on the
+  Labour Rates Builder tab, nothing new to enter; (2) staff types and hours come from the group's
+  Cost Allocation labour assignments, no re-entry; (3) the charge-out side MIRRORS the cost side:
+  each type's rate weighted by its hours over the group's recovery hours; (4) labour is shown
+  collapsed with an expand, in BOTH layouts (group-level and asset-linked), under the charge/cost
+  table; (5) a staff type with no saved rate makes the whole labour line INCOMPLETE until every
+  assigned staff type is priced. No fallback rate, never $0.
+BUILT: lib/calculations/rateBuilderLabourByStaffType.js (build_labour_staff_type_breakdown);
+  components/rate-builder/line-calculator/RateBuilderLabourBreakdown.jsx (collapsed <details> block
+  plus a visible amber warning when incomplete); RateBuilderMainCard.jsx passes staff_type_rates,
+  staff_type_floors, staff_type_names in labour_rate_context; useRateBuilderLineCalculator.js
+  computes labour_breakdown and feeds labour_charge_out_rate / labour_minimum_recoverable_rate
+  from it when a group is selected; RateBuilderLineCalculator.jsx and RateBuilderResultPanel.jsx
+  pass and mount it. Patch script was all-or-nothing (anchors checked first), build clean.
+VERIFIED LIVE (owner, :3004, 2026-10-13, console reports read from the rendered panel):
+  - One staff type: Paul alone in Single Labour Working Unit Test, 1,414 h of 1,414 recovery h,
+    charge 150.00/hr, cost 79.28/hr, equal to his own rate and floor (share 1).
+  - Two staff types: Paul and Jack in the same group (assets 1,440 h, recovery hours 1,440).
+    1,414.12 h each, share 0.982 each; charge 150 x 0.982 = 147.30 per type, 294.61/hr total;
+    floors 79.43 and 95.03 give cost 171.32/hr. Independent recompute matched. All 7 PASS checks.
+  - Incomplete: Jack's saved rate cleared. Amber line names Operator / Delivery Staff (No charge-out
+    rate saved), Jack's row Unpriced, subtotal Incomplete, panel labour charge and minimum 0,
+    has_labour_rate_context false. All 7 PASS checks. Machine row unchanged (asset-linked panel).
+FOUND, NOT FIXED:
+  - CM-9b: panel labour = sum(rate x hours) / recovery hours; Business Outcome labour mix = sum(rate
+    x hours) / sum(hours). With both staff fully assigned the panel read 294.61/hr against a mix of
+    about 150/hr. Owner decision needed on Business Outcome's basis. See calc map CM-9 NOTE UPDATE.
+  - A calculator with NO group selected (the seeded unlinked one) still uses the single selected
+    Labour-tab source; breakdown is null by design. Revisit once the group-linked version is settled.
+  - The Group labour row shows total assigned hours (2,828) while the rates divide by recovery
+    hours (1,440); a small "per recovery hrs" note was offered, not built.
+  - The Paul alone floor (79.28) moved to 79.43 with Jack in the group: overhead is split by hours,
+    expected, not a defect.
+  - Console reading tip: the React tree holds stale alternate fibres; match the live panel by the
+    on-screen title (Example charge total - <name>) or the report shows a previous render.
+TEST DATA at the time: Jack was moved into Single Labour Working Unit Test (baseline: 2nd Labour
+  Test Unit) and his charge-out rate cleared and restored for the incomplete test. Restore the
+  baseline before any later smoke test. Cost Allocation also holds a spare group, New 2nd Labour
+  Group test, and about 13 inactive duplicate Operator assignments (no effect).
+CALC MAP: extract_calc_map.py re-run 2026-10-13; s8 panel entry and CM-9 updated (CM-9b open).
+OPEN-E: CLOSED. Remaining scope-freeze items: asset-pricing hard block, idle cost into net profit,
+  S1. Step F still parked, fresh baseline needed first.
