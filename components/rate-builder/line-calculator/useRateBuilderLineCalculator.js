@@ -279,12 +279,8 @@ export default function useRateBuilderLineCalculator({ labour_rate_context = {} 
 
   function updateLinkedCostAllocationGroup(value) {
     if (!value) {
-      updateActiveCalculator((calculator) => ({
-        ...calculator,
-        linked_cost_allocation_group_id: "",
-        linked_asset_id: "",
-      }));
-
+      // OPEN-D: the placeholder option must never unlink the active calculator.
+      // Doing so orphaned its lines. Leave it untouched; the select snaps back.
       return;
     }
 
