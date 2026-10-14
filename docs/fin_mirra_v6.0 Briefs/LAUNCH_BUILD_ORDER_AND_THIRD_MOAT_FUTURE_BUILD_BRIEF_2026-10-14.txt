@@ -1,0 +1,123 @@
+===============================================================================
+MIRRA - LAUNCH BUILD ORDER AND THIRD-MOAT SEQUENCING
+===============================================================================
+DATE:     2026-10-14
+STATUS:   [DISCUSSION / STRATEGY] - scoping and sequencing only. Nothing built,
+          nothing decided beyond the order itself, no code touched.
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
+REASONING DOCUMENT: AI_STRATEGY_CUBAN_TALK_AND_MIRRA_BRIEF_2026-10-12.txt,
+  especially Addendum 1 (2026-10-14) - read that first for WHY each step
+  exists. This document is the WHAT'S NEXT tracker; keep it lean and update
+  it in place as steps close, same pattern as the kickoff doc.
+
+===============================================================================
+1. WHY THIS DOCUMENT EXISTS
+===============================================================================
+The moat brief's Addendum 1 produced a full numbered build-to-launch sequence
+as a side effect of strategy discussion (podcasts, the client-side exposure
+finding, the third-moat design). That sequence is operational, not strategic,
+and belongs in its own document so it can be updated step-by-step without
+re-reading or re-dating the reasoning brief each time - same convention as
+V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt Section 7 ("real design discussion
+gets its own standalone brief with a one-line pointer").
+
+===============================================================================
+2. FULL BUILD ORDER TO LAUNCH
+===============================================================================
+  1. Finish the asset smoke test (nearly done - see
+     SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt and the kickoff doc's current
+     "NEXT STEP" state for exact position: OPEN-D, OPEN-E, asset-pricing
+     hard block, idle cost into net profit, S1).
+
+  2. Build server-side "moat" plumbing. Prove it on ONE small, already-
+     verified calculation before anything else relies on it. Do not migrate
+     broadly until this one proof is live-tested and confirmed correct.
+
+  3. Migrate calculation/selector files to the server. Whole files only,
+     never split mid-logic (a calculation chain depends on exact order within
+     a file; splitting risks silently changing behaviour). Entry point: a
+     thin dispatcher/registry (app/api/calculate/route.js + a lookup table),
+     not one API route per calculation. The dispatcher does no calculation
+     logic itself and stays inside the ~600-line file convention.
+     VERIFIED 2026-10-14 (see moat brief Addendum 1, A3): every calculation
+     hook today is "use client" and imports lib/calculations/*.js directly;
+     no API route touches the calculation chain yet. This step has not
+     started.
+
+  4. Build units through the tool fully, BEFORE launch - not coming-soon,
+     not gated. Reasoning: units will likely require shared-calculation-file
+     changes; making those changes after a live client database exists
+     risks corrupting or tangling both live numbers and stored history at
+     once (unacceptable risk with real client financial data, per the
+     owner's own prior experience with messy personal databases). Accepted
+     this may add ~6 months to the timeline.
+
+  5. Add the database. Stores monthly Xero-imported P&L/balance sheet
+     history, modelled vs. actual over time. This is the core switching-cost
+     moat (Addendum 1, A2/A7 layer 1) and the hard prerequisite for 5b below.
+
+  5b. Build the aggregation/benchmark module once the database is live and
+      holds real rows. Self-contained, outside the existing calculation
+      chain, reads only finished output-contract data (per_source, capacity
+      coverage gap, overhead_per_hour, stream shares, required_recovery_rate,
+      revenue, industry/trade - all already exist, see Addendum 1 A8). New
+      pieces only: consent flag, size-band bucket, the aggregation query
+      itself. Sample-size floor: ~20-30 businesses per category x size-band
+      for directional signal (Addendum 1, A9) - construction is the leading
+      first-trade candidate.
+      HARD GATE BEFORE THIS STEP SHIPS ANYTHING USER-FACING: a lawyer reviews
+      the actual design (band width, sample floor, update cadence, exact UI
+      copy) for price-signaling exposure and signs off. See moat brief
+      Addendum 1, A11 (RealPage / Agri Stats precedent). Design direction
+      already leaning toward: bands not numbers, historical/monthly not live,
+      never a recommended rate. Not cleared yet.
+
+  6. Stress test against the SERVER-MIGRATED version (not pre-migration) -
+     this both proves migration integrity and tests a new failure mode
+     (server load from many businesses computing simultaneously, vs today's
+     per-browser compute). Current test dataset: ~2 productive staff, 1
+     non-productive. Plan to scale to 10 / 100 / 1,000 staff/assets up to a
+     ~$100M business. For other trades (window cleaner, mechanic, etc.):
+     build deliberately-shaped synthetic data with a known-correct answer to
+     check against, rather than hunting for real external P&Ls.
+
+  7. Launch.
+
+===============================================================================
+3. DEPLOYMENT STATE (settled, carried from prior session - confirmed complete)
+===============================================================================
+Local machine = dev-time server (Next.js API routes run wherever
+`npm run dev` runs). Production = Vercel. A password-gated staging deployment
+with test data already exists and has been shared with a couple of people -
+CONFIRMED COMPLETE, no action needed here.
+Real deploy risks: config/secrets (Xero API keys, DB connection strings) and
+database network wiring - NOT the calculation logic itself (same code runs
+identically regardless of host, so that part carries low bug risk from
+deployment specifically).
+
+===============================================================================
+4. PENDING HOUSEKEEPING (not yet done, carried over - action items for the
+   owner, not blocking the build order above)
+===============================================================================
+  - Two conventions-file edits identified, not yet made:
+      1. Record the direct-read / manual-edit working method (Claude reads
+         files directly when a folder is connected; the owner still applies
+         every edit manually via Apply-Patch in PowerShell) as a deliberate
+         safety choice, not an oversight.
+      2. Extend the "view the actual current file content fresh before
+         patching" rule to explicitly cover direct-read sessions - a file
+         read earlier in a session must be re-read at the moment of each
+         change, not relied on from earlier in the conversation.
+  - End of session: re-upload this brief and the moat brief's updated version
+    to project knowledge, removing whatever they superseded, per standing
+    convention rule 13.
+
+===============================================================================
+5. OPEN QUESTIONS (not blocking, carried from the moat brief)
+===============================================================================
+  - Does the benchmark/third-moat feature proceed at all, given the legal
+    review gate at Section 2, step 5b? Not decided.
+  - Which trade launches the benchmark layer first? Construction is the
+    leading candidate (owner's own trade, tool already shaped around it,
+    fastest path to the sample-size floor) - not yet locked in.
+===============================================================================
