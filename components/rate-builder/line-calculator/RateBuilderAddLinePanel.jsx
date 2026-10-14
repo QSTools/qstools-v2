@@ -1,9 +1,11 @@
 import { UNIT_OPTIONS } from "./rateBuilderLineCalculatorConstants";
+import RateBuilderPricingBlockNotice from "./RateBuilderPricingBlockNotice";
 
 export default function RateBuilderAddLinePanel({
   addRateLine,
   draft_line,
   updateDraftField,
+  pricing_block = null,
 }) {
   return (
         <article className="ui-section">
@@ -16,6 +18,12 @@ export default function RateBuilderAddLinePanel({
             unit, rate, and example quantity.
           </p>
 
+          <RateBuilderPricingBlockNotice pricing_block={pricing_block} />
+
+          <fieldset
+            disabled={pricing_block?.is_blocked === true}
+            className="m-0 min-w-0 border-0 p-0"
+          >
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="ui-field sm:col-span-2">
               <span className="ui-label">Line item name</span>
@@ -86,6 +94,7 @@ export default function RateBuilderAddLinePanel({
           >
             Add line item
           </button>
+          </fieldset>
         </article>
   );
 }

@@ -5,6 +5,7 @@ import { UNIT_OPTIONS } from "./rateBuilderLineCalculatorConstants";
 export default function RateBuilderChargeList({
   deleteRateLine,
   display_calculator_name,
+  is_locked = false,
   rate_lines,
   setOutputDriver,
   updateRateLine,
@@ -19,6 +20,14 @@ export default function RateBuilderChargeList({
           divided by that line quantity to calculate the effective rate.
         </p>
 
+        {is_locked ? (
+          <p className="mt-3 text-xs text-amber-300">
+            Locked until labour is priced - see the notice in Add customer
+            charge line. Delete still works.
+          </p>
+        ) : null}
+
+        <fieldset disabled={is_locked} className="m-0 min-w-0 border-0 p-0">
         <div className="rate-builder-charge-list mt-5">
           {rate_lines.map((line) => (
             <div
@@ -162,6 +171,7 @@ export default function RateBuilderChargeList({
             </div>
           ) : null}
         </div>
+        </fieldset>
       </article>
   );
 }

@@ -5,9 +5,11 @@ import RateBuilderChargeList from "./line-calculator/RateBuilderChargeList";
 import RateBuilderGroupSelector from "./line-calculator/RateBuilderGroupSelector";
 import RateBuilderResultPanel from "./line-calculator/RateBuilderResultPanel";
 import useRateBuilderLineCalculator from "./line-calculator/useRateBuilderLineCalculator";
+import { get_asset_pricing_block } from "@/lib/calculations/rateBuilderPricingBlock";
 
 export default function RateBuilderLineCalculator({ labour_rate_context = {} }) {
   const calculator = useRateBuilderLineCalculator({ labour_rate_context });
+  const pricing_block = get_asset_pricing_block(calculator.labour_breakdown);
 
   return (
     <section className="rate-builder-calculator">
@@ -24,6 +26,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
 
         <RateBuilderAddLinePanel
           addRateLine={calculator.addRateLine}
+          pricing_block={pricing_block}
           draft_line={calculator.draft_line}
           updateDraftField={calculator.updateDraftField}
         />
@@ -53,6 +56,7 @@ export default function RateBuilderLineCalculator({ labour_rate_context = {} }) 
       </div>
 
       <RateBuilderChargeList
+        is_locked={pricing_block.is_blocked}
         deleteRateLine={calculator.deleteRateLine}
         display_calculator_name={calculator.display_calculator_name}
         rate_lines={calculator.rate_lines}
