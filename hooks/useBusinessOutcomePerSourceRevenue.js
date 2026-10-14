@@ -16,6 +16,7 @@ import {
 } from "@/lib/storage/businessOutcomeNonProductivePolicyStorage";
 import { build_materials_source, apply_revenue_ceiling_v2, apply_real_capacity_v2 } from "@/lib/calculations/businessOutcomeViewBCalculations";
 import { calculateGaugeInput } from "@/lib/calculations/businessModellingIndependentCalculations";
+import { build_idle_labour_by_group } from "@/lib/selectors/business-outcome/businessOutcomeIdleLabourSelectors";
 
 // Business Outcome - Per-Source Revenue Attribution (S26/S27/S29).
 //
@@ -1404,6 +1405,8 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
       },
       view_b,
       capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
+      // Idle cost Step 3 (D-IDLE-2): display-only lookup of Cost Allocation's idle_labour_hours / idle_labour_cost, tied groups only.
+      idle_labour_by_group: build_idle_labour_by_group(operational_group_cost_rows),
       // Health gauge baseline (2026-09-11, moved here from Business Modelling
       // per user decision - Outcome computes the trusted baseline once,
       // Modelling consumes it downstream, same "reuse the engine" principle

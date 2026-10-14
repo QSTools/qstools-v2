@@ -956,3 +956,50 @@ LIMITS: asset-driven groups only (labour_hours and manual_hours groups still sho
 CALC MAP: s9.9 updated in the same commit (surplus gated and display-only; wasted_cost now idle_labour_cost). extract_calc_map.py re-run at commit.
 NEXT (one step at a time): Step 3 idle hours and dollars line at the working-group drill-down (owner picks data path, design brief 3.7); Step 4
   shortfall dollars for per-asset groups (O-2 method awaits sign-off).
+
+ADDENDUM 20 (2026-10-15) - IDLE HOURS AND DOLLARS LINE AT THE WORKING-GROUP DRILL-DOWN [SHIPPED] idle cost Step 3 (D-IDLE-2)
+Commit message: "Business Outcome drill-down: show idle labour hours and dollars for tied working groups (D-IDLE-2)". Hash: see git log.
+Design: IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (section 3.4, 3.7 option (a), section 5 Step 3). No net profit, revenue, cost or rate changes.
+
+PROBLEM: after Step 2 the idle cost showed in the gap table and the things-to-check text, but not at the working-group drill-down, where the owner
+  looks to see why a group's net profit is low. Cost Allocation held idle_labour_hours and idle_labour_cost, but Business Outcome never read them there.
+DECISION (owner, 2026-10-15): data path (a) of design brief 3.7 - one new map idle_labour_by_group { group_id: { hours, cost } } read straight from
+  operational_group_cost_rows and looked up by entry key. The three entry builders (merge_groups_by_id, merge_groups_by_id_real_capacity,
+  merge_view_b_groups) and wrap_entries_in_areas are NOT touched, so bug class 6b cannot bite there.
+BUILT (2 new files, 3 edited, 10 patches, one build):
+  NEW lib/selectors/business-outcome/businessOutcomeIdleLabourSelectors.js: build_idle_labour_by_group(rows) includes a group only when
+    labour_tied_to_asset === true and idle_labour_hours > 0 (Cost Allocation already returns zero otherwise; the tick is re-checked so the two
+    displays cannot disagree); hours and cost rounded to 2 dp. get_idle_labour_for_entry(map, entry) finds a working group by its key and a
+    single-group operating area (skips_middle_tier) by member_group_ids; a multi-group area, materials or anything else gives nothing.
+  NEW components/business-outcome-truth/BusinessOutcomeIdleLabourLine.jsx: the line itself (class ui-help; data-idle-labour-line attributes for checks).
+  hooks/useBusinessOutcomePerSourceRevenue.js: import (L19) and idle_labour_by_group next to capacity_coverage_gap in the returned object (L1409). +3 lines.
+  lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js: one-line pass-through in selectBusinessOutcomePerSourceRevenue (L725).
+    NOT in the design brief: that selector rebuilds per_source field by field, so the new hook field would have been dropped (bug class 6b).
+  components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx: import; idle_labour_by_group added to the RankedGroupsDrill (View A) and
+    ViewBGroupsDrill (View B) signatures and mounts; the line rendered under the kicker in both. +8 -4 lines.
+WORDING: "Idle labour: N paid hours a year have no asset work to recover them, costing about $X a year. This cost is already inside this working
+  group's net profit. It is shown here to explain it and is not added to or taken from any total. Yearly figures, whatever time scale is selected."
+VERIFIED LIVE (owner, console report read from per_source and the rendered page, one sitting; Single Labour Working Unit Test with Paul + Jack):
+  Box UNTICKED: idle map empty, no line on screen, no Overstaffed gap row.
+  Box TICKED, drilled into the Single Labour operating area (a single-group area): View A (RankedGroupsDrill) and View B (ViewBGroupsDrill) each show 1 line.
+    Line data 1,388.23 h and 119,139.90 = the map = the gap table Overstaffed row (equal to Cost Allocation's idle_labour_cost, Addendum 19).
+    Line text shows $119,140 and says the cost is already in net profit and is not added to any total.
+  Totals identical to the cent unticked vs ticked (A and B) vs unticked again: headline net profit -241,860.92, real-capacity -241,860.93, View B
+    -241,860.92, modelled revenue 141,412, independent modelled revenue 502,628.57, true cost 383,272.92; group net profit -241,860.92.
+  Baseline restored (Jack back in 2nd Labour Test Unit, box unticked): totals equal the first baseline of the sitting to the cent (-241,860.92,
+    -241,860.93, -241,860.92, 141,412, 705,711.55, 383,272.92; groups -169,164.17 and -72,696.75); no line.
+  RERUN (owner, same day, clean): an earlier pass of this check was discarded because two of its runs were taken in a staffing state that was not
+    recorded and showed different totals (for example View B -109,466.84). The owner believes the sequence was disturbed while restoring; the
+    cause was not established. The whole sequence was then repeated with a staffing fingerprint printed in every run: 6 runs, 0 FAIL.
+    baseline (Single Labour Working Unit Test: Supervisor / Team Lead 1,414.12 h; 2nd Labour Test Unit: Operator / Delivery Staff 1,414.12 h; box unticked);
+    together-unticked (both staff types in Single Labour Working Unit Test, 720 h each, box unticked): no line;
+    ticked-A and ticked-B (box ticked, View A then View B drilled in): 1 line each, 1,388.23 h / 119,139.90, equal to the gap table; staffing and
+    every total identical to together-unticked; unticked-again: no line, staffing and every total identical to together-unticked;
+    restored (second staff type back in 2nd Labour Test Unit, box unticked): staffing and every total identical to baseline.
+    Staffing changes the totals (independent modelled revenue 705,711.55 with the two units separate, 502,628.57 together), which is why each run
+    is only compared with a run of the same staffing.
+LIMITS: the line shows for a working group or a single-group area. A multi-group area shows nothing until a member group is opened; that path uses the
+  same lookup by group id but was not exercised live (the test data has one working group in the area). Figures are yearly whatever the time scale.
+  Asset-driven groups only (idle-cost brief O-5). Hook line numbers after L19 moved by +1, and after the new field by +3.
+CALC MAP: s9.9 notes the display. No extract re-run for this step (display only, design brief s7); re-run at Step 4.
+NEXT (one step at a time): Step 4 shortfall dollars for per-asset groups (O-2 method awaits sign-off). Then S1 live check. Step F parked.
