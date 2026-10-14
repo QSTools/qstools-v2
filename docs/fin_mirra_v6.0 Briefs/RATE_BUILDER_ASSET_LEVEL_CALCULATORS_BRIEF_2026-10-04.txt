@@ -894,3 +894,35 @@ KNOWN GAP (not covered by the block): a calculator whose group or asset is delet
 CALC MAP: no calculation changed, so the s4 checklist does not apply.
 HARD BLOCK: CLOSED. Remaining scope-freeze items: idle cost into net profit, S1. CM-9b still open (owner
   decision on Business Outcome's labour basis). Step F parked, fresh baseline needed first.
+
+ADDENDUM 18 (2026-10-15) - RATE BUILDER LABOUR PANEL HOURS BASIS [SHIPPED] idle cost Step 1 (D-IDLE-4)
+Commit message: "Rate Builder labour panel: weight staff types by total assigned hours (D-IDLE-4)". Hash: see git log.
+Design: IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (section 2 D-IDLE-4, section 5 Step 1). Closes CM-9b.
+
+PROBLEM: the panel's per-staff-type labour (Addendum 16) divided sum(rate x assigned hours) by the group's RECOVERY hours.
+  When assigned labour exceeds the asset hours the recovery hours are capped, so the rate was inflated. Paul and Jack in one
+  unit (assets 1,440 h, assigned 2,828.23 h, recovery 1,440 h) showed a labour charge of 294.61/hr against two $150 rates.
+DECISION (owner, 2026-10-15): "we can't have an inflated number". The panel divides by TOTAL assigned labour hours, the same
+  basis as Business Outcome's labour mix (calculate_labour_mix_charge_rate = sum(rate x hours) / sum(hours)). Business Outcome unchanged.
+BUILT: lib/calculations/rateBuilderLabourByStaffType.js build_labour_staff_type_breakdown (now L25-134), three patches, one file:
+  new total_assigned_hours (sum of the staff types' assigned hours); share = assigned_hours / total_assigned_hours (was / hours_basis);
+  header comment. hours_basis (recovery hours) is still passed in and still drives the "no recovery hours" gate and the recovery_hours
+  field, so rateBuilderPricingBlock.js (Addendum 17) is unaffected. Only caller: useRateBuilderLineCalculator.js (import L18, call L150),
+  checked by search before patching. Build clean (only the known unrelated next.config.ts NFT warning).
+SCOPE: any group whose assigned labour hours differ from its recovery hours - surplus labour, and manual_hours groups in either
+  direction. A group where they are equal (for example a single staff type with labour exactly covering the asset) is unchanged.
+VERIFIED LIVE (owner, :3004, 2026-10-15, console report read from the rendered panel, one sitting):
+  Calculator: Single Labour Working Unit Test - RB1 Test Asset.
+  Paul + Jack in one unit: charge 150.00/hr, cost 87.23/hr = hours-weighted over 2,828 assigned hours (floors 79.43 and 95.03, rates
+    150 and 150); per-group-hr column 75.00 + 75.00; shares sum to exactly 1; exact charge_rate 150.0000 and floor_rate 87.2300
+    equal sum(rate x assigned hrs)/sum(assigned hrs); recovery hours 1,440 vs assigned 2,828.23; the OLD basis would have shown 294.61
+    (matches Addendum 16). All checks PASS.
+  Paul alone (assigned 1,414.12 = recovery 1,414.12): charge 150.00, cost 79.28, share 1, old basis also 150.00. Identical to before
+    (79.28 as recorded in Addendum 16). All checks PASS.
+CONSEQUENCE ACCEPTED: the panel now shows an hours-weighted AVERAGE rate. A deliberate two-person crew on one machine no longer shows
+  both rates added together (idle-cost brief O-4). Cost Allocation's own group labour rate still divides by recovery hours and so still
+  carries surplus labour cost, by design (Addendum 6); it is a cost floor, not a charge-out rate.
+CALC MAP: s8 (panel labour) and s12 (CM-9b closed) updated in the same commit; extract_calc_map.py re-run at commit.
+TEST DATA: Jack restored to 2nd Labour Test Unit after the check (baseline).
+NEXT (idle cost, one step at a time): Step 2 gate the gap table and move surplus out of the blended-rate condition; Step 3 idle line at
+  the working-group drill-down; Step 4 shortfall dollars for per-asset groups. See the design brief section 5.

@@ -1,5 +1,8 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-15 (idle cost Step 1, D-IDLE-4): the Rate Builder result panel's per-staff-type labour
+  now weights by TOTAL assigned labour hours, not recovery hours - s8 "Result panel labour" and CM-9b in
+  s12 updated. Line numbers for rateBuilderLabourByStaffType.js refreshed from the file; extract re-run at commit.
   UPDATED 2026-10-11: extract re-run; hook (useBusinessOutcomePerSourceRevenue.js) line numbers
   re-checked for s9.1-9.5 and the materials / total-cost / gauge refs (s9.3, s9.8) - this
   supersedes the older 'hook numbers NOT re-checked' notes below for those sections. Selector,
@@ -321,23 +324,29 @@ Customer Charge Calculator (asset groups)
   floored at 0 for display; margin per hour = all-in rate - (labour minimum
   rate + group asset rate)        RateBuilderResultPanel.jsx L256, L271-272
   Result panel labour (OPEN-E, 2026-10-13): with a Cost Allocation group selected the
-  panel builds labour PER STAFF TYPE, mirroring Cost Allocation's cost side:
-    labour charge per group hour = sum(saved charge-out rate x assigned hours) / group_recovery_hours
+  panel builds labour PER STAFF TYPE:
+    labour charge per hour = sum(saved charge-out rate x assigned hours) / total assigned labour hours
     labour cost per hour (floor) = sum(type minimum_recoverable_charge_out_rate x assigned hours)
-                                   / group_recovery_hours
+                                   / total assigned labour hours
+    CHANGED 2026-10-15 (D-IDLE-4): was divided by group_recovery_hours, which inflated both rates when
+    labour exceeded the asset hours. The weights now sum to exactly 1 and the charge equals Business
+    Outcome's labour mix (calculate_labour_mix_charge_rate).
   over the group's own labour_group_assignments (productive, active; staff types merged by id).
   INCOMPLETE until EVERY assigned staff type has a saved charge-out rate (and a cost rate): charge
   and floor are then 0, has_labour_rate_context is false, and the panel shows a warning. There is
   NO fallback rate. With no group selected the old single selected Labour-tab source still applies.
-    lib/calculations/rateBuilderLabourByStaffType.js build_labour_staff_type_breakdown  L23-126
+    lib/calculations/rateBuilderLabourByStaffType.js build_labour_staff_type_breakdown  L25-134
     useRateBuilderLineCalculator.js labour_breakdown L149, labour_charge_out_rate L159,
       labour_minimum_recoverable_rate L162, has_labour_rate_context L165, labour_job_charge L263
     inputs: RateBuilderMainCard.jsx labour_rate_context.staff_type_rates / staff_type_floors /
       staff_type_names (from the Labour Rates Builder model and staff-type source options)
     display: RateBuilderLabourBreakdown.jsx, mounted at RateBuilderResultPanel.jsx L356
-  The weights can sum above 1 (two staff types each covering most of a group's recovery hours),
-  exactly as Cost Allocation's labour_recovery_rate does on the cost side.
-  Business Outcome still subtracts the assigned-labour mix [CM-9b - see CM-9 NOTE UPDATE 2026-10-13].
+  The weights sum to exactly 1 (since 2026-10-15). Before that they could sum above 1 when several staff
+  types each covered most of the recovery hours. Cost Allocation's own labour_recovery_rate still divides
+  by recovery hours (surplus labour cost stays inside the group cost per hour, by design - D4).
+  The panel's no-recovery-hours gate still reads the group's recovery hours; labour_job_charge = rate x the
+  calculator's own recovery hours (unchanged).
+  Business Outcome subtracts the assigned-labour mix on the same basis [CM-9b CLOSED 2026-10-15 - see s12].
 
 Materials (Path C)
 - sell_revenue = COGS x (1 + markup/100); profit = sell - COGS
@@ -634,6 +643,13 @@ CM-9 NOTE UPDATE 2026-10-13 (OPEN-E). With a group selected the panel no longer 
   asset). They differ when several staff types are each assigned most of the recovery hours.
   Not changed. Owner decision needed on which basis Business Outcome should follow. Calculators
   with no group selected still use the single selected Labour-tab source.
+CM-9b CLOSED 2026-10-15 (idle cost Step 1, owner decision D-IDLE-4). The panel now weights each staff type by
+  its share of the group's TOTAL assigned labour hours, so its labour charge is sum(rate x hours) / sum(hours) -
+  the same as Business Outcome's labour mix. Surplus labour no longer inflates the panel. Scope: any group whose
+  assigned labour hours differ from its recovery hours, which includes manual_hours groups in either direction.
+  Consequence: a deliberate two-person crew shows an AVERAGE rate, not both rates added (same question as O-4 in
+  IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt). Only lib/calculations/rateBuilderLabourByStaffType.js
+  changed. Live figures: RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt Addendum 18.
 CM-2 RESOLVED 2026-10-01. Was: two overhead-per-labour-hour bases coexisted
   by design - Rate Builder put 100% of group overhead on labour (RB-1) while
   Business Outcome split by cost share (F7). Both now call ONE shared

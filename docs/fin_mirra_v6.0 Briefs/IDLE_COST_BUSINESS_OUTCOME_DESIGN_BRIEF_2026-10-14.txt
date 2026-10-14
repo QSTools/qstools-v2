@@ -1,0 +1,186 @@
+IDLE COST IN BUSINESS OUTCOME - DESIGN BRIEF
+DATE: 2026-10-14 (revised later the same day: decisions D-IDLE-3 and D-IDLE-4 added, file locations confirmed, O-2 investigated)
+STATUS: STEP 1 SHIPPED 2026-10-15 (Addendum 18 of RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt). Steps 2 to 4 are design only.
+  Owner decisions D-IDLE-1 to D-IDLE-4 settled in discussion 2026-10-14. O-2 method awaits owner sign-off.
+  Build SEQUENTIALLY, one step, one live check, one commit at a time (section 5).
+BASIS: code read only (read-only sessions, nothing changed, nothing run live). Files read at their current repo state on 2026-10-14.
+SUPERSEDES: item (1) of the "Next" list in the kickoff UPDATE 2026-10-14 (later same day), and the "Idle cost" wording in
+  decision 5 of ASSET SMOKE TEST DESIGN DECISIONS 2026-10-08, where it says idle cost "goes into the working group's net profit".
+  See section 1: it is already there.
+
+===============================================================================
+1. KEY FINDING - NET PROFIT ALREADY CARRIES IDLE COST
+===============================================================================
+Nothing needs adding to any net profit calculation. Doing so would count the cost twice.
+
+Evidence (hooks/useBusinessOutcomePerSourceRevenue.js):
+  - get_group_covered_hours (L274): an asset-driven group's covered hours = MIN(seat hours, sum of assigned labour hours).
+  - build_labour_sources: revenue_hours = covered hours x the staff type's share of labour hours (L348-359), so labour
+    revenue is capped at covered hours.
+  - The same rows carry direct_cost = the FULL assigned_cost (L361) and true_cost = direct_cost + overhead_share (L388).
+  - So when assigned labour hours exceed the asset hours, the extra hours cost money and earn nothing. That loss is
+    already inside the working group's net profit (BO-6, 2026-09-23).
+  - Matches Addendum 8 (2026-10-07): with Paul and Jack in one unit, group modelled revenue = $150 x 1,414 covered hours.
+A labour SHORTFALL reaches net profit the same way (revenue capped at covered hours, via BO-6).
+
+What IS missing is VISIBILITY, not arithmetic:
+  1. idle_labour_hours / idle_labour_cost / idle_labour_warning exist only on the Cost Allocation group cost row
+     (costAllocationGroupCostBuilder.js L189-215) and show only as a Cost Allocation notice. Business Outcome never
+     reads them. The rows reach Business Outcome unmodified (useCostAllocation.js passes operational_group_cost_rows
+     through), so the fields are already available there.
+  2. Business Outcome's Capacity Coverage Gap dollar value only exists when get_group_blended_rate finds a GROUP-level
+     calculator. That function skips every asset-linked calculator (L63-65). A group priced per asset (the current model since
+     Path B) therefore shows NO dollar figure for either shortfall or surplus.
+
+===============================================================================
+2. OWNER DECISIONS (2026-10-14, by discussion)
+===============================================================================
+D-IDLE-1  RATE: idle hours are valued at RAW LABOUR COST per assigned hour = assigned_labour_cost / assigned_labour_hours.
+          Not the blended rate. This is the figure Cost Allocation already holds as idle_labour_cost.
+  Reasoning agreed: the labour cost is already INSIDE the blended rate, so showing both would count the same hours twice.
+  Idle hours are paid wages with no billable job, not a missed sale, so the honest loss is the wage. The figure equals the
+  net profit the idle hours cost. Worked example used: 200 idle hours x $40 = $8,000 (blended $90 x 200 = $18,000 rejected).
+
+D-IDLE-2  GATING (new idle line): the Business Outcome idle display respects the per-working-group tick box
+          "The labour in this working unit is tied to the asset only" (labour_tied_to_asset). Ticked = shown.
+          Not ticked = no idle flag. Each working group is judged on its own tick box, the same rule Cost Allocation applies.
+  Reasoning agreed: an unticked group's labour can flex to other work, so a surplus there (for example two operators on one
+  machine) is not a proven loss. Accepted trade-off: a real idle problem stays unflagged until someone ticks the box.
+
+D-IDLE-3  GATING (existing surplus displays) - settles former open item O-1. The existing "Overstaffed" (wasted_cost) row in the
+          Capacity Coverage Gap table is gated on the SAME per-working-group tick box as the new idle line. The matching
+          "things to check" paragraph for wasted_cost (BusinessOutcomeTruthSituationSummary.jsx L588-593) follows the same rule.
+  Reasoning (owner): both idle displays must agree and not show a confusing number when the box is not ticked.
+  Note: the gap table's surplus figure (|asset hours - labour hours| x labour cost per hour) is the same quantity as
+  idle_labour_cost when the box is ticked, so after gating the two displays agree by construction.
+
+D-IDLE-4  CM-9b BASIS - settles former open item O-3. The Rate Builder labour panel divides by the group's ASSIGNED labour
+          hours, not by the capped recovery hours, so surplus labour can no longer inflate a displayed rate. Business Outcome's
+          labour mix (calculate_labour_mix_charge_rate = sum(rate x assigned hours) / sum(assigned hours)) stays as it is; the panel
+          is brought into line with it.
+  Reasoning (owner): "we can't have an inflated number". Worked example: one operator at $150/hr, 2,000 assigned hours, machine
+  needs 1,000: dividing by recovery hours shows $300/hr; dividing by assigned hours shows $150/hr.
+  Scope of the change (from code): lib/calculations/rateBuilderLabourByStaffType.js, build_labour_staff_type_breakdown,
+  share = assigned_hours / hours_basis (L67), where hours_basis is the recovery hours passed in. Both charge_rate and floor_rate
+  use that share. It changes the result ONLY for groups whose assigned labour hours differ from recovery hours (surplus labour, and
+  manual_hours groups in either direction); a single staff type with assigned hours equal to recovery hours is unchanged.
+  Consequence to be aware of: the panel then shows an hours-weighted AVERAGE rate. A deliberate two-person crew on one machine
+  will no longer show both rates added together. This is the same crew-versus-idle question as O-4 and is accepted.
+  Calc map: CM-9b closes; update calc map s8 (panel labour) and s12 (CM-9 NOTE UPDATE 2026-10-13) in the same commit.
+
+Kept separate (agreed): asset capacity that goes unbilled because labour is SHORT is the existing shortfall line ("Revenue
+not earned"). It is a different measure, valued as revenue, and may fire on the same group as idle. Never combined into one number.
+
+===============================================================================
+3. DESIGN
+===============================================================================
+3.1 No change to any net profit, revenue, cost or Cost Allocation calculation. The idle work is display plus the D-IDLE-3 gate.
+3.2 Source of truth for idle: the Cost Allocation group row fields idle_labour_hours and idle_labour_cost. They are ALREADY zero
+    unless the tick box is set, the group is asset-driven, and assigned labour hours exceed required_asset_hours.
+    Do NOT recompute idle in Business Outcome. Read the row fields.
+3.3 Gap-table gate (D-IDLE-3): in calculate_capacity_coverage_gap (hook L435-510) the surplus branch (gap_hours < 0 for asset-driven
+    groups) is emitted only when the group's labour_tied_to_asset is true. Today the whole branch also requires
+    blended_rate !== null (L473), so surplus is invisible for per-asset-priced groups. Surplus valuation does not use the blended
+    rate, so move it OUT of that condition. The shortfall branch keeps its own rate rule (see O-2).
+    The wording in the things-to-check paragraph ("that current revenue doesn't account for", SituationSummary L592) is misleading,
+    because the cost IS in net profit. Reword when gating: the paid hours earn nothing and the cost is already in the group's net profit.
+3.4 New idle line at the working-group drill-down: idle hours and idle dollars, with a plain line saying the cost is already inside
+    the group's net profit and is shown to explain it. It must not be added to or subtracted from any total.
+3.5 Other tiers: a lightweight flag in "things to check" only (decision 5, 2026-10-08). Cost Allocation keeps its notice unchanged.
+3.6 Rate rule from decision 5 stands: idle cost never moves a charge-out rate. With D-IDLE-4 no displayed rate moves with surplus hours.
+3.7 Data path options for the drill-down (pick at sign-off):
+      (a) RECOMMENDED: the hook returns one new map, idle_labour_by_group { group_id: { hours, cost } }, read straight from
+          operational_group_cost_rows. The drill components look it up by entry key (and by member_group_ids for an area).
+          No change to the three entry builders, so bug class 6b (a builder that rebuilds an object field by field) cannot bite.
+      (b) carry the two fields through merge_groups_by_id, merge_groups_by_id_real_capacity and merge_view_b_groups. Three places,
+          and the area wrapper (wrap_entries_in_areas) sums named fields only, so it would need the new fields added too.
+
+CONFIRMED FILE AND FUNCTION LOCATIONS (read 2026-10-14; line numbers will drift, search by name)
+  hooks/useBusinessOutcomePerSourceRevenue.js
+    calculate_capacity_coverage_gap L435 (surplus branch L478-484, shortfall branch L475-478, blended_rate gate L473)
+    get_group_blended_rate L60 (skips asset-linked calculators L63-65)
+    build_asset_sources L106 (per-asset revenue L193-198), get_group_covered_hours L274
+    hook return: capacity_coverage_gap at L1402; operational_group_cost_rows read at L1043
+  components/business-outcome-truth/BusinessOutcomePerSourceRevenueCard.jsx
+    RankedGroupsDrill L514 (View A). Group row help line L635-639. A selected working group shows its labour/asset children only;
+      there is NO group summary panel. Natural place for the idle line: under the kicker (L597-599) when selected_entry is a working group.
+      A single-working-group area is selected instead of the group (skips_middle_tier), so the line must read the member's id.
+    ViewBGroupsDrill L958 (View B), kicker L1068-1073, entries from merge_view_b_groups L760.
+    mounts: ViewBGroupsDrill L2883, RankedGroupsDrill L2885; gap table mount L2945 (BusinessOutcomeCapacityCoverageGapTable.jsx).
+    UnassignedBlock L303 shows shortfall HOURS only (labour_coverage_gaps). It shows nothing for surplus and is not affected.
+  components/business-outcome-truth/BusinessOutcomeCapacityCoverageGapTable.jsx   (render of the gap table; needs no logic change
+    if the hook emits the right rows; its help text at L63-72 says overstaffing is "real cost the revenue doesn't account for" - reword)
+  components/business-outcome-truth/BusinessOutcomeTruthSituationSummary.jsx
+    "Things to check" capacity gap block L563-636; wasted_cost paragraph L588-593.
+  lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+    merge_groups_by_id L113, merge_groups_by_id_real_capacity L225. Contains no reference to idle_labour_* or required_asset_hours today.
+  lib/selectors/business-outcome/businessOutcomeAreaTierSelectors.js
+    wrap_entries_in_areas L42: area entries sum named fields only.
+  lib/calculations/rateBuilderLabourByStaffType.js   build_labour_staff_type_breakdown (D-IDLE-4)
+  lib/calculations/businessOutcomeAssetCalculatorRates.js   get_asset_calculator_rate L31, get_asset_revenue_hours L49 (O-2)
+  lib/calculations/rateBuilderCalculations.js   calculate_labour_mix_charge_rate L166, get_calculator_recovery_hours L152 (O-2)
+
+===============================================================================
+4. O-2 - SHORTFALL DOLLARS FOR GROUPS PRICED PER ASSET (investigated, method awaiting sign-off)
+===============================================================================
+OWNER DIRECTION (2026-10-14): shortfall stays valued as revenue not earned (the blended, labour-plus-asset basis), not at labour cost.
+  The open problem is only that a per-asset-priced group has no single group rate to read.
+FINDING: there is no need to invent or combine a blended rate. For a per-asset group the model ALREADY leaves out a definite amount
+  of revenue, and it can be computed from the same functions Business Outcome uses:
+    asset part   = sum over the group's assets of  asset calculator rate x asset hours x (1 - MIN(1, covered hours / required_asset_hours))
+                   (get_asset_revenue_hours with full coverage, minus with actual coverage)
+    labour part  = labour mix charge-out rate x shortfall hours       (calculate_labour_mix_charge_rate; shortfall = required_asset_hours - assigned labour hours)
+    shortfall $  = asset part + labour part
+  This is exactly the revenue BO-6 removes, so it reconciles to net profit by construction.
+  Legacy group-calculator groups keep gap hours x group blended rate (unchanged). The same identity holds there (labour + asset inside the rate).
+EDGE CASES to decide at sign-off:
+  E-1 An assigned staff type with no saved charge-out rate makes the labour mix understate (a missing rate counts as 0). Proposal: show the hours
+      and mark the dollar figure "not fully priced" instead of a low number (same no-fallback principle as OPEN-E).
+  E-2 An asset with no calculator lines has no rate (the row already says "Not priced"). Same proposal: hours shown, dollars marked incomplete.
+  E-3 A group with NO labour assigned has no staff type to value the labour part. Show the asset part and say the labour part cannot be valued.
+Why not "combine the calculators into one blended rate": the machine calculators price the machine only (Stage 1b), so a combined rate is
+  asset rates weighted by hours plus a labour mix, which is the same sum as above but would add a second place that defines a group rate.
+
+===============================================================================
+5. BUILD SEQUENCE (owner direction 2026-10-14: sequential, verify each step, never patch everything at once)
+===============================================================================
+Each step: view the live files fresh, one Apply-Patch script with Patched/NOT FOUND/AMBIGUOUS confirmation, npm run build (dev server
+stopped first), one live check in a single sitting against real data, one commit that reverts alone. Do not start the next step until
+the previous one is verified and committed. Stop for confirmation before each step that touches a calculation file.
+  STEP 1  [SHIPPED 2026-10-15, live verified, Addendum 18] D-IDLE-4 (Rate Builder panel basis). One file. Check: Paul + Jack in one unit (assets 1,440 h, labour 2,828 h). Panel labour
+          charge should fall from 294.61/hr to about 150/hr and the floor from 171.32/hr to its hours-weighted average; Paul alone
+          (assigned = recovery hours) must be IDENTICAL before and after. Update calc map s8 / s12 in the same commit.
+  STEP 2  D-IDLE-3 gate + surplus out of the blended-rate condition (hook calculate_capacity_coverage_gap), and reword the two texts.
+          Check: box ticked -> gap table and things-to-check show "Overstaffed" with dollars equal to Cost Allocation's idle_labour_cost,
+          for a per-asset-priced group; box unticked -> neither shows it. No net profit, revenue or rate changes.
+  STEP 3  New idle line at the working-group drill-down (design 3.7 option a), View A and View B. Check: ticked shows hours and dollars
+          that match Cost Allocation; unticked shows nothing; totals on the page unchanged to the cent.
+  STEP 4  O-2 shortfall dollars for per-asset groups (new number). Check: console recompute that the shortfall dollar figure equals
+          (group modelled revenue at full coverage) minus (group modelled revenue now); legacy-calculator groups unchanged.
+Reasoning for the order: steps 1 to 3 change no net profit, and step 1 is the smallest. Step 4 builds a new figure and goes last.
+
+===============================================================================
+6. STILL OPEN
+===============================================================================
+O-2  Sign-off on the method in section 4 and the three edge cases.
+O-4  Crew versus idle: with the box ticked, every surplus hour counts as idle, including a deliberate second crew member. The tick box is
+     the owner's statement that the labour cannot flex. D-IDLE-4 now also treats a crew as an average rate. Accepted for now. Revisit if live
+     use shows false alarms.
+O-5  Idle for labour_hours and manual_hours groups is still not measured (no asset hours to compare against). Unchanged.
+O-6  Data path for the drill-down: option (a) or (b) in 3.7.
+
+===============================================================================
+7. VERIFICATION NOTES (apply to every step)
+===============================================================================
+  - One sitting, one dataset (asset interest uses today's date, so cost drifts daily; see Addendum 5). Take the before figures first.
+  - Test group: Single Labour Working Unit Test with Paul and Jack. Read Cost Allocation's idle figures fresh; do not reuse Addendum 6 numbers.
+  - Compare total net profit, every group's net profit and every rate before and after: only the figures a step is meant to change may move.
+  - Restore the baseline test data afterwards (Jack back in 2nd Labour Test Unit, tick box unticked).
+  - Follow kickoff s4: build after each batch, view files fresh before patching, no npm run build while npm run dev is running.
+  - Calc map: step 1 changes a displayed calculation (update s8 and s12); step 4 adds a calculation (update s9.9). Steps 2 and 3 are
+    display or gating only; note them in s9.9. Re-run extract_calc_map.py after steps 1 and 4 per the s4 checklist.
+
+===============================================================================
+8. SCOPE
+===============================================================================
+Remaining scope-freeze items after this: S1 (P&L asset-interest live check). Step F parked, fresh baseline needed first.
