@@ -425,8 +425,10 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 //     REMOVED from modelled revenue (covered-hours cap); the gap is the
 //     revenue NOT earned, valued at the all-in calculator rate (CM-1)
 //     (key name revenue_at_risk kept so existing consumers still match).
-//   asset-driven, gap < 0: genuinely overstaffed - extra labour paid,
-//     revenue capped at seat hours regardless of headcount (wasted_cost).
+//   asset-driven, gap < 0: overstaffed - extra labour paid, revenue capped at
+//     seat hours regardless of headcount (wasted_cost). Shown ONLY when the
+//     working unit's labour is marked tied to the asset (D-IDLE-3, 2026-10-15);
+//     valued at Cost Allocation's idle_labour_cost, so it needs no calculator.
 //   labour-driven, gap > 0: asset capacity not being converted to
 //     revenue - a genuine opportunity (opportunity).
 //   labour-driven, gap < 0: labour logged beyond the asset's actual
@@ -470,18 +472,20 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
     let gap_type = "none";
     let gap_dollar_value = null;
 
-    if (gap_hours !== 0 && blended_rate !== null) {
+    // D-IDLE-3 (2026-10-15): asset-driven SURPLUS labour is shown only when the owner has
+    // marked this working unit's labour as tied to the asset. Its dollar value is the idle
+    // labour cost Cost Allocation already holds, so it no longer needs a group calculator.
+    // Net profit is untouched: this cost is already inside it (revenue is capped at covered hours).
+    if (is_asset_driven && gap_hours < 0) {
+      if (group.labour_tied_to_asset === true && to_number(group.idle_labour_cost) > 0) {
+        gap_type = "wasted_cost";
+        gap_dollar_value = round_currency(to_number(group.idle_labour_cost));
+      }
+    } else if (gap_hours !== 0 && blended_rate !== null) {
       if (is_asset_driven) {
-        if (gap_hours > 0) {
-          gap_type = "revenue_at_risk";
-          gap_dollar_value = round_currency(gap_hours * blended_rate); // CM-1: blended_rate is already all-in
-        } else {
-          gap_type = "wasted_cost";
-          gap_dollar_value =
-            labour_true_cost_rate !== null
-              ? round_currency(Math.abs(gap_hours) * labour_true_cost_rate)
-              : null;
-        }
+        // gap_hours > 0 here (asset-driven surplus is handled above).
+        gap_type = "revenue_at_risk";
+        gap_dollar_value = round_currency(gap_hours * blended_rate); // CM-1: blended_rate is already all-in
       } else {
         if (gap_hours > 0) {
           gap_type = "opportunity";

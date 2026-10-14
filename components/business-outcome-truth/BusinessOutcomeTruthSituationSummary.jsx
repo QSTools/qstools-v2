@@ -587,9 +587,9 @@ function build_situation_summary({
         ]);
       } else if (g.gap_type === "wasted_cost") {
         things_to_check.push([
-          { type: "text", text: `${g.group_name} is currently overstaffed relative to what it runs: assigned labour exceeds the asset's hours by about ${abs_hours}, costing about ` },
+          { type: "text", text: `${g.group_name} has labour tied to its asset that the asset does not need: assigned labour exceeds the asset's hours by about ${abs_hours}, so about ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
-          { type: "text", text: " that current revenue doesn't account for." },
+          { type: "text", text: " of paid hours have no asset work to recover them. That cost is already inside this group's net profit - it is shown here to explain it." },
         ]);
       } else if (g.gap_type === "opportunity") {
         things_to_check.push([

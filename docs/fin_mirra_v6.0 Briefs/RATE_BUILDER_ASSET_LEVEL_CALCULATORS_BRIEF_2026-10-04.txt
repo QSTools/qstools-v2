@@ -926,3 +926,33 @@ CALC MAP: s8 (panel labour) and s12 (CM-9b closed) updated in the same commit; e
 TEST DATA: Jack restored to 2nd Labour Test Unit after the check (baseline).
 NEXT (idle cost, one step at a time): Step 2 gate the gap table and move surplus out of the blended-rate condition; Step 3 idle line at
   the working-group drill-down; Step 4 shortfall dollars for per-asset groups. See the design brief section 5.
+
+ 19 (2026-10-15) - CAPACITY COVERAGE GAP "OVERSTAFFED" GATED ON THE TIED-TO-ASSET BOX [SHIPPED] idle cost Step 2 (D-IDLE-3)
+Commit message: "Capacity coverage gap: show overstaffing only for tied working units, value at idle labour cost (D-IDLE-3)". Hash: see git log.
+Design: IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (section 2 D-IDLE-3, section 5 Step 2). No net profit, revenue or rate changes.
+
+PROBLEM: the gap table "Overstaffed" row and the things-to-check paragraph (a) appeared for any asset-driven group with surplus labour, whether or
+  not the owner had said the labour is tied to the asset, (b) were valued at gap hours x labour_true_cost_rate and only when the group had a
+  blended rate, so per-asset-priced groups (no group calculator) showed no dollars, and (c) said the cost was something "current revenue doesn't
+  account for", which is wrong: the idle cost is already inside working-group net profit (revenue capped at covered hours, labour cost in full).
+BUILT (3 files, 4 patches): hooks/useBusinessOutcomePerSourceRevenue.js calculate_capacity_coverage_gap (def L437; new surplus branch L475-484):
+  asset-driven AND gap_hours < 0 is handled first, ahead of the blended_rate condition. It sets wasted_cost only when group.labour_tied_to_asset
+  === true AND to_number(group.idle_labour_cost) > 0, valued at round_currency(idle_labour_cost) (Cost Allocation's own figure, raw labour cost
+  per assigned hour, D-IDLE-1). Otherwise gap_type stays none. Shortfall (revenue_at_risk), labour-driven opportunity and data_check branches are
+  unchanged. BusinessOutcomeTruthSituationSummary.jsx: paragraph reworded (labour tied to its asset that the asset does not need; paid hours have
+  no asset work to recover them; cost already inside the group's net profit). BusinessOutcomeCapacityCoverageGapTable.jsx: help text reworded.
+  Readers of capacity_coverage_gap checked by search before patching. Build clean (only the known unrelated next.config.ts NFT warning).
+VERIFIED LIVE (owner, :3004, 2026-10-15, console report read from the rendered page, one sitting; Single Labour Working Unit Test, Paul + Jack):
+  Box UNTICKED: gap row for the unit is none with no dollars; Overstaffed paragraph not shown.
+  Box TICKED: gap row wasted_cost, gap -1,388.23 h, $119,139.90, equal to the Cost Allocation notice ("1388 extra paid hours cost about $119140 a
+    year"); the NEW paragraph wording is shown.
+  All five headline totals identical across unticked, ticked and the restored baseline (headline net profit -241,860.92, real-capacity net profit
+    -241,860.93, modelled revenue 141,412, true cost 383,272.92). The display adds nothing to net profit.
+  NOTE: the planned pre-patch "before" run was skipped because the patch was applied first. It was replaced by (1) the caller search before
+    patching and (2) ticked versus unticked total equality above.
+  Baseline restored afterwards (Jack back in 2nd Labour Test Unit, box unticked): totals match, no Overstaffed row.
+LIMITS: asset-driven groups only (labour_hours and manual_hours groups still show no idle measure, idle-cost brief O-5). The gap row is hours-based
+  per group, as before; the Step 3 drill-down line is separate. Shortfall dollars for per-asset-priced groups are still null (Step 4, O-2).
+CALC MAP: s9.9 updated in the same commit (surplus gated and display-only; wasted_cost now idle_labour_cost). extract_calc_map.py re-run at commit.
+NEXT (one step at a time): Step 3 idle hours and dollars line at the working-group drill-down (owner picks data path, design brief 3.7); Step 4
+  shortfall dollars for per-asset groups (O-2 method awaits sign-off).

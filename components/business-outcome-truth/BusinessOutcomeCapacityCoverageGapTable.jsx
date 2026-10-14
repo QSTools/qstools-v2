@@ -65,8 +65,10 @@ export default function BusinessOutcomeCapacityCoverageGapTable({ capacity_cover
         asset-adjusted figure used elsewhere, so this never double-counts). Works both directions:
         labour short of asset hours means the asset can only earn for the hours labour covers - the
         uncovered hours are left out of revenue everywhere on this page, and the value shown is the
-        revenue not earned (asset plus labour rate). Labour exceeding asset hours flags overstaffing -
-        real cost the revenue doesn&apos;t account for. Only asset-driven groups are shown - a pure
+        revenue not earned (asset plus labour rate). Labour exceeding asset hours is flagged as
+        overstaffing only for working units marked as having labour tied to the asset in Cost
+        Allocation; those paid hours earn nothing, and their cost is already inside the unit&apos;s
+        net profit. Only asset-driven groups are shown - a pure
         labour group has no asset hours to compare against. The fix is to assign more labour in Cost
         Allocation, or to test the change in Business Modelling.
       </div>

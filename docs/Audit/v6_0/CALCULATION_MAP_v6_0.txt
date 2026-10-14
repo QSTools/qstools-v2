@@ -8,6 +8,9 @@ STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
   supersedes the older 'hook numbers NOT re-checked' notes below for those sections. Selector,
   card, View B and Business Modelling refs still NOT re-checked. Assumed Capacity ledger fix
   noted in the 2026-10-10 update block (b5d1443).
+  UPDATED 2026-10-15 (idle cost Step 2): s9.9 surplus (wasted_cost) gated on the tied-to-asset box and valued at idle_labour_cost.
+  Extract re-run same day (2,523 functions, 2,247 calculation statements, 99 not-parsed declarations, 5 outside any function); s9.9 line
+  numbers refreshed from that dump (other s9 hook numbers not re-checked).
   UPDATED 2026-10-06 (D1 session): group cost row gained asset_run_pattern, required_asset_hours and a labour
   cap on recovery hours for one-after-another groups - see the Group cost row entry and CM-9. Line numbers in
   those entries are approximate; refresh from a new extract before quoting.
@@ -451,13 +454,16 @@ MATERIALS (in the main hook)
 - health_ratio = smoothed net profit / (sum of each source's positive
   standalone profit)    businessModellingIndependentCalculations.js calculateGaugeInput L276-285
 
-9.9 Capacity coverage gap (calculate_capacity_coverage_gap)
-- gap_hours = asset hours - labour hours                                  L458
+9.9 Capacity coverage gap (calculate_capacity_coverage_gap L437-514)
+- gap_hours = asset hours - labour hours                                  L470
 - asset-driven, labour short ("revenue not earned") = gap hours x ALL-IN
-  blended rate (labour is already inside it - CM-1 fixed 2026-09-25)      L467
-- labour over = |gap| x labour true cost rate (wasted cost)               L470
+  blended rate (labour is already inside it - CM-1 fixed 2026-09-25)      L488
+- asset-driven, labour over (wasted_cost, display only): shown only if
+  labour_tied_to_asset is ticked; = Cost Allocation idle_labour_cost,
+  independent of any group calculator (D-IDLE-3, 2026-10-15). Cost is
+  already inside net profit; nothing is added to it                    L475-484
 - labour-driven: opportunity = gap hours x blended rate; data_check =
-  |gap| x labour true cost rate                                           L478-481
+  |gap| x labour true cost rate                                           L492-495
 
 9.10 Labour Recovery card (hooks/useBusinessOutcomeLabourRecovery.js)
 - overhead per hour per staff type = sum of overhead_share / sum of hours
