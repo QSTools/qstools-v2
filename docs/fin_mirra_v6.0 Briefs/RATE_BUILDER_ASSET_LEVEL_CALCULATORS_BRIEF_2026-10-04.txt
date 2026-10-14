@@ -845,3 +845,52 @@ TEST DATA at the time: Jack was moved into Single Labour Working Unit Test (base
 CALC MAP: extract_calc_map.py re-run 2026-10-13; s8 panel entry and CM-9 updated (CM-9b open).
 OPEN-E: CLOSED. Remaining scope-freeze items: asset-pricing hard block, idle cost into net profit,
   S1. Step F still parked, fresh baseline needed first.
+
+ADDENDUM 17 (2026-10-14) - ASSET PRICING HARD BLOCK [SHIPPED] commit dea2013
+
+PROBLEM: with a group's labour incomplete (Addendum 16) the Customer Charge Calculator still let the user
+  add and edit charge lines; only a warning showed. A user could build a whole asset price on labour that
+  was not priced yet.
+DECISIONS (owner, 2026-10-14, taken one at a time): (1) the block stands, as sequence enforcement, and the
+  message must say why and name the Labour Rates Builder tab; (2) the message names the staff type
+  category only, never a person; (3) locked: add line, edit name/unit/rate/quantity, set output driver;
+  Delete stays available; (4) two reasons, two messages: an unpriced staff type points at Labour Rates
+  Builder, no labour assigned or no recovery hours points at Cost Allocation; no unattended-asset
+  exception; (5) lines and totals already saved are unchanged by the lock, Business Outcome keeps
+  counting them, nothing is zeroed; (6) legacy group-level calculators get the same rule; (7) a calculator
+  with no group selected is never blocked (still the single Labour-tab source).
+BUILT: lib/calculations/rateBuilderPricingBlock.js (get_asset_pricing_block, reads labour_breakdown from
+  Addendum 16); components/rate-builder/line-calculator/RateBuilderPricingBlockNotice.jsx;
+  RateBuilderLineCalculator.jsx computes the block and passes pricing_block / is_locked;
+  RateBuilderAddLinePanel.jsx and RateBuilderChargeList.jsx wrap their controls in a fieldset that is
+  disabled when blocked. Delete is a span outside the form controls, so it keeps working.
+  useRateBuilderLineCalculator.js untouched (612 lines). addRateLine itself is not guarded: UI only.
+VERIFIED LIVE (owner, :3004, 2026-10-14; console reports read from the rendered page; calculator = Single
+  Labour Working Unit Test / RB1 Test Asset, 2 lines):
+  - Locked: Supervisor / Team Lead charge-out rate cleared. Notice shown, ends "Missing: Supervisor / Team
+    Lead". Add and list fieldsets disabled, 5 of 5 add-form and 10 of 10 list controls disabled, Delete
+    present on every line (2 of 2), labour warning shown. 10 of 10 PASS, run twice.
+  - Unlocked: rate restored. Notice hidden, fieldsets enabled, 5 add-form and 10 list controls enabled,
+    Delete 2 of 2, labour warning absent. 9 of 9 PASS. (An earlier unlocked run was taken on the default
+    unlinked "2-inch line pump calculator" with no group selected; it proves only the no-group rule and
+    was discarded. See NOTED below.)
+  - By hand: typing in the add form and the line editor is refused while locked. A throwaway line
+    (LOCK TEST) was added while unlocked, the group was then locked, and Delete removed the line while
+    locked. The notice stayed, as it should. Afterwards the calculator was back to its original 2 lines.
+  - No labour: Paul removed from the group in Cost Allocation. The screen showed the notice "This group has
+    no productive labour assigned. Assign labour to the group in Cost Allocation first." (read on screen by
+    the owner; the console check was not run for this case). Paul then restored.
+  - Logic: 11 of 11 checks passed on the real rateBuilderPricingBlock.js and rateBuilderLabourByStaffType.js
+    run outside the app with made-up groups: no group, complete group, no labour, only inactive assignments
+    (person moved out), no recovery hours, unpriced staff type, duplicates listed once, rate saved but no
+    cost rate found.
+NOT VERIFIED: the no-recovery-hours message was checked in the logic run only, not on screen.
+NOTED, NOT CHANGED: returning to the Customer Charge Calculator tab always reopens the first calculator in
+  the list (the unlinked "2-inch line pump calculator"), so the group and asset must be chosen again each
+  time. This cost several wrong test readings. Existing behaviour, not part of this change.
+KNOWN GAP (not covered by the block): a calculator whose group or asset is deleted in Cost Allocation is
+  not gated, and Business Outcome stops counting its lines (Addendum 15 behaviour). Candidate follow-up:
+  a notice for orphaned calculators. Read from code, not tested live.
+CALC MAP: no calculation changed, so the s4 checklist does not apply.
+HARD BLOCK: CLOSED. Remaining scope-freeze items: idle cost into net profit, S1. CM-9b still open (owner
+  decision on Business Outcome's labour basis). Step F parked, fresh baseline needed first.
