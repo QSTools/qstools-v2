@@ -1015,4 +1015,25 @@ WHY IT WAS HARD TO FIND (not a bug): the line only shows for a group with idle h
   none, so nothing shows. The line appeared once the second staff type was moved into Single Labour (2,828.23 h against 1,440 h, 1,388.23 h idle).
   A short group (labour below asset hours) shows nothing here; that is Step 4 territory (shortfall dollars).
 VERIFIED: owner saw the highlighted line live in View A (Single Labour) after patch preflight, Patched, BATCH OK and five asserts; build and commit follow in the same block.
-STILL OPEN: multi-group-area path (open a member group of an area with several groups) not exercised live.
+SETTLED by Addendum 22: the multi-group-area path was exercised live, see below.
+
+ADDENDUM 22 (2026-10-15) - MULTI-GROUP-AREA PATH VERIFIED LIVE [SHIPPED] idle cost Step 3 closed
+WHAT: the one open item from Addendums 20 and 21 (member group of an area with several working groups) was tested on live data. No code change.
+SETUP: Single Labour area with two working groups. Single Labour Working Unit Test: Supervisor / Team Lead (Paul) 1,414.12 h, one asset (RB1 Test Asset), 25.88 h SHORT
+  of its asset hours (1,440), so no idle entry (gap_type none; short groups are Step 4). New 2nd Labour Group test: Operator / Delivery Staff (Jack) 1,414.12 h,
+  one asset (RB1 Pump, 960 h), 454.12 h over, so gap_type wasted_cost. Tied-to-asset box ticked on both groups for the ticked runs.
+NOTE: an empty working group does not appear in Business Outcome at all. With the second group empty, the area stayed a single-group area and skipped the group
+  level (that is the Addendum 20 single-group path again). The second group needed a staff member and an asset before the area showed two groups.
+RESULT (one sitting, one fresh run list, 8 runs, FAIL count 0 in every run):
+  m-unticked (reference, both boxes unticked): no line, map empty.
+  Boxes ticked, View A: area only 0 lines; Single Labour Working Unit Test 0 lines (short, no idle); New 2nd Labour Group test 1 line, 454.12 h / 42,515.84, equal to the
+    gap table, text shows $42,516, says already inside net profit and not added to any total.
+  View B: area opens with the idle group already selected (View B selects the first group), so 1 line, same figures; Single Labour Working Unit Test 0 lines;
+    New 2nd Labour Group test 1 line, same figures.
+  Staffing and every total identical to m-unticked in every ticked run: headline -241,860.91, real capacity -241,860.92, View B -241,860.92, modelled revenue 141,412,
+    independent modelled revenue 524,464.72, true cost 383,272.92; group final net profit Single Labour Working Unit Test -146,327.91, New 2nd Labour Group test -95,533.01.
+  The one-cent difference between headline -241,860.91 and real capacity -241,860.92 appears whenever there are two groups; it is not caused by the idle line.
+LEARNED (test design): window.__idle_runs must be cleared before a new sequence, otherwise idle_check compares against the first run of that label from an earlier
+  sequence and reports staffing FAILs that are artefacts. A prediction of 0 lines at View B area level was wrong; View B preselects the first group.
+STATUS: idle cost Step 3 is complete (Addendums 20, 21, 22). Nothing open. Next: Step 4 shortfall dollars for per-asset groups (O-2 method awaits sign-off,
+  design brief s4, E-1 to E-3); then re-run extract_calc_map.py; then S1 live check; Step F parked.
