@@ -95,7 +95,10 @@ export default function BusinessOutcomeCapacityCoverageGapTable({ capacity_cover
                 ) : (
                   <>
                     {label}
-                    {row.gap_dollar_value !== null ? ` (${format_currency(row.gap_dollar_value)}/yr)` : ""}
+                    {row.gap_dollar_value !== null ? ` (${row.gap_dollar_is_complete === false ? "at least " : ""}${format_currency(row.gap_dollar_value)}/yr)` : ""}
+                    {row.gap_dollar_is_complete === false && Array.isArray(row.gap_dollar_incomplete_reasons) && row.gap_dollar_incomplete_reasons.length > 0
+                      ? ` - not fully priced: ${row.gap_dollar_incomplete_reasons.join("; ")}`
+                      : ""}
                   </>
                 )}
               </span>

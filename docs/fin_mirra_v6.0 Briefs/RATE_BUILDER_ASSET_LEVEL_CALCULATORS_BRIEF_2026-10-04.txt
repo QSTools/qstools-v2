@@ -1037,3 +1037,46 @@ LEARNED (test design): window.__idle_runs must be cleared before a new sequence,
   sequence and reports staffing FAILs that are artefacts. A prediction of 0 lines at View B area level was wrong; View B preselects the first group.
 STATUS: idle cost Step 3 is complete (Addendums 20, 21, 22). Nothing open. Next: Step 4 shortfall dollars for per-asset groups (O-2 method awaits sign-off,
   design brief s4, E-1 to E-3); then re-run extract_calc_map.py; then S1 live check; Step F parked.
+
+ADDENDUM 23 (2026-10-15) - SHORTFALL DOLLARS FOR PER-ASSET-PRICED GROUPS [SHIPPED] idle cost Step 4 (O-2)
+Commit message: "Capacity coverage gap: value revenue not earned for per-asset-priced groups (O-2)". Hash: see git log.
+Design: IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (section 4, section 5 Step 4). Display only: no net profit, revenue, cost or rate changes.
+
+PROBLEM: the Capacity Coverage Gap showed shortfall HOURS but no dollars for a group priced per asset, because get_group_blended_rate skips asset-linked
+  calculators and so finds no single group rate. The model does leave out a definite amount of revenue (BO-6 covered-hours cap), it just was not shown.
+METHOD (signed off): shortfall dollars = the revenue BO-6 removes, built from the same helpers build_asset_sources uses:
+  asset part  = sum over assets of asset rate x asset hours x (1 - covered / required)      (get_asset_calculator_rate, get_asset_revenue_hours)
+  labour part = labour mix charge-out rate x (required - covered)                            (calculate_labour_mix_charge_rate)
+  required = required_asset_hours (SUM one-after-another, MAX together), covered = get_group_covered_hours.
+OWNER DECISIONS (2026-10-15, by discussion, on top of design brief section 4):
+  1. Incomplete pricing (E-1 unrated staff type, E-2 unpriced asset, E-3 no labour): show what CAN be priced as "at least $X" and list what is missing.
+     Chosen over showing hours only, so a large shortfall is never shown as a blank.
+  2. Overrides: the figure follows the Business Modelling override pattern. Business Outcome's own baseline passes no overrides, so it only ever uses saved
+     rates; Business Modelling reuses the same functions with its own overrides. The two never cross.
+  3. No-labour group with sequential assets: the dollar figure uses required_asset_hours (SUM), the basis of the real revenue cap, so it reconciles to net profit.
+     The hours column keeps its existing basis (MAX) and the mismatch is a logged follow-up (an explanatory note), not built.
+BUILT (4 files, 11 patches): NEW lib/calculations/businessOutcomeShortfallDollars.js calculate_per_asset_shortfall_dollars({ group, calculators,
+  charge_out_rate_by_staff_type_id, covered_hours }) returns { dollars, is_complete, incomplete_reasons }. hooks/useBusinessOutcomePerSourceRevenue.js:
+  import; calculate_capacity_coverage_gap takes charge_out_rate_by_staff_type_id and blended_rate_overrides as explicit parameters (bug class 6a); new branch
+  for an asset-driven group with gap_hours > 0, no group blended-rate override and group_has_asset_calculators; the legacy branch also accepts a modelled
+  blended-rate override; rows carry gap_dollar_is_complete and gap_dollar_incomplete_reasons; the call site passes the same charge-out rates the labour rows
+  use (live plus overrides). BusinessOutcomeCapacityCoverageGapTable.jsx and BusinessOutcomeTruthSituationSummary.jsx show "at least" and the missing items.
+VERIFIED LIVE (owner, localhost, 2026-10-15, one sitting; console check through a temporary debug line, since removed). Single Labour Working Unit Test, Paul alone:
+  Shortfall: labour 1,414.12 h against required 1,440 h, gap 25.88 h. Shown 9,034.52, complete. Recompute (asset rate x hours + labour mix x required - group
+    revenue now) = 9,037.95; difference -3.43, inside the cent-rounding tolerance (the asset rate is stored to the cent and applied to about 1,440 h).
+    Page: gap table "Revenue not earned ($9,035/yr)"; things-to-check "$9,035 a year of revenue is not being earned". Totals (asset plus labour source rows):
+    modelled revenue 705,711.55, true cost 272,944.52, net profit 432,767.03.
+  No labour (labour removed): labour 0 h, shown 286,628.57, complete false, reason "no labour is assigned, so the labour part cannot be valued". Recompute
+    286,632.00; difference -3.43 (same rounding). Page: "at least $286,629" in the table and in things-to-check, with the note. Totals moved as expected because the
+    labour was removed (modelled revenue 212,117.50, true cost 162,616.12, net profit 49,501.38).
+  Restored: shown 9,034.52, complete, totals back to 705,711.55 / 272,944.52 / 432,767.03.
+  git diff --stat: hook +34 lines, gap table 5, situation summary 7, plus the new file. The planned pre-patch "before" run was not taken; net profit code is untouched
+    (the hook patches are limited to the import, calculate_capacity_coverage_gap and its call site).
+NOT EXERCISED LIVE: a legacy group-calculator group (none in the test data; that branch is unchanged for the baseline); the Business Modelling override path;
+  E-1 (an assigned staff type with no charge-out rate) and E-2 (an asset with no Rate Builder price) - the code paths are the same "incomplete" route that the
+  no-labour test exercised. Test these when such data exists.
+LIMITS: asset-driven groups only. A group with nothing priceable shows hours with no dollars. Figures are yearly.
+FOLLOW-UP (logged, not built): note beside the gap table for sequential no-labour groups: hours shown are the peak at one time (MAX), the dollar figure covers
+  the full sequential run (SUM).
+CALC MAP: s9.9 updated (per-asset shortfall). extract_calc_map.py re-run and line numbers refreshed at commit.
+NEXT: re-run extract_calc_map.py; S1 live check (P&L asset-interest); Step F parked, fresh baseline needed first.

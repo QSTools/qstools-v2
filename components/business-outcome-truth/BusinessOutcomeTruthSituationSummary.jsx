@@ -572,18 +572,19 @@ function build_situation_summary({
 
     flagged_gaps.forEach((g) => {
       const abs_hours = Math.round(Math.abs(g.gap_hours));
-      const abs_dollars = format_currency(Math.abs(g.gap_dollar_value));
+      const incomplete_note = g.gap_dollar_is_complete === false && Array.isArray(g.gap_dollar_incomplete_reasons) && g.gap_dollar_incomplete_reasons.length > 0 ? ` (Not fully priced: ${g.gap_dollar_incomplete_reasons.join("; ")}.)` : "";
+      const abs_dollars = (g.gap_dollar_is_complete === false ? "at least " : "") + format_currency(Math.abs(g.gap_dollar_value));
       if (g.gap_type === "revenue_at_risk" && g.labour_hours === 0) {
         things_to_check.push([
           { type: "text", text: `${g.group_name} has no labour assigned, so ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
-          { type: "text", text: ` of potential revenue is not being counted: this asset could run ${abs_hours} hours a year, but nobody is there to run it, so it earns nothing here while its costs still count. Assign labour to this working unit in Cost Allocation, or confirm the asset isn't meant to be productive.` },
+          { type: "text", text: ` of potential revenue is not being counted: this asset could run ${abs_hours} hours a year, but nobody is there to run it, so it earns nothing here while its costs still count. Assign labour to this working unit in Cost Allocation, or confirm the asset isn't meant to be productive.${incomplete_note}` },
         ]);
       } else if (g.gap_type === "revenue_at_risk") {
         things_to_check.push([
           { type: "text", text: `${g.group_name} has a scheduling gap, not a pricing one: assigned labour covers about ${abs_hours} fewer hours than this asset runs each year, so ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
-          { type: "text", text: " of revenue is not being earned - those hours are left out of the figures above because nobody is assigned to cover them." },
+          { type: "text", text: " of revenue is not being earned - those hours are left out of the figures above because nobody is assigned to cover them." + incomplete_note },
         ]);
       } else if (g.gap_type === "wasted_cost") {
         things_to_check.push([

@@ -1,5 +1,9 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-15 (idle cost Step 4, O-2): s9.9 gained the per-asset shortfall dollars (display only, no net profit change).
+  Extract re-run same day (100 not-parsed declarations, all local constants; 5 statements outside any function; the new file
+  lib/calculations/businessOutcomeShortfallDollars.js parsed). s9.9 hook line numbers refreshed from the file. Other hook sections
+  keep their earlier numbers.
   UPDATED 2026-10-15 (idle cost Step 1, D-IDLE-4): the Rate Builder result panel's per-staff-type labour
   now weights by TOTAL assigned labour hours, not recovery hours - s8 "Result panel labour" and CM-9b in
   s12 updated. Line numbers for rateBuilderLabourByStaffType.js refreshed from the file; extract re-run at commit.
@@ -456,21 +460,42 @@ MATERIALS (in the main hook)
 - health_ratio = smoothed net profit / (sum of each source's positive
   standalone profit)    businessModellingIndependentCalculations.js calculateGaugeInput L276-285
 
-9.9 Capacity coverage gap (calculate_capacity_coverage_gap L437-514)
-- gap_hours = asset hours - labour hours                                  L470
-- asset-driven, labour short ("revenue not earned") = gap hours x ALL-IN
-  blended rate (labour is already inside it - CM-1 fixed 2026-09-25)      L488
+9.9 Capacity coverage gap (calculate_capacity_coverage_gap L439-536)
+- gap_hours = asset hours - labour hours                                  L472
+- asset-driven, labour short, group calculator or modelled blended-rate
+  override ("revenue not earned") = gap hours x ALL-IN
+  blended rate (labour is already inside it - CM-1 fixed 2026-09-25)      L507-508
 - asset-driven, labour over (wasted_cost, display only): shown only if
   labour_tied_to_asset is ticked; = Cost Allocation idle_labour_cost,
   independent of any group calculator (D-IDLE-3, 2026-10-15). Cost is
-  already inside net profit; nothing is added to it                    L475-484
+  already inside net profit; nothing is added to it                    L486-490
 - idle hours and dollars line at the working-group drill-down (display only,
   idle cost Step 3, 2026-10-15): the same Cost Allocation idle_labour_hours /
   idle_labour_cost, read via per_source.idle_labour_by_group (tied groups only,
   businessOutcomeIdleLabourSelectors.js); shown in View A and View B; adds
   nothing to any total
+- asset-driven, labour short, group priced PER ASSET (asset-linked Rate
+  Builder calculators, so no single group rate exists) - O-2, 2026-10-15.
+  Display only; nothing reads it. It is the revenue BO-6 removes, built from
+  the same helpers as build_asset_sources:
+    asset part  = sum over assets of asset rate x asset hours x (1 - covered / required)
+    labour part = labour mix charge-out rate x (required - covered)
+  required = required_asset_hours (SUM one-after-another, MAX together);
+  covered = get_group_covered_hours. The charge-out rates passed in include
+  Business Modelling overrides when supplied (Business Outcome's baseline
+  passes none). If an asset has no Rate Builder price, an assigned staff type
+  has no charge-out rate, or no labour is assigned, the priceable part is
+  shown as "at least $X" with the missing items listed
+  (gap_dollar_is_complete, gap_dollar_incomplete_reasons). A modelled group
+  blended-rate override, or a legacy group calculator, keeps gap hours x
+  blended rate. lib/calculations/businessOutcomeShortfallDollars.js
+  calculate_per_asset_shortfall_dollars. Hook branch L491-503; call site L1428.
+  Known, deliberate: for a group with no labour the table's hours use
+  group_recovery_hours (MAX of asset hours) while this dollar figure uses
+  required hours (SUM for one-after-another). Explanatory note logged as a
+  follow-up, not built.
 - labour-driven: opportunity = gap hours x blended rate; data_check =
-  |gap| x labour true cost rate                                           L492-495
+  |gap| x labour true cost rate                                           L510-518
 
 9.10 Labour Recovery card (hooks/useBusinessOutcomeLabourRecovery.js)
 - overhead per hour per staff type = sum of overhead_share / sum of hours

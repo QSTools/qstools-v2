@@ -103,6 +103,7 @@ function get_group_blended_rate(group, calculators) {
 // Outcome figure moves after this change, the extraction is wrong.
 import { split_group_overhead } from "@/lib/calculations/shared/overheadSplit";
 import { group_has_asset_calculators, get_asset_calculator_rate, get_asset_revenue_hours } from "@/lib/calculations/businessOutcomeAssetCalculatorRates";
+import { calculate_per_asset_shortfall_dollars } from "@/lib/calculations/businessOutcomeShortfallDollars";
 
 function build_asset_sources(operational_group_cost_rows, calculators, operational_group_recovery_rows = [], asset_interest_by_id = new Map(), asset_depreciation_by_id = new Map(), blended_rate_overrides = {}, charge_out_rate_by_staff_type_id = new Map()) {
   const rows = [];
@@ -435,7 +436,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
 //   labour-driven, gap < 0: labour logged beyond the asset's actual
 //     running time - a data/scheduling oddity, not a cost claim
 //     (data_check).
-function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators) {
+function calculate_capacity_coverage_gap(operational_group_cost_rows, calculators, charge_out_rate_by_staff_type_id = new Map(), blended_rate_overrides = {}) {
   return operational_group_cost_rows
     .filter((group) => {
       const asset_assignments = Array.isArray(group.asset_group_assignments)
@@ -472,6 +473,11 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
 
     let gap_type = "none";
     let gap_dollar_value = null;
+    let gap_dollar_is_complete = true;
+    let gap_dollar_incomplete_reasons = [];
+    const blended_override_value = blended_rate_overrides?.[group.group_id];
+    const has_blended_override =
+      blended_override_value !== undefined && blended_override_value !== null && blended_override_value !== "";
 
     // D-IDLE-3 (2026-10-15): asset-driven SURPLUS labour is shown only when the owner has
     // marked this working unit's labour as tied to the asset. Its dollar value is the idle
@@ -482,11 +488,24 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
         gap_type = "wasted_cost";
         gap_dollar_value = round_currency(to_number(group.idle_labour_cost));
       }
-    } else if (gap_hours !== 0 && blended_rate !== null) {
+    } else if (is_asset_driven && gap_hours > 0 && !has_blended_override && group_has_asset_calculators(group.group_id, calculators)) {
+      // O-2 (2026-10-15): per-asset-priced group - there is no single group rate, so the revenue
+      // BO-6 removes is valued from the asset rates and the labour mix. Display only.
+      const shortfall = calculate_per_asset_shortfall_dollars({
+        group,
+        calculators,
+        charge_out_rate_by_staff_type_id,
+        covered_hours: get_group_covered_hours(group),
+      });
+      gap_type = "revenue_at_risk";
+      gap_dollar_is_complete = shortfall.is_complete;
+      gap_dollar_incomplete_reasons = shortfall.incomplete_reasons;
+      gap_dollar_value = shortfall.dollars > 0 || shortfall.is_complete ? round_currency(shortfall.dollars) : null;
+    } else if (gap_hours !== 0 && (blended_rate !== null || (is_asset_driven && has_blended_override))) {
       if (is_asset_driven) {
         // gap_hours > 0 here (asset-driven surplus is handled above).
         gap_type = "revenue_at_risk";
-        gap_dollar_value = round_currency(gap_hours * blended_rate); // CM-1: blended_rate is already all-in
+        gap_dollar_value = round_currency(gap_hours * (has_blended_override ? to_number(blended_override_value) : blended_rate)); // CM-1: blended_rate is already all-in
       } else {
         if (gap_hours > 0) {
           gap_type = "opportunity";
@@ -510,6 +529,8 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
       gap_hours,
       gap_type,
       gap_dollar_value,
+      gap_dollar_is_complete,
+      gap_dollar_incomplete_reasons,
     };
   });
 }
@@ -1404,7 +1425,12 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
         cost_reconciles,
       },
       view_b,
-      capacity_coverage_gap: calculate_capacity_coverage_gap(operational_group_cost_rows, rate_builder_calculators),
+      capacity_coverage_gap: calculate_capacity_coverage_gap(
+        operational_group_cost_rows,
+        rate_builder_calculators,
+        new Map(labour_sources.map((row) => [row.staff_type_id, to_number(row.charge_out_rate)])),
+        overrides?.asset_blended_rate_overrides
+      ),
       // Idle cost Step 3 (D-IDLE-2): display-only lookup of Cost Allocation's idle_labour_hours / idle_labour_cost, tied groups only.
       idle_labour_by_group: build_idle_labour_by_group(operational_group_cost_rows),
       // Health gauge baseline (2026-09-11, moved here from Business Modelling
