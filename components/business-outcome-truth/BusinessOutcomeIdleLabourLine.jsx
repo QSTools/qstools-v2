@@ -24,15 +24,28 @@ export default function BusinessOutcomeIdleLabourLine({ idle_labour_by_group, en
 
   return (
     <div
-      className="ui-help"
       data-idle-labour-line="true"
       data-idle-hours={idle.hours}
       data-idle-cost={idle.cost}
+      style={{
+        background: "var(--warning-soft)",
+        borderLeft: "4px solid var(--warning)",
+        borderRadius: 6,
+        padding: "10px 12px",
+        margin: "10px 0",
+        color: "var(--text-secondary)",
+        fontSize: 13,
+        lineHeight: 1.5,
+      }}
     >
-      <strong>Idle labour:</strong> {format_hours(idle.hours)} paid hours a year have no asset work to recover
-      them, costing about {format_dollars(idle.cost)} a year. This cost is already inside this working
-      group&apos;s net profit. It is shown here to explain it and is not added to or taken from any total.
-      Yearly figures, whatever time scale is selected.
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
+        Idle labour: {format_hours(idle.hours)} paid hours a year, costing about {format_dollars(idle.cost)} a year
+      </div>
+      <div style={{ marginTop: 4 }}>
+        No asset work recovers these hours. This cost is already inside this working group&apos;s net
+        profit. It is shown here to explain it and is not added to or taken from any total. Yearly
+        figures, whatever time scale is selected.
+      </div>
     </div>
   );
 }
