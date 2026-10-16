@@ -9,6 +9,16 @@ REASONING DOCUMENT: AI_STRATEGY_CUBAN_TALK_AND_MIRRA_BRIEF_2026-10-12.txt,
   especially Addendum 1 (2026-10-14) - read that first for WHY each step
   exists. This document is the WHAT'S NEXT tracker; keep it lean and update
   it in place as steps close, same pattern as the kickoff doc.
+UPDATED:  2026-10-16 - steps 4b and 6b and Track M added (placement proposed,
+  owner to confirm). Reasoning and research:
+  GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS_FUTURE_BUILD_BRIEF_2026-10-16.txt.
+UPDATED:  2026-10-16 (later) - step 1c, step 5c and Section 2A added; step 6
+  reworded (placement proposed, owner to confirm). Reasoning and design:
+  STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt.
+UPDATED:  2026-10-16 (voice session, later still) - READ ADDENDUM 1 AT THE BOTTOM FIRST. It holds the resolved
+  build order, the launch bar (what finished means), the trace-node definition of done and the database scope. It
+  supersedes the order in Section 2 where they differ. New briefs: REGRESSION_HEALTH_CHECK_SUITE_FUTURE_BUILD_BRIEF_
+  2026-10-16.txt, POST_LAUNCH_VISION_AND_POSITIONING_FUTURE_BUILD_BRIEF_2026-10-16.txt.
 
 ===============================================================================
 1. WHY THIS DOCUMENT EXISTS
@@ -28,6 +38,32 @@ gets its own standalone brief with a one-line pointer").
      SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt and the kickoff doc's current
      "NEXT STEP" state for exact position: OPEN-D, OPEN-E, asset-pricing
      hard block, idle cost into net profit, S1).
+
+  1c. Synthetic-business stress test, client side (ADDED 2026-10-16, placement
+     proposed, owner to confirm). Build a whole synthetic business as JSON
+     seeded into localStorage on the isolated instance: staff and assets first,
+     the P&L derived from them, expected values computed by an independent
+     script. Prove one shape at 10 staff, scale the SAME shape (50, then up
+     towards a $100M business), then run different business shapes. Includes a
+     React Profiler pass for UI lag. The generator, seed files and expected
+     values are kept as the regression pack that 1b, 4, 4b and the server
+     migration are re-checked against. Placed before 1b so it is the baseline.
+     Starts with a read-only inventory of storage keys and shapes (slice S0).
+     Scoping only - nothing built. Design: STRESS_TEST_DATABASE_AND_AGENT_
+     DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt Section 3.
+
+  1b. Business Modelling redesign (ADDED 2026-10-16, placement proposed, owner
+     to confirm). Replace the parallel modelling engine with a scratch
+     overlay on the real chain: Tier 1 fix-the-existing-business levers,
+     Tier 2 locked baseline snapshot, Tier 3 add/remove asset or staff what-
+     ifs. Placed BEFORE server migration and the database for the same
+     reason as step 4: it changes shared calculation and storage code, which
+     is safer to do before a live client database and server dispatcher
+     exist. Starts with a read-only audit (slice S0). Tier 4 (actuals versus
+     baseline) is NOT part of this step; it depends on step 5. Design, slice
+     order and acceptance:
+     BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY_FUTURE_BUILD_BRIEF_2026-10-16.txt.
+     Scoping only - nothing built.
 
   2. Build server-side "moat" plumbing. Prove it on ONE small, already-
      verified calculation before anything else relies on it. Do not migrate
@@ -52,9 +88,27 @@ gets its own standalone brief with a one-line pointer").
      owner's own prior experience with messy personal databases). Accepted
      this may add ~6 months to the timeline.
 
+  4b. Purchase order and auto-reconciliation merge, with write-back to Xero
+     (ADDED 2026-10-16, placement proposed, owner to confirm). Owner says it
+     is core to the tool: without it live data cannot run. Purchase orders
+     are built in a separate repo; reconciliation is not built (core part
+     said to be about 60 percent there; confirm which piece). First write to
+     Xero and touches several modules, so a stop-and-confirm item with its
+     own brief before any merge. Placed BEFORE the database so the database
+     schema is designed once with these records in it, same reasoning as
+     steps 1b and 4. Brings in the full Xero certification scope (account
+     and payment mapping, invoice webhooks, tax and rounding), see 6b.
+     Detail: GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS_FUTURE_BUILD_BRIEF_
+     2026-10-16.txt Sections 4 and 5.
+
   5. Add the database. Stores monthly Xero-imported P&L/balance sheet
      history, modelled vs. actual over time. This is the core switching-cost
      moat (Addendum 1, A2/A7 layer 1) and the hard prerequisite for 5b below.
+
+      Design rules for this step (owner, 2026-10-16) are in Section 2A: live
+      before any real user, no localStorage migration, one multi-tenant
+      database with row-level isolation, every calculated number stored.
+      Open: whether this waits for step 4b (see Section 5).
 
   5b. Build the aggregation/benchmark module once the database is live and
       holds real rows. Self-contained, outside the existing calculation
@@ -72,8 +126,15 @@ gets its own standalone brief with a one-line pointer").
       already leaning toward: bands not numbers, historical/monthly not live,
       never a recommended rate. Not cleared yet.
 
+  5c. Read-and-explain agent on the stored outputs (ADDED 2026-10-16,
+      placement proposed, owner to confirm). Needs step 5. The agent only
+      explains numbers the tool has already calculated and stored; it never
+      calculates (Section 2A). Before or after launch is NOT decided.
+
   6. Stress test against the SERVER-MIGRATED version (not pre-migration) -
-     this both proves migration integrity and tests a new failure mode
+     now the 1c regression pack re-run on the migrated version plus a server
+     load test (k6 or similar, against a deployed environment, not localhost).
+     This both proves migration integrity and tests a new failure mode
      (server load from many businesses computing simultaneously, vs today's
      per-browser compute). Current test dataset: ~2 productive staff, 1
      non-productive. Plan to scale to 10 / 100 / 1,000 staff/assets up to a
@@ -81,7 +142,44 @@ gets its own standalone brief with a one-line pointer").
      build deliberately-shaped synthetic data with a known-correct answer to
      check against, rather than hunting for real external P&Ls.
 
+  6b. Xero certification and App Store listing (ADDED 2026-10-16, placement
+     proposed, owner to confirm). Connection-state UI, branding, App
+     Launcher, scopes, error handling, data integrity, account and payment
+     mapping, taxes, Sign Up with Xero, then the listing and Xero's review.
+     Effort not yet estimated. Early bookkeeper demos do NOT wait for this:
+     the free Starter tier allows 5 connections (Track M). Check first
+     whether a reconciliation app carries a Xero annual minimum (brief
+     Section 4a, Q1). Check the 2 March 2026 developer terms against the
+     benchmark module and AI features (Q2).
+
   7. Launch.
+
+  TRACK M - MARKETING, PARALLEL TO THE BUILD (ADDED 2026-10-16). Not gated on
+     any step above; runs on the owner's spare hours and costs no cash.
+     Coming-soon page with email capture; problem-framed content (no launch
+     dates); posts from the owner's personal LinkedIn; bookkeeper
+     conversations and demos (Auckland first); Xero Developer Centre
+     registration on the free Starter tier for early demos (depends on how
+     Mirra connects to Xero today, open question Q3). Judge a channel only
+     after about six months. Detail: the 2026-10-16 brief Section 3.
+
+===============================================================================
+2A. DESIGN RULES SET BY THE OWNER 2026-10-16 (database and agent)
+===============================================================================
+  - The database is built and live before anyone real uses the tool. There is
+    no localStorage-to-database migration for launch.
+  - One database for all users (multi-tenant). A user seeing another
+    business's data must not be possible: row-level isolation from day one.
+  - Every calculated number the tool produces, at every level, is stored in
+    the database, written by the same calculation code the app uses.
+  - The agent only explains stored numbers. It does not calculate. A clearly
+    labelled what-if is the one possible exception, and is proposed to run
+    through Business Modelling's own lever calculation.
+  - Order of work: stress test, then database, then concurrency/load testing.
+    Load testing is background work and not a launch blocker.
+  - NOT decided: which fields get field-level encryption beyond the baseline
+    (TLS, at-rest, row-level security); database host; what "every level"
+    means in rows. See the 2026-10-16 stress test brief Sections 5 and 11.
 
 ===============================================================================
 3. DEPLOYMENT STATE (settled, carried from prior session - confirmed complete)
@@ -117,7 +215,268 @@ deployment specifically).
 ===============================================================================
   - Does the benchmark/third-moat feature proceed at all, given the legal
     review gate at Section 2, step 5b? Not decided.
+  - Step 1b (Business Modelling redesign, added 2026-10-16): confirm the
+    placement before server migration, and sign off the slice order in its
+    brief.
   - Which trade launches the benchmark layer first? Construction is the
     leading candidate (owner's own trade, tool already shaped around it,
     fastest path to the sample-size floor) - not yet locked in.
+  - Added 2026-10-16: step 4b and 6b placement (see the steps above). Does a
+    Xero annual minimum apply to a reconciliation app (about US$10,740 a
+    year, one unverified source)? Do the Xero developer terms (no AI/ML use
+    of API data) constrain the benchmark module or the AI explainer? How
+    does Mirra connect to Xero today, live OAuth or file import? Full list:
+    the 2026-10-16 brief Section 10.
+  - Added 2026-10-16 (stress test brief Section 11): confirm the placement of
+    steps 1c and 5c; does the database wait for step 4b, or go first with the
+    live purchase order and timekeeping tables added later (the owner's
+    framing, against the current 4b-before-5 order)? Which fields are
+    field-level encrypted, and who reviews the list? Which database host? What
+    does "every level" of stored numbers mean in rows? Revenue and charge-out
+    rates for the first synthetic business.
+===============================================================================
+
+
+===============================================================================
+ADDENDUM 1 (2026-10-16, later) - RESOLVED BUILD ORDER, WHAT "FINISHED" MEANS, DEFINITION OF DONE
+===============================================================================
+STATUS:     [OWNER DECISIONS] from a long voice session (owner driving, nothing typed, no code read or run).
+            Nothing built.
+PRECEDENCE: where this addendum and Section 2 disagree, THIS ADDENDUM WINS. Section 2 is left as written (addendum
+            convention) and is now the record of how the order was first proposed. The step labels in Section 2
+            (1, 1b, 1c, 2, 3, 4, 4b, 5, 5b, 5c, 6, 6b) are kept as labels; the order of work is the R-list below.
+NEW BRIEFS FROM THIS SESSION (repo only, not in project knowledge):
+  REGRESSION_HEALTH_CHECK_SUITE_FUTURE_BUILD_BRIEF_2026-10-16.txt
+  POST_LAUNCH_VISION_AND_POSITIONING_FUTURE_BUILD_BRIEF_2026-10-16.txt
+ADDENDA WRITTEN THE SAME DAY IN: STRESS_TEST_DATABASE_AND_AGENT_DESIGN (Addendum 1), GO_TO_MARKET_XERO_LISTING_AND_
+  UNIT_ECONOMICS (Addendum 1), CALCULATION_TRACE_VERIFICATION_LAYER (2026-10-16 addendum), AI_ASSISTED_SETUP_AND_
+  RESULTS_EXPLAINER (2026-10-16 addendum), SMOKE_TEST_v6_0_BRIEF (2026-10-16 addendum), Working_Conventions
+  (UPDATE 2026-10-16), V6_0_KICKOFF_AND_HANDOVER (UPDATE 2026-10-16, pointers only).
+
+-------------------------------------------------------------------------------
+A1. RESOLVED BUILD ORDER (the order of work)
+-------------------------------------------------------------------------------
+  R1  Finish the hours-mode smoke test sign-off. Nearly done. Remaining per the kickoff: calc map line-number
+      refresh, the S1 live check, and (new, A3 below) calculation trace nodes for idle cost. Step F (business-type
+      flip) stays OPEN and parked: it needs a fresh baseline taken in one sitting, and it is a separate matter from
+      the full units-mode build in R4.
+
+  R2  Step 1c: stress test hours mode at scale, client side. A synthetic business generator plus an independent
+      expected-value script (NOT BUILT; this is the main new artifact). Scale ladder 10, 100, 1,000+ staff and
+      assets, then different business shapes. Reuses what already exists and works: the calculation trace tool, the
+      cross-import alignment check, check_field_parity.py and check_has_loaded_guard.py.
+      RIDER (owner decision): while the stress test walks the chain through Cost Allocation, Rate Builder, Business
+      Outcome and Business Modelling, EXTEND THE CALCULATION TRACE to cover those modules. It is not a separate job,
+      because those modules get touched anyway.
+      COVERAGE CONFLICT TO RESOLVE FIRST: in the session the owner described current trace coverage as Business
+      Summary, Cost Summary, Labour, Assets, General Overheads and Revenue-COGS. The kickoff and smoke test brief
+      record later extensions (Cost Allocation, Rate Builder roots, four Business Outcome mechanisms, a Business
+      Modelling root, 2026-09-27 and 09-28). These do not agree. The first action of the rider is to read
+      lib/calculation-trace/ and record exactly which nodes exist per module.
+
+  R3  Step 1b: Business Modelling redesign (scratch overlay replacing the parallel engine), in hours mode, verified
+      against the now-proven and scaled hours baseline. This closes hours mode completely: correct, scaled, and
+      Business Modelling done.
+
+  R4  Units mode, the same cycle: build, smoke test, stress test at scale, re-verify Business Modelling against
+      units. Reuse the harness and infrastructure from R2. The expected-value MATH is new, because the units
+      calculation path is untested ground.
+
+  R5  UI tidy-up and consistency pass, AFTER both modes are proven, so it is done once and not twice. The UI is
+      complex because it was built as a debuggable surface before the owner learned to use the console. That was
+      legitimate, not a mistake.
+
+  R6  Database (old step 5). Moved AHEAD of purchase orders and timekeeping (old step 4b) so the core tool can launch
+      and get real users without them. This reverses the Section 2 placement of 4b before 5 and RESOLVES stress test
+      brief Q-3.
+      Server plumbing and migration (old steps 2 and 3) were NOT re-sequenced in the session. They are assumed to sit
+      with or just before R6, because stored outputs must be written by the server-side calculation code (stress
+      brief 5.4). OWNER TO CONFIRM.
+
+  R7  AI layer: setup coaching AND the read-only explainer agent, shipped TOGETHER (owner preference). Business
+      Outcome and Business Modelling are the natural hand-off into agent mode: the most complex screens, the ones
+      most worth explaining rather than showing raw. Needs R6 (the agent reads stored outputs) and R5 (coaching
+      needs stable screens to point at).
+
+  ===== FULL RELEASE LINE. Everything above is the launch bar (A2). Everything below follows it. =====
+
+  R8  Purchase orders, Xero write-back and timekeeping (old step 4b). After full release, as an additive live layer
+      on the already-running tool.
+
+  R9  Server-load stress test (old step 6): the R2 regression pack re-run on the server-migrated version, plus a new
+      concurrency and load test against a deployed environment (k6 or similar). Background work after R6; NOT a
+      launch blocker (stress brief D-10). The tenant-isolation breach test and the full-node storage performance
+      test in A4 are different tests and ARE launch gates.
+
+  R10 Xero certification and App Store listing (old step 6b), after write-back is live. Early bookkeeper demos do
+      not wait for it (Track M).
+
+  Unchanged and not re-discussed: step 5b (benchmark module; still gated on legal review, and on the open question
+  whether it proceeds at all) and Track M (marketing, in parallel).
+
+-------------------------------------------------------------------------------
+A2. WHAT "FINISHED" LOOKS LIKE - THE FULL RELEASE / LAUNCH BAR (owner confirmed)
+-------------------------------------------------------------------------------
+  Launch means ALL of these are true together:
+    1. Hours mode and units mode are both fully built, smoke tested, stress tested at scale, and Business Modelling
+       is verified against each.
+    2. The UI is tidied and consistent across screens.
+    3. The database is live with PROVEN tenant isolation (A4: a deliberate attempt to breach it has failed).
+    4. The AI layer works end to end: setup coaching and the explainer agent.
+    5. Every calculated figure in the launch tool has a calculation trace node (A3).
+    6. The regression suite (new brief) runs green against the launch build and the server-migrated build.
+  Items 5 and 6 are written here from the owner's rules, not stated by the owner as launch conditions in those words.
+  Confirm at the next planning session.
+
+  NOT required for launch: purchase orders, timekeeping, Xero write-back, the Xero App Store listing, the benchmark
+  module, concurrency load at scale. They come after, as fast follow.
+
+  Consequence to keep in view: at launch the tool delivers baseline, modelling and explanation. The ongoing control
+  loop (time, purchase orders, invoices tied back to the P&L) arrives as the fast follow (R8). The project
+  description and GO_TO_MARKET Section 5 call purchase orders core ("without it, we can't run live data"). Both
+  statements stand: core to the full promise, not required for the first release. The owner chose this on purpose.
+
+  GATE FOUND WHILE WRITING THIS: the Xero developer terms updated 2 March 2026 prohibit using Xero API data for
+  AI/ML training and restrict some automated tools. The AI layer is now INSIDE the launch bar, so that terms check
+  (GO_TO_MARKET Q2, stress brief 7.6) must be done BEFORE R7 starts, not after. Not yet read.
+
+  Scope view, recorded: in the session Claude suggested a narrower first launch (for example units mode or part of
+  the AI layer later) to get a real user sooner. The owner declined: energy is not the constraint, and the bar
+  above stands. Early viewers said the tool is "too complicated to understand and use"; that is why R5 and R7 are
+  inside the bar (POST_LAUNCH_VISION brief, Section 2).
+
+-------------------------------------------------------------------------------
+A3. DEFINITION OF DONE (new standing rule; also in Working_Conventions UPDATE 2026-10-16)
+-------------------------------------------------------------------------------
+  Any new calculated figure is NOT DONE until it has a calculation trace node. Same bar as a passing build and
+  live verification.
+  Why: idle cost (four steps, shipped 2026-10-15, built outside the formal smoke test sequence) has no trace node.
+  Trace nodes were only populated during formal module verification passes, so side features built afterwards
+  escaped. This was reported by the owner in the session. CONFIRM by opening the trace page at the start of R2.
+  - Applies to display-only figures that show a calculated number (idle hours and dollars, shortfall dollars).
+  - Does NOT apply to input-field coaching (pointing at which field to fill in next). That is UI guidance, part of
+    the AI setup brief, verified by "did it point at the right field", not by numeric correctness.
+  - Backfill list, the first items of the R2 rider: idle_labour_hours and idle_labour_cost (Cost Allocation);
+    the idle line figures (idle_labour_by_group, Business Outcome); per-asset shortfall dollars
+    (calculate_per_asset_shortfall_dollars) with its completeness flag.
+  - OPEN, not resolved: if nodes will feed the explainer agent (AI brief decision D-1, result_interpretation), each
+    node probably needs to carry plain-language explanatory text as well as its value. Decide when the nodes are
+    built, not after. Every node is also stored in the database (A4), so the node shape becomes part of the schema.
+
+-------------------------------------------------------------------------------
+A4. DATABASE SCOPE DECISIONS (owner) - resolves stress test brief Q-3 and Q-6
+-------------------------------------------------------------------------------
+  Three layers:
+    BASELINE         dimensions: staff, assets, groups, rates, settings.
+    LIVE             time-stamped facts: P&L and Balance Sheet imports now; purchase orders and timekeeping later.
+                     Reference baseline records by ID.
+    STORED OUTPUTS   every calculated figure.
+  "Every level" means EVERY SINGLE CALCULATION NODE, not only each module's output contract. Reason (owner): the
+  explainer agent can then answer any question about any number in the business, which is the point of building it.
+  Adding purchase orders and timekeeping later is additive to the LIVE layer. It does not touch the baseline or the
+  calculation code.
+  To reconcile at schema time: stress brief 5.3 proposed a MODELLED layer (Business Modelling scenarios). The 1b
+  scratch overlay decides whether scenarios are stored at all.
+
+  HARD RULE: one shared multi-tenant database with row-level tenant isolation. Cross-business data leakage must be
+  structurally impossible. Not one database per business.
+
+  Two tests that must pass before launch (they go in the stress and load test section, run after R6):
+    (a) Performance of full-node storage at about 1,000 businesses: write volume and query speed, measured. Not a
+        generic "handles requests".
+    (b) An active attempt to breach tenant isolation: query as one business and confirm no row of another is
+        reachable. Do not assume row-level security works.
+
+  ENCRYPTION. Baseline (in transit, at rest, row-level isolation) is settled and non-negotiable. A further
+  field-level layer is NOT decided. It costs queryability for the fields it covers, so it needs a concrete field
+  list. Starting position, offered as advice and explicitly not final: personally identifying fields (staff names,
+  contact details, possibly pay tied to a named person) are the strongest candidates; operational and calculated
+  figures (group costs, recovery rates) rely on the baseline plus isolation, because Cost Allocation and Rate Builder
+  sum and query them in bulk. The owner agreed the list goes to someone experienced in securing financial SaaS data
+  BEFORE the schema is finalised at R6.
+
+  HOSTING: deferred by the owner. No provider is chosen. Verify at-rest encryption and recovery for whichever is.
+
+-------------------------------------------------------------------------------
+A5. CHANGING CALCULATIONS OR STORAGE AFTER REAL DATA EXISTS
+-------------------------------------------------------------------------------
+  Owner concern, from experience (Power Query, replacing values by hand): a late change to a calculation or to
+  storage tangles the data until the database has to be wiped and rebuilt. Protections already in the design,
+  recorded here in one place: additive, versioned migrations; a backup before every change; one source of truth (a
+  stored number is always written by the same calculation code the app uses, never hand-patched or re-derived
+  elsewhere); a field's meaning changes only across full releases; every change must pass the synthetic-data
+  regression suite before it can reach the real database; and because every node is stored, a wrong number can be
+  traced to the node where it diverged. None of this makes a live system risk-free. It removes the specific
+  wipe-and-restart failure mode. Detail: REGRESSION_HEALTH_CHECK_SUITE brief.
+
+-------------------------------------------------------------------------------
+A6. STILL OPEN AFTER THIS SESSION
+-------------------------------------------------------------------------------
+  - Field-level encryption field list, and who reviews it.
+  - Database host.
+  - Xero developer terms read against the AI layer (gate before R7).
+  - Which part of purchase order reconciliation is "about sixty percent" (GO_TO_MARKET Q5; the wording was ambiguous).
+  - Step F flip test (fresh baseline).
+  - Placement of old steps 2 and 3 (A1, R6).
+  - Actual current trace coverage (A1, R2 rider) and the idle cost nodes (A3).
+  - Owner estimate that the timekeeping app is "a couple of days": not scoped. The earlier "days not weeks" Xero
+    listing estimate was withdrawn; treat this one as unscoped until a brief exists.
+  - Regression suite cadence and where the wrapper runs (regression brief, Section 11).
+  - Revenue and charge-out rates for the first synthetic business, and the owner labour cost treatment (stress
+    brief Q-1).
+  - Confirm A2 items 5 and 6 as launch conditions.
+
+-------------------------------------------------------------------------------
+A7. PROJECT KNOWLEDGE (housekeeping, 2026-10-16)
+-------------------------------------------------------------------------------
+  Project knowledge was trimmed to what the smoke test sign-off and this tracker need: the kickoff, the smoke test
+  brief, the calculation map, the variable tracker, the working conventions, the asset calculators brief and this
+  tracker. Every other brief stays in the repo (docs\fin_mirra_v6.0 Briefs\) and is loaded when its step starts.
+  Suggested load for the R2 session: this tracker, the stress test brief, the regression suite brief, the
+  calculation trace brief and the calculation map.
+===============================================================================
+
+===============================================================================
+ADDENDUM 2 (2026-10-17) - R1 CLOSED, R2 UNDER WAY: HARNESS BUILT, SCENARIO A PASSES LIVE
+===============================================================================
+STATUS: [PROGRESS] Order of work unchanged (Addendum 1, A1). Detail lives in the briefs named below; pointers only here.
+
+  R1  CLOSED. Hours-mode smoke test signed off (smoke test brief, addenda 2026-10-16). Step F stays parked.
+
+  R2  IN PROGRESS (step 1c, stress test hours mode at scale).
+      Done 2026-10-17:
+      - Trace coverage read (A1 conflict resolved): the kickoff was right. Idle cost had no nodes; backfilled
+        (idleCostTraceNodes.js, commit 3bb61d5), live verified ticked and unticked. A3 backfill CLOSED.
+        CALCULATION_TRACE_VERIFICATION_LAYER brief, addendum 2026-10-17.
+      - Slice S0 storage inventory: STORAGE_KEY_REGISTER_S0_2026-10-17.txt (3.1 Stress Test folder). Backups must
+        take ALL keys (the old prefix filter missed mirra_opening_hours_state_v4). Hazards H1-H8.
+      - Staff type strategy (owner): few system types with percent splits; no names, staff types only.
+      - Method (owner): a short RECIPE per business, generated deterministically; P&L built FROM the inputs
+        (aligned) first, a misaligned business later. Harness in Py/stress_test (README.txt), commits 5f55fec and
+        the aligned follow-up.
+      - Scenario A (10 staff, 7 assets, 5 groups, revenue 1,347,589, net 9.6 percent): 36 of 36 expected figures
+        PASS live, written independently of the app code. Layer 1 (Labour, Assets, General Overheads, Cost
+        Summary, Business Summary, Revenue/COGS) plus the first layer-2 figures (Business Outcome group modelled
+        revenue, capacity gap hours and dollars, idle). Restore to baseline proven exact.
+        STRESS_TEST_DATABASE_AND_AGENT_DESIGN brief, Addenda 2 and 3.
+      NEXT in R2:
+      1. Rest of layer 2: Cost Allocation group rows and overhead split, per-source labour and asset rows and true
+         cost, non-productive distribution, both real-capacity cascades (View A, View B), Business Modelling start rows.
+      2. Scaling options (cloning groups splits type percents into decimals the app rounds - register H2). Owner choice.
+      3. Second business: custom staff types, absent-field groups (H6), shared asset (H7), string values (H5), the
+         misaligned recipe.
+      4. UI performance pass at scale (stress brief 3.6). Queued item from 2026-10-16: classify the 'Includes Asset
+         Finance Portion' remainder as business overhead (owner sign-off).
+
+  NEW FUTURE BUILD (found by R2): ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt. The app adds ESCT on top of
+  the 3.5 percent employer KiwiSaver; IRD deducts it from the contribution. About 1 percent of labour cost. Proposed
+  placement: after R2 layer 2, before R3. Owner to confirm.
+
+  RESOLVED FROM A6: actual trace coverage and the idle cost nodes; revenue and charge-out rates for the first
+  synthetic business (recipe, Claude's estimates - owner to correct); owner labour treatment for Scenario A (owner on
+  wages in the P&L).
+
+  PROJECT KNOWLEDGE FOR THE NEXT (R2 layer 2) SESSION: this tracker, the kickoff, the working conventions, the
+  calculation map, the variable tracker, the stress test brief, STORAGE_KEY_REGISTER_S0, the calculation trace brief,
+  the ESCT brief and Py/stress_test/README.txt. The smoke test brief and the asset calculators brief stay in the repo.
 ===============================================================================
