@@ -1,0 +1,174 @@
+===============================================================================
+MIRRA v6.0 - R2 STRESS TEST, SLICE S0 - STORAGE KEY REGISTER
+===============================================================================
+DATE:    2026-10-17
+STATUS:  [READ-ONLY INVENTORY] Nothing changed. Basis: lib/storage/*.js read in full
+         or in part, localstorage_full_dump_1792177783018.json (:3004, baseline, 26 keys),
+         localstorage_call_sites.txt (every localStorage get/set/remove in app, hooks,
+         components, lib), costAllocationLabourAdapter.js, costAllocationLabourPoolBuilders.js.
+PURPOSE: the shapes the synthetic-business generator must write, the hazards that make a
+         seed look populated but give a wrong answer, and the full key set for backup and
+         restore. STRESS_TEST_DATABASE_AND_AGENT_DESIGN brief section 3.4 listed most of these
+         as UNVERIFIED; they are verified here.
+
+-------------------------------------------------------------------------------
+1. KEY REGISTER (writer file -> key -> shape -> seed role)
+-------------------------------------------------------------------------------
+SEED = the generator must write it. DERIVED = app recomputes, do not hand-write.
+UI = user setting, copy from baseline. IGNORE = not on the hours-mode chain.
+
+  LABOUR
+  labourProfileStorage.js   qs_tools_labour_profiles_v1          list of profile
+      {profile_id, staff_id, profile_version, effective_from, is_active, created_at,
+       updated_at, change_reason, notes, data:{ ...DEFAULT_LABOUR_STATE (labourStorage.js),
+       staff_id, staff_name, staff_type_id, staff_type_name, labour_class,
+       contributes_to_recovery_hours, hours_per_week, days_per_week, labour_rate,
+       charge_out_rate, productivity_percent, leave/holiday/sick days, KiwiSaver, ACC... }}
+      SEED. Reader normalises with spreads (fields survive).
+  labourProfileStorage.js   qs_tools_labour_staff_types_v1       list, CUSTOM types only
+      SEED if the generator uses custom staff types. 10 system types are hard-coded in
+      labourStorage.js DEFAULT_STAFF_TYPES and never stored.
+
+  ASSETS
+  assetStorage.js           qs_tools_saved_assets                list of asset record
+      Inputs (createEmptyAssetState) plus asset_overhead_pool_assignments {6 pools},
+      asset_annual_weeks_override, plus ~25 stored CALCULATED fields.
+      SEED inputs. On read sanitizeSavedAssetRecord re-runs calculateAssetOutputs, so the
+      finance and cost fields are recomputed - EXCEPT running_cost_annual, which is taken
+      from the stored input (Number(input.running_cost_annual || 0)). See hazard H3.
+  assetStorage.js           qs_tools_asset_state                 single asset (editor DRAFT)
+      UI. Today it is a copy of one saved asset. Seed it as an empty draft or a copy of one
+      seeded asset; it is not the list the chain reads.
+
+  COST ALLOCATION
+  costAllocationStorage.js  qs_tools_cost_allocation_v2_1        dict
+      {active_allocation_profile_id, allocation_profile_name, effective_from, divisions[],
+       asset_labour_links[], operational_groups[], labour_group_assignments[],
+       asset_group_assignments[], overhead_group_assignments[], external_delivery_*}
+      operational_groups[]: {group_id, division_id, group_name, ..., is_active, sort_order,
+       group_recovery_hour_source ("asset_hours" | absent), asset_run_pattern, labour_tied_to_asset}
+      labour_group_assignments[]: {assignment_id, group_id, staff_type_id (+ labour_type_id,
+       labour_type_key, labour_type_label), labour_class, is_productive,
+       contributes_to_recovery_hours, assigned_staff_count, assignment_percent, is_active, ...}
+      asset_group_assignments[]: {assignment_id, group_id, asset_id, assignment_percent, is_active}
+      SEED (the user builds this; there is no import). Normaliser spreads every group.
+  costAllocationProfileStorage.js  qs_tools_cost_allocation_profiles_v2_2   NOT PRESENT in
+      the dump. Saved profiles only. IGNORE for seeding; include in backup if present.
+
+  GENERAL OVERHEADS
+  generalOverheadStorage.js qs_tools_general_overhead_state      dict, 42 fields (named cost
+      fields, synced_pnl_overhead_items, custom_overhead_items, overrides)   SEED
+  generalOverheadProfileStorage.js qs_tools_saved_overheads      list (1 profile, 51 KB:
+      also stores output_contract, total_general_overheads, overhead_rows)
+      SEED or let the page save it. Which of the two keys the chain reads is NOT yet traced;
+      read useGeneralOverheads before the first seed (open item O-S0-1).
+
+  P&L, BALANCE SHEET, REVENUE
+  profitAndLossStorage.js   qs_tools_profit_and_loss_state       {financial_year,
+      period_month, pnl_lines[{pnl_line_id, line_name, amount, section, category,
+      interest_treatment, review_subcategory, direct_cost_category_id, source_type,
+      import_source}], direct_cost_categories[9]}   SEED (bottom-up P&L, brief 3.1)
+  profitAndLossProfileStorage.js pnl_profiles_v3                 list (1)   backup only
+  balanceSheetStorage.js    qs_tools_balance_sheet_state_v1      dict(8)    copy baseline
+  fixedAssetRegisterStorage.js qs_tools_fixed_asset_register_state_v1  dict(6)  copy baseline
+  revenueCogsStorage.js     qs_tools_revenue_cogs_state_v2       {commercial_driver_mode,
+      units_sold_annual, unit_driver_rows[], ...}   SEED (hours mode values)
+
+  SETUP AND HOURS
+  businessSetupStorage.js   qs_tools_business_setup_v1           {business_name,
+      business_type, setup_completed, ...}   SEED (business_type drives the mode)
+  openingHoursStorage.js    mirra_opening_hours_state_v4         {standard_week_days[7],
+      seasonal_shutdown_weeks, public_holiday_days, additional_closed_days[] ...}   SEED
+
+  RATE BUILDER
+  rateBuilderStorage.js     qs_tools_rate_builder_calculators_v1 list of calculator
+      {id, name, linked_cost_allocation_group_id, linked_asset_id (asset-linked, Path B),
+       lines[{id, name, unit, rate, quantity, is_output_driver}]}   SEED
+  rateBuilderLabourSourceRatesStorage.js qstools_rate_builder_labour_source_rates_v1
+      {staff_type_id: charge_out_rate}   SEED - this is where charge-out rates live; the
+      labour profile charge_out_rate is 0 for all three baseline staff.
+  rateBuilderLabourRatesStorage.js qs_tools_rate_builder_labour_rates_v1  list(1) with many
+      stored calculated fields. Check whether anything reads it before seeding (O-S0-2).
+  rateBuilderMaterialsMarkupStorage.js qstools_rate_builder_materials_markup_v1
+      {materials_markup_percent}   SEED
+
+  BUSINESS OUTCOME AND MODELLING
+  businessOutcomeNonProductivePolicyStorage.js qstools_business_outcome_non_productive_policy_v1
+      {mixed_unit_non_productive_policy}   SEED (default charge_to_self)
+  businessModellingLeverStorage.js qs_tools_business_modelling_levers_v1 {version, levers:{}}
+      SEED empty for the baseline run.
+  businessModellingStorage.js qs_tools_business_modelling_state_v1 (legacy baseline/upside/
+      downside)   copy baseline; replaced by 1b.
+  businessModellingScenarioStorage.js qs_tools_business_modelling_scenario_state_v1  copy baseline
+
+  OTHER KEYS IN THE DUMP
+  qs_tools_recovery_summary_state, qs_tools_quote_engine_store_v4   copy baseline (off chain)
+  qs_tools_rate_builder_calculators_v1_backup_20261009   manual backup, no code reads it
+  __idle_step2_runs   leftover from the idle cost Step 2 console check, no code reads it
+  Keys with code but not in the dump: quick start, employee overhead (profiles, library),
+  labour rate reality check, revenue summary, square metre, materials, scheduling,
+  module reconciliation acceptance, cost allocation profiles, recovery summary profiles,
+  theme (lib/theme/themeStorage.js). Off the hours-mode chain or never used on :3004.
+
+-------------------------------------------------------------------------------
+2. BACKUP AND RESTORE RULE (corrects the smoke test method)
+-------------------------------------------------------------------------------
+  The smoke test dump (section 0, method 3) filters on the qs_tools_ and qstools_
+  prefixes. Four real keys do not match:
+      mirra_opening_hours_state_v4   (feeds recovery hours - on the chain)
+      pnl_profiles_v3
+      qs_employee_overhead_profiles_v1, qs_employee_overhead_library_v1 (absent on :3004)
+  The Step F pre-flip backup (19 keys) was taken with that filter, so it almost certainly
+  did not include opening hours. RULE FROM NOW: back up and restore ALL keys on the
+  origin, no prefix filter (the full dump script used for this register does that).
+  Today's full set on :3004 is 26 keys, 166,908 characters.
+
+-------------------------------------------------------------------------------
+3. HAZARDS FOR THE GENERATOR (each one looks fine and gives a wrong answer)
+-------------------------------------------------------------------------------
+  H1  STAFF ARE POOLED BY STAFF TYPE. costAllocationLabourAdapter groups every active
+      staff profile into one row per staff_type_id (summed hours and cost, weighted cost
+      rate). A labour assignment assigns a percent of the WHOLE type pool to a group:
+      assigned_hours = type available_hours x assignment_percent / 100
+      (costAllocationLabourPoolBuilders.js L66-69). assigned_staff_count is NOT used in
+      that sum. Consequence: two operators of the same type cannot be put in different
+      groups person by person, only by splitting the type percent, or by giving them
+      different staff types. Business Outcome rows, trace nodes and charge-out rates are
+      also per type. The generator must choose: many custom staff types (one per crew or
+      role) or few types with percent splits. These stress different paths. OWNER DECISION.
+  H2  assignment_percent is ROUNDED TO AN INTEGER (Math.round, L58-61 and L264-266). A
+      three-way split of 33.33 becomes 33 + 33 + 33 = 99, so 1 percent of the type's hours
+      and cost goes nowhere. Hypothesis to test in the split-group business, not observed.
+  H3  STORED VALUES THAT WIN OVER RECOMPUTE:
+        - an assignment row carrying assigned_hours or assigned_cost overrides the
+          computed value (L66-82). The seed must NOT write these fields.
+        - saved asset running_cost_annual is read from storage, not recomputed (assetStorage
+          L313). Check what reads it before the first seed (O-S0-3).
+  H4  SOFT-DELETED ROWS ACCUMULATE. labour_group_assignments has 34 rows, 3 active, 31
+      inactive history rows from moving staff. They are filtered by is_active. At scale,
+      every reassignment adds rows; the seed should write active rows only, and the
+      UI performance pass (brief 3.6) should note the growth.
+  H5  MIXED TYPES. labour_rate is stored as a string in all three profiles ("050", "60",
+      "50"); P&L amounts are numbers for some lines and strings for others ("2400"). The
+      app coerces. The generator writes numbers, with one deliberate string case kept to
+      prove coercion still works.
+  H6  ABSENT VERSUS DEFAULT. Two of four groups have no group_recovery_hour_source,
+      asset_run_pattern or labour_tied_to_asset field at all (older records). Seed both
+      the absent and explicit forms in the second business.
+  H7  An asset can be assigned to two groups at 100 percent each (one row is inactive
+      today). Whether the chain caps an asset at 100 percent across groups is NOT read.
+      Test in the shared-asset business (brief 3.5).
+  H8  has_loaded guards: costAllocationStorage and assetStorage hydrate in an effect and
+      only save after hydration. Seed with the app closed or reload immediately after
+      writing; never write while a page is open (its save effect can overwrite the seed).
+
+-------------------------------------------------------------------------------
+4. OPEN ITEMS BEFORE THE GENERATOR IS WRITTEN
+-------------------------------------------------------------------------------
+  O-S0-1  Which General Overheads key does the chain read: the state or the saved profile?
+  O-S0-2  Does anything read qs_tools_rate_builder_labour_rates_v1, or is it display only?
+  O-S0-3  What reads saved asset running_cost_annual, and is it ever stale?
+  O-S0-4  OWNER: staff type strategy (H1).
+  Carried from the stress brief: revenue and charge-out rates for Scenario A; owner labour
+  cost treatment (Q-1).
+===============================================================================

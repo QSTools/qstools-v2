@@ -1,0 +1,509 @@
+===============================================================================
+MIRRA - SYNTHETIC-BUSINESS STRESS TEST, DATABASE DESIGN RULES AND EXPLAINER AGENT
+===============================================================================
+DATE:     2026-10-16
+STATUS:   [DISCUSSION / STRATEGY] - scoping and sequencing only. Nothing built,
+          no code touched, nothing checked against the repo except where a
+          line says VERIFIED. The owner's stated decisions are in Section 2;
+          everything else is a proposal.
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
+SEQUENCE: LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt
+  carries the build order. This brief added step 1c, step 5c and a design-rules
+  section there (placement proposed, owner to confirm). Keep that file as the
+  single what's-next tracker; keep this one as the reasoning and the design.
+RELATED:  AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER_FUTURE_BUILD_BRIEF_2026-10-01.txt
+  (the input-helper and results-explainer design; this brief adds the data
+  and safety rules it will sit on). SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt
+  (method, key backup, the untested-gap list). GO_TO_MARKET_XERO_LISTING_AND_
+  UNIT_ECONOMICS_FUTURE_BUILD_BRIEF_2026-10-16.txt (Xero developer terms, Q2).
+SOURCE:   A long voice discussion on 2026-10-16 (owner driving, so no code was
+  read or run). Facts about the repo below come from project knowledge read
+  that day. Anything marked ASSUMED or UNVERIFIED needs a check first.
+
+===============================================================================
+1. WHY THIS DOCUMENT EXISTS
+===============================================================================
+The smoke test has used one or two staff and a handful of assets. Before launch
+the owner wants the tool pushed with a whole synthetic business, then scaled
+until something gives, because a silently wrong number on a client's real
+financials is the one failure that cannot be allowed at launch. The discussion
+then ran on into the database, security, the AI agent and load, because they
+depend on the same thing: knowing the exact shape of every record the tool
+stores and every number it calculates. Recording them together stops them
+being re-derived.
+
+===============================================================================
+2. OWNER POSITION AS STATED 2026-10-16 (decisions, not research)
+===============================================================================
+  D-1  The stress test is an extension of the smoke test: same chain
+       (P&L, Labour, Assets, Cost Allocation, Rate Builder, Business Outcome,
+       Business Modelling), pushed to realistic headcount and to completely
+       different businesses.
+  D-2  Build the synthetic business BOTTOM-UP: staff and assets first, then
+       derive the P&L from them (wages and on-costs from staff, interest and
+       depreciation from assets), then fill the rest with overheads (rent and
+       the usual) and a COGS line. The P&L then reconciles by construction.
+  D-3  Order: prove ONE business shape clean at 10 staff, then scale the SAME
+       shape (about 50 staff first) so a failure is scale and not a different
+       code path, then introduce a genuinely different business. Both kinds of
+       test are wanted. "See how far we can push it before it breaks."
+  D-4  By the end of that work every data entry point is a known, JSON-driven
+       path, so rolling out a further synthetic business is just a new file.
+  D-5  The database is built and live BEFORE anyone real uses the tool. There
+       is NO localStorage-to-database migration for launch.
+  D-6  One database for all users (multi-tenant), not one per user. A user
+       seeing another business's data "is not something that can happen":
+       row-level isolation is a hard requirement from day one.
+  D-7  Every calculated number the tool produces, at every level, is stored in
+       the database. Every single number.
+  D-8  The agent's only job is to EXPLAIN the numbers the tool has calculated.
+       "Otherwise, what was the point in us building everything." AI never
+       calculates a number the user will treat as true. The one exception the
+       owner would consider is modelling a what-if, clearly not presented as
+       truth (see 7.3).
+  D-9  Order of work: finish the stress test, then build the database, then
+       concurrency testing. (Reconciled with the existing build order in
+       Section 9; the owner's "stress test" here means the client-side
+       correctness pass in Section 3.)
+  D-10 A 100-user load is not a launch blocker: the first months will have a
+       handful of users. Load testing is background work that touches no real
+       user.
+  D-11 The owner is new to the encryption topic and is open to suggestions on
+       the most efficient approach (Section 5.2). Nothing is decided there.
+
+===============================================================================
+3. THE SYNTHETIC-BUSINESS STRESS TEST
+===============================================================================
+3.1 Why bottom-up matters (and its limit)
+  Earlier synthetic staff and assets were NOT added to the P&L, so Model
+  Readiness stayed blocked on the business cost benchmark reconciliation
+  (kickoff doc; tracker section 17, C16 - expected then, no code change). A
+  P&L built from the staff and asset records should clear that block. That is
+  itself a test: if Model Readiness stays blocked on a bottom-up business, it is
+  a finding.
+  LIMIT: if the generator uses the tool's own formulas to build the P&L, the
+  cost reconciliation passes trivially and proves nothing about those formulas.
+  The generator and its expected values must come from an INDEPENDENT script
+  written from CALCULATION_MAP_v6_0.txt (Labour section 3 for hours and
+  on-costs), not from the app's code. Expected totals are produced outside the
+  app, then compared to what the app shows.
+  Also carry the known caveat: the owner or director's own labour cost explained
+  most of the earlier P&L-versus-tool labour gap (Business Outcome brief s5,
+  owner-remuneration design item). Decide how the generator treats it.
+
+3.2 Scenario A (first business) - proposed from the discussion
+  10 staff: 7 productive, 3 non-productive.
+  7 assets: 4 productive, 3 non-productive. The owner said "seven assets and
+  three non-productive"; the 4/3 productive split was agreed in conversation.
+  P&L built bottom-up per 3.1: labour and on-costs from staff, asset interest
+  and depreciation from assets, overheads layered on (rent, insurance, admin,
+  etc.), COGS for materials.
+  NOT YET SPECIFIED: revenue and charge-out rates (the P&L Sales figure), the
+  working groups and which staff and assets sit in which group, overhead pool
+  assignments, and the rate builder set-up. Cost Allocation groups, pool
+  assignments and Rate Builder calculators are inputs the user builds, not
+  imports, and the seed must contain them or the chain cannot run.
+
+3.3 Scale ladder and the $100M arithmetic
+  Proposed ladder: 10 staff, then the same shape at 50, then further (100, then
+  larger) until something breaks. Keep the shape constant until a failure is
+  understood; only then change the business.
+  Scale check from smoke-test figures (VERIFIED in the smoke test brief: one
+  productive person at 40 h/wk, 85 percent productivity, about 1,414 recovered
+  hours, $100 an hour, about $141,000 revenue). On labour alone:
+      100 staff, about 70 productive  -> about $10 million a year
+      about 700 productive staff       -> about $100 million a year
+  So the "100 staff" step is a $10M business, not $100M. A $100M business is
+  either roughly 700 to 1,000 staff at that rate, or fewer staff at higher
+  rates, or an asset-heavy shape. The shape matters more than the number
+  (owner agreed). Two $100M routes to test, once the same-shape ladder holds:
+    HIGH HEADCOUNT, LOWER RATE   (labour-hire or trades style)
+    HIGH-VALUE ASSETS, FEW STAFF (plant-hire or specialist asset style)
+  They stress different paths: staff list and labour aggregation versus asset
+  allocation and Rate Builder asset pricing.
+  Exposed risk worth watching at scale: totals that silently differ from the
+  sum of visible rows (precedent BO-1, BO-11 in the Business Outcome work), and
+  floating-point drift over thousands of line items. Both are hypotheses to
+  test, not observed faults.
+
+3.4 Seeding method and hazards
+  There is NO import path for staff or assets today. The proposed route is a
+  JSON file written into localStorage keys by a console script, then a reload.
+  - Run it ONLY on the isolated instance (localhost:3004, its own localStorage
+    origin, used for the smoke test). Never against the real :3000 dataset.
+  - Back up first. The Step F precedent: restore means putting back ALL keys,
+    not one (pre-flip backup was 19 keys, 96,213 characters).
+  - First get the real shapes from the tool, not from memory: run the existing
+    localStorage dump (smoke test brief section 0, method 3, filters qs_tools_
+    and qstools_ prefixes) on the current dataset, then read the storage files.
+  - VERIFIED names so far (tracker): lib/storage/assetStorage.js, with
+    qs_tools_asset_state as the editor DRAFT and a separate saved-list key (the
+    tracker line is cut off; do not guess it); qs_tools_business_setup_v1.
+  - UNVERIFIED: the Labour storage file name, its key and record shape, the
+    Cost Allocation, Rate Builder, P&L and Balance Sheet keys, ID format.
+  - Hazards that make a naive write look populated but malformed: the editor
+    draft versus the saved list in asset storage; the has_loaded guard (a save
+    effect firing before load overwrites real data with the empty default);
+    a storage or selector layer that REBUILDS an object and silently drops any
+    field not in its list (conventions bug class b); calculated fields that are
+    recomputed on read. A seed field that does not survive a round trip will
+    look fine and give a wrong answer.
+
+3.5 What the second and later businesses should deliberately cover
+  Smoke brief section 10 logs these as untested: multiple working groups
+  sharing one overhead pool; an asset or staff member shared or split across
+  two groups; genuine product or unit mode with real unit-driver data (Step F
+  is the first real test of that). The Opening Hours versus Labour coverage
+  gap is a confirmed missing check and stays out of scope. The different
+  businesses should hit the first three on purpose.
+
+3.6 UI performance pass (separate from correctness)
+  A localStorage seed proves data shape and calculation. It does not prove the
+  screens stay responsive. NOT OBSERVED YET: it is a hypothesis that one edit
+  re-renders every staff row, and that long unvirtualised lists slow down at
+  hundreds of rows. Method: load the seeded data, then use the real pages with
+  the React DevTools Profiler (installed) and the Performance tab; record which
+  components re-render when one staff rate is changed, and the time to respond.
+  Measure the 10-staff run first and record the others as ratios to it. Define
+  "too slow" before the run, not after.
+
+3.7 The pack is also the regression baseline
+  Keep the generator, the seed files and the independently computed expected
+  values. Re-run them after every change that touches shared calculation or
+  storage code: the Business Modelling redesign (1b), units (4), purchase
+  order merge (4b), server migration (2 and 3), and the database (5). The same
+  seed compared before and after migration is a direct test of migration
+  integrity. This is why the pack is worth building properly once.
+
+3.8 Provisional shape freeze
+  The owner's expectation that this pass fixes every entry point is right for
+  the shapes that exist today. But units, 1b and 4b will add or change shapes
+  before the database step. Treat the entry-point register as provisional
+  until step 4b is closed, and re-audit stable record IDs at the start of
+  step 5 (the 2026-10-16 go-to-market brief, section 7, already says this).
+
+===============================================================================
+4. DATA ENTRY POINTS (owner statement, to be checked against the code)
+===============================================================================
+Imported or importable: Profit and Loss; Balance Sheet; the Xero cost-of-goods
+importer exists. The fixed asset register comes from Xero and is entered
+against the Assets module. Revenue and COGS: may or may not be needed as a
+separate input; undecided.
+Hand-entered: Labour (staff). The owner raised importing it from a payroll
+report (Smartly was named; he believes it has a suitable report) without the
+tax detail, since tax is a separate matter handled elsewhere. Not designed.
+Built by the user, not imported: Cost Allocation structure and Rate Builder.
+Rule 10 from the conventions applies before any new import: is it necessary.
+The same JSON-driven entry points that seed the stress test are the natural
+base for the AI-assisted setup brief (the generator and the setup assistant
+both turn a description into valid records, and the generator is the test
+harness for the assistant).
+
+===============================================================================
+5. DATABASE DESIGN RULES
+===============================================================================
+5.1 Decided by the owner (Section 2): live before launch with no localStorage
+    migration (D-5); one multi-tenant database (D-6); every calculated number
+    stored (D-7).
+    Consequence of D-5 to note: staging and the owner's own datasets that sit
+    only in browser storage are not carried over. The JSON seed path (Section
+    3.4) is how a dataset is loaded again.
+5.2 Tenant isolation and encryption - requirement versus open choice
+  REQUIREMENT: a tenant key (business or user id) on every row that holds user
+  data, every query scoped to it, and row-level security enforced inside the
+  database as the backstop, so a bug in application code cannot return another
+  business's rows. Day one, not a hardening pass.
+  LAYERS (explained in discussion):
+    in transit (TLS)              standard, expected from any host
+    at rest (disk level)          applied by most managed database hosts, free
+                                  in performance terms. VERIFY for whichever
+                                  provider is chosen; do not assume.
+    field level (own key)         a deliberate choice; the database can no
+                                  longer filter, sort, index or sum the value,
+                                  so work moves into the application and slows.
+  The owner's first instinct was "encrypt everything". The reasoning given was:
+  encrypting everything at field level would hurt exactly the consistent,
+  queryable data that Cost Allocation and Rate Builder need, and the P&L and
+  Balance Sheet are already covered by TLS plus at-rest plus row-level
+  security. Proposed target: that baseline for the whole database, and
+  field-level encryption for a short, deliberate list of the most sensitive
+  fields that are rarely queried in bulk. NOT DECIDED. Derived outputs (Business
+  Outcome and the modelled layer) can be as sensitive as raw inputs and belong
+  on the list for consideration. Encrypting only the user identifier was
+  considered and rejected: the data identifies the business anyway, and the app
+  needs the key on every query.
+  Most real breaches do not break encryption. They get the running application
+  to hand data over (a flaw, a leaked key, stolen credentials), which is why
+  query scoping and key handling matter as much as the cipher.
+  RECOMMENDED before the schema is fixed: put the field-level list in front of
+  someone who has secured financial SaaS data, because the stakes are high and
+  this was reasoned from first principles, not from experience.
+5.3 Working schema model (proposed, owner agreed it fits)
+    BASELINE   what the business is today: staff, assets, Cost Allocation
+               groups, Rate Builder calculators, imported P&L and Balance
+               Sheet. Mostly slow-changing "dimension" style records, each
+               with an ID and descriptive attributes.
+    MODELLED   the scenario layer: Business Modelling levers and saved
+               scenarios, referencing the same IDs as the baseline and holding
+               a parallel set of numbers. Check against the 1b redesign brief
+               (scratch overlay) before locking this layer.
+    LIVE       operational events over time: purchase orders, timekeeping,
+               and each new P&L or Balance Sheet import. "Fact" style, time
+               stamped, referencing the baseline IDs.
+  Dimension versus fact in one line: a dimension is a thing (a staff member,
+  an asset, a group); a fact is a number about a thing on a date.
+5.4 Stored outputs
+  Rule D-7 means each calculation module's output contract becomes stored data,
+  not only a value passed between hooks. Implications to design (not decided):
+  snapshots keyed by business, date and scenario; a recalculation on any change
+  to baseline or modelled inputs; each snapshot stamped with what it was
+  computed from, so a stale number can be detected; and what "every level"
+  means in rows (every intermediate node, or each module's output contract).
+  ASSUMED, check: the shipped calculation trace already gives every number a
+  node identity, which may be the natural unit to store. The stored number must
+  be written by the same calculation code the app uses (server side after steps
+  2 and 3), never re-derived elsewhere, so there is one source of truth.
+5.5 Stable IDs
+  Every record needs a stable ID and references by ID, not array position.
+  Several shapes were recalled as already having IDs; that was from memory of
+  the briefs, NOT audited. Audit coverage at the start of step 5.
+5.6 Operating while live
+  With real users, "never lose their data" becomes a database duty: additive,
+  versioned migrations; back up before each; change a field's meaning only
+  across more than one release; point-in-time recovery decided with the host.
+  For code-only changes a user in a session simply gets the new version on
+  reload. This replaces the localStorage versioning advice given in discussion,
+  which no longer applies once D-5 holds.
+5.7 Purchase orders and timekeeping
+  The owner's framing: the tool sets a baseline and a model; purchase orders,
+  timekeeping and invoices are how the business is controlled afterwards, and
+  what returns to re-run through the core is the periodic P&L and Balance Sheet
+  import, which already has defined injection points. So the live operational
+  data may sit in its own tables, and the core baseline database need not wait
+  for them provided their output lands in the same P&L-shaped feed. This
+  CONFLICTS with the existing build order, where step 4b places the purchase
+  order merge BEFORE the database so the schema is designed once. Open
+  question Q-3.
+
+===============================================================================
+6. THE LOAD QUESTION
+===============================================================================
+Today all compute runs in each user's browser and storage is per browser, so
+many users do not contend over anything shared. That changes at build order
+steps 2 and 3: the calculation dispatcher runs on the server (Vercel in
+production), and the database adds shared storage. Server load then matters,
+and step 6 of the existing build order already covers it.
+Method when the time comes: a load tool (k6 suggested; Artillery and JMeter are
+alternatives) scripted against the real endpoints on a deployed environment,
+not localhost, ramping virtual users and reading response time and error rate.
+Until then, the P&L import API route is the only server endpoint with real
+work. Per D-9 and D-10 this comes after the database step and runs as
+background work, not as a launch blocker.
+
+===============================================================================
+7. THE EXPLAINER AGENT
+===============================================================================
+7.1 Role (D-8): read and explain, never compute. It fetches stored,
+    already-calculated outcomes and explains, compares and points out patterns
+    in plain language.
+7.2 Shape: the agent calls a fixed set of defined tool functions (for example,
+    get a business's Business Outcome summary, a staff member's true cost, the
+    current Cost Allocation groups). Each returns structured JSON read from the
+    stored tables, scoped to the one business by the same isolation as 5.2. It
+    does not write its own database queries from the conversation.
+7.3 Hypotheticals: the owner would allow modelling a what-if if clearly
+    labelled as not the truth. Proposed implementation (not confirmed): the
+    agent triggers Business Modelling's own lever calculation and explains the
+    result, rather than doing the arithmetic itself. Either way no hypothetical
+    figure is shown as an actual.
+7.4 Logging: proposed, owner has not commented. Keep a record of what was asked
+    and what data was returned, for trust and for client compliance asks.
+7.5 Dependencies: the stored outputs (5.4), tenant isolation (5.2), the
+    explanation text already planned on calculation nodes (AI brief decision D1,
+    result_interpretation). Without stored outputs the agent would have to
+    approximate, which D-8 forbids.
+7.6 Check before building: the 2 March 2026 Xero developer terms on AI/ML use
+    of API data (go-to-market brief, Q2) against an agent that reads figures
+    derived from Xero data.
+
+===============================================================================
+8. STATEMENTS FROM THE DISCUSSION NOT TO RELY ON
+===============================================================================
+  - "A server on any decent host handles hundreds or thousands of simultaneous
+    light requests": no basis in this project. Calculation requests are not
+    light and are untested. Measure.
+  - "Most managed database providers encrypt at rest by default": a general
+    statement, not checked for any named provider. Provider not chosen.
+  - Hosting names given as examples (RDS, Supabase, Neon): illustration only,
+    no provider is selected.
+  - The re-render lag and unvirtualised list risks: hypotheses, not observed.
+  - The Labour storage file name and every key other than the verified ones in
+    3.4: not known.
+
+===============================================================================
+9. BUILD ORDER CHANGES MADE (in the launch build order brief)
+===============================================================================
+  1c  Synthetic-business stress test, client side, before server migration.
+      Placed after step 1 and before 1b so it is the baseline that 1b, 4, 4b
+      and the migration are checked against. Proposed, owner to confirm.
+  5c  Read-and-explain agent on the stored outputs. Needs step 5. Whether it is
+      before launch or after is NOT decided.
+  Step 6 wording extended: the stress test of the server-migrated version is a
+      rerun of the 1c pack plus the server load test (Section 6).
+  New section "Design rules set 2026-10-16" lists D-5 to D-8 so the tracker
+  carries them.
+
+===============================================================================
+10. OUT OF SCOPE / MODULES TOUCHED / FIRST SLICE
+===============================================================================
+Out of scope: any code; choosing a database provider; the field-level
+encryption list; the schema itself; the agent build; pricing; the benchmark
+module.
+Modules touched: none.
+First slices when picked up, in order:
+  S0  Read-only inventory. Run the existing localStorage dump on the current
+      dataset; list every key, owner module, record shape and ID field; read
+      the storage files for the load and save behaviour (has_loaded, rebuild
+      versus spread). No code change. Output: the entry-point register.
+  S1  Write the independent expected-value script from the calculation map and
+      a generator for Scenario A with its working groups, pool assignments and
+      Rate Builder set-up; fix revenue and the owner-cost treatment.
+  S2  Seed loader plus backup and restore, run on the isolated instance.
+  S3  Walk the chain on Scenario A, compare to expected, record Model Readiness.
+  S4  Same shape at 50, then the ladder, with the performance pass.
+  S5  A second, different business covering the Section 3.5 gaps.
+
+===============================================================================
+11. OPEN QUESTIONS
+===============================================================================
+  Q-1  Revenue and charge-out rates for Scenario A, and how the owner's own
+       labour cost is treated in the bottom-up P&L.
+  Q-2  Confirm the 1c and 5c placement. Is the agent before launch?
+  Q-3  Does the database wait for the purchase order merge (existing step 4b
+       order) or go first with live tables added later (owner's framing,
+       Section 5.7)?
+  Q-4  Which fields get field-level encryption, and who reviews the list?
+  Q-5  Which database host, and what at-rest encryption and recovery does it give?
+  Q-6  What does "every level" mean for stored numbers: every node or each
+       module output contract? Snapshot cadence and retention?
+  Q-7  What counts as too slow in the UI performance pass?
+  Q-8  Payroll import from Smartly or similar: is it worth building at all?
+  Q-9  Is the agent allowed to trigger Business Modelling calculations, and is
+       there an audit log?
+===============================================================================
+
+
+===============================================================================
+ADDENDUM 1 (2026-10-16, later) - OWNER DECISIONS THAT RESOLVE OPEN QUESTIONS
+===============================================================================
+Source: the continued voice session. The order of work and the launch bar are recorded in LAUNCH_BUILD_ORDER_AND_
+THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt Addendum 1, which wins on order. This addendum updates this brief only.
+Nothing built. No code read or run.
+
+PLACEMENT CONFIRMED
+  Step 1c (stress test, hours mode, client side) and the explainer agent (old 5c) are both confirmed. The agent is
+  now INSIDE the launch bar, shipped together with setup coaching, after the database and the UI tidy-up.
+  Q-2 CLOSED.
+
+QUESTIONS CLOSED
+  Q-3  The database goes BEFORE the purchase order merge. Live purchase order and timekeeping tables are added
+       later. This reverses the 4b-before-5 order in the launch brief and adopts the framing in Section 5.7.
+  Q-6  Every single calculation node is stored, not only each module's output contract. Section 5.4's "ASSUMED, check:
+       the trace node identity may be the natural unit to store" still needs checking against the trace code.
+
+SCHEMA
+  Three layers: BASELINE, LIVE, STORED OUTPUTS (launch Addendum 1, A4). Section 5.3's MODELLED layer is to be
+  reconciled at schema time with the 1b scratch overlay design.
+
+SCOPE OF 1c CLARIFIED
+  Hours mode only first. Ladder 10, 100, 1,000+. The Section 3.3 arithmetic stands (100 staff is about a $10M
+  business, so the ladder reaches a $100M business only with roughly 700 to 1,000 staff or a high-value-asset shape).
+  Units mode gets its own stress test later with NEW expected-value math; the generator, harness and seed loader
+  are reused.
+
+RIDER ON 1c
+  Extend the calculation trace through Cost Allocation, Rate Builder, Business Outcome and Business Modelling during
+  the same walk, and add nodes for idle cost. See the CALCULATION_TRACE brief addendum of the same date.
+
+SECTION 3.7 EXPANDED
+  The regression pack is now a permanent health-check suite, not only a baseline for later steps. See
+  REGRESSION_HEALTH_CHECK_SUITE_FUTURE_BUILD_BRIEF_2026-10-16.txt.
+
+SECTIONS 6 AND 9 (D-9, D-10) CLARIFIED
+  1c proves correctness once, client side. The later step 6 re-runs the same pack on the server-migrated version
+  (cheap; catches migration bugs) and ADDS server concurrency and load testing, which cannot exist before
+  migration. This is not duplicated work. Load at scale remains background work and is not a launch blocker.
+
+NEW TESTS AFTER THE DATABASE (launch gates)
+  (a) full-node storage performance at about 1,000 businesses (write volume and query speed);
+  (b) a deliberate attempt to breach tenant isolation.
+  These are not the same as the concurrency load test.
+
+ENCRYPTION AND HOST
+  Q-4 PARTLY: an advisory starting position is recorded in launch Addendum 1 A4; it still needs a reviewer
+  experienced in securing financial SaaS data before the schema is fixed. Q-5 DEFERRED by the owner (host later).
+
+SECTION 7.6 BECOMES A GATE
+  The agent is in the launch bar, so the Xero developer terms check on AI/ML use of API data must happen before the
+  agent is built.
+
+DESIGN POINT ADDED
+  The agent may later run on a schedule and push a weekly "how you are tracking" digest, and spot drift. That needs
+  stored nodes over TIME, which strengthens D-7. See POST_LAUNCH_VISION_AND_POSITIONING_FUTURE_BUILD_BRIEF_2026-10-16.txt
+  Section 4.
+
+STILL OPEN: Q-1, Q-7, Q-8, Q-9.
+===============================================================================
+
+===============================================================================
+ADDENDUM 2 (2026-10-17) - R2 HARNESS BUILT, SCENARIO A LAYER 1 PASSED LIVE [SHIPPED: harness]
+===============================================================================
+Method change (owner, 2026-10-17): a fill-in workbook was built and dropped. Each business is now a short RECIPE
+(about ten decisions); a generator builds everything else deterministically. Supersedes the hand-entered approach
+implied by section 3.2 "NOT YET SPECIFIED".
+
+  FILES (repo)
+    Py/stress_test/recipes/scenario_a.json  Scenario A recipe. Rates are Claude's NZ civil/earthmoving estimates, not
+                                             owner figures (owner to correct).
+    Py/stress_test/generate_business.py     recipe -> seed, expected values, review workbook. uuid5 ids: same recipe and
+                                             --as-of give identical output.
+    Py/stress_test/mirra_expected.py        INDEPENDENT expected values, written from CALCULATION_MAP sections 1-6 and
+                                             statutory constants. Does not import or port app code (meets 3.1 LIMIT).
+    Py/stress_test/compare_trace.py         expected vs trace snapshot, PASS within max($1, 0.01%); exit 1 on any fail.
+    Py/stress_test/seed_loader.console.js   :3004 only. Raw, unfiltered backup first; clears all keys; loads; reloads.
+    docs/Audit/v6_0/smoke_test/3.1 Stress Test/STORAGE_KEY_REGISTER_S0_2026-10-17.txt   slice S0 (keys, shapes, H1-H8).
+
+  SCENARIO A (as of 2026-10-17): 10 staff (7 productive: 4 operators, 2 senior operators, 1 supervisor; owner, admin,
+  accounts non-productive; accounts 24 h over 3 days), 7 assets (4 machines, 3 vehicles, one paid off, one with no
+  weeks override), 5 groups (asset unit short of labour; sequential unit with labour over and box ticked; truck unit;
+  labour crew; pure support). Bottom-up P&L: revenue 1,313,841.72, net profit 8.0% (105,107.34).
+  Staff type strategy (owner, H1): few system types with percent splits. Strategy 1 (custom types) is for a later business.
+
+  RESULT: 20 of 20 layer-1 trace nodes PASS live on :3004 (snapshot calculation_trace_snapshot_1792179876950.json,
+  231 nodes, no duplicates, no missing endpoints, no null values). Labour, Assets, General Overheads, Cost Summary,
+  Business Summary, Revenue/COGS. All differences under 1 cent.
+  Confirmed on the way (hand checks against the same snapshot, not yet in the expected script):
+    - sequential run pattern sums asset hours (G02: 1,440 + 1,225 = 2,665);
+    - asset weeks fall back to Opening Hours (52 - 3 = 49) when there is no override (A04);
+    - vehicle running lines auto-balance into an asset pool (59,122.88, the read-only rule in mirra_expected);
+    - idle G02 163.23 h; per-asset shortfall dollars G01 265.88 h x (140 + 90) = 61,153.17 and G03 265.88 x (120 + 105)
+      = 59,823.75; Business Modelling today_net_profit = P&L net profit (to 1 cent).
+
+  FINDINGS FOR THE OWNER (not changed)
+    F-1 ESCT is added ON TOP of the 3.5% employer KiwiSaver as a cost (labourCalculations.js). Normal NZ practice
+        deducts ESCT from the employer contribution, so the cost is the 3.5% alone. The recipe matches the app
+        (kiwisaver_line_includes_esct true) so the chain could be tested. OWNER DECISION.
+    F-2 Asset running costs entered on an asset never reach cost (hard-coded 0, calc map A1). The generator puts them
+        in the P&L as overheads instead.
+    F-3 As-priced Business Outcome profit (sum of groups about 785k) is far above real profit (105k): the recipe's
+        charge-out multiplier and machine rates imply more revenue than the P&L. The real-capacity cascade absorbs it.
+        Decide before layer 2 whether Scenario A should be tuned so modelled revenue is close to real revenue.
+
+  NEXT
+    - Layer 2 expected values: Cost Allocation group rows, overhead distribution, Rate Builder labour, Business
+      Outcome per-source rows and both cascades.
+    - Scaling design: cloning groups splits type percents into decimals, which the app rounds (H2). Options to the
+      owner before the 10x / 100x runs.
+    - Second business: custom staff types, absent-field groups (H6), shared asset (H7), a string-typed value (H5).
+    - Q-1 (owner labour) answered for Scenario A as owner on wages in the P&L.
+===============================================================================
