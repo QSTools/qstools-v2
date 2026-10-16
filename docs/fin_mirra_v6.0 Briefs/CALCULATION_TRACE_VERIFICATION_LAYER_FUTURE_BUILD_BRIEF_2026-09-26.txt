@@ -738,3 +738,67 @@ SUPERSEDED 2026-09-29 (overhead driver): session 14 item 4 above records that
   hours), with the old bases kept only as fallbacks. Within a group it was and
   remains hours-weighted. Rate Builder recovery rows are still cost-weighted
   (RB-1) pending an owner decision.
+
+
+===============================================================================
+ADDENDUM 2026-10-16 - COVERAGE CONFLICT, STEP 1c RIDER, DEFINITION OF DONE
+===============================================================================
+Source: the voice session recorded in LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt Addendum 1.
+Nothing built. No code read or run.
+
+  - NEW STANDING RULE (owner): any new calculated figure is not done until it has a trace node. Same bar as a
+    passing build and live verification. Recorded in Working_Conventions UPDATE 2026-10-16.
+  - GAP: idle cost (shipped 2026-10-15) has no node, as reported by the owner. It was built outside the formal smoke
+    test sequence, and nodes were only populated during formal module verification passes. Backfill list: launch
+    Addendum 1, A3.
+  - RIDER ON STEP 1c: extend the trace through Cost Allocation, Rate Builder, Business Outcome and Business
+    Modelling while the stress test walks those modules. Not a separate job.
+  - COVERAGE CONFLICT TO RESOLVE FIRST: the owner described current coverage as Business Summary, Cost Summary,
+    Labour, Assets, General Overheads and Revenue-COGS. Section 7 of this brief and the kickoff record later
+    extensions (Cost Allocation, Rate Builder roots, four Business Outcome mechanisms, a Business Modelling root).
+    Read lib/calculation-trace/ and record per-module, per-node coverage before extending.
+  - No business_type node exists (smoke test brief). That matters for Step F and for units mode.
+  - OPEN: nodes may need result_interpretation text for the explainer agent (AI brief D-1). Every node is also to be
+    stored in the database (stress brief Addendum 1, Q-6), so a node's identity and its explanation text become part
+    of the schema. Decide the node shape before the database step.
+  - The trace tool is one of the pieces of the permanent regression suite (REGRESSION_HEALTH_CHECK_SUITE brief).
+===============================================================================
+===============================================================================
+ADDENDUM 2026-10-17 - IDLE COST TRACE NODES BACKFILLED [SHIPPED]
+===============================================================================
+Closes the GAP in the 2026-10-16 addendum above (launch tracker Addendum 1, A3 backfill list). First item of the R2
+(step 1c) rider. Display-only figures; no calculation, storage or UI file changed.
+
+  COVERAGE CONFLICT RESOLVED (read of lib/calculation-trace/, 2026-10-17): the kickoff and Section 7 are right.
+    Fixed nodes in traceNodes.js cover Business Summary, Cost Summary, Labour, Assets, General Overheads and
+    Revenue-COGS. Dynamic builders cover Cost Allocation (labour type, asset, overhead pool, group total cost and cost
+    per hour), Rate Builder (recovery rows boundary, labour rates), Business Outcome (per-source, materials, group,
+    real capacity A/B, assumed capacity A/B, non-productive distribution) and Business Modelling. Idle cost had none.
+
+  NEW FILE lib/calculation-trace/pilot-map/idleCostTraceNodes.js, registered at the end of buildTraceGraph in
+  calculationTraceSelectors.js (two patches). Nodes, per working group:
+    cost_allocation.group.<id>.idle_labour_hours / .idle_labour_cost       every group with an id (0 when unticked)
+    business_outcome.group.<id>.idle_labour_hours / .idle_labour_cost      only groups in idle_labour_by_group
+    business_outcome.group.<id>.capacity_gap_hours                         every capacity_coverage_gap row
+    business_outcome.group.<id>.capacity_gap_dollars (+ _is_complete)      gap_type not "none"; flag 1 = fully
+                                                                           priced, 0 = "at least" (E-1 to E-3)
+  Not wired INTO any total (display only). Baseline path only: Business Modelling overrides on the shortfall figure
+  are not traced.
+  Local safeNumber keeps null/undefined as null, so an unpriceable gap shows blank, never $0. The older pilot-map
+  files use a safeNumber where Number(null) = 0; a null input there would show as 0. Not changed; look at it during
+  the rider.
+
+  VERIFIED LIVE on :3004 (snapshots in docs/Audit/v6_0/smoke_test/3.1 Stress Test/):
+    ...813799  baseline, before the patch (123 nodes; Jack in 2nd Labour Test Unit, box unticked).
+    ...406336  Jack in Single Labour Working Unit Test, box TICKED: 129 nodes, no duplicates, no missing endpoints.
+               idle 1,388.23 h, $119,139.90 in Cost Allocation and Business Outcome; gap -1,388.23 h, gap dollars
+               $119,139.90, complete = 1. Hand check 1,388.23 x (242,722.48 / 2,828.23) = 119,139.90, matching the
+               idle cost brief Step 2 figure.
+    ...420693  same, box UNTICKED: 125 nodes, clean. Only the two Cost Allocation idle values changed (to 0); the
+               two Business Outcome idle nodes and the gap dollar pair dropped out; every other node identical to the
+               cent. The tick box moves the idle display only.
+  Observed, not investigated: moving Jack between groups moved total net profit by 0.02 (-241,833.52 to
+  -241,833.54). Rounding across regrouped rows is the likely cause.
+  Not exercised live: a revenue_at_risk per-asset shortfall with a non-zero dollar figure and an incomplete (0) flag.
+  The 1c synthetic businesses should hit both on purpose.
+===============================================================================
