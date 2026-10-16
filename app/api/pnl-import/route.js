@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
-import { spawn } from "child_process";
+// Loaded via getBuiltinModule so Turbopack does not trace the whole project (NFT warning).
+const { spawn } = process.getBuiltinModule("child_process");
 
 export const runtime = "nodejs";
 
@@ -28,16 +29,12 @@ function run_python_extractor({ pdf_path, output_path }) {
 
     const python_executable = get_python_executable();
 
-    const script_path = path.join(
-      root,
-      "Py",
+    const script_path = path.join(process.cwd(), "Py",
       "API_for_PnL",
       "extract_pnl_pdf_to_json.py",
     );
 
-    const child = spawn(
-      python_executable,
-      [script_path, pdf_path, "--output", output_path],
+    const child = spawn(python_executable, [script_path, pdf_path, "--output", output_path],
       {
         cwd: root,
         shell: false,
@@ -133,7 +130,7 @@ export async function POST(request) {
     }
 
     const root = process.cwd();
-    const temp_dir = path.join(root, ".tmp", "pnl-import");
+    const temp_dir = path.join(process.cwd(), ".tmp", "pnl-import");
     await mkdir(temp_dir, { recursive: true });
 
     const import_id = `${Date.now()}_${Math.random()
