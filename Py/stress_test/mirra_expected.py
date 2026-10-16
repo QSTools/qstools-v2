@@ -224,3 +224,64 @@ def layer1(recipe, pnl_lines, as_of):
     }
     return {"as_of": as_of.isoformat(), "opening_hours": oh, "labour": lab,
             "assets": assets, "general_overheads": go, "nodes": nodes}
+
+
+# ---------------------------------------------------------------- billed revenue (calc map s9.1, s9.3, update 2026-10-09)
+def billed_revenue(recipe, as_of, charge_out):
+    """What the recipe's rates bill for the hours the business really has, before materials.
+    Asset-driven group: covered hours = min(required asset hours, assigned labour hours);
+      required = SUM of asset hours if sequential, else MAX.
+      labour revenue = covered x labour mix rate (sum(rate x hours) / sum(hours)).
+      asset revenue  = machine rate x own asset hours x min(1, covered / required)  (per-asset calculator, machine only).
+    Labour-driven group: each type's assigned hours x its charge-out rate.
+    Non-productive types bill nothing."""
+    oh = opening_hours(recipe["opening_hours"])
+    people = expand_staff(recipe)
+    pool = labour_totals(people)["by_staff_type"]
+    asset_spec = {a["ref"]: a for a in recipe["assets"]}
+    groups = []
+    total = 0.0
+    for g in recipe["groups"]:
+        lab = [(t, pool[t]["hours"] * pct / 100) for t, pct in g["labour"] if pool[t]["productive"]]
+        lab_hours = sum(h for _, h in lab)
+        lab_charge = sum(charge_out.get(t, 0) * h for t, h in lab)
+        assets = []
+        for ref, pct in g["assets"]:
+            a = asset_spec[ref]
+            if a["asset_type"] != "productive":
+                continue
+            e = asset_expected(a, as_of, oh)
+            for _ in range(a.get("count", 1)):
+                assets.append((a, e["utilisation_hours_annual"] * pct / 100))
+        if g["recovery_hour_source"] == "asset_hours" and assets:
+            hrs = [h for _, h in assets]
+            required = sum(hrs) if g.get("asset_run_pattern") == "sequential" else max(hrs)
+            covered = min(required, lab_hours) if lab_hours > 0 else 0
+            mix = lab_charge / lab_hours if lab_hours else 0
+            labour_rev = covered * mix
+            share = min(1.0, covered / required) if required else 0
+            asset_rev = sum(a["machine_rate"] * h * share for a, h in assets)
+        else:
+            required = covered = lab_hours
+            labour_rev, asset_rev = lab_charge, 0.0
+        row = {"ref": g["ref"], "labour_hours": lab_hours, "required_asset_hours": required,
+               "covered_hours": covered, "labour_revenue": labour_rev, "asset_revenue": asset_rev,
+               "modelled_revenue": labour_rev + asset_rev, "has_assets": bool(assets)}
+        if g["recovery_hour_source"] == "asset_hours" and assets:
+            # Capacity coverage gap (calc map s9.9) and idle labour (D4), display-only figures.
+            lab_cost = sum(pool[t]["cost"] * pct / 100 for t, pct in g["labour"] if pool[t]["productive"])
+            gap = required - lab_hours
+            idle = lab_hours - required if (g.get("labour_tied_to_asset") and lab_hours > required) else 0.0
+            idle_cost = idle * lab_cost / lab_hours if lab_hours else 0.0
+            if gap > 0:
+                missing = 1 - covered / required
+                gap_dollars = sum(a["machine_rate"] * h * missing for a, h in assets) + mix * (required - covered)
+            elif gap < 0 and idle > 0:
+                gap_dollars = idle_cost
+            else:
+                gap_dollars = None
+            row.update({"capacity_gap_hours": gap, "idle_labour_hours": idle, "idle_labour_cost": idle_cost,
+                        "capacity_gap_dollars": gap_dollars})
+        groups.append(row)
+        total += labour_rev + asset_rev
+    return {"total": total, "groups": groups}

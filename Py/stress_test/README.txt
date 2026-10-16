@@ -31,4 +31,6 @@ RULES
   - Never run the loader on :3000 (it refuses anything but :3004).
   - Backups are raw and unfiltered (every key on the origin). See STORAGE_KEY_REGISTER_S0 section 2.
   - Same recipe + same --as-of = identical output.
-  - Layer 1 only. Cost Allocation, Rate Builder and Business Outcome expectations are the next layers.
+  - Layer 1 plus the first of layer 2 (Business Outcome group modelled revenue, capacity gap, idle).
+  - recipe pnl.revenue_basis: billed_from_rates (aligned: P&L revenue built from rates x real hours)
+    or target_margin (misaligned variant, recipes/scenario_a_misaligned.json, not run yet).

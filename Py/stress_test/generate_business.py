@@ -229,8 +229,17 @@ def build(recipe, as_of):
     interest_total = sum(mx.asset_interest(a, as_of) for a in asset_list)
     pnl = recipe["pnl"]
     labour_pnl = lab["gross_wages"] + lab["employer_kiwisaver"] + (lab["esct"] if pnl["kiwisaver_line_includes_esct"] else 0) + lab["acc"]
-    free = 1 - (pnl["target_net_margin_percent"] + pnl["materials_percent_of_revenue"] + pnl["overhead_percent_of_revenue"]) / 100
-    revenue = (labour_pnl + interest_total) / free
+    basis = pnl.get("revenue_basis", "billed_from_rates")
+    billed = mx.billed_revenue(recipe, as_of, charge_out)
+    if basis == "billed_from_rates":
+        # Revenue built from the inputs: rates x real hours, plus materials sold at the markup.
+        # Materials COGS is a share of revenue, so solve R = billed + COGS x (1 + markup), COGS = m x R.
+        m = pnl["materials_percent_of_revenue"] / 100
+        markup = pnl["materials_markup_percent"] / 100
+        revenue = billed["total"] / (1 - m * (1 + markup)) * pnl.get("billing_realisation_percent", 100) / 100
+    else:  # "target_margin": the earlier method, kept for the misaligned scenario
+        free = 1 - (pnl["target_net_margin_percent"] + pnl["materials_percent_of_revenue"] + pnl["overhead_percent_of_revenue"]) / 100
+        revenue = (labour_pnl + interest_total) / free
     weights_total = sum(w for _, _, w in pnl["overhead_lines"])
 
     def line(name, amount, section, category, sub="", dcc="", interest="not_reviewed"):
@@ -259,7 +268,21 @@ def build(recipe, as_of):
 
     expected = mx.layer1(recipe, lines, as_of)
     expected["charge_out_by_staff_type"] = charge_out
+    expected["billed_revenue"] = billed
+    # Layer 2 (first part): Business Outcome group modelled revenue, capacity gap and idle, keyed by trace node id.
+    for row in billed["groups"]:
+        gid = group_ids[row["ref"]]
+        if row["modelled_revenue"] > 0:
+            expected["nodes"][f"business_outcome.group.{gid}.modelled_revenue"] = row["modelled_revenue"]
+        if "capacity_gap_hours" in row:
+            expected["nodes"][f"business_outcome.group.{gid}.capacity_gap_hours"] = row["capacity_gap_hours"]
+            expected["nodes"][f"cost_allocation.group.{gid}.idle_labour_hours"] = row["idle_labour_hours"]
+            expected["nodes"][f"cost_allocation.group.{gid}.idle_labour_cost"] = row["idle_labour_cost"]
+            if row["capacity_gap_dollars"] is not None:
+                expected["nodes"][f"business_outcome.group.{gid}.capacity_gap_dollars"] = row["capacity_gap_dollars"]
+    expected["group_names"] = {group_ids[g["ref"]]: f'{g["ref"]} {g["label"]}' for g in recipe["groups"]}
     expected["pnl_summary"] = {
+        "revenue_basis": basis, "billed_from_rates": r2(billed["total"]),
         "revenue": r2(revenue), "labour_lines": r2(labour_pnl), "asset_interest": r2(interest_total),
         "net_profit": r2(sum(l["amount"] for l in lines if l["category"] == "revenue")
                          - sum(l["amount"] for l in lines if l["category"] != "revenue"))}
@@ -372,7 +395,8 @@ def main():
               "general_overheads.total_general_overheads", "cost_summary.total_cost_burden",
               "business_summary.required_recovery_per_driver", "revenue_cogs.total_revenue"):
         print(f"  {k:52} {expected['nodes'][k]:>14,.2f}")
-    print("  P&L net profit", f'{expected["pnl_summary"]["net_profit"]:,.2f}')
+    ps = expected["pnl_summary"]
+    print(f'  revenue basis {ps["revenue_basis"]}: billed from rates {ps["billed_from_rates"]:,.2f}; P&L net profit {ps["net_profit"]:,.2f} ({ps["net_profit"] / ps["revenue"] * 100:.1f}% of revenue)')
 
 
 if __name__ == "__main__":

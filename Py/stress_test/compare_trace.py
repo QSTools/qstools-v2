@@ -20,16 +20,22 @@ def main(exp_path, snap_path):
     print(f'Snapshot integrity: {snap.get("integrity_report")}\n')
     bad = 0
     print(f'{"node":55} {"expected":>16} {"actual":>16} {"diff":>12}  result')
+    names = exp.get("group_names", {})
+
+    def label(node):
+        parts = node.split(".")
+        return ".".join(names.get(p, p) for p in parts)[:55]
+
     for node, e in exp["nodes"].items():
         a = actual.get(node)
         if a is None:
-            print(f"{node:55} {e:>16,.2f} {'(missing)':>16} {'':>12}  MISSING")
+            print(f"{label(node):55} {e:>16,.2f} {'(missing)':>16} {'':>12}  MISSING")
             bad += 1
             continue
         d = a - e
         ok = abs(d) <= max(1.0, 0.0001 * abs(e))
         bad += 0 if ok else 1
-        print(f"{node:55} {e:>16,.2f} {a:>16,.2f} {d:>12,.2f}  {'PASS' if ok else 'FAIL'}")
+        print(f"{label(node):55} {e:>16,.2f} {a:>16,.2f} {d:>12,.2f}  {'PASS' if ok else 'FAIL'}")
     print(f"\n{len(exp['nodes']) - bad} of {len(exp['nodes'])} passed.")
     print("NOTE: asset interest uses the NZ calendar date the page ran on (captured_at is UTC, so it can show the day before).")
     print("      If only asset-interest nodes fail, re-generate with --as-of set to that NZ date.")

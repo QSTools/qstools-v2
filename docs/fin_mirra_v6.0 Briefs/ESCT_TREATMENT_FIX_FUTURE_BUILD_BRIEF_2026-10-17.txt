@@ -1,0 +1,46 @@
+===============================================================================
+MIRRA - ESCT TREATMENT IN LABOUR COST - FUTURE BUILD BRIEF
+===============================================================================
+DATE:     2026-10-17
+STATUS:   [FUTURE BUILD] Logged only. Nothing changed. Owner agreed to log it and carry on with R2 on the
+          current treatment.
+FOUND BY: R2 stress test, Scenario A (STRESS_TEST_DATABASE_AND_AGENT_DESIGN brief, Addendum 2, F-1).
+
+1. WHAT THE APP DOES TODAY
+   lib/calculations/labourCalculations.js calculateLabourOutputs (calc map s3):
+     employer_kiwisaver_gross = gross_wages x 0.035
+     esct_amount              = employer_kiwisaver_gross x ESCT rate (band on wages + contribution)
+     total_employer_contribution_cost = employer_kiwisaver_gross + esct_amount + acc_work_levy
+   So ESCT is added ON TOP of the 3.5 percent employer contribution.
+
+2. WHAT IRD SAYS
+   ESCT "is deducted from your employer contributions"; each pay period the employer works out "the amount of
+   ESCT to deduct and your net employer contribution". ESCT goes to IRD, the net goes to the fund. The employer's
+   cash cost is the gross contribution (3.5 percent), not 3.5 percent plus ESCT.
+     https://www.ird.govt.nz/esct
+     https://www.ird.govt.nz/employing-staff/deductions-from-income/employer-superannuation-contribution-tax/deduct-esct-from-each-employer-contribution
+   Exception: an employer may agree to pay ESCT on top so the fund receives the full contribution (an employment
+   agreement choice, not the IRD default).
+
+3. SIZE (Scenario A, as of 2026-10-17)
+   ESCT 8,089.54 on employer KiwiSaver 26,921.44; total labour cost 812,167.28 -> overstated by about 1.0 percent.
+   Flows into every labour cost rate, Rate Builder minimum rates, Cost Summary burden and the recovery rate.
+
+4. PROPOSED CHANGE (owner to confirm at build time)
+   - Default: total_employer_contribution_cost = employer_kiwisaver_gross + acc_work_levy. ESCT still calculated
+     and SHOWN as the split of the contribution (to IRD versus to the fund), not added to cost.
+   - Option: "Employer pays ESCT on top" (per business, possibly per staff member). When on, ESCT is added as today.
+   - P&L reconciliation: the KiwiSaver P&L line normally equals the gross contribution; check the labour
+     benchmark reconciliation against both settings.
+
+5. HOW TO BUILD AND VERIFY
+   - Core calculation file: stop-and-confirm before patching (conventions rule 1). Own brief = this file.
+   - Trace node for any new figure (definition of done, 2026-10-16).
+   - Verify with the R2 harness: Py/stress_test, set kiwisaver_line_includes_esct to false in the recipe, extend
+     mirra_expected.labour_person with the option, re-run Scenario A; every downstream figure shows the change.
+   - Update CALCULATION_MAP s3 and the Labour brief in the same commit.
+
+6. PLACEMENT
+   Not part of R2. Suggested: after R2 layer 2, before R3 (Business Modelling redesign), so the modelling work
+   starts on the corrected labour cost. Owner to confirm.
+===============================================================================
