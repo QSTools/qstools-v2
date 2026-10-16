@@ -1140,3 +1140,22 @@ STATE: no interest line in the P&L; totals back at baseline (R4). A pre-test loc
 downloaded (23 keys, 109,287 chars) and was not needed. Evidence folder (untracked, contents not reviewed):
 docs/Audit/v6_0/smoke_test/2.6 Asset Smoke Test S1/.
 S1 CLOSED. With S1 done, every scope-freeze item is closed except D3 (owner decision) and Step F (parked).
+
+===============================================================================
+ADDENDUM 25 (2026-10-16) - 'INCLUDES ASSET FINANCE PORTION' REMAINDER INVESTIGATED [FINDING, NO CODE CHANGE]
+===============================================================================
+Closes observation (a) of Addendum 24. Code read only: generalOverheadDefinitions.js L143-161 and L194-213, generalOverheadCalculations.js
+L160-268, useAssets.js L137-167.
+- The label is a STATIC split target (finance_interest_split_asset_finance_portion, system_allocation_type asset_finance_interest, mapped to
+  asset_finance_interest_pool). It does not reflect amounts.
+- The removal is right: active amount = max(row - Assets interest total, 0). The 1,999.65 remainder is business interest and correctly stays in
+  General Overheads and in the total. Totals unaffected.
+- non_asset_interest_annual skips every asset-flagged row even after the Assets part is subtracted, so it reads 0 while 1,999.65 of non-asset
+  interest remains. NOTHING reads this field except the output contract that returns it (searched app, components, hooks, lib). Dead, moves no figure.
+- useAssets.js only builds a display match (flagged P&L total vs Assets total, remaining 1,999.65, status gap_present). It assigns nothing.
+- RISK (inferred from E.4 pool behaviour, NOT tested for this pool): assigning the finance pool to an asset would move business interest onto an asset
+  that already carries its own interest. Misattribution, total unchanged.
+- NOT FOUND: the code that places the remainder in the asset finance target. The target key appears only in its definition.
+- FIX CANDIDATE, not built: classify the remainder as business overhead after the Assets amount is removed. Touches the general overheads
+  allocation path: needs owner sign-off and a trace node. Queued for the stress test list (R2).
+===============================================================================
