@@ -1080,3 +1080,63 @@ FOLLOW-UP (logged, not built): note beside the gap table for sequential no-labou
   the full sequential run (SUM).
 CALC MAP: s9.9 updated (per-asset shortfall). extract_calc_map.py re-run and line numbers refreshed at commit.
 NEXT: re-run extract_calc_map.py; S1 live check (P&L asset-interest); Step F parked, fresh baseline needed first.
+
+===============================================================================
+ADDENDUM 24 (2026-10-16) - S1 P&L ASSET FINANCE INTEREST CHECKBOX [VERIFIED LIVE - PASSED]
+===============================================================================
+No code changed. Live check on :3004, one sitting, 2026-10-16 02:52Z to 03:03Z (15:52 to 16:03 NZ).
+Captured from the console (React props plus P&L storage). Spec: the S1 entry earlier in this brief
+(BO-7, calc map s4 generalOverheadCalculations.js L237-L248).
+
+DATASET: RB1 Test Asset interest 19,846.68, RB1 Pump 4,961.67, so A (Assets module interest total,
+Cost Summary total_asset_interest_annual) = 24,808.35. Baseline: General Overheads (net, Cost Summary)
+4,400; Assets 25,808.35 (A + the 1,000 fuel pool); total cost burden 383,259.23.
+
+RESULT - test line "Test Loan Interest", operating expenses, categorised general_overheads / finance_interest:
+  State                              General Overheads   Total cost burden
+  Baseline (no line)                 4,400.00            383,259.23
+  R1a  line 26,808, box unticked     31,208.00           410,067.23
+  R1b  same line, box ticked         6,399.65            385,258.88
+  R2   line 12,404, box ticked       4,400.00            383,259.23
+  R4   line deleted                  4,400.00            383,259.23
+  Every figure matched the prediction to the cent.
+
+READINGS
+  1. Amount removed = min(line, A), using the LIVE A. R1b: 26,808 - 24,808.35 leaves 1,999.65 (line active
+     amount 1,999.65). The stale stored 25,000 was not used (it would have left 1,808).
+  2. Remainder stays in General Overheads and in the total (R1b: +1,999.65 on both).
+  3. Floor works. R2: line below A, active amount 0, only the line (12,404) removed, nothing negative.
+  4. Each asset's own cost carries its own interest: total_asset_cost_annual = asset_interest_annual on both
+     assets and did not move when the box was ticked. asset_finance_interest_pool was 0 on both assets in
+     every capture and the fuel assignments (600 / 400) were unchanged. Interest reaches assets through
+     their own cost, not the pools - the spec's CORRECTION is confirmed.
+
+FIRST RUN (not a valid S1 test): a line named "Test Asset Finance Interest" was auto-categorised assets /
+asset_finance. With 26,822 in the P&L, ticked or not, no cost figure moved at all (General Overheads 4,400,
+total 383,259.23 throughout). A P&L line in category assets does not reach General Overheads or the cost
+totals. Why was not investigated (likely reconciliation only - UNVERIFIED). Do not put "asset" or "finance"
+in test line names.
+
+OBSERVED, NOT INVESTIGATED (code not read)
+  a. At R1b the leftover 1,999.65 is labelled "Includes Asset Finance Portion" in the
+     asset_finance_interest pool (is_asset_related_pool true, is_assigned true), non_asset_interest_annual
+     falls from 26,808 to 0, and the General Overheads page's asset pool total reads 2,999.65 (1,000 fuel +
+     1,999.65). Yet no asset carries it (pool 0 on both assets, Assets total unchanged) and Cost Summary
+     keeps it in General Overheads (net 6,399.65). Totals are right. OPEN QUESTION: is it correct to label
+     the remainder an asset finance portion, and would assigning that pool to an asset move cost onto it?
+  b. Stored asset form values are stale: form asset_interest_annual 4,994.52 and module_total_asset_cost_annual
+     25,000 against live 4,961.67 and 25,808.35. Cost Summary and the removal use the live figures; the
+     Assets page text (4,962) is live. Same class as the tracker's stored-derived-fields note.
+  c. A on 2026-10-15 05:18Z was 24,822.04; on 2026-10-16 02:52Z it was 24,808.35 (-13.69). That is about
+     double the "$6.8 a day" in Addendum 5 and close to the 13.68 step between 25,972.62 and 25,958.94
+     quoted there. Unexplained. Values were identical across the sitting (about 10 minutes), so
+     same-sitting comparisons hold; it looks like a step at the date change, not hourly (not tested).
+
+NOT COVERED: two or more flagged lines (proportional split across rows); other asset mixes; the Module
+Reconciliation asset finance line; the RB1 finance terms themselves (price, rate, term) - only that the
+cost fields tie to the totals.
+
+STATE: no interest line in the P&L; totals back at baseline (R4). A pre-test localStorage backup was
+downloaded (23 keys, 109,287 chars) and was not needed. Evidence folder (untracked, contents not reviewed):
+docs/Audit/v6_0/smoke_test/2.6 Asset Smoke Test S1/.
+S1 CLOSED. With S1 done, every scope-freeze item is closed except D3 (owner decision) and Step F (parked).
