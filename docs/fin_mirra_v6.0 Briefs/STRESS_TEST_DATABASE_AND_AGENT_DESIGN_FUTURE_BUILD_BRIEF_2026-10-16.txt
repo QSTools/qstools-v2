@@ -532,3 +532,70 @@ Owner decision: the P&L and the inputs must agree first; a misaligned business i
   NEXT: rest of layer 2 (Cost Allocation group rows and overhead split, per-source labour and asset rows, true cost,
   non-productive distribution, both cascades), then scaling options, then the second business.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 4 (2026-10-17, later still) - LAYER 2 EXPECTED VALUES, SCENARIO A 217 OF 217 LIVE [SHIPPED: layer 2 harness]
+===============================================================================
+FILES (repo, commit 7c333f8; new files only, no existing file changed)
+  Py/stress_test/mirra_expected_l2.py   INDEPENDENT layer-2 formulas, written from CALCULATION_MAP s7, s8 and s9. App code
+                                         was not read for formulas; the trace node files were read only for node ids and
+                                         node meaning. Meets the 3.1 LIMIT.
+  Py/stress_test/run_layer2.py           recipe -> expected_<id>_layer2.json (layer 1 + layer 2 nodes, raw checks,
+                                         tolerances, assumptions, detail). Calls generate_business.build, so the seed and
+                                         ids are identical to the generator's.
+  Py/stress_test/compare_full.py         compares snapshot NODES and the snapshot's cost_allocation_raw dump. Per-entry
+                                         tolerance for rates (0.005 to 0.011), else max($1, 0.01%). Exit 1 on any fail.
+  scenario_a/expected_scenario_a_layer2.json and scenario_a/compare_layer2_scenario_a_2026-10-17.txt (3.1 Stress Test).
+
+COVERAGE (93 layer-2 nodes plus 92 raw checks)
+  Cost Allocation   available labour-type and asset cost; overhead pool; per group: total cost, cost per hour, assigned
+                    labour and asset cost and hours, non-productive cost, overhead share, recovery hours, required asset
+                    hours, coverage gap, labour/asset/overhead rates; total grouped operating cost.
+  Overhead split    labour/asset split of each group's overhead (split_group_overhead rule); Rate Builder overhead per
+                    staff type per group, its total and $/h; rate_builder.labour_rate per type.
+  Business Outcome  every labour and asset row's modelled revenue and net profit (net profit = revenue - true cost, so
+                    true cost and the overhead share are checked through it); group roll-ups; materials View A and B.
+  Non-productive    pool, pure-support own cost, each group's share (recovered-hours weight).
+  Cascades          View A and View B shortfall nodes; group and row real-capacity net profit in both views.
+
+RESULT
+  217 of 217 PASS, largest difference 0.0116. Checked against snapshot ...184309387 and a FRESH live run on 2026-10-17 at
+  11:25 NZDT (snapshot ...189554174: 231 nodes, no duplicates, no missing endpoints). The fresh run's node values and full
+  cost_allocation_raw are byte-identical to ...184309387 (SHA-256 944c82ef...423918 on both). The owner re-ran
+  compare_full.py on his machine: 217 of 217. The 36 nodes of Addendum 3 are reproduced exactly by run_layer2.py.
+
+LIVE RUN METHOD (new, worked)
+  Claude drove the Claude desktop app's BUILT-IN BROWSER pane on localhost:3004. The pane has its own localStorage,
+  separate from the owner's Chrome, so the owner's :3004 data was not touched. The seed was injected by JavaScript (seed
+  keys gzip + base64, written key by key, then reload); the snapshot was captured in memory from the trace page's
+  "Download trace JSON" button and compared by hash. Beforehand the pane held only app defaults (12 keys, all amounts 0);
+  it was cleared afterwards. The owner granted the pane site access to localhost:3004 (kept until removed in Settings).
+  No file picker or console paste is needed. This replaces README load steps 1 to 6 when Claude runs it. The owner's dev
+  server on :3004 must be running.
+
+ASSUMPTIONS (written into the expected file: mirra_expected_l2.ASSUMPTIONS, A-1 to A-6)
+  A-1  overhead pool = Cost Summary total_business_overheads                         CONFIRMED live (161,710.69)
+  A-3  asset-row overhead share divides by the SUM of the group's asset-row hours     CONFIRMED live (G02, two assets)
+  A-2  recovery hours on an asset group with no labour; A-4 inner cascade start point; A-5 cascade node = shortfall;
+  A-6  materials View A residual and View B markup                                    NOT exercised by aligned A
+
+LIMIT - THE CASCADES ARE NOT YET PROVEN
+  Aligned Scenario A has no shortfall (View A 0; View B 0.01 of rounding), so both cascades pass trivially: Phase 1,
+  Phase 2 and the inner row pass never run. recipes/scenario_a_misaligned.json is the real test. Independent expected
+  values (as of 2026-10-17): View A shortfall 439,405.12, View B shortfall 478,820.38. Conservation holds in the script
+  (sum of finals = sum of naive profit - shortfall; rows sum to their group in both views). Edge case it hits: materials'
+  View A residual revenue is NEGATIVE (-242,328.86) and is floored to cost. Watch how the app treats that.
+
+FINDING F-4 (for the owner, not changed)
+  Support-asset cost reaches no group unless a support asset is assigned. In Scenario A the two utes' interest
+  (6,228.27) is in the Cost Summary burden (1,015,707.80) but not in Cost Allocation's total (1,009,479.53) or its
+  overhead pool. Decide whether that is intended. The second business should assign one support asset on purpose.
+
+NOT COVERED YET: assumed capacity / Best Case nodes, Business Modelling start rows, the Rate Builder all_productive row
+  (RB-1b, a different basis).
+
+NEXT
+  1. Misaligned Scenario A live through the built-in browser: run_layer2.py on recipes/scenario_a_misaligned.json, Claude
+     loads the seed in the pane, then compare_full.py. Expect the first real cascade findings here.
+  2. Then the rest of R2 (tracker Addendum 3): scaling options (H2), second business, UI performance pass.
+===============================================================================
