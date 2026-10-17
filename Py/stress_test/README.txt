@@ -58,3 +58,11 @@ LAYER 2 (added 2026-10-17, commit 7c333f8)
   total, and sets any group with more than one asset copy to "sequential" so every figure scales exactly.
   --assets fixed keeps the recipe's asset list (staff-only growth; a different, loss-making shape).
   Ladder 2026-10-18: 10 staff 217/217, 100 staff 423/424, 1,000 staff 2,490/2,494 (all misses = finding F-6).
+
+SCENARIO B (step 2b, 2026-10-18; stress brief Addendum 10)
+  recipes/scenario_b.json   crane and plant hire: custom staff types, H5 strings, H6 absent group fields, H7 shared asset,
+                            support assets assigned (F-4), dry-hire group with no labour (A-2), spread_as_overhead policy.
+  python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_b.json --as-of <today> --out "docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_b"
+  Live 2026-10-18: 269 of 269.
+  New recipe options (generate_business.py docstring): custom_staff_types, labour_rate_as_string, pnl.string_amount_lines,
+  omit_optional_fields.

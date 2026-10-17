@@ -822,3 +822,122 @@ STAFF-ONLY GROWTH (--assets fixed) - REFRAMED, NOT RUN
   Note for clarity: the ladder in Addendum 8 is NOT this case. It scaled machines with staff (one operator per
   excavator still holds at 100 and 1,000 staff); the units simply hold ten or a hundred of each crew.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 10 (2026-10-18, 08:45 NZDT) - STEP 2b: SCENARIO B (CRANE AND PLANT HIRE) 269 OF 269 LIVE [SHIPPED: harness]
+===============================================================================
+Owner approved the mix 2026-10-18 ("at this point we can test any scenario"). Rates and prices are Claude's NZ
+plant-hire estimates, not owner figures.
+
+FILES (harness only, no app code; NOT committed)
+  Py/stress_test/recipes/scenario_b.json   12 staff (5 CUSTOM types: crane operator, heavy plant operator, float/truck
+                                           driver, workshop mechanic, hire controller; plus owner and accounts), 9 assets
+                                           (7 productive, $180k-$1.5M; 2 support), 7 groups.
+  Py/stress_test/generate_business.py      new recipe options, all off by default (Scenario A seed and expected files are
+                                           byte-identical before and after): custom_staff_types (written to
+                                           qs_tools_labour_staff_types_v1; id must follow generateStaffTypeId), staff row
+                                           labour_rate_as_string and pnl.string_amount_lines (H5), group
+                                           omit_optional_fields (H6; the generator refuses unless the recipe states the app
+                                           default: asset hours if the group has productive asset hours else labour hours,
+                                           together, not tied - costAllocationGroupCostBuilder.js L100-102, read for this
+                                           absent-field case only).
+  docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_b\   seed, expected, expected layer 2, review workbook.
+
+WHAT IT COVERS (new against Scenario A)
+  custom staff types; H5 string labour_rate ("42") and string P&L amount (Insurance); H6 absent fields on one asset group
+  (G03) and two support groups (G06, G07); H7 shared asset (80t crane 60 percent G01 / 40 percent G03); F-4 support assets
+  assigned on purpose (workshop truck, owner's ute); A-2 an asset group with NO labour (G03 dry hire); a mixed group carrying
+  non-productive labour (hire controller 50 percent in G01) under spread_as_overhead; a labour-only productive group (G05
+  operator hire); a productive asset that is paid off (telehandler); labour short (G04), labour over and tied (G01, idle
+  380 h), labour over not tied (G02).
+  P&L aligned (billed_from_rates): revenue 2,557,594.83, net profit 356,381.21 (13.9 percent). Overheads 26 percent of
+  revenue (plant repairs, fuel, insurance weighted up). As of 2026-10-18.
+
+RESULT: 269 of 269 PASS (149 nodes incl. 113 layer 2, plus 120 raw checks) on the first live run. Built-in browser pane on
+  :3004, Addendum 8 method. Trace 271 nodes, 377 edges, no duplicates, no missing endpoints, SHA-256 39021bd3...3771ca.
+  Pane cleared afterwards (0 keys).
+  CONFIRMED live: custom types pool and price like system types; both H5 strings are coerced; absent group fields take the
+  defaults above; the shared crane splits hours and cost 60/40; A-2 (no-labour asset group recovers on the MAX of its asset
+  hours); F-4: with every support asset assigned, Cost Allocation total = Cost Summary burden (2,073,333.88); the
+  spread_as_overhead policy pools the mixed group's own support cost.
+
+FINDINGS FOR THE OWNER (not changed)
+  F-7  DRY HIRE EARNS NOTHING. G03 has no labour, so covered hours are 0 and its machines bill $0 (the BO-6 covered-hours
+       cap). Business Outcome says: "G03 Dry hire has no labour assigned, so at least $285,600 a year of potential revenue is
+       not being counted ... nobody is there to run it". For a hire firm, dry hire is a normal product, not a staffing gap.
+       This is the open design item "unattended / dry-hire exemption" (VARIABLE_TRACKER s21). The aligned P&L therefore
+       carries NO dry-hire revenue; a real plant-hire P&L would. Decide the design before units mode or R3.
+  F-8  EBIT ADD-BACK MISSES SUPPORT-ASSET INTEREST. EBIT card: "+ INTEREST $266,915" = productive assets only. The P&L
+       interest line is 277,052.04; the 10,137.05 gap is exactly the two support assets (6,027.84 + 4,109.21). EBIT and
+       EBITDA are understated by that amount. Not a trace node today (not in the expected script). Scenario A would show the
+       same pattern (the utes' 6,228). Read the EBIT code (businessOutcomeEbitCalculations.js) before deciding.
+  F-9  WORDING. Business Outcome summary: "Crane operator is still recovering well, at +-$22/hr." A negative recovery is
+       called "recovering well" and printed with "+-". Display only.
+  Also seen (not new): "Partial - some upstream sources not yet ready", 3 flags, and "Cost Summary data isn't fully
+  trusted"; probably the missing Balance Sheet in the seed. Not chased.
+
+HOUSEKEEPING: public\__stress_tmp\ holds payload_b.json and expected_b.json. Delete before any build or commit.
+
+NEXT
+  1. Owner: F-7 (dry-hire design), F-8, F-9.
+  2. 2e realistic over-staffing recipe (owner: after this test), then 2c UI performance pass, 2d layer-2 gaps.
+  3. Optional: Scenario B up the ladder (--staff-total 120 / 330) for the high-value-asset $100M route.
+===============================================================================
+
+===============================================================================
+ADDENDUM 11 (2026-10-18, 09:10 NZDT) - F-9 AND F-8 [SHIPPED], VERIFIED LIVE; F-7 DESIGN DIRECTION; F-10 LOGGED
+===============================================================================
+Owner decisions 2026-10-18: F-9 fix now; F-8 fix now (display only, no checked figure can move); F-7 is a real gap
+("dry hire should be earning money", Kennards / Hirepool style) to be designed now and built in the between-R2-and-R3
+batch with F-1 and F-4, then ONE full re-run of the regression pack.
+
+F-9  [SHIPPED] components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx (1 patch, build OK).
+     "is still recovering well" is said only when the strongest labour source's rate gap is positive; if negative:
+     "Even the closest, <type>, is short by $X/hr"; if zero: "only just breaking even on its true cost".
+     LIVE (Scenario B): "... Overall labour markup is currently -25.62%. Even the closest, Crane operator, is short by
+     $22/hr." No "+-$" left on the page.
+
+F-8  [SHIPPED] 3 files, 8 patches, build OK:
+       lib\calculations\businessOutcomeEbitCalculations.js  new optional input all_assets. Interest on every active asset
+         minus interest already on source rows is added back as one row "Support and unassigned assets (interest only)"
+         (only when over $0.50). Without all_assets the result is unchanged.
+       components\business-outcome-truth\BusinessOutcomeEbitSummaryCard.jsx and BusinessOutcomeEbitByUnitTable.jsx
+         call useAssets() and pass active_assets (one more read-only useAssets instance on the page; the per-source hook
+         already uses the same pattern).
+     LIVE (Scenario B): + INTEREST 277,052 (was 266,915) = the P&L interest line; EBIT 633,433; net profit unchanged
+     356,381. Trace re-run after both patches: 269 of 269, 271 nodes, 377 edges, clean. Pane cleared.
+     NOT COVERED: EBIT has no trace nodes and is not in the expected script (built 2026-09-12, before the A3 rule).
+     Backfill item: EBIT / EBITDA totals as trace nodes, then add them to mirra_expected_l2.
+     OPEN QUESTION: interest left in overheads that is not asset finance (overdraft) is still not added back, so EBIT
+     is understated by that amount for a business that has it. Owner to decide.
+
+F-10 LOGGED (read in code, not seen live). hooks\useAssets.js active_assets rebuilds each asset field by field and does
+     not pass estimated_annual_depreciation, so useBusinessOutcomePerSourceRevenue's asset_depreciation_by_id is always 0
+     and EBITDA depreciation shows $0 even for Fixed Asset Register linked assets (bug class b). Fix is a one-line
+     pass-through. Confirm live with a linked asset before or after the fix. Owner to say whether it joins the next batch.
+
+F-7  DRY HIRE - DESIGN DIRECTION (owner, 2026-10-18; brief to write)
+  Cause: get_group_covered_hours (useBusinessOutcomePerSourceRevenue.js L276) caps an asset-hours group at its labour
+  hours, so a unit with no labour covers 0 hours and its machines earn $0. The code comment already names "unattended /
+  dry-hire units need an exemption setting" as a known limit.
+  Owner position:
+    - Placement: considered Rate Builder (rate setup card), Cost Allocation productive-asset section (next to assignment
+      percent) and Selected Asset. Leaning Cost Allocation because it drives overhead distribution, and possibly tied to
+      a particular asset rather than the whole unit. Claude's recommendation: on the ASSET ASSIGNMENT in Cost Allocation
+      (the productive-asset row, next to assignment percent). Reasons: the shared 80t crane in Scenario B is wet hire in
+      one unit and dry hire in another, so a flag on the asset itself cannot express it; and a unit holding both an
+      operated machine and an unattended one still works. Not decided.
+    - Labour: a dry-hire business has no labour tied to the machine. Yardmen and mechanics are support staff in support
+      groups. Agreed.
+    - Billing basis: owner wrote "stick to billing by week for the moment ... week/month hire later". Read by Claude as
+      HOURLY for now, with weekly and monthly hire later (units mode, R4). TO CONFIRM.
+    - Default OFF for existing data, so no current number moves. Agreed.
+    - Every new figure gets a trace node (A3). Agreed, essential.
+  Effect when ticked (proposed): the asset earns rate x its own hours with no labour cap; it is left out of the labour
+  cap for any operated assets in the same unit; the "nobody is there to run it" gap and message are off for it; Cost
+  Allocation recovery hours include its hours without the labour cap, so overhead distribution follows the machine.
+  Expected-script change: mirra_expected_l2 covered hours and capacity gap per exempt assignment; Scenario B G03 then
+  bills, and the aligned P&L gains dry-hire revenue.
+
+HOUSEKEEPING: public\__stress_tmp\ re-created for the live check (payload_b.json, expected_b.json). Delete before commit.
+===============================================================================

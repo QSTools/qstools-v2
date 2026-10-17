@@ -16,6 +16,11 @@ Storage shapes follow STORAGE_KEY_REGISTER_S0_2026-10-17.txt. Hazards honoured:
   H3  no assigned_hours / assigned_cost on assignment rows
   H4  active assignment rows only
   H8  seed is loaded with the loader script, which clears and reloads
+Recipe options added for Scenario B (2026-10-18):
+  custom_staff_types               custom types written to qs_tools_labour_staff_types_v1 (strategy 1, H1)
+  staff row labour_rate_as_string  H5: the first copy's labour_rate is stored as a string
+  pnl.string_amount_lines          H5: these P&L lines store their amount as a string
+  group omit_optional_fields       H6: the three optional group fields are left out (recipe must state the app defaults)
 """
 
 import argparse
@@ -55,10 +60,42 @@ def r2(x):
     return round(float(x) + 0.0, 2)
 
 
+def staff_type_names(recipe):
+    """System type names plus the recipe's custom types (strategy 1, register H1).
+    Custom ids follow labourProfileStorage.generateStaffTypeId: "custom_" + lower-case slug of the name."""
+    names = dict(STAFF_TYPE_NAMES)
+    for t in recipe.get("custom_staff_types", []):
+        slug = "".join(c if c.isalnum() else "_" for c in t["staff_type_name"].strip().lower())
+        slug = "_".join(p for p in slug.split("_") if p)
+        if t["staff_type_id"] != f"custom_{slug}":
+            raise ValueError(f'custom type id {t["staff_type_id"]} does not match the app rule (custom_{slug})')
+        if t["staff_type_id"] in STAFF_TYPE_NAMES:
+            raise ValueError(f'{t["staff_type_id"]} collides with a system type')
+        names[t["staff_type_id"]] = t["staff_type_name"]
+    return names
+
+
+def default_recovery_source(g, recipe):
+    """The app's rule for a group with no stored group_recovery_hour_source (costAllocationGroupCostBuilder.js
+    L100-102): asset hours if the group carries productive asset hours, else labour hours. Read from the app to
+    model the ABSENT-field case (H6) only; every explicit group still uses the recipe value."""
+    spec = {a["ref"]: a for a in recipe["assets"]}
+    has_hours = any(spec[ref]["asset_type"] == "productive" and pct > 0 for ref, pct in g["assets"])
+    return "asset_hours" if has_hours else "labour_hours"
+
+
 def build(recipe, as_of):
     rid = recipe["recipe_id"]
     ts = f"{as_of.isoformat()}T00:00:00.000Z"
     keys = {}
+    type_names = staff_type_names(recipe)
+    for g in recipe["groups"]:
+        if g.get("omit_optional_fields"):
+            want = default_recovery_source(g, recipe)
+            if g["recovery_hour_source"] != want or g.get("asset_run_pattern", "together") != "together" \
+                    or g.get("labour_tied_to_asset", False):
+                raise ValueError(f'{g["ref"]}: omit_optional_fields needs the app defaults '
+                                 f'(source {want}, together, not tied) so the expected values stay right')
 
     # -------- business setup, revenue/cogs, policies
     keys["qs_tools_business_setup_v1"] = {
@@ -98,8 +135,8 @@ def build(recipe, as_of):
         productive = p["labour_class"] == "productive"
         data = {
             "staff_id": sid, "staff_name": f'{p["ref"]}-{p["copy_index"]:03d}',
-            "staff_role": STAFF_TYPE_NAMES[p["staff_type_id"]],
-            "staff_type_id": p["staff_type_id"], "staff_type_name": STAFF_TYPE_NAMES[p["staff_type_id"]],
+            "staff_role": type_names[p["staff_type_id"]],
+            "staff_type_id": p["staff_type_id"], "staff_type_name": type_names[p["staff_type_id"]],
             "labour_class": p["labour_class"], "contributes_to_recovery_hours": productive,
             "hours_per_week": p["hours_per_week"], "days_per_week": p["days_per_week"],
             "labour_rate": p["labour_rate"], "charge_out_rate": 0,
@@ -113,11 +150,15 @@ def build(recipe, as_of):
             "acc_manual_override_enabled": False, "acc_manual_rate": 0,
             "effective_from": ts, "change_reason": "", "notes": f"stress test {rid}",
         }
+        if p.get("labour_rate_as_string") and p["copy_index"] == 1:
+            data["labour_rate"] = str(p["labour_rate"])          # H5: one deliberate string, first copy only
         profiles.append({"profile_id": sid, "staff_id": sid, "profile_version": 1, "effective_from": ts,
                          "is_active": True, "created_at": ts, "updated_at": ts, "change_reason": "",
                          "notes": f"stress test {rid}", "data": data})
     keys["qs_tools_labour_profiles_v1"] = profiles
-    keys["qs_tools_labour_staff_types_v1"] = []
+    keys["qs_tools_labour_staff_types_v1"] = [
+        {"staff_type_id": t["staff_type_id"], "staff_type_name": t["staff_type_name"], "is_system_type": False,
+         "is_active": True, "created_at": ts, "updated_at": ts} for t in recipe.get("custom_staff_types", [])]
 
     # charge-out per staff type (productive types only)
     mult, step = recipe["charge_out_multiplier"], recipe.get("charge_out_round_to", 1)
@@ -175,13 +216,16 @@ def build(recipe, as_of):
     for order, g in enumerate(recipe["groups"], 1):
         gid = uid(rid, "group", g["ref"])
         group_ids[g["ref"]] = gid
-        groups.append({
+        grec = {
             "group_id": gid, "division_id": "main_operations", "group_name": f'{g["ref"]} {g["label"]}',
             "group_description": "", "required_asset_ids": [], "required_staff_ids": [], "required_staff_count": 0,
-            "is_active": True, "sort_order": order, "created_at": ts, "updated_at": ts,
-            "group_recovery_hour_source": g["recovery_hour_source"],
-            "asset_run_pattern": "sequential" if g.get("asset_run_pattern") == "sequential" else "",
-            "labour_tied_to_asset": bool(g.get("labour_tied_to_asset", False))})
+            "is_active": True, "sort_order": order, "created_at": ts, "updated_at": ts}
+        if not g.get("omit_optional_fields"):        # H6: absent form leaves all three fields out
+            grec.update({
+                "group_recovery_hour_source": g["recovery_hour_source"],
+                "asset_run_pattern": "sequential" if g.get("asset_run_pattern") == "sequential" else "",
+                "labour_tied_to_asset": bool(g.get("labour_tied_to_asset", False))})
+        groups.append(grec)
         for t, pct in g["labour"]:
             if pct != int(pct):
                 raise ValueError(f"{g['ref']} {t}: {pct}% is not a whole number (app rounds, register H2)")
@@ -190,7 +234,7 @@ def build(recipe, as_of):
             lab_assign.append({
                 "assignment_id": aid_, "labour_group_assignment_id": aid_, "group_id": gid,
                 "staff_type_id": t, "labour_type_id": t, "labour_type_key": t,
-                "labour_type_label": STAFF_TYPE_NAMES[t], "labour_class": "productive" if productive else "support",
+                "labour_type_label": type_names[t], "labour_class": "productive" if productive else "support",
                 "is_productive": productive, "contributes_to_recovery_hours": productive,
                 "assigned_staff_count": type_count[t], "assignment_percent": int(pct),
                 "is_active": True, "created_at": ts, "updated_at": ts})
@@ -262,8 +306,13 @@ def build(recipe, as_of):
     if interest_total > 0:
         lines.append(line(pnl["interest_line_label"], interest_total, "operating_expenses", "general_overheads",
                           "finance_interest", interest="contains_asset_finance_interest"))
+    # H5: named lines are stored with a STRING amount (the app coerces). Expected values use the numbers above.
+    as_string = set(pnl.get("string_amount_lines", []))
+    stored_lines = [dict(l, amount=f'{l["amount"]:.2f}') if l["line_name"] in as_string else l for l in lines]
+    if len(as_string & {l["line_name"] for l in lines}) != len(as_string):
+        raise ValueError(f"string_amount_lines names a line that is not in the P&L: {sorted(as_string)}")
     keys["qs_tools_profit_and_loss_state"] = {
-        "financial_year": int(recipe["financial_year"]), "period_month": "", "pnl_lines": lines,
+        "financial_year": int(recipe["financial_year"]), "period_month": "", "pnl_lines": stored_lines,
         "direct_cost_categories": [{"category_id": c, "category_name": n, "is_default": True, "is_active": True,
                                     "created_at": ts, "updated_at": ts} for c, n in DIRECT_COST_CATEGORIES]}
 
@@ -359,7 +408,9 @@ def write_review(path, recipe, seed, expected, people, asset_list):
     gname = {g["group_id"]: g["group_name"] for g in ca["operational_groups"]}
     aname = {a["asset_id"]: a["asset_name"] for a in seed["keys"]["qs_tools_saved_assets"]}
     sheet("Groups", ["Group", "Recovery source", "Run pattern", "Tied", "Labour (type: %)", "Assets (name: %)"],
-          [[g["group_name"], g["group_recovery_hour_source"], g["asset_run_pattern"] or "together", "Y" if g["labour_tied_to_asset"] else "N",
+          [[g["group_name"], g.get("group_recovery_hour_source", "(absent)"),
+            (g["asset_run_pattern"] or "together") if "asset_run_pattern" in g else "(absent)",
+            ("Y" if g["labour_tied_to_asset"] else "N") if "labour_tied_to_asset" in g else "(absent)",
             ", ".join(f'{l["staff_type_id"]}: {l["assignment_percent"]}' for l in ca["labour_group_assignments"] if l["group_id"] == g["group_id"]),
             ", ".join(f'{aname[x["asset_id"]]}: {x["assignment_percent"]}' for x in ca["asset_group_assignments"] if x["group_id"] == g["group_id"])]
            for g in ca["operational_groups"]], [26, 15, 12, 6, 60, 50])
