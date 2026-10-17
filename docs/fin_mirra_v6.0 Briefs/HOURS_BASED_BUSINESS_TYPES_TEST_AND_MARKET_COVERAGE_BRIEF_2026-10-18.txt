@@ -1,0 +1,142 @@
+===============================================================================
+MIRRA - HOURS-BASED BUSINESS TYPES: TEST COVERAGE AND MARKET CAPTURE
+===============================================================================
+DATE:     2026-10-18
+STATUS:   [STRATEGY / TEST PLAN] Nothing built. A list of the hours-based business types Mirra should serve at launch,
+          each with its shape, what it stresses in the tool, likely gaps, and a test priority. Every type becomes one
+          stress-test recipe (Py/stress_test/recipes), proven against the independent expected script like Scenarios A
+          and B. Market sizes are NOT researched here; priorities are judgement (fit, how common, owner's network).
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
+RELATED:  STRESS_TEST_DATABASE_AND_AGENT_DESIGN brief (method, Addenda 10-14), DRY_HIRE_UNATTENDED_ASSETS brief,
+          LAUNCH_BUILD_ORDER tracker (R2 hours mode, R4 units mode), GO_TO_MARKET brief (bookkeeper channel).
+
+-------------------------------------------------------------------------------
+1. WHY THIS LIST
+-------------------------------------------------------------------------------
+Mirra's hours mode fits any business that sells TIME (people's hours, machine hours, or both). The market the tool can
+capture at launch is the set of those businesses it handles correctly. Two shapes are proven so far (civil/earthmoving,
+crane/plant hire, plus an over-staffed variant). Each new type is picked because it pushes a part of the chain the earlier
+ones barely touched, so passing it widens the market the tool can honestly serve.
+Businesses that sell UNITS (cafes, retail, manufacturers, per-item producers) wait for units mode (R4).
+
+-------------------------------------------------------------------------------
+2. THE TYPES (grouped by shape)
+-------------------------------------------------------------------------------
+Columns: examples | shape | what it stresses | likely gaps to check | priority (1 = next).
+
+T1  PLANT AND OPERATORS (asset-heavy, operator tied to machine)                         STATUS: PROVEN (Scenario A, B)
+    Civil and earthmoving, drainage, crane hire, drilling, demolition, forestry and logging crews.
+    Shape: high-value machines, operator per machine, moderate COGS.
+    Stresses: asset-hours units, labour cap, idle cost, cascades, shared assets.
+    Gaps: dry hire (F-7, in the fix batch).
+
+T2  TRANSPORT AND LOGISTICS                                                             PRIORITY 1
+    Courier, owner-driver freight, trucking, removals, towing, shuttle and taxi operators.
+    Shape: one driver per vehicle, fuel and road user charges large, small fixed overheads, growth = more vehicles and
+    drivers.
+    Stresses: vehicle running costs into the asset overhead pool, owner who drives (owner as PRODUCTIVE staff), small
+    business scaling up (3 to 8 vans as two recipes), thin margins.
+    Gaps: contract drivers paid per job (cost of sales, not wages); leased vehicles (overhead line, not an owned asset);
+    per-drop or per-km billing (units mode; convert to an hourly equivalent until R4).
+    Real-world check available: the owner's friend's courier business (with his permission, anonymised, :3004 only).
+
+T3  RESIDENTIAL BUILDER / MAIN CONTRACTOR (COGS-heavy)                                  PRIORITY 2
+    House builders, renovators, fit-out and joinery contractors, commercial main contractors.
+    Shape: materials and subcontractors 40-55 percent of revenue, own carpenters on hours, project margin on materials.
+    Stresses: materials markup, the materials row in View A and View B, direct-cost categories beyond materials
+    (subcontract labour, hired plant, waste), a business whose profit sits mostly in cost of sales.
+    Gaps: subcontractor margin vs own-labour margin; work-in-progress timing (P&L year vs job timing) - note only.
+
+T4  TRADE SERVICE (van, tools, materials at markup)                                     PRIORITY 3
+    Plumbers, electricians, HVAC, painters, roofers, glaziers, landscapers, locksmiths.
+    Shape: tradesperson + van + apprentice, materials resold at markup (15-30 percent of revenue), call-out work.
+    Stresses: junior/apprentice staff type, van as a support asset assigned to a crew (F-4 rule), materials at a mid share,
+    many small units (one per tradesperson).
+    Gaps: travel time as non-billable hours (productivity percent covers it?); call-out fee as revenue not tied to hours.
+
+T5  PROFESSIONAL SERVICES (labour only)                                                 PRIORITY 4
+    Accountants and bookkeepers (also Mirra's sales channel), engineers, architects, quantity surveyors, surveyors,
+    lawyers, IT managed services, marketing agencies.
+    Shape: no productive assets, high salaries, billable utilisation 50-75 percent, heavy partner / non-billable time.
+    Stresses: labour-only groups throughout, low productivity percent, non-productive cost as the largest pool, charge-out
+    rates far above wage.
+    Gaps: partners who bill but also manage (split productive / non-productive per person); fixed-fee work (hourly
+    equivalent).
+
+T6  HIGH-HEADCOUNT MOBILE SERVICES (low rate, many part-timers)                         PRIORITY 5
+    Commercial cleaning, security guarding, home care and support work, labour hire, lawn and garden rounds, pest control.
+    Shape: many staff on low rates, part-time and casual mix, few assets (vans), the "high headcount" route to a $100M
+    business.
+    Stresses: varied hours_per_week and days_per_week across hundreds of staff, staff list performance (2c), ACC classes.
+    Gaps: casual staff paid holiday pay as 8 percent on top (not leave weeks) - check the Labour module supports it;
+    shift and weekend penalty rates.
+
+T7  WORKSHOP SERVICES (bays, technicians, parts)                                        PRIORITY 6
+    Mechanics and auto repair, panel beaters, engineering and fabrication job shops, marine and small-engine repair.
+    Shape: workshop bays / hoists / machines as assets used by technicians, parts resold at markup, labour rate per hour.
+    Stresses: assets tied to a bay rather than a person, parts as COGS at markup, several technicians sharing one machine
+    (the "together" pattern).
+    Gaps: shop consumables vs parts; warranty / non-billable rework hours.
+
+T8  APPOINTMENT-BASED PERSONAL AND HEALTH SERVICES                                      PRIORITY 7
+    Physiotherapy, chiropractors, dental hygiene, beauty and hair salons, massage, tattoo studios.
+    Shape: practitioner + room or chair (the asset), appointment hours, some retail product.
+    Stresses: room / chair as a productive asset shared across practitioners, practitioners as contractors (rent a chair).
+    Gaps: retail product sales (units, R4); contractor practitioners paying a fee to the business.
+
+T9  SEASONAL AND RURAL CONTRACTORS                                                      PRIORITY 8
+    Agricultural contractors (harvesting, baling, spraying), shearing gangs, fruit-picking and orchard contractors.
+    Shape: big machines used hard for part of the year, seasonal and casual staff, long idle season.
+    Stresses: asset weeks override far below 48, seasonal shutdown, idle cost over a long off-season.
+    Gaps: seasonal staff on part-year contracts (paid weeks < 52) - check Labour supports it.
+
+T10 EQUIPMENT HIRE, NO OPERATOR (dry hire)                                              BLOCKED ON F-7
+    Kennards / Hirepool style tool and equipment hire, scaffolding, portable toilets, generators and lighting towers.
+    Shape: many assets, few staff (yard, mechanics), hourly machine rates (weekly / monthly hire later in R4).
+    Stresses: the F-7 exemption at volume, support staff only, asset count at scale (thousands of small assets).
+    Gaps: F-7 itself; day / week rates (R4).
+
+T11 SOLE TRADER (edge case, every type)                                                 PRIORITY: run alongside T2
+    One person, one vehicle or none, almost no overheads.
+    Stresses: single-row groups and cascades, divide-by-near-zero, a business where the owner IS the only productive staff.
+
+-------------------------------------------------------------------------------
+3. COVERAGE MATRIX (tool path x type that proves it)
+-------------------------------------------------------------------------------
+  Asset-hours units, labour cap, idle cost ............ T1 (proven), T7, T9
+  Shared asset across units (H7) ....................... T1-B (proven), T7, T8
+  Materials / COGS heavy, View A and B materials ........ T3 (main), T4, T7
+  Direct-cost categories beyond materials ............... T3, T2 (contract drivers)
+  Labour-only business .................................. T5, T6
+  Owner as productive staff ............................. T2, T11
+  Part-time / casual mix at scale ....................... T6, T9
+  Support asset assigned to a crew (F-4 rule) ........... T1-B (proven), T4
+  Vehicle running costs into asset pools ................ T2
+  Seasonal / low asset weeks ............................ T9
+  Dry hire / unattended ................................. T10 (after F-7)
+  High-headcount $100M route ............................ T6 at 1,000+ staff
+  High-value-asset $100M route .......................... T1-B ladder
+  Growth what-if (today vs after scale-up) .............. T2 (two recipes now; Business Modelling Tier 3 in R3)
+
+-------------------------------------------------------------------------------
+4. TEST ORDER AND METHOD
+-------------------------------------------------------------------------------
+  Order: T2 courier (with T11 sole trader), T3 builder, T4 trades, T5 professional, T6 high-headcount, T7 workshop,
+  T8 appointments, T9 seasonal, T10 after F-7.
+  Each type: a recipe from a rough shape (about ten decisions), aligned P&L first, the independent expected script,
+  a live run, a wording read of Business Outcome as an owner would read it, then one scale step if the type has a scale
+  story. Any gap found becomes a numbered finding with an owner decision, same as F-1 to F-12.
+  Before writing each recipe, check the "Gaps" line against the tool (read the module) so a missing feature is found as
+  a finding, not as a failed comparison.
+  Real data: only with the business owner's permission, names stripped, on the isolated :3004 instance. A synthetic
+  recipe of the same shape comes first; the real P&L is then a second check.
+
+-------------------------------------------------------------------------------
+5. OPEN QUESTIONS FOR THE OWNER
+-------------------------------------------------------------------------------
+  Q-M1  Agree the priority order, or move a type up for go-to-market reasons (for example T5 accountants, who are also
+        the bookkeeper sales channel).
+  Q-M2  Which types to name on the coming-soon page / in early marketing (Track M) once proven.
+  Q-M3  Market sizing: worth a short research pass (NZ business counts by industry, Stats NZ business demography) to
+        rank the list by size? Not done here.
+===============================================================================
