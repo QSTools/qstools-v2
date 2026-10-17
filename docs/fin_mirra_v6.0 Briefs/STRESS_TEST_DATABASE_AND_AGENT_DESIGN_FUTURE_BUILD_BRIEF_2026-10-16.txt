@@ -979,3 +979,73 @@ HOUSEKEEPING: public\__stress_tmp\ holds payload_a2.json, expected_a2.json (and 
 NEXT IN R2: 2c UI performance pass against the Q-7 thresholds (10 staff reference, then 100, 1,000; needs the pane VISIBLE
   or the owner's Chrome for timing). 2d layer-2 gaps after the fix batch (F-1, F-4, F-7, F-10, F-11).
 ===============================================================================
+
+===============================================================================
+ADDENDUM 13 (2026-10-18, 09:45 NZDT) - STEP 2c: UI PERFORMANCE PASS AGAINST Q-7 (DEV SERVER) - FAILS FOUND
+===============================================================================
+METHOD
+  Built-in browser pane on :3004, pane VISIBLE (confirmed: visibilityState visible, about 64 frames a second), owner's
+  `npm run dev` server, so React development mode throughout. Scenario A seeds at 10 / 100 / 1,000 staff (7 / 70 / 700
+  assets). Every route opened once first so the dev compile is not timed.
+  Page open: each route loaded in a full-screen same-origin frame; a long-task observer in the parent records every main-
+  thread task over 50 ms. "Ready" = load event or end of the last long task (quiet for 1.5-2 s), from the moment the frame
+  starts loading. "Max freeze" = the longest single task. (Chrome does not buffer long tasks from before an observer is
+  registered, which is why the frame method is used.)
+  Typing: real key presses (Labour) and input events (Business Modelling) with the Event Timing API and long tasks.
+
+PAGE OPEN - ready ms / max freeze ms            10 staff        100 staff       1,000 staff
+  Labour                                          140 / 0         214 / 53        577 / 191
+  Assets                                          293 / 61        355 / 91        926 / 346
+  Cost Allocation                                 471 / 122       629 / 183       1,801 / 721
+  Rate Builder                                    474 / 120       620 / 176       1,823 / 727
+  Cost Summary                                    299 / 67        371 / 95        1,003 / 368
+  Business Outcome                              1,342 / 367     1,776 / 565 F   5,984 / 2,511 F
+  Business Modelling                            1,313 / 369     1,674 / 588 F   5,709 / 2,827 F
+  Calculation trace                             1,053 / 282     1,350 / 425 F   4,604 / 1,952 F
+  Q-7 limits: 100 staff open < 1 s and no freeze > 0.2 s; 1,000 staff open < 3 s and no freeze > 1 s. F = fail.
+  Cost Allocation (183) and Rate Builder (176) pass at 100 staff with little margin under 200.
+
+TYPING
+  Labour, staff Labour rate field, 1,000 staff: 40-48 ms per key from key press to next paint, about 6 ms of handler
+    work, no long task. PASS at every size (Labour edits one profile).
+  Business Modelling, first "Target rate ($/hr)" lever, per keystroke (one long task each):
+    10 staff about 255 ms; 100 staff about 400 ms; 1,000 staff about 1,870 ms (real key presses: 1,908 / 1,848 / 1,848).
+    FAIL at 100 (limit 0.1 s) and 1,000 (limit 0.3 s; also over the 1 s freeze limit). Even the 10-staff reference is slow:
+    every keystroke re-runs the whole chain synchronously.
+  Not measured: typing in Cost Allocation assignment percent and Rate Builder lines (next time; expected between the two).
+
+READING
+  - Development mode is slower than a production build (React's dev checks). The fails at 1,000 staff are 2 to 6 times over
+    the limit, so they will not all disappear in production; the 100-staff fails (1.3-1.8 s) might. A production run
+    (npm run build, then npm start on a spare port, with dev stopped per rule 14) is needed before judging; same scripts.
+  - The three slow pages are the ones that run the whole chain (Business Outcome per-source, cascades, Business Modelling,
+    trace). The variable tracker already records that useCostAllocation() is instantiated separately by each consumer
+    (C15), so the chain is probably computed several times per page. Hypothesis, not profiled: React DevTools Profiler
+    next.
+  - Business Modelling's lever engine is replaced in R3 (scratch overlay). Its typing fix (defer the recalculation until
+    typing pauses, or on blur, plus computing the chain once) belongs in the R3 design rather than a patch to the engine R3
+    retires. Business Outcome and the trace page are not replaced by R3 and need their own fix.
+
+NEXT
+  1. Production-build timing run (owner to start; Claude runs the same scripts).
+  2. Profile Business Outcome at 1,000 staff (which hooks run, how many times).
+  3. Owner: placement of the performance fixes (before R3 with the fix batch, or inside R3 for Business Modelling).
+HOUSEKEEPING: public\__stress_tmp\ holds payload_n10 / n100 / n1000 and the A2 and B files. Pane cleared (0 keys).
+===============================================================================
+
+===============================================================================
+ADDENDUM 14 (2026-10-18, 09:55 NZDT) - F-12 IDLE WORDING [SHIPPED], VERIFIED LIVE; SERVER TIMING NOTE
+===============================================================================
+F-12  components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx (2 patches, build OK; file on disk
+      matches the dry run apart from CRLF line endings).
+      1. "exceeds the asset's hours by about 531" -> "... by about 531 hours".
+      2. When more than one working unit has idle tied labour, one total line is shown first.
+      LIVE (Scenario A2): "In total, about 1,258 paid hours across 3 working units have no asset work to recover them,
+      about $73,419 a year. Each unit is listed below." then the three unit lines with "hours". Pane cleared.
+      Follow-up (one line, .tmp\f12b_total_hours_patch.ps1): the total rounds the SUM (1,257.6 -> 1,258) while the unit
+      lines round each (531 + 356 + 370 = 1,257). The patch sums the rounded unit hours so the lines add up exactly.
+      Dollars already agree (31,566 + 22,218 + 19,635 = 73,419).
+SERVER TIMING (owner's dev server log, 2026-10-18): server render ("application-code") is at most about 0.25 s per page
+      (Business Outcome about 240-260 ms, Business Modelling about 235 ms, trace about 195 ms) for the runs in Addendum 13.
+      So the multi-second times and freezes are client side (the calculation chain in the browser), not the server.
+===============================================================================

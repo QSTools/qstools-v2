@@ -591,6 +591,19 @@ function build_situation_summary({
       .filter((g) => g.gap_type !== "none" && g.gap_dollar_value !== null)
       .sort((a, b) => Math.abs(b.gap_dollar_value) - Math.abs(a.gap_dollar_value));
 
+    // F-12 (2026-10-18): one total line when more than one working unit has idle tied labour,
+    // so the owner does not have to add the separate lines up. Shown before the per-unit lines.
+    const wasted_gaps = flagged_gaps.filter((g) => g.gap_type === "wasted_cost");
+    if (wasted_gaps.length > 1) {
+      const wasted_hours = wasted_gaps.reduce((sum, g) => sum + Math.round(Math.abs(g.gap_hours)), 0);
+      const wasted_dollars = wasted_gaps.reduce((sum, g) => sum + Math.abs(g.gap_dollar_value), 0);
+      things_to_check.push([
+        { type: "text", text: `In total, about ${wasted_hours.toLocaleString("en-NZ")} paid hours across ${wasted_gaps.length} working units have no asset work to recover them, about ` },
+        { type: "text", text: `${format_currency(wasted_dollars)} a year`, class: "value-bad" },
+        { type: "text", text: ". Each unit is listed below." },
+      ]);
+    }
+
     flagged_gaps.forEach((g) => {
       const abs_hours = Math.round(Math.abs(g.gap_hours));
       const incomplete_note = g.gap_dollar_is_complete === false && Array.isArray(g.gap_dollar_incomplete_reasons) && g.gap_dollar_incomplete_reasons.length > 0 ? ` (Not fully priced: ${g.gap_dollar_incomplete_reasons.join("; ")}.)` : "";
@@ -609,7 +622,7 @@ function build_situation_summary({
         ]);
       } else if (g.gap_type === "wasted_cost") {
         things_to_check.push([
-          { type: "text", text: `${g.group_name} has labour tied to its asset that the asset does not need: assigned labour exceeds the asset's hours by about ${abs_hours}, so about ` },
+          { type: "text", text: `${g.group_name} has labour tied to its asset that the asset does not need: assigned labour exceeds the asset's hours by about ${abs_hours} hours, so about ` },
           { type: "text", text: `${abs_dollars} a year`, class: "value-bad" },
           { type: "text", text: " of paid hours have no asset work to recover them. That cost is already inside this group's net profit - it is shown here to explain it." },
         ]);
