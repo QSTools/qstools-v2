@@ -180,17 +180,19 @@ def layer2(recipe, as_of, l1, charge_out, ids):
             d = rb.setdefault(t, {"hours": 0.0, "cost": 0.0, "overhead": 0.0, "groups": {}})
             d["hours"] += h; d["cost"] += c; d["overhead"] += share
             d["groups"][r["gid"]] = (h, c, share)
+    # Dollar amounts below use the default rule max($1, 0.01%): owner decision F-6 (2026-10-18), cents at scale are not
+    # a concern. Rates per hour keep their tight tolerances.
     for t, d in rb.items():
         cost_rate = pool_by_type[t]["cost"] / pool_by_type[t]["hours"]
         oh_rate = d["overhead"] / d["hours"] if d["hours"] else 0.0
         nodes[f"rate_builder.labour_rate.{t}"] = cost_rate + oh_rate
         tol[f"rate_builder.labour_rate.{t}"] = 0.011
-        raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "assigned_overhead_amount"], "expected": d["overhead"], "tol": 0.011, "label": f"RB {t} overhead $"})
-        raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "assigned_labour_cost"], "expected": d["cost"], "tol": 0.011, "label": f"RB {t} labour cost"})
+        raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "assigned_overhead_amount"], "expected": d["overhead"], "tol": None, "label": f"RB {t} overhead $"})
+        raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "assigned_labour_cost"], "expected": d["cost"], "tol": None, "label": f"RB {t} labour cost"})
         raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "allocated_business_overhead_recovery_rate"], "expected": oh_rate, "tol": 0.006, "label": f"RB {t} overhead $/h"})
         for gid, (h, c, share) in d["groups"].items():
             raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "source_group_rows", {"group_id": gid}, "assigned_overhead_amount"],
-                        "expected": share, "tol": 0.011, "label": f"RB {t} in {gid[:8]}"})
+                        "expected": share, "tol": None, "label": f"RB {t} in {gid[:8]}"})
 
     # ---- 3. Business Outcome per-source rows (map s9.1-9.3)
     for r in rows:
