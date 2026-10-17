@@ -50,5 +50,11 @@ LAYER 2 (added 2026-10-17, commit 7c333f8)
   Chrome is not touched); see the stress test brief Addendum 4.
   Aligned Scenario A: 217 of 217. Misaligned Scenario A (the cascade test, real shortfall): 217 of 217 after the
   materials row floor (A-6, owner decision F-5, 2026-10-17). Outputs in 3.1 Stress Test\scenario_a_misaligned.
-  Scaling (owner decision H2): grow by adding staff per group; uneven splits are rounded to whole percents by the
-  generator so the app and the script use the same stored values (generator change not built yet).
+  Scaling (owner decision H2, built 2026-10-18, stress brief Addendum 8):
+    python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_a.json --as-of <today> --staff-total 100 --out <folder>
+    python Py\stress_test\generate_business.py Py\stress_test\recipes\scenario_a.json --as-of <today> --staff-total 100 --out <folder>
+    python Py\stress_test\check_scaling.py <base expected_layer2.json> <scaled expected_layer2.json> 10
+  scale_recipe.py apportions headcount and asset copies, rounds labour percents to whole numbers summing to the base
+  total, and sets any group with more than one asset copy to "sequential" so every figure scales exactly.
+  --assets fixed keeps the recipe's asset list (staff-only growth; a different, loss-making shape).
+  Ladder 2026-10-18: 10 staff 217/217, 100 staff 423/424, 1,000 staff 2,490/2,494 (all misses = finding F-6).

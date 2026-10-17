@@ -26,6 +26,7 @@ import uuid
 from datetime import date
 
 import mirra_expected as mx
+from scale_recipe import load_recipe
 
 NS = uuid.UUID("7d1c3a52-1f0e-4b5e-9a57-0c1d6f2e9a11")
 STAFF_TYPE_NAMES = {
@@ -376,8 +377,12 @@ def main():
     ap.add_argument("recipe")
     ap.add_argument("--as-of", default=date.today().isoformat())
     ap.add_argument("--out", default=".")
+    ap.add_argument("--assets", choices=["scale", "fixed"], default="scale",
+                    help="with --staff-total: scale asset copies with staff (default) or keep the recipe's asset list")
+    ap.add_argument("--staff-total", type=int, default=None,
+                    help="scale the recipe to this many staff (same shape; whole-percent rounding, see scale_recipe.py)")
     args = ap.parse_args()
-    recipe = json.load(open(args.recipe, encoding="utf-8"))
+    recipe = load_recipe(args.recipe, args.staff_total, args.assets)
     as_of = date.fromisoformat(args.as_of)
     seed, expected, people, asset_list = build(recipe, as_of)
     os.makedirs(args.out, exist_ok=True)

@@ -15,6 +15,7 @@ import os
 from datetime import date
 
 import generate_business as gb
+from scale_recipe import load_recipe
 import mirra_expected_l2 as l2
 
 
@@ -42,8 +43,12 @@ def main():
     ap.add_argument("recipe")
     ap.add_argument("--as-of", default=date.today().isoformat())
     ap.add_argument("--out", default=".")
+    ap.add_argument("--assets", choices=["scale", "fixed"], default="scale",
+                    help="with --staff-total: scale asset copies with staff (default) or keep the recipe's asset list")
+    ap.add_argument("--staff-total", type=int, default=None,
+                    help="scale the recipe to this many staff (same shape; whole-percent rounding, see scale_recipe.py)")
     args = ap.parse_args()
-    recipe = json.load(open(args.recipe, encoding="utf-8"))
+    recipe = load_recipe(args.recipe, args.staff_total, args.assets)
     seed, full = build_full(recipe, date.fromisoformat(args.as_of))
     os.makedirs(args.out, exist_ok=True)
     path = os.path.join(args.out, f'expected_{recipe["recipe_id"]}_layer2.json')

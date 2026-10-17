@@ -729,3 +729,69 @@ NOTE   -$6,222 is not the -$6,228 expected in the handover. Cause: asset interes
 NEXT   Step 2 of the R2 handover: H2 generator change, then the 10 / 100 / 1,000+ staff ladder.
 ===============================================================================
 ===============================================================================
+
+===============================================================================
+ADDENDUM 8 (2026-10-18) - STEP 2a: H2 SCALING BUILT, LADDER 10 / 100 / 1,000 RUN LIVE [SHIPPED: harness]
+===============================================================================
+FILES (Py\stress_test, harness only, no app code; NOT committed yet)
+  scale_recipe.py      NEW. scale_recipe(recipe, staff_total, assets="scale"). Headcounts apportioned by largest
+                       remainder (each recipe row keeps at least one person); asset copies in the same proportion;
+                       labour percents rounded to WHOLE numbers that sum to each type's base total (H2). On an exact
+                       multiple of the base (20, 100, 1,000) the percents are identical to the base. Scaled recipe id
+                       is <id>_n<staff>; recipe["scaling"] records factor, rounding and pattern changes.
+  check_scaling.py     NEW. Invariant check: for an exact multiple, every aggregate node and every group node (matched
+                       by group ref) must equal base x factor; rates and per-hour figures must be equal.
+  generate_business.py, run_layer2.py   --staff-total N and --assets scale|fixed added. Without --staff-total the
+                       output is unchanged (10-staff run below reproduces 217 nodes and checks).
+
+DESIGN POINT (owner asked for advice, Claude's recommendation adopted for the ladder)
+  Adding staff alone does not keep the shape. Three options were tested in the expected script:
+    staff + asset copies in a "together" group   together takes the MAX asset hours (calc map s9.3), so ten
+                                                 excavators count as one; 100 staff gave 8.9x revenue, not 10x.
+    staff only, assets fixed (--assets fixed)    labour idles against 7 machines; about -4.7M net at 100 staff.
+                                                 Kept as an option for a later idle-labour stress case.
+    cloned asset units                           percents split into 2.5 and round to 3 or 2, so clones differ and
+                                                 no clean invariant remains.
+  Chosen: asset copies scale with staff, and any group holding more than one asset copy runs "sequential" (SUM of
+  asset hours, already proven live on G02). Every group quantity is then exactly factor x base, so a drift in the
+  app is visible against the base run. The MAX ("together") rule stays covered by the 10-staff and misaligned runs.
+  check_scaling.py: 77 of 77 at x10 and x100.
+
+LIVE RUNS (built-in browser pane on :3004, Addendum 4 method, as of 2026-10-18)
+  Seed payloads and expected files were served from public\__stress_tmp\ on the dev server (no tokens spent moving
+  them); the trace JSON was captured in memory and compared IN THE PAGE with a JavaScript copy of compare_full.py's
+  rule (same tolerances, same raw-path resolve). Pane cleared afterwards (0 keys).
+    10 staff, 7 assets      217 of 217   trace 231 nodes, 316 edges, clean    sha 7dac6641...83bd1
+    100 staff, 70 assets    423 of 424   trace 789 nodes, 1,072 edges, clean  sha 43cfe363...18fff
+    1,000 staff, 700 assets 2,490 of 2,494  trace 6,369 nodes, 8,632 edges, clean (no duplicates, no missing
+                            endpoints)  sha b63dff6f...63cff. Seed 2.38M characters of localStorage (14 keys; app
+                            added 3 on load). Trace JSON 8.9 MB.
+  Everything else at 1,000 staff (labour, assets, overheads, cost summary, Cost Allocation groups and raw dump,
+  Business Outcome rows, non-productive distribution, both cascades) is within tolerance.
+
+FINDING F-6 (for the owner, not changed) - Rate Builder overhead dollars drift with scale
+  Every fail is a Rate Builder overhead DOLLAR figure checked at a 0.011 tolerance:
+    RB senior_operator_staff overhead $      10 staff +0.001;  100 staff -0.0116;  1,000 staff -0.069
+    RB operator_delivery_staff overhead $    1,000 staff +0.086; RB operator in one group +0.094; senior in one -0.064
+  The error grows in proportion to the hours (about 3 x 10^-7 per hour at 1,000 staff), which points to a ROUNDED
+  per-hour rate multiplied back by hours somewhere in the Rate Builder overhead path, not a wrong formula. It is not
+  "sum of rounded group rows" (checked: that gives a different cent). Size: under 10 cents on 8.8M. Not a launch risk
+  on its own, but it is exactly the scale drift section 3.3 asked to watch. Options: (a) find the rounded intermediate
+  (read the Rate Builder overhead code, core-ish file, read first) and decide; (b) accept and change these four
+  tolerances to relative (for example 1 x 10^-7 of the value). Recommended: (a) first, then decide.
+
+OTHER OBSERVATIONS
+  - 1,000 staff + 700 assets uses about 2.4M characters of localStorage. The browser limit is about 5M per origin, so
+    roughly 2,000 staff with this shape is the ceiling before the database (step 5). Not tested.
+  - Trace page navigation 263 ms at 1,000 staff in the pane (dev server, hidden pane: indicative only, NOT the Q-7
+    performance pass).
+
+HOUSEKEEPING
+  public\__stress_tmp\ holds 6 temporary files (payloads and expected values). Delete the folder before any build or
+  commit: anything in public\ ships with the app.
+
+NEXT
+  1. Owner: F-6 (a) or (b). Commit the harness change (git status first) without public\__stress_tmp.
+  2. Step 2b: second business (custom staff types, H5, H6, H7, one support asset assigned on purpose).
+  3. Step 2c: UI performance pass after Q-7 is defined.
+===============================================================================
