@@ -1,6 +1,7 @@
 "use client";
 
 import { calculateEbitByUnit } from "@/lib/calculations/businessOutcomeEbitCalculations";
+import useAssets from "@/hooks/useAssets";
 
 function format_currency(value) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "N/A";
@@ -38,8 +39,10 @@ function format_currency(value) {
  * same pattern as the interest join.
  */
 export default function BusinessOutcomeEbitByUnitTable({ real_capacity, materials, unassigned }) {
+  // F-8: every active asset, so interest on support and unassigned assets is added back too.
+  const { active_assets } = useAssets();
   const { available, rows, total_net_profit, total_interest, total_depreciation, total_ebit, total_ebitda } =
-    calculateEbitByUnit({ real_capacity, materials, unassigned });
+    calculateEbitByUnit({ real_capacity, materials, unassigned, all_assets: active_assets });
 
   if (!available) {
     return (

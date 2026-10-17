@@ -528,9 +528,20 @@ function build_situation_summary({
       }
 
       if (strongest && weakest && strongest.labour_source_type_name !== weakest.labour_source_type_name) {
-        labour_recovery_paragraph_segments.push({ type: "text", text: ` ${strongest.labour_source_type_name} is still recovering well, at ` });
-        labour_recovery_paragraph_segments.push({ type: "text", text: `+${format_currency(strongest.rate_gap)}/hr`, class: "value-good" });
-        labour_recovery_paragraph_segments.push({ type: "text", text: "." });
+        // F-9 (2026-10-18): the strongest source can itself be under-recovering (every rate short).
+        // Only call it "recovering well" when its gap is positive; otherwise say it is short too.
+        const strongest_gap = Number(strongest.rate_gap);
+        if (strongest_gap > 0) {
+          labour_recovery_paragraph_segments.push({ type: "text", text: ` ${strongest.labour_source_type_name} is still recovering well, at ` });
+          labour_recovery_paragraph_segments.push({ type: "text", text: `+${format_currency(strongest_gap)}/hr`, class: "value-good" });
+          labour_recovery_paragraph_segments.push({ type: "text", text: "." });
+        } else if (strongest_gap < 0) {
+          labour_recovery_paragraph_segments.push({ type: "text", text: ` Even the closest, ${strongest.labour_source_type_name}, is short by ` });
+          labour_recovery_paragraph_segments.push({ type: "text", text: `${format_currency(Math.abs(strongest_gap))}/hr`, class: "value-bad" });
+          labour_recovery_paragraph_segments.push({ type: "text", text: "." });
+        } else {
+          labour_recovery_paragraph_segments.push({ type: "text", text: ` ${strongest.labour_source_type_name} is only just breaking even on its true cost.` });
+        }
       }
     } else if (strongest) {
       labour_recovery_paragraph_segments.push({ type: "text", text: " Every labour source is recovering its true cost" });
