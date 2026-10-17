@@ -32,7 +32,9 @@ ASSUMPTIONS = [
     "A-5  Cascade boundary nodes (real_capacity_a/b.cascade) are read as the shortfall each cascade absorbs. Inferred from the "
     "snapshot (0 and 0.01), not stated by the map.",
     "A-6  View A materials: revenue = real revenue - labour modelled - asset modelled (residual); true cost = COGS + max(business "
-    "overheads - overhead assigned to groups, 0); profit floored at 0. View B materials is a peer at COGS x (1 + markup).",
+    "overheads - overhead assigned to groups, 0); profit floored at 0. View B materials is a peer at COGS x (1 + markup). "
+    "Row modelled revenue is floored at 0 (CONFIRMED live 2026-10-17, misaligned A; owner decision F-5); the shortfall uses "
+    "the unfloored residual.",
 ]
 
 
@@ -230,8 +232,10 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     mat_true = cogs + max(residual_overhead, 0.0)
     mat_a_revenue = real_revenue - labour_modelled - asset_modelled
     mat_b_revenue = cogs * (1 + markup)
-    nodes["business_outcome.materials.modelled_revenue"] = mat_a_revenue
-    nodes["business_outcome.materials.net_profit"] = mat_a_revenue - mat_true
+    # The ROW shows revenue floored at 0 (materials can't go negative; owner 2026-10-17, F-5). The View A shortfall
+    # below still uses the unfloored residual, so labour/asset over-claim is pushed onto the groups.
+    nodes["business_outcome.materials.modelled_revenue"] = max(mat_a_revenue, 0.0)
+    nodes["business_outcome.materials.net_profit"] = max(mat_a_revenue, 0.0) - mat_true
     nodes["business_outcome.materials.view_b_net_profit"] = mat_b_revenue - mat_true
 
     # ---- 4. non-productive distribution (map s9.4)

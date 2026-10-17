@@ -48,4 +48,7 @@ LAYER 2 (added 2026-10-17, commit 7c333f8)
   Snapshots download into the 3.1 Stress Test folder, one level above scenario_a. Use the real file name, not <n>.
   Live runs can also be done by Claude in the desktop app's built-in browser pane on :3004 (own storage, the owner's
   Chrome is not touched); see the stress test brief Addendum 4.
-  Aligned Scenario A: 217 of 217. Its cascades have zero shortfall; recipes/scenario_a_misaligned.json is the cascade test.
+  Aligned Scenario A: 217 of 217. Misaligned Scenario A (the cascade test, real shortfall): 217 of 217 after the
+  materials row floor (A-6, owner decision F-5, 2026-10-17). Outputs in 3.1 Stress Test\scenario_a_misaligned.
+  Scaling (owner decision H2): grow by adding staff per group; uneven splits are rounded to whole percents by the
+  generator so the app and the script use the same stored values (generator change not built yet).

@@ -599,3 +599,133 @@ NEXT
      loads the seed in the pane, then compare_full.py. Expect the first real cascade findings here.
   2. Then the rest of R2 (tracker Addendum 3): scaling options (H2), second business, UI performance pass.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 5 (2026-10-17, 11:50 NZDT) - MISALIGNED SCENARIO A LIVE: CASCADES PROVEN, 215 OF 217
+===============================================================================
+RUN
+  recipes/scenario_a_misaligned.json, --as-of 2026-10-17 (revenue_basis target_margin: revenue 1,313,841.72, net
+  profit 105,107.34 = 8.0 percent; the first rates bill 1,556,170.58). Expected values regenerated with the committed
+  harness (7c333f8); seed and expected unchanged from Addendum 4's figures: View A shortfall 439,405.12, View B
+  shortfall 478,820.38. Loaded by Claude in the built-in browser pane on :3004 (Addendum 4 method). Before the run the
+  pane held only app defaults (8 keys, all amounts 0). Afterwards it was cleared. 14 seed keys written; on load the app
+  normalised qs_tools_saved_assets, qs_tools_asset_state and qs_tools_profit_and_loss_state and added 2 default keys
+  (pnl_profiles_v3, qs_tools_general_overhead_state). Snapshot calculation_trace_snapshot_1792191128799.json: 231 nodes,
+  316 edges, no duplicates, no missing endpoints, SHA-256 19ed9a41...27026be6 (in-page hash = saved file hash).
+
+RESULT: 215 of 217 PASS (93 layer-2 nodes plus 92 raw checks, plus layer 1).
+  PASS  View A cascade 439,405.12 (expected 439,405.1233); View B cascade 478,820.37 (expected 478,820.3753).
+  PASS  every group and row real-capacity net profit in BOTH views, so Phase 1, Phase 2 and the inner row pass are now
+        exercised and match the independent script. A-4 (inner cascade start point) and A-5 (cascade node =
+        shortfall) CONFIRMED live. A-6 View B markup CONFIRMED (materials view_b_net_profit 39,415.25).
+  FAIL  business_outcome.materials.modelled_revenue   expected -242,328.86 (raw residual)   app 0
+  FAIL  business_outcome.materials.net_profit         expected -439,405.12                  app -197,076.26 (0 - true cost)
+  Both fails are the one edge case Addendum 4 predicted: a NEGATIVE View A materials residual.
+
+CONSERVATION (from the live snapshot)
+  View A: groups 392.16 + 32,388.57 + 42,615.27 + 35,939.62 + materials 0 = 111,335.62.
+  View B: groups 365.97 + 30,225.41 + 39,769.09 + 33,539.29 + materials 7,435.87 = 111,335.63.
+  Both equal P&L net profit 105,107.34 + 6,228.28, i.e. F-4 (the two utes' interest outside Cost Allocation). So the
+  cascades conserve; the only gap is F-4.
+
+FINDING F-5 (for the owner, not changed) - materials residual floored on display, not in the cascade
+  The app computes the shortfall from the UNFLOORED residual (max(0, 197,076.26 - (-242,328.86)) = 439,405.12, calc map
+  s9.5 L829), but the materials row and its trace node show modelled revenue floored at 0 and net profit -197,076.26.
+  So the row says materials loses 197k while 439k is pushed onto the groups; the missing 242,328.86 is the amount by
+  which labour and asset rows over-claim real revenue. The numbers that matter (cascade, finals) are right. The calc map
+  s9.3 does not mention a row-level floor; it says View A revenue = the residual. Decide which is wanted, then align
+  either the calc map + expected script (A-6) or the row node.
+  Seen on /business-outcome with this data:
+    - "Materials/COGS works out to a -100% markup" (from the floored 0; the unfloored residual is about -223 percent).
+    - "Materials / COGS is carrying the largest shortfall, at $0 a year." Wrong as worded: it names materials as the
+      largest shortfall and prints $0 (it appears to read real-capacity net profit, which is 0 by the s9.5 floor).
+    - Correct: "the $439,405 shortfall is being spread across the rest of the business"; "$478,820 gap" (View B).
+
+FILES (new, in docs\Audit\v6_0\smoke_test\3.1 Stress Test\)
+  scenario_a_misaligned\seed_scenario_a_misaligned.json, expected_scenario_a_misaligned.json,
+  expected_scenario_a_misaligned_layer2.json, review_scenario_a_misaligned.xlsx,
+  compare_layer2_scenario_a_misaligned_2026-10-17.txt; calculation_trace_snapshot_1792191128799.json.
+  No code changed. Not committed (git status first).
+
+NEXT
+  1. Owner: F-5 (floor or not, and the "$0 a year" sentence), F-4, F-1 still open.
+  2. Rest of R2 (tracker Addendum 3): scaling options (H2), second business, UI performance pass.
+===============================================================================
+
+===============================================================================
+ADDENDUM 6 (2026-10-18) - OWNER DECISIONS F-5, F-4, F-1, H2; F-5 HARNESS SIDE DONE
+===============================================================================
+Source: owner voice session 2026-10-17 (evening), confirmed at desk 2026-10-18. Decisions, not research.
+
+F-5  MATERIALS ROW FLOOR - DECIDED: KEEP THE ZERO FLOOR ("materials can't go negative").
+  Done 2026-10-17 (harness and docs, no app code):
+    - mirra_expected_l2.py A-6: materials View A modelled_revenue = max(residual, 0); net_profit = that - true cost.
+      The View A shortfall still uses the UNFLOORED residual (calc map s9.5), so the cascade is unchanged.
+    - CALCULATION_MAP_v6_0.txt s9.3: "ROW FLOOR" note added under materials View A revenue.
+    - Re-compared: misaligned Scenario A 217 of 217 (snapshot ...191128799); aligned Scenario A still 217 of 217
+      (snapshot ...184309387; its residual is positive so the floor changes nothing).
+  NOT DONE - first thing next session: the sentence fix in
+    components/business-outcome-truth/BusinessOutcomeTruthSituationSummary.jsx ("Materials / COGS is carrying the
+    largest shortfall, at $0 a year"). Cause found: materials is "being_carried" whenever there is a View A shortfall
+    but its row is $0, and the "Unassigned cost" row is appended to being_carried UNSORTED (apply_unassigned_entry in
+    BusinessOutcomePerSourceRevenueCard.jsx), so being_carried[0] named materials at $0 ahead of the real -6,228.27.
+    Patch (2 edits, dry-run verified: each OldText matches once, file parses): pick the most negative carried source
+    excluding materials and |net| < 1; if none, say the source is "being held at exactly $0". Expected sentence with the
+    misaligned seed: "2 of 6 sources aren't covering their own cost right now. Unassigned cost (not attributed to any
+    source) is carrying the largest shortfall, at -$6,228 a year." The patch text is in the handover. Display only: no
+    trace node changes, all 217 stay as they are. Live check in the built-in browser pane after build.
+
+F-4  UNASSIGNED SUPPORT ASSETS - DECIDED.
+  Rule: every asset should be assigned to a working group, productive or non-productive. A support vehicle that a
+  crew uses (the digger driver's ute) belongs in that crew's group so its cost lands there; the owner's own ute is a
+  real business cost and belongs in a group or the support pool too.
+  Build item (not built):
+    - Cost Allocation warns, close to blocking, when any asset is not assigned.
+    - If the user ignores it, unassigned asset cost is SPREAD ACROSS THE WORKING UNITS BY DEFAULT, so the numbers are
+      complete.
+    - Results are still shown, with a big red warning that there is unassigned cost to fix. Results are not held back.
+    - Background confirmed by owner: the asset finance tick draws each vehicle's interest out of the P&L interest line
+      onto the asset; what is left (for example overdraft interest) stays in overheads. That part works. The gap is
+      only after the asset: unassigned asset cost reaches no group.
+    - Check at build time: the Business Outcome "Unassigned cost" row (apply_unassigned_entry) and the F-5 sentence
+      will change once the default spread exists; re-run Scenario A (aligned and misaligned) and expect Cost Allocation
+      totals to equal the Cost Summary burden.
+  Open (logged, not decided): property such as a yard or building used by the whole business. Owner: "quite a
+  different scenario". Decide separately.
+
+F-1  ESCT - DECIDED: FIX TO THE IRD RULE (ESCT inside the 3.5 percent employer contribution, not added on top).
+  Placement: after R2, before R3 (Business Modelling redesign). Core calculation file: stop-and-confirm, before-and-
+  after check with the harness. See ESCT brief Addendum 1.
+
+H2  SCALING - DECIDED: DO BOTH.
+  - Grow the business by ADDING STAFF per working unit (how a real business grows), so type percents stay whole.
+  - Where a split is still uneven, the generator rounds to whole-number percents that sum to 100 (for example 34, 33,
+    33), and the expected script uses exactly the stored values, so the app and the script cannot drift.
+
+NEXT (in order)
+  1. F-5 sentence patch: run, build, live check.
+  2. R2 continues: scale ladder with the H2 generator change (10, then 100, then 1,000+), second business (custom staff
+     types, H5, H6, H7, one support asset assigned on purpose), UI performance pass (Q-7 "too slow" still open).
+  3. F-1 ESCT fix after R2, before R3. F-4 build item: placement to confirm (suggested alongside F-1, before R3, so
+     R3 starts on complete costs).
+
+===============================================================================
+ADDENDUM 7 (2026-10-18) - F-5 SENTENCE PATCH [SHIPPED], VERIFIED LIVE
+===============================================================================
+FILE   components\business-outcome-truth\BusinessOutcomeTruthSituationSummary.jsx (2 patches, build OK).
+CHANGE 1. The "largest shortfall" source is now the biggest real loss: materials rows and rows under $1 are skipped, the
+          rest sorted by net profit, falling back to being_carried[0] only if nothing qualifies. Before this, the unsorted
+          being_carried list could name Materials at $0 ahead of a real loss.
+       2. New branch: if the chosen source is still under $1 in absolute terms, the sentence says it "is being held at
+          exactly $0 by the rest of the business rather than genuinely breaking even".
+LIVE   Claude loaded seed_scenario_a_misaligned.json into the built-in browser pane on :3004 (14 keys written, 10 staff,
+          7 assets), opened /business-outcome. Sentence read: "2 of 6 sources aren't covering their own cost right now.
+          Unassigned cost (not attributed to any source) is carrying the largest shortfall, at -$6,222 a year."
+          Right source, right count. Pane cleared afterwards (0 keys).
+NOTE   -$6,222 is not the -$6,228 expected in the handover. Cause: asset interest is date-dependent. The expected values
+          were generated for as_of 2026-10-17; the live app calculated on 2026-10-18. Live ute interest 2,529.93 + 3,692.53 =
+          6,222.46; expected (10-17) 2,532.95 + 3,695.32 = 6,228.27. Not a patch fault. The calculation trace was NOT
+          re-captured; if re-run, pass --as-of for the day of the run, or expect small interest differences.
+NEXT   Step 2 of the R2 handover: H2 generator change, then the 10 / 100 / 1,000+ staff ladder.
+===============================================================================
+===============================================================================

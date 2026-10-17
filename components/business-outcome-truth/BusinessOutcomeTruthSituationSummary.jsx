@@ -357,7 +357,13 @@ function build_situation_summary({
       }
     }
 
-    worst = active_headline.being_carried?.[0];
+    // F-5 (2026-10-17): pick the source with the biggest real loss. Materials is "being carried" whenever there is a
+    // View A shortfall but its row is floored at $0 (it has its own shortfall sentence), and the unassigned-cost row
+    // is appended unsorted - so being_carried[0] could name Materials at $0 ahead of a real loss.
+    const carried_list = active_headline.being_carried || [];
+    worst = [...carried_list]
+      .filter((s) => s.type !== "materials" && Math.abs(s.net_profit ?? 0) >= 1)
+      .sort((a, b) => (a.net_profit ?? 0) - (b.net_profit ?? 0))[0] || carried_list[0] || null;
     const count = active_headline.being_carried?.length ?? 0;
     const total = active_headline.total_group_count ?? 0;
     if (worst && count === 1) {
@@ -372,6 +378,10 @@ function build_situation_summary({
           { type: "text", text: "." },
         ]);
       }
+    } else if (worst && Math.abs(worst.net_profit ?? 0) < 1) {
+      things_to_check.push([
+        { type: "text", text: `${count} of ${total} sources aren't covering their own cost right now. ${worst.name} is being held at exactly $0 by the rest of the business rather than genuinely breaking even.` },
+      ]);
     } else if (worst) {
       things_to_check.push([
         { type: "text", text: `${count} of ${total} sources aren't covering their own cost right now. ${worst.name} is carrying the largest shortfall, at ` },
