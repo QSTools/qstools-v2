@@ -66,3 +66,7 @@ SCENARIO B (step 2b, 2026-10-18; stress brief Addendum 10)
   Live 2026-10-18: 269 of 269.
   New recipe options (generate_business.py docstring): custom_staff_types, labour_rate_as_string, pnl.string_amount_lines,
   omit_optional_fields.
+
+SCENARIO A2 - REALISTIC OVER-STAFFING (step 2e, 2026-10-18; stress brief Addendum 12)
+  recipes/scenario_a_overstaffed.json   Scenario A + 1 operator + 1 senior operator, every machine unit tied: each about
+                                        20 percent over its machine hours. Live 2026-10-18: 217 of 217.

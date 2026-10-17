@@ -941,3 +941,41 @@ F-7  DRY HIRE - DESIGN DIRECTION (owner, 2026-10-18; brief to write)
 
 HOUSEKEEPING: public\__stress_tmp\ re-created for the live check (payload_b.json, expected_b.json). Delete before commit.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 12 (2026-10-18, 09:25 NZDT) - STEP 2e: REALISTIC OVER-STAFFING (SCENARIO A2) 217 OF 217 LIVE [SHIPPED: harness]
+===============================================================================
+Recipe agreed by the owner as drafted ("ok good run it"). Py/stress_test/recipes/scenario_a_overstaffed.json. No
+generator change. Claude's figures, owner to correct.
+  Shape: Scenario A plus one operator (4 -> 5) and one senior operator (2 -> 3): productive staff 7 -> 9 (+29 percent).
+  Same machines, rates and overhead percentages. Every machine unit ticked "labour tied to asset":
+    G01 excavator  operator 29%                    2,050 h vs 1,680 machine h  +22%  idle 370 h  $19,635
+    G02 small plant operator 14%, senior 52%       3,196 h vs 2,665            +20%  idle 531 h  $31,566
+    G03 truck      senior 48%                      2,036 h vs 1,680            +21%  idle 356 h  $22,218
+    G04 labour crew operator 57%, supervisor 100%  labour-driven, extra hours bill, not idle
+  Idle paid hours in total about $73,419 a year (Scenario A: G02 only, 163 h, $9,415).
+  P&L aligned (billed_from_rates): revenue 1,554,433.66 (A: 1,347,589.02), net profit 117,652.41 = 7.6 percent (A: 9.6).
+  Profit falls less than the idle cost because the extra people also cover A's operator shortfalls on G01 and G03 and
+  add billed hours in the crew. Owner chose this realistic mix over a revenue-held variant.
+
+RESULT: 217 of 217 PASS (125 nodes incl. 93 layer 2, plus 92 raw checks), first live run, built-in browser pane on :3004.
+  Trace 237 nodes, 320 edges, clean, SHA-256 8627a468...66ade7. As of 2026-10-18. Pane cleared.
+  Idle trace nodes (cost_allocation.group.<id>.idle_labour_hours / _cost) all pass for the three tied units.
+
+WORDING CHECK (/business-outcome, as an owner would read it)
+  RIGHT  Each tied unit gets a line with the correct figures, e.g. "G02 Small plant unit has labour tied to its asset
+         that the asset does not need: assigned labour exceeds the asset's hours by about 531, so about $31,566 a year of
+         paid hours have no asset work to recover them. That cost is already inside this group's net profit".
+  F-12   WORDING (small, display only): "by about 531" has no unit (should read "about 531 hours"). There is also no
+         single total ("about $73,000 a year of paid hours across 3 units have no machine work"), so an owner has to add
+         three lines up. Suggest both. Owner to decide; can go in the next batch or a quick patch.
+  NOTE   "G04 Labour crew is carrying the largest shortfall, at -$132,809 a year." Not caused by over-staffing: G04 already
+         loses 120,025 in Scenario A (1.9 x wage charge-out does not cover a crew's overhead and support share). The
+         recipe's crew rate is Claude's estimate; it is not a tool fault. But it means the page's headline problem is the
+         crew rate, and the idle lines sit lower under Things to check.
+
+HOUSEKEEPING: public\__stress_tmp\ holds payload_a2.json, expected_a2.json (and Scenario B's pair). Delete before commit.
+
+NEXT IN R2: 2c UI performance pass against the Q-7 thresholds (10 staff reference, then 100, 1,000; needs the pane VISIBLE
+  or the owner's Chrome for timing). 2d layer-2 gaps after the fix batch (F-1, F-4, F-7, F-10, F-11).
+===============================================================================

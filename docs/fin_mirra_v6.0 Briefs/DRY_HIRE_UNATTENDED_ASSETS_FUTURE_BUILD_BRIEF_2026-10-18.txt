@@ -1,0 +1,89 @@
+===============================================================================
+MIRRA - DRY HIRE / UNATTENDED ASSETS (FINDING F-7) - FUTURE BUILD BRIEF
+===============================================================================
+DATE:     2026-10-18
+STATUS:   [FUTURE BUILD] Owner decisions recorded; nothing built. Build slot: the between-R2-and-R3 batch with F-1
+          (ESCT), F-4 (unassigned assets), F-10 (EBITDA depreciation) and F-11 (EBIT all interest), then ONE full
+          re-run of the regression pack (Scenario A aligned and misaligned, Scenario B, the ladder).
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
+SOURCE:   Stress test Scenario B, 2026-10-18 (STRESS_TEST_DATABASE_AND_AGENT_DESIGN brief, Addenda 10, 11 and 11a).
+          Code facts below were read on 2026-10-18 from the staged files named; re-read before patching.
+
+-------------------------------------------------------------------------------
+1. THE PROBLEM
+-------------------------------------------------------------------------------
+A machine hired out WITHOUT an operator (dry hire: Kennards, Hirepool) earns $0 in Business Outcome.
+  - hooks\useBusinessOutcomePerSourceRevenue.js get_group_covered_hours (L276-284): for an asset-hours group,
+    covered hours = MIN(group_recovery_hours, assigned labour hours). No labour -> 0 covered hours.
+  - The asset row's revenue uses get_asset_revenue_hours(asset_hours, covered, required) (L198), so it is 0 too.
+  - capacity_coverage_gap reports the full machine hours as unearned ("no_labour" type), and the summary prints
+    "<unit> has no labour assigned ... nobody is there to run it" (BusinessOutcomeTruthSituationSummary.jsx ~L589).
+  - The code comment above get_group_covered_hours already lists "unattended / dry-hire units need an exemption
+    setting" as a known limit. VARIABLE_TRACKER s21 lists it as an open design item.
+Seen live in Scenario B group G03 (80t crane 40 percent + telehandler): $0 revenue, "$285,600 a year of potential
+revenue is not being counted". The aligned P&L therefore carries no dry-hire income.
+
+-------------------------------------------------------------------------------
+2. OWNER DECISIONS (2026-10-18)
+-------------------------------------------------------------------------------
+  D-1  Dry hire must earn money. It is a normal product for a hire business, not a staffing gap.
+  D-2  Labour: a dry-hire unit has no operator tied to the machine. Yardmen and mechanics are support staff and sit
+       in support groups.
+  D-3  Billing basis: HOURLY for now. Weekly and monthly hire come later (units mode, R4).
+  D-4  Default OFF. Existing data and every current number stay exactly as they are until a user ticks it.
+  D-5  Every new calculated figure gets a calculation trace node (definition of done, launch tracker A3). Essential.
+  OPEN Placement of the switch. Owner considered Rate Builder (rate setup card), Cost Allocation's productive-asset
+       section (next to assignment percent) and Selected Asset. Leaning Cost Allocation because it drives overhead
+       distribution, and possibly tied to a particular asset rather than a whole unit.
+       Claude's recommendation: a tick on the ASSET ASSIGNMENT row in Cost Allocation (next to assignment percent),
+       e.g. "Hired out without our operator (dry hire / unattended)".
+         - Not on the asset itself: Scenario B's 80t crane is operated hire in G01 and dry hire in G03 at the same time.
+         - Not Rate Builder: it prices hours; it does not decide how many hours a machine earns on or how overhead is
+           spread.
+         - Not the whole unit: an assignment-level flag still lets one unit hold an operated machine and an
+           unattended one (for example a pump left running next to an operated excavator).
+       Confirm at the start of the build.
+
+-------------------------------------------------------------------------------
+3. PROPOSED BEHAVIOUR WHEN TICKED (assignment level)
+-------------------------------------------------------------------------------
+  Storage   asset_group_assignments[] gains an optional boolean (name to agree, e.g. earns_without_operator).
+            Absent = false (D-4). Check costAllocationStorage's normaliser spreads the row so the field survives
+            (bug class b) - it is said to spread every group; verify for assignment rows.
+  Cost Allocation (costAllocationGroupCostBuilder.js)
+            required_asset_hours and the labour cap (D1 3c) are worked out over OPERATED assignments only.
+            Exempt assignments add their own hours to group_recovery_hours without the labour cap, so overhead
+            distribution follows the machine hours. labour_coverage_gap and idle labour ignore exempt hours.
+            Read first: how a no-labour asset group's recovery hours are chosen today (A-2: MAX of asset hours,
+            confirmed live in Scenario B) and whether the run pattern (together / sequential) applies.
+  Business Outcome (useBusinessOutcomePerSourceRevenue.js)
+            Exempt asset row revenue = its rate x its own hours (no covered-hours share). Operated rows unchanged.
+            capacity_coverage_gap skips exempt assignments; a unit whose assets are all exempt gets no "no_labour" line.
+            Cascades (View A, View B) unchanged in formula; they simply receive the new revenue.
+  Wording   The "nobody is there to run it" sentence must not fire for exempt assets. Consider one plain line in Cost
+            Allocation explaining the tick.
+  Rate Builder  No change expected (hourly calculator per asset already exists, Path B). Confirm the asset calculator
+            rate is what the exempt row bills at.
+  Business Modelling  Levers price on covered hours via group_recovery_hours; check exempt hours flow through.
+
+-------------------------------------------------------------------------------
+4. TRACE NODES AND HARNESS (D-5)
+-------------------------------------------------------------------------------
+  - Nodes for: exempt hours per group, exempt asset row revenue (if not already covered by the asset_source node),
+    and any new recovery-hours split.
+  - mirra_expected.py billed_revenue and mirra_expected_l2.py: exempt assignments bill rate x own hours; covered hours
+    and the capacity gap exclude them; recovery hours include them. Written from the calc map update, not the code.
+  - generate_business.py: recipe asset entry in a group gains an optional third value or flag for exempt.
+  - Scenario B: tick G03's two assignments. Expected: G03 earns (80t crane 40 percent 672 h x $300 + telehandler
+    1,200 h x $70 = 285,600, the same figure the gap reports today), and the aligned P&L gains that revenue.
+  - Re-run Scenario A (aligned, misaligned) and the ladder: with the flag absent nothing may move (D-4 proof).
+
+-------------------------------------------------------------------------------
+5. RISK AND ORDER
+-------------------------------------------------------------------------------
+  Touches core calculation files in two modules (Cost Allocation group builder, Business Outcome per-source hook):
+  stop-and-confirm, one patch batch per module, build after each, live check against the harness. Calc map s7 and
+  s9 (CM-9 and BO-6 notes) to be updated in the same session, with the variable tracker s21 item closed.
+  Out of scope: weekly and monthly hire rates (R4 units mode), one person attending several separately billed units
+  at once (the other open item in the same code comment).
+===============================================================================
