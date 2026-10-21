@@ -5,7 +5,7 @@ extract_calc_map.py v2 - READ-ONLY. Raw calculation map for the whole tool.
 Run from repo root (D:\\QSTools\\qstools-web):
     python Py\\audit-scripts\\extract_calc_map.py
 
-Writes to docs\\Audit\\v6_0\\calc_map\\ (clears its own old output first):
+Writes to docs\\fin_mirra_v6.1\\Calculations\\calc_map\\ (clears its own old output first):
     00_INDEX.txt       counts per module
     00_COVERAGE.txt    what the parser could NOT attribute - check this first
     01_FIELD_INDEX.txt every field name -> every place it is calculated
@@ -25,7 +25,7 @@ ROOT = os.getcwd()
 SCAN = ["app", "components", "hooks", "lib"]
 SKIP_DIRS = {"node_modules", ".next", ".git", "__pycache__"}
 EXT = (".js", ".jsx", ".mjs", ".ts", ".tsx")
-OUT = os.path.join(ROOT, "docs", "Audit", "v6_0", "calc_map")
+OUT = os.path.join(ROOT, "docs", "fin_mirra_v6.1", "Calculations", "calc_map")
 
 # Chain order. First match wins. Matched against the path, lowercased,
 # with - _ \ / . removed.

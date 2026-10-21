@@ -14,7 +14,7 @@ FILES
   seed_loader.console.js     paste into the browser console on :3004: Backup / Load seed / Restore
 
 RUN (PowerShell, repo root; Python 3 with openpyxl)
-  python Py\stress_test\generate_business.py Py\stress_test\recipes\scenario_a.json --as-of 2026-10-17 --out "docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a"
+  python Py\stress_test\generate_business.py Py\stress_test\recipes\scenario_a.json --as-of 2026-10-17 --out "docs\fin_mirra_v6.1\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a"
 
   --as-of must be the NZ date the app runs on: asset interest is dated to "today" (calc map s5).
 
@@ -42,8 +42,8 @@ LAYER 2 (added 2026-10-17, commit 7c333f8)
   run_layer2.py          recipe -> expected_<id>_layer2.json (layer 1 + layer 2 nodes, raw checks, tolerances, detail)
   compare_full.py        snapshot nodes AND cost_allocation_raw vs expected_<id>_layer2.json; exit 1 on any fail
 
-  python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_a.json --as-of 2026-10-17 --out "docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a"
-  python Py\stress_test\compare_full.py "docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a\expected_scenario_a_layer2.json" "docs\Audit\v6_0\smoke_test\3.1 Stress Test\calculation_trace_snapshot_<n>.json"
+  python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_a.json --as-of 2026-10-17 --out "docs\fin_mirra_v6.1\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a"
+  python Py\stress_test\compare_full.py "docs\fin_mirra_v6.1\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_a\expected_scenario_a_layer2.json" "docs\fin_mirra_v6.1\Audit\v6_0\smoke_test\3.1 Stress Test\calculation_trace_snapshot_<n>.json"
 
   Snapshots download into the 3.1 Stress Test folder, one level above scenario_a. Use the real file name, not <n>.
   Live runs can also be done by Claude in the desktop app's built-in browser pane on :3004 (own storage, the owner's
@@ -62,7 +62,7 @@ LAYER 2 (added 2026-10-17, commit 7c333f8)
 SCENARIO B (step 2b, 2026-10-18; stress brief Addendum 10)
   recipes/scenario_b.json   crane and plant hire: custom staff types, H5 strings, H6 absent group fields, H7 shared asset,
                             support assets assigned (F-4), dry-hire group with no labour (A-2), spread_as_overhead policy.
-  python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_b.json --as-of <today> --out "docs\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_b"
+  python Py\stress_test\run_layer2.py Py\stress_test\recipes\scenario_b.json --as-of <today> --out "docs\fin_mirra_v6.1\Audit\v6_0\smoke_test\3.1 Stress Test\scenario_b"
   Live 2026-10-18: 269 of 269.
   New recipe options (generate_business.py docstring): custom_staff_types, labour_rate_as_string, pnl.string_amount_lines,
   omit_optional_fields.
