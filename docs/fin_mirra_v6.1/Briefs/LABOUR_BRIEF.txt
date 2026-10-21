@@ -1,0 +1,219 @@
+===============================================================================
+MIRRA - LABOUR - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\LABOUR_BRIEF.txt  (the ONE Labour brief - update in place)
+STATUS:        VERIFIED (P2.3, 2026-09-21). Fixes since: F12, F18, F19. Stress-tested R2 (to 1,000 staff).
+               One owner-approved fix PENDING: ESCT (F-1), between R2 and R3.
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+ROUTE:         app/labour
+MECHANISM:     formulas and line numbers live in Calculations\CALCULATION_MAP_v6_0.txt Section 3, not here.
+               This brief holds intent, rules, contract, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum
+changes a rule, status or finding above, also edit that line in place so the body stays current.
+Never create a second Labour brief.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Labour is a SOURCE module. It defines the people-cost base and productive capacity. It answers:
+  - Who works in the business, and are they productive or non-productive?
+  - What do they cost (wages plus employer obligations)?
+  - How many productive hours do they create?
+  - What is the weighted productive labour rate - overall and per staff type?
+It does not decide recovery, allocate labour to groups, price jobs or judge the outcome.
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: staff identity; staff type identity; productive / non-productive classification; employment
+cost (wages, salaries, owner wage where treated as labour); employer obligations (KiwiSaver, ESCT,
+ACC); productive and non-productive hours (leave and statutory rest breaks); productive and
+non-productive labour cost; weighted all-productive rate; weighted per-staff-type rates; labour
+readiness, warnings, trust state.
+
+DOES NOT OWN: subcontractor COGS, materials, revenue, COGS (Revenue / COGS); asset cost, utilisation,
+asset/operator pairing (Assets, Cost Allocation); operating groups and overhead distribution (Cost
+Allocation); staff-related costs that are not employment cost - training, PPE, phones (General
+Overheads / Employee Overheads); recovery tests (Recovery Summary); rates (Rate Builder); verdicts
+(Business Outcome).
+
+FLOW POSITION: Business Setup -> P&L -> Revenue / COGS -> LABOUR -> Assets -> General Overheads ->
+Module Reconciliation -> Model Readiness -> Cost Summary -> Business Summary -> Cost Allocation ->
+Recovery Summary -> Rate Builder -> Business Outcome -> Business Modelling.
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  Labour is real cost and must be paid. Do not assume it is recovered because revenue exists.
+R2  Labour cost comes from Labour module data only. P&L labour is a BENCHMARK for reconciliation,
+    never the source. Charge-out rate and target rate are never labour cost.
+R3  Stable IDs: staff_id and staff_type_id are stable; names are display only. Never infer staff
+    type or productivity from a name.
+R4  Staff types are user-controlled (create / rename). Starter examples allowed; no construction-only
+    hard-coding. Missing staff type on a productive person -> review bucket, not a guess.
+R5  Productive vs non-productive is explicit. Non-productive staff stay in Labour and keep their cost
+    (it reaches Cost Summary and Business Outcome's true cost) but contribute NO productive hours
+    and never enter productive rate outputs.
+R6  Rates are WEIGHTED: type cost / type productive hours. Never a simple average of personal rates.
+R7  Guardrails: no division by zero productive hours; zero cost with productive hours is flagged;
+    unassigned productive staff are visible.
+R8  Leave is paid INSIDE base cost (rate x paid hours); entitlements are a display split, not extra
+    cost. Statutory paid rest breaks reduce productive hours, not cost (F19).
+R9  Labour is hours-native and does not read business_type (Units Mode is downstream).
+R10 Downstream modules consume the contract; none may recalculate Labour totals or rates.
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Per staff profile (hand-entered): name, staff type, labour_class (productive / support /
+non-productive), hours per week, days per week, labour_rate, charge_out_rate (optional),
+productivity %, margin target %, leave (annual weeks; public holiday, sick, bereavement,
+family-violence days), KiwiSaver on/off and rate, ACC rate, is_active.
+Storage: lib/storage/labourProfileStorage.js; staff types key qs_tools_labour_staff_types_v1
+(ids via generateStaffTypeId). Full key list: STORAGE_KEY_REGISTER_S0_2026-10-17.txt.
+Future idea only (not designed): import staff from a payroll report (owner named Smartly), no tax
+detail. Conventions rule 10 applies before building.
+
+===============================================================================
+5. OUTPUT CONTRACT AND CONSUMERS
+===============================================================================
+Selector: lib/selectors/labour/labourOutputContractSelectors.js. Core fields:
+  total_labour_cost_annual, total_people_cost_annual, total_productive_labour_cost,
+  total_non_productive_labour_cost, total_productive_labour_hours, total_productive_output
+  (= total_productive_labour_hours since F12), total_productive_paid_hours,
+  total_staff_recovery_hours, productive_labour_cost_rate, weighted_all_productive_labour_rate,
+  weighted_all_productive_productivity_percent, productive_staff_type_rates[],
+  productive / support / all labour type rows, rate_builder_labour_recovery_rows,
+  required_labour_burden_rate, labour_ready, productive_staff_type_rate_warnings.
+Specified but NOT emitted (F1): labour_status (six values), labour_model_trust_state.
+Accepted v5.0 field-by-field contract: archived Labour brief, "v5.0 ACCEPTED SOURCE-CODE CONTRACT
+ADDENDUM" (Section 12).
+
+Consumers:
+  Module Reconciliation  total labour vs P&L labour benchmark (wages and on-costs split)
+  Cost Summary           total_people_cost_annual (burden), total_productive_output (hours)
+  Business Summary       via Cost Summary; business_recovery_hours (F18)
+  Cost Allocation        productive_staff_type_rates, productive cost and hours
+  Rate Builder           staff type rates, all-productive row (reads trust - see F2)
+  Recovery Summary,      via the modules above; never recalculate Labour
+  Business Outcome,
+  Business Modelling
+Calculation trace: Labour nodes exist (smoke test 1.12_calc_trace_Labour); every new Labour figure
+needs a trace node (definition of done).
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+lib/calculations/labourCalculations.js            per-person maths, staff type rates, P&L-derived recovery
+lib/calculations/compliance/breakRules/nz.js      NZ rest-break rule (F19)
+lib/calculations/compliance/breakRulesRegistry.js jurisdiction -> rule (NZ only)
+lib/selectors/labour/*.js                         output contract, formatters, type/summary selectors
+lib/storage/labourProfileStorage.js               profiles
+hooks/useLabour.js                                hook (filters is_active !== false)
+components/labour/*, app/labour                   UI (LabourCompactWorkspaceCard.jsx holds readiness tile)
+Related: employeeOverheadCalculations.js (training/PPE/etc - not Labour cost, see Section 2).
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence, not today's data)
+===============================================================================
+2026-09-21  P2.3 live verification, 6 staff (3 real in P&L, 3 test extras):
+            - Module Reconciliation: extras off -> labour within -10,052 of P&L; wages residual
+              -9,598 (3%) predicted before the test to the dollar. Gap explained.
+            - Staff Type Rates panel: all-productive 66.70/hr = 492,130 / 7,378 hrs; per-type rates
+              weighted correctly; shares sum to 100%; non-productive excluded.
+2026-09-22  F19 rest breaks live: productive hours 7,378 -> 7,070.58; productivity % unchanged.
+2026-09-23  F18 fix (51e2e08) verified through Summaries (P2.6).
+2026-09-26  Smoke test step 2 (one staff, $50/hr, 40h): every output_contract figure matched the
+            calc map exactly (paid 2,080; non-productive 416.333; productive 1,414.117; base 104,000;
+            KiwiSaver 3,640; ESCT 1,201.20; ACC 1,487.20). labour_ready true.
+2026-10-02  Smoke test step D/E: second staff, rate change, non-productive pool, multi-category
+            overhead split - passed.
+2026-10-17/18 R2 stress test (Py/stress_test): Scenario A, A misaligned, A2, B (custom staff
+            types, string labour_rate H5) and the 10 / 100 / 1,000 staff ladder all pass. Labour
+            page typing speed passes at every size.
+NOT verified: Review Required panel (may not exist); downstream consumers were traced by field name,
+not hop by hop.
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN
+F1  Status vocabulary not implemented: no labour_status / labour_model_trust_state. labour_ready is
+    stricter than spec (needs KiwiSaver AND ACC > 0) and skips staff-type / zero-hour checks.
+F2  Trust chain broken: Rate Builder defaults the all-productive row to "ready"; Cost Summary and
+    Cost Allocation read no Labour readiness. Design decision outstanding.
+F3  Reconciliation on-cost split matches "acc" by substring (would hit "accrued"). Fix: classify by
+    review_subcategory in a new small file (reconciliationRules.js is 1,035 lines).
+F4  LabourStatusStrip.jsx is dead code; stale comment at reconciliationRules.js:850.
+F5  Readiness tile ("Review path") checks only the profile open in the editor, not saved staff.
+F6  buildLabourStatus returns readiness under the misleading key reconciliation_label.
+F7  labour_warnings is an unread alias of productive_staff_type_rate_warnings.
+F8  is_productive blank on profiles; derived from labour_class. Spec says explicit.
+F9  No include / exclude toggle in the UI (is_active exists in code only).
+F10 Reconciliation wording says "timing lag" whatever the cause; Owner card compares amounts only.
+F11 DESIGN: Owner / Director counts as productive at the same productivity % as staff.
+F13 Seeded DEFAULT_STAFF_TYPES ends with a blank-named entry.
+F14 hooks/useLabour.js:160 comment names a person - reword to "the Owner profile".
+F16 Business Summary required_labour_burden_rate shows 0 - field dropped between Cost Summary
+    and Business Summary (businessSummarySelectors.js:261). Owned by the Business Summary brief.
+F17 Legacy Business Modelling baselines keep pre-F12 hours until re-locked. Owned by Business
+    Modelling (R3 redesign).
+F-1 ESCT added ON TOP of 3.5% employer KiwiSaver (overstates labour ~1%). IRD: ESCT is deducted
+    from the contribution. OWNER DECIDED 2026-10-18: fix to the IRD rule; ESCT shown as a split,
+    not added. Open: offer "employer pays ESCT on top" option? Core calc file - stop and confirm.
+    Verify with the R2 harness (kiwisaver_line_includes_esct=false). Full detail:
+    Future_Build\ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt. PLACEMENT: after R2, before R3.
+
+CLOSED
+F12 FIXED 2026-09-21 (f8c337d): total_productive_output now productive staff only.
+F15 By design: Labour is hours-native, does not read business_type.
+F18 FIXED 2026-09-23 (51e2e08): business_recovery_hours = total productive person-hours (pricing
+    views); macro views use the opening calendar.
+F19 FIXED 2026-09-22 (25644b8): NZ statutory paid rest breaks deducted from productive hours via
+    the jurisdiction break-rule registry.
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Jurisdiction setting for break rules (NZ hard-coded; Business Setup pass, when a non-NZ user exists).
+- Whether operator-bound assets lose uptime during operator breaks (Assets brief).
+- Too much labour for an asset / idle labour (D4) - Rate Builder and Business Outcome briefs.
+- Payroll import (Section 4).
+- Employee overheads as Business Modelling levers - confirm they reach Cost Summary first.
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY LABOUR CHANGE
+===============================================================================
+Do not change Assets, General Overheads, Revenue / COGS, Cost Allocation grouping, Recovery tests,
+Rate Builder rate maths or Business Outcome verdicts from inside Labour. Do not pair assets and
+operators in Labour. Do not treat subcontractors as Labour unless the user enters them as staff.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY LABOUR CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- R2 harness re-run (Scenario A at minimum) - all checks pass, or the expected script is updated
+  with the owner-approved new rule.
+- Smoke-test single-staff figures (Section 7, 2026-09-26) still match, or the change explains why.
+- total_productive_output == total_productive_labour_hours.
+- Trace node exists and matches the screen for any new figure.
+- CALCULATION_MAP Section 3 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- fin_mirra_v6.0 Briefs\Labour_v6_0_BRIEF_VERIFIED_2026-09-21.txt (v4.0 spec + v5.0 contract
+  addenda + v6.0 P2.3 verification entry, F1-F19)
+- Mirra_v5_Briefs\_Archive\_Archive_v4\07_MIRRA_LABOUR_MODULE_v4.0_LOCKED.txt
+- VARIABLE_TRACKER_v6_0.txt Section 12 (Labour gaps)
+- SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt steps 2, D, E
+- STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt and R2_HANDOVER_2026-10-18.txt
+- ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt (stays live in Future_Build until shipped)
+The v4.0 sections on UI panel layout (Sections 37-45) were not carried over; read the archived file
+if a Labour UI rebuild is ever scoped.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

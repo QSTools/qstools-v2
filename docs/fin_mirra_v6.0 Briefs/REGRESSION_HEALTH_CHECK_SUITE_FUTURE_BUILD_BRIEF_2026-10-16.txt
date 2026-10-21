@@ -1,0 +1,135 @@
+===============================================================================
+MIRRA - PERMANENT REGRESSION AND HEALTH-CHECK SUITE
+===============================================================================
+DATE:     2026-10-16
+STATUS:   [DISCUSSION / STRATEGY] - scoping only. Nothing built, no code touched. Only the pieces marked BUILT below
+          exist, and their state is as the owner described it in a voice session (owner driving, so no code was read
+          or run). Anything marked UNVERIFIED needs a check first.
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file). Repo only, not in project knowledge.
+SEQUENCE: LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt Addendum 1 carries the build order
+  (this suite is built during step R2, the step 1c stress test, and kept permanently).
+RELATED:  STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt (Section 3 is the generator design;
+  Section 3.7 is where this suite started as "the pack is also the regression baseline").
+  CALCULATION_TRACE_VERIFICATION_LAYER_FUTURE_BUILD_BRIEF_2026-09-26.txt (the trace tool).
+  V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt Section 5 (the audit scripts).
+
+===============================================================================
+1. WHY THIS DOCUMENT EXISTS
+===============================================================================
+The owner's stated requirement is that the tool be 100 percent accurate, and his stated fear is what happens when a
+calculation or a storage shape has to change after real data exists: the data becomes too tangled to fix and the
+database is wiped and rebuilt (his experience with Power Query and replacing values by hand). This brief records the
+answer agreed in the session: a permanent suite that proves correctness before any change can reach real data, plus
+a short list of data-protection rules. It also records the owner's idea that the suite run on a schedule, which is
+ordinary industry practice (regression testing) and not a special measure.
+This suite cannot make a live system risk-free. It removes one failure mode: silent drift in calculations that
+is discovered only after real users hold the numbers.
+
+===============================================================================
+2. THE PIECES
+===============================================================================
+  #  Piece                                            State (owner statement; UNVERIFIED against the repo)
+  1  Stress harness: synthetic business generator,    NOT BUILT. The main new artifact. Design in the stress test
+     independent expected-value script, seed and      brief Section 3.
+     verify scripts
+  2  Calculation trace tool (/calculation-trace,      BUILT, coverage incomplete and in dispute. See the trace
+     lib/calculation-trace/)                          brief addendum of 2026-10-16.
+  3  Cross-import alignment check                     BUILT and working: lib/calculations/
+     (P&L, Balance Sheet, Revenue-COGS agree)         crossImportAlignmentCheck.js, page /dev/cross-import-check.
+  4  Field-parity and has-loaded-guard audit          BUILT and working: Py\audit-scripts\check_field_parity.py,
+     scripts                                          Py\audit-scripts\check_has_loaded_guard.py. Known false
+                                                      positives are recorded in the variable tracker.
+  5  Orchestration wrapper: one run, one overall      NOT BUILT. Built LAST, once the others exist.
+     pass or fail across pieces 1 to 4
+  Related and also existing: extract_calc_map.py (maps every calculation; read-only). Not part of the pass/fail run,
+  but used when a calculation changes (kickoff Section 4 checklist).
+
+===============================================================================
+3. WHAT IT RUNS AGAINST
+===============================================================================
+  - Synthetic seeded data on an ISOLATED instance (the smoke test pattern: localhost:3004, its own localStorage
+    origin; later a dedicated test tenant on a test database). NEVER live user data.
+  - Because it never touches real data, it cannot corrupt production, and 1,000 real users do not make the suite
+    itself more expensive. Server and concurrency load is a separate concern, covered by the later step 6 test.
+  - Proposed guard (not decided): the suite refuses to run against any dataset that is not flagged as synthetic.
+
+===============================================================================
+4. CADENCE
+===============================================================================
+  - Owner's starting suggestion: monthly.
+  - Claude's note, offered not decided: during the pre-launch period, while units mode and the Business Modelling
+    redesign are changing shared calculation code, run it after every significant change or deploy. Relax to monthly
+    once live and stable. Triggers that always warrant a run: any change to shared calculation or storage code, any
+    migration, any dependency upgrade of the framework.
+
+===============================================================================
+5. PROTECTING REAL DATA (a separate mechanism from the suite)
+===============================================================================
+  The suite protects the CALCULATIONS. These rules protect the DATA:
+  - Additive, versioned migrations. Nothing destructive in place.
+  - A backup before every schema or logic change that touches stored data.
+  - One source of truth: a stored number is always written by the same calculation code the app uses (server side
+    after steps R6), never hand-patched and never re-derived somewhere else.
+  - A field's meaning changes only across full releases, never silently mid-flight.
+  - A change reaches the real database only after it has passed this suite on synthetic data.
+  - Every calculation node is stored (launch Addendum 1, A4), so if a number looks wrong it can be traced to the node
+    where it diverged instead of being found as a wrong headline figure with no trail.
+
+===============================================================================
+6. STEP 1c AND STEP 6 ARE NOT DUPLICATED WORK
+===============================================================================
+  Step 1c (R2) proves correctness once, client side, with no server. Step 6 (R9) re-runs the same pack against the
+  server-migrated version (cheap, and it catches migration bugs) and adds one genuinely new dimension that cannot
+  exist before migration: server load and concurrency. Owner confirmed the distinction.
+
+===============================================================================
+7. ADDITIONS WHEN THE DATABASE EXISTS
+===============================================================================
+  Two launch-gate tests join the suite after R6 (launch Addendum 1, A4):
+    (a) full-node storage performance at about 1,000 businesses: write volume and query speed, measured;
+    (b) a deliberate tenant-isolation breach attempt: query as one business and confirm no row of another is reachable.
+  The k6-style concurrency and load test against a deployed environment is separate background work and not a launch
+  blocker.
+
+===============================================================================
+8. ACCEPTANCE CRITERIA (PROPOSED, owner to confirm; no figures invented)
+===============================================================================
+  - One command runs pieces 1 to 4 and prints one overall PASS or FAIL, with non-zero exit on any failure.
+  - Expected values come from the independent script written from CALCULATION_MAP_v6_0.txt, never from the app's own
+    code. A suite that checks the app against itself proves nothing.
+  - Known-bad check: feed the suite a seed with one deliberately wrong value and confirm it FAILS. A suite that has
+    never been seen to fail is not trusted.
+  - The same seed is run before and after every migration and must give identical node values.
+  - Every figure that has a trace node (the definition of done) is covered by at least one expected value.
+  - Results are written to a dated file so a change in result between runs is visible.
+
+===============================================================================
+9. SLICE ORDER
+===============================================================================
+  S0  Inventory (read-only): list the four existing pieces with file paths and how each is run; record real trace
+      coverage; confirm the names above. No code change.
+  S1  Independent expected-value script and generator for Scenario A (stress test brief S1 to S3).
+  S2  Trace extension rider (Cost Allocation, Rate Builder, Business Outcome, Business Modelling, idle cost nodes).
+  S3  Scale ladder and the second business shape (stress brief S4, S5).
+  S4  Orchestration wrapper and the known-bad check.
+  S5  Scheduling and the results record.
+  S6  After the database: the isolation breach and 1,000-business storage tests.
+
+===============================================================================
+10. OUT OF SCOPE / MODULES TOUCHED
+===============================================================================
+  Out of scope: server concurrency load testing (step 6); Xero live integration tests; UI performance profiling (stress
+  brief 3.6); security review of the encryption list.
+  Modules touched: none now. Later: new scripts and seed data only; no change to calculation code is implied by this brief.
+
+===============================================================================
+11. OPEN QUESTIONS
+===============================================================================
+  Q-1  Where does the wrapper run: the owner's machine, or a scheduled job on a build service? Local runs need
+       someone to remember; a scheduled run needs somewhere to run.
+  Q-2  Who is told when it fails, and how?
+  Q-3  How long is the run at the top of the scale ladder, and is a quick subset needed for every deploy?
+  Q-4  Do the existing audit scripts' known false positives need fixing before they can be part of an automatic
+       pass or fail?
+  Q-5  Confirm cadence (Section 4).
+===============================================================================

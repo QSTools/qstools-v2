@@ -1,0 +1,127 @@
+===============================================================================
+MIRRA - AI WORKFLOW BRIEF: TWO TALKS (POCOCK WORKSHOP, SKILLS VIDEO) AND WHAT WE ADOPTED
+===============================================================================
+DATE:     2026-10-15
+STATUS:   [ADOPTED / PARKED] - process changes shipped (Apply-Patch.ps1 helpers and a
+          conventions addendum). No application code touched.
+LOCATION: save to docs\fin_mirra_v6.0 Briefs\ (new brief, not an addendum).
+SOURCE:   Two transcripts pasted by the owner on 2026-10-15, both auto-captioned:
+          (1) Matt Pocock's AI Engineer workshop on software engineering
+              fundamentals with AI agents.
+          (2) A YouTube video on agent skills, framed as "Anthropic engineers
+              stopped building agents". The framing is clickbait; the four ideas
+              underneath are what is used here. Claims about Anthropic engineers
+              are from the video only and are unverified.
+
+HOW TO READ THIS BRIEF
+  [REPO]    seen directly in the repo this session (D:\QSTools\qstools-web).
+  [DONE]    shipped and checked this session.
+  [PARKED]  deliberately not adopted now; reason given.
+  [OPEN]    needs a decision or later work.
+
+===============================================================================
+1. WHY THIS BRIEF EXISTS
+===============================================================================
+The owner wants to run this project as efficiently as possible on a usage-limited
+plan. The talks were mined for ideas that fit the actual setup: chat-based work,
+PowerShell patching, no agent running inside the repo. This brief records what
+the talks say, what was adopted, what was found in the repo, and what was parked.
+
+===============================================================================
+2. WHAT THE TALKS SAY (condensed, in priority order for Mirra)
+===============================================================================
+ P1  Slice work vertically (thin end-to-end slices), not layer by layer, so
+     feedback arrives early.
+ P2  Feedback loops set the ceiling on AI output quality. A green build is a weak
+     loop; stronger automated checks make the agent better.
+ P3  Model quality degrades as a chat grows (about 100k tokens regardless of
+     window size). Keep sessions small; hand off through a document, not context.
+ P4  Align on the design before building (the "grill me" interview), and keep
+     tasks small and independently grabbable.
+ P5  Deep modules: small interface, lots inside, one test boundary. Design the
+     interface yourself, delegate the inside.
+ P6  QA findings become new backlog items, not ad hoc fixes.
+ S1  Save proven code instead of regenerating it each time.
+ S2  Precise descriptions so only the right material loads; keep always-loaded
+     context small.
+ S3  Turn corrections into durable rules: classify the cause (process, missing
+     context, weak rule, unreliable code) and fix it in the smallest durable place.
+ S4  Verify with evidence outside the first draft; state acceptance criteria
+     before the work, not after.
+
+===============================================================================
+3. WHAT WAS ADOPTED (2026-10-15)
+===============================================================================
+ A1 [DONE] Apply-Patch.ps1 extended (S1, S4). New helpers: Invoke-PatchBatch
+    (preflight, exactly one match per patch, EOL-normalised, then apply, nothing
+    changed if preflight fails), Assert-Contains, Invoke-Build (refuses while dev
+    is running or after any patch/assert failure), Reset-PatchState. Apply-Patch
+    now counts failures and accepts an empty NewText. Self-test run by the owner
+    on a temp file: good batch returned True, bad batch failed preflight and
+    returned False, Assert-Contains matched across CRLF.
+ A2 [DONE] Conventions addendum "UPDATE 2026-10-15" appended to
+    Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt (repo
+    and project knowledge): helpers in use; acceptance criteria stated before each
+    batch (S4); vertical-slice batch order (P1); bug cause classification (S3);
+    brief template block (below); one feature per chat (P3).
+
+ Brief template block for NEW briefs (old briefs are not retrofitted):
+    OUT OF SCOPE:        what this change deliberately does not touch.
+    MODULES TOUCHED:     feeds the "stop and confirm" risk gate.
+    ACCEPTANCE NUMBERS:  figures to verify, and how (console snippet, screen).
+    SLICE ORDER:         thin end-to-end slices with blocked-by notes.
+
+===============================================================================
+4. FINDINGS IN THE REPO
+===============================================================================
+ F1 [REPO] Apply-Patch.ps1 already existed in the repo root and the conventions
+    already said to dot-source it. The preflight was prose only (now code, A1).
+ F2 [REPO] CLAUDE.md contains only "@AGENTS.md". AGENTS.md is 26KB (about 1,100
+    lines), titled "Codex Project Instructions v3.8". Only its first 80 lines and
+    a keyword search were read. It never mentions Mirra, v6.0 or Apply-Patch, and
+    points to docs\V3.8 Source Files, which is not in docs\.
+ F3 [REPO] package.json scripts: dev, build, start, lint only. No test runner.
+ F4 [REPO] scripts\check-calculation-trace-integrity.mjs is broken: it imports
+    lib\calculation-trace\calculationTracePilotMap.js, which no longer exists,
+    and uses the old graph API (selectors now take a graph built by
+    buildTraceGraph(liveValues)). It also hard-codes 41 nodes and 41 edges. The
+    trace modules import through the "@/lib" alias, so plain node cannot load
+    them (tested: ERR_MODULE_NOT_FOUND). Not wired into package.json.
+ F5 [REPO] Of 26 briefs in this folder, a case-insensitive search for out of
+    scope / not in scope / testing / acceptance / verification matched only 2
+    (the calculation trace brief and the Cuban brief). The new template (A2)
+    addresses this for future briefs.
+ F6 [REPO] Repo root contains an accidental file named "et --hard HEAD" (apparent
+    leftover from a mistyped git command), plus loose reports and extensionless
+    files. Not touched.
+
+===============================================================================
+5. PARKED AND OPEN
+===============================================================================
+ [PARKED] AGENTS.md: left alone. Nothing in the chat plus PowerShell workflow
+          reads it, so it costs nothing today, and archiving could break Codex if
+          it is still used (not known). If Claude Code is ever run in the repo:
+          archive or copy it to _local_archive and point CLAUDE.md at the
+          conventions file.
+ [PARKED] Unattended agent loops, Docker sandboxes and parallel agents (Pocock's
+          "Ralph loop" and Sand Castle). They need an agent running inside the
+          repo, a different setup with its own usage cost.
+ [PARKED] Fresh-context diff review and simulated reviewer personas. Worth it only
+          for risky changes (core calculation files, multi-module work), as a new
+          chat given the diff plus the conventions file. Skipped for routine patches.
+ [OPEN]   Calculation trace check (F4). A working version needs a TypeScript-aware
+          runner (for example tsx, a new dev dependency) and sample live values.
+          Separate decision; the existing script should not be wired in as it is.
+ [OPEN]   Automated checks on calculation files (P2). The numeric console
+          verification is the only strong loop today. A small test runner on the
+          core calculation files would be the next step if wanted.
+ [OPEN]   Repo root cleanup (F6), including deleting "et --hard HEAD". Owner call.
+
+===============================================================================
+6. FILES CHANGED THIS SESSION
+===============================================================================
+  Apply-Patch.ps1  (repo root)
+  Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt
+      (repo root, and re-uploaded to project knowledge)
+  docs\fin_mirra_v6.0 Briefs\AI_WORKFLOW_TALKS_POCOCK_AND_SKILLS_BRIEF_2026-10-15.txt
+      (this file, new)

@@ -1,0 +1,79 @@
+TURBOPACK NFT WARNING - PNL IMPORT ROUTE FIX
+Brief date: 2026-10-17
+Status: [SHIPPED] - commit b4c53bf (main)
+Scope: app/api/pnl-import/route.js only. No calculation files touched.
+
+------------------------------------------------------------
+1. PROBLEM
+------------------------------------------------------------
+npm run build (Next.js 16.2.2, Turbopack) reported:
+
+  Turbopack build encountered 1 warnings:
+  Encountered unexpected file in NFT list
+  Import trace: ./next.config.ts -> ./app/api/pnl-import/route.js
+
+Meaning: Turbopack's output file tracing (NFT) gave up working out which
+files the route needs and traced the whole project. Build still passed;
+warning was cosmetic but would bloat a standalone/serverless output.
+
+------------------------------------------------------------
+2. ROOT CAUSE
+------------------------------------------------------------
+The static import:
+
+  import { spawn } from "child_process";
+
+Turbopack analyses child_process.spawn() calls to trace the script being
+spawned. The route spawns Python with computed paths
+(process.cwd() + .venv/Scripts/python.exe, Py/API_for_PnL/...), which it
+cannot resolve, so it falls back to tracing everything.
+
+How it was isolated (bisection build, file restored afterwards):
+  A: spawn stubbed           -> warning: False
+  B: fs/promises stubbed     -> warning: True
+  C: both stubbed            -> warning: False
+=> spawn alone is the cause; fs/path usage is not.
+
+------------------------------------------------------------
+3. WHAT DID NOT WORK (for future reference)
+------------------------------------------------------------
+/*turbopackIgnore: true*/ comments on process.cwd(), path.join(),
+spawn arguments, mkdir/writeFile/readFile/unlink arguments - 13 in total.
+None cleared the warning. Ignore comments do not switch off spawn
+analysis. All 13 were removed again in the final commit (verified the
+warning stayed gone without them).
+
+------------------------------------------------------------
+4. FIX
+------------------------------------------------------------
+Replaced the static import with:
+
+  // Loaded via getBuiltinModule so Turbopack does not trace the whole project (NFT warning).
+  const { spawn } = process.getBuiltinModule("child_process");
+
+Same spawn function at runtime; Turbopack no longer recognises it as a
+child_process import. Requires Node 20.16+ / 22.3+ (dev machine: v24.14.0).
+If Node is ever downgraded below that, the route will throw at load.
+
+------------------------------------------------------------
+5. VERIFICATION
+------------------------------------------------------------
+- npm run build: Compiled successfully, no NFT warning.
+- Live test on port 3005: P&L Quick Import panel (/p-and-l,
+  components/p-and-l/ProfitAndLossQuickImportPanel.jsx) imported a real
+  PDF successfully - Python extractor starts and returns line items.
+- Calculation trace snapshot saved after the change:
+  docs/Audit/v6_0/smoke_test/3.2 turbopack/calculation_trace_snapshot_1792177137927.json
+  (32 nodes, 23 edges, no duplicate IDs, no missing endpoints).
+
+------------------------------------------------------------
+6. NOTES / FOLLOW-UPS
+------------------------------------------------------------
+- Reusable rule: if a Next/Turbopack route spawns a process with a
+  computed path and triggers the NFT warning, load child_process via
+  process.getBuiltinModule rather than adding ignore comments.
+- .tmp/ (route's temp PDF folder) is untracked; consider adding it to
+  .gitignore.
+- Commit diff is 5+/8- rather than 2 lines because earlier patches joined
+  the path.join("Py", ...) and spawn(...) calls onto single lines.
+  Cosmetic only.

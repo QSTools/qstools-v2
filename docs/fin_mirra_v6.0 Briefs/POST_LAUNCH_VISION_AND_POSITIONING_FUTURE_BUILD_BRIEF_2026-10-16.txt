@@ -1,0 +1,148 @@
+===============================================================================
+MIRRA - POST-LAUNCH VISION, ARCHITECTURE AND POSITIONING
+===============================================================================
+DATE:     2026-10-16
+STATUS:   [DISCUSSION / STRATEGY] - ideas and reasoning only. Nothing built, no code touched, nothing decided except
+          where Section 2 and Section 5 say "owner". Competitor and market statements below are reasoning from a
+          conversation, NOT research; each is labelled where it matters.
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file). Repo only, not in project knowledge.
+SEQUENCE: LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt Addendum 1 carries the build order and the
+  launch bar. This brief is about what comes after, and about why the order is what it is.
+RELATED:  AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER_FUTURE_BUILD_BRIEF_2026-10-01.txt;
+  STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt (Section 7, the agent);
+  GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS_FUTURE_BUILD_BRIEF_2026-10-16.txt (Xero terms, Q2).
+
+===============================================================================
+1. WHY THIS DOCUMENT EXISTS
+===============================================================================
+The build order session wandered into product vision: why the tool is shaped as it is, where the agent fits, what
+the owner's edge is, and what could be built in the next two years. These are not build steps, but several of them
+change decisions that are (the AI layer's place in the launch bar, the "every node stored" rule). Recording them
+stops them being re-derived and keeps the build order document lean.
+
+===============================================================================
+2. EARLY FEEDBACK AND WHAT IT CHANGES
+===============================================================================
+  - FACT (owner): a couple of people have been shown the tool. Their comment: it is too complicated to understand and
+    use.
+  - OWNER CONSTRAINT: there is a floor to how far the tool can be simplified before it stops working properly,
+    because the chain is genuinely connected: labour feeds cost allocation, which feeds rate builder, business
+    outcome and business modelling. Flattening the chain would make the numbers wrong.
+  - CONSEQUENCE (agreed): the complexity stays in the engine; the EXPERIENCE is simplified. That is the job of the UI
+    tidy-up (R5) and above all the AI layer (R7): setup coaching to get the right data into the right fields, and an
+    explainer that turns Business Outcome and Business Modelling into plain language. This is why the AI layer is inside
+    the launch bar rather than a nice extra.
+  - The owner also said the system has grown past what he can hold in his head, and that he agrees to things that he
+    learns on the fly in discussion. The answer recorded: the briefs, the trace tool and the regression suite are the
+    external memory; the agent will later do the same job for users. Read the launch brief and the kickoff rather than
+    trusting recall.
+
+===============================================================================
+3. ARCHITECTURE: DETERMINISTIC CORE, SEPARATE AGENT LAYER
+===============================================================================
+  - The core tool (labour, cost allocation, rate builder, business outcome, business modelling) is deterministic
+    calculation. Same inputs, same outputs, no judgement. It is verified, not trusted. It must never become "AI does
+    the maths".
+  - The explainer is an agent. It reads stored node outputs and explains them; it never computes (stress brief D-8). A
+    what-if goes through Business Modelling's own lever calculation and is labelled as not actual.
+  - Two front doors, ONE dependency chain. The explainer cannot exist without the core tool's numbers, but it can be
+    reached from somewhere other than the tool's own screens. Idea (owner): the tool listed in the Xero App Store, and
+    the agent separately surfaced wherever agents are found. Because the agent reads stored data through a fixed set of
+    functions (stress brief 7.2), it is not welded to one UI, which keeps that option open at no extra cost.
+  - STATUS OF THE CLAIMS: that agent marketplaces will be a meaningful channel, and that this shape is common (payments
+    and commerce platforms exposing an engine behind separate front doors, and companies publishing agent-accessible
+    interfaces to their data), was offered from general knowledge in the session and not researched. Treat as a strategic
+    bet, not a plan. Re-check before building any marketplace-facing work.
+  - GATE: the Xero developer terms (2 March 2026) on AI/ML use of Xero API data apply to any agent reading
+    Xero-derived data, wherever it is distributed. Read them first (GO_TO_MARKET Q2).
+
+===============================================================================
+4. PROACTIVE "PART-TIME CFO": WEEKLY DIGEST AND DRIFT DETECTION (post-launch idea)
+===============================================================================
+  Idea (owner): the most valuable extension is the agent noticing drift and reporting weekly, the way a CFO would:
+  here is how you are tracking this month, this is not quite right, that is not quite right. Over time it builds a
+  pattern of behaviour ("labour cost creeps up each time you take on this type of job, and this is the third time").
+  - It is the same capability as the explainer on a schedule: push instead of wait.
+  - The pattern part needs HISTORY, which is why every calculation node is stored and time-stamped (launch Addendum 1,
+    A4; stress brief D-7). A snapshot alone shows a blip, not a pattern.
+  - PROPOSAL (not decided), consistent with D-8: drift is detected by deterministic code comparing stored nodes over
+    time against thresholds, and the agent only narrates what the code flagged. The agent must not decide that a
+    number has drifted by estimating.
+  - Hard part: deciding what counts as drift, per business, without noise. Needs real data from real users first.
+  - Dependencies: the database, stored nodes with dates, the explainer, the Xero terms check, scheduling.
+  - Not on the launch path.
+
+===============================================================================
+5. THE LEDGER LOOP (owner's insight)
+===============================================================================
+  Most tools built on an accounting platform are one-directional: they read the ledger and show something nicer.
+  The owner's design closes a loop:
+    1. Use the P&L (the ledger) to set the baseline of how the business is actually performing.
+    2. Model a profitable outcome on that baseline (Business Modelling).
+    3. Run purchase orders and timesheets through the tool. They generate granular, correctly categorised records.
+    4. Feed those back so they form the ledger. The business then tracks against its baseline.
+  Why it matters (reasoning, not research): the tool's need for accurate operational data gives the owner a reason to
+  enter it accurately, and the result lands cleanly in the ledger instead of being reconciled by hand later.
+  Caveats:
+    - It depends on R8 (purchase orders, Xero write-back, timekeeping), which is AFTER launch. The first release
+      delivers steps 1 and 2 only, plus explanation.
+    - Write-back brings the full Xero certification scope (account and payment mapping, taxes, webhooks); see the
+      GO_TO_MARKET brief Section 4.
+    - The no-reproduction rule applies: do not import or write data just because it is available.
+    - The claim that nobody else does this is the owner's impression from looking around. It has not been researched
+      here.
+
+===============================================================================
+6. EDGE ASSESSMENT (reasoning from the session, NOT competitor research)
+===============================================================================
+  Three things together, which the owner may be able to defend longer than any one alone:
+    1. Calculation depth and connectedness: a verified chain from labour to business modelling that reconciles. Hard
+       to build and hard to trust. It is a moat only as long as it stays ahead of copies.
+    2. A trust posture: the ability to show a number is right and keep proving it (trace tool and regression suite).
+       Slow to build, unglamorous, does not demo well, and is the kind of thing a faster, better-funded competitor is
+       likely to cut. Reasoning only.
+    3. An architecture that lets an agent explain trusted numbers, distributed separately from the tool (Section 3).
+       An agent with no trustworthy engine behind it is a chatbot guessing at numbers.
+  Against Xero: Xero's core is a ledger, which is regulated and must be right, but it records what happened. The owner's
+  tool answers a different question (what should a job cost and charge, and is it recovering true cost), which a
+  ledger does not need to answer. That is why it extends Xero instead of competing with it. This is reasoning from
+  the session, not a statement about Xero's engine, which was not examined.
+  Why the gap might exist (HYPOTHESES): software teams without deep operations knowledge; domain experts who do not
+  build software; low willingness to pay per customer in trades and small services, so funded companies chase larger
+  simpler contracts; verification work is unglamorous and is cut first under growth pressure. None tested.
+
+===============================================================================
+7. OTHER DIRECTIONS FOR THE NEXT TWO YEARS (ideas, none planned)
+===============================================================================
+  - Benchmarking across businesses (anonymised): already step 5b, gated on legal review and consent design, and on
+    there being enough businesses.
+  - Forward projection and scenario modelling over time (multi-period cash and profit, for example the effect of a
+    hire in month four on month nine). A harder calculation problem than today's point-in-time model.
+  - The proactive agent (Section 4).
+  - Integrations beyond Xero: payroll, bank feeds, job-costing tools. Each reduces manual entry. Subject to the
+    no-reproduction rule and to platform terms.
+  - The real next priority will probably come from real users hitting edges not yet imagined.
+
+===============================================================================
+8. A NOTE ON PACE (so the doubt does not have to be re-argued)
+===============================================================================
+  The owner asked, partly aloud, whether the long runway is a way of avoiding an outsider's verdict ("spinning in
+  place"). Agreed test: spinning in place produces the same shape repeatedly; forward motion produces a decision, a
+  rule, a test or a shipped slice each session. This session produced the resolved order, the launch bar, the
+  trace-node rule and the schema scope. The one external check still owed is a real bookkeeper's or business owner's
+  reaction to a working session on their own numbers. Claude suggested narrowing the launch to reach that sooner; the
+  owner declined (energy is not the constraint) and the launch bar stands. The early viewers' feedback already is
+  outside signal and is what shaped R5 and R7. Track M (bookkeeper conversations) is the route to more of it before
+  launch.
+
+===============================================================================
+9. OUT OF SCOPE / MODULES TOUCHED / OPEN QUESTIONS
+===============================================================================
+  Out of scope: any build; marketplace research; competitor research; pricing; legal review; the benchmark module.
+  Modules touched: none.
+  Open:
+    Q-1  Is the agent surface outside the app (Section 3) worth designing for before launch, or only kept possible?
+    Q-2  What does a bookkeeper need to see to say the tool is simple enough? Ask in Track M conversations.
+    Q-3  What counts as drift, per business, and who sets the threshold?
+    Q-4  Competitor and marketplace research: not done. Needed before relying on Section 6.
+===============================================================================

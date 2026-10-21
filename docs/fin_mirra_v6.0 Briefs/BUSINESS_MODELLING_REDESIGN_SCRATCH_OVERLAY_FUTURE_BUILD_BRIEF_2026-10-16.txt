@@ -1,0 +1,212 @@
+===============================================================================
+MIRRA - BUSINESS MODELLING REDESIGN: SCRATCH OVERLAY ON THE REAL CHAIN
+===============================================================================
+DATE:     2026-10-16
+STATUS:   [DESIGN / SCOPING] - nothing built, no code touched. Captures an
+          owner design discussion (2026-10-07 to 2026-10-16). Owner has not yet
+          signed off the slice order in section 8 or the placement in the
+          launch build order (LAUNCH_BUILD_ORDER... step 1b).
+LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
+RELATED:  BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt (what is
+          built today); LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_
+          2026-10-14.txt (where this sits in the sequence);
+          UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt (also touches shared
+          calculation files).
+
+===============================================================================
+1. THE PROBLEM
+===============================================================================
+Business Modelling has been the hardest module to build. It works by running
+its OWN parallel calculation (buildSourceRows, applyAdditiveLevers) that
+re-derives what Cost Allocation, Rate Builder and Business Outcome already do
+correctly. Consequences:
+  - The Phase 1 / Phase 2 cascade exists in three places that must be kept in
+    sync by hand (logged as CM-5).
+  - Modelling rate overrides do not reach everything the real chain reaches
+    (e.g. BO-8: overrides do not reach the capacity coverage gap valuation).
+  - Levers can only move rates on sources that already exist. There is no way
+    to add or delete a source (staff member, asset) in a scenario.
+Owner's view: the METHOD in Business Modelling is right (overheads first, then
+repricing, then see the result), but the MECHANISM is wrong because it
+duplicates the system instead of reusing it.
+
+===============================================================================
+2. THE DESIGN IN ONE SENTENCE
+===============================================================================
+Modelling mode is a mode switch that swaps the data source underneath the
+EXISTING chain. The real modules (General Overheads, Labour, Assets, Cost
+Allocation, Rate Builder, Business Outcome) each run unchanged on scratch
+data. Business Modelling shrinks to the toggle, the baseline snapshot, and a
+today-versus-scenario comparison. No parallel calculation engine.
+
+Cost Allocation, Rate Builder and Business Outcome need no new logic. They do
+not know or care that their inputs are hypothetical. The new work is the
+scratch-data layer and the mode toggle only.
+
+===============================================================================
+3. HARD PRINCIPLE: THREE LAYERS, NEVER MIXED
+===============================================================================
+  Layer A - REAL DATA: the saved records. Never touched by any modelling.
+  Layer B - LOCKED BASELINE: a snapshot of the settled model, its own storage
+            key, created ONLY by an explicit "commit this as my baseline"
+            action. It never updates silently when real data changes. It is a
+            snapshot, not a live reference.
+  Layer C - SCRATCH OVERLAY: hypothetical edits. Freely mutable, discardable,
+            optionally promotable. Lives only in modelling mode.
+Rules:
+  - Tier 3 comparisons run against Layer B, never against drifting live data.
+  - A Tier 1 or Tier 3 experiment must never write into Layer A.
+  - Each layer has its own storage key and its own enforced boundary. Any
+    code path that reads one layer and silently falls back to another is a
+    defect.
+  - Storage hooks follow the has_loaded guard rule from the first commit
+    (conventions rule 8), and selectors must not rebuild-and-drop fields
+    (bug class 6b).
+
+===============================================================================
+4. THE FOUR TIERS
+===============================================================================
+TIER 1 - FIX THE BUSINESS YOU HAVE (no new sources)
+  Flow, using the real modules in modelling mode:
+    1. General Overheads: each category gets a percentage nudge (up or down).
+       Percentage only, not a target-rate entry.
+    2. Cost Allocation reflows the overhead pool through the group split. It
+       already does this correctly; no change.
+    3. Rate Builder: reprice the working groups against the new floors, in
+       Rate Builder itself (today this repricing is duplicated inside
+       Business Modelling).
+    4. Business Outcome shows the resulting net profit from the scratch chain.
+  The charge-out rates already entered in Rate Builder ARE the market reality
+  check. NO separate "realistic ceiling" input is added. The diagnostic is the
+  gap between two numbers the tool already has: minimum recoverable rate (Cost
+  Allocation) versus the rate actually charged (Rate Builder). Example from
+  the owner: minimum recoverable is $175/hour but the market ceiling is about
+  $70/hour for the most qualified person. That gap must be shown as an
+  explicit on-screen number (a calculated gap that is not shown is a broken
+  promise to the user).
+  If the gap cannot be closed by overhead nudges and repricing, the tool says
+  so plainly: a structural problem exists, move to Tier 3 questions (idle
+  assets, non-productive staff). If even stripping all non-productive cost
+  leaves revenue at a realistic rate below the remaining cost, the model's
+  honest verdict is that the business is not viable as structured.
+
+TIER 2 - LOCK THE BASELINE
+  When the owner is satisfied with the Tier 1 result they commit it as the
+  baseline (Layer B). This becomes the new "today" for everything after it.
+  Explicit commit action, own storage key, snapshot not live reference.
+
+TIER 3 - GROWTH / STRUCTURAL WHAT-IFS (new sources)
+  Against the locked baseline, in modelling mode:
+    - Add a hypothetical staff member (pay rate, hours, productivity, slotted
+      into an EXISTING operating/working group).
+    - Add a hypothetical asset (e.g. the "$150,000 ute on five-year finance"
+      case) using the same finance-term math Assets already runs, slotted
+      into an existing group.
+    - Remove an existing staff member or asset (to see what deleting idle
+      assets or non-productive staff does).
+  Cost Allocation runs its REAL assignment math on the altered set. Modelling
+  mode does NOT rebuild the group structure; the real groups are the slots.
+  Output: the affordability answer - what the change does to that group's
+  cost per hour, the overhead split, the floor rate, and whether Business
+  Outcome still shows a profit.
+  Honest limit, to be stated on screen: the simulation shows the new cost
+  burden and floor rate but cannot invent the extra revenue or work volume to
+  support it. It answers "can my CURRENT business carry this", not "will
+  growth pay for it".
+  Tier 1 and Tier 3 are separate questions (optimise what exists versus
+  change what exists) and are built as separate phases even though they share
+  the toggle and scratch layer.
+
+TIER 4 - ACTUALS VERSUS BASELINE (already planned, not part of this build)
+  Live P&L, timekeeping and purchase order data compared against the Layer B
+  baseline as a variance check. Not a simulation. Depends on the database
+  (launch build order step 5). Listed only so the layer boundaries are
+  designed with it in mind.
+
+===============================================================================
+5. WHAT EXISTS TODAY (to audit first, not assume)
+===============================================================================
+Owner recalls injection points already exist for much of this but is unsure
+whether Labour and Assets have them. The first piece of work is an AUDIT, not
+a build:
+  - Which modules already accept an override / scratch input, and which read
+    saved storage directly?
+  - Do Labour and Assets expose any scratch add/remove path? (Believed: no.
+    Today's levers only move rates on existing sources.)
+  - Which of the three cascade copies (CM-5) can be deleted once Business
+    Modelling stops reimplementing it?
+  - What of the existing Business Modelling work (rate/overhead levers, the
+    identity checks in the consolidated brief) carries over unchanged?
+
+===============================================================================
+6. OUT OF SCOPE
+===============================================================================
+  - Any change to the verified calculation logic of Cost Allocation, Rate
+    Builder or Business Outcome. If the audit shows one needs a change, stop
+    and raise it (core calculation file rule).
+  - A "realistic ceiling rate" input, or any tool-suggested market rate.
+  - Tier 4 variance tracking and the database.
+  - Revenue/volume forecasting for Tier 3 additions.
+  - Units mode (own brief). Note interaction: both touch shared calculation
+    files, so sequence deliberately.
+  - Retrofitting old briefs.
+
+===============================================================================
+7. MODULES TOUCHED (expected, to be confirmed by the audit)
+===============================================================================
+  General Overheads (percentage nudge + scratch state), Labour and Assets
+  (scratch add/remove), Rate Builder (repricing in place, scratch rates),
+  storage layer (baseline key, scratch key, mode flag), Business Outcome
+  (read from active layer only), Business Modelling (shrinks to toggle,
+  commit, comparison). Cost Allocation expected UNCHANGED.
+  Touches multiple modules and adds storage schema: owner confirmation
+  required before each batch (conventions rule 1).
+
+===============================================================================
+8. PROPOSED SLICE ORDER (owner to sign off)
+===============================================================================
+Thin end-to-end slices (conventions: slice order, not layer by layer):
+  S0. Audit (section 5). Read-only. Output: a gap list.
+  S1. Mode flag + scratch/baseline storage keys + has_loaded guards, proven on
+      ONE lever: a General Overheads percentage nudge that flows through the
+      real chain to Business Outcome. Live-test against real data.
+  S2. Rate Builder repricing in modelling mode; the explicit recoverable-versus-
+      charged gap number on screen.
+  S3. Baseline commit (Layer B) and today-versus-scenario comparison. Retire
+      the duplicated Business Modelling engine and the extra cascade copies.
+  S4. Tier 3 slice A: remove an existing asset or staff member (simplest
+      structural change; no new record shape).
+  S5. Tier 3 slice B: add a hypothetical asset (ute/finance case), then a
+      hypothetical staff member.
+Recommended first value slice for Tier 3 is the single-asset affordability
+check (S5, asset half) if the owner wants the ute case sooner; it does not need
+the full Tier 1 lever set, only scratch add in Assets flowing through the real
+chain. Owner to choose.
+
+===============================================================================
+9. ACCEPTANCE (numbers to be fixed at S0, from the live baseline)
+===============================================================================
+  - Modelling mode with no changes reproduces today's net profit exactly
+    (same identity check the consolidated brief already uses).
+  - A zero-percent nudge is a zero-effect change.
+  - Nudges are additive and reversible (undo returns to the exact baseline).
+  - Real saved data (Layer A) is byte-identical before and after any
+    modelling session, including a discarded one.
+  - Changing real data after a baseline commit does NOT change the baseline or
+    any scenario compared against it.
+  - Removing then re-adding the same asset returns to the baseline numbers.
+  Specific dollar figures are recorded at S0 against the current test dataset
+  (not invented here).
+
+===============================================================================
+10. OPEN QUESTIONS
+===============================================================================
+  - Can a committed scenario be promoted into real data, or is modelling
+    strictly look-only? (Discussion leaned "discard or commit" for the scratch
+    copy; baseline lock is separate.) Not decided.
+  - Does the baseline keep history (several snapshots) or one at a time?
+  - Per-group vs whole-business view of the Tier 1 gap number.
+  - Placement in the launch build order: proposed step 1b, before server
+    migration, because changing shared calculation and storage code is safer
+    before the database and server dispatcher exist. Owner to confirm.
+===============================================================================

@@ -1,0 +1,47 @@
+MIRRA R2 HANDOVER - NEW CHAT START (2026-10-18, updated 09:40 NZDT after steps 2b, 2e, 2c and fixes F-8, F-9, F-12)
+=====================================================================================================================
+Read first: stress test brief Addenda 10 to 14 (STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt),
+DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt, Py/stress_test/README.txt, the working conventions.
+
+WHERE R2 IS (all committed on main: 4305ab7, 5e0f8fa, 1543c11, 792ba8b)
+  Scenario A aligned and misaligned        217 / 217 each
+  Scale ladder 10 / 100 / 1,000 staff       217 / 424 / 2,494 (F-6 accepted: cents)
+  Scenario B, crane and plant hire          269 / 269  (custom types, H5, H6, H7, F-4 support assets assigned, A-2)
+  Scenario A2, realistic over-staffing      217 / 217  (about 20 percent over; idle $73,419 across 3 units)
+  UI speed pass (step 2c), DEV server only  see Addendum 13. FAILS: Business Outcome, Business Modelling, calculation trace
+                                            at 100 and 1,000 staff; Business Modelling lever typing at every size
+                                            (about 0.25 / 0.4 / 1.9 s per keystroke). Labour typing passes. Server render is
+                                            at most about 0.25 s, so the cost is client side.
+  Fixes shipped and verified live: F-8 EBIT adds back support and unassigned asset interest; F-9 labour recovery wording;
+  F-12 idle wording ("hours" plus one total line; total sums the rounded unit hours).
+
+NEXT - REST OF R2
+  a. Production-build timing run (owner: stop dev, npm run build, npm start on a spare port such as 3005; Claude reruns the
+     Addendum 13 scripts there). Decide the Q-7 verdict on production numbers, not dev.
+  b. Profile Business Outcome at 1,000 staff (React DevTools Profiler / which hooks run how often; variable tracker C15 says
+     each consumer instantiates useCostAllocation separately).
+  c. Typing in Cost Allocation assignment percent and Rate Builder lines (not yet measured).
+  d. 2d layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row): AFTER
+     the fix batch below.
+
+FIX BATCH - BETWEEN R2 AND R3 (owner decisions; then ONE full regression re-run: A, A misaligned, B, A2, ladder)
+  F-1  ESCT to the IRD rule (ESCT brief Addendum 1; core calc file, stop-and-confirm).
+  F-4  Unassigned asset cost spread across working units with a big red warning (stress brief Addendum 6).
+  F-7  Dry hire earns money (DRY_HIRE brief). HOURLY for now; default OFF; trace nodes essential. Placement still to confirm:
+       Claude recommends a tick on the asset ASSIGNMENT row in Cost Allocation.
+  F-10 EBITDA depreciation: useAssets active_assets drops estimated_annual_depreciation (one-line pass-through).
+  F-11 EBIT adds back ALL interest (non-asset interest and the flagged-row remainder), plumbed from General Overheads via
+       props, not a new hook instance. EBIT / EBITDA trace nodes backfilled, then into the expected script.
+  Performance fixes: placement to decide (Business Modelling typing probably inside R3; Business Outcome and trace before).
+
+NOT YET COMMITTED (decide, do not assume)
+  Apply-Patch.ps1 and Working_Conventions_...txt (modified): read the diff, commit on their own when the owner agrees.
+  backup_3004_...json: may hold real data, keep OUT of git (suggest backup_*.json in .gitignore).
+  Untracked junk to gitignore: .tmp/, Py/stress_test/__pycache__/, "~$*.xlsx".
+  Untracked briefs (AI_WORKFLOW, BUSINESS_MODELLING_REDESIGN, GO_TO_MARKET, POST_LAUNCH, REGRESSION, TURBOPACK, R2_HANDOVER)
+  and the Excel templates and 3.2 turbopack folder: a docs commit when the owner agrees.
+
+LIVE RUN METHOD (unchanged, Addendum 8/13)
+  :3004 dev server running; built-in browser pane (keep it VISIBLE for any timing). Claude writes payloads (gzip + base64 per
+  key) and expected files to public\__stress_tmp\, loads them in the pane, compares in the page, clears the pane, and the
+  owner deletes public\__stress_tmp afterwards (anything in public\ ships).
