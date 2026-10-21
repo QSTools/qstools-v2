@@ -1,0 +1,227 @@
+===============================================================================
+MIRRA - GENERAL OVERHEADS - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\GENERAL_OVERHEADS_BRIEF.txt  (the ONE General Overheads brief - update in place)
+STATUS:        VERIFIED THROUGH THE R2 STRESS TEST (layer-1 trace nodes, Scenario A, 2026-10-17) with logged gaps.
+               First dedicated v6.x brief: General Overheads was never given its own P2 verification pass. Since
+               v6.0: S-G1 closed (Business Outcome BO-7), asset-finance tick proven live (S1, 2026-10-16), asset
+               running-cost pools proven live (smoke test E.4, 2026-10-02).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+               stands today; code reads are marked READ IN CODE and have not been seen live)
+ROUTE:         app/general-overheads
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 4 (and s12 for CM entries). This brief holds intent,
+               rules, contract, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+General Overheads answers: "what does the business cost to keep running, apart from the people (Labour) and the
+machines (Assets)?" It reads the P&L operating-expense lines, classifies them, takes asset finance interest out of
+the pool (so Assets owns it once), and publishes ONE number, total_general_overheads, plus the lines behind it.
+
+It is a SOURCE module (v4.0 principle kept): it defines the pool; Cost Allocation decides how the pool is spread.
+It does not distribute overhead and it does not decide the recovery model.
+
+Chain: P&L operating expenses -> General Overheads -> Cost Summary -> (Business Summary -> Recovery Summary ->
+Cost Allocation). General Overheads and Assets also feed Module Reconciliation (Model Readiness brief).
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: total_general_overheads (after the asset-finance interest adjustment), the overhead rows and their category,
+  the category totals, the asset-related running-cost pools (what sits in each pool and how much is assigned to
+  assets), the interest split (non_asset_interest_annual), user-created custom overhead lines, manual per-line
+  overrides, and the saved overhead profile list.
+DOES NOT OWN: wages and on-costs (Labour), asset ownership cost and asset interest (Assets), COGS and materials
+  (P&L / Revenue-COGS), how overhead is spread over groups (Cost Allocation), the P&L itself. It reads the P&L and
+  the Assets saved records; it never writes to either.
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  One source of overhead truth: total_general_overheads is the figure Cost Summary uses. Cost Summary must not
+    rebuild categories or spread overhead (v4.0 rule, still the design).
+R2  Which P&L lines sync in: every P&L operating-expense line EXCEPT categories revenue, cogs, direct_costs,
+    labour, assets, excluded. Legacy category employee_overheads is mapped to general_overheads - there is no
+    separate Employee Overheads module. READ IN CODE (generalOverheadPnlSync.js).
+R3  Interest lines are recognised by the word "interest" in the P&L line name. interest_treatment on the line
+    decides the rest: "asset_finance_exclude" = contains_asset_finance_interest; "general_overhead_keep" = no
+    asset finance interest; anything else = not_reviewed.
+R4  Asset finance interest is owned by Assets. A P&L interest row flagged "contains asset finance interest" has the
+    ASSETS module's own interest total subtracted: active_amount = max(P&L amount - row share of Assets interest, 0).
+    With more than one flagged row, the Assets total is split in proportion to each row's P&L amount. The remainder
+    stays in General Overheads (a flagged line can be blended with overdraft or credit-card interest).
+R5  The adjustment floors at zero (BO-7): if Assets claims more interest than the flagged P&L line, the row goes to
+    0, never negative. When Assets interest is larger than the flagged P&L rows combined (this includes the case
+    where NO P&L line is flagged but Assets has interest), the contract sets has_asset_finance_interest_duplication
+    and output_contract.general_overheads_ready becomes false. READ IN CODE; the no-flagged-line case has not been
+    seen live.
+R6  Asset-related running costs (fuel, repairs and maintenance, registration and compliance, insurance, consumables)
+    are held in General Overheads as POOLS until an asset takes them. What an asset takes moves out of General
+    Overheads into Assets; Cost Summary adds the pool transfer to Assets and subtracts it from General Overheads,
+    so the fuel is counted once and the total burden does not change (smoke test E.4).
+R7  A partly assigned pool leaves the remainder in General Overheads (warning asset_pool_partially_allocated); a
+    pool with more assigned than the P&L total is flagged asset_pool_over_allocated.
+R8  The page is the override path, not the entry path: P&L lines auto-sync into synced_pnl_overhead_items. The
+    ~30 named per-line fields (staff_overheads_cost etc.) exist only as a manual override if auto-categorisation is
+    wrong (smoke test 1.5 finding). Principal repayments, GST, tax and drawings do not belong here.
+R9  Variance to the P&L is evidence, not an error: it is shown by Module Reconciliation (general_overheads_variance,
+    never blocking), not by this module.
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Inputs: P&L operating-expense lines (read live from the P&L state through calculateProfitAndLoss and re-synced
+whenever the sync signature changes), Assets saved records (read through useAssetStorage - NOT useAssets, to avoid a
+circular hook dependency because useAssets imports useGeneralOverheads), custom lines, manual overrides.
+Assets interest used = sum over non-retired saved assets of asset_interest_annual (falling back to interest_annual).
+That is a stored calculated field (Assets A4: a today-dated straight-line estimate).
+
+Storage (keys: STORAGE_KEY_REGISTER_S0_2026-10-17.txt):
+  qs_tools_general_overhead_state    THE KEY THE CHAIN READS. 42 fields: named cost fields,
+                                     synced_pnl_overhead_items, custom_overhead_items, category and allocation
+                                     overrides. Loaded on mount, saved after hydration (is_hydrated guard present).
+  qs_tools_saved_overheads           list of saved profiles (about 51 KB with one profile; each holds a snapshot of
+                                     output_contract, total and rows). READ IN CODE: loaded into saved_overheads
+                                     only - it drives the "profile saved" status, it is NOT a calculation input.
+                                     Closes stress open item O-S0-1.
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+output_contract (hooks/general-overheads/generalOverheadOutputContract.js):
+  total_general_overheads            -> Cost Summary (people + assets + overheads), Module Reconciliation,
+                                        Business Summary bridge, Quote Engine (through Cost Summary)
+  category_totals                    -> summary card
+  non_asset_interest_annual          -> Business Outcome EBIT add-back (planned F-11, see Section 8)
+  overhead_rows (allocation rows)    -> Cost Allocation overhead pool, Recovery Summary
+  asset_overhead_pools, total_asset_overhead_pool_amount (and the asset_related_* names) -> Assets
+        (asset_overhead_pool_assignments), Cost Summary pool transfer
+  unallocated_overhead_lines / unallocated_overhead_amount, allocation_pool_warnings, allocation_pool_summaries
+  general_overheads_ready            see Section 7 (two different readiness meanings exist)
+  synced_pnl_overhead_items, imported_pnl_overhead_rows
+status (separate object, hook return): is_ready, warning_count, warnings, grouped_summary, saved_profile_count.
+  Module Reconciliation reads status.is_ready, not output_contract.general_overheads_ready.
+
+Ten display categories: office_admin, financial_admin, finance_interest, insurance_compliance, staff_overheads,
+vehicles_running, travel, facilities_premises, sales_growth, other_unallocated. A P&L line gets its category from
+its review_subcategory first, then from keywords in its name (fuel, rent, insurance, software, legal and so on).
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+lib/calculations/generalOverheadCalculations.js   calculate_general_overheads (the only formula: rows, R4, R5)
+hooks/useGeneralOverheads.js                      load, P&L sync, save, status, card, contract
+hooks/general-overheads/generalOverheadPnlSync.js P&L line -> overhead item, category, interest treatment
+hooks/general-overheads/generalOverheadOutputContract.js
+lib/selectors/general-overheads/                  definitions (categories, pools), allocation and pool selectors,
+                                                  warnings, card selector (status)
+lib/selectors/generalOverheadSelectors.js         re-export used by the contract builder
+lib/storage/generalOverheadStorage.js, generalOverheadProfileStorage.js
+components/general-overheads/*                    page, summary card, reclassification group
+Related: lib/reconciliation/reconciliationRules.js (reads the contract), hooks/useAssets.js (consumes pools).
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence)
+===============================================================================
+2026-09-25/26 Smoke test 1.5 / 1.6: one $1,000 P&L line categorised general_overheads auto-synced; General
+              Overheads 1,000, group assignment 100 percent, Cost Allocation total group cost = labour + 1,000
+              exact, overhead rate 1,000 / 1,414.117 h; full chain to Business Modelling no discrepancies.
+2026-10-02    Smoke test E.4 (:3004) asset running-cost pool: baseline GO 5,400, Assets 25,000, burden 383,451;
+              one asset takes 1,000 -> GO 4,400, Assets 26,000, burden unchanged; 600/400 split tied; P&L line
+              deleted -> burden down by exactly 1,000 (stranded assignments stayed stored until cleared by hand,
+              contract counted them as 0); pool shrink to 500 -> burden 382,950.88.
+2026-10-16    S1 (asset finance tick) PASSED live: line 26,808 ticked, GO 31,208 -> 6,399.65 (Assets interest
+              24,808.35 removed, remainder 1,999.65 stayed); a second line 12,404 below A went to 0; deleting the
+              line returned GO to 4,400. Trap: a line NAMED "asset finance" is auto-categorised assets and never
+              reaches the cost model - use a neutral name such as "Test Loan Interest".
+2026-10-17    R2 Scenario A layer 1: General Overheads trace nodes match the independent expected values, all
+              differences under 1 cent (20 of 20 layer-1 nodes). Scenario A2 (2026-10-18) 217 of 217.
+Note: asset-related figures drift daily (Assets A4); the figures above are evidence on the day, not today's data.
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN - DESIGN
+GO-1  Two readiness meanings. output_contract.general_overheads_ready = finite total, at least one category total,
+      and no asset-finance duplication. status.is_ready = profile name present AND at least one saved profile.
+      Module Reconciliation and so Model Readiness use the SECOND, so a business with correct numbers but no saved
+      overhead profile gets a BLOCKING "General Overheads is not ready" check. READ IN CODE
+      (generalOverheadCardSelector.js, reconciliationRules.js getModuleReadyCheck); not seen live and the default
+      profile name is unconfirmed. Check on a fresh browser profile before deciding.
+GO-2  Clashing asset_* contract names (tracker A12/A13): asset_related_assigned_to_assets is a hard-coded 0, and
+      asset_related_unassigned_cost, asset_related_unassigned_balance and
+      total_unassigned_asset_related_overhead_cost_annual all equal the whole pool amount. asset_review_required is
+      true whenever any pool amount exists. Pool "unassigned" figures here do not mean what the names say; the real
+      assignment lives on the asset records. Consumers must not read them as assignment status.
+GO-3  Over-assigned pools: the contract scales over-assigned pools pro rata, the Assets hook uses raw amounts, and
+      the editor clamps (smoke test E.4). Latent while pools balance (tracker, Assets A3).
+GO-4  Non-asset interest add-back (R2 F-11, owner decision pending in the R2 handover of 2026-10-18): EBIT is
+      understated when interest left in overheads (non-asset interest plus the flagged-row remainder) is not added
+      back. Plan: plumb non_asset_interest_annual from General Overheads through props, not a new hook instance.
+      CHECK git log and the Business Outcome brief for status before relying on this line.
+OPEN - CHECKS
+GO-5  Saved profiles hold snapshots that look like live data (51 KB with output_contract). Confirm nothing reads a
+      saved profile's stored total (the hook does not; grep other readers before a migration).
+GO-6  The P&L-sync "interest" test is a substring match on the line name; any line containing "interest" is treated
+      as finance interest (same family as Labour F3 / P&L F13 substring matches).
+OPEN - NOT BUILT FROM THE v4.0 SPEC (kept as design intent, not defects)
+GO-7  No general_overheads_status values (ready_with_warnings, review_required and so on), no
+      general_overheads_model_trust_state, no structured warning objects with ids (possible_duplicate_asset_cost,
+      possible_cogs_in_overheads and the rest), no review_required flag on lines, no source period object, no
+      general_overheads_pool_amount field, and no per-module reconciliation object in this module (it lives in
+      Module Reconciliation). Warnings that do exist: overhead_line_needs_allocation_type,
+      asset_pool_over_allocated, asset_pool_partially_allocated (strings or keys, not the v4 shape).
+CLOSED
+S-G1 (no interest double count - floored at zero, Business Outcome BO-7), O-S0-1 (which key the chain reads - Section 4).
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Owner-supplied cost-line types and a Xero API import of operating expenses (v4.0 "future" sources) - not built;
+  apply the no-reproduction test (Working Conventions) before importing anything.
+- A GO status / trust state if the v4.0 trust chain is ever completed for the source modules (Labour F-series and
+  P&L have the same gap).
+- Units mode treatment of overheads (Units Mode future build brief).
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY GENERAL OVERHEADS CHANGE
+===============================================================================
+Do not change the P&L, Labour or Assets calculations. Do not move overhead distribution into this module. Do not
+put COGS, principal repayments, GST, tax or drawings in the pool. Do not change a contract field name without
+checking every explicit field list downstream (bug class b: Cost Summary, Business Summary and Recovery Summary
+each rebuild their own lists).
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY GENERAL OVERHEADS CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Cost Summary total burden unchanged unless source data changed (pool transfers must net to zero).
+- Asset finance tick: GO falls by exactly min(flagged line, Assets interest); deleting the line restores it.
+- A line with a negative adjustment floors at 0, never below.
+- R2 harness re-run (Scenario A at minimum); trace nodes for total_general_overheads still match the screen.
+- CALCULATION_MAP Section 4 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- Mirra_v5_Briefs\_Archive\_Archive_v4\05_MIRRA_GENERAL_OVERHEADS_v4.0_LOCKED.txt (design intent; v5.0 contract
+  addenda appended inside it)
+- _Archive Folders\audit\Module_Brief_Updates_v5.0\general-overheads_BRIEF_UPDATE_v5.0.txt and
+  Accepted_Brief_Addendums_v5.0\general-overheads_ACCEPTED_BRIEF_ADDENDUM_v5.0.txt (field-audit scaffolding, no
+  rules of their own)
+- VARIABLE_TRACKER_v6_0.txt Sections 4 (pool transfer), 10, 13 (GO A12/A13)
+- SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt (1.5, 1.6, E.4, S1 addendum); STRESS_TEST brief Addenda 2-4;
+  STORAGE_KEY_REGISTER_S0_2026-10-17.txt; BusinessOutcome brief BO-7; R2_HANDOVER_2026-10-18.txt (F-11)
+- Code read 2026-10-21: the files in Section 6.
+Evidence: Audit\v6_0\smoke_test\1.5_general_overheads_baseline\, 1.6_overhead_1000_full_chain\ (not moved).
+Archive\Evidence\2026-05-28_0905_General_Overheads and 2026-05-31_0859_..._Asset_Pool_Redistribution stay as
+historical evidence.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

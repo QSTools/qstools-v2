@@ -1,0 +1,198 @@
+===============================================================================
+MIRRA - REVENUE / COGS - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\REVENUE_COGS_BRIEF.txt  (the ONE Revenue / COGS brief - update in place)
+STATUS:        VERIFIED AT LAYER 1 (R2 stress test, Scenario A, 2026-10-17: Revenue/COGS trace nodes within 1 cent).
+               Hours mode only has been exercised with numbers; product / unit mode was wiring-checked only
+               (2026-09-20). No dedicated v6.x verification pass was ever run on this module.
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+               stands today; code reads are marked READ IN CODE and have not been seen live)
+ROUTE:         app/revenue-cogs  (Next button goes to /labour)
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 1 (Revenue / COGS) and Section 12.
+               This brief holds intent, rules, contract, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Revenue / COGS answers: "what does the business earn and what does it directly cost to earn it, before any people,
+asset or overhead cost?" The answer is the MARGIN POOL (revenue - direct costs), the money that has to pay for
+Labour, Assets and General Overheads and leave a profit.
+
+It also carries the business's COMMERCIAL DRIVER MODE: hours-based (revenue earned per person-hour sold) or
+unit-based (revenue earned per unit sold), and the unit rows for product businesses.
+
+It holds NO data of its own for revenue or costs. It reads the P&L live, so P&L and Revenue/COGS agree by
+construction (tracker s7).
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: margin_pool, gross_margin_percent, the revenue and direct-cost display lines (from P&L), the commercial
+  driver mode in force, the unit driver rows (label, unit type, revenue share, average sale rate, estimated units),
+  derived units and margin per unit, units_sold_annual (legacy field), the module's warnings and ready flag,
+  business_type passthrough (from Business Setup).
+DOES NOT OWN: the revenue and cost-of-sales numbers (P&L), the direct-cost category assignment (P&L:
+  direct_cost_category_id on each line, 9 categories), labour, assets, overheads, revenue per source (Business
+  Outcome), the recovery test (Recovery Summary), the quote (Quote Engine).
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  margin_pool = total_revenue - total_direct_costs. gross_margin_percent = margin_pool / total_revenue as a
+    FRACTION (0.35, not 35), 0 when revenue is 0. Display multiplies by 100.
+R2  total_revenue and total_direct_costs are read from the P&L CATEGORY-based pair (total_revenue,
+    total_direct_costs). The P&L also computes a section-based pair. They are equal only when every cost-of-sales
+    line has an active direct-cost group and every revenue line has category revenue; nothing enforces that at
+    runtime (tracker s10). The dev page /dev/cross-import-check tests it.
+R3  Mode comes from Business Setup (business_type, default labour_based), never from Revenue/COGS itself:
+    labour_based -> hours_based always; product_based -> unit_based, or mixed_unit_based if the stored mode says
+    mixed. The stored mode only distinguishes single from mixed inside product mode (tracker s9).
+R4  Hours mode: no unit rows are calculated; units_sold_annual and margin_per_unit stay as the legacy typed value
+    and margin_pool / units_sold_annual; product_recovery_status = not_selected.
+R5  Unit mode: a single unit row is forced to 100 percent revenue share. A row of unit_type "each" is a revenue
+    bucket and uses the typed estimated_units_annual; every other type (m2, m3, lm, tonne, hour, custom) derives
+    units = row revenue / average_sale_rate_per_unit (0 when the rate is 0). annual_revenue and annual_margin_pool
+    = total x share / 100; margin_per_unit = annual margin pool / derived units.
+R6  revenue_cogs_ready is true only when there are NO warnings at all (see Section 7). A negative margin pool is a
+    warning, so it makes the module not ready. Business Outcome is gated on revenue_cogs_ready (Business Outcome
+    brief R10).
+R7  No sale value is assumed for COGS lines and nothing is allocated here: the module shows the margin pool, it does
+    not spread it. Direct costs never enter General Overheads (General Overheads brief R2).
+R8  Every hop that carries a field is an explicit list (bug class b). A new Revenue/COGS field must be added at the
+    calculation return, the hook output_contract, the status and the card.
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Reads: P&L output_contract (total_revenue, total_direct_costs, revenue_lines, cost_of_sales_lines,
+direct_cost_categories, direct_cost_category_totals) through useProfitAndLoss; Business Setup output_contract
+(business_type).
+
+Storage: qs_tools_revenue_cogs_state_v2  {commercial_driver_mode, units_sold_annual, unit_driver_rows[], ...}
+  (lib/storage/revenueCogsStorage.js). Loaded on mount, saved after storage_loaded (guard present). Shape and seed
+  role: STORAGE_KEY_REGISTER_S0_2026-10-17.txt. Unit types allowed: each, m2, m3, lm, tonne, hour, custom.
+
+Xero COG import panel (components/revenue-cogs/RevenueCogXeroImportPanel.jsx, lib/imports/xeroCogImporter): reads
+an Xero account-transactions workbook, builds a supplier / account summary and an account reconciliation of the
+Xero net total against the P&L cost-of-sales total. READ IN CODE: the result is held in component state only. It
+is not stored and it feeds no calculation, so closing the page loses it.
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+output_contract (hooks/useRevenueCogs.js): total_revenue, total_direct_costs, margin_pool, gross_margin_percent,
+  revenue_cogs_ready, revenue_cogs_warnings, direct_cost_category_totals, business_type, is_product_based,
+  is_labour_based, commercial_driver_mode, unit_driver_rows, total_unit_revenue, total_unit_margin_pool,
+  total_derived_units_annual, primary_unit_label, primary_unit_type, weighted_average_margin_per_unit,
+  unit_recovery_ready, unit_recovery_warnings, units_sold_annual, margin_per_unit, product_recovery_ready,
+  product_recovery_status.
+Consumers: Business Summary (reads business_type from this contract, then derives activity_driver_type), Recovery
+  Summary (its own fallback chain: input, then revenue_cogs, then labour_based), Business Outcome (readiness gate
+  and margin pool), Cost Allocation (passthrough, display only), the dev cross-import check.
+Four mode vocabularies exist and all derive one way from business_type: business_type (labour_based / product_based),
+  commercial_driver_mode (hours_based / unit_based / mixed_unit_based), recovery_mode (hours_based / product_unit),
+  activity_driver_type (hours / units). Do not add a fifth.
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+lib/calculations/revenueCogsCalculations.js   calculateRevenueCogs (margin pool, unit rows, legacy fields)
+lib/selectors/revenueCogsSelectors.js         buildRevenueCogsStatus (warnings, ready), buildRevenueCogsCard
+hooks/useRevenueCogs.js                       mode resolution, storage, contract
+lib/storage/revenueCogsStorage.js
+components/revenue-cogs/RevenueCogsCard.jsx, RevenueCogsStatusStrip.jsx, RevenueCogsHelpPanel.jsx,
+  RevenueCogXeroImportPanel.jsx; app/revenue-cogs/page.jsx
+lib/calculations/crossImportAlignmentCheck.js, app/dev/cross-import-check   (P&L / Balance Sheet / Revenue-COGS check)
+Retired: Revenue Summary (see Section 8, RC-6). Related neighbour with no brief: Revenue Reality (/revenue-reality).
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence)
+===============================================================================
+2026-09-20  Phase 1: cross-import check built and run against loaded data; Revenue/COGS reads P&L live so the two
+            agree by construction. business_type chain traced intro page -> Revenue/COGS -> Business Summary ->
+            Recovery Summary -> Cost Allocation; storage and Recovery Summary live-checked in both modes. Product
+            mode numbers NOT exercised (test data had no unit driver data).
+2026-09-27  Smoke test session 9: the live calculation trace was rebuilt for the Business Summary / Cost Summary /
+            Labour / Assets / General Overheads / Revenue-COGS slice and reconciled exactly against real saved data
+            (evidence: Audit\v6_0\smoke_test\1.7_calculation_trace_page\).
+2026-10-17  R2 Scenario A layer 1: Revenue/COGS trace nodes PASS, differences under 1 cent (20 of 20 layer-1 nodes,
+            231-node snapshot). Scenario A2 (2026-10-18) 217 of 217 and Scenario B 269 of 269 include these nodes.
+Warnings the module raises (ids as built): no_revenue_data (revenue 0), no_direct_cost_data (direct costs 0),
+negative_margin_pool, plus unit warnings no_unit_drivers, unit_revenue_split_not_100 (tolerance 0.1),
+unit_quantity_missing, unit_sale_rate_missing, unit_volume_not_available.
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN - DESIGN
+RC-1  A negative margin pool blocks readiness. Revenue/COGS counts negative_margin_pool as a warning, so
+      revenue_cogs_ready is false for a business that is simply losing money at gross margin, and Business Outcome
+      (gated on that flag) goes "not ready" rather than showing the loss. Decide: keep as a trust signal or
+      separate "data missing" from "result is bad". READ IN CODE (revenueCogsSelectors.js); not seen live.
+RC-2  Section pair vs category pair can diverge silently (R2). Nothing in the app warns on the main path; only the
+      dev page checks.
+RC-3  Product / unit mode has never been numerically verified. The R2 harness and the stress databases are hours
+      mode. Units Mode future build brief holds the plan.
+RC-4  Accountant-journal lines (for example opening work in progress) are ordinary direct costs with no review flag
+      (P&L P2.2); downstream treatment is an open question here and in Business Outcome.
+OPEN - CHECKS
+RC-5  Xero COG import result is session-only (Section 4). Confirm that is intended before anyone relies on the
+      reconciliation panel across sessions.
+RC-6  Revenue Summary was retired as a manual-entry page (S19, 2026-08-06): removed from the sidebar (confirmed
+      2026-10-21, SidebarNavigation.jsx has no /revenue-summary item). Its route, hook, calculations, selectors and
+      storage files are still in the repo, unrouted. Decide whether to delete the dead code.
+OPEN - NOT BUILT FROM THE v4.0 SPEC (kept as design intent, not defects)
+RC-7  No revenue_cogs status values or trust state, no structured warning objects, no COG category / subcategory
+      engine in this module (assignment lives on P&L lines), no supplier normalisation or supplier spend summary,
+      no COG leak rule, no payable invoice detail drill. The supplier / product alias and reconciliation matching
+      idea is carried by the future-build brief of 2026-10-21 (SUPPLIER_PRODUCT_ALIAS_AND_RECONCILIATION_MATCHING).
+CLOSED
+Business-type default drift (labour_based everywhere) logged, design decision, not patched (tracker s8).
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Units / product mode across the whole chain (Future_Build\UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt), which
+  also covers a unit-aware Recovery Summary and Business Summary.
+- Supplier / product alias and reconciliation matching (future-build brief of 2026-10-21).
+- Hours-based business types test and market coverage (HOURS_BASED_BUSINESS_TYPES_TEST brief, 2026-10-18).
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY REVENUE / COGS CHANGE
+===============================================================================
+Do not store revenue or cost-of-sales numbers here (they come from the P&L). Do not change P&L classification to
+fix a Revenue/COGS figure. Do not allocate the margin pool in this module. Do not add a mode vocabulary.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY REVENUE / COGS CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- total_revenue and total_direct_costs equal the P&L category-pair values on screen; margin_pool = difference.
+- R2 harness re-run (Scenario A at minimum) and /dev/cross-import-check clean.
+- A product-mode change is not done until it has been run in product mode with unit driver data (RC-3).
+- Trace nodes for any new figure exist and match the screen; CALCULATION_MAP Section 1 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- Mirra_v5_Briefs\_Archive\_Archive_v4\13_MIRRA_REVENUE_COGS_v4.0_LOCKED.txt (design intent; most of its COG import
+  and supplier sections were never built)
+- _Archive Folders\audit\Module_Brief_Updates_v5.0\revenue-cogs_BRIEF_UPDATE_v5.0.txt, Accepted_Brief_Addendums_v5.0\
+  revenue-cogs_ACCEPTED_BRIEF_ADDENDUM_v5.0.txt, Pass_2_Accepted_Brief_Addendums_v5.0\revenue-cogs_PASS_2_...
+  (field-audit scaffolding)
+- Mirra_v5_Briefs\S15_REVENUE_SUMMARY_LOCKED_BRIEF_v5.0.txt and S19 module reconciliation page and revenue summary
+  retirement.txt (retirement decision, RC-6)
+- VARIABLE_TRACKER_v6_0.txt Sections 7, 8, 9, 10, 11
+- STRESS_TEST brief Addenda 2-4 and 10-12; SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt (calculation trace slice, session
+  9); UNITS_MODE brief
+- Code read 2026-10-21: the files in Section 6.
+Evidence: Archive\Evidence\2026-05-28_0923_Revenue_COGS_Module (historical); Audit\v6_0\smoke_test\
+1.7_calculation_trace_page\ (not moved).
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

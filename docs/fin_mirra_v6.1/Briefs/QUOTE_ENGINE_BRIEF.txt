@@ -1,0 +1,201 @@
+===============================================================================
+MIRRA - QUOTE ENGINE (AND QUOTE CHECKER) - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\QUOTE_ENGINE_BRIEF.txt  (ONE brief for the two quote pages - Quote Engine
+               and Quote Checker are separate pages with separate maths; update in place)
+STATUS:        NOT VERIFIED IN v6.x. Searched 2026-10-21: neither the smoke test brief nor the R2 stress test
+               addenda record a numeric check of either page. Built in v3.7 / v4.0 / v5.0 and carried forward.
+               The per-person-hour change to its rate input (Summaries F18, 2026-09-23) is unverified (S-H3).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+               stands today; code reads are marked READ IN CODE and have not been seen live)
+ROUTES:        app/quote-engine (sidebar: Recovery & Pricing), app/quote-checker (sidebar: Business Review)
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 11 (side tools). This brief holds intent, rules,
+               contract, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Both pages answer the quoting question: "does this job pay its way?" - but from different directions.
+
+QUOTE ENGINE (saved quotes, full job build-up): type a quote (price, COG cost and markup, allowed labour hours,
+  labour hourly cost). It works out the margin pool left after the job's own costs and whether that margin pays the
+  business's required recovery for the hours allowed. It keeps quote jobs and versions, offers a what-if repair
+  panel, and says whether the model it tests against can be trusted.
+QUOTE CHECKER (quick test, nothing saved): type labour charge, labour hours and material cost / charge. It shows the
+  implied labour charge rate and gross profit percent and compares them with the selected model, using the
+  AI-readable business state export as its source of truth.
+
+Both are READ-ONLY consumers of the model. They never change source business truth.
+Outside this brief: the Quote Manager (separate repo, sidebar link), purchase order and invoice reconciliation
+(Launch Build Order brief) - not built here.
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: Quote Engine - the quote store (jobs, versions, current quote), quote-level maths, the result status
+  (works / marginal / leaking / invalid), quote warnings, the repair what-if. Quote Checker - its own quote inputs
+  (page state only) and its alignment status.
+DOES NOT OWN: the required recovery rate (Cost Summary), the productive labour cost rate (Labour), the trust state
+  (Model Readiness / Business Summary), the selected model and permissions (AI Business State export), anything
+  about cost allocation or rates.
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  Required recovery rate is the business-wide figure from Cost Summary (required_recovery_rate = total cost burden
+    / whole productive team's hours, F18). The quote's hours are person-hours, so the two are on the same basis.
+R2  The quote's labour_hourly_cost_rate is TYPED by the user. The model's productive_labour_cost_rate (Labour
+    contract) is used only to compare (labour_cost_variance), never to replace the typed rate.
+R3  Quote Engine formulas (READ IN CODE, quoteEngineCalculations.js; calc map s11):
+      cog_sell_total       = cog_cost_total x (1 + cog_markup_percent / 100)
+      labour_charge_total  = max(0, quote_price_total - cog_sell_total)
+      labour_cost_total    = labour_hours_allowed x labour_hourly_cost_rate
+      estimated_job_cost   = cog_cost_total + labour_cost_total
+      quote_margin_pool    = quote_price_total - estimated_job_cost       (uses COG COST, not COG sell)
+      business_recovery_required_total = labour_hours_allowed x required_recovery_rate
+      quote_gap            = quote_margin_pool - business_recovery_required_total
+      hourly_gap           = achieved margin per hour - required_recovery_rate
+      max_viable_hours     = quote_margin_pool / required_recovery_rate
+      required_price_at_allowed_hours = estimated_job_cost + business_recovery_required_total
+      price_gap            = required_price_at_allowed_hours - quote_price_total
+    Every divide is guarded (0 instead of an error).
+R4  Result status (READ IN CODE, buildQuoteEngineStatus): invalid when quote price, labour hours or required
+    recovery rate is 0, or the model is untrusted; else leaking when margin pool >= 0 and quote_gap < 0; else
+    marginal when |quote_gap| <= max(1, 10 percent of required_recovery_rate) or the Business Summary has warnings;
+    else works. See QE-1: this ordering has a hole.
+R5  Model untrusted = quote_model_trust_state is not "ready" OR model_ready is not true. Trust state =
+    Business Summary model_trust_state, else Cost Summary model_readiness_status, else ready/blocked from
+    model_ready. A "warning" level trust state therefore makes every quote invalid (Summaries R8: warnings are
+    meant not to block).
+R6  Quote Checker maths (READ IN CODE, quoteCheckerCalculations.js): total_quote_charge = labour + material + other
+    direct charge; total_direct_cost = material + other direct cost (labour is NOT a direct cost here);
+    gross_profit = charge - direct cost; implied_labour_charge_rate = labour charge / hours;
+    labour_recovery_gap = implied rate - required labour recovery (first non-zero of the selected model's
+    required_recovery_per_driver, required_recovery_rate, then the Business Summary's). Status: blocked (no
+    permission, no hours or no charge), warning (rate below recovery, or gross profit below target margin), aligned.
+R7  Quote Checker input is page state only: nothing is saved, and the page opens on a built-in sample quote
+    (40 hours, 4,000 labour, 2,500 material cost, 3,250 material charge).
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Quote Engine reads: Cost Summary output_contract (required_recovery_rate, total_productive_output,
+total_cost_burden, people / asset / overhead totals, model_ready, model_readiness_status), Business Summary
+(model_trust_state, warnings), Labour output_contract (productive_labour_cost_rate). It builds its own Cost Summary
+instance (the same separate-instance pattern as tracker C15).
+Quote Checker reads: useAiBusinessState (export_object.selected_model, business_summary, downstream_permissions,
+trust_state, blockers, warnings).
+
+Storage: qs_tools_quote_engine_store_v4 (lib/storage/quoteEngineStorage.js): quote_jobs, quote versions, the current
+quote state. Loaded on mount, saved after has_loaded_quote_store (guard present). Listed in the S0 register as off
+the hours-mode chain (copy baseline). Quote Checker stores nothing.
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+Quote Engine output_contract (buildQuoteEngineOutputContract plus status): quote price and cost breakdown, margin
+pool and percent, business_recovery_required_total, achieved_margin_per_hour, required_recovery_rate, hourly_gap,
+quote_gap, max_viable_hours, required_price_at_allowed_hours, price_gap, quote_result_status, quote_warnings,
+quote_model_used ("balanced-cog-markup-plus-labour-hourly-cost"), quote_model_trust_state, job and client identity
+fields. Legacy names are kept as aliases (material_*, labour_sell_total, true_labour_cost_total; the
+direct_cost_package_* fields are hard-coded 0).
+Consumers: none confirmed. No consumer of either output was found while reading the two hooks; a repo-wide search
+for readers of the Quote Engine output_contract has NOT been done (do it before changing a field name). Quote
+Checker's result is shown on its own page.
+Warning ids (Quote Engine): missing_job_identity, missing_client_name, missing_quote_date, no_quote_price,
+no_labour_hours, no_estimated_labour_cost, no_required_recovery_rate, estimated_labour_below_model,
+negative_margin_pool, zero_estimated_job_cost, untrusted_model, model_warning_present.
+Quote Checker ids: quote_checker_permission_blocked, labour_hours_missing, quote_charge_missing,
+labour_recovery_below_model, gross_profit_below_target.
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+lib/calculations/quoteEngineCalculations.js   calculateQuoteEngine
+lib/selectors/quoteEngineSelectors.js         status and warnings, build-up, repair what-if, output contract
+hooks/useQuoteEngine.js                       jobs and versions, save and load, calculations, status
+lib/storage/quoteEngineStorage.js
+components/quote-engine/*                     main card, side card, status strip, help panel
+app/quote-engine/page.jsx
+lib/calculations/quoteCheckerCalculations.js, hooks/useQuoteChecker.js, app/quote-checker/page.jsx
+hooks/useAiBusinessState.js, app/ai-business-state (the export the Checker reads)
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence)
+===============================================================================
+2026-07-15  Quote Checker first implemented and recorded as complete (v5.0 implemented-status note); route
+            /quote-checker; local-only inputs.
+2026-09-23  Summaries P2.6: Quote Engine "now per person-hour after F18" - recorded as NOT verified (S-H3).
+No dated numeric verification of either page exists in the v6.x records (searched 2026-10-21).
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN - DESIGN
+QE-1  Status hole: a quote that loses money before recovery (margin pool < 0) never reaches "leaking" (that branch
+      needs margin pool >= 0) and its quote_gap is far larger than the marginal tolerance, so it falls through to
+      "works" unless the Business Summary happens to have warnings (then "marginal"). The negative_margin_pool
+      warning still appears. READ IN CODE; reproduce with a price below COG cost before changing anything.
+QE-2  Marginal tolerance mixes units: a dollar gap on the whole job is compared with 10 percent of an HOURLY rate
+      (about $8.50 on an $85 rate whatever the job size). Marginal is also unreachable on the short side, because a
+      positive margin pool with a negative gap is classed "leaking" first.
+QE-3  Trust: a "warning" trust state makes every quote "invalid" (R5), the opposite of the warnings-do-not-block rule
+      in Summaries R8. Decide whether the quote pages should treat warning as usable.
+QE-4  S-H3: the rate Quote Engine prices against (required_recovery_rate) changed basis with F18; no number check.
+QE-5  Quote Checker uses a different recovery source (selected model / export) from Quote Engine (Cost Summary), and
+      treats labour as margin rather than a direct cost. The two pages can disagree on the same job. Decide whether
+      that is wanted or one should call the other's maths.
+OPEN - CHECKS
+QE-6  Quote Engine and Quote Checker are not exercised by any R2 harness scenario. Add an expected-values check for
+      one worked quote before launch (Launch Build Order brief: regression suite).
+QE-7  The v4.0 locked brief describes a "Quote Checker" with model-selection and permission outputs; the code's
+      Quote Engine page is a different, later build (balanced COG-markup plus labour model). Do not carry v4.0
+      Quote Checker field names onto the Quote Engine.
+OPEN - NOT BUILT FROM THE v4.0 SPEC
+QE-8  Structured quote warnings and trust objects as specified in v4.0 are not built; the ids above are the real
+      set.
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Repair panel results saved with the quote version (today the repair state is page state).
+- Units / product-mode quotes (hours only today; the selectors mention hours-based only in a warning string and the
+  module never reads business_type - Units Mode future build brief).
+- Quote Manager hand-off and purchase order reconciliation (separate repo, Launch Build Order brief).
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY QUOTE CHANGE
+===============================================================================
+Do not recalculate required_recovery_rate or productive_labour_cost_rate here; read them. Do not write quote data
+into any other module's storage. Do not give the Checker a second recovery formula.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY QUOTE CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- One worked quote checked by hand against the formulas in R3 (margin pool, gap, max viable hours, required price)
+  and against the live Cost Summary required_recovery_rate.
+- The four result statuses each reproduced once (works, marginal, leaking, invalid) and the margin-pool < 0 case
+  recorded (QE-1).
+- Trace node exists and matches the screen for any new figure; CALCULATION_MAP Section 11 updated in the same
+  commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- Mirra_v5_Briefs\_Archive\_Archive_v4\21_MIRRA_QUOTE_CHECKER_v4.0_LOCKED.txt (design intent; see QE-7)
+- Mirra_v5_Briefs\S08_QUOTE_CHECKER_BUILD_BRIEF_v5.0.txt, S08_QUOTE_CHECKER_IMPLEMENTED_STATUS_v5.0.txt,
+  S08_QUOTE_CHECKER_STAGE_LOCK_HANDOVER_v5.0.txt
+- _Archive Folders\v4.0 Source Files\v4.0 Future Build Briefs\ (the Quote Checker future build brief); _Archive
+  Folders\V3.7 Source Files\22_QUOTE_ENGINE_v3.7_LOCKED.txt (old source set, superseded by the code)
+- Summaries brief (V6.1) items S-H3 and S-H4; VARIABLE_TRACKER_v6_0.txt Section 16
+- Code read 2026-10-21: the files in Section 6, and CALCULATION_MAP_v6_0.txt s11.
+Evidence: Archive\Evidence\2026-05-28_0939_Quote_Engine (historical).
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

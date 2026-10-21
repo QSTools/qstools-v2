@@ -1,0 +1,221 @@
+===============================================================================
+MIRRA - MODULE RECONCILIATION AND MODEL READINESS (THE TRUST GATE) - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\MODEL_READINESS_AND_RECONCILIATION_BRIEF.txt  (ONE brief for the two
+               pages - Model Readiness is computed from Module Reconciliation's checks and has no checks of its
+               own; update in place)
+STATUS:        BUILT AND IN USE; gate behaviour verified in the field (C16 diagnosed 2026-09-23, gap explained
+               2026-09-21; S21 / S22 verified against manual scenarios 2026-08-07 and 2026-08-11). NOT covered by
+               the R2 harness: no scenario asserts the checks or the trust state, and Scenario B (2026-10-18)
+               showed "Cost Summary data isn't fully trusted" that was not chased (see MR-6).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+               stands today; code reads are marked READ IN CODE and have not been seen live)
+ROUTES:        app/module-reconciliation (sidebar: Business Inputs), app/model-readiness (sidebar: Business Review)
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 11 (Reconciliation line) and Section 6 (trust chain).
+               This brief holds intent, rules, contract, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Module Reconciliation answers: "do the operational modules (Labour, Assets, General Overheads) add up to what the
+P&L says the business spent, and if not, why?" It compares each module with its P&L benchmark and says whether a
+difference is a real problem or just the accountant not having journaled something yet.
+Model Readiness answers: "is it safe to build on this model?" It turns the reconciliation checks into one status
+that gates what comes after (Cost Summary trust, Business Summary trust, Recovery Summary, Cost Allocation, Quote
+Engine, Business Modelling, the AI export).
+
+Principle (S21): 100 percent reconciliation to the P&L will never happen and is not the goal. The question is "close
+enough to trust, or a problem hiding in the numbers?" Variance is evidence, not an error. Only ONE check blocks on a
+number (Section 3, R2).
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: the list of reconciliation checks and their ids, the tolerances and dollar floors, the timing-versus-error
+  classification, the benchmark redistribution for asset finance interest, the manual-accept overlay, the Model
+  Readiness groups and overall status (ready / warning / blocked), and the readiness flags
+  (is_ready_for_modelling, is_ready_for_ai_export, is_ready_for_dashboard).
+DOES NOT OWN: any module's own total (it reads Labour, Assets, General Overheads and the P&L and changes none of
+  them), the P&L benchmark amounts, the Cost Summary and Business Summary trust fields that carry its verdict
+  downstream (Summaries brief R8).
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  Reconciliation reads module output contracts and the P&L output contract only. It never edits, corrects or
+    hides a variance. No other place may calculate Labour-versus-P&L variance (S21: the old duplicate in
+    labourStatusSelectors.js, hard-coded benchmark 0 so it always read "Ready", was deleted).
+R2  The ONLY numeric blocker is business_cost_variance: blocking when module total (Labour + Assets + General
+    Overheads) differs from the P&L setup-module benchmark by more than 1 percent, OR from the full P&L
+    total_business_costs by more than 1 percent. Everything else numeric is a warning at most.
+R3  Other blocking checks are readiness facts, not variances: Profit & Loss ready, Labour ready, General Overheads
+    ready, Assets ready (assets_ready passes when active assets are ready, or no assets are confirmed with zero asset
+    cost), and employee_overheads (blocking if the P&L still carries employee overheads).
+R4  Per-module variance checks (labour_variance with sub-checks labour_wages_variance and labour_on_costs_variance,
+    asset_finance_variance, general_overheads_variance) use a 1 percent threshold and are NEVER blocking.
+R5  Timing-aware classification (S21): only module > P&L can be "timing_expected" (not a warning, message says trust
+    the module). Module < P&L is always a warning, even on a timing-aware check. Timing-aware checks: asset finance
+    and labour on-costs. Labour wages is deliberately NOT timing-aware (genuine errors only).
+R6  Dollar-floor fallback: when a timing-aware check's P&L benchmark is below a low-denominator threshold, materiality
+    is judged against a flat dollar tolerance instead of the percentage. Asset finance: below 500, floor 250.
+    Labour on-costs: below 300, floor 150. Placeholders, not tuned on multiple businesses (S21 s10).
+R7  Asset finance interest benchmark redistribution (S22): covered = min(P&L interest flagged "contains asset
+    finance", Assets' own calculated interest). The covered amount is moved out of the General Overheads benchmark
+    and into the Assets benchmark before the checks run; the uncovered remainder stays in General Overheads. The
+    P&L side of this mirrors what General Overheads does to its own total (General Overheads brief R4).
+R8  Three asset-finance outcomes share the check id asset_finance_variance: (a) a P&L interest line is flagged ->
+    a COVERAGE check (module <= P&L total interest + 1 is "covered", more than that is a warning); (b) a line was
+    reviewed and marked "no asset finance interest" while Assets has real interest -> a MISCLASSIFICATION warning
+    (not a timing lag); (c) nothing flagged or reviewed -> the plain timing-aware variance check.
+R9  Manual accept (S20): only plain "warn" checks that are not blocking can be accepted, with a reason and the
+    variance amount at acceptance. If the variance moves by more than 1 after acceptance the check reopens and keeps
+    the stale record. Blocking, pass, covered and timing_expected checks ignore acceptances.
+R10 Model Readiness status: blocked when any check is_blocking, else warning when any non-blocking check is a
+    warning, else ready. Warnings never block. A blocked model means the downstream trust chain reads "not trusted".
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Inputs: useModuleReconciliation reads the P&L, General Overheads, Labour, Assets and Opening Hours hooks;
+calculateModuleReconciliation passes their status and output contracts to buildModuleReconciliationChecks.
+Model Readiness is a pure function of the reconciliation result (useModelReadiness -> calculateModelReadiness).
+Storage: qs_tools_module_reconciliation_acceptance_v1 (the S20 accept map; browser-only, read once on mount,
+absent from the :3004 baseline dump so never used there). Nothing else is stored.
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+Reconciliation result: reconciliation_checks, blocking_checks, warning_checks, blocking_modules, warning_modules,
+  reconciliation_ready (no blocking checks), module_total_business_costs, benchmarks and per-check variance amounts
+  and percents, normalised_reconciliation_inputs (the inputs the page shows), plus passthrough totals.
+Check ids (READ IN CODE): profit_&_loss_ready, labour_ready, general_overheads_ready, assets_ready,
+  employee_overheads, running_cost_annual (legacy asset running cost, warning), business_cost_variance (module
+  "Model Readiness"), labour_variance, labour_wages_variance, labour_on_costs_variance, asset_finance_variance,
+  general_overheads_variance. Check statuses: pass, fail, warn, timing_expected, covered, accepted.
+Model Readiness result adds: overall_status, model_ready, model_readiness_status, blocking_items, warning_items,
+  passed_items, readiness_groups (source_inputs = Profit & Loss checks, module_outputs = Labour / Assets / General
+  Overheads checks, reconciliation = the business_cost_variance check, traceability, modelling_readiness),
+  is_ready_for_modelling (= no blockers), is_ready_for_ai_export (= is_ready_for_modelling),
+  is_ready_for_dashboard (= at least one check exists), last_checked_at.
+Consumers: Cost Summary (model_readiness_status), Business Summary (model_trust_state), Recovery Summary
+  ("not_trusted"), Cost Allocation ("not_supported" when blocked upstream), Quote Engine and legacy Business
+  Modelling (tracker s16 / Summaries brief). The AI export and dashboard flags are provided by this module; their
+  readers were not re-traced for this brief. Business Outcome is NOT gated on Model Readiness (it uses revenue_cogs_ready,
+  cost_summary_ready, business_summary_ready - Business Outcome brief R10).
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+lib/reconciliation/reconciliationRules.js         every check builder and buildModuleReconciliationChecks (about
+                                                  1,035 lines - a documented split candidate, do not grow it)
+lib/reconciliation/moduleReconciliation.js        calculateModuleReconciliation (input assembly)
+lib/calculations/modelReadinessCalculations.js    calculateModelReadiness (groups and overall status)
+hooks/useModuleReconciliation.js, hooks/useModelReadiness.js
+lib/storage/moduleReconciliationAcceptanceStorage.js
+app/module-reconciliation/page.jsx, components/module-reconciliation/*, app/model-readiness/*,
+  components/model-readiness/* (ModelReadinessAuditPanel and the groups)
+components/labour/* (per-employee card links to the reconciliation page, S21 s7)
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence)
+===============================================================================
+2026-08-07  S21 built and verified: timing_expected classification, dollar-floor fallback, labour wages / on-costs
+            split (no Labour or P&L change needed). Evidence pack Archive\Evidence\2026-08-07_1548_...
+2026-08-11  S22 round 2: misclassification check, Covered-state fix, and a "Show the maths" detail layer (Labour
+            wages / on-costs bridge, Assets cost pools, General Overheads per-category table). Verified against
+            three manual scenarios: over-claim, covered, misclassified. Evidence pack Archive\Evidence\2026-08-11_...
+2026-09-21  Gap of 292,176 explained: Labour test extras (270,992) + asset finance (21,185).
+2026-09-23  C16 diagnosed on the test data: one blocking check (business cost benchmark, variance 292,123 = Labour
+            test extras + asset finance + General Overheads) - the gate working as designed.
+2026-10-16  S1 asset finance tick live: General Overheads 31,208 -> 6,399.65 (covered amount 24,808.35 moved to the
+            Assets benchmark).
+No dated record that the 2026-10 bottom-up stress P&L cleared the gate (the stress brief expected it to; see MR-6).
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN - DESIGN
+MR-1  "General Overheads is not ready" is a BLOCKING check driven by status.is_ready, which is true only when the
+      overhead profile has a name AND at least one profile has been saved (General Overheads brief GO-1). A business
+      with reconciling numbers but no saved overhead profile is blocked. READ IN CODE; confirm on a fresh browser
+      profile.
+MR-2  The employee_overheads check can never fail (P&L employee_overheads_benchmark_total is hard-coded 0) - it is
+      a dead blocker (tracker P2.2). Remove it or feed it.
+MR-3  The "traceability" readiness group is static: status "warning" with one hard-coded passing check whose text
+      says the pilot shell "is implemented and the first selected output chain is source-verified". That text is
+      out of date (the live calculation trace now covers more), and the group never changes. It does not affect
+      overall_status.
+MR-4  business_cost_variance can block on the FULL P&L figure even when every module matches its own benchmark
+      (any unassigned or uncategorised P&L cost above 1 percent). Intended as "unexplained"; the message does not say
+      which of the two comparisons failed.
+MR-5  Cosmetic: "timing_expected", "covered" and "accepted" checks show with the same Variance pill styling as a
+      warning (S21 s10); statuses other than "pass" are not counted in passed_count of a group.
+OPEN - CHECKS
+MR-6  Scenario B (R2, 2026-10-18) showed "Cost Summary data isn't fully trusted" and "Partial - some upstream
+      sources not yet ready"; Addendum 10 guessed the missing Balance Sheet. READ IN CODE: no reconciliation check
+      reads the Balance Sheet, so a blocking check (most likely MR-1 or business_cost_variance) is the likelier
+      cause. Not chased. Open Model Readiness on the stress data and record which check is blocking.
+MR-7  Dollar floors (250 / 500 and 150 / 300) and the 1 percent labour wages tolerance are untuned (S21 s10).
+MR-8  Labour vs P&L: about 160k variance unexplained after the synthetic staff (Summaries S-L1); owner remuneration
+      setting (payroll / shareholder salary / drawings) is a design item for Labour and Reconciliation (Business
+      Outcome 8b). The wages / on-cost split matches line names by substring ("acc" also matches accrued, account;
+      Labour F3, P&L F13). Better key is review_subcategory.
+MR-9  The P&L page's own reconciliation panel compares against model_total_costs, which nothing produces (P&L F4,
+      looks orphaned). The only real P&L-to-macro bridge is Business Summary's Macro Position card (Summaries R7).
+OPEN - NOT BUILT FROM THE v4.0 SPEC
+MR-10 No six-state model trust object, no per-module reconciliation object (source_amount / tolerance_amount /
+      reviewed fields exist only on the checks that were built), no variance_percent-based "leak_detected" status.
+CLOSED
+Duplicate Labour variance calculation (S21 s6); S20 manual accept built (rescoped to residual warn cases only).
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Splitting reconciliationRules.js (about 1,035 lines) when it is next changed, as a separate deliberate decision.
+- Tuning dollar floors and tolerances on more than one business (Stress / market-coverage briefs).
+- Unit-aware reconciliation for product mode (Units Mode future build brief).
+- Purchase order and invoice reconciliation is a different thing (Launch Build Order brief, separate repo).
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY RECONCILIATION OR READINESS CHANGE
+===============================================================================
+Do not recalculate Labour, Assets, General Overheads or the P&L here. Do not make a variance check blocking without an
+explicit owner decision. Do not auto-correct a variance. Do not add a second place that compares a module with the
+P&L. Do not change a check id without searching for readers (the trust chain reads them by id and by module name).
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY RECONCILIATION OR READINESS CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Each of the three asset-finance outcomes (R8) reproduced once, and the over-claim, covered and misclassified
+  scenarios of 2026-08-11 re-run.
+- A blocked and a ready state each produce the right downstream trust text on Cost Summary and Business Summary.
+- R2 harness re-run (Scenario A at minimum) and Model Readiness status recorded in the addendum (it is not asserted
+  by the harness today).
+- CALCULATION_MAP Section 11 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- Mirra_v5_Briefs\_Archive\_Archive_v4\10_MIRRA_MODULE_RECONCILIATION_v4.0_LOCKED.txt and
+  11_MIRRA_MODEL_READINESS_v4.0_LOCKED.txt (design intent)
+- Mirra_v5_Briefs\S04_MODEL_READINESS_BUILD_GATE_BRIEF_v5.0.txt, S04_..._IMPLEMENTED_STATUS_v5.0.txt,
+  S04_..._STAGE_LOCK_HANDOVER_v5.0.txt
+- Mirra_v5_Briefs\S19 module reconciliation page and revenue summary retirement.txt,
+  S20_MODULE_RECONCILIATION_ACCEPTED_.txt, S21_MODULE_RECONCILIATION_TOLERANCE.txt
+- _Archive Folders\audit\Module_Brief_Updates_v5.0\model-readiness_ and module-reconciliation_BRIEF_UPDATE_v5.0.txt,
+  Accepted_Brief_Addendums_v5.0\model-readiness_ and module-reconciliation_ACCEPTED_BRIEF_ADDENDUM_v5.0.txt
+  (field-audit scaffolding)
+- VARIABLE_TRACKER_v6_0.txt Sections 10, 11, 16, 17; Summaries brief R8 and S-L1; STRESS_TEST brief Addendum 10;
+  Business Outcome brief R10 and 8b
+- Code read 2026-10-21: the files in Section 6.
+Evidence: Archive\Evidence\2026-05-28_0929_Model_Readiness, 2026-08-07_1548_Module_Reconciliation_S21_...,
+2026-08-11_0907_Model_Reconciliation (all stay as historical evidence).
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)
