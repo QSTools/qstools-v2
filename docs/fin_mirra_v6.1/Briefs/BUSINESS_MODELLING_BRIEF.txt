@@ -1,0 +1,175 @@
+===============================================================================
+MIRRA - BUSINESS MODELLING - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_MODELLING_BRIEF.txt  (the ONE Business Modelling brief - update in place)
+STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever model, overheads lever, asset-driven unit
+               lever; identity checks pass on post-CM-1 data. DIRECTION CHANGED 2026-10-16: the lever engine is to be
+               REPLACED by a scratch overlay on the real chain (R3) - see Section 9. R2 timing: lever typing FAILS at
+               every size (fix belongs in R3, not the engine R3 retires).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+ROUTE:         app/business-modelling
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
+               verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place. Never create a second Business Modelling brief (the R3
+design lives in Future_Build until it is built, then folds in here).
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Business Modelling lets the owner change genuine decisions (overheads, charge-out rates, unit rates, markup) and
+see the effect on net profit against TODAY's real position. The method (owner, confirmed): walk down the chain in
+order - overheads first (they move every floor), then labour rates, then assets and materials - and see the result.
+Every source is shown against three markers:
+  FLOOR   breakeven (full true cost + non-productive share per covered hour; 0% for materials)
+  START   current achieved rate from Business Outcome (View A)
+  CEILING the entered rate x the hours it can cover (not a cap - a ceiling can sit below the floor)
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: lever state (qs_tools_business_modelling_levers_v1); the today / modelled / change display; source rows built
+from per_source; the additive model.
+DOES NOT OWN: any business calculation - it reads Business Outcome's per_source (and General Overheads' grouped rows,
+read-only). Never writes to a source module. Never overrides Model Readiness. Never infers missing source truth.
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  TODAY is never mutated. With no levers set, modelled == today exactly.
+R2  Revenue, net profit and cash are consequences, never levers. Genuine levers: charge-out rates, unit rates,
+    markup, undistributed overhead lines, staffing / hours, financing. NEVER levers: employer KiwiSaver (hard-locked),
+    ESCT, ACC (constrained to a small legislated band at most), insurance premiums, market fuel prices.
+R3  Touch one lever -> only that source changes; every other source stays at today's achieved figure; total = today's
+    real total + the sum of the effects (owner, 09-18, reconfirmed). Effect = (target - START) x basis (cost rows
+    inverted). Basis = COVERED hours, never seat hours; materials basis = COGS / 100.
+R4  Display: keep TODAY fixed, show MODELLED beside it and the CHANGE (Q1).
+R5  Overhead levers touch only the UNDISTRIBUTED General Overheads pool, line by line - never a line already
+    distributed to an asset (that would corrupt Cost Allocation).
+R6  Labour levers are per staff type; asset levers per unit. An asset-driven unit is ONE lever - the all-in unit rate;
+    its labour rows show "in_unit_rate", not leverable; the machine share is shown live via Rate Builder's own
+    calculate_net_asset_rate. The all-in guide is not a cap.
+R7  Materials: START 0%, FLOOR 0%, CEILING = Rate Builder markup (View A floors materials; owner D-VIEW).
+R8  Shortfall distribution stays PRO-RATA (order-independent), not a waterfall.
+R9  Row labels are "unit / staff type" (name trap: working unit "Site Crew" vs staff type "Site Crew").
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Reads per_source (useBusinessOutcomePerSourceRevenue; a second call with overrides gives modelled_per_source - kept
+only as a cross-check, it is inert for additive levers) and useGeneralOverheads().card.summary.grouped_overhead_rows
+(read-only; mounting it runs General Overheads' own hydrate / save / P&L-sync effects, guarded).
+Storage: qs_tools_business_modelling_levers_v1 (lazy useState read). Old "assets:<id>" levers are pruned
+automatically for asset-driven units. Legacy baseline snapshots (old engine) keep pre-F12 hours until re-locked
+(Labour F17, Summaries S-H4).
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+Display only. No Business Modelling output contract exists (the July S05 contract is gone); Dashboard and AI Export
+read the Business Outcome contract. Decide in R3 whether a modelling contract is needed.
+The independent engine lib/calculations/businessModellingIndependentCalculations.js is NOT deleted - it is
+load-bearing for the Business Outcome health gauge (calculateGaugeInput).
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+hooks/useBusinessModelling.js (orchestrator), hooks/useBusinessModellingLevers.js
+lib/calculations/businessModellingSourceRows.js (buildSourceRows), businessModellingAdditiveModel.js
+  (applyAdditiveLevers), businessModellingIndependentCalculations.js (health gauge), businessModellingLeverCalculations.js
+lib/selectors/businessModellingLeverSelectors.js (resolveLeverOverrides, buildRealEngineLeverHeadline, etc.)
+lib/storage/businessModellingLeverStorage.js
+components/business-modelling/BusinessModellingNetProfitBar.jsx, BusinessModellingSourceRow.jsx,
+  BusinessModellingLeverPanel.jsx, businessModellingFormat.js; app/business-modelling/page.jsx
+Legacy (behind "Previous scenario tools", collapsed): BusinessModellingScenarioSection (Baseline / Upside / Downside),
+  useBusinessModellingLegacyScenario.js - owner decided to DELETE from the page (Q5), not yet done.
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence, not today's data)
+===============================================================================
+2026-09-24  Real revenue: no levers -> modelled == today in View A (-406,922.98) and B (-406,922.97). Offline identity
+            tests 6 / 6. Groups' achieved 332,382.26 + materials at cost 1,240,090.70 = real revenue (1 cent).
+            Row floors x hours sum to each unit's true cost. Lever panel additive (Site Crew $80 + Materials 5% =
+            +111,694.43).
+2026-09-25  After CM-1 / CM-1b: identity, own-start-rate (~$6 display rounding) and additivity re-run - PASS.
+            Step 5 UI cleanup (old LeverCard and DEBUG removed; scenario tools collapsed; hasMounted lint fixed).
+2026-09-26  Overheads lever: 10 categories = GO net 95,866.40; no levers == today; Vehicle Running Costs
+            38,700.44 -> 30,000 = +8,700, nothing else moved.
+2026-09-26  Asset-driven unit lever: 2inc Line start 29.61, floor 112.50, guide 207.75; +$10 -> +14,139 (= $10 x
+            1,414 h); no levers no change.
+2026-10-18  R2 timing (DEV): page open 1,674 ms at 100 staff, 5,709 ms at 1,000 (FAIL); lever typing ~255 / 400 /
+            1,870 ms per keystroke at 10 / 100 / 1,000 staff (FAIL at 100 and 1,000; slow even at 10) - every
+            keystroke re-runs the whole chain synchronously.
+NOT covered by R2 layer 2: Business Modelling start rows (R2 item d, after the fix batch).
+
+===============================================================================
+8. FINDINGS REGISTER / OPEN ITEMS
+===============================================================================
+OPEN
+BM-1  Delete Baseline / Upside / Downside and legacy scenario tools from the page (Q5 decided, not done).
+BM-2  Overhead lever is category-level; the decided design is LINE-BY-LINE with lock / constrain flags (is_lever),
+      on the undistributed pool only. Injection point discovery (where remaining overhead enters the chain) not built.
+BM-3  Reverse lever (set a target labour rate, show the unit rate needed) - decided, not built.
+BM-4  Multi-line calculators: each component (setup fee, hourly, per m3) as its own lever - decided, not built.
+BM-5  Per-staff-type labour lever across units ("set this rate everywhere") - decided (both granularities), not built.
+BM-6  Typing performance (R2) - fix inside the R3 design (defer recalculation until typing pauses / on blur; compute
+      the chain once), not a patch to the engine R3 retires.
+CM-5  The Phase 1 / Phase 2 cascade exists in three places kept in sync by hand. R3 removes Business Modelling's copy.
+BO-8  Overrides vs coverage-gap valuation - see Business Outcome brief.
+S-H4 / Labour F17  Legacy baseline needs a re-lock to pick up current hours (moot if the legacy tools are deleted).
+--    Verify which source is the real top net-profit driver on current data and that pro-rata treats it fairly.
+--    ~$20 Outcome-vs-Modelling discrepancy noted 09-24 - re-check.
+--    Debt-to-equity scenario context - parked.
+CLOSED
+Q1 (display), Q2 (additive model), Q3+Q4 (rule decided; wiring is BM-2), Q5 (decided; action is BM-1), Q6 (materials
+at $0 is a real finding, not a bug), Q7 (ceiling = sum of per-source ceilings), CM-1 / CM-1b, asset-driven unit lever,
+step 5 cleanup, DEBUG removal, hasMounted lint.
+
+===============================================================================
+9. NEXT DIRECTION - R3 REDESIGN (planned, not built)
+===============================================================================
+Future_Build\BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY_FUTURE_BUILD_BRIEF_2026-10-16.txt. One sentence: modelling
+mode swaps the DATA SOURCE under the existing chain (General Overheads, Labour, Assets, Cost Allocation, Rate Builder,
+Business Outcome run unchanged on scratch data); Business Modelling shrinks to the toggle, the baseline snapshot and
+a today-vs-scenario comparison. Three layers never mixed: A real data, B locked baseline (explicit commit, own key),
+C scratch overlay. Tiers: 1 fix the business you have (overhead % nudges, reprice in Rate Builder, see the gap between
+minimum recoverable and charged rates); 2 lock the baseline; 3 add / remove staff or assets against the baseline;
+4 actuals vs baseline (needs the database, later). First task is an AUDIT of which modules accept scratch input.
+Owner has not yet signed off the slice order. Placement: after the R2 fix batch (F-1 ESCT so modelling starts on
+corrected labour cost).
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY BUSINESS MODELLING CHANGE
+===============================================================================
+No change to Cost Allocation, Rate Builder or Business Outcome calculation logic from here (stop and raise it). No
+"realistic ceiling" or suggested market rate input. No revenue / volume forecasting. Units mode has its own brief.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY BUSINESS MODELLING CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Identity: no levers -> modelled == today (View A and B); own START rate -> zero effect; two levers -> sum of effects.
+- No lever writes to a source module's storage (check localStorage before / after).
+- R2 harness re-run once Business Modelling start rows are in the expected script.
+- Trace node exists and matches the screen for any new figure.
+- CALCULATION_MAP Section 10 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- fin_mirra_v6.0 Briefs\BusinessModelling_v6_0_BRIEF_CONSOLIDATED_2026-09-24.txt (design, Q1-Q7, sessions 1-3,
+  shipped levers)
+- Archive\Mirra_v5_Briefs\Business Modelling\* (09-14 to 09-18 handovers, rebuild scoping, v5.2 orchestration and
+  concept decision record) and S05 (v5.0) - folded into the consolidated brief; history only
+- Archive\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\BUSINESS_MODELLING_SCENARIO_REDESIGN_
+  DECISION_LOCK_2026-09-12.txt (Baseline / Upside / Downside - superseded by Q5)
+- STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt Addendum 13 (timing)
+- The R3 redesign brief stays live in Future_Build (Section 9)
+Evidence: Audit\v6_0\bm_per_source_2026-09-24.json, bm_baseline_pre_asset_driven_lever_2026-09-25.json,
+go_baseline_pre_overheads_lever_2026-09-26.json.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

@@ -1,0 +1,223 @@
+===============================================================================
+MIRRA - COST ALLOCATION (THE HINGE) - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\COST_ALLOCATION_BRIEF.txt  (the ONE Cost Allocation brief - update in place)
+STATUS:        VERIFIED (P2.5, 2026-09-23: every source dollar distributed exactly once). Since: overhead split by
+               recovered hours (2026-09-29); D1 labour coverage notice, run pattern and labour cap (2026-10-05..07);
+               D4 idle labour (2026-10-07); D2 closed; R2 stress test to 1,000 staff. PENDING before R3: F-4
+               (unassigned assets). Performance (C15 / Q-7) open.
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+ROUTE:         app/cost-allocation
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 7. This brief holds intent, rules, contract,
+               verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place. Never create a second Cost Allocation brief.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Cost Allocation is where the business is organised into WORKING UNITS (operational groups inside divisions) and
+every cost dollar is assigned to one: productive labour by staff type, productive assets, non-productive labour and
+assets, and overhead. Its output - per-unit cost, recovery hours and minimum recoverable rate - is what Rate Builder
+prices against and Business Outcome judges. It is the hinge between "what the business costs" and "what it earns".
+
+Owner framing (D2, 2026-10-07): Cost Allocation is for ASSIGNING costs. Final figures belong in Business Outcome;
+group totals and rates sit behind "Show checks". Pool progress (available / assigned / remaining) stays visible.
+Governing principle (owner): the tool exists to reveal gaps. A gap that is calculated but not shown breaks that.
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: divisions and working units; labour assignments (staff type x percent) and asset assignments; the five pools
+(productive labour, non-productive labour, productive assets, non-productive assets, overhead); per-group cost rows;
+group recovery hours and their basis; per-stream and minimum recoverable rates; labour coverage (shortfall) and
+idle labour (surplus, tied units) measures; asset run pattern; allocation status and warnings.
+
+DOES NOT OWN: labour cost or staff types (Labour); asset cost or hours (Assets); the overhead pool amount (comes
+from Recovery Summary overhead_absorbed_cost); charge-out prices (Rate Builder); revenue and verdicts (Business
+Outcome). Spreading non-productive cost across units for the outcome view is Business Outcome's step.
+
+STRUCTURE NOTE (code truth vs v4 spec): Recovery Summary is UPSTREAM of Cost Allocation (overhead pool, status,
+hours fallback). Recovery-rate logic the v4 spec said to remove is still here and load-bearing (C7).
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  Every source dollar is assigned exactly once: labour + productive assets + non-productive assets + overhead =
+    grouped operating cost = Cost Summary total = Recovery Summary cost burden, with zero unassigned (proven live).
+R2  Labour assignment cost = staff type total cost x assignment percent (assigned_staff_count is ignored - C13).
+R3  Overhead is shared by RECOVERED hours everywhere (owner decision 2026-09-29): weight = group recovery hours /
+    total. Labour cost, asset burden and equal split remain only as fallbacks when no group has recovered hours.
+    A group with no recovered hours gets no overhead. (Business Outcome spreads pooled non-productive cost by the
+    same rule.)
+R4  Group recovery hours: stored basis if set, else asset hours if the group has a productive asset, else labour
+    hours (or manual). Asset hours = the MAX of the group's assets (run together) - required_asset_hours is the SUM
+    for "one after another" groups and is used for coverage measures.
+R5  Labour cap (owner 2026-10-07): an asset-driven group with labour assigned recovers MIN(required_asset_hours,
+    assigned labour hours). A labour shortfall is a shortfall whatever the run pattern. Cost per hour rises; total
+    cost unchanged.
+R6  Labour shortfall (labour hours < asset hours) shows a coverage notice in the builder pointing back to Assets.
+    Surplus labour is NOT a warning unless the unit is ticked "labour tied to the asset only" (D4); then idle hours
+    and idle cost are shown. Idle cost is already inside group cost per hour - it never moves a rate or a total.
+R7  Over-allocation (>100% of a type or asset) is detected and BLOCKS status but is not capped (C14).
+R8  Non-productive cost is in total_group_cost and group_cost_per_hour but in NO stream rate and NOT in
+    minimum_recoverable_rate_per_hour (C6).
+R9  NAMING TRAPS: productive_asset_cost here = own + pools (in the Assets contract = own only, C2). Top-level
+    assignment lists are RAW stored records - read the enriched lists on operational_group_cost_rows. Fields like
+    labour_share_percent, required_recovery_rate, recovery_hours_used are Recovery Summary passthroughs.
+R10 Every asset should be assigned to a working unit (owner, F-4).
+R11 Moving a person between units never edits a record: the old assignment goes is_active false and a new one is
+    created.
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+Labour contract -> costAllocationLabourAdapter (keyed by the REAL staff_type_id). Assets contract active_assets
+(productive and support; cost = asset_recovery_cost_annual). Recovery Summary contract (~40 fields copied by
+costAllocationInputBuilder; overhead_absorbed_cost is the overhead pool).
+Storage qs_tools_cost_allocation_v2_1 (guard named `hydrated`): divisions, operational_groups (incl.
+group_recovery_hour_source, asset_run_pattern, labour_tied_to_asset), labour / asset / overhead assignments (overhead
+always empty), links. Removals are soft. costAllocationProfileStorage.js appears unused.
+
+===============================================================================
+5. OUTPUT CONTRACT AND CONSUMERS
+===============================================================================
+REAL CONSUMER SURFACE
+  operational_group_cost_rows[]  per group: assigned labour cost / hours, asset burden / hours, overhead,
+      non-productive labour and asset cost, total_group_cost, group_recovery_hour_source, group_recovery_hours,
+      required_asset_hours, asset_run_pattern, labour / asset / overhead rates, group_cost_per_hour,
+      labour_coverage_gap_hours, labour_coverage_warning, idle_labour_hours, idle_labour_cost,
+      idle_labour_warning, enriched assignment lists.
+  operational_group_recovery_rows[]  minimum_recoverable_rate_per_hour etc.
+  rate_builder_labour_recovery_rows[] per staff type + the all_productive row (C24, see Rate Builder brief).
+POOLS AND TOTALS (published since c40eaad): the five pools, total_available_overhead_cost,
+  overhead_allocation_method, grouped non-productive totals, full_cost_attribution_coverage_percent,
+  total_grouped_* costs, unassigned_* costs, over-allocation flags, coverage percents.
+Consumers: Rate Builder (useRateBuilderLabourRates, useRateBuilderLineCalculator); Business Outcome
+  (useBusinessOutcomePerSourceRevenue, useBusinessOutcomeLabourRecovery, useBusinessOutcomeWaterfall, legacy
+  useBusinessOutcome, businessOutcomeAssetSplitCalculations); Business Modelling via Business Outcome.
+Each consumer calls useCostAllocation() itself - seven instances, each with its own Recovery Summary call (C15).
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+hooks/useCostAllocation.js                                       orchestrator, builds output_contract
+lib/calculations/cost-allocation/costAllocationRuleBuildContext.js   the real calculation
+lib/calculations/cost-allocation/costAllocation{Labour,Asset,Overhead}PoolBuilder(s).js
+lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js   group rows, cap, coverage, idle
+lib/calculations/cost-allocation/costAllocationLabourAdapter.js, costAllocationInputBuilder.js
+hooks/cost-allocation/useCostAllocation{AssetOverlay,GroupRecoveryRows,AssignmentCards,OutputContract}.js
+lib/selectors/cost-allocation/*.js                               cards, status, Rate Builder rows
+lib/storage/costAllocationStorage.js
+components/cost-allocation/CostAllocationStepBuilder.jsx + steps/*   the VISIBLE 4-step builder
+  (GroupCoverageNotice.jsx, GroupIdleLabourNotice.jsx, GroupRecoveryBasisCard.jsx)
+components/cost-allocation/evidence/GroupCostStacksSection.jsx    group totals behind Show checks
+DEAD (no importer found): CostAllocationStatusStrip.jsx, groups/CostAllocationGroupCostSummary.jsx,
+  groups/CostAllocationOperatingGroupBuilder.jsx, probably CostAllocationGroupsCard.jsx. They have misled a session
+  before - do not patch them expecting a visible change.
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence, not today's data; asset figures drift daily - Assets A4)
+===============================================================================
+2026-09-23  P2.5 padded dataset: labour 602,334 + assets 85,831 + overhead 51,166 = 739,332 = Cost Summary =
+            Recovery Summary burden; unassigned 0; group stacks and overhead split matched to the dollar.
+            C19 (30de7cc) and C9 / C9b (c40eaad) shipped. A11 Recovery Summary fix moved no Cost Allocation figure.
+2026-09-29  Recovered-hours overhead split live: overhead 455 / 545 -> 500 / 500; pooled non-productive cost
+            50,149 / 60,179 -> 55,164 / 55,164. Trace integrity clean.
+2026-10-05  D1 piece 1 (a09387f): coverage notice in the builder (labour 1,414 vs asset 1,440, gap 26).
+2026-10-06  D1 piece 2 (409d40b) asset_run_pattern stored; 3a required_asset_hours (SUM for sequential) for coverage
+            only - no dollar change.
+2026-10-07  D1 3c widened (f511214, b92e3d1): cap for every asset-driven group with labour. Live: 1,440 h $96.18 ->
+            1,414 h $98 / hr, total 138,460. Paul + Jack in one unit: not capped, 273,054.03, $189.62 / hr, pools 0.
+2026-10-07  D4 (3f311a0): tied box -> idle 1,388.23 h, $119,139.91; unticked identical totals, idle 0.
+2026-10-07  D2 closed by search: totals and rates render only behind Show checks.
+2026-10-17/18 R2: Scenario A, A misaligned, A2 (over-staffed, idle $73,419 across 3 units), B (shared asset, A-2
+            no-labour asset group, labour short / over / tied units) and the ladder to 1,000 staff all pass.
+            Cost Allocation typing speed not yet measured (R2 item c).
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+PENDING BUILD (owner decided)
+F-4  Unassigned asset cost reaches no group. Build: warning close to blocking; if ignored, spread unassigned asset
+     cost across working units by default; results shown with a big red warning. Placement: after R2, before R3.
+OPEN - DESIGN
+C3b  Product mode: overhead_absorbed_cost = total cost burden, so labour and assets would count twice per group.
+     Latent (hours-mode data). Units Mode.
+C6   Minimum recoverable rate and stream rates exclude non-productive cost; Business Outcome charge_to_self says a
+     mixed unit must recover it. Rate Builder and Business Outcome can disagree for the same group.
+C7   Recovery logic still lives here (contrary to v4). Boundary decision, not a deletion.
+C16  Status gated on Recovery Summary readiness, trust state borrowed; a single review-level warning upstream
+     blocks the chain. Decide whether review warnings should block. (Summaries S-D1 wording.)
+C18  Support-vehicle running costs cannot follow the vehicle until Assets A1 is decided.
+D4b  Should idle cost ever move a rate or feed a gap line beyond the display? Idle for labour-hours and manual-hours
+     groups is not measured (idle-cost brief O-5).
+OPEN - BUGS / LATENT
+C12  Orphaned assignment (staff type or asset deleted) -> silent $0, status "assigned". Needs an orphan warning.
+C13  assigned_staff_count stored but ignored; the page labour card uses a staff-count ratio. Diverge if entered
+     inconsistently.
+C14  Over-allocation status-blocked but not capped; excess flows to Business Outcome.
+C17  is_productive frozen on the assignment at creation; reclassifying in Labour sends it to the wrong pool.
+C10  Zero-utilisation asset falls back to Recovery Summary recovery hours (masks instead of flags).
+C20  Pool panel merges non-productive labour into Labour and omits the non-productive asset pool.
+C23  Stream hour labels show the GROUP's recovery hours.
+C8   Four structural warning flags hard-coded false; total_unassigned_cost ignores non-productive cost.
+C15  Seven independent useCostAllocation instances: lag risk after a save; prime suspect for the R2 UI slowness at
+     100 and 1,000 staff (profile before fixing - R2 item b).
+OPEN - LOW
+C2 naming trap; C4b dead add_overhead_assignment; C11 contract rebuilt every render (not memoised); status strip
+"assigned" includes non-productive but "remaining" excludes it; pure-support unit shows "$0/hr"; coverage notice
+amounts lack thousands separators; dead group components (Section 6) - delete or keep is open.
+HANDED ON
+C24  all_productive row overhead = total overhead x Recovery Summary labour share, not Cost Allocation's split ->
+     Rate Builder brief (RB-1 / RB-1b).
+CLOSED
+C1, C3a, C4a, C9, C9b, C19; C5 (superseded by R3 recovered-hours rule - asset-only groups with hours now earn a
+share); C21 (status strip is not rendered - confirmed dead code); C22 (coverage warning now shown in the builder,
+a09387f, and in Business Outcome's Capacity Coverage Gap); "MAX vs SUM" question (asset_run_pattern + required
+hours + cap); D2.
+
+===============================================================================
+9. DEFERRED / TEST-DATA NOTES
+===============================================================================
+- Test-data trap: if a person sits in no working unit, the whole overhead pool lands on the remaining group. Check
+  the pool remaining line and the staffing before trusting any before / after comparison.
+- Take every before / after comparison in ONE sitting (asset interest drifts by date).
+- Synthetic test entries are CARRIED (decision 2026-09-23); empty groups were removed.
+- Group cost per unit (product mode) hard-coded 0 - Units Mode.
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY COST ALLOCATION CHANGE
+===============================================================================
+Do not recalculate Labour, Assets or the overhead pool amount here. Do not price work here. Do not edit the dead
+group components expecting a visible change. Core calculation files (rule build context, pool builders, group cost
+builder) are stop-and-confirm.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY COST ALLOCATION CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Pools balance: assigned + remaining = available on all three; grouped operating cost = Cost Summary total.
+- R2 harness re-run (Scenario A, A misaligned, B, A2) - all checks pass, or expected script updated with the
+  owner-approved rule.
+- Trace node exists and matches the screen for any new figure.
+- CALCULATION_MAP Section 7 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- fin_mirra_v6.0 Briefs\Cost_Allocation_v6_0_BRIEF_VERIFIED_2026-09-23.txt (C1-C24, live record, overhead driver
+  change 2026-09-29)
+- Mirra_v5_Briefs\_Archive\_Archive_v4\17_MIRRA_COST_ALLOCATION_v4.0_LOCKED.txt; Mirra_v5_Briefs\S18_COST
+  ALLOCATION MANDATORY LABOUR & ASSET COST.txt (non-productive pools - implemented)
+- RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt Addenda 1-9 (D1, D2, D4)
+- IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (idle cost design)
+- STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt (F-4, H2, A2) and R2_HANDOVER_2026-10-18.txt
+- VARIABLE_TRACKER_v6_0.txt Section 14
+Evidence: Audit\v6_0\P2.5_CostAllocation\, smoke_test\1.1_cost_allocation, 1.10_calc_trace_labour_overhead.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

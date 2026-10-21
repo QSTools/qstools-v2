@@ -1,0 +1,202 @@
+===============================================================================
+MIRRA - BUSINESS OUTCOME - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_OUTCOME_BRIEF.txt  (the ONE Business Outcome brief - update in place)
+COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map and gotchas - mechanism, not intent)
+STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
+               revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
+               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. PENDING before R3: F-7 dry hire, F-10
+               and F-11 EBIT / EBITDA, F-4 unassigned-asset row check. PERFORMANCE FAILS at 100 / 1,000 staff (R2).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
+               status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place. Never create a second Business Outcome brief.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Business Outcome answers "is the business actually working, and who is carrying whom?" It compares MODELLED revenue
+per source (each labour type, each asset, materials) against TRUE COST per source, and reconciles the total to REAL
+P&L revenue. It is where final figures are presented (Cost Allocation only assigns). Its per_source object is the
+hand-off Business Modelling reads.
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: per-source modelled revenue and true cost; covered hours (BO-6 cap); non-productive cost distribution to
+working units; View A and View B cascades; Best Case (each part on its own) vs How the Business Runs; capacity
+coverage gap (shortfall revenue not earned, tied-unit idle labour); health gauge; EBIT / EBITDA display; Labour
+Recovery card overhead-per-hour; per_source.
+DOES NOT OWN (consumes): Cost Allocation group rows and recovery rows; Labour staff-type rates; Rate Builder STORED
+inputs (charge-out rates per staff type, calculators, materials markup); Revenue / COGS totals; Opening Hours;
+Balance Sheet; Assets interest / depreciation (EBIT display only).
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+R1  Labour sources = one row per (group, staff type). Cost = Cost Allocation assigned cost. Revenue = saved charge-out
+    rate x revenue hours. A staff type with no saved rate shows "No rate saved" / not_ready - never $0.
+R2  COVERED HOURS (BO-6): an asset cannot earn for hours nobody is there to run it. Asset-driven group covered hours =
+    MIN(asset seat hours, assigned labour hours). A group with no labour earns nothing and is flagged. Applies to
+    Best Case and How the Business Runs.
+R3  Asset revenue: per-asset calculators (Path B) price the MACHINE ONLY: asset rate x own hours x
+    min(1, covered / required_asset_hours); the operator is charged once on the labour row. Legacy group calculators
+    keep the all-in rate with the labour mix subtracted (CM-1 / CM-1b). An asset with no lines shows "Not priced".
+R4  Overhead inside a group is split labour / asset by the SHARED split_group_overhead (one definition, also used by
+    Rate Builder), then by hours.
+R5  Non-productive cost: pure-support units always spread across working units by RECOVERED HOURS; mixed units follow
+    the stored policy (default charge_to_self). Injected into true_cost and stamped as row.non_productive_share so
+    every display adds up.
+R6  View A: materials revenue = residual (real revenue less labour and asset modelled revenue); a shortfall is absorbed
+    first by profitable groups by margin, then by revenue share. The materials ROW is floored at 0 (owner F-5:
+    "materials can't go negative"); the cascade uses the UNFLOORED residual.
+    View B: materials is a peer priced at the Rate Builder markup; one global ceiling; surplus revenue shown as
+    unexplained_revenue (BO-11). Both headlines = real revenue - total true cost - unassigned.
+R7  BEST CASE = each part on its own: each unit carries only its own costs (including its own non-productive cost);
+    pure-support units appear once as their own rows. Nothing hidden, every line traceable (owner 2026-10-10).
+R8  Idle labour is ALREADY inside net profit (revenue capped at covered hours, labour cost in full). Idle displays
+    are explanation only - never added to or taken from a total. Valued at raw labour cost per assigned hour
+    (Cost Allocation idle_labour_cost, D-IDLE-1). Shown only for units ticked "labour tied to the asset" (D-IDLE-2/3).
+R9  Shortfall (labour short of asset hours) is "Revenue not earned" - a different measure, valued as revenue; never
+    combined with idle. For per-asset-priced groups it is built from the same helpers as revenue; incomplete pricing
+    shows "at least $X" plus what is missing (O-2).
+R10 Readiness: gated on revenue_cogs_ready, cost_summary_ready, business_summary_ready - NOT on Model Readiness.
+R11 Per day / per week use Opening Hours open days / weeks (S-H2 closed).
+R12 Hours-native; business_type not read.
+
+===============================================================================
+4. INPUTS AND STORAGE
+===============================================================================
+No storage of its own except the non-productive policy key (default charge_to_self). Reads Rate Builder stores
+(qstools_rate_builder_labour_source_rates_v1 - read once on mount, a new rate shows after navigating back;
+qs_tools_rate_builder_calculators_v1; materials markup store), Cost Allocation contract, Labour contract, Revenue /
+COGS, Opening Hours, Balance Sheet, Assets (EBIT).
+
+===============================================================================
+5. OUTPUTS AND CONSUMERS
+===============================================================================
+per_source (labour_groups, asset sources, materials, group_real_capacity, cascades, capacity_coverage_gap,
+idle_labour_by_group) -> Business Modelling lever engine, useBusinessOutcomeOutputContract -> AI Export, Dashboard.
+NOTE: businessOutcomePerSourceRevenueSelectors.js rebuilds per_source FIELD BY FIELD - any new hook field must be
+added there too (bug class 6b; caught once with idle_labour_by_group).
+Calculation trace: businessOutcomeTraceNodes.js (per-source revenue / net profit, materials, group rollups); idle
+nodes (idleCostTraceNodes.js). EBIT / EBITDA have NO trace nodes yet (backfill item).
+
+===============================================================================
+6. KEY FILES (full map: Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt)
+===============================================================================
+hooks/useBusinessOutcomePerSourceRevenue.js (~1,430+ lines - do not split without a decision)
+lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors.js
+lib/selectors/business-outcome/businessOutcomeNetProfitBuildUpSelectors.js (lives in selectors, not calculations)
+lib/selectors/business-outcome/businessOutcomeIdleLabourSelectors.js
+lib/calculations/businessOutcomeViewBCalculations.js, businessOutcomeAssetCalculatorRates.js,
+  businessOutcomeShortfallDollars.js, businessOutcomeEbitCalculations.js, shared/overheadSplit.js
+hooks/useBusinessOutcomeLabourRecovery.js (takes per_source.labour_groups), useBusinessOutcomeOutputContract.js
+components/business-outcome-truth/* (BusinessOutcomePerSourceRevenueCard.jsx ~3,000 lines,
+  BusinessOutcomeTruthSituationSummary.jsx, CapacityCoverageGapTable, IdleLabourLine, EbitSummaryCard / ByUnitTable)
+Legacy, not on this page: components/business-outcome/* (incl. BusinessOutcomeResultHero), hooks/useBusinessOutcome.js.
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence, not today's data; asset figures drift daily - Assets A4)
+===============================================================================
+2026-09-23  Core pass at breakeven revenue: headline View A 132.49 / View B 132.47; materials true cost = the 12 P&L
+            COGS lines exactly; group true cost 739,331.82 unchanged across BO-6; labour cost per type matched Labour
+            to within a few dollars. BO-6 before / after recorded (independent modelled revenue 2,999,035.81 ->
+            2,239,902.13; being carried View A 3 -> 6).
+2026-09-23  8b at REAL revenue 1,572,472.95: headline -406,949.56 / -406,949.58; per day -$1,608 (/253 open days);
+            build-up rows tie for every group; NET PROFIT row = headline; Labour Recovery card weighted $76.47 / hr
+            true cost vs $83.00 charged; cost gap to P&L fully explained (Owner / Director 139,369.69 of it).
+2026-09-25  CM-1 / CM-1b: real net profit unchanged (cost variance 0.00); materials residual, shortfall, Best Case and
+            carry split corrected.
+2026-10-09..11 Stage 1b per-asset revenue reconciles in View A and B; Best Case ceiling double count fixed (322,370.17
+            independently confirmed); Best Case list uses Best Case figures; health gauge and ledgers checked - one
+            ledger total fixed.
+2026-10-15  Idle Steps 2-4: tied unit gap row = Cost Allocation idle cost (119,139.90); drill-down line in View A and
+            B; totals identical to the cent ticked vs unticked; shortfall dollars 9,034.52 (recompute within 3.43
+            rounding); "at least $286,629" when labour missing.
+2026-10-17/18 R2: Scenario A / A misaligned 217 / 217, B 269 / 269, A2 217 / 217 (idle 73,419 across 3 units), ladder to
+            1,000 staff. F-5 sentence, F-8 EBIT support-asset interest (+INTEREST now = P&L 277,052), F-9 and F-12
+            wording shipped and live-checked.
+2026-10-18  UI timing (DEV server): Business Outcome open 1,776 ms at 100 staff, 5,984 ms at 1,000 - FAIL against Q-7
+            (100: <1 s open, no freeze >0.2 s; 1,000: <3 s, no freeze >1 s). Production-build run still owed.
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+PENDING BUILD (fix batch between R2 and R3, then ONE full regression re-run)
+F-7   Dry hire earns nothing (no-labour asset group has 0 covered hours). Design: Future_Build\DRY_HIRE_... brief;
+      hourly, default OFF, trace nodes essential; Claude recommends a tick on the asset ASSIGNMENT row in Cost
+      Allocation - placement to confirm.
+F-10  EBITDA depreciation: useAssets active_assets drops estimated_annual_depreciation (one-line pass-through).
+F-11  EBIT should add back ALL interest (non-asset interest and the flagged-row remainder), plumbed from General
+      Overheads via props, not a new hook instance; then backfill EBIT / EBITDA trace nodes and add to the expected
+      script. Open question carried: overdraft interest left in overheads.
+F-4   Check the "Unassigned cost" row (apply_unassigned_entry) when Cost Allocation's F-4 spread is built.
+PERF  Business Outcome and the trace page FAIL Q-7 at 100 and 1,000 staff. Next: production-build timing, then profile
+      (React DevTools) - suspect C15 (seven useCostAllocation instances). Business Outcome is not replaced by R3, so it
+      needs its own fix (placement to decide: before R3).
+OPEN
+BO-8  Capacity gap valuation: Business Modelling rate overrides now pass for the per-asset shortfall branch (O-2); the
+      legacy branch accepts a modelled blended-rate override. Re-check whether anything still uses live rates only.
+BO-12 View B breakdown list has no unexplained-revenue row, so rows can sum below the headline when surplus > 0.
+CM-8  Legacy asset-split card (businessOutcomeAssetSplitCalculations.js) still group-level only.
+--    row.net_asset_rate still carries the legacy group value on per-asset rows (not displayed).
+--    Best Case rows lack the "Cost / Current rate / Achieved rate" line (display).
+--    Assumed ledger Naive vs Implied columns on different bases (labelling only).
+--    distribute_non_productive_cost drops the pool silently if no unit has productive cost (edge-case leak).
+--    Sequential no-labour groups: gap hours shown as MAX, dollars cover SUM - add an explanatory note.
+--    Idle measured for asset-driven groups only (labour-hours / manual-hours groups: O-5).
+--    Owner remuneration setting (payroll / shareholder salary / drawings) - design item for Labour / Reconciliation.
+BO-10 Remove the "TEST" group from test data when convenient.
+DESIGN LIMITS (logged, not built): concurrent attendance across separately billed units; product / throughput
+businesses (Units Mode).
+CLOSED
+BO-1, BO-2 (overhead-per-hour now Business Outcome's own split, F7), BO-3 ("Group min rate" by design), BO-4, BO-5,
+BO-6, BO-7 (no interest double count), BO-9 ("Achieved markup"), BO-11, H1-H7, S-H2, CM-1 / CM-1b, Stage 1b,
+Best Case double count, Best Case list, health gauge check, idle Steps 1-4, F-5, F-8, F-9, F-12.
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Dry hire (F-7) and Units Mode: Future_Build briefs.
+- Idle-cost brief open items O-4 (crew vs idle) and O-5 (non-asset groups).
+- Imports: CFO requirements gap, fixed asset register, Xero ideas - archived v5 "Business Outcome New Additions";
+  conventions rule 10 applies.
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY BUSINESS OUTCOME CHANGE
+===============================================================================
+Do not recalculate Cost Allocation, Labour or Rate Builder figures here - read their outputs. Do not add idle cost to
+any total. Do not duplicate split_group_overhead. The per-source hook is a core calculation file - stop and confirm.
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY BUSINESS OUTCOME CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Console check in ONE sitting with a staffing fingerprint printed in every run (staffing changes totals).
+- View A and View B headlines agree; build-up rows tie; NET PROFIT row = headline.
+- R2 harness re-run (A, A misaligned, B, A2, ladder) - all pass, or expected script updated with the owner-approved rule.
+- New hook field added to the per_source selector too (6b).
+- Trace node exists and matches the screen for any new figure.
+- CALCULATION_MAP Section 9 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- fin_mirra_v6.0 Briefs\BusinessOutcome_v6_0_BRIEF_VERIFIED_2026-09-23.txt (BO-1..BO-12, core + 8b records, CM-1)
+- fin_mirra_v6.0 Briefs\IDLE_COST_BUSINESS_OUTCOME_DESIGN_BRIEF_2026-10-14.txt (D-IDLE-1..4, O-1..O-5)
+- fin_mirra_v6.0 Briefs\RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt Addenda 10-14, 19-23
+- STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt (F-5, F-7, F-8, F-9, F-10, F-11, F-12, Q-7,
+  Addendum 13 timing) and R2_HANDOVER_2026-10-18.txt
+- Archive\Mirra_v5_Briefs\Business Outcome\* (v5.1 session briefs, NON_PRODUCTIVE_COST_ALLOCATION_POLICY_DECISION,
+  S23-S28, New Additions) and _Archive_v4\20_MIRRA_BUSINESS_OUTCOME_v4.0_LOCKED - history; the 8b honesty note holds:
+  anything not restated here is history, not current truth.
+Evidence: Audit\v6_0\P4_BusinessOutcome\, bo_per_source_*.json, smoke_test\1.3_revenue_business_outcome.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)

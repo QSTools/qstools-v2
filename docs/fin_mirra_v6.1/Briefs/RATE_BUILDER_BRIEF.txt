@@ -1,0 +1,206 @@
+===============================================================================
+MIRRA - RATE BUILDER - MODULE BRIEF
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\RATE_BUILDER_BRIEF.txt  (the ONE Rate Builder brief - update in place)
+STATUS:        CODE-TRACED (P3, 2026-09-23). Since: RB-1 overhead basis fix proven live (2026-10-01); Path B per-asset
+               calculators (6df2de0, 2bb6400); machine-only result panel (fa9fadd); OPEN-D (a9e55d3); labour by staff
+               type (OPEN-E); asset pricing hard block (dea2013); labour panel hours basis (D-IDLE-4, closes CM-9b).
+               R2 stress test covers Rate Builder overhead and labour rows (RB-1b all_productive row NOT yet covered).
+LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+ROUTE:         app/rate-builder (tabs: Labour Rates Builder, Customer Charge Calculator, Materials markup)
+MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 8 (stored user inputs + display maths; no output
+               contract). This brief holds intent, rules, verified status and open items.
+
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (check the last number first). When an addendum changes a
+rule, status or finding above, also edit that line in place. Never create a second Rate Builder brief.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+Rate Builder answers "what rate recovers it?". The owner sets charge-out rates per staff type and builds customer
+charge calculators (per asset, or legacy per working unit), and sees charge vs cost vs profit against the cost
+floors that Labour and Cost Allocation produce.
+
+KEY FACT (V3 scope insight): Rate Builder publishes NO output contract. What leaves it is STORED USER INPUT only -
+per-staff-type charge-out rates and calculators. Its calculated figures (minimum rates, job cost, profit) are
+display-only; Business Outcome re-derives what it needs. So Rate Builder display bugs do not propagate; storage
+keys and ids do.
+
+===============================================================================
+2. OWNS / DOES NOT OWN
+===============================================================================
+OWNS: charge-out rates per staff type; customer charge calculators and their lines (rate, quantity, unit, output
+driver); charge vs cost vs profit display; materials markup (Path C).
+DOES NOT OWN (consumes only): labour cost and staff-type rates (Labour); group cost, overhead split, recovery hours
+and minimum recoverable rates (Cost Allocation); asset cost (Assets); revenue and verdicts (Business Outcome).
+
+===============================================================================
+3. RULES (do not break)
+===============================================================================
+L1  One owner per calculation: Labour owns labour cost; Cost Allocation owns group cost and the overhead split;
+    Rate Builder compares charge to cost.
+L2  Minimum recoverable labour rate = productive labour cost rate + allocated overhead rate. Non-productive labour is
+    NOT loaded into the rate.
+L3  All-productive weighted charge rate is read-only: sum(staff-type rate x productive hours) / productive hours.
+L4  (UPDATED 2026-10-01, RB-1) Within a group, overhead is split labour / asset by the SHARED split_group_overhead
+    (lib/calculations/shared/overheadSplit.js) and the labour pool is spread across staff types by HOURS (cost as
+    fallback). Same rule as Business Outcome - one definition, never duplicated.
+L5  Productive asset running costs stay out of the labour overhead pool (pool transfer to Assets upstream).
+L6  Never invent labour charge rates, market rates or product rates. A staff type with no saved rate is
+    INCOMPLETE - no fallback rate, never $0.
+L7  Margin and markup are distinct (margin sell = cost / (1 - m); markup sell = cost x (1 + k)). NOT BUILT in
+    Path A (RB-4).
+L8  P&L implied labour benchmark belongs to Business Outcome, not Labour Rates Builder (RB-Q5).
+L9  PER-ASSET PRICING (owner 2026-10-04 / 10-09): each asset gets its own calculator; the group price is the SUM of
+    its assets' prices - a result, never an input. An asset-linked calculator prices the MACHINE ONLY; the operator
+    is charged once, through the Labour tab rate, on the labour row. Legacy group calculators keep the all-in rate.
+L10 Labour in a group's calculator comes from the group's Cost Allocation assignments and the saved per-staff-type
+    rates; weighted by TOTAL ASSIGNED hours (same basis as Business Outcome's labour mix - D-IDLE-4). It is an
+    hours-weighted average; a two-person crew does not show both rates added.
+L11 Hard block (owner 2026-10-14): while a group's labour is incomplete (unpriced staff type -> points to Labour Rates
+    Builder; no labour or no recovery hours -> points to Cost Allocation), adding / editing lines is locked; Delete
+    stays; saved lines and totals are unchanged and still counted. A calculator with no group selected is never
+    blocked. Messages name the staff type, never a person.
+L12 The group dropdown placeholder is inert - it never unlinks a calculator (OPEN-D fix).
+
+===============================================================================
+4. INPUTS AND STORAGE (what actually propagates)
+===============================================================================
+Reads: Labour contract (productive_staff_type_rates, weighted_all_productive_labour_rate,
+  pnl_derived_recovered_labour_rate - carried, not rendered); Cost Allocation (rate_builder_labour_recovery_rows,
+  operational_group_cost_rows, labour assignments); its own storage. Reads no readiness / trust field.
+Storage (the real outputs):
+  qstools_rate_builder_labour_source_rates_v1   per staff_type_id charge-out rates (NOTE: no underscore after "qs").
+                                                One global map overlaid on every model (RB-11). Read by Business
+                                                Outcome (readRateBuilderLabourSourceRates).
+  qs_tools_rate_builder_calculators_v1          calculators: linked_cost_allocation_group_id, linked_asset_id
+                                                ("" = legacy group calculator), lines, output driver.
+  rateBuilderLabourRatesStorage.js, rateBuilderMaterialsMarkupStorage.js
+Default seed: an unlinked "2-inch line pump calculator" is re-created whenever storage is empty (harmless; Business
+Outcome ignores it). Returning to the calculator tab always reopens it - re-select group and asset each time.
+
+===============================================================================
+5. THE THREE PATHS
+===============================================================================
+PATH A  Labour Rates Builder - per-staff-type and all-productive minimum recoverable rates vs saved charge-out
+        rates (useRateBuilderLabourRates, rateBuilderLabourSourceSelectors build_recovery_fields). Upstream rows from
+        costAllocationRateBuilderSelectors.js.
+PATH B  Customer Charge Calculator - per-asset (or legacy group) calculators. Asset-linked cost per hour =
+        (assigned asset cost + hours-share of the group asset overhead pool) / asset hours. Labour breakdown by staff
+        type (rateBuilderLabourByStaffType.js) with collapsed detail; pricing block (rateBuilderPricingBlock.js).
+        Recovery hours = sum of "hr" line quantities, else output-driver quantity (RB-13).
+PATH C  Materials markup (useRateBuilderMaterialsMarkup) - feeds Business Outcome View B materials (closed 8b, F6/H5).
+Recovery Link tab is a placeholder.
+
+===============================================================================
+6. KEY FILES
+===============================================================================
+hooks/rate-builder/useRateBuilderLabourRates.js, useRateBuilderMaterialsMarkup.js
+lib/selectors/rate-builder/rateBuilderLabourSourceSelectors.js (+ LabourModel, LabourRateSummary selectors)
+lib/selectors/cost-allocation/costAllocationRateBuilderSelectors.js   upstream recovery rows (RB-1 fix here)
+lib/calculations/shared/overheadSplit.js                               split_group_overhead (shared with BO)
+lib/calculations/rateBuilderLabourByStaffType.js, rateBuilderPricingBlock.js, rateBuilderCalculations.js
+components/rate-builder/line-calculator/useRateBuilderLineCalculator.js (612 lines), RateBuilderResultPanel.jsx,
+  RateBuilderLabourBreakdown.jsx, RateBuilderPricingBlockNotice.jsx, RateBuilderGroupSelector.jsx
+lib/calculation-trace/pilot-map/rateBuilderTraceNodes.js
+Business Outcome side of Path B: lib/calculations/businessOutcomeAssetCalculatorRates.js
+
+===============================================================================
+7. VERIFIED STATUS (dated evidence, not today's data)
+===============================================================================
+2026-09-23  Code trace (no live numbers by decision): L2 and L3 hold; no double productivity (RB-4 dead code); no
+            has_loaded race; no output contract; no readiness read.
+2026-10-01  RB-1 proven on :3004 (smoke test E.1 / E.3): adding an asset made labour floors FALL (Supervisor 79.58
+            -> 79.35); Rate Builder labour pool 1,879.28 = Business Outcome labour pool 1,879.28; hours basis moved
+            expensive / cheap floors the right way; trace text matches code. Business Outcome unchanged (regression).
+2026-10-04  Path B Stage 1a (6df2de0): per-asset calculators; cost per asset 14.47 and 5.80 / hr matched baseline.
+2026-10-09  Stage 1b (2bb6400): Business Outcome per-asset revenue; reconciles to the dollar in View A and B.
+2026-10-10  Machine-only panel (fa9fadd): RB1 Pump $120 x 5 h vs 5.78 / hr - 15 / 15 checks pass.
+2026-10-13  OPEN-D (a9e55d3) placeholder inert - owner live-checked. OPEN-E labour by staff type - 7 / 7 checks
+            (one type, two types, incomplete).
+2026-10-14  Hard block (dea2013): locked 10 / 10, unlocked 9 / 9, logic run 11 / 11.
+2026-10-15  D-IDLE-4: Paul + Jack in one unit -> charge 150, cost 87.23 (was 294.61 on the old basis); Paul alone
+            unchanged 150 / 79.28.
+2026-10-17/18 R2 harness: Rate Builder overhead per staff type per group and rate_builder.labour_rate per type
+            checked in layer 2 (dollar checks accept cents, F-6). all_productive row (RB-1b) NOT yet covered.
+
+===============================================================================
+8. FINDINGS REGISTER (keep numbers; update status in place)
+===============================================================================
+OPEN - DESIGN / CORRECTNESS
+RB-1b all_productive row overhead = total overhead x Recovery Summary labour_share_percent - a different basis
+      from the per-staff-type rows (C24 / R3). Fix candidate: all_productive = sum of staff-type rows. Add to the R2
+      layer-2 expected values when fixed.
+RB-2  A group with zero overhead or zero labour cost is skipped entirely, dropping its labour hours from the
+      staff-type row. Latent.
+RB-12 (partly superseded by L9 / L10) Legacy group calculators: "Total job" uses the group rate while the breakdown
+      uses labour + asset; asset charge is a residual.
+RB-13 Recovery hours = sum of all "hr" lines; two hour lines for the same job double the hours; "day" lines not
+      counted. "Per <unit>" row divides by output-driver quantity, not recovery hours ($125 vs $119.05).
+RB-14 Labour-only / cost-only groups cannot be priced in the calculator (only asset-backed groups offered).
+      Scoping: RateBuilder_PathB_and_UnitsMode scoping brief item 1 (code check owed).
+RB-15 Group rate includes non-productive cost; stream rates and labour minimum do not (C6). Owner decision taken
+      on the Business Outcome side (BO-3).
+RB-17 A calculator whose group stops being asset-backed, or whose group / asset is deleted, silently shows zero /
+      not_ready and Business Outcome stops counting its lines. Candidate: orphaned-calculator notice.
+OPEN - LOW / DISPLAY
+RB-3 mixed fallback; RB-5 unlinked calculator still uses the single Labour-tab source (by design for no-group);
+RB-7 invented defaults (manual preview rate, seeded charge rate / margin) - latent, contrary to L6; RB-10 weighted
+summary counts unpriced types' hours; RB-11 one global rate map; RB-16 default calculator seeds a named real-business
+calculator with priced lines (test-data leak for new users); RB-Q1 "Status: ready" printed regardless of Labour
+readiness (Labour F2); group labour row shows total assigned hours while rates divide differently (note offered).
+OPEN - QUESTIONS
+RB-Q2 Is the saved-calculator UI (Path A) still wanted?
+RB-Q4 has_loaded guard check across the four storage files.
+RB-Q5 Is RateBuilderPnlLabourBenchmarkCard rendered (contradicts L8)?
+OPEN-C Group total view (read-only sum of asset calculators) - not built.
+--    Retire the legacy group-level calculator; row.net_asset_rate still carries the legacy value on per-asset rows;
+      legacy asset-split card group-level only; Business Modelling asset_blended_rate_overrides keyed by group (an
+      override forces the legacy path) - all carried from Path B.
+--    Path B live test / CM-1 identity proof (smoke Step 8) never done; Step F (business-type flip) parked, needs a
+      fresh one-sitting baseline.
+NOT BUILT FROM v4.0 (documented, not defects): output contract, rate status / warnings / trust state, margin /
+markup / suggested sell rate (L7), current / target / market comparison, mode-guided and unit rates, Recovery Link.
+CLOSED
+RB-1 (2026-10-01), RB-4 (dead code), RB-6 (field is emitted), RB-8 (withdrawn), RB-9 (correct), RB-Q3 (answered),
+S28 per-asset linking (built), OPEN-D, OPEN-E, CM-9b, hard block, result panel machine-only.
+
+===============================================================================
+9. DEFERRED / FUTURE
+===============================================================================
+- Units / product mode rates: Future_Build\UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt (Rate Builder is
+  hours-native; calculator units are free text, recovery in hours).
+- Dry hire pricing (hourly, default off): Future_Build\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt.
+
+===============================================================================
+10. OUT OF SCOPE FOR ANY RATE BUILDER CHANGE
+===============================================================================
+Do not compute group cost, overhead distribution or recovery hours here (Cost Allocation). Do not invent rates.
+Do not duplicate split_group_overhead. Changing a storage key or id shape IS a cross-module change (Business Outcome
+reads both stores).
+
+===============================================================================
+11. ACCEPTANCE CHECKS FOR ANY RATE BUILDER CHANGE
+===============================================================================
+- Build passes; every patch confirmed.
+- Console check of the rendered panel for the changed path (recompute from inputs) - one sitting.
+- If a storage shape or id changes: Business Outcome per-asset and labour rows re-checked, R2 harness re-run.
+- Trace node exists and matches the screen for any new figure.
+- CALCULATION_MAP Section 8 updated in the same commit.
+
+===============================================================================
+12. SOURCES (this brief replaces these - originals in docs\Archive)
+===============================================================================
+- fin_mirra_v6.0 Briefs\RateBuilder_v6_0_BRIEF_VERIFIED_2026-09-23.txt (L1-L8, RB-1..RB-17, RB-Q1..Q6)
+- fin_mirra_v6.0 Briefs\RB1_OVERHEAD_BASIS_FIX_BRIEF_2026-10-01.txt
+- fin_mirra_v6.0 Briefs\RATE_BUILDER_ASSET_LEVEL_CALCULATORS_BRIEF_2026-10-04.txt (Path B, Addenda 10-18; its
+  Cost Allocation and Business Outcome addenda are carried in those briefs)
+- fin_mirra_v6.0 Briefs\RateBuilder_PathB_and_UnitsMode_v6_0_SCOPING_BRIEF_2026-09-24.txt (item 1 here as RB-14;
+  item 2 moves to the Units Mode future-build brief)
+- Mirra_v5_Briefs\_Archive\_Archive_v4\19_MIRRA_RATE_BUILDER_v4.0_LOCKED.txt; S28_RATE_BUILDER_PER_SOURCE_LINKING_v5_1
+Evidence: Audit\v6_0\P3_RateBuilder\, smoke_test\1.9_calculation_trace_rate_builder, 2.4 Rate Builder Smoke Test.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(none yet)
