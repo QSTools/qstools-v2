@@ -175,3 +175,35 @@ UPDATE 2026-10-10
   to the file's own EOL, and count each OldText in the file (exactly 1 required)
   BEFORE any Apply-Patch call. If any count is wrong, stop with "nothing was
   changed".
+
+UPDATE 2026-10-15
+- Apply-Patch.ps1 now carries the batch helpers. Use Invoke-PatchBatch (preflight
+  with exactly one match per patch, EOL-normalised, then apply), Assert-Contains
+  (post-patch check) and Invoke-Build (refuses while dev is running or after any
+  patch/assert failure). These replace the hand-written preflight above.
+- Acceptance criteria first: before each batch, state what must be true afterwards
+  (patch count, asserts, build, expected numbers). Check the pasted output against
+  that list, not just "Patched:" and a green build.
+- Slice order: batches are thin end-to-end slices (storage, selector, minimal UI),
+  not layer by layer, so scope and field-dropping bugs show up in the first batch.
+- After a bug: classify the cause (process, missing context, weak rule, unreliable
+  code) and fix it in the smallest durable place (rule, helper or assert).
+- Brief template for new briefs: out of scope; modules touched; acceptance numbers;
+  slice order. Old briefs are not retrofitted.
+- One feature per chat; the brief is the handoff.
+
+
+UPDATE 2026-10-16
+- DEFINITION OF DONE: a new calculated figure is not done until it has a calculation trace node, in addition to a clean
+  build, a "Patched:" confirmation and live verification. It applies to display-only figures that show a calculated
+  number. It does not apply to input-field coaching. Add "trace node exists and matches the screen" to the acceptance
+  criteria of every batch that adds a figure. (Trigger: idle cost shipped 2026-10-15 without nodes.)
+- A feature built outside the formal smoke test sequence follows the same rule. Nodes are not only for formal module
+  verification passes.
+- Regression suite: once it exists (REGRESSION_HEALTH_CHECK_SUITE_FUTURE_BUILD_BRIEF_2026-10-16.txt), run it after any
+  change to shared calculation or storage code and before any change reaches a real database. Until then the manual
+  checks above stand.
+- Real data is never hand-patched or re-derived outside the calculation code. Stored numbers are written only by the same
+  code the app uses. Migrations are additive and versioned, with a backup first.
+- Pointer: the resolved build order and the launch bar are in LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_
+  2026-10-14.txt, Addendum 1.
