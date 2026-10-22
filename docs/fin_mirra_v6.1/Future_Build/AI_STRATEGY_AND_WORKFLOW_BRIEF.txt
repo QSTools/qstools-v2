@@ -1,0 +1,156 @@
+===============================================================================
+MIRRA - AI STRATEGY AND WORKFLOW BRIEF (the ONE AI reference brief - update in place)
+===============================================================================
+FILE:        docs\fin_mirra_v6.1\Future_Build\AI_STRATEGY_AND_WORKFLOW_BRIEF.txt
+STATUS:      [REFERENCE / STRATEGY] Part A: nothing built, mostly undecided. Part B: process changes shipped
+             2026-10-15 (Apply-Patch helpers, conventions addendum); no application code touched.
+CREATED:     2026-10-22 (V6.1c, step 4c) by merging two briefs. Detail lost in the merge is in the originals:
+               docs\Archive\fin_mirra_v6.0 Briefs\AI_STRATEGY_CUBAN_TALK_AND_MIRRA_BRIEF_2026-10-12.txt
+                 (incl. its Addendum 1, 2026-10-14: Eon / Eisman talks, code-read findings, benchmark moat, legal gate)
+               docs\Archive\fin_mirra_v6.0 Briefs\AI_WORKFLOW_TALKS_POCOCK_AND_SKILLS_BRIEF_2026-10-15.txt
+             Sources are podcast / video transcripts, auto-captioned. Attributions to speakers are from those
+             transcripts only. Tags: [PK] seen in project knowledge; [INF] inference, unchecked; [VERIFIED] code read
+             2026-10-14; [DONE] shipped; [PARKED] deliberately not adopted; [OPEN] needs a decision.
+RELATED:     Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt (the numbered build
+             order, R1-R10, and the benchmark module sequencing; this brief is the "why", that one is "what's next");
+             Future_Build\AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER_FUTURE_BUILD_BRIEF_2026-10-01.txt (R7 AI layer).
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (none yet; next is Addendum 1). When an addendum changes a
+decision or status above, also edit that line in place. When an item is built it folds into the module brief.
+
+===============================================================================
+PART A - STRATEGY: WHERE MIRRA STANDS AGAINST THE AI TALKS
+===============================================================================
+
+A.1 WHAT THE TALKS SAID (priority order for Mirra)
+ C1  Moat is unique IP / data, not software sold by the seat. Anyone can describe standard software to an AI and get
+     a version in minutes. "A bit better, faster, cheaper" is not IP.
+ C2  Do not publish; sell. Publishing gives models the advantage.
+ C3  AI does not know the consequences of its actions: a human buffer is needed. Use AI to learn, not to avoid learning.
+ C4  Rebuild around AI; do not bolt it on.
+ C5  Agents do the tedious work nobody gets to (example: a cheese company's agent checks carrier invoices against
+     box size and files credit requests; reported saving about $50,000 a month).
+ C6  Agents drift between model versions, so they need maintenance.
+ C7  Iterate continuously. C8 Personalised teaching/explanation. C9 Curiosity. C10 Talk to AI at length.
+ Eon podcast: models and compute are ephemeral, data is the durable asset. Second-order risk, parked: AI agents as a
+   non-human security/compliance threat class once Mirra holds a real database of client data (revisit at R6).
+ Eisman podcast: the moat test is switching cost. Mirra is a moat only if leaving costs the client something real
+   (their own calculated history), not because the logic is clever.
+ Not relevant to Mirra (do not re-read for them): foundation-model spending, world models, lab leadership, SaaS
+   selloff beyond C1, spam, jobs outlook.
+
+A.2 WHERE MIRRA ALREADY MATCHES [PK]
+ M1  Moat is the calculation chain and its judgment calls (covered hours capped by labour; overhead split by cost
+     share; non-productive cost policy; Best Case vs How the Business Runs), not the screens.
+ M2  Human stays the buffer: Apply-Patch with mandatory confirmations, live tests on real data, stop-and-confirm on core
+     calculation files, git status before commit.
+ M3  Dev process is AI-native. Whether the PRODUCT is built that way for users is open (R7).
+ M4  One reconciled output contract, many consumers (Business Outcome contract feeds AI Export, Dashboard, Business
+     Modelling).
+ M5  Shows its working: calculation trace, CALCULATION_MAP, VARIABLE_TRACKER.
+ M6  Governing principle: the tool exists to reveal gaps; a gap that is calculated but not shown breaks the promise.
+     An agent would extend "shown" from "visible if you look" to "pushed to you".
+ M7  Partial: a health gauge explainer exists; it does not adapt to the reader.
+
+A.3 GAPS
+ G1  End-user agent / alerting. Nothing runs without a person loading a page. Needs (a) a trigger (the chain runs
+     client-side; see A.5), (b) a comparison - persisted history of calculated outputs, which does not exist (first-time
+     storage design), (c) delivery. THE HARD PART IS THE RULE, NOT THE PLUMBING: what gap, over what window, deserves to
+     interrupt an owner. NOT DEFINED. Candidate inputs already calculated: capacity coverage gap dollar value, a unit
+     tipping from viable to loss-making, non-productive cost share spike, unexplained_revenue.
+ G2  Explanation adapted to the reader (owner vs accountant). Idea only.
+ G3  Adviser / consultant use of Mirra with clients. Business model question. Parked.
+
+A.4 RISKS AND CHECKS
+ R-1 Keep the moat private: briefs, CALCULATION_MAP, VARIABLE_TRACKER and the logic are the valuable part. (Exposure
+     found in A.5; AI Export resolved in A.5.)
+ R-2 Generic CRUD gives no protection: judge new features on whether they add proprietary judgment or only screens.
+ R-3 Conventions rule 10 is the same question as C1: do not import data just because it is available.
+ R-4 Alert fatigue (G1). R-5 Model drift if any feature ever depends on an external model (none today).
+
+A.5 VERIFIED BY CODE READ, 2026-10-14 [VERIFIED]
+ - The whole calculation chain (40+ files in lib/calculations/) ships into the browser bundle: every calculation hook
+   is "use client". app/api/ had exactly three routes (acc/search, demo-login, pnl-import), none touching the chain.
+   The moat exposure is live, not hypothetical.
+ - AI Export (hooks/useAiBusinessState.js, buildAiBusinessStateExport) only feeds app/ai-business-state/page.jsx, a
+   read-only JSON preview. No AI SDK in package.json. Nothing leaves the app. Revisit only if AI Export is ever wired
+   to a third-party model.
+
+A.6 DECISIONS MADE (2026-10-14)
+ - Server migration: move calculation / selector files server-side, whole files only, never split mid-logic. Entry
+   point is a thin dispatcher (app/api/calculate/route.js + lookup table), inside the ~600-line convention.
+ - Units before launch: build units mode fully before the database exists, so shared calculation changes do not tangle
+   live financial history. Accepted cost about 6 months. (Now R4 in the build order.)
+
+A.7 THE THIRD MOAT - ANONYMISED CROSS-CLIENT BENCHMARKING
+ - Layers: (1) a business's own modelled-vs-actual history (the switching-cost moat; part of the database step);
+   (2) cross-business snapshot vs anonymised peers; (3) market trend over time. Layers 2-3 are the only network effect
+   identified; sequenced AFTER layer 1 and after the database.
+ - Already exists, no new calculation logic: Business Outcome per_source, capacity_coverage_gap, Labour Recovery rates,
+   Recovery Summary stream shares, Cost Summary required_recovery_rate, revenue, industry/trade.
+ - Genuinely new: a stored consent flag (+ timestamp, scoped to anonymised ratios only, never raw data, never model
+   training); size-band bucketing; one aggregation module outside the existing chain, reading finished output-contract
+   data and writing its own storage. HARD DEPENDENCY: the database must exist with real cross-client rows.
+ - Sample floor: roughly 20-30 businesses per category x size band for directional signal (rigorous 200-385). Go deep in
+   one trade first (construction is the leading candidate, not locked in).
+ - Valuation research: data-moat companies roughly 5-10x revenue vs 2-5x for comparable SaaS without one. Answer to
+   "how do I stay ahead of a copier": copying is inevitable; client history and the benchmark pool cannot be copied,
+   only built over time.
+ - LEGAL GATE (hard, not optional): price-signaling risk (RealPage, Agri Stats precedents; Gibson v. Cendyn favourable).
+   Design direction, NOT lawyer-cleared: show a BAND not a number; historical/monthly, never live; sample floor; state
+   where the business sits against the band and stop, never recommend a rate or action; never market it as "the market
+   rate". A lawyer must review band width, sample floor, cadence and exact UI copy BEFORE it is built.
+
+A.8 DECISIONS NOT MADE
+ D-A Is an agent / alerting layer worth pursuing at all, now or later?
+ D-B If yes: on-demand "check now" button first (needs no scheduler or history; tests the rule) vs scheduled job.
+ D-C What counts as alert-worthy (G1).
+ D-D Store historical snapshots of calculated outputs? (new storage schema: own confirmation, has_loaded guard)
+ D-F Audience-specific explanations (G2) wanted or not. D-G Adviser use (G3) in scope or not.
+ D-E RESOLVED (A.5): nothing leaves the app via AI Export.
+ NEW-1 Proceed with the benchmark feature at all, given the legal gate? NEW-2 Which trade first?
+
+A.9 SUGGESTED ORDER IF THE OWNER ACTS (not a commitment)
+ 1. Write the alert-worthiness rule in plain words from existing fields (D-C). No code; this is the real design risk.
+ 2. Only then a "check now" prototype, then history storage, then scheduling and delivery. Each is its own decision.
+ 3. Any code step follows the standing conventions.
+
+===============================================================================
+PART B - WORKFLOW: WHAT THE POCOCK AND SKILLS TALKS GAVE, AND WHAT WAS ADOPTED
+===============================================================================
+
+B.1 IDEAS USED
+ P1 Thin vertical slices, not layer by layer. P2 Feedback loops cap output quality; a green build is a weak loop.
+ P3 Quality degrades as a chat grows (about 100k tokens): small sessions, hand off through a document.
+ P4 Align on design before building; small independent tasks. P5 Deep modules, you design the interface.
+ P6 QA findings become backlog items. S1 Save proven code. S2 Precise descriptions, small always-loaded context.
+ S3 Turn corrections into durable rules (classify cause: process, missing context, weak rule, unreliable code).
+ S4 Verify with evidence outside the first draft; state acceptance criteria before the work.
+
+B.2 ADOPTED 2026-10-15 [DONE]
+ - Apply-Patch.ps1 helpers: Invoke-PatchBatch (preflight, exactly one match per patch, EOL-normalised, nothing changed if
+   preflight fails), Assert-Contains, Invoke-Build (refuses while dev is running or after any patch/assert failure),
+   Reset-PatchState. Self-tested by the owner.
+ - Conventions addendum "UPDATE 2026-10-15": helpers, acceptance criteria first, slice order, cause classification,
+   one feature per chat, brief template block.
+ - Brief template block for NEW briefs: OUT OF SCOPE; MODULES TOUCHED (feeds the stop-and-confirm gate); ACCEPTANCE
+   NUMBERS; SLICE ORDER. Old briefs not retrofitted. (The 12 V6.1 module briefs carry Out of Scope and Acceptance
+   Checks sections.)
+
+B.3 FINDINGS IN THE REPO (2026-10-15; STATUS NOW NOT RE-CHECKED)
+ - CLAUDE.md is only "@AGENTS.md"; AGENTS.md (26KB, "Codex Project Instructions v3.8") never mentions Mirra, v6.0 or
+   Apply-Patch. [PARKED] Left alone; archive only if Claude Code is ever run in the repo.
+ - package.json scripts: dev, build, start, lint. No test runner.
+ - scripts\check-calculation-trace-integrity.mjs is broken (imports a file that no longer exists, old graph API,
+   hard-coded 41 nodes / 41 edges, "@/lib" alias not loadable by plain node). Do not wire in as is. [OPEN] A working
+   version needs a TypeScript-aware runner (for example tsx) and sample live values.
+ - Repo root has an accidental file named "et --hard HEAD" and loose reports. [OPEN] Owner call on cleanup.
+
+B.4 PARKED / OPEN
+ [PARKED] Unattended agent loops, Docker sandboxes, parallel agents (need an agent running inside the repo).
+ [PARKED] Fresh-context diff review / reviewer personas: only for risky changes (core calculation files, multi-module),
+          as a new chat given the diff plus the conventions file.
+ [OPEN]   Automated checks on calculation files (P2). Today the numeric console check is the only strong loop; the R2
+          stress suite (Py\stress_test) now adds a second. V6.1 step 5 (script pack) covers part of this.
+ [OPEN]   Trace integrity check (see B.3).
+
+===============================================================================
