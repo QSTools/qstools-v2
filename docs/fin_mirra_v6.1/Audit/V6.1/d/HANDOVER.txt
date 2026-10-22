@@ -1,0 +1,74 @@
+HANDOVER V6.1d   2026-10-22   (written at the end of V6.1d steps 5 and 6; steps 7 and 8 are next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\d\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- Last code/doc commit before this file: acad966 (V6.1d step 6b/6c). git status was empty after it.
+- This session's commits (start was 5a05b20): 2141f8b step 5a trace checker + CALCULATION_TRACE_BRIEF + old trace brief
+  archived | 558c475 step 5b/5c brief-currency and project-knowledge-sync checkers | ccf82b5 Regression brief Addendum 1 |
+  2a71924 step 6a Apply-Patch.ps1, conventions 2026-10-15/16 updates, .gitignore | acad966 step 6b/6c (conventions V6.1d
+  block, PROJECT_MAP, calc map header paths, AGENTS.md READ FIRST).
+- Committing this handover is the first action of the next chat if it is not already committed.
+
+2. WHAT WAS DONE (V6.1d)
+- Step 5: Py\audit-scripts\check_trace_coverage.py, check_brief_currency.py, check_project_knowledge_sync.py (all read-only,
+  run on the real repo). Briefs\CALCULATION_TRACE_BRIEF.txt written (built state, findings T-1..T-8).
+- Step 6a-c: conventions now carry the V6.1d block (folders, one brief per module, version/letter, definition of done,
+  script-commenting rule, audit scripts, handover template). PROJECT_MAP, calc map header and AGENTS.md fixed.
+- Step 6d: owner pasted the corrected rule 11 into the project instructions.
+- Project knowledge was checked: the 2026-10-22 date check gave false STALE verdicts (project docs are replaced in place, so
+  created_at never moves). The sync checker now works from a content-hash ledger instead.
+
+3. OWNER DECISIONS MADE
+- Add the AGENTS.md READ FIRST pointer (done). No .gitattributes (line endings are mixed; Apply-Patch normalises per file).
+- Hold the trace brief until the checker existed (done, then written).
+
+4. OPEN ITEMS (nothing here is started)
+a. Py\stress_test as the standing regression suite: owner NOT YET DECIDED. Conventions say "PROPOSED ... owner to confirm".
+   Claude's view: confirm it, labelled partial (hours mode only; gaps G-1..G-6 in the Regression brief Addendum 1).
+b. T-1: scripts\check-calculation-trace-integrity.mjs imports a file that no longer exists. Retire it or rewrite it. Owner to choose.
+c. Calc map line ~638 still names docs\Audit\v6_0\bo_per_source_POST_CM1_2026-09-25.json (now under docs\fin_mirra_v6.1\Audit\v6_0\).
+   One-line Apply-Patch fix.
+d. docs\fin_mirra_v6.0 Briefs\ contains only desktop.ini. Remove the empty folder (owner action, nothing in it to archive).
+e. PROJECT_MAP section 2 now has a Calculation trace row with "route not examined" (the trace page route was not looked at).
+f. Findings to keep: T-1..T-8 (CALCULATION_TRACE_BRIEF), G-1..G-6 (Regression brief Addendum 1), F-1/F-4/F-7/F-10/F-11 (R2 fix batch).
+
+5. NEXT STEPS IN ORDER
+Step 7  Trim project knowledge. Project docs list is in .tmp\project_docs.tsv (25 docs); the sync checker report is the work list:
+   - Run first: python Py\audit-scripts\check_project_knowledge_sync.py (clipboard form is in the script header).
+   - Project knowledge is changed by Claude with the Projects tool (project_write local_path, project_delete). No ledger yet:
+     .tmp\project_sync_ledger.tsv (repo_path TAB sha256 TAB synced_at TAB project_path) must be written at upload time from the
+     exact bytes uploaded. Note: a new bare filename in project_write goes under claude/; existing root-level docs
+     (conventions, CALCULATION_MAP_v6_0.txt, VARIABLE_TRACKER_v6_0.txt) keep their root path.
+   - Remove: claude/R2_HANDOVER_2026-10-18.txt and V6_0_KICKOFF_AND_HANDOVER_2026-09-20.txt (both archived in the repo).
+   - Add: PROJECT_MAP.md and CALCULATION_TRACE_BRIEF.txt. Re-upload (changed since upload): the conventions file; and
+     CALCULATION_MAP, LAUNCH_BUILD_ORDER, ESCT, STRESS_TEST_DATABASE_AND_AGENT_DESIGN (their repo copies are newer than
+     the dates of the uploads; compare with project_read first, then upload).
+   - claude/SUPPLIER_PRODUCT_ALIAS_AND_RECONCILIATION_MATCHING_FUTURE_BUILD_BRIEF_2026-10-21.txt exists ONLY in project
+     knowledge. Ask the owner, then copy it into docs\fin_mirra_v6.1\Future_Build\ (via project_read and a file write) and commit it
+     before touching the project copy. STRESS_TEST_HARNESS_README maps to Py\stress_test\README.txt (alias in the checker).
+   - Owner decision needed: how far to trim. Handover goal: conventions + PROJECT_MAP + the brief(s) a task needs. The large
+     CALCULATION_MAP (59 KB) and VARIABLE_TRACKER (76 KB) are in the checker's core set; owner to say keep or leave to the repo.
+   - End: run the sync checker again; every uploaded doc should read OK.
+Step 8  Final handover (replaces this file's open items), commit, then resume R2.
+R2 then: (a) production-build timing run (stop dev, npm run build, npm start on a spare port such as 3005, rerun the Addendum 13
+   scripts, Q-7 verdict); (b) profile Business Outcome at 1,000 staff; (c) typing in Cost Allocation percent and Rate Builder lines;
+   (d) layer-2 gaps after the fix batch. Then the fix batch F-1 ESCT (core calc file: stop and confirm), F-4, F-7, F-10, F-11 and ONE
+   full regression re-run (A, A misaligned, B, A2, ladder). The 100 and 1,000 staff ladder totals in the stress brief were worked
+   from recorded differences, not re-run: the re-run settles that.
+NO stress-test work until step 8.
+
+6. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Claude has no git or shell on the PC: Claude gives commands, the owner pastes output back. Scripts: no placeholders, dry run by
+  default, output to clipboard, size verified on disk. Wrap gated commands in & { } ; git stderr warnings: add 2>$null.
+- Apply-Patch (IndexOf/Substring, UTF-8 no BOM), "Patched:" confirmations, npm run build after code batches, never while dev runs.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- One piece of work per chat; the handover is the memory. Start a NEW chat rather than carry on after a compaction.
+- Tell the owner when a step needs Opus. Only the trace-coverage checker was flagged and it is done.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt
+   (the UPDATE 2026-10-22 block at the end is the one that matters).
+Then only: Py\audit-scripts\check_project_knowledge_sync.py header (step 7); for R2, the stress-test README and the R2 section of the
+Launch Build Order brief Addendum 1. Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs not
+needed by the task.
