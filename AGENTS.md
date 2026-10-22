@@ -7,6 +7,8 @@
 **REPLACES:** AGENTS.md v3.6 instructions
 **UPDATED FOR:** Business Setup, mode-aware Revenue / COGS, mode-aware Business Summary, and activity-driver recovery logic
 
+> **READ FIRST (added 2026-10-22, V6.1d):** `docs/fin_mirra_v6.1/PROJECT_MAP.md` is the entry point: where every document lives, which brief covers which module, and the current build position. Then `Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt`, then only the module brief(s) the task needs (`docs/fin_mirra_v6.1/Briefs/`). The `docs/V3.8 Source Files` folder and numbered v3.8 brief list named further down are historical and no longer exist. The rules in this file (ownership, contracts, guardrails) still apply.
+
 ---
 
 ## Project Role

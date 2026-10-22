@@ -106,7 +106,7 @@ against expected real numbers.
 ## Living docs and cross-session memory
 
 After shipping a real feature, update the relevant brief in
-docs/Mirra_v5_Briefs/ with [SHIPPED] status and what was actually
+docs/fin_mirra_v6.1/Briefs/ with [SHIPPED] status and what was actually
 verified. These briefs are the only cross-session memory this project
 has - Claude has no persistent memory between chats, and Claude's project
 knowledge (the uploaded documents visible to Claude in a fresh chat) can
@@ -137,11 +137,11 @@ ADDED 2026-09-24: PASTED COMMANDS AND DATA CAPTURE
 
 
 UPDATE 2026-10-09
-- Brief locations: current v6.0 briefs live in docs/fin_mirra_v6.0 Briefs/.
-  docs/Mirra_v5_Briefs/ holds the v5.0 briefs - the last set before the v6.0
-  refinement - historical reference only, not updated. CALCULATION_MAP_v6_0.txt
-  lives in docs/Audit/v6_0/. Find a doc by name under docs before editing rather
-  than assuming a folder.
+- Brief locations (corrected 2026-10-22, V6.1d): current briefs live in
+  docs/fin_mirra_v6.1/Briefs/. The v5.0 briefs are in docs/Archive/Mirra_v5_Briefs/ -
+  historical reference only, not updated. CALCULATION_MAP_v6_0.txt lives in
+  docs/fin_mirra_v6.1/Calculations/. Find a doc by name under docs before editing
+  rather than assuming a folder.
 - Never run npm run build while npm run dev is running - it corrupts .next and the
   page fails with ENOENT / missing turbopack runtime errors. Stop dev (Ctrl+C),
   build, clear .next, then restart dev.
@@ -207,3 +207,37 @@ UPDATE 2026-10-16
   code the app uses. Migrations are additive and versioned, with a backup first.
 - Pointer: the resolved build order and the launch bar are in LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_
   2026-10-14.txt, Addendum 1.
+
+
+UPDATE 2026-10-22 (V6.1d)
+- FOLDERS. Live docs are under docs\fin_mirra_v6.1\ :
+    PROJECT_MAP.md   the entry point. Read it first, then this file, then ONLY the brief(s) the task needs.
+    Briefs\          one brief per module (plus CALCULATION_TRACE_BRIEF)
+    Calculations\    CALCULATION_MAP_v6_0.txt, VARIABLE_TRACKER_v6_0.txt, BUSINESS_OUTCOME_FILE_MAP_v6_0.txt, calc_map\ dumps
+    Audit\v6_0\      evidence        Audit\V6.1\<letter>\   handovers        Future_Build\   briefs for things not yet built
+  docs\Archive\ holds everything retired. Archive, never delete. Older paths in the notes above are superseded by this.
+- ONE BRIEF PER MODULE. Never start a second brief for a module. Append a dated ADDENDUM (check the last number first;
+  check_brief_currency.py prints the highest per brief). If the addendum changes a rule, status or finding, also edit that
+  line in place. When a future-build brief is built, fold it into the module brief and archive the future-build file.
+- VERSION / LETTER. V6.1 is the current docs line. Each working session that ends in a handover takes the next letter
+  (a, b, c, d ...) and writes Audit\V6.1\<letter>\HANDOVER.txt. A letter is never reused. The version number changes only
+  by an owner decision to reorganise.
+- DEFINITION OF DONE (extends 2026-10-16). A change that touches a calculation is done when: build is clean; every patch
+  shows "Patched:"; the screen matches the expected numbers; a new calculated figure has a trace node that matches the
+  screen; the calc map matches the code (extract re-run, CM-n closed or amended); the module brief has a dated addendum
+  with [SHIPPED]; git status shows only the expected files; project knowledge is re-synced at session end.
+- SCRIPT COMMENTING RULE. Every .ps1 / .py starts with a header comment: what it does, read-only or changes files, how to
+  run it, how its output is captured, known limits. No placeholders (the folder is D:\QSTools\qstools-web). Anything that
+  moves or changes files is a DRY RUN by default and needs an explicit switch to go live. Output goes to the clipboard.
+  .ps1 files are ASCII only.
+- AUDIT SCRIPTS (Py\audit-scripts\, all read-only): check_trace_coverage.py (trace nodes vs calc map),
+  check_brief_currency.py (briefs vs code commits, retired paths), check_project_knowledge_sync.py (project knowledge vs
+  repo, by content hash against .tmp\project_sync_ledger.tsv, which Claude writes at upload time). Run them at the start
+  of a handover and before the end-of-session sync.
+- REGRESSION SUITE. Py\stress_test is the PROPOSED standing suite for the hours-mode chain, partial (see the Regression
+  Health Check brief, Addendum 1). Owner to confirm. Until then, run it as that brief describes after changes to shared
+  calculation or storage code.
+- HANDOVER TEMPLATE (HANDOVER.txt, about 100 lines): 1 where we are (last commit, git status); 2 what was done;
+  3 owner decisions made; 4 open items and findings; 5 next steps in order; 6 standing rules; 7 read first (PROJECT_MAP,
+  this file, named brief) and what NOT to read.
+- AGENTS.md carries a READ FIRST line pointing at PROJECT_MAP.md. Its v3.8 brief list is historical.

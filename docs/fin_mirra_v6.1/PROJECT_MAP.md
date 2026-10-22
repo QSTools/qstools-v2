@@ -8,7 +8,7 @@ Paths are relative to `D:\QSTools\qstools-web`. Docs live under `docs\fin_mirra_
 
 | What | Where |
 |---|---|
-| Module briefs (12, intent / rules / contract / status / findings) | `docs\fin_mirra_v6.1\Briefs\` |
+| Module briefs (12, plus the calculation trace brief; intent / rules / contract / status / findings) | `docs\fin_mirra_v6.1\Briefs\` |
 | Calculation map (formulas, line hints, CM-n inconsistencies) | `docs\fin_mirra_v6.1\Calculations\CALCULATION_MAP_v6_0.txt` |
 | Variable tracker | `docs\fin_mirra_v6.1\Calculations\VARIABLE_TRACKER_v6_0.txt` |
 | Business Outcome file-by-file map | `docs\fin_mirra_v6.1\Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt` |
@@ -16,7 +16,7 @@ Paths are relative to `D:\QSTools\qstools-web`. Docs live under `docs\fin_mirra_
 | Audit evidence (173 files, v6.0) | `docs\fin_mirra_v6.1\Audit\v6_0\` |
 | Handovers | `docs\fin_mirra_v6.1\Audit\V6.1\<letter>\HANDOVER.txt` |
 | Future-build briefs (not built) | `docs\fin_mirra_v6.1\Future_Build\` |
-| Archive (never delete) | `docs\Archive\` ; v5.0 briefs in `docs\Mirra_v5_Briefs\` (historical, never updated) |
+| Archive (never delete) | `docs\Archive\` ; v5.0 briefs in `docs\Archive\Mirra_v5_Briefs\` (historical, never updated) |
 | Working conventions | repo root: `Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt` |
 | Stress-test regression suite | `Py\stress_test\` (README.txt inside) |
 | Audit scripts | `Py\audit-scripts\` |
@@ -43,6 +43,7 @@ Calc map section = section number in CALCULATION_MAP_v6_0.txt. Brief = file in `
 | Business Modelling | `/business-modelling` | BUSINESS_MODELLING_BRIEF | s10 (+ s12) | `hooks/useBusinessModelling.js`, `lib/calculations/businessModellingAdditiveModel.js`, `businessModellingSourceRows.js` |
 | Module Reconciliation + Model Readiness (the trust gate) | `/module-reconciliation`, `/model-readiness` | MODEL_READINESS_AND_RECONCILIATION_BRIEF | s11 (Reconciliation), s6 | `lib/reconciliation/reconciliationRules.js` (~1,035 lines, do not grow), `lib/calculations/modelReadinessCalculations.js` |
 | Quote Engine + Quote Checker | `/quote-engine`, `/quote-checker` | QUOTE_ENGINE_BRIEF | s11 | `lib/calculations/quoteEngineCalculations.js`, `quoteCheckerCalculations.js`, `hooks/useAiBusinessState.js` |
+| Calculation trace (cross-cutting; not a link in the calc chain) | route not examined | CALCULATION_TRACE_BRIEF | all | `lib/calculation-trace/*`, `scripts/check-calculation-trace-integrity.mjs` (broken import, finding T-1) |
 
 No brief (neighbours): Revenue Reality (`/revenue-reality`), Quick Start (`quickStartCalculations.js`, calc map s11),
 AI Business State (`/ai-business-state`, covered in the Quote Engine brief), `/dev/cross-import-check` (dev only, P&L brief).
@@ -98,7 +99,7 @@ F-11 EBIT adds back all interest, trace nodes backfilled.
 Performance fails (R2 UI speed pass, dev server): Business Outcome, Business Modelling and trace at 100 / 1,000 staff;
 Business Modelling lever typing at every size (fix belongs in R3).
 
-Docs reorganisation (V6.1): steps 1-4a done; 4b this file; then 4c, 5, 6, 7, 8 (see latest HANDOVER.txt).
+Docs reorganisation (V6.1): steps 1-5 done; step 6 (conventions and stale references) in progress; then 7, 8 (see latest HANDOVER.txt).
 No stress-test work until V6.1 step 8.
 
 ## 7. Findings numbering
@@ -115,13 +116,14 @@ DRY_HIRE_UNATTENDED_ASSETS (F-7) | HOURS_BASED_BUSINESS_TYPES_TEST_AND_MARKET_CO
 GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS | POST_LAUNCH_VISION_AND_POSITIONING.
 When one is built it folds into the module brief and the future-build file is archived.
 
-## 9. Held in `docs\fin_mirra_v6.0 Briefs\` (until step 4c)
+## 9. Archived from the v6.0 brief folder
 
-AI_STRATEGY_CUBAN_TALK, AI_WORKFLOW_TALKS_POCOCK (owner: reference or archive) | CALCULATION_TRACE_VERIFICATION_LAYER
-(supporting brief not yet written) | R2_HANDOVER_2026-10-18 and V6_0_KICKOFF_AND_HANDOVER_2026-09-20 (archive once this map
-and the V6.1 handover replace them).
+Nothing is held outside `Briefs\` and `Future_Build\` now. AI_STRATEGY_CUBAN_TALK, AI_WORKFLOW_TALKS_POCOCK,
+R2_HANDOVER_2026-10-18, V6_0_KICKOFF_AND_HANDOVER_2026-09-20 and the old CALCULATION_TRACE_VERIFICATION_LAYER brief are in
+`docs\Archive\fin_mirra_v6.0 Briefs\`. The trace brief is now `Briefs\CALCULATION_TRACE_BRIEF.txt`.
 
 ## 10. Known stale references (fixed in step 6)
 
-Project instructions rule 11 and the project doc list still name `docs/fin_mirra_v6.0 Briefs/` and `docs/Audit/v6_0/`.
-Current paths are in Section 1 above. The conventions file's 2026-10-09 note has the same old paths.
+Conventions and this map were corrected 2026-10-22 (V6.1d step 6). Still open: the project instructions (rule 11 and the doc
+list) name `docs/fin_mirra_v6.0 Briefs/` and `docs/Audit/v6_0/` until the owner pastes the corrected text in the project
+settings. Current paths are in Section 1 above.
