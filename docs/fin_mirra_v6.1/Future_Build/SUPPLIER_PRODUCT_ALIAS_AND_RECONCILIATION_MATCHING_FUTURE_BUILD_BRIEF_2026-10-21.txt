@@ -1,0 +1,146 @@
+===============================================================================
+SUPPLIER AND PRODUCT ALIAS MAPPING FOR PURCHASE ORDER / INVOICE RECONCILIATION
+===============================================================================
+DATE:     2026-10-21
+STATUS:   [DISCUSSION / DESIGN PROPOSAL] - nothing built, no code touched,
+          nothing checked against any repo. Not a decision by the owner.
+SCOPE:    The owner is designing a database for another tool (purchase orders,
+  invoices, reconciliation). The same pattern would apply to Mirra build order
+  step 4b (purchase order and auto-reconciliation merge). Which of the two this
+  feeds is not settled; the design is written to work for either.
+ORIGIN:   A short chat on 2026-10-21. The owner remembered the 2026-10-16 chat
+  as covering this. It did not: that chat set the database rules (Section 2)
+  and placed step 4b, and a project search found no earlier alias or product
+  mapping design. So this brief is NEW design, not a record of an agreement.
+READ WITH: STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16
+  .txt (Sections 5 and 7: tenant isolation, stored outputs, agent rule) and
+  LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt (4b, 5).
+
+===============================================================================
+1. THE PROBLEM
+===============================================================================
+Every supplier names the same thing differently. The example given was
+concrete: many concrete companies, many names and codes on their quotes, POs
+and invoices, but underneath it is one product type (for example a 25 MPa mix
+at a given aggregate size and slump). Reconciliation can only compare a PO line
+with an invoice line if both resolve to the same canonical product, unit and
+price basis. "Concrete" is the assumed meaning in this brief; the pattern is
+the same for any trade supplies.
+
+===============================================================================
+2. RULES CARRIED IN FROM THE MIRRA DATABASE WORK (owner, 2026-10-16)
+===============================================================================
+  - One multi-tenant database; a tenant key on every row holding business data;
+    row-level isolation enforced in the database. One business must never see
+    another's data.
+  - Every calculated number is stored, not recomputed on demand.
+  - AI never produces a number the user treats as true. Variance amounts are
+    plain deterministic code. AI may only SUGGEST a product match, and a person
+    confirms it (Section 5).
+  - Stable ID on every record; relate by ID, never by name or array position.
+
+===============================================================================
+3. PROPOSED TABLES
+===============================================================================
+  tenant_id sits on every table below unless marked REFERENCE.
+
+  supplier
+    supplier_id, tenant_id, name, tax/company number, external_id (for example
+    the Xero contact id), status.
+
+  canonical_product
+    canonical_product_id, tenant_id (or REFERENCE, see decision A), name,
+    category, standard_unit (for example m3), attributes (strength, size,
+    slump or other spec as structured fields, not free text), is_active.
+
+  supplier_product_alias            (the link that does the work)
+    alias_id, tenant_id, supplier_id, raw_text (exactly as the supplier wrote
+    it), raw_code (their product code, if any), canonical_product_id,
+    unit_conversion (from their billing unit to standard_unit, with the factor
+    stored as a number, for example per load to m3), match_source (rule,
+    ai_suggestion, person), confirmed_by, confirmed_at, confidence (for
+    suggestions only), status (suggested, confirmed, rejected, retired).
+    Unique on tenant, supplier and raw_code or normalised raw_text.
+
+  po_line and invoice_line
+    line_id, document_id, supplier_id, raw_description (NEVER overwritten),
+    raw_code, quantity_raw, unit_raw, unit_price_raw, canonical_product_id
+    (nullable until matched), alias_id (which mapping was used), quantity_std
+    and unit_price_std (converted using the alias, stored).
+
+  supplier_price_history
+    tenant_id, supplier_id, canonical_product_id, effective_date, price per
+    standard unit, source document. Gives "are we being overcharged" and
+    price drift without extra work.
+
+  reconciliation_result             (stored output, per rule D-7)
+    result_id, tenant_id, po_line_id, receipt_or_docket_id (if used),
+    invoice_line_id, status (matched, quantity_variance, price_variance,
+    both, unmatched, over_tolerance), quantity_variance, price_variance,
+    variance_amount, tolerance_used, computed_at, computed_from (what inputs and
+    which alias version), resolved_by, resolved_at.
+
+===============================================================================
+4. WHY KEEP THE RAW TEXT AS WELL AS THE MAPPING
+===============================================================================
+Disputes, audits and wrong mappings all need what the supplier actually wrote.
+If a mapping is later found wrong, the raw text lets every affected line be
+found and re-resolved. Retire an alias rather than deleting it, so history
+still explains old results.
+
+===============================================================================
+5. MATCHING FLOW
+===============================================================================
+  1. Exact hit on supplier + raw_code, or supplier + normalised raw_text, in a
+     CONFIRMED alias: link the line automatically.
+  2. No hit: a fuzzy or AI step proposes a canonical product with a confidence.
+     It writes a "suggested" alias only. It never links a line by itself.
+  3. A person confirms or rejects. Confirming sets confirmed_by, confirmed_at
+     and links every waiting line from that supplier with the same text.
+  4. Anything still unmatched stays in an "unmapped" queue, visible, not passed.
+  5. Reconciliation runs only on linked lines. Unlinked lines are reported as
+     unmatched, never guessed.
+  Result: each supplier's quirks are resolved once, then remembered.
+
+===============================================================================
+6. DECISIONS THAT CHANGE THE DESIGN
+===============================================================================
+  A. Whose canonical list? Per business, or one shared list across all
+     businesses. A shared list speeds onboarding but is cross-tenant data. It
+     would need to be read-only reference data with no business-specific rows.
+     Aliases stay per business either way, because they show who a business
+     buys from.
+  B. Units and price basis. Per m3, per load, per tonne, delivery or pump
+     charges, minimum-load fees. Which are separate lines and which fold into
+     the product price?
+  C. Tolerance. Quantity and price tolerance (percent or amount), per supplier
+     or global. Needs an owner decision; do not default silently.
+  D. Match depth. Two-way (PO to invoice) or three-way (PO to delivery docket
+     to invoice). Concrete usually has a docket, so three-way is likely worth it.
+  E. Versioning. When a mapping or conversion changes, do old results restate?
+     Proposed: no. Old results keep the alias version they used.
+  F. Xero. If invoices round-trip through Xero, account and payment mapping and
+     invoice webhooks apply (see the 2026-10-16 go-to-market brief, Section 4).
+     Check the developer terms before sending supplier invoice text to any AI
+     step (its Q2).
+
+===============================================================================
+7. OUT OF SCOPE / FIRST SLICE
+===============================================================================
+Out of scope: any code, choosing a database host, the OCR or invoice reading
+step, the user interface, price negotiation features.
+First slice when picked up: take 20 to 30 real invoice lines from three
+suppliers of one product, write them out by hand against a draft of the tables
+above, and see where the model breaks (units, delivery charges, odd codes).
+Only then fix the schema.
+
+===============================================================================
+8. OPEN QUESTIONS
+===============================================================================
+  Q1  Is this the Mirra step 4b design, or the separate tool, or both?
+  Q2  Decisions A to F above.
+  Q3  Is there an existing separate-repo purchase order schema that this must
+      fit? (Step 4b says purchase orders are already built there.)
+  Q4  Who confirms a suggested mapping: the business owner, a bookkeeper, or
+      either?
+===============================================================================

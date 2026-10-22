@@ -43,7 +43,7 @@ Calc map section = section number in CALCULATION_MAP_v6_0.txt. Brief = file in `
 | Business Modelling | `/business-modelling` | BUSINESS_MODELLING_BRIEF | s10 (+ s12) | `hooks/useBusinessModelling.js`, `lib/calculations/businessModellingAdditiveModel.js`, `businessModellingSourceRows.js` |
 | Module Reconciliation + Model Readiness (the trust gate) | `/module-reconciliation`, `/model-readiness` | MODEL_READINESS_AND_RECONCILIATION_BRIEF | s11 (Reconciliation), s6 | `lib/reconciliation/reconciliationRules.js` (~1,035 lines, do not grow), `lib/calculations/modelReadinessCalculations.js` |
 | Quote Engine + Quote Checker | `/quote-engine`, `/quote-checker` | QUOTE_ENGINE_BRIEF | s11 | `lib/calculations/quoteEngineCalculations.js`, `quoteCheckerCalculations.js`, `hooks/useAiBusinessState.js` |
-| Calculation trace (cross-cutting; not a link in the calc chain) | route not examined | CALCULATION_TRACE_BRIEF | all | `lib/calculation-trace/*`, `scripts/check-calculation-trace-integrity.mjs` (broken import, finding T-1) |
+| Calculation trace (cross-cutting; not a link in the calc chain) | route not examined | CALCULATION_TRACE_BRIEF | all | `lib/calculation-trace/*` (old integrity script retired to `docs\Archive\Scripts\`, finding T-1) |
 
 No brief (neighbours): Revenue Reality (`/revenue-reality`), Quick Start (`quickStartCalculations.js`, calc map s11),
 AI Business State (`/ai-business-state`, covered in the Quote Engine brief), `/dev/cross-import-check` (dev only, P&L brief).
@@ -113,7 +113,7 @@ RB-n rate builder, D-n cost allocation, Q-n stress test questions). Keep numbers
 LAUNCH_BUILD_ORDER_AND_THIRD_MOAT (resolved build order, Addendum 1) | BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY (R3) |
 UNITS_MODE (R4) | STRESS_TEST_DATABASE_AND_AGENT_DESIGN | REGRESSION_HEALTH_CHECK_SUITE | ESCT_TREATMENT_FIX (F-1) |
 DRY_HIRE_UNATTENDED_ASSETS (F-7) | HOURS_BASED_BUSINESS_TYPES_TEST_AND_MARKET_COVERAGE | AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER (R7) |
-GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS | POST_LAUNCH_VISION_AND_POSITIONING.
+GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS | POST_LAUNCH_VISION_AND_POSITIONING | SUPPLIER_PRODUCT_ALIAS_AND_RECONCILIATION_MATCHING (design proposal only).
 When one is built it folds into the module brief and the future-build file is archived.
 
 ## 9. Archived from the v6.0 brief folder
