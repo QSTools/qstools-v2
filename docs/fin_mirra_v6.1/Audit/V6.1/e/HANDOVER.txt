@@ -1,0 +1,61 @@
+HANDOVER V6.1e   2026-10-22   (written at the end of V6.1d step 8; the docs reorganisation is finished, R2 is next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\e\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- Last commit before this file: d92172b (V6.1d step 7 prep). The step 8 commit (this file, PROJECT_MAP edits, the new sync
+  checker) follows it; committing it is the first action of the next chat if it is not already committed. git status should be empty after.
+- V6.1d commits this session (start 5a05b20): 2141f8b step 5a | 558c475 step 5b/5c | ccf82b5 Regression brief Addendum 1 |
+  2a71924 step 6a | acad966 step 6b/6c | d92172b step 7 prep | then step 8.
+
+2. WHAT WAS DONE (V6.1d, steps 5 to 8)
+- Step 5/6: audit scripts, trace brief, conventions V6.1d block, PROJECT_MAP, AGENTS.md READ FIRST.
+- Step 7: Py\stress_test CONFIRMED as the standing regression suite, labelled PARTIAL (conventions edited). T-1 retired:
+  scripts\check-calculation-trace-integrity.mjs moved to docs\Archive\Scripts\ (trace brief and PROJECT_MAP updated). Calc map
+  evidence path fixed. Empty folder docs\fin_mirra_v6.0 Briefs removed. The supplier brief was copied from project knowledge into
+  docs\fin_mirra_v6.1\Future_Build\ and committed.
+- Project knowledge trimmed from 25 docs to 17 (the core set): conventions, PROJECT_MAP, the 13 briefs (incl. CALCULATION_TRACE_BRIEF),
+  CALCULATION_MAP_v6_0, VARIABLE_TRACKER_v6_0. Removed (all have repo copies): R2_HANDOVER, V6_0_KICKOFF, HOURS_BASED, DRY_HIRE, ESCT,
+  STRESS_TEST_DATABASE_AND_AGENT_DESIGN, LAUNCH_BUILD_ORDER, STORAGE_KEY_REGISTER, STRESS_TEST_HARNESS_README, SUPPLIER brief.
+- Step 8: Py\audit-scripts\check_project_knowledge_sync.py rewritten to compare content hashes against .tmp\project_sync_ledger.tsv
+  (dates were unreliable). PROJECT_MAP Sections 1, 6, 10 updated.
+
+3. OWNER DECISIONS MADE
+- Trim to the core set only; R2 and future-build files are staged from the repo on demand.
+- Stress suite: owner unsure, Claude confirmed it as partial. T-1: owner left it to Claude, retired.
+- Supplier brief: copy to the repo (done).
+
+4. OPEN ITEMS
+a. PROJECT INSTRUCTIONS (owner): the live text in the project settings still shows rule 11 with docs/fin_mirra_v6.0 Briefs/ and
+   CALCULATION_MAP "in docs/Audit/v6_0/". Re-paste the corrected text from the step 6d paste. Correct paths: Briefs in
+   docs/fin_mirra_v6.1/Briefs/, calc map and variable tracker in docs/fin_mirra_v6.1/Calculations/, evidence in
+   docs/fin_mirra_v6.1/Audit/v6_0/.
+b. Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv (sha256 of the exact bytes uploaded).
+   Both .tmp files are untracked. If the checker shows every file CHANGED after a git checkout, line endings changed: re-stage and re-upload.
+c. Findings to keep: T-2..T-8 (CALCULATION_TRACE_BRIEF; T-1 is retired), G-1..G-6 (Regression brief Addendum 1),
+   F-1/F-4/F-7/F-10/F-11 (R2 fix batch, PROJECT_MAP Section 6).
+d. PROJECT_MAP row "Calculation trace" still says route not examined.
+
+5. NEXT STEPS IN ORDER (R2, hours mode)
+a. Production-build timing run: stop dev, npm run build, npm start on a spare port such as 3005, rerun the Addendum 13 scripts there,
+   Q-7 verdict on production numbers. (Never build while dev runs; clear .next before restarting dev.)
+b. Profile Business Outcome at 1,000 staff.  c. Typing in Cost Allocation percent and Rate Builder lines.
+d. Layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row), after the fix batch.
+Then the fix batch: F-1 ESCT to the IRD rule (core calc file: STOP and confirm first), F-4, F-7, F-10, F-11, and ONE full regression
+re-run (A, A misaligned, B, A2, ladder). The 100 and 1,000 staff ladder totals in the stress brief were worked from recorded
+differences, not re-run: the re-run settles that. After R2: R3 Business Modelling redesign (PROJECT_MAP Section 5).
+Staging for R2: ask Claude to stage Py\stress_test\README.txt and the R2 section of Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_
+FUTURE_BUILD_BRIEF_2026-10-14.txt (Addendum 1); they are no longer in project knowledge.
+
+6. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Claude has no git or shell on the PC: Claude gives commands, the owner pastes output back. Scripts: ASCII, no placeholders, dry run by
+  default (-Live), output to clipboard, wrapped in & { }. git stderr warnings: add 2>$null.
+- Apply-Patch (IndexOf/Substring, UTF-8 no BOM), "Patched:" confirmations, npm run build after code batches, never while dev runs.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- One piece of work per chat; the handover is the memory. Start a NEW chat rather than carry on after a compaction.
+- Tell the owner when a step needs Opus.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt
+   (the UPDATE 2026-10-22 block at the end is the one that matters).
+Then only what R2 needs (see 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs not needed.

@@ -24,6 +24,9 @@ Paths are relative to `D:\QSTools\qstools-web`. Docs live under `docs\fin_mirra_
 
 Brief rules: append a dated ADDENDUM at the bottom (check the last number first); when it changes a rule, status or
 finding above, also edit that line in place. Never create a second brief for a module.
+Project knowledge holds only: the conventions, this map, the 13 briefs, the calc map and the variable tracker. Ledger:
+`.tmp\project_sync_ledger.tsv`; check with `python Py\audit-scripts\check_project_knowledge_sync.py`. Everything else
+(Future_Build, handovers, R2 files, evidence) is staged from the repo on demand.
 
 ## 2. Module table
 
@@ -99,8 +102,8 @@ F-11 EBIT adds back all interest, trace nodes backfilled.
 Performance fails (R2 UI speed pass, dev server): Business Outcome, Business Modelling and trace at 100 / 1,000 staff;
 Business Modelling lever typing at every size (fix belongs in R3).
 
-Docs reorganisation (V6.1): steps 1-5 done; step 6 (conventions and stale references) in progress; then 7, 8 (see latest HANDOVER.txt).
-No stress-test work until V6.1 step 8.
+Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
+R2 resumes next (see latest HANDOVER.txt).
 
 ## 7. Findings numbering
 
@@ -124,6 +127,6 @@ R2_HANDOVER_2026-10-18, V6_0_KICKOFF_AND_HANDOVER_2026-09-20 and the old CALCULA
 
 ## 10. Known stale references (fixed in step 6)
 
-Conventions and this map were corrected 2026-10-22 (V6.1d step 6). Still open: the project instructions (rule 11 and the doc
-list) name `docs/fin_mirra_v6.0 Briefs/` and `docs/Audit/v6_0/` until the owner pastes the corrected text in the project
-settings. Current paths are in Section 1 above.
+Conventions and this map were corrected 2026-10-22 (V6.1d step 6). Project instructions: rule 11 and the doc list must name
+`docs/fin_mirra_v6.1/Briefs/` and `docs/fin_mirra_v6.1/Calculations/`; re-paste in the project settings if they still show
+v6.0 paths. Current paths are in Section 1 above.
