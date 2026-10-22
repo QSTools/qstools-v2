@@ -90,8 +90,8 @@ Source: `Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-
 ## 6. Current build position
 
 R2, rest of it (from R2_HANDOVER_2026-10-18; re-confirm at step 8):
-a. production-build timing run (stop dev, `npm run build`, `npm start` on a spare port such as 3005; rerun the
-   Addendum 13 scripts there; Q-7 verdict on production numbers).
+a. DONE 2026-10-22 (stress brief Addendum 15): production-build timing run. Page open passes at 100 and 1,000 staff.
+   Still failing: Business Outcome freeze at 100 staff; Business Modelling freeze and typing at 100 and 1,000 staff (R3).
 b. profile Business Outcome at 1,000 staff. c. typing in Cost Allocation percent and Rate Builder lines.
 d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row) after the fix batch.
 
@@ -99,8 +99,8 @@ Fix batch between R2 and R3, then ONE full regression re-run (A, A misaligned, B
 F-1 ESCT to the IRD rule (core calc file, stop-and-confirm) | F-4 unassigned asset cost spread with red warning |
 F-7 dry hire earns money (hourly, default off, placement to confirm) | F-10 EBITDA depreciation pass-through |
 F-11 EBIT adds back all interest, trace nodes backfilled.
-Performance fails (R2 UI speed pass, dev server): Business Outcome, Business Modelling and trace at 100 / 1,000 staff;
-Business Modelling lever typing at every size (fix belongs in R3).
+Performance fails (production build, stress brief Addendum 15): Business Outcome freeze at 100 staff (own fix before
+launch); Business Modelling freeze and lever typing at 100 / 1,000 staff (fix belongs in R3). Trace page now passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
 R2 resumes next (see latest HANDOVER.txt).

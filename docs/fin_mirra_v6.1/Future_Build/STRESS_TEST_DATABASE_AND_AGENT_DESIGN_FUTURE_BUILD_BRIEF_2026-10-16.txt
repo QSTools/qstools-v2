@@ -1049,3 +1049,63 @@ SERVER TIMING (owner's dev server log, 2026-10-18): server render ("application-
       (Business Outcome about 240-260 ms, Business Modelling about 235 ms, trace about 195 ms) for the runs in Addendum 13.
       So the multi-second times and freezes are client side (the calculation chain in the browser), not the server.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 15 (2026-10-22, 19:40 NZDT) - STEP 2c RERUN ON A PRODUCTION BUILD: Q-7 VERDICT
+===============================================================================
+STATUS: [PROGRESS] R2 item a (production-build timing run) DONE. Measurement only, no app code changed.
+        Supersedes the dev-server verdict in Addendum 13 (those numbers stand as the dev record).
+
+METHOD
+  Owner stopped dev (:3000 and :3004), cleared .next, ran npm run build (clean, exit 0, 87 s, 41 pages) and
+  npm start -- -p 3005. (Plain "npm start -p 3005" hands -p to npm, not Next; the "--" is needed.)
+  Built-in browser pane on :3005, pane VISIBLE (62 frames a second; a hidden pane reports 0, so check first).
+  Seeds: Scenario A at 10 / 100 / 1,000 staff, generated with generate_business.py --as-of 2026-10-22 and
+  served from public\__stress_tmp\ (it must exist BEFORE the build; production serves only the public files
+  present at build time). Deleted afterwards with .next.
+  The Addendum 13 scripts were never saved as files. They were rewritten the same way and are now saved as
+  Py\stress_test\perf_pass.console.js: parent page is the plain seed JSON (no app running in it), each route is
+  loaded in a full-screen same-origin frame after the seed is rewritten into localStorage, a long-task observer
+  records every task over 50 ms, "ready" = load or the end of the last long task, then 1.5 s quiet. Two runs per
+  route; the pairs agree within about 5 percent (second run reported below).
+  Typing: native value setter plus input event on the field, time to second animation frame, five keystrokes.
+  Pane was a narrow 626 px wide (mobile layout showing): probably irrelevant to timing, noted for the record.
+
+PAGE OPEN - ready ms / max freeze ms (production)    10 staff       100 staff      1,000 staff
+  Labour                                                31 / 0         29 / 0         253 / 81
+  Assets                                                32 / 0         36 / 0         388 / 137
+  Cost Allocation                                      195 / 63       241 / 74        772 / 282
+  Rate Builder                                         172 / 55       239 / 77        785 / 292
+  Cost Summary                                          28 / 0         33 / 0         410 / 142
+  Business Outcome                                     515 / 168      711 / 246 F    2,521 / 937
+  Business Modelling                                   497 / 162      664 / 274 F    2,388 / 1,368 F
+  Calculation trace                                    397 / 126      535 / 179      1,868 / 673
+  Dev, same scripts (Addendum 13), 1,000 staff: Business Outcome 5,984 / 2,511, Business Modelling 5,709 / 2,827,
+  trace 4,604 / 1,952. Production is about 2 to 3 times faster; the trace now passes at both sizes.
+
+TYPING - ms per keystroke to paint (production)
+  Business Modelling, first "Target rate ($/hr)" lever: 10 staff 107-113 | 100 staff 155-175 F | 1,000 staff 664-690 F
+  Labour, "Labour rate" field, 1,000 staff: 2-3 ms handler, 12-15 ms to paint. PASS.
+  (Labour was measured on the default empty profile, as in Addendum 13. 100-staff Labour typing not repeated.)
+
+Q-7 VERDICT ON PRODUCTION NUMBERS (limits: 100 staff open < 1 s, no freeze > 0.2 s, typing < 0.1 s;
+1,000 staff open < 3 s, no freeze > 1 s, typing < 0.3 s)
+  PASS: every page open time at 100 and 1,000 staff; every freeze except those below; Labour typing; trace page.
+  FAIL: Business Outcome freeze at 100 staff (246 ms vs 200).
+        Business Modelling freeze at 100 staff (274 ms) and 1,000 staff (1,368 ms vs 1,000).
+        Business Modelling typing at 100 staff (about 160 ms vs 100) and 1,000 staff (about 680 ms vs 300).
+  BORDERLINE: Business Outcome freeze at 1,000 staff 937 ms (limit 1,000); trace freeze at 100 staff 179 ms (limit 200);
+        Cost Allocation / Rate Builder freezes at 1,000 staff 282-292 ms pass the 1 s limit easily.
+  The 10-staff reference is already at the edge for typing (about 110 ms), so Business Modelling's chain-per-
+  keystroke design is the cause, not data volume alone.
+
+READING
+  - The remaining failures are client-side calculation in the browser (server render is about 0.25 s, Addendum 14).
+  - Business Modelling typing and freezes: fix belongs in the R3 redesign (scratch overlay), as decided.
+  - Business Outcome needs its own fix before launch (freeze 246 ms at 100 staff). Profile it next (R2 item b).
+  - Not yet measured: typing in Cost Allocation assignment percent and Rate Builder lines (R2 item c).
+
+NEXT IN R2: (b) profile Business Outcome at 1,000 staff (which hooks run how often; variable tracker C15: each
+  consumer instantiates useCostAllocation separately); (c) typing in Cost Allocation percent and Rate Builder lines;
+  (d) layer-2 gaps after the fix batch; then the fix batch and ONE full regression re-run.
+===============================================================================
