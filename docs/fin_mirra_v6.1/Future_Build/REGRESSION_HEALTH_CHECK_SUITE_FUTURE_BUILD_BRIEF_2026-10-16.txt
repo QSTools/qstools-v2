@@ -133,3 +133,44 @@ is discovered only after real users hold the numbers.
        pass or fail?
   Q-5  Confirm cadence (Section 4).
 ===============================================================================
+
+===============================================================================
+ADDENDUM 1 (2026-10-22) - BUILT STATE AT V6.1d, STANDING SUITE CONFIRMED
+===============================================================================
+Source: V6.1d (docs reorganisation, step 5). Read of Py\stress_test\README.txt, the three new audit checkers and the
+CALCULATION_TRACE_BRIEF coverage run. No calculation code changed. Supersedes the "State" column of Section 2 and the
+"NOT BUILT" wording in Sections 2 and 9; the rest of the brief stands.
+
+STATE OF THE PIECES (Section 2)
+  1  Stress harness                      BUILT. Py\stress_test\: generate_business.py, scale_recipe.py, mirra_expected.py (layer 1),
+                                         mirra_expected_l2.py (layer 2), run_layer2.py, compare_trace.py, compare_full.py,
+                                         check_scaling.py, seed_loader.console.js, recipes\ (scenario_a, scenario_a_misaligned,
+                                         scenario_a_overstaffed, scenario_b), README.txt. Expected values are written from
+                                         CALCULATION_MAP_v6_0.txt, not from the app (Section 8 rule met). Last recorded results
+                                         (stress brief Addenda 4-12): Scenario A 217/217 aligned and misaligned; ladder 10 / 100 /
+                                         1,000 staff 217 / 424 / 2,494 (all passing after F-6); Scenario B 269/269; Scenario A2 217/217.
+  2  Calculation trace tool              BUILT. Coverage resolved and recorded in CALCULATION_TRACE_BRIEF (80 node entries, 10 files).
+  3  Cross-import alignment check        BUILT (unchanged).
+  4  Audit scripts                       BUILT: check_field_parity.py, check_has_loaded_guard.py (unchanged), plus three added in
+                                         V6.1d: check_trace_coverage.py, check_brief_currency.py, check_project_knowledge_sync.py.
+                                         All read-only, in Py\audit-scripts\. They check the docs and trace wiring, not the numbers.
+  5  Orchestration wrapper               NOT BUILT (slice S4). No known-bad check yet.
+
+CONFIRMED (owner decision, V6.1d): Py\stress_test is the standing regression suite for the calculation chain. The docs-side checkers
+in Py\audit-scripts are the standing health checks for the documentation and trace. Neither replaces the other.
+
+GAPS BEFORE IT IS A ONE-COMMAND SUITE (Section 8)
+  G-1  A run is not one command. The numbers need a live step: load the seed on :3004 (console loader, or Claude's built-in browser
+       pane), download the trace snapshot, then run compare_full.py. The wrapper (S4) has to either drive that step or document it
+       as the manual half.
+  G-2  No known-bad check (Section 8): feed a deliberately wrong value and confirm the suite FAILS. Not done.
+  G-3  Hours mode only. Units mode needs new expected-value maths (R4); the harness and loader are reused.
+  G-4  Expected files must be regenerated with --as-of the NZ date of the run (asset interest is dated to today), or small
+       interest differences appear (stress brief Addendum 7 note).
+  G-5  Results are not yet written to a dated record that shows run-to-run change (Section 8, last bullet).
+  G-6  The "refuses non-synthetic data" guard in Section 3 is only partly met: the loader refuses any origin but :3004.
+  Q-1 to Q-5 in Section 11 are still open.
+
+NO STRESS-TEST WORK until V6.1 step 8 (handover rule). The R2 re-run after the F-1 / F-4 / F-7 / F-10 / F-11 fix batch is the
+first use of this suite as a regression check.
+===============================================================================
