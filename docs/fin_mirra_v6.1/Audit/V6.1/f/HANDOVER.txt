@@ -1,0 +1,79 @@
+HANDOVER V6.1f   2026-10-24   (written at the end of R2 item b; R2 item c is next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\f\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- Last commit before this file: 1be6070 (docs for R2 item b). This file's commit follows it. git status should then show only
+  the untracked public\__stress_tmp\ (see 4a).
+- R2 item b commits: 15ee2e7 (Assets and General Overheads cards built lazily) | 7f771d4 (one shared model-readiness on the
+  Business Outcome route) | 1be6070 (stress brief Addendum 16, Business Outcome brief Addendum 1, Cost Allocation C15 corrected,
+  PROJECT_MAP). Project knowledge re-uploaded for those three docs; ledger rewritten; sync check shows 17 of 17 OK.
+
+2. WHAT WAS DONE (R2 item b)
+- Business Outcome now passes Q-7 on a production build. Open / max freeze: 100 staff 711 / 246 ms -> 138-243 / 54-75 ms;
+  1,000 staff 2,521 / 937 -> 603-650 / 158-166 ms. Page text at 100 staff identical before and after (hashes in Addendum 16).
+- Cause (stress brief Addendum 16): the page mounted about 14 useAssets and 20 useGeneralOverheads instances (9 of the
+  useModuleReconciliation through useBusinessSummary / useRevenueSummary / useRecoverySummary) and each built a UI card this
+  page never reads. The calculations were cheap. C15 (seven useCostAllocation instances) was the wrong suspect: 2 on this page.
+- Fixes: lazy card getter in useAssets and useGeneralOverheads; ModelReadinessProvider (components\common) applied by
+  app\business-outcome\layout.jsx; useModelReadiness reads the shared value if a provider exists, else its own
+  (useModelReadinessOwn). Every other page is unchanged.
+
+3. OWNER DECISIONS MADE
+- Lazy card approach approved (after a read-only check that no caller spreads either hook result).
+- Shared-readiness design approved (route-level provider, not parameters through the hook chain).
+- Memoising the General Overheads status builder was NOT done: Claude judged it would gain little (state changes each render).
+- Commit as recommended, docs updated and project knowledge re-uploaded.
+
+4. OPEN ITEMS
+a. Housekeeping: public\__stress_tmp\ (seeds for 100 and 1,000 staff, untracked) and .next. Keep them only if item c is run in the
+   same sitting (seeds must exist BEFORE a production build). Otherwise: stop the server on 3005, Remove-Item public\__stress_tmp
+   -Recurse -Force, Remove-Item .next -Recurse -Force. To regenerate: the seed step in .tmp\r2b_perf_instrument.ps1
+   (generate_business.py scenario_a.json --as-of <today> --staff-total 100 / 1000, copy seed_*.json to public\__stress_tmp\seed_n<N>.json).
+b. Temporary scripts, untracked, in .tmp: r2b_perf_instrument.ps1, r2b_perf_round2.ps1, r2b_perf_round3.ps1, r2b_fix_lazy_card.ps1,
+   r2b_shared_readiness.ps1. Archive (do not delete) or leave; they are the record of how item b was measured. Decide whether the
+   probe belongs in Py\stress_test for the R9 re-run.
+c. 1,000-staff Business Outcome page text was not compared before and after. The full numeric regression (A, A misaligned, B, A2,
+   ladder) is still owed at the end of the fix batch.
+d. Business Modelling still fails Q-7 (freeze 274 ms at 100 staff, 1,368 at 1,000; lever typing 160 / 680 ms): fix belongs in R3.
+   A one-file ModelReadinessProvider layout on app\business-modelling is an unmeasured option for the R3 design.
+e. R9 note (Addendum 16): migration moves calculation / selector files behind a dispatcher, hooks stay client; duplicate hook
+   instances would become duplicate requests. Add "dispatcher calls per page open" to the R9 pack. Migration timing still
+   owner-to-confirm (PROJECT_MAP, build order R6).
+f. Carried from V6.1e: PROJECT INSTRUCTIONS (owner) in the project settings may still show the old rule 11 paths; PROJECT_MAP row
+   "Calculation trace" still says route not examined. Findings to keep: T-2..T-8, G-1..G-6, F-1/F-4/F-7/F-10/F-11.
+
+5. NEXT STEPS IN ORDER (R2, hours mode)
+c. Typing in Cost Allocation assignment percent and Rate Builder lines, at 10 / 100 / 1,000 staff, production build.
+   Method (Addendum 15): native value setter plus an input event on the field, time to the second animation frame, five keystrokes.
+   Limits: typing < 0.1 s at 100 staff, < 0.3 s at 1,000. Known comparison: Business Modelling lever 160 / 680 ms, Labour rate 2-3 ms handler.
+   If it fails, profile before fixing (Addendum 16 method: mount counters, then exclusive timers, then storage / JSON probe).
+d. Layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row), after the fix batch.
+Then the fix batch: F-1 ESCT to the IRD rule (core calc file: STOP and confirm first), F-4, F-7, F-10, F-11, and ONE full regression
+re-run (A, A misaligned, B, A2, ladder). After R2: R3 Business Modelling redesign (PROJECT_MAP Section 5).
+Staging for item c: ask Claude to stage Py\stress_test\README.txt and perf_pass.console.js, and the stress brief tail (Addendums 15-16,
+from line 1054). The LAUNCH_BUILD_ORDER brief is only needed for R6 / R9 placement questions.
+
+6. METHOD NOTES (full detail in stress brief Addendum 16)
+- Timing only with the built-in browser pane VISIBLE: document.visibilityState "visible" and about 60 frames a second. A hidden pane gives
+  false, too-good numbers. Claude may need you to bring the Claude desktop app to the front and press Ctrl+Shift+B.
+- One route per tool call (45 s limit). Parent page = the plain seed JSON; each route runs in a same-origin iframe.
+- Production build only, never while dev runs: stop dev, clear .next, build, npm start -- -p 3005. Seeds in public\__stress_tmp BEFORE the build.
+- useGeneralOverheads.js has mixed CRLF / LF lines: use single-line patch anchors there (multi-line text will not match).
+- Page-text hash before and after (default and every section expanded) is a cheap regression check for a UI-only change.
+
+7. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Claude has no git or shell on the PC: Claude gives commands, the owner pastes output back. Claude can stage and write files through the
+  linked computer. Scripts: ASCII, no placeholders, dry run by default (-Live), output to clipboard, wrapped in & { }. git stderr
+  warnings: add 2>$null (also on git add).
+- Apply-Patch (IndexOf/Substring, UTF-8 no BOM), "Patched:" confirmations, npm run build after code batches, never while dev runs.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv (sha256 of the exact bytes uploaded);
+  check with python Py\audit-scripts\check_project_knowledge_sync.py.
+- One piece of work per chat; the handover is the memory. Start a NEW chat rather than carry on after a compaction.
+- Tell the owner when a step needs Opus.
+
+8. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt
+   (the UPDATE 2026-10-22 block at the end is the one that matters).  4. Stress brief Addendums 15 and 16 (from line 1054).
+Then only what item c needs (see 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs not needed.
