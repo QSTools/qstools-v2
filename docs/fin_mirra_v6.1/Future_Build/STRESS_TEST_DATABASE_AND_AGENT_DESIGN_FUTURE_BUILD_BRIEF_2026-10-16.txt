@@ -1109,3 +1109,77 @@ NEXT IN R2: (b) profile Business Outcome at 1,000 staff (which hooks run how oft
   consumer instantiates useCostAllocation separately); (c) typing in Cost Allocation percent and Rate Builder lines;
   (d) layer-2 gaps after the fix batch; then the fix batch and ONE full regression re-run.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 16 (2026-10-24) - R2 ITEM B: BUSINESS OUTCOME PROFILED AND FIXED (Q-7 NOW PASSES)
+===============================================================================
+STATUS: [SHIPPED] R2 item b. Commits 15ee2e7 (cards built lazily) and 7f771d4 (one shared model-readiness). Business
+        Outcome passes Q-7 at 100 and 1,000 staff on a production build. Business Modelling is NOT changed (R3).
+
+RESULT - Business Outcome, production build, ready ms / max freeze ms (pane visible at 63 frames a second, same
+method and script as Addendum 15; page text confirmed rendered in each run)
+                          100 staff                    1,000 staff
+  Addendum 15 (before)    711 / 246 (F)                2,521 / 937
+  after 15ee2e7           679-736 / 185-224 (3 runs)   1,817-1,853 / 596-620 (2 runs)
+  after 7f771d4           138-243 / 54-75 (3 runs)     603-650 / 158-166 (3 runs)
+  Q-7 limit               open < 1 s, freeze < 200     open < 3 s, freeze < 1,000
+
+HOW IT WAS FOUND (four steps; counters and timers were TEMPORARY, hooks only, reverted, never committed)
+  1. Static read: every useX() call is its own instance with its own state and its own localStorage hydration, so
+     memoising inside a hook does not share work between instances. Variable tracker C15 suspected seven
+     useCostAllocation instances; on this page there are only two.
+  2. Mount counters (identical at 100 and 1,000 staff): useModuleReconciliation 9, useLabour 13, useAssets 14,
+     useCostAllocation 2 (useGeneralOverheads about 20, useProfitAndLoss about 30, derived). The calculations
+     themselves were cheap: 13,013 labour calculations took 5.4 ms at 1,000 staff, reconciliation 1-2 ms.
+     This overturned the first hypothesis.
+  3. Exclusive-time probe on 15 hooks plus the card: the cost sat in useGeneralOverheads and useAssets bodies, not in
+     calculate_assets (1-6 ms), calculate_cost_allocation (2-12 ms) or the per-source result (recomputed 2-3 times, 7-11 ms).
+  4. Inside those two hooks: buildAssetCard 193 ms at 100 staff and 1,357 ms at 1,000 (79 percent of useAssets time);
+     build_general_overhead_card about 150 ms at both sizes (rebuilt every render, unmemoised); general overhead
+     status and contract about 62 and 65 ms; useProfitAndLoss 50-95 ms. localStorage plus JSON about 10 ms at 100
+     staff and about 220 ms at 1,000 (50 MB of asset saves): not a driver.
+  Instrumented milliseconds are inflated by cold start and probe overhead; only the proportions were used.
+
+FIXES
+  15ee2e7  useAssets and useGeneralOverheads build their UI card on first read (enumerable getter). The only readers
+           of .card: Assets page, General Overheads page, useBusinessModellingLevers, calculationTraceLiveValues. No
+           spread of either hook result was found in any caller file (read-only check).
+  7f771d4  components/common/ModelReadinessProvider.jsx applied by app/business-outcome/layout.jsx. useModelReadiness
+           returns the shared value when a provider exists, otherwise computes its own as before (a conditional hook
+           call with an eslint exception; provider presence is fixed for the life of a page). The original hook is
+           exported as useModelReadinessOwn. useModuleReconciliation on Business Outcome: 9 -> 1.
+
+VERIFIED
+  Business Outcome page text identical before and after at 100 staff: default view 6,977 characters (hash bd36d09e),
+  every section expanded 10,216 characters (hash c952376c). Cost Allocation, Model Readiness (still blocked, expected
+  for the synthetic seed, C16), Business Modelling (net profit 1,299,296 = seed P&L), calculation trace (no FAIL rows),
+  Assets and General Overheads pages all render with no errors.
+
+NOT DONE / LIMITS
+  - 1,000-staff page text was not compared before and after (no pre-change capture).
+  - The full numeric regression (A, A misaligned, B, A2, ladder) is still owed at the end of the fix batch.
+  - Temporary scripts, untracked, in .tmp: r2b_perf_instrument.ps1, r2b_perf_round2.ps1, r2b_perf_round3.ps1,
+    r2b_fix_lazy_card.ps1, r2b_shared_readiness.ps1.
+
+METHOD NOTES (for the R9 re-run)
+  a. Check document.visibilityState is "visible" and requestAnimationFrame runs about 60 a second before timing. A hidden
+     pane gives false, too-good numbers (seen once: 139 ms / 54 ms while hidden, discarded).
+  b. Run one route per tool call (the browser pane tool times out at 45 s). Parent page = the plain seed JSON.
+  c. A page-text hash before and after is a cheap regression check for a UI-only change. Expand every section first.
+  d. Mixed line endings: hooks\useGeneralOverheads.js has a few CRLF lines in an LF file, so multi-line patch text
+     fails there; use single-line anchors.
+
+SERVER MIGRATION NOTE (R6 / R9)
+  The build order moves whole calculation and selector files behind a dispatcher; the hooks stay "use client" (this
+  brief, Section 2 step 3; migration timing is still owner-to-confirm). If so, duplicate hook instances become
+  duplicate requests. Add to the R9 pack: dispatcher calls per page open on Business Outcome (the instance counts
+  above are the client-side baseline), plus the Q-7 re-run with these seeds. The card builders live in selector
+  files and may migrate; the lazy getter keeps them off the Business Outcome path.
+
+REMAINING
+  Business Modelling freeze (274 ms at 100 staff, 1,368 ms at 1,000) and lever typing fail Q-7: fix belongs in R3
+  (a ModelReadinessProvider layout on app/business-modelling is a one-file option, not measured, R3 decision).
+  Trace page freeze 179 ms at 100 staff is borderline (limit 200) and untouched.
+NEXT IN R2: (c) typing in Cost Allocation percent and Rate Builder lines; (d) layer-2 gaps after the fix batch; then
+  F-1, F-4, F-7, F-10, F-11 and ONE full regression re-run.
+===============================================================================

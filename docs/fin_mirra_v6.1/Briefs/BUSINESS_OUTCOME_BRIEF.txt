@@ -6,8 +6,8 @@ COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
                da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. PENDING before R3: F-7 dry hire, F-10
-               and F-11 EBIT / EBITDA, F-4 unassigned-asset row check. PERFORMANCE FAILS at 100 / 1,000 staff (R2).
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+               and F-11 EBIT / EBITDA, F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
+LAST UPDATED:  2026-10-24 (R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -121,7 +121,11 @@ Legacy, not on this page: components/business-outcome/* (incl. BusinessOutcomeRe
             1,000 staff. F-5 sentence, F-8 EBIT support-asset interest (+INTEREST now = P&L 277,052), F-9 and F-12
             wording shipped and live-checked.
 2026-10-18  UI timing (DEV server): Business Outcome open 1,776 ms at 100 staff, 5,984 ms at 1,000 - FAIL against Q-7
-            (100: <1 s open, no freeze >0.2 s; 1,000: <3 s, no freeze >1 s). Production-build run still owed.
+            (100: <1 s open, no freeze >0.2 s; 1,000: <3 s, no freeze >1 s). Superseded by the production runs below.
+2026-10-22  Production build (stress brief Addendum 15): 711 / 246 ms at 100 staff (freeze FAIL), 2,521 / 937 at 1,000.
+2026-10-24  R2 item b, production build: open / max freeze 138-243 / 54-75 ms at 100 staff, 603-650 / 158-166 ms at 1,000 -
+            PASS Q-7. Page text identical before and after at 100 staff. Lazy Assets / General Overheads cards (15ee2e7)
+            and one shared model-readiness via app/business-outcome/layout.jsx (7f771d4). Stress brief Addendum 16.
 
 ===============================================================================
 8. FINDINGS REGISTER (keep numbers; update status in place)
@@ -135,9 +139,6 @@ F-11  EBIT should add back ALL interest (non-asset interest and the flagged-row 
       Overheads via props, not a new hook instance; then backfill EBIT / EBITDA trace nodes and add to the expected
       script. Open question carried: overdraft interest left in overheads.
 F-4   Check the "Unassigned cost" row (apply_unassigned_entry) when Cost Allocation's F-4 spread is built.
-PERF  Business Outcome and the trace page FAIL Q-7 at 100 and 1,000 staff. Next: production-build timing, then profile
-      (React DevTools) - suspect C15 (seven useCostAllocation instances). Business Outcome is not replaced by R3, so it
-      needs its own fix (placement to decide: before R3).
 OPEN
 BO-8  Capacity gap valuation: Business Modelling rate overrides now pass for the per-asset shortfall branch (O-2); the
       legacy branch accepts a modelled blended-rate override. Re-check whether anything still uses live rates only.
@@ -156,7 +157,8 @@ businesses (Units Mode).
 CLOSED
 BO-1, BO-2 (overhead-per-hour now Business Outcome's own split, F7), BO-3 ("Group min rate" by design), BO-4, BO-5,
 BO-6, BO-7 (no interest double count), BO-9 ("Achieved markup"), BO-11, H1-H7, S-H2, CM-1 / CM-1b, Stage 1b,
-Best Case double count, Best Case list, health gauge check, idle Steps 1-4, F-5, F-8, F-9, F-12.
+Best Case double count, Best Case list, health gauge check, idle Steps 1-4, F-5, F-8, F-9, F-12, PERF (R2 item b,
+Addendum 1: lazy cards + shared readiness).
 
 ===============================================================================
 9. DEFERRED / FUTURE
@@ -199,4 +201,14 @@ Evidence: Audit\v6_0\P4_BusinessOutcome\, bo_per_source_*.json, smoke_test\1.3_r
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+ADDENDUM 1 (2026-10-24) - R2 ITEM B: PERFORMANCE [SHIPPED]
+Business Outcome failed Q-7 at 100 staff (freeze 246 ms) on a production build. Cause: the page mounted about 14
+useAssets and 20 useGeneralOverheads instances (nine useModuleReconciliation through the readiness chain) and each one
+built a UI card this page never reads. Not the calculations (labour 5 ms and cost allocation 12 ms in total at 1,000 staff).
+Fixes: 15ee2e7 cards built on first read (useAssets, useGeneralOverheads); 7f771d4 ModelReadinessProvider in
+app/business-outcome/layout.jsx, and useModelReadiness uses the shared value when a provider exists.
+Result (production, ready / max freeze): 100 staff 711 / 246 -> 138-243 / 54-75 ms; 1,000 staff 2,521 / 937 -> 603-650 / 158-166 ms.
+Page text identical before and after at 100 staff. No calculation changed; no CALCULATION_MAP change.
+Rule: new hooks used by this page should call useModelReadiness (shared). Do NOT call useModelReadinessOwn or
+useModuleReconciliation directly from a Business Outcome hook: it bypasses the shared result and brings the cost back.
+Detail and method: stress brief Addendum 16.
