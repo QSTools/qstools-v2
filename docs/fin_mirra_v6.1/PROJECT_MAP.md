@@ -94,9 +94,11 @@ a. DONE 2026-10-22 (stress brief Addendum 15): production-build timing run. Page
    Still failing: Business Outcome freeze at 100 staff; Business Modelling freeze and typing at 100 and 1,000 staff (R3).
 b. DONE 2026-10-24 (stress brief Addendum 16): Business Outcome profiled and fixed (15ee2e7, 7f771d4); passes Q-7 at 100 and 1,000 staff.
 c. typing in Cost Allocation percent and Rate Builder lines.
-d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row) after the fix batch.
+d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row). ORDER DECIDED
+   (owner, 2026-10-24): d runs AFTER the fix batch and its regression re-run, as in the original build order. Next step in R2 is
+   therefore the fix batch, not d (HANDOVER V6.1g Section 5 listed d first; this line supersedes it).
 
-Fix batch between R2 and R3, then ONE full regression re-run (A, A misaligned, B, A2, ladder):
+Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-run (A, A misaligned, B, A2, ladder):
 F-1 ESCT to the IRD rule (core calc file, stop-and-confirm) | F-4 unassigned asset cost spread with red warning |
 F-7 dry hire earns money (hourly, default off, placement to confirm) | F-10 EBITDA depreciation pass-through |
 F-11 EBIT adds back all interest, trace nodes backfilled.
