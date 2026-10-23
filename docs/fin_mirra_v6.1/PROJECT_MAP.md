@@ -100,8 +100,9 @@ Fix batch between R2 and R3, then ONE full regression re-run (A, A misaligned, B
 F-1 ESCT to the IRD rule (core calc file, stop-and-confirm) | F-4 unassigned asset cost spread with red warning |
 F-7 dry hire earns money (hourly, default off, placement to confirm) | F-10 EBITDA depreciation pass-through |
 F-11 EBIT adds back all interest, trace nodes backfilled.
-Performance (production build, stress brief Addendums 15-16): Business Outcome now passes Q-7 (fixed in item b). Business
-Modelling freeze and lever typing at 100 / 1,000 staff still fail (fix belongs in R3). Trace page passes.
+Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
+Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
+staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
 R2 resumes next (see latest HANDOVER.txt).

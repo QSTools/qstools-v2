@@ -1183,3 +1183,52 @@ REMAINING
 NEXT IN R2: (c) typing in Cost Allocation percent and Rate Builder lines; (d) layer-2 gaps after the fix batch; then
   F-1, F-4, F-7, F-10, F-11 and ONE full regression re-run.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 17 (2026-10-24) - R2 ITEM C: TYPING IN COST ALLOCATION AND RATE BUILDER (Q-7 PASSES)
+===============================================================================
+STATUS: [PROGRESS] R2 item c DONE. Measurement only, no app code changed (repo clean at 7cb88d2 throughout).
+
+RESULT - typing passes Q-7 at every size, in one frame (about 15 ms; a frame is 16 ms at 62 fps)
+  Production build :3005, pane visible (62 frames a second), seeds from generate_business.py --as-of 2026-10-24.
+  Method as Addendum 15: native value setter plus input event, time to the second animation frame, five keystrokes.
+  Limits: typing < 0.1 s at 100 staff, < 0.3 s at 1,000.
+
+  ms to paint, worst of five keystrokes (handler ms in brackets)    10 staff     100 staff    1,000 staff
+    Cost Allocation, asset assignment percent                       15 (0-1)     15 (1)       17 (5-6)
+    Rate Builder, Customer Charge, new-line Rate                    15 (9-10)    16 (9-11)    17 (10-11)
+    Rate Builder, Customer Charge, existing-line Rate               16 (9-11)    16 (10)      18 (10-11)
+    Rate Builder, Materials markup %                                16 (9-10)    16 (9-10)    16 (10-11)
+
+  Typing in these fields is not size-sensitive: 10 to 1,000 staff changes the worst case by 2 to 3 ms. Compare Business
+  Modelling lever typing (Addendum 15): 107-113 / 155-175 / 664-690 ms. Cost Allocation and Rate Builder inputs hold
+  local draft state and do not re-run the calculation chain per keystroke.
+
+LIMITS OF THIS RESULT (do not read it as more than it is)
+  - The Cost Allocation percent is a DRAFT field: the pool position did not move while typing (Assets $3,538,077
+    assigned before and after, 1,000 staff). The commit is the "Add asset" click: 31 ms to paint at 1,000 staff, but that
+    asset was already fully allocated in the seed, so it is a light case. A commit that changes the assignment is not timed.
+  - Cost Allocation LABOUR assignment percent was not timed: the G01 Excavator unit showed no labour assignment inputs.
+    Try a unit with labour (G04 Labour crew) if the gap matters.
+  - Rate Builder Labour Rates Builder fields were listed but not typed into (the weighted rate field is derived).
+  - Pane was 627 px wide (mobile layout), as in Addendum 15.
+  - Dev server not involved; all runs on the production build.
+
+HOW (for the R9 re-run; tab and field locators)
+  - Parent page = plain seed JSON on :3005, route loaded in a same-origin full-screen iframe after the seed is written to
+    localStorage (same as perf_pass.console.js). One route per tool call.
+  - Cost Allocation: choose "G01 Excavator unit" in the Working unit select, click the three "Show" buttons, pick a
+    productive asset, then the first number input is "Assignment percent".
+  - Rate Builder: tab buttons "Customer Charge Calculator" (number inputs: new-line Rate, new-line quantity, existing-line
+    Rate), "Labour Rates Builder", "Materials Markup" (one number input).
+  - Seeds and build were made by .tmp\r2c_prepare.ps1 (dry run by default, -Live to build). Seeds, .next and the
+    .tmp\r2c_seed* folders were deleted afterwards.
+
+Q-7 SO FAR (production): PASS on every page open, every freeze except Business Modelling, and every typing measure except
+  Business Modelling levers. The only remaining Q-7 failures are Business Modelling (R3). Trace page freeze 179 ms at 100
+  staff is borderline (limit 200). Business Outcome fixed in item b.
+
+NEXT IN R2: (d) layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row)
+  after the fix batch; then F-1 (core calc file: STOP and confirm first), F-4, F-7, F-10, F-11 and ONE full regression
+  re-run (A, A misaligned, B, A2, ladder).
+===============================================================================

@@ -1,0 +1,68 @@
+HANDOVER V6.1g   2026-10-24   (written at the end of R2 item c; R2 item d is next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\g\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- Last commit before this session: 7cb88d2 (HANDOVER V6.1f). This session changed NO app code. The commit that follows this file
+  holds docs only: stress brief Addendum 17, Cost Allocation brief Addendum 1, Rate Builder brief Addendum 1, PROJECT_MAP
+  performance line, this file. git status should then be clean.
+- Housekeeping done at the end of item c: public\__stress_tmp, .next and .tmp\r2c_seed* deleted; the :3005 server stopped.
+
+2. WHAT WAS DONE (R2 item c, measurement only)
+- Typing in Cost Allocation assignment percent and Rate Builder (Customer Charge new-line Rate, existing-line Rate, Materials
+  markup %) on a production build, 10 / 100 / 1,000 staff, pane visible at 62 fps, five keystrokes, time to second frame.
+- Result: worst case 15-18 ms (one frame) at every size, against limits of 100 ms (100 staff) and 300 ms (1,000 staff). PASS.
+  Handler: Cost Allocation 0-1 ms (5-6 at 1,000), Rate Builder 9-11 ms at every size.
+- Business Modelling lever typing is the only remaining typing failure (R3).
+- Method, locators and caveats: stress brief Addendum 17. Seeds and build made by .tmp\r2c_prepare.ps1 (dry run by default).
+
+3. OWNER DECISIONS MADE
+- Item c is measurement only; no fix needed. Briefs written (stress Addendum 17, Cost Allocation and Rate Builder Addendum 1).
+
+4. OPEN ITEMS
+a. Not measured in item c (stress brief Addendum 17, Limits): Cost Allocation LABOUR assignment percent (G01 has no labour inputs;
+   try G04 Labour crew); the Cost Allocation commit ("Add asset") for an asset that changes the assignment (only a fully
+   allocated asset was timed, 31 ms at 1,000 staff); Rate Builder Labour Rates Builder fields (weighted rate is derived).
+   Decide whether these matter before the R9 re-run.
+b. Temporary scripts, untracked, in .tmp: r2b_*.ps1 (five), r2c_prepare.ps1, addendum15_r2_timing.txt, folders r2b_seed100 and
+   r2b_seed1000. Archive (do not delete) or leave. Decide whether the typing probe belongs in Py\stress_test for R9.
+c. 1,000-staff Business Outcome page text was not compared before and after (carried from V6.1f). The full numeric regression
+   (A, A misaligned, B, A2, ladder) is still owed at the end of the fix batch.
+d. Business Modelling still fails Q-7 (freeze 274 ms at 100 staff, 1,368 at 1,000; lever typing 160 / 680 ms): fix belongs in R3.
+   A one-file ModelReadinessProvider layout on app\business-modelling is an unmeasured option for the R3 design.
+e. R9 note (stress brief Addendum 16): add "dispatcher calls per page open" to the R9 pack. Migration timing owner-to-confirm.
+f. Carried from V6.1e: PROJECT INSTRUCTIONS (owner) in the project settings may still show the old rule 11 paths; PROJECT_MAP
+   row "Calculation trace" still says route not examined. Findings to keep: T-2..T-8, G-1..G-6, F-1/F-4/F-7/F-10/F-11.
+g. Trace page freeze 179 ms at 100 staff is borderline (limit 200), untouched.
+
+5. NEXT STEPS IN ORDER (R2)
+d. Layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row), after the fix batch
+   per the build order; confirm with the owner whether d runs before or after the fix batch.
+Then the fix batch: F-1 ESCT to the IRD rule (core calc file: STOP and confirm first), F-4, F-7, F-10, F-11, and ONE full
+regression re-run (A, A misaligned, B, A2, ladder). After R2: R3 Business Modelling redesign (PROJECT_MAP Section 5).
+Staging for item d: ask Claude to stage Py\stress_test\mirra_expected_l2.py, run_layer2.py, compare_full.py and README.txt, the
+Business Modelling and Rate Builder briefs (RB-1b), and the stress brief tail from Addendum 11 on (find the line first).
+
+6. METHOD NOTES (full detail in stress brief Addendums 16 and 17)
+- Timing only with the built-in browser pane VISIBLE: document.visibilityState "visible" and about 60 frames a second.
+- One route per tool call (45 s limit). Parent page = the plain seed JSON; each route runs in a same-origin iframe.
+- Production build only, never while dev runs. Seeds in public\__stress_tmp BEFORE the build. .tmp\r2c_prepare.ps1 does seeds
+  (10 / 100 / 1,000) + clean build; then npm start -- -p 3005 in a new terminal.
+- useGeneralOverheads.js has mixed CRLF / LF lines: use single-line patch anchors there.
+
+7. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Claude has no git or shell on the PC: Claude gives commands, the owner pastes output back. Claude can stage and write files through
+  the linked computer. Scripts: ASCII, no placeholders, dry run by default (-Live), output to clipboard, wrapped in & { }. git
+  stderr warnings: add 2>$null (also on git add).
+- Apply-Patch (IndexOf/Substring, UTF-8 no BOM), "Patched:" confirmations, npm run build after code batches, never while dev runs.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv (sha256 of the exact bytes uploaded);
+  check with python Py\audit-scripts\check_project_knowledge_sync.py.
+- One piece of work per chat; the handover is the memory. Start a NEW chat rather than carry on after a compaction.
+- Tell the owner when a step needs Opus.
+
+8. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_
+   Numeric_Verification.txt (the UPDATE 2026-10-22 block at the end is the one that matters).  4. Stress brief Addendums 15-17
+   (from line 1054).
+Then only what item d needs (see 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs not needed.
