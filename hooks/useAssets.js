@@ -209,7 +209,7 @@ export default function useAssets() {
     business_default_annual_weeks,
   ]);
 
-  const card = useMemo(() => {
+  const get_card = useMemo(() => () => {
     return buildAssetCard({
       asset_state,
       calculations,
@@ -332,7 +332,7 @@ export default function useAssets() {
 
   return {
     status,
-    card,
+    get card() { return get_card(); },
     output_contract,
     active_assets,
     business_default_annual_weeks,

@@ -333,7 +333,9 @@ export default function useGeneralOverheads() {
     calculated,
   });
 
-  const card = build_general_overhead_card({
+  let cached_card;
+  let card_built = false;
+  const build_card = () => build_general_overhead_card({
     overhead_state,
     saved_overheads,
     calculated,
@@ -360,7 +362,7 @@ export default function useGeneralOverheads() {
     calculated,
     output_contract,
     status,
-    card,
+    get card() { if (!card_built) { card_built = true; cached_card = build_card(); } return cached_card; },
     is_hydrated,
   };
 }
