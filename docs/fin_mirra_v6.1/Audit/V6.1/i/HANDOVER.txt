@@ -1,0 +1,82 @@
+HANDOVER V6.1i   2026-10-25   (written after R2 fix F-4; next is F-7)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\i\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- F-4 committed as cf64748 (code, expected script, regenerated Scenario A / A misaligned seeds and expected files, docs). The commit
+  that follows this file holds docs only (this handover). git status should then be clean; branch is ahead of origin (nothing pushed).
+- Servers: the :3004 production server was running at the end (restarted twice for seed files). public\__stress_tmp was deleted by
+  .tmp\f4_commit.ps1 -Live (confirm it is gone before the next live run). Stop servers before any build.
+- Project knowledge re-synced at the end of this session: COST_ALLOCATION_BRIEF, PROJECT_MAP, CALCULATION_MAP; ledger rewritten.
+
+2. WHAT WAS DONE
+- F-4 DONE. Owner rule (2026-10-25): support-asset cost not assigned to a working unit is SPREAD EVENLY across all active working
+  units with a big red banner/warning; results still shown. An unassigned PRODUCTIVE asset (remaining cost over $1) BLOCKS
+  (allocation_status blocked, no spread).
+  Code: new costAllocationUnassignedAssetSpread.js (pure); costAllocationRuleBuildContext.js (core file; spread merged into the
+  non-productive asset assignments in both build_operational_group_cost_rows calls, totals, warnings, status, new return fields);
+  useCostAllocationOutputContract.js and useCostAllocation.js (new fields; the contract rebuilds field by field);
+  CostAllocationUnassignedAssetBanner.jsx mounted in CostAllocationMainCard.jsx. 14 patches via .tmp\f4_unassigned_asset_patch.ps1.
+- Verified live (production build, built-in pane on :3004, as of 2026-10-25): Scenario A 217 of 217; A misaligned 217 of 217
+  (shortfall View A 450,374.56, View B 489,402.66). Spread 6,181.73 = 1,236.35 per group. Business Outcome net profit now equals the
+  P&L (misaligned 104,075 vs 104,074.93); the "Unassigned cost" row is gone. UI tests: tip truck unassigned -> BLOCKING $12,749;
+  Ute 1 assigned -> spread $3,673; all three support assets assigned -> no banner.
+- Expected script: mirra_expected_l2.py assumption A-7 (spread rule) and A-1 reworded; README note. Docs: Cost Allocation brief
+  Addendum 2 [SHIPPED]; calc map s7 block (extract NOT re-run); stress brief Addendum 19; PROJECT_MAP F-4 DONE.
+
+3. OWNER DECISIONS MADE
+- F-4 spread basis: even split (not hours-weighted). Productive unassigned asset: blocking, not spread (2026-10-25).
+- Keep the decided order: fix batch (F-7, F-10, F-11) -> ONE full regression -> item d -> R3.
+
+4. OPEN ITEMS
+a. Calc map: re-run python Py\audit-scripts\extract_calc_map.py and check s3 (F-1) and s7 (F-4) line numbers before the next calc-map edit.
+b. No trace node for the spread amount itself (group rows carry it). Add when convenient (definition of done says new figures get one).
+c. A labour-only business with productive assets deliberately left unassigned now shows blocked. Watch in Scenario B / A2 / ladder.
+d. Cost Allocation page "Labour" pool row showed available 804,078 vs assigned 1,572,333 on Scenario A (pre-existing display, not traced).
+e. Property (yard, building) cost: undecided (owner: "a different scenario").
+f. ESCT_TREATMENT_FIX future-build brief is shipped but still in Future_Build; archive when the owner approves (Labour brief Section 12,
+   PROJECT_MAP Section 8 name it). F-1 per-hour Labour rate build-up rows still to eyeball (V6.1h item 4a).
+g. Regression owed at the end of the fix batch: A, A misaligned, B, A2 and the ladder, one run. Scenario B has support assets assigned
+   already; A2's expected files must be regenerated too (F-1 flag change and F-4). Scale ladder expected files likewise.
+h. Carried from V6.1h: Cost Allocation LABOUR percent typing, commit of an assignment-changing asset, Rate Builder Labour Rates Builder
+   typing not measured; R9 note "dispatcher calls per page open"; Business Modelling fails Q-7 (R3); trace page freeze 179 ms borderline.
+i. Project instructions (owner): rule 11 and the doc list may still show old paths.
+j. Findings to keep: T-2..T-8, G-1..G-6, F-7/F-10/F-11.
+k. Seen on the pane seed only: Model Readiness shows General Overheads blocked (seed has no general-overheads key); P&L vs Business
+   Outcome net profit gap on Scenario A was not explained (the misaligned run matched). Neither is from F-4.
+
+5. NEXT STEPS IN ORDER (R2)
+1. F-7 dry hire earns money (hourly, default off, placement to confirm). Stage: Future_Build\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt,
+   stress brief Addendum 11 (line 888; F-7 design direction at 919; finding at 865), Briefs\BUSINESS_OUTCOME_BRIEF.txt and ASSETS_BRIEF.txt
+   (the hourly setting probably lives on the asset), calc map s9 (BO-6 covered hours) and s5. Core calc files: stop and confirm.
+2. F-10 EBITDA depreciation pass-through (hooks\useAssets.js active_assets rebuilds field by field: bug class (b); stress brief line 914).
+3. F-11 EBIT adds back all interest, trace nodes backfilled.
+4. ONE full regression re-run (A, A misaligned, B, A2, ladder).
+5. THEN item d: layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row). After R2: R3.
+Each fix: one chat if it is large; the handover is the memory.
+
+6. METHOD NOTES (this session proved the loop; full detail in stress brief Addenda 4, 16-19)
+- Live run without console paste: put seed_<id>.json and expected_<id>_layer2.json in public\__stress_tmp BEFORE (re)starting the :3004
+  production server (next start only serves files that existed at startup; a 404 means restart). .tmp\f4_regen_expected.ps1 -Live
+  regenerates Scenario A and A misaligned for today's NZ date and copies the four files there (A2 and B need their own run).
+- In the built-in pane: back up localStorage to sessionStorage, clear it, write each seed key as JSON.stringify(value) (seed file shape is
+  {meta, keys: {key: object}}), reload /calculation-trace, intercept URL.createObjectURL, click "Download trace JSON", compare in the page
+  (compare_full logic: nodes plus cost_allocation_raw, tol = own tolerance else max(1, 1e-4*|e|)). Restore the backup afterwards.
+- Seed files and expected files regenerated for today change in git every run (that is expected noise in the commit).
+- The shell on the PC does not exist for Claude: Claude writes files via stage/commit (expected-mtime guard) and the owner pastes the
+  .tmp scripts. Scripts: ASCII, header comment, dry run by default (-Live), output to clipboard, wrapped in & { }.
+- useGeneralOverheads.js has mixed CRLF / LF lines: single-line patch anchors there. The calc map is CRLF; the briefs are LF.
+
+7. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Apply-Patch / Invoke-PatchBatch (preflight 1 match each, EOL-normalised), "Patched:" confirmations, Assert-Contains, npm run build after
+  code batches, never while dev runs. Core calculation files: STOP and confirm first.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv (sha256 of the exact bytes uploaded); check with
+  python Py\audit-scripts\check_project_knowledge_sync.py.
+- One piece of work per chat; start a NEW chat rather than carry on after a compaction. Tell the owner when a step needs Opus.
+
+8. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_
+   Numeric_Verification.txt (UPDATE 2026-10-22 block).  4. Stress brief Addendum 19 (the tail of the file).
+Then only what the next step needs (Section 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs
+not needed.
