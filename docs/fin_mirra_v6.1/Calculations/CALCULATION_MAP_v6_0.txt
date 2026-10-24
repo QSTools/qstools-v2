@@ -1,5 +1,8 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-25 (F-1 ESCT): s3 total_employer_contribution_cost no longer adds esct_amount (IRD rule); s3 line numbers from
+  L397 to L427 refreshed (+3 from a comment). Extract NOT re-run yet: re-run python Py\audit-scripts\extract_calc_map.py and
+  check s3 before the next calc-map edit.
   PATHS FIXED 2026-10-22 (V6.1d step 6): file and dump locations in this header and in section 0 now point at
   docs\fin_mirra_v6.1\Calculations\. No formula or line number was re-checked, so the UPDATED dates below stand.
   UPDATED 2026-10-15 (idle cost Step 4, O-2): s9.9 gained the per-asset shortfall dollars (display only, no net profit change).
@@ -131,12 +134,13 @@ Per staff member (lib/calculations/labourCalculations.js, calculateLabourOutputs
 - employer_kiwisaver_gross = gross_wages x employer rate (if enabled)     L379
 - esct_amount = employer KiwiSaver x ESCT rate                            L389
 - acc_work_levy_annual = gross_wages x acc_rate/100                       L393
-- total_employer_contribution_cost = KiwiSaver + ESCT + ACC               L397
-- total_labour_cost_annual = base_labour_cost_annual + employer contributions  L400
-- loaded_labour_cost_rate = total cost / paid hours                       L403
-- productive_labour_cost_rate = total cost / productive_hours             L408
-- minimum_charge_out_rate = productive rate / (1 - margin target)         L415
-- profit_per_hour = charge_out_rate - productive_labour_cost_rate         L427
+- total_employer_contribution_cost = KiwiSaver + ACC. ESCT is deducted FROM
+  the KiwiSaver contribution (IRD rule), so it is shown but NOT added (F-1)   L400
+- total_labour_cost_annual = base_labour_cost_annual + employer contributions  L403
+- loaded_labour_cost_rate = total cost / paid hours                       L406
+- productive_labour_cost_rate = total cost / productive_hours             L411
+- minimum_charge_out_rate = productive rate / (1 - margin target)         L418
+- profit_per_hour = charge_out_rate - productive_labour_cost_rate         L430
 
 Per staff type (calculateProductiveStaffTypeRates, same file)
 - weighted_productive_hourly_rate = type total cost / type productive hours  L173

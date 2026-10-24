@@ -3,8 +3,8 @@ MIRRA - LABOUR - MODULE BRIEF
 ===============================================================================
 FILE:          docs\fin_mirra_v6.1\Briefs\LABOUR_BRIEF.txt  (the ONE Labour brief - update in place)
 STATUS:        VERIFIED (P2.3, 2026-09-21). Fixes since: F12, F18, F19. Stress-tested R2 (to 1,000 staff).
-               One owner-approved fix PENDING: ESCT (F-1), between R2 and R3.
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+               F-1 ESCT fix SHIPPED 2026-10-25 (Addendum 1); full regression re-run still owed at the end of the fix batch.
+LAST UPDATED:  2026-10-25 (Addendum 1, F-1 ESCT); 2026-10-21 V6.1 collation
 ROUTE:         app/labour
 MECHANISM:     formulas and line numbers live in Calculations\CALCULATION_MAP_v6_0.txt Section 3, not here.
                This brief holds intent, rules, contract, verified status and open items.
@@ -159,11 +159,10 @@ F16 Business Summary required_labour_burden_rate shows 0 - field dropped between
     and Business Summary (businessSummarySelectors.js:261). Owned by the Business Summary brief.
 F17 Legacy Business Modelling baselines keep pre-F12 hours until re-locked. Owned by Business
     Modelling (R3 redesign).
-F-1 ESCT added ON TOP of 3.5% employer KiwiSaver (overstates labour ~1%). IRD: ESCT is deducted
-    from the contribution. OWNER DECIDED 2026-10-18: fix to the IRD rule; ESCT shown as a split,
-    not added. Open: offer "employer pays ESCT on top" option? Core calc file - stop and confirm.
-    Verify with the R2 harness (kiwisaver_line_includes_esct=false). Full detail:
-    Future_Build\ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt. PLACEMENT: after R2, before R3.
+F-1 FIXED 2026-10-25 (Addendum 1). ESCT was added ON TOP of the 3.5% employer KiwiSaver (overstated
+    labour about 1%). Now ESCT is shown as the IRD part of the contribution and is NOT added. Owner decided
+    2026-10-25 not to offer an "employer pays ESCT on top" option. Scenario A: 217 of 217 live after the fix.
+    Regression re-run (A misaligned, B, A2, ladder) still owed at the end of the fix batch.
 
 CLOSED
 F12 FIXED 2026-09-21 (f8c337d): total_productive_output now productive staff only.
@@ -209,11 +208,25 @@ operators in Labour. Do not treat subcontractors as Labour unless the user enter
 - VARIABLE_TRACKER_v6_0.txt Section 12 (Labour gaps)
 - SMOKE_TEST_v6_0_BRIEF_2026-09-26.txt steps 2, D, E
 - STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt and R2_HANDOVER_2026-10-18.txt
-- ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt (stays live in Future_Build until shipped)
+- ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt (SHIPPED 2026-10-25; to be archived)
 The v4.0 sections on UI panel layout (Sections 37-45) were not carried over; read the archived file
 if a Labour UI rebuild is ever scoped.
 
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+ADDENDUM 1 (2026-10-25) - F-1 ESCT TO THE IRD RULE [SHIPPED]
+Change: lib/calculations/labourCalculations.js total_employer_contribution_cost = employer_kiwisaver_gross +
+acc_work_levy_annual (esct_amount no longer added). esct_amount and esct_rate are still outputs, shown as "of which ESCT".
+Display: Labour summary rate build-up (ESCT is a memo row, not in Employer Cost Uplift; ACC row renumbered 9), Employer
+Contributions card text, Labour help text, Cost Summary tree (ESCT is now a child of KiwiSaver, so children add to the parent).
+Harness: mirra_expected.py total no longer adds ESCT; the four recipes set kiwisaver_line_includes_esct false.
+Owner decisions: ESCT is calculated to the IRD rule (2026-10-18); no "employer pays ESCT on top" option (2026-10-25).
+Verified live (production build, built-in browser pane): Scenario A seed as of 2026-10-25, 217 of 217. Labour total
+812,167.28 -> 804,077.75 (minus the ESCT 8,089.54); cost burden 1,015,446.30 -> 1,007,319.41; required recovery per driver
+102.58 -> 101.76. Labour page: Employer KiwiSaver 2,475 + ACC 1,011 = Employer Contribution Total 3,486 for the loaded profile
+(ESCT 743 shown, not added). Cost Summary: KiwiSaver > "of which ESCT (to IRD)" renders with the right share.
+No trace node change: the labour node is the sum of total_labour_cost_annual and no new figure was added.
+NOT YET VERIFIED: the Labour page numbered rate build-up rows were not located in the pane; A misaligned, B, A2 and the
+scaling ladder wait for the single regression at the end of the fix batch.
+Calc map s3 updated the same day (extract not re-run).

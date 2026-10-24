@@ -148,7 +148,7 @@ export default function EmployerContributionsCard({
             </div>
 
             <div className="ui-readonly">
-              <div className="ui-label">ESCT</div>
+              <div className="ui-label">ESCT (deducted from the contribution)</div>
               <div className="ui-value">
                 {format_currency(outputs?.esct_amount)}
               </div>
@@ -305,8 +305,9 @@ export default function EmployerContributionsCard({
             {format_currency(outputs?.total_employer_contribution_cost)}
           </div>
           <div className="ui-help">
-            KiwiSaver + ESCT + ACC. This total is owned by Labour and consumed
-            downstream unchanged.
+            KiwiSaver + ACC. ESCT is deducted from the KiwiSaver contribution
+            and paid to IRD, so it is not added again. This total is owned by
+            Labour and consumed downstream unchanged.
           </div>
         </div>
       </div>

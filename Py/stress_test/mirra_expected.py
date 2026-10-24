@@ -84,7 +84,7 @@ def labour_person(p):
     ks = gross * EMPLOYER_KIWISAVER_RATE if p.get("employee_kiwisaver_enabled", True) else 0
     esct = ks * esct_rate(gross + ks) if p.get("employee_kiwisaver_enabled", True) else 0
     acc = gross * p["acc_rate"] / 100 if p.get("acc_enabled", True) else 0
-    total = gross + ks + esct + acc
+    total = gross + ks + acc  # F-1: ESCT is deducted from ks (IRD rule), not added
     return {
         "paid_hours": paid, "leave_hours": leave, "break_hours": breaks,
         "productive_hours": productive_hours,

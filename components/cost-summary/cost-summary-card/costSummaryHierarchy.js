@@ -49,11 +49,14 @@ export function buildCostSummaryHierarchy({
         key: `${prefix}-kiwisaver`,
         label: "KiwiSaver",
         amount: detail.employer_kiwisaver_annual,
-      }),
-      makeNode({
-        key: `${prefix}-esct`,
-        label: "ESCT",
-        amount: detail.esct_annual,
+        note: "ESCT is deducted from this contribution and paid to IRD. It is not added on top.",
+        children: [
+          makeNode({
+            key: `${prefix}-esct`,
+            label: "of which ESCT (to IRD)",
+            amount: detail.esct_annual,
+          }),
+        ],
       }),
       makeNode({
         key: `${prefix}-acc`,

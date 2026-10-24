@@ -81,9 +81,10 @@ export default function LabourHelpPanel() {
                 <div className="ui-stack-sm">
                   <div className="ui-kicker">Employer contributions</div>
                   <p className="ui-help">
-                    Employer KiwiSaver and ESCT are shown separately because
-                    they are real employer-funded labour costs. They should stay
-                    visible and must not be silently absorbed or merged away.
+                    Employer KiwiSaver and ESCT are shown separately so you can
+                    see the split. ESCT is deducted from the employer KiwiSaver
+                    contribution and paid to IRD, so the employer cost is the
+                    KiwiSaver contribution plus ACC, not KiwiSaver plus ESCT.
                   </p>
                 </div>
               </div>
