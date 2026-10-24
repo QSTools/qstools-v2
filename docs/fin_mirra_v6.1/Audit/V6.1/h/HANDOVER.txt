@@ -1,0 +1,88 @@
+HANDOVER V6.1h   2026-10-25   (written after R2 fix F-1; the order of item d and the fix batch is settled)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\h\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+1. WHERE WE ARE
+- Last commits: b299456 (PROJECT_MAP: item d runs after the fix batch), 6968ce7 (F-1 ESCT to the IRD rule, code + docs). The commit
+  that follows this file holds docs only (this handover). git status should then be clean.
+- Servers: the :3005 production server was running at the end of the session; stop it before any build. public\__stress_tmp was
+  deleted at the end of F-1 (confirm it is gone before the next live run).
+- Project knowledge was re-synced at the end of this session (Labour brief, calc map, PROJECT_MAP) and the ledger rewritten.
+
+2. WHAT WAS DONE
+- ORDER DECIDED (owner, 2026-10-24): R2 item d (layer-2 gaps) runs AFTER the fix batch and its regression re-run. HANDOVER V6.1g
+  Section 5 had listed d first; PROJECT_MAP Section 6 and stress brief Addendum 18 now say d is after the fix batch.
+- F-1 DONE (6968ce7). labourCalculations.js total_employer_contribution_cost = KiwiSaver gross + ACC (ESCT no longer added; it is
+  still an output, shown as "of which ESCT"). 14 patches in 10 files (.tmp\f1_esct_patch.ps1): the Labour summary rate build-up
+  (ESCT is a memo row, ACC row renumbered 9), Employer Contributions card text, Labour help text, Cost Summary tree (ESCT is now a
+  child of KiwiSaver so the children add to the parent), mirra_expected.py and the four recipes (kiwisaver_line_includes_esct false).
+- Verified live (production build, built-in browser pane, Scenario A as of 2026-10-25): 217 of 217. Labour 812,167.28 -> 804,077.75;
+  cost burden 1,015,446.30 -> 1,007,319.41; required recovery per driver 102.58 -> 101.76. Labour page for the loaded profile:
+  KiwiSaver 2,475 + ACC 1,011 = 3,486 (ESCT 743 shown, not added). Cost Summary KiwiSaver > ESCT renders, 30.5% of the layer.
+- Baseline before F-1 was the 20 layer-1 nodes only (the pane download did not reach Downloads); 217 of 217 on the same app code is
+  recorded in stress brief Addendum 4.
+- Docs: Labour brief Addendum 1 [SHIPPED]; calc map s3 lines (L400 L403 L406 L411 L418 L430, extract re-run and matched); ESCT
+  future-build brief Addendum 2; stress brief Addendum 18; PROJECT_MAP F-1 DONE.
+
+3. OWNER DECISIONS MADE
+- Keep the decided order: fix batch first, then item d (2026-10-24).
+- ESCT is calculated to the IRD rule; no "employer pays ESCT on top" option (2026-10-25).
+- Baseline: run it first on the current code (done, layer 1 only).
+
+4. OPEN ITEMS
+a. F-1 still to eyeball: the numbered per-hour rate build-up rows on the Labour page ("of which ESCT (to IRD, not added) / Productive
+   Hr", "9. ACC / Productive Hr", Employer Cost Uplift = KiwiSaver + ACC). I could not find that view in the pane.
+b. ESCT_TREATMENT_FIX_FUTURE_BUILD_BRIEF_2026-10-17.txt is marked shipped but still in Future_Build. Archive it (move to docs\Archive,
+   never delete) when the owner approves; PROJECT_MAP Section 8 and the Labour brief Section 12 still name it.
+c. Regression owed at the end of the fix batch: A, A misaligned, B, A2 and the ladder, one run. The F-1 recipe change (flag false)
+   changes the P&L KiwiSaver line in every scenario, so every expected file must be regenerated with the updated recipes.
+d. Carried: Cost Allocation LABOUR percent, commit of an assignment-changing asset, Rate Builder Labour Rates Builder typing not measured
+   (stress brief Addendum 17, Limits). Temporary scripts in .tmp (r2b_*.ps1, r2c_prepare.ps1, f1_esct_patch.ps1, folders r2b_seed*):
+   archive or leave. 1,000-staff Business Outcome text was not compared before and after. Business Modelling still fails Q-7 (R3).
+   R9 note: add "dispatcher calls per page open". Trace page freeze 179 ms at 100 staff is borderline (limit 200).
+e. Project instructions (owner): rule 11 and the doc list may still show old paths. The project held a stray root-level
+   PROJECT_MAP.md (an identical stale copy of claude/PROJECT_MAP.md, created 2026-10-23); Claude removed it at the end of this session.
+f. Findings to keep: T-2..T-8, G-1..G-6, F-4/F-7/F-10/F-11.
+
+5. NEXT STEPS IN ORDER (R2)
+1. F-4 unassigned asset cost spread with a red warning (decision text: stress brief Addendum 6, line 678; finding at line 589).
+   Staging to ask for: Briefs\COST_ALLOCATION_BRIEF.txt, stress brief lines 589-630 and 678-712, hooks\useCostAllocation.js,
+   lib\calculations\cost-allocation\costAllocationRuleBuildContext.js and ...GroupCostBuilder.js, the Cost Allocation section of the
+   calc map (s7). Core calc file rules apply: stop and confirm before patching.
+2. F-7 dry hire earns money (hourly, default off, placement to confirm): Future_Build\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt
+   and stress brief Addendum 11 (line 919).
+3. F-10 EBITDA depreciation pass-through (hooks\useAssets.js active_assets rebuilds field by field: bug class (b); stress brief line 914).
+4. F-11 EBIT adds back all interest, trace nodes backfilled.
+5. ONE full regression re-run (A, A misaligned, B, A2, ladder).
+6. THEN item d: layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row). Stage then:
+   Py\stress_test\mirra_expected_l2.py, run_layer2.py, compare_full.py, README.txt, the Business Modelling and Rate Builder briefs (RB-1b),
+   the stress brief tail from Addendum 11 on. After R2: R3 Business Modelling redesign (PROJECT_MAP Section 5).
+Each fix: one chat if it is large; the handover is the memory.
+
+6. METHOD NOTES (full detail in stress brief Addenda 4, 16-18)
+- Live run, no console paste: Claude drives the built-in browser pane (request_access for the localhost port, then JavaScript). Put the
+  flat seed (key -> string) and the expected file in public\__stress_tmp BEFORE starting the production server (next start only serves
+  public files that existed at startup; a new file 404s). Hand-copying a compressed seed into the page corrupts it, so fetch it.
+  Capture the trace by intercepting URL.createObjectURL on the "Download trace JSON" click and compare in the page (compare_full
+  logic ported). Back up the pane's storage to sessionStorage first and restore it after. Delete public\__stress_tmp afterwards.
+- The pane download does not reach Downloads. Use the in-page compare, or the README flow with the owner's Chrome.
+- Timing only with the pane visible. One route per tool call. Production build only, never while dev runs. --as-of must be the NZ date.
+- useGeneralOverheads.js has mixed CRLF / LF lines: single-line patch anchors there. The calc map is CRLF; the briefs are LF.
+- Claude can write files to the PC through the linked computer (stage, edit in the container, commit with an expected-mtime guard) but
+  has no shell there: git and npm commands are pasted by the owner. A commit_files write can be undone by something on the PC; confirm
+  with git status (it happened once to PROJECT_MAP.md and the rewrite then stuck).
+
+7. STANDING RULES
+- Archive, never delete. Dry run before any bulk move and wait for approval. One brief per module. Read only what each step needs.
+- Scripts: ASCII, header comment, dry run by default (-Live), output to clipboard, wrapped in & { }. git stderr warnings: add 2>$null.
+- Apply-Patch / Invoke-PatchBatch (preflight 1 match each, EOL-normalised), "Patched:" confirmations, Assert-Contains, npm run build after
+  code batches, never while dev runs. Core calculation files: STOP and confirm first.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv (sha256 of the exact bytes uploaded); check with
+  python Py\audit-scripts\check_project_knowledge_sync.py.
+- One piece of work per chat; start a NEW chat rather than carry on after a compaction. Tell the owner when a step needs Opus.
+
+8. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_
+   Numeric_Verification.txt (UPDATE 2026-10-22 block).  4. Stress brief Addendum 18 (the tail of the file).
+Then only what the next step needs (Section 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md (1,100 lines), or module briefs
+not needed.
