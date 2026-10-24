@@ -21,7 +21,7 @@ Rate Builder "all productive" row (map CM-2 RB-1b: a different basis).
 
 ASSUMPTIONS = [
     "A-1  Cost Allocation overhead pool = Cost Summary total_business_overheads (map s6/s7: overhead_absorbed_cost). "
-    "Support-asset cost is in the Cost Summary burden but is NOT in the pool or in any group unless a support asset is assigned.",
+    "Support-asset cost that is not assigned reaches the groups only through the F-4 spread (A-7).",
     "A-2  group_recovery_hours when asset hours drive: MIN(required_asset_hours, labour hours) if any labour is assigned "
     "(map s7, CM-9); with no labour assigned the MAX of the asset hours (the map does not say; not exercised by Scenario A).",
     "A-3  Business Outcome asset-row overhead share uses SUM of the group's asset-row hours as the denominator "
@@ -35,6 +35,10 @@ ASSUMPTIONS = [
     "overheads - overhead assigned to groups, 0); profit floored at 0. View B materials is a peer at COGS x (1 + markup). "
     "Row modelled revenue is floored at 0 (CONFIRMED live 2026-10-17, misaligned A; owner decision F-5); the shortfall uses "
     "the unfloored residual.",
+    "A-7  F-4 (owner decision 2026-10-25, built): support-asset cost not assigned to any working unit (total support-asset cost "
+    "less the cost assigned across groups) is spread EVENLY across every group row and added to that group's non-productive asset "
+    "cost. So Cost Allocation total = Cost Summary burden whenever every productive asset is assigned. An unassigned PRODUCTIVE "
+    "asset is a blocking flag in the app, not spread; recipes must assign every productive asset.",
 ]
 
 
@@ -128,6 +132,15 @@ def layer2(recipe, as_of, l1, charge_out, ids):
                      "assets": assets, "asset_burden": asset_burden, "asset_hours_max": asset_hours_max, "required": required,
                      "asset_driven": asset_driven, "recovery": recovery, "np_labour": nonprod_labour_cost, "np_asset": nonprod_asset_cost,
                      "tied": tied})
+
+    # F-4 spread (A-7): unassigned support-asset cost, split evenly across all group rows
+    total_support_cost = sum(a["cost"] for refs in per_asset.values() for a in refs if not a["productive"])
+    assigned_support_cost = sum(r["np_asset"] for r in rows)
+    unassigned_support = max(0.0, total_support_cost - assigned_support_cost)
+    spread_each = unassigned_support / len(rows) if (rows and unassigned_support > 0.005) else 0.0
+    for r in rows:
+        r["np_asset_spread"] = spread_each
+        r["np_asset"] += spread_each
 
     # overhead pool and its distribution (map s7: recovered hours, else labour cost, else asset burden, else equal)
     pool = business_overheads                                                                  # A-1
@@ -306,6 +319,7 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         "materials_view_a_revenue": mat_a_revenue, "materials_view_b_revenue": mat_b_revenue,
         "shortfall_view_a": shortfall_a, "shortfall_view_b": shortfall_b, "surplus_view_b": surplus_b,
         "non_productive_pool": np_pool, "assumptions": ASSUMPTIONS, "groups": {},
+        "f4_unassigned_support_asset_cost": unassigned_support, "f4_spread_per_group": spread_each,
     }
     for r in rows:
         detail["groups"][r["ref"]] = {

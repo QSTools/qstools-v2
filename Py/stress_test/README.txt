@@ -70,3 +70,7 @@ SCENARIO B (step 2b, 2026-10-18; stress brief Addendum 10)
 SCENARIO A2 - REALISTIC OVER-STAFFING (step 2e, 2026-10-18; stress brief Addendum 12)
   recipes/scenario_a_overstaffed.json   Scenario A + 1 operator + 1 senior operator, every machine unit tied: each about
                                         20 percent over its machine hours. Live 2026-10-18: 217 of 217.
+
+F-4 (2026-10-25): unassigned support-asset cost is now spread evenly across the working units (app and mirra_expected_l2.py A-7).
+  Every productive asset must be assigned in a recipe, or the app blocks. Expected files generated before 2026-10-25 for a recipe
+  with unassigned support assets (scenario_a, scenario_a_misaligned, scenario_a_overstaffed) must be regenerated.

@@ -99,7 +99,7 @@ d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Ra
    therefore the fix batch, not d (HANDOVER V6.1g Section 5 listed d first; this line supersedes it).
 
 Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-run (A, A misaligned, B, A2, ladder):
-F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning |
+F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning (DONE 2026-10-25, Cost Allocation brief Addendum 2) |
 F-7 dry hire earns money (hourly, default off, placement to confirm) | F-10 EBITDA depreciation pass-through |
 F-11 EBIT adds back all interest, trace nodes backfilled.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost

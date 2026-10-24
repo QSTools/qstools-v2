@@ -4,9 +4,9 @@ MIRRA - COST ALLOCATION (THE HINGE) - MODULE BRIEF
 FILE:          docs\fin_mirra_v6.1\Briefs\COST_ALLOCATION_BRIEF.txt  (the ONE Cost Allocation brief - update in place)
 STATUS:        VERIFIED (P2.5, 2026-09-23: every source dollar distributed exactly once). Since: overhead split by
                recovered hours (2026-09-29); D1 labour coverage notice, run pattern and labour cap (2026-10-05..07);
-               D4 idle labour (2026-10-07); D2 closed; R2 stress test to 1,000 staff. PENDING before R3: F-4
-               (unassigned assets). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
-LAST UPDATED:  2026-10-24 (Addendum 1; first rebuilt 2026-10-21 from the sources listed in Section 12)
+               D4 idle labour (2026-10-07); D2 closed; R2 stress test to 1,000 staff. F-4 SHIPPED 2026-10-25
+               (unassigned assets, Addendum 2). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
+LAST UPDATED:  2026-10-25 (Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
 ROUTE:         app/cost-allocation
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 7. This brief holds intent, rules, contract,
                verified status and open items.
@@ -66,7 +66,10 @@ R8  Non-productive cost is in total_group_cost and group_cost_per_hour but in NO
 R9  NAMING TRAPS: productive_asset_cost here = own + pools (in the Assets contract = own only, C2). Top-level
     assignment lists are RAW stored records - read the enriched lists on operational_group_cost_rows. Fields like
     labour_share_percent, required_recovery_rate, recovery_hours_used are Recovery Summary passthroughs.
-R10 Every asset should be assigned to a working unit (owner, F-4).
+R10 Every asset must be assigned to a working unit (owner, F-4). An unassigned PRODUCTIVE asset (remaining cost over $1)
+    BLOCKS: allocation_status = blocked, red banner, no spread. Unassigned SUPPORT-asset cost is spread EVENLY across all
+    active working units (default, so totals are complete) with a red banner and warning. Spread rows are automatic
+    non-productive asset assignments (asset_id unassigned_support_asset_spread).
 R11 Moving a person between units never edits a record: the old assignment goes is_active false and a new one is
     created.
 
@@ -140,8 +143,8 @@ DEAD (no importer found): CostAllocationStatusStrip.jsx, groups/CostAllocationGr
 8. FINDINGS REGISTER (keep numbers; update status in place)
 ===============================================================================
 PENDING BUILD (owner decided)
-F-4  Unassigned asset cost reaches no group. Build: warning close to blocking; if ignored, spread unassigned asset
-     cost across working units by default; results shown with a big red warning. Placement: after R2, before R3.
+F-4  SHIPPED 2026-10-25 (Addendum 2). Unassigned support-asset cost is spread evenly across working units with a red
+     warning; an unassigned productive asset blocks. Live: Scenario A and A misaligned 217 of 217.
 OPEN - DESIGN
 C3b  Product mode: overhead_absorbed_cost = total cost burden, so labour and assets would count twice per group.
      Latent (hours-mode data). Units Mode.
@@ -227,3 +230,28 @@ Assignment percent typing on a production build, worst of five keystrokes to pai
 Caveats: the percent is a draft field (the pool position moves on the "Add asset" click, 31 ms at 1,000 staff for an
 already allocated asset); labour assignment percent was NOT timed (G01 has no labour inputs; try G04 Labour crew).
 Detail and method: stress brief Addendum 17.
+
+ADDENDUM 2 (2026-10-25) - F-4 UNASSIGNED ASSET COST  [SHIPPED]
+RULE (owner decision 2026-10-25): support-asset cost not assigned to any working unit is spread EVENLY across all active
+working units, with a red warning; an unassigned productive asset is a blocking flag (not spread).
+CODE: new lib\calculations\cost-allocation\costAllocationUnassignedAssetSpread.js (pure); costAllocationRuleBuildContext.js
+(spread merged into the non-productive asset assignments given to build_operational_group_cost_rows in both calls;
+total_grouped_non_productive_asset_cost + spread; unassigned_non_productive_asset_cost less spread;
+has_unassigned_productive_asset sets allocation_status blocked; two source-pool warnings productive_asset_unassigned and
+unassigned_support_asset_spread; new returns unassigned_support_asset_spread, ..._cost, ..._group_count,
+has_unassigned_support_asset_spread, unassigned_productive_asset_cost, has_unassigned_productive_asset);
+hooks\cost-allocation\useCostAllocationOutputContract.js and hooks\useCostAllocation.js (recovery_plan) pass the new fields
+(the contract rebuilds field by field); components\cost-allocation\CostAllocationUnassignedAssetBanner.jsx mounted in
+CostAllocationMainCard.jsx. 14 patches via .tmp\f4_unassigned_asset_patch.ps1, build clean.
+EFFECT: the spread lands in each group's assigned_non_productive_asset_cost, total_group_cost and group_cost_per_hour, but
+not in the stream rates or the minimum recoverable rate (C6, unchanged). Cost Allocation total now equals the Cost Summary
+burden and Business Outcome net profit equals the P&L (misaligned 104,075 vs 104,074.93); the Business Outcome "Unassigned
+cost" row no longer appears.
+LIVE (built-in pane, :3004 production, as of 2026-10-25): Scenario A 217 of 217, A misaligned 217 of 217 against
+mirra_expected_l2.py A-7 (unassigned 6,181.73, 1,236.35 per group). Banner $6,182 on Scenario A. Un-assigning the tip truck
+showed BLOCKING $12,749 and the pool row; assigning Ute 1 cut the spread to $3,673; assigning all three support assets
+removed the banner.
+OPEN: no trace node for the spread amount itself (group rows carry it); property (yard, building) still undecided; a labour-only
+business with productive assets that are deliberately unassigned now shows blocked; Cost Allocation page Labour pool row read
+available 804,078 vs assigned 1,572,333 on Scenario A (pre-existing display, not traced); full regression (B, A2, ladder) owed
+at the end of the fix batch.

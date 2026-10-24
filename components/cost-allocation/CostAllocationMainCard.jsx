@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import CostAllocationEvidenceBreakdown from "@/components/cost-allocation/CostAllocationEvidenceBreakdown";
 import CostAllocationStepBuilder from "@/components/cost-allocation/CostAllocationStepBuilder";
+import CostAllocationUnassignedAssetBanner from "@/components/cost-allocation/CostAllocationUnassignedAssetBanner";
 
 function formatCount(value) {
   return Number(value || 0).toLocaleString("en-NZ");
@@ -336,6 +337,8 @@ export default function CostAllocationMainCard({
             </div>
           </div>
         </section>
+
+        <CostAllocationUnassignedAssetBanner recovery_plan={recovery_plan} />
 
         <div className="cost-allocation-layout">
           <div className="ui-stack">

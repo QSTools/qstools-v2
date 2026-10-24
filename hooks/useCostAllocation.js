@@ -506,6 +506,16 @@ export default function useCostAllocation(inputs = {}) {
       unassigned_asset_cost: calculated.unassigned_asset_cost,
       unassigned_overhead_cost: calculated.unassigned_overhead_cost,
       total_unassigned_cost: calculated.total_unassigned_cost,
+      unassigned_support_asset_spread_cost:
+        calculated.unassigned_support_asset_spread_cost,
+      unassigned_support_asset_spread_group_count:
+        calculated.unassigned_support_asset_spread_group_count,
+      has_unassigned_support_asset_spread:
+        calculated.has_unassigned_support_asset_spread,
+      unassigned_productive_asset_cost:
+        calculated.unassigned_productive_asset_cost,
+      has_unassigned_productive_asset:
+        calculated.has_unassigned_productive_asset,
       productive_asset_utilisation_hours_annual:
         calculated.productive_asset_utilisation_hours_annual,
       group_recovery_basis_label: calculated.group_recovery_basis_label,

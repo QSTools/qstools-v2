@@ -118,6 +118,17 @@ export function build_cost_allocation_output_contract({ calculated, state }) {
     labour_pool_over_allocated: calculated.labour_pool_over_allocated,
     asset_pool_over_allocated: calculated.asset_pool_over_allocated,
     total_unassigned_cost: calculated.total_unassigned_cost,
+    // F-4: spread of unassigned support-asset cost, and the blocking productive-asset flag.
+    unassigned_support_asset_spread_cost:
+      calculated.unassigned_support_asset_spread_cost ?? 0,
+    unassigned_support_asset_spread_group_count:
+      calculated.unassigned_support_asset_spread_group_count ?? 0,
+    has_unassigned_support_asset_spread:
+      calculated.has_unassigned_support_asset_spread === true,
+    unassigned_productive_asset_cost:
+      calculated.unassigned_productive_asset_cost ?? 0,
+    has_unassigned_productive_asset:
+      calculated.has_unassigned_productive_asset === true,
     productive_asset_utilisation_hours_annual:
       calculated.productive_asset_utilisation_hours_annual,
     group_recovery_basis_label: calculated.group_recovery_basis_label,

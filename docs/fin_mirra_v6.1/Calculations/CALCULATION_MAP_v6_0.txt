@@ -1,5 +1,7 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-25 (F-4): s7 gained the unassigned asset spread and the productive-asset block (costAllocationRuleBuildContext.js,
+  costAllocationUnassignedAssetSpread.js). Line numbers for those lines come from the patched file; extract NOT re-run yet.
   UPDATED 2026-10-25 (F-1 ESCT): s3 total_employer_contribution_cost no longer adds esct_amount (IRD rule); s3 line numbers from
   L397 to L427 refreshed (+3 from a comment). Extract NOT re-run yet: re-run python Py\audit-scripts\extract_calc_map.py and
   check s3 before the next calc-map edit.
@@ -278,6 +280,17 @@ Grand totals (costAllocationRuleBuildContext.js)
 - total_grouped_operating_cost = labour + asset + overhead + non-prod
   labour + non-prod asset                                                 L340
 - total_unassigned_cost = unassigned labour + asset + overhead           L362
+
+Unassigned asset cost (F-4, 2026-10-25; costAllocationUnassignedAssetSpread.js + costAllocationRuleBuildContext.js)
+- support-asset cost not assigned (available - assigned, support pool) is spread EVENLY: each active working unit gets
+  remaining / group count, added as an automatic non-productive asset assignment (asset_id unassigned_support_asset_spread)
+  so it lands in assigned_non_productive_asset_cost and total_group_cost   build_unassigned_support_asset_spread L190, merge L196
+- total_grouped_non_productive_asset_cost = assigned + spread               L363
+- unassigned_non_productive_asset_cost = remaining - spread (0 when there is at least one working unit)   L386
+- unassigned productive asset cost = remaining productive asset cost (floored at 0); has_unassigned_productive_asset = above $1;
+  it sets allocation_status to blocked (like over-allocation) and is NOT spread   L310, L513
+- warnings: productive_asset_unassigned (blocking), unassigned_support_asset_spread (red, amount and group count)   L445, L456
+- spread cost is in group_cost_per_hour but not in the stream rates or minimum recoverable rate (C6)
 
 ===============================================================================
 8. RATE BUILDER (stored user inputs + display maths; no output contract)
