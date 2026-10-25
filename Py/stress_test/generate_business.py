@@ -184,7 +184,7 @@ def build(recipe, as_of):
             "asset_type": a["asset_type"], "scheduled_hours_per_week": weekly, "downtime_hours_per_week": 0,
             "utilisation_hours_per_week": weekly, "utilisation_hours_annual": 0,
             "purchase_price": a.get("purchase_price", 0), "linked_register_asset_number": "",
-            "purchase_price_locked": False, "estimated_annual_depreciation": None,
+            "purchase_price_locked": False, "estimated_annual_depreciation": a.get("depreciation_annual"),
             "include_depreciation_in_cost": False, "interest_rate": a.get("interest_rate", 0),
             "finance_start_date": a.get("finance_start_date", ""), "finance_term_years": a.get("finance_term_years", 0),
             "finance_paid_off": bool(a.get("finance_paid_off", False)), "finance_paid_off_date": "",

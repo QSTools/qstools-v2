@@ -103,8 +103,9 @@ d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Ra
 
 Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-run (A, A misaligned, B, A2, ladder):
 F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning (DONE 2026-10-25, Cost Allocation brief Addendum 2) |
-F-7 dry hire earns money (hourly, default off, placement to confirm) | F-10 EBITDA depreciation pass-through |
-F-11 EBIT adds back all interest, trace nodes backfilled.
+F-10 EBITDA depreciation pass-through (DONE 2026-10-26, Business Outcome brief Addendum 2; EBIT / EBITDA trace nodes backfilled; 174 of 174 on
+scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBITDA (OPEN, own slice, own test) |
+F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) | F-7 dry hire earns money (hourly, default off, placement to confirm).
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.

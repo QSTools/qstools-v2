@@ -62,6 +62,13 @@ ASSUMPTIONS = [
     "less the cost assigned across groups) is spread EVENLY across every group row and added to that group's non-productive asset "
     "cost. So Cost Allocation total = Cost Summary burden whenever every productive asset is assigned. An unassigned PRODUCTIVE "
     "asset is a blocking flag in the app, not spread; recipes must assign every productive asset.",
+    "A-12 EBIT / EBITDA table totals (map s9, businessOutcomeEbitCalculations.js; R2 fix batch 2026-10-26). Always View A. "
+    "total_net_profit = today net profit (View A group real-capacity profit + materials real-capacity profit; unassigned cost is 0 "
+    "under A-7). total_interest = EVERY asset's interest (the app adds a remainder row for support and unassigned assets, F-8). "
+    "total_depreciation = the recipe's depreciation_annual summed over every asset copy (default none = 0), added back in full: "
+    "this is the F-10b TARGET. Until F-10b is built the app adds depreciation only for assets assigned to a group, so a recipe "
+    "must put depreciation_annual only on productive assets that are 100% assigned (scenario_a_depreciation does). "
+    "EBIT = net profit + interest. EBITDA = EBIT + depreciation.",
 ]
 
 
@@ -440,6 +447,15 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     nodes["business_modelling.today_net_profit"] = today_net
     nodes["business_modelling.total_effect"] = 0.0
     nodes["business_modelling.modelled_net_profit"] = today_net
+
+    # ---- 8. EBIT / EBITDA table totals (A-12)
+    ebit_interest = sum(e["asset_interest_annual"] for e in l1["assets"])
+    ebit_depreciation = sum((a.get("depreciation_annual") or 0.0) for a in flat_assets)
+    nodes["business_outcome.ebit.total_net_profit"] = today_net
+    nodes["business_outcome.ebit.total_interest"] = ebit_interest
+    nodes["business_outcome.ebit.total_depreciation"] = ebit_depreciation
+    nodes["business_outcome.ebit.ebit"] = today_net + ebit_interest
+    nodes["business_outcome.ebit.ebitda"] = today_net + ebit_interest + ebit_depreciation
 
     detail = {
         "all_productive_row": all_productive_detail, "best_case": best_case,

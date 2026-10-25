@@ -308,6 +308,15 @@ export default function useAssets() {
               // asset (lib/storage/assetStorage.js) but never flowed
               // through this hook before now.
               purchase_price: Number(asset.purchase_price ?? 0),
+              // F-10 (2026-10-26): pass-through for EBITDA. Stored at link
+              // time by assetStorage (null when unlinked). Kept null, not 0,
+              // so useBusinessOutcomePerSourceRevenue's to_number() check
+              // still tells "unavailable" from a real figure.
+              estimated_annual_depreciation:
+                asset.estimated_annual_depreciation === null ||
+                asset.estimated_annual_depreciation === undefined
+                  ? null
+                  : Number(asset.estimated_annual_depreciation),
             };
           })
       : [];

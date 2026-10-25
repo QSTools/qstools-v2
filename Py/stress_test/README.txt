@@ -80,3 +80,10 @@ ITEM D (2026-10-26; stress brief Addendum 20): layer-2 gaps covered. mirra_expec
   Builder all_productive row. The all_productive checks are "derived_checks" in the expected file: expected = const + coef x (the app's own
   labour_share_percent / 100); compare_full.py evaluates them. Business Modelling OVERHEAD rows and lever effects are not covered.
   Live on A 267, A misaligned 267, A2 267, B 324 (existing + item d checks).
+
+F-10 (2026-10-26; Business Outcome brief Addendum 2): EBIT / EBITDA covered. recipes/scenario_a_depreciation.json = Scenario A plus the new optional
+  per-asset recipe field depreciation_annual (written to estimated_annual_depreciation; default none, so every older seed is unchanged). Put it only on
+  productive assets that are 100% assigned until F-10b is built. mirra_expected_l2.py A-12 adds business_outcome.ebit.total_net_profit / total_interest /
+  total_depreciation / ebit / ebitda (the app's trace nodes of the same ids, lib/calculation-trace/pilot-map/ebitTraceNodes.js).
+  Live 2026-10-26 on the built-in browser pane at :3005: 174 of 174 nodes (raw and derived checks not run for this slice).
+  The loader still refuses any port but :3004. The 3005 run wrote the seed keys into the pane's storage by hand, verified key by key by length and CRC32.
