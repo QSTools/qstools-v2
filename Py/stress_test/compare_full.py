@@ -62,6 +62,16 @@ def main(exp_path, snap_path):
     for c in exp.get("raw_checks", []):
         e = c["expected"]
         row(c["label"], e, resolve(raw, c["path"]), c["tol"] if c.get("tol") is not None else default_tol(e))
+    print("\n--- derived checks (expected = const + coef x app percent / 100) ---")
+    for c in exp.get("derived_checks", []):
+        pct = resolve(raw, c["percent_path"])
+        if pct is None:
+            e = 0.0
+            a = None
+        else:
+            e = c["const"] + c["coef"] * pct / 100.0
+            a = actual.get(c["key"]) if c["kind"] == "node" else resolve(raw, c["path"])
+        row(f'{c["label"]} (share {pct})', e, a, c["tol"] if c.get("tol") is not None else default_tol(e))
     print(f"\n{total - bad} of {total} passed.")
     print("NOTE: asset interest uses the NZ calendar date the page ran on; re-generate with --as-of set to that date if only interest nodes fail.")
     return 1 if bad else 0

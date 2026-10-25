@@ -97,6 +97,9 @@ c. typing in Cost Allocation percent and Rate Builder lines.
 d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Rate Builder all_productive row). ORDER DECIDED
    (owner, 2026-10-24): d runs AFTER the fix batch and its regression re-run, as in the original build order. Next step in R2 is
    therefore the fix batch, not d (HANDOVER V6.1g Section 5 listed d first; this line supersedes it).
+   d DRAFTED AND LIVE-CHECKED 2026-10-26, ahead of the fix batch (owner asked for the live check first; stress brief Addendum 20): expected values
+   for Best Case, Business Modelling rows and the Rate Builder all_productive row pass on A, A misaligned, A2 and B. Re-run inside the ONE
+   full regression after F-7 / F-10 / F-11. New finding: RB-1b measured (all_productive under-states overhead vs the staff-type rows).
 
 Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-run (A, A misaligned, B, A2, ladder):
 F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning (DONE 2026-10-25, Cost Allocation brief Addendum 2) |

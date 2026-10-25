@@ -101,7 +101,7 @@ Legacy (behind "Previous scenario tools", collapsed): BusinessModellingScenarioS
 2026-10-18  R2 timing (DEV): page open 1,674 ms at 100 staff, 5,709 ms at 1,000 (FAIL); lever typing ~255 / 400 /
             1,870 ms per keystroke at 10 / 100 / 1,000 staff (FAIL at 100 and 1,000; slow even at 10) - every
             keystroke re-runs the whole chain synchronously.
-NOT covered by R2 layer 2: Business Modelling start rows (R2 item d, after the fix batch).
+2026-10-26  R2 item d: Business Modelling rows covered by the harness (Addendum 1). Overhead rows and levers are not.
 
 ===============================================================================
 8. FINDINGS REGISTER / OPEN ITEMS
@@ -151,7 +151,7 @@ No change to Cost Allocation, Rate Builder or Business Outcome calculation logic
 - Build passes; every patch confirmed.
 - Identity: no levers -> modelled == today (View A and B); own START rate -> zero effect; two levers -> sum of effects.
 - No lever writes to a source module's storage (check localStorage before / after).
-- R2 harness re-run once Business Modelling start rows are in the expected script.
+- R2 harness re-run: Business Modelling rows are in the expected script (2026-10-26); re-run in the full regression after the fix batch.
 - Trace node exists and matches the screen for any new figure.
 - CALCULATION_MAP Section 10 updated in the same commit.
 
@@ -172,4 +172,13 @@ go_baseline_pre_overheads_lever_2026-09-26.json.
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+ADDENDUM 1 (2026-10-26) - R2 ITEM D: BUSINESS MODELLING ROWS IN THE HARNESS  [SHIPPED: harness only, no app change]
+Live check 2026-10-26 (production build :3005, built-in pane; app = cf64748 plus uncommitted F-7 stage 1, tick off): Scenario A, A misaligned,
+A2 and B: every existing check unchanged (217 / 217 / 217 / 269) and every item d check passes (50 / 50 / 50 / 55 trace and raw checks,
+plus the Business Modelling row check: basis, achieved revenue, start, floor and ceiling per row, 10 / 10 / 10 / 9 rows).
+Covered: achieved-revenue trace node for every staff, unit, assets and materials row, today net profit, modelled net profit and total effect
+(no levers), plus basis, start rate, floor and ceiling per row (read from the live page; they are not trace nodes). Today net profit equals
+the P&L net profit on all four (138,168.62; 104,070.31; 127,656.97; 369,551.94). Identity: achieved rows + materials profit = real revenue.
+FINDING (confirms the F-7 gap): basis is COVERED hours, so a unit with assets and no labour (Scenario B dry hire) shows basis 0, no start
+rate and no lever (status no_covered_hours) while Cost Allocation gives it 1,200 recovery hours. F-7 will change this row; re-check it then.
+NOT covered: the 10 overhead category rows (the recipes carry no overhead categories) and lever effects. Detail: stress brief Addendum 20.

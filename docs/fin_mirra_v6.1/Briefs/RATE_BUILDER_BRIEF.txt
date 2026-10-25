@@ -5,8 +5,8 @@ FILE:          docs\fin_mirra_v6.1\Briefs\RATE_BUILDER_BRIEF.txt  (the ONE Rate 
 STATUS:        CODE-TRACED (P3, 2026-09-23). Since: RB-1 overhead basis fix proven live (2026-10-01); Path B per-asset
                calculators (6df2de0, 2bb6400); machine-only result panel (fa9fadd); OPEN-D (a9e55d3); labour by staff
                type (OPEN-E); asset pricing hard block (dea2013); labour panel hours basis (D-IDLE-4, closes CM-9b).
-               R2 stress test covers Rate Builder overhead and labour rows (RB-1b all_productive row NOT yet covered).
-LAST UPDATED:  2026-10-24 (Addendum 1; first rebuilt 2026-10-21 from the sources listed in Section 12)
+               R2 stress test covers Rate Builder overhead and labour rows (all_productive row RB-1b covered by Addendum 2).
+LAST UPDATED:  2026-10-26 (Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
 ROUTE:         app/rate-builder (tabs: Labour Rates Builder, Customer Charge Calculator, Materials markup)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 8 (stored user inputs + display maths; no output
                contract). This brief holds intent, rules, verified status and open items.
@@ -122,7 +122,7 @@ Business Outcome side of Path B: lib/calculations/businessOutcomeAssetCalculator
 2026-10-15  D-IDLE-4: Paul + Jack in one unit -> charge 150, cost 87.23 (was 294.61 on the old basis); Paul alone
             unchanged 150 / 79.28.
 2026-10-17/18 R2 harness: Rate Builder overhead per staff type per group and rate_builder.labour_rate per type
-            checked in layer 2 (dollar checks accept cents, F-6). all_productive row (RB-1b) NOT yet covered.
+            checked in layer 2 (dollar checks accept cents, F-6). all_productive row (RB-1b): expected values added 2026-10-26 (Addendum 2).
 
 ===============================================================================
 8. FINDINGS REGISTER (keep numbers; update status in place)
@@ -130,7 +130,8 @@ Business Outcome side of Path B: lib/calculations/businessOutcomeAssetCalculator
 OPEN - DESIGN / CORRECTNESS
 RB-1b all_productive row overhead = total overhead x Recovery Summary labour_share_percent - a different basis
       from the per-staff-type rows (C24 / R3). Fix candidate: all_productive = sum of staff-type rows. Add to the R2
-      layer-2 expected values when fixed.
+      layer-2 expected values when fixed. MEASURED 2026-10-26 (Addendum 2): today the row UNDER-states overhead against the sum of the
+      staff-type rows (Scenario A 129,886 vs 152,800; $13.12/hr vs $15.44/hr; B 32.11 vs 41.66/hr). Fix still open.
 RB-2  A group with zero overhead or zero labour cost is skipped entirely, dropping its labour hours from the
       staff-type row. Latent.
 RB-12 (partly superseded by L9 / L10) Legacy group calculators: "Total job" uses the group rate while the breakdown
@@ -207,3 +208,16 @@ ADDENDUM 1 (2026-10-24) - R2 ITEM C: TYPING SPEED  [SHIPPED - measurement only, 
 Customer Charge Calculator new-line Rate, existing-line Rate and Materials markup %, production build, worst of five
 keystrokes to paint: 10 staff 16 ms, 100 staff 16 ms, 1,000 staff 18 ms (handler 9-11 ms at every size). Limits 100 ms and
 300 ms: PASS. Labour Rates Builder fields were not typed into (the weighted rate is derived). Detail: stress brief Addendum 17.
+
+ADDENDUM 2 (2026-10-26) - R2 ITEM D: ALL_PRODUCTIVE ROW EXPECTED VALUES AND RB-1b MEASURED  [SHIPPED: harness only, no app change]
+Live check 2026-10-26 (production build :3005, built-in pane; app = cf64748 plus uncommitted F-7 stage 1, tick off): Scenario A, A misaligned,
+The all_productive row (labour_source_type_id "all_productive") is built in costAllocationRateBuilderSelectors.js L164-198 as: overhead =
+total overhead x labour_share_percent / 100, rate = overhead / ALL assigned labour hours; its minimum recoverable rate = Labour's
+weighted all-productive cost rate + that rate. labour_share_percent is the Recovery Summary's output share of the recovery stream
+(Scenario A 80.32, misaligned 80.77, A2 81.32, B 54.62), NOT 100; the stress harness takes it from the app as an input (its own derivation
+is not covered, stress brief G-7). All of the row's arithmetic passes: overhead $, rate per hour, assigned cost and hours, total overheads,
+and trace node rate_builder.labour_rate.all_productive, on A, A misaligned, A2 and B.
+RB-1b IN NUMBERS (overhead the row carries vs the sum of the staff-type rows): A 129,886.03 vs 152,800.45 (-22,914); misaligned 126,086 vs
+147,504 (-21,418); A2 151,688 vs 179,005 (-27,317); B 363,209 vs 471,322 (-108,113). Per hour: 13.12 vs 15.44 (A), 32.11 vs 41.66 (B). The
+all_productive row therefore quotes a LOWER minimum recoverable rate than the staff-type rows imply. Fix candidate unchanged (all_productive
+= sum of staff-type rows); owner to decide. Detail: stress brief Addendum 20.

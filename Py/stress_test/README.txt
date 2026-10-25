@@ -74,3 +74,9 @@ SCENARIO A2 - REALISTIC OVER-STAFFING (step 2e, 2026-10-18; stress brief Addendu
 F-4 (2026-10-25): unassigned support-asset cost is now spread evenly across the working units (app and mirra_expected_l2.py A-7).
   Every productive asset must be assigned in a recipe, or the app blocks. Expected files generated before 2026-10-25 for a recipe
   with unassigned support assets (scenario_a, scenario_a_misaligned, scenario_a_overstaffed) must be regenerated.
+
+ITEM D (2026-10-26; stress brief Addendum 20): layer-2 gaps covered. mirra_expected_l2.py A-8..A-10 adds Best Case (assumed capacity) nodes, Business
+  Modelling row nodes (plus per-row basis / start / floor / ceiling in layer2_detail.business_modelling, checked live on /business-modelling) and the Rate
+  Builder all_productive row. The all_productive checks are "derived_checks" in the expected file: expected = const + coef x (the app's own
+  labour_share_percent / 100); compare_full.py evaluates them. Business Modelling OVERHEAD rows and lever effects are not covered.
+  Live on A 267, A misaligned 267, A2 267, B 324 (existing + item d checks).

@@ -1,0 +1,91 @@
+HANDOVER V6.1j   2026-10-26   (written after R2 item d, which ran AHEAD of the fix batch; next is F-7)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\j\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+0. NEWEST HANDOVER WINS. This chat started from V6.1g (stale) and lost time. Next chat: list docs\fin_mirra_v6.1\Audit\V6.1 first and read the
+   highest letter. The order of work is in PROJECT_MAP Section 5 and 6, not in an old handover.
+
+1. WHERE WE ARE
+- HEAD is 7812427 (HANDOVER V6.1i). NOTHING from this session is committed (Claude has no git). git status should show:
+  Py/stress_test/mirra_expected_l2.py, run_layer2.py, compare_full.py, README.txt   (item d harness)
+  docs/fin_mirra_v6.1/PROJECT_MAP.md, Briefs/RATE_BUILDER_BRIEF.txt, Briefs/BUSINESS_MODELLING_BRIEF.txt,
+  Future_Build/STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt   (docs)
+  docs/fin_mirra_v6.1/Audit/V6.1/j/HANDOVER.txt (this file)
+  PLUS the F-7 stage 1 APP files, which are NOT part of item d and must go in their own commit once F-7 is verified:
+  components/cost-allocation/CostAllocationMainCard.jsx, CostAllocationStepBuilder.jsx, groups/CostAllocationGroupAssetBuilder.jsx,
+  hooks/useCostAllocation.js, lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js
+  Suggested: commit item d (scripts + docs + handover) NOW with explicit paths (git add <those files> only), leave the F-7 files unstaged.
+- .tmp (untracked): itemd_prepare.ps1 (repeatable prepare script, dry run by default), itemd\ (generated), f7_stage1_patch.ps1,
+  f7_stage1b_patch.ps1 (F-7, state of 1b unknown). project_sync_ledger.tsv was rewritten for PROJECT_MAP, Rate Builder and Business Modelling.
+- Cleaned by the owner: public\__stress_tmp and .next removed. The :3005 server should be stopped.
+- Project knowledge re-synced this session: PROJECT_MAP, RATE_BUILDER_BRIEF, BUSINESS_MODELLING_BRIEF (ledger updated). Run
+  python Py\audit-scripts\check_project_knowledge_sync.py to confirm (not run this session).
+
+2. WHAT WAS DONE (R2 item d, harness only, no app code changed by Claude)
+- mirra_expected_l2.py assumptions A-8..A-10: Best Case (assumed capacity) nodes both views; Business Modelling row nodes plus per-row basis /
+  start / floor / ceiling (layer2_detail.business_modelling); Rate Builder all_productive row as "derived_checks" (expected = const + coef x the
+  app's own labour_share_percent / 100; run_layer2.py writes them, compare_full.py evaluates them).
+- LIVE (production build :3005, built-in pane, as of 2026-10-26, app = cf64748 + uncommitted F-7 stage 1, tick off, build OK):
+  existing checks A 217/217, A misaligned 217/217, A2 217/217, B 269/269 (unchanged); item d checks 50/50, 50/50, 50/50, 55/55;
+  Business Modelling rows 10/10, 10/10, 10/10, and 8/9 for B until the expected basis was corrected to COVERED hours (then matches).
+- Findings: RB-1b measured (all_productive carries LESS overhead than the sum of the staff-type rows: A 129,886 vs 152,800, $13.12 vs $15.44/hr;
+  B $32.11 vs $41.66/hr). Business Modelling basis is covered hours, so the Scenario B dry-hire unit shows basis 0 and no lever (this is F-7).
+  Business Modelling today net profit = P&L net profit on all four. Briefs: stress Addendum 20, Rate Builder Addendum 2, Business Modelling
+  Addendum 1, PROJECT_MAP item d line, README note.
+- Console error "params are being enumerated ... React.use()" seen on /business-modelling: caused by Claude's pane script walking React props
+  (Object.keys on a page's params Promise). Not an app bug. If it ever appears on a normal visit with no script, investigate.
+
+3. OWNER DECISIONS MADE
+- Live check first, every time (before recording anything or moving on).
+- Item d ran ahead of the fix batch to get the live check done; it is RE-RUN inside the one full regression after F-7 / F-10 / F-11.
+- Downloaded trace snapshots in Downloads are disposable (results are in Addendum 20); snapshots under 3.1 Stress Test are repo evidence, keep.
+
+4. OPEN ITEMS
+a. RB-1b fix decision (all_productive = sum of staff-type rows?) - owner to decide; changes the derived_checks coef in the expected script.
+b. Gaps: G-7 Recovery Summary labour_share_percent not independently derived; G-8 Business Modelling overhead rows (recipes carry no overhead
+   categories) and lever effects; G-9 EBIT / EBITDA have no trace nodes (F-10, F-11).
+c. The expected file's detail.all_productive_row "today basis" figures assume 100 percent (kept for the fix-candidate comparison only); the checks
+   do not use them. Tidy if it confuses.
+d. Carried from V6.1i: calc map extract re-run (s3, s7 lines); trace node for the F-4 spread; Labour pool display 804,078 vs 1,572,333;
+   property cost undecided; archive ESCT_TREATMENT_FIX brief; project instructions rule 11 paths; Model Readiness General Overheads blocked on the
+   pane seed; P&L vs Business Outcome net profit gap on Scenario A unexplained (BM today net profit = P&L on all four this session).
+e. Carried from V6.1g/h: Cost Allocation labour percent typing, assignment-changing asset commit, Rate Builder Labour Rates Builder typing not
+   measured; R9 note "dispatcher calls per page open"; Business Modelling fails Q-7 (R3); trace page freeze 179 ms borderline.
+f. F-7 STATE UNKNOWN: stage 1 (Cost Allocation tick) is in the working tree, built clean, never live-verified. Stage 1b script exists, not known
+   to be applied. The Business Outcome half (covered hours, F-7 design in stress brief Addendum 11 line 919) is NOT built.
+
+5. NEXT STEPS IN ORDER (R2) - one piece of work per chat
+1. F-7 dry hire earns money. Start by finding what is already applied: git diff on the five F-7 files, and read .tmp\f7_stage1_patch.ps1 and
+   f7_stage1b_patch.ps1. Stage: Future_Build\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt, stress brief Addendum 11 (line 888), Briefs\
+   BUSINESS_OUTCOME_BRIEF.txt and ASSETS_BRIEF.txt, calc map s9.1 (get_group_covered_hours L274) and s5. Core calc files: STOP and confirm.
+   Live check before committing. When F-7 changes covered hours, update mirra_expected_l2.py (covered hours, capacity gap, BM basis for exempt
+   assignments) and Scenario B G03.
+2. F-10 EBITDA depreciation pass-through (hooks\useAssets.js active_assets, one line; bug class b). Live check with a linked asset.
+3. F-11 EBIT adds back all interest, trace nodes backfilled (also closes G-9).
+4. ONE full regression re-run: A, A misaligned, B, A2, ladder, INCLUDING the item d checks. Regenerate expected files first
+   (.tmp\itemd_prepare.ps1 does A, A misaligned, A2, B for today; the ladder needs its own run).
+5. R3 Business Modelling redesign.
+
+6. METHOD NOTES
+- Prepare: & { & .\.tmp\itemd_prepare.ps1 } *>&1 | Out-String -Width 250 | Set-Clipboard (dry run), then -Live. It refuses if 3000/3004/3005 are
+  in use. Then npm start -- -p 3005 in a new terminal. Seeds and expected files must be in public\__stress_tmp BEFORE the server starts.
+- Pane loop (Claude): fetch /__stress_tmp/seed_<id>.json and expected_<id>_layer2.json on the :3005 origin, back up localStorage to
+  sessionStorage, clear, write each seed key as JSON.stringify(value), navigate /calculation-trace, intercept URL.createObjectURL, click
+  "Download trace JSON", compare in the page (nodes + cost_allocation_raw + derived checks). Business Modelling rows: open /business-modelling,
+  find the rows array in the React fiber tree (rows with row_id and start_rate), compare to layer2_detail.business_modelling. Restore storage after.
+  The fiber walk logs the params warning above; it is harmless.
+- Claude writes repo files by stage + commit with an expected-mtime guard; the owner pastes .tmp scripts. Scripts: ASCII, header, dry run by
+  default (-Live), clipboard output, wrapped in & { }.
+
+7. STANDING RULES
+- Archive, never delete. Dry run before any bulk move. One brief per module. Read only what each step needs.
+- Apply-Patch / Invoke-PatchBatch (preflight 1 match each), "Patched:" confirmations, Assert-Contains, npm run build after code batches, never while
+  dev runs or any server is on 3000/3004/3005. Core calculation files: STOP and confirm first.
+- Live check first, every time, before recording a finding or committing.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+- Ledger discipline: whenever Claude uploads a doc it rewrites .tmp\project_sync_ledger.tsv; check with check_project_knowledge_sync.py.
+- Start a NEW chat rather than carry on after a compaction. Tell the owner when a step needs Opus.
+
+8. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt
+   (UPDATE 2026-10-22 block).  4. Stress brief Addendum 20 (tail of the file).
+Then only what F-7 needs (Section 5). Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, or module briefs not needed.

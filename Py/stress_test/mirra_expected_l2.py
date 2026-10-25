@@ -15,8 +15,12 @@ Assumptions the map does not settle are listed in ASSUMPTIONS and written into t
 a mismatch can be read as "the app does something the map does not say" rather than silently patched.
 Everything is a plain function of the recipe, so a second business is a new recipe file.
 
-Not covered here (later): assumed-capacity / Best Case nodes, Business Modelling start rows, the
-Rate Builder "all productive" row (map CM-2 RB-1b: a different basis).
+Added 2026-10-26 (R2 item d, assumptions A-8 to A-11): assumed-capacity / Best Case nodes (map s9.7, both views), Business
+Modelling achieved-revenue rows plus expected start rate / basis / floor per row (map s10), and the Rate Builder
+"all productive" row as the app builds it TODAY (RB-1b, a different basis). Written from the map and the trace-node formula
+texts; expected values only, first live run settles A-8 to A-11.
+Still not covered: Business Modelling OVERHEAD rows (the recipe carries no overhead categories); the Recovery Summary labour
+share percent that the all_productive row uses (G-7: taken from the app as an input).
 """
 
 ASSUMPTIONS = [
@@ -35,11 +39,33 @@ ASSUMPTIONS = [
     "overheads - overhead assigned to groups, 0); profit floored at 0. View B materials is a peer at COGS x (1 + markup). "
     "Row modelled revenue is floored at 0 (CONFIRMED live 2026-10-17, misaligned A; owner decision F-5); the shortfall uses "
     "the unfloored residual.",
+    "A-8  RB-1b, TODAY's basis: the Rate Builder all_productive row overhead = total overhead x labour_share_percent / 100 "
+    "(costAllocationRateBuilderSelectors.js L164-167). labour_share_percent is the Recovery Summary's output share of the recovery "
+    "stream (80.32 on Scenario A, live 2026-10-26), NOT 100. It is taken from the app's own Cost Allocation raw dump as an INPUT "
+    "(derived_checks); its own derivation (Recovery Summary suggested split, map s6) is NOT covered (gap G-7). Rate = overhead / "
+    "ALL assigned labour hours. "
+    "Its minimum recoverable rate adds Labour's weighted all-productive cost rate (all productive cost / all productive hours). "
+    "The detail block also records the FIX CANDIDATE value (sum of the staff-type rows) so the gap is visible.",
+    "A-9  Best Case: View A ceiling = labour + asset modelled revenue only; View B adds materials at COGS x (1 + markup). "
+    "scale = real revenue / combined when combined > real revenue, else NOT breached. The ceiling node value is the scale factor "
+    "and is assumed to be 1.0 when not breached (trace formula text: '1 = not breached'). Implied net profit = modelled x scale - "
+    "true cost when breached, else the naive net profit. Group value = sum of that group's labour and asset rows. "
+    "View B materials implied = markup revenue x scale - materials true cost (not breached: view B net profit).",
+    "A-10 Business Modelling rows (map s10; buildSourceRows): achieved revenue = true cost + non-productive share + View A "
+    "real-capacity net profit. Staff row id staff:<group>:<type>; an asset-driven unit (recovery hours from asset hours) also "
+    "gets unit:<group> = assets + labour achieved; any other unit with assets gets assets:<group>. Materials row = materials "
+    "true cost. Basis: staff = the row's revenue hours (assumed to be the app's s.hours), asset / unit = the unit's COVERED "
+    "hours (0 for an asset group with no labour: CONFIRMED live 2026-10-26, Scenario B dry-hire unit; this is the F-7 gap), materials = COGS / 100. start = achieved / basis, floor = (true cost + non-productive share) / basis. Today net "
+    "profit = sum of View A group real-capacity profit + materials real-capacity profit (unassigned cost is 0 under A-7). "
+    "No levers are set in a stress seed, so modelled net profit = today and total effect = 0.",
     "A-7  F-4 (owner decision 2026-10-25, built): support-asset cost not assigned to any working unit (total support-asset cost "
     "less the cost assigned across groups) is spread EVENLY across every group row and added to that group's non-productive asset "
     "cost. So Cost Allocation total = Cost Summary burden whenever every productive asset is assigned. An unassigned PRODUCTIVE "
     "asset is a blocking flag in the app, not spread; recipes must assign every productive asset.",
 ]
+
+
+ALL_PRODUCTIVE_LABOUR_SHARE_PERCENT = 100.0   # A-8
 
 
 # ------------------------------------------------------------------ small helpers
@@ -79,7 +105,7 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     """
     import mirra_expected as mx
 
-    nodes, tol, raw, detail = {}, {}, [], {}
+    nodes, tol, raw, detail, derived = {}, {}, [], {}, []
     pool_by_type = l1["labour"]["by_staff_type"]            # hours (productive only), cost, productive
     n = l1["nodes"]
     real_revenue = n["revenue_cogs.total_revenue"]
@@ -207,6 +233,39 @@ def layer2(recipe, as_of, l1, charge_out, ids):
             raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": t}, "source_group_rows", {"group_id": gid}, "assigned_overhead_amount"],
                         "expected": share, "tol": None, "label": f"RB {t} in {gid[:8]}"})
 
+    # ---- 2b. Rate Builder all_productive row (RB-1b, A-8): the basis the app uses today, not the fix candidate
+    ap_cost = sum(d["cost"] for d in rb.values())
+    ap_hours = sum(d["hours"] for d in rb.values())
+    ap_overhead = pool * ALL_PRODUCTIVE_LABOUR_SHARE_PERCENT / 100.0      # detail only; the checks use the app's own share
+    ap_rate = ap_overhead / ap_hours if ap_hours > 0 else 0.0
+    prod_types = [t for t, p in pool_by_type.items() if p["productive"]]
+    prod_cost_all = sum(pool_by_type[t]["cost"] for t in prod_types)
+    prod_hours_all = sum(pool_by_type[t]["hours"] for t in prod_types)
+    ap_cost_rate = prod_cost_all / prod_hours_all if prod_hours_all > 0 else 0.0
+    # derived checks: expected = const + coef x (app's labour_share_percent / 100). Dollar rounding: 2 dp share -> default tolerance.
+    pct = ["labour_share_percent"]
+    derived.append({"kind": "node", "key": "rate_builder.labour_rate.all_productive", "const": ap_cost_rate,
+                    "coef": pool / ap_hours if ap_hours > 0 else 0.0, "percent_path": pct, "tol": 0.02,
+                    "label": "rate_builder.labour_rate.all_productive"})
+    for field, v, tl in (("assigned_labour_cost", ap_cost, None), ("assigned_labour_hours", ap_hours, None),
+                         ("total_business_overheads", pool, None)):
+        raw.append({"path": ["rate_builder_labour_recovery_rows", {"staff_type_id": "all_productive"}, field], "expected": v,
+                    "tol": tl, "label": f"RB all_productive {field}"})
+    derived.append({"kind": "raw", "path": ["rate_builder_labour_recovery_rows", {"staff_type_id": "all_productive"}, "assigned_overhead_amount"],
+                    "const": 0.0, "coef": pool, "percent_path": pct, "tol": None, "label": "RB all_productive assigned_overhead_amount"})
+    derived.append({"kind": "raw", "path": ["rate_builder_labour_recovery_rows", {"staff_type_id": "all_productive"}, "allocated_business_overhead_recovery_rate"],
+                    "const": 0.0, "coef": pool / ap_hours if ap_hours > 0 else 0.0, "percent_path": pct, "tol": 0.011,
+                    "label": "RB all_productive allocated_business_overhead_recovery_rate"})
+    sum_of_types_overhead = sum(d["overhead"] for d in rb.values())
+    all_productive_detail = {
+        "basis_assumed_labour_share_percent": ALL_PRODUCTIVE_LABOUR_SHARE_PERCENT,
+        "overhead_today_basis": ap_overhead, "overhead_rate_today_basis": ap_rate,
+        "fix_candidate_overhead_sum_of_types": sum_of_types_overhead,
+        "fix_candidate_overhead_rate": sum_of_types_overhead / ap_hours if ap_hours > 0 else 0.0,
+        "gap_overhead": ap_overhead - sum_of_types_overhead,
+        "labour_cost_rate_weighted": ap_cost_rate,
+    }
+
     # ---- 3. Business Outcome per-source rows (map s9.1-9.3)
     for r in rows:
         r["covered"] = (min(r["required"], r["lab_hours"]) if r["lab_hours"] > 0 else 0.0) if r["asset_driven"] else r["recovery"]
@@ -299,6 +358,9 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         nodes[f'business_outcome.group.{r["gid"]}.real_capacity_net_profit'] = final_a[r["gid"]]
         for sid, v in inner(r, final_a[r["gid"]]).items():
             nodes[f"{sid}.real_capacity_net_profit"] = v
+            for s in r["src"]:
+                if s["id"] == sid:
+                    s["final_a"] = v
     nodes["business_outcome.materials.real_capacity_net_profit"] = max(mat_a_revenue, mat_true) - mat_true
 
     # View B: materials is a peer, shortfall is global
@@ -314,7 +376,74 @@ def layer2(recipe, as_of, l1, charge_out, ids):
             nodes[f"{sid}.view_b_real_capacity_net_profit"] = v
     nodes["business_outcome.materials.view_b_real_capacity_net_profit"] = final_b["materials"]
 
+    # ---- 6. Assumed capacity / Best Case (map s9.7, A-9)
+    combined_a = labour_modelled + asset_modelled
+    breached_a = combined_a > real_revenue and combined_a > 0
+    scale_a = real_revenue / combined_a if breached_a else 1.0
+    combined_b = combined_a + mat_b_revenue
+    breached_b = combined_b > real_revenue and combined_b > 0
+    scale_b = real_revenue / combined_b if breached_b else 1.0
+    nodes["business_outcome.assumed_capacity_a.ceiling"] = scale_a
+    nodes["business_outcome.assumed_capacity_b.ceiling"] = scale_b
+    tol["business_outcome.assumed_capacity_a.ceiling"] = 0.0005
+    tol["business_outcome.assumed_capacity_b.ceiling"] = 0.0005
+    for r in productive_rows:
+        imp_a = imp_b = 0.0
+        for s in r["src"]:
+            ia = (s["modelled"] * scale_a - s["true_cost"]) if breached_a else s["net"]
+            ib = (s["modelled"] * scale_b - s["true_cost"]) if breached_b else s["net"]
+            nodes[f'{s["id"]}.implied_net_profit'] = ia
+            nodes[f'{s["id"]}.view_b_implied_net_profit'] = ib
+            imp_a += ia
+            imp_b += ib
+        nodes[f'business_outcome.group.{r["gid"]}.implied_net_profit'] = imp_a
+        nodes[f'business_outcome.group.{r["gid"]}.view_b_implied_net_profit'] = imp_b
+    nodes["business_outcome.materials.view_b_implied_net_profit"] = (
+        (mat_b_revenue * scale_b - mat_true) if breached_b else (mat_b_revenue - mat_true))
+    best_case = {"combined_modelled_a": combined_a, "combined_modelled_b": combined_b, "breached_a": breached_a,
+                 "breached_b": breached_b, "scale_a": scale_a, "scale_b": scale_b, "real_revenue": real_revenue}
+
+    # ---- 7. Business Modelling rows (map s10, A-10)
+    bm_rows = []
+    def _ach(s):
+        return s["true_cost"] + s["np_share"] + s["final_a"]
+    for r in productive_rows:
+        hours_unit = r["covered"]                       # BM basis = COVERED hours (map s10); 0 for a unit with no labour (F-7)
+        lab_src = [s for s in r["src"] if s["kind"] == "labour"]
+        ast_src = [s for s in r["src"] if s["kind"] == "asset"]
+        for s in lab_src:
+            basis = s["hours"] if hours_unit > 0 else 0.0
+            ach = _ach(s)
+            bm_rows.append({"row_id": f'staff:{r["gid"]}:{s["key"]}', "kind": "staff", "achieved": ach, "basis": basis,
+                            "start_rate": ach / basis if basis > 0 else None,
+                            "floor_rate": (s["true_cost"] + s["np_share"]) / basis if basis > 0 else None,
+                            "ceiling_rate": charge_out.get(s["key"], 0)})
+        if ast_src:
+            ach_a = sum(_ach(s) for s in ast_src)
+            floor_a = sum(s["true_cost"] + s["np_share"] for s in ast_src)
+            if r["asset_driven"]:
+                ach_u = ach_a + sum(_ach(s) for s in lab_src)
+                floor_u = floor_a + sum(s["true_cost"] + s["np_share"] for s in lab_src)
+                bm_rows.append({"row_id": f'unit:{r["gid"]}', "kind": "unit", "achieved": ach_u, "basis": hours_unit,
+                                "start_rate": ach_u / hours_unit if hours_unit > 0 else None,
+                                "floor_rate": floor_u / hours_unit if hours_unit > 0 else None, "ceiling_rate": None})
+            else:
+                bm_rows.append({"row_id": f'assets:{r["gid"]}', "kind": "assets", "achieved": ach_a, "basis": hours_unit,
+                                "start_rate": ach_a / hours_unit if hours_unit > 0 else None,
+                                "floor_rate": floor_a / hours_unit if hours_unit > 0 else None,
+                                "ceiling_rate": sum(s["modelled"] for s in ast_src) / hours_unit if hours_unit > 0 else None})
+    bm_rows.append({"row_id": "materials", "kind": "materials", "achieved": mat_true, "basis": cogs / 100.0,
+                    "start_rate": 0.0, "floor_rate": 0.0, "ceiling_rate": recipe["pnl"]["materials_markup_percent"]})
+    for b in bm_rows:
+        nodes[f'business_modelling.row.{b["row_id"]}.achieved_revenue'] = b["achieved"]
+    today_net = sum(final_a[r["gid"]] for r in productive_rows) + (max(mat_a_revenue, mat_true) - mat_true)
+    nodes["business_modelling.today_net_profit"] = today_net
+    nodes["business_modelling.total_effect"] = 0.0
+    nodes["business_modelling.modelled_net_profit"] = today_net
+
     detail = {
+        "all_productive_row": all_productive_detail, "best_case": best_case,
+        "business_modelling": {"today_net_profit": today_net, "rows": bm_rows},
         "overhead_pool": pool, "residual_overhead": residual_overhead, "materials_true_cost": mat_true,
         "materials_view_a_revenue": mat_a_revenue, "materials_view_b_revenue": mat_b_revenue,
         "shortfall_view_a": shortfall_a, "shortfall_view_b": shortfall_b, "surplus_view_b": surplus_b,
@@ -327,4 +456,4 @@ def layer2(recipe, as_of, l1, charge_out, ids):
             "asset_pool": r["asset_pool"], "total_group_cost": r["total_cost"], "np_cost": r.get("np_cost"),
             "rows": [{"id": s["id"], "true_cost": s["true_cost"], "overhead_share": s["overhead"],
                       "modelled": s["modelled"], "net": s["net"]} for s in r["src"]]}
-    return {"nodes": nodes, "raw_checks": raw, "tolerances": tol, "detail": detail}
+    return {"nodes": nodes, "raw_checks": raw, "derived_checks": derived, "tolerances": tol, "detail": detail}

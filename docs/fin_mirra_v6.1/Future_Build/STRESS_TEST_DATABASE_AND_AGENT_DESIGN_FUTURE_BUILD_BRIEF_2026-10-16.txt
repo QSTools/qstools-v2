@@ -1264,3 +1264,31 @@ profit = P&L (misaligned 104,075).
 STILL OWED: F-7, F-10, F-11, then ONE full regression re-run (A, A misaligned, B, A2, ladder; B has all support assets assigned),
 then item d. Recipes must assign every productive asset or the app now blocks.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 20 (2026-10-26) - R2 ITEM D: LAYER-2 GAPS COVERED, LIVE ON A, A MISALIGNED, A2 AND B [SHIPPED: harness]
+===============================================================================
+ORDER: the owner asked for the live check first; item d ran BEFORE F-7 / F-10 / F-11 (V6.1i order was fix batch -> regression -> d).
+It will be re-run inside the one full regression after the fix batch; the new expected values should survive it (F-7 is off by default,
+F-10 / F-11 only touch EBIT), except the Scenario B dry-hire Business Modelling row, which F-7 changes.
+APP UNDER TEST: cf64748 plus UNCOMMITTED F-7 stage 1 (5 files, dry-hire tick, default off); production build OK; :3005; built-in pane.
+ADDED to mirra_expected_l2.py (assumptions A-8 to A-10), run_layer2.py (derived_checks) and compare_full.py (derived checks):
+  - Assumed capacity / Best Case (map s9.7): both ceiling scale factors, implied net profit per labour / asset row and per group, View B
+    materials. Misaligned A is the breached case (scale 0.836 View A, 0.727 View B); the others are not breached (scale 1.0, A-9 confirmed).
+  - Business Modelling rows (map s10): achieved-revenue nodes, today / modelled net profit, total effect, plus per-row basis, start, floor,
+    ceiling in layer2_detail.business_modelling (read from the live /business-modelling page, 10 / 10 / 10 / 9 rows match).
+  - Rate Builder all_productive row (RB-1b): arithmetic checked against the app's own labour_share_percent (derived_checks).
+RESULT (compare ported to the page, tol = own else max(1, 1e-4 x |e|)): existing checks 217 / 217 / 217 / 269 unchanged; new checks 50 / 50 / 50 /
+55, all pass; trace 231 / 231 / 237 / 271 nodes, no duplicates, no missing endpoints.
+CORRECTIONS MADE DURING THE LIVE RUN (record so they are not repeated): (1) A-8 assumed labour share 100; the app uses the Recovery Summary
+share (80.32 on A) - now an input, not an assumption. (2) Business Modelling basis is COVERED hours, not Cost Allocation recovery hours;
+only Scenario B's no-labour dry-hire unit differs (1,200 expected, 0 live).
+FINDINGS: RB-1b measured (all_productive under-states overhead vs the sum of staff-type rows: A -22,914, B -108,113; $/hr 13.12 vs 15.44 and
+32.11 vs 41.66); dry-hire unit has no Business Modelling lever (F-7). Today net profit (Business Modelling) = P&L net profit on all four.
+GAPS: G-7 the Recovery Summary labour_share_percent is not independently derived; G-8 Business Modelling overhead rows (no categories in the
+recipes) and lever effects; G-9 EBIT / EBITDA still have no trace nodes (F-10, F-11). The detail block's all_productive "today basis" figures
+assume 100 percent (kept only for the fix-candidate comparison); the checks do not use them.
+HOUSEKEEPING: public\__stress_tmp, .next and .tmp\itemd (generated, untracked) to clean; :3005 server to stop. .tmp\itemd_prepare.ps1 is the
+repeatable prepare script (dry run by default). Pane storage restored.
+NEXT: F-7 (finish stage 1, verify, commit), F-10, F-11, then ONE full regression including these item d checks.
+===============================================================================

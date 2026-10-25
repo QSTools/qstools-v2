@@ -34,6 +34,7 @@ def build_full(recipe, as_of):
     full["layer2_node_count"] = len(res["nodes"])
     full["tolerances"] = res["tolerances"]
     full["raw_checks"] = res["raw_checks"]
+    full["derived_checks"] = res.get("derived_checks", [])
     full["layer2_detail"] = res["detail"]
     return seed, full
 
