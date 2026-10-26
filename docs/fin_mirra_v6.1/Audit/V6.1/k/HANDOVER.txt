@@ -1,0 +1,103 @@
+HANDOVER V6.1k   2026-10-26   (written after F-7 stage 2: dry hire BUILT and live-checked; commit, trace nodes, seed, calc map still owed)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\k\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+
+0. NEWEST HANDOVER WINS. List docs\fin_mirra_v6.1\Audit\V6.1 first and read the highest letter. Order of work is in PROJECT_MAP Section 5 and 6.
+   HOW CLAUDE WORKS HERE (lesson from the V6.1j chat): Claude has FILE TOOLS on the owner's computer (list, stage, commit with an mtime guard) and the
+   built-in browser pane. It has NO shell on the owner's computer. So Claude reads files itself (stage, then Read / grep in its own copy) and does
+   NOT ask the owner to paste what is on disk. The owner is asked for exactly three things: run a prepared .tmp script, run git, restart a server.
+   Claude writes .tmp scripts by stage + commit; the owner runs them wrapped in  & { & .\.tmp\x.ps1 } *>&1 | Out-String -Width 250 | Set-Clipboard
+
+1. WHERE WE ARE
+- HEAD is 7a4c5ef (F-10). git was "ahead of origin/main by 21" at the start of this chat (push is the owner's call).
+- UNCOMMITTED, all live-checked, default OFF (git status should show exactly these 7 files plus docs and the untracked .tmp scripts):
+    components/cost-allocation/CostAllocationMainCard.jsx
+    components/cost-allocation/CostAllocationStepBuilder.jsx
+    components/cost-allocation/groups/CostAllocationGroupAssetBuilder.jsx
+    hooks/useCostAllocation.js
+    lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js
+    hooks/useBusinessOutcomePerSourceRevenue.js
+    lib/calculations/businessOutcomeShortfallDollars.js
+  Docs changed this session (commit separately from the code): Briefs/BUSINESS_OUTCOME_BRIEF.txt (Addendum 3), Briefs/COST_ALLOCATION_BRIEF.txt
+  (Addendum 3), Future_Build/DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt (Addendum 1), Future_Build/STRESS_TEST_...
+  (Addendum 21), PROJECT_MAP.md, this file.
+- Suggested commits: (1) the 7 code files, message "F-7 dry hire: tick on the asset assignment (Cost Allocation), dry-hire revenue and covered-hours
+  split (Business Outcome); default off, baselines unchanged". Use explicit paths with git add. (2) docs. Add the Co-Authored-By and Claude-Session
+  trailers the harness gives. Run git status first.
+- .tmp (untracked): f7_stage1_patch.ps1, f7_stage1b_patch.ps1 (both fully applied), f7_stage2_patch.ps1 (applied), itemd_prepare.ps1, itemd\,
+  project_sync_ledger.tsv (rewritten this session).
+- The :3005 production server may STILL BE RUNNING (Claude used it all session). Stop it before any build. public\__stress_tmp and .next exist again
+  (created by the prepare script / the build); clean before committing (they are untracked; .next is gitignored). Pane storage was restored.
+
+2. WHAT WAS DONE THIS CHAT
+- Read the F-7 state: stage 1 and 1b were both applied (the diff proved it); never live-checked until now.
+- Pre-checked the core calc files before touching them. Findings and the five fixes: Business Outcome brief Addendum 3.
+- f7_stage2_patch.ps1: 1 Cost Allocation patch (labour utilisation excludes dry hire) + 10 Business Outcome patches (covered-hours split, dry-hire
+  row revenue = Rate Builder per-asset price x own hours, none = null with a reason, gap and shortfall skip dry hire, labour rows use operated covered
+  hours). All preflight 1 match, build OK.
+- LIVE (built-in pane, production :3005): tick OFF A 272/272, A misaligned 272/272, A2 272/272, B 329/329 (trace clean). Tick ON (Scenario B G03, real
+  checkbox): G03 revenue 0 -> 285,600, gap 1,200 -> 0, recovery hours 1,872, cost per hour 85.99 -> 71.92, survives reload.
+- Owner decisions: placement = tick on the asset assignment; an exempt row with no Rate Builder per-asset price earns nothing and is flagged (not the
+  group blended rate); proceed with the Business Outcome change after the pre-check.
+
+3. OPEN ITEMS FOUND (not yet decided or done)
+a. OWNER TO CONFIRM: dry-hire hours are SUMMED and added to the group's recovery hours (a no-labour group used the MAX), so overhead (split by recovery
+   hours) moves to the dry-hire unit: G03 draws 97,217 (14.62 percent); the other groups' cost per hour and the Rate Builder labour rates fall about 1.5
+   to 2.3 dollars an hour (crane operator 115.94 -> 114.07). Total cost is conserved.
+b. The tick does nothing when the group's recovery driver is not asset hours (manual hours or labour hours) but is still shown. Hide it or warn.
+c. Not tested at all: sequential run pattern with a ticked asset; Business Modelling levers on the dry-hire unit (a Business Modelling blended-rate
+   override makes ticked rows earn null); Rate Builder group-level rates (labour overhead per hour is divided by recovery hours that now include dry
+   hire); Model Readiness / Module Reconciliation with a ticked group; Quote Engine.
+d. Pre-existing tidy: a comment above apply_revenue_ceiling in useBusinessOutcomePerSourceRevenue.js reads "Materials floor = export default function
+   useBusinessOutcomePerSourceRevenue() { when breached" (stray text in a comment).
+e. Carried: RB-1b fix decision; G-7, G-8; F-10b; F-11; calc map extract re-run (s3, s7 lines); trace node for the F-4 spread; Labour pool display
+   804,078 vs 1,572,333; property cost undecided; archive ESCT_TREATMENT_FIX brief; project instructions rule 11 paths; Model Readiness General
+   Overheads blocked on the pane seed; P&L vs Business Outcome net profit gap on Scenario A unexplained; Cost Allocation percent typing, assignment-
+   changing asset commit and Rate Builder Labour Rates Builder typing not measured; Business Modelling fails Q-7 (R3).
+
+4. NEXT STEPS IN ORDER  (F-7 is NOT done until steps 1 to 5 are complete; one piece of work per chat, so this chat is F-7 only)
+1. COMMIT the 7 code files first (git status, explicit paths). The work is live-checked and default off, so it is safe to commit before the trace nodes.
+2. TRACE NODES (definition of done, D-5; A3). Read CALCULATION_TRACE_BRIEF and the pattern in lib/calculation-trace/pilot-map/ebitTraceNodes.js and
+   lib/calculation-trace/calculationTraceLiveValues.js (live.business_outcome_ebit shows the proven way to read a value into a node). Find where the
+   cost_allocation.group.<id>.* nodes are defined (grep group_cost_per_hour under lib\calculation-trace). Add at least:
+     cost_allocation.group.<id>.earns_without_operator_hours   (the dry-hire hours added to the recovery hours)
+     cost_allocation.group.<id>.operated_recovery_hours        (recovery hours less dry hire; needs the builder to export it, one field)
+     business_outcome.group.<id>.dry_hire_revenue              (sum of the group's ticked asset rows' modelled revenue)
+   asset_source.<g>.<asset>.modelled_revenue nodes already exist and already carry the dry-hire revenue. Edges must resolve (integrity: 0 missing).
+   A new calculated field is a core change: pre-check the consumer list, one patch batch, build, live check that tick-off baselines are unchanged
+   (their node counts will rise by the new nodes: record the new totals).
+3. TICKED TEST SEED. generate_business.py: optional exempt flag on a recipe asset entry (the brief section 4 suggests an optional third value);
+   new recipe scenario_b_dry_hire (Scenario B with G03 ticked). Aligned P&L must include the dry-hire revenue (285,600), otherwise the revenue ceiling
+   bites (see Business Outcome Addendum 3, consequence 2). mirra_expected.py billed_revenue and mirra_expected_l2.py written from the calc map, NOT from
+   the code: exempt rows bill rate x own hours; covered hours, capacity gap and labour utilisation exclude them; recovery hours = operated (MAX or SUM,
+   capped by labour) + dry SUM; overhead weights by recovery hours; Business Modelling basis is COVERED hours (so the dry-hire unit's basis becomes the
+   dry hours; V6.1j found 1,200 expected vs 0 live before F-7). Add the new nodes from step 2 to the expected files. Prepare with
+   .tmp\itemd_prepare.ps1 (dry run, then -Live), npm start -- -p 3005, then the pane loop (Stress brief Addendum 21 method note).
+4. CALC MAP. python Py\audit-scripts\extract_calc_map.py, then update CALCULATION_MAP_v6_0.txt s7 (operated / dry split, asset_driven_recovery_hours,
+   utilisation, labour_utilisation_percent, earns_without_operator_hours) and s9.1 (the get_group_*_hours family, revenue for a dry-hire row), add or
+   close the CM-n entry, re-date; close the VARIABLE_TRACKER s21 item "unattended / dry-hire units need an exemption setting"; update the
+   BUSINESS_OUTCOME_FILE_MAP. The calc map and tracker are in project knowledge: re-upload and update the ledger.
+5. Owner decisions 3a and 3b, then a UI wording pass on the tick (is the help text right? only show the tick for asset-driven groups?).
+6. F-11 EBIT adds back all interest (needs a recipe with non-asset interest; trace nodes exist for EBIT / EBITDA from F-10).
+7. F-10b support / unassigned asset depreciation in EBITDA (own slice, own test).
+8. ONE full regression: A, A misaligned, A2, B, ticked B, the ladder, INCLUDING the item d checks. Regenerate the expected files first.
+9. R3 Business Modelling redesign (the scratch overlay replaces the lever engine; its brief is Future_Build\BUSINESS_MODELLING_REDESIGN...).
+
+5. METHOD NOTES
+- Pane loop (Claude): see Stress brief Addendum 21 method note. Seeds and expected files must be in public\__stress_tmp BEFORE the server starts
+  (a production server does not serve files added later). The prepare script refuses if 3000 / 3004 / 3005 are in use.
+- Patch scripts: ASCII only, header with acceptance criteria, refuse to run if a server is listening on 3000 / 3004 / 3005, Invoke-PatchBatch (1
+  match each), Assert-Contains, Invoke-Build. One batch per module.
+- Claude stages files from the device, edits its own copy, and commits them back with device_commit_files (mtime guard). Project knowledge is
+  updated with the Projects tool (project_write, local_path) and the ledger rewritten, then check_project_knowledge_sync.py run by the owner.
+- Live check first, every time, before recording a finding or committing. Core calculation files: STOP and confirm first (done for F-7).
+
+6. STANDING RULES
+- Archive, never delete. One brief per module. Apply-Patch / Invoke-PatchBatch, "Patched:" confirmations, build after each batch, never while dev
+  runs or a server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md (also in project knowledge).  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Business Outcome brief Addendum 3 and Cost Allocation brief Addendum 3 (the F-7 build).  5. DRY_HIRE brief Addendum 1.
+Then only what the next step needs (step 1: git; step 2: CALCULATION_TRACE_BRIEF and ebitTraceNodes.js). Do NOT read: the Archive, Audit\v6_0 evidence,
+AGENTS.md, or module briefs not needed.

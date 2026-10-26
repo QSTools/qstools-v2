@@ -5,8 +5,8 @@ FILE:          docs\fin_mirra_v6.1\Briefs\COST_ALLOCATION_BRIEF.txt  (the ONE Co
 STATUS:        VERIFIED (P2.5, 2026-09-23: every source dollar distributed exactly once). Since: overhead split by
                recovered hours (2026-09-29); D1 labour coverage notice, run pattern and labour cap (2026-10-05..07);
                D4 idle labour (2026-10-07); D2 closed; R2 stress test to 1,000 staff. F-4 SHIPPED 2026-10-25
-               (unassigned assets, Addendum 2). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
-LAST UPDATED:  2026-10-25 (Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
+               (unassigned assets, Addendum 2). F-7 dry-hire tick BUILT 2026-10-26 (Addendum 3, live-checked, not yet committed). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
+LAST UPDATED:  2026-10-26 (Addendum 3, F-7 dry hire; before that 2026-10-25 Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
 ROUTE:         app/cost-allocation
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 7. This brief holds intent, rules, contract,
                verified status and open items.
@@ -255,3 +255,18 @@ OPEN: no trace node for the spread amount itself (group rows carry it); property
 business with productive assets that are deliberately unassigned now shows blocked; Cost Allocation page Labour pool row read
 available 804,078 vs assigned 1,572,333 on Scenario A (pre-existing display, not traced); full regression (B, A2, ladder) owed
 at the end of the fix batch.
+
+ADDENDUM 3 (2026-10-26) - F-7 DRY HIRE: THE TICK AND THE RECOVERY HOURS [BUILT, live-checked, NOT COMMITTED]
+Decisions: hourly, default off; flag earns_without_operator on the ASSET ASSIGNMENT (a shared machine can be operated in one unit, dry in another).
+Code: hooks/useCostAllocation.js action set_asset_assignment_earns_without_operator, passed down to groups/CostAllocationGroupAssetBuilder.jsx (tick on
+productive assignments); costAllocationGroupCostBuilder.js splits operated and dry-hire: required hours, labour cap, gap and idle labour use operated
+rows only; earns_without_operator_hours (new output) = SUM of ticked hours, ADDED to the recovery hours of asset-driven groups; utilisation and
+labour utilisation exclude it. The flag survives storage (rows spread). Open: no trace node yet; the tick does nothing in groups not driven by
+asset hours. Detail and live figures: stress brief Addendum 21.
+
+ADDENDUM 4 (2026-10-27) - F-7 COMMITTED; TRACE NODES [SHIPPED]
+Addendum 3 is committed (17a5957, 7 code files, default off). The "no trace node yet" item is closed: the group row now also exports
+operated_recovery_hours (= operated_group_recovery_hours: recovery hours less dry hire for asset-driven groups, group_recovery_hours
+otherwise; existing local, nothing recalculated), and cost_allocation.group.<id>.earns_without_operator_hours / .operated_recovery_hours
+exist for every working group. Rows pass through the output contract whole, so no consumer needed a change. Detail and live figures:
+CALCULATION_TRACE_BRIEF Addendum 2. STILL OPEN from Addendum 3: the tick does nothing in groups not driven by asset hours (owner decision 3b).

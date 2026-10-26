@@ -1292,3 +1292,106 @@ HOUSEKEEPING: public\__stress_tmp, .next and .tmp\itemd (generated, untracked) t
 repeatable prepare script (dry run by default). Pane storage restored.
 NEXT: F-7 (finish stage 1, verify, commit), F-10, F-11, then ONE full regression including these item d checks.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 21 (2026-10-26) - F-7 DRY HIRE BUILT AND LIVE-CHECKED; BASELINES UNCHANGED WITH THE TICK OFF [BUILT: app, NOT COMMITTED]
+===============================================================================
+APP UNDER TEST: 7a4c5ef (F-10) plus UNCOMMITTED F-7 stage 1, 1b and 2 (7 files, default off); production build OK; :3005; built-in pane.
+D-4 PROOF (tick off): Scenario A 272 of 272, A misaligned 272 of 272, A2 272 of 272, B 329 of 329 (nodes + Cost Allocation raw + derived checks,
+tolerance as compare_full.py); trace 236 / 236 / 242 / 276 nodes, no duplicate ids, no missing endpoints. The totals are 5 above V6.1j's
+267 / 267 / 267 / 324; the likely cause is the 5 EBIT / EBITDA nodes F-10 added (not individually confirmed).
+TICK ON (Scenario B, G03 both assignments): G03 revenue 0 -> 285,600 (672 h x 300 + 1,200 h x 70, the brief's expected figure); capacity gap
+1,200 -> 0; G03 recovery hours 1,872; trace 274 nodes (the 2 G03 gap-dollar nodes drop out), clean; the real checkbox saves and survives a reload.
+Detail, code and consequences: Business Outcome brief Addendum 3, Cost Allocation brief Addendum 3, DRY_HIRE brief Addendum 1.
+METHOD NOTE (pane loop, now reusable): in-page runner kept in sessionStorage under __runner and eval'd after each navigation (a Next navigation
+wipes window state, so seed, navigate, then grab + compare are three separate calls). Phases: seed (fetch /__stress_tmp/seed_<id>.json, back up
+localStorage to sessionStorage once, clear, write each key as JSON.stringify(value)); grab (intercept URL.createObjectURL, click "Download trace
+JSON"); cmp (read the last blob, compare nodes, raw_checks and derived_checks). Restore localStorage from the backup at the end. Do not run the
+navigate and the script in the same parallel batch.
+FOUND: the ticked Scenario B seed's P&L revenue does not include the dry-hire income, so Business Outcome's revenue ceiling bites (materials
+147,062 -> 0, ceilings 0.949 / 0.900). Not an app bug; the ticked test seed needs its own aligned P&L.
+OWED: ticked Scenario B recipe, seed and expected values; trace nodes; then F-11, F-10b and the ONE full regression (A, A misaligned, B, A2,
+ladder, item d checks, ticked B).
+
+F-7 DETAIL (moved here from the Business Outcome and Cost Allocation briefs to keep those short):
+-- Business Outcome half [BUILT, live-checked, NOT COMMITTED; trace nodes owed]
+Design: Future_Build\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt (with its Addendum 1) and Cost Allocation brief
+Addendum 3 (the tick, the flag and the recovery-hours maths). An asset assignment ticked earns_without_operator earns its own hours at its
+own rate and is outside the labour cap. Default off: nothing ticked = every figure unchanged.
+CODE (patched by .tmp\f7_stage2_patch.ps1, 11 patches in two batches, preflight 1 match each, build OK):
+  hooks/useBusinessOutcomePerSourceRevenue.js
+    - New helpers: get_group_dry_hire_hours (group.earns_without_operator_hours, ONLY for asset-hours-driven groups, else 0);
+      get_group_operated_seat_hours (= group_recovery_hours - dry hours); get_group_operated_covered_hours (= min(operated seat
+      hours, assigned labour hours): the old BO-6 rule); get_group_covered_hours (= operated covered + dry hours).
+    - build_asset_sources: a dry-hire row's revenue = Rate Builder per-asset price x its own hours. OWNER DECISION 2026-10-26: when
+      there is no per-asset price (or a Business Modelling blended-rate override is active) the row earns null with the reason "Dry hire
+      needs a Rate Builder price for this asset"; it is NOT billed at the group blended rate. Operated rows scale on operated covered
+      hours; dry rows are left out of the group-rate cost-share denominator; overhead share still splits by all assigned hours.
+      New row field earns_without_operator.
+    - build_labour_sources: seat hours = operated covered hours (the labour is not paid to run dry-hire hours).
+    - calculate_capacity_coverage_gap: asset hours use operated seat hours (never dry hours); its shortfall call uses operated covered.
+    - group_real_capacity.group_recovery_hours keeps TOTAL covered hours (achieved rate = revenue / hours including dry hire).
+  lib/calculations/businessOutcomeShortfallDollars.js: assignments ticked dry hire are skipped (they can never be a labour shortfall).
+  lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js: labour_utilisation_percent uses the operated recovery hours.
+LIVE (built-in pane, :3005 production build, 2026-10-26, via the seed loop):
+  Tick OFF: A 272 of 272, A misaligned 272 of 272, A2 272 of 272, B 329 of 329 (trace 236 / 236 / 242 / 276 nodes, clean). These totals are
+  5 above the V6.1j counts (267 / 267 / 267 / 324); most likely the 5 EBIT / EBITDA trace nodes added by F-10 (not individually confirmed).
+  Tick ON (Scenario B, G03 both assignments, ticked with the real checkbox on /cost-allocation, saved, survived a reload):
+    G03 modelled revenue 0 -> 285,600 = 80t crane 672 h x $300 (201,600) + telehandler 1,200 h x $70 (84,000). Exactly the figure in the
+    DRY_HIRE brief. Capacity gap hours 1,200 -> 0 and the two G03 gap-dollar nodes disappear (274 nodes, clean). G03 recovery hours 1,872
+    (SUM of the dry hours; the old no-labour figure was the MAX, 1,200); G03 group cost per hour 85.99 -> 71.92; labour utilisation 0;
+    asset utilisation 100. The "nobody is there to run it" sentence is absent on /business-outcome (the gap line is gone).
+EXPECTED CONSEQUENCES (not bugs; owner to confirm the first):
+  1. Overhead is weighted by recovery hours, so G03 now draws 97,217 of overhead (14.62 percent) and every other group's overhead, group
+     cost per hour and the Rate Builder labour rates fall (crane operator 115.94 -> 114.07, float truck driver 101.48 -> 99.24, heavy plant
+     operator 108.89 -> 106.58). Total cost is conserved (Business Outcome total net profit unchanged to 2 cents).
+  2. Scenario B's seed P&L revenue does not include dry-hire income, so the revenue ceiling now bites on the ticked seed: materials
+     revenue 147,062 -> 0, assumed-capacity ceilings 1 -> 0.949 (View A) and 0.900 (View B). A ticked test seed needs a P&L regenerated with
+     the dry-hire revenue.
+OWED (in order, see HANDOVER V6.1k section 5): trace nodes (D-5); ticked Scenario B recipe + seed + expected-script changes; calc map s7 / s9.1
+and variable tracker s21 update; commit; then F-11, F-10b, the one full regression.
+UNTESTED: sequential run pattern with a ticked asset; ticked asset in a group whose recovery driver is manual hours or labour hours (the tick is
+shown but has no effect there); Business Modelling levers on the dry-hire unit; Rate Builder group-level rates (labour overhead per hour is
+divided by recovery hours that now include dry hire).
+TIDY (pre-existing, found while reading): a comment above apply_revenue_ceiling reads "Materials floor = export default function
+useBusinessOutcomePerSourceRevenue() { when breached" (stray pasted text inside a comment, harmless).
+
+-- Cost Allocation half [BUILT, live-checked, NOT COMMITTED]
+OWNER DECISIONS: hourly billing; default OFF; the flag lives on the ASSET ASSIGNMENT (the productive-asset row), not on the asset, because
+Scenario B's 80t crane is operated hire in G01 and dry hire in G03 at once. Field name: earns_without_operator (boolean, absent = false).
+CODE (stage 1 and 1b via .tmp\f7_stage1_patch.ps1 and f7_stage1b_patch.ps1, both fully applied; stage 2 via .tmp\f7_stage2_patch.ps1):
+  hooks/useCostAllocation.js: set_asset_assignment_earns_without_operator(assignment_id, value), exported in actions; passed through
+    CostAllocationMainCard.jsx, CostAllocationStepBuilder.jsx to groups/CostAllocationGroupAssetBuilder.jsx, which shows the tick
+    "Hired out without our operator (dry hire)" on each matched PRODUCTIVE assignment (not the non-productive picker) plus a one-line help text.
+  The flag survives storage and enrichment (costAllocationStorage passes the rows as an array; build_productive_asset_pool spreads
+    ...assignment, so the field reaches the group rows and Business Outcome).
+  lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js: assignments split into operated and dry-hire.
+    required_asset_hours (SUM when "one after another", else the MAX), the labour cap (D1 3c), labour_coverage_gap_hours and idle labour use
+    OPERATED assignments only. earns_without_operator_hours (new output field) = the SUM of the ticked assignments' hours, ADDED to the group
+    recovery hours when the group recovers on asset hours (operated_recovery_hours + earns_without_operator_hours). Utilisation = recovery
+    hours / (required_asset_hours + dry hours), so it cannot exceed 100. labour_utilisation_percent uses the operated recovery hours.
+EFFECT: dry-hire hours are SUMMED (a no-labour group used the MAX before), so a ticked unit recovers more hours and, because overhead is split
+by recovery hours, draws more overhead; other units draw less (total conserved). Owner to confirm this is the wanted rule (Business Outcome
+Addendum 3 lists the figures on Scenario B).
+LIVE: see Business Outcome Addendum 3 (G03 recovery hours 1,872, gap 0, utilisation 100, labour utilisation 0; flag persisted by the real checkbox).
+OPEN: no trace node for earns_without_operator_hours / the operated recovery hours yet (D-5); the tick has no effect when the group's recovery
+driver is not asset hours (consider hiding it or warning); Rate Builder group-level labour overhead per hour divides by hours that now include
+dry hire (not measured); calc map s7 needs the new formulas.
+===============================================================================
+
+===============================================================================
+ADDENDUM 22 (2026-10-27) - F-7 COMMITTED (17a5957); DRY HIRE TRACE NODES LIVE-CHECKED [SHIPPED: app]
+===============================================================================
+STEP 1: the 7 F-7 code files committed as 17a5957 (HEAD was 7a4c5ef, ahead of origin by 22 after the commit; push is the owner's call).
+STEP 2: trace nodes (D-5, A3) added; see CALCULATION_TRACE_BRIEF Addendum 2 for the nodes, the one core field (operated_recovery_hours) and
+the totals. LIVE (built-in pane, :3005 production, seeds regenerated as of 2026-10-27 by .tmp\f7_seed.ps1): tick OFF A 174 / 174, A misaligned
+174 / 174, A2 174 / 174, B 203 / 203 node values; trace 249 / 249 / 255 / 294 nodes, 0 missing, 0 duplicates. Tick ON (B, G03):
+earns_without_operator_hours 1,872, operated_recovery_hours 0, dry_hire_revenue 285,600; 292 nodes.
+NOT RE-RUN: the raw and derived checks (V6.1k's 272 / 272 / 272 / 329 included them); they are unaffected by a display-only node but belong
+in the one full regression.
+METHOD NOTE: a commit helper that deletes public\__stress_tmp (f4 / f7_commit.ps1) must be followed by .tmp\f7_seed.ps1 (seeds and expected
+files only, no rebuild) and a server restart before any pane check; the same in-page runner as Addendum 21 compares node values.
+OWED (unchanged order): step 3 ticked Scenario B recipe, seed and expected values (aligned P&L must include the 285,600; add the three new
+nodes to the expected files); step 4 calc map s7 / s9.1 and VARIABLE_TRACKER s21; step 5 owner decisions 3a / 3b and the tick wording; then
+F-11, F-10b and the ONE full regression.
+===============================================================================

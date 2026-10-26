@@ -148,3 +148,24 @@ Business Outcome page's own inputs. net profit has edges from each group's real_
 materials.real_capacity_net_profit; interest and depreciation have no upstream nodes (asset interest and depreciation have no
 per-asset trace node; add them if a per-asset EBIT check is ever needed). Verified live 2026-10-26: 236 nodes, 325 edges, 0 missing
 endpoints, 0 duplicates. See Business Outcome brief Addendum 2.
+
+ADDENDUM 2 (2026-10-27) - F-7 DRY HIRE NODES [SHIPPED]
+Dry hire (F-7, commit 17a5957) had no trace nodes; the 2026-10-16 definition of done was applied before F-7 closed. Added
+pilot-map/dryHireTraceNodes.js (11th node file), registered in calculationTraceSelectors.js (buildDryHireCostAllocationNodes,
+buildDryHireBusinessOutcomeNodes). Module cost-allocation / business-outcome, live_verified_field, null-preserving safeNumber:
+  cost_allocation.group.<id>.earns_without_operator_hours   one per working group, 0 when nothing is ticked; inputs = the ticked asset nodes
+  cost_allocation.group.<id>.operated_recovery_hours        one per working group; inputs = the group's asset and labour-type nodes
+  business_outcome.group.<id>.dry_hire_revenue             one per asset group; sum of ticked rows' modelled revenue, blank (null) if a
+                                                            ticked row has no Rate Builder price; inputs = those rows' asset_source modelled_revenue nodes
+EXPLAIN-ONLY nodes: none feeds a total (the revenue is already inside the asset_source and group nodes). One core change: the Cost
+Allocation group builder now exports operated_recovery_hours (an existing local, operated_group_recovery_hours; no recalculation). The
+asset_source modelled_revenue node text now describes the dry-hire case. Patched with .tmp\f7_trace_patch.ps1 (4 patches, 1 match each, build OK).
+LIVE (built-in pane, :3005 production, as of 2026-10-27, tick OFF): all existing node values match the expected files: A 174 / 174,
+A misaligned 174 / 174, A2 174 / 174, B 203 / 203 (node values only; raw and derived checks not re-run here). Trace totals now:
+  A 249 nodes / 335 edges, A misaligned 249 / 335, A2 255 / 339, B 294 / 399; 0 missing endpoints, 0 duplicate ids.
+  Each is the V6.1k total (236 / 236 / 242 / 276) plus 13 (5 working groups x 2 + 3 asset groups) for A / A misaligned / A2, and plus 18
+  (7 x 2 + 4) for B.
+TICK ON (Scenario B, G03 both assets, real checkbox): G03 earns_without_operator_hours 1,872 (672 h + 1,200 h), operated_recovery_hours 0,
+dry_hire_revenue 285,600 (201,600 + 84,000, the two asset_source nodes); all other groups 0 hours and 0 revenue. 292 nodes, 399 edges, clean
+(the two G03 gap-dollar nodes drop out, as before). Expected files for the ticked case still owed (stress brief Addendum 22).
+STILL NOT TRACED: the unassigned cost total in the EBIT net profit; per-asset EBIT interest and depreciation (see Addendum 1).

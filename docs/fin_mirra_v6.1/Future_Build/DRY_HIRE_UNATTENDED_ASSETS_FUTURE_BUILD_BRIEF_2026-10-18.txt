@@ -2,7 +2,7 @@
 MIRRA - DRY HIRE / UNATTENDED ASSETS (FINDING F-7) - FUTURE BUILD BRIEF
 ===============================================================================
 DATE:     2026-10-18
-STATUS:   [FUTURE BUILD] Owner decisions recorded; nothing built. Build slot: the between-R2-and-R3 batch with F-1
+STATUS:   [IN BUILD 2026-10-26] Calculation BUILT and live-checked (see Addendum 1); trace nodes, test seed, calc map and commit still owed. Build slot: the between-R2-and-R3 batch with F-1
           (ESCT), F-4 (unassigned assets), F-10 (EBITDA depreciation) and F-11 (EBIT all interest), then ONE full
           re-run of the regression pack (Scenario A aligned and misaligned, Scenario B, the ladder).
 LOCATION: docs\fin_mirra_v6.0 Briefs\ (this file).
@@ -86,4 +86,23 @@ revenue is not being counted". The aligned P&L therefore carries no dry-hire inc
   s9 (CM-9 and BO-6 notes) to be updated in the same session, with the variable tracker s21 item closed.
   Out of scope: weekly and monthly hire rates (R4 units mode), one person attending several separately billed units
   at once (the other open item in the same code comment).
+===============================================================================
+
+===============================================================================
+ADDENDUM 1 (2026-10-26) - BUILT: WHAT WAS DECIDED AND WHAT IS LEFT
+===============================================================================
+Placement CONFIRMED: a tick on the asset ASSIGNMENT in Cost Allocation (productive assets only). Field earns_without_operator.
+Billing for a ticked row: its Rate Builder per-asset price x its own hours. If it has no per-asset price (or a Business Modelling blended-rate
+override is on) it earns null with a flag, NOT the group blended rate (owner decision, 2026-10-26).
+Recovery hours: dry-hire hours are SUMMED and added to the group recovery hours (operated machines keep the MAX / SUM-when-sequential rule and the
+labour cap). Utilisation, labour utilisation, the labour gap and idle labour ignore dry hire. Full detail: Cost Allocation brief Addendum 3 and
+Business Outcome brief Addendum 3. Live: Scenario B G03 earns 285,600 (672 h x 300 + 1,200 h x 70), gap 1,200 -> 0, baselines unchanged with the tick off.
+STILL OWED (section 4 and 5 of this brief, plus found while building):
+  - Trace nodes (D-5): dry-hire hours per group; dry-hire revenue per group (asset_source rows already have modelled_revenue nodes).
+  - Harness: a ticked Scenario B recipe (generate_business.py optional exempt flag on a recipe asset entry), mirra_expected.py / _l2.py changes
+    (covered hours, capacity gap, recovery hours, overhead weighting, Business Modelling basis for exempt assignments, aligned P&L revenue
+    including the dry-hire income).
+  - Calc map s7 and s9.1 (get_group_covered_hours family), variable tracker s21 item closed.
+  - Not covered by any test yet: sequential run pattern, non-asset recovery drivers, Business Modelling levers on the dry-hire unit, Rate Builder
+    group-level rates.
 ===============================================================================

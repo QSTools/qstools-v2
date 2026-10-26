@@ -5,9 +5,9 @@ FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_OUTCOME_BRIEF.txt  (the ONE B
 COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map and gotchas - mechanism, not intent)
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
-               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. PENDING before R3: F-7 dry hire, F-11
+               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. PENDING before R3: F-7 dry hire (calculation BUILT and live-checked 2026-10-26, Addendum 3; trace nodes, harness seed, calc map and commit still owed), F-11
                EBIT interest add-back, F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
-LAST UPDATED:  2026-10-26 (F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+LAST UPDATED:  2026-10-26 (F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -131,9 +131,10 @@ Legacy, not on this page: components/business-outcome/* (incl. BusinessOutcomeRe
 8. FINDINGS REGISTER (keep numbers; update status in place)
 ===============================================================================
 PENDING BUILD (fix batch between R2 and R3, then ONE full regression re-run)
-F-7   Dry hire earns nothing (no-labour asset group has 0 covered hours). Design: Future_Build\DRY_HIRE_... brief;
-      hourly, default OFF, trace nodes essential; Claude recommends a tick on the asset ASSIGNMENT row in Cost
-      Allocation - placement to confirm.
+F-7   [BUILT 2026-10-26, Addendum 3 - live-checked, NOT yet committed, trace nodes owed] Dry hire earns nothing (no-labour
+      asset group had 0 covered hours). Built: tick "Hired out without our operator (dry hire)" on the asset ASSIGNMENT in
+      Cost Allocation (hourly, default OFF); a ticked row earns its Rate Builder per-asset price x its own hours with no
+      labour cap. Design and decisions: Future_Build\DRY_HIRE_UNATTENDED_ASSETS brief and its Addendum 1.
 F-10  [SHIPPED 2026-10-26, Addendum 2] EBITDA depreciation: useAssets active_assets dropped estimated_annual_depreciation
       (one-line pass-through, hooks/useAssets.js). Proven on scenario_a_depreciation: 174 of 174 nodes.
 F-10b OPEN  Depreciation on support or unassigned assets is still missing from EBITDA: the F-8 remainder row in
@@ -235,3 +236,12 @@ page and in the trace (EBIT / EBITDA 179,662.22 / 249,662.22 in the snapshot); t
 174 expected nodes pass. Raw Cost Allocation and derived checks were not run for this slice; they run once in the full
 regression after F-7 / F-10b / F-11.
 Not changed: no calculation. No CALCULATION_MAP change needed beyond noting the figures are now traced.
+
+ADDENDUM 3 (2026-10-26) - F-7 DRY HIRE, BUSINESS OUTCOME HALF [BUILT, live-checked, NOT COMMITTED; trace nodes owed]
+Rule: an asset assignment ticked earns_without_operator (Cost Allocation) earns its Rate Builder per-asset price x its OWN hours, outside the
+labour cap. No per-asset price (or a Business Modelling blended override) = null revenue with a reason (owner decision; never the group rate).
+Default off: nothing ticked = every figure unchanged (A, A misaligned, A2 272 of 272; B 329 of 329).
+Code: hooks/useBusinessOutcomePerSourceRevenue.js (helpers get_group_dry_hire_hours / _operated_seat_hours / _operated_covered_hours;
+get_group_covered_hours = operated covered + dry hours; asset rows, labour rows and the capacity gap use the operated figures) and
+lib/calculations/businessOutcomeShortfallDollars.js (skips dry hire). Live result on Scenario B G03: revenue 0 -> 285,600, gap 1,200 -> 0.
+Full code list, live figures, consequences (overhead moves to the dry-hire unit) and the untested list: stress brief Addendum 21.

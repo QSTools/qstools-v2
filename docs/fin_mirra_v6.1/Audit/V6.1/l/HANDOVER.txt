@@ -1,0 +1,31 @@
+HANDOVER V6.1l   2026-10-27   (F-7 steps 1 and 2 done: code committed, trace nodes built and live-checked; seed, calc map, owner decisions still owed)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\l\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 and 7 for how Claude works here (file tools + built-in pane, NO shell; the owner runs prepared .tmp scripts,
+git, and restarts the server). This file replaces k Sections 1 to 4.
+
+1. WHERE WE ARE
+- Commit 17a5957 = the 7 F-7 code files (default off). The trace code (dryHireTraceNodes.js plus 4 patched files) and the docs are committed by
+  .tmp\f7_trace_commit.ps1 (two commits; check git log). Push is the owner's call (ahead of origin by 22 before these two).
+- Trace nodes (CALCULATION_TRACE_BRIEF Addendum 2): cost_allocation.group.<id>.earns_without_operator_hours and .operated_recovery_hours,
+  business_outcome.group.<id>.dry_hire_revenue. Live: tick off A 249, A misaligned 249, A2 255, B 294 nodes (all existing values match expected);
+  ticked B (G03) 292 nodes, 1,872 h, revenue 285,600. 0 missing, 0 duplicates.
+- Housekeeping: stop the :3005 server; delete public\__stress_tmp and .next. Pane storage was restored (18 keys).
+- After any commit helper that deletes public\__stress_tmp: run .tmp\f7_seed.ps1 (seeds only, no rebuild) and restart the server before a pane check.
+
+2. OPEN ITEMS (carried from k Section 3, unchanged)
+a. OWNER TO CONFIRM: dry-hire hours SUMMED and added to recovery hours (G03 draws 97,217 of overhead, 14.62 percent; other groups' cost per hour and
+   Rate Builder labour rates fall about 1.5 to 2.3 dollars an hour). b. The tick does nothing when the group is not asset-hours driven but is shown
+   (hide or warn). c. Not tested: sequential run pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group-level
+   rates; Model Readiness / Module Reconciliation with a ticked group; Quote Engine. d. Stray comment text above apply_revenue_ceiling in
+   useBusinessOutcomePerSourceRevenue.js. e. Carried list as in k 3e.
+f. NEW: the raw and derived checks (272 / 272 / 272 / 329) were not re-run after the trace change; they belong in the one full regression.
+
+3. NEXT STEPS IN ORDER
+3. TICKED TEST SEED (k step 3, unchanged): optional exempt flag in generate_business.py, recipe scenario_b_dry_hire, aligned P&L including the 285,600,
+   expected files written from the calc map, add the three new trace nodes to the expected files. Prepare with .tmp\itemd_prepare.ps1 or f7_seed.ps1.
+4. CALC MAP (k step 4): extract_calc_map.py, CALCULATION_MAP_v6_0.txt s7 and s9.1, CM-n entry, VARIABLE_TRACKER s21, BUSINESS_OUTCOME_FILE_MAP;
+   re-upload calc map and tracker to project knowledge and update the ledger.
+5. Owner decisions 3a and 3b, then the UI wording pass on the tick.
+6. F-11, 7. F-10b, 8. ONE full regression (A, A misaligned, A2, B, ticked B, ladder, item d), 9. R3 Business Modelling redesign (as in k).
+Project knowledge: CALCULATION_TRACE_BRIEF, COST_ALLOCATION_BRIEF, BUSINESS_OUTCOME_BRIEF changed this session; re-upload and rewrite
+.tmp\project_sync_ledger.tsv, then python Py\audit-scripts\check_project_knowledge_sync.py.

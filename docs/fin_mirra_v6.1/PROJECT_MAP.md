@@ -105,13 +105,16 @@ Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-ru
 F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning (DONE 2026-10-25, Cost Allocation brief Addendum 2) |
 F-10 EBITDA depreciation pass-through (DONE 2026-10-26, Business Outcome brief Addendum 2; EBIT / EBITDA trace nodes backfilled; 174 of 174 on
 scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBITDA (OPEN, own slice, own test) |
-F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) | F-7 dry hire earns money (hourly, default off, placement to confirm).
+F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) |
+F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): CALCULATION BUILT AND LIVE-CHECKED 2026-10-26 (Cost Allocation brief
+Addendum 3, Business Outcome brief Addendum 3, DRY_HIRE brief Addendum 1, stress brief Addendum 21), NOT COMMITTED. Still owed: trace nodes, ticked
+Scenario B seed + expected-script changes, calc map s7 / s9.1, commit. Baselines with the tick off: A / A misaligned / A2 272 of 272, B 329 of 329.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt).
+R2 resumes next (see latest HANDOVER.txt = V6.1k: finish F-7, then F-11, F-10b, one full regression).
 
 ## 7. Findings numbering
 
