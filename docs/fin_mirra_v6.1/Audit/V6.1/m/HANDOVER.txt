@@ -1,0 +1,78 @@
+HANDOVER V6.1m   2026-10-27   (F-7 steps 1 to 3 DONE: code, trace nodes, ticked Scenario B seed all committed and live-checked; calc map, owner decisions still owed)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\m\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here: file tools + built-in pane, NO shell; the owner runs prepared .tmp scripts, git, and restarts
+the server). This file replaces l Sections 1 to 3. l and k are history now.
+
+1. WHERE WE ARE
+- Commits (newest first): 1303482 step 3 harness (ticked seed, "dry" flag, new expected nodes); the two trace commits; 17a5957 the 7 F-7 code files.
+  git said "up to date with origin/main" before 1303482 (the owner pushed); push of 1303482 and the docs commit is the owner's call.
+- UNCOMMITTED when this was written (docs only, commit them together as "docs: F-7 shipped, handover V6.1m"): Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 4),
+  Briefs\CALCULATION_TRACE_BRIEF.txt (Addendum 3), PROJECT_MAP.md (Section 6), Future_Build\DRY_HIRE_...(Addendum 2), Audit\V6.1\m\HANDOVER.txt,
+  Py\stress_test\pane_runner.console.js (new). Run git status first.
+- LIVE RESULT 2026-10-27 (built-in pane, :3005 production, seeds from .tmp\f7_ticked_seed.ps1, as of 2026-10-27): nodes + raw + derived checks
+  A 285 / 285, A misaligned 285 / 285, A2 285 / 285, B 347 / 347, ticked B (scenario_b_dry_hire) 346 / 346. Trace 249 / 249 / 255 / 294 nodes, ticked B 292;
+  0 duplicates, 0 missing endpoints. Pane storage restored (18 keys).
+- HOUSEKEEPING: stop the :3005 server; Remove-Item public\__stress_tmp, .next -Recurse -Force. Generated, untracked: .tmp\itemd\.
+- Project knowledge: BUSINESS_OUTCOME_BRIEF, CALCULATION_TRACE_BRIEF and PROJECT_MAP were re-uploaded at the end of this chat and the ledger rewritten
+  (.tmp\project_sync_ledger.tsv); the owner runs  python Py\audit-scripts\check_project_knowledge_sync.py  (expect all OK, so long as nothing was edited since).
+
+2. WHAT WAS DONE THIS CHAT (step 3)
+- generate_business.py: optional THIRD value on a recipe asset entry ["A02", 40, "dry"] writes earns_without_operator: true on that assignment row only.
+  mirra_expected.group_asset_entries reads it; scale_recipe.py unpacks it. Absent = nothing changes: five recipes regenerated old vs new, seeds and
+  expected_<id>.json byte-identical, layer-2 nodes / raw / derived / tolerances unchanged.
+- recipes\scenario_b_dry_hire.json = Scenario B + both G03 assignments ticked; aligned P&L includes the 285,600 (revenue 2,860,618.70, net profit 578,847.39).
+- mirra_expected.billed_revenue and mirra_expected_l2.py (assumption A-13) written from the DRY_HIRE / Cost Allocation / Business Outcome addenda (the calc
+  map was not yet updated): a dry row bills rate x own hours; required hours, labour cap, capacity gap, idle labour use operated assignments only;
+  assigned_asset_hours stays the MAX of every assignment; recovery = operated + dry SUM; overhead and the non-productive spread weight by recovery hours;
+  Business Modelling unit basis = covered hours (operated covered + dry). Every one of these matched the live app first time.
+- New expected nodes on every recipe: earns_without_operator_hours and operated_recovery_hours (per working group), dry_hire_revenue (per group with
+  productive assets). +13 on each Scenario A recipe (174 -> 187), +18 on B (203 -> 221), ticked B 220.
+- .tmp\f7_ticked_seed.ps1 (dry run, then -Live): seeds + expected for the five recipes into public\__stress_tmp, no build.
+- Py\stress_test\pane_runner.console.js: the in-page runner (grab trace JSON, compare nodes + raw + derived + integrity). See Section 5.
+
+3. OPEN ITEMS
+a. OWNER TO CONFIRM (from l): dry-hire hours SUMMED and added to recovery hours (ticked G03 draws overhead by its 1,872 hours; other groups' cost per hour and
+   Rate Builder labour rates fall). b. The tick does nothing when the group is not asset-hours driven but is still shown (hide or warn).
+c. Not tested: sequential run pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group-level rates; Model Readiness /
+   Module Reconciliation with a ticked group; Quote Engine. d. Stray comment text above apply_revenue_ceiling in useBusinessOutcomePerSourceRevenue.js.
+e. Carried list as in k 3e. f. CLOSED this chat: raw and derived checks re-run (see Section 1).
+g. PROJECT_MAP Section 6 had a stale F-7 line; fixed in the uncommitted docs.
+h. Ticked-seed P&L nets 20.2 percent of revenue (Scenario B is 14.5) because the generator sizes overheads as a percent of revenue and the dry-hire income raises
+   revenue; not a defect, but a ticked-B comparison against B is not like for like.
+
+4. NEXT STEPS IN ORDER  (one piece of work per chat)
+4. CALC MAP (k step 4). python Py\audit-scripts\extract_calc_map.py, then CALCULATION_MAP_v6_0.txt s7 (operated / dry split, asset_driven_recovery_hours,
+   utilisation, labour_utilisation_percent, earns_without_operator_hours, operated_recovery_hours) and s9.1 (get_group_dry_hire_hours / _operated_seat_hours /
+   _operated_covered_hours / get_group_covered_hours; revenue for a dry-hire row; null with a reason when no per-asset price), add or close the CM-n entry,
+   re-date; VARIABLE_TRACKER s21: close "unattended / dry-hire units need an exemption setting"; BUSINESS_OUTCOME_FILE_MAP. Then re-upload CALCULATION_MAP and
+   VARIABLE_TRACKER to project knowledge (Projects tool, project_write with local_path) and rewrite the ledger. Read first: the calc map s7 and s9.1, the
+   three code files (costAllocationGroupCostBuilder.js, useBusinessOutcomePerSourceRevenue.js lines ~150-330, businessOutcomeShortfallDollars.js), the brief addenda.
+   Check mirra_expected_l2.py A-13 against the written map: any difference is a map gap or a harness gap, say which.
+5. Owner decisions 3a and 3b, then the UI wording pass on the tick.
+6. F-11 (EBIT adds back all interest; needs a recipe with non-asset interest). 7. F-10b (support / unassigned asset depreciation in EBITDA).
+8. ONE full regression (A, A misaligned, A2, B, ticked B, the ladder, item d checks), 9. R3 Business Modelling redesign.
+
+5. METHOD NOTES
+- Pane loop, now a file: Py\stress_test\pane_runner.console.js. Order, each a SEPARATE call (never navigate and run script in the same batch):
+  (1) open any :3005 page on the pane; (2) seed: back up localStorage to sessionStorage __bak ONCE, fetch /__stress_tmp/seed_<id>.json and
+  expected_<id>_layer2.json, localStorage.clear(), write each key as JSON.stringify(value), store the expected in sessionStorage __exp and the runner in
+  __runner; (3) navigate to /calculation-trace; (4) eval __runner, await __grab() (clicks "Download trace JSON", captures the blob), then __cmp()
+  (nodes, raw_checks, derived_checks, integrity); (5) repeat per seed; (6) restore from __bak and verify key by key (18 keys). Seeds and expected files must be
+  in public\__stress_tmp BEFORE the server starts. The expected counts: A 187, B 221, ticked B 220 nodes plus 95 / 123 raw plus 3 derived.
+- Claude stages files from the device, edits its own copy, and commits back with device_commit_files (mtime guard; new files need no guard). Project knowledge
+  is updated with Projects project_write (local_path inside the working directory); the ledger is rewritten (sha256 of the exact bytes uploaded) and the owner
+  runs check_project_knowledge_sync.py.
+- Python is available in Claude's own container, so a harness change can be tested offline (regenerate old vs new, diff) before the owner runs anything.
+- Patch scripts: ASCII only, header with acceptance criteria, refuse to run if a server is listening on 3000 / 3004 / 3005, Invoke-PatchBatch (1 match each),
+  Assert-Contains, Invoke-Build. One batch per module. Live check first, every time, before recording a finding or committing.
+
+6. STANDING RULES
+- Archive, never delete. One brief per module. Apply-Patch / Invoke-PatchBatch, "Patched:" confirmations, build after each batch, never while dev runs or a
+  server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives. git add with explicit paths.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Calc map s7 and s9.1 (CALCULATION_MAP_v6_0.txt) and Business Outcome brief Addenda 3 and 4, Cost Allocation brief Addenda 3 and 4, DRY_HIRE brief Addendum 1 and 2.
+Then only what step 4 needs. Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief (113 KB; only Addendum 23 if the harness matters), or module
+briefs not needed.

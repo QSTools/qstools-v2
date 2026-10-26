@@ -5,9 +5,9 @@ FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_OUTCOME_BRIEF.txt  (the ONE B
 COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map and gotchas - mechanism, not intent)
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
-               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. PENDING before R3: F-7 dry hire (calculation BUILT and live-checked 2026-10-26, Addendum 3; trace nodes, harness seed, calc map and commit still owed), F-11
+               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addendum 4; calc map s7 / s9.1 still owed). PENDING before R3: F-11
                EBIT interest add-back, F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
-LAST UPDATED:  2026-10-26 (F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+LAST UPDATED:  2026-10-27 (Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -131,7 +131,7 @@ Legacy, not on this page: components/business-outcome/* (incl. BusinessOutcomeRe
 8. FINDINGS REGISTER (keep numbers; update status in place)
 ===============================================================================
 PENDING BUILD (fix batch between R2 and R3, then ONE full regression re-run)
-F-7   [BUILT 2026-10-26, Addendum 3 - live-checked, NOT yet committed, trace nodes owed] Dry hire earns nothing (no-labour
+F-7   [SHIPPED 2026-10-27, Addendums 3 and 4 - committed, traced, ticked seed live; calc map s9.1 owed] Dry hire earns nothing (no-labour
       asset group had 0 covered hours). Built: tick "Hired out without our operator (dry hire)" on the asset ASSIGNMENT in
       Cost Allocation (hourly, default OFF); a ticked row earns its Rate Builder per-asset price x its own hours with no
       labour cap. Design and decisions: Future_Build\DRY_HIRE_UNATTENDED_ASSETS brief and its Addendum 1.
@@ -245,3 +245,14 @@ Code: hooks/useBusinessOutcomePerSourceRevenue.js (helpers get_group_dry_hire_ho
 get_group_covered_hours = operated covered + dry hours; asset rows, labour rows and the capacity gap use the operated figures) and
 lib/calculations/businessOutcomeShortfallDollars.js (skips dry hire). Live result on Scenario B G03: revenue 0 -> 285,600, gap 1,200 -> 0.
 Full code list, live figures, consequences (overhead moves to the dry-hire unit) and the untested list: stress brief Addendum 21.
+
+ADDENDUM 4 (2026-10-27) - F-7 DRY HIRE: COMMITTED, TRACED, TICKED SEED LIVE [SHIPPED]
+Addendum 3 is committed (17a5957, default off). Trace node business_outcome.group.<id>.dry_hire_revenue exists for every group with productive assets
+(0 when nothing is ticked; sum of the ticked asset rows' modelled revenue; blank when a ticked row has no Rate Builder price): CALCULATION_TRACE_BRIEF
+Addendum 2. The harness now has a ticked test seed (Py\stress_test\recipes\scenario_b_dry_hire.json, commit 1303482): Scenario B with both G03 assignments
+ticked and an aligned P&L that includes the 285,600. LIVE 2026-10-27 (production :3005, built-in pane): ticked B 346 of 346 (nodes, raw and derived checks);
+G03 modelled revenue 285,600 (672 h x 300 + 1,200 h x 70), covered hours 1,872, capacity gap 0, no gap-dollar nodes, Business Modelling unit basis 1,872;
+the baselines with the tick off pass A 285 / 285, A misaligned 285 / 285, A2 285 / 285, B 347 / 347 (more checks than before only because of the new
+trace nodes). The revenue-ceiling consequence of Addendum 3 does not appear on the aligned ticked seed. Expected values were written from the briefs
+(stress brief Addendum 23, assumption A-13). STILL OPEN: calc map s9.1 (get_group_*_hours family, revenue for a dry-hire row), owner decisions 3a (hours
+SUMMED into recovery hours) and 3b (tick in a group not driven by asset hours), Business Modelling levers on the dry-hire unit, sequential pattern with a ticked asset.

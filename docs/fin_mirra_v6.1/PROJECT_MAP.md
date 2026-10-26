@@ -106,15 +106,16 @@ F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassi
 F-10 EBITDA depreciation pass-through (DONE 2026-10-26, Business Outcome brief Addendum 2; EBIT / EBITDA trace nodes backfilled; 174 of 174 on
 scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBITDA (OPEN, own slice, own test) |
 F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) |
-F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): CALCULATION BUILT AND LIVE-CHECKED 2026-10-26 (Cost Allocation brief
-Addendum 3, Business Outcome brief Addendum 3, DRY_HIRE brief Addendum 1, stress brief Addendum 21), NOT COMMITTED. Still owed: trace nodes, ticked
-Scenario B seed + expected-script changes, calc map s7 / s9.1, commit. Baselines with the tick off: A / A misaligned / A2 272 of 272, B 329 of 329.
+F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): SHIPPED 2026-10-27 (calculation 17a5957; trace nodes, CALCULATION_TRACE_BRIEF
+Addendum 2; ticked Scenario B test seed, commit 1303482, live 346 of 346; Cost Allocation brief Addendum 3 and 4, Business Outcome brief Addendum 3 and 4, DRY_HIRE brief
+Addendum 2, stress brief Addendum 23). Still owed: calc map s7 / s9.1 + VARIABLE_TRACKER s21 + BUSINESS_OUTCOME_FILE_MAP (step 4), owner decisions 3a / 3b and the tick wording.
+Baselines with the tick off (nodes + raw + derived): A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt = V6.1k: finish F-7, then F-11, F-10b, one full regression).
+R2 resumes next (see latest HANDOVER.txt = V6.1m: F-7 steps 1-3 done; step 4 calc map, then owner decisions 3a / 3b, F-11, F-10b, one full regression).
 
 ## 7. Findings numbering
 
