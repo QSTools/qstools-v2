@@ -382,6 +382,33 @@ export default function useCostAllocation(inputs = {}) {
     set_field("asset_group_assignments", next_assignments);
   }
 
+  // F-7 (dry hire): flags ONE asset assignment as hired out without our
+  // operator. Absent = false, so existing data is unchanged until ticked.
+  function set_asset_assignment_earns_without_operator(assignment_id, value) {
+    if (!assignment_id) {
+      return;
+    }
+
+    const next_assignments = safe_array(state?.asset_group_assignments).map(
+      (assignment) => {
+        const current_assignment_id =
+          assignment.assignment_id || assignment.asset_assignment_id;
+
+        if (current_assignment_id !== assignment_id) {
+          return assignment;
+        }
+
+        return {
+          ...assignment,
+          earns_without_operator: value === true,
+          updated_at: new Date().toISOString(),
+        };
+      }
+    );
+
+    set_field("asset_group_assignments", next_assignments);
+  }
+
   function add_overhead_assignment({
     group_id,
     allocation_method,
@@ -540,6 +567,7 @@ export default function useCostAllocation(inputs = {}) {
     remove_labour_assignment,
     add_asset_assignment,
     remove_asset_assignment,
+    set_asset_assignment_earns_without_operator,
     add_overhead_assignment,
     remove_overhead_assignment,
     reset_state,

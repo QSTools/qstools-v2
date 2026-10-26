@@ -154,10 +154,17 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
 
     // Real sum of this group's own per-asset direct costs - the
     // denominator for the revenue cost-share split above (Fix 1).
-    const group_asset_cost_sum = asset_assignments.reduce(
-      (sum, assignment) => sum + to_number(assignment.assigned_asset_cost),
-      0
-    );
+    // F-7: a dry-hire assignment (asset-driven group, ticked) is priced on its own
+    // hours, so it takes no part in the group-rate cost-share split.
+    const dry_hire_applies = group.group_recovery_hour_source === "asset_hours";
+    const is_dry_hire_assignment = (assignment) =>
+      dry_hire_applies && assignment.earns_without_operator === true;
+    const group_asset_cost_sum = asset_assignments
+      .filter((assignment) => !is_dry_hire_assignment(assignment))
+      .reduce(
+        (sum, assignment) => sum + to_number(assignment.assigned_asset_cost),
+        0
+      );
 
     asset_assignments.forEach((assignment) => {
       const asset_hours = to_number(assignment.assigned_asset_hours);
@@ -187,17 +194,22 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
       // them re-introduced the same double-count this fix was meant to
       // remove, just one level up.
       const group_asset_revenue =
-        net_asset_rate !== null ? net_asset_rate * get_group_covered_hours(group) : null; // v6.0 BO-6 covered hours; CM-1 net asset rate
+        net_asset_rate !== null ? net_asset_rate * get_group_operated_covered_hours(group) : null; // v6.0 BO-6 covered hours (operated only, F-7); CM-1 net asset rate
 
       const asset_cost_share =
         group_asset_cost_sum > 0 ? asset_cost / group_asset_cost_sum : 0;
 
+      const is_dry_hire = is_dry_hire_assignment(assignment);
       const modelled_revenue =
-        asset_calc
-          ? asset_calc.rate !== null
-            ? asset_calc.rate * get_asset_revenue_hours(asset_hours, get_group_covered_hours(group), group.required_asset_hours ?? group.assigned_asset_hours)
+        is_dry_hire
+          ? asset_calc && asset_calc.rate !== null
+            ? asset_calc.rate * asset_hours
             : null
-          : group_asset_revenue !== null ? group_asset_revenue * asset_cost_share : null;
+          : asset_calc
+            ? asset_calc.rate !== null
+              ? asset_calc.rate * get_asset_revenue_hours(asset_hours, get_group_operated_covered_hours(group), group.required_asset_hours ?? group.assigned_asset_hours)
+              : null
+            : group_asset_revenue !== null ? group_asset_revenue * asset_cost_share : null;
 
       const net_profit =
         modelled_revenue !== null ? modelled_revenue - true_cost : null;
@@ -234,7 +246,8 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
         verdict: net_profit !== null ? verdict_for(net_profit) : null,
         is_modelled: true,
         available: modelled_revenue !== null,
-        unavailable_reason: modelled_revenue === null ? (asset_calc ? asset_calc.reason : reason) : null,
+        earns_without_operator: is_dry_hire,
+        unavailable_reason: modelled_revenue === null ? (asset_calc ? asset_calc.reason : is_dry_hire ? "Dry hire needs a Rate Builder price for this asset" : reason) : null,
       });
     });
   });
@@ -270,17 +283,43 @@ function build_asset_sources(operational_group_cost_rows, calculators, operation
 // Labour-driven groups are unchanged (their recovery hours ARE labour hours).
 // Also feeds group_real_capacity.group_recovery_hours, so Business
 // Modelling's rate levers price on covered hours without being edited.
-// Known limits (logged, not built): unattended / dry-hire units need an
-// exemption setting; one person attending several separately billed units
-// at the same time is not modelled - put those assets in one working unit.
-function get_group_covered_hours(group) {
-  const seat_hours = to_number(group?.group_recovery_hours);
+// Dry hire (F-7, 2026-10-26): built - tick "Hired out without our operator" on
+// the asset assignment in Cost Allocation (see the F-7 note below).
+// Known limit (logged, not built): one person attending several separately
+// billed units at the same time is not modelled - put those assets in one working unit.
+// F-7 (2026-10-26) dry hire: an asset assignment ticked earns_without_operator
+// is hired out with no operator, so it earns on its OWN hours and is not limited
+// by labour. Cost Allocation has already added those hours to the group
+// recovery hours (earns_without_operator_hours, asset-driven groups only), so
+// they are taken back out here before the labour cap is applied.
+//   operated seat hours   = recovery hours - dry-hire hours (what labour can cover)
+//   operated covered      = min(operated seat hours, labour hours)   [old behaviour]
+//   covered (total)       = operated covered + dry-hire hours
+// Operated rows and labour rows scale on operated covered only; dry-hire rows bill
+// their own hours at their own Rate Builder price. Nothing ticked = byte-identical.
+function get_group_dry_hire_hours(group) {
+  if (group?.group_recovery_hour_source !== "asset_hours") {
+    return 0;
+  }
+  return to_number(group?.earns_without_operator_hours);
+}
+
+function get_group_operated_seat_hours(group) {
+  return to_number(group?.group_recovery_hours) - get_group_dry_hire_hours(group);
+}
+
+function get_group_operated_covered_hours(group) {
+  const seat_hours = get_group_operated_seat_hours(group);
   if (group?.group_recovery_hour_source !== "asset_hours") {
     return seat_hours;
   }
   const labour_hours = (Array.isArray(group.labour_group_assignments) ? group.labour_group_assignments : [])
     .reduce((sum, assignment) => sum + to_number(assignment.assigned_hours), 0);
   return Math.min(seat_hours, labour_hours);
+}
+
+function get_group_covered_hours(group) {
+  return get_group_operated_covered_hours(group) + get_group_dry_hire_hours(group);
 }
 
 function build_labour_sources(operational_group_cost_rows, labour_recovery_rows, operational_group_recovery_rows = [], rate_overrides = {}) {
@@ -348,7 +387,7 @@ function build_labour_sources(operational_group_cost_rows, labour_recovery_rows,
     );
 
     const use_seat_hours = group.group_recovery_hour_source === "asset_hours";
-    const group_seat_hours = get_group_covered_hours(group);
+    const group_seat_hours = get_group_operated_covered_hours(group); // F-7: dry-hire hours are not labour hours
 
     labour_assignments.forEach((assignment) => {
       const staff_type_id = assignment.staff_type_id;
@@ -464,8 +503,8 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
     const asset_hours =
       group.group_recovery_hour_source === "asset_hours" &&
       labour_hours > 0
-        ? to_number(group.required_asset_hours) || to_number(group.group_recovery_hours)
-        : to_number(group.group_recovery_hours);
+        ? to_number(group.required_asset_hours) || get_group_operated_seat_hours(group)
+        : get_group_operated_seat_hours(group); // F-7: dry-hire hours need no labour, so they are never a gap
     const { blended_rate } = get_group_blended_rate(group, calculators);
 
     const is_asset_driven = group.group_recovery_hour_source === "asset_hours";
@@ -495,7 +534,7 @@ function calculate_capacity_coverage_gap(operational_group_cost_rows, calculator
         group,
         calculators,
         charge_out_rate_by_staff_type_id,
-        covered_hours: get_group_covered_hours(group),
+        covered_hours: get_group_operated_covered_hours(group),
       });
       gap_type = "revenue_at_risk";
       gap_dollar_is_complete = shortfall.is_complete;

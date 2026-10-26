@@ -300,6 +300,7 @@ export default function CostAllocationMainCard({
   remove_labour_assignment,
   add_asset_assignment,
   remove_asset_assignment,
+  set_asset_assignment_earns_without_operator,
   add_overhead_assignment,
   remove_overhead_assignment,
   reset_state,
@@ -366,6 +367,9 @@ export default function CostAllocationMainCard({
               remove_labour_assignment={remove_labour_assignment}
               add_asset_assignment={add_asset_assignment}
               remove_asset_assignment={remove_asset_assignment}
+              set_asset_assignment_earns_without_operator={
+                set_asset_assignment_earns_without_operator
+              }
               add_overhead_assignment={add_overhead_assignment}
               remove_overhead_assignment={remove_overhead_assignment}
             />

@@ -26,6 +26,7 @@ export default function CostAllocationStepBuilder({
   remove_labour_assignment,
   add_asset_assignment,
   remove_asset_assignment,
+  set_asset_assignment_earns_without_operator,
 }) {
   const division_rows = getRows(divisions);
   const group_rows = getRows(groups);
@@ -298,6 +299,9 @@ export default function CostAllocationStepBuilder({
               asset_assignment={asset_assignment}
               add_asset_assignment={add_asset_assignment}
               remove_asset_assignment={remove_asset_assignment}
+              set_asset_assignment_earns_without_operator={
+                set_asset_assignment_earns_without_operator
+              }
             />
 
             <GroupCoverageNotice

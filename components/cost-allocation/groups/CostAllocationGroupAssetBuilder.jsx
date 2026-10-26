@@ -24,6 +24,8 @@ function AssetPickerSection({
   group_id,
   add_asset_assignment,
   remove_asset_assignment,
+  set_earns_without_operator,
+  allow_dry_hire,
   assignments,
   empty_message,
 }) {
@@ -193,6 +195,31 @@ function AssetPickerSection({
                         Asset row. Remove and re-add it.
                       </p>
                     ) : null}
+
+                    {allow_dry_hire && !resolved_assignment.is_unmatched ? (
+                      <label className="ui-help">
+                        <input
+                          type="checkbox"
+                          checked={assignment.earns_without_operator === true}
+                          onChange={(event) =>
+                            set_earns_without_operator?.(
+                              id,
+                              event.target.checked
+                            )
+                          }
+                        />{" "}
+                        <span>Hired out without our operator (dry hire)</span>
+                      </label>
+                    ) : null}
+
+                    {allow_dry_hire &&
+                    assignment.earns_without_operator === true ? (
+                      <p className="ui-help">
+                        Dry hire: this asset earns on its own hours at its own
+                        rate. It is not limited by the labour assigned to this
+                        group and does not count in the labour gap.
+                      </p>
+                    ) : null}
                   </div>
 
                   <button
@@ -217,6 +244,7 @@ export default function CostAllocationGroupAssetBuilder({
   asset_assignment,
   add_asset_assignment,
   remove_asset_assignment,
+  set_asset_assignment_earns_without_operator,
 }) {
   const productive_rows = getAssetRows(asset_assignment);
 
@@ -237,6 +265,8 @@ export default function CostAllocationGroupAssetBuilder({
         group_id={group_id}
         add_asset_assignment={add_asset_assignment}
         remove_asset_assignment={remove_asset_assignment}
+        set_earns_without_operator={set_asset_assignment_earns_without_operator}
+        allow_dry_hire={true}
         assignments={productive_assignments}
         empty_message="No assets assigned to this group yet."
       />
