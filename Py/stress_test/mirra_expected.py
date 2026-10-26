@@ -227,12 +227,25 @@ def layer1(recipe, pnl_lines, as_of):
 
 
 # ---------------------------------------------------------------- billed revenue (calc map s9.1, s9.3, update 2026-10-09)
+def group_asset_entries(g):
+    """A group's recipe asset entries as (ref, percent, dry_hire). The optional THIRD value of an entry is the F-7
+    dry-hire flag ("dry", "exempt" or true = hired out without our operator); absent = operated (default off)."""
+    out = []
+    for e in g["assets"]:
+        flag = e[2] if len(e) > 2 else False
+        out.append((e[0], e[1], flag in (True, "dry", "exempt")))
+    return out
+
+
 def billed_revenue(recipe, as_of, charge_out):
     """What the recipe's rates bill for the hours the business really has, before materials.
     Asset-driven group: covered hours = min(required asset hours, assigned labour hours);
-      required = SUM of asset hours if sequential, else MAX.
+      required = SUM of asset hours if sequential, else MAX  (OPERATED assets only, F-7).
       labour revenue = covered x labour mix rate (sum(rate x hours) / sum(hours)).
       asset revenue  = machine rate x own asset hours x min(1, covered / required)  (per-asset calculator, machine only).
+    F-7 dry hire (an asset entry flagged dry/exempt in the recipe): billed at machine rate x its OWN hours, outside the
+      labour cap; it is left out of required hours, covered-for-labour hours and the capacity gap, and its hours are ADDED
+      to the group's covered hours (operated covered + dry hours). Nothing flagged = every figure exactly as before.
     Labour-driven group: each type's assigned hours x its charge-out rate.
     Non-productive types bill nothing."""
     oh = opening_hours(recipe["opening_hours"])
@@ -245,37 +258,44 @@ def billed_revenue(recipe, as_of, charge_out):
         lab = [(t, pool[t]["hours"] * pct / 100) for t, pct in g["labour"] if pool[t]["productive"]]
         lab_hours = sum(h for _, h in lab)
         lab_charge = sum(charge_out.get(t, 0) * h for t, h in lab)
-        assets = []
-        for ref, pct in g["assets"]:
+        assets = []                       # operated: (spec, hours)
+        dry_assets = []                   # F-7 dry hire: (spec, hours)
+        for ref, pct, dry in group_asset_entries(g):
             a = asset_spec[ref]
             if a["asset_type"] != "productive":
                 continue
             e = asset_expected(a, as_of, oh)
             for _ in range(a.get("count", 1)):
-                assets.append((a, e["utilisation_hours_annual"] * pct / 100))
-        if g["recovery_hour_source"] == "asset_hours" and assets:
+                (dry_assets if dry else assets).append((a, e["utilisation_hours_annual"] * pct / 100))
+        asset_driven = g["recovery_hour_source"] == "asset_hours" and bool(assets or dry_assets)
+        if asset_driven:
             hrs = [h for _, h in assets]
-            required = sum(hrs) if g.get("asset_run_pattern") == "sequential" else max(hrs)
-            covered = min(required, lab_hours) if lab_hours > 0 else 0
+            required = (sum(hrs) if g.get("asset_run_pattern") == "sequential" else max(hrs)) if hrs else 0.0
+            dry_hours = sum(h for _, h in dry_assets)
+            covered_op = min(required, lab_hours) if lab_hours > 0 else 0
             mix = lab_charge / lab_hours if lab_hours else 0
-            labour_rev = covered * mix
-            share = min(1.0, covered / required) if required else 0
+            labour_rev = covered_op * mix
+            share = min(1.0, covered_op / required) if required else 0
             asset_rev = sum(a["machine_rate"] * h * share for a, h in assets)
+            dry_rev = sum(a["machine_rate"] * h for a, h in dry_assets)
+            covered = covered_op + dry_hours
         else:
             required = covered = lab_hours
-            labour_rev, asset_rev = lab_charge, 0.0
+            labour_rev, asset_rev, dry_rev, dry_hours, covered_op = lab_charge, 0.0, 0.0, 0.0, lab_hours
         row = {"ref": g["ref"], "labour_hours": lab_hours, "required_asset_hours": required,
-               "covered_hours": covered, "labour_revenue": labour_rev, "asset_revenue": asset_rev,
-               "modelled_revenue": labour_rev + asset_rev, "has_assets": bool(assets)}
-        if g["recovery_hour_source"] == "asset_hours" and assets:
-            # Capacity coverage gap (calc map s9.9) and idle labour (D4), display-only figures.
+               "covered_hours": covered, "labour_revenue": labour_rev, "asset_revenue": asset_rev + dry_rev,
+               "modelled_revenue": labour_rev + asset_rev + dry_rev, "has_assets": bool(assets or dry_assets)}
+        if dry_assets or dry_hours:
+            row.update({"dry_hire_hours": dry_hours, "dry_hire_revenue": dry_rev})
+        if asset_driven:
+            # Capacity coverage gap (calc map s9.9) and idle labour (D4), display-only figures. Operated assets only (F-7).
             lab_cost = sum(pool[t]["cost"] * pct / 100 for t, pct in g["labour"] if pool[t]["productive"])
             gap = required - lab_hours
             idle = lab_hours - required if (g.get("labour_tied_to_asset") and lab_hours > required) else 0.0
             idle_cost = idle * lab_cost / lab_hours if lab_hours else 0.0
             if gap > 0:
-                missing = 1 - covered / required
-                gap_dollars = sum(a["machine_rate"] * h * missing for a, h in assets) + mix * (required - covered)
+                missing = 1 - covered_op / required
+                gap_dollars = sum(a["machine_rate"] * h * missing for a, h in assets) + mix * (required - covered_op)
             elif gap < 0 and idle > 0:
                 gap_dollars = idle_cost
             else:
@@ -283,5 +303,5 @@ def billed_revenue(recipe, as_of, charge_out):
             row.update({"capacity_gap_hours": gap, "idle_labour_hours": idle, "idle_labour_cost": idle_cost,
                         "capacity_gap_dollars": gap_dollars})
         groups.append(row)
-        total += labour_rev + asset_rev
+        total += labour_rev + asset_rev + dry_rev
     return {"total": total, "groups": groups}

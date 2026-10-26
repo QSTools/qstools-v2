@@ -87,3 +87,20 @@ F-10 (2026-10-26; Business Outcome brief Addendum 2): EBIT / EBITDA covered. rec
   total_depreciation / ebit / ebitda (the app's trace nodes of the same ids, lib/calculation-trace/pilot-map/ebitTraceNodes.js).
   Live 2026-10-26 on the built-in browser pane at :3005: 174 of 174 nodes (raw and derived checks not run for this slice).
   The loader still refuses any port but :3004. The 3005 run wrote the seed keys into the pane's storage by hand, verified key by key by length and CRC32.
+
+F-7 DRY HIRE, TICKED SEED (2026-10-27; stress brief Addendum 23; DRY_HIRE brief Addendum 1)
+  Recipe asset entries take an OPTIONAL THIRD VALUE: ["A02", 40, "dry"] = that assignment is ticked "hired out without our operator"
+  (seed row gets earns_without_operator: true). Absent = operated; with no third value every seed and expected value is byte-identical
+  to before (checked offline on scenario_a and scenario_b). Only productive assets can be flagged.
+  recipes/scenario_b_dry_hire.json = Scenario B with BOTH G03 assignments ticked. Aligned: the P&L revenue is built from the rates x real
+  hours INCLUDING the dry-hire income (672 h x 300 + 1,200 h x 70 = 285,600), so the revenue ceiling does not bite.
+  mirra_expected.billed_revenue and mirra_expected_l2.py (assumption A-13) were written from the DRY_HIRE / Cost Allocation / Business
+  Outcome brief addenda (the calc map s7 / s9.1 update is step 4): dry rows bill rate x own hours, are left out of required hours, the
+  labour cap, the capacity gap and idle labour; recovery hours = operated + dry SUM; overhead weights by recovery hours; Business
+  Modelling unit basis = covered hours (operated covered + dry).
+  New expected nodes on EVERY recipe (D-5; the app's F-7 trace nodes): cost_allocation.group.<id>.earns_without_operator_hours,
+  cost_allocation.group.<id>.operated_recovery_hours (one per group) and business_outcome.group.<id>.dry_hire_revenue (one per group
+  with productive assets). Expected node counts: A, A misaligned, A2 and the depreciation recipe 187 (174 + 13), B 221 (203 + 18),
+  B ticked 220 (the G03 gap-dollar node drops out). Raw and derived check counts are unchanged.
+  Prepare: .tmp\f7_ticked_seed.ps1 (dry run, then -Live) writes the seeds and expected files for all five recipes to public\__stress_tmp.
+

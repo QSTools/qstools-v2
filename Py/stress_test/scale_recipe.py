@@ -81,7 +81,7 @@ def scale_recipe(recipe, staff_total, assets="scale"):
     copies = {a["ref"]: a.get("count", 1) for a in r["assets"]}
     pattern_changes = []
     for g in r["groups"]:
-        if sum(copies[ref] for ref, _p in g["assets"]) > 1 and g.get("asset_run_pattern") != "sequential":
+        if sum(copies[ref] for ref, _p, *_flag in g["assets"]) > 1 and g.get("asset_run_pattern") != "sequential":
             g["asset_run_pattern"] = "sequential"
             pattern_changes.append(g["ref"])
 

@@ -19,6 +19,8 @@ Added 2026-10-26 (R2 item d, assumptions A-8 to A-11): assumed-capacity / Best C
 Modelling achieved-revenue rows plus expected start rate / basis / floor per row (map s10), and the Rate Builder
 "all productive" row as the app builds it TODAY (RB-1b, a different basis). Written from the map and the trace-node formula
 texts; expected values only, first live run settles A-8 to A-11.
+Added 2026-10-27 (F-7 dry hire, assumption A-13): an asset entry flagged "dry" in the recipe (third value) is the ticked
+"hired out without our operator" assignment. Plus the three F-7 trace nodes for every recipe (D-5).
 Still not covered: Business Modelling OVERHEAD rows (the recipe carries no overhead categories); the Recovery Summary labour
 share percent that the all_productive row uses (G-7: taken from the app as an input).
 """
@@ -70,6 +72,24 @@ ASSUMPTIONS = [
     "must put depreciation_annual only on productive assets that are 100% assigned (scenario_a_depreciation does). "
     "EBIT = net profit + interest. EBITDA = EBIT + depreciation.",
 ]
+
+
+ASSUMPTIONS.append(
+    "A-13 F-7 dry hire (owner decisions 2026-10-18 and 2026-10-26; DRY_HIRE brief Addendum 1, Cost Allocation brief Addendum 3, "
+    "Business Outcome brief Addendum 3; calc map s7 / s9.1 not yet updated, so this is written from those briefs). A ticked "
+    "assignment (recipe entry flag \"dry\") in an asset-hours group: (a) required hours, the labour cap, the labour gap and idle labour "
+    "use the OPERATED assignments only; assigned_asset_hours (raw) stays the MAX over every assignment; (b) recovery hours = operated "
+    "recovery hours (min(required, labour hours) with labour, else the MAX of the operated asset hours) + the SUM of the dry hours; "
+    "(c) overhead and the non-productive spread weight by those recovery hours; (d) a dry row bills its Rate Builder per-asset price "
+    "x its OWN hours (no covered-hours share, no labour cap) and its overhead share still splits by ALL the group's asset hours "
+    "(A-3); operated rows and labour rows scale on OPERATED covered hours; (e) the group's covered hours = operated covered + dry "
+    "hours, so the Business Modelling unit basis becomes the covered total (dry hours when the unit has no operated assets); (f) the "
+    "capacity gap uses operated required hours, so a dry-only unit has gap 0 and no gap-dollar nodes. New trace nodes for every "
+    "recipe: cost_allocation.group.<id>.earns_without_operator_hours (SUM of ticked hours, 0 when none), "
+    "cost_allocation.group.<id>.operated_recovery_hours (recovery less dry for asset-driven groups, else group recovery hours), "
+    "business_outcome.group.<id>.dry_hire_revenue (one per group with productive assets: sum of its dry rows' modelled revenue, 0 when none). "
+    "Not covered: a ticked assignment in a group not driven by asset hours (the tick does nothing there, owner decision 3b open), "
+    "the sequential run pattern with a ticked asset, Business Modelling levers on the dry-hire unit, Rate Builder group-level rates.")
 
 
 ALL_PRODUCTIVE_LABOUR_SHARE_PERCENT = 100.0   # A-8
@@ -143,28 +163,33 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         prod = [(t, pool_by_type[t]["hours"] * pct / 100, pool_by_type[t]["cost"] * pct / 100) for t, pct, _ in labs if pool_by_type[t]["productive"]]
         nonprod_labour_cost = sum(pool_by_type[t]["cost"] * pct / 100 for t, pct, _ in labs if not pool_by_type[t]["productive"])
         assets, nonprod_asset_cost = [], 0.0
-        for ref, pct in g["assets"]:
+        for ref, pct, dry in mx.group_asset_entries(g):
             for a in per_asset[ref]:
                 if a["productive"]:
-                    assets.append({**a, "h": a["hours"] * pct / 100, "c": a["cost"] * pct / 100})
+                    assets.append({**a, "h": a["hours"] * pct / 100, "c": a["cost"] * pct / 100, "dry": dry})
                 else:
                     nonprod_asset_cost += a["cost"] * pct / 100
         lab_hours = sum(h for _, h, _ in prod)
         lab_cost = sum(c for _, _, c in prod)
         asset_burden = sum(a["c"] for a in assets)
-        asset_hours_max = max((a["h"] for a in assets), default=0.0)
+        asset_hours_max = max((a["h"] for a in assets), default=0.0)                     # assigned_asset_hours: every assignment
+        op_assets = [a for a in assets if not a["dry"]]                                   # A-13: operated assignments
+        op_hours_max = max((a["h"] for a in op_assets), default=0.0)
+        dry_hours = sum(a["h"] for a in assets if a["dry"])
         sequential = g.get("asset_run_pattern") == "sequential"
-        required = (sum(a["h"] for a in assets) if sequential else asset_hours_max)
+        required = (sum(a["h"] for a in op_assets) if sequential else op_hours_max)
         asset_driven = g["recovery_hour_source"] == "asset_hours" and bool(assets)
         if asset_driven:
-            recovery = min(required, lab_hours) if lab_hours > 0 else asset_hours_max           # A-2
+            op_recovery = min(required, lab_hours) if lab_hours > 0 else op_hours_max           # A-2 (operated only, A-13)
+            recovery = op_recovery + dry_hours
         else:
-            recovery = lab_hours
+            op_recovery = recovery = lab_hours
         tied = bool(g.get("labour_tied_to_asset"))
         rows.append({"ref": g["ref"], "gid": ids["group"][g["ref"]], "prod_labour": prod, "lab_hours": lab_hours, "lab_cost": lab_cost,
                      "assets": assets, "asset_burden": asset_burden, "asset_hours_max": asset_hours_max, "required": required,
                      "asset_driven": asset_driven, "recovery": recovery, "np_labour": nonprod_labour_cost, "np_asset": nonprod_asset_cost,
-                     "tied": tied})
+                     "tied": tied, "dry_hours": dry_hours, "dry_in_recovery": dry_hours if asset_driven else 0.0,
+                     "op_recovery": op_recovery})
 
     # F-4 spread (A-7): unassigned support-asset cost, split evenly across all group rows
     total_support_cost = sum(a["cost"] for refs in per_asset.values() for a in refs if not a["productive"])
@@ -194,6 +219,8 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         r["gap_hours_ca"] = max(0.0, r["required"] - r["lab_hours"]) if r["asset_driven"] else 0.0
         r["idle_hours"] = (r["lab_hours"] - r["required"]) if (r["tied"] and r["asset_driven"] and r["lab_hours"] > r["required"]) else 0.0
         nodes[f'cost_allocation.group.{r["gid"]}.total_group_cost'] = r["total_cost"]
+        nodes[f'cost_allocation.group.{r["gid"]}.earns_without_operator_hours'] = r["dry_hours"]        # F-7 trace nodes (A-13)
+        nodes[f'cost_allocation.group.{r["gid"]}.operated_recovery_hours'] = r["op_recovery"]
         nodes[f'cost_allocation.group.{r["gid"]}.group_cost_per_hour'] = r["cost_per_hour"]
         tol[f'cost_allocation.group.{r["gid"]}.group_cost_per_hour'] = 0.005
         rec = r["recovery"]
@@ -275,13 +302,14 @@ def layer2(recipe, as_of, l1, charge_out, ids):
 
     # ---- 3. Business Outcome per-source rows (map s9.1-9.3)
     for r in rows:
-        r["covered"] = (min(r["required"], r["lab_hours"]) if r["lab_hours"] > 0 else 0.0) if r["asset_driven"] else r["recovery"]
+        r["covered_op"] = (min(r["required"], r["lab_hours"]) if r["lab_hours"] > 0 else 0.0) if r["asset_driven"] else r["recovery"]
+        r["covered"] = r["covered_op"] + r["dry_in_recovery"]          # A-13: operated covered + dry hours
         r["productive_group"] = (r["lab_cost"] > 0 or r["asset_burden"] > 0)
         r["src"] = []                                       # one dict per labour row / asset row
         if not r["productive_group"]:
             continue
         for t, h, c in r["prod_labour"]:
-            rev_hours = r["covered"] * h / r["lab_hours"] if r["asset_driven"] and r["lab_hours"] > 0 else h
+            rev_hours = r["covered_op"] * h / r["lab_hours"] if r["asset_driven"] and r["lab_hours"] > 0 else h
             oh = r["lab_pool"] * h / r["lab_hours"] if r["lab_hours"] > 0 else 0.0
             modelled = charge_out.get(t, 0) * rev_hours
             true_cost = c + oh
@@ -290,11 +318,12 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         asset_hours_sum = sum(a["h"] for a in r["assets"])
         for a in r["assets"]:
             oh = r["asset_pool"] * a["h"] / asset_hours_sum if asset_hours_sum > 0 else 0.0            # A-3
-            take = min(1.0, r["covered"] / r["required"]) if r["required"] > 0 else 0.0
-            modelled = a["machine_rate"] * a["h"] * take
+            take = min(1.0, r["covered_op"] / r["required"]) if r["required"] > 0 else 0.0
+            is_dry = a["dry"] and r["asset_driven"]                                                      # A-13(d)
+            modelled = a["machine_rate"] * a["h"] * (1.0 if is_dry else take)
             true_cost = a["c"] + oh
             r["src"].append({"kind": "asset", "key": a["id"], "id": f'business_outcome.asset_source.{r["gid"]}.{a["id"]}', "modelled": modelled,
-                             "true_cost": true_cost, "net": modelled - true_cost, "overhead": oh, "hours": a["h"]})
+                             "true_cost": true_cost, "net": modelled - true_cost, "overhead": oh, "hours": a["h"], "dry": is_dry})
         r["modelled"] = sum(s["modelled"] for s in r["src"])
         r["net"] = sum(s["net"] for s in r["src"])
         r["true_cost"] = sum(s["true_cost"] for s in r["src"])
@@ -303,6 +332,9 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         for s in r["src"]:
             nodes[f'{s["id"]}.modelled_revenue'] = s["modelled"]
             nodes[f'{s["id"]}.net_profit'] = s["net"]
+        if r["assets"]:                                                       # one per asset group (F-7 trace node, A-13)
+            nodes[f'business_outcome.group.{r["gid"]}.dry_hire_revenue'] = sum(
+                s["modelled"] for s in r["src"] if s["kind"] == "asset" and s.get("dry"))
 
     productive_rows = [r for r in rows if r["productive_group"]]
     labour_modelled = sum(s["modelled"] for r in productive_rows for s in r["src"] if s["kind"] == "labour")
@@ -468,7 +500,8 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     }
     for r in rows:
         detail["groups"][r["ref"]] = {
-            "recovery_hours": r["recovery"], "overhead": r["overhead"], "labour_pool": r["lab_pool"],
+            "recovery_hours": r["recovery"], "operated_recovery_hours": r["op_recovery"], "dry_hire_hours": r["dry_hours"],
+            "overhead": r["overhead"], "labour_pool": r["lab_pool"],
             "asset_pool": r["asset_pool"], "total_group_cost": r["total_cost"], "np_cost": r.get("np_cost"),
             "rows": [{"id": s["id"], "true_cost": s["true_cost"], "overhead_share": s["overhead"],
                       "modelled": s["modelled"], "net": s["net"]} for s in r["src"]]}

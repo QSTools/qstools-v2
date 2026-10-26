@@ -21,6 +21,11 @@ Recipe options added for Scenario B (2026-10-18):
   staff row labour_rate_as_string  H5: the first copy's labour_rate is stored as a string
   pnl.string_amount_lines          H5: these P&L lines store their amount as a string
   group omit_optional_fields       H6: the three optional group fields are left out (recipe must state the app defaults)
+Recipe option added for F-7 dry hire (2026-10-27):
+  group asset entry third value    ["A02", 40, "dry"]: the assignment is ticked "hired out without our operator" and the seed row
+                                   carries earns_without_operator: true. Absent = operated (rows are written exactly as before, so
+                                   every older seed is byte-identical). Only for productive assets; billed at the Rate Builder
+                                   per-asset price x its own hours (mirra_expected.billed_revenue, mirra_expected_l2 A-13).
 """
 
 import argparse
@@ -80,7 +85,7 @@ def default_recovery_source(g, recipe):
     L100-102): asset hours if the group carries productive asset hours, else labour hours. Read from the app to
     model the ABSENT-field case (H6) only; every explicit group still uses the recipe value."""
     spec = {a["ref"]: a for a in recipe["assets"]}
-    has_hours = any(spec[ref]["asset_type"] == "productive" and pct > 0 for ref, pct in g["assets"])
+    has_hours = any(spec[ref]["asset_type"] == "productive" and pct > 0 for ref, pct, *_flag in g["assets"])
     return "asset_hours" if has_hours else "labour_hours"
 
 
@@ -238,12 +243,17 @@ def build(recipe, as_of):
                 "is_productive": productive, "contributes_to_recovery_hours": productive,
                 "assigned_staff_count": type_count[t], "assignment_percent": int(pct),
                 "is_active": True, "created_at": ts, "updated_at": ts})
-        for ref, pct in g["assets"]:
+        for ref, pct, dry in mx.group_asset_entries(g):
+            if dry and next(a for a in recipe["assets"] if a["ref"] == ref)["asset_type"] != "productive":
+                raise ValueError(f'{g["ref"]} {ref}: the dry-hire flag is only for productive assets')
             for i, asset_id in enumerate(asset_ids[ref], 1):
-                asset_assign.append({
+                row = {
                     "assignment_id": uid(rid, "asset_assign", g["ref"], ref, i), "group_id": gid,
                     "asset_id": asset_id, "assignment_percent": int(pct), "is_active": True,
-                    "created_at": ts, "updated_at": ts})
+                    "created_at": ts, "updated_at": ts}
+                if dry:
+                    row["earns_without_operator"] = True       # F-7: only written when ticked (absent = false)
+                asset_assign.append(row)
     keys["qs_tools_cost_allocation_v2_1"] = {
         "active_allocation_profile_id": uid(rid, "allocation"), "allocation_profile_name": recipe["label"],
         "effective_from": ts,
@@ -257,7 +267,7 @@ def build(recipe, as_of):
     # -------- rate builder: one machine-only calculator per productive asset (Path B)
     calcs = []
     for g in recipe["groups"]:
-        for ref, _pct in g["assets"]:
+        for ref, _pct, *_flag in g["assets"]:
             spec = next(a for a in recipe["assets"] if a["ref"] == ref)
             if spec["asset_type"] != "productive":
                 continue

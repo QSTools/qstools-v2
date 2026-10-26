@@ -1,0 +1,451 @@
+{
+  "recipe_id": "scenario_b_dry_hire",
+  "label": "Stress Test Scenario B (dry hire ticked) - crane and heavy plant hire, NZ",
+  "notes": "F-7 ticked test seed (2026-10-27). Scenario B with BOTH G03 assignments ticked 'hired out without our operator' (recipe asset entries carry the third value \"dry\"; the seed rows carry earns_without_operator: true). Same staff, assets, groups and rates as scenario_b. ALIGNED: the P&L revenue is built from the rates x real hours INCLUDING the dry-hire income (80t crane 40 percent 672 h x 300 + telehandler 1,200 h x 70 = 285,600), so the revenue ceiling does not bite. Expected: G03 recovery hours 1,872 (dry SUM), operated recovery 0, capacity gap 0, G03 draws overhead by those hours. Original scenario_b notes: Second business (R2 step 2b, owner approved the mix 2026-10-18). Rates and prices are Claude's NZ plant-hire estimates, not owner figures. ALIGNED: P&L revenue is built from these rates x the real hours. Covers: custom staff types (strategy 1), H5 string values, H6 absent group fields, H7 shared asset (A02 60/40), F-4 support assets assigned on purpose, A-2 asset group with no labour (G03 dry hire), a mixed group carrying non-productive labour under spread_as_overhead, a labour-only operator-hire group, a productive asset that is paid off, a labour-short asset group (G04) and labour-over groups tied (G01) and not tied (G02).",
+  "financial_year": "2026",
+  "business_type": "labour_based",
+  "seed_rng": 1,
+  "opening_hours": {
+    "weekdays_open": [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday"
+    ],
+    "open_time": "07:00",
+    "close_time": "16:30",
+    "break_minutes": 30,
+    "seasonal_shutdown_weeks": 3,
+    "public_holiday_days": 0
+  },
+  "labour_defaults": {
+    "hours_per_week": 40,
+    "days_per_week": 5,
+    "productivity_percent": 85,
+    "annual_leave_weeks": 4,
+    "public_holiday_days": 12,
+    "sick_days": 10,
+    "bereavement_days": 1,
+    "family_violence_days": 0,
+    "employee_kiwisaver_enabled": true,
+    "acc_enabled": true
+  },
+  "custom_staff_types": [
+    {
+      "staff_type_id": "custom_crane_operator",
+      "staff_type_name": "Crane operator"
+    },
+    {
+      "staff_type_id": "custom_heavy_plant_operator",
+      "staff_type_name": "Heavy plant operator"
+    },
+    {
+      "staff_type_id": "custom_float_truck_driver",
+      "staff_type_name": "Float / truck driver"
+    },
+    {
+      "staff_type_id": "custom_workshop_mechanic",
+      "staff_type_name": "Workshop mechanic"
+    },
+    {
+      "staff_type_id": "custom_hire_controller",
+      "staff_type_name": "Hire controller"
+    }
+  ],
+  "staff": [
+    {
+      "ref": "S01",
+      "staff_type_id": "custom_crane_operator",
+      "headcount": 2,
+      "labour_class": "productive",
+      "labour_rate": 52,
+      "acc_rate": 1.43
+    },
+    {
+      "ref": "S02",
+      "staff_type_id": "custom_heavy_plant_operator",
+      "headcount": 4,
+      "labour_class": "productive",
+      "labour_rate": 42,
+      "acc_rate": 1.43,
+      "labour_rate_as_string": true,
+      "comment": "H5: the first operator's labour_rate is stored as the string \"42\"."
+    },
+    {
+      "ref": "S03",
+      "staff_type_id": "custom_float_truck_driver",
+      "headcount": 2,
+      "labour_class": "productive",
+      "labour_rate": 38,
+      "acc_rate": 1.43
+    },
+    {
+      "ref": "S04",
+      "staff_type_id": "custom_workshop_mechanic",
+      "headcount": 1,
+      "labour_class": "non_productive",
+      "labour_rate": 48,
+      "acc_rate": 1.0
+    },
+    {
+      "ref": "S05",
+      "staff_type_id": "custom_hire_controller",
+      "headcount": 1,
+      "labour_class": "non_productive",
+      "labour_rate": 36,
+      "acc_rate": 0.08
+    },
+    {
+      "ref": "S06",
+      "staff_type_id": "owner_director",
+      "headcount": 1,
+      "labour_class": "non_productive",
+      "labour_rate": 60,
+      "acc_rate": 0.08
+    },
+    {
+      "ref": "S07",
+      "staff_type_id": "finance_accounts",
+      "headcount": 1,
+      "labour_class": "non_productive",
+      "labour_rate": 38,
+      "acc_rate": 0.08,
+      "hours_per_week": 24,
+      "days_per_week": 3
+    }
+  ],
+  "charge_out_multiplier": 1.9,
+  "charge_out_round_to": 5,
+  "assets": [
+    {
+      "ref": "A01",
+      "label": "50t excavator",
+      "asset_type": "productive",
+      "purchase_price": 720000,
+      "interest_rate": 9,
+      "finance_term_years": 5,
+      "finance_start_date": "2025-02-01",
+      "utilisation_hours_per_week": 35,
+      "annual_weeks_override": 48,
+      "machine_rate": 170
+    },
+    {
+      "ref": "A02",
+      "label": "80t mobile crane",
+      "asset_type": "productive",
+      "purchase_price": 1500000,
+      "interest_rate": 9,
+      "finance_term_years": 7,
+      "finance_start_date": "2024-09-01",
+      "utilisation_hours_per_week": 35,
+      "annual_weeks_override": 48,
+      "machine_rate": 300,
+      "comment": "H7 shared asset: 60 percent crane wet hire (G01, operated), 40 percent dry hire (G03, ticked)."
+    },
+    {
+      "ref": "A03",
+      "label": "35t mobile crane",
+      "asset_type": "productive",
+      "purchase_price": 650000,
+      "interest_rate": 9,
+      "finance_term_years": 5,
+      "finance_start_date": "2023-06-01",
+      "utilisation_hours_per_week": 30,
+      "annual_weeks_override": 48,
+      "machine_rate": 180
+    },
+    {
+      "ref": "A04",
+      "label": "D8 bulldozer",
+      "asset_type": "productive",
+      "purchase_price": 900000,
+      "interest_rate": 9,
+      "finance_term_years": 6,
+      "finance_start_date": "2025-08-01",
+      "utilisation_hours_per_week": 35,
+      "annual_weeks_override": null,
+      "machine_rate": 200,
+      "comment": "No weeks override on purpose: falls back to Opening Hours (52 - 3 = 49 weeks)."
+    },
+    {
+      "ref": "A05",
+      "label": "Prime mover and low-loader",
+      "asset_type": "productive",
+      "purchase_price": 550000,
+      "interest_rate": 9,
+      "finance_term_years": 5,
+      "finance_start_date": "2024-03-01",
+      "utilisation_hours_per_week": 30,
+      "annual_weeks_override": 48,
+      "machine_rate": 130
+    },
+    {
+      "ref": "A06",
+      "label": "Telehandler",
+      "asset_type": "productive",
+      "purchase_price": 180000,
+      "interest_rate": 9,
+      "finance_term_years": 4,
+      "finance_start_date": "2020-05-01",
+      "finance_paid_off": true,
+      "utilisation_hours_per_week": 25,
+      "annual_weeks_override": 48,
+      "machine_rate": 70,
+      "comment": "Productive asset that is paid off: interest 0, own cost 0."
+    },
+    {
+      "ref": "A07",
+      "label": "Tipper truck and trailer",
+      "asset_type": "productive",
+      "purchase_price": 320000,
+      "interest_rate": 9,
+      "finance_term_years": 5,
+      "finance_start_date": "2025-11-01",
+      "utilisation_hours_per_week": 30,
+      "annual_weeks_override": 48,
+      "machine_rate": 100
+    },
+    {
+      "ref": "A08",
+      "label": "Workshop service truck",
+      "asset_type": "support",
+      "purchase_price": 120000,
+      "interest_rate": 8.5,
+      "finance_term_years": 5,
+      "finance_start_date": "2024-10-01",
+      "comment": "F-4: support asset assigned on purpose to the workshop group."
+    },
+    {
+      "ref": "A09",
+      "label": "Owner's ute",
+      "asset_type": "support",
+      "purchase_price": 70000,
+      "interest_rate": 8.5,
+      "finance_term_years": 5,
+      "finance_start_date": "2025-04-01",
+      "comment": "F-4: support asset assigned on purpose to the office group."
+    }
+  ],
+  "groups": [
+    {
+      "ref": "G01",
+      "label": "Crane wet hire",
+      "recovery_hour_source": "asset_hours",
+      "asset_run_pattern": "sequential",
+      "labour_tied_to_asset": true,
+      "assets": [
+        [
+          "A02",
+          60
+        ],
+        [
+          "A03",
+          100
+        ]
+      ],
+      "labour": [
+        [
+          "custom_crane_operator",
+          100
+        ],
+        [
+          "custom_hire_controller",
+          50
+        ]
+      ],
+      "comment": "Two cranes each with their own operator (SUM of hours). Labour over the cranes, box ticked: idle cost. Carries non-productive labour (hire controller) so spread_as_overhead pools it."
+    },
+    {
+      "ref": "G02",
+      "label": "Earthmoving wet hire",
+      "recovery_hour_source": "asset_hours",
+      "asset_run_pattern": "sequential",
+      "labour_tied_to_asset": false,
+      "assets": [
+        [
+          "A01",
+          100
+        ],
+        [
+          "A04",
+          100
+        ]
+      ],
+      "labour": [
+        [
+          "custom_heavy_plant_operator",
+          60
+        ]
+      ],
+      "comment": "Labour slightly over the machines, box NOT ticked: no idle line."
+    },
+    {
+      "ref": "G03",
+      "label": "Dry hire",
+      "recovery_hour_source": "asset_hours",
+      "omit_optional_fields": true,
+      "assets": [
+        [
+          "A02",
+          40,
+          "dry"
+        ],
+        [
+          "A06",
+          100,
+          "dry"
+        ]
+      ],
+      "labour": [],
+      "comment": "F-7 ticked: both assignments hired out without our operator (dry hire). No labour. Bills rate x own hours: 80t crane 40 percent (672 h x 300) + telehandler (1,200 h x 70). H6 absent form kept (app default: asset hours, together, not tied)."
+    },
+    {
+      "ref": "G04",
+      "label": "Transport",
+      "recovery_hour_source": "asset_hours",
+      "asset_run_pattern": "sequential",
+      "labour_tied_to_asset": false,
+      "assets": [
+        [
+          "A05",
+          100
+        ],
+        [
+          "A07",
+          100
+        ]
+      ],
+      "labour": [
+        [
+          "custom_float_truck_driver",
+          100
+        ]
+      ],
+      "comment": "Drivers slightly short of the two trucks: capacity gap shortfall dollars."
+    },
+    {
+      "ref": "G05",
+      "label": "Operator hire",
+      "recovery_hour_source": "labour_hours",
+      "asset_run_pattern": "together",
+      "labour_tied_to_asset": false,
+      "assets": [],
+      "labour": [
+        [
+          "custom_heavy_plant_operator",
+          40
+        ]
+      ],
+      "comment": "Labour-only group: operators hired out onto a client's machine."
+    },
+    {
+      "ref": "G06",
+      "label": "Workshop",
+      "recovery_hour_source": "labour_hours",
+      "omit_optional_fields": true,
+      "assets": [
+        [
+          "A08",
+          100
+        ]
+      ],
+      "labour": [
+        [
+          "custom_workshop_mechanic",
+          100
+        ]
+      ],
+      "comment": "Pure support, absent-field form. Support asset assigned (F-4)."
+    },
+    {
+      "ref": "G07",
+      "label": "Office",
+      "recovery_hour_source": "labour_hours",
+      "omit_optional_fields": true,
+      "assets": [
+        [
+          "A09",
+          100
+        ]
+      ],
+      "labour": [
+        [
+          "owner_director",
+          100
+        ],
+        [
+          "custom_hire_controller",
+          50
+        ],
+        [
+          "finance_accounts",
+          100
+        ]
+      ],
+      "comment": "Pure support, absent-field form. Owner's ute assigned (F-4)."
+    }
+  ],
+  "pnl": {
+    "revenue_basis": "billed_from_rates",
+    "billing_realisation_percent": 100,
+    "target_net_margin_percent": 8,
+    "materials_percent_of_revenue": 5,
+    "materials_markup_percent": 15,
+    "overhead_percent_of_revenue": 26,
+    "overhead_lines": [
+      [
+        "Yard rent",
+        "facilities_premises",
+        3.0
+      ],
+      [
+        "Insurance",
+        "insurance_compliance",
+        4.0
+      ],
+      [
+        "Accounting fees",
+        "finance_admin",
+        0.8
+      ],
+      [
+        "Software subscriptions",
+        "office_admin",
+        0.7
+      ],
+      [
+        "Phone and internet",
+        "office_admin",
+        0.5
+      ],
+      [
+        "Marketing",
+        "sales_growth",
+        0.8
+      ],
+      [
+        "Staff expenses",
+        "staff_overheads",
+        1.2
+      ],
+      [
+        "Fuel and road user charges",
+        "vehicle_running_costs",
+        6.0
+      ],
+      [
+        "Plant repairs and maintenance",
+        "vehicle_running_costs",
+        9.0
+      ]
+    ],
+    "string_amount_lines": [
+      "Insurance"
+    ],
+    "interest_line_label": "Loan interest",
+    "kiwisaver_line_includes_esct": false,
+    "owner_labour_treatment": "owner_on_wages_in_pnl"
+  },
+  "non_productive_policy": "spread_as_overhead"
+}

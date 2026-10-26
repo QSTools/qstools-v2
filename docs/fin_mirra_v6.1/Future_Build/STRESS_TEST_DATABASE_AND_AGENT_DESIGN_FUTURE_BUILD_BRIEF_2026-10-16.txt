@@ -1395,3 +1395,38 @@ OWED (unchanged order): step 3 ticked Scenario B recipe, seed and expected value
 nodes to the expected files); step 4 calc map s7 / s9.1 and VARIABLE_TRACKER s21; step 5 owner decisions 3a / 3b and the tick wording; then
 F-11, F-10b and the ONE full regression.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 23 (2026-10-27) - F-7 STEP 3: TICKED SCENARIO B SEED AND EXPECTED VALUES [BUILT: harness, checked offline, NOT yet run live]
+===============================================================================
+WHAT WAS ADDED (Py\stress_test): recipe asset entries take an optional third value ["A02", 40, "dry"] (generate_business.py writes
+earns_without_operator: true on that assignment row only; scale_recipe.py, mirra_expected.py and mirra_expected_l2.py read it through
+mirra_expected.group_asset_entries). New recipe recipes\scenario_b_dry_hire.json = Scenario B with BOTH G03 assignments ticked (80t crane 40 percent
+672 h x 300 + telehandler 1,200 h x 70 = 285,600). The aligned P&L is built from the rates x real hours INCLUDING that income (billed from rates
+2,696,133.13, revenue 2,860,618.70, net profit 578,847.39), so the revenue ceiling does not bite (Addendum 21 consequence 2 avoided).
+EXPECTED VALUES (assumption A-13 in mirra_expected_l2.py, written from the DRY_HIRE brief Addendum 1, Cost Allocation Addendum 3 and Business
+Outcome Addendum 3, because the calc map s7 / s9.1 is still step 4): a dry row bills Rate Builder price x own hours; required hours, the labour
+cap, the capacity gap and idle labour use operated assignments only (assigned_asset_hours stays the MAX of every assignment); recovery hours =
+operated recovery + dry SUM; overhead and the non-productive spread weight by recovery hours; the dry row's overhead share still splits by all the
+group's asset hours; Business Modelling unit basis = covered hours (operated covered + dry). THREE NEW EXPECTED NODES on every recipe: 
+cost_allocation.group.<id>.earns_without_operator_hours and .operated_recovery_hours (one per group), business_outcome.group.<id>.dry_hire_revenue
+(one per group with productive assets; 0 when nothing is ticked).
+OFFLINE CHECKS (Python only, as of 2026-10-27; the app was NOT run):
+  D-4 proof for the harness: scenario_a, scenario_a_misaligned, scenario_a_overstaffed, scenario_a_depreciation, scenario_b regenerated with the new
+  code against the old code: seed files and expected_<id>.json byte-identical; layer-2 nodes, raw checks, derived checks, tolerances, P&L summary
+  and billed revenue unchanged; the only difference is the new nodes (+13 on each A recipe: 174 -> 187; +18 on B: 203 -> 221), all 0 except
+  operated_recovery_hours = group recovery hours. Raw and derived check counts are unchanged.
+  Ticked B (220 nodes; one fewer than B because the G03 gap-dollar node drops out): G03 earns_without_operator_hours 1,872, operated_recovery_hours 0,
+  recovery hours 1,872, capacity_gap_hours 0, modelled revenue 285,600 (dry_hire_revenue 285,600; asset rows 201,600 and 84,000), Business
+  Modelling unit:G03 basis 1,872. Every other group's recovery hours are as in B and their dry_hire_revenue is 0. Sum of group costs = Cost Summary
+  burden (2,138,740.37); Business Modelling today net profit = P&L net profit (578,847.39); assumed-capacity ceilings 1.0; materials revenue
+  164,485.57 (not floored).
+NOT YET DONE: the live run. .tmp\f7_ticked_seed.ps1 (dry run, then -Live) writes the five seeds and expected files to public\__stress_tmp; then
+npm start -- -p 3005 and the pane loop of Addendum 21 (seed, navigate, grab, compare nodes + raw + derived). A ticked B live result may still settle
+assumptions A-13 (d) to (f): any miss is read as "the app does something the briefs do not say", not patched in silence. The baselines (A 187,
+A misaligned 187, A2 187, B 221) need their first live run with the new nodes; the old 174 / 203 values already matched live (Addendum 22).
+Not covered by this seed: the sequential run pattern with a ticked asset, a ticked asset in a group not driven by asset hours (owner decision 3b),
+Business Modelling levers on the dry-hire unit, Rate Builder group-level rates, Model Readiness / Module Reconciliation with a ticked group, Quote Engine.
+OWED (order unchanged): live run of this seed; step 4 calc map s7 / s9.1, VARIABLE_TRACKER s21, BUSINESS_OUTCOME_FILE_MAP; step 5 owner decisions 3a / 3b and
+the tick wording; F-11; F-10b; the ONE full regression (A, A misaligned, A2, B, ticked B, ladder, item d).
+===============================================================================
