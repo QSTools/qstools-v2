@@ -5,8 +5,8 @@ FILE:          docs\fin_mirra_v6.1\Briefs\COST_ALLOCATION_BRIEF.txt  (the ONE Co
 STATUS:        VERIFIED (P2.5, 2026-09-23: every source dollar distributed exactly once). Since: overhead split by
                recovered hours (2026-09-29); D1 labour coverage notice, run pattern and labour cap (2026-10-05..07);
                D4 idle labour (2026-10-07); D2 closed; R2 stress test to 1,000 staff. F-4 SHIPPED 2026-10-25
-               (unassigned assets, Addendum 2). F-7 dry-hire tick BUILT 2026-10-26 (Addendum 3, live-checked, not yet committed). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
-LAST UPDATED:  2026-10-26 (Addendum 3, F-7 dry hire; before that 2026-10-25 Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
+               (unassigned assets, Addendum 2). F-7 dry hire SHIPPED 2026-10-27 (Addenda 3-8: tick on the asset assignment, applies only in asset-hours groups, wording pass done; DRY_HIRE future-build brief folded in and archived). Performance: Business Outcome fixed (R2 item b); typing passes (R2 item c); C15 duplication remains.
+LAST UPDATED:  2026-10-27 (Addendum 8, F-7 folded in; Addendum 7 tick wording; Addendum 6 CM-10 gate; 2026-10-26 Addendum 3, F-7 dry hire; before that 2026-10-25 Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
 ROUTE:         app/cost-allocation
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 7. This brief holds intent, rules, contract,
                verified status and open items.
@@ -301,4 +301,20 @@ group uses another driver."
 Checked 2026-10-27 (production :3005, built-in pane, seed scenario_b_dry_hire_gate, npm run build clean): G02 (labour hours, stored tick on A04) shows no checkbox and the
 new note; G03 (asset hours) shows 2 checkboxes, both ticked, and the new help line twice; the old help text is gone. Also checked on a Scenario A seed: G01 tick shows,
 ticking shows the new help line (unticked afterwards). NOT tested live: switching a group with a stored tick back to asset hours. STILL OPEN from Addendum 6: closed
-(the wording). Commit: pending.
+(the wording). Commit ac6e5a5.
+
+ADDENDUM 8 (2026-10-27) - F-7 DRY HIRE FOLDED INTO THIS BRIEF; DRY_HIRE FUTURE-BUILD BRIEF ARCHIVED [DOCS ONLY]
+What a reader needs, in one place (the archived brief keeps the history: docs\Archive\Future_Build_Built\DRY_HIRE_UNATTENDED_ASSETS_FUTURE_BUILD_BRIEF_2026-10-18.txt).
+ RULE      A productive asset ASSIGNMENT can be ticked "Hired out without our operator (dry hire)" (field earns_without_operator on the assignment row, default off,
+           hourly billing only; weekly / monthly hire waits for units mode, R4). The same machine can be operated in one unit and dry in another.
+ WHERE     The split into operated and dry rows happens in costAllocationGroupCostBuilder.js ONLY when the group's recovery driver is asset hours (CM-10 gate,
+           Addendum 6). In any other group every assignment is operated and a stored tick is ignored but kept.
+ EFFECT    Operated rows: required hours, labour cap, gap and idle labour as before. Dry rows: own hours, no labour cap, left out of required hours, gap and idle labour; their
+           hours are SUMMED into group_recovery_hours (decision 3a), so overhead, the non-productive spread and the stream rates follow them. Utilisation excludes dry hours.
+           Outputs: earns_without_operator_hours, operated_recovery_hours (trace nodes cost_allocation.group.<id>.*). Business Outcome bills a dry row at its Rate Builder
+           per-asset price x its own hours (business_outcome.group.<id>.dry_hire_revenue); with no per-asset price it earns null with a flag.
+ UI        Tick and help line in components\cost-allocation\groups\CostAllocationGroupAssetBuilder.jsx; note shown in non-asset groups (Addendum 7).
+ TESTS     Py\stress_test recipes scenario_b_dry_hire (ticked B) and scenario_b_dry_hire_gate; live ticked B 346, gate 342, baselines A / A misaligned / A2 285, B 347.
+ NOT YET TESTED LIVE (carry): switching a group with a stored tick back to asset hours; sequential run pattern with a ticked asset; Business Modelling levers on the
+           dry-hire unit; Rate Builder group-level rates; Model Readiness / Module Reconciliation / Quote Engine with a ticked group. Ticked-seed P&L nets 20.2 percent of
+           revenue vs B 14.5 (generator sizes overheads as a percent of revenue), so ticked B vs B is not like for like.

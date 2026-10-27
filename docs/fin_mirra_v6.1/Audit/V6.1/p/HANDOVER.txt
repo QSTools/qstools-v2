@@ -1,0 +1,52 @@
+HANDOVER V6.1p   2026-10-27   (tick wording shipped, commit ac6e5a5; DRY_HIRE brief folded and archived; F-11 is next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\p\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method; see also stress brief Addendum 24 for what changed). This file
+replaces o Sections 1 to 5. o, n, m and k are history now.
+
+1. WHERE WE ARE
+- Last code commit: ac6e5a5 "UI: dry-hire tick wording pass (Cost Allocation Addendum 7)" (CostAllocationGroupAssetBuilder.jsx + COST_ALLOCATION_BRIEF). Before it:
+  9c72c8e (CM-10 gate), c1e3045 (calc map F-7). git said "up to date with origin/main" at 15:36 NZ, so those were already pushed.
+- UNCOMMITTED when this was written (docs only; run git status first; commit as "docs: F-7 folded and archived, handover V6.1p"): this file,
+  PROJECT_MAP.md, Briefs\COST_ALLOCATION_BRIEF.txt (Addendum 8), Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 5), Future_Build\DRY_HIRE_... (status +
+  Addendum 5; the owner then runs git mv to docs\Archive\Future_Build_Built\, create the folder first).
+- Untracked and generated: public\__stress_tmp\ (seeds). At the end of the session run Remove-Item public\__stress_tmp, .next -Recurse -Force and stop the :3005 server.
+- LIVE 2026-10-27 (production :3005, built-in pane): tick wording checked on the gate seed: G02 (labour hours, stored tick) no checkbox + new note; G03 (asset hours) both
+  ticked + new help line. The pane currently holds the GATE SEED; the previous 18 keys are in that pane's sessionStorage key __bk_before_gate. Seeds regenerate with
+  .tmp\f7_ticked_seed.ps1 -Live (as-of 2026-10-27).
+
+2. DONE THIS SESSION
+- Tick wording pass (label unchanged; new help line and non-asset note). Cost Allocation brief Addendum 7.
+- DRY_HIRE future-build brief folded into Cost Allocation Addendum 8 and Business Outcome Addendum 5, status marked ARCHIVED (move pending the owner's git mv).
+- PROJECT_MAP updated. Project knowledge re-synced (COST_ALLOCATION, BUSINESS_OUTCOME, PROJECT_MAP) and .tmp\project_sync_ledger.tsv rewritten; run
+  python Py\audit-scripts\check_project_knowledge_sync.py to confirm.
+
+3. OPEN ITEMS (carried)
+a. Not tested live: switching a group with a stored tick back to asset hours; sequential run pattern with a ticked asset; Business Modelling levers on the dry-hire
+   unit; Rate Builder group-level rates; Model Readiness / Module Reconciliation / Quote Engine with a ticked group.
+b. Stray comment text above apply_revenue_ceiling in useBusinessOutcomePerSourceRevenue.js (about L596).
+c. Carried list as in k 3e. d. Ticked-seed P&L nets 20.2 percent of revenue vs B 14.5; the gate seed nets 5.4 percent (View A shortfall about 612k by design).
+   Ticked-B vs B is not like for like.
+e. Calc map: extract_calc_map.py NOT re-run after the gate (s7 line numbers refreshed by hand); header notes for F-1 / F-4 still say "extract NOT re-run". Re-run and
+   tidy at the next calc map edit (F-11 will touch the calc map).
+
+4. NEXT STEPS IN ORDER  (one piece of work per chat; start a NEW chat for each)
+1. F-11 (EBIT adds back all interest; needs a recipe with non-asset interest). Business Outcome brief Section 8 / PENDING BUILD; ebitTraceNodes.js; mirra_expected_l2.py A-12.
+2. F-10b (support / unassigned asset depreciation in EBITDA).
+3. ONE full regression (A, A misaligned, A2, B, ticked B, gate seed, the ladder, item d checks).
+4. R3 Business Modelling redesign.
+
+5. STANDING RULES
+- Archive, never delete. One brief per module. Apply-Patch / Invoke-PatchBatch, "Patched:" confirmations, build after each batch, never while dev runs or a
+  server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Claude stages files from the device, edits its own copy, copies the result to /mnt/user-data/outputs and commits back with device_commit_files (mtime guard;
+  stagedPath must be under outputs). Claude cannot run a shell on the device: the owner runs git, npm and PowerShell. Project knowledge: Projects project_write with
+  local_path inside Claude's working directory; rewrite the ledger (sha256 of the exact bytes uploaded); the owner runs check_project_knowledge_sync.py.
+- Built-in pane: needs request_access for the port; load seeds by fetch('/__stress_tmp/seed_<id>.json') then write each key (JSON.stringify) to localStorage.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives. git add with explicit paths; use
+  git commit -m (a bare git commit opens vim).
+
+6. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Business Outcome brief (PENDING BUILD, Section 8, Addenda 2-5); Py\stress_test\README.txt (F-10 paragraph) for the F-11 recipe.
+Then only what F-11 needs. Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief (119 KB; only Addendum 24 if the harness matters),
+or module briefs not needed.

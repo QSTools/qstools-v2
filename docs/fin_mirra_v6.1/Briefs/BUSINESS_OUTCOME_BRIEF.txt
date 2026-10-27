@@ -5,9 +5,9 @@ FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_OUTCOME_BRIEF.txt  (the ONE B
 COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map and gotchas - mechanism, not intent)
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
-               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addendum 4; calc map s7 / s9.1 still owed). PENDING before R3: F-11
+               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). PENDING before R3: F-11
                EBIT interest add-back, F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
-LAST UPDATED:  2026-10-27 (Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+LAST UPDATED:  2026-10-27 (Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -131,10 +131,10 @@ Legacy, not on this page: components/business-outcome/* (incl. BusinessOutcomeRe
 8. FINDINGS REGISTER (keep numbers; update status in place)
 ===============================================================================
 PENDING BUILD (fix batch between R2 and R3, then ONE full regression re-run)
-F-7   [SHIPPED 2026-10-27, Addendums 3 and 4 - committed, traced, ticked seed live; calc map s9.1 owed] Dry hire earns nothing (no-labour
+F-7   [SHIPPED 2026-10-27, Addendums 3, 4 and 5 - committed, traced, ticked seed live, calc map done] Dry hire earns nothing (no-labour
       asset group had 0 covered hours). Built: tick "Hired out without our operator (dry hire)" on the asset ASSIGNMENT in
       Cost Allocation (hourly, default OFF); a ticked row earns its Rate Builder per-asset price x its own hours with no
-      labour cap. Design and decisions: Future_Build\DRY_HIRE_UNATTENDED_ASSETS brief and its Addendum 1.
+      labour cap. Design and decisions: Addendum 5 here and Cost Allocation brief Addendum 8 (history in the archived DRY_HIRE brief, docs\Archive\Future_Build_Built\).
 F-10  [SHIPPED 2026-10-26, Addendum 2] EBITDA depreciation: useAssets active_assets dropped estimated_annual_depreciation
       (one-line pass-through, hooks/useAssets.js). Proven on scenario_a_depreciation: 174 of 174 nodes.
 F-10b OPEN  Depreciation on support or unassigned assets is still missing from EBITDA: the F-8 remainder row in
@@ -170,7 +170,7 @@ Addendum 1: lazy cards + shared readiness).
 ===============================================================================
 9. DEFERRED / FUTURE
 ===============================================================================
-- Dry hire (F-7) and Units Mode: Future_Build briefs.
+- Units Mode: Future_Build brief. Dry hire (F-7) is built (Addendum 5); weekly / monthly hire waits for units mode.
 - Idle-cost brief open items O-4 (crew vs idle) and O-5 (non-asset groups).
 - Imports: CFO requirements gap, fixed asset register, Xero ideas - archived v5 "Business Outcome New Additions";
   conventions rule 10 applies.
@@ -256,3 +256,12 @@ the baselines with the tick off pass A 285 / 285, A misaligned 285 / 285, A2 285
 trace nodes). The revenue-ceiling consequence of Addendum 3 does not appear on the aligned ticked seed. Expected values were written from the briefs
 (stress brief Addendum 23, assumption A-13). STILL OPEN: calc map s9.1 (get_group_*_hours family, revenue for a dry-hire row), owner decisions 3a (hours
 SUMMED into recovery hours) and 3b (tick in a group not driven by asset hours), Business Modelling levers on the dry-hire unit, sequential pattern with a ticked asset.
+
+ADDENDUM 5 (2026-10-27) - F-7 DRY HIRE CLOSED AND FOLDED IN [DOCS ONLY]
+Business Outcome half in one place: a ticked (dry hire) asset assignment earns its Rate Builder per-asset price x its own hours, with no covered-hours share and no
+labour cap; with no per-asset price (or a Business Modelling blended-rate override on) it earns null with a flag, not the group blended rate. capacity_coverage_gap and
+businessOutcomeShortfallDollars skip dry rows; a unit whose assets are all dry gets no "no_labour" line. Trace node business_outcome.group.<id>.dry_hire_revenue.
+Because Cost Allocation sums dry hours into the recovery hours of an asset-driven group (decision 3a), overhead and the other groups' rates move toward the dry-hire
+unit. The tick only applies in asset-hours groups (decision 3b, commit 9c72c8e; Cost Allocation brief Addenda 6-8), and the wording pass is shipped (ac6e5a5).
+Calc map s7 / s9.1-9.4 / s9.9 and CM-10 are done. Still untested live: Business Modelling levers on the dry-hire unit, sequential run pattern with a ticked asset.
+The DRY_HIRE future-build brief is archived (docs\Archive\Future_Build_Built\).

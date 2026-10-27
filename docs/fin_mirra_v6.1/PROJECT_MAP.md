@@ -108,14 +108,14 @@ scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBIT
 F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) |
 F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): SHIPPED 2026-10-27 (calculation 17a5957; trace nodes, CALCULATION_TRACE_BRIEF
 Addendum 2; ticked Scenario B test seed, commit 1303482, live 346 of 346; Cost Allocation brief Addendum 3 and 4, Business Outcome brief Addendum 3 and 4, DRY_HIRE brief
-Addendum 2, stress brief Addendum 23). Calc map s7 / s9.1-9.4 / s9.9 + CM-10, VARIABLE_TRACKER s21 and BUSINESS_OUTCOME_FILE_MAP DONE 2026-10-27 (step 4; extract not re-run). Owner decisions 2026-10-27: 3a kept as built; 3b option 1 SHIPPED (commit 9c72c8e: tick applies only in asset-hours groups, CM-10 closed; Cost Allocation brief Addendum 6, DRY_HIRE brief Addendum 4, stress brief Addendum 24; gate seed scenario_b_dry_hire_gate live 342 of 342). Still owed: the tick wording.
+Addendum 2, stress brief Addendum 23). Calc map s7 / s9.1-9.4 / s9.9 + CM-10, VARIABLE_TRACKER s21 and BUSINESS_OUTCOME_FILE_MAP DONE 2026-10-27 (step 4; extract not re-run). Owner decisions 2026-10-27: 3a kept as built; 3b option 1 SHIPPED (commit 9c72c8e: tick applies only in asset-hours groups, CM-10 closed; Cost Allocation brief Addendum 6, DRY_HIRE brief Addendum 4, stress brief Addendum 24; gate seed scenario_b_dry_hire_gate live 342 of 342). Tick wording pass SHIPPED (ac6e5a5; Cost Allocation brief Addendum 7). DRY_HIRE future-build brief folded into Cost Allocation Addendum 8 and Business Outcome Addendum 5 and archived to `docs\Archive\Future_Build_Built\`.
 Baselines with the tick off (nodes + raw + derived): A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346, gate seed 342 of 342.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt = V6.1o: F-7 and CM-10 shipped and documented; next the tick wording, then F-11, F-10b, one full regression).
+R2 resumes next (see latest HANDOVER.txt = V6.1p: F-7, CM-10 and the tick wording shipped and documented; next F-11, then F-10b, one full regression, R3).
 
 ## 7. Findings numbering
 
@@ -127,7 +127,7 @@ RB-n rate builder, D-n cost allocation, Q-n stress test questions). Keep numbers
 
 LAUNCH_BUILD_ORDER_AND_THIRD_MOAT (resolved build order, Addendum 1) | BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY (R3) |
 UNITS_MODE (R4) | STRESS_TEST_DATABASE_AND_AGENT_DESIGN | REGRESSION_HEALTH_CHECK_SUITE | ESCT_TREATMENT_FIX (F-1) |
-DRY_HIRE_UNATTENDED_ASSETS (F-7) | HOURS_BASED_BUSINESS_TYPES_TEST_AND_MARKET_COVERAGE | AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER (R7) |
+HOURS_BASED_BUSINESS_TYPES_TEST_AND_MARKET_COVERAGE | AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER (R7) |
 GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS | POST_LAUNCH_VISION_AND_POSITIONING | SUPPLIER_PRODUCT_ALIAS_AND_RECONCILIATION_MATCHING (design proposal only).
 When one is built it folds into the module brief and the future-build file is archived.
 
@@ -142,3 +142,5 @@ R2_HANDOVER_2026-10-18, V6_0_KICKOFF_AND_HANDOVER_2026-09-20 and the old CALCULA
 Conventions and this map were corrected 2026-10-22 (V6.1d step 6). Project instructions: rule 11 and the doc list must name
 `docs/fin_mirra_v6.1/Briefs/` and `docs/fin_mirra_v6.1/Calculations/`; re-paste in the project settings if they still show
 v6.0 paths. Current paths are in Section 1 above.
+
+Archived built future-build briefs: `docs\Archive\Future_Build_Built\` (DRY_HIRE_UNATTENDED_ASSETS, F-7, folded 2026-10-27).
