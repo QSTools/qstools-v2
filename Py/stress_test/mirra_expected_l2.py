@@ -163,10 +163,11 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         prod = [(t, pool_by_type[t]["hours"] * pct / 100, pool_by_type[t]["cost"] * pct / 100) for t, pct, _ in labs if pool_by_type[t]["productive"]]
         nonprod_labour_cost = sum(pool_by_type[t]["cost"] * pct / 100 for t, pct, _ in labs if not pool_by_type[t]["productive"])
         assets, nonprod_asset_cost = [], 0.0
+        dry_applies = g["recovery_hour_source"] == "asset_hours"                          # CM-10 gate (owner decision 3b, 2026-10-27)
         for ref, pct, dry in mx.group_asset_entries(g):
             for a in per_asset[ref]:
                 if a["productive"]:
-                    assets.append({**a, "h": a["hours"] * pct / 100, "c": a["cost"] * pct / 100, "dry": dry})
+                    assets.append({**a, "h": a["hours"] * pct / 100, "c": a["cost"] * pct / 100, "dry": dry and dry_applies})
                 else:
                     nonprod_asset_cost += a["cost"] * pct / 100
         lab_hours = sum(h for _, h, _ in prod)

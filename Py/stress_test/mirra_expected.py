@@ -266,7 +266,7 @@ def billed_revenue(recipe, as_of, charge_out):
                 continue
             e = asset_expected(a, as_of, oh)
             for _ in range(a.get("count", 1)):
-                (dry_assets if dry else assets).append((a, e["utilisation_hours_annual"] * pct / 100))
+                (dry_assets if (dry and g["recovery_hour_source"] == "asset_hours") else assets).append((a, e["utilisation_hours_annual"] * pct / 100))   # CM-10 gate
         asset_driven = g["recovery_hour_source"] == "asset_hours" and bool(assets or dry_assets)
         if asset_driven:
             hrs = [h for _, h in assets]

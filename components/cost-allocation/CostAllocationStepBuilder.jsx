@@ -302,6 +302,11 @@ export default function CostAllocationStepBuilder({
               set_asset_assignment_earns_without_operator={
                 set_asset_assignment_earns_without_operator
               }
+              allow_dry_hire={
+                group_cost_rows.find(
+                  (row) => row?.group_id === selected_group_id
+                )?.group_recovery_hour_source === "asset_hours"
+              }
             />
 
             <GroupCoverageNotice

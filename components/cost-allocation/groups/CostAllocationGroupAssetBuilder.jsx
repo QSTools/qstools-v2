@@ -245,6 +245,7 @@ export default function CostAllocationGroupAssetBuilder({
   add_asset_assignment,
   remove_asset_assignment,
   set_asset_assignment_earns_without_operator,
+  allow_dry_hire = true,
 }) {
   const productive_rows = getAssetRows(asset_assignment);
 
@@ -266,10 +267,17 @@ export default function CostAllocationGroupAssetBuilder({
         add_asset_assignment={add_asset_assignment}
         remove_asset_assignment={remove_asset_assignment}
         set_earns_without_operator={set_asset_assignment_earns_without_operator}
-        allow_dry_hire={true}
+        allow_dry_hire={allow_dry_hire}
         assignments={productive_assignments}
         empty_message="No assets assigned to this group yet."
       />
+
+      {!allow_dry_hire && productive_assignments.length > 0 ? (
+        <p className="ui-help">
+          Dry hire (hiring an asset out without our operator) is only available
+          when this group's recovery hours are driven by asset hours.
+        </p>
+      ) : null}
 
       {support_rows.length > 0 || support_assignments.length > 0 ? (
         <div className="cost-allocation-assignment-block-divider">
