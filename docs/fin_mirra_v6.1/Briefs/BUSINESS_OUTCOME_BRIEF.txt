@@ -6,8 +6,8 @@ COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
                da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). F-11 EBIT all-interest add-back SHIPPED 2026-10-27 (Addendum 6; new seed 285 of 285, baselines unchanged; commit 0a4daac).
-               PENDING before R3: Q-7 timing re-check (one more General Overheads hook on the page), F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
-LAST UPDATED:  2026-10-27 (Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+               PENDING before R3: F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4); re-confirmed after F-11 on 2026-10-27 (Addendum 7).
+LAST UPDATED:  2026-10-27 (Addendum 7, Q-7 re-check after F-11 passes; Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -285,8 +285,13 @@ Verified live (production :3005, built-in pane, as of 2026-10-27): new seed scen
 interest 59,456 (asset 41,456.25 + 18,000), EBIT and EBITDA 179,662, depreciation 0. EBIT by Source table shows the new row at 18,000 and the interest column
 sums to 59,456. Baselines with no non-asset interest are unchanged: A 285, A misaligned 285, A2 285, A with depreciation 285, B 347, ticked B 346, gate seed
 342. The 18,000 sits inside the Cost Allocation overhead pool (pool 179,710.69 matched), so adding the interest line lowers net profit and raises the interest add-back by the same amount, and EBIT is unchanged by it (as an interest add-back should be).
-Not run: the scaling ladder and Q-7 timing (this adds one useGeneralOverheads instance to the page; the shared-readiness rule in Addendum 1 is not affected, but
-re-time Business Outcome at 100 and 1,000 staff). F-10b still open. The raw Cost Allocation and derived checks ran on the new seed (95 raw, 3 derived).
+Not run: the scaling ladder. Q-7 timing was re-run afterwards and passes (Addendum 7). F-10b still open. The raw Cost Allocation and derived checks ran on the new seed (95 raw, 3 derived).
 Watch: is_interest_row matches any overhead line whose name contains "interest" (General Overheads GO-6), so a line such as "Interest received" or "Interest on
 tax" would also be added back.
 Acceptance still owed for the whole F-n batch: ONE full regression after F-10b.
+
+ADDENDUM 7 (2026-10-27) - Q-7 TIMING RE-CHECK AFTER F-11 [PASSED; measurement only, no app code changed]
+F-11 added one useGeneralOverheads() call to app/business-outcome/page.jsx. Re-timed on the production build (:3005, built-in pane visible at 62 fps), Scenario A,
+perf_pass.console.js, 3 runs per size, ready ms / max freeze ms: 100 staff 146-193 / 56-60 (limit open < 1 s, freeze < 200 ms); 1,000 staff 649-691 / 146-154
+(limit open < 3 s, freeze < 1,000 ms). Before F-11 (Addendum 1): 138-243 / 54-75 and 603-650 / 158-166. The extra hook does not show in the timings. Page text rendered
+(7,024 characters at 100 staff, 7,060 at 1,000, iframe innerText). Detail and method: stress brief Addendum 26. Still owed: F-10b, then ONE full regression.

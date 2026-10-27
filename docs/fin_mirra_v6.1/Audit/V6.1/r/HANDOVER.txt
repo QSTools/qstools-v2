@@ -1,0 +1,43 @@
+HANDOVER V6.1r   2026-10-27   (Q-7 timing re-check after F-11: PASSED, docs only; next is F-10b)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\r\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method). This file replaces q Sections 1 to 4. q and earlier are history now.
+
+1. WHERE WE ARE
+- Code: nothing changed this session. Last code commit 0a4daac (F-11), docs 13952db plus the hash follow-up. Push still to do (check git log / git status).
+- Docs changed this session, to be committed by the owner: Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 7; header lines), PROJECT_MAP.md (F-11 line, current position),
+  Future_Build\STRESS_TEST_...BRIEF_2026-10-16.txt (Addendum 26), this file.
+- LIVE: the :3005 production server was restarted by the owner this session and is running; public\__stress_tmp holds the 8 old seeds, their expected files, and two new
+  seeds seed_n100.json and seed_n1000.json (Scenario A at 100 / 1,000 staff, --as-of 2026-10-27). The built-in pane holds the owner's original 18 keys (restored, same byte size).
+
+2. DONE THIS SESSION
+- Q-7 timing re-run on Business Outcome after F-11 (production, pane visible 62 fps, perf_pass.console.js, 3 runs per size, ready ms / max freeze ms):
+  100 staff 146-193 / 56-60 (limit < 1 s, < 200 ms); 1,000 staff 649-691 / 146-154 (limit < 3 s, < 1,000 ms). Before F-11: 138-243 / 54-75 and 603-650 / 158-166.
+  PASS; the extra useGeneralOverheads() call is not visible. Record: stress brief Addendum 26, Business Outcome brief Addendum 7.
+- Seeds were generated in Claude's workspace (no shell on the device) and written to public\__stress_tmp with device_commit_files. generate_business.py names them
+  seed_scenario_a_n<N>.json; perf_pass wants seed_n<N>.json (renamed). The server had to be restarted to serve them (no rebuild).
+
+3. OPEN ITEMS (carried from q, a removed)
+b. F-10b (support / unassigned asset depreciation in EBITDA). F-4 "Unassigned cost" row check (Business Outcome brief Section 8).
+c. is_interest_row matches any line with "interest" in its name (GO-6): "Interest received" style lines would also be added back. Not changed.
+d. The scaling ladder was not run for F-11. Calc map extract still not re-run; re-run python Py\audit-scripts\extract_calc_map.py at the next calc map edit.
+e. Untested live: stored tick back to asset hours; sequential pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group rates,
+   Model Readiness, Module Reconciliation, Quote Engine with a ticked group. Stray comment above apply_revenue_ceiling (about L596).
+f. Project knowledge re-synced at the end of this session (ledger rewritten). Owner runs python Py\audit-scripts\check_project_knowledge_sync.py to confirm.
+
+4. NEXT STEPS IN ORDER  (one piece of work per chat; start a NEW chat for each)
+1. F-10b.   2. ONE full regression (A, A misaligned, A2, B, ticked B, gate seed, scenario_a_nonasset_interest, the ladder, item d checks).   3. R3 Business Modelling redesign.
+End of the session that finishes the regression: Remove-Item public\__stress_tmp, .next -Recurse -Force, stop :3005.
+
+5. STANDING RULES
+- Archive, never delete. One brief per module. Build after each batch, never while dev runs or a server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on
+  after a compaction.
+- Claude stages files from the device, edits its own copy (EOL- and BOM-preserving, one match per patch), copies to /mnt/user-data/outputs and writes back with
+  device_commit_files (mtime guard). Claude cannot run a shell on the device: the owner runs git, npm, PowerShell. The production server only serves public files that
+  existed when it started: generate seeds first, then start it.
+- Built-in pane: seed with fetch('/__stress_tmp/seed_<id>.json'); back up the pane's localStorage keys to sessionStorage before any run that clears it, restore after.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+6. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. For F-10b: Business Outcome brief Addendum 2 (F-10) and Addendum 6; Assets brief; stress brief Addenda 25 and 26.
+Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the rest of the stress brief, or module briefs not needed.

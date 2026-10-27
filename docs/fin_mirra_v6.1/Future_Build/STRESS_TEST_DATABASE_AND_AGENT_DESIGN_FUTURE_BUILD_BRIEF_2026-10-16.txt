@@ -1457,3 +1457,25 @@ B 347, ticked B 346, gate 342; pane storage restored (18 keys). Method notes: (a
 generate every seed BEFORE starting the server (a file added later returns 404; restart the server); (b) re-seed and reload in one call, compare in the next.
 The ladder (100 / 1,000 staff) and the Q-7 timing were not run for this slice.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 26 (2026-10-27) - Q-7 TIMING RE-CHECK ON BUSINESS OUTCOME AFTER F-11 [PASSED; measurement only]
+===============================================================================
+Why: F-11 (0a4daac) added one useGeneralOverheads() call to the Business Outcome page (Business Outcome brief Addendum 6). The shared-readiness rule (Addendum 16) is
+not affected, but the page had not been re-timed.
+Method: as Addendum 15 / 16. Production build on :3005 (the build that carries F-11), built-in pane visible (62 frames a second), perf_pass.console.js, one route
+(/business-outcome), 3 runs per size, parent page = the plain seed JSON. Seeds: recipes/scenario_a.json, generate_business.py --as-of 2026-10-27 --staff-total 100 / 1000,
+saved as public\__stress_tmp\seed_n100.json and seed_n1000.json (generate_business.py names its output seed_scenario_a_n100.json; perf_pass wants seed_n<N>.json, so rename).
+RESULT, ready ms / max freeze ms (long tasks over 50 ms in brackets)
+                     100 staff                          1,000 staff
+  Addendum 16        138-243 / 54-75                    603-650 / 158-166
+  after F-11         193, 149, 146 / 60, 56, 56 (1)     691, 649, 662 / 154, 146, 146 (5)
+  Q-7 limit          open < 1 s, freeze < 200 ms        open < 3 s, freeze < 1,000 ms
+PASS at both sizes with wide margin. The extra hook is not visible in the numbers. Page text length (iframe innerText) 7,024 at 100 staff and 7,060 at 1,000; Addendum 16
+used another measure (6,977 default view), so the two are not compared. Not a regression check of the text.
+Method notes: (a) the server serves public files only if they existed when it started, so restart it (no rebuild) after adding seeds; the first attempt returned 404
+until it was restarted. (b) The run clears localStorage on the :3005 origin: back the pane's keys up in sessionStorage first (done, 18 keys) and restore afterwards (done,
+same byte size). (c) Seeds can be generated without a shell on the device: run generate_business.py on a staged copy and write the two files back with device_commit_files.
+Not run: the scaling ladder for F-11, the other pages. Cleanup owed at the end of the regression: Remove-Item public\__stress_tmp, .next, stop :3005.
+NEXT: F-10b, then ONE full regression, then R3.
+===============================================================================
