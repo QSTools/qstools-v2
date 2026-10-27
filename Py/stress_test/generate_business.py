@@ -316,6 +316,12 @@ def build(recipe, as_of):
     if interest_total > 0:
         lines.append(line(pnl["interest_line_label"], interest_total, "operating_expenses", "general_overheads",
                           "finance_interest", interest="contains_asset_finance_interest"))
+    # F-11 (2026-10-27): optional interest that is NOT asset finance (bank / overdraft). Default none = every older seed unchanged.
+    # It is a plain general-overheads line, so it stays inside net profit as a cost and EBIT must add it back.
+    non_asset_interest = float(pnl.get("non_asset_interest_annual") or 0)
+    if non_asset_interest > 0:
+        lines.append(line(pnl.get("non_asset_interest_label", "Bank Interest"), non_asset_interest, "operating_expenses",
+                          "general_overheads", "finance_interest"))
     # H5: named lines are stored with a STRING amount (the app coerces). Expected values use the numbers above.
     as_string = set(pnl.get("string_amount_lines", []))
     stored_lines = [dict(l, amount=f'{l["amount"]:.2f}') if l["line_name"] in as_string else l for l in lines]
@@ -343,7 +349,7 @@ def build(recipe, as_of):
     expected["group_names"] = {group_ids[g["ref"]]: f'{g["ref"]} {g["label"]}' for g in recipe["groups"]}
     expected["pnl_summary"] = {
         "revenue_basis": basis, "billed_from_rates": r2(billed["total"]),
-        "revenue": r2(revenue), "labour_lines": r2(labour_pnl), "asset_interest": r2(interest_total),
+        "revenue": r2(revenue), "labour_lines": r2(labour_pnl), "asset_interest": r2(interest_total), "non_asset_interest": r2(non_asset_interest),
         "net_profit": r2(sum(l["amount"] for l in lines if l["category"] == "revenue")
                          - sum(l["amount"] for l in lines if l["category"] != "revenue"))}
     seed = {"meta": {"recipe_id": rid, "label": recipe["label"], "as_of": as_of.isoformat(),

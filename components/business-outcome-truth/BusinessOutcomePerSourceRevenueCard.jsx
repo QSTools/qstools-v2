@@ -2030,7 +2030,7 @@ function ViewBAssumedCapacityLedger({ view_b, unassigned, time_scale, open_hours
   );
 }
 
-export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", set_smoothing_mode, view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null }) {
+export default function BusinessOutcomePerSourceRevenueCard({ per_source, output_contract, labour_recovery, smoothing_mode = "smoothed", set_smoothing_mode, view_mode_ab, set_view_mode_ab, balance_sheet_current_year_earnings = null, fixed_assets_reconciliation = null, balance_sheet_working_capital = null, overhead_interest_annual = 0 }) {
   // NEW (this session, per user request): the P&L's own genuine
   // Net Profit and Trading Income, straight from useProfitAndLoss -
   // a completely separate hook/calculation from everything else on
@@ -2954,7 +2954,7 @@ export default function BusinessOutcomePerSourceRevenueCard({ per_source, output
           </CollapsibleSection>
 
           <CollapsibleSection id="ebit-by-unit-panel" title="EBIT by Source" defaultOpen={false}>
-            <BusinessOutcomeEbitByUnitTable real_capacity={per_source.real_capacity} materials={per_source.materials} unassigned={per_source.unassigned} />
+            <BusinessOutcomeEbitByUnitTable real_capacity={per_source.real_capacity} materials={per_source.materials} unassigned={per_source.unassigned} overhead_interest_annual={overhead_interest_annual} />
           </CollapsibleSection>
 
           <CollapsibleSection id="views-folder" title="Views" defaultOpen={false}>

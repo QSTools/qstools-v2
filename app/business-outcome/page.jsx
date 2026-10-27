@@ -21,6 +21,7 @@ import useBalanceSheet from "@/hooks/useBalanceSheet";
 import BalanceSheetRatiosCard from "@/components/balance-sheet/BalanceSheetRatiosCard";
 import Link from "next/link";
 import useAssets from "@/hooks/useAssets";
+import useGeneralOverheads from "@/hooks/useGeneralOverheads";
 import { calculateFixedAssetsReconciliation } from "@/lib/calculations/balanceSheetCalculations";
 import BusinessOutcomeEbitSummaryCard from "@/components/business-outcome-truth/BusinessOutcomeEbitSummaryCard";
 import NonProductivePolicyToggle from "@/components/business-outcome-truth/NonProductivePolicyToggle";
@@ -55,6 +56,9 @@ export default function BusinessOutcomePage() {
       )?.amount ?? null
     : null;
   const { active_assets } = useAssets();
+  // F-11: interest left in General Overheads, added back in EBIT (one hook instance, passed down as a prop).
+  const { output_contract: general_overheads_contract } = useGeneralOverheads();
+  const overhead_interest_annual = Number(general_overheads_contract?.interest_in_overheads_annual) || 0;
   const total_asset_purchase_price = (active_assets || []).reduce(
     (sum, asset) => sum + (Number(asset.purchase_price) || 0),
     0
@@ -97,6 +101,7 @@ export default function BusinessOutcomePage() {
           real_capacity={per_source.real_capacity}
           materials={per_source.materials}
           unassigned={per_source.unassigned}
+          overhead_interest_annual={overhead_interest_annual}
         />
       </div>
       <div className="business-outcome-view-toggle" aria-label="Smoothing" style={{ marginBottom: "0.25rem" }}>
@@ -144,6 +149,7 @@ export default function BusinessOutcomePage() {
         balance_sheet_current_year_earnings={balance_sheet_current_year_earnings}
         fixed_assets_reconciliation={fixed_assets_reconciliation}
         balance_sheet_working_capital={has_balance_sheet_data ? balance_sheet_ratios?.working_capital : null}
+        overhead_interest_annual={overhead_interest_annual}
       />
       <NextStepFooter nextHref="/quote-checker" nextLabel="Next: Quote Checker" />
     </div>

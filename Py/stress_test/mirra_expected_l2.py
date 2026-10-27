@@ -70,7 +70,8 @@ ASSUMPTIONS = [
     "total_depreciation = the recipe's depreciation_annual summed over every asset copy (default none = 0), added back in full: "
     "this is the F-10b TARGET. Until F-10b is built the app adds depreciation only for assets assigned to a group, so a recipe "
     "must put depreciation_annual only on productive assets that are 100% assigned (scenario_a_depreciation does). "
-    "EBIT = net profit + interest. EBITDA = EBIT + depreciation.",
+    "EBIT = net profit + interest. EBITDA = EBIT + depreciation. F-11 (2026-10-27): total_interest ALSO includes the recipe's "
+    "pnl.non_asset_interest_annual (default none = 0): interest left in General Overheads (overdraft / bank) is added back in full.",
 ]
 
 
@@ -482,7 +483,7 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     nodes["business_modelling.modelled_net_profit"] = today_net
 
     # ---- 8. EBIT / EBITDA table totals (A-12)
-    ebit_interest = sum(e["asset_interest_annual"] for e in l1["assets"])
+    ebit_interest = sum(e["asset_interest_annual"] for e in l1["assets"]) + float(recipe["pnl"].get("non_asset_interest_annual") or 0)
     ebit_depreciation = sum((a.get("depreciation_annual") or 0.0) for a in flat_assets)
     nodes["business_outcome.ebit.total_net_profit"] = today_net
     nodes["business_outcome.ebit.total_interest"] = ebit_interest

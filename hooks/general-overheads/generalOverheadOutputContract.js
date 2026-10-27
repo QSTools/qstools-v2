@@ -39,6 +39,7 @@ export function build_general_overhead_output_contract({
       category_totals.length > 0 &&
       !has_asset_finance_interest_duplication,
     non_asset_interest_annual: calculated.non_asset_interest_annual ?? 0,
+    interest_in_overheads_annual: calculated.interest_in_overheads_annual ?? 0,
     overhead_rows: allocation_outputs.allocation_rows,
     synced_pnl_overhead_items: overhead_state.synced_pnl_overhead_items ?? [],
     imported_pnl_overhead_rows: allocation_outputs.allocation_rows.filter(

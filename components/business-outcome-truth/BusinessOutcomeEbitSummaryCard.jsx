@@ -24,11 +24,11 @@ function format_currency(value) {
  * same calculateEbitByUnit() as the full per-source breakdown - one
  * calculation, not two that could drift apart.
  */
-export default function BusinessOutcomeEbitSummaryCard({ real_capacity, materials, unassigned }) {
+export default function BusinessOutcomeEbitSummaryCard({ real_capacity, materials, unassigned, overhead_interest_annual = 0 }) {
   // F-8: every active asset, so interest on support and unassigned assets is added back too.
   const { active_assets } = useAssets();
   const { available, total_net_profit, total_interest, total_depreciation, total_ebit, total_ebitda } =
-    calculateEbitByUnit({ real_capacity, materials, unassigned, all_assets: active_assets });
+    calculateEbitByUnit({ real_capacity, materials, unassigned, all_assets: active_assets, overhead_interest_annual });
 
   if (!available) {
     return null;
@@ -46,7 +46,7 @@ export default function BusinessOutcomeEbitSummaryCard({ real_capacity, material
         <div className="business-outcome-ledger-metric">
           <span className="business-outcome-ledger-metric-label">+ Interest</span>
           <span className="business-outcome-ledger-metric-value">{format_currency(total_interest)}</span>
-          <span className="business-outcome-ledger-metric-description">Real asset finance interest, added back.</span>
+          <span className="business-outcome-ledger-metric-description">All interest added back: asset finance interest plus any other interest in overheads.</span>
         </div>
         <div className="business-outcome-ledger-metric">
           <span className="business-outcome-ledger-metric-label">= EBIT</span>
