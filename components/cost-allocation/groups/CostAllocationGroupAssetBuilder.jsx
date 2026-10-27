@@ -215,9 +215,10 @@ function AssetPickerSection({
                     {allow_dry_hire &&
                     assignment.earns_without_operator === true ? (
                       <p className="ui-help">
-                        Dry hire: this asset earns on its own hours at its own
-                        rate. It is not limited by the labour assigned to this
-                        group and does not count in the labour gap.
+                        Dry hire: the customer supplies the operator. This asset
+                        earns on its own hours at its own rate, is not limited by
+                        the labour assigned to this group, and is left out of the
+                        labour gap.
                       </p>
                     ) : null}
                   </div>
@@ -274,8 +275,10 @@ export default function CostAllocationGroupAssetBuilder({
 
       {!allow_dry_hire && productive_assignments.length > 0 ? (
         <p className="ui-help">
-          Dry hire (hiring an asset out without our operator) is only available
-          when this group's recovery hours are driven by asset hours.
+          Dry hire (hiring an asset out without our operator) can only be used
+          when this group's recovery hours are driven by asset hours. Change the
+          group's recovery driver to asset hours to use it. A tick already set
+          here is ignored while the group uses another driver.
         </p>
       ) : null}
 
