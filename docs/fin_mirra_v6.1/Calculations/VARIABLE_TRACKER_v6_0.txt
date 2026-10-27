@@ -1033,8 +1033,9 @@ HOURS/UNITS AWARE: hours-native throughout; business_type not read.
   utilization data not available" message prints identical wording for two
   different conditions - a display defect, not chased this session.
   Commit 67b00ec.
-- OPEN design (unchanged from core pass): unattended / dry-hire exemption;
-  concurrent attendance; S28 per-asset linking; product mode (business_type
+- CLOSED 2026-10-27 (F-7): unattended / dry-hire exemption - built as a tick on the asset assignment in Cost Allocation (earns_without_operator,
+  default off); see "F-7 (2026-10-27)" block after D4 below and CALCULATION_MAP s7 / s9.1. Still open from it: owner decisions 3a / 3b (CM-10).
+- OPEN design (unchanged from core pass): concurrent attendance; S28 per-asset linking; product mode (business_type
   gap, kickoff s1).
 - NEW design item (8b, logged for Labour/Reconciliation, not Business
   Outcome): owner remuneration setting - see Section 12's 8b addition.
@@ -1110,6 +1111,26 @@ D4 (2026-10-07) - Cost Allocation group cost row, new fields
   idle_labour_hours, idle_labour_cost, idle_labour_warning  (calculated, display only)
   FILE: lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js ; notice: components/cost-allocation/steps/GroupIdleLabourNotice.jsx
   NOTES: warn only, no rate effect. Idle cost is already inside group_cost_per_hour.
+
+F-7 (2026-10-27, commit 17a5957; trace nodes and ticked test seed 1303482) - dry hire: an asset hired out without our operator
+STAGE: tick (stored)
+  FIELD NAME: earns_without_operator (boolean, default false; absent = false) on an asset ASSIGNMENT row in Cost Allocation (productive assets only)
+  FILE / FUNCTION: hooks/useCostAllocation.js set_asset_assignment_earns_without_operator; groups/CostAllocationGroupAssetBuilder.jsx (the tick)
+  NOTES: stored on the assignment (a shared machine can be operated in one unit and dry in another); survives storage because the rows spread.
+STAGE: Cost Allocation group cost row (calculated)
+  FIELD NAMES: earns_without_operator_hours (SUM of ticked assignment hours), operated_recovery_hours (recovery hours less dry hire for an
+    asset-driven group, group_recovery_hours otherwise); group_recovery_hours (asset-driven: operated recovery + dry hours); required_asset_hours,
+    labour_coverage_gap_hours, idle_labour_hours / idle_labour_cost, labour_utilisation_percent now read OPERATED rows only;
+    asset_utilisation_percent = group_recovery_hours / (required_asset_hours + earns_without_operator_hours)
+  FILE: lib/calculations/cost-allocation/costAllocationGroupCostBuilder.js (CALCULATION_MAP s7)
+STAGE: Business Outcome (calculated)
+  FIELD NAMES: asset row earns_without_operator (flag), modelled_revenue (Rate Builder per-asset price x own hours; null + unavailable_reason when no
+    per-asset price), covered hours = operated covered + dry hours (Business Modelling unit basis), dry_hire_revenue (trace node only)
+  FILE: hooks/useBusinessOutcomePerSourceRevenue.js get_group_dry_hire_hours / get_group_operated_seat_hours / get_group_operated_covered_hours /
+    get_group_covered_hours, build_asset_sources, calculate_capacity_coverage_gap; lib/calculations/businessOutcomeShortfallDollars.js (skips dry rows)
+  NOTES: applies only when the group's recovery driver is asset hours (CM-10: Cost Allocation still splits the rows for other drivers).
+    Trace nodes: cost_allocation.group.<id>.earns_without_operator_hours / .operated_recovery_hours; business_outcome.group.<id>.dry_hire_revenue.
+    Brief records: COST_ALLOCATION_BRIEF Addenda 3-4, BUSINESS_OUTCOME_BRIEF Addenda 3-4, CALCULATION_TRACE_BRIEF Addendum 2, DRY_HIRE brief Addenda 1-2.
 
 TRACKER NOTE 2026-10-07 (gap line): capacity_coverage_gap[].gap_type is "none" and gap_dollar_value is null whenever the group
 has no linked group-level Rate Builder calculator (blended_rate null). The Business Outcome table still shows asset and labour
