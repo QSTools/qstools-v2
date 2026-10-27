@@ -1,0 +1,56 @@
+HANDOVER V6.1n   2026-10-27   (F-7 dry hire fully shipped and documented; calc map re-extracted; owner decisions 3a / 3b are next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\n\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method). This file replaces m Sections 1 to 4. m and k are history now.
+
+1. WHERE WE ARE
+- Last commit: c1e3045 "docs: calc map s7/s9 F-7 dry hire, CM-10, tracker s21 closed, file map, line numbers refreshed (V6.1m step 4)". Before it: 1303482 (ticked
+  seed harness), the two trace commits, 17a5957 (7 F-7 code files). Branch was "ahead of origin/main by 2" before c1e3045, so now ahead by 3. Push is the owner's call.
+- UNCOMMITTED when this was written (docs only; run git status first, commit as "docs: handover V6.1n, CM-10 addenda"): this file, PROJECT_MAP.md (latest handover
+  line now V6.1n), Briefs\COST_ALLOCATION_BRIEF.txt (Addendum 5), Future_Build\DRY_HIRE_...BRIEF (Addendum 3). Project knowledge was re-uploaded for PROJECT_MAP,
+  CALCULATION_MAP and VARIABLE_TRACKER (c1e3045 content) and the ledger rewritten; COST_ALLOCATION_BRIEF and PROJECT_MAP are re-uploaded again at the end of
+  this chat (see the ledger). Run python Py\audit-scripts\check_project_knowledge_sync.py : expect all OK.
+- Live results unchanged from m Section 1 (A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346). No code changed this chat.
+- HOUSEKEEPING still on the list from m (if not done): stop the :3005 server; Remove-Item public\__stress_tmp, .next -Recurse -Force. .tmp\itemd\ is generated, untracked.
+
+2. WHAT WAS DONE THIS CHAT (step 4)
+- python Py\audit-scripts\extract_calc_map.py re-run (2,571 functions, 2,282 statements, 101 declarations not parsed, 5 outside any function).
+- CALCULATION_MAP_v6_0.txt: s7 dry-hire block (costAllocationGroupCostBuilder.js, line numbers from the committed file); s9.1 rewritten for get_group_dry_hire_hours /
+  _operated_seat_hours / _operated_covered_hours / get_group_covered_hours (who reads which); s9.2-s9.4 and s9.9 F-7 notes; hook line numbers in s9.2-s9.9 refreshed from the
+  current file; new CM-10 and a CM-9 note. Selector / card / View B / Business Modelling refs (s9.6, s9.8, s9.11) NOT re-checked.
+- VARIABLE_TRACKER s21 item "unattended / dry-hire exemption" closed; F-7 field block added after D4. BUSINESS_OUTCOME_FILE_MAP got a dated F-7 update line.
+- Harness check: mirra_expected_l2.py assumption A-13 compared with the code and the map. No difference found (the harness mirrors CM-10 behaviour too).
+
+3. OWNER DECISIONS NEEDED (the next chat starts here)
+a. 3a: dry-hire hours are SUMMED and added to the group recovery hours of an asset-driven group. Consequence: overhead, the non-productive spread and the stream
+   rates all follow recovery hours, so a ticked unit (Scenario B G03: 1,872 h) draws more overhead and the other groups' cost per hour and Rate Builder labour
+   rates fall. Alternative to weigh: keep dry hours out of the overhead weight. Confirm or change.
+b. 3b / CM-10: the tick does nothing when the group is not asset-hours driven, but Cost Allocation still splits the rows for every driver (utilisation reads oddly, the
+   earns_without_operator_hours trace node is non-zero). Options: (1) hide the tick unless the group is asset-hours driven AND gate the builder split on the driver
+   (cleanest, small code change, needs its own patch batch + trace re-check); (2) leave it visible and add a warning; (3) make the tick work for every driver
+   (bigger, changes recovery hours rules). Decide, then the UI wording pass on the tick.
+
+4. OPEN ITEMS (carried)
+c. Not tested: sequential run pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group-level rates; Model Readiness / Module
+   Reconciliation / Quote Engine with a ticked group. d. Stray comment text above apply_revenue_ceiling in useBusinessOutcomePerSourceRevenue.js (about L596).
+e. Carried list as in k 3e. f. Ticked-seed P&L nets 20.2 percent of revenue vs B 14.5 (generator sizes overheads as a percent of revenue): a ticked-B vs B comparison is not like for like.
+g. When 3a / 3b are settled and shipped: fold the DRY_HIRE future-build brief into the Cost Allocation and Business Outcome briefs and archive it.
+h. Old header notes in the calc map for F-1 / F-4 still say "extract NOT re-run"; harmless, tidy at the next calc map edit.
+
+5. NEXT STEPS IN ORDER  (one piece of work per chat)
+1. Owner decisions 3a and 3b (Section 3). If 3b = option 1: patch batch (gate the tick display and the builder split), build, live-check ticked B + A + B, trace nodes, calc map
+   s7 / CM-10 closed, brief addenda, re-upload.
+2. UI wording pass on the tick.  3. F-11 (EBIT adds back all interest; needs a recipe with non-asset interest).  4. F-10b (support / unassigned asset depreciation in EBITDA).
+5. ONE full regression (A, A misaligned, A2, B, ticked B, the ladder, item d checks).  6. R3 Business Modelling redesign.
+
+6. STANDING RULES
+- Archive, never delete. One brief per module. Apply-Patch / Invoke-PatchBatch, "Patched:" confirmations, build after each batch, never while dev runs or a server is on
+  3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Claude stages files from the device, edits its own copy, copies the result to /mnt/user-data/outputs and commits back with device_commit_files (mtime guard; the
+  stagedPath must be under outputs). Project knowledge: Projects project_write with local_path inside Claude's working directory; rewrite the ledger (sha256 of the exact
+  bytes uploaded); the owner runs check_project_knowledge_sync.py.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives. git add with explicit paths.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Calc map s7 (Group cost row, DRY HIRE block), s9.1, CM-10; Cost Allocation brief Addenda 3-5; DRY_HIRE brief Addenda 1-3.
+Then only what the decision needs. Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief (113 KB; only Addendum 23 if the harness matters), or module briefs not needed.

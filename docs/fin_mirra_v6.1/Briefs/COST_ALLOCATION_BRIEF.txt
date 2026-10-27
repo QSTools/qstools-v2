@@ -270,3 +270,11 @@ operated_recovery_hours (= operated_group_recovery_hours: recovery hours less dr
 otherwise; existing local, nothing recalculated), and cost_allocation.group.<id>.earns_without_operator_hours / .operated_recovery_hours
 exist for every working group. Rows pass through the output contract whole, so no consumer needed a change. Detail and live figures:
 CALCULATION_TRACE_BRIEF Addendum 2. STILL OPEN from Addendum 3: the tick does nothing in groups not driven by asset hours (owner decision 3b).
+
+ADDENDUM 5 (2026-10-27) - F-7 CALC MAP DONE; CM-10 OPENED [DOCS ONLY, no code change]
+CALCULATION_MAP s7 now documents the dry-hire split in the group cost row (operated vs dry assignments, earns_without_operator_hours,
+operated_recovery_hours, asset_driven_recovery_hours, utilisation); commit c1e3045. New finding CM-10 (open): the split by operated / dry runs for
+every recovery driver, but only asset-hours groups add the dry hours to group_recovery_hours (and Business Outcome only treats the row as dry hire there).
+In a labour-hours or manual-hours group a ticked row is dropped from required_asset_hours, reported in earns_without_operator_hours and added to nothing;
+utilisation then divides by required + dry hours. No effect on net profit. Closes with owner decision 3b (hide the tick, or warn); if hide, also gate
+the builder split on the asset-hours driver. Untested live.

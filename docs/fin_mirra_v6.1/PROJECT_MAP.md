@@ -115,7 +115,7 @@ Allocation and Rate Builder passes (item c, about 15 ms at every size). Business
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt = V6.1m: F-7 steps 1-3 done; step 4 calc map done 2026-10-27 (extract re-run still owed); then owner decisions 3a / 3b, F-11, F-10b, one full regression).
+R2 resumes next (see latest HANDOVER.txt = V6.1n: F-7 fully shipped and documented, calc map re-extracted and committed c1e3045; next owner decisions 3a / 3b (CM-10), then F-11, F-10b, one full regression).
 
 ## 7. Findings numbering
 
