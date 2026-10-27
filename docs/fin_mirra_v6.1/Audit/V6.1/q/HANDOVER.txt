@@ -1,0 +1,63 @@
+HANDOVER V6.1q   2026-10-27   (F-11 EBIT adds back all interest: built and live-checked, NOT yet git-committed; next is the Q-7 timing re-check)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\q\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method; stress brief Addendum 24 and 25 for what changed).
+This file replaces p Sections 1 to 5. p, o, n, m and k are history now.
+
+1. WHERE WE ARE
+- Last commit: ac6e5a5 (tick wording). F-11 is in the WORKING FOLDER, not committed. Expected git status (run it first):
+  Code (12 files): lib\calculations\generalOverheadCalculations.js, hooks\general-overheads\generalOverheadOutputContract.js,
+    lib\calculations\businessOutcomeEbitCalculations.js, app\business-outcome\page.jsx,
+    components\business-outcome-truth\BusinessOutcomeEbitSummaryCard.jsx, ...EbitByUnitTable.jsx, ...PerSourceRevenueCard.jsx,
+    lib\calculation-trace\calculationTraceLiveValues.js, lib\calculation-trace\pilot-map\ebitTraceNodes.js,
+    Py\stress_test\generate_business.py, Py\stress_test\mirra_expected_l2.py, Py\stress_test\recipes\scenario_a_nonasset_interest.json (new).
+  Docs: Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 6), Briefs\GENERAL_OVERHEADS_BRIEF.txt (Addendum 1), Calculations\CALCULATION_MAP_v6_0.txt,
+    Calculations\VARIABLE_TRACKER_v6_0.txt, PROJECT_MAP.md, Future_Build\STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt
+    (Addendum 25), Py\stress_test\README.txt, this file, and docs\Archive\Future_Build_Built\DRY_HIRE_...txt (carried from p).
+- Suggested commits (explicit git add paths, git commit -m, trailers from the harness):
+    1. code: "F-11: EBIT adds back all interest (interest left in General Overheads); recipe field non_asset_interest_annual"
+    2. docs: "docs: F-11 Addendum 6 / GO Addendum 1 / calc map / tracker / stress Addendum 25, handover V6.1q"
+  Put the commit hash in the Business Outcome brief STATUS line and Addendum 6 (they say "commit hash in handover V6.1q"), in PROJECT_MAP row F-11,
+  and in the General Overheads Addendum 1 header.
+- LIVE: the :3005 production server was started by the owner and is still running; public\__stress_tmp holds the 8 seeds + expected files; .tmp\f11\ holds
+  the generated output. The built-in pane holds the owner's original 18 keys (restored). End of the session that finishes the regression: Remove-Item
+  public\__stress_tmp, .next -Recurse -Force, stop :3005.
+
+2. DONE THIS SESSION
+- F-11 built: General Overheads interest_in_overheads_annual; EBIT row "Interest in overheads (non-asset)"; value passed by props from the page; trace
+  reads the same figure. Owner decisions 2026-10-27: ALL interest is added back, overdraft and bank interest included; the test recipe field is optional,
+  default none.
+- Live (production :3005, built-in pane, as of 2026-10-27): new seed scenario_a_nonasset_interest 285 of 285; baselines unchanged: A 285, A misaligned 285,
+  A2 (scenario_a_overstaffed) 285, A with depreciation 285, B 347, ticked B 346, gate seed 342. Page EBIT card and EBIT by Source table checked by hand.
+
+3. OPEN ITEMS (carried)
+a. Q-7 timing NOT re-run after F-11: the page now mounts one more useGeneralOverheads(). Re-time Business Outcome at 100 and 1,000 staff (production build).
+b. F-10b (support / unassigned asset depreciation in EBITDA). F-4 "Unassigned cost" row check (Business Outcome brief Section 8).
+c. is_interest_row matches any line with "interest" in its name (GO-6): "Interest received" style lines would also be added back. Not changed.
+d. The scaling ladder was not run for F-11. Calc map extract still not re-run (header notes say so); re-run python Py\audit-scripts\extract_calc_map.py at the next calc
+   map edit.
+e. Carried from p: untested live: stored tick back to asset hours; sequential pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate
+   Builder group rates, Model Readiness, Module Reconciliation, Quote Engine with a ticked group. Stray comment above apply_revenue_ceiling (about L596).
+f. Project knowledge: re-sync BUSINESS_OUTCOME, GENERAL_OVERHEADS, PROJECT_MAP, CALCULATION_MAP, VARIABLE_TRACKER; rewrite .tmp\project_sync_ledger.tsv; owner runs
+   python Py\audit-scripts\check_project_knowledge_sync.py.
+
+4. NEXT STEPS IN ORDER  (one piece of work per chat; start a NEW chat for each)
+1. Q-7 timing re-check on Business Outcome after F-11 (this chat's follow-up). Method: stress brief Addendum 16 / perf_pass.console.js, production build, 100 and 1,000
+   staff seeds (scale_recipe / --staff-total). Pass = open < 1 s and no freeze > 0.2 s at 100 staff; open < 3 s and no freeze > 1 s at 1,000.
+2. F-10b.
+3. ONE full regression (A, A misaligned, A2, B, ticked B, gate seed, scenario_a_nonasset_interest, the ladder, item d checks).
+4. R3 Business Modelling redesign.
+
+5. STANDING RULES
+- Archive, never delete. One brief per module. Build after each batch, never while dev runs or a server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry
+  on after a compaction.
+- Claude stages files from the device, edits its own copy (EOL- and BOM-preserving, one match per patch), copies to /mnt/user-data/outputs and writes back with
+  device_commit_files (mtime guard). Claude cannot run a shell on the device: the owner runs git, npm, PowerShell. The production server only serves public files that
+  existed when it started: generate seeds first, then start it.
+- Built-in pane: request_access for the port if asked; seed with fetch('/__stress_tmp/seed_<id>.json') and write each key with JSON.stringify; re-seed and reload in one
+  call, compare in the next; restore the owner's 18 keys at the end (backup in sessionStorage __bk_before_f11 only lasts while the pane tab lives).
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+6. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Business Outcome brief Addendum 1 and Addendum 6; stress brief Addendum 16 (timing method). Py\stress_test\perf_pass.console.js.
+Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the rest of the stress brief, or module briefs not needed.

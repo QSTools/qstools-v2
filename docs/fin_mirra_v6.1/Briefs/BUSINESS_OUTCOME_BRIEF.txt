@@ -5,9 +5,9 @@ FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_OUTCOME_BRIEF.txt  (the ONE B
 COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map and gotchas - mechanism, not intent)
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
-               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). PENDING before R3: F-11
-               EBIT interest add-back, F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
-LAST UPDATED:  2026-10-27 (Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+               da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). F-11 EBIT all-interest add-back BUILT and live-checked 2026-10-27 (Addendum 6; new seed 285 of 285, baselines unchanged; commit hash in handover V6.1q).
+               PENDING before R3: Q-7 timing re-check (one more General Overheads hook on the page), F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4).
+LAST UPDATED:  2026-10-27 (Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -83,7 +83,7 @@ idle_labour_by_group) -> Business Modelling lever engine, useBusinessOutcomeOutp
 NOTE: businessOutcomePerSourceRevenueSelectors.js rebuilds per_source FIELD BY FIELD - any new hook field must be
 added there too (bug class 6b; caught once with idle_labour_by_group).
 Calculation trace: businessOutcomeTraceNodes.js (per-source revenue / net profit, materials, group rollups); idle
-nodes (idleCostTraceNodes.js). EBIT / EBITDA have NO trace nodes yet (backfill item).
+nodes (idleCostTraceNodes.js). EBIT / EBITDA trace nodes: ebitTraceNodes.js (Addendum 2); total_interest includes interest in overheads (F-11, Addendum 6).
 
 ===============================================================================
 6. KEY FILES (full map: Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt)
@@ -140,11 +140,10 @@ F-10  [SHIPPED 2026-10-26, Addendum 2] EBITDA depreciation: useAssets active_ass
 F-10b OPEN  Depreciation on support or unassigned assets is still missing from EBITDA: the F-8 remainder row in
       businessOutcomeEbitCalculations.js carries interest only. Designed (remainder = all-asset depreciation less the
       depreciation already on source rows); expected target already in mirra_expected_l2.py A-12. Own slice, own test.
-F-11  EBIT should add back ALL interest (non-asset interest and the flagged-row remainder), plumbed from General
-      Overheads via props, not a new hook instance; then backfill EBIT / EBITDA trace nodes and add to the expected
-      script. Open question carried: overdraft interest left in overheads. Trace nodes and expected script: DONE with F-10
-      (Addendum 2); the add-back itself is still to build. Scenario A cannot test it (its P&L loan interest equals the asset
-      interest exactly, so the remainder is 0): a recipe with a separate non-asset interest line is needed.
+F-11  [BUILT and live-checked 2026-10-27, Addendum 6; commit in handover V6.1q] EBIT adds back ALL interest: asset interest (unchanged) plus
+      every interest row left in General Overheads, overdraft and bank interest included, flagged-row remainders included (owner decision
+      2026-10-27). One new row "Interest in overheads (non-asset)" in calculateEbitByUnit; value comes from General Overheads
+      interest_in_overheads_annual, read once on the page and passed as a prop. Tested with recipes/scenario_a_nonasset_interest.json.
 F-4   Check the "Unassigned cost" row (apply_unassigned_entry) when Cost Allocation's F-4 spread is built.
 OPEN
 BO-8  Capacity gap valuation: Business Modelling rate overrides now pass for the per-asset shortfall branch (O-2); the
@@ -265,3 +264,29 @@ Because Cost Allocation sums dry hours into the recovery hours of an asset-drive
 unit. The tick only applies in asset-hours groups (decision 3b, commit 9c72c8e; Cost Allocation brief Addenda 6-8), and the wording pass is shipped (ac6e5a5).
 Calc map s7 / s9.1-9.4 / s9.9 and CM-10 are done. Still untested live: Business Modelling levers on the dry-hire unit, sequential run pattern with a ticked asset.
 The DRY_HIRE future-build brief is archived (docs\Archive\Future_Build_Built\).
+
+ADDENDUM 6 (2026-10-27) - F-11 EBIT ADDS BACK ALL INTEREST [BUILT, live-checked on the production build; commit hash in handover V6.1q]
+Problem: EBIT added back asset interest only (each group's asset_interest_annual plus the F-8 remainder row). Interest still inside General Overheads
+(overdraft, bank, non-asset loan interest, and what is left of a flagged P&L interest row after the Assets figure is taken off) stayed in net profit as a
+cost, so EBIT and EBITDA were understated by that amount.
+Owner decisions (2026-10-27): add back ALL interest, overdraft and bank interest included (this closes the carried question "overdraft interest left in
+overheads"); the test recipe gets a new OPTIONAL field, default none.
+Built: (1) General Overheads, generalOverheadCalculations.js L264-L277: interest_in_overheads_annual = sum of active_amount over every row that is an interest
+row (is_interest_row) OR a flagged asset-finance row, so the flagged remainder is included and the asset part (already taken off the flagged row) is not.
+non_asset_interest_annual is unchanged and still excludes flagged rows. Passed through generalOverheadOutputContract.js. (2) businessOutcomeEbitCalculations.js
+L24 and L68-L84: new optional input overhead_interest_annual adds one row "Interest in overheads (non-asset)" (interest, EBIT and EBITDA all equal to it,
+no net profit, no depreciation); omitted or 0 changes nothing. (3) Plumbing by props, not a new hook inside the cards: app/business-outcome/page.jsx calls
+useGeneralOverheads() once and passes overhead_interest_annual to BusinessOutcomeEbitSummaryCard and, through BusinessOutcomePerSourceRevenueCard, to
+BusinessOutcomeEbitByUnitTable; calculationTraceLiveValues.js reuses its existing useGeneralOverheads() call (moved above the EBIT block). (4) ebitTraceNodes.js:
+formula text of business_outcome.ebit.total_interest only; node ids unchanged. Summary card wording: "All interest added back: asset finance interest plus
+any other interest in overheads."
+Verified live (production :3005, built-in pane, as of 2026-10-27): new seed scenario_a_nonasset_interest (Scenario A plus 18,000 "Overdraft Interest") passes
+285 of 285 (187 nodes, 95 raw, 3 derived; 249 trace nodes, 0 duplicates, 0 missing endpoints). Page and trace agree: net profit 120,206 (P&L 120,205.98),
+interest 59,456 (asset 41,456.25 + 18,000), EBIT and EBITDA 179,662, depreciation 0. EBIT by Source table shows the new row at 18,000 and the interest column
+sums to 59,456. Baselines with no non-asset interest are unchanged: A 285, A misaligned 285, A2 285, A with depreciation 285, B 347, ticked B 346, gate seed
+342. The 18,000 sits inside the Cost Allocation overhead pool (pool 179,710.69 matched), so adding the interest line lowers net profit and raises the interest add-back by the same amount, and EBIT is unchanged by it (as an interest add-back should be).
+Not run: the scaling ladder and Q-7 timing (this adds one useGeneralOverheads instance to the page; the shared-readiness rule in Addendum 1 is not affected, but
+re-time Business Outcome at 100 and 1,000 staff). F-10b still open. The raw Cost Allocation and derived checks ran on the new seed (95 raw, 3 derived).
+Watch: is_interest_row matches any overhead line whose name contains "interest" (General Overheads GO-6), so a line such as "Interest received" or "Interest on
+tax" would also be added back.
+Acceptance still owed for the whole F-n batch: ONE full regression after F-10b.

@@ -1,5 +1,7 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-27 (F-11, EBIT adds back all interest): s4 gained interest_in_overheads_annual (generalOverheadCalculations.js L264-L277, line numbers read from
+  the patched file; extract NOT re-run); s9.3 EBIT paragraph rewritten (F-10 shipped, F-11 built, trace nodes exist, F-10b still open).
   UPDATED 2026-10-27 (CM-10 gate, commit 9c72c8e): s7 dry-hire block now documents the driver gate (dry_hire_applies); the s7 Group cost row line numbers
   were refreshed (lines after L74 moved by +10 to +12); CM-10 in s12 is CLOSED. Extract not re-run.
   UPDATED 2026-10-27 (F-7 dry hire, V6.1n step 4): s7 gained the dry-hire block (costAllocationGroupCostBuilder.js: operated / dry split,
@@ -179,6 +181,12 @@ Employee overheads (lib/calculations/employeeOverheadCalculations.js)
 - active_amount = max(row amount - row_share_of_assets_total, 0)
   (floors the P&L asset-finance interest line at 0 - BO-7)                L244
 - total_general_overheads = sum of active_amount                          L248
+- non_asset_interest_annual = sum of active_amount over interest rows that
+  are NOT flagged (no consumer yet)                                        L253
+- interest_in_overheads_annual (F-11) = sum of active_amount over interest
+  rows AND flagged asset-finance rows, so the flagged-row remainder counts
+  and the asset part (already taken off) does not; overdraft / bank
+  interest included (owner 2026-10-27). Read by Business Outcome EBIT     L264-L277
 - asset overhead pools: pool.amount += row amount for rows moved to an
   asset pool          build_asset_overhead_pools (generalOverheadPoolSelectors.js) L56
 
@@ -475,10 +483,14 @@ ASSET (build_asset_sources, L108)
   only): net profit + interest per source row; since 2026-10-18 (F-8) also
   + every active asset's interest not on a source row (support and
   unassigned assets) as one row, so total interest = all asset interest.
-  Not yet added back: non-asset interest in overheads (F-11, next batch).
-  EBITDA depreciation reads estimated_annual_depreciation, which useAssets
-  active_assets does not pass through, so it is always 0 (F-10, next batch).
-  No trace node yet.
+  F-11 (2026-10-27): + one row "Interest in overheads (non-asset)" = General
+  Overheads interest_in_overheads_annual (every interest row's active_amount,
+  flagged remainder included), input overhead_interest_annual, so total
+  interest = all asset interest + all interest left in overheads. L68-L84.
+  EBITDA depreciation: F-10 shipped (useAssets passes
+  estimated_annual_depreciation through); depreciation on support or
+  unassigned assets is still missing (F-10b, open).
+  Trace nodes: business_outcome.ebit.* (ebitTraceNodes.js), totals only.
 MATERIALS (in the main hook)
 - true_cost = total COGS + max(residual overhead, 0), where residual
   overhead = business overheads - overhead assigned to groups             L1102, L1208

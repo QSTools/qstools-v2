@@ -88,6 +88,11 @@ F-10 (2026-10-26; Business Outcome brief Addendum 2): EBIT / EBITDA covered. rec
   Live 2026-10-26 on the built-in browser pane at :3005: 174 of 174 nodes (raw and derived checks not run for this slice).
   The loader still refuses any port but :3004. The 3005 run wrote the seed keys into the pane's storage by hand, verified key by key by length and CRC32.
 
+F-11 (2026-10-27; Business Outcome brief Addendum 6): recipes/scenario_a_nonasset_interest.json = Scenario A plus the new optional recipe field
+  pnl.non_asset_interest_annual (18,000, label "Overdraft Interest"; default none, so every older seed is unchanged). mirra_expected_l2.py A-12: total_interest
+  also adds that field. Live 2026-10-27 on the pane at :3005: 285 of 285 (187 nodes, 95 raw, 3 derived). Generate all seeds and expected files into
+  public\__stress_tmp BEFORE starting the production server (it will not serve files added after it started).
+
 F-7 DRY HIRE, TICKED SEED (2026-10-27; stress brief Addendum 23; DRY_HIRE brief Addendum 1)
   Recipe asset entries take an OPTIONAL THIRD VALUE: ["A02", 40, "dry"] = that assignment is ticked "hired out without our operator"
   (seed row gets earns_without_operator: true). Absent = operated; with no third value every seed and expected value is byte-identical

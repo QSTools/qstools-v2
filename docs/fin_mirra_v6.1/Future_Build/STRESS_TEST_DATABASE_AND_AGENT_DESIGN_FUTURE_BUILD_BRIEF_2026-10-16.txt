@@ -1444,3 +1444,16 @@ compare the current seed AND seed the next, then navigate. The gate seed's P&L i
 machines stop earning when the group is labour-driven but keep their cost. It tests the gate, not a realistic business.
 Not covered: the sequential run pattern with a ticked asset; a stored tick coming back when the group is switched to asset hours.
 ===============================================================================
+ADDENDUM 25 (2026-10-27) - F-11: NEW OPTIONAL RECIPE FIELD AND SEED [BUILT: harness and app; live 285 of 285]
+===============================================================================
+Recipe field: pnl.non_asset_interest_annual (optional, default none = every older seed unchanged) with pnl.non_asset_interest_label (default "Bank Interest").
+generate_business.py writes it as one plain general-overheads P&L line (sub-category finance_interest, interest_treatment not_reviewed), so it stays in net profit as
+a cost and EBIT must add it back. mirra_expected_l2.py assumption A-12: total_interest = every asset's interest + this field. Note for the target_margin
+revenue basis: revenue is solved without this line, so net profit falls by the amount (the aligned billed_from_rates basis is unaffected). New recipe
+recipes/scenario_a_nonasset_interest.json = Scenario A plus 18,000 "Overdraft Interest". Expected: 187 nodes (155 layer 2) + 95 raw + 3 derived = 285; overhead pool
+179,710.69; EBIT nodes net profit 120,205.98, interest 59,456.25, EBIT and EBITDA 179,662.23.
+Live run (production :3005, built-in pane, as of 2026-10-27): new seed 285 of 285; A 285, A misaligned 285, A2 (scenario_a_overstaffed) 285, A with depreciation 285,
+B 347, ticked B 346, gate 342; pane storage restored (18 keys). Method notes: (a) next start serves public files only if they existed when it started, so
+generate every seed BEFORE starting the server (a file added later returns 404; restart the server); (b) re-seed and reload in one call, compare in the next.
+The ladder (100 / 1,000 staff) and the Q-7 timing were not run for this slice.
+===============================================================================

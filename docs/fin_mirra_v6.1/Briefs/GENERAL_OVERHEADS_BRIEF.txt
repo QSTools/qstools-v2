@@ -6,7 +6,7 @@ STATUS:        VERIFIED THROUGH THE R2 STRESS TEST (layer-1 trace nodes, Scenari
                First dedicated v6.x brief: General Overheads was never given its own P2 verification pass. Since
                v6.0: S-G1 closed (Business Outcome BO-7), asset-finance tick proven live (S1, 2026-10-16), asset
                running-cost pools proven live (smoke test E.4, 2026-10-02).
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+LAST UPDATED:  2026-10-27 (Addendum 1, F-11 contract field interest_in_overheads_annual); 2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
                stands today; code reads are marked READ IN CODE and have not been seen live)
 ROUTE:         app/general-overheads
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 4 (and s12 for CM entries). This brief holds intent,
@@ -96,7 +96,9 @@ output_contract (hooks/general-overheads/generalOverheadOutputContract.js):
   total_general_overheads            -> Cost Summary (people + assets + overheads), Module Reconciliation,
                                         Business Summary bridge, Quote Engine (through Cost Summary)
   category_totals                    -> summary card
-  non_asset_interest_annual          -> Business Outcome EBIT add-back (planned F-11, see Section 8)
+  non_asset_interest_annual          -> not read by anything yet (excludes flagged rows)
+  interest_in_overheads_annual       -> Business Outcome EBIT add-back (F-11, Addendum 1): every interest row's active_amount,
+                                        flagged-row remainder included
   overhead_rows (allocation rows)    -> Cost Allocation overhead pool, Recovery Summary
   asset_overhead_pools, total_asset_overhead_pool_amount (and the asset_related_* names) -> Assets
         (asset_overhead_pool_assignments), Cost Summary pool transfer
@@ -159,10 +161,8 @@ GO-2  Clashing asset_* contract names (tracker A12/A13): asset_related_assigned_
       assignment lives on the asset records. Consumers must not read them as assignment status.
 GO-3  Over-assigned pools: the contract scales over-assigned pools pro rata, the Assets hook uses raw amounts, and
       the editor clamps (smoke test E.4). Latent while pools balance (tracker, Assets A3).
-GO-4  Non-asset interest add-back (R2 F-11, owner decision pending in the R2 handover of 2026-10-18): EBIT is
-      understated when interest left in overheads (non-asset interest plus the flagged-row remainder) is not added
-      back. Plan: plumb non_asset_interest_annual from General Overheads through props, not a new hook instance.
-      CHECK git log and the Business Outcome brief for status before relying on this line.
+GO-4  [BUILT 2026-10-27, Addendum 1] Non-asset interest add-back (R2 F-11): EBIT now adds back interest_in_overheads_annual.
+      Owner decision 2026-10-27: all interest, overdraft and bank interest included. See the Business Outcome brief Addendum 6.
 OPEN - CHECKS
 GO-5  Saved profiles hold snapshots that look like live data (51 KB with output_contract). Confirm nothing reads a
       saved profile's stored total (the hook does not; grep other readers before a migration).
@@ -224,4 +224,12 @@ historical evidence.
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+(Addendum 1 is below.)
+
+ADDENDUM 1 (2026-10-27) - F-11: interest_in_overheads_annual [BUILT, live-checked; commit hash in handover V6.1q]
+New output contract field interest_in_overheads_annual (generalOverheadCalculations.js L264-L277, passed through generalOverheadOutputContract.js L42):
+the sum of active_amount over every row that is an interest row (is_interest_row: category finance_interest, or "interest" in the label or source line name) OR
+a flagged asset-finance row. The flagged row's active_amount is already its P&L amount less the Assets interest, so the remainder counts and the asset part does
+not (no double count with the asset interest EBIT already adds back). non_asset_interest_annual is untouched. Consumer: Business Outcome EBIT (Business Outcome
+brief Addendum 6). Verified: Scenario A plus 18,000 "Overdraft Interest" gives pool 179,710.69 and interest_in_overheads 18,000 (page EBIT 179,662).
+GO-6 now has a second consequence: a line with "interest" in its name that is not finance interest would be added back in EBIT too.
