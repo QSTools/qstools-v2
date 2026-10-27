@@ -278,3 +278,16 @@ every recovery driver, but only asset-hours groups add the dry hours to group_re
 In a labour-hours or manual-hours group a ticked row is dropped from required_asset_hours, reported in earns_without_operator_hours and added to nothing;
 utilisation then divides by required + dry hours. No effect on net profit. Closes with owner decision 3b (hide the tick, or warn); if hide, also gate
 the builder split on the asset-hours driver. Untested live.
+
+ADDENDUM 6 (2026-10-27) - CM-10 CLOSED: THE DRY-HIRE TICK ONLY APPLIES IN ASSET-HOURS GROUPS [SHIPPED, commit 9c72c8e]
+Owner decisions 2026-10-27: 3a KEEP AS BUILT (dry hours are SUMMED into the recovery hours of an asset-driven group, so overhead, the non-productive
+spread and the stream rates follow them; a ticked unit draws more overhead and the other groups' cost per hour falls); 3b OPTION 1 (hide and gate).
+Code: costAllocationGroupCostBuilder.js now resolves the recovery driver BEFORE the operated / dry split (the group_recovery_hour_source default moved up,
+defined once) and splits only when dry_hire_applies (driver = asset hours). In any other group every assignment is operated, earns_without_operator_hours
+is 0 and a stored tick is ignored but kept on the row (it works again if the group goes back to asset hours). UI: CostAllocationStepBuilder.jsx passes
+allow_dry_hire (selected group's cost row driver = asset hours) to CostAllocationGroupAssetBuilder.jsx, which hides the tick otherwise and shows a note:
+"Dry hire ... is only available when this group's recovery hours are driven by asset hours."
+Live (production :3005, built-in pane, as of 2026-10-27): new seed scenario_b_dry_hire_gate (ticked B plus G02 labour-hours driven with A04 ticked) 342 of
+342 (G02 earns_without_operator_hours 0, G03 1,872); ticked B 346, B 347, A / A misaligned / A2 285 each. UI checked: G02 shows no tick and the note, G03 shows
+both ticks still ticked. NOT tested live: switching a group back to asset hours with a stored tick. Calc map s7 and CM-10 (s12) updated.
+STILL OPEN: the wording of the tick and its help text (UI wording pass).

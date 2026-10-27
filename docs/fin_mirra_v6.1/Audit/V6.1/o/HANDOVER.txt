@@ -1,0 +1,48 @@
+HANDOVER V6.1o   2026-10-27   (CM-10 gate shipped, commit 9c72c8e; decisions 3a / 3b settled; tick wording is next)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\o\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method; see also stress brief Addendum 24 for what changed). This file
+replaces n Sections 1 to 5. n, m and k are history now.
+
+1. WHERE WE ARE
+- Last code commit: 9c72c8e "F-7 CM-10: dry hire tick only applies in asset-hours groups ..." (3 app files, 2 harness files, new recipe
+  scenario_b_dry_hire_gate.json). Before it: c1e3045 (calc map F-7). Branch is ahead of origin/main by 4 or more commits; push is the owner's call.
+- UNCOMMITTED when this was written (docs only; run git status first; commit as "docs: CM-10 closed, handover V6.1o"): this file, PROJECT_MAP.md,
+  Calculations\CALCULATION_MAP_v6_0.txt (s7 gate note + refreshed line numbers, CM-10 closed), Briefs\COST_ALLOCATION_BRIEF.txt (Addendum 6),
+  Future_Build\DRY_HIRE_... (Addendum 4), Future_Build\STRESS_TEST_... (Addendum 24), Py\stress_test\README.txt.
+  Untracked and generated: public\__stress_tmp\ (seeds). Run Remove-Item public\__stress_tmp, .next -Recurse -Force at the end of the session; stop the :3005 server.
+- LIVE 2026-10-27 (production :3005, built-in pane, as of 2026-10-27): gate seed 342 of 342; ticked B 346 of 346; B 347 of 347; A, A misaligned, A2 285 of 285
+  each. UI: G02 (labour-driven, stored tick) shows no tick and the note; G03 (asset-driven) shows both ticks ticked.
+
+2. DECISIONS (closed)
+- 3a: KEEP AS BUILT. Dry hours are SUMMED into group_recovery_hours of an asset-driven group; overhead, non-productive spread and stream rates follow.
+- 3b: OPTION 1 DONE. costAllocationGroupCostBuilder.js splits operated / dry only when the group is driven by asset hours; the tick is hidden otherwise
+  (CostAllocationStepBuilder passes allow_dry_hire; CostAllocationGroupAssetBuilder shows a note). A stored tick on a non-asset group is kept but ignored.
+
+3. OPEN ITEMS (carried)
+a. Not tested live: switching a group with a stored tick back to asset hours (tick should return); sequential run pattern with a ticked asset; Business
+   Modelling levers on the dry-hire unit; Rate Builder group-level rates; Model Readiness / Module Reconciliation / Quote Engine with a ticked group.
+b. Stray comment text above apply_revenue_ceiling in useBusinessOutcomePerSourceRevenue.js (about L596).
+c. Carried list as in k 3e. d. Ticked-seed P&L nets 20.2 percent of revenue vs B 14.5 (generator sizes overheads as a percent of revenue); the gate seed nets 5.4
+   percent with a View A shortfall about 612k by design. Ticked-B vs B is not like for like.
+e. After the tick wording pass: fold the DRY_HIRE future-build brief into the Cost Allocation and Business Outcome briefs and archive it (Archive, never delete).
+f. Calc map: extract_calc_map.py NOT re-run after the gate (s7 line numbers refreshed by hand from the committed file); header notes for F-1 / F-4 still say
+   "extract NOT re-run". Re-run and tidy at the next calc map edit.
+
+4. NEXT STEPS IN ORDER  (one piece of work per chat)
+1. UI wording pass on the tick (label "Hired out without our operator (dry hire)", its help line, the note shown in non-asset groups).
+2. F-11 (EBIT adds back all interest; needs a recipe with non-asset interest).  3. F-10b (support / unassigned asset depreciation in EBITDA).
+4. ONE full regression (A, A misaligned, A2, B, ticked B, gate seed, the ladder, item d checks).  5. R3 Business Modelling redesign.
+
+5. STANDING RULES
+- Archive, never delete. One brief per module. Apply-Patch / Invoke-PatchBatch, "Patched:" confirmations, build after each batch, never while dev runs or a
+  server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Claude stages files from the device, edits its own copy, copies the result to /mnt/user-data/outputs and commits back with device_commit_files (mtime guard;
+  stagedPath must be under outputs). Project knowledge: Projects project_write with local_path inside Claude's working directory; rewrite the ledger (sha256 of the
+  exact bytes uploaded); the owner runs check_project_knowledge_sync.py. Python in Claude's container can test harness changes offline first.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives. git add with explicit paths.
+
+6. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Cost Allocation brief Addenda 3-6; DRY_HIRE brief Addenda 1-4; the tick UI (components\cost-allocation\groups\CostAllocationGroupAssetBuilder.jsx).
+Then only what the wording pass needs. Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief (118 KB; only Addendum 24 if the harness matters),
+or module briefs not needed.

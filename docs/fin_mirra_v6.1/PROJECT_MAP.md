@@ -108,14 +108,14 @@ scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBIT
 F-11 EBIT adds back all interest (OPEN; needs a recipe with non-asset interest) |
 F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): SHIPPED 2026-10-27 (calculation 17a5957; trace nodes, CALCULATION_TRACE_BRIEF
 Addendum 2; ticked Scenario B test seed, commit 1303482, live 346 of 346; Cost Allocation brief Addendum 3 and 4, Business Outcome brief Addendum 3 and 4, DRY_HIRE brief
-Addendum 2, stress brief Addendum 23). Calc map s7 / s9.1-9.4 / s9.9 + CM-10, VARIABLE_TRACKER s21 and BUSINESS_OUTCOME_FILE_MAP DONE 2026-10-27 (step 4; extract not re-run). Still owed: owner decisions 3a / 3b (CM-10) and the tick wording.
-Baselines with the tick off (nodes + raw + derived): A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346.
+Addendum 2, stress brief Addendum 23). Calc map s7 / s9.1-9.4 / s9.9 + CM-10, VARIABLE_TRACKER s21 and BUSINESS_OUTCOME_FILE_MAP DONE 2026-10-27 (step 4; extract not re-run). Owner decisions 2026-10-27: 3a kept as built; 3b option 1 SHIPPED (commit 9c72c8e: tick applies only in asset-hours groups, CM-10 closed; Cost Allocation brief Addendum 6, DRY_HIRE brief Addendum 4, stress brief Addendum 24; gate seed scenario_b_dry_hire_gate live 342 of 342). Still owed: the tick wording.
+Baselines with the tick off (nodes + raw + derived): A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346, gate seed 342 of 342.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt = V6.1n: F-7 fully shipped and documented, calc map re-extracted and committed c1e3045; next owner decisions 3a / 3b (CM-10), then F-11, F-10b, one full regression).
+R2 resumes next (see latest HANDOVER.txt = V6.1o: F-7 and CM-10 shipped and documented; next the tick wording, then F-11, F-10b, one full regression).
 
 ## 7. Findings numbering
 

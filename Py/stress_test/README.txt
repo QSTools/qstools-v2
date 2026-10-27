@@ -104,3 +104,7 @@ F-7 DRY HIRE, TICKED SEED (2026-10-27; stress brief Addendum 23; DRY_HIRE brief 
   B ticked 220 (the G03 gap-dollar node drops out). Raw and derived check counts are unchanged.
   Prepare: .tmp\f7_ticked_seed.ps1 (dry run, then -Live) writes the seeds and expected files for all five recipes to public\__stress_tmp.
 
+
+CM-10 GATE (2026-10-27; stress brief Addendum 24): the dry-hire tick only applies in groups driven by asset hours (mirra_expected_l2.py / mirra_expected.py
+  follow the app). recipes/scenario_b_dry_hire_gate.json = scenario_b_dry_hire plus G02 labour_hours with A04 ticked "dry"; expected 216 nodes + 123 raw + 3
+  derived, live 342 of 342. .tmp\f7_ticked_seed.ps1 now prepares six seeds (A, A misaligned, A2, B, B ticked, B gate).

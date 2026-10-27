@@ -1,5 +1,7 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-27 (CM-10 gate, commit 9c72c8e): s7 dry-hire block now documents the driver gate (dry_hire_applies); the s7 Group cost row line numbers
+  were refreshed (lines after L74 moved by +10 to +12); CM-10 in s12 is CLOSED. Extract not re-run.
   UPDATED 2026-10-27 (F-7 dry hire, V6.1n step 4): s7 gained the dry-hire block (costAllocationGroupCostBuilder.js: operated / dry split,
   earns_without_operator_hours, operated_recovery_hours, asset_driven_recovery_hours, utilisation); s9.1 rewritten for the get_group_dry_hire_hours /
   _operated_seat_hours / _operated_covered_hours / get_group_covered_hours family; s9.2, s9.3, s9.4, s9.9 gained the F-7 consequences; s12 gained
@@ -258,48 +260,52 @@ Group cost row (costAllocationGroupCostBuilder.js build_operational_group_cost_r
 - assigned_asset_burden = SUM of asset assignment cost                    L54-57
 - assigned_asset_hours = MAX of asset assignment hours (not the sum); counts EVERY assignment, ticked dry-hire rows too   L59-63
 - total_group_cost = labour + asset + overhead + non-productive labour
-    + non-productive asset                                                L156-161
+    + non-productive asset                                                L166-171
 - group_recovery_hours = asset hours if a productive asset is present,
-  else labour hours (tracker); for an asset-driven group see the F-7 block below   L141-146
+  else labour hours (tracker); for an asset-driven group see the F-7 block below   L151-156
 - labour / asset / overhead_recovery_rate = each stream / group recovery
-  hours (these three EXCLUDE non-productive cost - C6)                   L165-174
-- group_cost_per_hour = total_group_cost / group recovery hours           L176-177
+  hours (these three EXCLUDE non-productive cost - C6)                   L175-184
+- group_cost_per_hour = total_group_cost / group recovery hours           L186-187
 - asset_run_pattern (group setting: not answered / together / sequential; set in Cost Allocation Step 2)  [D1, 2026-10-06]
 - required_asset_hours = SUM of the OPERATED asset assignment hours if sequential, else the MAX of the operated hours
-  (= assigned_asset_hours when nothing is ticked; F-7 leaves ticked rows out)   L90-97
+  (= assigned_asset_hours when nothing is ticked; F-7 leaves ticked rows out)   L107-109
 - is_labour_capped = asset hours drive AND assigned_labour_hours > 0 (any run pattern; widened 2026-10-07). When capped,
   operated_recovery_hours = MIN(required_asset_hours, assigned_labour_hours); otherwise the MAX of the operated asset hours
-  (L135-137)  [CM-9]
+  (L145-147)  [CM-9]
 - DRY HIRE (F-7, 2026-10-26, shipped 2026-10-27, commit 17a5957; default OFF, nothing ticked = every figure above and below unchanged).
   An asset assignment ticked earns_without_operator (tick in Cost Allocation, productive assignments only; stored on the assignment
   row, hooks/useCostAllocation.js set_asset_assignment_earns_without_operator) is hired out with no operator. The builder splits the group's
-  asset assignments (L75-80):
+  asset assignments (L82-92):
     operated_asset_assignments = earns_without_operator !== true      dry_hire_asset_assignments = earns_without_operator === true
-    operated_asset_hours_max   = MAX of operated assignment hours     L81-85
-    earns_without_operator_hours = SUM of dry assignment hours        L86-89   (new output, 0 when nothing is ticked)
-    asset_hours_sum            = SUM of operated assignment hours     L90-93   (sequential required hours)
-  operated_recovery_hours (local, L135-137) = the pre-F-7 recovery hours, computed from OPERATED rows only
-  asset_driven_recovery_hours = operated_recovery_hours + earns_without_operator_hours   L138-139
+    operated_asset_hours_max   = MAX of operated assignment hours     L93-97
+    earns_without_operator_hours = SUM of dry assignment hours        L98-101   (new output, 0 when nothing is ticked)
+    asset_hours_sum            = SUM of operated assignment hours     L102-105   (sequential required hours)
+  operated_recovery_hours (local, L145-147) = the pre-F-7 recovery hours, computed from OPERATED rows only
+  asset_driven_recovery_hours = operated_recovery_hours + earns_without_operator_hours   L148-149
   group_recovery_hours = asset_driven_recovery_hours if the driver is asset hours (ticked hours are SUMMED, not MAXed);
-    manual hours if manual; assigned labour hours otherwise                L141-146
-  Left on OPERATED rows only (a dry row needs no labour): required_asset_hours L95-97, the labour cap L132-137, labour_coverage_gap_hours
-    L184-188 and the warning text, idle_labour_hours / idle_labour_cost L211-220.
-  Moves with the SUMMED recovery hours: the three stream rates and group_cost_per_hour (L165-177); the overhead pool weight (overhead is split
+    manual hours if manual; assigned labour hours otherwise                L151-156
+  Left on OPERATED rows only (a dry row needs no labour): required_asset_hours L107-109, the labour cap L142-147, labour_coverage_gap_hours
+    L194-198 and the warning text, idle_labour_hours / idle_labour_cost L221-230.
+  Moves with the SUMMED recovery hours: the three stream rates and group_cost_per_hour (L175-187); the overhead pool weight (overhead is split
     by group_recovery_hours, build_overhead_pool, above) so a ticked unit draws overhead by its dry hours too; the non-productive spread weight (s9.4).
-  asset_utilisation_percent = group_recovery_hours / (required_asset_hours + earns_without_operator_hours) x 100   L243-248
-  labour_utilisation_percent = operated_group_recovery_hours / assigned_labour_hours x 100 (dry hours excluded)   L253-260
-  Exports (L296-297): earns_without_operator_hours; operated_recovery_hours (= operated_group_recovery_hours: recovery less dry hire for an
+  asset_utilisation_percent = group_recovery_hours / (required_asset_hours + earns_without_operator_hours) x 100   L253-258
+  labour_utilisation_percent = operated_group_recovery_hours / assigned_labour_hours x 100 (dry hours excluded)   L263-270
+  Exports (L306-307): earns_without_operator_hours; operated_recovery_hours (= operated_group_recovery_hours: recovery less dry hire for an
     asset-driven group, group_recovery_hours otherwise). Trace nodes cost_allocation.group.<id>.earns_without_operator_hours and
     .operated_recovery_hours exist for every working group (CALCULATION_TRACE_BRIEF Addendum 2).
-  The split by operated / dry does NOT check the driver: in a labour-hours or manual-hours group a ticked row is still left out of
-    required_asset_hours and still reported in earns_without_operator_hours, but is NOT added to group_recovery_hours (owner decision 3b open) [CM-10].
+  CM-10 CLOSED (owner decision 3b, 2026-10-27, commit 9c72c8e): the split is GATED on the driver. dry_hire_applies = group_recovery_hour_source ===
+    "asset_hours" (L79-82; the driver default moved up from its old place, so it is resolved once, before the split). In any other group every
+    assignment is operated, dry_hire_asset_assignments is empty and earns_without_operator_hours is 0; a stored tick is ignored but kept on the row, and
+    takes effect again if the group is switched back to asset hours. UI: the tick is shown only when the group's driver is asset hours
+    (CostAllocationStepBuilder passes allow_dry_hire to CostAllocationGroupAssetBuilder, with a help note otherwise). Line numbers in this block were
+    refreshed from the committed file at 9c72c8e.
 - NOTE: the three stream rates, group_cost_per_hour and the overhead weight all follow group_recovery_hours, so a
   capped group's rates and its overhead share move (overhead is split across groups by recovery hours).
 - NOTE: labour_coverage_gap_hours below is measured against required_asset_hours (not the MAX) and IS shown:
   Cost Allocation Step 3/4 notice (GroupCoverageNotice.jsx) and Business Outcome Things to check. The
   "not shown - C22" wording on the next line is out of date.
 - labour_coverage_gap_hours = asset hours - labour hours where asset
-  hours drive and exceed labour (computed, not shown - C22)               L184-188
+  hours drive and exceed labour (computed, not shown - C22)               L194-198
 
 Group recovery row (hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js,
 then overwritten in useCostAllocation.js L181-183)
@@ -788,15 +794,12 @@ CM-2 RESOLVED 2026-10-01. Was: two overhead-per-labour-hour bases coexisted
   its labour/asset split from labour_share_percent, a DIFFERENT basis from
   the per-staff-type rows. Pre-existing, deliberately not folded into the
   RB-1 fix so the diff stayed verifiable.
-CM-10 OPEN (new 2026-10-27, F-7 step 4; checked against mirra_expected_l2.py A-13: the harness and the code agree, this is a gap in BOTH, not a
-  harness gap). The dry-hire tick is honoured in two different places with two different rules.
-  Cost Allocation (costAllocationGroupCostBuilder.js L75-93) splits operated and dry rows for EVERY driver, so in a group NOT driven by asset
-  hours (labour hours or manual hours) a ticked row is left out of required_asset_hours and reported in earns_without_operator_hours, but is
-  NOT added to group_recovery_hours (L141-146). Business Outcome (get_group_dry_hire_hours L300-305 and the dry-hire test L159-161) returns 0 /
-  false for those groups, so the row is billed as an ordinary operated row. Effects in such a group: asset_utilisation_percent divides by
-  required_asset_hours + earns_without_operator_hours (L243-248), the trace node earns_without_operator_hours is non-zero while the dry hours are
-  in no recovery figure, and the tick has no revenue effect. Nothing here changes net profit. Owner decision 3b (hide the tick, or warn) closes
-  it; if the decision is to hide, the builder split should also be gated on the asset-hours driver. Untested live.
+CM-10 CLOSED (2026-10-27, owner decision 3b option 1, commit 9c72c8e; opened the same day in F-7 step 4). The dry-hire tick used to be honoured in two
+  places with two rules: Cost Allocation split operated and dry rows for every driver, Business Outcome only for asset-hours groups. Now the builder split
+  (costAllocationGroupCostBuilder.js L79-92) applies only when the group is asset-hours driven, so both agree: in a labour-hours or manual-hours group a
+  ticked row is operated, earns_without_operator_hours is 0 and utilisation reads normally; the tick is hidden in the UI there. Net profit unchanged.
+  Live 2026-10-27 (production :3005, built-in pane): gate seed scenario_b_dry_hire_gate (ticked B plus G02 labour-driven with A04 ticked) 342 of 342;
+  ticked B 346, B 347, A / A misaligned / A2 285 each. Not tested live: switching a group back to asset hours with a stored tick.
 CM-9 NOTE (F-7, 2026-10-27). The covered-hours sentence in the CM-9 notes below, "its revenue cap (get_group_covered_hours = MIN of recovery hours
   and labour hours)", is now the OPERATED cap (get_group_operated_covered_hours); get_group_covered_hours adds the dry-hire hours on top. See s9.1.
 CM-3 NOTE. Group minimum rate (Cost Allocation) excludes non-productive
