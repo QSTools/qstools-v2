@@ -10,7 +10,7 @@ STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever mo
                scenarios stacked on the modelled layer. Design decisions only - nothing built.
                SLICE ORDER AGREED AND TIER 1 NARROWED 2026-10-28 (Addendum 4): Tier 1 = General Overheads + Rate
                Builder only; scenarios pulled forward; Business Modelling stays as a thin page.
-LAST UPDATED:  2026-10-28 (Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
+LAST UPDATED:  2026-10-29 (Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -118,7 +118,7 @@ BM-2  Overhead lever is category-level; the decided design is LINE-BY-LINE with 
 BM-3  Reverse lever (set a target labour rate, show the unit rate needed) - decided, not built.
 BM-4  Multi-line calculators: each component (setup fee, hourly, per m3) as its own lever - decided, not built.
 BM-5  Per-staff-type labour lever across units ("set this rate everywhere") - decided (both granularities), not built.
-BM-6  Typing performance (R2) - fix inside the R3 design (defer recalculation until typing pauses / on blur; compute
+BM-6  Typing performance (R2; R2 closed 2026-10-29, Addendum 6) - fix inside the R3 design, tested slice by slice (defer recalculation until typing pauses / on blur; compute
       the chain once), not a patch to the engine R3 retires.
 BM-7  Engine purity audit (first R3 step, read-only): can the real chain run on a full input object, with every page
       pointed at the modelled copy and nothing reading or writing the real storage keys? Lists every file touching
@@ -430,3 +430,69 @@ Source: owner voice session 2026-10-28 (afternoon). Does not change Addenda 2 to
     (revenue falls, costs held steady by default, owner may flex named existing cost lines); a loan on top of current numbers. All run on the throwaway copy through the same levers.
  9. [NOTE] Scenario saving: throwaway by default, the owner may save one stamped with its date and starting figures (AI_LAYER Addendum 3 item 7). The stored list from Addendum 4
     item 2 already allows this; the stamp fields are to be added to the stored entry. Trend-based forecasting stays parked.
+
+ADDENDUM 6 (2026-10-29) - R2 CLOSES, STRESS TESTING RUNS INSIDE R3 SLICE BY SLICE  [DECISION: order only, nothing built, no code touched]
+Source: owner 2026-10-29 ("redesign the Business Modelling page and stress test as we go"). Evidence for the R2 state: PROJECT_MAP section 6 and the
+V6.1t handover (full regression 2026-10-27 passed; Business Outcome, Cost Allocation and Rate Builder pass Q-7). The stress brief itself was not
+re-read for this addendum; its addendum numbers are cited from PROJECT_MAP.
+ 1. [DECISION] R2 is closed except Business Modelling. Business Modelling's failing Q-7 timing (page open 1,674 ms at 100 staff and 5,709 ms at 1,000, lever typing
+    about 255 / 400 / 1,870 ms per keystroke at 10 / 100 / 1,000 staff, DEV build, Section 7) is carried into R3. The current lever page and engine are NOT stress tested
+    further and NOT patched; those figures are only the baseline the new design must beat.
+ 2. [DECISION] Stress testing is part of each R3 slice (Addendum 4 item 1), not a block at the end. A slice is not done until, on the production build:
+      (a) the standing regression still passes with modelling mode OFF and nothing differs: A / A misaligned / A2 / A depreciation / A non-asset interest /
+          A support depreciation 285, B 347, ticked B 346, gate 342, ladder 564 (100 staff) and 3,354 (1,000 staff);
+      (b) the Q-7 timing is measured at 100 and 1,000 staff for every page the slice touches, against the Q-7 threshold in the stress brief (value not restated here);
+      (c) the real keys and the locked baseline are byte-identical before and after the session (Addendum 2 acceptance, Section 11).
+ 3. Slice by slice, the extra stress checks (the figures are fixed from the live baseline at the audit, as Addendum 2 requires):
+      0  BM-7 audit: also record how long one full chain recompute takes at 100 and 1,000 staff, so the BM-6 approach (compute once, recalculate on blur or after a
+         typing pause) is sized before it is designed.
+      1  storage keys + toggle: toggle off = regression unchanged; toggle on with no differences = baseline numbers; page-open timing in modelling mode.
+      2  baseline lock / unlock: byte-identity of real data and baseline after lock, unlock and edit cycles.
+      3  minimal modelled layer (overhead lines): typing timing on the General Overheads percentage nudge; empty modelled layer reproduces baseline net profit; deleted
+         line resolves to zero with a flag. The old Business Modelling row checks (Addendum 1) retire here, replaced by checks on the thin page and Business Outcome's
+         modelled view.
+      4  scenarios: timing with a scenario on top of MODELLED at 1,000 staff; empty scenario = MODELLED; remove then re-add returns the numbers.
+      5  Rate Builder lever: typing timing on rate fields; harness expected values for modelled rates.
+ 4. The stress harness gets modelled-mode expected values slice by slice (recipe options and the expected-value script, built in the harness, not the app). The
+    Unassigned-cost case (handover item 4b) can ride along but does not block.
+ 5. Carried, NOT blocking R3: handover items 4b, 4d, G-7, G-8, the hours-mode-only PARTIAL label on the suite (units mode is R4), server-load test (R9).
+ 6. Q-7 for Business Modelling counts as closed only when the thin page and the slice 3 to 5 pages pass at 100 and 1,000 staff on the production build.
+
+ADDENDUM 7 (2026-10-29) - BM-7 ENGINE PURITY AUDIT RESULTS  [AUDIT RUN, read-only, nothing built; owner re-run at the terminal owed; open items of Addenda 4 and 5 NOT yet settled]
+Source: Py\audit-scripts\bm7_a (storage inventory), bm7_b (reach map), bm7_c (hook mounts and writes), bm7_d (seams and rebuilds), bm7_e (scenario paths), bm7_common.py, bm7_f_storage_tap.js
+(runtime tap, NOT yet run). Claude ran A to E on a read-only snapshot of the source in its own workspace on 2026-10-29: 406 files; lib/calculation-trace/pilot-map and some minor components were
+not staged. The owner's rule is that scripts run at the terminal, so the owner's own run is the one that counts (command block in handover V6.1u). Analysis is heuristic (regex, not a JS
+parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-PatchBatch, 2 of 2, owner confirmed) to follow imports of storage modules, because storage called as plain functions
+(useLabour, useRevenueCogs) was missed. In section 3, ACTION means the write sits in the storage module, not that a user triggered it; the effect that fires it is usually in the calling hook.
+ 1. [FINDING] One seam is possible. 30 modules in lib/storage plus lib/theme/themeStorage.js call window.localStorage directly, each with its own key constant, one file per key (33 keys).
+    No helper takes the key as an argument. One outlier: app/dev/cross-import-check/page.jsx (dev page) reads the P&L key directly. A single adapter in front of those modules covers every page.
+ 2. [FINDING] Pages and hooks cannot be the seam. 41 of the 47 hooks that reach storage take no parameters. The 6 that do (useBusinessModellingLegacyScenario, useBusinessModellingLevers,
+    useBusinessModellingScenario, useBusinessOutcomeLabourRecovery, useCostAllocation, useRecoverySummary) receive derived values, not state objects. Every hook reads and writes its whole stored state.
+ 3. [FINDING] Mounting a page writes real keys, even a read-only view. Each hook hydrates then saves its whole state in an effect. Hooks with a writing effect: useGeneralOverheads, useLabour,
+    useRevenueCogs, useBusinessSetup, useOpeningHours, useBalanceSheet, useFixedAssetRegister, useQuoteEngine, useRateBuilderLabourRates, useRateBuilderMaterialsMarkup,
+    useBusinessModellingLevers, useBusinessModellingScenario, useBusinessModellingLegacyScenario, useRateBuilderLineCalculator (component hook), plus effects inside the asset, cost allocation, P&L,
+    P&L profile and recovery summary storage hooks. Business Modelling page AUTO writes: P&L, assets, cost allocation, P&L profiles, recovery summary, plus its own levers, scenario and legacy keys.
+    Business Outcome (read-only view) AUTO writes: assets, P&L, cost allocation, P&L profiles, recovery summary. Rate Builder AUTO writes: cost allocation, P&L, P&L profiles, assets, recovery summary.
+    Labour is the cleanest page: it reaches only its own two keys. A modelling-mode toggle in the pages cannot stop this; the redirect has to be at storage.
+ 4. [FINDING] P&L sync. The useGeneralOverheads effect rebuilds the overhead lines from the P&L (build_general_overheads_from_pnl) whenever the P&L signature changes. A modelled overhead change
+    (slice 3) must be applied after that sync, or the sync overwrites it.
+ 5. [FINDING] Save effects with no guard word found (keyword match only, check each by eye): useRateBuilderLabourRates:90, useBusinessModellingLegacyScenario:94, useBusinessModellingLevers:56,
+    useBusinessSetup:30, labourRateRealityCheckStorage, quickStartStorage, quickStartProfileStorage, recoverySummaryStorage. The legacy scenario hook saves its default state on first mount before
+    the loaded state is applied (benign, the load had already read the real value, but a write to a real key on every open). Its key qs_tools_business_modelling_state_v1 is read and written by the
+    current page; retire or redirect it at slice 3 (Addendum 1 rows retire there).
+ 6. [FINDING] Field-dropping risks (bug class b) on stored-record paths: useAssets return (15 of 26 fields mapped), useBusinessModellingLevers return (9 of 13), normaliseRegisterAsset (fixed asset
+    register), normalize_profile (P&L profiles), createQuoteJobRecord, and the output contracts build_cost_allocation_output_contract and useRecoverySummary (95 and 116 mapped fields): a new
+    "modelled" flag added there is dropped. 59 no-spread builders in all, most are output cards. Full list in the bm7_d output.
+ 7. [FINDING] Scenario add and remove rows. Real lists exist only in fixed_asset_register.assets (and import_warnings) and revenue_cogs.unit_driver_rows. Labour profiles and staff types, Cost
+    Allocation placement and asset_state show no default list shape (built inline). A scenario row for any of those needs a new list in the modelled layer. COGS enters through useRevenueCogs
+    (49 mentions, 12 P&L), feeding Business Summary, Recovery Summary and the trace hooks; the P&L feeds it through profitAndLossCalculations. The injection point for an added COGS line is the
+    useRevenueCogs output, downstream of the P&L read.
+ 8. [FINDING] Addendum 3 item 3, "minimum recoverable rate": three candidates. minimum_recoverable_rate_per_hour (per-source selector, 20 uses in 5 files), minimum_recoverable_charge_out_rate
+    (Rate Builder selectors, 13 uses in 3 files), required_recovery_rate (Quote Engine and recovery summary, 88 uses in 26 files). Still to be chosen by the owner. BM-8: Business Modelling reads
+    the per-source output from useBusinessOutcomePerSourceRevenue (per_source and modelled_per_source), not View A or View B directly.
+ 9. [DECISION NEEDED before slice 1] Adapter design. The design stores the modelled layer as differences from the baseline, so the adapter has to return a full object (baseline plus differences)
+    on read and turn the hooks' whole-state writes back into differences on write. A key-rename (shadow full copy of each key) is simpler and trivially pure but is not "differences stored".
+    First-time storage schema: needs its own confirmation before any build.
+10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal; (b) bm7_f runtime tap (confirms which writes actually fire per page, including callbacks and context the static pass
+    cannot follow); (c) the Addendum 6 slice 0 item, how long one full chain recompute takes at 100 and 1,000 staff; (d) the unstaged files.
+11. [NEXT] Settle the open items at the end of Addenda 4 and 5 against this list, then plan build slices 1 to 5.

@@ -1,0 +1,50 @@
+HANDOVER V6.1u   2026-10-29   (R2 closed; BM-7 audit written and run; next is the owner's terminal re-run, then settle the open items and plan slices 1-5)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\u\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method). This file replaces t Sections 1 to 5. t and earlier are history now.
+
+1. WHERE WE ARE
+- Start of this session: git status clean except the untracked Future_Build\FIN_LANDING_PAGE_GUARDRAILS_v0_2.json; sync check 17 OK. Nothing has been committed this session.
+- Uncommitted now: Py\audit-scripts\bm7_common.py, bm7_a_storage_inventory.py, bm7_b_reach_map.py, bm7_c_hook_mounts_and_writes.py (patched today), bm7_d_seams_and_rebuilds.py,
+  bm7_e_scenario_paths.py, bm7_f_storage_tap.js; BUSINESS_MODELLING_BRIEF.txt (Addenda 6 and 7); PROJECT_MAP.md; this file; the guardrails JSON (owner's call, t item 4a). Run git status first.
+- Project knowledge: BUSINESS_MODELLING_BRIEF and PROJECT_MAP were re-uploaded 2026-10-29 and the ledger rewritten. Re-run the sync check (expect 17 OK).
+
+2. DONE THIS SESSION
+- R2 closes (BM brief Addendum 6): Business Modelling's failing Q-7 timing is the baseline to beat; stress testing runs inside each R3 slice (regression with modelling OFF, Q-7 at 100 and
+  1,000 staff, real keys and baseline byte-identical).
+- BM-7 audit: seven read-only scripts written (Py\audit-scripts\bm7_*). Claude ran A to E once in its own workspace on a partial source snapshot (406 files). Results are BM brief
+  Addendum 7. Headline: one adapter at the storage layer can cover every page; pages and hooks are not a seam; mounting any page, even read-only Business Outcome, writes real keys.
+- bm7_c section 3 patched (Invoke-PatchBatch, 2 of 2) so storage called as plain functions is followed. Owner pasted the result; Labour and Revenue/COGS now list their keys.
+
+3. OWNER DECISIONS MADE
+- R2 closes except Business Modelling; Business Modelling is stress tested slice by slice inside R3 (2026-10-29).
+- WORKFLOW: the owner runs the terminal and pastes output. Claude does not stage the source and run scripts in its own workspace unless the owner asks for that specific job (owner,
+  2026-10-29: "that's not how we work"). Doc and file edits through the linked folder (stage, edit, device_commit_files with mtime guard) are fine.
+
+4. OPEN ITEMS
+a. Owner re-run of the BM-7 scripts at the terminal (the authoritative run; Claude's was a partial snapshot):
+     cd D:\QSTools\qstools-web
+     foreach ($s in 'a_storage_inventory','b_reach_map','c_hook_mounts_and_writes','d_seams_and_rebuilds','e_scenario_paths') { "######## $s"; python -B "Py\audit-scripts\bm7_$s.py" } *>&1 | Out-String -Width 250 | Set-Clipboard
+   Compare against BM Addendum 7 and correct the addendum where they differ.
+b. bm7_f_storage_tap.js not run (paste in the app console, navigate with app links, run __bm7.report()). Confirms which writes fire per page at runtime.
+c. Addendum 6 slice 0 item not done: time one full chain recompute at 100 and 1,000 staff.
+d. DECISION: adapter design (BM Addendum 7 item 9): overlay (merge on read, diff on write) vs shadow copy per key. First-time storage schema needs its own confirmation before building.
+e. Open items at the end of BM Addenda 4 and 5 not yet settled (Claude had not re-read them this session). Includes: which figure is "minimum recoverable rate" (candidates in Addendum 7
+   item 8), modelled-business naming (Addendum 5 item 5), agent build order vs slice order (Addendum 5 item 7).
+f. Carried from t (unchanged): 4a landing JSON, 4b Unassigned harness case, 4c is_interest_row substring, 4d untested live items, 4e calc map extract, 4f BO Addendum 9 design only, 4g list.
+   Stress brief closing addendum (numbers run to 27 per PROJECT_MAP) not written; needs the stress brief read first.
+
+5. NEXT STEPS IN ORDER  (start a NEW chat for each piece of work)
+1. Owner: git status; run the sync check; run item 4a and paste.
+2. Claude: reconcile Addendum 7 with the owner's run; settle the Addenda 4 and 5 open items; plan build slices 1-5 (Addendum 4 order), including the adapter decision and the Addendum 6 per-slice checks.
+3. Optional: run the runtime tap (4b) and the recompute timing (4c).
+4. Nothing is built before the slice plan is agreed. Housekeeping at the end of each chat (ledger, briefs, sync check).
+
+6. STANDING RULES
+- As t Section 6, plus: scripts and commands run at the owner's terminal; Claude supplies them as one PowerShell block with acceptance criteria first and waits for the paste.
+- Patches use Apply-Patch.ps1: dot-source it, Invoke-PatchBatch -Patches @(@{ Path=...; OldText=...; NewText=... }), then Assert-Contains. Output ends with *>&1 | Out-String -Width 250 | Set-Clipboard.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. Briefs\BUSINESS_MODELLING_BRIEF.txt (Section 9 and Addenda 2 to 7) and Future_Build\BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY_FUTURE_BUILD_BRIEF_2026-10-16.txt (Addendum 2 wins where they differ).
+Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or module briefs not needed.

@@ -73,11 +73,11 @@ calculation trace node (definition of done, conventions 2026-10-16).
 
 Source: `Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt`, Addendum 1 (A1).
 
-| R | Step | State (as of R2 handover 2026-10-18) |
+| R | Step | State (updated 2026-10-29) |
 |---|---|---|
 | R1 | Hours-mode smoke test sign-off | CLOSED |
-| R2 | Stress test hours mode at scale, client side | IN PROGRESS |
-| R3 | Business Modelling redesign (scratch overlay replaces the lever engine) | NEXT, after the fix batch |
+| R2 | Stress test hours mode at scale, client side | CLOSED 2026-10-29 except Business Modelling timing, carried into R3 and stress tested slice by slice (BM brief Addendum 6) |
+| R3 | Business Modelling redesign (scratch overlay replaces the lever engine) | NEXT: design stage. BM-7 audit run 2026-10-29 (results in BM brief Addendum 7; owner terminal re-run and runtime tap owed); then settle Addenda 4 and 5 open items and plan slices 1-5; each slice carries its own regression and Q-7 timing (BM brief Addendum 6) |
 | R4 | Units mode: build, smoke test, stress test, re-verify Business Modelling | not started |
 | R5 | UI tidy-up and consistency pass | not started |
 | R6 | Database (server plumbing and migration sit with or just before it - owner to confirm) | not started |
@@ -117,7 +117,9 @@ Allocation and Rate Builder passes (item c, about 15 ms at every size). Business
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 fix batch closed (see latest HANDOVER.txt = V6.1t, 2026-10-28: F-10b committed, F-4 row check closed, knowledge re-synced; V6.1s has the F-10b regression detail). Next: R3 Business Modelling redesign, design stage first (BM-7 audit).
+R2 fix batch closed (see latest HANDOVER.txt = V6.1u, 2026-10-29; V6.1t, 2026-10-28: F-10b committed, F-4 row check closed, knowledge re-synced; V6.1s has the F-10b regression detail). Next: R3 Business Modelling redesign, design stage first (BM-7 audit).
+R2 CLOSED 2026-10-29 (owner): the current Business Modelling page is not stress tested or patched further; its failing Q-7 timing is carried into R3 and each R3 slice runs the regression (modelling mode off) plus Q-7 timing at 100 and 1,000 staff on the production build (BM brief Addendum 6). Carried, not blocking: handover V6.1t items 4b, 4d, G-7, G-8.
+BM-7 engine purity audit run 2026-10-29 (BM brief Addendum 7): one storage-layer adapter can cover every page (30 storage modules + theme, one outlier dev page); pages and hooks are not a seam; page mounts write real keys even on read-only views. Scripts: Py\audit-scripts\bm7_a to bm7_f. Handover = V6.1u.
 
 ## 7. Findings numbering
 
