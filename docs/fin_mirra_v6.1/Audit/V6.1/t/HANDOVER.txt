@@ -1,0 +1,66 @@
+HANDOVER V6.1t   2026-10-28   (F-10b committed, F-4 row check closed, knowledge re-synced; next is R3 Business Modelling, design stage)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\t\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method). This file replaces s Sections 1 to 5. s and earlier are history now.
+NOTE: s was written before the commits and before the F-4 check; where s says "next is the commit" or lists F-4 as open, this file is the live one.
+
+1. WHERE WE ARE
+- Last commits, all pushed to origin/main: e4e41fc F-10b code + harness (recipe scenario_a_support_depreciation, check_scaling whole-word fix); 798aec8 F-10b docs + handover V6.1s + the
+  cash-after-principal design addenda (BO Addendum 9, Assets Addendum 2); a4aa32e R3 / AI-layer design docs (BM Addenda 2-5, MR Addendum 1, QE Addendum 1, GTM brief, AI_LAYER_BRIEF);
+  83d5e07 F-4 "Unassigned cost" row check closed (BO Addendum 10, PROJECT_MAP).
+- Not yet committed when this was written: this file (Audit\V6.1\t\HANDOVER.txt) and the untracked Future_Build\FIN_LANDING_PAGE_GUARDRAILS_v0_2.json (owner's call, see 4a). Run git status first.
+- Server on :3005 stopped by the owner. public\__stress_tmp and .next removed (.next was rebuilt for the F-4 check, then the server stopped; clear .next again before the next dev run if it
+  misbehaves). The built-in pane holds the owner's original 18 localStorage keys, restored byte-for-byte (only updated_at in qs_tools_general_overhead_state moved; the app rewrites it on load).
+- Project knowledge: all 17 ledger docs match the repo as of 2026-10-28 (owner ran check_project_knowledge_sync.py: 17 OK before the F-4 edit; BO brief and PROJECT_MAP were re-uploaded after
+  it and the ledger rewritten). Re-run the check at the start of the next chat.
+
+2. DONE THIS SESSION
+- Verified the F-10b code on disk and the whole fix batch closed (the ONE full regression passed 2026-10-27: A / A misaligned / A2 / A depreciation / A non-asset interest / A support
+  depreciation 285; B 347; ticked B 346; gate 342; ladder 564 and 3,354).
+- Sorted git: three commits (code, F-10b docs, R3 design docs) with explicit paths; pushed by the owner.
+- Re-synced five briefs to project knowledge (BO, Assets, Business Modelling, Model Readiness, Quote Engine) and later BO + PROJECT_MAP; ledger rewritten each time.
+- F-4 "Unassigned cost" row check, live, no code change (BO brief Addendum 10): row appears and ties for an unassigned productive asset (12,723 = Cost Allocation BLOCKING banner) and for an
+  unassigned staff type (100,397); net profit stays 138,243, EBIT/EBITDA stay 179,662, cost reconciles 1,209,346 both sides. With no active working units the page shows only the revenue
+  bar and policy toggle (no row, no EBIT block): logged edge case, not changed.
+
+3. OWNER DECISIONS MADE
+- Business Modelling (R3) is deferred until it has been redesigned; do the design step first, no build yet (owner, 2026-10-28). The design decisions already recorded are BM brief
+  Addenda 2-5 (modelled layer stored as differences, one universal toggle, Tier 1 = General Overheads + Rate Builder only, scenarios before rates, thin Business Modelling page).
+- Everything else carried unchanged. No calculation rule changed this session.
+
+4. OPEN ITEMS
+a. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json (Future_Build, untracked, dated 2026-10-27): probably belongs with AI_LAYER_BRIEF; owner decides commit or leave.
+b. The stress harness has no case for an unassigned productive asset or staff type (mirra_expected_l2.py A-7 hard-codes unassigned cost 0). A recipe option plus expected values would put the
+   Unassigned row into the regression. Not built.
+c. is_interest_row matches any overhead line with "interest" in its name (GO-6): "Interest received" style lines would also be added back. Not changed.
+d. Untested live: stored tick back to asset hours; sequential pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group rates, Model Readiness,
+   Module Reconciliation, Quote Engine with a ticked group. Stray comment above apply_revenue_ceiling (about L596) in useBusinessOutcomePerSourceRevenue.js.
+e. Calc map extract still not re-run (line numbers for F-10b, F-11, F-7 read by hand): python Py\audit-scripts\extract_calc_map.py at the next calc map edit.
+f. BO Addendum 9 (cash after principal repayments beside net profit) and Assets Addendum 2 are design only, nothing built; needs a trace node, calc map and tracker entries, a seed case.
+g. Carried: RB-1b fix decision; G-7, G-8; trace node for the F-4 spread amount; Labour pool display 804,078 vs 1,572,333; property cost undecided; archive ESCT_TREATMENT_FIX brief;
+   project instructions rule 11 paths; Model Readiness General Overheads blocked on the pane seed; P&L vs Business Outcome net profit gap on Scenario A unexplained; Business Modelling fails
+   Q-7 (R3); the Missing source for the AI layer ("Consolidated Future Build Brief 2026-10-23 v3") is not filed in the repo.
+
+5. NEXT STEPS IN ORDER  (one piece of work per chat; start a NEW chat for each)
+1. Owner: git status; commit this handover (and the landing JSON if wanted); run python Py\audit-scripts\check_project_knowledge_sync.py (expect 17 OK).
+2. R3 design stage, per BM brief Addendum 4: step 0 is the BM-7 engine purity audit (READ-ONLY, at the terminal: can the real chain run on a full input object with every page pointed at the
+   modelled copy and nothing reading or writing the real storage keys; list every file touching localStorage; scope = Overheads and Rate Builder input paths plus the scenario path
+   Labour / Assets / Cost Allocation placement / COGS added line). Nothing is built before it. Claude supplies the read-only scripts, the owner runs them and pastes the output.
+   Then settle the open items listed at the end of Addendum 4 and Addendum 5 (modelled-business mode, no P&L), and only then plan the build slices 1-5.
+3. Housekeeping at the end of that chat as usual (ledger, briefs, sync check).
+
+6. STANDING RULES
+- Archive, never delete. One brief per module. Build after each batch, never while dev runs or a server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Claude stages files from the device, edits its own copy (EOL- and BOM-preserving, one match per patch), copies to /mnt/user-data/outputs and writes back with device_commit_files (mtime guard).
+  Claude has no shell on the device: the owner runs git, npm, PowerShell and python. Claude does run Python and the generator in its own workspace.
+- Seeds: generate_business.py runs in Claude's workspace (stage generate_business.py, mirra_expected.py, scale_recipe.py and the recipe). The production server only serves public files that
+  existed when it started, so a seed written to public\__stress_tmp needs a restart. NEW this session: a seed can instead be gzip + base64 encoded (about 8 KB for Scenario A) and written into
+  the built-in pane's localStorage in one javascript call (DecompressionStream), no server change. Back up the pane's keys to sessionStorage first, restore after, verify byte-for-byte, then reload
+  once (a stale open page can overwrite storage). Edits to the Cost Allocation record in the pane are soft (is_active false), like the app.
+- Built-in pane (mcp__remote-devices__Claude_Browser__*): the page accordions are span toggles; click the leaf "Show" spans repeatedly until the table text appears.
+- Never record a finding from a screenshot or inference; verify in the console first. Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. For R3: Briefs\BUSINESS_MODELLING_BRIEF.txt (Section 9 and Addenda 2-5) and Future_Build\BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY_FUTURE_BUILD_BRIEF_2026-10-16.txt (Addendum 2 of the
+   Business Modelling brief wins where they differ). Read AI_LAYER_BRIEF.txt only when the AI helper hooks come up.
+Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or module briefs not needed.

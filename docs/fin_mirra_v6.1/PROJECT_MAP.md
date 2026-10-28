@@ -117,7 +117,7 @@ Allocation and Rate Builder passes (item c, about 15 ms at every size). Business
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 fix batch closed (see latest HANDOVER.txt = V6.1s: F-10b built and the ONE full regression passed 2026-10-27). Next: R3 Business Modelling redesign.
+R2 fix batch closed (see latest HANDOVER.txt = V6.1t, 2026-10-28: F-10b committed, F-4 row check closed, knowledge re-synced; V6.1s has the F-10b regression detail). Next: R3 Business Modelling redesign, design stage first (BM-7 audit).
 
 ## 7. Findings numbering
 
