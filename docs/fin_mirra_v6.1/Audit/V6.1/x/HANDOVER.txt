@@ -1,0 +1,43 @@
+HANDOVER V6.1x (2026-10-29) - R3 Business Modelling redesign, SLICE 1: batches 1 to 5 built, batches 6 and 7 remain
+Previous: V6.1w (history). Start batch 6 in a NEW CHAT.
+
+1. WHERE WE ARE
+ Slice 1 (Model mode storage seam) batches 1 to 5 are built and verified in the pane. Batches 6 and 7 remain. Slice 1 is NOT shipped.
+ Commits: ab7c6b3 (batches 1+2), bb858c7 (batch 3), 53096f8 (batch 4 + V6.1w), 13f31e9 (batch 5: banner and notice, BM Addendum 14, PROJECT_MAP).
+ The docs update that closes this session (BM brief status line, PROJECT_MAP pointers, this handover) is committed separately: get the hash from git log.
+ git status at the end of the build: only two untracked items, docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json (not ours, leave) and public/__stress_tmp/ (never commit).
+ Full detail: BUSINESS_MODELLING_BRIEF Addenda 13 and 14.
+
+2. DONE THIS SESSION (batch 5)
+ - New components/layout/ModelModeGate.jsx (client), lib/config/modelModeRoutes.js (5 unmodelled routes, matcher, wording), Py\model_storage_tests\b5_routes.test.mjs (8/8). app/layout.tsx patched twice (import + wrapper); layout stays a server component.
+ - Mode OFF: renders children untouched. Mode ON: banner on every page (MODEL MODE pill + sentence + Back to baseline mode button); /quote-engine, /quote-checker, /quick-start, /labour-rate-reality-check, /scheduling show a notice and the page is NOT mounted.
+ - Styling uses the existing styles/ui-system.css classes and theme variables. No inline colours (rule added: read the existing styles before building UI).
+ - Pane check (production :3005, Scenario A pane storage): zero storage differences after each of 15 page loads in Model mode (key count 49 = 46 + 3 new), diffs and scenarios keys empty, page text identical to OFF, net profit identical ON and OFF ($118,804 in this pane), Back button works. Pane storage restored to its original 22 keys afterwards (no baseline in the pane now).
+
+3. OWNER DECISIONS
+ - Confirmed: edit app/layout.tsx via a gate component; banner wording (label split from the sentence); the dev page shows the banner too.
+ - STILL NEEDED: the Model mode slowdown allowance (proposed 20 percent or 100 ms, whichever is greater, inside Q-7); whether public\__stress_tmp is deleted or gitignored at slice close.
+
+4. OPEN ITEMS
+ - F1 six discarded write-backs are first-visit defaults for baseline-absent keys (Addendum 12 item 5e). Slice 3 must treat absent-to-default as no difference. Decide in batch 6 whether a small default check is added now.
+ - F2 default volatile pair (updated_at, created_at) was enough on Scenario A; confirm on the 100 and 1,000 staff seeds (batch 7). Registry volatile lists are still null except general_overhead_state.
+ - F4 the session log lives in sessionStorage (mirra_model_stats_v1), so the bm7_f tap will see those writes: filter them or allow them explicitly.
+ - Not verified in batch 5: other themes (colours come from theme variables), hydration warnings (production build does not print them). Cosmetic: the notice page has two Back to baseline buttons (banner and notice); can be dropped.
+ - /imports and /demo-login are real routes outside the nine tested pages: banner only; the helper already blocks their writes to modelled keys.
+ - Seeds depend on the run date (asset interest): regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day. public\__stress_tmp is untracked and not ignored: never commit.
+ - AI_LAYER_BRIEF Addendum 3 item 8 one-line pointer still open (BM Addendum 8 item 4).
+ - Project knowledge: BM brief and PROJECT_MAP were re-uploaded at the end of this session and the ledger rewritten; check with python Py\audit-scripts\check_project_knowledge_sync.py (committed state may show "uncommitted: yes" until the docs commit is made).
+
+5. NEXT STEPS
+ Batch 6: bm7_f call-level tap (Py\audit-scripts\bm7_f_storage_tap.js) across all pages in Model mode, including the five notice pages: zero writes to real and baseline keys, diffs empty, net profit and Scenario A trace nodes equal OFF, finalise the volatile list, decide F1. State acceptance criteria first; nothing runs until the owner pastes.
+ Batch 7: Q-7 timing at 100 and 1,000 staff, Model mode ON and OFF (against the agreed slowdown figure); storage-full test (Addendum 12 acceptance G (i); 1,000 staff expected to hit the limit message); full standing regression again with Model mode OFF; SHIPPED addendum; PROJECT_MAP; handover; project knowledge re-sync; public\__stress_tmp cleanup.
+ Then slice 2 (baseline lock and deliberate unlock). The dev-only copy button is replaced there by the real gated lock around the SAME take_baseline_snapshot function.
+
+6. STANDING RULES
+ Working conventions apply in full: Apply-Patch / Invoke-PatchBatch for code edits, UTF-8 no BOM, "Patched:" confirmations, acceptance criteria first, build after each batch, never build while dev or next start runs (ports 3000 and 3005), wrap commands in & { } ending with Set-Clipboard, git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. Read the existing CSS (styles\ui-system.css, app\globals.css theme variables) before building any UI.
+ In sessions where Claude has no shell on the computer, Claude writes paste-ready PowerShell blocks and the owner pastes the output back; Claude can read files through the folder link and drive the built-in pane.
+ Pane method (worked well in batch 5): production build at :3005; back up the pane storage to sessionStorage __bak and restore it at the end; hash every localStorage key before and after (a console snippet using the same hash on all keys); load each page as a full page load in a hidden iframe from one console call and compare; the dev page buttons are best clicked from the console (a coordinate click can miss in the narrow pane); take the baseline copy and enter Model mode from /dev/model-mode.
+ Model mode changes with a full page load only: each page reads its storage once on mount.
+
+7. READ FIRST / NOT TO READ
+ Read, in order: this handover, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF (Section 9, Addenda 12, 13 and 14). Read lib\storage\modelStorage.js and modelStorageRegistry.js when building batch 6. Do not read Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or other briefs unless needed.
