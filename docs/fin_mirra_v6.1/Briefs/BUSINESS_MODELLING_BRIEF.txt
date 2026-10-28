@@ -5,8 +5,12 @@ FILE:          docs\fin_mirra_v6.1\Briefs\BUSINESS_MODELLING_BRIEF.txt  (the ONE
 STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever model, overheads lever, asset-driven unit
                lever; identity checks pass on post-CM-1 data. DIRECTION CHANGED 2026-10-16: the lever engine is to be
                REPLACED by a scratch overlay on the real chain (R3) - see Section 9. R2 timing: lever typing FAILS at
-               every size (fix belongs in R3, not the engine R3 retires).
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+               every size (fix belongs in R3, not the engine R3 retires). DESIGN REFINED 2026-10-25 (Addendum 2): R3 is
+               a universal baseline / modelled toggle over the real pages, modelled changes stored as differences,
+               scenarios stacked on the modelled layer. Design decisions only - nothing built.
+               SLICE ORDER AGREED AND TIER 1 NARROWED 2026-10-28 (Addendum 4): Tier 1 = General Overheads + Rate
+               Builder only; scenarios pulled forward; Business Modelling stays as a thin page.
+LAST UPDATED:  2026-10-28 (Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -108,6 +112,7 @@ Legacy (behind "Previous scenario tools", collapsed): BusinessModellingScenarioS
 ===============================================================================
 OPEN
 BM-1  Delete Baseline / Upside / Downside and legacy scenario tools from the page (Q5 decided, not done).
+BM-2  (see Addendum 3 item 1: the control is a percentage nudge)
 BM-2  Overhead lever is category-level; the decided design is LINE-BY-LINE with lock / constrain flags (is_lever),
       on the undistributed pool only. Injection point discovery (where remaining overhead enters the chain) not built.
 BM-3  Reverse lever (set a target labour rate, show the unit rate needed) - decided, not built.
@@ -115,6 +120,18 @@ BM-4  Multi-line calculators: each component (setup fee, hourly, per m3) as its 
 BM-5  Per-staff-type labour lever across units ("set this rate everywhere") - decided (both granularities), not built.
 BM-6  Typing performance (R2) - fix inside the R3 design (defer recalculation until typing pauses / on blur; compute
       the chain once), not a patch to the engine R3 retires.
+BM-7  Engine purity audit (first R3 step, read-only): can the real chain run on a full input object, with every page
+      pointed at the modelled copy and nothing reading or writing the real storage keys? Lists every file touching
+      localStorage; likely trouble spots are hooks reading localStorage directly and storage layers that rebuild
+      objects field by field. Not yet run. Decides how big R3 is (Addendum 2, item 12). Scope per Addendum 4 item 8:
+      the Overheads and Rate Builder input paths for Tier 1, plus the scenario path (Labour, Assets, Cost Allocation, COGS).
+BM-8  Confirm which Business Outcome view the modelling work reads. Project notes say the live page builds on View A
+      (per_source achieved figures) with the additive lever model on top; owner wants the isolated per-group numbers
+      (View B) understood as the starting point. May be moot once the real chain runs in modelling mode - check at
+      the BM-7 audit.
+BM-9  Scenario storage and comparison (Addendum 2, item 10): scenarios stacked on the modelled layer; whether
+      several are kept side by side and whether they compare against each other or only the modelled layer - OPEN.
+      PARTLY DECIDED (Addendum 4 item 2): stored as a list, one allowed for now; comparing scenarios stays open.
 CM-5  The Phase 1 / Phase 2 cascade exists in three places kept in sync by hand. R3 removes Business Modelling's copy.
 BO-8  Overrides vs coverage-gap valuation - see Business Outcome brief.
 S-H4 / Labour F17  Legacy baseline needs a re-lock to pick up current hours (moot if the legacy tools are deleted).
@@ -136,8 +153,15 @@ a today-vs-scenario comparison. Three layers never mixed: A real data, B locked 
 C scratch overlay. Tiers: 1 fix the business you have (overhead % nudges, reprice in Rate Builder, see the gap between
 minimum recoverable and charged rates); 2 lock the baseline; 3 add / remove staff or assets against the baseline;
 4 actuals vs baseline (needs the database, later). First task is an AUDIT of which modules accept scratch input.
-Owner has not yet signed off the slice order. Placement: after the R2 fix batch (F-1 ESCT so modelling starts on
+Owner has not yet signed off the slice order [SUPERSEDED 2026-10-28: order agreed, see Addendum 4]. Placement: after the R2 fix batch (F-1 ESCT so modelling starts on
 corrected labour cost).
+REFINED 2026-10-25 (Addendum 2 has the full decisions; where this section and the 2026-10-16 redesign brief differ,
+Addendum 2 is the current view): the toggle is ONE universal switch for the whole tool (not per page); the real pages
+are reused in modelling mode (no separate modelling inputs page); Business Outcome gets a baseline / modelled view
+toggle; the baseline is a locked snapshot saved only when the tool is clean; modelled changes are stored as
+DIFFERENCES from the baseline so a baseline correction flows through both views; scenarios (Tier 3, new staff or
+assets) sit on top of the MODELLED layer, not on the bare baseline. The 2026-10-16 brief's rule "Tier 3 runs against
+Layer B" is superseded by this stacking.
 
 ===============================================================================
 10. OUT OF SCOPE FOR ANY BUSINESS MODELLING CHANGE
@@ -165,7 +189,10 @@ No change to Cost Allocation, Rate Builder or Business Outcome calculation logic
 - Archive\Mirra_v5_Briefs\Business Outcome\Business Outcome New Additions\BUSINESS_MODELLING_SCENARIO_REDESIGN_
   DECISION_LOCK_2026-09-12.txt (Baseline / Upside / Downside - superseded by Q5)
 - STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt Addendum 13 (timing)
-- The R3 redesign brief stays live in Future_Build (Section 9)
+- The R3 redesign brief stays live in Future_Build (Section 9); Addendum 2 refines it
+- "Mirra: Analyst Layer, CFO Chat, Agent-Led Setup and Scenario Agent - Consolidated Future Build Brief (2026-10-23,
+  v3)", Section 8: where the AI layer meets Business Modelling (not yet filed in the repo as of 2026-10-27; its
+  "locked target model" = the MODELLED layer here)
 Evidence: Audit\v6_0\bm_per_source_2026-09-24.json, bm_baseline_pre_asset_driven_lever_2026-09-25.json,
 go_baseline_pre_overheads_lever_2026-09-26.json.
 
@@ -182,3 +209,224 @@ the P&L net profit on all four (138,168.62; 104,070.31; 127,656.97; 369,551.94).
 FINDING (confirms the F-7 gap): basis is COVERED hours, so a unit with assets and no labour (Scenario B dry hire) shows basis 0, no start
 rate and no lever (status no_covered_hours) while Cost Allocation gives it 1,200 recovery hours. F-7 will change this row; re-check it then.
 NOT covered: the 10 overhead category rows (the recipes carry no overhead categories) and lever effects. Detail: stress brief Addendum 20.
+
+ADDENDUM 2 (2026-10-27) - MODELLING MODE DESIGN DECISIONS  [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-25, written up 2026-10-27. Refines Section 9 and the 2026-10-16 redesign brief
+(Future_Build). Tags: DECISION = owner stated or confirmed it; PROPOSED = suggested in the session, not confirmed;
+OPEN = unresolved.
+
+TERMS (use these names from here on)
+  REAL DATA   Layer A. What the pages hold in normal mode. Edited until the business is set up correctly.
+  BASELINE    Layer B. The locked snapshot of the settled business - what the business is doing now and has done.
+  MODELLED    The owner's changes to the baseline, saved on their own layer as differences. Tier 1: fixing the business
+              you have. (Replaces the freely discardable Layer C scratch overlay for Tier 1: it persists.)
+  SCENARIO    Structural what-ifs on top of the modelled layer. Tier 3: add or remove staff or assets.
+  Stack: BASELINE, then MODELLED on top, then SCENARIO on top. Real data is never touched by any of them.
+
+ 1. [DECISION] The baseline is never written to by modelling. All modelling lives on its own separate layer. Modelling
+    never writes back to the baseline or to real data; a real change is made on the actual page in normal mode.
+    Whether a modelled change can be promoted into real data is NOT decided (2026-10-16 brief, open question 1).
+ 2. [DECISION] Reuse the real pages. General Overheads, Labour, Assets, Rate Builder and the rest run in modelling mode
+    against a copy of the baseline, with levers to change numbers. There is no separate modelling inputs page. This is
+    the Section 9 mechanism, now confirmed by the owner.
+ 3. [DECISION] ONE universal toggle switches the whole tool between baseline mode and modelling mode. Not per page.
+    Reason: the owner never wants baseline data entered into the modelled layer by accident, or the reverse; keep it
+    simple. Check at build: in modelling mode nothing reaches the real or baseline keys; in baseline mode nothing
+    reaches the modelled key.
+ 4. [DECISION, route fate OPEN] Business Outcome gets a baseline view / modelled view toggle: same layout, same
+    figures, same identity checks; only which copy of the inputs it reads changes. The owner prefers this to a big
+    separate Business Modelling results page (one place for results, one set of calculations to verify). Whether
+    app/business-modelling stays as a thin page (toggle, lock / unlock, today-versus-modelled comparison) or is retired
+    in favour of Business Outcome is not settled. The old lever page is retired either way (Section 9).
+ 5. [DECISION] Locking the baseline is an explicit commit of a snapshot, saved only when everything is aligned: all
+    flags cleared and reconciliation passing (Model Readiness). Getting the tool to that point is the owner's work
+    through the pages, with AI-assisted setup helping because it is complicated. After the commit the baseline cannot
+    be changed by modelling.
+ 6. [DECISION] Editing a locked baseline is a deliberate act (an unlock step) for fixing a mistake, never an accident.
+    [PROPOSED] When the baseline is unlocked and changed, the modelled layer shows a warning that its starting point
+    moved (so the owner can see what changed). Wording and mechanism not designed.
+ 7. [DECISION] Modelled changes carry over a baseline correction; they are not cleared. So modelled changes are stored
+    as DIFFERENCES from the baseline (for example "this overhead line -$X" or "this rate +$Y"), never as full copies of
+    the final value. Result: correct one baseline number and BOTH views update, with the modelled adjustments still
+    sitting on top. Fixing the same mistake twice must never be needed.
+ 8. [DECISION] A difference whose target no longer exists or no longer has anything to reduce (the owner's example:
+    a subscription reduced in the model, then deleted from the baseline) resolves to zero. It never goes negative and
+    never throws. [PROPOSED] It carries a visible flag, e.g. "this change no longer applies because the line was
+    removed", so the owner can see why a number moved.
+ 9. [DECISION] Scenarios sit on top of the MODELLED layer, not on the bare baseline. The owner models the business as
+    they want it, then asks future questions of THAT business: can I afford a new staff member, what does a new digger
+    do, what does a non-productive asset do. A scenario adds or removes rows (Section 9, Tier 3), so it is a stored set
+    of added / removed rows plus their inputs, not just changed values. This SUPERSEDES the 2026-10-16 rule that Tier 3
+    comparisons run against Layer B. The honest limit still stands and is shown on screen: a scenario shows cost burden
+    and floor rate; it cannot invent the revenue or work that would pay for it.
+10. [OPEN] Scenario storage and comparison. The 2026-10-23 AI brief (Section 8.5) describes a scenario as a throwaway
+    copy; storing it as a small set of rows would let several sit side by side. Not decided: keep several or one at a
+    time; compare scenarios against each other or only against the modelled layer; any cap. (BM-9)
+11. [DECISION] No pre-modelling from pooled or "standard practice" data. The idea of gathering background metrics from
+    users to say what a typical fix looks like was rejected by the owner ("a terrible idea, scratch that"). Read with
+    the AI brief's rule 7.2: Mirra shows what a lever does in THIS business and never says what to do or what other
+    businesses do. Cross-business benchmarking stays parked behind the lawyer-review gate. (Interpretation note: the
+    owner's reply was a "yes" followed by "scratch that"; recorded as rejecting the pooled-metric idea. Confirm.)
+12. [OPEN] First step is still the engine purity audit (BM-7): read-only, not yet run. The owner chose to settle what is
+    being built first. New storage keys (baseline, modelled, mode flag, scenarios) are a first-time storage schema and
+    need a separate confirmation before building, with has_loaded guards from the first commit (conventions rule 8) and
+    selectors that spread rather than rebuild objects (bug class 6b).
+13. AI relationship (from the 2026-10-23 brief, Section 8): any assistant on target modelling waits until the lever
+    layer is settled and verified by hand; it proposes within limits taken from the business's own baseline and the owner
+    confirms. Per-source targets and the cross-subsidy-shrinking-to-zero measure belong to that brief.
+
+WHAT CARRIES OVER FROM THE EXISTING ENGINE: rules R1-R9 describe the current lever engine, which R3 retires. What
+survives as acceptance checks: no changes == today, own START rate == zero effect, effects additive. R3 "touch one
+lever, only that source changes" is replaced by "the real chain recomputes on the changed copy".
+
+ACCEPTANCE ADDITIONS FOR THE R3 BUILD (figures to be fixed at the audit from the live baseline, not invented here)
+  - Modelling mode with no differences reproduces the baseline net profit exactly.
+  - Change one number in the baseline (after unlock): baseline view and modelled view both move, and the modelled
+    differences are unchanged.
+  - Delete a line that has a modelled difference: that difference resolves to zero, flagged, no negative, no error.
+  - Real data (Layer A) and the locked baseline are byte-identical before and after any modelling session.
+  - Removing then re-adding the same asset or staff member in a scenario returns to the modelled numbers.
+  - Scenario on top of modelled: with an empty scenario the result equals the modelled view.
+
+STILL OPEN AFTER THIS ADDENDUM: item 4 (fate of the route), item 10 (scenario storage and comparison), promotion of
+modelled changes to real data (item 1), one baseline snapshot or several (2026-10-16 brief), BM-8 (View A or B), slice
+order sign-off (Section 9), warning wording and orphan-flag wording (items 6, 8).
+
+ADDENDUM 3 (2026-10-27) - TIER 1 AND TIER 3 DETAIL FROM THE 2026-10-07..16 DESIGN CHAT  [DECISION: design only, nothing built, no code touched]
+Source: owner voice chat 2026-10-07 to 2026-10-16 (the origin of the 2026-10-16 redesign brief in Future_Build). Items below were
+decided or proposed there and were not carried into Addendum 2. Same tags as Addendum 2. Addendum 2 wins wherever they differ
+(universal toggle, MODELLED layer, scenarios stacked on MODELLED).
+
+ 1. [DECISION] Tier 1 overhead lever form: a PERCENTAGE nudge, up or down, per overhead category, on the General Overheads page
+    itself in modelling mode (owner: "maybe just by a percentage"). Not a target-dollar entry. [OPEN] Whether the percentage
+    applies per category or per line: BM-2's line-by-line / is_lever rule still decides which lines may be nudged at all.
+ 2. [DECISION] Tier 1 order in modelling mode: overhead nudge, then Cost Allocation reflows the group split (real maths, no
+    change), then repricing happens in Rate Builder itself against the new floors, then Business Outcome shows the result.
+    Business Modelling's own duplicated repricing is retired with the lever engine. The owner confirmed the method and the
+    order are right; only the mechanism (a duplicate engine) was wrong.
+ 3. [DECISION] The market check is the rate the owner has already entered in Rate Builder; there is no separate ceiling input
+    (Section 10). The Tier 1 output is an EXPLICIT on-screen gap: minimum recoverable rate (Cost Allocation) versus charged
+    rate (Rate Builder). Owner's example: minimum recoverable $175/hour against a market ceiling of about $70/hour for the most
+    qualified person. A calculated gap that is not shown is a broken promise to the user. [OPEN] Per group or whole business.
+    [PROPOSED] At the BM-7 audit, confirm which existing figure "minimum recoverable rate" is (group minimum rate or required
+    recovery rate) and reuse it; no new calculation, and a trace node for it (Section 11).
+ 4. [DECISION] Diagnosis route. If overhead nudges and repricing cannot close the gap, the tool says so plainly: the problem is
+    structural, not pricing. The next questions are Tier 3 removals (non-productive staff, idle assets: do you need them, what
+    happens if you delete them). If, after removing all non-productive cost, revenue at the entered rates still cannot cover
+    what is left, the only lever left is more work coming in, which the tool cannot model (the honest limit in Addendum 2
+    item 9). The owner's own conclusion is that the business is then not viable as structured. [OPEN] Wording: it must state
+    the arithmetic and not advise or recommend (AI brief rule 7.2: Mirra shows what a lever does in THIS business, never what
+    to do).
+ 5. [DECISION] A scenario can combine several changes at once (add and remove, "one, both or all of them"). Real operating and
+    working groups are the slots: the scenario never rebuilds group structure, it places a new staff member or asset into an
+    existing group, or pulls an existing one out, and Cost Allocation runs its real assignment maths on the altered set. Staff
+    inputs match real Labour (pay rate, hours, productivity); assets use Assets' own finance-term maths. Worked case: a
+    $150,000 ute on five-year finance dropped into a real group, answering "can this business carry it".
+ 6. [PROPOSED, not confirmed] First value slice for Tier 3: the single-asset affordability check. It needs only a scratch add in
+    Assets flowing through the real chain, not the full Tier 1 lever set, so it could prove the scratch-add path before the
+    lever migration. Owner has not chosen; Addendum 2 item 12 (engine purity audit first) still stands.
+
+ACCEPTANCE ADDITIONS: the Tier 1 gap figure equals the Cost Allocation minimum recoverable rate minus the Rate Builder charged
+rate for the same group (no new calculation, traces to the same nodes); an empty scenario equals the MODELLED view
+(Addendum 2); a scenario with several changes leaves real data and the baseline byte-identical.
+
+ALREADY COVERED, NOT REPEATED: universal toggle, reuse of real pages, baseline lock, differences storage, scenarios on MODELLED
+(Addendum 2); four tiers and Tier 4 actuals-versus-baseline (Section 9).
+STILL OPEN AFTER THIS ADDENDUM: everything listed after Addendum 2, plus items 1 (per category or line), 3 (per group or whole
+business), 4 (verdict wording) and 6 (first slice).
+
+ADDENDUM 4 (2026-10-28) - SLICE ORDER AGREED, TIER 1 NARROWED, THIN PAGE, SCENARIO DIRECTION  [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-28 (driving, no terminal). Closes the slice-order sign-off in Section 9 and refines Addenda 2 and 3
+where they differ (this addendum wins). Same tags as Addendum 2.
+
+ 1. [DECISION] SLICE ORDER (agreed, replaces the unsigned order in Section 9). Scenarios pulled forward because they are where the
+    real questions live; rates moved last because they are the smaller job.
+      0  Engine purity audit, BM-7. Read-only, run at the terminal. Nothing is built before it.
+      1  Storage keys (baseline, modelled, mode flag, scenarios) plus the universal toggle. has_loaded guards from the first
+         commit. Check: in each mode nothing reaches the other mode's keys. First-time schema: separate confirmation first.
+      2  Baseline lock and the deliberate unlock. Check: real data and baseline byte-identical after any session.
+      3  Minimal MODELLED layer, overhead lines only. Proves differences store and stack, that an empty modelled layer reproduces
+         baseline net profit exactly, and that a deleted line resolves to zero with a flag. This is the plumbing proof, not the
+         main event. [PROPOSED] The Business Outcome baseline / modelled view toggle lands here, since it is how the result is seen.
+      4  Scenarios on top of MODELLED. Start with removing a staff member or an asset (simplest row change), then the two
+         example scenarios in item 6. Adding a scratch asset (Addendum 3 item 6, single-asset affordability) follows; its
+         "first slice" status is overtaken by this order.
+      5  Rate Builder as a Tier 1 lever (charge-out rates, unit rates, materials markup).
+ 2. [DECISION] Scenario storage: a LIST from day one, each entry with an id and its own added and removed rows. Only ONE scenario is
+    allowed for now, tested properly. Going to several later is a UI change (picker, compare view), not a storage rework.
+    Comparing scenarios against each other stays OPEN (BM-9) and does not change the stored shape.
+ 3. [DECISION] Route fate closed (Addendum 2 item 4): app/business-modelling STAYS as a THIN page with NO calculations of its own;
+    every figure comes from Business Outcome and the existing source rows. It holds:
+      - launch buttons: Model Overheads (opens General Overheads in modelling mode) and Model Rates (opens Rate Builder in
+        modelling mode);
+      - a small summary: today net profit, modelled net profit, the change, and a list of what has been modelled so far;
+      - the SPREAD that informs Rate Builder decisions: per source the floor, start and ceiling markers plus the group minimum
+        rate, a clear mark on anything below its floor, and in modelling mode the modelled rate beside today's.
+    [OPEN] Which spread numbers go on the page: all of them, or only floor / start / ceiling.
+    Every real page shows a visible banner in modelling mode, with a link back, so the owner cannot mistake the mode.
+ 4. [DECISION] TIER 1 IS TWO PAGES ONLY: General Overheads (percentage nudge, Addendum 3 item 1) and Rate Builder (charge-out rates,
+    unit rates, materials markup). Labour and Assets have no Tier 1 inputs: contract, finance and legal numbers are locked, and
+    productivity / utilisation are LEFT OUT (an outcome hoped for, not a decision; modelling 95% would show a profit that never
+    arrives). Hours and headcount changes belong in scenarios. Cost Allocation, Business Outcome and the summaries only recompute.
+    Cost Allocation stays read-only until scenarios, when it must let a new staff member or asset be placed in a unit.
+    Adding a lever later is easier than removing one. [PARKED] A protection-style sensitivity check (e.g. floor rate if
+    productivity falls five points) is a later scenario-type question, not Tier 1.
+ 5. [DECISION] Entering modelling mode with no locked baseline is refused, with a message to lock the baseline first. The first open
+    of any page in modelling mode shows the baseline numbers exactly (no differences yet). An edit stores only the difference
+    (rate 80 to 85 stores +5, not 85). Promotion of modelled changes into real data stays OFF: modelling never writes back, real
+    changes are made on the actual page in normal mode (closes Addendum 2 item 1 for now; easy to add later, hard to take back).
+ 6. [DECISION] Named example scenarios, mirror images:
+      OUTBOUND dry hire - the existing dry-hire tick: the machine earns at the Rate Builder price with no labour attached.
+      INBOUND own versus hire - remove the asset from Assets and add a hire cost line to COGS (per hour or per day), shown side
+        by side on cost burden and floor rate. COGS currently comes from the P&L, so a scenario must be able to add a cost line
+        without touching real data: [OPEN] design question for the BM-7 audit.
+    The honest limit stays on screen: cost and floor rate only; it cannot show that hire work or hire machines are available.
+ 7. [DECISION] METHOD / FLOW the tool follows: (a) read the spread: sources below floor, headroom floor-to-start and start-to-ceiling,
+    break-even rate per source, dollar effect of a rate change; (b) fix what is controllable: rates against floors, trim
+    overheads; (c) if the numbers still do not close the problem is structural, so go to scenarios. The FIRST scenario is aimed at
+    the BIGGEST DRAIN on the business, not a random what-if. Overheads are a modest lever (verified: whole pool about 95,900;
+    vehicle running 38,700 to 30,000 = +8,700) against rates (Site Crew +$80 with materials +5% = +111,694.43).
+    Reaffirmed: revenue, net profit and cash are never levers (R2), and there is no suggested market rate or ceiling input
+    (Section 10): the owner supplies the market rate, the tool shows the gap to cost. PREREQUISITE (existing open check): verify the
+    real top net-profit driver on current data and that pro-rata shortfall sharing does not make a unit look like the biggest drain
+    only because of how shortfall is spread.
+ 8. [DECISION] BM-7 audit scope, corrected: because scenarios now come before the rate lever, the audit covers the Overheads and Rate
+    Builder input paths AND the scenario path (Labour, Assets, Cost Allocation placement, COGS added line), not only two pages.
+ 9. [DECISION] AI helper preparation (cheap, build in from slice 1): keep the mode flag in ONE readable place so the helper can ask
+    "baseline or modelling?"; allow the MODELLED layer to be written by more than one source (owner, helper) through the same
+    difference storage, with the helper never touching the baseline. The helper may state the biggest-drain figure (a fact from the
+    owner's baseline), propose scenarios to test and have the owner confirm each one; it never says what to do or what other
+    businesses do (AI brief rule 7.2). It needs to read the biggest-drain figure from Business Outcome. Order of play: spread,
+    then rates and overheads, then scenarios on the biggest drain.
+
+ACCEPTANCE ADDITIONS: entering modelling mode without a locked baseline is refused; the first open in modelling mode equals the
+baseline; an edit stores a difference, not a final value; the thin page's figures equal Business Outcome's (no calculation of its
+own, traces to the same nodes); a scenario list holding one entry behaves as a single scenario, and an empty one equals MODELLED.
+
+STILL OPEN AFTER THIS ADDENDUM: spread numbers on the thin page (item 3); scenario comparison (BM-9); one baseline snapshot or several;
+BM-8 (View A or B); percentage nudge per category or per line (Addendum 3 item 1); Tier 1 gap per group or whole business and verdict
+wording (Addendum 3 items 3, 4); warning and orphan-flag wording (Addendum 2 items 6, 8); added-COGS-line mechanism (item 6); the
+top-drain verification (item 7). Other briefs to touch when built: Cost Allocation (read-only in modelling mode until scenarios),
+Business Outcome (baseline / modelled view toggle), General Overheads and Rate Builder (modelling-mode banner and nudges).
+
+ADDENDUM 5 (2026-10-28) - MODELLED-BUSINESS MODE (NO P&L) AND AGENT-SIDE POINTERS [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-28 (afternoon). Does not change Addenda 2 to 4. Companion: AI_LAYER_BRIEF Addendum 3.
+ 1. [DECISION] New use case: model a business that does not exist yet (and, in the same way, an acquisition target). Today the chain starts from the P&L, and Model Readiness
+    treats a missing or mismatched P&L as a blocker, so a business without books would meet blocks everywhere. Owner idea: a MODELLED-BUSINESS MODE, a setting alongside business
+    type (like the hours-mode choice in setup), that runs the chain in reverse.
+ 2. [DECISION] In that mode the owner enters staff, assets and overheads. Cost Allocation spreads cost across the working units, Rate Builder prices the units, and Business
+    Outcome gives revenue and net profit at the hours and rates the owner chooses ("if you work these hours at these rates, here is what the business earns", not a forecast of
+    customer demand). The P&L is GENERATED from that result. The reconciliation checks that compare modules with the P&L are switched off, since there is nothing to compare.
+    Every figure and the explainer are labelled as an estimate. For an acquisition, the seller's accounts are entered the same way and marked as someone else's figures.
+ 3. [CAUTION] A generated P&L always agrees with its modules because it is made from them, so it proves nothing by agreeing; the label is the safeguard. Revenue is not typed in,
+    which stays consistent with R2 (revenue is never a lever).
+ 4. [OPEN] Switching a modelled business to a real one once actual books exist, then comparing plan with actual. Not designed.
+ 5. [OPEN] Naming: "modelling mode" (Addendum 2: what-if layers over a real business with a locked baseline) and "modelled business" (this addendum: no real books at all) sound
+    alike. Pick distinct names before any screen text. Also open: whether a modelled business also locks a baseline and uses the modelling layers on top.
+ 6. [OPEN] Readiness side: which checks switch off and which stay (Model Readiness Addendum 1).
+ 7. [NOTE] Agent build order conflict: the AI scenario agent is meant to prove rate change first, then hiring, then buying an asset (AI_LAYER Addendum 3 item 8), but Addendum 4
+    item 1 puts the Rate Builder lever last (slice 5) and starts scenarios with removing a person or asset. Resolve when slices 4 and 5 are planned.
+ 8. [NOTE] New scenario outputs and types to plan for in slice 4 onward: cash after principal repayments beside net profit (Business Outcome Addendum 9); the downturn check
+    (revenue falls, costs held steady by default, owner may flex named existing cost lines); a loan on top of current numbers. All run on the throwaway copy through the same levers.
+ 9. [NOTE] Scenario saving: throwaway by default, the owner may save one stamped with its date and starting figures (AI_LAYER Addendum 3 item 7). The stored list from Addendum 4
+    item 2 already allows this; the stamp fields are to be added to the stored entry. Trend-based forecasting stays parked.

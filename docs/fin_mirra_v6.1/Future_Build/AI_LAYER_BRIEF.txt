@@ -1,0 +1,631 @@
+===============================================================================
+MIRRA - AI LAYER BRIEF (the ONE brief for every AI feature users meet - update in place)
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Future_Build\AI_LAYER_BRIEF.txt
+STATUS:        [SCOPING / CONSOLIDATION] Nothing in this brief is built. No application code touched.
+CREATED:       2026-10-27, by consolidating every AI section from the briefs listed in Section 12, plus the owner
+               voice session of 2026-10-27 (landing-page Fin, data and privacy).
+TAGS:          [DECISION] owner stated or confirmed. [PROPOSED] suggested, not confirmed. [OPEN] unresolved.
+               [GATE] must be cleared before the named step is built. Source in brackets after each item.
+SCOPE NOTE:    This brief covers the AI PRODUCT: what users talk to. AI_STRATEGY_AND_WORKFLOW_BRIEF.txt stays the
+               home for strategy background (moat, talks) and the development workflow; it is no longer the place
+               for product AI decisions. AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER_FUTURE_BUILD_BRIEF_2026-10-01.txt is
+               folded in here (Sections 4 and 5); keep it for its full capability detail (C1-C7) until archived.
+MISSING SOURCE: "Mirra: Analyst Layer, CFO Chat, Agent-Led Setup and Scenario Agent - Consolidated Future Build
+               Brief (2026-10-23, v3)" is cited by BUSINESS_MODELLING_BRIEF (Section 12, decisions 10, 11, 13; rule
+               7.2) but is not in the repo and the owner does not have a copy (2026-10-27). Only the parts quoted in
+               the Business Modelling brief are carried here (Section 6). Anything else it said is lost; do not
+               reconstruct it from memory.
+HOW TO UPDATE: append a dated ADDENDUM at the bottom (Addendum 3 added 2026-10-28; next is Addendum 4). When an addendum changes a
+               decision or status above, also edit that line in place. When an item ships, mark it [SHIPPED] here
+               and fold the detail into the owning module brief.
+
+===============================================================================
+1. WHY THERE IS AN AI LAYER
+===============================================================================
+ - [DECISION] Early viewers said the tool is "too complicated to understand and use". The calculation chain cannot
+   be simplified without becoming wrong. So the complexity stays in the engine and the EXPERIENCE is simplified by
+   the UI tidy-up (R5) and the AI layer (R7). That is why the AI layer is inside the launch bar, not a nice extra.
+   (POST_LAUNCH_VISION s2; LAUNCH A2)
+ - [DECISION] The core tool is deterministic: same inputs, same outputs, verified, not trusted. It must never become
+   "AI does the maths". The AI layer sits beside it and explains. (POST_LAUNCH_VISION s3)
+
+===============================================================================
+2. THE AI SURFACES (one layer, four places users meet it)
+===============================================================================
+  A. LANDING-PAGE FIN      Pre-login, voice. Explains what Mirra does and invites the visitor to start. (Section 3)
+  B. SETUP COACHING        Inside the tool. Interviews the owner and gets the right numbers into the right boxes.
+                           (Section 4)
+  C. EXPLAINER AGENT       Inside the tool. Reads stored, already-calculated numbers and explains them. (Section 5)
+  D. LATER EXTENSIONS      Target-modelling assistant, weekly digest / drift, outside-the-app agent surface,
+                           invoice-matching suggestions. (Sections 6 and 7)
+  B and C ship TOGETHER as R7, inside the launch bar. A is not on the build order yet. D is post-launch.
+
+===============================================================================
+3. LANDING-PAGE FIN (pre-login)
+===============================================================================
+Behaviour spec: Fin_landing_page_guardrails_v0_2.json (2026-10-27; supersedes v0.1). The JSON is the source of
+truth for wording; this section records the decisions behind it.
+
+ 3.1 [DECISION] Role: a gentle salesperson, not an analyst. Only positive. Slowly reveals what the tool can do for
+     the visitor. Replies 2-4 sentences: warm, enough to build the picture, never a pitch dump, never clipped.
+ 3.2 [DECISION] Structured flow, so Fin cannot wander: opener -> what we do -> live worked example -> what else ->
+     how the model comes together -> setting one up. Side questions are answered within the rules, then Fin steers
+     back to the next stage.
+ 3.3 [DECISION] Opener: "Welcome to FinMirra, I'm Fin. We're a digital CFO platform that helps you investigate how
+     your business is actually running. Would you like me to explain a little more about what we do?"
+ 3.4 [DECISION] Core explanation: baseline (how the business runs today, from the P&L) -> model (how it needs to run
+     to be profitable, in Model Your Business) -> live data checked against both, refreshed every month. The model
+     gets smarter the more of the business it sees.
+ 3.5 [DECISION] Hook: a live worked example from two numbers (hourly rate, hours per week), using the NZ entitlement
+     of two paid 10-minute breaks per 8-hour day. Check values at $50/hr, 40 hrs/wk: about 87 hours a year, about
+     $4,300 a year, cost per productive hour about $52.17. Lead-in: "Would you like me to show you a quick example
+     of what we can do?" Results stated neutrally; then a soft landing, no push.
+ 3.6 [DECISION] Hard rules: never criticise or imply a gap or mistake; never generalise ("most owners"); never refer
+     to, compare with or put down any other tool or company; never estimate a number about the visitor's business
+     beyond the worked example; never ask for more than a chat can use.
+ 3.7 [DECISION] Never interrupt. A pause is part of the same thought. Prompt wording alone cannot fix this: the voice
+     platform's end-of-speech silence threshold must also be raised (target at least 1-2 seconds). Owner benchmark
+     from testing: Claude interrupts most; Copilot over-explains; ChatGPT was best of the three.
+ 3.8 [DECISION] "Simple in hindsight, invisible beforehand" is static page text only, never spoken (spoken, it
+     implies the visitor missed something). "We mirror your business back to you" may be spoken.
+ 3.9 [DECISION] Quick Start is removed from Fin's flow for now. [PROPOSED, product idea] Quick Start could later
+     carry the same paid-breaks hook as a two-input tool.
+ 3.10 [OPEN] Fin must not claim quote checking. DISCREPANCY TO RESOLVE: the owner said on 2026-10-27 that quote
+     checking is "not built", but QUOTE_ENGINE_BRIEF records Quote Engine and Quote Checker pages built in
+     v3.7-v5.0 and carried forward, NOT VERIFIED in v6.x. Decide whether the owner meant a different feature
+     (checking quotes against the live model) or whether the existing pages should be retired or verified. Until
+     then, Fin does not mention quotes.
+ 3.11 [OPEN] Closing invitation after the setup stage (into Model Your Business): wording not agreed.
+ 3.12 [OPEN] RULE CONFLICT: the worked example is a calculation shown to the visitor, but the standing rule is that AI
+     never produces a number the user treats as true (Section 8.1). [PROPOSED] Resolve by running the example in
+     plain deterministic code (a fixed formula with its own check values and, ideally, the tool's own labour
+     break settings), with Fin only reading out the result. Fin does no arithmetic of its own.
+ 3.13 [OPEN] The example uses 52 working weeks and does not remove leave or public holidays. Keep it simple or adjust.
+
+===============================================================================
+4. SETUP COACHING (R7, part 1)
+===============================================================================
+ 4.1 [DECISION] Vision: the owner is effectively interviewed about the business; answers land in the right boxes,
+     like working beside someone who already knows the tool. (Setup brief s1)
+ 4.2 [DECISION] Extend the existing calculation trace node pattern; no separate per-page config. Each node may carry
+     two optional fields: input_guidance (what to enter and why) and result_interpretation (what a result means).
+     (Setup brief D1)
+ 4.3 [DECISION] Never relocate a calculation to suit the helper. Aggregate questions are answered at the module that
+     already owns the aggregate. (Setup brief D2)
+ 4.4 [DECISION] Coaching is UI guidance, not a calculation node. It is verified by "did it point at the right field",
+     not by numeric correctness, and does not need a trace node. (LAUNCH A3)
+ 4.5 Capabilities in dependency order (detail in the setup brief, s4): C1 guidance text on nodes; C2 stable element
+     IDs on every input; C3 entry order per page (new data, not derivable from the trace graph); C4 highlight and
+     step-through; C5 assisted entry; C6 results explainer; C7 the interview layer (asks what is missing, using
+     Model Readiness plus C3).
+ 4.6 [DECISION] Assisted entry (C5), if built, writes through the SAME update path as the UI (same hook state,
+     validation and storage write), never around it. Both recurring bug classes apply (standalone function outside
+     a hook; rebuild-not-spread selectors). Needs its own design pass.
+ 4.7 [DECISION] Getting the tool to a lockable baseline (all flags cleared, reconciliation passing) is the owner's
+     work through the pages, with setup coaching helping. Locking is an explicit commit. (BM Addendum 2 item 5)
+ 4.8 [PROPOSED, not agreed] First milestone: a rough working demo scoped to Labour only (talk to the helper, it
+     fills Labour), on the clean single-labour dataset. (Setup brief s5)
+ 4.9 [OPEN] Can coaching only fill values for the owner to confirm, or also commit them? (Setup brief Q7)
+
+===============================================================================
+5. EXPLAINER AGENT (R7, part 2)
+===============================================================================
+ 5.1 [DECISION] Read and explain, never compute. It fetches stored, already-calculated outcomes and explains,
+     compares and points out patterns in plain language. "Otherwise, what was the point in us building everything."
+     (STRESS D-8, s7.1)
+ 5.2 [DECISION] It calls a fixed set of defined tool functions (e.g. a business's Business Outcome summary, a staff
+     member's true cost, current Cost Allocation groups). Each returns structured JSON from the stored tables,
+     scoped to the one business by tenant isolation. It never writes its own database queries. (STRESS 7.2)
+ 5.3 [DECISION] Every calculation node is stored in the database, so the agent can answer any question about any
+     number. Node shape is therefore part of the schema. (LAUNCH A4)
+ 5.4 [DECISION] Hand-off point: Business Outcome and Business Modelling, the most complex screens. (LAUNCH R7)
+ 5.5 [DECISION, mechanism PROPOSED] What-ifs are the one exception to "never compute": allowed only if clearly
+     labelled as not actual, and proposed to run through Business Modelling's own calculation, with the agent
+     explaining the result. No hypothetical figure is ever shown as an actual. (STRESS 7.3)
+ 5.6 [DECISION] Explains, never advises. Mirra shows what a lever does in THIS business; never what to do, never
+     what other businesses do. Diagnosis wording states the arithmetic only. (BM decision 11; BM Addendum 3 item 4;
+     23 Oct brief rule 7.2 as quoted)
+ 5.7 [PROPOSED, owner has not commented] Log what was asked and what data was returned, for trust and for client
+     compliance requests. (STRESS 7.4)
+ 5.8 Dependencies: the database with stored outputs (R6), tenant isolation, result_interpretation text on nodes,
+     stable screens (R5).
+ 5.9 [DECIDED 2026-10-28, Addendum 2 item 11; was OPEN] Do nodes need plain-language text stored alongside their
+     values? Decide when nodes are built, not after.
+     (LAUNCH A3)
+
+===============================================================================
+6. LATER EXTENSIONS (post-launch unless stated)
+===============================================================================
+ 6.1 Target-modelling assistant. Waits until the Business Modelling lever layer is settled and verified by hand.
+     Proposes within limits taken from the business's own baseline; the owner confirms. Per-source targets and the
+     "cross-subsidy shrinking to zero" measure belonged to the missing 23 Oct brief. (BM decision 13)
+ 6.2 Weekly digest and drift detection ("part-time CFO"). The explainer on a schedule: push instead of wait.
+     [PROPOSED] Deterministic code compares stored nodes over time against thresholds; the agent only narrates what
+     code flagged and never decides by estimating that something drifted. [PARKED 2026-10-28, Addendum 2 item 9] What counts as drift, per business,
+     and who sets the threshold. Needs real users' history first. (POST_LAUNCH_VISION s4; AI_STRATEGY G1)
+ 6.3 Outside-the-app agent surface ("two front doors": the tool in the Xero App Store, the agent wherever agents are
+     found). Kept possible at no cost because the agent reads through fixed functions. A strategic bet, not
+     researched. [OPEN] Design for it before launch, or only keep it possible? (POST_LAUNCH_VISION s3, Q-1)
+ 6.4 Invoice matching. AI may only SUGGEST a product match with a confidence; a person confirms. Variance amounts
+     are plain code. Azure AI Document Intelligence (prebuilt invoice model) discussed for reading supplier
+     invoices, not decided; about US$0.50-1.50 per user per month at 50-150 invoices. (SUPPLIER_PRODUCT_ALIAS s2, s5;
+     GO_TO_MARKET s5, s6)
+ 6.5 Explanations adapted to the reader (owner vs accountant), adviser use: ideas only. (AI_STRATEGY G2, G3)
+
+===============================================================================
+7. DATA, PRIVACY AND SECURITY
+===============================================================================
+ 7.1 [DECISION] Baseline security is settled and non-negotiable: in transit (TLS), at rest, and row-level tenant
+     isolation enforced in the database from day one. One business must never see another's data; a deliberate
+     breach attempt must fail before launch. (STRESS 5.2; LAUNCH A2, A4)
+ 7.2 [DECISION, 2026-10-27] Business data will be encrypted. Fin may say so publicly. [OPEN] Which fields get
+     field-level encryption on top of the baseline. Starting advice (not final): personally identifying fields
+     (staff names, contact details, possibly pay tied to a named person); calculated figures rely on the baseline
+     because Cost Allocation and Rate Builder query them in bulk. The list goes to someone experienced in securing
+     financial SaaS data before the schema is fixed at R6. (LAUNCH A4)
+ 7.3 [DECISION, 2026-10-27] No one inside FinMirra can browse a client business's data. Account details (e.g.
+     business name) are held to run the account.
+ 7.4 [DECISION, 2026-10-27] A written data collection and privacy policy is required before any AI surface fields
+     data questions live. Not written. Until it exists Fin says only: business financial information stays private
+     and encrypted; a full policy is on its way.
+ 7.5 [PROPOSED, 2026-10-27, for the policy] Generic, non-identifying signals that may be used to improve the product:
+     - the kinds of questions people ask Fin and the explainer
+     - where people get stuck or drop off in setup; how long setup takes; which features get used
+     - location at region level (e.g. NZ vs Australia rules)
+     - invoice line-item DESCRIPTIONS only (never quantities, prices, supplier or customer identity) to improve the
+       generic invoice-matching system
+     Owner position: "we effectively don't collect any personal information" for improvement purposes.
+ 7.6 [DECISION] Not the same thing as benchmarking. Pooled "typical business" metrics were rejected (BM decision 11).
+     Cross-client benchmarking (anonymised bands) stays parked behind the LEGAL GATE in AI_STRATEGY A.7, and if ever
+     built needs its own stored consent flag (scoped to anonymised ratios, never raw data, never model training).
+     The policy must keep product-improvement signals and benchmarking clearly separate.
+ 7.7 [OPEN] What data is sent to an outside AI service for the explainer and coaching, the consent wording, and the
+     per-use cost. (Setup brief Q4)
+
+===============================================================================
+8. STANDING RULES FOR EVERY AI SURFACE
+===============================================================================
+ 8.1 AI never produces a number the user treats as true. Numbers come from the deterministic engine, stored and
+     traceable. (STRESS D-8; SUPPLIER s2)
+ 8.2 What-ifs are labelled as not actual and run through the tool's own calculation.
+ 8.3 Explain, never advise; this business only; no comparison with other businesses or other tools.
+ 8.4 Never claim a feature that is not built. Not built today: native timekeeping, purchase orders, work orders,
+     Xero write-back, any live feed other than the accounting P&L and balance sheet. (Fin v0.2; LAUNCH R8)
+ 8.5 Read through fixed, tenant-scoped functions; never free-form queries.
+ 8.6 A human is the buffer: suggestions are confirmed by a person before they become data. (AI_STRATEGY C3, M2)
+ 8.7 Voice surfaces never interrupt (3.7).
+
+===============================================================================
+9. GATES (must be cleared before the step named)
+===============================================================================
+ G-1 [GATE before R7 and before any data policy is final] Read the Xero developer terms updated 2 March 2026. They
+     prohibit using Xero API data for AI/ML training and restrict some automated tools. Check them against: the
+     explainer reading Xero-derived figures; setup coaching; Azure invoice reading; sending invoice text to any AI
+     step; the invoice-description training idea in 7.5; benchmarking. NOT YET READ. Note: whether invoice
+     descriptions count as "Xero API data" depends on whether they arrive through Xero or straight from supplier
+     documents. (GO_TO_MARKET 4d, Q2; LAUNCH A2; STRESS 7.6)
+ G-2 [GATE before R6 schema is fixed] Field-level encryption list reviewed by someone experienced in financial SaaS
+     security. (LAUNCH A4)
+ G-3 [GATE before any data question is answered live] Data collection and privacy policy written (7.4).
+ G-4 [GATE before benchmarking ships anything] Lawyer review of band width, sample floor, cadence, UI copy.
+     (AI_STRATEGY A.7)
+ G-5 [GATE before landing-page Fin goes live] Voice-platform silence threshold set (3.7); FinMirra name confirmed;
+     pricing supplied; 3.10-3.12 resolved.
+
+===============================================================================
+10. SEQUENCING
+===============================================================================
+ - R5 UI tidy-up -> R6 database (stored nodes, tenant isolation) -> R7 setup coaching + explainer, together. R7 is
+   inside the launch bar. (LAUNCH Addendum 1; PROJECT_MAP s5: R7 "not started")
+ - Landing-page Fin: not on the build order. [OPEN] Where it sits. It needs no database and no client data, so it
+   could run before R7 as a marketing piece (Track M), provided G-5 is cleared.
+ - Section 6 items: after launch.
+
+===============================================================================
+11. OPEN QUESTIONS (collected; do not assume answers)
+===============================================================================
+ Q-1  Which AI model/provider, and text versus voice inside the tool? (Setup Q1) Trial path only so far: Addendum 1, 3.C.
+      DECIDED 2026-10-28: Anthropic for now, swappable; text and voice (Addendum 2, item 1).
+ Q-2  Where the in-tool helper lives in the UI: side panel, overlay, separate page? (Setup Q2)
+      DECIDED 2026-10-28: side panel; desktop and iPad-size screens, not phones (Addendum 2, item 2).
+ Q-3  How the helper receives live module state before R6, if any demo is built earlier. (Setup Q3) PROPOSED answer:
+      Addendum 1, 1.2.
+ Q-4  Data sent to an outside AI service, consent wording, per-use cost. (7.7)
+      PARTLY DECIDED 2026-10-28: role labels only (Addendum 2, item 4). Consent wording and cost still open; first
+      price check in Addendum 2, item 13.
+ Q-5  How entry order (C3) is stored and maintained. (Setup Q5)
+      DECIDED 2026-10-28: follows the screen layout; mechanism still open (Addendum 2, item 10).
+ Q-6  Coaching: fill for confirmation only, or commit? (4.9) PROPOSED: confirm-before-save, Addendum 1, 1.8.
+ Q-7  Node plain-language text stored with values? (5.9)
+      DECIDED 2026-10-28: numbers in the database, descriptions in one library (Addendum 2, item 11).
+ Q-8  Logging of agent questions and answers: yes or no? (5.7)
+      PARTLY DECIDED 2026-10-28: unanswered questions are logged (Addendum 2, item 5). Logging all questions and
+      answers is still open.
+ Q-9  What counts as drift? (6.2)
+      PARKED 2026-10-28 until real history exists; month-end snapshots built from day one (Addendum 2, item 9).
+ Q-10 Outside-the-app agent surface: design now or keep possible? (6.3)
+      DECIDED 2026-10-28: keep possible, do not design now (Addendum 2, item 7).
+ Q-11 Quote Checker discrepancy. (3.10)
+ Q-12 Worked example: deterministic code, and leave/holiday adjustment? (3.12, 3.13)
+ Q-13 Landing-page Fin placement in the build order. (Section 10) Also: could the business-setup page be the landing
+      page? Addendum 1, 3.G.
+ Q-14 Can the 23 Oct brief be recovered from any old chat? If so, reconcile it with this brief by addendum.
+ Q-15 Read-only in-page Fin before R6, or wait for the database? RACI plan and Section 10 disagree. (Addendum 1, 1.10)
+      DECIDED 2026-10-28: database first, then the AI; no early chat (Addendum 2, item 3).
+ Q-16 RACI gates not yet in this brief: confidence framework (AR-010) and Fin identity/personality (AR-012).
+ Q-17 May individual staff names go into the Fin payload, or role/type labels only? (Addendum 1, 1.4)
+      DECIDED 2026-10-28: role/type labels only (Addendum 2, item 4).
+ Q-18 Accounting connection: API key from the provider, or guided login and authorise? Which providers? (3.H)
+ Q-19 Does the Labour output contract already carry a per-staff ACC dollar figure? Verify before building. (2.1)
+
+===============================================================================
+12. SOURCES (this brief consolidates; originals keep full detail)
+===============================================================================
+ - Future_Build\AI_ASSISTED_SETUP_AND_RESULTS_EXPLAINER_FUTURE_BUILD_BRIEF_2026-10-01.txt (+ addendum 2026-10-16)
+ - Future_Build\AI_STRATEGY_AND_WORKFLOW_BRIEF.txt (Part A: G1-G3, A.5, A.7)
+ - Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-10-14.txt (step 5c; 2A; Addendum 1 R7, A2-A4, A6)
+ - Future_Build\STRESS_TEST_DATABASE_AND_AGENT_DESIGN_FUTURE_BUILD_BRIEF_2026-10-16.txt (D-7, D-8, 5.2, Section 7)
+ - Future_Build\POST_LAUNCH_VISION_AND_POSITIONING_FUTURE_BUILD_BRIEF_2026-10-16.txt (Sections 2-4)
+ - Future_Build\GO_TO_MARKET_XERO_LISTING_AND_UNIT_ECONOMICS_FUTURE_BUILD_BRIEF_2026-10-16.txt (4d, 5, 6, Q2)
+ - Future_Build\SUPPLIER_PRODUCT_ALIAS_AND_RECONCILIATION_MATCHING_FUTURE_BUILD_BRIEF_2026-10-21.txt (s2, s5, 6F)
+ - Briefs\BUSINESS_MODELLING_BRIEF.txt (Addendum 2 items 5, 10, 11, 13; Addendum 3 item 4)
+ - Briefs\QUOTE_ENGINE_BRIEF.txt (status of Quote Engine / Checker)
+ - Fin_landing_page_guardrails_v0_1.txt and v0_2.json; owner voice session 2026-10-27
+ - Mirra / Fin AI Assistant - Proof of Concept Build Brief; Mirra & Fin RACI-Style Implementation Plan v1.0;
+   Mirra Fin Master Product and Technical Brief (2026-09-28); AI Strategy (Cuban) brief 2026-10-12; test exports
+   LABOUR / COST_SUMMARY / calculation_trace_snapshot of 2026-09-29 (all via Addendum 1)
+ - MISSING: the 2026-10-23 consolidated AI brief (see header)
+
+===============================================================================
+BRIEF TEMPLATE BLOCK
+===============================================================================
+OUT OF SCOPE: any code; choosing an AI provider or database host; writing the privacy policy itself; legal review;
+  benchmarking design; Quick Start changes.
+MODULES TOUCHED: none (documentation only). When R7 is built it touches every module's trace node files (C1),
+  input controls (C2) and, for assisted entry, module hooks and storage (stop-and-confirm).
+ACCEPTANCE NUMBERS: Fin worked example at $50/hr, 40 hrs/wk: 86.67 break hours/yr, $4,333.33/yr, $52.17 per
+  productive hour. Any implementation must reproduce these exactly before rounding.
+SLICE ORDER (proposed): 1. clear G-1 (Xero terms) 2. write the data policy (G-3) 3. resolve Q-11 and Q-12 4.
+  landing-page Fin trial on the v0.2 JSON 5. C1 guidance text on nodes 6. R7 after R5 and R6.
+
+===============================================================================
+SESSION-CLOSE CHECKLIST
+===============================================================================
+ - Add a one-line pointer to this brief in PROJECT_MAP.md (Future_Build list and the R7 row).
+ - Edit the AI_STRATEGY_AND_WORKFLOW_BRIEF header: product AI decisions now live here.
+ - Add a pointer at the top of the 2026-10-01 setup brief: consolidated into AI_LAYER_BRIEF.txt.
+ - Upload this brief to project knowledge.
+
+===============================================================================
+ADDENDA (dated, numbered, newest last)
+===============================================================================
+(Addendum 1 below)
+
+-------------------------------------------------------------------------------
+ADDENDUM 1 - 2026-10-28 - INPUTS FROM THE FIN/MIRRA PLANNING CHAT
+-------------------------------------------------------------------------------
+Source: owner chat (Sept-Oct 2026) working from the Proof of Concept brief, the RACI plan v1.0, the Master Product and
+Technical Brief (2026-09-28), the AI Strategy (Cuban) brief and the 2026-09-29 exports (LABOUR, COST_SUMMARY, calculation
+trace snapshot). Nothing built, no code touched. The Master Brief PDF was read earlier in the chat and was NOT re-read
+for this addendum, so nothing here depends on its detail beyond the payload and findings idea in 1.3.
+Tags as in the header. [PoC] = shown in the proof of concept. [FINDING] = read from the exports.
+
+A. IN-APP FIN: WHAT THE PROOF OF CONCEPT AND RACI PLAN ADD (feeds Sections 4, 5 and Q-3)
+ 1.1 [PoC] Fin answers only from the JSON it is given. One payload answered many different questions, so Fin is not
+     tied to buttons or canned reports. Answer quality is proportional to the structured context supplied. Fin never
+     calculates: Mirra calculates, Fin explains what happened, why, what is missing and the business impact.
+ 1.2 [PROPOSED] Answer to Q-3. A read-only, in-page Fin needs no database. The page's output-contract hooks build the
+     payload in the browser, POST it to a server route that holds the model key, and show the reply. That is what the
+     PoC did with pasted page JSON. Stored nodes (5.3) are needed for history and a scheduled agent, not for explaining
+     the page you are looking at. Condition: the model key stays server-side. The headless question (AI_STRATEGY G1a,
+     can the chain run outside a browser) then only affects a scheduled agent, not this first cut.
+ 1.3 [PROPOSED] Payload shape (RACI Phase 2): user_context, page_context, business_context, verified_outputs, findings[],
+     missing_data[], agent_rules, traceability. Rule: verified outputs and semantic labels go out; formulas and mechanism
+     documents (CALCULATION_MAP, VARIABLE_TRACKER, trace briefs) never do. This answers AI_STRATEGY R1 for Fin: the
+     question of what leaves the app is live the moment Fin's route exists. The landing-page JSON is unaffected
+     because it holds public pitch content only.
+ 1.4 [PROPOSED] The PoC sent employee names and salaries because richer context gave better answers. That conflicts with
+     Section 7. Proposed resolution: richer context comes from verified outputs with semantic labels, and the payload
+     uses role/type labels and pool names by default ("Operator / Delivery Staff"). Individual names only if the owner
+     decides so (Q-17). Feeds the field-level encryption list (7.2) and the outside-AI data question (7.7).
+ 1.5 [PROPOSED] Build the payload from the calculation trace layer plus the output contracts, not from raw module state.
+     [FINDING] The 2026-09-29 trace snapshot has 100 nodes and 108 edges, no duplicate ids, no missing endpoints. Each
+     node already carries node_id, display_label, module_name, is_root_input, value_format, implementation_status,
+     inputs and resolved_value. That fits 4.2 and 5.3. Cost Allocation's setup_warnings, allocation_warnings,
+     cost_allocation_warnings and orphan_warnings are natural sources for findings[] and missing_data[].
+ 1.6 [PROPOSED] Two modes on one page, switched by the module's readiness flag. Not ready: SETUP mode (guide, explain
+     fields, no analysis). Ready: ANALYSIS mode (explain verified outputs). The flags already exist: labour_ready on the
+     Labour output contract, and model_ready / model_readiness_status on Cost Summary (the 2026-09-29 export read
+     "blocked" with a reconciliation reason). This is the line between Section 4 and Section 5 without a new concept.
+ 1.7 [PROPOSED] One severity rule. "What deserves to interrupt an owner" (AI_STRATEGY G1 / D-C) is the severity threshold
+     for findings[]. Define it once; Fin commentary, the 6.2 digest and any agent all use it. Month-end history (D-D)
+     is the same decision as the snapshot design, so decide storage once.
+ 1.8 [PROPOSED] Action contract and approval, from the RACI plan. Actions: navigate_page, scroll_to_section, focus_field,
+     set_field, highlight_metric, open_chart, focus_chart, focus_table, highlight_row, start_walkthrough. Flow: Fin
+     proposes a structured action, it is validated, the UI target is located, executed, result returned. Fin proposes
+     and the owner approves before anything is saved. That answers Q-6 as "fill for confirmation, never auto-commit",
+     pending the owner's Gate 3 sign-off (RACI). Any Labour set_field / populate_form goes through the same update path
+     as the UI (4.6) and, because Labour is a core calculation area, needs its own confirmation and a fresh read of the
+     current files before any patch (Working Conventions 1 and 5).
+ 1.9 [PROPOSED] Page registry with stable UI ids is C2 (4.5). Fin MVP acceptance test: a new user lands on Labour, says
+     "Help me set this up", and is guided through without having to understand the page first.
+ 1.10 [DECIDED 2026-10-28, Q-15: database first, no early chat; the working assumption below is SUPERSEDED, see
+     Addendum 2 item 3; was OPEN] Sequencing disagreement. The RACI "practical sequence" puts Snapshots before Fin MVP; the RACI
+     "immediate work queue" puts Fin items 1-11 before Accept Baseline (12) and the Snapshot service (13); Section 10
+     of this brief puts the database (R6) before R7. Working assumption offered: read-only Fin MVP first (1.2), snapshots
+     and history after. Owner to confirm.
+ 1.11 RACI says six decisions gate Fin MVP: LLM provider (Q-1), action contract (1.8), approval framework (1.8),
+     confidence framework (Q-16), AI context scope (1.3, 1.4) and Fin identity (Q-16).
+
+B. DATA VISIBILITY GAPS FOUND IN THE EXPORTS (anything Fin may be asked about must be in the output contract)
+ 2.1 [FINDING] Per-staff ACC dollars. CALCULATION_MAP L393: acc_work_levy_annual = gross_wages x acc_rate/100, computed per
+     staff member inside calculateLabourOutputs. The LABOUR export carries only the rate (1.43 for all three staff, no
+     manual override). COST_SUMMARY exposes group totals only: acc_levy_annual 3,271.84 productive (2 staff) and
+     1,487.20 non-productive (1 staff). Whether the Labour output contract already carries a per-staff dollar figure was
+     NOT confirmed (Q-19); verify before building.
+ 2.2 [DECISION, owner] Add the per-staff ACC dollar amount to the Labour output contract AND show it on the Labour page.
+     Cost Summary and Business Summary stay at group level; they are total-people views. Principle: a number that is
+     calculated but not published is invisible to JSON exports and to Fin.
+ 2.3 Acceptance numbers, derived by arithmetic from the 2026-09-29 test data (2,080 paid hours, rate 1.43%) and NOT yet
+     read from the app: Jack 60 x 2,080 = 124,800 -> 1,784.64; Paul 50 -> 104,000 -> 1,487.20; Sarah 50 -> 104,000 ->
+     1,487.20. Jack + Paul = 3,271.84 and Sarah = 1,487.20, both matching Cost Summary. Confirm once the field exists.
+ 2.4 [DECISION, owner] The console export used for page captures must include the full output contract for the page, not
+     only what the fiber-walk regex happens to catch, so calculated-but-not-displayed values are not missed.
+ 2.5 [FINDING / BUG] In the LABOUR export the LabourSummaryCard props (meta, decision_status, decision_rows,
+     charge_out_result_rows, sections) serialised as "[Circular]". The export cannot serve as a Fin payload; the payload
+     must come from the output contract (1.3, 1.5), and the export script needs circular-safe handling.
+ 2.6 [FINDING / BUG] labour_rate is stored as a string in qs_tools_labour_profiles_v1: "050", "60", "50". Owner confirmed
+     "050" is the input box letting a leading zero through; the real value is 50. The calculation copes (Sarah's base
+     wages plus entitlements = 104,000 = 50 x 2,080), so the impact is storage and display, but the input should
+     be coerced to a number on save, and Fin must never be left to guess which reading is right. Owning brief:
+     LABOUR_BRIEF. Check where the Labour form saves the rate, and whether other numeric inputs behave the same way.
+ 2.7 Test data names ("Single Labour Working Unit Test", "2nd Labour Test Unit") would appear verbatim in Fin's answers.
+     Use a clean dataset for any demo (4.8).
+
+C. LANDING-PAGE FIN: ADDITIONS TO SECTION 3
+ 3.A [DECISION] On page load Fin's text appears at once with no click. Voice starts at the visitor's first click or tap,
+     because browsers block unprompted audio (a platform rule, not a design choice). The same click requests microphone
+     permission, so the button wording must say so, e.g. "Click to talk with Fin".
+ 3.B [DECISION] Fin is the owner's own LLM call from the owner's backend with the key held server-side, answering live
+     from a small fixed context (the guardrail JSON). It is not the browser's built-in assistant (Copilot, Gemini):
+     there is no standard way for a site to hand off to those.
+ 3.C [DECISION] Trial path: paste the guardrail JSON into Copilot first; then a test page on the owner's existing
+     Anthropic account. This is a trial only, not the Q-1 provider decision.
+ 3.D [DECISION] Fin may quote pricing when directly asked, from fixed supplied content only, never generated. The owner
+     holds the pricing and will supply it (G-5).
+ 3.E [DECISION] The pitch is one integrated system whose parts talk to each other, not "cheaper than your other
+     subscriptions". Timekeeping, purchase orders and work orders are native to Mirra rather than third-party
+     integrations (too many formats to support), and are NOT BUILT YET. The only external connection is the accounting
+     P&L and balance sheet. Invoice reading and reconciliation use existing tools rather than being built in-house, and
+     costing/accounting is not built; neither is explained to visitors. Never mention Power BI or other tools. This
+     matches 8.4 and v0.2.
+ 3.F [FINDING] Roleplay evidence for the hard rules: an unconstrained Fin invented a setup time ("well under an hour")
+     and a savings figure ("five figures") and generalised about other owners. All are now banned in v0.2. Keep them as
+     regression tests.
+ 3.G [OPEN] The owner suggested the business-setup page (units/hours choice and business name) could itself be the
+     landing page, with Fin on from the first moment. The owner will check the current flow. Affects Q-13.
+ 3.H [OPEN, Q-18] Accounting connection. The chat assumed the owner gets an API key from the provider (Xero, MYOB), and
+     Fin deep-links to the provider's developer page and talks them through it. v0.2 stage 6 says "guided login and
+     authorise". Confirm the flow and the provider list before Fin says anything about it. Fin cannot fetch or generate
+     the key; the owner signs in to their own account. The P&L page is the first hard step, so SETUP mode (1.6) matters
+     most there.
+ 3.I v0.2 test_scenarios lack cases raised in the chat: "How long will setup take?", "How much does it cost?", "Does it
+     connect to my timesheet app?", "Are you sure your maths is right?", "How do I know I can trust you?" and a visitor
+     who volunteers staff and equipment counts (expect plain acknowledgement, no numbers, no assumptions).
+ 3.J The homepage blurb still says "QS Tools" (owner: now FinMirra) and uses "leak detection system". Both are static
+     page text; the second must not be spoken because it implies a gap (3.6).
+
+D. OPEN READ-ONLY CHECKS
+ 4.1 The combined PowerShell search from 2026-10-12 (AI Export location, external model calls, API routes, browser-only
+     code in output-contract hooks, calculation-trace folder, labour_rate handling) has not been run; no output was
+     pasted back. It answers 1.2, Q-19, 2.6 and AI_STRATEGY R1 and G1a in one pass.
+ 4.2 Nothing in this addendum is a Product Owner gate sign-off. RACI Gates 1-3 (business truth, Fin behaviour, user
+     control) are still to be given.
+
+-------------------------------------------------------------------------------
+ADDENDUM 2 - 2026-10-28 - OWNER VOICE SESSION DECISIONS, AND PRICE AND TERMS CHECKS
+-------------------------------------------------------------------------------
+Source: owner voice session 2026-10-28, working through the open questions one at a time, written up in text chat the
+same day. Nothing built, no code touched. Tags as in the header. Where this addendum changes a line above, that line is
+also edited in place. [CHECKED] = read from the page named, on 2026-10-28. Items here use plain numbers; Addendum 1 has
+its own numbering.
+
+A. DECISIONS
+ 1. [DECISION] Provider (Q-1): Anthropic for now, kept swappable behind Mirra's own server. Inside the tool the helper
+    is text AND voice. [PROPOSED, owner did not object] Build text first and voice after: voice adds cost and the
+    interruption problem in 3.7.
+ 2. [DECISION] Where the chat lives (Q-2): a side panel beside the numbers, so the owner sees the figures while talking
+    about them. Targets are desktop and iPad-size screens (landscape). Phones are not supported: the tool is too dense.
+    No narrow-screen overlay is needed.
+ 3. [DECISION] Sequencing (Q-15): the database first, then the AI layer. No early read-only chat before R6. This follows
+    Section 10 and supersedes the working assumption in Addendum 1, 1.10. Addendum 1, 1.2 stays correct as the technical
+    answer to Q-3 if a demo is ever built early, but none is planned.
+ 4. [DECISION] What goes to the AI (Q-17; Q-4 in part): role/type labels and pool names only, never individual staff
+    names. The helper says "the operator's cost", not a person's name. Consent wording and per-use cost (Q-4) remain
+    open.
+ 5. [DECISION] Unanswered-question log (Q-8 in part; 5.7). When the AI cannot answer because the data or figure does not
+    exist, the request is logged:
+      - IDENTIFIED: tagged to user and business, so the owner can contact the customer and build what they need.
+      - Keeps the raw question text, a category and the names of the missing fields. Mirra adds no business figures to
+        the log (the user's own words may still contain some).
+      - A DAILY DIGEST email goes to the owner: one email a day listing each unanswered request by category, missing
+        field names and business, no figures.
+      - Safeguards, all required: tell users in the chat that unanswered questions are kept so they can be followed up;
+        a limited retention period; access limited to the owner.
+    [GATE] Decided in principle only: the privacy policy (G-3) must cover it and a lawyer must check the wording. Raw
+    text can contain private details, which is why the safeguards are required. This is a separate, disclosed purpose
+    (following up the customer's own request) and the policy must keep it apart from the generic improvement signals in
+    7.5. [OPEN] The retention period. Logging ALL questions and answers (the rest of Q-8 and 5.7) is still open.
+ 6. [DECISION] Setup coaching and the explainer are BUILT separately and SHIPPED together as R7. They share little, so
+    each can be proved against the owner's numbers on its own. They ship together because setup gets a new user to a
+    clean baseline and the explainer makes that baseline worth reading.
+ 7. [DECISION] Outside-the-app agent surface (Q-10, 6.3): keep it possible, do not design it now. Reason (owner): a big
+    customer with its own AI may need Mirra to plug into it. What keeps it possible is that the agent already reads
+    through fixed, business-scoped functions (8.5). [PROPOSED] If built, rate-limit that connection, since another
+    system may call far more often than a person chats. Such a customer's AI provider would bill them for the AI side,
+    so Mirra's cost there is serving the data; no price change expected (not measured).
+ 8. [DECISION] AI cost tracking. AI is cost of goods (see GO_TO_MARKET Addendum 2). One cost-of-goods line called AI in
+    the company's own P&L, with a drill-down by feature underneath (setup help, explainer chat, scenario runs and so
+    on), the way a click on materials shows the supplier lines. Every AI call is tagged with the feature, the customer
+    and the tokens used. The monthly total by feature and by customer comes from an automatic usage report; nothing is
+    entered by hand. Purpose (owner): a leak check on pricing, to see whether one feature or one customer costs more
+    than it earns. Also: a monthly cap per user with an alert before the cap; agent runs tracked apart from plain chat,
+    since they make several calls per request. The provider bills one total, so the split comes from Mirra's own tags
+    (separate API keys per feature are a second view).
+ 9. [PARKED + DECISION] Drift (Q-9, 6.2). The rule for what counts as drift is parked until real customers' history
+    exists, because any threshold now is a guess. Build the capability now: the database stores month-end snapshots of
+    the key calculated outputs from day one, because history cannot be backfilled. This answers AI_STRATEGY D-D as yes.
+    It is a first-time storage design: its own confirmation before build, has_loaded guard, selectors that spread
+    rather than rebuild (conventions rules 8 and 6b).
+10. [DECISION] Setup step order (Q-5): follows the screen layout top to bottom (name, role, pay rate and so on). There
+    is no separate order list to keep in sync. Fields that apply only sometimes are skipped, and that rule lives with
+    the field. Each page is reviewed once before building, to capture the order and the conditional fields. This narrows
+    C3. [OPEN] Mechanism: read the order from the stable element ids (C2) at run time, or capture a list per page from
+    the layout. Decide at build.
+11. [DECISION] Plain-language text for numbers (Q-7, 5.9): the database stores the numbers; the descriptions live in ONE
+    library keyed by figure name, next to each figure's definition (where formula_text already lives for the trace).
+    The explainer fetches both and joins them. One edit improves a description everywhere. The text says what the
+    number is, what it is made of and what a negative or positive result means in plain terms. It never says good or
+    poor. This replaces "what a good/poor result means" as the wording for result_interpretation in 4.2 and the setup
+    brief (D1).
+12. [DECISION] Protect the calculation moat in explanations. The explainer describes WHAT a number is and what went
+    into it, never HOW the engine arrives at it. Two levels: a public description (for example "revenue minus the full
+    cost of running the business, including labour, assets and overheads") and the private mechanism (how overhead is
+    split, how covered hours are capped, how non-productive cost is handled), which never goes into a prompt, a
+    description or a reply. Formulas, CALCULATION_MAP, VARIABLE_TRACKER and the trace briefs never leave the server
+    (extends Addendum 1, 1.3). Known risk: enough questions can let someone reverse-engineer the logic from the
+    answers. So the explainer declines "how exactly do you work this out" questions with a fixed line, for example
+    "That is how Mirra's engine works; I can show you what went into it", and such questions go into the unanswered
+    log (item 5) so probing is visible.
+
+B. CHECKS DONE 2026-10-28
+13. [CHECKED] Claude API prices, platform.claude.com pricing page, USD per million tokens, input / output: Sonnet 5.5
+    2 / 10 (cache hits 0.10); Opus 5.5 4 / 20; Haiku 5.5 0.10 / 0.50 for prompts up to 100,000 tokens; Fable 5.1
+    10 / 50. Batch API is 50 percent off. Desk arithmetic only, assuming a request of 8,000 tokens in (data bundle plus
+    history) and 500 out, which is NOT measured: Sonnet 5.5 about 2.1 cents a question (about 2.10 for 100 a month);
+    Haiku 5.5 about 0.1 cent (about 0.10 for 100); Opus 5.5 about 4.2 cents (about 4.20 for 100). Agent runs make
+    several calls per request, assumed 3 to 5 times a plain question. Voice is extra and not priced. Prompt caching of the
+    repeated data bundle is not modelled and would lower these. This replaces the rough 3 cents a question quoted in the
+    voice session, which used older, higher rates. Q-4's per-use cost now has a first figure; measure it with the tags
+    in item 8 once real usage exists. [OPEN] Which model serves which feature.
+14. [CHECKED] Xero developer terms, PARTIAL. The Xero FAQ page developer.xero.com/faq/pricing-and-policy-updates says
+    "prohibitions on using API data for AI/ML training and certain automated tools" and "API data may not be used to
+    train AI/ML models", and that "apps must not use bots or browser extensions to undermine our security controls or
+    simulate user actions". That is a FAQ summary. The terms themselves are STILL UNREAD, so G-1 stands. What the
+    summary suggests, to be confirmed against the terms and not relied on: the restriction is about TRAINING models on
+    API data. It does not by itself say whether giving Xero-derived figures to a model as context for a reply is allowed.
+    [PROPOSED] Add to G-1's list: the trend layer and any model fitted to Xero-derived history (fitting is training;
+    plain statistics may differ), and the scenario agent.
+
+C. STILL OPEN AFTER THIS ADDENDUM
+ - G-1 (read the Xero terms themselves), G-2, G-3 (privacy policy, covering the item 5 log and its retention period),
+   G-5.
+ - Q-3 (moot unless an early demo is built), Q-4 consent wording, Q-6 fill-for-confirmation versus commit (Gate 3
+   sign-off), the rest of Q-8, Q-11, Q-12, Q-13, Q-16, Q-18, Q-19.
+ - Which model serves which feature (item 13); the item 10 mechanism; the retention period (item 5).
+ - Q-14: a brief written in the 2026-10-23 session, MIRRA_ANALYST_LAYER_AND_CFO_AGENT_FUTURE_BUILD_BRIEF_2026-10-23.md,
+   exists outside the repo. It carries material the Business Modelling brief attributes to the missing v3 (per-source
+   targets and the cross-subsidy measure, the throwaway scenario copy, never-advise, the "locked target model"), but it
+   is not v3: the title and section numbers differ. It is not filed here. [OPEN] Owner to decide whether to file it in
+   Future_Build.
+
+-------------------------------------------------------------------------------
+ADDENDUM 3 - 2026-10-28 - USE CASES, SCENARIO AGENT DECISIONS, STANDING TESTS (SECOND VOICE SESSION, SAME DAY)
+-------------------------------------------------------------------------------
+Source: owner voice session 2026-10-28 (afternoon), written up in text chat. Nothing built, no code touched. Filing rule from
+the owner: no new briefs; each item is filed on the brief that owns it. Detail for the Assets, Business Outcome, Business
+Modelling, Quote Engine and Model Readiness items is in their own Addenda (pointers below). Tags as in the header.
+
+A. USE CASES (all run on the one engine; only the starting point differs)
+ 1. [DECISION] Three use cases. (a) EXISTING BUSINESS: find where the problem is, real books as the baseline. (b) NEW BUSINESS:
+    pre-run ideas and assumptions before opening the doors, to have something to aim for. (c) ACQUISITION: a buyer or analyst
+    models a target from its figures, then tests changes on top. Cases (b) and (c) rest on assumptions or someone else's numbers,
+    so the explainer must say plainly that the figures are modelled, not verified. Setup coaching for (b) follows the same screen
+    order but asks "what do you expect", not "what did you pay" (Addendum 2 item 10).
+ 2. [DECISION] Modelled-business mode (owner idea): a setting alongside business type that flips the direction of the chain. In
+    real mode the P&L comes in and the modules reconcile to it. In modelled mode the owner enters staff, assets and overheads
+    (the setup "hours mode" idea), Cost Allocation spreads cost, Rate Builder prices the units, Business Outcome gives revenue and
+    net profit at the hours and rates the owner chooses, and a P&L is generated from that result. Revenue is therefore what the
+    plan implies ("if you work these hours at these rates, here is what the business earns"), not a forecast of what customers
+    will pay. Reconciliation against the P&L is switched off in this mode. Always labelled as an estimate. Design home:
+    Business Modelling Addendum 5; readiness side: Model Readiness Addendum 1. For acquisition the seller's accounts are entered
+    the same way and marked as someone else's figures.
+ 3. [OPEN] Switching a modelled business to a real one once the doors open and actual books exist, with plan versus actual
+    compared. Same check as comparing a saved scenario with what happened (item 6). Not designed.
+
+B. SCENARIO AGENT (extends Section 6 and Addendum 1; agrees with Business Modelling Addendum 4 item 9)
+ 4. [DECISION] No new layer. The agent sets the SAME levers as Business Modelling on a throwaway copy, the engine does all the
+    arithmetic, and the agent reports what moved. One engine, one set of layers; the agent is another way in. A what-if starts
+    from current conditions and cannot produce a number the engine would not.
+ 5. [DECISION] Scope of projection. A what-if is a calculation on today's numbers and works from day one. The agent ALSO
+    projects the next twelve months for a decision such as a hire ("can the business afford this over the next twelve months"),
+    holding the rest of the business steady as it is today and adding the change at its known cost from a start date; the inputs
+    are all stated by the owner. Only TREND-BASED forecasting (projecting the business itself from its history) is PARKED, until a
+    customer has about a year of month-end snapshots (Addendum 2 item 9). Twelve months is a judgement, not a measured figure;
+    seasonal trades may need two years. This replaces the earlier proposal that the agent stay on today's numbers only, and refines
+    Section 6.
+ 6. [OPEN] How the twelve-month view is built. The engine is annual: a full-year hire shows as a full year of cost against a full
+    year of recovered hours. A start date, a mid-year start and ramp-up while a person becomes productive are NOT in the engine.
+    Until designed, the result must say it is a full-year run rate (where the business sits once the person is fully in place),
+    which assumes they stay a year. Shorter scales (hour, day, week, month) are the annual figure divided by hours, days or weeks
+    open, using the business's opening calendar.
+ 7. [DECISION] Scenarios are THROWAWAY by default. The owner may save one (when they "pull the trigger"), stamped with its date
+    and the figures it started from, because a saved scenario goes stale as the real numbers move. Saving every question would
+    clutter the database. A saved scenario later serves as a benchmark: what was expected versus what happened. Fits Business
+    Modelling Addendum 4 item 2 (scenario list, stored from day one).
+ 8. [DECISION] Build and prove order for the agent's what-ifs: rate change, then hiring, then buying an asset. The agent should
+    eventually handle any of them; this is only the order built.
+ 9. [OPEN, CONFLICT TO RESOLVE] Business Modelling Addendum 4 item 1 puts the Rate Builder lever LAST (slice 5) and starts
+    scenarios with removing a staff member or asset. Rate change first (item 8) would need the rate lever earlier. One of the two
+    orders has to give; decide when slice 4 and 5 are planned. Item 8 is the owner's stated preference for the agent.
+
+C. NEW FIGURE AND NEW SCENARIO TYPES
+10. [DECISION] CASH AFTER PRINCIPAL REPAYMENTS: net profit minus the year's principal repaid across every active financed asset,
+    shown in Business Outcome beside net profit and carried in every scenario result. It never feeds net profit, cost, the P&L
+    tie-out, rates or reconciliation. Reason (owner): "can I afford this" is a cash question; a vehicle can leave the model saying
+    yes at a 5,000 profit and the year ends at zero cash left. Boundary: Mirra stops at net profit and never calculates tax. The
+    figure follows the explain-never-advise rule: it shows both numbers; the owner draws the conclusion. Detail, protocols and
+    checks owed: Assets Addendum 2 and Business Outcome Addendum 9.
+11. [DECISION] Downturn check, a use case. Revenue falls by an amount the owner names (rates or hours lowered on the throwaway
+    copy). Default is worst case: all costs held steady. The owner may name costs to flex on top (for example a subscription they
+    would cut); the agent can flex only a line that already exists, on the copy. Reports net profit and cash after principal
+    repayments side by side, and how far revenue can fall before each reaches zero, with and without the flexed cuts.
+12. [DECISION] Lender conversation, a use case. The owner models a loan on top of the current numbers and sees what repayments do
+    to profit, cost per hour and cash after principal repayments. "Add a loan" is another change on the throwaway copy. Needs
+    item 10 to be honest about affordability.
+
+D. PARKED OR LATER
+13. [LATER] Pricing a big job or contract: filed under the Quote Checker, which the owner has put on the back burner (not part of
+    the core tool). The AI layer must not lean on the Quote Checker meanwhile. Open Q-11 stands. See Quote Engine Addendum 1.
+14. [PARKED] Bookkeeper or accountant running the engine across several client businesses. Already noted as to be done.
+15. [LATER] Succession or sale: the true profit of an owner-run business with market pay in place of owner pay, and what a buyer
+    would test (which units carry the rest, dependence on one person or machine). Tied to the owner remuneration setting, already
+    logged as a design item (Business Outcome brief open list). It would not value the business or touch tax. Nothing built toward
+    it now.
+
+E. STANDING CHECKS
+16. [DECISION] Two checks are logged and kept apart. (i) ENGINE PURITY, the existing code audit (Business Modelling BM-7, slice 0,
+    scope widened in Addendum 4 item 8): the same inputs always give the same answer, and a what-if never reads or changes the
+    owner's saved data. Reuse the stress test suite: run the same scenario twice, compare output byte for byte, confirm stored data
+    untouched. (ii) AI BEHAVIOUR, a standing regression test: a script plays the customer, sends fixed questions to the real AI
+    layer through the provider's API against a test business with known numbers (the stress test seeds), and checks the reply
+    automatically. Checks: every number in the reply matches what the engine returned; the right function was called and only from
+    the allowed list; the questions that must be refused (for example "how exactly do you work this out", Addendum 2 item 12) are
+    refused. Each question is repeated about ten times; numbers must match every run, wording may vary. It cannot judge whether an
+    explanation reads well, so a sample is read by the owner. Rerun after every change to the prompt or the model: a fast version
+    each time, a fuller version before anything reaches customers. It costs a little per call; roughly 300 calls (30 questions x 10)
+    is estimated at a few dollars on a mid-range model and far less on a small one. NOT worked out, NOT measured. It can only be
+    built once the database and the AI layer exist; the engine check can run before. Candidate home: the regression health-check
+    suite brief in Future_Build. [OPEN] Confirm that placement.
+17. [DECISION] This is the practical answer to "the AI wanders off the script": the AI has a small fixed list of business-scoped
+    functions (8.5); [PROPOSED] a server-side check blocks or flags any reply containing a number that is not in the data sent (a
+    guardrail in the analyst layer brief outside the repo, not yet recorded in this brief's own sections); and the test in item
+    16 (ii) catches drift before customers do.
+
+F. STILL OPEN AFTER THIS ADDENDUM
+ - From Addendum 2 section C: G-1, G-2, G-3, G-5; Q-3, Q-4 consent wording, Q-6, the rest of Q-8 (log all questions or only
+   unanswered ones), Q-11, Q-12, Q-13, Q-16, Q-18, Q-19; which model serves which feature; the setup-order mechanism; the
+   retention period for the unanswered-question log.
+ - New: items 3, 6 and 9 above; the name collision between "modelled business" and Business Modelling's "modelling mode" (Business
+   Modelling Addendum 5); where cash after principal repayments is summed (Assets Addendum 2 item 5); the trace-node existence check.
