@@ -104,18 +104,20 @@ d. layer-2 gaps (assumed capacity / Best Case, Business Modelling start rows, Ra
 Fix batch between R2 and R3 (runs BEFORE item d), then ONE full regression re-run (A, A misaligned, B, A2, ladder):
 F-1 ESCT to the IRD rule (DONE 2026-10-25, Labour brief Addendum 1) | F-4 unassigned asset cost spread with red warning (DONE 2026-10-25, Cost Allocation brief Addendum 2) |
 F-10 EBITDA depreciation pass-through (DONE 2026-10-26, Business Outcome brief Addendum 2; EBIT / EBITDA trace nodes backfilled; 174 of 174 on
-scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBITDA (OPEN, own slice, own test) |
+scenario_a_depreciation) | F-10b support / unassigned asset depreciation in EBITDA (BUILT 2026-10-27, Business Outcome brief Addendum 8; recipe scenario_a_support_depreciation 285 of 285; commit pending at write time) |
 F-11 EBIT adds back all interest (SHIPPED 2026-10-27, 0a4daac, Business Outcome brief Addendum 6; recipe scenario_a_nonasset_interest; new seed 285 of 285, baselines unchanged; Q-7 re-check after F-11 PASSED 2026-10-27, stress brief Addendum 26) |
 F-7 dry hire earns money (hourly, default off; tick on the asset assignment in Cost Allocation): SHIPPED 2026-10-27 (calculation 17a5957; trace nodes, CALCULATION_TRACE_BRIEF
 Addendum 2; ticked Scenario B test seed, commit 1303482, live 346 of 346; Cost Allocation brief Addendum 3 and 4, Business Outcome brief Addendum 3 and 4, DRY_HIRE brief
 Addendum 2, stress brief Addendum 23). Calc map s7 / s9.1-9.4 / s9.9 + CM-10, VARIABLE_TRACKER s21 and BUSINESS_OUTCOME_FILE_MAP DONE 2026-10-27 (step 4; extract not re-run). Owner decisions 2026-10-27: 3a kept as built; 3b option 1 SHIPPED (commit 9c72c8e: tick applies only in asset-hours groups, CM-10 closed; Cost Allocation brief Addendum 6, DRY_HIRE brief Addendum 4, stress brief Addendum 24; gate seed scenario_b_dry_hire_gate live 342 of 342). Tick wording pass SHIPPED (ac6e5a5; Cost Allocation brief Addendum 7). DRY_HIRE future-build brief folded into Cost Allocation Addendum 8 and Business Outcome Addendum 5 and archived to `docs\Archive\Future_Build_Built\`.
+THE ONE FULL REGRESSION RAN 2026-10-27 (after F-10b, stress brief Addendum 27) and PASSED on the production build: A / A misaligned / A2 / A depreciation / A non-asset interest / A support depreciation 285 of 285,
+B 347, ticked B 346, gate 342, ladder 100 staff 564 of 564 and 1,000 staff 3,354 of 3,354. The fix batch is closed; F-4 "Unassigned cost" row check remains open.
 Baselines with the tick off (nodes + raw + derived): A / A misaligned / A2 285 of 285, B 347 of 347, ticked B 346 of 346, gate seed 342 of 342.
 Performance (production build, stress brief Addendums 15-17): Business Outcome now passes Q-7 (fixed in item b). Typing in Cost
 Allocation and Rate Builder passes (item c, about 15 ms at every size). Business Modelling freeze and lever typing at 100 / 1,000
 staff still fail (fix belongs in R3). Trace page passes.
 
 Docs reorganisation (V6.1): complete at V6.1d step 8 (project knowledge trimmed to the core set; see latest HANDOVER.txt).
-R2 resumes next (see latest HANDOVER.txt = V6.1r: F-11 shipped (0a4daac) and the Q-7 re-check on Business Outcome passes; next F-10b, then one full regression, R3).
+R2 fix batch closed (see latest HANDOVER.txt = V6.1s: F-10b built and the ONE full regression passed 2026-10-27). Next: R3 Business Modelling redesign.
 
 ## 7. Findings numbering
 

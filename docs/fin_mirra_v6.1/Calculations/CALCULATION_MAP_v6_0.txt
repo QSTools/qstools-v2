@@ -1,5 +1,7 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-10-27 (F-10b, support / unassigned asset depreciation in EBITDA): s9.3 EBIT paragraph - the F-8 remainder row now carries depreciation as well as interest
+  (businessOutcomeEbitCalculations.js L55-L84, line numbers read from the patched file; extract NOT re-run). No other section changed.
   UPDATED 2026-10-27 (F-11, EBIT adds back all interest): s4 gained interest_in_overheads_annual (generalOverheadCalculations.js L264-L277, line numbers read from
   the patched file; extract NOT re-run); s9.3 EBIT paragraph rewritten (F-10 shipped, F-11 built, trace nodes exist, F-10b still open).
   UPDATED 2026-10-27 (CM-10 gate, commit 9c72c8e): s7 dry-hire block now documents the driver gate (dry_hire_applies); the s7 Group cost row line numbers
@@ -488,8 +490,12 @@ ASSET (build_asset_sources, L108)
   flagged remainder included), input overhead_interest_annual, so total
   interest = all asset interest + all interest left in overheads. L68-L84.
   EBITDA depreciation: F-10 shipped (useAssets passes
-  estimated_annual_depreciation through); depreciation on support or
-  unassigned assets is still missing (F-10b, open).
+  estimated_annual_depreciation through). F-10b (2026-10-27): the same
+  remainder row also carries depreciation = every active asset's
+  estimated_annual_depreciation (null = 0) less the depreciation already on
+  the source rows, so total depreciation = all active assets' depreciation;
+  EBIT is unchanged by it. Remainder parts are added only above 0.5.
+  Row name "Support and unassigned assets (interest and depreciation)". L55-L84.
   Trace nodes: business_outcome.ebit.* (ebitTraceNodes.js), totals only.
 MATERIALS (in the main hook)
 - true_cost = total COGS + max(residual overhead, 0), where residual

@@ -1,0 +1,55 @@
+HANDOVER V6.1s   2026-10-27   (F-10b built + ONE full regression PASSED; next is the commit, then R3)
+Path: docs\fin_mirra_v6.1\Audit\V6.1\s\HANDOVER.txt     Repo: D:\QSTools\qstools-web
+Read V6.1k\HANDOVER.txt Sections 0, 5, 6 (how Claude works here) and V6.1m Section 5 (pane method). This file replaces r Sections 1 to 4. r and earlier are history now.
+
+1. WHERE WE ARE
+- Last code commit before this session: 0a4daac (F-11). UNCOMMITTED now (run git status first; expect exactly these plus docs):
+    lib/calculations/businessOutcomeEbitCalculations.js        F-10b remainder row carries depreciation (L55-L84)
+    lib/calculation-trace/pilot-map/ebitTraceNodes.js          total_depreciation formula text only
+    components/business-outcome-truth/BusinessOutcomeEbitByUnitTable.jsx   note text only
+    components/business-outcome-truth/BusinessOutcomeEbitSummaryCard.jsx   help text only
+    Py/stress_test/mirra_expected_l2.py (A-12 wording), Py/stress_test/README.txt, Py/stress_test/check_scaling.py (whole-word rate test)
+    Py/stress_test/recipes/scenario_a_support_depreciation.json   (untracked)
+  Suggested commits: (1) code + harness: "F-10b: support and unassigned asset depreciation in EBITDA (remainder row); recipe scenario_a_support_depreciation; check_scaling whole-word rate fix".
+  (2) docs: "docs: F-10b built, full regression passed, handover V6.1s". Explicit paths with git add. Trailers: Co-Authored-By and the Claude-Session line.
+- Docs changed (commit separately): Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 8), Briefs\CALCULATION_TRACE_BRIEF.txt (Addendum 4), Briefs\ASSETS_BRIEF.txt (Addendum 1),
+  Calculations\CALCULATION_MAP_v6_0.txt (s9.3 EBIT paragraph), PROJECT_MAP.md, Future_Build\STRESS_TEST_...BRIEF (Addendum 27), this file.
+- LIVE: the :3005 production server is running the F-10b build. public\__stress_tmp holds 11 seeds + expected files (dated 2026-10-27). Pane storage restored (18 keys).
+
+2. DONE THIS SESSION
+- F-10b built: depreciation on support / unassigned assets (and the unassigned share of a part-assigned asset) now reaches EBITDA through the existing F-8 remainder row, now named
+  "Support and unassigned assets (interest and depreciation)". Display only. Business Outcome brief Addendum 8.
+- New recipe scenario_a_support_depreciation: 285 of 285. Page = trace: depreciation 92,000, EBIT 179,662, EBITDA 271,662; remainder row interest 6,170 / depreciation 22,000.
+- THE ONE FULL REGRESSION (production build, pane): A, A misaligned, A2, A depreciation, A non-asset interest, A support depreciation 285/285 each; B 347/347; ticked B 346/346;
+  gate 342/342; 100 staff 564/564; 1,000 staff 3,354/3,354; 0 duplicates, 0 missing endpoints. The item d checks sit inside the layer-2 nodes and passed.
+- check_scaling.py bug fixed: "operated_recovery_hours" matched "rate" as a substring, so 4 of 109 failed at both factors; now whole-word, 109 of 109.
+
+3. OWNER DECISIONS MADE
+- None new this session (F-10b design was already decided: remainder = all-asset depreciation less depreciation on source rows).
+
+4. OPEN ITEMS
+a. F-4 "Unassigned cost" row check (Business Outcome brief Section 8): the row did not appear on the support-depreciation seed (net profit ties to the P&L), but the check itself is not closed.
+b. is_interest_row matches any overhead line with "interest" in its name (GO-6): "Interest received" style lines would also be added back. Not changed.
+c. Untested live: stored tick back to asset hours; sequential pattern with a ticked asset; Business Modelling levers on the dry-hire unit; Rate Builder group rates, Model Readiness, Module Reconciliation,
+   Quote Engine with a ticked group. Stray comment above apply_revenue_ceiling (about L596) in useBusinessOutcomePerSourceRevenue.js.
+d. Calc map extract still not re-run (line numbers for F-10b, F-11, F-7 were read by hand): run python Py\audit-scripts\extract_calc_map.py at the next calc map edit.
+e. Q-7 timing was not re-run for F-10b (no hook added). Ladder timing unchanged since Addendum 7.
+f. Carried: RB-1b fix decision; G-7, G-8; trace node for the F-4 spread; Labour pool display 804,078 vs 1,572,333; property cost undecided; archive ESCT_TREATMENT_FIX brief; project instructions
+   rule 11 paths; Model Readiness General Overheads blocked on the pane seed; P&L vs Business Outcome net profit gap on Scenario A unexplained; Business Modelling fails Q-7 (R3).
+
+5. NEXT STEPS IN ORDER  (one piece of work per chat; start a NEW chat for each)
+1. Owner: git status, the two commits above, push is your call; run python Py\audit-scripts\check_project_knowledge_sync.py (expect all OK; project knowledge was re-synced at the end of this chat).
+2. HOUSEKEEPING NOW THE REGRESSION IS DONE: stop the :3005 server; Remove-Item public\__stress_tmp, .next -Recurse -Force.
+3. R3 Business Modelling redesign (Future_Build\BUSINESS_MODELLING_REDESIGN_SCRATCH_OVERLAY_FUTURE_BUILD_BRIEF_2026-10-16.txt; Business Modelling brief).
+
+6. STANDING RULES
+- Archive, never delete. One brief per module. Build after each batch, never while dev runs or a server is on 3000 / 3004 / 3005. Start a NEW chat rather than carry on after a compaction.
+- Claude stages files from the device, edits its own copy (EOL- and BOM-preserving, one match per patch), copies to /mnt/user-data/outputs and writes back with device_commit_files (mtime guard).
+  Claude cannot run a shell on the device: the owner runs git, npm, PowerShell. The production server only serves public files that existed when it started: generate seeds first, then start it.
+- Built-in pane: seed with fetch('/__stress_tmp/seed_<id>.json'); back up the pane's localStorage keys to sessionStorage before any run that clears it, restore after.
+- Commit trailers: Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com> and the Claude-Session line the harness gives.
+
+7. READ FIRST IN THE NEW CHAT (and nothing else until read)
+1. This file.  2. docs\fin_mirra_v6.1\PROJECT_MAP.md.  3. Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt.
+4. For R3: BUSINESS_MODELLING_BRIEF and the R3 future-build brief; Business Outcome brief Addendum 8 only if EBIT matters.
+Do NOT read: the Archive, Audit\v6_0 evidence, AGENTS.md, the rest of the stress brief, or module briefs not needed.

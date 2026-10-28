@@ -6,8 +6,8 @@ COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
                da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). F-11 EBIT all-interest add-back SHIPPED 2026-10-27 (Addendum 6; new seed 285 of 285, baselines unchanged; commit 0a4daac).
-               PENDING before R3: F-10b support-asset depreciation (F-10 pass-through SHIPPED 2026-10-26), F-4 unassigned-asset row check. PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4); re-confirmed after F-11 on 2026-10-27 (Addendum 7).
-LAST UPDATED:  2026-10-27 (Addendum 7, Q-7 re-check after F-11 passes; Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+               F-10b support / unassigned asset depreciation in EBITDA BUILT 2026-10-27 (Addendum 8; full regression passed). PENDING before R3: F-4 unassigned-asset row check (read as 0 in the regression, Addendum 8). PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4); re-confirmed after F-11 on 2026-10-27 (Addendum 7).
+LAST UPDATED:  2026-10-28 (Addendum 9, cash after principal repayments shown beside net profit, design only); 2026-10-27 (Addendum 8, F-10b support / unassigned asset depreciation in EBITDA and the ONE full regression; Addendum 7, Q-7 re-check after F-11 passes; Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -137,9 +137,9 @@ F-7   [SHIPPED 2026-10-27, Addendums 3, 4 and 5 - committed, traced, ticked seed
       labour cap. Design and decisions: Addendum 5 here and Cost Allocation brief Addendum 8 (history in the archived DRY_HIRE brief, docs\Archive\Future_Build_Built\).
 F-10  [SHIPPED 2026-10-26, Addendum 2] EBITDA depreciation: useAssets active_assets dropped estimated_annual_depreciation
       (one-line pass-through, hooks/useAssets.js). Proven on scenario_a_depreciation: 174 of 174 nodes.
-F-10b OPEN  Depreciation on support or unassigned assets is still missing from EBITDA: the F-8 remainder row in
-      businessOutcomeEbitCalculations.js carries interest only. Designed (remainder = all-asset depreciation less the
-      depreciation already on source rows); expected target already in mirra_expected_l2.py A-12. Own slice, own test.
+F-10b [BUILT 2026-10-27, Addendum 8; live-checked; commit pending at write time] Depreciation on support or unassigned assets now reaches EBITDA: the F-8 remainder
+      row in businessOutcomeEbitCalculations.js carries interest AND depreciation (remainder = every active asset's depreciation less the depreciation already on
+      source rows). Tested with recipes/scenario_a_support_depreciation.json: 285 of 285.
 F-11  [SHIPPED 2026-10-27, commit 0a4daac, Addendum 6; live-checked] EBIT adds back ALL interest: asset interest (unchanged) plus
       every interest row left in General Overheads, overdraft and bank interest included, flagged-row remainders included (owner decision
       2026-10-27). One new row "Interest in overheads (non-asset)" in calculateEbitByUnit; value comes from General Overheads
@@ -295,3 +295,40 @@ F-11 added one useGeneralOverheads() call to app/business-outcome/page.jsx. Re-t
 perf_pass.console.js, 3 runs per size, ready ms / max freeze ms: 100 staff 146-193 / 56-60 (limit open < 1 s, freeze < 200 ms); 1,000 staff 649-691 / 146-154
 (limit open < 3 s, freeze < 1,000 ms). Before F-11 (Addendum 1): 138-243 / 54-75 and 603-650 / 158-166. The extra hook does not show in the timings. Page text rendered
 (7,024 characters at 100 staff, 7,060 at 1,000, iframe innerText). Detail and method: stress brief Addendum 26. Still owed: F-10b, then ONE full regression.
+
+ADDENDUM 8 (2026-10-27) - F-10b SUPPORT / UNASSIGNED ASSET DEPRECIATION IN EBITDA, AND THE ONE FULL REGRESSION [BUILT, live-checked; commit pending at write time]
+Problem: depreciation on an asset that sits on no source row (a support asset in a pure support group or mixed unit, an unassigned asset, or the unassigned share of a
+part-assigned asset) was never added back, so EBITDA was understated by that depreciation (EBIT unaffected). F-8 had fixed the same gap for interest only.
+Built (display only; no net profit, revenue, cost or rate changes): lib/calculations/businessOutcomeEbitCalculations.js L55-L84, the F-8 remainder block now also computes
+all_asset_depreciation (sum of every active asset's estimated_annual_depreciation, null = 0) less the depreciation already on the source rows, and the single remainder row is
+renamed "Support and unassigned assets (interest and depreciation)" (interest, EBIT, depreciation, EBITDA; net profit 0). Each part is added only above 0.5 (as interest was).
+Without all_assets the result is unchanged. Wording: ebitTraceNodes.js formula text of business_outcome.ebit.total_depreciation (node ids unchanged); the EBIT by Source note
+(it said unassigned financed assets would not count) and the summary card depreciation help text. No new trace node: the existing total_depreciation node carries it.
+Test: new recipe scenario_a_support_depreciation = scenario_a_depreciation plus depreciation_annual on the three support assets A05 / A06 / A07 (9,000 / 8,000 / 5,000, none
+assigned, A07 paid off). mirra_expected_l2.py A-12 already summed every asset copy, so only its wording changed. LIVE (production :3005, built-in pane, as of 2026-10-27): 285 of 285
+(187 nodes, 95 raw, 3 derived; 249 trace nodes, 0 duplicates, 0 missing endpoints). Page = trace: net profit 138,206, interest 41,456, EBIT 179,662, depreciation 92,000, EBITDA 271,662.
+EBIT by Source: remainder row interest 6,170, depreciation 22,000, EBITDA 28,170; G01 30,000, G02 20,000, G03 20,000 depreciation. Offline unit test of calculateEbitByUnit
+(support asset, null depreciation, older caller without all_assets, no remainder) passed.
+ONE FULL REGRESSION (owner order; production build, built-in pane, seeds regenerated --as-of 2026-10-27, nodes + raw + derived): A 285 / 285; A misaligned 285 / 285; A2 285 / 285;
+A with depreciation 285 / 285; A non-asset interest 285 / 285; A support depreciation 285 / 285; B 347 / 347; ticked B 346 / 346; gate seed 342 / 342; ladder 100 staff 564 / 564 (466 nodes);
+1,000 staff 3,354 / 3,354 (3,256 nodes). All with 0 duplicate trace ids and 0 missing endpoints. The item d checks (Best Case, Business Modelling start rows, Rate Builder all_productive row)
+are inside the layer-2 nodes and passed. The earlier ladder misses (F-6) no longer appear. The scaling invariant check (check_scaling.py) read 105 of 109 only because its rate test was a
+substring match ("operated_recovery_hours" contains "rate"); fixed to a whole-word match, 109 of 109 at 10x and 100x, and no other key changed class.
+F-4 note: the Unassigned cost row did not appear in the EBIT table on the support-depreciation seed (A05-A07 unassigned, their cost spread by F-4), so net profit ties to the P&L; the
+row check itself is still open.
+Watch: depreciation counts for any asset with a stored figure, including a paid-off one, and regardless of include_depreciation_in_cost (unchanged rule). An asset assigned over 100 percent
+gives a negative remainder, which is ignored (only a remainder above 0.5 is added).
+Not run: Q-7 timing (display-only change, no new hook). Cleanup owed: Remove-Item public\__stress_tmp, .next -Recurse -Force; stop :3005.
+
+ADDENDUM 9 (2026-10-28) - CASH AFTER PRINCIPAL REPAYMENTS SHOWN BESIDE NET PROFIT [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-28. Detail and reasoning: Assets Addendum 2. Nothing in the existing chain changes.
+ 1. [DECISION] Business Outcome shows CASH AFTER PRINCIPAL REPAYMENTS right beside net profit (owner: "it's got to be shown in Business Outcome"). Formula: net profit minus the
+    year's principal repaid across every active asset with finance (assigned or not).
+ 2. [DECISION] It is a display of a separate figure. It never feeds net profit, EBIT, EBITDA, cost, rates, the P&L tie-out or reconciliation (R8 and the P&L tie stay as they are).
+    Net profit stays accounting-true; the cash figure answers the affordability question only. No tax is calculated.
+ 3. [DECISION] It is also carried in every Business Modelling scenario result (same figure, same node) so "can I afford this" shows profit and cash after principal side by side.
+    Fits R2 (revenue, net profit and cash are never levers): this is an output, not a lever.
+ 4. [OPEN] Needs, when built: trace node that matches the screen (check first whether one exists), calculation map and variable tracker entries, a stress-test seed case, and the
+    non-asset-driven edge cases (assets with finance but no unit). Where the total is summed is open (Assets Addendum 2 item 5).
+ 5. [NOTE] The owner remuneration setting in the open list (design item for Labour / Reconciliation) is also the link for the later succession or sale use case
+    (AI_LAYER Addendum 3 item 15). No change here.

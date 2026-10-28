@@ -221,4 +221,27 @@ Evidence: Audit\v6_0\P2.4_Assets\ (code dumps, live data, patch / build logs), s
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+ADDENDUM 1 (2026-10-27) - F-10 / F-10b CLOSED FROM THE ASSETS SIDE [DOCS ONLY]
+F-10 (estimated_annual_depreciation pass-through in useAssets active_assets) shipped 2026-10-26. F-10b (depreciation on support or unassigned assets in EBITDA) is built 2026-10-27 in
+Business Outcome only (businessOutcomeEbitCalculations.js); nothing in Assets changed. The depreciation field still does not enter asset recovery cost, rates or Cost Summary (A1 / A2 stand).
+Detail: Business Outcome brief Addenda 2 and 8.
+
+ADDENDUM 2 (2026-10-28) - CASH AFTER PRINCIPAL REPAYMENTS: REQUIREMENT LOGGED [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-28. A1 and R3 STAND: asset own cost stays finance interest only, because that is what keeps the tool tied to the P&L. Principal still is
+not cost and still never enters recovery cost, rates or Cost Summary. This addendum adds a separate cash figure; it changes no existing calculation.
+ 1. [DECISION] The gap (owner): the model answers "what must I charge to cover cost" but not "where is my money going". Five or six financed assets can mean three or four
+    thousand a month of principal that appears nowhere in the P&L, so a business can price at breakeven and run short of cash. Example from the owner: net profit 5,000, buy a
+    vehicle, the model says it is affordable, and at year end the cash left is zero because the year's principal was 5,000. A large purchase just before year end is the common case.
+ 2. [DECISION] The figure: CASH AFTER PRINCIPAL REPAYMENTS = net profit minus the year's principal repaid across EVERY active asset with finance, whether or not the asset sits in
+    a working unit (the bank takes it either way). Name chosen by the owner; no accounting jargon in the label. It is shown in Business Outcome beside net profit (Business
+    Outcome Addendum 9) and in every scenario result (AI_LAYER Addendum 3 item 10).
+ 3. [DECISION] Principal per asset is already worked out here: finance payment minus interest, cash-flow support only (CALCULATION_MAP, Assets, about line 319 of the Assets calc
+    file; VARIABLE_TRACKER). The new figure uses fields the asset already carries (purchase price, interest rate, term, start date). Boundary (owner): tax is never calculated;
+    the tool stops at net profit.
+ 4. [DECISION] Protocols apply because this is a new number touching Assets and Business Outcome: its own stop-and-confirm, trace node that matches the screen, calculation map
+    and variable tracker updated, a stress-test seed case, a dated addendum, git status before any commit. Filed here as an addendum, not as a new brief.
+ 5. [OPEN] To check in code, not decide: (a) whether a trace node for principal or for this figure already exists (the trace brief lists six Assets nodes and the excerpts seen
+    mention neither; unconfirmed); (b) how the module stores principal; (c) the interest used is a straight-line estimate dated to TODAY, so principal derived from it drifts a
+    little each day, which needs the same check as interest; (d) whether the sum across assets belongs in Assets or in Business Outcome; (e) retired and paid-off assets are
+    excluded (assumed from "active asset with finance"; confirm).
+ 6. [OPEN] Stress-test seed: add a case with a large vehicle purchase (and the 100-asset case) with a known answer, so the figure is checked against expected numbers.

@@ -1479,3 +1479,21 @@ same byte size). (c) Seeds can be generated without a shell on the device: run g
 Not run: the scaling ladder for F-11, the other pages. Cleanup owed at the end of the regression: Remove-Item public\__stress_tmp, .next, stop :3005.
 NEXT: F-10b, then ONE full regression, then R3.
 ===============================================================================
+
+===============================================================================
+ADDENDUM 27 (2026-10-27) - F-10b TEST RECIPE AND THE ONE FULL REGRESSION [PASSED; live on the production build]
+===============================================================================
+Recipe: recipes/scenario_a_support_depreciation.json = scenario_a_depreciation plus depreciation_annual on the support assets A05 / A06 / A07 (9,000 / 8,000 / 5,000), none assigned to a
+group. Expected (as of 2026-10-27): 187 nodes + 95 raw + 3 derived = 285; ebit.total_depreciation 92,000, EBIT 179,662.23, EBITDA 271,662.23. mirra_expected_l2.py A-12 text updated (formula unchanged).
+Seeds: all 11 seeds and expected files were generated in Claude's workspace with --as-of 2026-10-27 (no shell on the device) and written to public\__stress_tmp with device_commit_files BEFORE
+the server was started: scenario_a, _misaligned, _overstaffed (A2), _depreciation, _support_depreciation, _nonasset_interest, scenario_b, _b_dry_hire, _b_dry_hire_gate, and seed_n100 / seed_n1000
+(Scenario A scaled, with expected_n100_layer2 / expected_n1000_layer2).
+RESULT (pane at :3005, pane_runner.console.js, each seed re-seeded then reloaded, compared in a separate call): A 285/285, A misaligned 285/285, A2 285/285, A depreciation 285/285, A non-asset interest
+285/285, A support depreciation 285/285, B 347/347, ticked B 346/346, gate 342/342, 100 staff 564/564, 1,000 staff 3,354/3,354. Trace nodes 249 / 249 / 255 / 249 / 249 / 249 / 294 / 292 / 290 / 807 / 6,387;
+0 duplicates and 0 missing endpoints throughout. Pane storage restored (18 keys, none differing).
+check_scaling.py fix: the rate test was a substring match and read "operated_recovery_hours" as a rate (ope-RATE-d), failing 4 of 109 at both factors. Now a whole-word match; 109 of 109 at 10x and 100x;
+the only keys that changed class are the operated_recovery_hours nodes.
+Method note: this slice and the regression ran in one sitting; seeds do not need regenerating unless the NZ date rolls past 2026-10-27 (asset interest is dated to the day the page runs).
+Q-7 timing was not re-run (no hook added). Cleanup owed: Remove-Item public\__stress_tmp, .next -Recurse -Force; stop :3005.
+NEXT: commit, then R3 Business Modelling redesign.
+===============================================================================
