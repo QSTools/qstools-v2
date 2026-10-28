@@ -6,8 +6,8 @@ COMPANION:     Calculations\BUSINESS_OUTCOME_FILE_MAP_v6_0.txt (file-by-file map
 STATUS:        VERIFIED (P4 core + 8b follow-up, 2026-09-23). Since: CM-1 / CM-1b (2026-09-25); Path B Stage 1b per-asset
                revenue (2bb6400); Best Case fixes (982736f, cf93214, b5d1443); idle cost Steps 2-4 (D-IDLE-2/3, O-2
                da5df8e); idle trace nodes (3bb61d5); R2 fixes F-5, F-8, F-9, F-12. F-7 dry hire SHIPPED 2026-10-27 (17a5957; trace nodes; ticked test seed live 346 of 346; Addenda 4-5; calc map done; gate 9c72c8e; folded in, future-build brief archived). F-11 EBIT all-interest add-back SHIPPED 2026-10-27 (Addendum 6; new seed 285 of 285, baselines unchanged; commit 0a4daac).
-               F-10b support / unassigned asset depreciation in EBITDA BUILT 2026-10-27 (Addendum 8; full regression passed). PENDING before R3: F-4 unassigned-asset row check (read as 0 in the regression, Addendum 8). PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4); re-confirmed after F-11 on 2026-10-27 (Addendum 7).
-LAST UPDATED:  2026-10-28 (Addendum 9, cash after principal repayments shown beside net profit, design only); 2026-10-27 (Addendum 8, F-10b support / unassigned asset depreciation in EBITDA and the ONE full regression; Addendum 7, Q-7 re-check after F-11 passes; Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
+               F-10b support / unassigned asset depreciation in EBITDA BUILT 2026-10-27 (Addendum 8; full regression passed). F-4 unassigned-asset row check CLOSED 2026-10-28 (Addendum 10). PERFORMANCE: passes Q-7 at 100 / 1,000 staff (R2 item b, 15ee2e7 + 7f771d4); re-confirmed after F-11 on 2026-10-27 (Addendum 7).
+LAST UPDATED:  2026-10-28 (Addendum 10, F-4 Unassigned cost row check closed, live only; Addendum 9, cash after principal repayments shown beside net profit, design only); 2026-10-27 (Addendum 8, F-10b support / unassigned asset depreciation in EBITDA and the ONE full regression; Addendum 7, Q-7 re-check after F-11 passes; Addendum 6, F-11 EBIT adds back all interest; Addendum 5, F-7 closed and folded in; Addendum 4, F-7 committed, traced and seeded; 2026-10-26 F-7 dry hire, Business Outcome half, Addendum 3; F-10 EBITDA depreciation pass-through and EBIT / EBITDA trace nodes; before that 2026-10-24 R2 item b performance fix; V6.1 collation 2026-10-21 - rebuilt from the sources listed in Section 12)
 ROUTE:         app/business-outcome  (legacy /recovery-outcome is outside the core chain)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 9 (9.1-9.10). This brief holds intent, rules, verified
                status and open items.
@@ -144,7 +144,7 @@ F-11  [SHIPPED 2026-10-27, commit 0a4daac, Addendum 6; live-checked] EBIT adds b
       every interest row left in General Overheads, overdraft and bank interest included, flagged-row remainders included (owner decision
       2026-10-27). One new row "Interest in overheads (non-asset)" in calculateEbitByUnit; value comes from General Overheads
       interest_in_overheads_annual, read once on the page and passed as a prop. Tested with recipes/scenario_a_nonasset_interest.json.
-F-4   Check the "Unassigned cost" row (apply_unassigned_entry) when Cost Allocation's F-4 spread is built.
+F-4   [CLOSED 2026-10-28, Addendum 10] "Unassigned cost" row (apply_unassigned_entry) checked live after the Cost Allocation F-4 spread: appears and ties for an unassigned productive asset and for unassigned labour; no working units hides it (edge case).
 OPEN
 BO-8  Capacity gap valuation: Business Modelling rate overrides now pass for the per-asset shortfall branch (O-2); the
       legacy branch accepts a modelled blended-rate override. Re-check whether anything still uses live rates only.
@@ -332,3 +332,23 @@ Source: owner voice session 2026-10-28. Detail and reasoning: Assets Addendum 2.
     non-asset-driven edge cases (assets with finance but no unit). Where the total is summed is open (Assets Addendum 2 item 5).
  5. [NOTE] The owner remuneration setting in the open list (design item for Labour / Reconciliation) is also the link for the later succession or sale use case
     (AI_LAYER Addendum 3 item 15). No change here.
+
+ADDENDUM 10 (2026-10-28) - F-4 "UNASSIGNED COST" ROW CHECK [CLOSED, live check only; no code changed]
+Question left open by Addendum 8: after the F-4 spread, does the Business Outcome "Unassigned cost" row still appear when cost really is unassigned and not spread? The stress
+harness never exercises it (mirra_expected_l2.py A-7 hard-codes unassigned cost 0 and requires every productive asset assigned), so this was checked by hand.
+Code read: apply_unassigned_entry (BusinessOutcomePerSourceRevenueCard.jsx) shows the row when per_source.unassigned.total > 0; that total = unassigned labour + unassigned
+productive asset + unassigned non-productive labour + unassigned non-productive asset (after the spread); all four are inside total_true_cost, so net profit ties to the P&L
+whether or not the row shows. calculateEbitByUnit adds the matching "Unassigned cost (no source)" row.
+LIVE (production :3005, built-in pane, Scenario A seed generated --as-of 2026-10-28, Cost Allocation record edited in the pane by soft-removing assignments, original restored):
+  Baseline: net profit 138,243, EBIT 179,662, no Unassigned row. Support assets A05-A07 unassigned: Cost Allocation banner "$6,164 spread evenly across 5 working units".
+  Case 1, productive asset A03 (tip truck) unassigned: Cost Allocation BLOCKING banner $12,723 = Business Outcome row -12,723. Breakdown rows -115,720 + 266,686 - 12,723 = 138,243.
+    EBIT table: Unassigned cost (no source) -12,723; Support and unassigned assets row interest 18,887 = 6,164 support + 12,723 tip truck; total interest 41,419, EBIT and EBITDA 179,662
+    (unchanged). "Reconciles to real cost" 1,209,346 vs 1,209,346. Materials / COGS profit rises (40,428 -> 266,686) because materials is the revenue residual and the truck's modelled revenue is
+    lost with the assignment - expected by the View A design, not a leak.
+  Case 2, supervisor (supervisor_team_lead) unassigned from every unit: row -100,397; rows 78,012 + 160,628 - 100,397 = 138,243; EBIT table net profits sum to 138,243; EBIT/EBITDA 179,662;
+    reconciles 1,209,346 vs 1,209,346; support interest row back to 6,164. The 100,397 was not matched to a Labour-page figure to the cent.
+  Case 3, all five working units inactive: Business Outcome renders only the revenue bar and the policy toggle (no sources, breakdown or EBIT block), so the row cannot show. The unassigned
+    cost is then invisible on this page. Edge case only; logged, not changed.
+Result: F-4 row check passes in cases 1 and 2 (identities hold, row equals the Cost Allocation banner). Open: a recipe option to leave an asset or staff type unassigned plus expected values would
+bring the row into the regression suite (the harness has none today).
+Pane note: the owner's 18 keys were backed up to sessionStorage first and restored byte-for-byte (only updated_at in qs_tools_general_overhead_state moved, rewritten by the app on load).
