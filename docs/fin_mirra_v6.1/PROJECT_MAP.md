@@ -77,7 +77,7 @@ Source: `Future_Build\LAUNCH_BUILD_ORDER_AND_THIRD_MOAT_FUTURE_BUILD_BRIEF_2026-
 |---|---|---|
 | R1 | Hours-mode smoke test sign-off | CLOSED |
 | R2 | Stress test hours mode at scale, client side | CLOSED 2026-10-29 except Business Modelling timing, carried into R3 and stress tested slice by slice (BM brief Addendum 6) |
-| R3 | Business Modelling redesign (scratch overlay replaces the lever engine) | NEXT: design stage, design settled 2026-10-29 (BM brief Addenda 7 and 8: BM-7 audit run and re-run reconciled; overlay adapter; names Model mode / Planned business; slices 1-5 planned). Owed before slice 1: the runtime tap, then the owner confirms the storage layout (file reads done, BM Addendum 9; recompute timing closed from recorded data, Addendum 10). Nothing built. Each slice carries its own regression and Q-7 timing (BM brief Addendum 6) |
+| R3 | Business Modelling redesign (scratch overlay replaces the lever engine) | NEXT: design stage, design settled 2026-10-29 (BM brief Addenda 7 and 8: BM-7 audit run and re-run reconciled; overlay adapter; names Model mode / Planned business; slices 1-5 planned). Owed before slice 1: the slice 1 design note and the owner's storage-layout confirmation (file reads, recompute timing and runtime tap done, BM Addenda 9 to 11). Nothing built. Each slice carries its own regression and Q-7 timing (BM brief Addendum 6) |
 | R4 | Units mode: build, smoke test, stress test, re-verify Business Modelling | not started |
 | R5 | UI tidy-up and consistency pass | not started |
 | R6 | Database (server plumbing and migration sit with or just before it - owner to confirm) | not started |

@@ -12,7 +12,7 @@ STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever mo
                Builder only; scenarios pulled forward; Business Modelling stays as a thin page.
                DESIGN QUESTIONS SETTLED AND SLICES 1-5 PLANNED 2026-10-29 (Addendum 8): overlay adapter chosen, names Model mode / Planned
                business, gap shown per group. Nothing built; storage schema still needs its own owner confirmation at slice 1.
-LAST UPDATED:  2026-10-29 (Addendum 10 - recompute timing closed from recorded Q-7 data; Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
+LAST UPDATED:  2026-10-29 (Addendum 11 - runtime tap results; Addendum 10 - recompute timing closed from recorded Q-7 data; Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -461,9 +461,9 @@ re-read for this addendum; its addendum numbers are cited from PROJECT_MAP.
  5. Carried, NOT blocking R3: handover items 4b, 4d, G-7, G-8, the hours-mode-only PARTIAL label on the suite (units mode is R4), server-load test (R9).
  6. Q-7 for Business Modelling counts as closed only when the thin page and the slice 3 to 5 pages pass at 100 and 1,000 staff on the production build.
 
-ADDENDUM 7 (2026-10-29) - BM-7 ENGINE PURITY AUDIT RESULTS  [AUDIT RUN, read-only, nothing built; owner terminal re-run DONE and reconciled (items 1, 5, 6, 10, 12, 13 corrected or added); runtime tap and recompute timing still owed; open items of Addenda 4 and 5 NOT yet settled]
+ADDENDUM 7 (2026-10-29) - BM-7 ENGINE PURITY AUDIT RESULTS  [AUDIT RUN, read-only, nothing built; owner terminal re-run DONE and reconciled (items 1, 5, 6, 10, 12, 13 corrected or added); runtime tap and recompute timing done (Addenda 10, 11); open items of Addenda 4 and 5 NOT yet settled]
 Source: Py\audit-scripts\bm7_a (storage inventory), bm7_b (reach map), bm7_c (hook mounts and writes), bm7_d (seams and rebuilds), bm7_e (scenario paths), bm7_common.py, bm7_f_storage_tap.js
-(runtime tap, NOT yet run). Claude ran A to E on a read-only snapshot of the source in its own workspace on 2026-10-29: 406 files; lib/calculation-trace/pilot-map and some minor components were
+(runtime tap, run 2026-10-29, Addendum 11). Claude ran A to E on a read-only snapshot of the source in its own workspace on 2026-10-29: 406 files; lib/calculation-trace/pilot-map and some minor components were
 not staged. The owner's rule is that scripts run at the terminal, so the owner's own run is the one that counts (command block in handover V6.1u). Analysis is heuristic (regex, not a JS
 parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-PatchBatch, 2 of 2, owner confirmed) to follow imports of storage modules, because storage called as plain functions
 (useLabour, useRevenueCogs) was missed. In section 3, ACTION means the write sits in the storage module, not that a user triggered it; the effect that fires it is usually in the calling hook.
@@ -496,12 +496,12 @@ parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-Pa
  9. [DECISION NEEDED before slice 1] Adapter design. The design stores the modelled layer as differences from the baseline, so the adapter has to return a full object (baseline plus differences)
     on read and turn the hooks' whole-state writes back into differences on write. A key-rename (shadow full copy of each key) is simpler and trivially pure but is not "differences stored".
     First-time storage schema: needs its own confirmation before any build.
-10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal (DONE 2026-10-29, see items 12-13); (b) bm7_f runtime tap (confirms which writes actually fire per page, including callbacks and context the static pass
+10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal (DONE 2026-10-29, see items 12-13); (b) bm7_f runtime tap (DONE 2026-10-29, Addendum 11) (confirms which writes actually fire per page, including callbacks and context the static pass
     cannot follow); (c) the Addendum 6 slice 0 item, how long one full chain recompute takes at 100 and 1,000 staff (CLOSED from recorded Q-7 data, Addendum 10); (d) the unstaged files.
 11. [NEXT] Settle the open items at the end of Addenda 4 and 5 against this list, then plan build slices 1 to 5.
 12. [OWNER RUN 2026-10-29, reconciliation] Findings 2, 3, 4 and 7 reproduce: 41 of 47 hooks reach storage with no seam parameter and the same 6 take inputs; the writing-effect hooks and the per-page AUTO write lists
     (Business Modelling, Business Outcome, Rate Builder) match; Labour reaches only its own two keys; fixedAssetRegister is the only real list shape. Differences: the scheduling storage files (item 1), the
-    useRevenueCogs save effect flagged in item 5 (guarded, Addendum 9), the counts in items 1 and 6. Heuristic limits unchanged (callbacks and context not followed), so bm7_f is still needed.
+    useRevenueCogs save effect flagged in item 5 (guarded, Addendum 9), the counts in items 1 and 6. Heuristic limits unchanged (callbacks and context not followed), so bm7_f was needed and has been run (Addendum 11).
 13. [OWNER RUN, new] (a) Consumers of the keys slice 3 retires: qs_tools_business_modelling_state_v1 is also read by ai-business-state, business-overview and quote-checker pages and written by useAiBusinessState;
     qs_tools_business_modelling_levers_v1 is also read by calculation-trace. Retiring them touches those. (b) hooks/cost-allocation/useCostAllocationAssetOverlay.js already exists; read what it does before
     designing the adapter (examined 2026-10-29: unrelated, Addendum 9). (c) Item 8 counts from the run: minimum_recoverable_rate 28 uses in 2 files (business-outcome per-source and area-tier selectors) is a fourth candidate;
@@ -558,7 +558,7 @@ SLICE PLAN (order fixed; each slice ends with the Addendum 6 item 2 checks on th
 BUILD ORDER FROM HERE (Claude decides, owner agreed 2026-10-29, "you can decide the order")
   Step 1  Read-only, one terminal block: the scheduling hook around lines 36 and 157, the header of hooks/cost-allocation/useCostAllocationAssetOverlay.js, and the useRevenueCogs
           save effect near line 89. DONE 2026-10-29, recorded as Addendum 9 (adapter design unchanged, one key-naming constraint added).
-  Step 2  Slice 0 remainder: bm7_f runtime tap. The one-chain recompute timing (Addendum 6 item 3) is CLOSED from recorded Q-7 data, Addendum 10; it sizes the compute-once approach (BM-6).
+  Step 2  DONE 2026-10-29: bm7_f runtime tap (Addendum 11). The one-chain recompute timing (Addendum 6 item 3) is CLOSED from recorded Q-7 data, Addendum 10; it sizes the compute-once approach (BM-6).
   Step 3  Slice 1 design note (record shapes, difference identity, key names) for the owner's storage confirmation. No build before that confirmation.
   Step 4  Build slices 1 to 5 in order, one thin end-to-end slice per chat, each closed by its checks, a dated addendum and the end-of-session sync.
 
@@ -597,3 +597,18 @@ Addendum 9): page open under 1 s at 100 staff and under 3 s at 1,000; no freeze 
     open, on leaving a field (blur) or after a typing pause, never per keystroke; (b) an edit field on a page that mounts only a shallow chain (General Overheads nudge, Rate Builder rate) may type
     live if the slice's typing timing passes; (c) in Model mode the adapter must not add a full chain recompute per keystroke, which slice 1 timing checks. These figures are a proxy (page open and
     typing, not an isolated recompute); each slice still measures its own pages (Addendum 6 item 2b).
+
+ADDENDUM 11 (2026-10-29) - RUNTIME TAP RESULTS (bm7_f)  [OBSERVED, nothing built; two constraints and one sizing rule added for slice 1]
+Source: run by Claude at the owner's request ("run the app on 3005 and check it"). Production build on :3005 in the desktop app's built-in browser pane, which holds its own storage (18 keys, an earlier stress seed). Tap installed through the console, then
+the pages were opened with the app's own links (/labour, /general-overheads, /opening-hours, /assets) and with the router for pages that have no sidebar link (/cost-allocation, /rate-builder, /business-outcome, /business-modelling). No field was
+edited. 1,033 storage calls logged, then the tap was removed. Limits: production build, so no caller names; the edit path (typing a number) was not exercised; the visits created four keys in the pane's storage and rewrote one timestamp (items 2, 3).
+ 1. [FINDING] Pages write back what they read. Same-value writes (the exceptions are items 2 and 3) of essentially every key read, on mount: Business Modelling wrote 14 keys, Rate Builder 13, Business Outcome 12, Cost Allocation 11, Assets 6, General Overheads 4,
+    Labour 2, Opening Hours 0 (read only). This EXTENDS Addendum 7 item 3: the static pass listed only 5 AUTO-written keys for Business Outcome; at runtime it also writes back business setup, labour profiles and staff types, revenue/COGS, balance sheet and
+    general overheads. No remove or clear calls and no sessionStorage use were logged; no key outside the 35 known was touched. In Model mode every one of these write-backs must resolve to an EMPTY difference.
+ 2. [FINDING, CONSTRAINT] One key changes bytes on every visit to a chain page: qs_tools_general_overhead_state (same length, different hash; the updated_at rewrite). The difference-on-write MUST ignore volatile fields such as timestamps, or every page open in Model
+    mode would record a difference. The list of volatile fields per key is part of the slice 1 design note; only updated_at on this key is confirmed so far.
+ 3. [FINDING, CONSTRAINT] A first visit creates keys from module defaults (absent to present): qs_tools_business_modelling_scenario_state_v1 (126 bytes), qs_tools_business_modelling_state_v1 (1,139), qs_tools_fixed_asset_register_state_v1 (152) and
+    qs_tools_rate_builder_labour_rates_v1 (642). The adapter must treat a missing baseline key as the module's default state, and in Model mode must not create real keys from defaults.
+ 4. [FINDING, SIZING] Call volume per page open: Business Modelling about 500 storage calls (profit_and_loss_state read 48 times, saved_assets 33, asset_state 33, general_overhead 21), Business Outcome about 245, Rate Builder about 134, Cost Allocation about 121. A
+    merge-on-read adapter must cache the merged object per key and invalidate it when the baseline, the differences or the mode changes; merging on every call would multiply the cost by those counts. Slice 1 timing checks this on the production build.
+ 5. [FINDING] Business Modelling and Business Outcome also read qs_tools_business_modelling_levers_v1 and write it back unchanged; Labour touches only its own two keys; General Overheads only four. Consistent with Addendum 7 items 2 to 4.
