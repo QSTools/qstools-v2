@@ -68,8 +68,8 @@ ASSUMPTIONS = [
     "total_net_profit = today net profit (View A group real-capacity profit + materials real-capacity profit; unassigned cost is 0 "
     "under A-7). total_interest = EVERY asset's interest (the app adds a remainder row for support and unassigned assets, F-8). "
     "total_depreciation = the recipe's depreciation_annual summed over every asset copy (default none = 0), added back in full: "
-    "this is the F-10b TARGET. Until F-10b is built the app adds depreciation only for assets assigned to a group, so a recipe "
-    "must put depreciation_annual only on productive assets that are 100% assigned (scenario_a_depreciation does). "
+    "F-10b (built 2026-10-27): the app adds the depreciation on support and unassigned assets back as one remainder row, so a recipe "
+    "may put depreciation_annual on ANY asset (scenario_a_depreciation: productive only; scenario_a_support_depreciation: support too). "
     "EBIT = net profit + interest. EBITDA = EBIT + depreciation. F-11 (2026-10-27): total_interest ALSO includes the recipe's "
     "pnl.non_asset_interest_annual (default none = 0): interest left in General Overheads (overdraft / bank) is added back in full.",
 ]

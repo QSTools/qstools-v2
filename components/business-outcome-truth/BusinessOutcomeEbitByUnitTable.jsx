@@ -62,9 +62,9 @@ export default function BusinessOutcomeEbitByUnitTable({ real_capacity, material
         isn&apos;t allocated per source, matching standard segment-reporting practice.
       </p>
       <p className="ui-help">
-        The Total below covers every labour and asset source shown above, plus Materials/COGS. Note: any
-        financed asset not currently assigned to an operational group wouldn&apos;t appear here or count
-        toward this total - worth checking Cost Allocation if a number here looks lower than expected.
+        The Total below covers every labour and asset source shown above, plus Materials/COGS. Interest and
+        depreciation on support assets, or assets not assigned to an operational group, are added back in
+        the &quot;Support and unassigned assets&quot; row, so the totals cover every active asset.
       </p>
       <div className="business-outcome-ledger-table">
         <div className="business-outcome-ledger-row business-outcome-ledger-header" style={{ gridTemplateColumns: "1.2fr 0.9fr 0.9fr 0.7fr 0.9fr 0.9fr" }}>

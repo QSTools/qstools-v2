@@ -83,7 +83,7 @@ ITEM D (2026-10-26; stress brief Addendum 20): layer-2 gaps covered. mirra_expec
 
 F-10 (2026-10-26; Business Outcome brief Addendum 2): EBIT / EBITDA covered. recipes/scenario_a_depreciation.json = Scenario A plus the new optional
   per-asset recipe field depreciation_annual (written to estimated_annual_depreciation; default none, so every older seed is unchanged). Put it only on
-  productive assets that are 100% assigned until F-10b is built. mirra_expected_l2.py A-12 adds business_outcome.ebit.total_net_profit / total_interest /
+  productive assets that are 100% assigned (F-10b is built, see below). mirra_expected_l2.py A-12 adds business_outcome.ebit.total_net_profit / total_interest /
   total_depreciation / ebit / ebitda (the app's trace nodes of the same ids, lib/calculation-trace/pilot-map/ebitTraceNodes.js).
   Live 2026-10-26 on the built-in browser pane at :3005: 174 of 174 nodes (raw and derived checks not run for this slice).
   The loader still refuses any port but :3004. The 3005 run wrote the seed keys into the pane's storage by hand, verified key by key by length and CRC32.
@@ -113,3 +113,9 @@ F-7 DRY HIRE, TICKED SEED (2026-10-27; stress brief Addendum 23; DRY_HIRE brief 
 CM-10 GATE (2026-10-27; stress brief Addendum 24): the dry-hire tick only applies in groups driven by asset hours (mirra_expected_l2.py / mirra_expected.py
   follow the app). recipes/scenario_b_dry_hire_gate.json = scenario_b_dry_hire plus G02 labour_hours with A04 ticked "dry"; expected 216 nodes + 123 raw + 3
   derived, live 342 of 342. .tmp\f7_ticked_seed.ps1 now prepares six seeds (A, A misaligned, A2, B, B ticked, B gate).
+
+F-10b (2026-10-27; Business Outcome brief Addendum 8): depreciation on support or unassigned assets now reaches EBITDA (remainder row in
+  businessOutcomeEbitCalculations.js). recipes/scenario_a_support_depreciation.json = scenario_a_depreciation plus depreciation_annual on the three
+  support assets A05 / A06 / A07 (9,000 / 8,000 / 5,000; none is assigned to a group, A07 is paid off). Expected: 187 nodes + 95 raw + 3 derived = 285;
+  ebit.total_depreciation 92,000, EBIT 179,662.23, EBITDA 271,662.23 (as of 2026-10-27). mirra_expected_l2.py A-12 needed no formula change: it already
+  summed every asset copy, so the harness was the target before the app was built.

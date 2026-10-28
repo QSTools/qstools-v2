@@ -14,6 +14,13 @@ import re
 import sys
 
 RATE_WORDS = ("rate", "per_hour", "per_driver", "percent", "markup")
+# Whole-word match (F-10b regression, 2026-10-27): a plain substring test classed "operated_recovery_hours" as a rate
+# because "operated" contains "rate". A word must start the key or follow a "." or "_".
+RATE_RE = re.compile(r"(?:^|[._])(?:" + "|".join(RATE_WORDS) + r")")
+
+
+def is_rate(key):
+    return RATE_RE.search(key) is not None
 
 
 def load(p):
@@ -43,7 +50,7 @@ def main(base_path, scaled_path):
         if k not in s["nodes"]:
             continue
         total += 1
-        rate = any(w in k for w in RATE_WORDS)
+        rate = is_rate(k)
         exp = v if rate else v * f
         tol = max(1.0 * f, abs(exp) * 1e-4)
         if abs(s["nodes"][k] - exp) > tol:
@@ -54,7 +61,7 @@ def main(base_path, scaled_path):
         if k not in gs:
             continue
         total += 1
-        rate = any(w in k[2] for w in RATE_WORDS)
+        rate = is_rate(k[2])
         exp = v if rate else v * f
         tol = max(1.0 * f, abs(exp) * 1e-4)
         if abs(gs[k] - exp) > tol:

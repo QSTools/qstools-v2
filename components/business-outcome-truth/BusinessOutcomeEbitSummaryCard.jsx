@@ -57,7 +57,7 @@ export default function BusinessOutcomeEbitSummaryCard({ real_capacity, material
           <span className="business-outcome-ledger-metric-label">+ Depreciation</span>
           <span className="business-outcome-ledger-metric-value">{format_currency(total_depreciation)}</span>
           <span className="business-outcome-ledger-metric-description">
-            Real depreciation from your Fixed Asset Register (only for linked assets with a Diminishing Value method).
+            Real depreciation from your Fixed Asset Register (only for linked assets with a Diminishing Value method), including support and unassigned assets.
           </span>
         </div>
         <div className="business-outcome-ledger-metric">
