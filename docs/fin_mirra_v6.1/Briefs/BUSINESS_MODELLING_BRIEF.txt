@@ -10,7 +10,9 @@ STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever mo
                scenarios stacked on the modelled layer. Design decisions only - nothing built.
                SLICE ORDER AGREED AND TIER 1 NARROWED 2026-10-28 (Addendum 4): Tier 1 = General Overheads + Rate
                Builder only; scenarios pulled forward; Business Modelling stays as a thin page.
-LAST UPDATED:  2026-10-29 (Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
+               DESIGN QUESTIONS SETTLED AND SLICES 1-5 PLANNED 2026-10-29 (Addendum 8): overlay adapter chosen, names Model mode / Planned
+               business, gap shown per group. Nothing built; storage schema still needs its own owner confirmation at slice 1.
+LAST UPDATED:  2026-10-29 (Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -115,6 +117,7 @@ BM-1  Delete Baseline / Upside / Downside and legacy scenario tools from the pag
 BM-2  (see Addendum 3 item 1: the control is a percentage nudge)
 BM-2  Overhead lever is category-level; the decided design is LINE-BY-LINE with lock / constrain flags (is_lever),
       on the undistributed pool only. Injection point discovery (where remaining overhead enters the chain) not built.
+      SETTLED 2026-10-29 (Addendum 8 item 6): the nudge is per CATEGORY; locked and asset-distributed lines are excluded.
 BM-3  Reverse lever (set a target labour rate, show the unit rate needed) - decided, not built.
 BM-4  Multi-line calculators: each component (setup fee, hourly, per m3) as its own lever - decided, not built.
 BM-5  Per-staff-type labour lever across units ("set this rate everywhere") - decided (both granularities), not built.
@@ -123,7 +126,7 @@ BM-6  Typing performance (R2; R2 closed 2026-10-29, Addendum 6) - fix inside the
 BM-7  Engine purity audit (first R3 step, read-only): can the real chain run on a full input object, with every page
       pointed at the modelled copy and nothing reading or writing the real storage keys? Lists every file touching
       localStorage; likely trouble spots are hooks reading localStorage directly and storage layers that rebuild
-      objects field by field. Not yet run. Decides how big R3 is (Addendum 2, item 12). Scope per Addendum 4 item 8:
+      objects field by field. RUN 2026-10-29 (Addendum 7; owner terminal re-run reconciled there). Decides how big R3 is (Addendum 2, item 12). Scope per Addendum 4 item 8:
       the Overheads and Rate Builder input paths for Tier 1, plus the scenario path (Labour, Assets, Cost Allocation, COGS).
 BM-8  Confirm which Business Outcome view the modelling work reads. Project notes say the live page builds on View A
       (per_source achieved figures) with the additive lever model on top; owner wants the isolated per-group numbers
@@ -458,14 +461,14 @@ re-read for this addendum; its addendum numbers are cited from PROJECT_MAP.
  5. Carried, NOT blocking R3: handover items 4b, 4d, G-7, G-8, the hours-mode-only PARTIAL label on the suite (units mode is R4), server-load test (R9).
  6. Q-7 for Business Modelling counts as closed only when the thin page and the slice 3 to 5 pages pass at 100 and 1,000 staff on the production build.
 
-ADDENDUM 7 (2026-10-29) - BM-7 ENGINE PURITY AUDIT RESULTS  [AUDIT RUN, read-only, nothing built; owner re-run at the terminal owed; open items of Addenda 4 and 5 NOT yet settled]
+ADDENDUM 7 (2026-10-29) - BM-7 ENGINE PURITY AUDIT RESULTS  [AUDIT RUN, read-only, nothing built; owner terminal re-run DONE and reconciled (items 1, 5, 6, 10, 12, 13 corrected or added); runtime tap and recompute timing still owed; open items of Addenda 4 and 5 NOT yet settled]
 Source: Py\audit-scripts\bm7_a (storage inventory), bm7_b (reach map), bm7_c (hook mounts and writes), bm7_d (seams and rebuilds), bm7_e (scenario paths), bm7_common.py, bm7_f_storage_tap.js
 (runtime tap, NOT yet run). Claude ran A to E on a read-only snapshot of the source in its own workspace on 2026-10-29: 406 files; lib/calculation-trace/pilot-map and some minor components were
 not staged. The owner's rule is that scripts run at the terminal, so the owner's own run is the one that counts (command block in handover V6.1u). Analysis is heuristic (regex, not a JS
 parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-PatchBatch, 2 of 2, owner confirmed) to follow imports of storage modules, because storage called as plain functions
 (useLabour, useRevenueCogs) was missed. In section 3, ACTION means the write sits in the storage module, not that a user triggered it; the effect that fires it is usually in the calling hook.
- 1. [FINDING] One seam is possible. 30 modules in lib/storage plus lib/theme/themeStorage.js call window.localStorage directly, each with its own key constant, one file per key (33 keys).
-    No helper takes the key as an argument. One outlier: app/dev/cross-import-check/page.jsx (dev page) reads the P&L key directly. A single adapter in front of those modules covers every page.
+ 1. [FINDING] One seam is possible. 31 modules in lib/storage (Claude's snapshot found 30; it missed lib/storage/schedulingStorage.ts) plus lib/theme/themeStorage.js call window.localStorage directly, each with its own key constant, one file per key (34 keys with qs_tools_scheduling_v4_tasks; owner run: 608 files scanned, 34 touch storage).
+    No helper takes the key as an argument. TWO outliers (owner run): hooks/scheduling/schedulingSuggestions.ts reads storage with a computed key (key()/length enumeration, lines 36 and 157), so it could reach any key; outside the core chain, inspect it before slice 1. And app/dev/cross-import-check/page.jsx (dev page) reads the P&L key directly. A single adapter in front of those modules covers every page.
  2. [FINDING] Pages and hooks cannot be the seam. 41 of the 47 hooks that reach storage take no parameters. The 6 that do (useBusinessModellingLegacyScenario, useBusinessModellingLevers,
     useBusinessModellingScenario, useBusinessOutcomeLabourRecovery, useCostAllocation, useRecoverySummary) receive derived values, not state objects. Every hook reads and writes its whole stored state.
  3. [FINDING] Mounting a page writes real keys, even a read-only view. Each hook hydrates then saves its whole state in an effect. Hooks with a writing effect: useGeneralOverheads, useLabour,
@@ -477,12 +480,12 @@ parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-Pa
  4. [FINDING] P&L sync. The useGeneralOverheads effect rebuilds the overhead lines from the P&L (build_general_overheads_from_pnl) whenever the P&L signature changes. A modelled overhead change
     (slice 3) must be applied after that sync, or the sync overwrites it.
  5. [FINDING] Save effects with no guard word found (keyword match only, check each by eye): useRateBuilderLabourRates:90, useBusinessModellingLegacyScenario:94, useBusinessModellingLevers:56,
-    useBusinessSetup:30, labourRateRealityCheckStorage, quickStartStorage, quickStartProfileStorage, recoverySummaryStorage. The legacy scenario hook saves its default state on first mount before
+    useBusinessSetup:30, useRevenueCogs:89 (added by the owner run; READ 2026-10-29: it IS guarded, by storage_loaded, so a keyword false positive, Addendum 9), labourRateRealityCheckStorage, quickStartStorage, quickStartProfileStorage, recoverySummaryStorage. The legacy scenario hook saves its default state on first mount before
     the loaded state is applied (benign, the load had already read the real value, but a write to a real key on every open). Its key qs_tools_business_modelling_state_v1 is read and written by the
     current page; retire or redirect it at slice 3 (Addendum 1 rows retire there).
  6. [FINDING] Field-dropping risks (bug class b) on stored-record paths: useAssets return (15 of 26 fields mapped), useBusinessModellingLevers return (9 of 13), normaliseRegisterAsset (fixed asset
     register), normalize_profile (P&L profiles), createQuoteJobRecord, and the output contracts build_cost_allocation_output_contract and useRecoverySummary (95 and 116 mapped fields): a new
-    "modelled" flag added there is dropped. 59 no-spread builders in all, most are output cards. Full list in the bm7_d output.
+    "modelled" flag added there is dropped. 56 NO SPREAD entries in bm7_d section 3 in all (owner run), most are output cards. Full list in the bm7_d output.
  7. [FINDING] Scenario add and remove rows. Real lists exist only in fixed_asset_register.assets (and import_warnings) and revenue_cogs.unit_driver_rows. Labour profiles and staff types, Cost
     Allocation placement and asset_state show no default list shape (built inline). A scenario row for any of those needs a new list in the modelled layer. COGS enters through useRevenueCogs
     (49 mentions, 12 P&L), feeding Business Summary, Recovery Summary and the trace hooks; the P&L feeds it through profitAndLossCalculations. The injection point for an added COGS line is the
@@ -493,6 +496,90 @@ parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-Pa
  9. [DECISION NEEDED before slice 1] Adapter design. The design stores the modelled layer as differences from the baseline, so the adapter has to return a full object (baseline plus differences)
     on read and turn the hooks' whole-state writes back into differences on write. A key-rename (shadow full copy of each key) is simpler and trivially pure but is not "differences stored".
     First-time storage schema: needs its own confirmation before any build.
-10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal; (b) bm7_f runtime tap (confirms which writes actually fire per page, including callbacks and context the static pass
+10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal (DONE 2026-10-29, see items 12-13); (b) bm7_f runtime tap (confirms which writes actually fire per page, including callbacks and context the static pass
     cannot follow); (c) the Addendum 6 slice 0 item, how long one full chain recompute takes at 100 and 1,000 staff; (d) the unstaged files.
 11. [NEXT] Settle the open items at the end of Addenda 4 and 5 against this list, then plan build slices 1 to 5.
+12. [OWNER RUN 2026-10-29, reconciliation] Findings 2, 3, 4 and 7 reproduce: 41 of 47 hooks reach storage with no seam parameter and the same 6 take inputs; the writing-effect hooks and the per-page AUTO write lists
+    (Business Modelling, Business Outcome, Rate Builder) match; Labour reaches only its own two keys; fixedAssetRegister is the only real list shape. Differences: the scheduling storage files (item 1), the
+    useRevenueCogs save effect flagged in item 5 (guarded, Addendum 9), the counts in items 1 and 6. Heuristic limits unchanged (callbacks and context not followed), so bm7_f is still needed.
+13. [OWNER RUN, new] (a) Consumers of the keys slice 3 retires: qs_tools_business_modelling_state_v1 is also read by ai-business-state, business-overview and quote-checker pages and written by useAiBusinessState;
+    qs_tools_business_modelling_levers_v1 is also read by calculation-trace. Retiring them touches those. (b) hooks/cost-allocation/useCostAllocationAssetOverlay.js already exists; read what it does before
+    designing the adapter (examined 2026-10-29: unrelated, Addendum 9). (c) Item 8 counts from the run: minimum_recoverable_rate 28 uses in 2 files (business-outcome per-source and area-tier selectors) is a fourth candidate;
+    minimum_recoverable_rate_per_hour 20 in 5; minimum_recoverable_charge_out_rate 14 in 4; required_recovery_rate 88 in 26; the current thin-page group minimum is group_min_rate / floor_rate in
+    businessModellingSourceRows.js. BM-8 reproduces: Business Modelling reads per_source / modelled_per_source from useBusinessOutcomePerSourceRevenue.
+
+ADDENDUM 8 (2026-10-29) - OPEN ITEMS SETTLED, OVERLAY ADAPTER CHOSEN, SLICE PLAN 1-5, BUILD ORDER  [DECISION: design only, nothing built, no code touched]
+Source: owner voice session 2026-10-29 (one question at a time), after the owner's terminal re-run of BM-7 (Addendum 7 items 12-13). Closes the open items at the end of
+Addenda 4 and 5 except those listed under STILL OPEN. Where this addendum differs from Addenda 2 to 5, this one wins. Tags as before.
+
+SETTLED
+ 1. [DECISION] Minimum recoverable rate (Addendum 3 item 3): show BOTH minimum rates, labelled, plus the rate actually charged, a spread of three numbers per group:
+    (a) the group minimum rate (Cost Allocation, productive hours only), (b) the floor rate (full true cost including the non-productive share), (c) the charged rate
+    from Rate Builder. No new calculation; each traces to its existing node. [CHECK at slice 5, before any screen text] That (a) excludes and (b) includes the
+    non-productive share was stated in the voice session from the brief's FLOOR definition (Section 1) and the Addendum 7 item 8 candidates; verify in the code and trace
+    nodes which existing field is which (candidates: group_min_rate / minimum_recoverable_rate_per_hour and floor_rate / breakeven_rate_per_hour) and fix the names then.
+ 2. [DECISION] The Tier 1 gap is shown PER WORKING GROUP, with a whole-business total underneath (Addendum 3 item 3 open question closed). The Addendum 3 item 4 verdict
+    wording (state the arithmetic, never advise) is still OPEN.
+ 3. [DECISION] Names (Addendum 5 item 5 closed): "MODEL MODE" = the what-if layer over a real business with a locked baseline (Addendum 2). "PLANNED BUSINESS" = a business
+    with no books, the chain run in reverse (Addendum 5). Use these in all screen text and briefs from here on. Still open: whether a Planned business also locks a baseline.
+ 4. [DECISION] Build order (Addendum 5 item 7 closed): SLICE ORDER WINS. Slices 1-5 as in Addendum 4 item 1. The AI scenario agent follows once the slices exist; its
+    rate, hire, asset proving order does not move slice 5. AI_LAYER_BRIEF Addendum 3 item 8 needs a one-line pointer to this (not yet written; see handover V6.1v).
+ 5. [DECISION] Thin page spread (Addendum 4 item 3 open question closed): per source only FLOOR, START and CEILING markers; detail stays on Business Outcome. The thin page
+    holds no calculation. The per-group three-number gap of item 1 arrives in slice 5. [NOTE] item 1 shows a group minimum rate and this item lists markers per source: slice 5
+    reconciles the two on one screen without new maths; confirm layout then.
+ 6. [DECISION] Overhead nudge (Addendum 3 item 1 closed): a percentage per CATEGORY. Lines marked locked (is_lever false) and lines already distributed to an asset are left out
+    (BM-2, rule R5). Applied after the P&L sync (Addendum 7 item 4).
+ 7. [DECISION] ADAPTER DESIGN (Addendum 7 item 9 closed): OVERLAY. In Model mode the adapter at the storage layer merges the stored differences onto the baseline on every read and
+    turns each page's whole-state save back into differences on write. A baseline correction therefore flows through both views (Addendum 2 item 7). A shadow copy per key is
+    rejected: it does not honour that rule. Consequences to design for: (a) mount-time hydrate-then-save effects in Model mode must produce an EMPTY difference, so they write
+    nothing, and in Model mode no write reaches the real or baseline keys (Addendum 2 item 3); (b) a difference whose target is gone resolves to zero with a flag (Addendum 2
+    item 8); (c) the adapter needs a stable identity for each record or line it diffs; (d) hooks that rebuild objects field by field (Addendum 7 item 6) must not drop the
+    difference metadata; (e) the scheduling outlier and the computed-key read (Addendum 7 item 12) are handled or ruled out at slice 1. THE NEW STORAGE LAYOUT (baseline, modelled,
+    mode flag, scenarios list) STILL NEEDS THE OWNER'S SEPARATE CONFIRMATION before any build (Addendum 2 item 12, conventions rule 1).
+
+SLICE PLAN (order fixed; each slice ends with the Addendum 6 item 2 checks on the production build: (a) standing regression with Model mode OFF unchanged, (b) Q-7 timing at
+100 and 1,000 staff on every page the slice touches, (c) real keys and locked baseline byte-identical before and after; figures fixed from the live baseline)
+  1  Overlay adapter and the storage keys, the mode flag in ONE readable place (Addendum 4 item 9), the universal toggle with a banner on every real page. Build inside slice 1
+     in this order: adapter as a pure pass-through with the toggle off (regression must be unchanged), then the mode flag and keys, then the toggle. Entering Model mode without
+     a locked baseline is refused. Extra checks: toggle on with no differences shows exactly the baseline numbers; in each mode nothing reaches the other mode's keys; page-open
+     timing in Model mode. has_loaded guards from the first commit. Owner confirms the storage layout first.
+  2  Baseline lock and the deliberate unlock. Lock refused until flags are clear and reconciliation passes. Extra check: real data and baseline byte-identical after repeated
+     lock, unlock and edit cycles. Unlock warning and orphan-flag wording still to be written (Addendum 2 items 6, 8).
+  3  Minimal modelled layer, overhead lines only, with the per-category nudge. Proves differences store and stack; an empty layer reproduces baseline net profit exactly; a
+     deleted line resolves to zero with a flag. Business Outcome baseline / modelled view toggle lands here. Retires the old lever page, the legacy scenario tools, their keys
+     (qs_tools_business_modelling_levers_v1, _state_v1, _scenario_state_v1) and the readers named in Addendum 7 item 13. The Addendum 1 row checks retire here. Extra check:
+     typing timing on the nudge.
+  4  Scenarios on top of MODELLED, a list from day one, one entry allowed. Order: remove a staff member or an asset, then the dry-hire and own-versus-hire examples (the added COGS
+     line is injected downstream of the P&L read, at the useRevenueCogs output, Addendum 7 item 7), then add a scratch asset. Extra checks: an empty scenario equals MODELLED; remove
+     then re-add returns the numbers; timing with a scenario on top at 1,000 staff.
+  5  Rate Builder as a lever (charge-out rates, unit rates, materials markup) and the per-group three-number gap on the thin page. Extra checks: typing timing on rate fields; harness
+     expected values for modelled rates.
+
+BUILD ORDER FROM HERE (Claude decides, owner agreed 2026-10-29, "you can decide the order")
+  Step 1  Read-only, one terminal block: the scheduling hook around lines 36 and 157, the header of hooks/cost-allocation/useCostAllocationAssetOverlay.js, and the useRevenueCogs
+          save effect near line 89. DONE 2026-10-29, recorded as Addendum 9 (adapter design unchanged, one key-naming constraint added).
+  Step 2  Slice 0 remainder: bm7_f runtime tap, then the one-chain recompute timing at 100 and 1,000 staff (Addendum 6 item 3). The timing sizes the compute-once approach (BM-6).
+  Step 3  Slice 1 design note (record shapes, difference identity, key names) for the owner's storage confirmation. No build before that confirmation.
+  Step 4  Build slices 1 to 5 in order, one thin end-to-end slice per chat, each closed by its checks, a dated addendum and the end-of-session sync.
+
+STILL OPEN: Addendum 3 item 4 verdict wording; Addendum 2 items 6, 8 warning and orphan-flag wording; BM-9 comparing scenarios; one baseline snapshot or several; promotion of
+modelled changes to real data (OFF by Addendum 4 item 5); whether a Planned business locks a baseline; Planned business readiness checks (Addendum 5 item 6) and plan-versus-actual
+(item 4); the top-drain verification (Addendum 4 item 7). Other briefs to touch when built: General Overheads, Rate Builder, Business Outcome, Cost Allocation, AI_LAYER (pointer).
+
+ADDENDUM 9 (2026-10-29) - THE THREE PRE-SLICE-1 FILE READS  [READ-ONLY, owner terminal output, nothing built; adapter design unchanged, one constraint added]
+Source: owner paste of the Addendum 8 build-order step 1 block (schedulingSuggestions.ts lines 20-60 and 145-175; useCostAllocationAssetOverlay.js lines 1-70; useRevenueCogs.js lines 55-125).
+ 1. [FINDING] hooks/scheduling/schedulingSuggestions.ts is a READ-ONLY scanner that bypasses the storage modules. It walks every key of window.localStorage and keeps those whose name contains
+    "cost", "allocation", "operational" or "group" (parses the value for group / team names, lines 24-60), and, in a second pass, those containing "business", "opening", "hours" or "setup" (parses
+    the value for open days, lines 145-164). It never writes. Consequences: (a) in Model mode it still reads the real keys, not the merged view; accepted, scheduling is outside the modelled chain;
+    (b) [CONSTRAINT for slice 1] the names of the NEW keys (baseline, differences, mode flag, scenarios) must not contain any of those eight substrings, or this hook will parse a difference
+    record as real data and could surface wrong group names or open days. Add to the slice 1 checks: list the new key names against the eight substrings. (The existing business_modelling_*
+    keys already match "business" and are harmless today.) (c) [PROPOSED] build the adapter at the storage-module layer, not by patching window.localStorage, because a global patch would change
+    what this hook sees. Addendum 8 item 7(e) is closed by (a) and (b).
+ 2. [FINDING] hooks/cost-allocation/useCostAllocationAssetOverlay.js is unrelated to the adapter. It is a pure useMemo calculation that builds per-asset recovery rates (cost over recovery hours,
+    with allocated asset overhead) from the asset output contract; it touches no storage and spreads each asset ({...asset}, so extra fields survive). Name clash only: in code the new layer is
+    called the difference layer / model layer (identifiers model_layer, differences); "overlay" stays a design word in these briefs, never an identifier. It carries minimum_recoverable_asset_rate
+    (asset level), relevant to slice 5.
+ 3. [FINDING] hooks/useRevenueCogs.js save effect (line 89) IS guarded: the load effect (line 82) sets state and storage_loaded, and the save effect returns until storage_loaded is true, then saves
+    on every state change. The bm7_c "NO GUARD WORD" flag was a keyword false positive (the guard is named storage_loaded, not has_loaded); not a defect. It confirms Addendum 7 item 3: on mount
+    the hook re-saves the loaded state to the real key, so in Model mode that write-back must resolve to an EMPTY difference. Whether saveRevenueCogsState changes any bytes on that re-save was
+    not examined. The other NO GUARD WORD entries in Addendum 7 item 5 may be the same false positive; check each chain hook (useBusinessSetup, useRateBuilderLabourRates) by eye in slice 1.
