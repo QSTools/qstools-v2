@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SidebarNavigation from "@/components/layout/SidebarNavigation";
 import { SETUP_NAV_GATING_ENABLED } from "@/lib/config/setupFlowConfig";
+import ModelModeGate from "@/components/layout/ModelModeGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +38,7 @@ export default function RootLayout({
             </div>
           ) : null}
 
-          <div className="flex-1 p-6 overflow-auto">{children}</div>
+          <div className="flex-1 p-6 overflow-auto"><ModelModeGate>{children}</ModelModeGate></div>
         </div>
       </body>
     </html>
