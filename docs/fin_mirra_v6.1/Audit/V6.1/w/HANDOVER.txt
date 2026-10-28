@@ -1,0 +1,39 @@
+HANDOVER V6.1w (2026-10-29) - R3 Business Modelling redesign, SLICE 1 build in progress
+Previous: V6.1v (history). Recommend a NEW CHAT from batch 5.
+
+1. WHERE WE ARE
+ Slice 1 (Model mode storage seam) batches 1 to 4 are built and verified. Batches 5, 6, 7 remain. Slice 1 is NOT shipped.
+ Commits: ab7c6b3 (batches 1+2), bb858c7 (batch 3), batch 4 + docs (committed with this handover; get the hash from git log).
+ Full detail: BUSINESS_MODELLING_BRIEF Addendum 13.
+
+2. DONE
+ - lib/storage/modelStorage.js (helper) + modelStorageRegistry.js (28 modelled keys m01-m28, 4 unmodelled, 1 excluded).
+ - 30 lib/storage modules swapped to model_storage (72 call sites). Standing regression passes with Model mode OFF (A x6 285, B 347, B ticked 346, gate 342, ladder 564 / 3,354).
+ - Mode switch refused without a complete baseline; all-or-nothing baseline copy with rollback; Model mode reads baseline, never writes real keys.
+ - Session log (sessionStorage mirra_model_stats_v1) and dev page /dev/model-mode.
+ - Pane check on Scenario A: zero differences in any localStorage key across 9 pages in Model mode; page text identical; net profit 138,281.
+ - Tests: Py\model_storage_tests b1 12/12, b3 37/37, b4 8/8.
+
+3. OWNER DECISIONS
+ - Taken by Claude and not objected: real edit in Model mode discarded and counted in slice 1; write to a key absent from baseline dropped; unmodelled/unregistered keys read-through, write-blocked; toggle refused without complete baseline; codemod for the mechanical swap.
+ - STILL NEEDED: Model mode slowdown allowance (proposed 20 percent or 100 ms, whichever greater, inside Q-7); whether public\__stress_tmp is deleted or gitignored at slice close; confirm batch 5 edit of app/layout.tsx.
+
+4. OPEN ITEMS
+ - F1 six discarded write-backs are first-visit defaults for baseline-absent keys (Addendum 12 item 5e open); slice 3 must treat absent-to-default as no difference. Decide in batch 6 whether a small default check is added now.
+ - F2 default volatile pair sufficient on Scenario A; confirm on 100 and 1,000 staff seeds (batch 7).
+ - F4 session log is in sessionStorage so the bm7_f tap will see those writes; filter or allow them explicitly.
+ - Call-level tap (bm7_f) across all pages: batch 6. Storage-full test and Q-7 timing: batch 7.
+ - public\__stress_tmp untracked and not ignored: never commit. Seeds are date dependent: regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day.
+ - AI_LAYER_BRIEF Addendum 3 item 8 one-line pointer still open.
+ - Project knowledge: BM brief and PROJECT_MAP changed; re-upload, rewrite .tmp\project_sync_ledger.tsv, run python Py\audit-scripts\check_project_knowledge_sync.py.
+
+5. NEXT STEPS
+ Batch 5: Model mode banner on every modelled page and "not available in Model mode" notice on unmodelled pages (quote engine, quick start, labour rate reality check, scheduling) with a link back. Edits app/layout.tsx or a client wrapper; ask the owner to confirm first.
+ Batch 6: bm7_f tap across all pages in Model mode; zero writes to real and baseline keys; diffs empty; net profit and Scenario A trace nodes equal OFF; finalise volatile list.
+ Batch 7: Q-7 timing at 100 and 1,000 staff ON and OFF; storage-full test G (i) (1,000 staff expected to hit the limit message); full regression again; SHIPPED addendum; PROJECT_MAP; handover; sync; stress_tmp cleanup.
+
+6. STANDING RULES
+ Working conventions file applies in full: Apply-Patch for edits (codemod exception was agreed for batch 2 only), UTF-8 no BOM, "Patched:" confirmations, build after each batch, never build while dev or next start runs (port 3000/3005), wrap commands in & { } ending with Set-Clipboard, git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. Pane method: production build at :3005, runner Py\stress_test\pane_runner.console.js, pane storage backed up to sessionStorage __bak and restored.
+
+7. READ FIRST / NOT TO READ
+ Read: this handover, PROJECT_MAP.md, Working Conventions, BUSINESS_MODELLING_BRIEF (Section 9, Addenda 12 and 13). Do not read Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or other briefs unless needed.
