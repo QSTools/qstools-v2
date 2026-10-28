@@ -12,7 +12,7 @@ STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever mo
                Builder only; scenarios pulled forward; Business Modelling stays as a thin page.
                DESIGN QUESTIONS SETTLED AND SLICES 1-5 PLANNED 2026-10-29 (Addendum 8): overlay adapter chosen, names Model mode / Planned
                business, gap shown per group. Nothing built; storage schema still needs its own owner confirmation at slice 1.
-LAST UPDATED:  2026-10-29 (Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
+LAST UPDATED:  2026-10-29 (Addendum 10 - recompute timing closed from recorded Q-7 data; Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -497,7 +497,7 @@ parser); "reach" counts are upper bounds. bm7_c section 3 was patched (Invoke-Pa
     on read and turn the hooks' whole-state writes back into differences on write. A key-rename (shadow full copy of each key) is simpler and trivially pure but is not "differences stored".
     First-time storage schema: needs its own confirmation before any build.
 10. [OPEN] Not done in BM-7: (a) owner re-run of A to E at the terminal (DONE 2026-10-29, see items 12-13); (b) bm7_f runtime tap (confirms which writes actually fire per page, including callbacks and context the static pass
-    cannot follow); (c) the Addendum 6 slice 0 item, how long one full chain recompute takes at 100 and 1,000 staff; (d) the unstaged files.
+    cannot follow); (c) the Addendum 6 slice 0 item, how long one full chain recompute takes at 100 and 1,000 staff (CLOSED from recorded Q-7 data, Addendum 10); (d) the unstaged files.
 11. [NEXT] Settle the open items at the end of Addenda 4 and 5 against this list, then plan build slices 1 to 5.
 12. [OWNER RUN 2026-10-29, reconciliation] Findings 2, 3, 4 and 7 reproduce: 41 of 47 hooks reach storage with no seam parameter and the same 6 take inputs; the writing-effect hooks and the per-page AUTO write lists
     (Business Modelling, Business Outcome, Rate Builder) match; Labour reaches only its own two keys; fixedAssetRegister is the only real list shape. Differences: the scheduling storage files (item 1), the
@@ -558,7 +558,7 @@ SLICE PLAN (order fixed; each slice ends with the Addendum 6 item 2 checks on th
 BUILD ORDER FROM HERE (Claude decides, owner agreed 2026-10-29, "you can decide the order")
   Step 1  Read-only, one terminal block: the scheduling hook around lines 36 and 157, the header of hooks/cost-allocation/useCostAllocationAssetOverlay.js, and the useRevenueCogs
           save effect near line 89. DONE 2026-10-29, recorded as Addendum 9 (adapter design unchanged, one key-naming constraint added).
-  Step 2  Slice 0 remainder: bm7_f runtime tap, then the one-chain recompute timing at 100 and 1,000 staff (Addendum 6 item 3). The timing sizes the compute-once approach (BM-6).
+  Step 2  Slice 0 remainder: bm7_f runtime tap. The one-chain recompute timing (Addendum 6 item 3) is CLOSED from recorded Q-7 data, Addendum 10; it sizes the compute-once approach (BM-6).
   Step 3  Slice 1 design note (record shapes, difference identity, key names) for the owner's storage confirmation. No build before that confirmation.
   Step 4  Build slices 1 to 5 in order, one thin end-to-end slice per chat, each closed by its checks, a dated addendum and the end-of-session sync.
 
@@ -583,3 +583,17 @@ Source: owner paste of the Addendum 8 build-order step 1 block (schedulingSugges
     on every state change. The bm7_c "NO GUARD WORD" flag was a keyword false positive (the guard is named storage_loaded, not has_loaded); not a defect. It confirms Addendum 7 item 3: on mount
     the hook re-saves the loaded state to the real key, so in Model mode that write-back must resolve to an EMPTY difference. Whether saveRevenueCogsState changes any bytes on that re-save was
     not examined. The other NO GUARD WORD entries in Addendum 7 item 5 may be the same false positive; check each chain hook (useBusinessSetup, useRateBuilderLabourRates) by eye in slice 1.
+
+ADDENDUM 10 (2026-10-29) - RECOMPUTE TIMING (ADDENDUM 6 SLICE 0 ITEM) CLOSED FROM RECORDED Q-7 DATA  [NO NEW MEASUREMENT; evidence only, nothing built]
+Source: stress brief Addendums 15, 16 and 26 (production build :3005, pane visible, perf_pass.console.js). Figures are copied from those addenda; no new run was made. The limits are Q-7 (stress brief
+Addendum 9): page open under 1 s at 100 staff and under 3 s at 1,000; no freeze over 200 ms / 1 s; typing under 100 ms / 300 ms per keystroke.
+ 1. [EVIDENCE] The full chain is the Business Outcome page (it mounts Labour, Assets, Cost Allocation, Rate Builder inputs, General Overheads and the summaries). After F-11, ready ms / max freeze ms:
+    100 staff 146-193 / 56-60; 1,000 staff 649-691 / 146-154 (Addendum 26; Addendum 16 gave 138-243 / 54-75 and 603-650 / 158-166). Both pass with wide margin. At the start (Addendum 15, before the
+    Business Outcome fix) it was 711 / 246 at 100 staff and 2,521 / 937 at 1,000, so one full chain was about 0.7 s and 2.5 s on first load before the fix.
+ 2. [EVIDENCE] The current Business Modelling page recomputes the whole chain on every lever keystroke: 107-113 ms (10 staff), 155-175 ms (100), 664-690 ms (1,000) per keystroke to paint, against limits of
+    100 / 100 / 300 ms. At 1,000 staff one chain recompute is therefore about 0.7 s, more than twice the typing limit.
+ 3. [EVIDENCE] Pages that run only a shallow part of the chain type fast: Labour 12-15 ms to paint at 1,000 staff; Cost Allocation percent and Rate Builder lines about 15 ms at every size (Addendum 17).
+ 4. [DECISION, sizing for BM-6] One full chain recompute is about 150 ms at 100 staff and about 650-700 ms at 1,000. So: (a) a full-chain result (Business Outcome, the thin page) may be recomputed on page
+    open, on leaving a field (blur) or after a typing pause, never per keystroke; (b) an edit field on a page that mounts only a shallow chain (General Overheads nudge, Rate Builder rate) may type
+    live if the slice's typing timing passes; (c) in Model mode the adapter must not add a full chain recompute per keystroke, which slice 1 timing checks. These figures are a proxy (page open and
+    typing, not an isolated recompute); each slice still measures its own pages (Addendum 6 item 2b).
