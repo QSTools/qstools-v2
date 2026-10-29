@@ -814,3 +814,37 @@ Source: build chat 2026-10-30 (owner at the terminal, Claude driving the built-i
     real keys or the baseline and an empty diffs key. Slice 2 (baseline lock and deliberate unlock) is next, in a new chat.
  7. [CARRIED] F5 (first mount of a page can change data before any edit); the 3-4 times raw read volume in Model mode (no measurable timing cost at 10 and 100 staff; the per-key cache of Addendum 11 item 4 is still needed for slice 3); unreviewed volatile fields on keys no seed exercises; generated ids (asset_id,
     active_allocation_profile_id, labour_rate_model_id, pnl_line_id, staff_id) for slice 3 difference identity; AI_LAYER_BRIEF Addendum 3 item 8 pointer; two Back to baseline buttons on notice pages (cosmetic); other themes and hydration warnings not checked.
+
+ADDENDUM 17 (2026-10-30) - SLICE 2: BASELINE LOCK AND DELIBERATE UNLOCK  [SHIPPED: slice 2, built and verified live in the pane; nothing committed at write time; slices 3-5 not started]
+Source: build chat 2026-10-30 (owner at the terminal, Claude driving the built-in pane on :3005). Acceptance criteria were stated first and approved. Handover: next letter after V6.1z (owner to name).
+ 1. [OWNER DECISIONS] (a) Blockers AND unresolved warnings block the lock: the gate needs overall_status "ready", 0 blocking, 0 warnings, and never tests the static Traceability group (MR-3).
+    (b) The lock card lives on the Model Readiness page. (c) New fields approved in the baseline meta key mirra_baseline_v1: generation, unlocked_at, readiness summary, fingerprint.
+    (d) Unlock is refused while Model mode is on. (e) Unlock is a two-step button: Unlock baseline, warning panel, Confirm unlock (or Cancel).
+ 2. [BUILT] lib/storage/modelBaselineLock.js (new, 237 lines): SETTLE_MS 1500, check_lock_gate (reason codes in order: model_mode_active, already_locked, not_loaded, blocked | open_checks, not_settled),
+    lock_baseline, unlock_baseline({confirmed}), fingerprint_real / fingerprint_baseline / baseline_matches_real, settle_step, get_lock_state, plain-words LOCK_MESSAGES / UNLOCK_MESSAGES / UNLOCK_WARNING.
+    modelStorage.js: take_baseline_snapshot(options) writes locked, locked_at, unlocked_at, source, generation, readiness, fingerprint; new is_baseline_locked() and comparable_form(); set_mode("model") now
+    refuses with baseline_not_locked until the baseline is locked. components/model-readiness/BaselineLockCard.jsx (new, 176 lines, existing ui-system classes only), mounted on app/model-readiness/page.jsx.
+    The dev "Copy baseline now" button is gone from app/dev/model-mode/page.jsx (link to Model Readiness instead). Tests: Py/model_storage_tests/s2_lock.test.mjs 59 of 59; b1 12, b3 39, b4 8, b5 8 pass; b6_tap_lists exit 0.
+ 3. [SETTLED CHECK, F5 CLOSED] Root cause: the global SidebarNavigation calls useModuleReconciliation, which mounts five data hooks on every page, so the first mount normalises seed data (Assets fills derived fields, P&L blanks
+    timestamps, pnl_profiles_v3 and general overhead state are created). The card polls fingerprint_real() (cyrb53 over the 28 real keys, volatile fields updated_at / created_at / overhead_profile_id ignored) every 500 ms and
+    treats data as settled after 1,500 ms unchanged; the lock re-checks at the click, and after the copy verifies real = baseline fingerprint, else withdraws the lock (not_settled, "Your data was still changing").
+ 4. [FINDING MR-1 ON SEEDS] All surveyed seeds are blocked ("General Overheads is not ready") until the General Overheads Save Baseline click names and saves an overhead profile; then "Model ready", 0 blocking, 0 warnings.
+    The test harness does that one click per seed. No override exists in the app.
+ 5. [FINDING F6, rule for slice 3] After locking and visiting all pages, 6 keys differed from the baseline (balance_sheet_state, business_modelling_scenario_state, business_modelling_state, fixed_asset_register, rate_builder_labour_rates,
+    recovery_summary_state). All were ABSENT at lock time and were created from module defaults on first visit; every present key stayed equal. Rule: present keys never move; absent keys may appear as module defaults.
+    Slice 3 difference logic must treat a default as no difference (Addendum 15 item 7 caveat). Asset enrichment is date-derived, so a baseline is frozen at its lock date. Original criterion 7 ("baseline equals real after visiting all pages")
+    was over-strict and is corrected to this rule; not a lock bug.
+ 6. [LIVE RESULTS, production build :3005] Seed B: gate refusal text correct and button disabled while blocked; gate opens after Save Baseline; lock wrote only baseline keys, each byte-equal to its real key (17 present, 11 absent);
+    card recorded "ready, 0 blocking, 0 warnings"; unlock panel, Cancel and Confirm wrote only the meta key; five lock / unlock / edit / relock cycles passed (baseline held the old value while unlocked, diffs and scenarios untouched,
+    gate re-settled in about 2 s); Model mode refused on an unlocked baseline (baseline_not_locked); after a real lock Model mode shows trace 347 of 347. The open-warning refusal is covered by unit tests only (no seed produces a warning).
+ 7. [TIMING, Model Readiness page, pane visible, within Q-7 and the 20 percent / 100 ms allowance] 10 staff ready 22-35 ms, 0 long tasks; 100 staff ready 24-35 ms, 0 freezes; 1,000 staff open 338 / 345 / 317 ms (unlocked / locked / Model mode
+    medians), freeze 194 / 169 / 150 ms, 2 long tasks; /labour control 128-152 ms. Caveat: the pane has no 5 MB limit, so 1,000-staff lock and Model mode only work here; a real 5 MB browser would show storage_full ("too large for Model mode
+    until the database arrives").
+ 8. [TAP] Call-level storage tap in Model mode after a real lock, 26 normal routes + 5 notice routes, seeds B, A and 100 staff: all 7 rules PASS (zero local writes, session log only, no raw reads of the 28 keys, notice routes read only
+    mirra_mode_v1, no scheduling key use, storage hash unchanged, diffs and scenarios empty); banner on every routed page; each notice route shows "Not available in Model mode". Seed A and 100 staff: 11,286 calls each. Notice routes get no
+    per-page label in the tap map because they make no storage call beyond the mode read.
+ 9. [REGRESSION, Model mode OFF, production build] scenario_a, misaligned, overstaffed (A2), depreciation, non-asset interest, support depreciation 285 of 285 each; scenario_b 347 of 347; scenario_b_dry_hire 346 of 346 (the ticked B seed);
+    gate 342 of 342; ladder 100 staff 564 of 564, 1,000 staff 3,354 of 3,354; no duplicate trace nodes. Pane storage restored to 22 of 22 keys afterwards.
+10. [STATUS] Slice 2 SHIPPED. The calculation map is unaffected (no new calculated figure, no trace node). Next: slice 3 (minimal modelled layer, overhead lines) in a new chat after this slice is committed. Slice 3 needs the per-key merge
+    cache (Addendum 11 item 4), F6 default handling and generated-id difference identity; unlock / orphan-flag wording is also a slice 3 item.
+11. [CARRIED] AI_LAYER_BRIEF Addendum 3 item 8 pointer; CRLF decision; unreviewed volatile fields on keys no seed exercises; two Back to baseline buttons on notice pages (cosmetic).

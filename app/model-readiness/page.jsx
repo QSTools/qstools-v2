@@ -9,6 +9,7 @@ import ModelReadinessBaselineInputsCard from "@/components/model-readiness/Model
 import ModelReadinessAuditPanel from "@/components/model-readiness/ModelReadinessAuditPanel";
 import ModelReadinessReconciliationChecks from "@/components/model-readiness/ModelReadinessReconciliationChecks";
 import ModelReadinessDiagnosticSection from "@/components/model-readiness/ModelReadinessDiagnosticSection";
+import BaselineLockCard from "@/components/model-readiness/BaselineLockCard";
 
 export default function Page() {
   const model_readiness = useModelReadiness();
@@ -117,6 +118,8 @@ export default function Page() {
         </section>
 
         <ModelReadinessStatusStrip status={status} />
+
+        <BaselineLockCard status={status} />
 
         <ModelReadinessVarianceBreakdown status={status} assets={modules?.assets} />
 

@@ -82,7 +82,11 @@ check("has_complete_baseline is true after a snapshot", h.has_complete_baseline(
 
 // 4. switch to model mode
 r = h.set_mode("model");
-check("set_mode(model) succeeds with a baseline", r.ok === true && h.get_mode() === "model");
+check("set_mode(model) is refused on an unlocked baseline (slice 2)", r.ok === false && r.reason === "baseline_not_locked", JSON.stringify(r));
+r = h.take_baseline_snapshot({ locked: true, source: "lock", generation: 1 });
+check("a locking snapshot succeeds and the meta says locked (slice 2)", r.ok === true && JSON.parse(s.getItem("mirra_baseline_v1")).locked === true);
+r = h.set_mode("model");
+check("set_mode(model) succeeds with a locked baseline", r.ok === true && h.get_mode() === "model");
 check("the mode key records model", JSON.parse(s.getItem("mirra_mode_v1")).mode === "model");
 check("empty differences and scenarios keys are created", s.getItem("mirra_diffs_v1") === JSON.stringify({ version: 1, by_key: {} }) && s.getItem("mirra_scenarios_v1") === JSON.stringify({ version: 1, items: [] }));
 r = h.take_baseline_snapshot();

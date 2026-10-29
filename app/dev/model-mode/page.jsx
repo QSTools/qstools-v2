@@ -1,7 +1,8 @@
 "use client";
 
 // DEV-ONLY page (R3 slice 1, batch 4; Business Modelling brief Addendum 12). Not linked from the sidebar.
-// Shows the Model mode state, lets the developer copy the baseline (dev button, deleted at slice 2 when the real lock replaces it),
+// Shows the Model mode state (the baseline is locked on the Model Readiness page since slice 2; the dev copy button was deleted),
+// lets the developer
 // switch Model mode on and off, and shows what the pages did while Model mode was on (counters for this tab).
 // It reads browser storage directly ONLY to display it. Every change goes through lib/storage/modelStorage.js.
 // Full page links (not client navigation) are used on purpose so every page re-reads its storage after a mode switch.
@@ -16,7 +17,6 @@ import {
   has_complete_baseline,
   reset_model_stats,
   set_mode,
-  take_baseline_snapshot,
 } from "@/lib/storage/modelStorage";
 import { MODELLED_KEYS, NEW_KEYS, baseline_entry_key } from "@/lib/storage/modelStorageRegistry";
 
@@ -29,6 +29,7 @@ const PAGE_LINKS = [
   ["Rate Builder", "/rate-builder"],
   ["Business Outcome", "/business-outcome"],
   ["Business Modelling", "/business-modelling"],
+  ["Model Readiness (lock the baseline)", "/model-readiness"],
   ["Calculation trace", "/calculation-trace"],
 ];
 
@@ -133,9 +134,6 @@ export default function ModelModeDevPage() {
 
           <div className="ui-stack">
             <div>
-              <button style={button_style} disabled={mode === "model"} onClick={() => run("Copy baseline", take_baseline_snapshot)}>
-                Copy baseline now (dev)
-              </button>
               <button style={button_style} disabled={mode === "model"} onClick={() => run("Enter Model mode", () => set_mode("model"))}>
                 Enter Model mode
               </button>
@@ -157,7 +155,7 @@ export default function ModelModeDevPage() {
             </div>
             {message ? <p className="ui-help">{message}</p> : null}
             <p className="ui-help">
-              Copying the baseline is refused while Model mode is on. After a mode switch open the pages from the links below
+              The baseline is locked and unlocked on the Model Readiness page, and Model mode needs a locked baseline. After a mode switch open the pages from the links below
               (full page loads), because each page reads its storage once when it opens.
             </p>
             <p className="ui-help">

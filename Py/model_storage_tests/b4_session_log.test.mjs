@@ -25,7 +25,7 @@ const local = new FakeStorage(), session = new FakeStorage();
 local.map.set(GO, go());
 globalThis.window = { localStorage: local, sessionStorage: session };
 h.clear_model_caches(); h.reset_model_stats(); h.clear_session_log();
-h.take_baseline_snapshot();
+h.take_baseline_snapshot({ locked: true, source: "lock", generation: 1 });
 h.set_mode("model");
 const local_snapshot = JSON.stringify([...local.map].sort());
 local.log.length = 0;
