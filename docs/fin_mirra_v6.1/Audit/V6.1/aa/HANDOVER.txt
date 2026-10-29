@@ -1,0 +1,37 @@
+HANDOVER V6.1aa (2026-10-30) - R3 Business Modelling redesign, SLICE 2 SHIPPED (baseline lock and deliberate unlock); slice 3 next
+Previous: V6.1z (history). Start slice 3 in a NEW CHAT.
+
+1. WHERE WE ARE
+ Slice 2 is SHIPPED and verified live: the Model Readiness page has a baseline lock card; Model mode needs a locked baseline; unlock is a deliberate two-step. Slices 3 to 5 not started.
+ Commit e1b7dc4 (slice 2 code, tests, BM Addendum 17, PROJECT_MAP row). The docs commit after it holds this handover and the PROJECT_MAP pointer: get the hash from git log. Nothing pushed (branch ahead of origin).
+ git status expected at the start of slice 3: only docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json untracked (not ours, leave). public/__stress_tmp/ is gitignored.
+ Full detail: BUSINESS_MODELLING_BRIEF Addendum 17 (and 12 to 16 for slice 1).
+
+2. DONE THIS SESSION
+ - lib/storage/modelBaselineLock.js (gate, settle check, lock, unlock, fingerprints, plain-words messages); modelStorage.js take_baseline_snapshot(options), is_baseline_locked(), comparable_form(), set_mode("model") refuses baseline_not_locked.
+ - components/model-readiness/BaselineLockCard.jsx on app/model-readiness/page.jsx; dev "Copy baseline now" button removed.
+ - Tests: s2_lock.test.mjs 59 of 59; b1 12, b3 39, b4 8, b5 8 pass.
+ - Live (pane, production build): lock, unlock, five lock/unlock/edit cycles, gate refusals, Model mode 347 of 347 after a real lock; timing inside Q-7 at 10, 100, 1,000 staff; tap passes all 7 rules on seeds B, A, 100 staff over 26 routes + 5 notice routes; full Model-mode-OFF regression matches every baseline (285 x6, 347, 346, 342, 564, 3,354).
+
+3. OWNER DECISIONS (slice 2)
+ Blockers and unresolved warnings block the lock; lock card on Model Readiness; new meta fields generation, unlocked_at, readiness summary, fingerprint; unlock refused while Model mode is on; unlock = button, warning panel, Confirm unlock.
+
+4. OPEN ITEMS AND FINDINGS
+ - F5 CLOSED: sidebar-mounted hooks normalise seed data on first mount; the lock card waits for 1,500 ms of unchanged data and re-checks at the click.
+ - F6: absent keys appear as module defaults after visiting pages; present keys never move. Slice 3 difference logic must treat a default as no difference. Baseline is frozen at its lock date (asset enrichment is date-derived).
+ - MR-1: every seed is blocked until the General Overheads Save Baseline click; the harness does that click per seed.
+ - The open-warning refusal is unit-tested only (no seed makes a warning).
+ - The pane has no 5 MB limit: 1,000-staff lock and Model mode work only here.
+ - Slice 3 needs: per-key merge cache (BM Addendum 11 item 4), F6 default handling, generated-id difference identity (asset_id, active_allocation_profile_id, labour_rate_model_id, pnl_line_id, staff_id), unlock and orphan-flag wording, typing timing (Business Modelling Q-7 still NOT closed).
+ - Carried: volatile fields unreviewed for keys no seed exercises; AI_LAYER_BRIEF Addendum 3 item 8 pointer; CRLF decision (git warns LF to CRLF); two Back to baseline buttons on notice pages; other themes and hydration warnings not checked.
+ - Seeds depend on the run date: generated for 2026-10-30; regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day (production build, ports 3000/3004/3005 free, then npm start -- -p 3005).
+
+5. NEXT STEPS
+ Slice 3: minimal modelled layer, overhead lines (BM Addendum 8 slice plan). State acceptance criteria first. Confirm any new storage fields with the owner first. Each slice runs the Model-mode-OFF regression plus Q-7 timing at 100 and 1,000 staff on the production build.
+
+6. STANDING RULES
+ Working conventions apply in full: Apply-Patch / Invoke-PatchBatch for code edits, UTF-8 no BOM, "Patched:" confirmations, acceptance criteria first, build after each batch, never build while dev or next start runs (ports 3000 and 3005), wrap commands in & { } ending with Set-Clipboard, git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. Read the existing CSS before building any UI.
+ Claude writes files through the folder link and gives paste-ready PowerShell; the owner pastes output back. Pane method: back up pane storage to sessionStorage __bak, restore at the end. Pane tool times out at 45 seconds: keep waits under 40 s. The pane must be visible for timing. Navigate and run scripts in separate calls; a full navigation wipes an installed tap.
+
+7. READ FIRST / NOT TO READ
+ Read, in order: this handover, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF (Section 9, Addenda 12 to 17). Read lib\storage\modelStorage.js and lib\storage\modelBaselineLock.js when building slice 3. Do not read Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or other briefs unless needed.
