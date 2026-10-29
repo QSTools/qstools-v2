@@ -1,0 +1,45 @@
+HANDOVER V6.1z (2026-10-30) - R3 Business Modelling redesign, SLICE 1 SHIPPED (batches 1 to 7); slice 2 next
+Previous: V6.1y (history). Start slice 2 in a NEW CHAT.
+
+1. WHERE WE ARE
+ Slice 1 (Model mode storage seam) is SHIPPED and verified: batches 1 to 7 done. Slices 2 to 5 not started.
+ Commits so far: ab7c6b3, bb858c7, 53096f8, 13f31e9, fc2e2be, b8392df (V6.1y handover). The batch 7 docs commit (BM Addendum 16, .gitignore line, PROJECT_MAP row, this handover) is the last one: get the hash from git log.
+ git status expected at the start of slice 2: only docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json untracked (not ours, leave). public/__stress_tmp/ is now gitignored.
+ Full detail: BUSINESS_MODELLING_BRIEF Addenda 12 to 16.
+
+2. DONE THIS SESSION (batch 7, no app code changed)
+ - Preflight: build exit 0 (first attempt failed only on Google Fonts download, retry passed), pane storage backed up (22 keys).
+ - Full standing regression, Model mode OFF: A, A misaligned, A2, A depreciation, A non-asset interest, A support depreciation 285 each; B 347; ticked B 346; gate 342; ladder 564 (100) and 3,354 (1,000). All pass.
+ - Q-7 timing OFF versus ON at 10 and 100 staff on ten pages: ON within 17 ms of OFF everywhere; worst 100-staff figures 353 ms open and 158 ms freeze (business-modelling, ON). 1,000 staff OFF only: worst 1,005 ms open, 732 ms freeze. All inside Q-7 and the allowance.
+ - Storage-full test: the pane has no practical localStorage limit, so a shim that throws QuotaExceededError was used. 100 staff with an existing baseline: exact message, previous baseline and real keys byte-identical. 1,000 staff at a 5,000,000 cap: same message, no baseline left.
+ - Pane storage restored to its 22 keys.
+
+3. OWNER DECISIONS
+ - Slowdown allowance: 20 percent or 100 ms, whichever is greater, inside Q-7 (approved with the plan).
+ - public\__stress_tmp: gitignored, not deleted (approved with the plan).
+ - The 1,000-staff Model mode timing is recorded as NOT measured (see 4); the owner accepted the plan wording that 1,000 staff is timed OFF only.
+
+4. OPEN ITEMS AND FINDINGS
+ - The pane does not enforce a 5 MB localStorage limit; the dev page's "5,000,000" is an assumed constant. The storage-full path is proven with a shim only. 1,000-staff Model mode may fit in this pane but not in a 5 MB browser (BM Addendum 16 items 4, 5).
+ - Typing timing is not measured (no editable differences yet). Business Modelling Q-7 is NOT closed; slice 3 measures the nudge typing and retires the old lever page.
+ - F5: first baseline-mode mount can change data before any edit (seed B, dev page: asset utilisation 0 to 1680, P&L line timestamps blanked). The slice 2 lock gate must require a settled state.
+ - Model mode raw storage reads are 3 to 4 times baseline mode; no measurable page cost at 10 or 100 staff; slice 3 needs the per-key merge cache (Addendum 11 item 4).
+ - Volatile fields unreviewed for keys no seed exercises (m03 m05 m06 m09 m11 m12 m13 m14 m18 m22 m26 m27 absent; m04 m07 m19 m23 m25 present but unwritten). Generated ids for slice 3 difference identity: asset_id, active_allocation_profile_id, labour_rate_model_id, pnl_line_id, staff_id.
+ - Cosmetic: two Back to baseline buttons on notice pages. Not checked: other themes, hydration warnings.
+ - AI_LAYER_BRIEF Addendum 3 item 8 one-line pointer still open (BM Addendum 8 item 4). Unlock warning and orphan-flag wording still to write (slice 2 and 3).
+ - git warns LF will become CRLF (no .gitattributes decision).
+ - Seeds depend on the run date (asset interest): they were generated for 2026-10-30; regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day (needs a current production build, ports 3000/3004/3005 free; then npm start -- -p 3005).
+
+5. NEXT STEPS
+ Slice 2: baseline lock and the deliberate unlock (BM Addendum 8 slice plan, item 2). State acceptance criteria first. Lock refused until flags are clear and reconciliation passes (Model Readiness); the lock wraps the SAME take_baseline_snapshot and the dev-only copy button is deleted there;
+ unlock is a deliberate step with a warning. Check: real data and baseline byte-identical after repeated lock, unlock and edit cycles; standing regression with Model mode OFF unchanged; Q-7 timing for pages touched. Read the lock gate against F5. Confirm any new storage fields with the owner first (conventions rule 1).
+ Then slice 3 (minimal modelled layer, overhead lines).
+
+6. STANDING RULES
+ Working conventions apply in full: Apply-Patch / Invoke-PatchBatch for code edits, UTF-8 no BOM, "Patched:" confirmations, acceptance criteria first, build after each batch, never build while dev or next start runs (ports 3000 and 3005), wrap commands in & { } ending with Set-Clipboard,
+ git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. Read the existing CSS before building any UI.
+ No shell on the computer in these sessions: Claude writes files through the folder link and gives paste-ready PowerShell; the owner pastes the output back. Claude drives the built-in pane (pane method in V6.1y section 6 still holds: back up pane storage to sessionStorage __bak, restore at the end).
+ Pane tool times out at 45 seconds: run long work in the background on window and poll with short waits (under 40 s).
+
+7. READ FIRST / NOT TO READ
+ Read, in order: this handover, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF (Section 9, Addenda 12 to 16). Read lib\storage\modelStorage.js when building slice 2. Do not read Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or other briefs unless needed.
