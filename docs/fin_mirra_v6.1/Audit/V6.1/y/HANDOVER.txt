@@ -1,0 +1,54 @@
+HANDOVER V6.1y (2026-10-30) - R3 Business Modelling redesign, SLICE 1: batches 1 to 6 built, batch 7 remains
+Previous: V6.1x (history). Start batch 7 in a NEW CHAT.
+
+1. WHERE WE ARE
+ Slice 1 (Model mode storage seam) batches 1 to 6 are built and verified in the pane. Batch 7 remains (timing, storage-full test, full regression, close). Slice 1 is NOT shipped.
+ Commits: ab7c6b3 (batches 1+2), bb858c7 (batch 3), 53096f8 (batch 4 + V6.1w), 13f31e9 (batch 5), fc2e2be (batch 6: tap, test, BM Addendum 15, PROJECT_MAP).
+ The docs commit that closes this session (this handover, PROJECT_MAP pointers) is separate: get the hash from git log.
+ git status expected at the start of batch 7: only two untracked items, docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json (not ours, leave) and public/__stress_tmp/ (never commit).
+ Full detail: BUSINESS_MODELLING_BRIEF Addenda 13, 14 and 15.
+
+2. DONE THIS SESSION (batch 6, no app code changed)
+ - New Py\audit-scripts\b6_model_tap.cjs (call-level tap, PASS / FAIL rules, volatile-field report in baseline mode) and Py\model_storage_tests\b6_tap_lists.test.mjs (22/22).
+ - Pane run, production :3005, seeds scenario_a, scenario_b, scenario_a_n100 (as of 2026-10-30): all seven tap rules PASS in Model mode on all three (zero local writes, no raw read of a real modelled key, notice routes silent,
+   storage hash unchanged, diffs and scenarios empty). Standing comparison with Model mode ON on /calculation-trace: A 285/285, B 347/347, 100 staff 564/564.
+ - 15 discarded write-backs per run, all baseline_absent, none difference_not_stored_yet. Positive control (edit in General Overheads, edit of materials markup) gave one difference_not_stored_yet each, zero writes.
+ - Volatile list: default pair (updated_at, created_at) enough on every key the seeds exercise; only general_overhead_state updated_at ever changed. DECIDED (Claude, owner may overrule): no registry patch.
+ - F1 closed for slice 1: no default check now (slice 3 needs differences logic to tell a default from real content).
+ - Pane storage restored to its original 22 keys. Project knowledge re-synced (BM brief and PROJECT_MAP), ledger rewritten.
+
+3. OWNER DECISIONS
+ - Approved the batch 6 plan and seeds A, B, 100 staff; new tap file rather than editing bm7_f.
+ - STILL NEEDED before or at the start of batch 7: (a) the Model mode slowdown allowance (proposed 20 percent or 100 ms, whichever is greater, inside Q-7); (b) public\__stress_tmp: delete at slice close or add to .gitignore
+   (Claude suggests .gitignore so the seeds survive for slices 2-5).
+
+4. OPEN ITEMS
+ - F5 (new): the first baseline-mode mount of a page can change data before any edit (seed B, dev page mount: asset utilisation_hours_annual 0 to 1680, P&L line timestamps blanked). Slice 2 lock gate to account for it.
+ - Call volume: Model mode makes 3 to 4 times as many raw storage reads per page as baseline mode (Cost Allocation 233 v 64, Business Outcome 475 v 130, Business Modelling 955 v 266), not data dependent. Batch 7 timing will show
+   whether it matters; slice 3 needs the per-key cache (Addendum 11 item 4).
+ - Volatile list: keys never exercised by any seed stay unreviewed (m03 m05 m06 m09 m11 m12 m13 m14 m18 m22 m26 m27 absent; m04 m07 m19 m23 m25 present but not written). Generated ids that would regenerate if absent
+   from the saved copy: asset_id, active_allocation_profile_id, labour_rate_model_id, pnl_line_id, staff_id. Carried to slice 3 difference identity.
+ - F4 resolved in the tap (sessionStorage log allowed explicitly). Not verified: other themes, hydration warnings, the first page's own mount on a full load (batch 5 hash check covers it). Cosmetic: two Back to baseline buttons on notice pages.
+ - Seeds depend on the run date (asset interest): they were generated for 2026-10-30; regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day (needs a current production build, ports 3000/3004/3005 free; then npm start -- -p 3005).
+ - AI_LAYER_BRIEF Addendum 3 item 8 one-line pointer still open (BM Addendum 8 item 4).
+ - git prints a harmless warning that LF will become CRLF in the working copy (no .gitattributes decision made).
+
+5. NEXT STEPS
+ Batch 7 (state acceptance criteria first, nothing runs until the owner OKs): (1) Q-7 timing at 100 and 1,000 staff on the production build, Model mode ON and OFF, every page the slice touches, against the agreed slowdown figure
+ and the Q-7 limits (page open under 1 s at 100 staff and 3 s at 1,000; freeze 200 ms / 1 s; typing 100 / 300 ms); the tap must be OFF for timing. (2) Storage-full test (Addendum 12 acceptance G (i)): fill storage in the pane,
+ baseline copy stops with the "too large for Model mode" message and the previous baseline is unchanged; the 1,000-staff seed (3.0 MB) is expected to hit the limit, the 100-staff seed must fit (299,031 bytes copied in batch 6).
+ (3) Full standing regression with Model mode OFF: A, A misaligned, A2, A depreciation, A non-asset interest, A support depreciation 285 each; B 347; ticked B 346 (scenario_b_dry_hire); gate 342; ladder 564 (100) and 3,354 (1,000).
+ (4) SHIPPED addendum (BM brief Addendum 16), PROJECT_MAP R3 row, handover V6.1z, project knowledge re-sync and ledger, public\__stress_tmp decision.
+ Pane runner: Py\stress_test\pane_runner.console.js (seed, trace download, compare). Then slice 2 (baseline lock and deliberate unlock); the dev-only copy button is replaced there by the gated lock around the SAME take_baseline_snapshot.
+
+6. STANDING RULES
+ Working conventions apply in full: Apply-Patch / Invoke-PatchBatch for code edits, UTF-8 no BOM, "Patched:" confirmations, acceptance criteria first, build after each batch, never build while dev or next start runs (ports 3000 and 3005),
+ wrap commands in & { } ending with Set-Clipboard, git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. Read the existing CSS before building any UI.
+ With no shell on the computer Claude writes files through the folder link and gives paste-ready PowerShell; the owner pastes the output back. Claude drives the built-in pane.
+ Pane method (worked in batches 5 and 6): production build at :3005; back up the pane storage to sessionStorage __bak and restore it at the end (22 keys); load seeds from /__stress_tmp (JSON.stringify each value); take the baseline copy and
+ enter Model mode from /dev/model-mode (buttons clicked from the console); a mode change needs a full page load; install the tap on the dev page and move between pages with window.next.router.push after __b6.mark(label);
+ never write to sessionStorage while the tap is installed; the pane tool times out at 45 seconds, so run long visits in the background and poll. Model mode changes with a full page load only.
+
+7. READ FIRST / NOT TO READ
+ Read, in order: this handover, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF (Section 9, Addenda 12 to 15). Read lib\storage\modelStorage.js when building batch 7. Do not read Archive, Audit\v6_0 evidence,
+ AGENTS.md, the stress brief, or other briefs unless needed (the stress brief Addendum 9 holds the Q-7 limits if the figures above need checking).
