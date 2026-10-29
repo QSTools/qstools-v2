@@ -13,9 +13,9 @@ STATUS:        BUILT AND VERIFIED (2026-09-24..26): additive per-source lever mo
                DESIGN QUESTIONS SETTLED AND SLICES 1-5 PLANNED 2026-10-29 (Addendum 8): overlay adapter chosen, names Model mode / Planned
                business, gap shown per group.
                SLICE 1 BUILD IN PROGRESS 2026-10-29 (Addenda 12-14): storage layout confirmed by the owner (Addendum 12); batches 1-5 built and verified in the pane (the storage helper and
-               Model mode rules, session log and dev page, banner and unmodelled-page notice; commits ab7c6b3, bb858c7, 53096f8, 13f31e9); batches 6 (call-level tap) and 7 (timing, storage-full
-               test, full regression, close) remain. Slice 1 is NOT shipped. Slices 2-5 not started.
-LAST UPDATED:  2026-10-29 (Addendum 14 - slice 1 batch 5 built and verified: Model mode banner and unmodelled-page notice; Addendum 13 - slice 1 batches 1-4; Addendum 12 - slice 1 design note, storage layout CONFIRMED by the owner; Addendum 11 - runtime tap results; Addendum 10 - recompute timing closed from recorded Q-7 data; Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
+               Model mode rules, session log and dev page, banner and unmodelled-page notice; commits ab7c6b3, bb858c7, 53096f8, 13f31e9); batch 6 (call-level tap, all pages, three seeds) built and verified 2026-10-30 (Addendum 15); batch 7 (timing, storage-full
+               test, full regression, close) remains. Slice 1 is NOT shipped. Slices 2-5 not started.
+LAST UPDATED:  2026-10-30 (Addendum 15 - slice 1 batch 6: call-level tap passes on seeds A, B and 100 staff, standing comparison 285 / 347 / 564 in Model mode; Addendum 14 - slice 1 batch 5 built and verified: Model mode banner and unmodelled-page notice; Addendum 13 - slice 1 batches 1-4; Addendum 12 - slice 1 design note, storage layout CONFIRMED by the owner; Addendum 11 - runtime tap results; Addendum 10 - recompute timing closed from recorded Q-7 data; Addendum 9 - the three pre-slice-1 file reads; Addendum 8 - open items settled, adapter chosen, slice plan 1-5, build order; Addendum 7 - BM-7 engine purity audit results; Addendum 6 - R2 closes, stress testing inside each R3 slice; 2026-10-28: Addendum 4 - agreed slice order, Tier 1 narrowed, thin page; Addendum 3 - Tier 1 / Tier 3 detail from the design chat; Addendum 2 - modelling-mode design decisions; earlier text rebuilt 2026-10-21, V6.1 collation)
 ROUTE:         app/business-modelling
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 10 (and s12 CM entries). This brief holds intent, rules,
                verified status and open items.
@@ -739,3 +739,46 @@ Source: build chat 2026-10-29 (owner at the terminal, Claude driving the built-i
  7. [NOT DONE, no change] The standing regression was not re-run for this batch (the gate renders nothing and changes no calculation with Model mode OFF; batch 7 runs the full regression). Q-7 timing is batch 7.
  8. [REMAINING IN SLICE 1] Batch 6: bm7_f call-level tap across all pages in Model mode, volatile list proven, decide Addendum 13 item 6 (a small default check for first-visit defaults). Batch 7: Q-7 timing at 100 and 1,000 staff ON and OFF, the storage-full test, the full
     regression, this brief and PROJECT_MAP closed [SHIPPED], handover, project knowledge re-sync, public\__stress_tmp cleanup. STILL NEEDED from the owner: the Model mode slowdown allowance (proposed 20 percent or 100 ms, whichever is greater, inside Q-7); delete or gitignore public\__stress_tmp.
+
+ADDENDUM 15 (2026-10-30) - SLICE 1 BATCH 6: CALL-LEVEL TAP RESULTS  [BUILT AND VERIFIED IN THE PANE; no app code changed; batch 7 NOT built; commit with this addendum]
+Source: build chat 2026-10-30 (owner at the terminal, Claude driving the built-in pane on :3005). Acceptance criteria were stated first and approved ("ok lets go"). Handover V6.1x section 5.
+ 1. [BUILT] Py\audit-scripts\b6_model_tap.cjs (new call-level tap; bm7_f is untouched so Addendum 11 stays reproducible) and Py\model_storage_tests\b6_tap_lists.test.mjs (22/22: tap key lists equal the
+    registry, theme and scheduling keys equal their own files, reviewed volatile lists must repeat updated_at and created_at, the classifier fails on each planted fault). The tap wraps Storage getItem /
+    setItem / removeItem / clear / key, labels every call with the page it was made on, and ends in PASS / FAIL lines (Model mode) or a per-key list of fields that changed on a visit with no edits (baseline
+    mode). Rules: 1 no local writes (an unchanged theme value is allowed); 2 sessionStorage only at mirra_model_stats_v1; 3 no raw read of any of the 28 real modelled keys (the dev page is exempt: its
+    real-versus-baseline table reads them on purpose); 4 the five notice routes make no storage call except the read of mirra_mode_v1; 5 no operation on the scheduling key and no key() enumeration on
+    notice routes; 6 hash of every localStorage key identical at install and at report; 7 mirra_diffs_v1 and mirra_scenarios_v1 still empty. Seeds regenerated for 2026-10-30 (the date rolled over).
+ 2. [RESULT] Seeds scenario_a (10 staff), scenario_b and scenario_a_n100 (100 staff), production build :3005, pane storage backed up first. For each: seed loaded, baseline copied from the freshly loaded seed
+    (16 keys present, 12 absent: m03 m05 m06 m09 m11 m12 m13 m14 m18 m22 m26 m27), Model mode entered, full page load of /dev/model-mode, tap installed there, then client-side navigation to /general-overheads,
+    /labour, /assets, /opening-hours, /cost-allocation, /rate-builder, /business-outcome, /business-modelling, /revenue-cogs, /p-and-l, /cost-summary, /business-summary, /recovery-summary,
+    /module-reconciliation, /model-readiness, /balance-sheet and the five notice routes. ALL SEVEN RULES PASS ON ALL THREE SEEDS (3,847 storage calls each; local writes 0 on every page; notice routes
+    rendered 464 characters each). The banner showed on every modelled page.
+ 3. [RESULT] Standing comparison run with Model mode ON on /calculation-trace (every page reading its baseline entries): A 285 of 285, B 347 of 347, 100 staff 564 of 564, no duplicate nodes, no missing
+    endpoints, banner showing. This replaces the weaker ON-equals-OFF text comparison: every node equals the independent expected value.
+ 4. [RESULT] Helper log after each full visit: 632 harmless write-backs, 15 discarded, 0 blocked. All 15 discards have the reason baseline_absent (qs_tools_recovery_summary_state 7, business_modelling_state 3,
+    balance_sheet_state 2, fixed_asset_register_state 1, rate_builder_labour_rates 1, business_modelling_scenario_state 1). None has the reason difference_not_stored_yet.
+ 5. [RESULT, positive control, seed A] A real edit in Model mode (General Overheads baseline name; Rate Builder materials markup 20 to 25) added exactly one difference_not_stored_yet each (general_overhead_state,
+    materials_markup_v1), with zero local writes and an unchanged storage hash. The same report also printed FAIL on rules 2 and 4: that was Claude's own harness writing a result string to sessionStorage while
+    the tap was installed (label notice:/scheduling), not the app. The report taken before that write was all PASS. The harness now keeps results in memory while the tap is installed.
+ 6. [RESULT, volatile list] Baseline mode, 16 pages, no edits, three seeds, same pattern: the only field that changed on a key already present is qs_tools_general_overhead_state .updated_at (already in the registry).
+    All other write-backs were byte-identical (per seed: pnl_profiles_v3 78, asset_state 87, saved_assets 87, profit_and_loss_state 133, business_setup 23, labour_profiles 32, labour_staff_types 32, revenue_cogs 23,
+    cost_allocation_v2_1 6, levers 2, materials markup 1). Six keys were created from module defaults on the first visit (balance_sheet, business_modelling_scenario_state, business_modelling_state,
+    fixed_asset_register, rate_builder_labour_rates, recovery_summary_state). DECISION (Claude, within the plan, owner may overrule): NO registry patch. The default pair (updated_at, created_at) was enough on every
+    key the seeds exercise, and a registry null already means the default pair, so a reviewed array would change metadata only and cost a build. NOT exercised by any seed (stay unreviewed): m03 m05 m06 m09 m11
+    m12 m13 m14 m18 m22 m26 m27 (absent from every baseline) and, present but never written, m04 m07 m19 m23 m25. The static scan of the storage modules found generated ids that would regenerate if the saved
+    copy lacks them: asset_id (assetStorage), active_allocation_profile_id (costAllocationStorage), labour_rate_model_id (rateBuilderLabourRatesStorage), pnl_line_id and profile id on migration
+    (profitAndLossProfileStorage), staff_id (labourProfileStorage). No seed exercises them; carried to slice 3 difference identity (Addendum 12 item 6).
+ 7. [DECISION, closes F1 for slice 1] No default check is added now. Every discard on absent keys is baseline_absent and nothing is written either way. Caveat for slice 3: baseline_absent cannot tell a module's
+    default from real content typed into an absent key; that needs the differences logic.
+ 8. [FINDING, new, F5] The first baseline-mode mount of a page can change data before any edit. On seed B the /dev/model-mode mount alone changed qs_tools_saved_assets and qs_tools_asset_state
+    (utilisation_hours_annual 0 in the seed, 1680 after) and qs_tools_profit_and_loss_state (line timestamps stamped in the seed, blank after). Seen on seed B only, from the dev page mount. A baseline copied
+    from a never-opened seed would differ from one copied after a visit. The slice 2 lock gate should require a settled state (flags clear, reconciliation passing) as already planned; check this behaviour there.
+ 9. [OBSERVATION, no pass or fail] Raw storage calls per page, Model mode ON versus baseline mode OFF (seed A; identical at 10, 12 and 100 staff, so not data dependent): reads 3 to 4 times as many (General
+    Overheads 19 v 5, Cost Allocation 233 v 64, Business Outcome 475 v 130, Business Modelling 955 v 266), because every helper read also reads and parses the baseline meta key and every write-back compares again.
+    Local writes 0 v 57 / 115 / 231. No timing taken (batch 7). Slice 3 needs the per-key cache of Addendum 11 item 4.
+10. [PROCESS] Pane storage backed up to sessionStorage and restored: 22 of 22 keys, nothing extra. The tool reported once that the owner touched the pane mid-run; later passes showed the same pattern.
+    Long page visits run in the background and are polled (the pane tool times out at 45 seconds). The tap source was pasted into the pane without its comments (code identical).
+11. [NOT CLAIMED] The first page's own mount on a full load (batch 5's storage hash check covers it); other themes; hydration warnings; the 1,000-staff seed (batch 7: expected storage-full message); timing.
+12. [REMAINING IN SLICE 1] Batch 7: Q-7 timing at 100 and 1,000 staff, Model mode ON and OFF; the storage-full test (Addendum 12 acceptance G (i)); the full standing regression with Model mode OFF; SHIPPED
+    addendum; PROJECT_MAP; handover; project knowledge re-sync; public\__stress_tmp cleanup. STILL NEEDED from the owner: the Model mode slowdown allowance (proposed 20 percent or 100 ms, whichever is
+    greater, inside Q-7); delete or gitignore public\__stress_tmp.
