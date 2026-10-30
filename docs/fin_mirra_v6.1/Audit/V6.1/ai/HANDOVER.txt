@@ -1,0 +1,53 @@
+HANDOVER V6.1ai (2026-10-30) - R3 slice 4 batch C (scratch adds): DESIGN DECIDED, NOTHING BUILT, NO CODE CHANGED.
+Previous: V6.1ah (batch B closed). ONE FIX PER CHAT: C1 is the next chat.
+
+1. WHERE WE ARE
+ This chat was design only. The owner settled Addendum 18 item 13 and approved the saved shape for scratch adds. No repo file was changed, no storage field exists yet, nothing was built or committed. Git state is as at V6.1ah (owner runs git status first).
+ Standing totals (Model mode OFF) unchanged: 272 x6, 335, 334, 330, 551, 3,341.
+ The :3005 server may still be running: stop it before any build. The pane holds the scenario_a seed, no Model mode keys.
+ The decisions below are IN the briefs: BUSINESS_MODELLING_BRIEF Addendum 26, COST_ALLOCATION_BRIEF Addendum 9 (pointer), PROJECT_MAP R3 row and handover pointer. Project knowledge and the ledger were re-synced for those three files after this handover was written. Run python Py\audit-scripts\check_project_knowledge_sync.py to confirm after the docs commit.
+
+2. OWNER DECISIONS (2026-10-30)
+ a. Item 13(a): NO link between a scratch hire and a scratch asset in batch C. Staff and assets are added separately. A link is a later convenience.
+ b. Item 13(b): every scratch add carries a productive / non-productive marker. Owner: an office hire is a big drain on net profit, the tool must make sure it cannot be missed.
+ c. Non-productive adds (office hire, idle vehicle) are carried by the WHOLE productive part of the business, never one group (one group would show a false minimum rate), weighted by RECOVERY HOURS. Plan: add the annual cost to the overhead pool (overhead_absorbed_cost), which Cost Allocation already spreads by group recovery hours (costAllocationOverheadPoolBuilder.js). No new maths. Unassigned counters stay 0.
+ d. Productive adds are placed in a working group the owner chooses, with hours, costed like a real one. Each gets its own scratch staff type so it cannot clash with real types.
+ e. SAVED SHAPE APPROVED: mirra_scenarios_v1 item.added[] entries = { id: "scratch_<base36>", kind: "staff"|"asset", name, is_productive, annual_cost, productive_hours (productive only), group_id (productive only), copy_of (set by "add N more of this") }. Rest of the file unchanged (version, items, id, created_at, generation, removed).
+
+3. WHAT THE CODE READ SHOWED (read-only, no change)
+ - A staff member is non-productive when Labour marks labour_class "support" (costAllocationLabourAdapter.js). Cost Allocation keeps a productive labour pool and a non-productive labour pool.
+ - Staff cost reaches a working group ONLY through a labour_group_assignment (staff type, group, percent) stored in Cost Allocation's real key. A non-productive person with no assignment is NOT spread: the cost sits in unassigned_non_productive_labour_cost. Only SUPPORT ASSETS get an automatic even spread (F-4, costAllocationUnassignedAssetSpread.js, red warning). Neither mechanism weights by recovery hours; the overhead pool does. So an unplaced scratch office hire would silently drop out: that is why decision c routes it through the overhead pool.
+ - Staff rows in useLabour carry staff_id, staff_type_id, labour_class, is_productive, contributes_to_recovery_hours, annual_labour_cost, productive_hours_annual. Asset rows (useAssets) carry asset_id, asset_type ("support" = non-productive), asset_recovery_cost_annual, utilisation_hours_annual, asset_overhead_pool_assignments.
+ - NOT checked: the exact cost fields every consumer expects on a scratch staff or asset row; Rate Builder behaviour for a staff type with no saved charge-out rate (expected: floors only, no error); the unassigned-asset-spread file was not staged and not read; the cost allocation hook was read only for the assignment handling.
+
+4. PLAN
+ C1 pure maths and storage, no screens: lib/calculations/scenarioAdds.js (rows for staff and asset adds, non-productive total for the overhead pool, productive placements), modelScenarios.js gains add / remove / copy-N (each copy its own id), unit tests only, nothing in the app reads it.
+ C2 wire into useLabour, useAssets, useCostAllocation (placements into a COPY of the assignments), useGeneralOverheads (overhead injection after the nudge), useModuleReconciliation (gate keeps the unmodelled pair).
+ C3 screens: add form, "add N more", remove, banner wording simplified (the "other edits are not saved yet" sentence).
+ C4 live proof on the production build.
+ Each part: acceptance criteria stated first, Invoke-PatchBatch with preflight, "Patched:" confirmations, build gated (server stopped), tests.
+
+5. ACCEPTANCE CRITERIA (whole batch)
+ 1 Model mode OFF: standing totals unchanged; real keys and baseline entries byte-identical; only mirra_scenarios_v1 changes.
+ 2 Empty scenario, and a scenario whose adds were all removed: trace 272 of 272 on seed A.
+ 3 A non-productive add raises total cost burden by exactly its annual cost; each group's share follows its recovery-hours share; shares sum to the cent; unassigned counters stay 0.
+ 4 A productive add lands only in the chosen group, costed like a real one; Rate Builder shows floors only for it, no error.
+ 5 "Add N more": each copy has its own id; removing every copy or discarding the scenario restores the modelled numbers to the cent.
+ 6 Reconciliation stays Reconciled and Model Ready with adds, including the large combined case (office hire, 3 vehicles, a digger, 5 hires).
+ 7 Scratch ids cannot clash with real ids and survive a reload; baseline_changed stamp works as for removals.
+ 8 Combined adds and removals reconcile to the cent by independent checks; trace 0 duplicates, 0 missing endpoints.
+ 9 Tap re-run (hash-checked paste) PASS; Q-7 timing at 100 and 1,000 staff with adds inside the allowance (20 percent or 100 ms, whichever is greater). Say which storage limit applied (the pane has none).
+
+6. OPEN ITEMS
+ 1 Unplaced pool (every asset removed) shows only as a panel note; Cost Allocation unassigned counters stay 0. Owner to decide if it shows there too.
+ 2 General Overheads variance row ($41,344, "Material variance detected") is the same with Model mode OFF; undiagnosed. The deducted $41,344 equals the Assets module total cost, not the $15,391 finance interest; not checked on a clean seed.
+ 3 Banner "other edits are not saved yet": simplify in C3.
+ 4 The owner's original 22-key pane state is gone (backup lost).
+ 5 Carried: Addendum 23 item 7, Addendum 22 item 9, AI_LAYER_BRIEF pointer and advice rule, CRLF decision, two Back to baseline buttons on notice pages, themes, hydration, orphan note not seen live.
+
+7. STANDING RULES
+ Working conventions in full. Back up the pane to sessionStorage __bak before the first test write and check it exists at the start. Hash-check the tap paste. Never build while the server (:3000 or :3005) is running; restart after and check a new string is served. Ask before any storage field (the shape in 2e is approved; any other field needs a new yes). Do not put a file commit in the same parallel block as the script that writes it. Read existing styles before any UI, no inline colours. Live-proof method: separate seed / navigate / eval calls.
+
+8. NEXT CHAT
+ Opening prompt: "Mirra / qstools-web: R3 slice 4 batch C1 (scratch adds, pure maths and storage). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\ai\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addendum 26 (and Addendum 25 if needed) only. Addendum 26 is already written. Acceptance criteria first."
+ Do NOT read the whole brief or the other briefs.
