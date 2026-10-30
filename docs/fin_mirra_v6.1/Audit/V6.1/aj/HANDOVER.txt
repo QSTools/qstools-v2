@@ -1,0 +1,35 @@
+HANDOVER V6.1aj (2026-10-30) - R3 slice 4 batch C1 (scratch adds, pure maths and storage): BUILT AND VERIFIED BY UNIT TESTS AND BUILD. NOTHING READS IT YET.
+Previous: V6.1ai (batch C design). ONE FIX PER CHAT: C2 is the next chat.
+
+1. WHERE WE ARE
+ C1 is done. New: lib\calculations\scenarioAdds.js, Py\model_storage_tests\s4_adds.test.mjs. Patched: lib\storage\modelScenarios.js (adds API). BM brief Addendum 27 has the detail. Standing totals (Model mode OFF) unchanged by construction: 272 x6, 335, 334, 330, 551, 3,341 (not re-measured).
+ Git: before the docs commit, modified = modelScenarios.js; untracked = scenarioAdds.js, s4_adds.test.mjs (+ the FIN_LANDING_PAGE_GUARDRAILS json, not ours). Owner runs git status first, then commits code and docs.
+ Servers :3000 and :3005 were stopped for the build. The pane was not touched in this chat.
+
+2. WHAT WAS BUILT (see Addendum 27)
+ get_scenario_adds, add_scenario_add, copy_scenario_add(id, n up to 50), remove_scenario_add; saved shape exactly as approved (Addendum 26 item 5), no new field. Pure: validate_add_input, new_scratch_id, build_added_staff_rows, build_added_asset_rows, non_productive_total (cent exact), productive_placements.
+ Tests: s4_adds 90 of 90; all 11 files in Py\model_storage_tests exit 0; npm run build exit 0.
+
+3. NEXT: C2 (wiring). Acceptance criteria first. Read, in order: this file, PROJECT_MAP.md, the Working Conventions, BUSINESS_MODELLING_BRIEF Addenda 26 and 27 only; then the code C2 touches (view fresh before patching):
+ hooks\useLabour.js, hooks\useAssets.js, hooks\useCostAllocation.js (assignment handling), hooks\useGeneralOverheads.js (overhead injection AFTER the nudge), hooks\useModuleReconciliation.js (gate keeps the unmodelled pair), costAllocationUnassignedAssetSpread.js (never read), and a Rate Builder staff-type read.
+ Plan: non-productive adds -> annual cost added to the overhead pool (overhead_absorbed_cost) so Cost Allocation spreads it by recovery hours; productive adds -> rows from build_added_*_rows plus placements injected into a COPY of the Cost Allocation assignments (the real key is never written in Model mode).
+ Open for C2 (Addendum 26 item 9 / Addendum 27 item 8): the exact cost fields each consumer expects on a scratch row; Rate Builder with a staff type that has no saved rate; a non-productive scratch ASSET and the finance interest line (double counting).
+
+4. ACCEPTANCE CRITERIA (whole batch C, unchanged from Addendum 26 item 8): 1 Model mode OFF unchanged and byte-identical; 2 empty or fully removed adds: trace 272 of 272 on seed A; 3 a non-productive add raises total cost burden by exactly its annual cost, group shares follow recovery hours, sum to the cent, unassigned counters 0;
+ 4 a productive add lands only in its chosen group, Rate Builder floors only, no error; 5 add N more / removing every copy or discarding restores the modelled numbers to the cent; 6 Reconciled and Model Ready with the large combined case (office hire, 3 vehicles, a digger, 5 hires); 7 ids cannot clash and survive a reload, baseline_changed works;
+ 8 combined adds and removals reconcile to the cent, trace 0 duplicates, 0 missing endpoints; 9 tap re-run (hash-checked paste) PASS and Q-7 timing at 100 and 1,000 staff within the allowance, saying which storage limit applied.
+
+5. OPEN ITEMS
+ 1 Unplaced pool (every asset removed) shows only as a panel note; Cost Allocation unassigned counters stay 0 (owner to decide).
+ 2 General Overheads variance row ($41,344) with Model mode OFF, undiagnosed.
+ 3 Banner "other edits are not saved yet": simplify in C3.
+ 4 The owner's original 22-key pane state is gone.
+ 5 Carried: Addendum 23 item 7, Addendum 22 item 9, AI_LAYER_BRIEF pointer and advice rule, CRLF decision, two Back to baseline buttons on notice pages, themes, hydration, orphan note not seen live.
+ 6 New: the add functions write through window.localStorage directly (like the removals), not the helper; copy cap 50; is_scratch row flag (owner may overrule).
+
+6. STANDING RULES
+ Working conventions in full. Back up the pane to sessionStorage __bak before the first test write and check it exists at the start of any pane work (C2 may need it, C1 did not). Hash-check the tap paste. Never build while :3000 or :3005 is running; restart after and check a new string is served. Ask before any storage field. Do not put a file commit in the same parallel block as the script that writes it. Read existing styles before any UI, no inline colours. Live-proof method: separate seed / navigate / eval calls.
+
+7. NEXT CHAT OPENING PROMPT
+ "Mirra / qstools-web: R3 slice 4 batch C2 (scratch adds, wiring into the hooks). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\aj\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 26 and 27 only. Acceptance criteria first."
+ Do NOT read the whole brief or the other briefs.
