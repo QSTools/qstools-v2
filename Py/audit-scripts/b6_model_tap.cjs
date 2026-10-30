@@ -34,6 +34,8 @@
     session_log_key: "mirra_model_stats_v1",
     new_prefix: "mirra_",
     dev_page: "/dev/model-mode",
+    // Dev-only pages that read real keys on purpose (P&L brief: /dev/cross-import-check is dev only). Rule 3 skips these labels.
+    dev_exempt: ["/dev/model-mode", "/dev/cross-import-check"],
     notice_prefix: "notice:",
   };
 
@@ -77,7 +79,7 @@
     const writes = local.filter((e) => ["W", "X", "C"].includes(e.op));
     add("1 no local writes", writes.filter((e) => !(key_class(e.k) === "theme" && e.op === "W" && e.same)).map((e) => e.label + " " + e.op + " " + e.k), "zero setItem / removeItem / clear on localStorage (unchanged theme value allowed)");
     add("2 session log only", session.filter((e) => e.k !== LISTS.session_log_key).map((e) => e.label + " " + e.op + " " + e.k), "sessionStorage touched only at " + LISTS.session_log_key);
-    add("3 no bypass", local.filter((e) => e.op === "R" && key_class(e.k) === "modelled" && e.label !== LISTS.dev_page).map((e) => e.label + " R " + e.k), "zero raw reads of the 28 real modelled keys (dev page exempt)");
+    add("3 no bypass", local.filter((e) => e.op === "R" && key_class(e.k) === "modelled" && !LISTS.dev_exempt.includes(e.label)).map((e) => e.label + " R " + e.k), "zero raw reads of the 28 real modelled keys (dev pages exempt: " + LISTS.dev_exempt.join(", ") + ")");
     const notice_bad = log.filter((e) => is_notice(e.label) && !(e.st === "local" && e.op === "R" && e.k === LISTS.mode_key)).map((e) => e.label + " " + e.st + " " + e.op + " " + e.k);
     add("4 notice routes", notice_bad, "notice routes make no storage call except the read of " + LISTS.mode_key);
     add("5 scheduling key", log.filter((e) => e.k === LISTS.scheduling).map((e) => e.label + " " + e.op), "no operation on the scheduling key, and no key() enumeration on notice routes");

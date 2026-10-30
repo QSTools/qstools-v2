@@ -62,6 +62,11 @@ l = [...ok_log(), { op: "W", st: "local", k: "qstools-theme", label: "/labour", 
 check("changed theme value fails rule 1", failed_ids(verdict(l)) === "1");
 l = [...ok_log(), { op: "R", st: "local", k: KEYS[14], label: "/general-overheads" }];
 check("planted raw read of a real modelled key fails rule 3", failed_ids(verdict(l)) === "3");
+l = [...ok_log(), { op: "R", st: "local", k: "qs_tools_profit_and_loss_state", label: "/dev/cross-import-check" }];
+check("dev-only page /dev/cross-import-check may read a real key (rule 3 exempt)", all_pass(verdict(l)), JSON.stringify(verdict(l).filter((c) => !c.ok)));
+l = [...ok_log(), { op: "R", st: "local", k: "qs_tools_profit_and_loss_state", label: "/dev/model-readiness" }];
+check("another /dev page is NOT exempt from rule 3", failed_ids(verdict(l)) === "3");
+check("dev exemption list is exactly the two reviewed pages", same_list(tap.LISTS.dev_exempt, ["/dev/model-mode", "/dev/cross-import-check"]));
 l = [...ok_log(), { op: "R", st: "session", k: "other_key", label: "/labour" }];
 check("stray session key fails rule 2", failed_ids(verdict(l)) === "2");
 l = [...ok_log(), { op: "R", st: "local", k: "qs_tools_quote_engine_store_v4", label: "notice:/quote-engine" }];
