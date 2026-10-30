@@ -1110,6 +1110,22 @@ NOTES: stale row ids (a row that no longer exists in the current source list)
   are dropped from storage once the current row list is known, so switching
   data sets can't leave a phantom lever silently affecting the total.
 
+STAGE: Modelled overhead nudge (R3 slice 3, 2026-10-30; Model mode only; BM brief Addendum 19)
+  FIELD NAMES: mirra_diffs_v1 = { version: 1, generation, by_key: { "qs_tools_general_overhead_state": [ { path: "category:<overhead_category_key>",
+    kind: "pct", value, flag } ] } }. value = percent, -100 to 1000, 2 decimals, 0 removes the record. generation = stamp of the baseline lock at the
+    time of writing. flag "baseline_changed" is COMPUTED on read when the stamp differs from the current lock (never stored as a truth).
+    Calculated copy: nudged line amount = amount x (1 + value / 100) for eligible lines; orphan category = no eligible non-zero line.
+  FILE / FUNCTION: lib/storage/modelDiffs.js (get_overhead_nudges, set_overhead_nudge, subscribe_to_diffs); lib/calculations/generalOverheadNudge.js (pure);
+    hooks/general-overheads/generalOverheadNudgeClassify.js; hooks/useGeneralOverheads.js (nudges, model_active, nudge_result, set_nudge, model_layer exposed as
+    modelling); components/general-overheads/GeneralOverheadNudgePanel.jsx (display; no figures)
+  FEEDS INTO: the existing General Overheads output contract (card.summary and the cost allocation source rows), so every downstream module sees the nudged copy
+    in Model mode only. The saved state and the form use the raw state.
+  HOURS/UNITS AWARE: passthrough (money only).
+  VERIFIED: 2026-10-30 live in the pane (BM brief Addendum 19 items 7 to 12; calc map s10 note dated 2026-10-30).
+  NOTES: no item_id and no storage for the merge cache (owner decision). Lines split out to assets and asset finance interest are never nudged. The
+    overlay cannot hold an overhead change because the hook rebuilds synced lines from the P&L on every mount, which is why this is a percentage applied
+    after the rebuild. No trace node yet (nothing is displayed); add one with calc map s10 when figures are shown.
+
 D4 (2026-10-07) - Cost Allocation group cost row, new fields
   labour_tied_to_asset  (stored on the working unit, boolean, default false) set in GroupRecoveryBasisCard.jsx
   idle_labour_hours, idle_labour_cost, idle_labour_warning  (calculated, display only)

@@ -5,7 +5,7 @@
 // ({ active, nudges, by_category, set_nudge }) and set_nudge writes the difference through lib/storage/modelDiffs.js.
 // Typing is debounced: the change is applied after a pause (PAUSE_MS) or when the field loses focus, never on every key press (Addendum 18 item 11).
 // Shows no calculated figure of its own (the figures stay on the existing summary and Business Outcome, which already have trace nodes).
-// Wording is a draft until the owner approves it in batch 5. Styling uses the existing styles/ui-system.css classes only. No inline colours.
+// Wording approved by the owner 2026-10-30 (slice 3 close-out). Styling uses the existing styles/ui-system.css classes only. No inline colours.
 
 import { useEffect, useRef, useState } from "react";
 import { CATEGORY_DEFINITIONS } from "@/lib/selectors/general-overheads/generalOverheadDefinitions";
@@ -13,7 +13,7 @@ import { CATEGORY_DEFINITIONS } from "@/lib/selectors/general-overheads/generalO
 const PAUSE_MS = 600;
 
 const NOTES = {
-  orphan: "This category has no lines the change can apply to, so it has no effect.",
+  orphan: "This category has no amounts the change can apply to (empty, split out to assets, or asset finance interest), so it has no effect.",
   baseline_changed: "The baseline was corrected after this change was set. Check that it still makes sense.",
 };
 

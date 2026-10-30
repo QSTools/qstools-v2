@@ -916,7 +916,7 @@ STILL OPEN AFTER THIS ADDENDUM: item 13 (scratch hire with linked asset; non-pro
 unlock warning and orphan-flag wording (Addendum 2 items 6, 8), whether a Planned business locks a baseline, Planned business readiness (Addendum 5 item 6) and plan versus actual, the top-drain verification (Addendum 4
 item 7), owner remuneration setting, General Overheads readiness needing a saved profile, promotion design (items 14 to 16).
 
-ADDENDUM 19 (2026-10-30) - SLICE 3: MINIMAL MODELLED LAYER, OVERHEAD LINES  [BUILT AND VERIFIED LIVE IN THE PANE; COMMITTED d1408e4 (code, tests) and 12722a8 (docs), not pushed; wording sign-off (item 12), batch 6 (retire the lever page) and slices 4-5 NOT done]
+ADDENDUM 19 (2026-10-30) - SLICE 3: MINIMAL MODELLED LAYER, OVERHEAD LINES  [BUILT AND VERIFIED LIVE IN THE PANE; COMMITTED d1408e4 (code, tests) and 12722a8 (docs), not pushed; wording sign-off and verbatim tap run DONE 2026-10-30 (Addendum 20); batch 6 (retire the lever page) and slices 4-5 NOT done]
 Source: Claude, one session, owner at the terminal (pastes) and approving by voice. Refines Addenda 8 and 11 item 4 (this addendum wins where they differ). Acceptance criteria A to F accepted by the owner before building.
 
 WHAT WAS BUILT
@@ -971,3 +971,21 @@ FINDINGS
 STILL TO DO FOR SLICE 3
  a. Owner approves the wording in items 11, 13, 14 and the orphan note text (GeneralOverheadNudgePanel.jsx). b. Run b6_model_tap.cjs verbatim once. c. DONE: committed d1408e4 (code, tests) and 12722a8 (docs incl. Addendum 18); not pushed. d. Calc map / variable tracker note for the modelled copy. e. Batch 6, own confirmation: retire the old lever page in this order: readers, page, keys, then regression.
  Known readers: hooks useBusinessModellingLegacyScenario, useBusinessModellingLevers, useBusinessModellingScenario, businessModellingTraceNodes.js, calculationTraceLiveValues.js. f. Slice 4 per Addenda 8 and 18.
+
+ADDENDUM 20 (2026-10-30) - SLICE 3 CLOSE-OUT: WORDING APPROVED, TAP RUN VERBATIM, CALC MAP NOTE  [SHIPPED: wording patch built and tested; tap PASS; docs updated; commit and push pending at write time]
+Source: Claude, one session, owner at the terminal (pastes) with Claude driving the Browser pane. Closes Addendum 19 "STILL TO DO" a, b and d. Batch 6 and slice 4 are NOT started (own chats).
+
+ 1. [DECISION, OWNER DELEGATED] Wording. Banner (lib\config\modelModeRoutes.js MODEL_MODE_TEXT.banner): "You are viewing the modelled business. Your real data is not changed. The overhead what-if is kept; other edits are not saved yet."
+    The owner's proposed text ("Your changes are kept separately") was NOT used: only the nudge is kept in slice 3; every other Model mode edit is still discarded, so it would overclaim. Simplify the banner when slice 4 keeps scenarios.
+    Orphan note (GeneralOverheadNudgePanel.jsx): "This category has no amounts the change can apply to (empty, split out to assets, or asset finance interest), so it has no effect." (names the three causes). Unlock text and the baseline_changed note unchanged.
+    The stale header comment "Wording is a draft until the owner approves it in batch 5" now says approved 2026-10-30.
+ 2. [RESULT] Patch batch: 3 of 3 "Patched:", 4 asserts PASS, Py\model_storage_tests all pass (b1 12, b3 39, b4 8, b5 8, b6_tap_lists 25, s2_lock 59, s3_diffs 46, s3_ids 33, s3_nudge 31), npm run build exit 0. Only those two source files changed. No test referenced the old wording.
+ 3. [RESULT] b6_model_tap.cjs run from the repo file text (pasted unedited into the pane by Claude from the copy staged from the repo, mtime equal to the repo file; not hash-compared) on the production build :3005, seed scenario_a, baseline locked (after the General Overheads Save Baseline click, MR-1),
+    Model mode ON, +10% Office / Admin set BEFORE install. 34 routes walked with window.next.router.push (29 normal, 5 notice: quote-engine, quote-checker, quick-start, labour-rate-reality-check, scheduling), 3,767 calls. OVERALL PASS: rules 1 to 7 all PASS (no local writes, session log only, no bypass,
+    notice routes read only mirra_mode_v1, scheduling key untouched, every localStorage key hash identical, mirra_diffs_v1 identical to its text at install and mirra_scenarios_v1 empty). Helper log: noop_writes 1848, dropped_writes 34 (all baseline_absent), blocked_writes 0.
+    The fifth notice route is now visited (Addendum 19 item 17). The new banner text showed live on /general-overheads. Pane storage restored: 22 of 22 keys byte-identical, no mirra_mode / diffs / baseline / scenarios keys left.
+ 4. [DONE] Calc map s10 note "Added 2026-10-30 (R3 slice 3)" and VARIABLE_TRACKER stage "Modelled overhead nudge" written (formula, eligibility, where it runs, storage shape, feeds into, no trace node yet).
+ 5. [DECISION] Module Reconciliation gap line in Model mode (Addendum 19 item 13): it SHOULD be labelled, but not in this chat. It lives in the trust gate (reconciliationRules.js, about 1,035 lines, do not grow) and is a different module. Deferred to slice 4 with its own acceptance:
+    (a) when Model mode is ON and a difference exists, the gap line says it comes from the modelled layer; (b) [NOT TESTED] check that a large nudge (for example +100 percent, or +1000) does not turn Reconciled into blocking or trip Model Readiness in Model mode; (c) baseline mode unchanged.
+ 6. [STILL OPEN] The orphan note has not been seen live (no orphan case exercised). The storage-full path for mirra_diffs_v1 is unit-tested only. OFF slower than ON at 1,000 staff: cause not investigated. No trace node for the modelled copy until figures are shown.
+    Carried: AI_LAYER_BRIEF pointer and advice rule (Addendum 18 items 21 to 23); CRLF decision; two Back to baseline buttons on notice pages; other themes and hydration warnings; batch 6 (own confirmation); slice 4.

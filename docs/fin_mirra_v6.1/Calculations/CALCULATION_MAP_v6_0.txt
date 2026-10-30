@@ -681,6 +681,22 @@ Added 2026-09-26 (line numbers above pre-date these edits - re-run the extract)
 - useBusinessOutcomePerSourceRevenue build_asset_sources: new row field
   is_asset_driven (additive, no formula change)
 
+Added 2026-10-30 (R3 slice 3, BM brief Addendum 19) - the MODELLED COPY of General Overheads (Model mode only)
+- Model mode is off by default; in baseline mode none of this runs and every figure above is unchanged (regression 11 of 11 seeds).
+- Input: a percentage per overhead CATEGORY in mirra_diffs_v1 (kind "pct", range -100 to 1000, 2 decimals, 0 removes the record).
+  Stored by lib/storage/modelDiffs.js; read only in Model mode (baseline mode returns a frozen empty object and reads no storage).
+- Formula (lib/calculations/generalOverheadNudge.js, pure): nudged line amount = amount x (1 + pct / 100), for ELIGIBLE lines only.
+  Eligible = effective category matches (get_effective_category_key); not is_asset_finance_interest; effective allocation type is neither an
+  asset pool nor asset_finance_interest. A category with no eligible non-zero line is "orphan": zero effect, no error.
+- Where it runs: hooks/useGeneralOverheads.js, AFTER the hook rebuilds the synced lines from the P&L, on a COPY. The raw state, the form and
+  save_profile still use the un-nudged lines, so a nudged figure can never be saved. No pct (identity) returns the same object, no recalculation.
+- Downstream: the nudged lines flow through the existing chain unchanged (General Overheads summary -> Cost Allocation -> Cost Summary ->
+  Rate Builder -> Business Outcome). Live check seed A, +10% Office / Admin: General Overheads 161,711 -> 163,193 (move 1,482.36 = 10% of
+  14,823.57); Business Outcome group net profits fall by 215.32 + 405.78 + 215.31 + 645.95 = 1,482.36; asset overhead pools untouched.
+- No trace node yet: the nudge panel shows no figure of its own. Add a node here when modelled / base / effect figures are displayed.
+- Known: Module Reconciliation in Model mode with a nudge set shows Reconciled with a gap line equal to the nudge (1,482 on seed A). Not yet
+  labelled (BM brief Addendum 19 item 13, Addendum 20). Line numbers not recorded: re-run the extract when the file settles.
+
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105
