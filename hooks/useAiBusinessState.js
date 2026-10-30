@@ -3,14 +3,14 @@
 import { useMemo } from "react";
 
 import useBusinessSummary from "@/hooks/useBusinessSummary";
-import useBusinessModelling from "@/hooks/useBusinessModelling";
+// R3 batch 6 (2026-10-30): useBusinessModelling is retired; business_modelling below is the empty block it always gave.
 import useModelReadiness from "@/hooks/useModelReadiness";
 import { buildAiBusinessStateExport } from "@/lib/selectors/aiBusinessStateSelectors";
 import useBusinessOutcomeOutputContract from "@/hooks/useBusinessOutcomeOutputContract";
 
 export default function useAiBusinessState() {
   const business_summary = useBusinessSummary();
-  const business_modelling = useBusinessModelling();
+  const business_modelling = {};
   const model_readiness = useModelReadiness();
   const business_outcome = useBusinessOutcomeOutputContract();
 

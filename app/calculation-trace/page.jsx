@@ -243,7 +243,6 @@ export default function CalculationTracePage() {
                 className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs text-slate-100"
               >
                 <option value="business_summary.required_recovery_per_driver">Root: Business Summary</option>
-                <option value="business_modelling.modelled_net_profit">Root: Business Modelling</option>
                 <option value="rate_builder.labour_rate.supervisor_team_lead">Root: Rate Builder - Supervisor / Team Lead</option>
                 <option value="rate_builder.labour_rate.operator_delivery_staff">Root: Rate Builder - Operator / Delivery Staff</option>
                 <option value="rate_builder.labour_rate.all_productive">Root: Rate Builder - All Productive</option>
@@ -335,8 +334,8 @@ export default function CalculationTracePage() {
               P&L / Module Reconciliation trace layer is deferred.
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
-              Business Modelling: source rows and saved lever inputs are traced read-only; the legacy
-              Baseline/Upside/Downside tools and the modelled_per_source rerun are not.
+              Business Modelling: the old lever page and its trace nodes were retired in R3 batch 6; the legacy
+              scenario tools are gone, and the thin page will be traced when it is built.
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
               cost_summary.total_cost_burden's internal arithmetic (costSummaryCalculations.js)

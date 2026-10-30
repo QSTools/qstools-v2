@@ -475,12 +475,9 @@ def layer2(recipe, as_of, l1, charge_out, ids):
                                 "ceiling_rate": sum(s["modelled"] for s in ast_src) / hours_unit if hours_unit > 0 else None})
     bm_rows.append({"row_id": "materials", "kind": "materials", "achieved": mat_true, "basis": cogs / 100.0,
                     "start_rate": 0.0, "floor_rate": 0.0, "ceiling_rate": recipe["pnl"]["materials_markup_percent"]})
-    for b in bm_rows:
-        nodes[f'business_modelling.row.{b["row_id"]}.achieved_revenue'] = b["achieved"]
+    # R3 batch 6 (2026-10-30): the business_modelling.* trace nodes are retired with the old lever page, so none are emitted.
+    # bm_rows is still written to layer2_detail.business_modelling but nothing checks it. today_net below feeds the EBIT nodes.
     today_net = sum(final_a[r["gid"]] for r in productive_rows) + (max(mat_a_revenue, mat_true) - mat_true)
-    nodes["business_modelling.today_net_profit"] = today_net
-    nodes["business_modelling.total_effect"] = 0.0
-    nodes["business_modelling.modelled_net_profit"] = today_net
 
     # ---- 8. EBIT / EBITDA table totals (A-12)
     ebit_interest = sum(e["asset_interest_annual"] for e in l1["assets"]) + float(recipe["pnl"].get("non_asset_interest_annual") or 0)

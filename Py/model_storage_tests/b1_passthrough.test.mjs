@@ -74,7 +74,10 @@ for (const f of fs.readdirSync(storage_dir)) {
 const unknown = [...found].filter((k) => !known.has(k));
 const stale = [...known].filter((k) => !found.has(k));
 check("every key constant in lib/storage is in the registry (" + found.size + " found)", unknown.length === 0, "unregistered: " + unknown.join(","));
-check("no registered key is missing from lib/storage", stale.length === 0, "stale: " + stale.join(","));
+const retired = reg.RETIRED_KEYS || [];
+check("every retired key is still a registered modelled key", retired.every((k) => keys.includes(k)));
+const stale_live = stale.filter((k) => !retired.includes(k));
+check("no registered key is missing from lib/storage (retired keys excepted)", stale_live.length === 0, "stale: " + stale_live.join(","));
 
 console.log("SUMMARY PASS " + pass + " / FAIL " + fail);
 process.exit(fail === 0 ? 0 : 1);
