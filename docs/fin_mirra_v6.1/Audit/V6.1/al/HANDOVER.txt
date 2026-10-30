@@ -1,0 +1,32 @@
+HANDOVER V6.1al (2026-10-30) - R3 slice 4 batch C2b (scratch adds: PRODUCTIVE staff and assets, placements into a copy of the Cost Allocation assignments): BUILT, UNIT-TESTED, BUILD CLEAN. NOT LIVE-PROVEN. NOT COMMITTED AT WRITE TIME.
+Previous: V6.1ak (batch C2a). ONE FIX PER CHAT: C3 is the next chat. BM brief Addendum 29 is ALREADY WRITTEN (and PROJECT_MAP updated).
+
+1. WHERE WE ARE
+ C2b is built. Changed: hooks\useLabour.js, hooks\useAssets.js, hooks\useCostAllocation.js (16 patches). New: lib\calculations\scenarioAddRows.js, lib\calculations\scenarioPlacements.js, Py\model_storage_tests\s4_add_rows.test.mjs (31 checks). Build exit 0; all 13 test files exit 0.
+ Git at the last paste: the 3 hooks modified; the 3 new files untracked (+ FIN_LANDING_PAGE_GUARDRAILS json, not ours). C2a is not confirmed committed (check git log). Owner runs git status first, then commits code and docs together.
+ Servers :3000 and :3005 were stopped for the build. The pane was not touched.
+
+2. WHAT WAS DONE (Addendum 29)
+ Productive scratch staff become modelled staff rows in useLabour (appended after removals); productive scratch assets become modelled asset rows in useAssets; useCostAllocation adds a 100 percent placement per productive add to a COPY of the labour and asset assignments (real key never written, cards and actions keep the real arrays). The reconciliation gate keeps the real pair. Non-productive adds stay in the C2a overhead line.
+ Code read findings: the C1 rows lacked total_labour_cost_annual / recovery_hours / staff_type_name (labour) and utilisation_hours_per_week + weeks override (assets; annual hours are recomputed from the weekly figure, default 40). Fixed in scenarioAddRows.js.
+
+3. OWNER DECISIONS THIS CHAT
+ Accept that Rate Builder shows labour incomplete for a group with a placed scratch hire (no invented charge-out rate). Paid hours = productive hours for a scratch hire. No storage field added.
+
+4. OPEN ITEMS AND FINDINGS
+ 1 C2a and C2b are not live-proven. Risks to check: (a) General Overheads STATUS may warn because the C2a line is in "Other / Unallocated"; (b) Rate Builder incomplete labour for a group with a scratch hire (expected, decide how to show it); (c) Business Outcome with a scratch asset (no estimated_annual_depreciation, EBITDA may flag unavailable); (d) a placement into a deleted group shows in the unassigned counters; (e) Cost Allocation page cards do not list scratch placements; (f) Reconciled / Model ready with the large combined case.
+ 2 LIMIT: hybrid recovery modes split a changed total across labour / asset / material shares (Addendum 28 item 2). Hours mode only is covered; units is R4.
+ 3 Carried: banner "other edits are not saved yet" (C3); add functions write through window.localStorage directly; copy cap 50; is_scratch flag; unplaced pool shown only as a panel note; General Overheads variance row $41,344 undiagnosed; original 22-key pane state gone; AI_LAYER_BRIEF pointer and advice rule; CRLF decision (the hooks are CRLF, the Apply-Patch helpers convert); two Back to baseline buttons; themes; hydration; orphan note not seen live.
+
+5. NEXT STEPS, IN ORDER (one fix per chat)
+ 1 Commit C2a and C2b (git status first).
+ 2 C3 in a new chat, acceptance criteria first: add form (kind, name, productive or not, annual cost, hours and group for productive), add N more, remove, simplify the banner, a separate scenario-cost line on the Cost Allocation page, the Rate Builder finding. Read existing styles first, no inline colours.
+ 3 C4: live proof of C2a, C2b and C3 in the pane (back up to sessionStorage __bak first): trace 272 of 272 empty and after removing every add, cost burden up by exactly the annual cost, large combined case (office hire, 3 vehicles, a digger, 5 hires), Reconciled / Model ready, tap re-run with a hash-checked paste, Q-7 timing at 100 and 1,000 staff, standing regression with Model mode OFF.
+
+6. STANDING RULES
+ Working conventions in full. Acceptance criteria before the first patch batch. Ask before any storage field. Never build while :3000 or :3005 is running; restart after and check a new string is served. Hash-check the tap paste. Preflight one match per patch, "Patched:" for each, asserts, tests, build. Read existing styles before any UI, no inline colours. Do not put a file commit in the same parallel block as the script that writes it. Live-proof method: separate seed / navigate / eval calls. Say the chat is getting large after each batch.
+
+7. READ FIRST (next chat)
+ This file, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 26 to 29 only. Then the C3 code (view fresh before patching). Do NOT read the whole brief or the other briefs.
+
+OPENING PROMPT: "Mirra / qstools-web: R3 slice 4 batch C3 (scratch adds: add form, add N more, remove, banner, scenario-cost line on Cost Allocation). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\al\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 26 to 29 only. Addendum 29 is already written. Acceptance criteria first."
