@@ -1,0 +1,53 @@
+HANDOVER V6.1ab (2026-10-30) - R3 Business Modelling redesign, SLICE 3 BUILT AND VERIFIED LIVE (overhead nudge); NOT COMMITTED; wording sign-off, commit and batch 6 next
+Previous: V6.1aa (slice 2). ONE FIX PER CHAT: the next chat does ONLY the close-out (section 5, steps 1 to 5). Batch 6 and slice 4 are separate chats.
+
+1. WHERE WE ARE
+ Slice 3 (minimal modelled layer, overhead lines) is built and proven live on the production build. Q-7 (Business Modelling typing and Model mode timing) is CLOSED. NOTHING IS COMMITTED OR PUSHED. Slice 2 is committed (e1b7dc4 code, 2119ae4 docs).
+ git status at write time (from the last paste, before the docs below were written):
+  modified: Py/audit-scripts/b6_model_tap.cjs, Py/model_storage_tests/b6_tap_lists.test.mjs, components/general-overheads/GeneralOverheadMainCard.jsx, hooks/useGeneralOverheads.js,
+   lib/selectors/general-overheads/generalOverheadAllocationSelectors.js, lib/storage/modelStorage.js, lib/storage/modelStorageRegistry.js, BUSINESS_MODELLING_BRIEF.txt, PROJECT_MAP.md
+  new: lib/storage/modelDiffs.js, lib/calculations/generalOverheadNudge.js, hooks/general-overheads/generalOverheadNudgeClassify.js, components/general-overheads/GeneralOverheadNudgePanel.jsx,
+   Py/model_storage_tests/s3_diffs.test.mjs, s3_ids.test.mjs, s3_nudge.test.mjs, this handover
+  not ours (leave): docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json
+ WARNING: BUSINESS_MODELLING_BRIEF.txt and PROJECT_MAP.md were ALREADY modified before this session (Addendum 18 voice-session write-up, uncommitted). Run git diff --stat on both before committing; Addendum 18 is meant to be in the commit.
+ Full detail: BUSINESS_MODELLING_BRIEF Addendum 19 (and 17, 18).
+
+2. DONE THIS SESSION
+ - Merge cache, F6 default handling, generated-id identity (reviewed volatile lists m01, m02, m10, m15, m16, m20, m21, m22), modelDiffs.js, the pure nudge calculation, hook and panel wiring, tap rule 7 "layer unchanged".
+ - Design: the overlay cannot hold an overhead change (the hook rebuilds synced lines from the P&L on every mount), so the nudge is a % per overhead category in mirra_diffs_v1, applied in the hook after the rebuild, to a copy.
+ - Tests: s3_diffs 46, s3_ids 33, s3_nudge 31, b6_tap_lists 25; build exit 0 (as of batch 3; no code change since).
+ - Live: Model-mode-OFF regression 11 of 11 unchanged (285 x6, 347, 346, 342, 564, 3,354); Model ON empty layer 285; +10% Office/Admin moves GO and Business Outcome by exactly $1,482.36; byte-identical real keys;
+   tap 7 of 7 PASS over 30 routes; unlock/correct/relock keeps the nudge and flags it; Q-7 timing at 100 and 1,000 staff (Model mode not slower than OFF; typing applies about 630 ms after the keystroke = 600 ms pause + 30 ms).
+
+3. OWNER DECISIONS (slice 3)
+ Retire the old lever page LAST (batch 6, own confirmation). Acceptance criteria A to F accepted. Storage fields approved: kind "pct" and generation on mirra_diffs_v1; NOT item_id; no storage for the merge cache.
+ Nudge applied in the hook; the storage layer only holds the record. Range -100 to 1000, 2 decimals, 0 removes.
+
+4. OPEN ITEMS AND FINDINGS
+ - WORDING TO APPROVE: (a) banner "Edits are not saved yet." is stale; proposed "You are viewing the modelled business. Your changes are kept separately and your real data is not changed." (b) unlock panel text is already fine
+   ("Your modelled changes are kept and will sit on the corrected baseline."). (c) baseline_changed note: "The baseline was corrected after this change was set. Check that it still makes sense." (d) orphan note: read it in
+   components/general-overheads/GeneralOverheadNudgePanel.jsx and approve or change (not seen live: no orphan case exercised).
+ - Module Reconciliation in Model mode shows Reconciled with a gap line of $1,482 (0.1%): decide whether a modelled gap should be labelled.
+ - The repo b6_model_tap.cjs was NOT run verbatim in the pane (an equivalent in-page copy was run). Run it once.
+ - Nudge storage-full path is unit-tested only. The fifth notice route was not visited.
+ - OFF being slower than ON at 1,000 staff: cause not investigated (likely save versus discard).
+ - No trace node or calc map entry for the modelled copy yet (the panel shows no figures). Add when figures are shown.
+ - Carried: AI_LAYER_BRIEF pointer to Addendum 8 and the advice rule (Addendum 18 items 21 to 23); CRLF decision; two Back to baseline buttons on notice pages; other themes and hydration warnings not checked.
+ - Seeds are generated for 2026-10-30. Regenerate with .tmp\r3s1_regression_prepare.ps1 on a new day (production build, ports 3000/3004/3005 free). Remove public\__stress_tmp when finished. Every seed needs the General Overheads Save Baseline click (MR-1) before it can be locked.
+
+5. NEXT STEPS, IN ORDER
+ CHAT 1 (close-out only): 1 approve the wording above; 2 run b6_model_tap.cjs verbatim; 3 git diff --stat on BUSINESS_MODELLING_BRIEF.txt and PROJECT_MAP.md, then git status, then commit (code, tests, docs) with the trailers; 4 calc map / variable tracker note;
+   5 re-sync project knowledge (mirra-project-sync) and run check_project_knowledge_sync.py.
+ CHAT 2: batch 6, retire the old lever page. Own confirmation first. Order: readers, page, keys, then regression. Known readers: hooks useBusinessModellingLegacyScenario, useBusinessModellingLevers, useBusinessModellingScenario,
+   businessModellingTraceNodes.js, calculationTraceLiveValues.js.
+ CHAT 3: slice 4 per BM Addenda 8 and 18 (state acceptance criteria first, ask before any storage field).
+
+6. STANDING RULES
+ Working conventions apply in full: Apply-Patch / Invoke-PatchBatch, UTF-8 no BOM, "Patched:" confirmations, acceptance criteria first, build after each batch, never build while dev or next start runs, wrap commands in & { } ending
+ with Set-Clipboard, git status before commit, trailers Co-Authored-By: Claude Sonnet 5.5 and Claude-Session. ONE FIX PER CHAT: Claude must tell the owner when the chat is getting large and propose the handover BEFORE it becomes a problem.
+ Live-proof method (pane): back up pane storage to sessionStorage __bak first and restore at the end; keep the pane visible for timing; keep waits under 40 s; navigate and run scripts in separate calls (a full navigation wipes an installed
+ tap); move between pages with window.next.router.push when a tap is installed; run long page loops as a background async job and poll; check the pane's own key count (22 keys on the owner's pane, not 18).
+
+7. READ FIRST / NOT TO READ
+ Read, in order: this handover, PROJECT_MAP.md, the Working Conventions file, then ONLY BUSINESS_MODELLING_BRIEF Addendum 19 (and 18). Read lib\storage\modelDiffs.js and components\general-overheads\GeneralOverheadNudgePanel.jsx for the wording.
+ Do not read Archive, Audit\v6_0 evidence, AGENTS.md, the stress brief, or other briefs unless needed.
