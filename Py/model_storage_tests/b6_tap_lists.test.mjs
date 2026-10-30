@@ -72,6 +72,10 @@ l = [...ok_log(), { op: "R", st: "local", k: "qs_tools_scheduling_v4_tasks", lab
 check("scheduling key access fails rule 5", failed_ids(verdict(l)) === "5");
 check("changed hash fails rule 6", failed_ids(verdict(ok_log(), ctx({ end: { a: "1:x", b: "2:z" } }))) === "6");
 check("non-empty diffs fail rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_text: '{"version":1,"by_key":{"k":[1]}}' }))) === "7");
+const NUDGED = '{"version":1,"generation":1,"by_key":{"k":[{"path":"category:travel","kind":"pct","value":5,"flag":""}]}}';
+check("slice 3: a layer that was set before install and is unchanged passes rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: NUDGED, diffs_text: NUDGED }))) === "");
+check("slice 3: a layer that changed since install fails rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: NUDGED, diffs_text: NUDGED.replace('"value":5', '"value":6') }))) === "7");
+check("slice 3: a layer that was empty at install and is no longer empty fails rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: '{"version":1,"by_key":{}}', diffs_text: NUDGED }))) === "7");
 
 // 4. changed_paths
 const cp = tap.changed_paths(JSON.stringify({ a: 1, updated_at: "t1", list: [{ id: 1, v: 2, stamp: "x" }] }), JSON.stringify({ a: 1, updated_at: "t2", list: [{ id: 1, v: 2, stamp: "y" }] }));

@@ -31,6 +31,10 @@ import {
 import { useProfitAndLossStorage } from "@/lib/storage/profitAndLossStorage";
 import { calculateProfitAndLoss } from "@/lib/calculations/profitAndLossCalculations";
 import { useAssetStorage } from "@/lib/storage/assetStorage";
+import { get_mode } from "@/lib/storage/modelStorage";
+import { get_overhead_nudges, set_overhead_nudge, subscribe_to_diffs } from "@/lib/storage/modelDiffs";
+import { apply_overhead_nudges } from "@/lib/calculations/generalOverheadNudge";
+import { classify_nudge_row } from "@/hooks/general-overheads/generalOverheadNudgeClassify";
 
 export default function useGeneralOverheads() {
   const [is_hydrated, set_is_hydrated] = useState(false);
@@ -42,6 +46,11 @@ export default function useGeneralOverheads() {
   const [saved_overheads, set_saved_overheads] = useState([]);
 
   const last_pnl_sync_signature_ref = useRef("");
+
+  // R3 slice 3: the modelled layer. Empty (and no storage is read) in baseline mode. Read after mount, never during the first render, so the
+  // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a nudge changes.
+  const [nudges, set_nudges] = useState({});
+  const [model_active, set_model_active] = useState(false);
 
   const { profit_and_loss_state } = useProfitAndLossStorage();
 
@@ -90,7 +99,17 @@ export default function useGeneralOverheads() {
     });
 
     set_saved_overheads(load_saved_overheads());
+    // Keep the same empty object in baseline mode so this adds no re-render there.
+    const loaded_nudges = get_overhead_nudges();
+    set_nudges((current) =>
+      Object.keys(loaded_nudges).length === 0 && Object.keys(current).length === 0 ? current : loaded_nudges
+    );
+    set_model_active(get_mode() === "model");
     set_is_hydrated(true);
+  }, []);
+
+  useEffect(() => {
+    return subscribe_to_diffs(() => set_nudges(get_overhead_nudges()));
   }, []);
 
   useEffect(() => {
@@ -120,19 +139,33 @@ export default function useGeneralOverheads() {
     save_general_overhead_state(overhead_state);
   }, [overhead_state, is_hydrated]);
 
+  // R3 slice 3: the per-category nudge is applied HERE, after the P&L rebuild, to a COPY. overhead_state (what is saved and what the form edits)
+  // is never changed. With no nudges (always the case in baseline mode) modelled_state IS overhead_state and nothing extra is calculated.
+  const nudge_result = useMemo(() => {
+    return apply_overhead_nudges({
+      overhead_state,
+      nudges,
+      calculate: (state) =>
+        calculate_general_overheads(state, assets_finance_interest_total),
+      classify_row: classify_nudge_row,
+    });
+  }, [overhead_state, nudges, assets_finance_interest_total]);
+
+  const modelled_state = nudge_result.state;
+
   const calculated = useMemo(() => {
     return calculate_general_overheads(
-      overhead_state,
+      modelled_state,
       assets_finance_interest_total
     );
-  }, [overhead_state, assets_finance_interest_total]);
+  }, [modelled_state, assets_finance_interest_total]);
 
   const output_contract = useMemo(() => {
     return build_general_overhead_output_contract({
       calculated,
-      overhead_state,
+      overhead_state: modelled_state,
     });
-  }, [calculated, overhead_state]);
+  }, [calculated, modelled_state]);
 
   function update_field(field, value) {
     set_overhead_state((current) => ({
@@ -264,6 +297,14 @@ export default function useGeneralOverheads() {
     }));
   }
 
+  function set_nudge(category_key, pct) {
+    const result = set_overhead_nudge(category_key, pct);
+    if (result.ok) {
+      set_nudges(result.nudges);
+    }
+    return result;
+  }
+
   function sync_from_pnl() {
     set_overhead_state((current) =>
       build_general_overheads_from_pnl({
@@ -333,6 +374,13 @@ export default function useGeneralOverheads() {
     calculated,
   });
 
+  const model_layer = {
+    active: model_active,
+    nudges,
+    by_category: nudge_result.by_category,
+    set_nudge,
+  };
+
   let cached_card;
   let card_built = false;
   const build_card = () => build_general_overhead_card({
@@ -362,7 +410,7 @@ export default function useGeneralOverheads() {
     calculated,
     output_contract,
     status,
-    get card() { if (!card_built) { card_built = true; cached_card = build_card(); } return cached_card; },
+    get card() { if (!card_built) { card_built = true; cached_card = { ...build_card(), modelling: model_layer }; } return cached_card; },
     is_hydrated,
   };
 }

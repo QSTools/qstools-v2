@@ -2,6 +2,7 @@
 
 import GeneralOverheadSummaryCard from "@/components/general-overheads/GeneralOverheadSummaryCard";
 import GeneralOverheadReclassificationSection from "@/components/general-overheads/GeneralOverheadReclassificationSection";
+import GeneralOverheadNudgePanel from "@/components/general-overheads/GeneralOverheadNudgePanel";
 
 function ProfilePanel({
   overhead_profile_name,
@@ -56,6 +57,7 @@ export default function GeneralOverheadMainCard({
   form,
   summary,
   reclassification,
+  modelling,
 }) {
   return (
     <section className="ui-section">
@@ -73,6 +75,8 @@ export default function GeneralOverheadMainCard({
           <div className="general-overheads-layout__left">
             <div className="general-overheads-layout__left-stack">
               <ProfilePanel {...profile} />
+
+              <GeneralOverheadNudgePanel modelling={modelling} />
 
               <GeneralOverheadReclassificationSection
                 reclassification={reclassification}

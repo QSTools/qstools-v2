@@ -86,7 +86,10 @@
     if (enum_bad.length) checks[checks.length - 1].text += "  ->  " + enum_bad.slice(0, 4).join(" ; ");
     const keys = Array.from(new Set([...Object.keys(ctx.start), ...Object.keys(ctx.end)])).sort();
     add("6 storage unchanged", keys.filter((k) => ctx.start[k] !== ctx.end[k]).map((k) => k + " " + (ctx.start[k] || "absent") + "->" + (ctx.end[k] || "absent")), "hash of every localStorage key identical at install and at report");
-    add("7 new keys empty", [ctx.diffs_text !== '{"version":1,"by_key":{}}' ? "diffs=" + ctx.diffs_text : "", ctx.scenarios_text !== '{"version":1,"items":[]}' ? "scenarios=" + ctx.scenarios_text : ""].filter(Boolean), "mirra_diffs_v1 and mirra_scenarios_v1 still empty");
+    // Slice 3: a visit must not change the modelled layer. diffs_start is the text at install (nudges set BEFORE the tap are allowed); with no
+    // diffs_start the old slice 1 rule applies (the layer must still be empty).
+    const diffs_expected = ctx.diffs_start !== undefined ? ctx.diffs_start : '{"version":1,"by_key":{}}';
+    add("7 layer unchanged", [ctx.diffs_text !== diffs_expected ? "diffs=" + ctx.diffs_text + " (expected " + diffs_expected + ")" : "", ctx.scenarios_text !== '{"version":1,"items":[]}' ? "scenarios=" + ctx.scenarios_text : ""].filter(Boolean), "mirra_diffs_v1 identical to its text at install, and mirra_scenarios_v1 still empty");
     return checks;
   }
 
@@ -110,11 +113,12 @@
     S.clear = function () { log.push({ op: "C", st: store(this), k: "*", label }); return orig.c.apply(this, arguments); };
     S.key = function (i) { log.push({ op: "K", st: store(this), k: "(enumeration)", label }); return orig.k.apply(this, arguments); };
     const start = snap();
+    const diffs_start = orig.g.call(localStorage, "mirra_diffs_v1") || "(absent)";
     const mode_text = orig.g.call(localStorage, LISTS.mode_key) || "";
     const mode = /"mode"\s*:\s*"model"/.test(mode_text) ? "model" : "baseline";
 
     root.__b6 = {
-      log, start, mode,
+      log, start, mode, diffs_start,
       mark(l) { label = String(l); },
       remove() { S.getItem = orig.g; S.setItem = orig.s; S.removeItem = orig.r; S.clear = orig.c; S.key = orig.k; delete root.__b6; console.log("b6 tap removed"); },
       report() {
@@ -124,7 +128,7 @@
         lines.push("page label | local reads (of which baseline entries) | local writes | removes+clears | key() | session reads | session writes");
         Object.keys(pages).forEach((l) => { const p = pages[l]; lines.push(l + " | " + p.LR + " (" + p.base + ") | " + p.LW + " | " + p.LX + " | " + p.K + " | " + p.SR + " | " + p.SW); });
         const end = snap();
-        const ctx = { start, end, diffs_text: orig.g.call(localStorage, "mirra_diffs_v1") || "(absent)", scenarios_text: orig.g.call(localStorage, "mirra_scenarios_v1") || "(absent)" };
+        const ctx = { start, end, diffs_start, diffs_text: orig.g.call(localStorage, "mirra_diffs_v1") || "(absent)", scenarios_text: orig.g.call(localStorage, "mirra_scenarios_v1") || "(absent)" };
         if (mode === "model") {
           lines.push("", "MODEL MODE CHECKS");
           const checks = evaluate(log, ctx);
