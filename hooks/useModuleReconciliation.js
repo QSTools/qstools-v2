@@ -44,8 +44,13 @@ export default function useModuleReconciliation() {
   const status = useMemo(() => {
     return calculateModuleReconciliation({
       pnl: profitAndLoss,
-      labour,
-      assets,
+      // R3 slice 4 batch B: the gate judges REAL data, so it gets the un-removed Labour and Assets (the same objects as before when no removal applies).
+      labour: { ...labour, output_contract: labour.unmodelled_output_contract ?? labour.output_contract },
+      assets: {
+        ...assets,
+        status: assets.unmodelled_status ?? assets.status,
+        output_contract: assets.unmodelled_output_contract ?? assets.output_contract,
+      },
       generalOverheads: {
         status: generalOverheads.unmodelled_status,
         output_contract: generalOverheads.unmodelled_output_contract,
@@ -56,10 +61,10 @@ export default function useModuleReconciliation() {
     profitAndLoss.status,
     profitAndLoss.output_contract,
     labour.status,
-    labour.output_contract,
+    labour.unmodelled_output_contract,
     labour.outputs,
-    assets.status,
-    assets.output_contract,
+    assets.unmodelled_status,
+    assets.unmodelled_output_contract,
     generalOverheads.unmodelled_status,
     generalOverheads.unmodelled_output_contract,
     openingHours.status,

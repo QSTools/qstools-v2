@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createEmptyAssetState,
   normalizeAssetType,
@@ -23,12 +23,29 @@ import {
   sum_asset_pool_assignments,
   to_number,
 } from "@/hooks/assets/assetHookUtils";
+import { get_mode } from "@/lib/storage/modelStorage";
+import {
+  get_scenario_removals,
+  set_scenario_removal,
+  subscribe_to_scenarios,
+} from "@/lib/storage/modelScenarios";
+import { apply_asset_removals } from "@/lib/calculations/scenarioRemovals";
+
+// R3 slice 4 batch B: constants so the first render (server and client) is identical and baseline mode allocates nothing new.
+const NO_SCENARIO_REMOVALS = Object.freeze({
+  staff_ids: Object.freeze([]),
+  asset_ids: Object.freeze([]),
+  flags: Object.freeze({}),
+  has_scenario: false,
+  removal_count: 0,
+});
+const NO_SCENARIO_ROWS = Object.freeze([]);
 
 export default function useAssets() {
   const {
     asset_state,
-    saved_assets,
-    active_asset_count,
+    saved_assets: stored_assets,
+    active_asset_count: stored_active_asset_count,
     set_asset_field,
     set_asset_fields,
     replace_asset_state,
@@ -41,6 +58,35 @@ export default function useAssets() {
   const { output_contract: pnl_output_contract } = useProfitAndLoss();
   const general_overheads = useGeneralOverheads();
   const opening_hours = useOpeningHours();
+
+  // R3 slice 4 batch B: scenario removals (asset markers in mirra_scenarios_v1). Empty, and no storage read, in baseline mode. Read after mount so the
+  // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a marker changes.
+  const [scenario_removals, set_scenario_removals] = useState(NO_SCENARIO_REMOVALS);
+  const [model_active, set_model_active] = useState(false);
+
+  useEffect(() => {
+    const loaded_removals = get_scenario_removals();
+    set_scenario_removals((current) =>
+      loaded_removals.removal_count === 0 && current.removal_count === 0 ? current : loaded_removals
+    );
+    set_model_active(get_mode() === "model");
+    return subscribe_to_scenarios(() => set_scenario_removals(get_scenario_removals()));
+  }, []);
+
+  // The scenario view of the asset list: removed assets are filtered out and their overhead pool amounts move to the remaining live assets (pro rata),
+  // so a removal never leaves unassigned cost. With no asset marker saved_assets IS stored_assets (same array, nothing extra calculated), which is
+  // always the case in baseline mode. The stored list, the form and the register shown on the page keep the real assets.
+  const removal_result = useMemo(
+    () => apply_asset_removals(stored_assets, scenario_removals.asset_ids),
+    [stored_assets, scenario_removals.asset_ids]
+  );
+  const saved_assets = removal_result.assets;
+  const active_asset_count =
+    saved_assets === stored_assets
+      ? stored_active_asset_count
+      : Array.isArray(saved_assets)
+      ? saved_assets.filter((asset) => !asset.is_retired).length
+      : 0;
 
   const business_default_annual_weeks =
     to_number(opening_hours?.calculated?.annual_open_weeks) || 48;
@@ -213,7 +259,7 @@ export default function useAssets() {
     return buildAssetCard({
       asset_state,
       calculations,
-      saved_assets,
+      saved_assets: stored_assets,
       asset_overhead_pools,
       business_default_annual_weeks,
       actions: {
@@ -231,7 +277,7 @@ export default function useAssets() {
   }, [
     asset_state,
     calculations,
-    saved_assets,
+    stored_assets,
     asset_overhead_pools,
     business_default_annual_weeks,
     set_asset_field,
@@ -339,10 +385,71 @@ export default function useAssets() {
     business_default_annual_weeks,
   ]);
 
+  // R3 slice 4 batch B: the reconciliation trust gate judges REAL data, so it gets the status and contract built from ALL assets. Only built when an
+  // asset marker is applied (Model mode); otherwise the very same objects as status / output_contract come back. Known limit: calculations (the asset
+  // open in the form) still uses the scenario list for the other assets' pool use; it only matters for the asset being edited.
+  const unmodelled = useMemo(() => {
+    if (saved_assets === stored_assets) return null;
+    const real_status = buildAssetStatus({
+      asset_state,
+      calculations,
+      saved_assets: stored_assets,
+      active_asset_count: stored_active_asset_count,
+      asset_overhead_pools,
+      business_default_annual_weeks,
+    });
+    const real_output_contract = buildAssetsOutputContract({
+      asset_state,
+      saved_assets: stored_assets,
+      status: real_status,
+      asset_overhead_pools,
+      business_default_annual_weeks,
+    });
+    return { status: real_status, output_contract: real_output_contract };
+  }, [
+    saved_assets,
+    stored_assets,
+    stored_active_asset_count,
+    asset_state,
+    calculations,
+    asset_overhead_pools,
+    business_default_annual_weeks,
+  ]);
+
+  function set_asset_removed(asset_id, removed) {
+    const result = set_scenario_removal("asset", asset_id, removed);
+    if (result.ok) set_scenario_removals(result.removals);
+    return result;
+  }
+
+  const scenario = useMemo(() => {
+    return {
+      kind: "asset",
+      active: model_active,
+      rows:
+        model_active && Array.isArray(stored_assets)
+          ? stored_assets
+              .filter((asset) => !asset.is_retired)
+              .map((asset) => ({
+                id: asset.asset_id ?? "",
+                name: asset.asset_name || "Unnamed Asset",
+                detail: normalizeAssetType(asset.asset_type),
+              }))
+          : NO_SCENARIO_ROWS,
+      removed_ids: scenario_removals.asset_ids,
+      flags: scenario_removals.flags,
+      unplaced: removal_result.unplaced,
+      set_removed: set_asset_removed,
+    };
+  }, [model_active, stored_assets, scenario_removals, removal_result]);
+
   return {
     status,
     get card() { return get_card(); },
     output_contract,
+    unmodelled_status: unmodelled ? unmodelled.status : status,
+    unmodelled_output_contract: unmodelled ? unmodelled.output_contract : output_contract,
+    scenario,
     active_assets,
     business_default_annual_weeks,
     asset_finance_pnl_match,

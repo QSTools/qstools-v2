@@ -24,6 +24,23 @@ import {
   buildLabourProfileRows,
   buildLabourOutputContract,
 } from "@/lib/selectors/labourSelectors";
+import { get_mode } from "@/lib/storage/modelStorage";
+import {
+  get_scenario_removals,
+  set_scenario_removal,
+  subscribe_to_scenarios,
+} from "@/lib/storage/modelScenarios";
+import { apply_staff_removals } from "@/lib/calculations/scenarioRemovals";
+
+// R3 slice 4 batch B: constants so the first render (server and client) is identical and baseline mode allocates nothing new.
+const NO_SCENARIO_REMOVALS = Object.freeze({
+  staff_ids: Object.freeze([]),
+  asset_ids: Object.freeze([]),
+  flags: Object.freeze({}),
+  has_scenario: false,
+  removal_count: 0,
+});
+const NO_SCENARIO_ROWS = Object.freeze([]);
 
 export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   const [state, setState] = useState(getDefaultLabourState);
@@ -32,12 +49,26 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   const [active_profile_id, setActiveProfileId] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
+  // R3 slice 4 batch B: scenario removals (staff markers in mirra_scenarios_v1). Empty, and no storage read, in baseline mode. Read after mount so the
+  // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a marker changes.
+  const [scenario_removals, set_scenario_removals] = useState(NO_SCENARIO_REMOVALS);
+  const [model_active, set_model_active] = useState(false);
+
   useEffect(() => {
     const stored_profiles = getStoredLabourProfiles();
     const stored_types = getStoredStaffTypes();
     setProfiles(stored_profiles);
     setStaffTypes(stored_types);
     setHydrated(true);
+    const loaded_removals = get_scenario_removals();
+    set_scenario_removals((current) =>
+      loaded_removals.removal_count === 0 && current.removal_count === 0 ? current : loaded_removals
+    );
+    set_model_active(get_mode() === "model");
+  }, []);
+
+  useEffect(() => {
+    return subscribe_to_scenarios(() => set_scenario_removals(get_scenario_removals()));
   }, []);
 
   useEffect(() => {
@@ -57,7 +88,7 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   const has_profile = Boolean(state.staff_id);
   const inputs_enabled = has_profile;
 
-  const active_staff = useMemo(() => {
+  const base_active_staff = useMemo(() => {
     return profiles
       .filter((profile) => profile?.is_active !== false)
       .map((profile) => {
@@ -87,6 +118,13 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
         };
       });
   }, [profiles]);
+
+  // R3 slice 4 batch B: the scenario view of the staff list. With no staff marker this IS base_active_staff (same array, nothing extra calculated),
+  // which is always the case in baseline mode. The saved profiles and the form are never changed.
+  const active_staff = useMemo(
+    () => apply_staff_removals(base_active_staff, scenario_removals.staff_ids),
+    [base_active_staff, scenario_removals.staff_ids]
+  );
 
   const resolved_pnl_recovery_inputs = useMemo(() => {
     return {
@@ -247,6 +285,41 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
     });
   }, [active_staff, outputs, state, resolved_pnl_recovery_inputs]);
 
+  // R3 slice 4 batch B: the reconciliation trust gate judges REAL data, so it gets the contract built from ALL staff. Only built when a staff marker is
+  // applied (Model mode); otherwise the very same object as output_contract comes back.
+  const unmodelled_output_contract = useMemo(() => {
+    if (active_staff === base_active_staff) return output_contract;
+    return buildLabourOutputContract({
+      active_staff: base_active_staff,
+      outputs,
+      state,
+      pnl_recovery_inputs: resolved_pnl_recovery_inputs,
+    });
+  }, [active_staff, base_active_staff, output_contract, outputs, state, resolved_pnl_recovery_inputs]);
+
+  function set_staff_removed(staff_id, removed) {
+    const result = set_scenario_removal("staff", staff_id, removed);
+    if (result.ok) set_scenario_removals(result.removals);
+    return result;
+  }
+
+  const scenario = useMemo(() => {
+    return {
+      kind: "staff",
+      active: model_active,
+      rows: model_active
+        ? base_active_staff.map((staff) => ({
+            id: staff.staff_id,
+            name: staff.staff_name,
+            detail: [staff.staff_type_name || staff.staff_role, staff.labour_class].filter(Boolean).join(" - "),
+          }))
+        : NO_SCENARIO_ROWS,
+      removed_ids: scenario_removals.staff_ids,
+      flags: scenario_removals.flags,
+      set_removed: set_staff_removed,
+    };
+  }, [model_active, base_active_staff, scenario_removals]);
+
   return {
     state,
     profiles,
@@ -270,6 +343,8 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
     drivers,
     profile_rows,
     output_contract,
+    unmodelled_output_contract,
+    scenario,
   };
 }
 

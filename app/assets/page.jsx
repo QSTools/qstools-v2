@@ -9,9 +9,10 @@ import AssetHelpPanel from "@/components/assets/AssetHelpPanel";
 import AssetFinancePnlMatchCard from "@/components/assets/AssetFinancePnlMatchCard";
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import AssetTotalPurchasePriceCard from "@/components/assets/AssetTotalPurchasePriceCard";
+import ScenarioRemovalPanel from "@/components/scenarios/ScenarioRemovalPanel";
 
 export default function AssetsPage() {
-  const { status, card, business_default_annual_weeks, asset_finance_pnl_match, active_assets } = useAssets();
+  const { status, card, business_default_annual_weeks, asset_finance_pnl_match, active_assets, scenario } = useAssets();
 
   return (
     <main className="ui-page">
@@ -34,6 +35,8 @@ export default function AssetsPage() {
           asset_finance_pnl_match={asset_finance_pnl_match}
           active_assets={active_assets}
         />
+
+        <ScenarioRemovalPanel scenario={scenario} heading="Scenario: remove assets" />
 
         <AssetHelpPanel />
         <NextStepFooter
