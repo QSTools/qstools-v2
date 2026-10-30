@@ -682,6 +682,7 @@ export default function ModuleReconciliationSummaryCard({
   general_overheads_category_totals = [],
   asset_overhead_pools = {},
   accept_check = null,
+  modelled_overhead_effect = 0,
 }) {
   // Whole group (Labour / Asset Finance / Overheads) hidden until the
   // Gap row (or a Blocking/Warnings pill) is clicked - keeps the card
@@ -689,6 +690,10 @@ export default function ModuleReconciliationSummaryCard({
   const [group_open, set_group_open] = useState(false);
   const [open_check_ids, set_open_check_ids] = useState([]);
   const [hovered_check_id, set_hovered_check_id] = useState(null);
+
+  const has_modelled_effect =
+    Number.isFinite(modelled_overhead_effect) &&
+    Math.round(modelled_overhead_effect) !== 0;
 
   function toggle_check(check_id) {
     set_open_check_ids((current) =>
@@ -794,6 +799,18 @@ export default function ModuleReconciliationSummaryCard({
                     : ""}
                 </div>
               </button>
+
+              {has_modelled_effect ? (
+                <div className="business-summary-macro-note">
+                  <p className="ui-help">
+                    Modelled overhead change:{" "}
+                    {modelled_overhead_effect > 0 ? "+" : ""}
+                    {format_currency(modelled_overhead_effect)}. This comes
+                    from your Model mode what-if. It is not part of the
+                    comparison above, which checks your real data.
+                  </p>
+                </div>
+              ) : null}
 
               {group_open && business_cost_check.is_blocking ? (
                 <div className="business-summary-macro-note">

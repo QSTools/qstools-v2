@@ -49,7 +49,8 @@ function normalise_check_for_display(check) {
 }
 
 export default function ModuleReconciliationPage() {
-  const { status, modules, accept_check } = useModuleReconciliation();
+  const { status, modules, accept_check, modelled_overhead_effect } =
+    useModuleReconciliation();
 
   const reconciliation_checks = status.reconciliation_checks || [];
 
@@ -118,10 +119,10 @@ export default function ModuleReconciliationPage() {
   // Both already exist inside general_overheads.output_contract - read
   // directly, no new calculation introduced here or anywhere else.
   const general_overheads_category_totals =
-    modules?.generalOverheads?.output_contract?.category_totals || [];
+    modules?.generalOverheads?.unmodelled_output_contract?.category_totals || [];
 
   const asset_overhead_pools =
-    modules?.generalOverheads?.output_contract?.asset_overhead_pools || {};
+    modules?.generalOverheads?.unmodelled_output_contract?.asset_overhead_pools || {};
 
   return (
     <div className="ui-stack">
@@ -133,6 +134,7 @@ export default function ModuleReconciliationPage() {
         owner_director_breakdown={owner_director_breakdown}
         general_overheads_category_totals={general_overheads_category_totals}
         asset_overhead_pools={asset_overhead_pools}
+        modelled_overhead_effect={modelled_overhead_effect}
         accept_check={accept_check}
       />
 

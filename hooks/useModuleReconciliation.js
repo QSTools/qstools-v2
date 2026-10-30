@@ -46,7 +46,10 @@ export default function useModuleReconciliation() {
       pnl: profitAndLoss,
       labour,
       assets,
-      generalOverheads,
+      generalOverheads: {
+        status: generalOverheads.unmodelled_status,
+        output_contract: generalOverheads.unmodelled_output_contract,
+      },
       acceptance_map,
     });
   }, [
@@ -57,8 +60,8 @@ export default function useModuleReconciliation() {
     labour.outputs,
     assets.status,
     assets.output_contract,
-    generalOverheads.status,
-    generalOverheads.output_contract,
+    generalOverheads.unmodelled_status,
+    generalOverheads.unmodelled_output_contract,
     openingHours.status,
     openingHours.calculated,
     acceptance_map,
@@ -67,6 +70,7 @@ export default function useModuleReconciliation() {
   return {
     status,
     accept_check,
+    modelled_overhead_effect: generalOverheads.modelled_effect,
     modules: {
       profitAndLoss,
       generalOverheads,

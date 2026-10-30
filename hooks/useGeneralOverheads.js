@@ -374,6 +374,27 @@ export default function useGeneralOverheads() {
     calculated,
   });
 
+  // R3 slice 4 batch A: the reconciliation trust gate judges REAL data, so it gets the status and contract WITHOUT the modelled nudge.
+  // Only built when a nudge is actually applied (Model mode); otherwise the very same objects as status / output_contract come back.
+  const unmodelled = useMemo(() => {
+    if (!nudge_result.applied) return null;
+    const base_calculated = calculate_general_overheads(
+      overhead_state,
+      assets_finance_interest_total
+    );
+    return {
+      status: build_general_overhead_status({
+        overhead_state,
+        saved_overheads,
+        calculated: base_calculated,
+      }),
+      output_contract: build_general_overhead_output_contract({
+        calculated: base_calculated,
+        overhead_state,
+      }),
+    };
+  }, [nudge_result.applied, overhead_state, saved_overheads, assets_finance_interest_total]);
+
   const model_layer = {
     active: model_active,
     nudges,
@@ -410,6 +431,9 @@ export default function useGeneralOverheads() {
     calculated,
     output_contract,
     status,
+    unmodelled_status: unmodelled ? unmodelled.status : status,
+    unmodelled_output_contract: unmodelled ? unmodelled.output_contract : output_contract,
+    modelled_effect: nudge_result.total_effect,
     get card() { if (!card_built) { card_built = true; cached_card = { ...build_card(), modelling: model_layer }; } return cached_card; },
     is_hydrated,
   };
