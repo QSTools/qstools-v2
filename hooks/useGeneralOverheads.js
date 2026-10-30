@@ -35,6 +35,12 @@ import { get_mode } from "@/lib/storage/modelStorage";
 import { get_overhead_nudges, set_overhead_nudge, subscribe_to_diffs } from "@/lib/storage/modelDiffs";
 import { apply_overhead_nudges } from "@/lib/calculations/generalOverheadNudge";
 import { classify_nudge_row } from "@/hooks/general-overheads/generalOverheadNudgeClassify";
+import { get_scenario_adds, subscribe_to_scenarios } from "@/lib/storage/modelScenarios";
+import { non_productive_total } from "@/lib/calculations/scenarioAdds";
+import { inject_scenario_overhead } from "@/lib/calculations/scenarioOverheadLine";
+
+// R3 slice 4 batch C2a: a constant so the first render (server and client) is identical and baseline mode allocates nothing new.
+const NO_SCENARIO_ADDS = Object.freeze({ adds: Object.freeze([]), add_count: 0 });
 
 export default function useGeneralOverheads() {
   const [is_hydrated, set_is_hydrated] = useState(false);
@@ -51,6 +57,8 @@ export default function useGeneralOverheads() {
   // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a nudge changes.
   const [nudges, set_nudges] = useState({});
   const [model_active, set_model_active] = useState(false);
+  // R3 slice 4 batch C2a: the scenario's scratch adds. Empty (and no storage read) in baseline mode; read after mount like the nudges.
+  const [scenario_adds, set_scenario_adds] = useState(NO_SCENARIO_ADDS);
 
   const { profit_and_loss_state } = useProfitAndLossStorage();
 
@@ -105,11 +113,20 @@ export default function useGeneralOverheads() {
       Object.keys(loaded_nudges).length === 0 && Object.keys(current).length === 0 ? current : loaded_nudges
     );
     set_model_active(get_mode() === "model");
+    const loaded_adds = get_scenario_adds();
+    set_scenario_adds((current) =>
+      loaded_adds.add_count === 0 && current.add_count === 0 ? current : loaded_adds
+    );
     set_is_hydrated(true);
   }, []);
 
   useEffect(() => {
-    return subscribe_to_diffs(() => set_nudges(get_overhead_nudges()));
+    const stop_diffs = subscribe_to_diffs(() => set_nudges(get_overhead_nudges()));
+    const stop_scenarios = subscribe_to_scenarios(() => set_scenario_adds(get_scenario_adds()));
+    return () => {
+      stop_diffs();
+      stop_scenarios();
+    };
   }, []);
 
   useEffect(() => {
@@ -151,7 +168,17 @@ export default function useGeneralOverheads() {
     });
   }, [overhead_state, nudges, assets_finance_interest_total]);
 
-  const modelled_state = nudge_result.state;
+  // R3 slice 4 batch C2a: NON-productive scratch adds enter as ONE extra overhead line, AFTER the nudge, on the copy. Cost Allocation already spreads
+  // overhead by each group's recovery hours, so no new maths. With no such adds modelled_state IS nudge_result.state (same object).
+  const scenario_overhead_amount = useMemo(
+    () => non_productive_total(scenario_adds.adds),
+    [scenario_adds]
+  );
+  const scenario_overhead = useMemo(
+    () => inject_scenario_overhead({ overhead_state: nudge_result.state, amount: scenario_overhead_amount }),
+    [nudge_result.state, scenario_overhead_amount]
+  );
+  const modelled_state = scenario_overhead.state;
 
   const calculated = useMemo(() => {
     return calculate_general_overheads(
@@ -377,7 +404,7 @@ export default function useGeneralOverheads() {
   // R3 slice 4 batch A: the reconciliation trust gate judges REAL data, so it gets the status and contract WITHOUT the modelled nudge.
   // Only built when a nudge is actually applied (Model mode); otherwise the very same objects as status / output_contract come back.
   const unmodelled = useMemo(() => {
-    if (!nudge_result.applied) return null;
+    if (modelled_state === overhead_state) return null;
     const base_calculated = calculate_general_overheads(
       overhead_state,
       assets_finance_interest_total
@@ -393,7 +420,7 @@ export default function useGeneralOverheads() {
         overhead_state,
       }),
     };
-  }, [nudge_result.applied, overhead_state, saved_overheads, assets_finance_interest_total]);
+  }, [modelled_state, overhead_state, saved_overheads, assets_finance_interest_total]);
 
   const model_layer = {
     active: model_active,
@@ -434,6 +461,7 @@ export default function useGeneralOverheads() {
     unmodelled_status: unmodelled ? unmodelled.status : status,
     unmodelled_output_contract: unmodelled ? unmodelled.output_contract : output_contract,
     modelled_effect: nudge_result.total_effect,
+    scenario_overhead_cost: scenario_overhead.applied ? scenario_overhead.amount : 0,
     get card() { if (!card_built) { card_built = true; cached_card = { ...build_card(), modelling: model_layer }; } return cached_card; },
     is_hydrated,
   };
