@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useLabour } from "@/hooks/useLabour";
 import useAssets from "@/hooks/useAssets";
@@ -31,6 +31,13 @@ import {
 } from "@/lib/selectors/costAllocationSelectors";
 
 import { useCostAllocationStorage } from "@/lib/storage/costAllocationStorage";
+
+import { get_scenario_adds, subscribe_to_scenarios } from "@/lib/storage/modelScenarios";
+import { productive_placements } from "@/lib/calculations/scenarioAdds";
+import { inject_placements } from "@/lib/calculations/scenarioPlacements";
+
+// R3 slice 4 batch C2b: scratch adds. Empty constant in baseline mode and on the first render.
+const NO_SCENARIO_ADDS = Object.freeze({ adds: Object.freeze([]), add_count: 0 });
 
 function generate_local_id(prefix) {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -63,6 +70,35 @@ export default function useCostAllocation(inputs = {}) {
     reset_state,
   } = useCostAllocationStorage();
 
+  // R3 slice 4 batch C2b: where each PRODUCTIVE scratch add goes. The placements are added to a COPY of the labour and asset assignments, used only by the
+  // calculation below. The real Cost Allocation key, the cards and the actions keep the real assignments, so nothing scenario-made can be saved.
+  // With no productive adds the arrays are the very same ones from storage.
+  const [scenario_adds, set_scenario_adds] = useState(NO_SCENARIO_ADDS);
+
+  useEffect(() => {
+    const loaded_adds = get_scenario_adds();
+    set_scenario_adds((current) =>
+      loaded_adds.add_count === 0 && current.add_count === 0 ? current : loaded_adds
+    );
+    return subscribe_to_scenarios(() => set_scenario_adds(get_scenario_adds()));
+  }, []);
+
+  const scenario_placed = useMemo(() => {
+    const names_by_id = {};
+    safe_array(scenario_adds.adds).forEach((add) => {
+      names_by_id[add.id] = add.name;
+    });
+    return inject_placements({
+      labour_assignments: state?.labour_group_assignments,
+      asset_assignments: state?.asset_group_assignments,
+      placements: productive_placements(scenario_adds.adds),
+      names_by_id,
+      stamp: "",
+    });
+  }, [scenario_adds, state?.labour_group_assignments, state?.asset_group_assignments]);
+  const modelled_labour_assignments = scenario_placed.labour_assignments;
+  const modelled_asset_assignments = scenario_placed.asset_assignments;
+
   const base_calculation_inputs = useMemo(() => {
     return build_cost_allocation_inputs({
       recovery_summary,
@@ -93,8 +129,8 @@ export default function useCostAllocation(inputs = {}) {
     operational_groups: state?.operational_groups ?? [],
     active_assets: asset_recovery_overlay.active_assets,
     active_staff: base_calculation_inputs?.active_staff ?? [],
-    labour_group_assignments: safe_array(state?.labour_group_assignments),
-    asset_group_assignments: safe_array(state?.asset_group_assignments),
+    labour_group_assignments: safe_array(modelled_labour_assignments),
+    asset_group_assignments: safe_array(modelled_asset_assignments),
     productive_labour_type_rows,
     working_unit_recovery_cost:
       safe_number(base_calculation_inputs?.labour_recovery_cost) +
@@ -116,8 +152,8 @@ export default function useCostAllocation(inputs = {}) {
       support_labour_type_rows,
       all_labour_type_rows,
 
-      labour_group_assignments: safe_array(state?.labour_group_assignments),
-      asset_group_assignments: safe_array(state?.asset_group_assignments),
+      labour_group_assignments: safe_array(modelled_labour_assignments),
+      asset_group_assignments: safe_array(modelled_asset_assignments),
       overhead_group_assignments: safe_array(state?.overhead_group_assignments),
       operational_group_recovery_rows,
 
@@ -149,8 +185,8 @@ export default function useCostAllocation(inputs = {}) {
     support_labour_type_rows,
     all_labour_type_rows,
     state?.divisions,
-    state?.labour_group_assignments,
-    state?.asset_group_assignments,
+    modelled_labour_assignments,
+    modelled_asset_assignments,
     state?.overhead_group_assignments,
     operational_group_recovery_rows,
   ]);

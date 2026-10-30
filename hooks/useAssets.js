@@ -30,6 +30,9 @@ import {
   subscribe_to_scenarios,
 } from "@/lib/storage/modelScenarios";
 import { apply_asset_removals } from "@/lib/calculations/scenarioRemovals";
+import { get_scenario_adds } from "@/lib/storage/modelScenarios";
+import { build_added_asset_rows } from "@/lib/calculations/scenarioAdds";
+import { to_asset_rows, append_rows } from "@/lib/calculations/scenarioAddRows";
 
 // R3 slice 4 batch B: constants so the first render (server and client) is identical and baseline mode allocates nothing new.
 const NO_SCENARIO_REMOVALS = Object.freeze({
@@ -40,6 +43,8 @@ const NO_SCENARIO_REMOVALS = Object.freeze({
   removal_count: 0,
 });
 const NO_SCENARIO_ROWS = Object.freeze([]);
+// R3 slice 4 batch C2b: scratch adds (productive assets become modelled asset rows). Empty constant in baseline mode and on the first render.
+const NO_SCENARIO_ADDS = Object.freeze({ adds: Object.freeze([]), add_count: 0 });
 
 export default function useAssets() {
   const {
@@ -63,6 +68,7 @@ export default function useAssets() {
   // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a marker changes.
   const [scenario_removals, set_scenario_removals] = useState(NO_SCENARIO_REMOVALS);
   const [model_active, set_model_active] = useState(false);
+  const [scenario_adds, set_scenario_adds] = useState(NO_SCENARIO_ADDS);
 
   useEffect(() => {
     const loaded_removals = get_scenario_removals();
@@ -70,7 +76,14 @@ export default function useAssets() {
       loaded_removals.removal_count === 0 && current.removal_count === 0 ? current : loaded_removals
     );
     set_model_active(get_mode() === "model");
-    return subscribe_to_scenarios(() => set_scenario_removals(get_scenario_removals()));
+    const loaded_adds = get_scenario_adds();
+    set_scenario_adds((current) =>
+      loaded_adds.add_count === 0 && current.add_count === 0 ? current : loaded_adds
+    );
+    return subscribe_to_scenarios(() => {
+      set_scenario_removals(get_scenario_removals());
+      set_scenario_adds(get_scenario_adds());
+    });
   }, []);
 
   // The scenario view of the asset list: removed assets are filtered out and their overhead pool amounts move to the remaining live assets (pro rata),
@@ -80,7 +93,16 @@ export default function useAssets() {
     () => apply_asset_removals(stored_assets, scenario_removals.asset_ids),
     [stored_assets, scenario_removals.asset_ids]
   );
-  const saved_assets = removal_result.assets;
+  // R3 slice 4 batch C2b: productive scratch assets are appended AFTER the removals. Non-productive assets never become rows (one overhead line in
+  // useGeneralOverheads). With nothing added saved_assets is the same array as before.
+  const added_asset_rows = useMemo(
+    () => to_asset_rows(build_added_asset_rows(scenario_adds.adds)),
+    [scenario_adds]
+  );
+  const saved_assets = useMemo(
+    () => append_rows(removal_result.assets, added_asset_rows),
+    [removal_result.assets, added_asset_rows]
+  );
   const active_asset_count =
     saved_assets === stored_assets
       ? stored_active_asset_count

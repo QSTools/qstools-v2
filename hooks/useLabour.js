@@ -31,6 +31,9 @@ import {
   subscribe_to_scenarios,
 } from "@/lib/storage/modelScenarios";
 import { apply_staff_removals } from "@/lib/calculations/scenarioRemovals";
+import { get_scenario_adds } from "@/lib/storage/modelScenarios";
+import { build_added_staff_rows } from "@/lib/calculations/scenarioAdds";
+import { to_labour_rows, append_rows } from "@/lib/calculations/scenarioAddRows";
 
 // R3 slice 4 batch B: constants so the first render (server and client) is identical and baseline mode allocates nothing new.
 const NO_SCENARIO_REMOVALS = Object.freeze({
@@ -41,6 +44,8 @@ const NO_SCENARIO_REMOVALS = Object.freeze({
   removal_count: 0,
 });
 const NO_SCENARIO_ROWS = Object.freeze([]);
+// R3 slice 4 batch C2b: scratch adds (productive staff become modelled staff rows). Empty constant in baseline mode and on the first render.
+const NO_SCENARIO_ADDS = Object.freeze({ adds: Object.freeze([]), add_count: 0 });
 
 export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   const [state, setState] = useState(getDefaultLabourState);
@@ -53,6 +58,7 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
   // first render matches the server. Every mounted copy of this hook listens, so none goes stale when a marker changes.
   const [scenario_removals, set_scenario_removals] = useState(NO_SCENARIO_REMOVALS);
   const [model_active, set_model_active] = useState(false);
+  const [scenario_adds, set_scenario_adds] = useState(NO_SCENARIO_ADDS);
 
   useEffect(() => {
     const stored_profiles = getStoredLabourProfiles();
@@ -65,10 +71,17 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
       loaded_removals.removal_count === 0 && current.removal_count === 0 ? current : loaded_removals
     );
     set_model_active(get_mode() === "model");
+    const loaded_adds = get_scenario_adds();
+    set_scenario_adds((current) =>
+      loaded_adds.add_count === 0 && current.add_count === 0 ? current : loaded_adds
+    );
   }, []);
 
   useEffect(() => {
-    return subscribe_to_scenarios(() => set_scenario_removals(get_scenario_removals()));
+    return subscribe_to_scenarios(() => {
+      set_scenario_removals(get_scenario_removals());
+      set_scenario_adds(get_scenario_adds());
+    });
   }, []);
 
   useEffect(() => {
@@ -121,9 +134,15 @@ export function useLabour({ pnl_recovery_inputs = {} } = {}) {
 
   // R3 slice 4 batch B: the scenario view of the staff list. With no staff marker this IS base_active_staff (same array, nothing extra calculated),
   // which is always the case in baseline mode. The saved profiles and the form are never changed.
+  // R3 slice 4 batch C2b: productive scratch hires are appended AFTER the removals. Non-productive hires never become rows (they enter as one overhead
+  // line in useGeneralOverheads). With nothing added this is the same array as before.
+  const added_staff_rows = useMemo(
+    () => to_labour_rows(build_added_staff_rows(scenario_adds.adds)),
+    [scenario_adds]
+  );
   const active_staff = useMemo(
-    () => apply_staff_removals(base_active_staff, scenario_removals.staff_ids),
-    [base_active_staff, scenario_removals.staff_ids]
+    () => append_rows(apply_staff_removals(base_active_staff, scenario_removals.staff_ids), added_staff_rows),
+    [base_active_staff, scenario_removals.staff_ids, added_staff_rows]
   );
 
   const resolved_pnl_recovery_inputs = useMemo(() => {
