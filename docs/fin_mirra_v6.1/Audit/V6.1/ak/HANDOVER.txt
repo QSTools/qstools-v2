@@ -1,0 +1,35 @@
+HANDOVER V6.1ak (2026-10-30) - R3 slice 4 batch C2a (scratch adds: NON-PRODUCTIVE adds wired into General Overheads): BUILT, UNIT-TESTED, BUILD CLEAN. NOT LIVE-PROVEN. NOT COMMITTED AT WRITE TIME.
+Previous: V6.1aj (batch C1). ONE FIX PER CHAT: C2b is the next chat. BM brief Addendum 28 is ALREADY WRITTEN (and PROJECT_MAP updated); project knowledge re-synced.
+
+1. WHERE WE ARE
+ C2a is built. Changed: hooks\useGeneralOverheads.js (9 patches). New: lib\calculations\scenarioOverheadLine.js, Py\model_storage_tests\s4_overhead_line.test.mjs. Build exit 0; all 12 test files exit 0 (s4_overhead_line 28).
+ Git at the last paste: modified hooks/useGeneralOverheads.js; untracked scenarioOverheadLine.js and s4_overhead_line.test.mjs (+ FIN_LANDING_PAGE_GUARDRAILS json, not ours). C1 files appear committed. After this handover also changed: BUSINESS_MODELLING_BRIEF.txt, PROJECT_MAP.md, this file. Owner runs git status first, then commits code and docs together.
+ Servers :3000 and :3005 were stopped for the build. The pane was not touched in this chat.
+
+2. WHAT WAS DONE (Addendum 28)
+ In Model mode useGeneralOverheads reads the scenario's scratch adds, sums the NON-productive ones (non_productive_total) and adds the total as ONE custom overhead line ("Scenario: non-productive adds", id scenario_added_cost, category other_unallocated, allocation override business_overhead) to the COPY of the state, AFTER the nudge. Saved state and form never see it. The un-modelled pair for the trust gate is built whenever modelled_state differs from overhead_state. New return field scenario_overhead_cost (no screen yet).
+ Code read finding: overhead_absorbed_cost reaches Cost Allocation from the Recovery Summary (hours mode: total_business_overheads from the General Overheads contract), so the add must enter through the General Overheads contract, the same route the nudge proved. Non-productive adds are NEVER staff or asset rows (an unassigned support staff row stays unassigned; a support asset is spread evenly, not by recovery hours).
+ Misrouting traps closed: fixed label with no user text, explicit allocation override.
+
+3. OWNER DECISIONS THIS CHAT
+ Split C2 into C2a and C2b. A separate scenario-cost line on the Cost Allocation page is wanted, built in C3. Live proof of C2a and C2b together in a fresh chat. No storage field added.
+
+4. OPEN ITEMS AND FINDINGS
+ 1 C2a is not live-proven. Risks to check: (a) General Overheads STATUS may warn because the line is in "Other / Unallocated" (if so move category); (b) card total includes the scenario line, editable lines do not (C3); (c) group shares follow recovery hours, sum to the cent, unassigned counters 0; (d) Reconciled / Model ready with a large add.
+ 2 LIMIT: hybrid recovery modes split a changed total across labour / asset / material shares, so an add would not land wholly in overhead. Hours mode only is covered; units is R4.
+ 3 Carried from C1/C: row fields each consumer needs (C2b); Rate Builder with a staff type with no saved rate (expect floors only); banner "other edits are not saved yet" (C3); add functions write through window.localStorage directly; copy cap 50; is_scratch flag.
+ 4 Carried: unplaced pool shown only as a panel note; General Overheads variance row $41,344 undiagnosed; original 22-key pane state gone; AI_LAYER_BRIEF pointer and advice rule; CRLF decision; two Back to baseline buttons; themes; hydration; orphan note not seen live.
+
+5. NEXT STEPS, IN ORDER (one fix per chat)
+ 1 Commit C2a (git status first).
+ 2 C2b in a new chat, acceptance criteria first: productive staff rows into useLabour (modelled active_staff, own scratch staff type), productive asset rows into useAssets, placements (productive_placements) injected into a COPY of labour_group_assignments / asset_group_assignments in useCostAllocation (real key never written), gate keeps the real pair. Read fresh first: labourSelectors buildLabourOutputContract, assetOutputContract, useCostAllocationAssetOverlay, add_labour_assignment / add_asset_assignment shapes, costAllocationLabourPoolBuilders.js, costAllocationGroupCostBuilder.js, rateBuilderLabourByStaffType.js. Acceptance: Addendum 26 item 8 criteria 1, 2, 4, 5, 7, 8 for the code; patch preflight one match each, asserts, all tests, build.
+ 3 C3: add form, add N more, remove, simplify the banner, scenario-cost line on the Cost Allocation page, Rate Builder check.
+ 4 C4: live proof of C2a, C2b and C3 in the pane (back up to sessionStorage __bak first; write test adds in the approved shape until C3 exists): trace 272 of 272 empty and after removing every add, cost burden up by exactly the annual cost, large combined case, Reconciled / Model ready, tap re-run with a hash-checked paste, Q-7 timing at 100 and 1,000 staff, standing regression with Model mode OFF.
+
+6. STANDING RULES
+ Working conventions in full. Acceptance criteria before the first patch batch. Ask before any storage field. Never build while :3000 or :3005 is running; restart after and check a new string is served. Hash-check the tap paste. Preflight one match per patch, "Patched:" for each, asserts, tests, build. Read existing styles before any UI, no inline colours. Do not put a file commit in the same parallel block as the script that writes it. Live-proof method: separate seed / navigate / eval calls. Say the chat is getting large after each batch.
+
+7. READ FIRST (next chat)
+ This file, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 26, 27 and 28 only. Then the C2b code listed in step 2 (view fresh before patching). Do NOT read the whole brief or the other briefs.
+
+OPENING PROMPT: "Mirra / qstools-web: R3 slice 4 batch C2b (scratch adds: PRODUCTIVE staff and assets, placements into a copy of the Cost Allocation assignments). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\ak\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 26, 27 and 28 only. Addendum 28 is already written. Acceptance criteria first."
