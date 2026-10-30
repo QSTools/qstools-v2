@@ -81,6 +81,11 @@ const NUDGED = '{"version":1,"generation":1,"by_key":{"k":[{"path":"category:tra
 check("slice 3: a layer that was set before install and is unchanged passes rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: NUDGED, diffs_text: NUDGED }))) === "");
 check("slice 3: a layer that changed since install fails rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: NUDGED, diffs_text: NUDGED.replace('"value":5', '"value":6') }))) === "7");
 check("slice 3: a layer that was empty at install and is no longer empty fails rule 7", failed_ids(verdict(ok_log(), ctx({ diffs_start: '{"version":1,"by_key":{}}', diffs_text: NUDGED }))) === "7");
+const SCEN = '{"version":1,"items":[{"id":"scenario_a1","created_at":"t","generation":1,"added":[],"removed":[{"kind":"staff","id":"s1"}]}]}';
+check("slice 4B: scenarios set before install and unchanged pass rule 7", failed_ids(verdict(ok_log(), ctx({ scenarios_start: SCEN, scenarios_text: SCEN }))) === "");
+check("slice 4B: scenarios that changed since install fail rule 7", failed_ids(verdict(ok_log(), ctx({ scenarios_start: SCEN, scenarios_text: SCEN.replace('"s1"', '"s2"') }))) === "7");
+check("slice 4B: scenarios empty at install and no longer empty fail rule 7", failed_ids(verdict(ok_log(), ctx({ scenarios_start: '{"version":1,"items":[]}', scenarios_text: SCEN }))) === "7");
+check("slice 4B: with no scenarios_start a non-empty list still fails rule 7 (old rule)", failed_ids(verdict(ok_log(), ctx({ scenarios_text: SCEN }))) === "7");
 
 // 4. changed_paths
 const cp = tap.changed_paths(JSON.stringify({ a: 1, updated_at: "t1", list: [{ id: 1, v: 2, stamp: "x" }] }), JSON.stringify({ a: 1, updated_at: "t2", list: [{ id: 1, v: 2, stamp: "y" }] }));

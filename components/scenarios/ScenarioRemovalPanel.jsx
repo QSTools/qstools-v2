@@ -9,8 +9,8 @@
 import { useState } from "react";
 
 const TEXT = {
-  staff: { noun: "staff member", none: "No staff to show." },
-  asset: { noun: "asset", none: "No assets to show." },
+  staff: { article: "a", noun: "staff member", none: "No staff to show." },
+  asset: { article: "an", noun: "asset", none: "No assets to show." },
 };
 
 function money(value) {
@@ -40,7 +40,7 @@ export default function ScenarioRemovalPanel({ scenario, heading = "Scenario" })
           <div className="ui-kicker">Scenario</div>
           <h2 className="ui-card-title">{heading}</h2>
           <p className="ui-help">
-            Mark a {words.noun} as removed to see the business without them. Your real data does not change, and Undo returns exactly to the modelled numbers.
+            Mark {words.article} {words.noun} as removed to see the business without them. Your real data does not change, and Undo returns exactly to the modelled numbers.
           </p>
 
           {message ? <p className="ui-help">{message}</p> : null}
