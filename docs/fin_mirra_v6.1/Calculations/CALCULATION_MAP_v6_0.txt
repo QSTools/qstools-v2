@@ -1,5 +1,6 @@
 MIRRA v6.0 - CALCULATION MAP
 STATUS: LIVING DOCUMENT - built 2026-09-24 from extract_calc_map.py v2 output
+  UPDATED 2026-11-04 (R3 slice 4 close-out, scenario_added_cost live-proven, D1 placement rule; BM brief Addendums 32, 33, 34): s10 notes only. Extract NOT re-run. No formula changed.
   UPDATED 2026-10-27 (F-10b, support / unassigned asset depreciation in EBITDA): s9.3 EBIT paragraph - the F-8 remainder row now carries depreciation as well as interest
   (businessOutcomeEbitCalculations.js L55-L84, line numbers read from the patched file; extract NOT re-run). No other section changed.
   UPDATED 2026-10-27 (F-11, EBIT adds back all interest): s4 gained interest_in_overheads_annual (generalOverheadCalculations.js L264-L277, line numbers read from
@@ -710,7 +711,21 @@ Added 2026-11-04 (R3 slice 4 batch C3b, BM brief Addendum 31) - SCENARIO ADDED C
 - Screen: the scenario-cost line on the Cost Allocation page (components/scenarios/ScenarioCostLine.jsx) shows the same sum from
   lib/calculations/scenarioCostSummary.js. Line, node and the rise in total cost burden must agree to the cent (C4 check).
 - Limit: hours recovery mode only (hybrid modes split a changed total across labour / asset / material shares, BM brief Addendum 28 item 2).
-  Unit test only so far (s4_cost_line, 36 checks); live check is C4. Line numbers not recorded.
+  Unit tested (s4_cost_line, 36 checks) and LIVE-PROVEN 2026-11-04 (C4, BM brief Addendum 32 item 4): scenario-cost line, trace node
+  general_overheads.scenario_added_cost and the rise in total cost burden agree to the cent (86,716.02); trace 226 to 227 nodes, edges unchanged at 303.
+  Line numbers not recorded.
+
+Added 2026-11-04 (R3 slice 4 batch D1, BM brief Addendum 33) - SCENARIO PLACEMENT INTO A MISSING WORKING GROUP (Model mode only)
+- Rule: lib/calculations/scenarioPlacements.js inject_placements(live_group_ids) appends a productive scenario add to the COPY of the Cost Allocation
+  assignments ONLY when its group is live; a placement into a group that is not live is skipped (skipped_count). get_live_group_ids(operational_groups) =
+  groups with is_active truthy, id = group_id or operational_group_id. hooks/useCostAllocation.js passes the ids.
+- Effect: a skipped add keeps its cost in Labour / Assets, so the existing Cost Allocation pools show it as unassigned (unassigned_labour_cost,
+  total_unassigned_cost; labour pool available = group rows + remaining). Group rows + unassigned = pool. Example: ghost hire 50,000 into a missing group:
+  burden +50,000.00, unassigned labour 50,000.00.
+- Corrects the earlier assumption (BM brief Addendum 29 item 3) that a missing-group placement was counted as unassigned: the pool builders count any active
+  assignment as assigned, with no group check.
+- Known, accepted (BM brief Addendum 34): the structural warning unassigned_operating_cost is in allocation_warnings but the Cost Allocation page does not
+  render it. Not checked: the same pool gap for REAL assignments into a deleted or inactive group. Line numbers not recorded.
 
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
