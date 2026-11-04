@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/calculations/rateBuilderCalculations";
+import { has_scenario_hire, SCENARIO_HIRE_NOTE } from "@/lib/calculations/scenarioRateNote";
 
 export default function RateBuilderLabourBreakdown({ labour_breakdown }) {
   if (!labour_breakdown) {
@@ -14,6 +15,10 @@ export default function RateBuilderLabourBreakdown({ labour_breakdown }) {
         <p className="mt-4 text-xs text-amber-300">
           Labour is incomplete. {issue_message}
         </p>
+      ) : null}
+
+      {has_scenario_hire(rows) ? (
+        <p className="mt-2 text-xs text-amber-300">{SCENARIO_HIRE_NOTE}</p>
       ) : null}
 
       {rows.length > 0 ? (

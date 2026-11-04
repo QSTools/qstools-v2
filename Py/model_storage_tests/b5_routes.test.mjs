@@ -23,5 +23,8 @@ const texts = Object.values(cfg.MODEL_MODE_TEXT);
 check("all wording is non-empty ASCII", texts.length === 7 && texts.every((t) => typeof t === "string" && t.length > 0 && /^[\x20-\x7e]+$/.test(t)));
 check("the banner says MODEL MODE and the notice says Not available in Model mode", cfg.MODEL_MODE_TEXT.banner_label === "MODEL MODE" && cfg.MODEL_MODE_TEXT.notice_title === "Not available in Model mode");
 
+check("the banner carries the wording approved 2026-10-30 (Addendum 30)", cfg.MODEL_MODE_TEXT.banner === "You are viewing the modelled business. Your real data is not changed. Your overhead what-if and scenario changes are kept; other edits are not saved.", cfg.MODEL_MODE_TEXT.banner);
+check("the stale 'not saved yet' and 'removals are kept' wording is gone", !/not saved yet/.test(cfg.MODEL_MODE_TEXT.banner) && !/removals are kept/.test(cfg.MODEL_MODE_TEXT.banner));
+
 console.log("SUMMARY PASS " + pass + " / FAIL " + fail);
 process.exit(fail === 0 ? 0 : 1);

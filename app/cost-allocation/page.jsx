@@ -6,6 +6,7 @@ import useCostAllocation from "@/hooks/useCostAllocation";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import CostAllocationMainCard from "@/components/cost-allocation/CostAllocationMainCard";
 import CostAllocationHelpPanel from "@/components/cost-allocation/CostAllocationHelpPanel";
+import ScenarioCostLine from "@/components/scenarios/ScenarioCostLine";
 
 export default function CostAllocationPage() {
   const [is_client_ready, set_is_client_ready] = useState(false);
@@ -39,6 +40,8 @@ export default function CostAllocationPage() {
     <main className="ui-page cost-allocation-page">
       <div className="ui-page-stack">
         <CostAllocationMainCard {...card} {...actions} />
+
+        <ScenarioCostLine />
 
         <CostAllocationHelpPanel />
         <NextStepFooter

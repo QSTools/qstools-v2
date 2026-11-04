@@ -1185,3 +1185,15 @@ UPDATE 2026-10-10 (fa9fadd, 982736f, cf93214)
   non_productive_cost - own_non_productive_cost.
 - RankedGroupsDrill under Best Case: capacity_mode "naive", use_implied false.
 - See CALCULATION_MAP_v6_0 update 2026-10-10 and the asset calculators brief Addenda 11-13.
+
+
+STAGE: Scenario added cost (R3 slice 4 batch C3b, 2026-11-04; Model mode only; BM brief Addendum 31)
+  FIELD NAMES: scenario_overhead_cost (useGeneralOverheads return; C2a) = non_productive_total(scenario adds) when above zero, else 0; trace live value scenario_added_cost; trace node
+    general_overheads.scenario_added_cost. Scenario adds are stored in mirra_scenarios_v1 item.added[] (no new field).
+  FILE / FUNCTION: lib/calculations/scenarioAdds.js non_productive_total (whole-cent sum of annual_cost over non-productive adds); lib/calculations/scenarioOverheadLine.js (injects it as one
+    custom overhead line after the nudge); lib/calculations/scenarioCostSummary.js (the figure the Cost Allocation scenario-cost line shows);
+    lib/calculation-trace/pilot-map/scenarioTraceNodes.js; components/scenarios/ScenarioCostLine.jsx (display)
+  FEEDS INTO: general_overheads.total_general_overheads and every total below it in Model mode only (Cost Summary, Business Summary, Recovery Summary, Cost Allocation overhead pool by recovery hours).
+  HOURS/UNITS AWARE: hours mode only (hybrid recovery modes split a changed total across labour / asset / material shares, BM brief Addendum 28 item 2; units mode is R4).
+  VERIFIED: unit test only (s4_cost_line 36 checks, 2026-11-04); live check is C4.
+  NOTES: explain-only node (never added to a total). Emitted only when the amount is above zero. The Cost Allocation scenario-cost line and the node must equal the rise in total cost burden to the cent.

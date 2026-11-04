@@ -698,6 +698,20 @@ Added 2026-10-30 (R3 slice 3, BM brief Addendum 19) - the MODELLED COPY of Gener
 - Known: Module Reconciliation in Model mode with a nudge set shows Reconciled with a gap line equal to the nudge (1,482 on seed A). Not yet
   labelled (BM brief Addendum 19 item 13, Addendum 20). Line numbers not recorded: re-run the extract when the file settles.
 
+Added 2026-11-04 (R3 slice 4 batch C3b, BM brief Addendum 31) - SCENARIO ADDED COST (Model mode only; explain-only trace node)
+- Figure: scenario_added_cost = sum of annual_cost over every NON-productive scenario add (staff and assets), summed in whole cents
+  (lib/calculations/scenarioAdds.js non_productive_total). Example: office hire 62,345.67 + 3 vehicles at 8,123.45 = 86,716.02.
+- Where it enters: hooks/useGeneralOverheads.js injects it as ONE custom overhead line "Scenario: non-productive adds" (category other_unallocated,
+  allocation business_overhead; lib/calculations/scenarioOverheadLine.js) AFTER the percentage nudge, on a copy; Cost Allocation then spreads it by
+  recovery hours like any overhead. The hook returns the amount as scenario_overhead_cost (0 when nothing applies).
+- Trace node: general_overheads.scenario_added_cost (lib/calculation-trace/pilot-map/scenarioTraceNodes.js), ROOT INPUT, no inputs, EXPLAIN ONLY (already
+  inside general_overheads.total_general_overheads, so no edge to a total). Live value scenario_added_cost in calculationTraceLiveValues.js. Emitted only when
+  the amount is above zero, so the standing trace totals do not move; with a non-productive add expect one more node and no more edges.
+- Screen: the scenario-cost line on the Cost Allocation page (components/scenarios/ScenarioCostLine.jsx) shows the same sum from
+  lib/calculations/scenarioCostSummary.js. Line, node and the rise in total cost burden must agree to the cent (C4 check).
+- Limit: hours recovery mode only (hybrid modes split a changed total across labour / asset / material shares, BM brief Addendum 28 item 2).
+  Unit test only so far (s4_cost_line, 36 checks); live check is C4. Line numbers not recorded.
+
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105

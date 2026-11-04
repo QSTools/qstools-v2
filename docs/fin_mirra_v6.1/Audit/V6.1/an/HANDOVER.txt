@@ -1,0 +1,38 @@
+HANDOVER V6.1an (2026-11-04) - R3 slice 4 batch C3b (scenario-cost line on Cost Allocation, trace node, Rate Builder note, banner wording): BUILT, UNIT-TESTED, BUILD CLEAN. NOT LIVE-PROVEN. NOT COMMITTED AT WRITE TIME.
+Previous: V6.1am (batch C3a). ONE FIX PER CHAT: C4 is the next chat. BM brief Addendum 31 is WRITTEN BY .tmp\r3s4_C3b_docs.ps1 (owner runs it), so the opening prompt below says "already written" only once that script has run.
+
+1. WHERE WE ARE
+ C3a is committed (f1844ed, git log at the start of this chat; before it 35bfe26, 95d87a8, 1491903, dc6ee94). C3b is built: 9 patches ("Patched:" x9, BATCH OK, ONCE OK x10), 6 new files, all 15 test files exit 0, npm run build exit 0, Failures 0.
+ Modified: app/cost-allocation/page.jsx, components/rate-builder/line-calculator/RateBuilderLabourBreakdown.jsx, lib/config/modelModeRoutes.js, lib/calculation-trace/calculationTraceLiveValues.js, lib/calculation-trace/calculationTraceSelectors.js, Py/model_storage_tests/b5_routes.test.mjs.
+ New: lib/calculations/scenarioCostSummary.js, lib/calculations/scenarioRateNote.js, lib/calculation-trace/pilot-map/scenarioTraceNodes.js, hooks/useScenarioCostSummary.js, components/scenarios/ScenarioCostLine.jsx, Py/model_storage_tests/s4_cost_line.test.mjs (36 checks).
+ (+ FIN_LANDING_PAGE_GUARDRAILS json untracked, not ours.) Servers :3000 and :3005 were stopped for the build. The pane was not touched.
+
+2. WHAT WAS DONE (Addendum 31)
+ The scenario-cost line (Model mode only; non-productive total carried in overhead by recovery hours, and productive items with their group); the trace node general_overheads.scenario_added_cost (root, explain only, emitted only above zero);
+ the Rate Builder note for a placed scenario hire; the approved banner wording (b5_routes pins it). No storage field added. Cost Allocation and Rate Builder calculation logic untouched.
+
+3. OWNER DECISIONS THIS CHAT
+ "go" on the plan. Trace node: "you need to do 1 but also add the node" (prove the line equals the cost-burden rise AND add a node). Rate Builder note and banner wording as approved in Addendum 30.
+
+4. OPEN ITEMS AND FINDINGS
+ 1 C2a, C2b, C3a and C3b are NOT live-proven. Risks to check: (a) General Overheads STATUS may warn because the C2a line sits in "Other / Unallocated"; (b) the Rate Builder note: a placed hire is ASSUMED to appear as a labour_breakdown row with a scratch_type_ id (code read only), and may show under a generic name;
+   (c) Business Outcome with a scratch asset (no estimated_annual_depreciation, EBITDA may flag unavailable); (d) a placement into a deleted group shows in the unassigned counters; (e) the scenario-cost line total (non_productive_total) versus the trace node (General Overheads hook field) versus the rise in total cost burden, all to the cent;
+   (f) Reconciled / Model ready with the large combined case; (g) layouts of the add form and the cost line on a real screen with real groups; (h) the group dropdown reads the list once after mount.
+ 2 CALC MAP: the Section 10 note for the new node is NOT yet written (VARIABLE_TRACKER stage is). check_trace_coverage.py is to be run after it. The docs script prints the calc map lines needed to place it.
+ 3 LIMIT: hybrid recovery modes split a changed total across labour / asset / material shares (Addendum 28 item 2). Hours mode only is covered; units is R4.
+ 4 Carried: add functions write through window.localStorage directly; copy cap 50; is_scratch flag; unplaced pool shown only as a panel note; General Overheads variance row $41,344 undiagnosed; AI_LAYER_BRIEF pointer and advice rule; CRLF decision; two Back to baseline buttons; themes; hydration; orphan note not seen live.
+
+5. NEXT STEPS, IN ORDER (one fix per chat)
+ 1 Run .tmp\r3s4_C3b_docs.ps1 (appends Addendum 31 and the pointer and trace addenda, edits the BM brief STATUS and LAST UPDATED lines, the PROJECT_MAP row and pointer, writes the VARIABLE_TRACKER stage and this handover; refuses to run twice). Then git status, and commit C3b code and docs together.
+   Suggested message: "R3 slice 4 batch C3b: scenario-cost line on Cost Allocation, scenario cost trace node, Rate Builder scenario hire note, banner wording (BM Addendum 31, handover V6.1an)". Then re-sync project knowledge (mirra-project-sync): the BM, COST_ALLOCATION, RATE_BUILDER and CALCULATION_TRACE briefs, PROJECT_MAP and VARIABLE_TRACKER changed.
+ 2 Write the calc map Section 10 note for general_overheads.scenario_added_cost, then run check_trace_coverage.py (small docs step, can open the C4 chat).
+ 3 C4 in a new chat: live proof of C2a, C2b, C3a and C3b together in the pane (back up to sessionStorage __bak first; use the mirra-pane-live-proof method): the eight points of Addendum 30 item 7, plus the Addendum 31 item 9 points (line = node = cost-burden rise to the cent; one extra trace node and no extra edge; the Rate Builder note; the new banner; layout).
+
+6. STANDING RULES
+ Working conventions in full. Acceptance criteria before the first patch batch. Ask before any storage field. Never build while :3000 or :3005 is running; restart after and check a new string is served. Hash-check the tap paste. Preflight one match per patch, "Patched:" for each, exactly-once counts, tests, build.
+ Every batch script starts with a "work already there" guard. Read existing styles before any UI, no inline colours. Do not put a file commit in the same parallel block as the script that writes it. Live-proof method: separate seed / navigate / eval calls. Say the chat is getting large after each batch.
+
+7. READ FIRST (next chat)
+ This file, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 28 to 31 only. Do NOT read the whole brief or the other briefs.
+
+OPENING PROMPT: "Mirra / qstools-web: R3 slice 4 batch C4 (live proof of C2a, C2b, C3a and C3b together). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\an\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 28 to 31 only. Addendum 31 is already written. Use the mirra-pane-live-proof method; back up the pane to sessionStorage first. Acceptance criteria first."
