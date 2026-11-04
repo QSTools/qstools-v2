@@ -1,0 +1,52 @@
+MIRRA HANDOVER V6.1as - 2026-11-04 (end of R3 slice 5 batch 1b chat)
+File: docs\fin_mirra_v6.1\Audit\V6.1\as\HANDOVER.txt
+
+1. WHERE WE ARE
+- Slice 5 batch 1 (thin page /business-modelling: group minimum rate, full cost rate, revenue per hour) is SHIPPED once the batch 1b docs script
+  (.tmp\r3s5_docs1b.ps1) has been run and committed. Page code was committed as a7ce751. Batch 1b code (selectors, mirra_expected_l2.py,
+  groupRateGapTraceNodes.js, s5_group_rate_nodes.test.mjs) was built clean but check git log / git status first: commit state of 1b is NOT recorded here.
+- 12 commits ahead of origin at the start of the chat, nothing pushed.
+- Untracked and NOT ours, keep out of commits: docs\fin_mirra_v6.1\Future_Build\FIN_LANDING_PAGE_GUARDRAILS_v0_2.json.
+- This handover supersedes V6.1ar section 1 ("not committed").
+
+2. WHAT WAS DONE (BM brief Addendum 36, Trace brief Addendum 7, calc map s10 note "Added 2026-11-04 (R3 slice 5 batch 1b)")
+- New trace nodes: cost_allocation.group.<id>.minimum_recoverable_rate_per_hour and business_outcome.group.<id>.revenue_per_hour. The full cost rate
+  reuses cost_allocation.group.<id>.group_cost_per_hour.
+- Unit test 40 of 40; build OK; full 11-seed regression passed on the new totals; page = node to the cent on seed A, ticked B, overstaffed,
+  misaligned, n100; Model mode ON with an empty layer = OFF (280 of 280, 234 nodes, 307 edges).
+- Pane storage restored (17 keys), helper sessionStorage keys cleared.
+
+3. OWNER DECISIONS
+- The new nodes go into the harness expected values, so the totals rise. NEW STANDING TOTALS (Model mode off): 280 x6 (scenario_a and five variants),
+  scenario_b 344, ticked B 344, gate 340, n100 559, n1000 3,349. (Old: 272 / 335 / 334 / 330 / 551 / 3,341.)
+- From Addendum 35: full cost number = group_cost_per_hour; three-number table on the thin page calling both hooks; lever scope = charge-out rate per
+  labour source plus materials markup (unit rates and asset blended rates deferred); Q-7 freeze on the new page (233 / 236 ms at 100 staff) accepted,
+  re-measure after the lever batch.
+
+4. OPEN ITEMS AND FINDINGS
+- FINDING (code read only, not seen on any seed): revenue per hour divides by Business Outcome COVERED hours (min of seat and labour, plus dry hire in
+  asset-hours groups); the cost rates divide by Cost Allocation seat hours. Decide the hour basis when the whole-business gap is built.
+- NOT RUN: the thin page in Model mode with a non-empty layer; Q-7 re-measure; project knowledge sync and check_project_knowledge_sync if not done.
+- PROJECT_MAP "latest handover" pointer: check whether one exists and point it at V6.1as (not edited in this chat).
+- Storage field for the lever batch (mirra_diffs_v1 by_key records for rate:<source_id> and markup:materials, Addendum 35 item 9): PROPOSED, needs the
+  owner's explicit yes BEFORE any build.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. New chat: Addendum 18 items 17 to 19 on the thin page: hours-weighted whole-business gap (explicit averaging rule, owner confirms, traces to the
+    same nodes), per-source spread (floor / start / ceiling, mark below floor, modelled rate beside today's in Model mode), wording tests (arithmetic
+    only, no "should", tested on several real shortfall cases). Resolve the covered-versus-seat hours basis first.
+ b. New chat: the lever batch (Rate Builder charge-out rate per labour source and materials markup in Model mode), after the owner's yes on the stored shape.
+ c. Slice 5 close-out: Q-7 at 100 and 1,000 staff, Business Outcome freeze re-measure with perf_pass, harness expected values for modelled rates.
+
+6. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- End of session: append dated addendum, re-upload changed briefs to project knowledge, rewrite .tmp\project_sync_ledger.tsv, run
+  python Py\audit-scripts\check_project_knowledge_sync.py.
+
+7. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 36, Addendum 35 items 9 and 12, Addendum 18
+  items 17 to 19 only. CALCULATION_TRACE_BRIEF Addendum 7 if touching nodes.
+- Do NOT read the whole Business Modelling brief (about 250 KB).
+- Opening prompt for the next chat: the batch 1b addenda are ALREADY WRITTEN (BM 36, Trace 7, calc map note); do not rewrite them.

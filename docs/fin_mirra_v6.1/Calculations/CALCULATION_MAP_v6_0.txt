@@ -727,6 +727,22 @@ Added 2026-11-04 (R3 slice 4 batch D1, BM brief Addendum 33) - SCENARIO PLACEMEN
 - Known, accepted (BM brief Addendum 34): the structural warning unassigned_operating_cost is in allocation_warnings but the Cost Allocation page does not
   render it. Not checked: the same pool gap for REAL assignments into a deleted or inactive group. Line numbers not recorded.
 
+Added 2026-11-04 (R3 slice 5 batch 1b, BM brief Addendum 36) - THE THIN PAGE'S THREE PER-GROUP RATES (trace nodes)
+- Group minimum rate: node cost_allocation.group.<id>.minimum_recoverable_rate_per_hour = minimum_recoverable_rate_per_hour on the Cost Allocation recovery
+  rows (hooks/useCostAllocation.js corrected_recovery_rows) = (labour recovery cost + asset recovery cost + overhead recovery cost) / group_recovery_hours.
+  Productive cost only: it EXCLUDES non-productive cost assigned to the group. Node only where recovery hours are above 0 and the rate is a number.
+- Full cost rate: the EXISTING node cost_allocation.group.<id>.group_cost_per_hour = total_group_cost / group_recovery_hours. It INCLUDES assigned
+  non-productive labour and asset cost. No new node (owner decision, BM brief Addendum 35 item 4).
+- Revenue per hour: node business_outcome.group.<id>.revenue_per_hour = calculateIndependentGroupBreakeven({group}).current_rate_per_hour = group_real_capacity
+  modelled_revenue / group_recovery_hours (the very function the page calls). Input: business_outcome.group.<id>.modelled_revenue when the group is a labour
+  or asset group. Node only when the breakeven result is available.
+- Hours basis differs (code read only, NOT seen on any seed tested): the Business Outcome group_recovery_hours are COVERED hours (min of seat and labour
+  hours, plus dry hire in asset-hours groups); the Cost Allocation rates divide by seat hours. Where a group is understaffed or overstaffed the revenue per hour
+  and the two cost rates could sit on different hour bases.
+- Live: page figure = node to the cent on seed A, ticked B, overstaffed, misaligned and 100 staff; Model mode ON with an empty layer equals OFF.
+  File lib/calculation-trace/pilot-map/groupRateGapTraceNodes.js, test Py/model_storage_tests/s5_group_rate_nodes.test.mjs (40 checks). Harness expected
+  values added in Py/stress_test/mirra_expected_l2.py, so the standing totals rise (280 x6, 335 -> 344, 334 -> 344, 330 -> 340, 551 -> 559, 3,341 -> 3,349).
+  Line numbers not recorded.
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105

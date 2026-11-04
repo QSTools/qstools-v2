@@ -225,6 +225,9 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         nodes[f'cost_allocation.group.{r["gid"]}.operated_recovery_hours'] = r["op_recovery"]
         nodes[f'cost_allocation.group.{r["gid"]}.group_cost_per_hour'] = r["cost_per_hour"]
         tol[f'cost_allocation.group.{r["gid"]}.group_cost_per_hour'] = 0.005
+        if r["recovery"] > 0:                                   # R3 slice 5 batch 1b: group minimum rate = productive cost per recovery hour (labour + asset + overhead rates)
+            nodes[f'cost_allocation.group.{r["gid"]}.minimum_recoverable_rate_per_hour'] = (r["lab_cost"] + r["asset_burden"] + r["overhead"]) / r["recovery"]
+            tol[f'cost_allocation.group.{r["gid"]}.minimum_recoverable_rate_per_hour'] = 0.02
         rec = r["recovery"]
         checks = {"assigned_labour_cost": r["lab_cost"], "assigned_labour_hours": r["lab_hours"],
                   "assigned_asset_burden": r["asset_burden"], "assigned_asset_hours": r["asset_hours_max"],
@@ -337,6 +340,9 @@ def layer2(recipe, as_of, l1, charge_out, ids):
         if r["assets"]:                                                       # one per asset group (F-7 trace node, A-13)
             nodes[f'business_outcome.group.{r["gid"]}.dry_hire_revenue'] = sum(
                 s["modelled"] for s in r["src"] if s["kind"] == "asset" and s.get("dry"))
+        if r["covered"] > 0:                                                  # R3 slice 5 batch 1b: revenue per COVERED hour (not seat hours), to the cent in the app
+            nodes[f'business_outcome.group.{r["gid"]}.revenue_per_hour'] = r["modelled"] / r["covered"]
+            tol[f'business_outcome.group.{r["gid"]}.revenue_per_hour'] = 0.011
 
     productive_rows = [r for r in rows if r["productive_group"]]
     labour_modelled = sum(s["modelled"] for r in productive_rows for s in r["src"] if s["kind"] == "labour")
