@@ -1,0 +1,46 @@
+HANDOVER V6.1am (2026-10-30) - R3 slice 4 batch C3a (scenario ADD form on the Labour and Assets pages): BUILT, UNIT-TESTED, BUILD CLEAN. NOT LIVE-PROVEN. NOT COMMITTED AT WRITE TIME.
+Previous: V6.1al (batch C2b). ONE FIX PER CHAT: C3b is the next chat. BM brief Addendum 30 is WRITTEN BY .tmp\r3s4_C3a_docs.ps1 (owner runs it; see section 5 step 1), so the opening prompt below says "already written" only once that script has run.
+
+1. WHERE WE ARE
+ C2a and C2b were confirmed committed at the start of this chat (git log: 95d87a8 docs C2b, 1491903 C2b, dc6ee94, 6b032a4, then origin/main 3475513 = C1; branch ahead of origin by 4).
+ C3a is built. Changed: lib\storage\costAllocationStorage.js (one import, one read-only getter get_group_options), app\labour\page.jsx and app\assets\page.jsx (mount the panel). New: lib\calculations\scenarioAddForm.js, hooks\useScenarioAddControls.js,
+ components\scenarios\ScenarioAddPanel.jsx, Py\model_storage_tests\s4_add_panel.test.mjs (41 checks). Build exit 0; all 14 test files exit 0.
+ Git at the last paste: the 3 files modified; the 4 new files untracked (+ FIN_LANDING_PAGE_GUARDRAILS json, not ours). Owner runs git status first, then commits code and docs together.
+ Servers :3000 and :3005 were stopped for the build. The pane was not touched.
+
+2. WHAT WAS DONE (Addendum 30)
+ The add form: name, annual cost, productive or not, and for productive hours and a working group; Add to scenario; the list of added items with Remove; "Add more of this" with a count. One component for both pages (kind staff or asset), a small hook for the controls
+ (the calculation hooks useLabour and useAssets are untouched; they already read the adds). The group list is read by a new READ-ONLY getter that parses the raw Cost Allocation key and never invents an id. No storage field added.
+ Process finding: the first run of the batch script applied every patch twice (the preflight passes again because each patch keeps its anchor). Fixed by r3s4_batchC3a_fix.ps1; the original now has a "work already there" guard. Labour page has mixed line endings (CRLF and LF).
+
+3. OWNER DECISIONS THIS CHAT
+ "go on all items": split C3 into C3a (done) and C3b; the Rate Builder note (one line, no invented rate) and the banner wording are approved as proposed, built in C3b:
+ Rate Builder note: "This group includes a scenario hire with no charge-out rate, so labour is shown as incomplete."
+ Banner: "You are viewing the modelled business. Your real data is not changed. Your overhead what-if and scenario changes are kept; other edits are not saved."
+
+4. OPEN ITEMS AND FINDINGS
+ 1 C2a, C2b and C3a are not live-proven. Risks to check (carried from Addenda 28 and 29, plus new): (a) General Overheads STATUS may warn because the C2a line is in "Other / Unallocated"; (b) Rate Builder incomplete labour for a group with a scratch hire (C3b adds the note);
+   (c) Business Outcome with a scratch asset (no estimated_annual_depreciation, EBITDA may flag unavailable); (d) a placement into a deleted group shows in the unassigned counters; (e) Cost Allocation page cards do not list scratch placements (C3b adds the scenario-cost line);
+   (f) Reconciled / Model ready with the large combined case; (g) the form layout on a real screen and with the owner's real groups; (h) the group dropdown reads the list once after mount.
+ 2 LIMIT: hybrid recovery modes split a changed total across labour / asset / material shares (Addendum 28 item 2). Hours mode only is covered; units is R4.
+ 3 Carried: add functions write through window.localStorage directly; copy cap 50; is_scratch flag; unplaced pool shown only as a panel note; General Overheads variance row $41,344 undiagnosed; AI_LAYER_BRIEF pointer and advice rule; CRLF decision (and the mixed endings on labour\page.jsx);
+   two Back to baseline buttons; themes; hydration; orphan note not seen live. Candidate helper change, NOT done: skip-if-already-applied in Invoke-PatchBatch.
+
+5. NEXT STEPS, IN ORDER (one fix per chat)
+ 1 Run .tmp\r3s4_C3a_docs.ps1 (appends Addendum 30, edits the brief's STATUS and LAST UPDATED lines and the PROJECT_MAP row and pointer; refuses to run twice). Then git status, and commit C3a code and docs together.
+   Suggested message: "R3 slice 4 batch C3a: scenario add form on Labour and Assets (BM Addendum 30, handover V6.1am)". Then re-sync project knowledge (mirra-project-sync): the brief and PROJECT_MAP changed.
+ 2 C3b in a new chat, acceptance criteria first: (i) a separate scenario-cost line on the Cost Allocation page (the non-productive total the C2a line carries, and the productive placements, labelled as coming from the scenario); (ii) the Rate Builder one-line note when a group holds a scratch hire;
+   (iii) the banner wording above (lib\config\modelModeRoutes.js MODEL_MODE_TEXT.banner; b5_routes test); (iv) pointer addenda in COST_ALLOCATION_BRIEF and RATE_BUILDER_BRIEF. Read existing styles first, no inline colours. Cost Allocation and Rate Builder calculation logic must not change (Section 10 of the brief).
+ 3 C4: live proof of C2a, C2b, C3a and C3b in the pane (back up to sessionStorage __bak first): the eight-point plan in Addendum 30 item 7 (trace 272 of 272 empty and after removing every add, cost burden up by exactly the annual cost, large combined case, Reconciled / Model ready,
+   tap re-run with a hash-checked paste, Q-7 timing at 100 and 1,000 staff, standing regression with Model mode OFF).
+
+6. STANDING RULES
+ Working conventions in full. Acceptance criteria before the first patch batch. Ask before any storage field. Never build while :3000 or :3005 is running; restart after and check a new string is served. Hash-check the tap paste. Preflight one match per patch, "Patched:" for each,
+ asserts, tests, build. NEW: every batch script starts with a "work already there" guard, and checks that new pieces appear EXACTLY ONCE (Assert-Contains only proves at least once). Read existing styles before any UI, no inline colours.
+ Do not put a file commit in the same parallel block as the script that writes it. Live-proof method: separate seed / navigate / eval calls. Say the chat is getting large after each batch.
+
+7. READ FIRST (next chat)
+ This file, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 28 to 30 only (26 and 27 only if the placement design is in question). Then the C3b code (view fresh before patching): the Cost Allocation page and card, the Rate Builder labour breakdown, modelModeRoutes.js.
+ Do NOT read the whole brief or the other briefs.
+
+OPENING PROMPT: "Mirra / qstools-web: R3 slice 4 batch C3b (scenario-cost line on the Cost Allocation page, Rate Builder note for a scenario hire, Model mode banner wording). Read in order: docs\fin_mirra_v6.1\Audit\V6.1\am\HANDOVER.txt, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addenda 28 to 30 only. Addendum 30 is already written. The Rate Builder note and the banner wording are approved (handover section 3). Acceptance criteria first."

@@ -5,6 +5,7 @@ import useLabour from "@/hooks/useLabour";
 import NextStepFooter from "@/components/navigation/NextStepFooter";
 import LabourCompactWorkspaceCard from "@/components/labour/LabourCompactWorkspaceCard";
 import ScenarioRemovalPanel from "@/components/scenarios/ScenarioRemovalPanel";
+import ScenarioAddPanel from "@/components/scenarios/ScenarioAddPanel";
 
 export default function LabourPage() {
   const labour = useLabour();
@@ -32,6 +33,8 @@ export default function LabourPage() {
         <LabourCompactWorkspaceCard labour={labour} />
 
         <ScenarioRemovalPanel scenario={labour.scenario} heading="Scenario: remove staff" />
+
+        <ScenarioAddPanel kind="staff" heading="Scenario: add staff" />
 
         <NextStepFooter nextHref="/assets" nextLabel="Next: Assets" />
       </div>

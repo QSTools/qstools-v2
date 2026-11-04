@@ -10,6 +10,7 @@ import AssetFinancePnlMatchCard from "@/components/assets/AssetFinancePnlMatchCa
 import CollapsibleSection from "@/components/common/CollapsibleSection";
 import AssetTotalPurchasePriceCard from "@/components/assets/AssetTotalPurchasePriceCard";
 import ScenarioRemovalPanel from "@/components/scenarios/ScenarioRemovalPanel";
+import ScenarioAddPanel from "@/components/scenarios/ScenarioAddPanel";
 
 export default function AssetsPage() {
   const { status, card, business_default_annual_weeks, asset_finance_pnl_match, active_assets, scenario } = useAssets();
@@ -37,6 +38,8 @@ export default function AssetsPage() {
         />
 
         <ScenarioRemovalPanel scenario={scenario} heading="Scenario: remove assets" />
+
+        <ScenarioAddPanel kind="asset" heading="Scenario: add assets" />
 
         <AssetHelpPanel />
         <NextStepFooter
