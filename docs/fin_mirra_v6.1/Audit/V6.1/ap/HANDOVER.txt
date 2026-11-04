@@ -1,0 +1,32 @@
+HANDOVER V6.1ap (2026-11-04) - R3 slice 4 batch D1 (fix: a productive scenario add placed in a missing working group is in no group and no unassigned counter): FIXED AND LIVE-PROVEN. ONE FINDING FOR THE OWNER (the Cost Allocation page does not show the new warning).
+Previous: V6.1ao (batch C4 live proof, D1 found). ONE FIX PER CHAT.
+
+1. WHERE WE ARE
+ The D1 code is in the working tree and built clean; committed state NOT checked by Claude. Run git status first. Expected modified: hooks/useCostAllocation.js, lib/calculations/scenarioPlacements.js, Py/model_storage_tests/s4_add_rows.test.mjs, plus the docs of this chat (BUSINESS_MODELLING_BRIEF, PROJECT_MAP, this handover). The stray blank line in Py/audit-scripts/check_project_knowledge_sync.py was reverted by the owner. Servers: :3005 is running; stop it before any build.
+ Pane: restored to its original 16 keys, no mirra mode / diffs / baseline / scenarios keys, sessionStorage empty.
+
+2. WHAT WAS DONE (BM Addendum 33)
+ Cause: Cost Allocation's pools count any assignment as assigned, even into a group that does not exist (Addendum 29 item 3 was wrong). Fix: inject_placements no longer appends a placement whose group is not live (new get_live_group_ids, skipped_count); the hook passes the live group ids. Tests 15 of 15 files exit 0, build exit 0. Live: regression OFF on 11 seeds unchanged (272 x6, 335, 334, 330, 551, 3,341); ghost hire 50,000: burden +50,000.00, unassigned labour 50,000.00, group rows + unassigned = pool, Model ready, Reconciled; control into G02: unassigned 0, G02 +50,000, Rate Builder note for G02 only; scenario removed: 272 of 272, 38 keys byte-identical.
+
+3. OWNER DECISIONS THIS CHAT
+ Approved the criteria and the default: a missing-group placement shows as unassigned through the existing counters, no new warning text, no spread. Reverted the stray change to check_project_knowledge_sync.py.
+
+4. OPEN ITEMS AND FINDINGS
+ NEW: the Cost Allocation page does not display the structural warning unassigned_operating_cost; it shows only the existing support-asset banner and the scenario-cost line ("Working group not found"). Decide: show structural warnings on the page (own batch) or accept (BM Addendum 33 item 5).
+ NEW: the same pool gap exists for real assignments into a deleted or inactive group (not checked whether the page prunes them); Cost Allocation calculation code is out of scope.
+ Still open from Addendum 32 item 13: (b) Business Outcome freeze 212 ms against 200 ms at 100 staff with a 10-add scenario, accept or fix; (c) productive adds in asset-hours groups give no recovery hours; (d) Module Reconciliation label for scenario cost; (e) the "paying its way" copy.
+ Not tested: productive ASSET into a missing group live (unit test only), the add form with a group that has no is_active field, hybrid recovery modes, typing, the orphan note. Both live scenarios were written straight into mirra_scenarios_v1.
+ Docs still owed (carried): the calc map Section 10 note for general_overheads.scenario_added_cost and check_trace_coverage.py; pointer addenda in the other briefs for D1 (not written this chat).
+ Carried: add functions write through window.localStorage directly; copy cap 50; General Overheads variance row $41,344 undiagnosed; AI_LAYER_BRIEF pointer and advice rule; CRLF decision; two Back to baseline buttons; themes; hydration.
+
+5. NEXT STEPS, IN ORDER
+ 1 Owner terminal: git status; commit the D1 code, test and docs together. Suggested message: "R3 slice 4 batch D1: placement into a missing group now shows as unassigned (BM Addendum 33, handover V6.1ap)". Then python Py\audit-scripts\check_project_knowledge_sync.py.
+ 2 Owner decisions on BM Addendum 33 item 5 and Addendum 32 item 13 (b to e), then close slice 4.
+ 3 Docs step: calc map note for scenario_added_cost, check_trace_coverage.py.
+ 4 Slice 5 (Rate Builder as a lever and the per-group three-number gap).
+
+6. STANDING RULES
+ Working conventions in full. Acceptance criteria before the first patch batch. Ask before any storage field. Never build while :3000 or :3005 is running; restart after and check a new string is served. Hash-check the tap paste. Every batch script starts with a "work already there" guard and checks each text exactly once. Read existing styles before any UI, no inline colours. Live-proof method: separate seed / navigate / eval calls; wait 3 s after a navigation before a grab. Do not put a file commit in the same parallel block as the script that writes it. Say the chat is getting large after each batch.
+
+7. READ FIRST (next chat)
+ This file, PROJECT_MAP.md, the Working Conventions file, then BUSINESS_MODELLING_BRIEF Addendum 33 and Addendum 32 item 13 only. Do NOT read the whole brief.

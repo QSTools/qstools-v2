@@ -48,7 +48,7 @@ const placements = A.productive_placements(adds);
 const nm = { scratch_hire1: "Hire A", scratch_hire2: "Hire B" };
 const real_l = deep_freeze([{ assignment_id: "r1", group_id: "g1" }]);
 const real_a = deep_freeze([{ assignment_id: "ra1", group_id: "g1", asset_id: "x" }]);
-const out = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements, names_by_id: nm, stamp: "2026-10-30T00:00:00.000Z" });
+const out = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements, names_by_id: nm, stamp: "2026-10-30T00:00:00.000Z", live_group_ids: ["g1", "g2"] });
 check("placements applied", out.applied === true);
 check("labour: real kept first, 2 added", out.labour_assignments.length === 3 && out.labour_assignments[0] === real_l[0]);
 const l = out.labour_assignments[1];
@@ -62,10 +62,38 @@ const none = P.inject_placements({ labour_assignments: real_l, asset_assignments
 check("no placements -> same arrays", none.applied === false && none.labour_assignments === real_l && none.asset_assignments === real_a);
 const undef = P.inject_placements({ placements: A.productive_placements([]) });
 check("no placements, undefined arrays -> unchanged", undef.applied === false && undef.labour_assignments === undefined);
-const only_staff = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: placements.filter((p) => p.kind === "staff") });
+const only_staff = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: placements.filter((p) => p.kind === "staff"), live_group_ids: ["g1", "g2"] });
 check("staff only -> asset array is the same array", only_staff.asset_assignments === real_a && only_staff.labour_assignments !== real_l);
-const ghost = P.inject_placements({ labour_assignments: [], asset_assignments: [], placements: [{ kind: "staff", id: "scratch_z", group_id: "gone", hours: 1, staff_type_id: "scratch_type_z" }] });
-check("placement into a missing group is still appended (shows as unassigned, not lost)", ghost.labour_assignments.length === 1 && ghost.labour_assignments[0].group_id === "gone");
+// D1 (Addendum 33): a placement into a group that is not live is NOT appended, so its cost stays unassigned (Cost Allocation pools count any assignment as assigned).
+const live = ["g1", "g2"];
+const ghost_place = deep_freeze([{ kind: "staff", id: "scratch_z", group_id: "gone", hours: 1, staff_type_id: "scratch_type_z" }]);
+const ghost = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: ghost_place, live_group_ids: live });
+check("D1: placement into a missing group is NOT appended (cost stays unassigned)", ghost.applied === false && ghost.labour_assignments === real_l && ghost.skipped_count === 1);
+const ghost_asset = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: deep_freeze([{ kind: "asset", id: "scratch_dig9", group_id: "gone", hours: 5 }]), live_group_ids: live });
+check("D1: a productive asset into a missing group is NOT appended", ghost_asset.applied === false && ghost_asset.asset_assignments === real_a && ghost_asset.skipped_count === 1);
+const mixed = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: deep_freeze([{ kind: "staff", id: "scratch_ok", group_id: "g1", hours: 1, staff_type_id: "scratch_type_ok" }, ghost_place[0]]), live_group_ids: live });
+check("D1: live and missing together -> only the live one placed, one skipped", mixed.applied === true && mixed.labour_assignments.length === 2 && mixed.labour_assignments[1].group_id === "g1" && mixed.skipped_count === 1);
+const one_staff = deep_freeze([{ kind: "staff", id: "scratch_ok", group_id: "g1", hours: 1, staff_type_id: "scratch_type_ok" }]);
+for (const [label, ids] of [["undefined", undefined], ["empty list", []], ["a string", "g1"], ["null", null]]) {
+  const r = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: one_staff, live_group_ids: ids });
+  check("D1: live_group_ids " + label + " -> nothing placed", r.applied === false && r.labour_assignments === real_l && r.skipped_count === 1);
+}
+const as_set = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: one_staff, live_group_ids: new Set(["g1"]) });
+check("D1: live_group_ids may be a Set", as_set.applied === true && as_set.skipped_count === 0);
+const groups = deep_freeze([
+  { group_id: "g1", is_active: true },
+  { operational_group_id: "g2", is_active: true },
+  { group_id: "g3", is_active: false },
+  { group_id: "g4" },
+  { is_active: true },
+  null,
+  "junk",
+]);
+const ids = P.get_live_group_ids(groups);
+check("get_live_group_ids: active groups only, id from group_id or operational_group_id", JSON.stringify(ids) === JSON.stringify(["g1", "g2"]), JSON.stringify(ids));
+check("get_live_group_ids: not an array -> empty", P.get_live_group_ids(undefined).length === 0 && P.get_live_group_ids(null).length === 0 && P.get_live_group_ids("x").length === 0);
+const hook_text = fs.readFileSync(path.resolve(here, "..", "..", "hooks", "useCostAllocation.js"), "utf8");
+check("the hook passes the live group ids once", (hook_text.match(/live_group_ids: get_live_group_ids\(state\?\.operational_groups\)/g) || []).length === 1);
 const bad = P.inject_placements({ labour_assignments: real_l, asset_assignments: real_a, placements: [{ kind: "staff", id: "q", group_id: "", staff_type_id: "t" }, null] });
 check("empty group id and null entries are skipped", bad.applied === false && bad.labour_assignments === real_l);
 for (const f of ["scenarioAddRows.js", "scenarioPlacements.js"]) check(f + " under 600 lines", fs.readFileSync(path.join(calc, f), "utf8").split("\n").length < 600);

@@ -34,7 +34,7 @@ import { useCostAllocationStorage } from "@/lib/storage/costAllocationStorage";
 
 import { get_scenario_adds, subscribe_to_scenarios } from "@/lib/storage/modelScenarios";
 import { productive_placements } from "@/lib/calculations/scenarioAdds";
-import { inject_placements } from "@/lib/calculations/scenarioPlacements";
+import { get_live_group_ids, inject_placements } from "@/lib/calculations/scenarioPlacements";
 
 // R3 slice 4 batch C2b: scratch adds. Empty constant in baseline mode and on the first render.
 const NO_SCENARIO_ADDS = Object.freeze({ adds: Object.freeze([]), add_count: 0 });
@@ -92,10 +92,11 @@ export default function useCostAllocation(inputs = {}) {
       labour_assignments: state?.labour_group_assignments,
       asset_assignments: state?.asset_group_assignments,
       placements: productive_placements(scenario_adds.adds),
+      live_group_ids: get_live_group_ids(state?.operational_groups),
       names_by_id,
       stamp: "",
     });
-  }, [scenario_adds, state?.labour_group_assignments, state?.asset_group_assignments]);
+  }, [scenario_adds, state?.labour_group_assignments, state?.asset_group_assignments, state?.operational_groups]);
   const modelled_labour_assignments = scenario_placed.labour_assignments;
   const modelled_asset_assignments = scenario_placed.asset_assignments;
 
