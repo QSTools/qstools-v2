@@ -1,0 +1,51 @@
+MIRRA HANDOVER V6.1aw - 2026-11-06 (slice 5 batch A live check PASSED; batch B next; not-run list logged)
+File: docs\fin_mirra_v6.1\Audit\V6.1\aw\HANDOVER.txt
+Title for the next chat: V6.1aw - batch B whole-business trace nodes
+
+1. WHERE WE ARE
+- Code: unchanged since the batch A commit "Slice 5 batch A: whole-business row on Business Modelling page" (parent 82b3f6a). Check git log and git status first.
+- Live check of batch A is done and logged in BM brief Addendum 40: the Whole business row and both gaps equal an independent recomputation from the trace to the cent on seed A, overstaffed, misaligned, scenario_b, ticked B (scenario_b_dry_hire) and n100; scenario_b G03 is left out and named; Model mode ON with an empty layer equals OFF on seed A; the page has been seen.
+- Standing totals unchanged (Model mode off): 280 x6, 344, 344, 340, 559, 3,349. No node added yet.
+- The highest Audit\V6.1 folder before this one was av, so this is aw.
+- Docs from V6.1at, V6.1au, V6.1av and this chat may be uncommitted: check git status, commit docs separately from code. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+
+2. OWNER DECISIONS STILL OPEN
+- Addendum 39 item 3 (a): gaps subtract the displayed, rounded rates (as built). (b): the labelled two-figure gap line stays on the page until batch C (as built). Neither answered yet.
+- Batch B: owner approves the new standing totals before the harness runs (about 289 on seed A; the unit test gives the exact number).
+
+3. FINDINGS TO CARRY INTO BATCH B (Addendum 40 item 6)
+- F1: on scenario_b the trace node business_outcome.group.G03.modelled_revenue is 0 but the page treats G03 as "missing revenue" (no revenue_per_hour result). The whole-business nodes must take their helper inputs from the same source as the page, not from the modelled_revenue node, and the owner decides what the hours node shows for G03. Read the page's call into calculateWholeBusinessRateGap in app\business-modelling\page.jsx first.
+- F2: at a 502 px pane the content column is 151 px wide with the drawer open (shell, same on Cost Summary). Not ours to fix in this slice; note only.
+
+4. NOT RUN AND NEEDS CHECKING (full list: BM Addendum 40 item 7, letters a to l)
+- a. Variants and ladder not run live for the row: depreciation, nonasset_interest, support_depreciation, dry_hire_gate (340), n1000 (3,349). Batch B's full regression covers them: compare the row on each, not only the node totals.
+- b. Model mode ON with a non-empty layer (nudge, scenario hire, removal, ghost placement) on the Business Modelling page.
+- c. Model mode ON on any seed except seed A; the tap (b6_model_tap).
+- d. Q-7 timing and localStorage characters for the page: slice 5 close-out.
+- e. The full standing regression was not run in this chat (no code changed).
+- f. Covered-below-seat note never seen on screen (no seed has it).
+- g. Excluded group for a missing minimum or full cost rate, and two groups left out at once: unit test only.
+- h. Wording rule checked by the unit test source check only.
+- i. Layout seen only at 502 px with the drawer hidden by a DOM change; not at 712 px or in a real browser.
+- j. Method disclosures: shortened SEED step, "ticked B" taken as scenario_b_dry_hire, independent check tightened mid-run (F1).
+- k. Docs uncommitted and project knowledge not re-synced (see 6).
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. This next chat: batch B. Acceptance criteria first, before any patch: the hours node per earning group cost_allocation.group.<id>.group_recovery_hours plus 5 whole-business nodes calling the same helper (hours, group minimum rate, full cost rate, revenue per seat hour, and the gaps as agreed in Addendum 37), calc map s10 note, harness expected values in Py\stress_test\mirra_expected_l2.py. Owner approves the new totals first. Then run the full regression and also compare the Whole business row on every seed (closes item 4a).
+ b. Batch C: arithmetic-only gap wording and tests (Addendum 37 item 6); replaces the labelled two-figure line.
+ c. Item 18 chat (floor choice: BO breakeven versus group_cost_per_hour), then the lever batch (owner's explicit yes on the stored shape first), then slice 5 close-out (Q-7 re-measure, items 4b to 4d).
+
+6. END-OF-CHAT ACTIONS NOT YET DONE
+- Run .tmp\v61aw_docs.ps1 -Live (dry run first), then git status and commit docs.
+- Re-upload BUSINESS_MODELLING_BRIEF and PROJECT_MAP to project knowledge, replacing what they supersede, rewrite .tmp\project_sync_ledger.tsv, run python Py\audit-scripts\check_project_knowledge_sync.py.
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running (:3005 is running now).
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit. Scripts are dry run by default with -Live.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addenda 39 and 40, then Addendum 37 items 5 and 6 only. Do NOT read the whole brief (about 275 KB).
+- Do not rewrite Addenda 35 to 40; they are written.
+
