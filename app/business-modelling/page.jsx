@@ -5,12 +5,16 @@ import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import { calculateIndependentGroupBreakeven } from "@/lib/calculations/businessModellingIndependentCalculations";
+import { calculateWholeBusinessRateGap } from "@/lib/calculations/wholeBusinessRateGap";
 
 // R3 slice 5 batch 1 (BM Addendum 8 items 1, 2, 5). Per working group, three numbers side by side. This page holds NO calculation of its own:
 //   Group minimum rate = minimum_recoverable_rate_per_hour (Cost Allocation recovery rows; labour + asset + overhead, productive cost only)
 //   Full cost rate     = group_cost_per_hour (Cost Allocation cost rows; also includes non-productive cost assigned to the group)
 //   Revenue per hour   = current_rate_per_hour from calculateIndependentGroupBreakeven (modelled revenue / recovery hours; Business Outcome)
 // Totals underneath are plain sums of the figures shown. In Model mode the hooks already return the modelled values.
+// Whole business row (batch A, BM Addendum 37): calculateWholeBusinessRateGap in lib/calculations/wholeBusinessRateGap.js does the weighting;
+// this page only passes the per-group figures in and displays what comes back. Seat hours (Cost Allocation recovery hours) are the one
+// denominator for all three whole-business rates; the per-group revenue figure stays on covered hours and a Covered hours column shows the difference.
 function money(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "-";
@@ -51,12 +55,27 @@ export default function BusinessModellingPage() {
       min_rate: min_rate_by_id.get(cost.group_id),
       full_cost_rate: cost.group_cost_per_hour,
       revenue_rate: charged && charged.available ? charged.current_rate_per_hour : null,
+      covered_hours: capacity ? capacity.group_recovery_hours : null,
+      modelled_revenue: charged && charged.available ? capacity.modelled_revenue : null,
     };
   });
 
   const total_cost = rows.reduce((sum, r) => sum + r.total_group_cost, 0);
   const total_hours = rows.reduce((sum, r) => sum + r.hours, 0);
   const support_cost = rows.reduce((sum, r) => sum + (r.has_hours ? 0 : r.total_group_cost), 0);
+  const whole = calculateWholeBusinessRateGap(
+    rows.map((r) => ({
+      group_id: r.group_id,
+      group_name: r.group_name,
+      seat_hours: r.hours,
+      min_rate: r.min_rate,
+      full_cost_rate: r.full_cost_rate,
+      modelled_revenue: r.modelled_revenue,
+      covered_hours: r.covered_hours,
+    }))
+  );
+  const hours_text = (value) => Number(value).toLocaleString("en-NZ", { maximumFractionDigits: 1 });
+  const signed_money = (value) => (Number.isFinite(Number(value)) && value !== null ? (value > 0 ? "+" : "") + money(value) : "-");
 
   return (
     <main className="ui-page">
@@ -80,6 +99,7 @@ export default function BusinessModellingPage() {
                     <tr>
                       <th style={{ ...head_style, textAlign: "left" }}>Working group</th>
                       <th style={head_style}>Recovery hours</th>
+                      <th style={head_style}>Covered hours</th>
                       <th style={head_style}>Group minimum rate /hr</th>
                       <th style={head_style}>Full cost rate /hr</th>
                       <th style={head_style}>Revenue per hour</th>
@@ -90,15 +110,43 @@ export default function BusinessModellingPage() {
                       <tr key={r.group_id || r.group_name}>
                         <td style={{ ...cell_style, textAlign: "left" }}>{r.group_name}</td>
                         <td style={cell_style}>{r.has_hours ? r.hours.toLocaleString("en-NZ", { maximumFractionDigits: 1 }) : "none"}</td>
+                        <td style={cell_style}>{r.has_hours && r.covered_hours !== null ? hours_text(r.covered_hours) : "-"}</td>
                         <td style={cell_style}>{r.has_hours ? money(r.min_rate) : "-"}</td>
                         <td style={cell_style}>{r.has_hours ? money(r.full_cost_rate) : "-"}</td>
                         <td style={cell_style}>{r.revenue_rate === null ? "-" : money(r.revenue_rate)}</td>
                       </tr>
                     ))}
+                    <tr style={{ borderTop: "2px solid currentColor", fontWeight: 600 }}>
+                      <td style={{ ...cell_style, textAlign: "left" }}>Whole business (earning groups)</td>
+                      <td style={cell_style}>{whole.available ? hours_text(whole.total_seat_hours) : "-"}</td>
+                      <td style={cell_style}>{whole.available ? hours_text(whole.total_covered_hours) : "-"}</td>
+                      <td style={cell_style}>{whole.available ? money(whole.min_rate) : "-"}</td>
+                      <td style={cell_style}>{whole.available ? money(whole.full_cost_rate) : "-"}</td>
+                      <td style={cell_style}>{whole.available ? money(whole.revenue_per_seat_hour) : "-"}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             )}
+            {rows.length > 0 ? (
+              <div className="ui-stack-sm">
+                <p className="ui-help">
+                  Whole business (earning groups): each rate is the average of the groups&apos; rates weighted by recovery hours; revenue per hour is
+                  total modelled revenue divided by total recovery hours (recovery hours are the paid-for seat hours). Support groups are left out.
+                  {whole.covered_differs ? " In at least one group the hours covered by labour differ from the recovery hours, so the revenue figure in this row is per recovery hour, not per covered hour." : ""}
+                </p>
+                {whole.available ? (
+                  <p className="ui-help">
+                    Revenue per hour minus group minimum rate: {signed_money(whole.gap_to_min_rate)}. Revenue per hour minus full cost rate: {signed_money(whole.gap_to_full_cost_rate)}.
+                  </p>
+                ) : null}
+                {whole.excluded_groups.length > 0 ? (
+                  <p className="ui-help">
+                    Left out of the whole business row: {whole.excluded_groups.map((g) => `${g.group_name || g.group_id} (${g.reason})`).join("; ")}.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {rows.length > 0 ? (
               <p className="ui-help">
                 Whole business: group cost {money0(total_cost)} across {total_hours.toLocaleString("en-NZ", { maximumFractionDigits: 1 })} recovery
