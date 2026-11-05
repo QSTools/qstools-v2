@@ -1,0 +1,68 @@
+MIRRA V6.1 - SHARED CALCULATOR ASSIGNMENT (ONE RATE, MANY ASSETS) - FUTURE BUILD BRIEF
+STATUS: DESIGN ONLY, NOTHING BUILT, NO CODE TOUCHED. Not started. Independent of units mode (works in hours mode first).
+DATE: 2026-11-06 (owner voice session 2026-11-05 to 2026-11-06, concrete reseller test case; see UNITS_MODE brief Addendum 1)
+OWNER NOTE: owner wants this built "kind of soon", after the current R3 slice 5 work, not before it.
+MODULES TOUCHED: Rate Builder (UI and calculator link), Business Outcome (how per-asset revenue resolves its calculator), calculation trace (per-asset nodes), stress harness. Cost Allocation and Assets: no change expected.
+
+===============================================================================
+1. PROBLEM (owner's words in plain terms)
+===============================================================================
+A fleet of machines doing the same job is charged at ONE rate, but each machine cost a different amount because it was bought at a different time: five five-tonne diggers (a Komatsu and a Cat have different names, different purchase dates, different finance) all charged at 120 an hour; twelve concrete mixer bowls bought a year apart, one price per cube; a fuel transporter with trucks of mixed age on one rate per litre. Today every asset needs its own calculator (RATE_BUILDER_BRIEF L9: each asset gets its own calculator, the group price is the SUM of its assets' prices, a result and never an input). Twelve identical calculators is tedious and invites mistakes.
+
+===============================================================================
+2. DECISION (owner, 2026-11-06)
+===============================================================================
+D1  One drop-down under each asset in Rate Builder with two choices: CREATE NEW CALCULATOR (how it works today) or USE EXISTING CALCULATOR (a list of calculators already built). Picking an existing one links the asset to it: the asset shares that calculator's PRICE and keeps its OWN COST (own finance, own pool share, own hours).
+D2  No separate "assign" tab. A tab was proposed first (calculator first, then tick the assets); rejected because Rate Builder already lists every Cost Allocation item in a drop-down and prices them one at a time, so the flow is asset first, calculator second.
+D3  A "quantity on the asset record" was REJECTED (bowls or diggers bought later have different price and finance; see UNITS_MODE Addendum 1 item 9).
+D4  A single calculator pricing a whole group with a multiplier was REJECTED as the main route: it shows only the fleet margin, and the group hours rule (asset hours = MAX of the group, COST_ALLOCATION_BRIEF R4) does not give per-machine hours.
+D5  Feature is visible in every business mode: a Komatsu and a Cat are two different assets doing the same job, so "second asset with the same name" is the wrong trigger. The drop-down is always there; a business with one asset simply picks create new.
+
+===============================================================================
+3. WHAT EXISTS TODAY (from the briefs; code NOT re-read this session)
+===============================================================================
+- Storage qs_tools_rate_builder_calculators_v1: calculators carry linked_cost_allocation_group_id, linked_asset_id ("" = legacy group-level calculator), lines and output driver (RATE_BUILDER_BRIEF Section 4; Path B Stage 1a note: the raw array is saved and loaded so a new field is not dropped there, but every explicit list downstream still needs it, bug class b).
+- Asset-linked calculators price the MACHINE ONLY; the operator is charged once through the Labour tab rate (L9). Group price = sum of asset prices; get_group_blended_rate and the legacy split skip any calculator with a linked_asset_id.
+- Business Outcome R3: asset revenue = asset rate x own hours x min(1, covered / required asset hours), read from the per-asset calculators.
+- An unpriced asset counts as a loss in the roll-ups (owner words and Rate Builder behaviour as described in chat; not re-verified).
+
+===============================================================================
+4. DESIGN REQUIREMENTS (PROPOSED, ask before any storage field)
+===============================================================================
+R1  The link is a new field on the asset-linked calculator record (name TBD). Owner's explicit yes on the stored shape before any build.
+R2  A linked asset keeps its own cost. The shared calculator's rate is PER ASSET HOUR: recovery hours are each asset's own, never summed across the linked assets (owner: "obviously").
+R3  If an asset is linked to a shared calculator its own calculator is hidden, so nobody prices it twice by accident.
+R4  [OPEN] May one asset sit under two calculators (a digger charged at one rate with a bucket and another with a breaker)? Leaning allow; owner decides.
+R5  Real revenue stays tied to the P&L. Only the MODELLED revenue per source is built differently (Rate Builder and Cost Allocation are how the tool gets to that figure). Totals must still reconcile to the P&L; that check does not change. Fewer assets should show as unpriced.
+R6  The L11 hard block (labour incomplete locks add and edit) still applies to the shared calculator.
+R7  Model mode: the Rate Builder rate lever and the scenario Rate Builder note read calculators; confirm they resolve a shared calculator (compare BUSINESS_MODELLING_BRIEF Addendum 35 item 9, which checked the charge-out rate and materials markup reads, not the calculators).
+
+===============================================================================
+5. CHECK FIRST (read-only, before any patch)
+===============================================================================
+C1  How Business Outcome resolves an asset's calculator today (businessOutcomeAssetCalculatorRates.js) and whether a shared calculator can be resolved per asset without changing a verified calculation. Owner and Claude DISAGREED mildly in chat on how big the flow-on is: owner's view is that revenue is still tied to the P&L and only the way the modelled revenue is built changes; the brief's view is that the read changes, so it is a contained flow-on, not zero. Settle by reading the code.
+C2  Which calculation trace nodes exist per asset (rate_builder.* and business_outcome per-asset) and what a shared calculator does to them.
+C3  Every explicit field list a new link field must be added to (hook, selector, storage, card) so it is not silently dropped.
+
+===============================================================================
+6. ACCEPTANCE (state before the first patch)
+===============================================================================
+A1  Existing seeds with no shared calculators produce IDENTICAL numbers (standing totals unchanged: 280 x6, 344, 344, 340, 559, 3,349, Model mode off).
+A2  Hand-calculated case: three assets with different cost, one shared hourly rate; each asset's modelled revenue = shared rate x its own hours x coverage; the group price equals the sum; totals reconcile to the P&L; no asset shows unpriced.
+A3  A trace node per figure shown, matching the screen to the cent; calc map and variable tracker updated in the same commit; harness expected values updated and the owner approves new totals before the run.
+A4  Typing timing (Q-7 limits 100 ms and 300 ms) re-measured on the calculator fields; Model mode on and off.
+A5  Live check in the pane on a fleet seed (three or more same-job assets bought at different times).
+
+===============================================================================
+7. SLICE ORDER (suggested)
+===============================================================================
+S1  Read-only checks C1 to C3, then owner yes on the stored shape.
+S2  Pure helper that resolves an asset's effective calculator, with a unit test (own calculator, shared calculator, none, hidden own calculator, two-calculator case if allowed).
+S3  Rate Builder drop-down and link, no Business Outcome change if C1 allows.
+S4  Business Outcome read, trace nodes, harness values, live proof.
+Then update RATE_BUILDER_BRIEF and BUSINESS_OUTCOME_BRIEF (fold this brief in and archive it per PROJECT_MAP).
+
+===============================================================================
+8. OUT OF SCOPE
+===============================================================================
+Customer price tiers (cost never changes, Rate Builder only, parked: UNITS_MODE Addendum 1 item 10). Units mode. Per-SKU retail. Changing any Cost Allocation or Assets calculation. Quantity on the asset record.

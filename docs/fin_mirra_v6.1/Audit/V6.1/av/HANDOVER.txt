@@ -1,0 +1,39 @@
+MIRRA HANDOVER V6.1av - 2026-11-06 (slice 5 batch A built and committed: whole-business row; live check next)
+File: docs\fin_mirra_v6.1\Audit\V6.1\av\HANDOVER.txt
+Title for the next chat: V6.1av - whole-business row live check
+
+1. WHERE WE ARE
+- Code committed: "Slice 5 batch A: whole-business row on Business Modelling page" (parent 82b3f6a): app\business-modelling\page.jsx, lib\calculations\wholeBusinessRateGap.js, Py\model_storage_tests\s5_whole_business_gap.test.mjs. Check git log and git status before anything else.
+- Docs from this chat (uncommitted at write time, check git status): BM brief Addendum 39 and LAST UPDATED line, PROJECT_MAP pointer (now V6.1av), this handover. Docs from V6.1at / V6.1au may still be uncommitted too; commit docs separately from code. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- The highest Audit\V6.1 folder before this one was au, so this is av.
+- Standing totals unchanged (Model mode off): 280 x6, 344, 344, 340, 559, 3,349. No node added.
+
+2. WHAT WAS DONE
+- Read-only seed check: covered hours equal seat hours on all 9 recipes and the 100 and 1,000 staff ladders; scenario_b G03 has no revenue figure (left out and named).
+- Built, unit-tested (32 of 32), s5_group_rate_nodes still 40 of 40, build OK: the shared helper, the unit test and the page row (BM Addendum 39 item 1).
+
+3. OWNER DECISIONS
+- None new. Two small calls made in the build await the owner (Addendum 39 item 3): gaps subtract the displayed rounded rates; a labelled two-figure gap line is on the page until batch C.
+
+4. OPEN ITEMS AND FINDINGS
+- Live check not run (Addendum 39 item 5). The page has not been seen in a browser.
+- The covered-below-seat case is proven by the unit test only; no seed exercises it.
+- Items from V6.1at still open: item 18 floor choice (BO breakeven versus group_cost_per_hour), design items 8 to 14 (Addendum 37), Q-7 re-measure after the lever batch, thin page in Model mode with a non-empty layer.
+- Project knowledge needs a re-sync after the docs commit (BUSINESS_MODELLING_BRIEF, PROJECT_MAP); rewrite .tmp\project_sync_ledger.tsv and run python Py\audit-scripts\check_project_knowledge_sync.py.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. This next chat: live check of batch A on the production build :3005 (mirra-pane-live-proof): seed A, ticked B, overstaffed, misaligned, n100; compare the Whole business row and the two gaps with an independent recomputation from the trace snapshot to the cent; check scenario_b shows G03 as left out; Model mode ON with an empty layer equals OFF; look at the page. Run the standing regression only if code changes.
+ b. Batch B: hours node per earning group plus 5 whole-business nodes calling the same helper, calc map s10 note, harness expected values, owner approves the new totals before the harness runs (about 289 on seed A, the unit test gives the exact number).
+ c. Batch C: arithmetic-only gap wording and tests (Addendum 37 item 6).
+ d. Item 18 chat, then the lever batch (owner's explicit yes on the stored shape first), then slice 5 close-out.
+
+6. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit. Scripts are dry run by default with -Live.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+7. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 39, then Addendum 37 item 5 only. Do NOT read the whole brief (about 270 KB).
+- Do not rewrite Addenda 35 to 39; they are written.
+

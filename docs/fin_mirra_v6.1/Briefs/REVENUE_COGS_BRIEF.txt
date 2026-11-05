@@ -5,7 +5,7 @@ FILE:          docs\fin_mirra_v6.1\Briefs\REVENUE_COGS_BRIEF.txt  (the ONE Reven
 STATUS:        VERIFIED AT LAYER 1 (R2 stress test, Scenario A, 2026-10-17: Revenue/COGS trace nodes within 1 cent).
                Hours mode only has been exercised with numbers; product / unit mode was wiring-checked only
                (2026-09-20). No dedicated v6.x verification pass was ever run on this module.
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
+LAST UPDATED:  2026-11-06 (Addendum 2, pointer: purchased items list and R2 / R7 conflict, docs only); 2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12 and the code as it
                stands today; code reads are marked READ IN CODE and have not been seen live)
 ROUTE:         app/revenue-cogs  (Next button goes to /labour)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 1 (Revenue / COGS) and Section 12.
@@ -199,3 +199,11 @@ ADDENDA (dated, numbered, newest last)
 
 ADDENDUM 1 (2026-11-04) - POINTER: STORAGE NOW GOES THROUGH THE MODEL STORAGE HELPER (R3 SLICE 1)  [NO Revenue / COGS calculation changed; BUSINESS_MODELLING_BRIEF Addendums 13 and 16]
 Commit ab7c6b3 (2026-10-29) routed lib\storage\revenueCogsStorage.js, with the other storage modules, through the Model mode storage helper and registry. It is a pass-through: with Model mode off it reads and writes exactly as before (key qs_tools_revenue_cogs_state_v2 unchanged), and the standing regression is unchanged. Nothing in Sections 1 to 8 of this brief changes. Model mode itself never writes real Revenue / COGS data; see BUSINESS_MODELLING_BRIEF for the overlay rules.
+
+ADDENDUM 2 (2026-11-06) - POINTER: CONCRETE RESELLER TEST CASE, PURCHASED ITEMS LIST AND A RULE CONFLICT  [DOCS ONLY: no Revenue / COGS code changed; UNITS_MODE brief Addendum 1]
+Source: owner voice session 2026-11-05 to 2026-11-06. Tags: DECISION = owner; PROPOSED / OPEN = not decided; FINDING = read in a brief, not seen on screen.
+ 1. [FINDING] Unit rows already carry the SELL side (unit_type incl. m3, average_sale_rate, derived units = row revenue / rate, R5). There is no buy price per unit, no per-load cost, no capacity and no purchased items list.
+ 2. [DECISION, owner] A purchased items list (name, unit, price per unit: concrete per cube, hired truck per load) belongs in Revenue / COGS; Cost Allocation holds no figures. PROPOSED, nothing built.
+ 3. [OPEN, CONFLICT WITH R2, R7 AND SECTION 10] Cost-of-sales numbers come from the P&L and are not stored here. A list would have to be a RATE CARD deriving an expected cost of sales (price x volume) shown beside the P&L figure with a reconciliation line, never replacing it. Owner decides the wording and where the volume is entered. A new list is a new stored field: explicit yes first.
+ 4. [FINDING] Hired truck and driver and other subcontract costs are cost of sales (LABOUR_BRIEF Section 10). Business Modelling R3 gives the materials basis as COGS / 100, so the Rate Builder materials markup applies to ALL cost of sales; check on screen how concrete and truck lines show in the Business Outcome materials row.
+ 5. [CHECK] RC-3 stands: a product-mode change is not done until it is run in product mode with unit driver data. The test case seed must include it.
