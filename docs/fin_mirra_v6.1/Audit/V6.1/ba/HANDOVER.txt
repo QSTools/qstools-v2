@@ -1,0 +1,35 @@
+HANDOVER V6.1ba - 2026-11-08
+Dangling trace edges when a scenario removes the last staff of a labour type (or an asset).
+(No V6.1az folder exists: that live-test session wrote no handover. Its results are in the prompt below and in BM brief Addendum 44.)
+
+1. WHERE WE ARE
+- Last commit e5bca70 (docs only: BM Addenda 42-44, trace Addendum 9, calc map s10 note, handovers ax and ay).
+- Batch B code (V6.1ay) AND this fix are UNCOMMITTED. Run git status before committing.
+- Production build with the fix: BUILD OK (exit 0) on 2026-11-08. NOT yet live-proven.
+
+2. WHAT WAS DONE
+- Cause: three trace emitters listed group assignments as inputs without checking the labour_type / asset node was emitted.
+- Fix (15 patches, 3 files in lib\calculation-trace\pilot-map, patch script .tmp\v61ba_patch.ps1):
+  costAllocationTraceNodes.js: new exports emitted_labour_type_node_ids, emitted_asset_node_ids; buildOperationalGroupNodes filters labour and asset inputs.
+  idleCostTraceNodes.js: cost_allocation_input_ids(row, live) filters; 3 call sites pass live (idle hours, idle cost, capacity_gap_hours).
+  businessOutcomeTraceNodes.js: labour-source and asset-source modelled_revenue only list a Cost Allocation input that exists.
+- Same pattern for assets and for a group losing all its staff is covered by the same filter (by code reading, not yet live).
+- One build attempt failed on a Google Fonts fetch (transient; connection checked fine). Rebuild passed. Fonts come from next/font/google in app/layout.tsx; self-hosting is an optional separate decision, not made.
+
+3. OWNER DECISIONS: none this session.
+
+4. OPEN ITEMS
+- Live proof of the fix (below).
+- Not checked whether the bug pre-dates batch B.
+- Left open from V6.1az: Model-mode page tap (b6_model_tap.cjs, check SHA-256 first), Q-7 timing at 100 and 1,000 staff, calc map update with live numbers, brief addenda [SHIPPED], commit, project sync.
+
+5. NEXT STEPS (new chat, needs a shell on the computer AND the built-in browser pane)
+a. Stop dev, clear .next, start production on :3005. Seeds are dated 2026-11-08; regenerate with .tmp\r3s1_regression_prepare.ps1 if the day has changed.
+b. Model mode OFF: all 11 seeds, 0 duplicates, 0 missing endpoints: scenario_a and five variants 291, scenario_b 356, dry_hire 356, gate 352, n100 570, n1000 3,360.
+c. Model mode ON, scenario_b: remove staff ae3d04b3-981a-555f-8257-9a72d276cae4 and e0977bc7-6123-59a7-a2ce-947b3bdb6276 and asset ddce5b80-07a6-5f13-a75d-22a127ab8e88. Expect 0 missing endpoints, 0 duplicates. Empty layer 356/356. Undo restores the trace exactly. Restore the pane to its 17 original keys.
+d. Whole-business row still matches trace on 7 figures (hours 10,932.7; min rate 144.91; full cost 148.46; rev/hr 220.49; gaps +75.58, +72.03).
+e. Then tap, Q-7, calc map, addenda, git status, commit (code and docs), project sync.
+
+6. STANDING RULES: Apply-Patch only; confirm every Patched:; build after patches; never build while dev runs; view files fresh before patching; live-test before commit.
+
+7. READ FIRST: PROJECT_MAP.md, Working_Conventions, BM brief Addendum 44 and CALCULATION_TRACE_BRIEF Addendum 9 only. Do not read the rest of the briefs.

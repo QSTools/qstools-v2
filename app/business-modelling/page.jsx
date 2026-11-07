@@ -4,8 +4,7 @@ import NextStepFooter from "@/components/navigation/NextStepFooter";
 import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
-import { calculateIndependentGroupBreakeven } from "@/lib/calculations/businessModellingIndependentCalculations";
-import { calculateWholeBusinessRateGap } from "@/lib/calculations/wholeBusinessRateGap";
+import { calculateWholeBusinessFromContracts } from "@/lib/calculations/wholeBusinessGroupInputs";
 
 // R3 slice 5 batch 1 (BM Addendum 8 items 1, 2, 5). Per working group, three numbers side by side. This page holds NO calculation of its own:
 //   Group minimum rate = minimum_recoverable_rate_per_hour (Cost Allocation recovery rows; labour + asset + overhead, productive cost only)
@@ -38,42 +37,14 @@ export default function BusinessModellingPage() {
   const contract = cost_allocation?.output_contract ?? {};
   const cost_rows = Array.isArray(contract.operational_group_cost_rows) ? contract.operational_group_cost_rows : [];
   const recovery_rows = Array.isArray(contract.operational_group_recovery_rows) ? contract.operational_group_recovery_rows : [];
-  const min_rate_by_id = new Map(recovery_rows.map((r) => [r.group_id, r.minimum_recoverable_rate_per_hour]));
   const capacity_rows = per_source?.real_capacity?.group_real_capacity;
-  const capacity_by_id = new Map((Array.isArray(capacity_rows) ? capacity_rows : []).map((g) => [g.group_id, g]));
-
-  const rows = cost_rows.map((cost) => {
-    const hours = Number(cost.group_recovery_hours) || 0;
-    const capacity = capacity_by_id.get(cost.group_id);
-    const charged = capacity ? calculateIndependentGroupBreakeven({ group: capacity }) : null;
-    return {
-      group_id: cost.group_id,
-      group_name: cost.group_name,
-      hours,
-      has_hours: hours > 0,
-      total_group_cost: Number(cost.total_group_cost) || 0,
-      min_rate: min_rate_by_id.get(cost.group_id),
-      full_cost_rate: cost.group_cost_per_hour,
-      revenue_rate: charged && charged.available ? charged.current_rate_per_hour : null,
-      covered_hours: capacity ? capacity.group_recovery_hours : null,
-      modelled_revenue: charged && charged.available ? capacity.modelled_revenue : null,
-    };
-  });
+  // Batch B (BM Addendum 42 item 3): ONE shared function builds the per-group rows and the whole-business result for this page and for the trace nodes.
+  const { rows, whole } = calculateWholeBusinessFromContracts({ cost_rows, recovery_rows, capacity_rows });
 
   const total_cost = rows.reduce((sum, r) => sum + r.total_group_cost, 0);
   const total_hours = rows.reduce((sum, r) => sum + r.hours, 0);
   const support_cost = rows.reduce((sum, r) => sum + (r.has_hours ? 0 : r.total_group_cost), 0);
-  const whole = calculateWholeBusinessRateGap(
-    rows.map((r) => ({
-      group_id: r.group_id,
-      group_name: r.group_name,
-      seat_hours: r.hours,
-      min_rate: r.min_rate,
-      full_cost_rate: r.full_cost_rate,
-      modelled_revenue: r.modelled_revenue,
-      covered_hours: r.covered_hours,
-    }))
-  );
+
   const hours_text = (value) => Number(value).toLocaleString("en-NZ", { maximumFractionDigits: 1 });
   const signed_money = (value) => (Number.isFinite(Number(value)) && value !== null ? (value > 0 ? "+" : "") + money(value) : "-");
 

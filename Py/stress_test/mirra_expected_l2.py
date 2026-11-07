@@ -344,6 +344,25 @@ def layer2(recipe, as_of, l1, charge_out, ids):
             nodes[f'business_outcome.group.{r["gid"]}.revenue_per_hour'] = r["modelled"] / r["covered"]
             tol[f'business_outcome.group.{r["gid"]}.revenue_per_hour'] = 0.011
 
+    # R3 slice 5 batch B (BM Addendum 42 items 1 to 4): hours node per group with seat hours above 0, then the 7 whole-business nodes.
+    # INCLUDED groups = seat hours above 0 and a revenue-per-hour node (productive group with covered hours above 0); a group left out (G03 on scenario_b) still has its hours node.
+    # Seat hours weight all three rates; each rate and each gap is rounded to the cent the way the app does (gaps subtract the ROUNDED rates).
+    for r in rows:
+        if r["recovery"] > 0:
+            nodes[f'cost_allocation.group.{r["gid"]}.group_recovery_hours'] = r["recovery"]
+    wb = [r for r in rows if r["recovery"] > 0 and r["productive_group"] and r["covered"] > 0]
+    wb_hours = sum(r["recovery"] for r in wb)
+    if wb and wb_hours > 0:
+        wb_min = round(sum(r["lab_cost"] + r["asset_burden"] + r["overhead"] for r in wb) / wb_hours, 2)
+        wb_full = round(sum(r["total_cost"] for r in wb) / wb_hours, 2)
+        wb_rev = round(sum(r["modelled"] for r in wb) / wb_hours, 2)
+        for field, v, tl in (("min_rate", wb_min, 0.011), ("full_cost_rate", wb_full, 0.011), ("revenue_per_seat_hour", wb_rev, 0.011),
+                             ("gap_to_min_rate", round(wb_rev - wb_min, 2), 0.021), ("gap_to_full_cost_rate", round(wb_rev - wb_full, 2), 0.021),
+                             ("total_seat_hours", wb_hours, None), ("total_covered_hours", sum(r["covered"] for r in wb), None)):
+            nodes[f"business_modelling.whole_business.{field}"] = v
+            if tl is not None:
+                tol[f"business_modelling.whole_business.{field}"] = tl
+
     productive_rows = [r for r in rows if r["productive_group"]]
     labour_modelled = sum(s["modelled"] for r in productive_rows for s in r["src"] if s["kind"] == "labour")
     asset_modelled = sum(s["modelled"] for r in productive_rows for s in r["src"] if s["kind"] == "asset")

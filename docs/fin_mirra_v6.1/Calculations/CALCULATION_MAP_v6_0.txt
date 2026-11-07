@@ -743,7 +743,7 @@ Added 2026-11-04 (R3 slice 5 batch 1b, BM brief Addendum 36) - THE THIN PAGE'S T
   File lib/calculation-trace/pilot-map/groupRateGapTraceNodes.js, test Py/model_storage_tests/s5_group_rate_nodes.test.mjs (40 checks). Harness expected
   values added in Py/stress_test/mirra_expected_l2.py, so the standing totals rise (280 x6, 335 -> 344, 334 -> 344, 330 -> 340, 551 -> 559, 3,341 -> 3,349).
   Line numbers not recorded.
-Added 2026-11-08 (R3 slice 5 batch B, BM brief Addendum 44) - WHOLE BUSINESS ROW NODES (EXPECTED; NOT YET LIVE-VERIFIED)
+Added 2026-11-08 (R3 slice 5 batch B, BM brief Addendum 44) - WHOLE BUSINESS ROW NODES (LIVE-VERIFIED 2026-11-08, V6.1ba, BM brief Addendum 45)
 - One shared function: lib/calculations/wholeBusinessGroupInputs.js calculateWholeBusinessFromContracts({cost_rows, recovery_rows, capacity_rows}) builds the per-group
   rows (same shape the page used inline) and calls calculateWholeBusinessRateGap (lib/calculations/wholeBusinessRateGap.js). The Business Modelling page and the nodes
   both call it. Revenue per group comes from calculateIndependentGroupBreakeven (current_rate_per_hour and the real_capacity modelled_revenue), not from the
@@ -755,8 +755,8 @@ Added 2026-11-08 (R3 slice 5 batch B, BM brief Addendum 44) - WHOLE BUSINESS ROW
 - Nodes (lib/calculation-trace/pilot-map/wholeBusinessTraceNodes.js): cost_allocation.group.<id>.group_recovery_hours (every group with seat hours above 0, including a
   group left out of the row) and business_modelling.whole_business.{min_rate, full_cost_rate, revenue_per_seat_hour, gap_to_min_rate, gap_to_full_cost_rate,
   total_seat_hours, total_covered_hours} (only when the row is shown). Edges come from included groups only. total_covered_hours is a boundary node (no per-group source).
-- Expected standing totals (harness mirra_expected_l2.py, computed not yet run in the app): 280 -> 291 on scenario_a and its five variants, 344 -> 356 (B and ticked B),
-  340 -> 352 (gate), 559 -> 570 (n100), 3,349 -> 3,360 (n1000). Replace with the live figures after the regression. Test Py/model_storage_tests/s5_whole_business_nodes.test.mjs
+- Expected standing totals (harness mirra_expected_l2.py, run live 2026-11-08, all matched, 0 duplicates, 0 missing endpoints): 280 -> 291 on scenario_a and its five variants, 344 -> 356 (B and ticked B),
+  340 -> 352 (gate), 559 -> 570 (n100), 3,349 -> 3,360 (n1000). These ARE the live figures. Live whole-business row on scenario_b (Model mode, empty layer): 10,932.7 seat and covered hours, min rate 144.91, full cost rate 148.46, revenue per seat hour 220.49, gaps +75.58 and +72.03, page equal to the seven nodes. V6.1ba: trace emitters filter labour_type / asset inputs through emitted_labour_type_node_ids / emitted_asset_node_ids (incl. dryHireTraceNodes.js), so a scenario that removes the last staff of a type or an asset leaves no dangling edge (proved: 361 edges, 0 missing endpoints). Test Py/model_storage_tests/s5_whole_business_nodes.test.mjs
   (54 checks). Line numbers not recorded. No CM-n opened or closed.
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
