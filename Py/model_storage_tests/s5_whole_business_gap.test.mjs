@@ -95,7 +95,7 @@ const g = (id, seat, min, full, rev, cov = seat) => ({ group_id: id, group_name:
 // 11 the page uses the helper and does no arithmetic of its own for the averages
 {
   const page = fs.readFileSync(path.join(root, "app", "business-modelling", "page.jsx"), "utf8").replace(/\r\n/g, "\n");
-  check("11 page imports calculateWholeBusinessRateGap once and calls it once", page.split("import { calculateWholeBusinessRateGap }").length - 1 === 1 && page.split("= calculateWholeBusinessRateGap(").length - 1 === 1);
+  check("11 page imports calculateWholeBusinessFromContracts once and calls it once", page.split("import { calculateWholeBusinessFromContracts }").length - 1 === 1 && page.split("= calculateWholeBusinessFromContracts(").length - 1 === 1);
   check("11 page shows a Whole business row and a Covered hours column", /Whole business \(earning groups\)/.test(page) && /Covered hours/.test(page));
   check("11 page has no gap wording yet (should / need to / must / consider / recommend)", !/\b(should|need to|must|consider|recommend)\b/i.test(page.replace(/\/\/.*$/gm, "")));
 }
