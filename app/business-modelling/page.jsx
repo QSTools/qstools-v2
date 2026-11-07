@@ -5,6 +5,7 @@ import useCostAllocation from "@/hooks/useCostAllocation";
 import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSourceRevenue";
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import { calculateWholeBusinessFromContracts } from "@/lib/calculations/wholeBusinessGroupInputs";
+import { buildWholeBusinessGapWording } from "@/lib/calculations/wholeBusinessGapWording";
 
 // R3 slice 5 batch 1 (BM Addendum 8 items 1, 2, 5). Per working group, three numbers side by side. This page holds NO calculation of its own:
 //   Group minimum rate = minimum_recoverable_rate_per_hour (Cost Allocation recovery rows; labour + asset + overhead, productive cost only)
@@ -46,7 +47,8 @@ export default function BusinessModellingPage() {
   const support_cost = rows.reduce((sum, r) => sum + (r.has_hours ? 0 : r.total_group_cost), 0);
 
   const hours_text = (value) => Number(value).toLocaleString("en-NZ", { maximumFractionDigits: 1 });
-  const signed_money = (value) => (Number.isFinite(Number(value)) && value !== null ? (value > 0 ? "+" : "") + money(value) : "-");
+  // Batch C (BM Addendum 42 item 6): the gap and left-out sentences come from one tested pure function; the page holds no wording logic.
+  const wording = buildWholeBusinessGapWording(whole);
 
   return (
     <main className="ui-page">
@@ -106,16 +108,9 @@ export default function BusinessModellingPage() {
                   total modelled revenue divided by total recovery hours (recovery hours are the paid-for seat hours). Support groups are left out.
                   {whole.covered_differs ? " In at least one group the hours covered by labour differ from the recovery hours, so the revenue figure in this row is per recovery hour, not per covered hour." : ""}
                 </p>
-                {whole.available ? (
-                  <p className="ui-help">
-                    Revenue per hour minus group minimum rate: {signed_money(whole.gap_to_min_rate)}. Revenue per hour minus full cost rate: {signed_money(whole.gap_to_full_cost_rate)}.
-                  </p>
-                ) : null}
-                {whole.excluded_groups.length > 0 ? (
-                  <p className="ui-help">
-                    Left out of the whole business row: {whole.excluded_groups.map((g) => `${g.group_name || g.group_id} (${g.reason})`).join("; ")}.
-                  </p>
-                ) : null}
+                {wording.two_rate_sentence ? <p className="ui-help">{wording.two_rate_sentence}</p> : null}
+                {wording.no_earning_sentence ? <p className="ui-help">{wording.no_earning_sentence}</p> : null}
+                {wording.left_out_sentence ? <p className="ui-help">{wording.left_out_sentence}</p> : null}
               </div>
             ) : null}
             {rows.length > 0 ? (
