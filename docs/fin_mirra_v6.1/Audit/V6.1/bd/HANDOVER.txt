@@ -1,0 +1,51 @@
+MIRRA HANDOVER V6.1bd - 2026-11-08 (slice 5 batch C wording LIVE-PROVEN; docs written; code commit and project sync pending owner's PowerShell)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bd\HANDOVER.txt
+Title for the next chat: V6.1be - item 18 floor, read-only look
+
+1. WHERE WE ARE
+- HEAD should still be cb951c1 plus any docs commits. Nothing pushed. Run git log and git status first.
+- This chat had NO shell on the owner's PC (no git, no audit scripts). So the code commit, the docs commit and the sync ledger / audit script run are for the owner to paste (see section 6).
+- UNCOMMITTED, expected in git status: M app/business-modelling/page.jsx; ?? lib/calculations/wholeBusinessGapWording.js; ?? Py/model_storage_tests/s5_gap_wording.test.mjs; docs: PROJECT_MAP.md, Briefs\BUSINESS_MODELLING_BRIEF.txt (Addenda 46 and 47), Audit\V6.1\bc and bd HANDOVER.txt. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- Project knowledge: BUSINESS_MODELLING_BRIEF and PROJECT_MAP re-uploaded this chat (claude/ names). Ledger .tmp\project_sync_ledger.tsv rewritten for those two rows; owner to run the audit script to confirm.
+
+2. WHAT WAS DONE (BM Addendum 47 already written)
+- Live proof on :3005 (pane visible, 62 fps, seeds dated today): the page sentence equals the sentence built from the business_modelling.whole_business gap nodes on scenario_a (34.57 / 34.07), scenario_b (75.58 / 72.03, plus the separate "Left out ... G03 Dry hire (missing revenue)." line) and ticked B = seed scenario_b_dry_hire (72.64 / 69.61).
+- Every expected node present and in tolerance on all three (193 / 230 / 230), 0 duplicates.
+- Pane storage backed up first (17 keys, no earlier __bak) and restored byte for byte, no model-mode keys left.
+
+3. OWNER DECISIONS
+- None new this chat. Still open: fix the stale check 11 (see 4), lever batch (explicit yes on the stored shape first), comparison switch and saved sets, whether core changes alone can be the chosen plan.
+
+4. FINDINGS AND NOT-RUN
+- CORRECTION: the handover bc / Addendum 46 expected figures were wrong for scenario_a (34.56 / 34.06 should be 34.57 / 34.07) and ticked B (72.61 / 69.58 should be 72.64 / 69.61). Nodes and page agree; the code is right. Addendum 47 item 2 records it.
+- STALE TEST (still open): s5_whole_business_gap.test.mjs check 11 (line 98) looks for calculateWholeBusinessRateGap in the page; batch B moved the call into calculateWholeBusinessFromContracts. 31 of 32. Recommended fix: change the two string checks to that name, rerun the test. Not patched (no shell this chat).
+- NOT RUN: Model mode ON with an empty layer on this page; no-earning sentence on a real seed (unit test only); variants and size ladder; tap; Q-7 (none needed for wording). All belong to the slice 5 close-out.
+- Method note: trace "total" in standing figures (291 etc.) counts nodes plus raw and derived checks; a plain trace download gives 245 / 293 / 292 nodes.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: run section 6 commands (code commit, docs commit, ledger audit).
+ b. V6.1be: fix check 11 (one tiny patch, then run the test), then item 18: read-only look first (is the break-even rate View B?), then the floor and its trace node (inputs filtered through emitted_labour_type_node_ids / emitted_asset_node_ids).
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out (covers the not-run list).
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add app/business-modelling/page.jsx lib/calculations/wholeBusinessGapWording.js Py/model_storage_tests/s5_gap_wording.test.mjs
+ git commit -m "Slice 5 batch C: whole-business two-rate, left-out and no-earning sentences"
+ git add docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/Audit/V6.1/bc docs/fin_mirra_v6.1/Audit/V6.1/bd
+ git commit -m "Docs: BM Addenda 46-47, batch C live-proven, handover bd"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+ (git push when ready. Stop :3005 before building; clear .next before restarting dev.)
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 47 and Addendum 42 item 18, skill mirra-pane-live-proof. Do NOT read the whole brief (about 320 KB). Do not rewrite Addenda 35 to 47; they are written.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1be - item 18 floor, read-only look
+Outline: read this handover (BM Addendum 47 already written; batch C live-proven; code and docs commit and sync done by the owner per section 6). Fix stale check 11 in s5_whole_business_gap.test.mjs first, then a read-only look at item 18: is the break-even rate View B, and what would the floor and its trace node need.

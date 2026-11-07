@@ -1,0 +1,46 @@
+MIRRA HANDOVER V6.1bc - 2026-11-08 (slice 5 batch C wording BUILT, unit-tested, built clean; NOT live-proven, NOT committed; next: live proof)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bc\HANDOVER.txt
+Title for the next chat: V6.1bd - batch C live proof
+
+1. WHERE WE ARE
+- HEAD should still be cb951c1 plus any docs commits from the bb chat. Nothing pushed. Run git log and git status first.
+- UNCOMMITTED, expected in git status: M app/business-modelling/page.jsx; ?? lib/calculations/wholeBusinessGapWording.js; ?? Py/model_storage_tests/s5_gap_wording.test.mjs; docs: PROJECT_MAP.md, Briefs\BUSINESS_MODELLING_BRIEF.txt (Addendum 46), this handover. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- The build on disk is current (npm run build exit 0 after the patch). :3000 and :3005 were stopped for it. Standing totals unchanged (Model mode off): 291 x6 / 356 / 356 / 352 / 570 / 3,360.
+
+2. WHAT WAS DONE (BM Addendum 46 is already written)
+- lib/calculations/wholeBusinessGapWording.js: buildWholeBusinessGapWording(whole) gives two_rate_sentence, left_out_sentence, no_earning_sentence (string or null).
+- page.jsx: 3 patches (import, one wording line, the old gap line and left-out line replaced by three conditional paragraphs). The page applied them before the final batch was run (the preflight then found 0 matches for patches 2 and 3, which was correct: already applied; file checked identical to the simulated result).
+- Tests: s5_gap_wording 31 of 31; s5_whole_business_nodes 54 of 54; s5_group_rate_nodes 40 of 40; build OK.
+- Acceptance criteria confirmed by the owner: both rates always named, above / below with the dollar amount; exactly 0 reads "equal to"; no-earning-group sentence; left-out sentence separate; covered-hours note unchanged.
+
+3. OWNER DECISIONS
+- Made this chat: "equal to" wording for a zero gap; the no-earning-group sentence wording (both are Claude's wording, owner confirmed).
+- Open: fix the stale check 11 in s5_whole_business_gap.test.mjs (see 4). Still open from earlier: lever batch (explicit yes on the stored shape first); comparison switch and saved sets; whether core changes alone can be the chosen plan.
+
+4. FINDINGS AND NOT-RUN
+- STALE TEST: s5_whole_business_gap.test.mjs check 11 (page imports calculateWholeBusinessRateGap) fails, 31 of 32. Stale since batch B, not caused by batch C. Proposed fix: look for calculateWholeBusinessFromContracts instead. Not patched.
+- NOT RUN (the whole job of the next chat): live check in the pane; sentence versus trace nodes on scenario_a, scenario_b, ticked B; Model mode ON empty layer equal to OFF; the no-earning sentence has no real-seed case (unit test only).
+- Expected sentences: scenario_a "Revenue per hour is $34.56 above the group minimum rate and $34.06 above the full cost rate."; scenario_b "... $75.58 above ... and $72.03 above ..." plus "Left out of the whole business row: G03 Dry hire (missing revenue)."; ticked B "... $72.61 above ... and $69.58 above ...". Figures are the whole_business gap nodes (display rounded rates subtracted), 10,932.7 hours on scenario_b.
+- Lesson: when a pasted preflight shows BAD COUNT 0 on some patches and 1 on another, check whether the file is already patched before assuming it is stale.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. V6.1bd: batch C live proof (skill mirra-pane-live-proof). Owner starts npm run start -- -p 3005, keeps the pane visible, seeds dated today and older than the server start. Back up pane storage first, restore at the end. Then commit code (page, module, test) and docs separately after git status. Re-upload BUSINESS_MODELLING_BRIEF and PROJECT_MAP to project knowledge, rewrite .tmp\project_sync_ledger.tsv, run python Py\audit-scripts\check_project_knowledge_sync.py.
+ b. Item 18 chat: read-only look first (is the break-even rate View B?), then the floor and its trace node (the node must filter its inputs through emitted_labour_type_node_ids / emitted_asset_node_ids).
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out (covers the not-run list in the bb handover section 4).
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT ACTIONS (for the next chat)
+- git push when ready. Stop :3005 before building; clear .next before restarting dev.
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 46 and Addendum 42 item 6, skill mirra-pane-live-proof. Do NOT read the whole brief (about 315 KB). Do not rewrite Addenda 35 to 46; they are written.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bd - batch C live proof
+Outline: read this handover (BM Addendum 46 already written; code built and unit-tested, uncommitted), start :3005, check the batch C sentence against the whole_business trace nodes on scenario_a, scenario_b and ticked B, then commit, sync project knowledge and write handover bd.
