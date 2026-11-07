@@ -1,0 +1,47 @@
+MIRRA HANDOVER V6.1bb - 2026-11-08 (slice 5 batch B and the dangling-edge fix LIVE-PROVEN and committed; next: batch C wording)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bb\HANDOVER.txt
+Title for the next chat: V6.1bc - batch C wording (two-rate sentence and "left out" sentence)
+
+1. WHERE WE ARE
+- Last commits: cb951c1 "Slice 5 batch B: whole-business trace nodes; trace emitters no longer list missing labour/asset nodes (V6.1ba), live-proven" (code, tests, BM Addendum 45, trace Addendum 10, calc map s10 live numbers, harness expected values) and 36ab49e (a handover edit that this chat then reversed: the ba folder is back to what the earlier chat wrote; this file is bb). Nothing pushed (branch ahead of origin/main). Run git log and git status first.
+- Highest Audit\V6.1 folder before this one was ba, so this is bb. The chat that did the live proof was titled "V6.1ba - live proof" because the ba handover named it so; its output is this file.
+- Docs changed after cb951c1 (check git status, commit docs separately): this handover, PROJECT_MAP pointer and R3 row. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- NEW STANDING TOTALS (Model mode off, live 2026-11-08): scenario_a and five variants 291, scenario_b 356, dry_hire 356, gate 352, n100 570, n1000 3,360. 0 duplicates, 0 missing endpoints. The old 280 / 344 / 344 / 340 / 559 / 3,349 are stale.
+
+2. WHAT WAS DONE (BM brief Addendum 45, trace brief Addendum 10 are already written)
+- The 11-seed regression passed. Model mode on scenario_b: empty layer 356 of 356; 3 removals (S01-001, S01-002 = the only Crane operators, asset A01-001) gave 1 missing endpoint after the first fix, so a FOURTH emitter was found and fixed: dryHireTraceNodes.js buildDryHireCostAllocationNodes (9 patches, .tmp\v61ba2_patch.ps1). After it: 274 nodes, 361 edges, 0 duplicates, 0 missing endpoints; Undo restores 356 of 356 with 0 differences.
+- Whole business row on the Business Modelling page equals the 7 trace nodes on scenario_b: 10,932.7 hours; 144.91; 148.46; 220.49; +75.58; +72.03.
+- Model-mode tap (b6_model_tap.cjs, SHA-256 e6d3acc3f276f09fafaaef17664bec41309b60557e667fa477dfe57eb050dc57 checked in the page first): OVERALL PASS, rules 1 to 7, 18 pages plus 5 notice routes, 3-removal scenario set before install.
+- Q-7 timing at 100 and 1,000 staff, OFF / ON empty / ON scenario / OFF again, 6 routes x 2 runs: nothing over limit. Business Outcome open 303 ms and freeze 174 ms at 100 staff; 997 ms and 663 ms at 1,000. ON with scenario at most 3 percent over OFF.
+- Calc map s10 note replaced with live numbers. Project knowledge re-synced (ledger rewritten, audit script 17 OK). Pane restored to its 17 original keys, byte for byte.
+
+3. OWNER DECISIONS: none this chat. Still open from the ax handover: lever batch (explicit yes on the stored shape first; extend the slice 4 scenario record or a new one; "lever" versus "scenario" wording against Addendum 41 item 1); comparison switch and saved sets (explicit yes on the stored shape); whether core changes alone can be the chosen plan.
+
+4. FINDINGS AND NOT-RUN (BM Addendum 45 item 7)
+- NEW RULE: any trace emitter that lists labour_type or asset ids as inputs must filter them through emitted_labour_type_node_ids / emitted_asset_node_ids (costAllocationTraceNodes.js). Four emitters do now; the next one written must too.
+- Not run: whole-business row against the trace on seeds other than scenario_b; page unchanged before and after batch B (Addendum 44 item 9c); whether the trace page shows module business-modelling (9f); Model mode ON with a non-empty layer on seed A (Addendum 40 item 7b); Add-scenario flows after the fix; finding D1 (placement into a deleted group) re-check; whether the dangling-edge bug pre-dates batch B.
+- Q-7 disclosures: the Q-7 scenario was written straight into storage, typing was not measured, quick pages read as the load event only, and localStorage at 1,000 staff was 5.72 million characters (a real browser stops near 5 million).
+- Optional, not decided: self-host fonts (next/font/google in app/layout.tsx caused one transient build failure).
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Next chat V6.1bc: batch C wording (BM Addendum 42 item 6): one two-rate sentence for every included case plus a separate "left out" sentence; the gap line stays until then. Acceptance criteria first. Read fresh: app\business-modelling\page.jsx and the wording tests.
+ b. Item 18 chat: read-only look first (is the break-even rate View B?), then the floor and its trace node (the node must filter its inputs, see the new rule).
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out (covers the not-run list in section 4).
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT ACTIONS
+- git push when ready. Commit docs (git status first). If a brief changes, re-upload it and rewrite .tmp\project_sync_ledger.tsv, then run python Py\audit-scripts\check_project_knowledge_sync.py.
+- Stop :3005 before building; clear .next before restarting dev.
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 45 and Addendum 42 item 6, CALCULATION_TRACE_BRIEF Addendum 10. Do NOT read the whole brief (about 310 KB). Do not rewrite Addenda 35 to 45; they are written.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bc - batch C wording
+Outline: read this handover (BM Addendum 45 already written), state acceptance criteria for the two-rate sentence and the "left out" sentence, patch app\business-modelling\page.jsx, build, live-check on scenario_a, scenario_b and ticked B, then handover bc.
