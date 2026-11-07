@@ -1,0 +1,78 @@
+MIRRA V6.1 - DUPLICATE WORKING GROUP (COPY A GROUP, SWAP THE ASSET) - FUTURE BUILD BRIEF
+STATUS: DESIGN ONLY, NOTHING BUILT, NO CODE TOUCHED. Not started. Independent of units mode (works in hours mode and units mode).
+DATE: 2026-11-07 (owner voice session 2026-11-06 to 2026-11-07, concrete reseller test case; see UNITS_MODE brief Addendum 2 item 9)
+OWNER NOTE: new build, not units specific. Core units mode comes first; no new features join the core until it is built and proven (owner). Pairs with SHARED_CALCULATOR_ASSIGNMENT (one price, many assets); that brief solves the repeated PRICING, this one solves the repeated GROUP SETUP.
+MODULES TOUCHED: Cost Allocation (the page action and the stored groups and assignments), possibly Rate Builder (the copied group must link to the shared calculator), calculation trace and stress harness. Assets, Business Outcome: no change expected.
+
+===============================================================================
+1. PROBLEM (owner's words in plain terms)
+===============================================================================
+A fleet of similar machines each needs its own working group so that each machine's cost and margin are right: twelve concrete mixer bowls bought at different times (different price and finance), a digger fleet at one hourly rate, a van fleet. Putting all twelve in ONE group distorts the per-hour rates (group asset hours are the MAX of the assets, COST_ALLOCATION_BRIEF R4, and the labour cap is MIN(asset hours, labour hours), R5; total cost is right, per-hour rates are not). Building twelve groups by hand means assigning the same people, overhead and cost of sales twelve times, which is the duplication the owner wants to avoid. Each bowl is the same shape every time; only the asset (and so the finance) differs.
+
+===============================================================================
+2. DECISION (owner, 2026-11-07)
+===============================================================================
+D1  Each similar asset gets its OWN working group inside the SAME operating group. (Direction, replaces the earlier intent of one group holding all twelve: UNITS_MODE Addendum 1 item 8 and COST_ALLOCATION Addendum 14 item 3.)
+D2  A DUPLICATE button on a working group copies the group with its assignments inside the same operating group; the user then picks which asset is assigned. Assets stay one record per machine (a quantity field on an asset stays REJECTED: UNITS_MODE Addendum 1 item 9).
+D3  Not units specific: works in hours mode (a digger fleet) and units mode (twelve bowls). Logged as its own brief, next to the shared calculator brief.
+D4  Duplicate group and shared calculator together mean: build the first group and calculator once, then per extra machine only pick the asset and pick "use existing calculator".
+
+===============================================================================
+3. WHAT EXISTS TODAY (from the briefs; code NOT re-read this session)
+===============================================================================
+- Cost Allocation assigns labour, assets and overhead to working groups inside operating groups and holds no figures of its own (owner principle; COST_ALLOCATION_BRIEF). A group is one working unit.
+- Bought-in cost (cost of sales) is PROPOSED as a fourth assignment kind and the link is decided to live in Cost Allocation (UNITS_MODE Addendum 2 item 4); not built. If it exists by the time this is built, the copy must include it.
+- Whether a duplicate or copy action exists anywhere today: not seen in any brief; assumed NOT to exist (the owner said it is a new build). Check the code first.
+- Whether one asset may be assigned to more than one group at once: UNKNOWN from the briefs; check (this decides what the copy does with the asset).
+
+===============================================================================
+4. DESIGN REQUIREMENTS (PROPOSED, ask before any storage field)
+===============================================================================
+R1  The action creates a new group in the same operating group with a new id and a name derived from the source (rename allowed). Owner's explicit yes on the stored shape before any build.
+R2  The copy carries every assignment the source has EXCEPT the asset: labour assignments, overhead assignments and (when it exists) the cost of sales assignments. The asset field starts empty and the user must pick the next asset; a group with no asset is shown as incomplete, never silently priced.
+R3  Assignment percentages: copy them as they are, then show them to the user. The copy must not change the combined total across groups without the user seeing it (a percentage of one person's time assigned to twelve groups can exceed 100 percent in total; check how Cost Allocation validates this today and surface it, do not hide it).
+R4  If the source group is linked to a Rate Builder calculator, the copy offers "use existing calculator" pointing at it (SHARED_CALCULATOR D1). Never copy the calculator record itself.
+R5  Every new stored field the copy touches is added to every explicit field list (bug class b), and the copy goes through the same storage helper path as a normal group (including the Model mode storage helper, which must pass it through unchanged with Model mode off).
+R6  The new group must go through the same readiness, warnings and hard blocks as a hand-built group (for example the L11 labour block). Duplicating must not be a route around a check.
+
+===============================================================================
+5. CHECK FIRST (read-only, before any patch)
+===============================================================================
+C1  How groups and assignments are stored and rebuilt (the explicit field lists), and whether any copy or clone helper already exists.
+C2  Whether an asset can sit in two groups, and how assignment percentages are validated across groups.
+C3  What Business Outcome, Rate Builder and the trace expect of group ids (new ids must not collide with seed or scenario ids) and which trace nodes exist per group.
+C4  Model mode: groups made while Model mode is on (overlay) versus real data; the copy must write to the same place a normal group does.
+
+===============================================================================
+6. ACCEPTANCE (state before the first patch)
+===============================================================================
+A1  With the button unused, existing seeds give IDENTICAL numbers (standing totals 280 x6, 344, 344, 340, 559, 3,349, Model mode off).
+A2  Hand-calculated case: three assets of the same type with different cost and finance; one group built by hand, two made by duplicate and a changed asset; each group's cost equals its own asset cost plus its assigned shares; the sum equals the same three groups built by hand; totals reconcile.
+A3  The copy carries labour, overhead and cost of sales assignments and leaves the asset empty; an empty-asset group is flagged incomplete.
+A4  A trace node per figure shown, matching the screen to the cent; calc map and variable tracker updated in the same commit (none expected if no new figure).
+A5  Typing and click timing (Q-7 limits 100 ms and 300 ms) re-measured on the Cost Allocation page; Model mode on and off.
+A6  Live check in the pane on a fleet seed (three or more same-job assets bought at different times).
+
+===============================================================================
+7. SLICE ORDER (suggested)
+===============================================================================
+S1  Read-only checks C1 to C4, then the owner's yes on the stored shape.
+S2  Pure helper that copies a group's assignments without the asset, with a unit test (labour only, overhead only, cost of sales present, percentages over 100 total, empty asset).
+S3  Button and page flow, no calculation change.
+S4  Live proof on a fleet seed, trace and harness check, then update COST_ALLOCATION_BRIEF (fold this brief in and archive it per PROJECT_MAP).
+
+===============================================================================
+8. OUT OF SCOPE
+===============================================================================
+A quantity on the asset record. Duplicating assets themselves (each asset has its own price and finance entered in Assets). Copying a Rate Builder calculator (that is the shared calculator brief). Units mode itself. Any change to how Cost Allocation spreads cost.
+
+===============================================================================
+ADDENDUM 1 (2026-11-07, later) - OWNER YES ON THE COPY; LABOUR AND ASSET ARE NOT COPIED  [DECISION: docs only, nothing built]
+===============================================================================
+Source: owner voice session 2026-11-07 (UNITS_MODE brief Addendum 3 item 6). This addendum REPLACES Sections 4 R2 and R3 where they differ; edit those lines in place when at a keyboard.
+ 1. [DECISION, owner, explicit yes] The duplicate group copy is agreed as a stored shape. It copies the group SHELL: a new working group in the same operating group with the same overhead and cost of sales assignments, plus the stream (a working group now carries a stream link, COST_ALLOCATION Addendum 16 item 1; a group with no stream shows incomplete).
+ 2. [DECISION, owner, CHANGES R2 and R3] Labour assignments and the asset are NOT copied. Twelve bowls need twelve drivers, so each copy gets its own driver and its own bowl assigned afterwards. This removes the risk R3 described of one person's percentage being copied across twelve groups and exceeding 100 percent.
+ 3. [DECISION, owner] Overhead recalculates on its own: it is split by recovered hours today (not by group count), so adding groups changes each group's share and the total stays the same. Owner's proviso (distribution must update automatically) is met by the existing behaviour; confirm in the live proof.
+ 4. [DECISION, owner] The existing Cost Allocation unassigned figure is the check. It reaches zero only when all drivers and bowls are assigned; until then the warning stays and blocks later steps. The copy needs no check of its own. [FINDING, not confirmed on screen: that unassigned LABOUR blocks later steps like an unassigned productive asset does. Check in the live proof (A6).]
+ 5. [ACCEPTANCE CHANGE] A3 becomes: the copy carries overhead, cost of sales and stream assignments and leaves labour and asset empty; the group shows unassigned until both are assigned, and the unassigned figure reaches zero when all are assigned. A2 still applies with drivers assigned by hand after each copy.
+ 6. [UNCHANGED] R4 to R6, Sections 5 to 8 and the rule that no feature joins the core until it is proven.

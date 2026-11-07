@@ -743,6 +743,21 @@ Added 2026-11-04 (R3 slice 5 batch 1b, BM brief Addendum 36) - THE THIN PAGE'S T
   File lib/calculation-trace/pilot-map/groupRateGapTraceNodes.js, test Py/model_storage_tests/s5_group_rate_nodes.test.mjs (40 checks). Harness expected
   values added in Py/stress_test/mirra_expected_l2.py, so the standing totals rise (280 x6, 335 -> 344, 334 -> 344, 330 -> 340, 551 -> 559, 3,341 -> 3,349).
   Line numbers not recorded.
+Added 2026-11-08 (R3 slice 5 batch B, BM brief Addendum 44) - WHOLE BUSINESS ROW NODES (EXPECTED; NOT YET LIVE-VERIFIED)
+- One shared function: lib/calculations/wholeBusinessGroupInputs.js calculateWholeBusinessFromContracts({cost_rows, recovery_rows, capacity_rows}) builds the per-group
+  rows (same shape the page used inline) and calls calculateWholeBusinessRateGap (lib/calculations/wholeBusinessRateGap.js). The Business Modelling page and the nodes
+  both call it. Revenue per group comes from calculateIndependentGroupBreakeven (current_rate_per_hour and the real_capacity modelled_revenue), not from the
+  business_outcome.group.<id>.modelled_revenue node (a group with covered hours 0, such as G03 on scenario_b, is left out of the row).
+- Included group = seat hours above 0 and minimum rate, full cost rate and modelled revenue all numeric. Seat hours (Cost Allocation group_recovery_hours) are the one
+  denominator: min_rate = sum(group minimum rate x seat hours) / sum(seat hours); full_cost_rate likewise with group_cost_per_hour; revenue_per_seat_hour = sum(modelled
+  revenue) / sum(seat hours); each rounded once to the cent; gap_to_min_rate and gap_to_full_cost_rate = revenue_per_seat_hour minus the DISPLAYED (rounded) rate.
+  total_seat_hours and total_covered_hours are sums over the included groups. Support groups (no seat hours) are not in any figure.
+- Nodes (lib/calculation-trace/pilot-map/wholeBusinessTraceNodes.js): cost_allocation.group.<id>.group_recovery_hours (every group with seat hours above 0, including a
+  group left out of the row) and business_modelling.whole_business.{min_rate, full_cost_rate, revenue_per_seat_hour, gap_to_min_rate, gap_to_full_cost_rate,
+  total_seat_hours, total_covered_hours} (only when the row is shown). Edges come from included groups only. total_covered_hours is a boundary node (no per-group source).
+- Expected standing totals (harness mirra_expected_l2.py, computed not yet run in the app): 280 -> 291 on scenario_a and its five variants, 344 -> 356 (B and ticked B),
+  340 -> 352 (gate), 559 -> 570 (n100), 3,349 -> 3,360 (n1000). Replace with the live figures after the regression. Test Py/model_storage_tests/s5_whole_business_nodes.test.mjs
+  (54 checks). Line numbers not recorded. No CM-n opened or closed.
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105

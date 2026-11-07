@@ -1,0 +1,42 @@
+MIRRA HANDOVER V6.1ay - 2026-11-08 (slice 5 batch B BUILT, unit-tested, built clean; live regression NOT run; code uncommitted)
+File: docs\fin_mirra_v6.1\Audit\V6.1\ay\HANDOVER.txt
+Title for the next chat: V6.1az - batch B live regression
+Written after BM brief Addendum 44, CALCULATION_TRACE_BRIEF Addendum 9, the calc map s10 note (EXPECTED values) and the PROJECT_MAP pointer (now V6.1ay). Those are already written; do not rewrite them.
+
+1. WHERE WE ARE
+- Last commit before this chat: "Slice 5 batch A: whole-business row on Business Modelling page" (parent 82b3f6a). NOTHING from this chat is committed. Run git status first.
+- Code changes (uncommitted): NEW lib\calculations\wholeBusinessGroupInputs.js, NEW lib\calculation-trace\pilot-map\wholeBusinessTraceNodes.js, NEW Py\model_storage_tests\s5_whole_business_nodes.test.mjs; MODIFIED app\business-modelling\page.jsx, lib\calculation-trace\calculationTraceSelectors.js, Py\stress_test\mirra_expected_l2.py.
+- Docs changed (commit separately from code): BM brief (Addendum 44, LAST UPDATED), CALCULATION_TRACE_BRIEF (Addendum 9), CALCULATION_MAP_v6_0.txt (s10 note), PROJECT_MAP.md, this handover; plus the ax docs and others already modified before this chat. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- Build OK (exit 0) 2026-11-08 06:35 NZ. .tmp\r3s1_regression_prepare.ps1 run afterwards: 11 seeds + expected files in public\__stress_tmp, as-of 2026-11-08. :3005 NOT started. Scripts used: .tmp\V6.1ay_batchB_apply.ps1, .tmp\V6.1ay_batchB_harness_build.ps1 (both already run -Live; do not run again, they refuse or fail on existing files).
+
+2. WHAT WAS DONE
+- ONE shared function builds the page rows and the whole-business result; page and nodes both call it; page JSX unchanged.
+- Hours node per group with seat hours above 0 (G03 on scenario_b included) + 7 business_modelling.whole_business.* nodes (3 rates, 2 gaps, total seat hours, total covered hours), edges from included groups only.
+- Unit test 54 of 54; s5_group_rate_nodes 40 of 40; harness expected values added and computed in the workspace for every recipe.
+
+3. OWNER DECISIONS MADE
+- New standing totals approved before the harness change: 291 x6 (scenario_a + five variants), 356 (B), 356 (ticked B), 352 (gate), 570 (n100), 3,360 (n1000). They are EXPECTATIONS until the app confirms them.
+- Seed test goes in a new chat (this one is closed after the docs).
+- Build-time calls shown to the owner without objection, still to confirm (Addendum 44 item 4): total covered hours as a boundary node; revenue edges via each group's revenue_per_hour node; module name business-modelling.
+
+4. OPEN ITEMS AND NOT-RUN (Addendum 44 item 9)
+- Live regression on all 11 seeds; page row vs trace nodes to the cent on every seed (G03 case on scenario_b); Model mode ON (empty and non-empty layer); Q-7 timing at 100 and 1,000 staff OFF and ON; does the trace page show the business-modelling module; replace the calc map EXPECTED note with live figures; commit; project sync.
+- Addendum 40 items 7a to 7l still stand; this regression closes 7a.
+- Findings carried: Addendum 40 F2 (narrow pane layout) not ours. If the pane shows any difference between the Whole business row before and after batch B, treat as a bug in the shared function and stop.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. V6.1az (next chat): live regression of batch B. Owner runs npm start -- -p 3005 (seeds already prepared 2026-11-08 and the build is current; if :3005 is started after NZ midnight, re-run the prepare script first because the seeds must be dated today). Claude checks seed dates, backs up pane storage, runs the 11 seeds against the totals in section 3, compares the Whole business row to the trace nodes, runs Model mode ON and the Q-7 timing, then updates the calc map note with live numbers, commits code (git status first) and re-syncs project knowledge.
+ b. Batch C wording (Addendum 42 item 6). c. Item 18 chat (read-only look first), then the lever batch (explicit yes on the stored shape first), then slice 5 close-out. d. Later design topics as in the ax handover.
+
+6. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running. Apply-Patch / Invoke-PatchBatch for every edit, "Patched:" confirmations, build after each batch, view files fresh, git status before commit. Scripts are dry run by default with -Live.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines. Never record a finding from a screenshot; verify numbers in the console first.
+- pane-live-proof skill standing totals text is STALE (272 / 335 ...); use the totals in section 3 of this handover.
+
+7. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 44 (then Addendum 40 item 7 only). Do NOT read the whole brief (about 310 KB).
+- Do not rewrite Addenda 35 to 44.
+
+CLOSING BLOCK (copy and paste into the next chat)
+Title: V6.1az - batch B live regression
+Outline: V6.1ay built batch B (shared function, hours nodes, 7 whole-business nodes), unit test 54/54, build clean, harness expected totals 291 x6 / 356 / 356 / 352 / 570 / 3,360, seeds regenerated 2026-11-08. Nothing committed, nothing run live. V6.1az starts :3005, runs the 11 seeds, compares the Whole business row to the trace, runs Model mode and Q-7, then updates the calc map, commits and syncs.

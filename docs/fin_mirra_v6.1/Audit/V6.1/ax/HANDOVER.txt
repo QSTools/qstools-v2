@@ -1,0 +1,47 @@
+MIRRA HANDOVER V6.1ax - 2026-11-07 (batch B decisions settled by voice; nothing built; build chat next)
+File: docs\fin_mirra_v6.1\Audit\V6.1\ax\HANDOVER.txt
+Title for the next chat: V6.1ay - batch B build (hours nodes and 7 whole-business nodes)
+
+1. WHERE WE ARE
+- Code: unchanged since the batch A commit "Slice 5 batch A: whole-business row on Business Modelling page" (parent 82b3f6a). No patch script was written or run in this chat. Check git log and git status first.
+- The highest Audit\V6.1 folder before this one was aw, so this is ax. (The chat was titled "V6.1aw - batch B ..." because the aw handover named it so; aw already held the live-check chat. Next chat is ay.)
+- Docs changed in this chat (check git status, commit docs separately from code): BM brief Addendum 42 and LAST UPDATED line, BO brief Addendum 14, CALCULATION_TRACE_BRIEF Addendum 8, PROJECT_MAP pointer (now V6.1ax), this handover. Docs from V6.1at to V6.1aw may also be uncommitted. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of commits.
+- Standing totals unchanged (Model mode off): 280 x6, 344, 344, 340, 559, 3,349. No node added.
+- Note: BM brief Addendum 41 (2026-11-07, "When to grow"; levers versus scenarios) was written by another chat before this one; this chat's addendum is 42.
+
+2. WHAT WAS DONE (decisions only, BM Addendum 42)
+- Batch B: 7 whole-business nodes (3 rates, 2 gaps, total seat hours, total covered hours) plus an hours node per group with seat hours above 0, G03 included; one shared function for page and nodes (page.jsx gets one small edit); seed A expected about 291, exact figure from the unit test.
+- Addendum 39 item 3 both calls confirmed (gaps subtract the displayed rounded rates; gap line stays until batch C).
+- Batch C wording: one two-rate sentence for every included case, plus a separate "left out" sentence.
+- Item 18: the floor is the Business Outcome break-even rate (support cost spread); the Cost Allocation full cost rate stays as a labelled "this group on its own" figure.
+- Lever shape and side-list calls agreed in principle (items 8 to 13 of Addendum 42).
+
+3. OWNER DECISIONS STILL OPEN
+- Batch B: the owner approves the new standing totals BEFORE the harness runs.
+- Lever batch: explicit yes on the stored shape; whether differences extend the slice 4 scenario record or a new one; settle "lever" versus "scenario" wording against Addendum 41 item 1.
+- Scenario comparison switch and saved sets of core changes: explicit yes on the stored shape before any build.
+- Whether core changes alone can be the chosen plan; the "R5" question (Addendum 42 item 16).
+
+4. FINDINGS AND NOT-RUN
+- Addendum 40 F1 (G03 modelled_revenue is 0 but the page treats G03 as missing revenue): the build must take helper inputs from the page's breakeven result. F2 (narrow pane layout) still not ours.
+- Not verified: the owner's belief that the break-even rate equals View B (item 18 chat starts with a read-only look).
+- Addendum 40 item 7 (a to l) still stands as the list of what was not run; batch B's full regression closes 7a, the close-out covers the rest.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Next chat: batch B build. Acceptance criteria first (Addendum 37 item 3 plus Addendum 42 items 1 to 4). Read fresh: lib\calculations\wholeBusinessRateGap.js, app\business-modelling\page.jsx, pilot-map\groupRateGapTraceNodes.js, calculationTraceSelectors.js, calculationTraceLiveValues.js, Py\model_storage_tests\s5_group_rate_nodes.test.mjs, Apply-Patch.ps1. Write new pure file, new node file (under 600 lines), unit test, one page patch, selectors registration. Unit test prints the exact totals; owner approves them; then mirra_expected_l2.py, calc map s10 note, full regression and the Whole business row compared on every seed. :3005 must be stopped before building.
+ b. Batch C: wording (Addendum 42 item 6).
+ c. Item 18 chat (read-only look first, then the floor and its trace node), then the lever batch (explicit yes on the stored shape first), then slice 5 close-out.
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT ACTIONS
+- Commit docs (git status first). Project knowledge re-uploaded for the changed briefs and PROJECT_MAP, ledger .tmp\project_sync_ledger.tsv rewritten; run python Py\audit-scripts\check_project_knowledge_sync.py to confirm.
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit. Scripts are dry run by default with -Live.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 42, then Addendum 37 item 3 and Addendum 40 items 6 and 9 only. Do NOT read the whole brief (about 295 KB).
+- Do not rewrite Addenda 35 to 42; they are written.
