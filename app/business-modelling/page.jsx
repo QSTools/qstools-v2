@@ -61,7 +61,8 @@ export default function BusinessModellingPage() {
               Group minimum rate: labour, asset and overhead cost per recovery hour, productive cost only. Full cost rate: the
               same plus any non-productive cost assigned to the group. Revenue per hour: modelled revenue divided by the
               group&apos;s recovery hours, at your charged rates (a group with several staff types shows a blend). In Model mode these
-              show the modelled figures.
+              show the modelled figures. Full cost rate is the cost of this group alone. Break-even rate is the group&apos;s full cost plus its
+              share of the support cost, per hour: the lowest rate at which the group covers every cost.
             </p>
             {rows.length === 0 ? (
               <p className="ui-help">No working groups to show yet. Set them up on Cost Allocation.</p>
@@ -75,6 +76,7 @@ export default function BusinessModellingPage() {
                       <th style={head_style}>Covered hours</th>
                       <th style={head_style}>Group minimum rate /hr</th>
                       <th style={head_style}>Full cost rate /hr</th>
+                      <th style={head_style}>Break-even rate /hr</th>
                       <th style={head_style}>Revenue per hour</th>
                     </tr>
                   </thead>
@@ -86,6 +88,7 @@ export default function BusinessModellingPage() {
                         <td style={cell_style}>{r.has_hours && r.covered_hours !== null ? hours_text(r.covered_hours) : "-"}</td>
                         <td style={cell_style}>{r.has_hours ? money(r.min_rate) : "-"}</td>
                         <td style={cell_style}>{r.has_hours ? money(r.full_cost_rate) : "-"}</td>
+                        <td style={cell_style}>{r.breakeven_rate === null ? "-" : money(r.breakeven_rate)}</td>
                         <td style={cell_style}>{r.revenue_rate === null ? "-" : money(r.revenue_rate)}</td>
                       </tr>
                     ))}
@@ -95,6 +98,7 @@ export default function BusinessModellingPage() {
                       <td style={cell_style}>{whole.available ? hours_text(whole.total_covered_hours) : "-"}</td>
                       <td style={cell_style}>{whole.available ? money(whole.min_rate) : "-"}</td>
                       <td style={cell_style}>{whole.available ? money(whole.full_cost_rate) : "-"}</td>
+                      <td style={cell_style}>{whole.available && whole.breakeven_rate !== null ? money(whole.breakeven_rate) : "-"}</td>
                       <td style={cell_style}>{whole.available ? money(whole.revenue_per_seat_hour) : "-"}</td>
                     </tr>
                   </tbody>
@@ -106,7 +110,7 @@ export default function BusinessModellingPage() {
                 <p className="ui-help">
                   Whole business (earning groups): each rate is the average of the groups&apos; rates weighted by recovery hours; revenue per hour is
                   total modelled revenue divided by total recovery hours (recovery hours are the paid-for seat hours). Support groups are left out.
-                  {whole.covered_differs ? " In at least one group the hours covered by labour differ from the recovery hours, so the revenue figure in this row is per recovery hour, not per covered hour." : ""}
+                  {whole.covered_differs ? " In at least one group the hours covered by labour differ from the recovery hours, so the revenue figure and the break-even rate in this row are per recovery hour, not per covered hour; each group's own break-even rate is per covered hour." : ""}
                 </p>
                 {wording.two_rate_sentence ? <p className="ui-help">{wording.two_rate_sentence}</p> : null}
                 {wording.no_earning_sentence ? <p className="ui-help">{wording.no_earning_sentence}</p> : null}

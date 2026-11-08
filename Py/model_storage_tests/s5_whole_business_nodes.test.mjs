@@ -102,9 +102,11 @@ function old_page_rows(cost_rows, recovery_rows, capacity_rows) {
   });
 }
 const old_rows = old_page_rows(lists.cost_rows, lists.recovery_rows, lists.capacity_rows);
-check("identity: the rows equal the page's old inline mapping, field for field", JSON.stringify(old_rows) === JSON.stringify(calc.rows));
+// Item 18 (BM Addendum 50) added fields (true_cost, breakeven_rate; total_true_cost, breakeven_rate, gap_to_breakeven_rate). Every OLD field must stay identical, so the new ones are removed before comparing.
+const omit = (obj, keys) => Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k)));
+check("identity: the rows equal the page's old inline mapping, field for field", JSON.stringify(old_rows) === JSON.stringify(calc.rows.map((r) => omit(r, ["true_cost", "breakeven_rate"]))));
 const old_whole = R.calculateWholeBusinessRateGap(old_rows.map((r) => ({ group_id: r.group_id, group_name: r.group_name, seat_hours: r.hours, min_rate: r.min_rate, full_cost_rate: r.full_cost_rate, modelled_revenue: r.modelled_revenue, covered_hours: r.covered_hours })));
-check("identity: the whole business result equals the old inline result", JSON.stringify(old_whole) === JSON.stringify(calc.whole));
+check("identity: the whole business result equals the old inline result", JSON.stringify(omit(old_whole, ["total_true_cost", "breakeven_rate", "gap_to_breakeven_rate"])) === JSON.stringify(omit(calc.whole, ["total_true_cost", "breakeven_rate", "gap_to_breakeven_rate"])));
 const dollars = (calc.whole.revenue_per_seat_hour - calc.whole.full_cost_rate) * calc.whole.total_seat_hours;
 check("dollar identity: gap x seat hours is within rounding of revenue minus cost (184,000 - 157,000 = 27,000)", Math.abs(dollars - 27000) <= 0.01 * calc.whole.total_seat_hours, String(dollars));
 

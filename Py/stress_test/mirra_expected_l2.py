@@ -21,6 +21,7 @@ Modelling achieved-revenue rows plus expected start rate / basis / floor per row
 texts; expected values only, first live run settles A-8 to A-11.
 Added 2026-10-27 (F-7 dry hire, assumption A-13): an asset entry flagged "dry" in the recipe (third value) is the ticked
 "hired out without our operator" assignment. Plus the three F-7 trace nodes for every recipe (D-5).
+Added 2026-11-08 (R3 slice 5 item 18 floor): break-even rate nodes, one per earning group plus three whole-business nodes (seed A 291 -> 298).
 Still not covered: Business Modelling OVERHEAD rows (the recipe carries no overhead categories); the Recovery Summary labour
 share percent that the all_productive row uses (G-7: taken from the app as an input).
 """
@@ -399,6 +400,25 @@ def layer2(recipe, as_of, l1, charge_out, ids):
     nodes["business_outcome.non_productive_distribution.pool"] = np_pool
     for r in pure_support:
         nodes[f'business_outcome.non_productive_distribution.pure_support.{r["gid"]}'] = own_np[r["gid"]]
+
+    # R3 slice 5 item 18 floor (BM Addenda 48 to 50; owner approved the new totals 2026-11-08, seed A 291 -> 298).
+    # Group floor = true cost / COVERED hours, rounded ONCE, where true cost = the group's own cost (sources' true cost) + its
+    # non-productive cost (own plus its spread of the pure-support pool). One node per group with covered hours above 0 (productive group).
+    # Whole-business floor = total true cost of the INCLUDED groups (same set as the whole-business nodes above) / total SEAT hours,
+    # rounded once; its gap = revenue per seat hour (displayed, rounded) minus the displayed floor. All three whole-business nodes need an included group.
+    for r in productive_rows:
+        r["floor_true_cost"] = r["true_cost"] + r["np_cost"]
+        if r["covered"] > 0:
+            nodes[f'business_outcome.group.{r["gid"]}.breakeven_rate_per_hour'] = round(r["floor_true_cost"] / r["covered"], 2)
+            tol[f'business_outcome.group.{r["gid"]}.breakeven_rate_per_hour'] = 0.011
+    if wb and wb_hours > 0:
+        wb_true = sum(r["floor_true_cost"] for r in wb)
+        wb_floor = round(wb_true / wb_hours, 2)
+        nodes["business_modelling.whole_business.total_true_cost"] = wb_true
+        nodes["business_modelling.whole_business.breakeven_rate"] = wb_floor
+        tol["business_modelling.whole_business.breakeven_rate"] = 0.011
+        nodes["business_modelling.whole_business.gap_to_breakeven_rate"] = round(wb_rev - wb_floor, 2)
+        tol["business_modelling.whole_business.gap_to_breakeven_rate"] = 0.021
 
     # ---- 5. View A real-capacity cascade (map s9.5) and View B (s9.6)
     def inner(group, final_group):
