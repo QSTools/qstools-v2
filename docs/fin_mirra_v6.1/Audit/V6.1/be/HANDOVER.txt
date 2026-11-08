@@ -1,0 +1,49 @@
+MIRRA HANDOVER V6.1be - 2026-11-08 (check 11 fixed and committed; item 18 floor read-only look done in code and live on seed A; nothing built)
+File: docs\fin_mirra_v6.1\Audit\V6.1\be\HANDOVER.txt
+Title for the next chat: V6.1bf - item 18 floor: denominator decision, then build
+
+1. WHERE WE ARE
+- Last commit: ea33d99 (check 11 fix in Py/model_storage_tests/s5_whole_business_gap.test.mjs, 32 passed 0 failed on the owner's run; BM Addendum 48). Audit script after it: 17 of 17 OK. Nothing pushed (about 24 commits ahead of origin). Run git log and git status first.
+- UNCOMMITTED, expected in git status: BM brief (Addendum 49), BUSINESS_OUTCOME_BRIEF (Addendum 16), PROJECT_MAP.md, Audit\V6.1\be\HANDOVER.txt. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out.
+- Project knowledge needs a re-upload of BUSINESS_MODELLING_BRIEF, BUSINESS_OUTCOME_BRIEF and PROJECT_MAP after the docs commit, and the ledger rows rewritten (see section 6).
+- This chat HAD no shell on the owner's PC: files were read by staging and written with the file-commit tool; the owner ran the test, git and the audit script.
+
+2. WHAT WAS DONE
+- Check 11 fixed (BM Addendum 48 item 1): the page is checked for calculateWholeBusinessFromContracts (one import, one call).
+- Item 18 read-only look in code (BM Addendum 48 items 2 to 6) and live on seed A in the pane (BM Addendum 49): break-even = true_cost / covered hours from group_real_capacity, true_cost includes the spread pure-support cost. G04 99.56 (page full cost rate 75.58), G01 104.77, G02 104.31, G03 112.15. Whole-business floor = total business cost per hour = 1,007,132.59 / 9,735.6 = 103.44. Spread 233,471.25 equals the page's support cost.
+- Pane backed up and restored (17 keys); the app itself writes keys on page visits, reverted (BM Addendum 49 item 7).
+
+3. OWNER DECISIONS
+- STILL OPEN: the whole-business floor denominator, seat hours (suggested, matches the other three whole-business rates) or covered hours. Earlier: the floor is the break-even rate (Addendum 42 item 7).
+- Not asked yet: lever batch stored shape (explicit yes before any storage field).
+
+4. FINDINGS AND NOT-RUN
+- NOT VERIFIED: View B on screen (the selector object holds View A only; code says identical). scenario_b, ticked B, other seeds, Model mode ON, size ladder, a case with covered hours not equal to seat hours (no seed has one).
+- Support spread is weighted by seat hours, the floor divides by covered hours: the two only differ where covered is below seat.
+- Method: a plain page visit is not read-only for storage; back up __bak first and restore.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands (docs commit, upload, ledger, audit).
+ b. V6.1bf: owner decides the denominator; acceptance criteria written first (floor per group, whole-business floor, labels, extended gap sentence, banned-words test); then the build per BM Addendum 49 item 9: floor trace nodes (group and whole business), calc map entry, page column, wording; unit test; build; live proof on scenario_a, scenario_b and ticked B (pane displayed, seeds dated today).
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out (covers the not-run list).
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/Briefs/BUSINESS_OUTCOME_BRIEF.txt docs/fin_mirra_v6.1/Audit/V6.1/be
+ git commit -m "Docs: BM Addendum 49, BO Addendum 16, handover be (item 18 floor read live on seed A)"
+ python Py\audit-scripts\check_project_knowledge_sync.py   (expect CHANGED for the three docs until they are re-uploaded and the ledger rows are rewritten)
+ (git push when ready. Stop :3005 before building; clear .next before restarting dev.)
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit, explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addenda 48 and 49 and Addendum 42 items 6 and 7, skill mirra-pane-live-proof and mirra-trace-node. Do NOT read the whole brief (about 325 KB). Do not rewrite Addenda 35 to 49; they are written.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bf - item 18 floor: denominator decision, then build
+Outline: read this handover (BM Addenda 48 and 49 written; check 11 fixed and committed ea33d99; floor read live on seed A: break-even 99.56 for G04, whole-business 103.44). Owner decides seat versus covered hours for the whole-business floor. Then acceptance criteria, then build the floor: group and whole-business trace nodes, calc map entry, page column, extended arithmetic-only gap sentence with a banned-words test, unit tests, build, live proof on scenario_a, scenario_b and ticked B.
