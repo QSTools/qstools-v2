@@ -1,0 +1,54 @@
+MIRRA HANDOVER V6.1bh - 2026-11-08 (full 11-seed live regression PASSED on the new standing totals; Model mode ON seed A, tap and Q-7 PASS; docs written, uncommitted)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bh\HANDOVER.txt
+Title for the next chat: V6.1bi - lever batch (explicit yes on the stored shape first)
+
+1. WHERE WE ARE
+- No code, harness or seed changed this chat. Last code commit 9e8743f, last docs commit 346ad57 (from V6.1bg). Run git log and git status first.
+- UNCOMMITTED, expected in git status: this chat's docs only: PROJECT_MAP.md, Briefs\BUSINESS_MODELLING_BRIEF.txt (Addendum 52), Briefs\CALCULATION_TRACE_BRIEF.txt (Addendum 12), Briefs\BUSINESS_OUTCOME_BRIEF.txt (Addendum 18), Audit\V6.1\bh\HANDOVER.txt. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of every commit. .tmp\project_sync_ledger.tsv is not tracked.
+- This chat had the folder linked but NO shell: Claude drove the built-in pane, staged files and wrote them back with the file-commit tool. The owner started :3005. :3005 is probably still running on the regenerated seeds (do not build while it runs).
+- Project knowledge is NOT yet re-synced for this chat. Re-upload BUSINESS_MODELLING_BRIEF, CALCULATION_TRACE_BRIEF, BUSINESS_OUTCOME_BRIEF and PROJECT_MAP (removing the superseded copies), rewrite .tmp\project_sync_ledger.tsv, then check with Py\audit-scripts\check_project_knowledge_sync.py.
+
+2. WHAT WAS DONE (BM Addendum 52)
+- Model mode OFF, 11 seeds, production build: scenario_a and five variants 298 of 298 each, scenario_b 363, scenario_b_dry_hire 364, gate 360, n100 577, n1000 3,367. 0 duplicates, 0 missing endpoints on every seed. Trace nodes 252 (258 on overstaffed), 300, 300, 298, 810, 6,390.
+- Model mode ON, scenario_a, empty layer: 298 of 298, 252 nodes, 343 edges, same as baseline mode.
+- Tap (b6_model_tap.cjs, SHA-256 e6d3acc3f276f09fafaaef17664bec41309b60557e667fa477dfe57eb050dc57 checked in the page): OVERALL PASS, 7 rules, 17 routes plus 5 notice routes plus /dev/cross-import-check, 1,672 calls, 0 local writes.
+- Q-7 (four states OFF / ON / ON with scenario of 2 staff + 1 asset removed / OFF again, six routes, two runs): 100 staff largest open 311 ms, largest freeze 174 ms (business-outcome); 1,000 staff largest open 1,040 ms, largest freeze 754 ms (business-outcome). Both inside limits. ON versus OFF differences inside the allowance.
+- Pane localStorage backed up to sessionStorage __bak first and restored byte for byte (17 keys, no mirra mode keys). __bak is still in sessionStorage; it does not survive a new chat.
+
+3. OWNER DECISIONS
+- Still to confirm: the new standing totals one by one (298 x6 / 363 / 364 / 360 / 577 / 3,367); only seed A 291 -> 298 was approved in V6.1bg. They now pass live against the regenerated expected files.
+- Not asked yet: lever batch stored shape (explicit yes before any storage field).
+
+4. FINDINGS AND NOT-RUN
+- NOT RUN: Model mode ON on scenario_b or any other seed (the V6.1bg outline asked for scenario_a and scenario_b; only scenario_a was done); Model mode ON compared with expected files at 100 and 1,000 staff (timed only); the tap with a scenario or nudge set before install, and with scenario adds; Q-7 for business-modelling, cost-summary and calculation-trace; typing at 100 and 1,000 staff; View B on screen; a live case with covered hours below seat hours; check_trace_coverage and check_brief_currency audit scripts (no shell).
+- localStorage at 1,000 staff with the baseline copy and a scenario: 5,719,872 characters in 38 keys, above the roughly 5 million a real browser stops at (the pane has no quota). R6 (database) addresses it.
+- Open from V6.1bg and still unexplained: seed A total cost 1,006,796.40 today against 1,007,132.59 in the unit-test fixture (336.19). Worth a look only if it recurs.
+- Raw Q-7 run objects were not saved to disk; the ranges in BM Addendum 52 item 4 are the record.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands (docs commit, project knowledge re-sync, audit script).
+ b. Optional small chat first: Model mode ON on scenario_b and the other seeds, if the owner wants that gap closed before the lever batch.
+ c. V6.1bi: lever batch. Ask for an explicit yes on the stored shape before any storage field. Then slice 5 close-out.
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/Briefs/CALCULATION_TRACE_BRIEF.txt docs/fin_mirra_v6.1/Briefs/BUSINESS_OUTCOME_BRIEF.txt docs/fin_mirra_v6.1/Audit/V6.1/bh
+ git diff --cached --stat
+ git commit -m "Docs: BM Addendum 52, trace Addendum 12, BO Addendum 18, project map and handover bh (full regression on new standing totals)"
+ python Py\audit-scripts\check_project_knowledge_sync.py   (expect OK for every core file after the re-upload)
+ (git push when ready.)
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit (or staged edit plus file-commit when no shell), explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+- Pane method: SEED, navigate and eval are SEPARATE calls (a browser batch of separate steps worked); wait 4 s after a navigation before the grab (12 s at 1,000 staff); back up __bak first and restore at the end.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 52 only, skills mirra-pane-live-proof and mirra-ship-and-verify. Do NOT read the whole brief (about 347 KB). Do not rewrite Addenda 35 to 52; they are written. The addendum for this chat is ALREADY WRITTEN.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bi - lever batch (explicit yes on the stored shape first)
+Outline: read this handover (full regression PASSED on 298 x6 / 363 / 364 / 360 / 577 / 3,367; Model mode ON seed A, tap and Q-7 pass; BM Addendum 52, trace Addendum 12, BO Addendum 18 written). Confirm the new standing totals. Owner commits docs and re-syncs project knowledge. Then settle the lever batch stored shape with an explicit yes before any storage field, build it in small batches, live-test, and run the regression with the lever batch totals.
