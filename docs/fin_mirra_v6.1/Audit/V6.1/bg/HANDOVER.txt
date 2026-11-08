@@ -1,0 +1,54 @@
+MIRRA HANDOVER V6.1bg - 2026-11-08 (item 18 floor LIVE-PROVEN on three seeds, harness updated, code and docs committed; full 11-seed regression NOT run)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bg\HANDOVER.txt
+Title for the next chat: V6.1bh - full regression on the new standing totals
+
+1. WHERE WE ARE
+- Commits this chat: 9e8743f (code: floor, nodes, page, tests, harness) and 346ad57 (docs: BM Addendum 51). Run git log and git status first.
+- UNCOMMITTED, expected in git status: this chat's final docs only: PROJECT_MAP.md, CALCULATION_TRACE_BRIEF.txt (Addendum 11), BUSINESS_OUTCOME_BRIEF.txt (Addendum 17), Audit\V6.1\bg\HANDOVER.txt, .tmp\project_sync_ledger.tsv is not tracked. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of every commit.
+- This chat had the folder linked but NO shell: Claude drove the built-in pane, staged files and wrote them back with the file-commit tool. The owner ran build, prepare script, server and git.
+- :3005 was running the production build with seeds dated 2026-11-08. The owner then re-ran .tmp\r3s1_regression_prepare.ps1 (seeds and expected files regenerated, nothing else changed) so :3005 must be STOPPED and started again.
+- Project knowledge: BUSINESS_MODELLING_BRIEF (Addendum 51), CALCULATION_TRACE_BRIEF (Addendum 11), BUSINESS_OUTCOME_BRIEF (Addendum 17) and PROJECT_MAP were re-uploaded and the ledger rewritten at the end of this chat. Check with Py\audit-scripts\check_project_knowledge_sync.py after the owner commits.
+
+2. WHAT WAS DONE (BM Addendum 51)
+- Owner approved the new standing totals (seed A 291 -> 298) before the harness changed.
+- Live proof, Model mode off, production build, pane 61 fps: scenario_a 291 of 291, scenario_b 356 of 356, ticked B (scenario_b_dry_hire) 356 of 356, each with 0 duplicates and 0 missing endpoints. The Business Modelling page equals the new nodes to the cent on all three (seed A: 99.53 / 104.74 / 104.28 / 112.12, whole floor 103.41, revenue per hour 113.50, gap 10.09; scenario_b: 208.27 / 181.31 / 160.17 / 150.15, floor 175.43, gap 45.06, G03 shows "-"; ticked B: 209.94 / 182.98 / 106.84 / 161.85 / 151.82, floor 166.83, gap 43.73).
+- Independent checks: seed A group floors recomputed from the trace's raw Cost Allocation rows; the Python harness reproduces every live floor value on all three seeds.
+- Harness: Py\stress_test\mirra_expected_l2.py has a new block "R3 slice 5 item 18 floor" after the non-productive distribution step.
+- Pane localStorage was backed up to sessionStorage __bak first and restored byte for byte (17 keys, no mirra mode keys).
+
+3. OWNER DECISIONS
+- Approved by the owner: seed A 291 -> 298. The other totals follow from the same nodes and come from the regenerated expected files, but were not approved one by one: 298 for the five variants (200+95+3), 363 scenario_b, 364 scenario_b_dry_hire, 360 gate (234+123+3), 577 n100, 3,367 n1000. The owner should confirm them at the start of V6.1bh.
+- Not asked yet: lever batch stored shape (explicit yes before any storage field).
+
+4. FINDINGS AND NOT-RUN
+- LIVE seed A floor is 103.41 (group floors 99.53 / 104.74 / 104.28 / 112.12), NOT the 103.45 of BM Addenda 49 and 50. Today's seed A total cost is 1,006,796.40; the unit-test fixture and the earlier read used 1,007,132.59 (difference 336.19). Cause NOT established; the live figures are consistent three ways. The unit test pins its fixture, so 50 of 50 stands. Worth a look only if it recurs.
+- total_true_cost node 1,006,796.38 against the raw sum 1,006,796.40 (0.02 rounding in the helper); harness tolerance covers it.
+- NOT RUN: the full 11-seed regression with the regenerated expected files (variants, gate, n100, n1000); Model mode ON on any seed (needs Save Baseline, Lock, Enter Model mode); the tap (b6_model_tap, hash check first); Q-7 timing at 100 and 1,000 staff; View B on screen; a live case with covered hours below seat hours (none in the seeds, unit test only); check_trace_coverage and check_brief_currency audit scripts.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands (docs commit, audit script).
+ b. V6.1bh: stop :3005, start it on the regenerated seeds (do NOT build; no code changed), then the full regression per skill mirra-pane-live-proof: 11 seeds with Model mode off against the new totals (298 x6 / 363 / 364 / 360 / 577 / 3,367), then Model mode ON on scenario_a and scenario_b, the tap, Q-7 at 100 and 1,000 staff. Update PROJECT_MAP standing totals and the stale "Baselines" lines.
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out.
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/CALCULATION_TRACE_BRIEF.txt docs/fin_mirra_v6.1/Briefs/BUSINESS_OUTCOME_BRIEF.txt docs/fin_mirra_v6.1/Audit/V6.1/bg
+ git diff --cached --stat
+ git commit -m "Docs: trace Addendum 11, BO Addendum 17, project map and handover bg (item 18 floor live-proven)"
+ python Py\audit-scripts\check_project_knowledge_sync.py   (expect OK for every core file)
+ (git push when ready.)
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit (or staged edit plus file-commit when no shell), explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+- Pane method: SEED, navigate and eval are SEPARATE calls; wait 4 s after a navigation before the grab; back up __bak first (sessionStorage does not survive a new chat, so back up again) and restore at the end.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addendum 51 only (Addenda 49 and 50 only if the floor numbers are questioned), skills mirra-pane-live-proof and mirra-ship-and-verify. Do NOT read the whole brief (about 340 KB). Do not rewrite Addenda 35 to 51; they are written. The addendum for this chat is ALREADY WRITTEN.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bh - full regression on the new standing totals
+Outline: read this handover (item 18 floor live-proven and committed 9e8743f / 346ad57; BM Addendum 51, trace Addendum 11 and BO Addendum 17 already written). Owner starts :3005 on the regenerated seeds (no build), tells Claude it is up. Run the 11-seed regression, Model mode off, against 298 x6 / 363 / 364 / 360 / 577 / 3,367; then Model mode ON on scenario_a and scenario_b, the tap, and Q-7 at 100 and 1,000 staff; update the PROJECT_MAP totals; commit docs.
