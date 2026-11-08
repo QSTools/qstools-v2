@@ -758,6 +758,20 @@ Added 2026-11-08 (R3 slice 5 batch B, BM brief Addendum 44) - WHOLE BUSINESS ROW
 - Expected standing totals (harness mirra_expected_l2.py, run live 2026-11-08, all matched, 0 duplicates, 0 missing endpoints): 280 -> 291 on scenario_a and its five variants, 344 -> 356 (B and ticked B),
   340 -> 352 (gate), 559 -> 570 (n100), 3,349 -> 3,360 (n1000). These ARE the live figures. Live whole-business row on scenario_b (Model mode, empty layer): 10,932.7 seat and covered hours, min rate 144.91, full cost rate 148.46, revenue per seat hour 220.49, gaps +75.58 and +72.03, page equal to the seven nodes. V6.1ba: trace emitters filter labour_type / asset inputs through emitted_labour_type_node_ids / emitted_asset_node_ids (incl. dryHireTraceNodes.js), so a scenario that removes the last staff of a type or an asset leaves no dangling edge (proved: 361 edges, 0 missing endpoints). Test Py/model_storage_tests/s5_whole_business_nodes.test.mjs
   (54 checks). Line numbers not recorded. No CM-n opened or closed.
+Added 2026-11-08 (R3 slice 5 item 18, BM brief Addendum 50) - BREAK-EVEN FLOOR (BUILT, UNIT-TESTED; LIVE PROOF PENDING)
+- The floor is the BREAK-EVEN rate: the group's true cost (own cost plus its share of the spread support cost) per hour (owner decision, BM Addendum 42 item 7). Group floor =
+  true_cost / covered hours from the group_real_capacity row, rounded ONCE (calculateGroupBreakevenRate in lib/calculations/wholeBusinessGroupInputs.js; it does not use
+  calculateIndependentGroupBreakeven.breakeven_rate_per_hour, which adds two separately rounded numbers and can differ by a cent). Null, never 0, with no covered hours or no true_cost.
+- Whole-business floor (owner decision, BM Addendum 50: SEAT hours, like the other three whole-business rates) = sum(true_cost of the INCLUDED groups) / total seat hours, rounded once
+  (calculateWholeBusinessRateGap: total_true_cost, breakeven_rate, gap_to_breakeven_rate = revenue_per_seat_hour minus the displayed breakeven_rate). If any included group has no numeric
+  true_cost the floor and its gap are null and every other whole-business figure is unchanged. Where covered hours are below seat hours the whole-business floor can read lower than the
+  seat-hours-weighted average of the group floors (which are per covered hour); the page says so.
+- Nodes (lib/calculation-trace/pilot-map/breakevenFloorTraceNodes.js, registered in calculationTraceSelectors.js after the whole-business nodes):
+  business_outcome.group.<id>.breakeven_rate_per_hour (one per group with covered hours above 0, boundary, no inputs: true_cost has no per-group node),
+  business_modelling.whole_business.total_true_cost (boundary), .breakeven_rate (inputs total_true_cost and total_seat_hours), .gap_to_breakeven_rate (inputs revenue_per_seat_hour and breakeven_rate).
+  Expected new nodes on seed A: 4 group + 3 whole business = 7 (291 -> 298 once the owner approves; the harness gives the exact figure).
+- Page (app/business-modelling/page.jsx): new Break-even rate /hr column per group and on the Whole business row; the gap sentence names a third rate ("... and $X above the break-even rate");
+  the old two-rate sentence is shown unchanged when the floor gap is null. Test Py/model_storage_tests/s5_breakeven_floor.test.mjs. Line numbers not recorded. No CM-n opened or closed.
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105

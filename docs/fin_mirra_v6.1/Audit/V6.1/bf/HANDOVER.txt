@@ -1,0 +1,57 @@
+MIRRA HANDOVER V6.1bf - 2026-11-08 (item 18 floor: denominator decided, floor built and unit-tested; NOT live-proven, NOT committed)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bf\HANDOVER.txt
+Title for the next chat: V6.1bg - item 18 floor: approve totals, live proof, harness, commit
+
+1. WHERE WE ARE
+- Last commit: 86b9324 (docs: BM Addendum 49, BO Addendum 16, handover be). Run git log and git status first.
+- UNCOMMITTED, expected in git status: M s5_whole_business_nodes.test.mjs, app\business-modelling\page.jsx, CALCULATION_MAP_v6_0.txt, calculationTraceSelectors.js, wholeBusinessGapWording.js, wholeBusinessGroupInputs.js, wholeBusinessRateGap.js; new: Py\model_storage_tests\s5_breakeven_floor.test.mjs and lib\calculation-trace\pilot-map\breakevenFloorTraceNodes.js; plus docs from this chat (BUSINESS_MODELLING_BRIEF Addendum 50, PROJECT_MAP.md, Audit\V6.1\bf). FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours, keep it out of every commit.
+- Project knowledge needs a re-upload of BUSINESS_MODELLING_BRIEF, BUSINESS_OUTCOME_BRIEF, PROJECT_MAP and CALCULATION_MAP after the docs commit, and the ledger rows rewritten (see section 6). The earlier be docs (BM Addendum 49, BO Addendum 16) may still be un-uploaded: check with the audit script.
+- This chat had the folder linked but no shell: Claude read files by staging and wrote them with the file-commit tool; the owner ran tests, build and git status.
+
+2. WHAT WAS DONE (BM Addendum 50)
+- Owner decision: whole-business floor divides by SEAT hours; group floors stay on COVERED hours.
+- Group floor = true_cost / covered hours rounded once (calculateGroupBreakevenRate in wholeBusinessGroupInputs.js), NOT calculateIndependentGroupBreakeven.breakeven_rate_per_hour (can differ by a cent, moves with revenue).
+- Whole-business floor = total true cost of included groups / total seat hours, rounded once; gap_to_breakeven_rate = revenue per seat hour minus the displayed floor; null (not 0) if any included group lacks true_cost.
+- 7 new nodes on seed A (4 group boundary nodes + total_true_cost, breakeven_rate, gap_to_breakeven_rate), page column, labels, third clause in the gap sentence, calc map entry.
+- Owner run: s5_breakeven_floor 50/50, s5_whole_business_nodes 54/54, s5_whole_business_gap 32/32, s5_gap_wording 31/31, s5_group_rate_nodes 40/40; build passed.
+
+3. OWNER DECISIONS
+- Settled: seat hours for the whole-business floor.
+- OPEN, needs approval: the new standing node totals for the harness: seed A and its five variants 291 -> 298 proposed; other seeds follow from the unit test and the live read (G03 on scenario_b has no covered hours, so no group floor node and not in the whole business).
+- Not asked yet: lever batch stored shape (explicit yes before any storage field).
+
+4. FINDINGS AND NOT-RUN
+- Seed A whole-business floor is 103.45 (1,007,132.59 / 9,735.59 = 103.4485), not 103.44 as Addendum 49 item 4 wrote; gap to revenue 113.50 is 10.05, not 10.06. The live page should show 103.45.
+- The floor test fixture uses seed A true costs and hours but SYNTHETIC revenues; the live revenue-based gap is unverified.
+- NOT RUN: live proof on scenario_a, scenario_b, ticked B (page = node to the cent, node total, 0 duplicates, 0 missing endpoints); View B on screen; Model mode ON; size ladder; a live case with covered hours below seat hours (none in the seeds; unit test only); harness expected values (Py\stress_test\mirra_expected_l2.py not edited); Q-7 and the standing regression; unchanged-page check for the other columns.
+- The full trace graph cannot be built in plain Node ("@/" aliases); node integrity was checked on the whole-business plus floor set only. The live harness does the full check.
+- Method: a plain page visit is not read-only for storage; back up __bak first and restore.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands (code commit first, then docs commit, upload, ledger, audit).
+ b. V6.1bg: owner approves totals; stop :3000 and :3005, build, clear .next, start :3005; live proof per section 4 with the pane displayed and seeds dated today (skill mirra-pane-live-proof); update the harness expected totals; Q-7 and standing regression; then commit.
+ c. Lever batch (explicit yes on the stored shape first), then slice 5 close-out (covers the not-run list).
+ d. Later design topics: comparison switch, saved sets, save versus go live, dated scenarios, When to grow, COGS lever, owner pay setting.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add app/business-modelling/page.jsx lib/calculations/wholeBusinessGapWording.js lib/calculations/wholeBusinessGroupInputs.js lib/calculations/wholeBusinessRateGap.js lib/calculation-trace/calculationTraceSelectors.js lib/calculation-trace/pilot-map/breakevenFloorTraceNodes.js Py/model_storage_tests/s5_breakeven_floor.test.mjs Py/model_storage_tests/s5_whole_business_nodes.test.mjs
+ git commit -m "Item 18: break-even floor (group and whole business, seat hours), trace nodes, extended gap sentence, tests"
+ (Commit this BEFORE live proof only if you accept an unproved floor in history; otherwise commit after V6.1bg's proof.)
+ git add docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/Calculations/CALCULATION_MAP_v6_0.txt docs/fin_mirra_v6.1/Audit/V6.1/bf
+ git commit -m "Docs: BM Addendum 50, calc map floor entry, handover bf (item 18 floor built, live proof pending)"
+ python Py\audit-scripts\check_project_knowledge_sync.py   (expect CHANGED for the re-uploaded docs until the ledger rows are rewritten)
+ (git push when ready. Stop :3005 before building; clear .next before restarting dev.)
+
+7. STANDING RULES
+- Acceptance criteria first, before any patch. One feature per chat. Ask before any storage field. Never build while :3000 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for every edit (or staged edit plus file-commit when no shell), explicit "Patched:" confirmations, build after each batch, view files fresh, git status before commit.
+- Any hook with localStorage gets a has_loaded guard. New files under about 600 lines.
+- Tell the owner before a chat gets large. End of every chat: closing block with the next letter from the highest Audit\V6.1 folder, a copy-paste title and a short outline, and the PROJECT_MAP pointer updated.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, BUSINESS_MODELLING_BRIEF Addenda 49 and 50 only, the new CALCULATION_MAP entry (item 18), skill mirra-pane-live-proof and mirra-trace-node. Do NOT read the whole brief (about 330 KB). Do not rewrite Addenda 35 to 50; they are written.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bg - item 18 floor: approve totals, live proof, harness, commit
+Outline: read this handover (BM Addendum 50 written; floor built and unit-tested, owner run all green, build passed; seat hours decided; seed A floor 103.45 and gap 10.05, not 103.44 and 10.06). Owner approves 291 -> 298 on seed A. Then live proof of the break-even column, whole-business floor, extended gap sentence and 7 nodes on scenario_a, scenario_b and ticked B (pane displayed, seeds dated today), update the harness totals, Q-7 and standing regression, commit.
