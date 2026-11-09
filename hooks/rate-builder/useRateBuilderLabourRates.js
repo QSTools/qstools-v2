@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import useLabour from "@/hooks/useLabour";
 import useCostAllocation from "@/hooks/useCostAllocation";
@@ -46,6 +46,16 @@ import {
 
 import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
 
+import { subscribe_to_diffs } from "@/lib/storage/modelDiffs";
+
+import {
+  LEVER_INPUT_MESSAGES,
+  changed_rates,
+  has_baseline_rate,
+  is_model_mode,
+  resync_model_rates,
+} from "@/lib/actions/rate-builder/rateBuilderLeverActions";
+
 export function useRateBuilderLabourRates() {
   const labour = useLabour();
   const cost_allocation = useCostAllocation();
@@ -55,6 +65,11 @@ export function useRateBuilderLabourRates() {
     useState(null);
   const [labour_source_rate_save_status, set_labour_source_rate_save_status] =
     useState("");
+
+  // Lever batch L2: Model mode is read after mount (first render matches the server). last_rates_ref holds the last merged rate map this copy
+  // saw, so a change elsewhere only touches the rates that actually moved.
+  const [model_active, set_model_active] = useState(false);
+  const last_rates_ref = useRef({});
 
   const cost_allocation_output_contract = useMemo(() => {
     return build_cost_allocation_output_contract(cost_allocation);
@@ -73,6 +88,8 @@ export function useRateBuilderLabourRates() {
 
   useEffect(() => {
     const saved_labour_source_rates = readRateBuilderLabourSourceRates();
+    last_rates_ref.current = saved_labour_source_rates;
+    set_model_active(is_model_mode());
     const loaded_models = load_labour_rate_models();
 
     const normalised_models = normalise_loaded_labour_rate_models({
@@ -85,6 +102,22 @@ export function useRateBuilderLabourRates() {
     set_active_labour_rate_model_id(
       normalised_models[0]?.labour_rate_model_id || null
     );
+  }, []);
+
+  // Lever batch L2: a working change saved or cleared anywhere tells every mounted copy to re-read. Only the charge-out rate maps follow (names,
+  // other inputs and the calculators list stay as they are), and only for the rates that moved.
+  useEffect(() => {
+    return subscribe_to_diffs(() => {
+      const merged_rates = readRateBuilderLabourSourceRates();
+      const changed = changed_rates(last_rates_ref.current, merged_rates);
+      last_rates_ref.current = merged_rates;
+      if (Object.keys(changed).length === 0) {
+        return;
+      }
+      set_labour_rate_models((current_models) =>
+        resync_model_rates(current_models, changed)
+      );
+    });
   }, []);
 
   useEffect(() => {
@@ -214,6 +247,26 @@ export function useRateBuilderLabourRates() {
     });
   }
 
+  const selected_source_id = selected_labour_source?.labour_source_type_id || "";
+
+  // Lever batch L2: what the rate input card needs in Model mode. A staff type with no saved rate above 0 cannot take a working change.
+  const lever_input = useMemo(() => {
+    if (!model_active) {
+      return { model_active: false, rate_move_blocked: false, note: "" };
+    }
+    if (is_all_productive_summary) {
+      return { model_active: true, rate_move_blocked: false, note: "" };
+    }
+    const blocked = !has_baseline_rate(selected_source_id);
+    return {
+      model_active: true,
+      rate_move_blocked: blocked,
+      note: blocked
+        ? LEVER_INPUT_MESSAGES.no_baseline_rate
+        : LEVER_INPUT_MESSAGES.rate_note,
+    };
+  }, [model_active, is_all_productive_summary, selected_source_id]);
+
   return {
     labour_rate_models,
     active_labour_rate_model_id,
@@ -229,6 +282,7 @@ export function useRateBuilderLabourRates() {
     selected_source_charge_out_rate,
     labour_source_rate_save_status,
     labour_unit_label: LABOUR_UNIT_LABEL,
+    lever_input,
 
     actions: {
       set_active_labour_rate_model_id,

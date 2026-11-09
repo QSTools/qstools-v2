@@ -7,6 +7,7 @@ export default function RateBuilderLabourRatesInputCard({ model }) {
     selected_source_charge_out_rate,
     current_charge_out_rate,
     labour_source_rate_save_status,
+    lever_input,
     actions,
   } = model;
 
@@ -83,7 +84,7 @@ export default function RateBuilderLabourRatesInputCard({ model }) {
                 ? Number(current_charge_out_rate.toFixed(2))
                 : selected_source_charge_out_rate
             }
-            disabled={is_all_productive_summary}
+            disabled={is_all_productive_summary || Boolean(lever_input?.rate_move_blocked)}
             onChange={(event) =>
               actions.update_source_charge_out_rate(event.target.value)
             }
@@ -95,12 +96,17 @@ export default function RateBuilderLabourRatesInputCard({ model }) {
           </p>
         </div>
 
+        {lever_input?.note ? (
+          <p className="ui-help">{lever_input.note}</p>
+        ) : null}
+
         {!is_all_productive_summary ? (
           <div className="ui-actions">
             <button
               type="button"
               className="ui-button-primary"
               onClick={actions.save_selected_labour_source_charge_out_rate}
+              disabled={Boolean(lever_input?.rate_move_blocked)}
             >
               Save rate
             </button>

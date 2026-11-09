@@ -10,6 +10,7 @@ import useOpeningHours from "@/hooks/useOpeningHours";
 import { loadRateBuilderCalculators } from "@/lib/storage/rateBuilderStorage";
 import { calculateRateBuilderQuotePreview, calculate_labour_mix_charge_rate, calculate_net_asset_rate, get_calculator_recovery_hours } from "@/lib/calculations/rateBuilderCalculations";
 import { readRateBuilderMaterialsMarkup } from "@/lib/storage/rateBuilderMaterialsMarkupStorage";
+import { subscribe_to_diffs } from "@/lib/storage/modelDiffs";
 import {
   readNonProductiveCostPolicy,
   NON_PRODUCTIVE_POLICY_CHANGED_EVENT,
@@ -1088,7 +1089,11 @@ export default function useBusinessOutcomePerSourceRevenue({ overrides } = {}) {
   }, []);
   const [materials_markup_percent, set_materials_markup_percent] = useState(0);
   useEffect(() => {
-    set_materials_markup_percent(readRateBuilderMaterialsMarkup().materials_markup_percent ?? 0);
+    // Lever batch L2: re-read the (merged) markup when a working change is saved or cleared. React keeps the same value, so nothing recalculates if it did not move.
+    const reload_markup = () =>
+      set_materials_markup_percent(readRateBuilderMaterialsMarkup().materials_markup_percent ?? 0);
+    reload_markup();
+    return subscribe_to_diffs(reload_markup);
   }, []);
   const [mixed_unit_non_productive_policy, set_mixed_unit_non_productive_policy] = useState("charge_to_self");
   useEffect(() => {

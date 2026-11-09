@@ -5,6 +5,8 @@ import { useMemo } from "react";
 
 import { useLabour } from "@/hooks/useLabour";
 import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
+import { subscribe_to_diffs } from "@/lib/storage/modelDiffs";
+import { same_rate_map } from "@/lib/actions/rate-builder/rateBuilderLeverActions";
 
 function to_number(value) {
   const parsed = Number(value);
@@ -197,7 +199,16 @@ export default function useBusinessOutcomeLabourRecovery(labour_groups = []) {
   const [charge_out_rates_by_labour_source, set_charge_out_rates] = useState({});
 
   useEffect(() => {
-    set_charge_out_rates(readRateBuilderLabourSourceRates());
+    // Lever batch L2: re-read when a working change is saved or cleared. The object is kept when the rates did not move,
+    // so an overhead nudge elsewhere does not recalculate the labour rows.
+    const reload_rates = () => {
+      const next_rates = readRateBuilderLabourSourceRates();
+      set_charge_out_rates((current_rates) =>
+        same_rate_map(current_rates, next_rates) ? current_rates : next_rates
+      );
+    };
+    reload_rates();
+    return subscribe_to_diffs(reload_rates);
   }, []);
 
   const productive_staff_type_rates =

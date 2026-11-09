@@ -12,6 +12,8 @@ export default function RateBuilderMaterialsMarkupCard({
   sell_revenue,
   profit,
   has_cogs,
+  markup_note,
+  markup_move_status,
   actions,
 }) {
   return (
@@ -42,7 +44,10 @@ export default function RateBuilderMaterialsMarkupCard({
           <span>
             Markup %
             <br />
-            <small>The number you enter. Drives the calculation.</small>
+            <small>
+              {markup_note || "The number you enter. Drives the calculation."}
+              {markup_move_status ? " " + markup_move_status : ""}
+            </small>
           </span>
           <input
             type="number"
@@ -52,6 +57,14 @@ export default function RateBuilderMaterialsMarkupCard({
             onChange={(event) =>
               actions.update_markup_percent(event.target.value)
             }
+            onBlur={() =>
+              actions.commit_markup_percent && actions.commit_markup_percent()
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && actions.commit_markup_percent) {
+                actions.commit_markup_percent();
+              }
+            }}
           />
         </div>
 
