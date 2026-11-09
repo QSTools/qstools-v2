@@ -107,7 +107,7 @@ check("source: selectors import the builder once", count(sel_text, 'import { bui
 check("source: selectors spread the builder once", count(sel_text, "...buildGroupRateGapNodes(liveValues),") === 1);
 check("source: harness expects the minimum rate node once", count(l2_text, '(r["lab_cost"] + r["asset_burden"] + r["overhead"]) / r["recovery"]') === 1);
 check("source: harness expects the revenue per hour node once", count(l2_text, 'r["modelled"] / r["covered"]') === 1);
-check("source: harness only expects revenue per hour where covered hours are above 0", count(l2_text, 'if r["covered"] > 0:') === 1);
+check("source: harness only expects revenue per hour where covered hours are above 0", (l2_text.match(/if r\["covered"\] > 0:[^\n]*\n\s*nodes\[f'business_outcome\.group\.\{r\["gid"\]\}\.revenue_per_hour'\]/g) || []).length === 1);
 
 console.log("");
 console.log("s5_group_rate_nodes: " + pass + " passed, " + fail + " failed");

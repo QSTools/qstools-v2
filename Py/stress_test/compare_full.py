@@ -7,6 +7,11 @@ RAW dump (the snapshot's cost_allocation_raw section).
 PASS when |actual - expected| <= tol, where tol is the entry's own tolerance if it has one (rates, rounded
 to 2 dp in the app) else max(1.00, 0.0001 x |expected|) - same rule as compare_trace.py.
 Exit code 1 if anything FAILS or is MISSING, so it can sit in the regression suite.
+
+  python compare_full.py --summary expected_scenario_a_layer2.json calculation_trace_snapshot_<n>.json
+
+--summary prints ONE line (PASS or FAIL, seed name, "n of m passed.") plus only the FAIL / MISSING rows
+(and the header lines on a failure). The pass / fail rule and the exit code are unchanged; only what is printed changes.
 """
 import json
 import sys
@@ -78,4 +83,21 @@ def main(exp_path, snap_path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(*sys.argv[1:3]))
+    argv = [a for a in sys.argv[1:] if a != "--summary"]
+    if "--summary" in sys.argv[1:]:
+        import contextlib
+        import io
+        import os
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = main(*argv[:2])
+        lines = buf.getvalue().splitlines()
+        bad_rows = [ln for ln in lines if ln.rstrip().endswith(("FAIL", "MISSING"))]
+        done = next((ln for ln in lines if ln.endswith("passed.")), "no result line")
+        seed = os.path.basename(argv[0]).replace("expected_", "").replace("_layer2.json", "")
+        print(f'{"PASS" if code == 0 else "FAIL"} {seed}: {done}')
+        if code != 0:
+            for ln in lines[:2] + bad_rows:
+                print("  " + ln)
+        sys.exit(code)
+    sys.exit(main(*argv[:2]))

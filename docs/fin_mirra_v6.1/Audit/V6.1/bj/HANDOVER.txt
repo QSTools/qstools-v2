@@ -1,0 +1,53 @@
+MIRRA HANDOVER V6.1bj - 2026-11-09 (dev tooling chat 1: import graph, storage key map, calc map drift check, one-command pre-commit check BUILT and run; no app change)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bj\HANDOVER.txt
+Title for the next chat: V6.1bk - dev tooling suite, chat 2 (full check run, regression summary mode, brief split, skill)
+
+THE ADDENDUM FOR THIS CHAT IS ALREADY WRITTEN: DEV_TOOLING_BRIEF Addendum 2 (results, numbers, findings DT-1 to DT-3). Do not rewrite it.
+
+1. WHERE WE ARE
+- No app file, calculation, storage key, seed or expected file changed. Last code commit 9e8743f (unchanged); docs commits: check git log.
+- UNCOMMITTED, expected in git status: new Py/audit-scripts/build_repo_graph.py, check_graph_fresh.py, precommit_check.py, check_calc_map_drift.py; modified docs/fin_mirra_v6.1/Briefs/DEV_TOOLING_BRIEF.txt and PROJECT_MAP.md; new Audit/V6.1/bj/HANDOVER.txt. FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours: keep it out of every commit. .tmp\ is git-ignored (the graph lives in .tmp\repo_graph\).
+- Project knowledge: DEV_TOOLING_BRIEF and PROJECT_MAP re-uploaded and the ledger rewritten at the end of this chat (check with python Py\audit-scripts\check_project_knowledge_sync.py).
+- This chat had the folder linked but NO shell: files were written with the file-commit tool and the owner ran every script and pasted the output.
+
+2. WHAT WAS DONE (details in DEV_TOOLING_BRIEF Addendum 2)
+- T1 import graph + T2 storage key map (build_repo_graph.py, check_graph_fresh.py): 614 files, 920 edges, 18 barrels, 0 unresolved imports, 40 storage keys, 28 registry codes all seen, 2 dynamic accesses (the scheduling scan). Checked against bm7_a: every bm7 key present, no reader or writer lost.
+- T4 precommit_check.py: one line per step, one PASS / FAIL. Run with --no-build on the real repo.
+- T3 check_calc_map_drift.py: 274 hints, 107 OK, 40 DRIFT, 3 NOT FOUND (name-cut bug, fixed), 124 UNCHECKED.
+- Dropped: parallel regression seeds (every seed overwrites the one pane origin's localStorage).
+
+3. OWNER DECISIONS MADE
+- None new this chat. Standing: Python, no visualiser, nothing deleted, graph and key map git-ignored (lean accepted by use, confirm if you want it tracked).
+
+4. OPEN ITEMS AND FINDINGS
+- DT-2: s5_group_rate_nodes.test.mjs fails 1 of 40 (stale assertion about if r["covered"] > 0: appearing once in mirra_expected_l2.py; now twice). Fix is a one-line test edit. Owner to decide: small batch or leave for the lever chat. precommit_check.py shows FAIL until it is fixed.
+- DT-3: check_trace_coverage.py cannot read 19 template ids (breakevenFloorTraceNodes.js, wholeBusinessTraceNodes.js); shown as WARN.
+- The full precommit run WITH the build has not been run (needs npm run dev stopped; Ctrl+C, run, clear .next, restart dev).
+- Calc map: hint numbers in s9 hook sections are 55 to 65 lines too low; s5 and s2 20 to 35 low. Not edited. Refresh = re-run extract_calc_map.py, then use check_calc_map_drift.py.
+- Not built: regression short mode (--summary on compare_full.py); T5 brief split + addendum index; T6 skill and session start line. Section 7 convention proposals still unconfirmed (tiered testing, definition-of-done line, owner-decisions list, handover template, patch helper). Standing totals 298 x6 / 363 / 364 / 360 / 577 / 3,367 still not confirmed one by one.
+- Carried from V6.1bi / bh (unchanged): lever batch open points (BM Addendum 53 item 1g), Model mode ON not run on scenario_b, Q-7 for several pages, seed A total cost 336.19 difference, localStorage size at 1,000 staff.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: commit (section 6) and run python Py\audit-scripts\check_project_knowledge_sync.py.
+ b. V6.1bk: (1) run precommit_check.py in full with dev stopped; (2) decide DT-2 and fix it if yes; (3) compare_full.py summary flag; (4) T5 brief split starting with BUSINESS_MODELLING_BRIEF (archive, nothing deleted, addendum index); (5) T6 skill + session start line; (6) conventions changes the owner confirms. Acceptance criteria first (brief section 5 and Addendum 2).
+ c. Lever batch (BM Addendum 53 item 2), then the slice 5 close-out, then R4 units mode.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add Py/audit-scripts/build_repo_graph.py Py/audit-scripts/check_graph_fresh.py Py/audit-scripts/precommit_check.py Py/audit-scripts/check_calc_map_drift.py docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Briefs/DEV_TOOLING_BRIEF.txt docs/fin_mirra_v6.1/Audit/V6.1/bj
+ git diff --cached --stat
+ git commit -m "Dev tooling: import graph, storage key map, calc map drift check, one-command pre-commit check (V6.1bj)"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+
+7. STANDING RULES
+- Acceptance criteria first. One feature per chat. Ask before any storage field. Never build while :3000, :3004 or :3005 is running (precommit_check.py enforces it).
+- Tooling is read-only on the app. Apply-Patch / Invoke-PatchBatch for app edits; build after each batch; view files fresh; git status before commit; has_loaded guard on any storage hook; new files under about 600 lines.
+- Search the graph by name: grep or Select-String in .tmp\repo_graph\repo_graph.txt; never load it whole. Check it is fresh first (check_graph_fresh.py).
+- Nothing is deleted: old brief text is archived.
+
+8. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, DEV_TOOLING_BRIEF.txt (sections 4, 5, 6, 7 and Addendum 2). Do NOT read the whole Business Modelling brief (about 356 KB).
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bk - dev tooling suite, chat 2 (full check run, regression summary mode, brief split, skill)
+Outline: V6.1bj built the import graph and storage key map (614 files, 40 keys, checked against bm7), the calc map drift check and the one-command pre-commit check; nothing in the app changed; DEV_TOOLING_BRIEF Addendum 2 is written. Next chat: run precommit_check.py in full with dev stopped, decide the one stale test (DT-2), add the short regression output, then split the oversized briefs with an archive and an addendum index, then the skill. Then the lever batch.
