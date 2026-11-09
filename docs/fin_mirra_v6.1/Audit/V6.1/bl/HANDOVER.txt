@@ -1,0 +1,57 @@
+MIRRA HANDOVER V6.1bl - 2026-11-09 (lever batch L1: Rate Builder lever records in mirra_diffs_v1 and the merge at the two Rate Builder reads; built, unit-tested, built clean; no screen yet)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bl\HANDOVER.txt
+Title for the next chat: V6.1bm - lever batch L2 (lever inputs)
+
+THE ADDENDUM FOR THIS CHAT IS ALREADY WRITTEN: BUSINESS_MODELLING_BRIEF Addendum 55 (and its index line A55; A54's index line was also added). Do not rewrite it.
+
+1. WHERE WE ARE
+- Last commit before this chat: eb3b8af (bk handover). This chat's work is UNCOMMITTED until the owner runs section 6: lib/storage/modelDiffs.js (modified), rateBuilderLabourSourceRatesStorage.js (modified), rateBuilderMaterialsMarkupStorage.js (modified), lib/storage/modelLeverDiffs.js (new), Py/model_storage_tests/s6_lever_diffs.test.mjs (new), BUSINESS_MODELLING_BRIEF.txt, PROJECT_MAP.md, this handover.
+- docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours: keep it out of every commit.
+- Project knowledge: BUSINESS_MODELLING_BRIEF and PROJECT_MAP re-uploaded and the ledger rewritten (check with check_project_knowledge_sync.py after the commit).
+- This chat had the folder linked but NO shell: Claude wrote files with the file-commit tool; the owner ran the patch script and pasted the output.
+
+2. WHAT WAS DONE (details in BM Addendum 55)
+- Graph lookup: only modelDiffs.js touches mirra_diffs_v1; its one importer was useGeneralOverheads.js. m23 and m24 readers and their hook importers are listed in Addendum 55 item 1.
+- Found and fixed a field-dropping bug waiting to happen: normalise_diffs rebuilt nudge records field by field (would drop created_at / locked_at). Now spreads.
+- New modelLeverDiffs.js: set_rate_delta, set_markup_delta, get_rate_deltas, get_markup_delta, delta_from_target, apply_rate_deltas, apply_markup_delta. Stored as kind "delta" under by_key of the m23 and m24 keys, with created_at and locked_at. No new storage key, version stays 1.
+- modelDiffs.js gained read_other_records, baseline_lock_stamp, write_other_records. The two Rate Builder storage readers now merge baseline + delta by spreading (baseline mode reads nothing extra).
+- Verified by owner run: patch preflight 8/8, BATCH OK, s6_lever_diffs 71/71, s3_diffs 46/46, s3_nudge 31/31, s2_lock 59/59, build exit 0. Standing totals unchanged (298 x6 / 363 / 364 / 360 / 577 / 3,367).
+
+3. OWNER DECISIONS MADE
+- The L1 acceptance criteria were shown and approved ("yes write it"). Decisions Claude took inside L1 that the owner may change: unmatched rate source kept but not applied; merged value floored at 0; second move keeps created_at and re-stamps locked_at; nudges not stamped until L3; message wording is draft; the Apply-Patch write dropped the BOM of rateBuilderLabourSourceRatesStorage.js.
+
+4. OPEN ITEMS AND FINDINGS
+- OWNER, needed for L2/L3: (a) after Accept, does a new move flip the status back to working (Claude leans yes); (b) where the lever inputs live: Rate Builder page in Model mode, thin /business-modelling page, or both (Addendum 35 batch 2 said Rate Builder in Model mode); (c) bump the version number? (Claude leans no, additive); (d) what the screen does for a rate source with no stored baseline rate.
+- The four consumer hooks read once on mount, so L2 must subscribe them (subscribe_to_diffs): useRateBuilderLabourRates, useBusinessOutcomeLabourRecovery, useRateBuilderMaterialsMarkup, useBusinessOutcomePerSourceRevenue. First hook edits of this batch: closure-scoping and has_loaded checks apply. Check whether anything still passes the Business Outcome hook overrides argument (Addendum 35 item 9). Q-7 for Rate Builder typing in Model mode at 100 and 1,000 staff.
+- Working_Conventions proposals (DEV_TOOLING_BRIEF section 7: graph-freshness line in definition of done, tiered testing, owner-decisions list, handover template, patch helper) STILL UNANSWERED; ask once at the start of L2.
+- From bk, still carried: confirm archive not in project knowledge and the 120 KB split rule; T6 skills saved or not; compare_full.py --summary first live use at the full regression; DT-3 and calc map drift (WARN only); Model mode ON on scenario_b not run; Q-7 for several pages; seed A total cost 336.19 difference; localStorage size at 1,000 staff.
+- The graph (.tmp\repo_graph) is stale after this chat's code change: rebuild it (section 6).
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands.
+ b. V6.1bm: L2 lever inputs. State acceptance criteria first (patch count, asserts, build, expected numbers, trace nodes where a figure is shown, the field-dropping check). Then L3 banner with Accept / Discard / status / moved-baseline flag and nudge stamping, L4 trace nodes and calc map s10 note, L5 live proof and the full regression (the batch edits the shared storage record). L3 to L5 may need their own chats: tell the owner before the chat gets large.
+ c. Slice 5 close-out, then R4 units mode.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web; servers stopped)
+ git status
+ python Py\audit-scripts\build_repo_graph.py
+ python Py\audit-scripts\precommit_check.py
+ git add lib/storage/modelDiffs.js lib/storage/modelLeverDiffs.js lib/storage/rateBuilderLabourSourceRatesStorage.js lib/storage/rateBuilderMaterialsMarkupStorage.js Py/model_storage_tests/s6_lever_diffs.test.mjs
+ git commit -m "V6.1bl lever batch L1: rate and markup lever records in mirra_diffs_v1, merge at the two Rate Builder reads"
+ git add docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Audit/V6.1/bl
+ git diff --cached --stat
+ git commit -m "V6.1bl handover, BM Addendum 55, PROJECT_MAP pointer"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+
+7. STANDING RULES
+- Acceptance criteria first. One feature per chat. Ask before any storage field. Never build while :3000, :3004 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for app edits; build after each batch; view files fresh; git status before commit; has_loaded guard on any storage hook; new files under about 600 lines.
+- Search the graph by name, never load it whole; check it is fresh; rebuild at the end of any chat that changed code, then run precommit_check.py.
+- Nothing is deleted. Addenda are never edited; each new one adds ONE index line (next is A56).
+
+7b. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, then ONLY BM Addendum 53 item 1 and Addendum 55 plus the ADDENDUM INDEX of BUSINESS_MODELLING_BRIEF. Also lib/storage/modelLeverDiffs.js (180 lines) and the four consumer hooks named above when starting L2. Do NOT stage the archive.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bm - lever batch L2 (lever inputs)
+Outline: V6.1bl built lever batch L1: the Rate Builder lever records (rate and materials markup moves, stored as differences with created_at and locked_at in mirra_diffs_v1) and the merge at the two Rate Builder reads; unit-tested (71 new checks), build passes, nothing on screen yet, standing totals unchanged. A field-dropping bug in the nudge reader was fixed on the way. BM Addendum 55 is written. Next chat: L2, the lever inputs and hook subscriptions, acceptance criteria first, after the owner answers the open questions in handover section 4.
