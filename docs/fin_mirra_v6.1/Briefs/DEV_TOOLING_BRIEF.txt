@@ -1,0 +1,86 @@
+===============================================================================
+MIRRA - DEV TOOLING - BRIEF  (read-only helper scripts; cross-cutting, no app module)
+===============================================================================
+FILE:          docs\fin_mirra_v6.1\Briefs\DEV_TOOLING_BRIEF.txt  (the ONE dev tooling brief - update in place, append addenda at the bottom)
+CREATED:       2026-11-09 (chat V6.1bi, docs only). Owner voice session, driving.
+LAST UPDATED:  2026-11-09 (created)
+STATUS:        DESIGN APPROVED BY THE OWNER, NOTHING BUILT, NO CODE TOUCHED. First build chat = V6.1bj (section 6, chat 1). Runs BEFORE the lever batch and before R4 units mode (BUSINESS_MODELLING_BRIEF Addendum 53 item 3).
+TAGS:          DECISION = owner said so. PROPOSED / OPEN = not decided. PLAN = Claude's design. FINDING = read in a brief, NOT seen in code. NOT VERIFIED = stated, not checked.
+
+===============================================================================
+1. PURPOSE
+===============================================================================
+The slow, expensive part of building Mirra is not writing code, it is (a) Claude finding what touches what by searching and reading big files, (b) the terminal runs (seed regression 10 to 15 minutes, mainly the 1,000 staff seed) and the long outputs pasted back, and (c) briefs so large that every chat spends tokens reading or writing them. This brief covers small read-only tools that cut those three costs and catch the recurring dropped-field bug class (conventions rule 6b) earlier. Owner: "build this correctly right from the very beginning" and "I don't want to wait till I feel the pain".
+Owner context: a YouTube plugin (name not confirmed, something like Graphify) draws a 3D graph of a repo. The owner and Claude judged it to be packaging around a plain list of connections. Decision: build our own, no dependency, no subscription, no visualiser.
+
+===============================================================================
+2. OUT OF SCOPE (stop and raise it if a task drifts here)
+===============================================================================
+- No change to any app file (app, components, hooks, lib), any calculation, any storage key, any seed or expected file. The tools only READ the repo and WRITE their own outputs.
+- No visualiser or picture of the graph (OWNER DECISION: not needed).
+- No third-party graph tool or plugin installed.
+- No edit to Working_Conventions until the owner confirms the proposed rules in section 7.
+- Nothing is deleted anywhere. Old brief text is ARCHIVED, never removed (OWNER DECISION, repeated).
+- No change to how the regression passes or fails; a summary mode only changes how much is PRINTED.
+
+===============================================================================
+3. MODULES TOUCHED
+===============================================================================
+App modules: none. New files (names PROPOSED, fixed in the build chat), each under about 600 lines, Python, header comment, ASCII output, clipboard-capture line like the existing audit scripts, in Py\audit-scripts\ beside check_trace_coverage, check_brief_currency, check_project_knowledge_sync and extract_calc_map:
+  build_repo_graph.py     T1 and T2: one scan, writes the JSON master and the flat text file
+  check_graph_fresh.py    T1 staleness check (may be a flag on the above)
+  check_calc_map_drift.py T3
+  precommit_check.py      T4 (runs things, changes nothing)
+Docs touched: PROJECT_MAP (this brief is listed), the session start skill and a new tooling skill (chat 2), Working_Conventions only after owner confirmation (section 7).
+
+===============================================================================
+4. THE PIECES (what each must do, and how it is checked)
+===============================================================================
+T0  LOOK FIRST (read-only, start of chat 1, no building). (a) Read one real regression output and one real paste-back to decide how much to cut. (b) Read the Py\stress_test harness: per-seed run times, and whether seeds can run in parallel (NOT VERIFIED: no one has read the harness for this). (c) Note which audit scripts already do part of this (extract_calc_map.py already scans functions with line numbers; bm7_a to bm7_f already map storage readers and writers for the BM-7 audit, BM brief Addendum 7) and REUSE their code rather than write a second scanner.
+T1  IMPORT GRAPH. Scans the repo source (app, components, hooks, lib, plus the scripts folders if cheap) and records, per file, which files it imports, including re-exports (export ... from), require, and dynamic import(). Must resolve path aliases from the project config (NOT VERIFIED which aliases exist; check jsconfig or tsconfig first) and barrel (index) files. Output two files from the SAME scan: a JSON master (for the future AI layer and scripts) and a flat text file, one line per connection, for Claude to search by name (example shape: "hooks/useCostAllocation.js imports lib/storage/modelDiffs.js"). Claude never reads the text file whole: it searches a name and gets only the matching lines (one hop out from the files a task touches).
+T2  STORAGE KEY MAP. From the same scan: for every localStorage key, which files read it and which write it, including reads that go through the storage helpers and the registry codes (m01, m23, m24 and so on). Dynamic keys built by string concatenation are listed as "dynamic" with the file, never guessed. Used for: dropped-field bugs (a layer that rebuilds an object and drops a field), the lever batch merge points, and the R6 database migration (a reliable list of what reads and writes each key).
+T3  CALC MAP DRIFT CHECK. Compares the function names and line hints in CALCULATION_MAP_v6_0.txt with the code and prints the entries that no longer match. Extends the existing extract_calc_map.py approach; it only reports.
+T4  ONE-COMMAND PRE-COMMIT CHECK plus SUMMARY OUTPUT. One command runs: git status summary, the build, the unit tests (all, or those for changed files), the audit scripts (trace coverage, brief currency, project knowledge sync, graph fresh, calc map drift), and prints ONE line per step and a single PASS or FAIL, with detail only for failures. It must REFUSE to build while a dev or production server is running on :3000, :3004 or :3005 (conventions rule 14: a build while npm run dev runs corrupts .next) and say so. It only runs things; it changes no source. The regression harness gets a matching short mode: one line per seed (PASS or FAIL with the counts) and full detail only on a failure.
+T5  BRIEF SPLIT AND ADDENDUM INDEX. For each oversized brief (BUSINESS_MODELLING_BRIEF is 346,969 bytes at 2026-11-09; check the others): a short CURRENT-STATE brief (live rules, open items, status, the last few addenda) and an ARCHIVE file holding the older addenda word for word (docs\Archive\ or beside the brief, to be decided), plus an INDEX with one line per addendum: number, date, topic, status (current or superseded). Claude reads the index, then opens only the addendum it needs. The existing rule "never create a second brief for a module" (PROJECT_MAP section 1) is kept: the archive is history, not a second brief. Project knowledge holds the current brief and the index; the archive stays in the repo and is staged on demand (decide whether it also goes in project knowledge for search). Rule 11 (append a dated addendum) still applies to the current brief.
+T6  SKILL. After T1 and T2 exist, write a skill that says: look things up in the graph by name, never load it whole; check the graph is fresh; regenerate with the one command at the end of any chat that changed code. One line added to the session start skill to check graph freshness. (Skills are saved through the review card; the owner saves them.)
+
+===============================================================================
+5. ACCEPTANCE CHECKS (state again, with numbers, in the build chat before any script runs)
+===============================================================================
+- No app change: git status after the chat shows ONLY new files under Py\audit-scripts and docs (plus the untracked FIN_LANDING_PAGE_GUARDRAILS_v0_2.json, which is not ours). Standing totals are unchanged and need not be re-run for tooling alone: 298 x6 / 363 / 364 / 360 / 577 / 3,367 (a spot run on seed A is enough to show nothing moved).
+- T1: the graph shows known connections from the briefs, for example the Business Modelling files listed in PROJECT_MAP section 2 (lib/storage/modelDiffs.js, lib/calculations/generalOverheadNudge.js, scenarioAdds.js, app/business-modelling/page.jsx) with their real importers, checked by hand against a grep on at least five files, including one barrel file, one alias import and one dynamic import. Any import form the scanner cannot resolve is listed in a "unresolved" section, not dropped.
+- T2: the map lists the 17 keys seen in the pane in baseline mode plus mirra_mode_v1, mirra_diffs_v1, mirra_scenarios_v1 and the baseline keys; every key from the BM-7 audit output (30 storage modules plus theme, one outlier dev page, Addendum 7) is present or explained.
+- Freshness: the JSON carries a hash or listing of the source it scanned; check_graph_fresh.py reports STALE after any source file changes and OK after regeneration.
+- T4: with a dev server running it refuses to build and says so; with none running it reports PASS on the current repo; a deliberately broken test makes it print FAIL with that step's detail only.
+- Output size: the summary mode output for an all-pass run fits in about 15 lines.
+- Every script: read-only on the app, header comment, ASCII output, under about 600 lines.
+
+===============================================================================
+6. SLICE ORDER
+===============================================================================
+Chat 1 (V6.1bj): T0 (look first), then T1 and T2 (one scan), then T4 (one-command check and summary mode), then T3. Acceptance criteria first. Batch the safe steps into one PowerShell command (conventions rule 1). Tell the owner before the chat gets large.
+Chat 2 (V6.1bk): T5 (brief split and addendum index, starting with BUSINESS_MODELLING_BRIEF), then T6 (the skill and the session start line), then the definition of done lines and the tiered testing rule if the owner has confirmed it (section 7). Claude's recommendation: keep T5 out of chat 1 because it moves documents and project knowledge; the owner may pull it into chat 1 if chat 1 stays small.
+Then: the lever batch (BM Addendum 53), the slice 5 close-out, R4 units mode.
+
+===============================================================================
+7. PROPOSALS FOR THE OWNER TO CONFIRM (Working_Conventions NOT yet changed)
+===============================================================================
+a. Definition of done gains: the import graph and storage key map are regenerated at the end of every chat that changes code, and the audit scripts report them fresh.
+b. Tiered testing: after each batch only the build and the unit tests for changed files; the seed regression only when shared calculation or storage code changed and once at the end of a feature; the 1,000 staff seed only at slice close-outs, after storage or chain timing changes, and before the database migration; the 100 staff seed stays until its run time is measured (five minutes or more: generate a 50 staff seed).
+c. A standing owner-decisions list (one place), a fixed handover template, and a patch helper that prints one result line.
+d. Run the harness seeds in parallel if T0 shows it is safe.
+
+===============================================================================
+8. OPEN QUESTIONS
+===============================================================================
+- Where the generated graph and key map live and whether they are tracked or git-ignored like the calc_map dumps (lean: ignored, regenerated by the one command, staleness checked by the source hash).
+- Archive location for T5 and whether the archive is also uploaded to project knowledge for search.
+- Whether T5 joins chat 1 (section 6).
+- Claude has had no shell in some chats (V6.1bh, V6.1bi): the owner runs the one command and pastes or stages the short output. The tools must work from PowerShell on Windows.
+
+===============================================================================
+9. ADDENDA (append below; check the last number first)
+===============================================================================
+ADDENDUM 1 (2026-11-09) - DESIGN APPROVED BY VOICE; BUILD ORDER  [DOCS ONLY: nothing built]
+ 1. [OWNER DECISION] Build the tooling now, ahead of the lever batch and units mode: import graph (JSON master plus flat text from the same scan), storage key map, calc map drift check, one-command pre-commit check, short regression output, brief split with an archive and an addendum index, a skill after the graph exists. Python (matches the existing audit scripts). Source: BUSINESS_MODELLING_BRIEF Addendum 53 items 3, 6 and 7.
+ 2. [STATUS] Nothing built. Next: V6.1bj, chat 1 of section 6.
