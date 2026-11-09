@@ -250,3 +250,28 @@ UPDATE 2026-11-06 (V6.1at)
   or four words about the NEXT build, for example "V6.1at - whole-business row batch A"; (2) a short outline, 3 to 5 lines: what
   this chat did, what is committed, what the next chat starts with. Claude also updates the PROJECT_MAP latest-handover
   pointer to the new letter in the same step. The VERSION / LETTER rule above still stands (next letter, never reused).
+
+
+UPDATE 2026-11-09 (V6.1bm) - owner adopted all five proposals of DEV_TOOLING_BRIEF section 7 (a to c)
+- DEFINITION OF DONE gains a line: at the end of every chat that changes code, rebuild the import graph and storage key map
+  (python Py\audit-scripts\build_repo_graph.py) and run python Py\audit-scripts\precommit_check.py, which reports them fresh or
+  STALE. A chat that changed code is not finished while the graph line says STALE or MISSING.
+- TIERED TESTING. After each batch: the build and the unit tests for the changed files only. The seed regression runs only when
+  shared calculation or storage code changed, and once at the end of a feature (a batch that edits the shared storage record earns a
+  full run at its end). The 1,000 staff seed runs only at slice close-outs, after a change to storage or chain timing, and before the
+  database migration. The 100 staff seed stays until its real run time is measured (five minutes or more: generate a 50 staff seed).
+  Running harness seeds in parallel (section 7 item d) is NOT adopted yet: it waits for a read-only look at whether it is safe.
+- STANDING OWNER-DECISIONS LIST. PROJECT_MAP.md section 11 is the one place. Read it at the start of a chat; before asking the owner a
+  design question, check it. When the owner decides, add a line (decision | where recorded) in the same session.
+- FIXED HANDOVER TEMPLATE (HANDOVER.txt, about 100 lines, ASCII). Line 1 title and date, line 2 file path, line 3 "Title for the
+  next chat", line 5 "THE ADDENDUM FOR THIS CHAT IS ALREADY WRITTEN: <brief> Addendum <n>". Then sections 1 where we are (last commit,
+  git status); 2 what was done; 3 owner decisions made (and a pointer to PROJECT_MAP section 11); 4 open items and findings;
+  5 next steps in order, one feature per chat; 6 end-of-chat commands for the owner; 7 standing rules; 7b read first and what NOT to
+  read; then the CLOSING BLOCK (title, outline). Nothing is deleted from an older handover.
+- PATCH HELPER (APPROVED, NOT BUILT). Invoke-PatchBatch / Assert-Contains / Invoke-Build should end with ONE result line, for example
+  "RESULT: patches 22/22, asserts 8/8, build exit 0", and Invoke-PatchBatch should detect mixed line endings in a target file (LF lines
+  with CRLF lines, found on useRateBuilderMaterialsMarkup.js 2026-11-09) and say so in the preflight instead of reporting a bad count.
+  Until it is built: a file with mixed line endings is rewritten whole, not patched.
+- SCRIPT HANDOFF CHECK. After Claude writes or rewrites a script on the owner's disk, it stages the script back and compares size (or
+  hash) with its own copy BEFORE asking the owner to run it. (Trigger 2026-11-09: the owner ran an older copy of a script that had
+  been rewritten a moment after the first copy was taken; the preflight protected the files.)

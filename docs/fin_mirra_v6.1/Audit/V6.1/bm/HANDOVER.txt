@@ -1,0 +1,64 @@
+MIRRA HANDOVER V6.1bm - 2026-11-09 (lever batch L2: lever inputs on the Rate Builder in Model mode and four hook subscriptions; built, unit-tested, built clean; not live-proven)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bm\HANDOVER.txt
+Title for the next chat: V6.1bn - lever batch L3 (banner, Accept, Discard)
+
+THE ADDENDUM FOR THIS CHAT IS ALREADY WRITTEN: BUSINESS_MODELLING_BRIEF Addendum 56 (index line A56 added; A53 and A55 index notes updated). Do not rewrite it. Also written: DEV_TOOLING_BRIEF Addendum 4, RATE_BUILDER_BRIEF Addendum 9, Working_Conventions UPDATE 2026-11-09, PROJECT_MAP section 11 (new, standing owner decisions) and the pointer to this handover.
+
+1. WHERE WE ARE
+- V6.1bl (L1) was committed before this chat (git status at the start of the L2 run showed only L2 files). This chat's work is UNCOMMITTED until the owner runs section 6.
+- Code (11 files): lib/actions/rate-builder/rateBuilderLeverActions.js (new), Py/model_storage_tests/s6_lever_inputs.test.mjs (new), lib/actions/rate-builder/rateBuilderLabourRateModelActions.js, lib/storage/rateBuilderLabourSourceRatesStorage.js, lib/storage/rateBuilderMaterialsMarkupStorage.js, hooks/rate-builder/useRateBuilderLabourRates.js, hooks/rate-builder/useRateBuilderMaterialsMarkup.js, hooks/useBusinessOutcomeLabourRecovery.js, hooks/useBusinessOutcomePerSourceRevenue.js, components/rate-builder/RateBuilderLabourRatesInputCard.jsx, components/rate-builder/RateBuilderMaterialsMarkupCard.jsx.
+- Docs (6): BUSINESS_MODELLING_BRIEF, PROJECT_MAP, DEV_TOOLING_BRIEF, RATE_BUILDER_BRIEF, Working_Conventions (repo root), this handover.
+- docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours: keep it out of every commit.
+- Project knowledge: the five edited docs were re-uploaded and the ledger rewritten (check with check_project_knowledge_sync.py AFTER the commit; it flags uncommitted files until then).
+- This chat had the folder linked but NO shell: Claude wrote files with the file-commit tool; the owner ran the patch script and pasted the output.
+
+2. WHAT WAS DONE (details in BM Addendum 56)
+- In Model mode "Save rate" (Rate Builder, Labour Rates Builder) stores typed target minus the SAVED rate as a difference in mirra_diffs_v1; the Materials Markup box does the same when you leave it or press Enter. Baseline mode is unchanged. A source with no saved rate above 0 has its box and Save button disabled with a plain note.
+- Four hooks subscribe to diff changes: useRateBuilderLabourRates (re-syncs only the rates that moved), useBusinessOutcomeLabourRecovery (keeps its object if nothing moved), useRateBuilderMaterialsMarkup, useBusinessOutcomePerSourceRevenue (markup).
+- Checked: nothing outside the Business Outcome hook passes overrides to it.
+- Verified by owner run: preflight 22/22, BATCH OK, 8 asserts PASS, s6_lever_inputs 61/61, s6_lever_diffs 71, s3_diffs 46, s3_nudge 31, s2_lock 59, build exit 0. Standing totals unchanged by design, not re-run live (298 x6 / 363 / 364 / 360 / 577 / 3,367).
+- Found: useRateBuilderMaterialsMarkup.js had mixed line endings (LF with CRLF on the last two lines), so multi-line patches reported BAD COUNT; the file was rewritten whole (now LF). Also found: the owner ran an older copy of the script because it was rewritten a moment after the first copy; the preflight protected the files.
+
+3. OWNER DECISIONS MADE (standing list: PROJECT_MAP section 11)
+- After Accept a new move flips back to working. Inputs live on the Rate Builder in Model mode. No saved rate: box disabled with a note. mirra_diffs_v1 version stays 1. L2 acceptance criteria approved ("yes to all"). All five Working_Conventions proposals adopted (graph line in definition of done, tiered testing, owner-decisions list, fixed handover template, one-line patch helper; the helper is approved, NOT built).
+- Decisions Claude took inside L2 that the owner may change: a saved rate of 0 counts as no saved rate; markup commits on leaving the box or Enter (not per key); messages are draft wording until L3.
+
+4. OPEN ITEMS AND FINDINGS
+- L2 live check NOT RUN (BM Addendum 56 item 10): seed A, Model mode on, baseline locked, one labour rate +5, the Business Outcome labour recovery row moves by exactly +5 and nothing else, Model mode off returns the saved values. Needs the owner's go-ahead; fold it into the start of the L3 chat or into L5.
+- L3 must: add the status field (working or accepted_at) to mirra_diffs_v1 (ask before any storage field: the owner said yes to the SHAPE in A53, but state the exact field names in the acceptance criteria), the banner "Working changes, not yet accepted" with Accept and Discard, the moved-baseline flag on screen, stamp the overhead nudges with created_at and locked_at, make a new move after Accept flip the status to working, get the draft messages approved. Discard clears nudges and lever records only, never scenarios (A53 item 1d). Hook edits again: closure-scoping and has_loaded checks apply; Discard must notify the subscribers so the Rate Builder maps and Business Outcome re-sync.
+- Not run: Model mode ON with a non-empty layer through the subscriptions, Q-7 for Rate Builder typing at 100 and 1,000 staff, the tap with a lever record present.
+- Dead code: the overrides argument of useBusinessOutcomePerSourceRevenue (and its three override fields) is passed by nothing; not removed.
+- Patch helper (one result line, mixed line ending detection) approved, NOT built: next tooling chat. DEV_TOOLING_BRIEF section 7 item d (seeds in parallel) still conditional on a read-only look; T6 skill not built.
+- Carried from bk and bl: confirm the Brief_Addenda archive stays out of project knowledge and the 120 KB split rule; T6 skills saved or not; compare_full.py --summary first live use at the full regression; DT-3 and calc map drift (WARN only); Model mode ON on scenario_b not run; Q-7 for several pages; seed A total cost 336.19 difference; localStorage size at 1,000 staff.
+- The graph (.tmp\repo_graph) is stale after this chat's code change: rebuild it (section 6).
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands.
+ b. V6.1bn: L3 banner, Accept, Discard, status, moved-baseline flag, nudge stamping. Acceptance criteria first. Optionally start with the L2 live check (item 4) once the owner says go.
+ c. L4 trace nodes for any new displayed figure and the calc map s10 note; L5 live proof and the full regression (the batch edits the shared storage record). L4/L5 may be separate chats: tell the owner before the chat gets large.
+ d. Slice 5 close-out, then the patch helper, then R4 units mode.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web; servers stopped)
+ git status
+ python Py\audit-scripts\build_repo_graph.py
+ python Py\audit-scripts\precommit_check.py
+ git add lib/actions/rate-builder/rateBuilderLeverActions.js lib/actions/rate-builder/rateBuilderLabourRateModelActions.js lib/storage/rateBuilderLabourSourceRatesStorage.js lib/storage/rateBuilderMaterialsMarkupStorage.js hooks/rate-builder/useRateBuilderLabourRates.js hooks/rate-builder/useRateBuilderMaterialsMarkup.js hooks/useBusinessOutcomeLabourRecovery.js hooks/useBusinessOutcomePerSourceRevenue.js components/rate-builder/RateBuilderLabourRatesInputCard.jsx components/rate-builder/RateBuilderMaterialsMarkupCard.jsx Py/model_storage_tests/s6_lever_inputs.test.mjs
+ git commit -m "V6.1bm lever batch L2: Model mode lever inputs on the Rate Builder, four hook subscriptions"
+ git add docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/Briefs/DEV_TOOLING_BRIEF.txt docs/fin_mirra_v6.1/Briefs/RATE_BUILDER_BRIEF.txt docs/fin_mirra_v6.1/PROJECT_MAP.md Working_Conventions_PowerShell_Patching_CSS_and_Numeric_Verification.txt docs/fin_mirra_v6.1/Audit/V6.1/bm
+ git diff --cached --stat
+ git commit -m "V6.1bm handover, BM Addendum 56, Working_Conventions update, PROJECT_MAP section 11"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+
+7. STANDING RULES
+- Acceptance criteria first. One feature per chat. Ask before any storage field. Never build while :3000, :3004 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for app edits; a file with mixed line endings is rewritten whole; build after each batch; view files fresh; git status before commit; has_loaded guard on any storage hook; new files under about 600 lines.
+- After writing a script to the owner's disk, stage it back and compare size or hash before asking for a run.
+- Tiered testing and the graph line are in the definition of done now (Working_Conventions UPDATE 2026-11-09). Search the graph by name, never load it whole; rebuild at the end of any chat that changed code, then run precommit_check.py.
+- Nothing is deleted. Addenda are never edited; each new one adds ONE index line (next is A57).
+
+7b. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md (including section 11), the Working Conventions file (the UPDATE 2026-11-09 block), then ONLY BM Addendum 53 item 1, Addendum 55 and Addendum 56 plus the ADDENDUM INDEX of BUSINESS_MODELLING_BRIEF. Also lib/storage/modelDiffs.js, lib/storage/modelLeverDiffs.js and lib/actions/rate-builder/rateBuilderLeverActions.js when starting L3. Do NOT stage the archive.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bn - lever batch L3 (banner, Accept, Discard)
+Outline: V6.1bm built lever batch L2: in Model mode the Rate Builder labour "Save rate" and the Materials Markup box store a working change (a difference from the saved value) in mirra_diffs_v1, a source with no saved rate is disabled with a note, and four hooks follow changes; unit-tested (61 new checks), build passes, standing totals unchanged, not live-proven. All five Working_Conventions proposals were adopted and written in; BM Addendum 56 is written. Next chat: L3, the banner with Accept and Discard, the status field, the moved-baseline flag and nudge stamping, acceptance criteria first.

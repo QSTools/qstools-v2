@@ -6,7 +6,7 @@ STATUS:        CODE-TRACED (P3, 2026-09-23). Since: RB-1 overhead basis fix prov
                calculators (6df2de0, 2bb6400); machine-only result panel (fa9fadd); OPEN-D (a9e55d3); labour by staff
                type (OPEN-E); asset pricing hard block (dea2013); labour panel hours basis (D-IDLE-4, closes CM-9b).
                R2 stress test covers Rate Builder overhead and labour rows (all_productive row RB-1b covered by Addendum 2).
-LAST UPDATED:  2026-11-06 (Addendum 6, pointer: shared calculator design, docs only); 2026-10-26 (Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
+LAST UPDATED:  2026-11-09 (Addendum 9, pointer: lever inputs on the Rate Builder in Model mode, built); 2026-11-06 (Addendum 6, pointer: shared calculator design, docs only); 2026-10-26 (Addendum 2; first rebuilt 2026-10-21 from the sources listed in Section 12)
 ROUTE:         app/rate-builder (tabs: Labour Rates Builder, Customer Charge Calculator, Materials markup)
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Section 8 (stored user inputs + display maths; no output
                contract). This brief holds intent, rules, verified status and open items.
@@ -250,3 +250,8 @@ Source: owner voice session 2026-11-07. Addendum 6 stands (one price per cube, n
 ADDENDUM 8 (2026-11-09) - POINTER: LEVER BATCH STORED SHAPE APPROVED (CHARGE-OUT RATE PER LABOUR SOURCE AND MATERIALS MARKUP)  [DOCS ONLY: no Rate Builder change; BUSINESS_MODELLING_BRIEF Addendum 53]
  1. [OWNER DECISION] A lever move on a charge-out rate or the materials markup is saved as a DIFFERENCE in mirra_diffs_v1 (dollars per hour; percentage points), with created_at and the baseline lock stamp, under the keys the two Rate Builder reads use (m23 readRateBuilderLabourSourceRates, m24 readRateBuilderMaterialsMarkup). One working or accepted status covers all modelled changes; banner "Working changes, not yet accepted". See BM brief Addendum 53 item 1.
  2. [NOTE] The Rate Builder calculation does not change. In Model mode the two reads would return baseline plus the difference; Rate Builder writes in Model mode are still discarded and counted (slice 1). The merge must spread the stored object, not rebuild it field by field (conventions rule 6b). Whether the lever inputs sit on the Rate Builder page or the thin /business-modelling page is OPEN (BM Addendum 53 item 1g).
+
+ADDENDUM 9 (2026-11-09) - POINTER: LEVER INPUTS ON THE RATE BUILDER IN MODEL MODE (LEVER BATCH L2)  [BUILT, UNIT-TESTED AND BUILT CLEAN; not live-proven; BUSINESS_MODELLING_BRIEF Addendum 56]
+ 1. [BUILT] The Rate Builder calculation does not change. In Model mode the labour charge-out rate "Save rate" button stores a working change (typed target minus the SAVED rate, in mirra_diffs_v1) instead of the saved rate; the Materials Markup box stores one when you leave it or press Enter. In baseline mode both behave exactly as before. The two reads return baseline plus the difference (Addendum 8, BM Addendum 55).
+ 2. [BEHAVIOUR] A labour source with no saved rate above 0 has its rate box and Save button disabled in Model mode, with the note "No saved rate to change yet. Save a rate in baseline mode first." Two plain notes tell the user in Model mode that the saved rate and saved markup are not touched. Wording is draft until L3.
+ 3. [NOTE] The Rate Builder hooks follow a change made elsewhere (for example Discard in L3) for the charge-out rate maps only; calculator names and other inputs are never overwritten. See BM Addendum 56 items 3 and 4.

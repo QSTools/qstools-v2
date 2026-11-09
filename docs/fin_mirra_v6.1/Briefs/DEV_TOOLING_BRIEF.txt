@@ -3,7 +3,7 @@ MIRRA - DEV TOOLING - BRIEF  (read-only helper scripts; cross-cutting, no app mo
 ===============================================================================
 FILE:          docs\fin_mirra_v6.1\Briefs\DEV_TOOLING_BRIEF.txt  (the ONE dev tooling brief - update in place, append addenda at the bottom)
 CREATED:       2026-11-09 (chat V6.1bi, docs only). Owner voice session, driving.
-LAST UPDATED:  2026-11-09 (V6.1bk: DT-2 fixed, regression --summary mode and T5 brief split BUILT; Addendum 3)
+LAST UPDATED:  2026-11-09 (V6.1bm: Working_Conventions proposals adopted, Addendum 4); 2026-11-09 (V6.1bk: DT-2 fixed, regression --summary mode and T5 brief split BUILT; Addendum 3)
 STATUS:        T1 import graph, T2 storage key map, T3 calc map drift check and T4 one-command pre-commit check are BUILT and run on the real repo (Addendum 2). V6.1bk then BUILT the regression short mode (compare_full.py --summary) and T5 (brief split, Addendum 3). NOT BUILT: T6 skill. No app file, calculation, storage key, seed or expected file was touched. Next: T6, then the lever batch.
 TAGS:          DECISION = owner said so. PROPOSED / OPEN = not decided. PLAN = Claude's design. FINDING = read in a brief, NOT seen in code. NOT VERIFIED = stated, not checked.
 
@@ -63,7 +63,7 @@ Chat 2 (V6.1bk): T5 (brief split and addendum index, starting with BUSINESS_MODE
 Then: the lever batch (BM Addendum 53), the slice 5 close-out, R4 units mode.
 
 ===============================================================================
-7. PROPOSALS FOR THE OWNER TO CONFIRM (Working_Conventions NOT yet changed)
+7. PROPOSALS FOR THE OWNER TO CONFIRM (a, b and c ADOPTED 2026-11-09 and written into Working_Conventions UPDATE 2026-11-09, see Addendum 4; the patch helper in c is NOT built; d still conditional)
 ===============================================================================
 a. Definition of done gains: the import graph and storage key map are regenerated at the end of every chat that changes code, and the audit scripts report them fresh.
 b. Tiered testing: after each batch only the build and the unit tests for changed files; the seed regression only when shared calculation or storage code changed and once at the end of a feature; the 1,000 staff seed only at slice close-outs, after storage or chain timing changes, and before the database migration; the 100 staff seed stays until its run time is measured (five minutes or more: generate a 50 staff seed).
@@ -109,3 +109,9 @@ ADDENDUM 3 (2026-11-09, chat V6.1bk) - FULL CHECK RUN, DT-2 FIXED, REGRESSION SU
  6. [PROPOSED, owner to confirm] Split any brief over about 120 KB the same way. Index lines are kept by hand (one line per new addendum); a check in check_brief_currency.py that the index has a line for every addendum is possible and NOT built.
  7. [NOT BUILT] T6 (the skill and the session start line). Working_Conventions proposals (section 7) still unconfirmed and unchanged. Uncommitted at write time: the two edited files (s5_group_rate_nodes.test.mjs, compare_full.py) plus the docs (BUSINESS_MODELLING_BRIEF, DEV_TOOLING_BRIEF, PROJECT_MAP, the new archive file).
  8. [NEXT] T6 (one new tooling skill, one line added to the session start skill), then the lever batch (BM Addendum 53).
+
+ADDENDUM 4 (2026-11-09, chat V6.1bm) - WORKING CONVENTIONS PROPOSALS ADOPTED; PATCH HELPER SPEC  [DOCS ONLY: nothing built; BUSINESS_MODELLING_BRIEF Addendum 56 item 9]
+ 1. [OWNER DECISION, "yes to all"] Section 7 items a, b and c are adopted: the graph and key map line in the definition of done, tiered testing, a standing owner-decisions list (PROJECT_MAP section 11), a fixed handover template, and a patch helper that prints one result line. Written into Working_Conventions as UPDATE 2026-11-09.
+ 2. [NOT BUILT, SPEC] Patch helper: Invoke-PatchBatch, Assert-Contains and Invoke-Build end with one line, for example "RESULT: patches 22/22, asserts 8/8, build exit 0"; Invoke-PatchBatch detects mixed line endings (LF and CRLF in one file) and says so in the preflight (found 2026-11-09 on hooks/rate-builder/useRateBuilderMaterialsMarkup.js: LF lines with CRLF on the last two lines made every multi-line patch report BAD COUNT 0). Apply-Patch.ps1 is ASCII only. To do in the next tooling chat; until then a mixed-EOL file is rewritten whole.
+ 3. [NOT DONE] Section 7 item d (harness seeds in parallel): conditional on a read-only look at the harness; not done.
+ 4. [NOTE] T6 (the skill and the session start line) is still not built.
