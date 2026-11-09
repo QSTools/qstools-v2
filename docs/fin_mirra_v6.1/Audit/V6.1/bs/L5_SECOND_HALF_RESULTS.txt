@@ -1,0 +1,42 @@
+MIRRA V6.1bs - lever batch L5 second half: live proof results - 2026-11-09 (NZ)
+Pane: built-in browser on :3005 (production build), visible, 62 fps at start. No device shell: git, build and server start were not run by Claude.
+Seeds dated 2026-11-09 03:11 UTC (after NZ midnight); server served them (Last-Modified checked). Pane's 17 keys backed up to sessionStorage __bak first, restored at the end (17 keys, all byte-equal, no mirra_mode/diffs/baseline/scenarios keys left).
+
+1. FULL REGRESSION (Model mode OFF) - pane_runner.console.js, seed -> /calculation-trace -> grab -> compare. All 0 duplicates, 0 missing endpoints, 0 fails.
+ scenario_a 298/298 (trace 252)   scenario_a_depreciation 298/298 (252)   scenario_a_misaligned 298/298 (252)
+ scenario_a_nonasset_interest 298/298 (252)   scenario_a_overstaffed 298/298 (258)   scenario_a_support_depreciation 298/298 (252)
+ scenario_b 363/363 (300)   scenario_b_dry_hire 364/364 (300)   scenario_b_dry_hire_gate 360/360 (298)
+ scenario_a_n100 577/577 (810)   scenario_a_n1000 3,367/3,367 (6,390)
+
+2. TAP WITH A LEVER RECORD (b6_model_tap.cjs, SHA-256 e6d3acc3...dc57, 14,038 bytes, matched repo before eval)
+ scenario_a, Save Baseline, Lock (lock 1), Enter Model mode, Rate Builder Operator rate 65 -> 70 stored as delta +5 (real rate stayed 65).
+ Installed on /dev/model-mode, 17 routes + 5 notice routes + /dev/model-mode, 1,675 storage calls.
+ PASS 1..7, OVERALL PASS. 0 local writes, session writes only at mirra_model_stats_v1, no key changed since install, diffs/scenarios unchanged.
+ Helper log: noop_writes 816, dropped_writes 19 (baseline_absent), blocked 0.
+
+3. Q-7 TIMING (iframe method, ready = load or last long task + 1.5 s quiet; 2 runs per cell; ready ms / max freeze ms)
+ Method differences from perf_pass: states switched by writing mirra_mode_v1 / mirra_diffs_v1 directly (no reseed); baseline was locked once per size through the UI; the diff used for ON_nudge was created through the Rate Builder form (+5 Operator). OFF = mode baseline with the locked baseline copy present (no unlocked pure-OFF run). OFF re-run at the end (OFF_again).
+ 100 staff:
+  route               OFF            ON empty       ON nudge       OFF again
+  general-overheads   20/0 18/0      17/0 14/0      17/0 18/0      17/0 18/0
+  labour              13/0 14/0      18/0 15/0      19/0 17/0      16/0 15/0
+  assets              22/0 18/0      19/0 19/0      20/0 21/0      20/0 18/0
+  cost-allocation     128/76 125/74  120/73 121/72  127/75 123/74  123/73 126/76
+  rate-builder        132/77 126/75  128/77 125/73  131/79 129/74  128/77 126/74
+  business-outcome    290/160 277/154 225/159 226/159 229/160 217/152 283/157 281/155
+ 1,000 staff:
+  general-overheads   252/132 244/133 227/120 228/120 229/121 230/122 247/130 242/131
+  labour              232/127 223/121 257/120 260/118 255/120 255/120 221/122 226/124
+  assets              358/193 366/194 378/184 375/182 382/185 380/187 366/197 358/190
+  cost-allocation     625/375 633/375 574/335 582/337 587/337 574/330 624/370 632/377
+  rate-builder        634/380 644/384 589/343 582/343 578/338 583/342 627/375 654/394
+  business-outcome    994/708 915/652 849/603 847/603 910/638 835/591 954/675 921/655
+ Verdict: ON is no slower than OFF anywhere beyond allowance (labour at 1,000 staff +30 ms, inside 100 ms). Worst page Business Outcome: 994 ms open (limit 3 s), 708 ms freeze (limit 1 s) at 1,000; 290 ms open, 160 ms freeze at 100 (freeze limit 200 ms, inside). OFF re-run matches first OFF (no warm-up effect).
+ TYPING (Rate Builder, Operator rate input): at 100 staff, OFF and ON-nudge, 3 edits each: no displayed text changes on typing (the page updates only on Save rate) and 0 long tasks. At 1,000 staff NOT MEASURED: the pane went hidden mid-run (requestAnimationFrame stopped), run abandoned.
+ localStorage size at 1,000 staff with the baseline copy: 5,719,093 characters. The pane has no quota; a real browser stops near 5,000,000, so this limit would apply in a normal browser (same as the earlier 5.7 M note).
+
+4. NOT DONE / OPEN
+ - Typing at 1,000 staff (see above). Save-rate response time not timed.
+ - Stale nudge input after Discard (A60 defect) untouched: separate fix chat.
+ - Labour recovery row +5 only-that-row check: not run.
+ - Import graph rebuild, compare_full.py --summary: need a shell.
