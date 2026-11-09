@@ -24,6 +24,13 @@ function NudgeRow({ category, nudge, orphan, set_nudge }) {
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  // V6.1bt: the input holds its own text, so it must follow the saved record when the record changes from outside (Discard, relock then Discard).
+  // It resets only when what is typed no longer matches the saved percentage, so typing "10." or a pending pause is never overwritten.
+  const saved_pct = nudge ? Number(nudge.pct) : 0;
+  useEffect(() => {
+    if ((Number(text) || 0) !== saved_pct) setText(nudge ? String(nudge.pct) : "");
+  }, [saved_pct]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const commit = (value) => {
     clearTimeout(timer.current);
     const trimmed = String(value).trim();
