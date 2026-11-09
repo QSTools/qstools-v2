@@ -1,0 +1,54 @@
+MIRRA HANDOVER V6.1bk - 2026-11-09 (dev tooling chat 2: full pre-commit check PASS, DT-2 fixed, regression --summary mode, Business Modelling brief split with archive and index; no app change)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bk\HANDOVER.txt
+Title for the next chat: V6.1bl - lever batch (BM Addendum 53)
+
+THE ADDENDA FOR THIS CHAT ARE ALREADY WRITTEN: DEV_TOOLING_BRIEF Addendum 3 and BUSINESS_MODELLING_BRIEF Addendum 54. Do not rewrite them.
+
+1. WHERE WE ARE
+- No app file, calculation, storage key, seed or expected file changed. Last commit c2c6dbf (V6.1bj + V6.1bk together: tooling scripts, DT-2 test fix, compare_full.py --summary, BM brief split, archive, docs, bj handover). Not pushed.
+- Committed after c2c6dbf this chat: nothing yet. The bk handover and the PROJECT_MAP pointer edit are UNCOMMITTED (see section 6). FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours: keep it out of every commit.
+- Project knowledge: BUSINESS_MODELLING_BRIEF, DEV_TOOLING_BRIEF and PROJECT_MAP re-uploaded and the ledger rewritten; check_project_knowledge_sync.py reported 18 OK, 0 changed before the handover pointer edit (PROJECT_MAP is re-uploaded again with that edit).
+- This chat had the folder linked but NO shell: files were written with the file-commit tool and the owner ran every script and pasted the output.
+
+2. WHAT WAS DONE (details in DEV_TOOLING_BRIEF Addendum 3 and BM Addendum 54)
+- precommit_check.py run in FULL with dev stopped: servers PASS, build PASS (exit 0), tests PASS (20 files, 778 checks), graph PASS (614 files); 4 warnings (trace DT-3, briefs, knowledge, calcdrift 116 OK / 33 DRIFT / 1 NOT FOUND / 124 UNCHECKED). RESULT PASS.
+- DT-2 fixed: check 40 of s5_group_rate_nodes.test.mjs now matches the revenue_per_hour guard line itself; 40 of 40. Harness unchanged.
+- compare_full.py --summary built (one PASS / FAIL line per seed, detail only on failure; exit code and pass rule unchanged). py_compile clean. NOT yet run on a real snapshot.
+- T5: BUSINESS_MODELLING_BRIEF 356,282 -> 100,966 bytes. Addenda 1 to 40 and the old STATUS / LAST UPDATED lines are word for word in docs\Archive\Brief_Addenda\BUSINESS_MODELLING_BRIEF_ARCHIVE_A01-A40.txt (269,874 bytes). A 53-line ADDENDUM INDEX is in the live brief. Verified: the pieces rebuild the original exactly from the files read back off the owner's disk. No other brief is over 47 KB.
+- T6: two skill proposals shown to the owner on a review card: new mirra-repo-graph-lookup, and two edits to mirra-session-start-handover. The owner saves them. (Wording slip in the second edit: "near its end of section 12" should read "at the start of the addenda part".)
+
+3. OWNER DECISIONS MADE
+- DT-2 left to Claude: fix the test (done). Archive location and not uploading the archive to project knowledge are CLAUDE'S CALLS, easy to change. Splitting any brief over about 120 KB is PROPOSED, not confirmed.
+
+4. OPEN ITEMS AND FINDINGS
+- Confirm or change: archive not in project knowledge; the 120 KB split rule; T6 skills saved (or not).
+- compare_full.py --summary: first live use is the next full regression; check the one-line output looks right.
+- Index "later notes" in the BM brief come from a text search, not a re-read of each addendum: correct a note when a new addendum supersedes an older one; every new addendum adds ONE index line (next is A55).
+- DT-3 (19 template ids unreadable by check_trace_coverage.py), calc map drift (s9 hook hints 55 to 65 lines low, s5 and s2 20 to 35 low; refresh = re-run extract_calc_map.py then check_calc_map_drift.py): unchanged, WARN only.
+- Working_Conventions proposals (DEV_TOOLING_BRIEF section 7: definition-of-done line for graph freshness, tiered testing, owner-decisions list, handover template, patch helper) are STILL UNCONFIRMED and unchanged. The owner has not been asked in this chat. Ask once, before or at the start of the lever chat.
+- Carried (unchanged): lever batch open points (BM Addendum 53 item 1g), Model mode ON not run on scenario_b, Q-7 for several pages, seed A total cost 336.19 difference, localStorage size at 1,000 staff. Standing totals (Model mode off): 298 x6 / 363 / 364 / 360 / 577 / 3,367.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: commit the handover and PROJECT_MAP edit (section 6); save the two skills; run check_project_knowledge_sync.py.
+ b. V6.1bl: the LEVER BATCH (BM Addendum 53 item 2). State acceptance criteria first (patch count, asserts, build, expected numbers, trace nodes, the field-dropping check on mirra_diffs_v1). Stored shape is already approved (extends mirra_diffs_v1, stores the difference, created_at and lock stamp, one working / accepted status, banner "Working changes, not yet accepted"); any NEW storage field still needs an explicit yes. Look up readers and writers of mirra_diffs_v1 in the graph first (mirra-repo-graph-lookup). The batch edits the shared storage record, so it earns a full regression at its end (tiered testing proposal).
+ c. Slice 5 close-out, then R4 units mode.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web)
+ git status
+ git add docs/fin_mirra_v6.1/Audit/V6.1/bk docs/fin_mirra_v6.1/PROJECT_MAP.md
+ git diff --cached --stat
+ git commit -m "V6.1bk handover and PROJECT_MAP pointer"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+
+7. STANDING RULES
+- Acceptance criteria first. One feature per chat. Ask before any storage field. Never build while :3000, :3004 or :3005 is running (precommit_check.py enforces it; stop dev first).
+- Apply-Patch / Invoke-PatchBatch for app edits; build after each batch; view files fresh; git status before commit; has_loaded guard on any storage hook; new files under about 600 lines.
+- Search the graph by name, never load it whole; check it is fresh first (check_graph_fresh.py); rebuild with build_repo_graph.py at the end of any chat that changed code, then run precommit_check.py.
+- Nothing is deleted: old brief text is archived. Addenda are never edited.
+
+7b. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md, the Working Conventions file, then ONLY BM Addendum 53 and the ADDENDUM INDEX of BUSINESS_MODELLING_BRIEF (about 100 KB now; read the index, not the whole file), plus RATE_BUILDER_BRIEF Addendum 8 if the lever touches the Rate Builder. Do NOT stage the archive unless an index line points to it.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bl - lever batch (BM Addendum 53)
+Outline: V6.1bk finished the dev tooling: the full pre-commit check passes (build, 778 checks), the stale test is fixed, compare_full.py has a --summary mode, and the Business Modelling brief is split into a 101 KB live brief with an addendum index plus an archive in docs\Archive\Brief_Addenda (nothing deleted, checked to rebuild exactly). Nothing in the app changed; DEV_TOOLING_BRIEF Addendum 3 and BM Addendum 54 are written. Next chat: the lever batch on the approved stored shape, acceptance criteria first, graph lookup of mirra_diffs_v1 readers and writers, full regression at the end.
