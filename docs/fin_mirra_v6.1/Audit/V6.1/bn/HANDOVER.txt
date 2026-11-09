@@ -1,0 +1,58 @@
+MIRRA HANDOVER V6.1bn - 2026-11-09 (lever batch L3: acceptance criteria and owner decisions only; docs only, nothing built, no code touched)
+File: docs\fin_mirra_v6.1\Audit\V6.1\bn\HANDOVER.txt
+Title for the next chat: V6.1bo - lever batch L3 patch batch (strip, Accept, Discard, status field)
+
+THE ADDENDUM FOR THIS CHAT IS ALREADY WRITTEN: BUSINESS_MODELLING_BRIEF Addendum 57 (index line A57 added; next is A58). Do not rewrite it. PROJECT_MAP section 11 has two new lines and the pointer to this handover.
+
+1. WHERE WE ARE
+- Last code commit: the V6.1bm L2 commit (owner ran the section 6 commands of the bm handover; confirm with git status). This chat changed NO code. Docs changed: BUSINESS_MODELLING_BRIEF, PROJECT_MAP, this handover. Claude wrote them to the owner's disk with the file-commit tool and updated the sync ledger rows for the two briefs; they are UNCOMMITTED until the owner runs section 6.
+- docs/fin_mirra_v6.1/Future_Build/FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is NOT ours: keep it out of every commit.
+- This chat had the folder linked but NO shell for Claude.
+
+2. WHAT WAS DONE
+- Read the bm handover, PROJECT_MAP, BM Addenda 53/55/56, modelDiffs.js, modelLeverDiffs.js, rateBuilderLeverActions.js, ModelModeGate.jsx (the Model mode banner lives there; it reads the mode once per load).
+- Wrote the L3 acceptance criteria and got the owner's decisions and wording (BM Addendum 57).
+
+3. OWNER DECISIONS MADE (standing list: PROJECT_MAP section 11)
+- mirra_diffs_v1 gets top-level status ("accepted") and accepted_at, written ONLY when accepted; no field = working; version stays 1.
+- Discard stays available after Accept, with the confirm prompt. Discard clears the whole working layer (all by_key entries, status); never mirra_scenarios_v1.
+- Any later move after Accept removes status and accepted_at in the same write.
+- L2 live check folds into L5.
+- Wording approved: "Working changes, not yet accepted" (Accept, Discard); "Changes accepted on <date>" (Discard); "Discard all working changes? This cannot be undone."; "The baseline was relocked after some of these changes were made."; "The change could not be saved. Nothing was changed."
+
+4. OPEN ITEMS AND FINDINGS
+- RISK TO PROVE IN THE BUILD: set_overhead_nudge and write_other_records both rebuild { version, generation, by_key } and would DROP status and accepted_at (project rule 6b). Both must carry them; the new test must fail without the fix.
+- Accept must wake only the strip (a layer-only subscription and the nudge cache kept), not the hooks, so nothing recalculates. Discard must notify the existing diff subscribers.
+- modelDiffs.js is core storage: STOP for the owner's separate confirmation before the patch batch. Stage and read s3_diffs and s3_nudge tests first (they may pin the exact written JSON), modelStorage.js, and how useGeneralOverheads consumes nudges.
+- Not run (unchanged from bm): L2 live check, Model mode ON with a non-empty layer through the subscriptions, Q-7 for Rate Builder typing at 100 and 1,000 staff, the tap with a lever record present.
+- Dead code: the overrides argument of useBusinessOutcomePerSourceRevenue; not removed.
+- Patch helper (one result line, mixed line ending detection) approved, NOT built. DEV_TOOLING_BRIEF section 7 item d conditional. T6 skill not built.
+- Carried: Brief_Addenda archive stays out of project knowledge; compare_full.py --summary first live use at the full regression; DT-3 and calc map drift (WARN only); Model mode ON on scenario_b not run; seed A cost difference 336.19; localStorage size at 1,000 staff.
+- The graph (.tmp\repo_graph) is current as of the bm commit; rebuild at the end of the next chat if code changes.
+
+5. NEXT STEPS, IN ORDER (ONE FEATURE PER CHAT)
+ a. Owner: section 6 commands (docs only).
+ b. V6.1bo: the L3 patch batch per BM Addendum 57 items 2 to 4: modelDiffs.js (carry and drop status, stamp nudges), new lib/storage/modelWorkingLayer.js (summary snapshot, accept, discard, layer subscription), ModelModeGate.jsx strip, new Py/model_storage_tests/s7_working_layer.test.mjs. Files under about 600 lines. Build after the batch; existing tests stay green (s3_diffs 46, s3_nudge 31, s6_lever_diffs 71, s6_lever_inputs 61, s2_lock 59).
+ c. L4 trace nodes (none expected from L3) and the calc map s10 note; L5 live proof including the L2 check, Q-7 and the full regression. Tell the owner before the chat gets large.
+ d. Slice 5 close-out, then the patch helper, then R4 units mode.
+
+6. END-OF-CHAT COMMANDS FOR THE OWNER (PowerShell, from D:\QSTools\qstools-web; servers stopped)
+ git status
+ git add docs/fin_mirra_v6.1/Briefs/BUSINESS_MODELLING_BRIEF.txt docs/fin_mirra_v6.1/PROJECT_MAP.md docs/fin_mirra_v6.1/Audit/V6.1/bn
+ git diff --cached --stat
+ git commit -m "V6.1bn L3 acceptance criteria and owner decisions: BM Addendum 57, PROJECT_MAP section 11, handover"
+ python Py\audit-scripts\check_project_knowledge_sync.py
+
+7. STANDING RULES
+- Acceptance criteria first (done for L3). One feature per chat. Ask before any storage field (done: status, accepted_at). Never build while :3000, :3004 or :3005 is running.
+- Apply-Patch / Invoke-PatchBatch for app edits; a file with mixed line endings is rewritten whole; build after each batch; view files fresh; git status before commit; has_loaded guard on any storage hook; new files under about 600 lines.
+- After writing a script to the owner's disk, stage it back and compare size or hash before asking for a run.
+- Tiered testing and the graph line are in the definition of done (Working_Conventions UPDATE 2026-11-09). Search the graph by name, never load it whole.
+- Nothing is deleted. Addenda are never edited; each new one adds ONE index line (next is A58).
+
+7b. READ FIRST (and what not to read)
+- Read: this HANDOVER, PROJECT_MAP.md (including section 11), the Working Conventions UPDATE 2026-11-09 block, then ONLY BM Addendum 57 (and 55/56 for the code that exists) plus the ADDENDUM INDEX. Also lib/storage/modelDiffs.js, lib/storage/modelLeverDiffs.js, components/layout/ModelModeGate.jsx and the s3_diffs / s3_nudge tests. Do NOT read the whole BM brief; do NOT stage the archive.
+
+CLOSING BLOCK (copy-paste)
+Title: V6.1bo - lever batch L3 patch batch (strip, Accept, Discard, status field)
+Outline: V6.1bn settled the L3 acceptance criteria and owner decisions (BM Addendum 57, already written): mirra_diffs_v1 gets top-level status "accepted" and accepted_at written only when accepted, Discard stays available after Accept and clears the whole working layer but never scenarios, wording approved, L2 live check folds into L5. Nothing built. Next chat: write and run the L3 patch batch (modelDiffs.js status carry and nudge stamping, modelWorkingLayer.js, the strip in ModelModeGate.jsx, s7_working_layer test); stop for confirmation before touching modelDiffs.js.
