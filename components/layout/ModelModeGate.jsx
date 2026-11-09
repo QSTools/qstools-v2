@@ -4,6 +4,7 @@
 // Mode OFF: renders the children untouched. Mode ON: a banner above every page; on routes Model mode does not cover
 // (lib/config/modelModeRoutes.js) the children are NOT rendered at all, a notice is shown instead, so those pages never mount.
 // Reads the mode only through get_mode() and switches back only through set_mode(); it touches no other storage.
+// L3 (BM Addendum 57): under the banner sits the working-layer strip (ModelWorkingLayerStrip.jsx, its own subscription, nothing when the layer is empty).
 // The mode only changes with a full page load (each page reads its storage once on mount), so it is read once per load.
 // Children keep the same position in the tree whether or not the banner shows, so a page never remounts when it appears.
 
@@ -12,6 +13,7 @@ import { useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { get_mode, set_mode } from "@/lib/storage/modelStorage";
 import { is_unmodelled_route, MODEL_MODE_TEXT } from "@/lib/config/modelModeRoutes";
+import ModelWorkingLayerStrip from "./ModelWorkingLayerStrip";
 
 const subscribe = () => () => {};
 const server_mode = () => null;
@@ -40,11 +42,14 @@ function BackToBaselineButton() {
 
 function ModelModeBanner() {
   return (
-    <div role="status" className="ui-section-muted ui-actions mb-4">
-      <span className="ui-pill ui-pill-warning">{MODEL_MODE_TEXT.banner_label}</span>
-      <span>{MODEL_MODE_TEXT.banner}</span>
-      <BackToBaselineButton />
-    </div>
+    <>
+      <div role="status" className="ui-section-muted ui-actions mb-4">
+        <span className="ui-pill ui-pill-warning">{MODEL_MODE_TEXT.banner_label}</span>
+        <span>{MODEL_MODE_TEXT.banner}</span>
+        <BackToBaselineButton />
+      </div>
+      <ModelWorkingLayerStrip />
+    </>
   );
 }
 

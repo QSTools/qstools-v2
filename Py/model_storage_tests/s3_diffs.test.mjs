@@ -136,7 +136,7 @@ check("set a +5 nudge", r.ok === true && r.nudges.office_admin.pct === 5 && r.nu
 check("the only key written is mirra_diffs_v1", s.log.length === 1 && s.log[0][1] === "mirra_diffs_v1", JSON.stringify(s.log));
 check("real keys and baseline entries are byte-identical after the nudge", same_map(real_only(s), real_snap) && same_map(baseline_only(s), baseline_snap));
 let stored = JSON.parse(s.getItem("mirra_diffs_v1"));
-check("stored shape: version 1, generation 1, one record with path, kind pct, value, empty flag", stored.version === 1 && stored.generation === 1 && JSON.stringify(stored.by_key[GO]) === JSON.stringify([{ path: "category:office_admin", kind: "pct", value: 5, flag: "" }]), JSON.stringify(stored));
+check("stored shape: version 1, generation 1, no status, one record with path, kind pct, value, empty flag and (L3) the created_at and locked_at stamps", stored.version === 1 && stored.generation === 1 && stored.status === undefined && stored.accepted_at === undefined && stored.by_key[GO].length === 1 && JSON.stringify(Object.keys(stored.by_key[GO][0])) === JSON.stringify(["path", "kind", "value", "flag", "created_at", "locked_at"]) && stored.by_key[GO][0].path === "category:office_admin" && stored.by_key[GO][0].kind === "pct" && stored.by_key[GO][0].value === 5 && stored.by_key[GO][0].flag === "" && typeof stored.by_key[GO][0].created_at === "string" && stored.by_key[GO][0].created_at !== "" && stored.by_key[GO][0].locked_at === JSON.parse(s.getItem("mirra_baseline_v1")).locked_at, JSON.stringify(stored));
 s.reads = 0;
 const again = D.get_overhead_nudges();
 const again2 = D.get_overhead_nudges();
