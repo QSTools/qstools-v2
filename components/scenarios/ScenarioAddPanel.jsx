@@ -32,7 +32,7 @@ const TEXT = {
   },
 };
 
-const EMPTY_FORM = { name: "", annual_cost: "", is_productive: "no", productive_hours: "", group_id: "" };
+const EMPTY_FORM = { name: "", annual_cost: "", is_productive: "no", productive_hours: "", group_id: "", rate_staff_type_id: "" };
 
 function AddedRow({ add, flag, group_names, controls }) {
   const [count, set_count] = useState("1");
@@ -107,6 +107,7 @@ export default function ScenarioAddPanel({ kind, heading = "Scenario: add" }) {
         is_productive,
         productive_hours: form.productive_hours,
         group_id: form.group_id,
+        rate_staff_type_id: form.rate_staff_type_id,
       })
     );
     if (result && result.ok) {
@@ -183,6 +184,26 @@ export default function ScenarioAddPanel({ kind, heading = "Scenario: add" }) {
                 {controls.groups.length === 0 ? (
                   <p className="ui-help">No working groups were found. Create one in Cost Allocation, or add this as non-productive.</p>
                 ) : null}
+              </div>
+            ) : null}
+
+            {is_productive && kind === "staff" ? (
+              <div className="ui-field">
+                <label className="ui-label" htmlFor={"add_rate_type_" + kind}>Charge-out rate from staff type</label>
+                <select
+                  id={"add_rate_type_" + kind}
+                  className="ui-select"
+                  value={form.rate_staff_type_id}
+                  onChange={(event) => change("rate_staff_type_id", event.target.value)}
+                >
+                  <option value="">None</option>
+                  {controls.rate_types.map((type) => (
+                    <option key={type.staff_type_id} value={type.staff_type_id}>
+                      {type.staff_type_name} (${Number(type.charge_out_rate).toFixed(2)} an hour)
+                    </option>
+                  ))}
+                </select>
+                <p className="ui-help">Earns income at the saved charge-out rate of this staff type. The cost stays the amount typed above.</p>
               </div>
             ) : null}
           </div>

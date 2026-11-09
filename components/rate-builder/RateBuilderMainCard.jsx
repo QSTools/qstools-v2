@@ -9,6 +9,8 @@ import RateBuilderMaterialsMarkupCard from "@/components/rate-builder/RateBuilde
 import { useRateBuilderMaterialsMarkup } from "@/hooks/rate-builder/useRateBuilderMaterialsMarkup";
 import RateBuilderRecoveryLink from "@/components/rate-builder/RateBuilderRecoveryLink";
 import RateBuilderHelpPanel from "@/components/rate-builder/RateBuilderHelpPanel";
+import useScenarioRateAdds from "@/hooks/useScenarioRateAdds";
+import { with_scenario_rate_aliases } from "@/lib/calculations/scenarioRateAliases";
 
 const RATE_BUILDER_TABS = [
   { id: "overview", label: "Overview" },
@@ -26,8 +28,11 @@ export default function RateBuilderMainCard() {
 
   // OPEN-E: per staff type charge-out rates, cost floors and names for the
   // calculator. Keyed by staff type id. Missing rate = absent (never defaulted).
-  const staff_type_rate_map =
-    labour_rates_model?.active_model?.charge_out_rates_by_labour_source || {};
+  const scenario_adds = useScenarioRateAdds();
+  const staff_type_rate_map = with_scenario_rate_aliases(
+    labour_rates_model?.active_model?.charge_out_rates_by_labour_source || {},
+    scenario_adds
+  );
   const staff_type_floor_map = {};
   const staff_type_name_map = {};
   (labour_rates_model?.labour_source_options || [])

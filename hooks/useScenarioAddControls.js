@@ -18,16 +18,21 @@ import {
 } from "@/lib/storage/modelScenarios";
 import { get_group_options } from "@/lib/storage/costAllocationStorage";
 import { group_name_map } from "@/lib/calculations/scenarioAddForm";
+import { build_rate_type_options } from "@/lib/calculations/scenarioRateAliases";
+import { getStoredStaffTypes } from "@/lib/storage/labourProfileStorage";
+import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
 
 const NO_ITEMS = Object.freeze([]);
 const NO_FLAGS = Object.freeze({});
 const NO_GROUPS = Object.freeze([]);
+const NO_RATE_TYPES = Object.freeze([]);
 
 export default function useScenarioAddControls(kind) {
   const [active, set_active] = useState(false);
   const [items, set_items] = useState(NO_ITEMS);
   const [flags, set_flags] = useState(NO_FLAGS);
   const [groups, set_groups] = useState(NO_GROUPS);
+  const [rate_types, set_rate_types] = useState(NO_RATE_TYPES);
 
   useEffect(() => {
     const model = get_mode() === "model";
@@ -42,6 +47,7 @@ export default function useScenarioAddControls(kind) {
 
     refresh();
     set_groups(get_group_options());
+    set_rate_types(build_rate_type_options(getStoredStaffTypes(), readRateBuilderLabourSourceRates()));
     return subscribe_to_scenarios(refresh);
   }, [kind]);
 
@@ -53,6 +59,7 @@ export default function useScenarioAddControls(kind) {
     flags,
     groups,
     group_names,
+    rate_types,
     add: (input) => add_scenario_add(input),
     copy: (id, n) => copy_scenario_add(id, n),
     remove: (id) => remove_scenario_add(id),

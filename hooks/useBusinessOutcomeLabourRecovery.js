@@ -7,6 +7,8 @@ import { useLabour } from "@/hooks/useLabour";
 import { readRateBuilderLabourSourceRates } from "@/lib/storage/rateBuilderLabourSourceRatesStorage";
 import { subscribe_to_diffs } from "@/lib/storage/modelDiffs";
 import { same_rate_map } from "@/lib/actions/rate-builder/rateBuilderLeverActions";
+import useScenarioRateAdds from "@/hooks/useScenarioRateAdds";
+import { with_scenario_rate_aliases } from "@/lib/calculations/scenarioRateAliases";
 
 function to_number(value) {
   const parsed = Number(value);
@@ -211,6 +213,13 @@ export default function useBusinessOutcomeLabourRecovery(labour_groups = []) {
     return subscribe_to_diffs(reload_rates);
   }, []);
 
+  // Addendum 65: a scenario hire that points at a real staff type is priced at that type's rate. No such add = the same object back.
+  const scenario_adds = useScenarioRateAdds();
+  const rates_with_scenario_aliases = useMemo(
+    () => with_scenario_rate_aliases(charge_out_rates_by_labour_source, scenario_adds),
+    [charge_out_rates_by_labour_source, scenario_adds]
+  );
+
   const productive_staff_type_rates =
     labour?.output_contract?.productive_staff_type_rates ?? [];
 
@@ -223,9 +232,9 @@ export default function useBusinessOutcomeLabourRecovery(labour_groups = []) {
     return build_labour_recovery_rows(
       productive_staff_type_rates,
       overhead_rate_map,
-      charge_out_rates_by_labour_source
+      rates_with_scenario_aliases
     );
-  }, [productive_staff_type_rates, overhead_rate_map, charge_out_rates_by_labour_source]);
+  }, [productive_staff_type_rates, overhead_rate_map, rates_with_scenario_aliases]);
 
   const shortfall_rows = labour_recovery_rows.filter(
     (row) => row.recovery_status === "shortfall"
