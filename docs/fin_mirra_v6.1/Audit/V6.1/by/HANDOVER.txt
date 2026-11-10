@@ -1,0 +1,37 @@
+HANDOVER V6.1by - 2026-11-11 (NZ)  [Audit\V6.1\by]
+File: docs\fin_mirra_v6.1\Audit\V6.1\by\HANDOVER.txt
+Title for the next chat: V6.1bz - seed tests for the no-group cost note (live proof, regression, harness decision)
+
+THE ADDENDUM FOR THIS WORK IS ALREADY WRITTEN: BUSINESS_MODELLING_BRIEF Addendum 67 (built and built clean, NOT live-proven). Acceptance criteria for the live proof are A67 item 6 (a to f).
+
+1. WHERE WE ARE
+Last commit: not confirmed (no shell this chat). At the start, A66 and the bx work were UNCOMMITTED (see bx handover section 1). Now also UNCOMMITTED, from this chat: app/business-modelling/page.jsx, lib/calculation-trace/calculationTraceSelectors.js, NEW lib/calculations/wholeBusinessNoGroupNote.js, NEW lib/calculation-trace/pilot-map/noGroupCostTraceNodes.js, NEW Py/model_storage_tests/s9_no_group_note.test.mjs, NEW .tmp/v61by_patch.ps1 (already run; do not run again, its preflight fails on patched text), BM brief (A67), CALCULATION_MAP (s10 note), PROJECT_MAP, this file. Untracked FIN_LANDING_PAGE_GUARDRAILS_v0_2.json is not ours: leave it out. Production build is current (BUILD OK exit 0); :3005 and dev were stopped for it and are NOT running.
+
+2. WHAT WAS DONE
+The no-group cost note (A64 finding 6a): one sentence on the Business Modelling page, "Cost in no working group: $X. It is not in the group cost above.", shown only when Cost Allocation's total_unassigned_cost is above zero cents. One new trace node, cost_allocation.total_unassigned_cost (root input, explain only, no edges). 5 patches, s9_no_group_note 27 of 27, s5 tests 54 / 50 / 31 / 32 green, build OK. The first build failed on a Google Fonts fetch (network); the re-run passed.
+
+3. OWNER DECISIONS MADE
+Show the note only when above zero; count ALL cost in no group (real or scenario), not scenario only (A67 item 1; also PROJECT_MAP section 11).
+
+4. OPEN ITEMS AND FINDINGS
+- Live proof not run. The standing totals hold only on seeds with zero unassigned cost; misaligned variant expected 298 -> 299; other seeds UNKNOWN. The owner approves new totals BEFORE mirra_expected_l2.py is touched.
+- No other unassigned node was found in the trace files Claude could read; a duplicate id would show in the live node count (A67 item 3).
+- A66 item 6 (a to d), covered-below-seat seed, G04 gap 118,197 vs 118,213 (known, unexplained), Labour Rates Builder source list not showing the aliased rate.
+- Claude's calls from A58 item 4 still await the owner.
+
+5. NEXT STEPS, IN ORDER (one fix per chat)
+a. Owner: git status; commit (A66/bx first if still uncommitted, then this work; suggested messages: "V6.1bx: staff type on scenario adds (A66)" and "V6.1by: no-group cost note (A67)"). Claude re-syncs project knowledge (BM brief, CALCULATION_MAP, PROJECT_MAP) after the commit.
+b. Owner: .tmp\r3s1_regression_prepare.ps1 (seeds are dated by NZ day), then npm run start -- -p 3005 on the current build, pane visible.
+c. THIS NEXT CHAT: live proof per A67 item 6, then the 11-seed regression with Model mode off, report counts, owner approves any new total, then the harness change and A68 addendum.
+d. Covered-below-seat test seed.
+e. Close-out part 2: Q-7 of three pages, n1000 run, set slice 5 CLOSED.
+
+6. STANDING RULES
+Working_Conventions rules 1 to 14. Never build while dev or :3005 runs. Back up the pane to __bak first and restore at the end; the backup does not survive a new chat. Standing totals (Model mode off) 298 x6 / 363 / 364 / 360 / 577 / 3,367.
+
+7. READ FIRST
+PROJECT_MAP.md (section 11), Working_Conventions, BM brief ADDENDUM INDEX and Addendum 67 only. Do NOT read the Brief_Addenda archive or the full BM brief.
+
+CLOSING BLOCK
+V6.1bz - seed tests for the no-group cost note (live proof, regression, harness decision)
+Addendum 67 is written (built and built clean, not live-proven). Criteria are A67 item 6. Handover: docs\fin_mirra_v6.1\Audit\V6.1\by\HANDOVER.txt.

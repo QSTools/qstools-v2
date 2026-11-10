@@ -778,6 +778,14 @@ Added 2026-11-09 (R3 slice 5 lever batch L3, BM brief Addendum 58; L4 check V6.1
   The Model mode strip (components/layout/ModelWorkingLayerStrip.jsx, lib/storage/modelWorkingLayer.js) shows a RECORD COUNT, the status, a date and a relocked flag: no money figure, so no
   calculation trace node (checked V6.1bp; standing totals unchanged by design: 298 x6 / 363 / 364 / 360 / 577 / 3,367). Accept recalculates nothing; Discard clears the whole layer, after which
   the nudge and lever merges return saved values. Lever record merge (L1) and Rate Builder inputs (L2): BM Addenda 55 and 56. Line numbers not recorded. No CM-n opened or closed.
+Added 2026-11-11 (R3 slice 5 close-out, BM brief Addendum 67) - COST IN NO WORKING GROUP (BUILT, UNIT-TESTED; LIVE PROOF PENDING)
+- Rule: the Business Modelling page names cost that sits in no working group. lib/calculations/wholeBusinessNoGroupNote.js noGroupCostAmount(total_unassigned_cost) = Cost Allocation's own
+  published total_unassigned_cost (output contract, hooks/useCostAllocation.js) rounded to the cent; null (nothing shown, no node) when missing, not a number, or not above 0 cents.
+  buildNoGroupCostSentence gives "Cost in no working group: $X. It is not in the group cost above." No calculation of its own.
+- Trace node: cost_allocation.total_unassigned_cost (lib/calculation-trace/pilot-map/noGroupCostTraceNodes.js), root input, EXPLAIN ONLY, no inputs and no edges; the amount is already
+  inside Cost Summary total_cost_burden. Page and node share noGroupCostAmount. Example (A64 2(f)): a 90,000 add placed in a missing group: note $90,000.00, node 90,000.00, burden +90,000.
+- Standing totals hold on every seed whose total_unassigned_cost is 0; a seed with unassigned cost above 0 gains one node (misaligned variant expected 298 -> 299; not yet run live).
+  Line numbers not recorded. No CM-n opened or closed.
 Older engines (still in code; see brief s6 for disposition)
 - Independent group lever: revenue delta = rate delta x group recovery
   hours; net = revenue - cost   businessModellingIndependentCalculations.js L100-105

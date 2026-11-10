@@ -6,6 +6,7 @@ import useBusinessOutcomePerSourceRevenue from "@/hooks/useBusinessOutcomePerSou
 import { selectBusinessOutcomePerSourceRevenue } from "@/lib/selectors/business-outcome/businessOutcomePerSourceRevenueSelectors";
 import { calculateWholeBusinessFromContracts } from "@/lib/calculations/wholeBusinessGroupInputs";
 import { buildWholeBusinessGapWording } from "@/lib/calculations/wholeBusinessGapWording";
+import { buildNoGroupCostSentence } from "@/lib/calculations/wholeBusinessNoGroupNote";
 
 // R3 slice 5 batch 1 (BM Addendum 8 items 1, 2, 5). Per working group, three numbers side by side. This page holds NO calculation of its own:
 //   Group minimum rate = minimum_recoverable_rate_per_hour (Cost Allocation recovery rows; labour + asset + overhead, productive cost only)
@@ -49,6 +50,8 @@ export default function BusinessModellingPage() {
   const hours_text = (value) => Number(value).toLocaleString("en-NZ", { maximumFractionDigits: 1 });
   // Batch C (BM Addendum 42 item 6): the gap and left-out sentences come from one tested pure function; the page holds no wording logic.
   const wording = buildWholeBusinessGapWording(whole);
+  // BM Addendum 64 finding 6a: cost in no working group sits outside the group cost above; one sentence from Cost Allocation's own total_unassigned_cost.
+  const no_group_sentence = buildNoGroupCostSentence(contract.total_unassigned_cost);
 
   return (
     <main className="ui-page">
@@ -124,6 +127,7 @@ export default function BusinessModellingPage() {
                 that cost across the groups that earn, so its group cost figures are higher than the ones here.
               </p>
             ) : null}
+            {no_group_sentence ? <p className="ui-help">{no_group_sentence}</p> : null}
             <div className="ui-actions">
               <Link href="/model-readiness" className="ui-inline-link">Model Readiness (lock the baseline)</Link>
               <Link href="/dev/model-mode" className="ui-inline-link">Model mode switch</Link>
