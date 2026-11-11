@@ -365,6 +365,13 @@ the Balance Sheet as_at_date, using financial_year_end_month as an input.
   one-way from business_type. No competing stored copy found.
 - Recovery Summary re-derives business_type with its own fallback chain (input,
   then revenue_cogs, then labour_based). Duplicated logic, not duplicated state.
+- Revenue/COGS unit row field buy_price_per_unit (V6.1cj piece 3): stored in
+  qs_tools_revenue_cogs_state_v2 unit_driver_rows[]; number or null (null = not set; a purchased
+  item holds 0 when cleared). Written by useRevenueCogs updateUnitDriverRow / addPurchasedItem;
+  explicit lists: revenueCogsStorage.js, revenueCogsCalculations.js normalise_unit_driver_row,
+  useRevenueCogs buildNewUnitDriverRow. Read by nothing yet except the trace node
+  revenue_cogs.items.<row id>.buy_price_per_unit. Sell price stays average_sale_rate_per_unit (one
+  field, not duplicated). Unit list: lib/constants/unitTypes.js.
 - Cost Allocation only passes business_type and activity_driver_type through
   (display: driver label). Its real branching is active_recovery_model, which is
   unrelated to this setting. The labour_only vs labour_led default drift is

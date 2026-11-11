@@ -114,6 +114,15 @@ Revenue / COGS (lib/calculations/revenueCogsCalculations.js)
 - gross_margin_percent = margin_pool / revenue_total (a FRACTION, not x100)  L173
 - unit rows: annual_revenue = revenue_total x revenue_share_percent/100;
   annual_margin_pool = margin_pool x share/100     calculate_unit_driver_rows L65-66
+- items (V6.1cj piece 3): each unit row also holds buy_price_per_unit (typed input, null = not set;
+  qs_tools_revenue_cogs_state_v2). PURCHASED ITEM = buy price set AND share 0 AND sell rate 0 AND
+  estimated units 0 (lib/calculations/unitItemRules.js isPurchasedItem). It adds nothing to revenue,
+  units or margin and raises no unit warnings. output_contract.unit_driver_rows = sold rows only;
+  purchased_items = the rest. No figure uses the buy price yet (expected cost of sales line = later
+  piece). Trace: revenue_cogs.items.<row id>.buy_price_per_unit (root input, live_verified_field).
+- unit types: ONE list, lib/constants/unitTypes.js (each, m2, m3, lm, tonne, hour, km, litre, load, cup,
+  custom). NOTE: line numbers cited in this section (L65-66 and others) have shifted after V6.1cj; the
+  calc map re-run owed from V6.1ci covers them.
 
 ===============================================================================
 2. OPENING HOURS (lib/calculations/openingHoursCalculations.js)

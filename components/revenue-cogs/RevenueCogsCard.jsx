@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RevenueCogXeroImportPanel from "@/components/revenue-cogs/RevenueCogXeroImportPanel";
+import { UNIT_TYPES } from "@/lib/constants/unitTypes";
 
 function toNumber(value) {
   const parsed = Number(String(value ?? "").replace(/,/g, ""));
@@ -120,6 +121,52 @@ function TextInput({ label, value, onChange, inputMode = "decimal", help }) {
   );
 }
 
+function PriceInput({ label, value, onCommit, blank_when_zero = false, help }) {
+  const text_from_value = (number) =>
+    number === null ||
+    number === undefined ||
+    (blank_when_zero && number === 0)
+      ? ""
+      : String(number);
+
+  const [text, setText] = useState(text_from_value(value));
+
+  useEffect(() => {
+    const typed = text === "" ? null : Number(text);
+
+    if (typed !== null && Number.isNaN(typed)) {
+      return;
+    }
+
+    const same =
+      typed === value || (typed === null && blank_when_zero && value === 0);
+
+    if (!same) {
+      setText(text_from_value(value));
+    }
+  }, [value, blank_when_zero]);
+
+  return (
+    <label className="form-field ui-stack-sm">
+      <span>{label}</span>
+      <input
+        className="ui-input"
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(event) => {
+          const cleaned = event.target.value
+            .replace(/[^\d.]/g, "")
+            .replace(/(\..*)\./g, "$1");
+          setText(cleaned);
+          onCommit(cleaned);
+        }}
+      />
+      {help ? <span className="ui-help">{help}</span> : null}
+    </label>
+  );
+}
+
 function SelectInput({ label, value, onChange, children, help }) {
   return (
     <label className="form-field ui-stack-sm">
@@ -162,6 +209,68 @@ function UnitDriverRow({
 }) {
   const is_revenue_bucket = row.unit_type === "each";
 
+  if (row.is_purchased_item) {
+    return (
+      <div className="ui-panel ui-stack">
+        <div className="ui-split">
+          <div>
+            <div className="ui-kicker">Purchased item</div>
+            <div className="ui-card-title-sm">
+              {row.unit_label || "Purchased item"}
+            </div>
+            <p className="ui-help">
+              Something the business buys but does not sell on its own, such as
+              a hired truck per load. It has a buy price only.
+            </p>
+          </div>
+
+          <div className="ui-actions">
+            <button
+              type="button"
+              className="ui-button-secondary"
+              onClick={() => removeUnitDriverRow(row.id)}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <TextInput
+            label="Item name"
+            value={row.unit_label || ""}
+            onChange={(value) =>
+              updateUnitDriverRow(row.id, "unit_label", value)
+            }
+            inputMode="text"
+            help="Example: Hired truck, delivery."
+          />
+
+          <SelectInput
+            label="Unit"
+            value={row.unit_type || "each"}
+            onChange={(value) => updateUnitDriverRow(row.id, "unit_type", value)}
+          >
+            {UNIT_TYPES.map((unit) => (
+              <option key={unit.value} value={unit.value}>
+                {unit.label}
+              </option>
+            ))}
+          </SelectInput>
+
+          <PriceInput
+            label="Buy price per unit"
+            value={row.buy_price_per_unit}
+            blank_when_zero
+            onCommit={(value) =>
+              updateUnitDriverRow(row.id, "buy_price_per_unit", value)
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="ui-panel ui-stack">
       <div className="ui-split">
@@ -191,7 +300,7 @@ function UnitDriverRow({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <TextInput
-          label="Unit label"
+          label="Item name"
           value={row.unit_label || ""}
           onChange={(value) => updateUnitDriverRow(row.id, "unit_label", value)}
           inputMode="text"
@@ -199,17 +308,15 @@ function UnitDriverRow({
         />
 
         <SelectInput
-          label="Unit type"
+          label="Unit"
           value={row.unit_type || "each"}
           onChange={(value) => updateUnitDriverRow(row.id, "unit_type", value)}
         >
-          <option value="each">Each</option>
-          <option value="m2">m²</option>
-          <option value="m3">m³</option>
-          <option value="lm">Lineal metre</option>
-          <option value="tonne">Tonne</option>
-          <option value="hour">Hour</option>
-          <option value="custom">Custom</option>
+          {UNIT_TYPES.map((unit) => (
+            <option key={unit.value} value={unit.value}>
+              {unit.label}
+            </option>
+          ))}
         </SelectInput>
 
         <TextInput
@@ -244,7 +351,7 @@ function UnitDriverRow({
           />
         ) : (
           <TextInput
-            label="Average sale rate"
+            label="Sell price per unit"
             value={formatWithCommas(row.average_sale_rate_per_unit)}
             onChange={(value) =>
               updateUnitDriverRow(
@@ -256,6 +363,17 @@ function UnitDriverRow({
             help="Average charge per measurable unit."
           />
         )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <PriceInput
+          label="Buy price per unit"
+          value={row.buy_price_per_unit}
+          onCommit={(value) =>
+            updateUnitDriverRow(row.id, "buy_price_per_unit", value)
+          }
+          help="What the business pays per unit. Leave blank if the business does not buy this item."
+        />
       </div>
 
       {is_revenue_bucket ? (
@@ -331,10 +449,15 @@ export default function RevenueCogsCard({
   updateRevenueCogsField,
   updateUnitDriverRow,
   addUnitDriverRow,
+  addPurchasedItem,
   removeUnitDriverRow,
   onXeroCogImportComplete = () => {},
 }) {
   const [detailsOpen, setDetailsOpen] = useState(true);
+
+  const sold_row_count = unit_driver_rows.filter(
+    (row) => !row.is_purchased_item
+  ).length;
 
   const revenue_split_total = unit_driver_rows.reduce(
     (sum, row) => sum + toNumber(row.revenue_share_percent),
@@ -503,9 +626,7 @@ export default function RevenueCogsCard({
                   is_mixed_unit_based={is_mixed_unit_based}
                   updateUnitDriverRow={updateUnitDriverRow}
                   removeUnitDriverRow={removeUnitDriverRow}
-                  can_remove={
-                    is_mixed_unit_based && unit_driver_rows.length > 2
-                  }
+                  can_remove={is_mixed_unit_based && sold_row_count > 2}
                 />
               ))}
             </div>
@@ -521,6 +642,16 @@ export default function RevenueCogsCard({
                 </button>
               </div>
             ) : null}
+
+            <div className="ui-actions">
+              <button
+                type="button"
+                className="ui-button-secondary"
+                onClick={addPurchasedItem}
+              >
+                + Add purchased item
+              </button>
+            </div>
 
             {unit_recovery_warnings.length > 0 ? (
               <div className="ui-readonly">

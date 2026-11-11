@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import useProfitAndLoss from "@/hooks/useProfitAndLoss";
 import useBusinessSetup from "@/hooks/useBusinessSetup";
 import { calculateRevenueCogs } from "@/lib/calculations/revenueCogsCalculations";
+import { isPurchasedItem } from "@/lib/calculations/unitItemRules";
 import {
   buildRevenueCogsCard,
   buildRevenueCogsStatus,
@@ -21,6 +22,15 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function toNullableNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(String(value).replace(/,/g, ""));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 function buildNewUnitDriverRow(index = 0, revenue_share_percent = 0) {
   return {
     id: `unit-driver-${Date.now()}-${index}`,
@@ -29,20 +39,34 @@ function buildNewUnitDriverRow(index = 0, revenue_share_percent = 0) {
     revenue_share_percent,
     average_sale_rate_per_unit: 0,
     estimated_units_annual: 0,
+    buy_price_per_unit: null,
+  };
+}
+
+function buildNewPurchasedItemRow(number = 1) {
+  return {
+    id: `unit-driver-${Date.now()}-p${number}`,
+    unit_label: `Purchased item ${number}`,
+    unit_type: "each",
+    revenue_share_percent: 0,
+    average_sale_rate_per_unit: 0,
+    estimated_units_annual: 0,
+    buy_price_per_unit: 0,
   };
 }
 
 function normaliseSingleUnitRows(rows = []) {
-  const first_row =
-    Array.isArray(rows) && rows.length > 0
-      ? rows[0]
-      : buildNewUnitDriverRow(0, 100);
+  const source_rows = Array.isArray(rows) ? rows : [];
+  const sold_rows = source_rows.filter((row) => !isPurchasedItem(row));
+  const purchased_rows = source_rows.filter((row) => isPurchasedItem(row));
+  const first_row = sold_rows[0] || buildNewUnitDriverRow(0, 100);
 
   return [
     {
       ...first_row,
       revenue_share_percent: 100,
     },
+    ...purchased_rows,
   ];
 }
 
@@ -147,15 +171,25 @@ export default function useRevenueCogs() {
           return row;
         }
 
-        const next_row = {
-          ...row,
-          [field]:
-            field === "unit_label" || field === "unit_type"
-              ? value
-              : toNumber(value),
-        };
+        const was_purchased_item = isPurchasedItem(row);
 
-        if (is_single_mode) {
+        let next_value;
+
+        if (field === "unit_label" || field === "unit_type") {
+          next_value = value;
+        } else if (field === "buy_price_per_unit") {
+          next_value = toNullableNumber(value);
+
+          if (next_value === null && was_purchased_item) {
+            next_value = 0;
+          }
+        } else {
+          next_value = toNumber(value);
+        }
+
+        const next_row = { ...row, [field]: next_value };
+
+        if (is_single_mode && !was_purchased_item) {
           next_row.revenue_share_percent = 100;
         }
 
@@ -190,8 +224,42 @@ export default function useRevenueCogs() {
     setSaveStatusMessage("");
   }
 
+  function addPurchasedItem() {
+    setRevenueCogsState((previous) => {
+      const current_rows = Array.isArray(previous.unit_driver_rows)
+        ? previous.unit_driver_rows
+        : [];
+      const purchased_count = current_rows.filter((row) =>
+        isPurchasedItem(row)
+      ).length;
+
+      return buildRevenueCogsState({
+        ...previous,
+        unit_driver_rows: [
+          ...current_rows,
+          buildNewPurchasedItemRow(purchased_count + 1),
+        ],
+        updated_at: new Date().toISOString(),
+      });
+    });
+    setSaveStatusMessage("");
+  }
+
   function removeUnitDriverRow(row_id) {
     setRevenueCogsState((previous) => {
+      const raw_rows = Array.isArray(previous.unit_driver_rows)
+        ? previous.unit_driver_rows
+        : [];
+      const removed_row = raw_rows.find((row) => row.id === row_id);
+
+      if (removed_row && isPurchasedItem(removed_row)) {
+        return buildRevenueCogsState({
+          ...previous,
+          unit_driver_rows: raw_rows.filter((row) => row.id !== row_id),
+          updated_at: new Date().toISOString(),
+        });
+      }
+
       const current_rows = normaliseMixedUnitRows(previous.unit_driver_rows);
 
       if (current_rows.length <= 2) {
@@ -280,7 +348,12 @@ export default function useRevenueCogs() {
       is_labour_based,
 
       commercial_driver_mode: calculations.commercial_driver_mode,
-      unit_driver_rows: calculations.unit_driver_rows,
+      unit_driver_rows: calculations.unit_driver_rows.filter(
+        (row) => !row.is_purchased_item
+      ),
+      purchased_items: calculations.unit_driver_rows.filter(
+        (row) => row.is_purchased_item
+      ),
       total_unit_revenue: calculations.total_unit_revenue,
       total_unit_margin_pool: calculations.total_unit_margin_pool,
       total_derived_units_annual: calculations.total_derived_units_annual,
@@ -317,6 +390,7 @@ export default function useRevenueCogs() {
       updateRevenueCogsField,
       updateUnitDriverRow,
       addUnitDriverRow,
+      addPurchasedItem,
       removeUnitDriverRow,
       saveRevenueCogsPage,
     };

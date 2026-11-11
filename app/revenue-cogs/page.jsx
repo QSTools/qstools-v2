@@ -69,6 +69,7 @@ export default function RevenueCogsPage() {
     updateRevenueCogsField,
     updateUnitDriverRow,
     addUnitDriverRow,
+    addPurchasedItem,
     removeUnitDriverRow,
     saveRevenueCogsPage,
   } = useRevenueCogs();
@@ -115,6 +116,7 @@ export default function RevenueCogsPage() {
           updateRevenueCogsField={updateRevenueCogsField}
           updateUnitDriverRow={updateUnitDriverRow}
           addUnitDriverRow={addUnitDriverRow}
+          addPurchasedItem={addPurchasedItem}
           removeUnitDriverRow={removeUnitDriverRow}
         />
 

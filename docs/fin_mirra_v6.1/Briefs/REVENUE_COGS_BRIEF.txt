@@ -53,7 +53,7 @@ R3  Mode comes from Business Setup (business_type, default labour_based), never 
 R4  Hours mode: no unit rows are calculated; units_sold_annual and margin_per_unit stay as the legacy typed value
     and margin_pool / units_sold_annual; product_recovery_status = not_selected.
 R5  Unit mode: a single unit row is forced to 100 percent revenue share. A row of unit_type "each" is a revenue
-    bucket and uses the typed estimated_units_annual; every other type (m2, m3, lm, tonne, hour, custom) derives
+    bucket and uses the typed estimated_units_annual; every other type (m2, m3, lm, tonne, hour, km, litre, load, cup, custom) derives
     units = row revenue / average_sale_rate_per_unit (0 when the rate is 0). annual_revenue and annual_margin_pool
     = total x share / 100; margin_per_unit = annual margin pool / derived units.
 R6  revenue_cogs_ready is true only when there are NO warnings at all (see Section 7). A negative margin pool is a
@@ -73,7 +73,7 @@ direct_cost_categories, direct_cost_category_totals) through useProfitAndLoss; B
 
 Storage: qs_tools_revenue_cogs_state_v2  {commercial_driver_mode, units_sold_annual, unit_driver_rows[], ...}
   (lib/storage/revenueCogsStorage.js). Loaded on mount, saved after storage_loaded (guard present). Shape and seed
-  role: STORAGE_KEY_REGISTER_S0_2026-10-17.txt. Unit types allowed: each, m2, m3, lm, tonne, hour, custom.
+  role: STORAGE_KEY_REGISTER_S0_2026-10-17.txt. Unit types allowed: ONE list in lib/constants/unitTypes.js (each, m2, m3, lm, tonne, hour, km, litre, load, cup, custom; V6.1cj). Each row also carries buy_price_per_unit (null = not set).
 
 Xero COG import panel (components/revenue-cogs/RevenueCogXeroImportPanel.jsx, lib/imports/xeroCogImporter): reads
 an Xero account-transactions workbook, builds a supplier / account summary and an account reconciliation of the
@@ -88,7 +88,7 @@ output_contract (hooks/useRevenueCogs.js): total_revenue, total_direct_costs, ma
   is_labour_based, commercial_driver_mode, unit_driver_rows, total_unit_revenue, total_unit_margin_pool,
   total_derived_units_annual, primary_unit_label, primary_unit_type, weighted_average_margin_per_unit,
   unit_recovery_ready, unit_recovery_warnings, units_sold_annual, margin_per_unit, product_recovery_ready,
-  product_recovery_status.
+  product_recovery_status, purchased_items (V6.1cj). unit_driver_rows lists SOLD rows only; purchased items are in purchased_items.
 Consumers: Business Summary (reads business_type from this contract, then derives activity_driver_type), Recovery
   Summary (its own fallback chain: input, then revenue_cogs, then labour_based), Business Outcome (readiness gate
   and margin pool), Cost Allocation (passthrough, display only), the dev cross-import check.
@@ -242,3 +242,18 @@ ADDENDUM 6 (2026-11-11, chat V6.1cf) - POINTER: EXISTING UNIT ROWS READ; O8 ANSW
  5. [OPEN] O1: whether P&L line, stream and hours per load stay on the item now the list is name / unit / buy / optional sell. Field names still owed (Q-U2); proposal in ACCEPTANCE_cf_pieces.txt piece 3.
  6. [GATE] No code until piece 0 (hand-number seed) and the owner's yes on field names.
 
+
+ADDENDUM 7 (2026-11-12, chat V6.1cj) - PIECE 3 SHIPPED: COMBINED ITEMS LIST (BUY PRICE ON THE UNIT ROW, PURCHASED ITEMS, ONE UNIT LIST, TRACE NODE)  [SHIPPED; Audit\V6.1\cj\ACCEPTANCE_piece3.txt; commit: see UNITS_MODE_STATE section 8]
+Owner said yes to D1 to D5 on 2026-11-11. Tags: DECISION = owner; FINDING = seen in code or on screen.
+ 1. [DECISION, D1] ONE sell price: the existing average_sale_rate_per_unit is the sell price (screen label now "Sell price per unit"). No sell_price_per_unit field was added, so no price is stored twice. Blank and 0 both mean not set, as before.
+ 2. [DECISION, D4] ONE new stored field on each unit row: buy_price_per_unit (number, null = not set). Added to every explicit list: storage default and normaliser (revenueCogsStorage.js), calculations normalise_unit_driver_row (it drops unknown fields), hook buildNewUnitDriverRow and updateUnitDriverRow, card. The selector map spreads ...row so it passes through. has_loaded guard already present and untouched. A record without the field loads as null.
+ 3. [DECISION, D2] A PURCHASED ITEM is a row with a buy price set and nothing on the sell side (revenue share 0, sell price 0, estimated units 0), for example a hired truck per load. Rule in one place: lib/calculations/unitItemRules.js isPurchasedItem. Purchased items add nothing to revenue, units or margin and raise no unit warnings. Single mode now keeps them (normaliseSingleUnitRows used to keep only row 1). "+ Add purchased item" does not change the mode. Clearing a purchased item's price stores 0 (the row stays); clearing a sold row's price stores null.
+ 4. [CONTRACT] output_contract.unit_driver_rows is SOLD rows only (so Recovery Summary and other readers see no change); new field purchased_items holds the rest. Calculated rows carry is_purchased_item. primary_unit_row skips purchased items.
+ 5. [DECISION, D3] Stream, P&L line and hours per load stay OFF the item for now (O1 answered). Stream and the P&L link arrive with the cost of sales link (piece 5); O2 (how a shared line splits) is still open; hours per load has no reader.
+ 6. [DECISION, D5] The expected cost of sales line (Q-U1 rate card) is NOT in piece 3. The truck is priced per load and loads need asset capacity (piece 4), so a line now would show a false difference. Bring it after piece 5.
+ 7. [SHIPPED] ONE unit list: lib/constants/unitTypes.js, read by storage, calculations, selectors (label map) and the card (four copies replaced). Added km, litre, load, cup (Q-U7). Stored values never change once saved.
+ 8. [SHIPPED] Trace: one root input node per item row, revenue_cogs.items.<row id>.buy_price_per_unit (value_format currency_per_unit, null stays blank), file lib/calculation-trace/pilot-map/revenueCogsItemTraceNodes.js. See CALCULATION_TRACE_BRIEF Addendum 14.
+ 9. [SHIPPED] Screen: sold rows get "Buy price per unit"; the "(optional)" wording was dropped on the owner's call (scripts\Patch-cj-label.ps1). Labels renamed: Item name, Unit, Sell price per unit.
+10. [FINDING, fixed] My batch 1 script wrote the m2 and m3 labels as mojibake ("mA^2") because a unicode escape was turned into the character in a PowerShell 5.1 script. Found on the pane, repaired with scripts\Fix-cj-unit-superscripts.ps1; unitTypes.js is now pure ASCII (escapes). Cosmetic only.
+11. [PROOF, 2026-11-12] Build exit 0 after every batch. Headless regression PASS 11 of 11, 6,819 checks after batch 1, and again (seeds regenerated for 2026-11-12) after batches 2 and 3 and after the label fix. NOTE: the first run after batch 3 failed all 11 seeds only because the seeds were dated 2026-11-11 and the day had rolled over (asset interest moves with the as-of date); regenerate with .tmp\r3s1_regression_prepare.ps1 on the first run of a new NZ day. Live, built-in browser on :3005, product mode, Single: Concrete (m3, sell 250, buy 200) and Hired Truck (load, buy 240.5); Annual units 5,390 (revenue 1,347,589 / 250), margin per unit $212.50, split 100 percent, no truck warning. Edge checks passed: clear and retype truck price (240, 199., 199.5), clear concrete buy price (null), Single to Mixed to Single keeps both rows, record without the field loads null. Trace JSON: 254 nodes (252 before), 343 edges, 0 duplicates, 0 missing endpoints; item nodes 200 and 240.5.
+12. [OPEN, small] (a) If a stored purchased item ever loses its field (hand edit or import), it stops counting as purchased and Single mode would drop it on the next edit; the screen cannot produce this. (b) While the stored commercial_driver_mode is still hours_based on a product business (Single/Mixed never clicked), updateUnitDriverRow does not force row 1 to 100 percent; harmless when it is already 100, tidy in a later piece. (c) Sell price, revenue share and estimated units still have no per-row trace nodes (boundary nodes only).
