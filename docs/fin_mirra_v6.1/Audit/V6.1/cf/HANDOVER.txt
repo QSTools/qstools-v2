@@ -1,0 +1,46 @@
+HANDOVER V6.1cf - 2026-11-11 (NZ)  [Audit\V6.1\cf]
+File: docs\fin_mirra_v6.1\Audit\V6.1\cf\HANDOVER.txt
+Title for the next chat: V6.1cg - O6 decision (C3b) and piece 0: hand-number reseller seed in HOURS mode (no code)
+THE ADDENDA FOR THIS CHAT ARE ALREADY WRITTEN: COST_ALLOCATION A18, BUSINESS_OUTCOME A20, REVENUE_COGS A6, ASSETS A8; PROJECT_MAP (R4 row, handover pointer, two section 11 lines); UNITS_MODE_STATE (O6, O8, 5a, log line).
+
+1. WHERE WE ARE
+Docs only, nothing built, no storage key, seed or expected file touched. Last commit known: 8ae17d6 (cd A6); the V6.1ce work was UNCOMMITTED at the end of that chat: owner to confirm it is committed. UNCOMMITTED from this chat: the four briefs, PROJECT_MAP, UNITS_MODE_STATE, Audit\V6.1\cf (HANDOVER, FINDINGS_cf_read_only_look, ACCEPTANCE_cf_pieces). Claude had file staging only, no shell.
+
+2. WHAT WAS DONE
+Read-only look at: readers of overhead_absorbed_cost (closed with the owner's Select-String list), the materials row, existing unit rows, asset field lists, assignment shape. Six draft acceptance sheets (pieces 0 to 5).
+
+3. OWNER DECISIONS MADE
+None. Claude's leans (easy to change): fix C3b at the source for both readers; build order 0, 1, 3, 4, 5, then materials row (needs the link). O8 answered from code.
+
+4. OPEN ITEMS AND FINDINGS
+a. O6: B at the Cost Allocation builder fixes the pool and the group rate rows; Business Outcome (useBusinessOutcome.js:42, businessOutcomeCalculations.js:79,335) shows 'covered' in product mode whatever the numbers and needs its own change; Recovery Summary screen is wrong in product mode, separate rebuild.
+b. Materials row counts no cost of sales twice today; it will once the cost of sales link exists. Build the link first.
+c. Field-list traps: unit list written twice plus screen; calculations normalise_unit_driver_row drops new row fields; fourth assignment array must be threaded by name through useCostAllocation.
+d. Not opened: AssetForm.jsx, useAssets field lists, saved-asset rebuild after assetStorage.js:260, hook helpers normaliseSingleUnitRows/MixedUnitRows.
+e. Carried: G4 self-test not yet run (scripts\Test-ApplyPatch.ps1, expect 9 passed); BUSINESS_MODELLING_BRIEF 189 KB split decision; O1-O5, O7, O9; harness A68 item 7, A66 item 6, G04 gap 118,197 vs 118,213, Labour Rates Builder source list, A58 item 4 calls, typing at 1,000 staff, Model-mode tap and Q-7 not in the headless runner.
+
+5. NEXT STEPS (one piece per chat)
+a. Owner: commit docs; project sync (section 6); answer O6; say yes/no to each acceptance sheet.
+b. V6.1cg: piece 0, hand-calculate the reseller (STATE section 6 numbers) and seed it in HOURS mode with cost-of-sales lines; measure gaps. No app code, no stored field.
+c. Then piece 1 (C3b), piece 3 (items list), piece 4 (capacity), piece 5 (cost of sales link), piece 2 (materials row). Each starts with a fresh read; each needs field names agreed first.
+
+6. COMMANDS FOR THE OWNER (PowerShell, repo root, dev stopped)
+powershell -ExecutionPolicy Bypass -File .\scripts\Test-ApplyPatch.ps1     (if not yet run; expect SUMMARY: 9 passed, 0 failed)
+git status --short
+git add docs
+git diff --cached --stat   (expect the four briefs, PROJECT_MAP.md, UNITS_MODE_STATE.txt, Audit\V6.1\cf; plus the ce files if still uncommitted)
+git commit
+python Py\audit-scripts\check_project_knowledge_sync.py
+Project knowledge: re-upload COST_ALLOCATION_BRIEF, BUSINESS_OUTCOME_BRIEF, REVENUE_COGS_BRIEF, ASSETS_BRIEF, PROJECT_MAP.md, UNITS_MODE_STATE.txt (replace the old copies); rewrite .tmp\project_sync_ledger.tsv. The Audit folder stays out of project knowledge.
+
+7. STANDING RULES
+PROJECT_MAP section 11 stands. Never build while dev runs. New stored field = explicit yes on exact names. Every shown figure gets a trace node and calc map entry. Apply-Patch with Patched: confirmations and the RESULT line. Addenda and PROJECT_MAP are written IN the chat that decides, not after.
+
+7b. READ FIRST / DO NOT READ
+Read: UNITS_MODE_STATE.txt, this handover, FINDINGS_cf_read_only_look.txt section 1, ACCEPTANCE_cf_pieces.txt pieces 0 and 1, Working_Conventions. Do NOT read the long units briefs or the BM brief.
+
+CLOSING BLOCK
+V6.1cg - O6 decision (C3b) and piece 0: hand-number reseller seed in HOURS mode (no code)
+- V6.1cf read-only look done; addenda CA A18, BO A20, REVENUE_COGS A6, ASSETS A8 and PROJECT_MAP already written; nothing built.
+- Handover Audit\V6.1\cf\HANDOVER.txt; commit hash after the owner commits.
+- Read UNITS_MODE_STATE.txt, FINDINGS section 1, ACCEPTANCE pieces 0 and 1; owner answers O6 first.

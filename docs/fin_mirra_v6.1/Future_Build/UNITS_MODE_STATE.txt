@@ -1,0 +1,66 @@
+MIRRA V6.1 - UNITS MODE: CURRENT STATE (READ THIS FIRST; DECIDED AND OPEN ITEMS ONLY)
+FILE:   docs\fin_mirra_v6.1\Future_Build\UNITS_MODE_STATE.txt   (project knowledge: claude/UNITS_MODE_STATE.txt)
+WRITTEN: 2026-11-11, chat V6.1ce (gate G6). Docs only. NOTHING BUILT, no code, storage key, seed or expected file touched.
+HISTORY (nothing deleted; NOT in project knowledge; stage on demand, search by Q-U number or date):
+  Future_Build\UNITS_MODE_CURRENT_DESIGN_BRIEF_2026-11-07.txt  (sections 1-11 plus the refinements log: this page is its summary)
+  Future_Build\UNITS_MODE_FUTURE_BUILD_BRIEF_2026-09-25.txt    (formal brief, Addenda 1-3; Addendum 3 = the 2026-11-07 voice session)
+  Future_Build\CONCRETE_RESELLER_TEST_CASE_FUTURE_BUILD_BRIEF_2026-11-06.txt (hand numbers)
+Where this page and an older file disagree, THIS PAGE wins. New refinements: append a dated line in section 8, fold into the sections at a keyboard.
+TAGS: DECISION = owner said so. DIRECTION = owner's lean. OPEN = not decided. OWED = needed before any code.
+
+1. WHAT IT IS
+Units mode prices and tests a business that sells a countable thing (cubes, tonnes, litres, cups, km, loads): how many units at what price pay for everything. Cubes (outcome) play the role hours (capacity) play; the working unit becomes a LOAD. First case: the concrete reseller (single product, single unit). Second: the coffee cart. A new field joins the core only if one of those two forces it.
+Chain: Setup (mode switch only) > P&L (unchanged) > Assets (capacity) > Labour/Overheads/Opening Hours/Cost Summary/Business Summary (unchanged) > Revenue/COGS (unit rows + items list) > Cost Allocation (cost of sales as a fourth assignment, stream on the working group) > Rate Builder (one line: price per cube) > Business Outcome (cubes sold, cost per cube, price per cube, break-even cubes; display layer first) > Model mode (levers, later).
+
+2. DECIDED, BY MODULE
+SETUP: mode switch only (labour_based / product_based). Units are picked per row in Revenue/COGS. No new field. Business Outcome does not read business_type (CONFIRMED in code, V6.1cf).
+REVENUE / COGS:
+ - ONE combined items list: name, unit, buy price, optional sell price, each price stored once; reuse what is sound in the existing unit rows after reading them (2026-11-11).
+ - RATE CARD framing (Q-U1 YES 2026-11-11): price x cubes sold = EXPECTED cost of sales shown beside the P&L figure with a difference line. The P&L still owns cost of sales (REVENUE_COGS R2, R7). This supersedes the 2026-11-07 "rate card dropped".
+ - Cubes sold is DERIVED = P&L revenue / average sale rate, never typed (Q-U12: typed only where no revenue exists, so a business can be modelled before it trades). Q-U5: derived at setup, measured when live; the screen says which. The difference line is the in-tool test of the derived count.
+ - Stream (second tag): unit rows hold the stream list; roll-ups add only within a stream; one stream per working group is normal. Revenue share per stream stays a typed, flagged-unmeasured estimate until the live layer.
+ - Hours is a unit; a pure hours business stays on hours mode. Unit list gains kilometre, litre, load, cup (Q-U7); custom stays. Hours row inside units mode kept minimal (Q-U8); review the form on screen.
+ - Optional hours per load on the item (blank or zero = not set; Q-U8).
+ASSETS: capacity = ONE field, ONE unit (the unit says per trip or per hour; Q-U10), maximum load, fixed property of the machine, product mode only. No quantity field: twelve bowls = twelve records. NEW (both modes): duplicate asset with sequential naming (ASSETS Addendum 7).
+COST ALLOCATION: assigns, holds no figures. Cost of sales link is a FOURTH assignment kind; a LOAD is the working unit (concrete per load = capacity x buy price). Hired-in truck and driver = cost of sales, not Labour. Stream on each working group (link only; none = incomplete). Each bowl gets its own working group; DUPLICATE GROUP COPY = shell: overhead, cost of sales and stream copied, labour and assets NOT copied, assigned afterwards (the unassigned figure is the check).
+ - Overhead (Q-U3, Q-U4): pool = overheads after the asset transfer in BOTH modes (fix C3b). Within an operating group overhead follows the group's driver (volume in units mode); between operating groups it is shared on direct cost, not revenue; one unit and one stream per operating group. C3b first step is a READ-ONLY look at who reads overhead_absorbed_cost in product mode, then owner chooses B (Cost Allocation always uses overheads only) or B plus a Recovery Summary rebuild (CA Addendum 17).
+RATE BUILDER: one line, price per cube (concrete AND delivery); no cost build-up. Price auto-fills item price first, then stream average; sell price typed as markup % or fixed dollar margin; override allowed with a flag to update the price list; breakdown view display only (Q-U9). Shared pricing across assets = SHARED_CALCULATOR_ASSIGNMENT brief (not units specific).
+BUSINESS OUTCOME: keeps its shape. Working group drill-down shows bowl, truck, cubes, cost per cube, price per cube, overhead share; the materials row stays the whole-business total (BO Addendum 19). Every figure: trace node + calc map entry. Q-U13 = a CHECK in the seed run (do concrete and truck land in one materials row?).
+MODEL MODE: lever = changes a number that exists; scenario = adds/replaces something (truck add or replace; replace must retire the hired line). Three levers agreed (volume, buy price, sell price), also together (Q-U6). COGS lever is built in the units chat, not before; moves share mirra_diffs_v1 (BM Addendum 53 item 4). WHEN TO GROW (headline, later, both modes): break-even, buffer today and buffer eaten, on a rolling twelve months (Q-U11).
+SCOPE: first outside demo = the concrete reseller end to end on the real chain (cubes sold, cost per cube, price per cube, break-even cubes); a SLICE of the real build, never a shortcut; Model price levers may wait. Per-SKU retail is out of scope. First slice of R4 is read-only (section 5).
+
+3. STORED SHAPES (Q-U2). Rule: no field is written until the owner has seen exact field names and said yes.
+ - YES IN PRINCIPLE, names OWED: combined items list; capacity on the asset; cost of sales link in Cost Allocation with a stream on each working group.
+ - AGREED 2026-11-07, names OWED: duplicate group copy; product alias map; stored supplier report import.
+ - OPEN: where the alias map, supplier report and typed unit count are stored.
+ - Each new field: add to EVERY explicit field list (bug class b); run mirra-new-stored-field-check.
+
+4. OPEN ITEMS (owner calls; answer by number)
+ O1  Combined list fields: do P&L line, stream and hours per load stay on the item (2026-11-07 shape) now the list is name/unit/buy/optional sell (2026-11-11)? Exact names owed. (Q-U2)
+ O2  Shared P&L line: how one cost of sales line splits between items.
+ O3  Calculation order of the three Model mode levers.
+ O4  Courier division with three pricing bases (parked).
+ O5  Markup versus dollar-margin habit (Rate Builder).
+ O6  C3b choice, read-only look DONE (V6.1cf): B at the builder fixes the pool and the group rate rows only; Business Outcome (useBusinessOutcome.js:42) needs its own change; Recovery Summary screen is a separate rebuild. DECISION 2026-11-11 (V6.1cg): fix at the source for BOTH readers. Recovery Summary hands over a separate overheads-only figure (one new output field, name agreed at the keyboard in piece 1); Cost Allocation pool, group rate rows and Business Outcome all read it; hours-mode numbers must not move; Recovery Summary units screen rebuild stays a separate piece. Piece 1 = two batches (CA side, then BO side).
+ O7  Q-U14 (guaranteed weekly minimum for drivers) is for the outside business, not an owner call.
+ O8  ANSWERED (V6.1cf, REVENUE_COGS A6 item 3): YES, units shares business_type and Revenue/COGS storage with hours mode; one flag, not two designs.
+ O9  An asset with no trip and no hour rate (coffee machine): Q-U10 says the unit carries it; confirm wording on screen.
+
+5. BUILD ORDER (nothing starts before the speed-up gate is finished; G1-G6 are the gate)
+ a. DONE V6.1cf: front-loaded READ-ONLY chat (findings and draft acceptance sheets: Audit\V6.1\cf\FINDINGS_cf_read_only_look.txt, ACCEPTANCE_cf_pieces.txt). Order now: 0 seed, 1 C3b, 3 items list, 4 capacity, 5 cost of sales link, 2 materials row (needs the link).
+ b. Hand-calculate the reseller expected values; seed the reseller in HOURS mode with cost-of-sales lines; measure the gaps. No app code, no stored field.
+ c. The two double-count fixes (C3b; BO Addendum 19 materials row).
+ d. Thin slices, each its own chat, each starting with a fresh read of the code, each with trace nodes, calc map entry and graph rebuild: combined items list; capacity on assets; cost of sales link and stream; cubes display; Setup units mode; Rate Builder price per cube line; units harness alongside.
+ TEST LADDER (paper-checkable, same method as hours mode): 1 one bare bowl, one concrete line, one truck line, no overheads; 2 one overhead lands once; then bowl finance; a driver; a second bowl (sharing); non-productive staff; about 100 bowls; the 1,000 run once at the end. Paper sums written AFTER the run as a check on the tool. Tiered testing applies; headless regression is the routine check.
+
+6. HAND NUMBERS (ILLUSTRATION, not tool results; assumptions until the outside owner supplies figures)
+ Sell 250, buy 200 a cube, hired truck 240 a load, bowl 4.6-6 cubes, 12 bowls about 100,000 each. At 6 cubes: concrete 1,200 + truck 240 = 1,440 (240 a cube; 10 left to pay for bowl, overhead, profit). Break-even load 4.8 cubes (4.6 = -10 a load, 5.6 = +40). Break-even buy price on a 200 load: 206.52 at 4.6, 214.29 at 5.6. With 1,000,000 fixed cost: about 100,000 cubes a year break-even.
+
+7. STANDING RULES
+ Explicit yes for every new stored field. Every shown figure gets a trace node and calc map entry. Product mode must run with unit driver data before a change counts as done (RC-3). Live-test against real data. Check whether any data import is necessary (rule 10). PRIVACY: the first test business belongs to a third party: never name the person or company; real figures only with permission, anonymised, on :3004 only.
+ PARKED: customer price tiers; part loads; load utilisation; supplier label; coffee yield; operating-group capacity utilisation; cash after principal repayments; alias map reporting and quoted versus actual; splitting a P&L line over time; supplier report seasonality.
+
+8. REFINEMENTS LOG (append dated lines; newest last)
+ 2026-11-11 (V6.1ce): page created from the current design brief (log of 2026-11-07, 2026-11-09, two 2026-11-11 entries). No decision changed.
+ 2026-11-11 (V6.1cf): read-only look done, nothing built. C3b has more readers than CA A17 listed (group recovery-rate rows; Business Outcome overhead gap, wrong in product mode). Materials row takes the whole P&L cost of sales and will double count only once the cost of sales link exists. O8 answered. O6 still the owner's call. Records: CA A18, BO A20, REVENUE_COGS A6, ASSETS A8.
+ 2026-11-11 (V6.1cg): O6 DECIDED by owner: fix C3b at the source for both readers (see section 4). Piece 0 paper numbers rechecked: section 6 break-even buy prices (206.52 at 4.6, 214.29 at 5.6) only hold with a truck cost of 200 a load, not 240. With truck 240 they are 197.83 and 207.14. Corrected sheet: Audit\V6.1\cg\PIECE0_PAPER_NUMBERS.txt. Owner to confirm which truck figure the illustration uses.

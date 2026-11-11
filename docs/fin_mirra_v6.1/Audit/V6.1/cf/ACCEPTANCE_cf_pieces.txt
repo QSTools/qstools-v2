@@ -1,0 +1,68 @@
+V6.1cf - ACCEPTANCE SHEETS, ONE PER PIECE - 2026-11-11 (NZ). DRAFT: nothing is agreed until the owner says yes to a sheet.
+Numbers marked [SEED] are hand-calculated in piece 0 BEFORE any patch; never taken from the app. Importers from the repo graph (built 2026-11-10); rebuild first.
+Every storage change needs the exact field names seen and an explicit yes (mirra-new-stored-field-check).
+
+=== PIECE 0 - HAND-NUMBERS RESELLER SEED IN HOURS MODE (no code, no field) ===
+GOAL: put the reseller in with cost-of-sales lines and measure the gaps, so the fixes below have real figures.
+OUT OF SCOPE: all app code, storage shape, expected files of existing seeds. SEED: on :3004 only, anonymised.
+INPUTS (STATE section 6, illustration): sell 250, buy 200 a cube, truck 240 a load, bowls 4.6-6 cubes, 12 bowls about 100,000 each, fixed cost 1,000,000.
+EXPECTED [paper]: 6-cube load 1,440 cost, 10 left; break-even load 4.8 cubes; break-even buy 206.52 at 4.6, 214.29 at 5.6; about 100,000 cubes a year.
+DONE WHEN: gaps listed (what screens show versus paper), written into UNITS_MODE_STATE section 8 as one dated line.
+
+=== PIECE 1 - C3b: OVERHEAD POOL STOPS DOUBLE COUNTING (CORE CALCULATION, STOP POINT) ===
+GOAL: in product mode the overhead pool is overheads after the asset transfer, same as hours mode, so labour and assets count once.
+OUT OF SCOPE: hours-mode numbers (must not move), Recovery Summary units screen rebuild (own piece), Cost Allocation spread basis (volume basis is a later slice).
+MODULES: costAllocationInputBuilder.js:60 (take total_business_overheads: fixes the pool and the group rate rows, readers list in FINDINGS section 1), hooks/useBusinessOutcome.js:42 plus businessOutcomeCalculations.js:79,335 (second reader; separate batch). calculateRecoverySummary.js stays UNCHANGED under B (Recovery Summary screen is a separate rebuild). Importers: useCostAllocation, useBusinessOutcome, Recovery Summary page.
+STORAGE: none.
+OWNER DECISION FIRST (O6): option B = Cost Allocation and Business Outcome read an overheads-only figure; Recovery Summary keeps showing the burden. Example: overheads 100k, labour 300k, assets 100k. Today product mode spreads 500k as overhead on top of groups already carrying 400k. After B it spreads 100k. Recommendation: B, with the one extra output field named at the keyboard (needs yes). Wider Recovery Summary rebuild stays separate.
+SLICE ORDER: batch 1 builder line (check the line 246 default path first); batch 2 Business Outcome reader; seed run in product mode with unit driver data between them.
+PER BATCH: patches expected n (counted when written), asserts n, build exit 0.
+EXPECTED [SEED]: product mode pool = overheads after asset transfer (same value as hours mode for same data); group labour + asset + pool overhead = total burden exactly once; Business Outcome overhead gap = overheads - overheads recovered, no longer negative by construction.
+TRACE/CALC MAP: update existing nodes for overhead pool; CALCULATION_MAP entry changed (not new).
+REGRESSION: YES (shared calc). Expect headless PASS 11 of 11, 6,819 checks unchanged; hours seeds must not move. RC-3: run product mode WITH unit driver data before 'done'.
+LIVE CHECK: both modes; console snippet sums group costs + pool and compares to total_cost_burden.
+STOP POINTS: core calculation file (this is one), live test.
+DONE WHEN: standard list; plus piece 0 gap closed.
+
+=== PIECE 2 - MATERIALS ROW TAKES ONLY UNLINKED COST OF SALES (CORE) ===
+GOAL: whole-business materials row counts cost of sales once, once a cost of sales link exists (BO Addendum 19).
+OUT OF SCOPE: View A/B maths, markup levers, P&L ownership of cost of sales (REVENUE_COGS R2, R7).
+MODULES: hooks/useBusinessOutcomePerSourceRevenue.js (1209, 1214, 1386; file is 79 KB, do not grow it: put the new subtraction in a small new helper), businessOutcomeViewBCalculations.js read only. Importers: BO per-source card and children (graph).
+DEPENDS ON: piece 5 (link exists). Until then nothing to subtract and no change is needed or allowed.
+STORAGE: none. Reads the link from Cost Allocation output.
+EXPECTED [SEED]: materials cogs = P&L cost of sales - cost of sales linked to groups; group cost + materials cogs = P&L cost of sales; cost reconciliation (1386-1389) variance < 1.
+TRACE/CALC MAP: new node for 'unlinked cost of sales'; CM entry.
+REGRESSION: YES; no-link seeds must be byte-identical. LIVE: reseller seed, concrete and truck in groups, one materials row.
+DECISION FIRST: Q-U13 answer from code is 'no, not without this change'; confirm in the seed run.
+
+=== PIECE 3 - COMBINED ITEMS LIST (Revenue/COGS unit rows) ===
+GOAL: one list: name, unit, buy price, optional sell price; reuse the existing rows.
+OUT OF SCOPE: P&L figures, revenue share logic for existing hours seeds, Rate Builder.
+MODULES: revenueCogsStorage.js, revenueCogsCalculations.js (normalise_unit_driver_row drops unknown fields, patch it), hooks/useRevenueCogs.js (normaliseSingleUnitRows/MixedUnitRows read first), revenueCogsSelectors.js, RevenueCogsCard. Unit list kept in ONE shared constant (today three copies).
+STORAGE: NEW row fields. Names owed (O1): proposal for the keyboard - buy_price_per_unit, sell_price_per_unit (blank = not set); stream and hours-per-load only if O1 says they stay on the item. Add to every field list; save, reload, has_loaded guard check.
+UNITS ADDED (Q-U7): kilometre, litre, load, cup.
+EXPECTED [SEED]: existing hours-mode and product seeds unchanged; reload keeps buy and sell price; blank sell price stays blank (not 0).
+TRACE/CALC MAP: cubes derived already has logic; new trace node if a new figure is shown.
+REGRESSION: YES (storage). LIVE: add row, reload, switch single/mixed mode, confirm price survives.
+
+=== PIECE 4 - CAPACITY ON ASSETS (+ DUPLICATE ASSET) ===
+GOAL: one capacity field and one unit on a productive asset, product mode only.
+OUT OF SCOPE: depreciation, finance, utilisation hours, any asset cost maths.
+MODULES: assetStorage.js (createEmptyAssetState, sanitizeAssetState, sanitizeSavedAssetRecord), useAssets.js, assetHookUtils.js, AssetForm.jsx, assets selectors. Duplicate asset with sequential names is ASSETS Addendum 7 (both modes); separate batch.
+STORAGE: NEW fields, names owed: proposal asset_capacity_value, asset_capacity_unit (the unit says per trip or per hour, Q-U10). O9: asset with neither (coffee machine) - confirm wording on screen.
+EXPECTED: existing assets load with blank capacity; hours-mode screens show no new field; capacity survives save and reload and duplicate.
+REGRESSION: YES. LIVE: both modes.
+
+=== PIECE 5 - COST OF SALES LINK + STREAM (Cost Allocation) ===
+GOAL: a fourth assignment kind linking a P&L cost of sales line to a working group, and a stream tag on the group.
+OUT OF SCOPE: P&L figures, Labour, spread basis.
+MODULES: costAllocationStorage.js (create_initial_state, normalise_state, group fields), hooks/useCostAllocation.js (state arrays at 92-99, 133-134, 156-157; scenario injection ignores the new array - decide), group cost builder, new small file for the link maths.
+STORAGE: NEW array and group field, names owed. Proposal for the keyboard: cost_of_sales_group_assignments {assignment_id, group_id, cogs_line_id, assignment_percent, is_active, timestamps}; group.stream_id. Soft remove like the others.
+EXPECTED [SEED]: concrete per load = capacity x buy price; truck line to its group; link total <= P&L cost of sales; unassigned cost of sales figure is the check.
+TRACE/CALC MAP: yes, new nodes. REGRESSION: YES.
+ORDER: piece 5 before piece 2.
+
+=== LATER SLICES (no sheet yet, one chat each, each starts with a fresh read) ===
+cubes display; Setup units-mode switch; Rate Builder price-per-cube line; units harness; Model mode levers.
+
+FINAL ORDER: 0, 1, 3, 4, 5, 2, then the rest. Owner calls needed before piece 1: O6. The reader search is closed (owner's Select-String list).

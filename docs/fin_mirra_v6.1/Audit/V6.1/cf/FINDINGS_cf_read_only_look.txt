@@ -1,0 +1,54 @@
+V6.1cf - READ-ONLY LOOK - FINDINGS - 2026-11-11 (NZ)
+Docs only. No code, storage key, seed or expected file touched. Claude had file staging only (no shell), so searches ran over staged copies; limits are in section 7.
+
+1. C3b - WHO READS overhead_absorbed_cost
+ SET:    lib/calculations/recovery-summary/calculateRecoverySummary.js
+           line 246  default = total_cost_burden x overhead_absorbed_percent
+           line 271  hours_based:  = total_business_overheads
+           line 278  product_unit: = total_cost_burden (labour + assets + overheads; COGS excluded)
+           also feeds recovery_stream_total (349), overhead_absorbed_cost_per_recovery_hour (304-306), component_required_recovery.overhead.recovery_cost (405), output (635, 641)
+ READ 1: lib/calculations/cost-allocation/costAllocationInputBuilder.js:60 (safe_number copy) -> hooks/useCostAllocation.js:139 -> costAllocationOverheadPoolBuilder.js build_overhead_pool (available_overhead_cost). This is the double count: groups already carry labour and assets, then the pool spreads the whole burden again.
+ READ 2: hooks/useBusinessOutcome.js:42 -> calculateBusinessOutcome(overheadAbsorbedCost). Used at businessOutcomeCalculations.js:79 (overheadStrategyGap = totalBusinessOverheads - overheadAbsorbedCost) and :335 (overhead.recoveryTarget). In product mode the gap is overheads minus burden = negative, so status reads 'covered' whatever the numbers. Wrong in its own right, NEW finding.
+ READ 3: Cost Allocation group recovery-rate rows: hooks/cost-allocation/useCostAllocationGroupRecoveryRows.js (51, 163, 219-242) takes the builder's field: rate per hour = (working_unit_recovery_cost + overhead_absorbed_cost) / recovery_hours_used. Same double count as the pool. Fixed by changing the builder (option B).
+ PASS-THROUGH (display only, no maths): useCostAllocationOutputContract.js:27, costAllocationCardSections.js:86, useCostAllocationAssignmentCards.js:275 and costAllocationRateBuilderSelectors.js:138,160 (last item of a fallback chain), costAllocationTraceNodes.js:136 (text).
+ RECOVERY SUMMARY (display of its own figure): useRecoverySummary.js:139,174-175, recoverySummaryCardSelector.js:208,222-223, recoverySummarySelectorHelpers.js:27,172,333, recoverySummaryStatusSelector.js:70, RecoverySummaryDistributionBlock.jsx:8,59. Shows the burden as 'overhead' in product mode: wrong in its own right, separate rebuild.
+ NOT a reader: hooks/useBusinessOutcomeWaterfall.js (sets it to 0 on purpose). Business Summary and Revenue/COGS do not read it. The owner's Select-String list (46 lines, 2026-11-11) closed the search.
+ CONSEQUENCE FOR O6: option B (builder takes total_business_overheads) fixes READ 1 and READ 3 and leaves hours mode untouched. READ 2 (Business Outcome) reads the Recovery Summary contract directly and needs its own change. CHECK first: calculateRecoverySummary.js line 246 default path (share percents) is used only when recovery_mode is neither hours_based nor product_unit; confirm no live path uses it.
+
+2. MATERIALS ROW (Q-U13)
+ hooks/useBusinessOutcomePerSourceRevenue.js:
+   1209  total_cogs = business summary total_direct_costs (the whole P&L cost of sales, one lump)
+   1164-1172  residual_overhead = total_business_overheads - sum(group assigned_overhead_amount)
+   1214  build_materials_source(total_cogs, residual_overhead, markup)  [businessOutcomeViewBCalculations.js:64]
+         true_cost = total_cogs + max(residual_overhead, 0); modelled_revenue = total_cogs x (1 + markup)
+   1386  cost reference = total_cost_burden + total_direct_costs (cost reconciliation check)
+ TODAY: no double count of cost of sales, because a working group holds labour, assets and overhead only. It BECOMES a double count the moment a cost of sales link puts concrete/truck cost on a group (BO Addendum 17 item 2 risk is real, in the way described).
+ C3b LEAKS IN: in product mode the pool is the burden, so sum(group overhead) > total overheads, residual_overhead goes negative and is clamped to 0 in the materials row, hiding the overspread there, while the group rows still carry it. The reconciliation at 1386-1389 is the check that should show it (not run).
+ Q-U13 ANSWER (code only, not a run): concrete and truck would NOT land in one materials row unless the cost of sales link changes line 1209 to take only the cost of sales NOT linked to a group. That change is the piece.
+
+3. EXISTING UNIT ROWS (Revenue/COGS)
+ Stored in qs_tools_revenue_cogs_state_v2 (lib/storage/revenueCogsStorage.js): commercial_driver_mode, units_sold_annual, unit_driver_rows[]. Row fields: id, unit_label, unit_type, revenue_share_percent, average_sale_rate_per_unit, estimated_units_annual.
+ unit_type allowed: each, m2, m3, lm, tonne, hour, custom. No kilometre, litre, load, cup (Q-U7).
+ Maths already there (revenueCogsCalculations.js:41-92): annual_revenue = P&L revenue x share; units = typed estimated_units if type 'each', ELSE annual_revenue / average_sale_rate_per_unit. That is Q-U12 (derived, typed only where no revenue) already half built; margin_per_unit = margin pool share / units.
+ NOT in rows: buy price, sell price, stream, hours per load.
+ O8 ANSWERED: YES, units shares business_type and Revenue/COGS storage with hours mode. business_type comes from Setup; commercial_driver_mode is resolved from it in hooks/useRevenueCogs.js:231-251 (stored mode only separates single vs mixed). One flag, not two designs. Business Outcome, Cost Allocation, Labour, Assets do not read business_type (matches VARIABLE_TRACKER section 8).
+ BUG CLASS B, three places: (a) allowed unit list written twice (storage:16, calculations:22) plus the screen; (b) calculations.normalise_unit_driver_row (27-39) rebuilds a row from six named fields, so ANY new row field is dropped in calculated rows; (c) hook helpers normaliseSingleUnitRows / normaliseMixedUnitRows (useRevenueCogs.js:35, 49) not read in full, check before adding a row field. Storage normaliseUnitDriverRow spreads (...row), so it keeps extras.
+
+4. ASSET FIELD LISTS (lib/storage/assetStorage.js, key qs_tools_asset_state and qs_tools_saved_assets)
+ createEmptyAssetState (50-114) lists ~35 fields; sanitizeAssetState (116-246) spreads ...input then re-lists each with coercion; sanitizeSavedAssetRecord (248+) calls sanitize then calculateAssetOutputs. A new field kept by the spread but not coerced is a half-field: add it in empty state AND sanitize AND saved-record AND asset form AND duplicate-asset (ASSETS Addendum 7). Field count check: other_running_cost_monthly appears twice in assetStorage.js (empty + sanitize) and nowhere else in .js, so these two are the whole storage list; the saved-record rebuild (after line 260) and the AssetForm/useAssets files were not read.
+ No capacity, load or unit field exists. Productive assets carry scheduled/downtime/utilisation hours per week (x48 weeks).
+
+5. ASSIGNMENT SHAPE (lib/storage/costAllocationStorage.js, key qs_tools_cost_allocation_v2_1)
+ State: divisions, asset_labour_links, operational_groups, labour_group_assignments, asset_group_assignments, overhead_group_assignments, plus profile and external_delivery fields. normalise_state spreads ...state so an unknown array survives, but create_initial_state must list it and hooks/useCostAllocation.js passes labour and asset arrays by name (lines 92-99, 133-134, 156-157, scenario injection via inject_placements), so a fourth array must be threaded through those by hand.
+ Group: group_id, division_id, group_name, group_description, required_asset_ids, required_staff_ids, required_staff_count, is_active, sort_order, timestamps. No stream, no unit.
+ Labour assignment: assignment_id, labour_group_assignment_id, group_id, staff_type_id, labour_type_* , labour_class, is_productive, contributes_to_recovery_hours, assigned_staff_count, assignment_percent (1-100), is_active, timestamps.
+ Asset assignment: assignment_id, group_id, asset_id, assignment_percent (1-100), is_active, timestamps.
+ Overhead assignments are built automatically by build_overhead_pool (id group_automatic_overhead); method order today: recovery hours, else labour cost, else asset burden, else equal split. Units mode needs a volume basis added before the hours one.
+ Removal is soft (is_active false). A cost of sales link should follow the same shape: assignment_id, group_id, a cost of sales source id, assignment_percent, is_active, timestamps.
+
+6. OWNER CALLS NOW OPEN FROM THIS LOOK
+ O6 (C3b): recommend B (Cost Allocation takes overheads only) applied at the source for BOTH readers, i.e. make Recovery Summary hand over overheads-after-asset-transfer as a separate field and leave overhead_absorbed_cost's meaning for the Recovery Summary screen. Needs your yes (plain example in the acceptance sheet).
+ O1/O2/O9 unchanged.
+
+7. LIMITS OF THIS LOOK
+ No shell on the computer: files were staged and read one by one. The reader list is the owner's own Select-String output (closed). Not run: any seed, any screen. Not opened: AssetForm.jsx, useAssets.js field lists, saved-asset rebuild after assetStorage.js line 260, hook helpers normaliseSingleUnitRows/MixedUnitRows in full.
