@@ -1,0 +1,40 @@
+ACCEPTANCE SHEET - PIECE 0 (reseller seed in HOURS mode, list the gaps) - V6.1ch - 2026-11-11 (NZ)  [rev 2, after the voice session]
+DRAFT: nothing runs until the owner says yes. Replaces the piece 0 block in ACCEPTANCE_cf_pieces.txt.
+GOAL: put the concrete reseller into the app in HOURS mode with two cost of sales lines (concrete, truck), read what each screen says, and list the gaps against the paper figures, so pieces 1 to 5 have real gaps to close.
+OUT OF SCOPE: all app code, every storage shape and key, every existing seed and expected file, the stress generator itself (imported, not edited), public\__stress_tmp (the regression folder is not used).
+
+STANDING RULE (owner, 2026-11-11, by voice): THE OWNER RUNS EVERY SEED, LOAD AND REGRESSION STEP IN POWERSHELL. Claude writes the scripts and reads the saved output; Claude does not drive the pane for seeding or screen reads (pane runs cost too many tokens). PORT: 3005 (production server, npm run start -- -p 3005).
+TO CHECK, not assumed: Py\stress_test\README.txt still says the seed loader accepts :3004 only; headless_regression.py already defaults to :3005. README line looks out of date for how the owner now works.
+
+TRUCK FIGURE (OWNER, 2026-11-11): 240 a load. D1 FIXED-COST SPLIT (OWNER YES, then ADJUSTED BY CLAUDE, owner to confirm): the app counts only finance interest as asset cost (mirra_expected.asset_expected), so 300k of assets would need a 25 percent rate. Seed uses 12 bowls at 100,000, 10 percent, 5 years, finance start 2027-01-01 (future start: interest stays 120,000 whatever day it is run) = assets 120,000; labour 499,422.14 (4 office staff + 2 operators); overheads 380,577.86 (balance). Total exactly 1,000,000.00. Groups: G01 Bowl fleet (12 bowls, 2 operators), G02 Office and support.
+D2 SEEDING ROUTE (OWNER): a seed script he runs, not hand-keying.
+
+NEW FILES (scripts only, outside app code, both under 600 lines; Claude to commit to Py\stress_test\ on a yes):
+ build_reseller_seed.py  -> .tmp\reseller_piece0\seed_reseller_piece0.json + paper_reseller_piece0.json (paper figures from the inputs, never from the app). Reuses generate_business.build(); replaces only the P&L.
+ read_reseller_screens.py -> loads that seed into a FRESH headless Edge on :3005 (same method as headless_regression.py), saves 14 screens as text + trace.json under .tmp\reseller_piece0\screens. Writes under .tmp only.
+ STATUS: build script RUN in Claude's workspace (numbers below). Screen reader only syntax-checked: its first real run is on the owner's machine.
+
+PAPER NUMBERS [from inputs; sell 250, buy 200, truck 240, 6-cube load, 100,000 cubes]
+ Loads 16,666.67; revenue 25,000,000; concrete 20,000,000; truck 4,000,000; cost of sales 24,000,000; gross profit 1,000,000; fixed 1,000,000; net 0.00.
+ Per cube: price 250, cost of sales 240, fixed 10, all in 250. Break-even cubes 100,000. Per 6-cube load: 1,500 - 1,200 - 240 = 60.
+ Load margin at 4.6 / 4.8 / 5.6 / 6.0 cubes: -10 / 0 / +40 / +60. Break-even load 4.8 cubes. Break-even buy price: 197.83 at 4.6, 207.14 at 5.6, 210.00 at 6.0.
+ Layer 1 app nodes expected (same formulas as the stress harness): labour 499,422.14; business overheads 380,577.86; asset cost 120,000.00; cost burden 1,000,000.00; revenue 25,000,000; direct costs 24,000,000; margin pool 1,000,000.
+
+PREDICTIONS TO TEST [from the cf read-only look; NOT results]
+ P1 P&L shows both cost of sales lines; Revenue/COGS shows no cubes and no cost per cube (hours mode).
+ P2 Business Outcome materials row takes the whole 24,000,000 as one lump; concrete and truck not told apart.
+ P3 Cost Allocation groups carry labour + assets + overhead only: 1,000,000 across G01 and G02, no cost of sales.
+ P4 Cost reconciliation variance under 1 dollar; net profit 0.
+ P5 Hours mode: C3b does not bite (pool = overheads after asset transfer 380,577.86). Product-mode double count is piece 1.
+ P6 Nothing per cube, per load or break-even cubes anywhere: expected NONE.
+
+SLICE ORDER (owner steps in PowerShell, 4 commands):
+ 1 stop dev, npm run build, npm run start -- -p 3005 in its own window (rule 14).
+ 2 python Py\stress_test\build_reseller_seed.py --as-of 2026-11-11 --out .tmp\reseller_piece0
+ 3 python Py\stress_test\read_reseller_screens.py   (prints one READ line)
+ 4 Claude stages .tmp\reseller_piece0\screens\*.txt and trace.json, compares to the paper numbers, writes the gap list to Audit\V6.1\ch and one dated line in UNITS_MODE_STATE section 8.
+PER STEP: patches 0, asserts 0, build not needed for the scripts (no app code). The one build in step 1 is the normal production build.
+TRACE/CALC MAP: none. REGRESSION: not needed. Optional sanity: headless_regression.py still 11 of 11 afterwards (the reseller seed is not in public\__stress_tmp, so it cannot disturb it).
+LIVE CHECK: hours mode only, headless on :3005. Seed replaces localStorage in the fresh headless context only; the owner's Chrome and the pane storage are never touched.
+STOP POINTS: none beyond the owner's yes to this sheet and to committing the two scripts.
+DONE WHEN: READ line shows 14 screens plus trace; every paper figure marked match / gap with the screen value; gap list in Audit\V6.1\ch; STATE section 8 line; git status shows scripts + docs only; project knowledge synced.
