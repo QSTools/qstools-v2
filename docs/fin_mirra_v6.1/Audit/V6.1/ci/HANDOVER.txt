@@ -1,7 +1,8 @@
 HANDOVER V6.1ci - 2026-11-11 (NZ) - units mode piece 1 (C3b overhead pool) SHIPPED in code and briefs
 
 1. WHERE WE ARE
- Last commit 4aca8bc (V6.1cg). UNCOMMITTED: all V6.1ch files (see ch HANDOVER) plus V6.1ci: hooks\useRecoverySummary.js, hooks\useBusinessOutcome.js, lib\calculations\recovery-summary\calculateRecoverySummary.js, lib\calculations\cost-allocation\costAllocationInputBuilder.js, costAllocationRuleBuildContext.js, lib\calculation-trace\calculationTraceLiveValues.js, app\calculation-trace\page.jsx, Py\stress_test\make_product_variant.py, Briefs\COST_ALLOCATION_BRIEF.txt (A20), Briefs\BUSINESS_OUTCOME_BRIEF.txt (A22), Future_Build\UNITS_MODE_STATE.txt, Audit\V6.1\ci\ (ACCEPTANCE_piece1.txt, HANDOVER.txt). Run git status first (rule 12). Apply-Patch.ps1 / Test-ApplyPatch.ps1 G4 self-test still not run.
+ Last commit before this chat: 4aca8bc (V6.1cg); the V6.1ch docs and scripts are already committed (git status shows no ch files). UNCOMMITTED for V6.1ci (git status 17:32 NZ): app\calculation-trace\page.jsx, hooks\useBusinessOutcome.js, hooks\useRecoverySummary.js, lib\calculation-trace\calculationTraceLiveValues.js, lib\calculation-trace\pilot-map\costAllocationTraceNodes.js, lib\calculations\cost-allocation\costAllocationInputBuilder.js, costAllocationRuleBuildContext.js, lib\calculations\recovery-summary\calculateRecoverySummary.js, Py\stress_test\make_product_variant.py (new), docs: BUSINESS_OUTCOME_BRIEF (A22), COST_ALLOCATION_BRIEF (A20), CALCULATION_MAP, VARIABLE_TRACKER, UNITS_MODE_STATE, Audit\V6.1\ci\ (new). NOT part of this commit: Apply-Patch.ps1 (modified) and scripts\Test-ApplyPatch.ps1 (new): still waiting for the G4 self-test (expect 9 passed).
+ Final regression on the final build: PASS 11 of 11 seeds, 6,819 checks. Wording script (calc map, tracker, trace node text) applied: 3/3, build exit 0.
 
 2. WHAT WAS DONE
  New calculated field overhead_pool_cost (overheads only, not stored). Cost Allocation pool and Business Outcome read it. Group recovery-rate rows deliberately unchanged (CA A20 item 2 corrects A18 item 3). Hours reseller byte-identical; regression 11 of 11, 6,819 checks; product-mode seed pool 380,577.86 (was 1,000,000). Extra trace block recovery_summary_raw added so the field flow is observable.
@@ -10,7 +11,6 @@ HANDOVER V6.1ci - 2026-11-11 (NZ) - units mode piece 1 (C3b overhead pool) SHIPP
  Field name overhead_pool_cost; leave group rate rows alone; product-mode seed via make_product_variant.py; make the field observable in the trace.
 
 4. OPEN
- Trace node text (costAllocationTraceNodes.js cost_allocation.overhead_pool), CALCULATION_MAP (Recovery Summary section, "overhead_absorbed_cost -> overhead pool") and VARIABLE_TRACKER (overhead pool note, C3b) wording still say the old thing: script given, not yet run.
  Business Outcome overhead target not observable; the gap is 0 by construction in both modes (BO A22 items 3-4).
  Product-mode group spread differs from hours (CA A20 item 5): later slice.
  B3 (Model Readiness blocked on seeds without a saved GO baseline): known behaviour, read-only look optional.

@@ -5,7 +5,7 @@ FILE:          docs\fin_mirra_v6.1\Briefs\SUMMARIES_BRIEF.txt  (ONE brief for th
                they were verified together and share one chain; update in place)
 STATUS:        VERIFIED (P2.6, 2026-09-23). A11 Recovery Summary record folded in. Since: S-G1 closed (Business
                Outcome BO-7), S-H2 closed (Business Outcome 8b F1). Stress-tested through R2.
-LAST UPDATED:  2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
+LAST UPDATED:  2026-11-11 (Addendum 1, V6.1ci); 2026-10-21 (V6.1 collation - rebuilt from the sources listed in Section 12)
 ROUTES:        app/opening-hours, app/cost-summary, app/business-summary, app/recovery-summary
 MECHANISM:     Calculations\CALCULATION_MAP_v6_0.txt Sections 2 (Opening Hours) and 6 (summaries).
                This brief holds intent, rules, contract, verified status and open items.
@@ -185,4 +185,7 @@ Tooling note kept from A11: in DevTools, capture copy() before any await in an a
 ===============================================================================
 ADDENDA (dated, numbered, newest last)
 ===============================================================================
-(none yet)
+ADDENDUM 1 (2026-11-11, chat V6.1ci) - POINTER: RECOVERY SUMMARY GAINED overhead_pool_cost  [SHIPPED; commit 01671b3; COST_ALLOCATION_BRIEF Addendum 20, BUSINESS_OUTCOME_BRIEF Addendum 22]
+ 1. [SHIPPED] calculateRecoverySummary.js now returns a second overhead figure, overhead_pool_cost = round_currency(total_business_overheads) in BOTH modes (overheads after the asset transfer); hooks/useRecoverySummary.js carries it in output_contract. It is a calculated output, not stored. overhead_absorbed_cost is UNCHANGED: hours mode = total_business_overheads, product mode = the whole total_cost_burden (R9). The two are equal in hours mode, so no hours-mode number moved (reseller seed byte-identical, regression 11 of 11, 6,819 checks).
+ 2. [WHY] Cost Allocation's overhead pool and Business Outcome's overhead target now read overhead_pool_cost; they used overhead_absorbed_cost, which in product mode double counted labour and assets (C3b). Recovery Summary's own screen is NOT changed: in product mode it still shows the burden as overhead absorbed. That screen is wrong in its own right and is a separate rebuild (CA Addendum 19 item 1).
+ 3. [REMINDER] Any consumer that wants overheads only must read overhead_pool_cost, never overhead_absorbed_cost, in product mode.
