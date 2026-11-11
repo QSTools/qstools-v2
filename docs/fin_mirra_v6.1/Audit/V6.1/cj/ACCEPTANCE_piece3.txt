@@ -1,0 +1,34 @@
+ACCEPTANCE SHEET - PIECE 3 - COMBINED ITEMS LIST - chat V6.1cj - 2026-11-11 (NZ)  DRAFT, awaiting owner yes to D1-D5
+GOAL: Revenue/COGS holds ONE list of items (name, unit, buy price, optional sell price). Each price stored once. Concrete (sold) and hired truck (bought only) sit in the same list.
+WHO RUNS IT: owner in PowerShell on :3005 (running rule). Claude writes the Apply-Patch scripts and reads the pasted output. Order: batch 1 script, build (stop dev first, rule 14), regression; then batch 2 the same way.
+OUT OF SCOPE: P&L figures, revenue share logic in hours mode, Rate Builder, Cost Allocation, capacity (piece 4), cost of sales link and stream (piece 5), expected cost of sales line (D5), Xero import.
+READ IN CODE TODAY (fresh, this chat):
+  - Sell price ALREADY EXISTS: average_sale_rate_per_unit on each row (derived units = revenue share x P&L revenue / rate). A new sell_price_per_unit would be a second sell price. See D1.
+  - Unit list is written FOUR times: revenueCogsStorage.js:16, revenueCogsCalculations.js:23, revenueCogsSelectors.js:74 (label map), RevenueCogsCard.jsx:206-212 (options).
+  - Single-unit mode keeps ONLY row 1 (useRevenueCogs.js normaliseSingleUnitRows). A truck row would be deleted on save. Mixed mode needs 2+ rows, revenue split 100, and warns on any non-"each" row with no sale rate. A buy-only truck row breaks both. See D2.
+  - Calculations normalise_unit_driver_row (27-39) rebuilds rows from 6 fields: a new field is DROPPED there (bug class b). Storage normaliseUnitDriverRow spreads ...row, so storage keeps extras. Blank numbers become 0 in toNumber (storage, hook updateUnitDriverRow). A blank buy price needs null handling.
+MODULES TOUCHED: NEW lib/constants/unitTypes.js (small); revenueCogsStorage.js; revenueCogsCalculations.js; revenueCogsSelectors.js; hooks/useRevenueCogs.js; components/revenue-cogs/RevenueCogsCard.jsx. Each under 600 lines.
+  Importers of unit_driver_rows / these files: NOT yet checked (no shell on your machine this chat). Owner runs the Select-String list, or I read the repo graph, before batch 2.
+STORAGE: batch 1 none. Batch 2 NEW row field buy_price_per_unit (number, null = not set) inside qs_tools_revenue_cogs_state_v2. Needs explicit yes (D4) and mirra-new-stored-field-check: add to default row, normalise, hook buildNewUnitDriverRow, calc normalise, selector map; save, reload, has_loaded guard (already present, line 90).
+SLICE ORDER:
+  Batch 1 (no new field): shared unit constant; 4 units added; all four copies read it. Hours seeds cannot move.
+    patches ~6, asserts 5: constant has 11 values; storage/calc/selector/card each import it; no literal "tonne" list left.
+  Batch 2 (STOP POINT, first storage change): buy_price_per_unit; buy-only item rule (D2); "Add purchased item" button that does NOT flip the mode.
+    patches ~9, asserts 8 (counted when written). Build exit 0 after each batch.
+UNITS ADDED (Q-U7): stored values km, litre, load, cup; labels Kilometre, Litre, Load, Cup. Custom stays.
+EXPECTED NUMBERS (paper, STATE section 6 plus piece 0: revenue 25,000,000 at 250 a cube, cost of sales 24,000,000, 6-cube load):
+  derived cubes = 25,000,000 / 250 = 100,000 (unchanged by this piece)
+  list rows: Concrete m3 buy 200 sell 250; Hired truck load buy 240 sell blank
+  Concrete at 100,000 cubes x 200 = 20,000,000; truck 16,666.67 loads x 240 = 4,000,000; together 24,000,000 = P&L figure. SHOWN ONLY BY PAPER here, no screen line yet (D5).
+  Existing seeds: hours seeds byte-identical; product variant rows gain buy_price_per_unit null, nothing else.
+TRACE / CALC MAP: none new (no new calculated figure). Input coaching only. If D5 is brought in, expected cost gets a node + CM entry.
+REGRESSION: YES. headless PASS 11 of 11, 6,819 checks. Product variant rows carry one extra field, so re-save the variant expected file only if the diff is exactly that field.
+LIVE CHECK (:3005): single mode: add truck row, reload, truck survives and does not change the 100 percent split. Mixed mode: same. Buy price 200 survives reload; clear it, reload, stays blank (null, not 0). Switch single/mixed/back: both rows survive. Hours mode: no new fields visible. RC-3: run with unit driver data.
+OWNER DECISIONS NEEDED FIRST:
+  D1 Sell price: reuse average_sale_rate_per_unit as THE sell price (rename only on screen: "Sell price"). Blank = 0 = not set, as today. Example: concrete sell 250 typed once; revenue 25M / 250 gives 100,000 cubes. REC: reuse, do not add sell_price_per_unit. This changes your proposed name.
+  D2 Buy-only items: a row with a buy price and no sell price (truck) is allowed. It takes no revenue share, no sale-rate warning, no unit volume. In single mode extra rows are kept as buy-only items instead of being dropped. Example: truck 240 a load never shows "needs a sale rate". REC: yes.
+  D3 O1: stream, P&L line and hours per load stay OFF the item for now. Stream and the P&L link arrive with piece 5 (and O2, shared line split, is still unanswered). Hours per load has no reader. REC: yes.
+  D4 Names: buy_price_per_unit (null = not set); unit values km, litre, load, cup. REC: yes.
+  D5 Expected cost of sales line (Q-U1) NOT in piece 3. The truck is per load, loads need capacity (piece 4), so a line now would show 4,000,000 of false difference. REC: bring it after piece 5.
+STOP POINTS: batch 2 (first storage change); live UI test.
+DONE WHEN: build clean, every Patched: seen, asserts n/n (RESULT line), regression 11 of 11 / 6,819, screen matches numbers, REVENUE_COGS Addendum 7 [SHIPPED] (last is 6), STATE line, git status shows expected files only, project knowledge synced.

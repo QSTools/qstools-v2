@@ -1,0 +1,16 @@
+V6.1cj - HANDOVER - 2026-11-12 (NZ)
+DONE: piece 3 (combined items list) SHIPPED. Owner yes to D1-D5.
+  - ONE new stored field buy_price_per_unit (null = not set) on the Revenue/COGS unit row. Sell price reuses average_sale_rate_per_unit (screen label "Sell price per unit").
+  - Purchased item = buy price set, nothing on the sell side (hired truck). Rule in lib/calculations/unitItemRules.js. Kept in Single mode, no warnings. output_contract.unit_driver_rows = sold rows only; purchased_items = the rest.
+  - ONE unit list lib/constants/unitTypes.js (+ km, litre, load, cup). Pure ASCII (escapes) after the superscript repair.
+  - Trace root input node revenue_cogs.items.<row id>.buy_price_per_unit (revenueCogsItemTraceNodes.js).
+  - Proof: regression PASS 11 of 11, 6,819 checks (final build, seeds dated 2026-11-12). Pane product mode: 254 nodes, 343 edges, 0 dup, 0 missing; item nodes 200 and 240.5; Annual units 5,390; edge checks passed.
+  - Records: REVENUE_COGS A7, CALCULATION_TRACE A14, calc map s1 items entry, VARIABLE_TRACKER bullet, UNITS_MODE_STATE (O1 answered, s3, s8 line). Sheet: Audit\V6.1\cj\ACCEPTANCE_piece3.txt.
+LESSONS:
+  - Seeds are dated to the NZ day: on the first regression of a new day run .tmp\r3s1_regression_prepare.ps1 (stop :3005 first), then npm run start -- -p 3005. All 11 fail on a stale date, not a code fault.
+  - Do not put unicode escapes in scripts written by Claude for PowerShell 5.1; build the characters with [char] codes.
+  - Assert -Not on a bare word ("label_map") can match another function; assert on the exact new text.
+NEXT: piece 4 (capacity on assets + duplicate asset), then 5 (cost of sales link + stream), then 2 (materials row). D5 (expected cost of sales line) after piece 5. Running rule: owner runs seeds and regressions at :3005; one step at a time.
+OWED (own chats, unchanged): calc map re-run (33 drift items + 1 NOT FOUND, now also line numbers in s1 shifted); PROJECT_MAP three audit scripts that do not resolve; README :3004 line; piece 0 pointer addenda; G4 self-test of Apply-Patch.ps1 (expect 9 passed; Apply-Patch.ps1 and scripts\Test-ApplyPatch.ps1 are still uncommitted, left out of the cj commits).
+SMALL OPEN (REVENUE_COGS A7 item 12): purchased item that loses its field would be dropped in Single mode (screen cannot produce it); stored mode hours_based on a product business does not force row 1 to 100; per-row sell price/share/units have no trace nodes.
+ONE-SHOT SCRIPTS (not committed): scripts\Patch-cj-batch1/2/3-trace/label.ps1, Build-cj-batch1.ps1, Fix-cj-unit-superscripts.ps1.
