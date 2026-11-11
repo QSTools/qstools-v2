@@ -39,7 +39,8 @@ export function useBusinessOutcome() {
 
       labourRecoveryCost: recovery.labour_recovery_cost ?? 0,
       assetRecoveryCost: recovery.asset_recovery_cost ?? 0,
-      overheadAbsorbedCost: recovery.overhead_absorbed_cost ?? 0,
+      overheadAbsorbedCost:
+        recovery.overhead_pool_cost ?? recovery.total_business_overheads ?? 0,
 
       labourModelRecoveryCapacity: weightedSummary.summary_complete
         ? weightedSummary.weighted_modelled_labour_revenue ?? null

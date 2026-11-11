@@ -137,6 +137,7 @@ export default function useRecoverySummary(inputs = {}) {
       material_margin_percent: calculated.material_margin_percent,
       material_margin_status: calculated.material_margin_status,
       overhead_absorbed_cost: calculated.overhead_absorbed_cost,
+      overhead_pool_cost: calculated.overhead_pool_cost,
 
       // Support/productive asset split, plus each side's assigned share of
       // the asset overhead pools (fuel, insurance, repairs, registration,

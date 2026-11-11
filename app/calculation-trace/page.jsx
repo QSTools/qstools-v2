@@ -188,6 +188,11 @@ function buildTraceSnapshot(graph, liveValues, integrityReport) {
     nodes,
     edges: graph?.edges ?? [],
     cost_allocation_raw: liveValues?.cost_allocation ?? null,
+    recovery_summary_raw: {
+      overhead_pool_cost: liveValues?.recovery_summary?.overhead_pool_cost,
+      overhead_absorbed_cost: liveValues?.recovery_summary?.overhead_absorbed_cost,
+      total_business_overheads: liveValues?.recovery_summary?.total_business_overheads,
+    },
   };
 }
 

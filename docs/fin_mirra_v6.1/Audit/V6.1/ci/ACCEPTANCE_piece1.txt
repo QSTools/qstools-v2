@@ -1,0 +1,54 @@
+ACCEPTANCE SHEET - PIECE 1 (C3b overhead pool, fix at the source) - V6.1ci - 2026-11-11 (NZ)
+STATUS: SHIPPED 2026-11-11 (see RESULTS at the end). D1 field name overhead_pool_cost, D2 product seed via make_product_variant.py, D3 rows left alone: all agreed by the owner.
+
+GOAL: in product mode the Cost Allocation overhead pool and the Business Outcome overhead target use overheads only (as hours mode does), so labour and assets are counted once.
+WHO RUNS IT: owner in PowerShell on :3005 (running rule). Claude writes the Apply-Patch scripts and reads saved text. Commands in slice order: (1) headless regression BEFORE, (2) read_reseller_screens.py BEFORE (hours baseline), (3) batch 1 script, build, (4) regression + reseller read AFTER, (5) batch 2 script, build, regression + reseller read AFTER, (6) product-mode run (see D2).
+OUT OF SCOPE: hours-mode numbers (must not move); Recovery Summary screen and its product-mode burden figure (own rebuild); overhead_absorbed_cost itself (kept, unchanged); group recovery-rate rows (see FINDING F2); units spread basis; any stored field.
+
+FINDINGS FROM TODAY'S FRESH READ (code, not app)
+ F1 Line 246 default path in calculateRecoverySummary.js is DEAD for the output: recovery_mode is only "product_unit" or "hours_based" (line 32) and both branches overwrite overhead_absorbed_cost (271, 278). Safe to leave.
+ F2 CORRECTION to CA Addendum 18 item 3. The group recovery-rate rows (useCostAllocationGroupRecoveryRows.js:163) compute (labour_recovery_cost + asset_recovery_cost + overhead_absorbed_cost) / hours. In product mode labour and asset recovery cost are set to 0 (274-279) and overhead_absorbed_cost = whole burden, so that row already equals burden / hours, counted ONCE. Switching it to overheads-only would DROP labour and assets from the rate. So the rows are NOT changed in piece 1. Only the POOL (double count) and Business Outcome (wrong target) change.
+ F3 Bug class (b) confirmed: useRecoverySummary.js builds output_contract field by field (line 139 for overhead_absorbed_cost) and costAllocationInputBuilder.js lists fields by name (line 60). The new field must be added in both or it is silently dropped.
+
+MODULES TOUCHED (importers: useCostAllocation, useBusinessOutcome, Recovery Summary page; rebuild graph first)
+ Batch 1 (Cost Allocation side), 4 patches:
+  1. lib/calculations/recovery-summary/calculateRecoverySummary.js - CORE, STOP POINT. New const = round_currency(total_business_overheads), same in both modes, added to the returned object near line 635.
+  2. hooks/useRecoverySummary.js - add the field to output_contract (next to line 139).
+  3. lib/calculations/cost-allocation/costAllocationInputBuilder.js - pass the field through (next to line 60).
+  4. lib/calculations/cost-allocation/costAllocationRuleBuildContext.js line 216 - build_overhead_pool reads the new field instead of overhead_absorbed_cost.
+ Batch 2 (Business Outcome side), 1 patch:
+  5. hooks/useBusinessOutcome.js line 42 - overheadAbsorbedCost reads the new field. businessOutcomeCalculations.js (79, 335) NOT edited: it takes the value as a parameter.
+ NOT touched: useCostAllocation.js:139 and useCostAllocationGroupRecoveryRows.js (rows keep burden/hours, F2); pass-through readers listed in CA Addendum 18 item 1.
+STORAGE: none. The new field is a calculated output only, never saved. (mirra-new-stored-field-check not triggered; the explicit field lists in F3 still get it.)
+
+PER BATCH
+ Batch 1: patches expected 4 (each "Patched:"), asserts 4 (field present in calc return, hook contract, builder, pool call), build exit 0, unit tests: none exist for these files (confirm).
+ Batch 2: patches expected 1, asserts 1, build exit 0.
+
+EXPECTED NUMBERS (paper, from piece 0 seed inputs, not from the app)
+ Hours mode, reseller seed: overhead_absorbed_cost 380,577.86 and new field 380,577.86 (equal); every screen identical before and after.
+ Product mode, same data: pool today 1,000,000.00 (whole burden), after 380,577.86. Groups already hold labour 499,422.14 + assets 120,000 = 619,422.14. Groups + pool = 1,000,000.00 = total_cost_burden, once.
+ Plain example: overheads 100k, labour 300k, assets 100k: today product mode pool 500k, after 100k.
+ Business Outcome product mode: overhead recoveryTarget = overheads (380,577.86, today 1,000,000); gap = 0 and status "covered", the same as hours mode already is (gap is overheads minus the same figure). Honest note: the gap is 0 by construction in both modes; this piece makes product mode match hours, it does not make the gap informative.
+
+TRACE NODES / CALC MAP: no new shown figure. Update the existing overhead-pool text (costAllocationTraceNodes.js:136) and the CALCULATION_MAP entry for the overhead pool; add the field to VARIABLE_TRACKER. Check trace coverage script after.
+REGRESSION: YES. Headless PASS 11 of 11, 6,819 checks, unchanged, before and after each batch. RC-3: a product-mode run WITH unit driver data before "done".
+LIVE CHECK: both modes. Console snippet sums operational group cost rows (labour+asset+overhead) + unassigned and compares to total_cost_burden. Reseller hours read identical to piece 0 (revenue 25,000,000; burden 1,000,000.00).
+
+OWNER DECISIONS NEEDED FIRST
+ D1 Field name. Recommendation: overhead_pool_cost (it IS the figure the pool spreads). Alternative: overheads_only_recovery_cost (clearer it excludes labour and assets, longer). Caution: "pool" is already used for asset-related overhead pools in General Overheads, so say if that confuses you.
+ D2 Which product-mode seed do we use? If build_reseller_seed.py has no product-mode switch, I will check it and propose the smallest addition (seed script only, no app code).
+ D3 Confirm F2: leave the group rate rows alone (my read says changing them would make them wrong).
+
+STOP POINTS: core calc file (patch 1); live test after batch 2.
+DONE WHEN: build clean, 5 "Patched:" lines seen, asserts 4/4 and 1/1, regression 11/11 unchanged, reseller hours read identical, product-mode numbers match paper, CM/tracker/trace text updated, CA/BO/UNITS_STATE addenda [SHIPPED], git status expected files only, project knowledge synced.
+
+RESULTS (ticked against the sheet, actual numbers)
+ Batch 1: patches 4/4, asserts 4/4, build exit 0 (RESULT line). Batch 2: patches 1/1, asserts 1/1, build exit 0.
+ EXTRA batch (not on the original sheet): trace observability, patches 4/4, asserts 3/3, build exit 0 (recovery_summary_raw in the trace dump) - added because the field flow was masked by the fallback.
+ Regression: PASS 11 of 11, 6,819 checks, before, after batch 2 and after the trace patch.
+ Hours reseller: 14 screens byte-identical before / after1 / after2 / after3 (the three re-read after3); trace differs only in captured_at (+ new block).
+ Product mode: pool available 380,577.86, assigned 380,577.86, remaining 0 (old 1,000,000); groups 619,422.14 + pool = 1,000,000.00.
+ Trace trio: hours 380,577.86 / 380,577.86 / 380,577.86; product 380,577.86 / 1,000,000 / 380,577.86.
+ Not observable: Business Outcome target (BO Addendum 22 item 3). Observation: product-mode group split differs from hours (CA A20 item 5).
+ Still owed: trace node text, CALCULATION_MAP and VARIABLE_TRACKER wording (script given), git commit, project sync.

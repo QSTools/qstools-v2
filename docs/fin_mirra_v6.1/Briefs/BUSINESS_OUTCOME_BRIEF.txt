@@ -406,3 +406,10 @@ ADDENDUM 20 (2026-11-11, chat V6.1cf) - POINTER: MATERIALS ROW READ IN CODE (A19
 
 ADDENDUM 21 (2026-11-11, chat V6.1cg) - POINTER: O6 DECIDED; BUSINESS OUTCOME IS THE SECOND READER TO CHANGE  [DOCS ONLY: no Business Outcome change yet]
  1. [DECISION, OWNER] C3b is fixed at the source for both readers (CA Addendum 19). useBusinessOutcome.js:42 and businessOutcomeCalculations.js:79,335 will read the new overheads-only figure so the overhead gap is overheads minus overheads recovered, no longer negative by construction in product mode. Separate batch after the Cost Allocation side; hours mode must not move.
+
+ADDENDUM 22 (2026-11-11, chat V6.1ci) - [SHIPPED] BUSINESS OUTCOME READS THE OVERHEADS-ONLY FIGURE  [CA Addendum 20; Audit\V6.1\ci\ACCEPTANCE_piece1.txt]
+ 1. [SHIPPED] hooks/useBusinessOutcome.js:42 now passes recovery.overhead_pool_cost (falls back to total_business_overheads) as overheadAbsorbedCost. businessOutcomeCalculations.js (79, 335) was NOT edited; it takes the value as a parameter. 1 patch, 1 assert, build exit 0.
+ 2. [EFFECT] Product mode: overhead.recoveryTarget goes from the whole burden (1,000,000 on the reseller seed) to the overheads (380,577.86); overheadStrategyGap = totalBusinessOverheads - target = 0 and status 'covered', exactly as hours mode already behaves. Hours mode did not move.
+ 3. [NOT OBSERVABLE, STATED HONESTLY] The target is not in the Business Outcome page text or in the trace dump: product-mode Business Outcome, Cost Allocation and Recovery Summary pages were byte-identical before and after this patch (old status was also 'covered' because the gap was negative). It rests on the assert plus the observed contract field (CA Addendum 20 item 6).
+ 4. [NOTE] The overhead gap is 0 by construction in BOTH modes (overheads minus the same overheads). Making it informative needs a different definition (for example overheads minus overheads actually recovered by revenue); not decided, not in scope.
+ 5. [GATE UNCHANGED] Piece 2 (materials row takes only unlinked cost of sales) still waits for the cost of sales link.
